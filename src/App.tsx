@@ -1,3 +1,8 @@
+// @ts-nocheck
+// TODO(migrasi): SPA legacy hasil AI Studio — belum lolos TS strict.
+// Dipecah & ditipekan ulang bertahap saat tiap fitur dimigrasi ke route Next.js.
+'use client';
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {

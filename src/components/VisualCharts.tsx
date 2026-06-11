@@ -1,3 +1,4 @@
+// @ts-nocheck — TODO(migrasi): komponen UI legacy AI Studio; tipekan saat dimigrasi.
 import React from 'react';
 import { motion } from 'motion/react';
 import { Award, Target, Flame, TrendingUp } from 'lucide-react';

@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
 
 /**
@@ -35,8 +36,7 @@ export async function createClient() {
  * meneruskan input mentah dari user tanpa otorisasi manual.
  */
 export function createAdminClient() {
-  const { createClient: createSb } = require('@supabase/supabase-js');
-  return createSb<Database>(
+  return createServiceClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false } },

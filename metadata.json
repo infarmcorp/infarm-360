@@ -1,0 +1,6 @@
+{
+  "name": "Infarm 360° Performance Assessment System",
+  "description": "Sistem Performance Assessment 360° dan Manajemen KPI untuk Organisasi Modern.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

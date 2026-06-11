@@ -495,7 +495,7 @@ export default function App() {
   // Interactive Temp states
   const [loginRole, setLoginRole] = useState<string>('');
   const [loginUserId, setLoginUserId] = useState<string>('');
-  const [loginPassword, setLoginPassword] = useState<string>('infarm123');
+  const [loginPassword, setLoginPassword] = useState<string>('Infarm@2026');
   
   const [kpiInputScores, setKpiInputScores] = useState<Record<string, string>>({});
   const [kpiInputNotes, setKpiInputNotes] = useState<Record<string, string>>({});
@@ -1390,8 +1390,8 @@ export default function App() {
       showToast('Pilih peran dan ID Pegawai Anda telebih dahulu.', 'err');
       return;
     }
-    if (loginPassword !== 'infarm123') {
-      showToast('Sandi demo salah. Silakan gunakan password: infarm123', 'err');
+    if (loginPassword !== 'Infarm@2026') {
+      showToast('Sandi demo salah. Silakan gunakan password: Infarm@2026', 'err');
       return;
     }
 
@@ -1833,7 +1833,7 @@ export default function App() {
               <div className="bg-emerald-50 text-emerald-800 p-3 rounded-xl text-[10px] leading-relaxed flex items-start gap-2 border border-emerald-100">
                 <Info className="w-4 h-4 flex-shrink-0 text-emerald-600" />
                 <span>
-                  Password simulasi default yaitu <strong>infarm123</strong>. Gunakan data demo yang tersedia untuk menguji bermacam-macam fungsionalitas tim.
+                  Password simulasi default yaitu <strong>Infarm@2026</strong>. Gunakan data demo yang tersedia untuk menguji bermacam-macam fungsionalitas tim.
                 </span>
               </div>
 

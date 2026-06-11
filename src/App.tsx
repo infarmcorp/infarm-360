@@ -6512,9 +6512,14 @@ export default function App() {
 
                   {page === 'monitor-kinerja' && (() => {
                     const isSpv = activeUser?.role === 'spv';
+                    // HRD yang sedang "SPV Mode" tetap melihat seluruh timnya (lintas divisi).
+                    // SPV asli dibatasi HANYA divisinya sendiri — tidak perlu tahu kinerja divisi lain.
+                    const isHrdAsSpv = !!activeUser?.realHrd;
                     const visibleEmps = isSpv
-                      ? ALL_EMPS.filter(emp => activeSupervisees.includes(emp.id))
-                      : ALL_EMPS;
+                      ? ALL_EMPS.filter(emp =>
+                          activeSupervisees.includes(emp.id) &&
+                          (isHrdAsSpv || emp.dept === activeUser?.dept))
+                      : ALL_EMPS; // HRD Admin / Direksi: semua pegawai, semua divisi
 
                     // Dynamic evaluation helpers for custom Year, Month, and Quarter filters (Requirements 1 & 2)
                     const getFilteredKpiScore = (empId: string, yr: string, mth: string, qtrKey: string) => {

@@ -666,10 +666,14 @@ export const PerformanceAppraisalDoc: React.FC<PADocProps> = ({
                             {aspectGroup.indices.map((qIdx) => {
                               const qText = questionsQuant[qIdx] || `Indikator #${qIdx + 1}`;
                               
-                              // Collect all feedback from compiledEvaluations for this indicator
+                              // Collect all feedback from compiledEvaluations for this indicator.
+                              // Pertahankan penanda Self (Evaluasi Diri) agar bisa diberi label.
                               const responses = compiledEvaluations
-                                .map(ev => ev.qr?.[qIdx])
-                                .filter((reason): reason is string => !!reason && reason.trim().length > 0);
+                                .map(ev => ({
+                                  reason: ev.qr?.[qIdx],
+                                  isSelf: ev.assessorName.includes('(Evaluasi Diri)')
+                                }))
+                                .filter(r => !!r.reason && r.reason.trim().length > 0);
 
                               return (
                                 <div key={qIdx} className="p-4 space-y-2">
@@ -686,9 +690,14 @@ export const PerformanceAppraisalDoc: React.FC<PADocProps> = ({
                                   {/* Responses List */}
                                   {responses.length > 0 ? (
                                     <ul className="list-disc pl-5 mt-1 space-y-1 text-[11px] text-gray-700 font-sans">
-                                      {responses.map((reason, rIdx) => (
+                                      {responses.map((r, rIdx) => (
                                         <li key={rIdx} className="leading-relaxed italic">
-                                          &ldquo;{reason}&rdquo;
+                                          {r.isSelf && (
+                                            <span className="not-italic mr-1.5 align-middle text-[8.5px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                                              Self
+                                            </span>
+                                          )}
+                                          &ldquo;{r.reason}&rdquo;
                                         </li>
                                       ))}
                                     </ul>

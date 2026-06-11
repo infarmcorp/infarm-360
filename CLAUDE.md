@@ -21,12 +21,15 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`.
 > **PENTING:** Kode sekarang ≠ tech stack target. Jangan asumsikan Next.js/Supabase sudah ada.
 
 **Kondisi sekarang (`as-is`):**
-- **Vite + React 19 SPA** hasil generate Google AI Studio (single-page, state via `useState`).
-- Tailwind CSS v4, `motion` (animasi), `lucide-react` (ikon).
-- Server `express` kecil. (`@google/genai`/Gemini ada di deps tapi **tidak dipakai** —
-  hapus saat cleanup.)
-- **Semua data hardcoded** di `src/data.ts` — belum ada database/auth nyata.
-- Entry: `src/App.tsx` (monolitik), tipe di `src/types.ts`.
+- **Next.js 16 App Router** (sudah dikonversi dari Vite). React 19, Tailwind v4 (postcss),
+  `motion`, `lucide-react`.
+- **SPA legacy** (`src/App.tsx`, monolitik, state `useState`, data hardcoded `src/data.ts`)
+  masih dirender di route `/` secara **client-only** (`app/page.tsx` → `next/dynamic`
+  `ssr:false`). File legacy ditandai `@ts-nocheck` — utang migrasi, ditipekan bertahap.
+- Fitur yang sudah dimigrasi punya route Next.js + Server Action sendiri:
+  `app/(spv)/kpi/` (Input KPI) — referensi pola.
+- Supabase helpers di `lib/supabase/` + tipe DB subset `lib/database.types.ts`.
+- **Belum ada auth/DB live**: butuh `.env.local` Supabase + `supabase db push` + login.
 
 **Target (`to-be`) — arah migrasi:**
 - Migrasi ke **Next.js (App Router)** + **Supabase**.
@@ -98,7 +101,8 @@ RESEND_API_KEY                 # server-only (jika email reminder dipakai)
 
 ```bash
 npm install
-npm run dev      # Vite dev server :3000 (kondisi as-is)
-npm run build
-npm run lint     # tsc --noEmit (type-check)
+npm run dev        # Next.js dev :3000
+npm run build      # next build (jalankan sebelum push — memvalidasi tipe & prerender)
+npm run typecheck  # tsc --noEmit
+npm run lint       # next lint
 ```

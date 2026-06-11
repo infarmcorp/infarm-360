@@ -6516,9 +6516,11 @@ export default function App() {
                     // SPV asli dibatasi HANYA divisinya sendiri — tidak perlu tahu kinerja divisi lain.
                     const isHrdAsSpv = !!activeUser?.realHrd;
                     const visibleEmps = isSpv
-                      ? ALL_EMPS.filter(emp =>
-                          activeSupervisees.includes(emp.id) &&
-                          (isHrdAsSpv || emp.dept === activeUser?.dept))
+                      ? (isHrdAsSpv
+                          // HRD mode-SPV: seluruh tim bimbingannya (lintas divisi).
+                          ? ALL_EMPS.filter(emp => activeSupervisees.includes(emp.id))
+                          // SPV asli: SEMUA pegawai sedivisi dengan SPV (bukan hanya bawahan).
+                          : ALL_EMPS.filter(emp => emp.dept === activeUser?.dept))
                       : ALL_EMPS; // HRD Admin / Direksi: semua pegawai, semua divisi
 
                     // Dynamic evaluation helpers for custom Year, Month, and Quarter filters (Requirements 1 & 2)
@@ -7035,12 +7037,25 @@ export default function App() {
                           return true;
                         });
 
+                        // Tren BULANAN gabungan: KPI (per bulan), Evaluasi 360° (dari kuartal
+                        // bulan tsb), dan Skor Akhir (blend 0.5/0.5 jika kuartal ber-360).
+                        const findQuarterForMonth = (mk: string) =>
+                          Object.keys(quarters).find(qk => (quarters[qk]?.months || []).includes(mk));
+                        const monthlyTrend = monthlyKpiData.map(h => {
+                          const qk = findQuarterForMonth(h.monthKey);
+                          const has360 = qk ? !!quarters[qk]?.has360 : false;
+                          const s360 = (qk && has360) ? (getScore360ForQuarter(selectedEmp.id, qk) ?? 0) : 0;
+                          const finalScoreVal = has360 ? (h.score * 0.5 + s360 * 0.5) : h.score;
+                          return { monthKey: h.monthKey, label: h.label, kpi: h.score, s360, finalScoreVal };
+                        });
+
                         const getXPctValue = (idx: number, len: number) => {
                           if (len <= 1) return 300;
                           return 60 + idx * (480 / (len - 1));
                         };
 
                         return (
+                          <div className="space-y-6">
                           <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs space-y-6">
                             {/* TABBED MONITOR HEADER */}
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-100 pb-4">
@@ -7413,6 +7428,100 @@ export default function App() {
                                 )}
                               </div>
                             </div>
+                          </div>
+
+                          {/* CHART TREN BULANAN: KPI, EVALUASI 360° & SKOR AKHIR */}
+                          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-xs space-y-5">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-100 pb-4">
+                              <div>
+                                <h3 className="text-sm font-extrabold text-sky-900 uppercase tracking-tight flex items-center gap-2">
+                                  <span>Tren Bulanan: KPI, Evaluasi 360° &amp; Skor Akhir</span>
+                                  <span className="text-[10px] bg-sky-100 text-sky-800 py-0.5 px-2.5 rounded-full font-bold">
+                                    {monthlyTrend.length} Bulan
+                                  </span>
+                                </h3>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  Dimensi bulan: KPI per bulan, Evaluasi 360° dari kuartal terkait, dan Skor Akhir (bobot 50/50).
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-4 text-[10px] text-gray-600 font-bold uppercase tracking-wider">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-3 h-0.5 border-t-2 border-dashed border-emerald-500 inline-block"></span><span>KPI</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-3 h-0.5 border-t-2 border-dashed border-indigo-400 inline-block"></span><span>360°</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-4 h-1 bg-sky-500 rounded-full inline-block"></span><span>Skor Akhir</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 min-h-[300px] flex items-end">
+                              {monthlyTrend.length > 0 ? (
+                                <svg width="100%" height="280" viewBox="0 0 600 280" className="overflow-visible font-sans">
+                                  {[0, 25, 50, 75, 100].map((val) => {
+                                    const y = 240 - (val * 200) / 100;
+                                    return (
+                                      <g key={val} className="opacity-80">
+                                        <line x1="45" y1={y} x2="570" y2={y} stroke="#e5e7eb" strokeWidth="1" strokeDasharray="3,3" />
+                                        <text x="12" y={y + 4} className="fill-gray-400 font-mono font-bold text-[10px]">{val}</text>
+                                      </g>
+                                    );
+                                  })}
+                                  {(() => {
+                                    const kpiPts: string[] = [];
+                                    const s360Pts: string[] = [];
+                                    const finalPts: string[] = [];
+                                    monthlyTrend.forEach((h, idx) => {
+                                      const x = getXPctValue(idx, monthlyTrend.length);
+                                      kpiPts.push(`${x},${240 - (h.kpi * 200) / 100}`);
+                                      s360Pts.push(`${x},${240 - (h.s360 * 200) / 100}`);
+                                      finalPts.push(`${x},${240 - (h.finalScoreVal * 200) / 100}`);
+                                    });
+                                    return (
+                                      <>
+                                        {monthlyTrend.length > 1 && (
+                                          <>
+                                            <polyline points={kpiPts.join(' ')} fill="none" stroke="#10b981" strokeWidth="2" strokeDasharray="4,4" />
+                                            <polyline points={s360Pts.join(' ')} fill="none" stroke="#6366f1" strokeWidth="2" strokeDasharray="4,4" />
+                                            <polyline points={finalPts.join(' ')} fill="none" stroke="#0ea5e9" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+                                          </>
+                                        )}
+                                        {monthlyTrend.map((h, idx) => {
+                                          const x = getXPctValue(idx, monthlyTrend.length);
+                                          const kpiY = 240 - (h.kpi * 200) / 100;
+                                          const s360Y = 240 - (h.s360 * 200) / 100;
+                                          const finalY = 240 - (h.finalScoreVal * 200) / 100;
+                                          return (
+                                            <g key={h.monthKey} className="group cursor-pointer">
+                                              <line x1={x} y1="40" x2={x} y2="240" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="2,2" className="opacity-0 group-hover:opacity-60 transition-opacity" />
+                                              <circle cx={x} cy={finalY} r="7" className="fill-sky-500 stroke-white stroke-2 hover:r-9 transition-all" />
+                                              <circle cx={x} cy={finalY} r="3.5" className="fill-white" />
+                                              <circle cx={x} cy={kpiY} r="5" className="fill-emerald-400 stroke-white stroke-1" />
+                                              <circle cx={x} cy={s360Y} r="5" className="fill-indigo-400 stroke-white stroke-1" />
+                                              <text x={x} y="260" textAnchor="middle" className="fill-slate-650 font-bold text-[10px]">{h.label}</text>
+                                              <g className="invisible group-hover:visible transition-all duration-200">
+                                                <rect x={x - 75} y={Math.max(10, finalY - 80)} width="150" height="65" rx="8" className="fill-slate-900 shadow-2xl" />
+                                                <text x={x} y={Math.max(10, finalY - 80) + 16} textAnchor="middle" className="fill-white text-[10px] font-black">{h.label}</text>
+                                                <text x={x} y={Math.max(10, finalY - 80) + 29} textAnchor="middle" className="fill-emerald-400 text-[9px] font-bold">KPI: {h.kpi.toFixed(1)}</text>
+                                                <text x={x} y={Math.max(10, finalY - 80) + 42} textAnchor="middle" className="fill-indigo-300 text-[9px] font-bold">360°: {h.s360 > 0 ? h.s360.toFixed(1) : '—'}</text>
+                                                <text x={x} y={Math.max(10, finalY - 80) + 55} textAnchor="middle" className="fill-sky-300 text-[10px] font-black">Skor Akhir: {h.finalScoreVal.toFixed(1)}</text>
+                                              </g>
+                                            </g>
+                                          );
+                                        })}
+                                      </>
+                                    );
+                                  })()}
+                                </svg>
+                              ) : (
+                                <div className="w-full text-center text-xs text-gray-400 italic py-20">
+                                  Belum ada data bulanan untuk filter yang dipilih.
+                                </div>
+                              )}
+                            </div>
+                          </div>
                           </div>
                         );
                       })()}

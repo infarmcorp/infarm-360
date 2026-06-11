@@ -18,7 +18,8 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`.
 
 ## Status Saat Ini vs Target
 
-> **PENTING:** Kode sekarang ≠ tech stack target. Jangan asumsikan Next.js/Supabase sudah ada.
+> **PENTING:** Next.js **sudah** ada & **live di Vercel**. Supabase **belum** (belum ada
+> auth/DB nyata) — jangan asumsikan tabel/RLS sudah aktif.
 
 **Kondisi sekarang (`as-is`):**
 - **Next.js 16 App Router** (sudah dikonversi dari Vite). React 19, Tailwind v4 (postcss),
@@ -30,14 +31,16 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`.
   `app/(spv)/kpi/` (Input KPI) — referensi pola.
 - Supabase helpers di `lib/supabase/` + tipe DB subset `lib/database.types.ts`.
 - **Belum ada auth/DB live**: butuh `.env.local` Supabase + `supabase db push` + login.
+- **Sudah live di Vercel** (auto-deploy dari `main`). Login demo: semua user password
+  `Infarm@2026`; daftar kredensial di `lib/auth/demo-users.ts` (jadi sumber seed Supabase nanti).
 
 **Target (`to-be`) — arah migrasi:**
 - Migrasi ke **Next.js (App Router)** + **Supabase**.
 - Pecah `App.tsx` menjadi route + Server Components/Server Actions.
 - Ganti `src/data.ts` dengan tabel Supabase + Row Level Security per peran.
 
-Saat mengerjakan fitur, konfirmasi dulu apakah menyentuh kode `as-is` (Vite) atau bagian
-yang sudah dimigrasi.
+Saat mengerjakan fitur, konfirmasi dulu apakah menyentuh **SPA legacy** (`src/App.tsx` di
+route `/`) atau bagian yang sudah dimigrasi ke route Next.js (`app/`).
 
 ## Keputusan Arsitektur (terkunci)
 
@@ -51,7 +54,7 @@ yang sudah dimigrasi.
 
 ## Tech Stack (Target)
 
-- **Framework**: Next.js 16 (App Router, terbaru — verifikasi versi pasti saat scaffold)
+- **Framework**: Next.js 16 (App Router) — `16.2.9` terpasang (Turbopack)
 - **Language**: TypeScript (strict mode)
 - **Frontend**: React 19, Tailwind CSS v4
 - **Backend**: Next.js Server Actions + Route Handlers
@@ -62,10 +65,14 @@ yang sudah dimigrasi.
 - **Email**: Resend / Supabase — fitur "Kirim Pengingat" pengisian 360.
 - **Deployment**: Vercel · **Version Control**: GitHub · **Package Manager**: npm
 
-## Deployment (Vercel)
+## Deployment (Vercel) — SUDAH LIVE
 
-- Preview deploy otomatis dari setiap PR; production dari branch `main`.
-- Environment variables di Vercel dashboard (jangan di-commit):
+- **Repo**: https://github.com/infarmdataanalyst-lgtm/infarm-360 (branch produksi `main`).
+- **Alur**: edit lokal → `git commit` → `git push` → Vercel auto-deploy (push butuh login
+  GitHub user, jalankan dari terminal user). PR → preview URL; `main` → production.
+- Visibility repo public/private tidak memengaruhi Vercel (akses via GitHub App tetap ada).
+- Environment variables di Vercel dashboard (jangan di-commit) — **belum diset**, tambahkan
+  saat Supabase siap lalu redeploy:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL

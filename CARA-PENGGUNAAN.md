@@ -152,3 +152,102 @@ Selain semua fitur Employee di atas, SPV punya:
 5. **HRD** Review Hasil Akhir → diskusi & **ACC bersama SPV** → **Finalisasi**.
 6. **Pegawai** melihat **Laporan Hasil Saya** setelah final.
 7. **HRD → Direksi**: usulan promosi/suksesi untuk **ACC Direksi**.
+
+---
+
+# Rincian Fitur HRD Admin & Dampaknya
+
+HRD Admin adalah peran pusat: hampir semua aksinya **mengubah apa yang dilihat/dikerjakan
+peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
+
+> Catatan demo: sebagian skor (mis. Evaluasi 360 awal) masih nilai contoh statis. Penjelasan
+> "dampak" di bawah adalah perilaku yang dirancang; pada versi backend (Supabase) nanti
+> perhitungan berjalan penuh dari data nyata.
+
+### 1. Kelola Siklus Periode — *gerbang utama seluruh proses*
+**Fungsi:** membuka/menutup kuartal & mengaktifkan angket 360.
+**Berdampak ke:**
+- **Aktivasi Periode** → form 360 di **Daftar Penilaian Saya** menjadi **aktif untuk semua
+  peran** (Employee, SPV, Direksi). Tanpa ini, tidak ada yang bisa menilai.
+- Centang **Aktifkan Angket 360** → menentukan apakah kuartal punya komponen 360. Ini
+  mengubah **rumus Skor Akhir**: tanpa 360 = KPI murni; dengan 360 = blend 50/50 KPI+360.
+  Terlihat di Monitor Kinerja, Rekapitulasi, Review Hasil Akhir, Dashboard.
+- **Kunci & Akhiri Periode** → semua form 360 **nonaktif**; Employee/SPV tak bisa isi/edit.
+  Mengunci data agar bisa difinalisasi.
+
+### 2. Pemetaan (Mapping) — *menentukan siapa menilai siapa*
+**Fungsi:** mendaftarkan pasangan Penilai → Target + Relasi (Atasan/Peer/Cross/Self).
+**Berdampak ke:**
+- **Daftar Penilaian Saya** tiap pegawai → menentukan **daftar orang yang wajib ia nilai**.
+- Kolom **Garis Hubungan** yang dilihat penilai (sumber "Minta Koreksi").
+- **Perhitungan 360**: relasi menentukan masuk kelas bobot mana (lihat Kelola Bobot).
+- **Progress 360**: total target yang harus diisi tiap orang dihitung dari mapping.
+- Hapus relasi (mis. pegawai resign) → target itu hilang dari daftar penilaian terkait.
+- Setujui/tolak **Permohonan Koreksi** → mengubah relasi yang sudah terdaftar.
+
+### 3. Kelola Pertanyaan — *isi form penilaian*
+**Fungsi:** tambah/edit/hapus indikator kuantitatif (rating 1–5) & pertanyaan kualitatif.
+**Berdampak ke:**
+- **FormAssess** (Mulai Nilai) yang dilihat **semua penilai** — pertanyaan langsung berubah.
+- Struktur aspek di **Review Hasil Akhir** & "Rincian Komentar Murni".
+- **Dashboard** (Indeks Sub-Aspek Kompetensi & Perilaku) yang mengelompokkan per indikator.
+- ⚠️ **Hapus = permanen** (tidak bisa undo) → jawaban historis untuk indikator itu bisa hilang konteksnya.
+
+### 4. Kelola Bobot Penilai — *cara skor 360 dihitung*
+**Fungsi:** atur bobot Atasan/Peer/Cross (Model 4-Kelas) atau Atasan/Internal (Model 2-Kelas).
+**Berdampak ke:**
+- **Nilai Evaluasi 360** tiap pegawai → mengubah **Skor Akhir** → menjalar ke Monitor
+  Kinerja, Rekapitulasi Kuartal, Review Hasil Akhir, Dashboard, **Kategori Evaluasi**, dan
+  **Papan Pertimbangan Suksesi** (skor > 90).
+- Berlaku setelah klik **Simpan & Terapkan Bobot**; **Reset Default** mengembalikan ke awal.
+
+### 5. Review Hasil Akhir — *finalisasi & rilis laporan*
+**Fungsi:** audit & edit Final Report per pegawai, lalu finalisasi.
+**Berdampak ke:**
+- **Simpan Draft** → tersimpan, belum dirilis.
+- **Finalisasi Hasil** → laporan **muncul untuk pegawai** di **Laporan Hasil Saya**
+  (status final) & bisa **Unduh PDF**. Sebelum final, pegawai tidak melihat apa pun.
+- Idealnya dilakukan **setelah ACC SPV** (Laporan Kinerja Tim) — alur dua pihak.
+- Komentar **penilaian diri sendiri** ditandai badge **"Self"** di Rincian Komentar Murni.
+
+### 6. Promosi & Penyesuaian — *usulan ke Direksi*
+**Fungsi:** input Rencana Suksesi + Catatan Justifikasi per pegawai.
+**Berdampak ke:**
+- **Direksi** → muncul di Promosi & Penyesuaian Direksi untuk **ACC / diskusi**.
+- Kolom **Rencana Suksesi / Promosi** di Dashboard Organisasi & Tabel Hasil Seluruh Pegawai.
+
+### 7. Progress 360 Feedback — *kontrol kelengkapan*
+**Fungsi:** pantau siapa sudah/belum mengisi; dorong penyelesaian.
+**Berdampak ke:**
+- **Kirim Pengingat** → notifikasi/email ke penilai yang belum selesai.
+- **Paksa Selesai** → meng-override status pengisian menjadi selesai (penyesuaian manual),
+  sehingga data dianggap lengkap untuk finalisasi.
+- Tidak mengubah skor, tapi memengaruhi **kesiapan data** sebelum Review Hasil Akhir.
+
+### 8. Monitoring & Audit KPI — *pengawasan, bukan pengubahan*
+**Fungsi:** melihat input & perubahan KPI yang dilakukan SPV (jejak audit).
+**Berdampak ke:** tidak mengubah data — alat **transparansi/kontrol** atas pekerjaan SPV.
+
+### 9. Monitor Kinerja & Dashboard Organisasi — *analitik, read-only*
+**Fungsi:** memantau **semua pegawai & semua divisi**, 4 dashboard agregat.
+**Berdampak ke:** tidak mengubah data — dasar **pengambilan keputusan** (promosi, pembinaan).
+
+### 10. Mode Ganda (HRD bertindak sebagai SPV)
+**Fungsi:** HRD beralih ke mode SPV.
+**Berdampak ke:** HRD bisa **Input KPI** & **ACC Laporan Kinerja Tim** layaknya SPV untuk tim
+yang ditugaskan padanya. Di mode ini batasannya mengikuti aturan SPV.
+
+---
+
+### Ringkasan rantai dampak
+
+```
+Kelola Periode ─┐
+Pemetaan ───────┤→ Daftar Penilaian (semua pegawai) → pengisian 360
+Kelola Pertanyaan┘                                         │
+Kelola Bobot ───────────────────→ Skor 360 ──┐            │
+                                   KPI (SPV) ─┴→ Skor Akhir → Monitor/Rekap/Dashboard
+                                                  │
+Review Hasil Akhir → Finalisasi → Laporan Hasil Saya (pegawai) + PDF
+Promosi & Penyesuaian → ACC Direksi
+```

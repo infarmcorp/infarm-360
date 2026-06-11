@@ -1,3 +1,4 @@
+
 # CLAUDE.md — Infarm 360° Performance Appraisal System
 
 Panduan untuk Claude Code saat bekerja di repo ini.
@@ -54,7 +55,7 @@ route `/`) atau bagian yang sudah dimigrasi ke route Next.js (`app/`).
 
 ## Tech Stack (Target)
 
-- **Framework**: Next.js 16 (App Router) — `16.2.9` terpasang (Turbopack)
+- **Framework**: Next.js 16 (App Router, terbaru — verifikasi versi pasti saat scaffold)
 - **Language**: TypeScript (strict mode)
 - **Frontend**: React 19, Tailwind CSS v4
 - **Backend**: Next.js Server Actions + Route Handlers
@@ -65,14 +66,10 @@ route `/`) atau bagian yang sudah dimigrasi ke route Next.js (`app/`).
 - **Email**: Resend / Supabase — fitur "Kirim Pengingat" pengisian 360.
 - **Deployment**: Vercel · **Version Control**: GitHub · **Package Manager**: npm
 
-## Deployment (Vercel) — SUDAH LIVE
+## Deployment (Vercel)
 
-- **Repo**: https://github.com/infarmdataanalyst-lgtm/infarm-360 (branch produksi `main`).
-- **Alur**: edit lokal → `git commit` → `git push` → Vercel auto-deploy (push butuh login
-  GitHub user, jalankan dari terminal user). PR → preview URL; `main` → production.
-- Visibility repo public/private tidak memengaruhi Vercel (akses via GitHub App tetap ada).
-- Environment variables di Vercel dashboard (jangan di-commit) — **belum diset**, tambahkan
-  saat Supabase siap lalu redeploy:
+- Preview deploy otomatis dari setiap PR; production dari branch `main`.
+- Environment variables di Vercel dashboard (jangan di-commit):
 
 ```
 NEXT_PUBLIC_SUPABASE_URL

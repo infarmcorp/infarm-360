@@ -1430,12 +1430,17 @@ export default function App() {
   ) => {
     if (!currentUser || !activeFormTarget) return;
 
-    // Save actual answer content first
+    // Save actual answer content first — DI BAWAH kuartal aktif agar terbaca oleh
+    // Review Hasil Akhir / kompilasi yang memakai evalAnswers[quarterKey][penilai][target].
+    const quarterEntry = evalAnswers[activeQuarterKey] || {};
     const newEvalAnswers = {
       ...evalAnswers,
-      [currentUser.id]: {
-        ...(evalAnswers[currentUser.id] || {}),
-        [activeFormTarget.id]: answers
+      [activeQuarterKey]: {
+        ...quarterEntry,
+        [currentUser.id]: {
+          ...(quarterEntry[currentUser.id] || {}),
+          [activeFormTarget.id]: answers
+        }
       }
     };
     setEvalAnswers(newEvalAnswers);
@@ -2227,7 +2232,7 @@ export default function App() {
                 onSubmit={handleSubmitEvaluation}
                 customQQuant={customQQuant}
                 customQQual={customQQual}
-                initialAnswers={activeUser ? (evalAnswers[activeUser.id]?.[activeFormTarget.id] || null) : null}
+                initialAnswers={currentUser ? (evalAnswers[activeQuarterKey]?.[currentUser.id]?.[activeFormTarget.id] || null) : null}
               />
             ) : selectedReviewEmpId ? (
               /* If detailed PA doc editor is active for HRD reviewing */

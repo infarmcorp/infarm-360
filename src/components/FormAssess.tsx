@@ -224,7 +224,7 @@ export const FormAssess: React.FC<FormAssessProps> = ({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -15 }}
-      className="max-w-2xl mx-auto space-y-6"
+      className="max-w-5xl mx-auto space-y-6"
     >
       {/* Top Identity Banner */}
       <div className="bg-emerald-800 text-emerald-50 rounded-2xl p-5 shadow-xs relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -303,12 +303,14 @@ export const FormAssess: React.FC<FormAssessProps> = ({
           </div>
         </div>
 
-        {/* Aspects Filter Row: A to E */}
-        <div className="p-4 bg-gray-50/20 border-b border-gray-200">
+        {/* SPLIT: rail aspek (kiri) + editor pertanyaan (kanan) */}
+        <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr]">
+        {/* LEFT: Pilih Aspek Budaya (vertikal) */}
+        <div className="p-4 bg-gray-50/20 border-b lg:border-b-0 lg:border-r border-gray-200">
           <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
             Pilih Aspek Budaya:
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <div className="flex flex-col gap-2">
             {ASPECTS.map((aspect) => {
               const isActive = selectedAspect === aspect.code;
               const completedCount = aspect.indices.filter(
@@ -346,6 +348,8 @@ export const FormAssess: React.FC<FormAssessProps> = ({
           </div>
         </div>
 
+        {/* RIGHT: indikator + editor pertanyaan aktif */}
+        <div className="flex flex-col">
         {/* Indicators Filter Buttons Row: Continues absolute numbering from Q previous Aspect */}
         <div className="px-4 py-3 bg-stone-50/35 border-b border-gray-200">
           <div className="flex flex-wrap gap-2">
@@ -547,6 +551,8 @@ export const FormAssess: React.FC<FormAssessProps> = ({
             );
           })()}
         </div>
+        </div>{/* /RIGHT */}
+        </div>{/* /grid split */}
       </div>
 
       {/* Control Buttons Bottom Sheet */}

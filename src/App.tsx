@@ -6599,15 +6599,10 @@ export default function App() {
 
                   {page === 'monitor-kinerja' && (() => {
                     const isSpv = activeUser?.role === 'spv';
-                    // HRD yang sedang "SPV Mode" tetap melihat seluruh timnya (lintas divisi).
-                    // SPV asli dibatasi HANYA divisinya sendiri — tidak perlu tahu kinerja divisi lain.
-                    const isHrdAsSpv = !!activeUser?.realHrd;
+                    // SPV (asli MAUPUN HRD mode-SPV spt Irma) dibatasi HANYA divisinya sendiri.
+                    // Mis. Irma (divisi HRD) di mode SPV → hanya pegawai divisi HRD.
                     const visibleEmps = isSpv
-                      ? (isHrdAsSpv
-                          // HRD mode-SPV: seluruh tim bimbingannya (lintas divisi).
-                          ? ALL_EMPS.filter(emp => activeSupervisees.includes(emp.id))
-                          // SPV asli: SEMUA pegawai sedivisi dengan SPV (bukan hanya bawahan).
-                          : ALL_EMPS.filter(emp => emp.dept === activeUser?.dept))
+                      ? ALL_EMPS.filter(emp => emp.dept === activeUser?.dept)
                       : ALL_EMPS; // HRD Admin / Direksi: semua pegawai, semua divisi
 
                     // Dynamic evaluation helpers for custom Year, Month, and Quarter filters (Requirements 1 & 2)
@@ -6992,23 +6987,23 @@ export default function App() {
                                             {data.dept}
                                           </text>
 
-                                          {/* Hover label for exact final score */}
+                                          {/* Hover label for exact scores (kotak dilebarkan agar teks tidak terpotong) */}
                                           <g className="invisible group-hover:visible transition-all">
                                             <rect
-                                              x={startX - 14}
-                                              y={Math.min(280 - kpiH, 280 - finalH) - 34}
-                                              width="100"
-                                              height="26"
+                                              x={startX + 36 - 92}
+                                              y={Math.min(280 - kpiH, 280 - s360H, 280 - finalH) - 38}
+                                              width="184"
+                                              height="30"
                                               rx="6"
                                               className="fill-slate-900 filter drop-shadow-md"
                                             />
                                             <text
                                               x={startX + 36}
-                                              y={Math.min(280 - kpiH, 280 - finalH) - 17}
-                                              className="fill-white font-mono text-[9px] font-black text-center"
+                                              y={Math.min(280 - kpiH, 280 - s360H, 280 - finalH) - 19}
+                                              className="fill-white font-mono text-[9px] font-black"
                                               textAnchor="middle"
                                             >
-                                              KPI: {data.kpiAvg.toFixed(1)} | Akhir: {data.finalScoreVal.toFixed(1)}
+                                              KPI {data.kpiAvg.toFixed(1)} · 360 {data.s360.toFixed(1)} · Akhir {data.finalScoreVal.toFixed(1)}
                                             </text>
                                           </g>
                                         </g>

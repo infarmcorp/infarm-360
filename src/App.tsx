@@ -528,6 +528,22 @@ export default function App() {
   const [mappingInputRelasi, setMappingInputRelasi] = useState<string>('Peer');
   const [mappingInputSifat, setMappingInputSifat] = useState<'wajib' | 'opsional'>('wajib');
 
+  // Punishment kepatuhan: pengurangan poin Skor Akhir per pegawai (diinput HRD).
+  const [compliancePenalties, setCompliancePenalties] = useState<Record<string, number>>(() => {
+    try {
+      const saved = localStorage.getItem('infarm_compliance_penalties');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const setCompliancePenalty = (eid: string, value: number) => {
+    const v = Math.max(0, Math.min(100, isNaN(value) ? 0 : value));
+    setCompliancePenalties(prev => {
+      const next = { ...prev, [eid]: v };
+      localStorage.setItem('infarm_compliance_penalties', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const [relationRequests, setRelationRequests] = useState<RelationCorrectionRequest[]>(() => {
     const saved = localStorage.getItem('infarm_relation_requests');
     return saved ? JSON.parse(saved) : [
@@ -1122,10 +1138,15 @@ export default function App() {
     if (!qObj) return null;
     const kpiAvg = getQuarterKpiAverage(eid, qKey);
     if (kpiAvg === null) return null;
-    if (!qObj.has360) return kpiAvg; // pure KPI rating if 360 is turned off
-    const score360Val = getScore360ForQuarter(eid, qKey);
-    if (score360Val === null) return kpiAvg;
-    return (kpiAvg * 0.5) + (score360Val * 0.5);
+    let base: number;
+    if (!qObj.has360) {
+      base = kpiAvg; // pure KPI rating if 360 is turned off
+    } else {
+      const score360Val = getScore360ForQuarter(eid, qKey);
+      base = score360Val === null ? kpiAvg : (kpiAvg * 0.5) + (score360Val * 0.5);
+    }
+    // Punishment kepatuhan: kurangi poin, jaga tidak negatif.
+    return Math.max(0, base - (compliancePenalties[eid] || 0));
   };
 
   // --- DYNAMIC FILTERING & SCORE CALCULATIONS FOR ANALYTICS ---
@@ -1197,12 +1218,13 @@ export default function App() {
     const qKeys = getFilteredQuarterKeys();
     const anyQHas360 = qKeys.some(qKey => quarters[qKey]?.has360);
     
+    const penalty = compliancePenalties[eid] || 0;
     if (!anyQHas360) {
-      return kpiAvg; // pure KPI rating if 360 is turned off
+      return Math.max(0, kpiAvg - penalty); // pure KPI rating if 360 is turned off
     }
     const score360Val = getScore360ForQuarter(eid, qKeys[0] || activeQuarterKey) ?? INITIAL_SCORE_360[eid] ?? null;
-    if (score360Val === null) return kpiAvg;
-    return (kpiAvg * 0.5) + (score360Val * 0.5);
+    if (score360Val === null) return Math.max(0, kpiAvg - penalty);
+    return Math.max(0, (kpiAvg * 0.5) + (score360Val * 0.5) - penalty);
   };
 
   const getFilteredDeptScores = (): [string, number][] => {
@@ -7674,6 +7696,7 @@ export default function App() {
                                     <th className="py-2.5 px-4">Divisi & Peran</th>
                                     <th className="py-2.5 px-4">Penilaian Wajib Terlambat</th>
                                     <th className="py-2.5 px-4 text-center">Self Assessment</th>
+                                    <th className="py-2.5 px-4 text-center">Punishment & Skor Akhir</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -7708,6 +7731,33 @@ export default function App() {
                                           <span className="inline-block text-[10px] font-black px-2 py-0.5 rounded-full border bg-rose-50 text-rose-700 border-rose-200 uppercase">⚠ Belum Diisi</span>
                                         )}
                                       </td>
+                                      <td className="py-3 px-4 text-center">
+                                        <div className="flex flex-col items-center gap-1">
+                                          <div className="flex items-center gap-1">
+                                            <input
+                                              type="number"
+                                              min={0}
+                                              max={100}
+                                              value={compliancePenalties[r.id] ?? ''}
+                                              onChange={(e) => setCompliancePenalty(r.id, e.target.value === '' ? 0 : Number(e.target.value))}
+                                              placeholder="0"
+                                              title="Pengurangan poin Skor Akhir akibat keterlambatan / Self Assessment"
+                                              className="w-16 text-xs p-1.5 border border-gray-250 rounded-lg text-center font-bold text-rose-700 focus:ring-1 focus:ring-rose-400 outline-none"
+                                            />
+                                            <span className="text-[10px] text-gray-400 font-bold">poin</span>
+                                          </div>
+                                          {(() => {
+                                            const net = getComputedFinalScore(r.id, activeQuarterKey);
+                                            const penalty = compliancePenalties[r.id] || 0;
+                                            return (
+                                              <span className="text-[10px] font-mono font-bold text-slate-700">
+                                                Skor Akhir: {net !== null ? net.toFixed(1) : '—'}
+                                                {penalty > 0 && <span className="text-rose-600 font-black"> (−{penalty})</span>}
+                                              </span>
+                                            );
+                                          })()}
+                                        </div>
+                                      </td>
                                     </tr>
                                   ))}
                                 </tbody>
@@ -7718,7 +7768,9 @@ export default function App() {
 
                         <p className="text-[11px] text-gray-400 italic px-1">
                           Catatan: "terlambat" = penilaian bersifat <strong>Wajib</strong> (dari Pemetaan) yang
-                          belum berstatus selesai. Sifat penilaian diatur di halaman Pemetaan (Mapping).
+                          belum berstatus selesai. <strong>Punishment</strong> = pengurangan poin yang langsung
+                          memotong <strong>Skor Akhir</strong> pegawai (tersimpan otomatis, minimal 0). Sifat
+                          penilaian diatur di halaman Pemetaan (Mapping).
                         </p>
                       </div>
                     );

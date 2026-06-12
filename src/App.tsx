@@ -528,17 +528,20 @@ export default function App() {
   const [mappingInputRelasi, setMappingInputRelasi] = useState<string>('Peer');
   const [mappingInputSifat, setMappingInputSifat] = useState<'wajib' | 'opsional'>('wajib');
 
-  // Punishment kepatuhan: pengurangan poin Skor Akhir per pegawai (diinput HRD).
-  const [compliancePenalties, setCompliancePenalties] = useState<Record<string, number>>(() => {
+  // Punishment kepatuhan: pengurangan poin Skor Akhir per pegawai PER KUARTAL (diinput HRD).
+  // Struktur: { [quarterKey]: { [employeeId]: poin } }
+  const [compliancePenalties, setCompliancePenalties] = useState<Record<string, Record<string, number>>>(() => {
     try {
       const saved = localStorage.getItem('infarm_compliance_penalties');
       return saved ? JSON.parse(saved) : {};
     } catch { return {}; }
   });
-  const setCompliancePenalty = (eid: string, value: number) => {
+  const getPenalty = (eid: string, qKey: string): number =>
+    (compliancePenalties[qKey] && compliancePenalties[qKey][eid]) || 0;
+  const setCompliancePenalty = (qKey: string, eid: string, value: number) => {
     const v = Math.max(0, Math.min(100, isNaN(value) ? 0 : value));
     setCompliancePenalties(prev => {
-      const next = { ...prev, [eid]: v };
+      const next = { ...prev, [qKey]: { ...(prev[qKey] || {}), [eid]: v } };
       localStorage.setItem('infarm_compliance_penalties', JSON.stringify(next));
       return next;
     });
@@ -1145,8 +1148,8 @@ export default function App() {
       const score360Val = getScore360ForQuarter(eid, qKey);
       base = score360Val === null ? kpiAvg : (kpiAvg * 0.5) + (score360Val * 0.5);
     }
-    // Punishment kepatuhan: kurangi poin, jaga tidak negatif.
-    return Math.max(0, base - (compliancePenalties[eid] || 0));
+    // Punishment kepatuhan (per kuartal): kurangi poin, jaga tidak negatif.
+    return Math.max(0, base - getPenalty(eid, qKey));
   };
 
   // --- DYNAMIC FILTERING & SCORE CALCULATIONS FOR ANALYTICS ---
@@ -1218,7 +1221,7 @@ export default function App() {
     const qKeys = getFilteredQuarterKeys();
     const anyQHas360 = qKeys.some(qKey => quarters[qKey]?.has360);
     
-    const penalty = compliancePenalties[eid] || 0;
+    const penalty = getPenalty(eid, qKeys[0] || activeQuarterKey);
     if (!anyQHas360) {
       return Math.max(0, kpiAvg - penalty); // pure KPI rating if 360 is turned off
     }
@@ -6654,7 +6657,7 @@ export default function App() {
                     const getFilteredFinalScore = (empId: string, yr: string, mth: string, qtrKey: string) => {
                       const kpi = getFilteredKpiScore(empId, yr, mth, qtrKey);
                       const s360 = getFiltered360Score(empId, qtrKey);
-                      const penalty = compliancePenalties[empId] || 0; // punishment kepatuhan
+                      const penalty = getPenalty(empId, qtrKey === 'all' ? activeQuarterKey : qtrKey); // punishment per kuartal
                       if (qtrKey !== 'all' && !quarters[qtrKey]?.has360) {
                         return Math.max(0, kpi - penalty);
                       }
@@ -7130,7 +7133,7 @@ export default function App() {
                           const qk = findQuarterForMonth(h.monthKey);
                           const has360 = qk ? !!quarters[qk]?.has360 : false;
                           const s360 = (qk && has360) ? (getScore360ForQuarter(selectedEmp.id, qk) ?? 0) : 0;
-                          const penalty = compliancePenalties[selectedEmp.id] || 0; // punishment kepatuhan
+                          const penalty = getPenalty(selectedEmp.id, qk || activeQuarterKey); // punishment per kuartal
                           const finalScoreVal = Math.max(0, (has360 ? (h.score * 0.5 + s360 * 0.5) : h.score) - penalty);
                           return { monthKey: h.monthKey, label: h.label, kpi: h.score, s360, finalScoreVal };
                         });
@@ -7650,7 +7653,8 @@ export default function App() {
                           <h2 className="text-xl font-bold tracking-tight">Flag Kepatuhan Penilaian</h2>
                           <span className="text-xs text-rose-100 font-medium block leading-relaxed max-w-2xl">
                             Pegawai yang terlambat menyelesaikan penilaian <strong>wajib</strong> dan/atau
-                            belum mengisi <strong>Self Assessment</strong> pada siklus aktif.
+                            belum mengisi <strong>Self Assessment</strong>. Punishment berlaku untuk siklus
+                            aktif: <strong>{quarters[activeQuarterKey]?.label || activeQuarterKey}</strong>.
                           </span>
                         </div>
 
@@ -7740,17 +7744,17 @@ export default function App() {
                                               type="number"
                                               min={0}
                                               max={100}
-                                              value={compliancePenalties[r.id] ?? ''}
-                                              onChange={(e) => setCompliancePenalty(r.id, e.target.value === '' ? 0 : Number(e.target.value))}
+                                              value={compliancePenalties[activeQuarterKey]?.[r.id] ?? ''}
+                                              onChange={(e) => setCompliancePenalty(activeQuarterKey, r.id, e.target.value === '' ? 0 : Number(e.target.value))}
                                               placeholder="0"
-                                              title="Pengurangan poin Skor Akhir akibat keterlambatan / Self Assessment"
+                                              title="Pengurangan poin Skor Akhir akibat keterlambatan / Self Assessment (kuartal aktif)"
                                               className="w-16 text-xs p-1.5 border border-gray-250 rounded-lg text-center font-bold text-rose-700 focus:ring-1 focus:ring-rose-400 outline-none"
                                             />
                                             <span className="text-[10px] text-gray-400 font-bold">poin</span>
                                           </div>
                                           {(() => {
                                             const net = getComputedFinalScore(r.id, activeQuarterKey);
-                                            const penalty = compliancePenalties[r.id] || 0;
+                                            const penalty = getPenalty(r.id, activeQuarterKey);
                                             return (
                                               <span className="text-[10px] font-mono font-bold text-slate-700">
                                                 Skor Akhir: {net !== null ? net.toFixed(1) : '—'}

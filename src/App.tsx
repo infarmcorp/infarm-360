@@ -2160,6 +2160,16 @@ export default function App() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => setPage('kepatuhan')}
+                    className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                      page === 'kepatuhan' ? 'bg-emerald-50 text-emerald-900' : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <AlertTriangle className="w-4 h-4 text-rose-500" />
+                    <span>Flag Kepatuhan Penilaian</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setPage('monitor-kinerja')}
                     className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
                       page === 'monitor-kinerja' ? 'bg-emerald-50 text-emerald-900' : 'text-gray-600 hover:bg-gray-100'
@@ -7578,6 +7588,139 @@ export default function App() {
                         );
                       })()}
                     </div>
+                    );
+                  })()}
+
+                  {/* TAB: FLAG KEPATUHAN PENILAIAN (HRD) */}
+                  {page === 'kepatuhan' && currentUser.role === 'hrd' && (() => {
+                    // Per pegawai: penilaian WAJIB yang belum selesai (terlambat) + status Self Assessment.
+                    const rows = allUsersList.map(u => {
+                      const tasks = assessList[u.id] || [];
+                      const mandatoryLate = tasks.filter(t =>
+                        t.id !== u.id && getSifatForPair(u.id, t.id) === 'wajib' && t.status !== 'done'
+                      );
+                      const selfDone = tasks.some(t => t.id === u.id && t.status === 'done');
+                      return {
+                        id: u.id,
+                        name: u.name,
+                        dept: u.dept,
+                        role: u.role,
+                        lateCount: mandatoryLate.length,
+                        lateTargets: mandatoryLate.map(t => t.name || t.id),
+                        selfDone
+                      };
+                    });
+                    const flagged = rows
+                      .filter(r => r.lateCount > 0 || !r.selfDone)
+                      .sort((a, b) => b.lateCount - a.lateCount);
+                    const totalLate = rows.reduce((s, r) => s + r.lateCount, 0);
+                    const totalNoSelf = rows.filter(r => !r.selfDone).length;
+
+                    return (
+                      <div className="space-y-6 animate-fade-in">
+                        {/* Banner */}
+                        <div className="bg-gradient-to-r from-rose-700 to-indigo-900 rounded-2xl p-6 text-white shadow-md space-y-1">
+                          <div className="inline-flex py-1 px-2.5 bg-white/10 rounded-full text-[10px] font-bold tracking-wider uppercase">
+                            Pemantauan Kepatuhan 360°
+                          </div>
+                          <h2 className="text-xl font-bold tracking-tight">Flag Kepatuhan Penilaian</h2>
+                          <span className="text-xs text-rose-100 font-medium block leading-relaxed max-w-2xl">
+                            Pegawai yang terlambat menyelesaikan penilaian <strong>wajib</strong> dan/atau
+                            belum mengisi <strong>Self Assessment</strong> pada siklus aktif.
+                          </span>
+                        </div>
+
+                        {/* Stat cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="bg-white border border-gray-150 p-4 rounded-xl flex items-center gap-4 shadow-3xs">
+                            <div className="p-3 rounded-lg bg-rose-50 text-rose-600"><AlertTriangle className="w-5 h-5" /></div>
+                            <div>
+                              <span className="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wide">Pegawai Ter-flag</span>
+                              <span className="text-lg font-black text-slate-805">{flagged.length} Pegawai</span>
+                            </div>
+                          </div>
+                          <div className="bg-white border border-gray-150 p-4 rounded-xl flex items-center gap-4 shadow-3xs">
+                            <div className="p-3 rounded-lg bg-amber-50 text-amber-700"><Clock className="w-5 h-5" /></div>
+                            <div>
+                              <span className="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wide">Penilaian Wajib Terlambat</span>
+                              <span className="text-lg font-black text-amber-800">{totalLate} Penilaian</span>
+                            </div>
+                          </div>
+                          <div className="bg-white border border-gray-150 p-4 rounded-xl flex items-center gap-4 shadow-3xs">
+                            <div className="p-3 rounded-lg bg-indigo-50 text-indigo-700"><UserIcon className="w-5 h-5" /></div>
+                            <div>
+                              <span className="block text-[10px] text-gray-400 font-extrabold uppercase tracking-wide">Belum Self Assessment</span>
+                              <span className="text-lg font-black text-indigo-800">{totalNoSelf} Pegawai</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Table */}
+                        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-xs">
+                          <div className="bg-gray-50/50 border-b border-gray-200 px-4 py-3">
+                            <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Daftar Pegawai Ter-flag</h3>
+                          </div>
+                          {flagged.length === 0 ? (
+                            <div className="py-12 text-center text-emerald-700 font-bold text-sm flex flex-col items-center gap-2">
+                              <CheckCircle className="w-8 h-8 text-emerald-500" />
+                              Semua pegawai patuh — tidak ada penilaian wajib terlambat atau Self Assessment yang kosong.
+                            </div>
+                          ) : (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-left text-xs text-gray-650 min-w-[640px]">
+                                <thead>
+                                  <tr className="bg-gray-150 border-b border-gray-200 font-bold text-[9px] uppercase tracking-wider text-gray-400">
+                                    <th className="py-2.5 px-4">Pegawai</th>
+                                    <th className="py-2.5 px-4">Divisi & Peran</th>
+                                    <th className="py-2.5 px-4">Penilaian Wajib Terlambat</th>
+                                    <th className="py-2.5 px-4 text-center">Self Assessment</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {flagged.map((r) => (
+                                    <tr key={r.id} className="border-b border-gray-100 last:border-none hover:bg-gray-50/20">
+                                      <td className="py-3 px-4">
+                                        <span className="font-bold text-gray-800 block">{r.name}</span>
+                                        <span className="text-[10px] text-gray-450 font-mono">ID: {r.id}</span>
+                                      </td>
+                                      <td className="py-3 px-4 text-gray-600 font-semibold">
+                                        {r.dept} <span className="text-gray-400">· {getUserRoleLabel(r.role)}</span>
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        {r.lateCount > 0 ? (
+                                          <div className="space-y-1">
+                                            <span className="inline-block text-[10px] font-black px-2 py-0.5 rounded-full border bg-rose-50 text-rose-700 border-rose-200 uppercase">
+                                              ⚠ {r.lateCount} Terlambat
+                                            </span>
+                                            <span className="block text-[10px] text-gray-500 italic">
+                                              {r.lateTargets.slice(0, 3).join(', ')}
+                                              {r.lateTargets.length > 3 ? ` +${r.lateTargets.length - 3} lainnya` : ''}
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-150">✓ Tidak ada</span>
+                                        )}
+                                      </td>
+                                      <td className="py-3 px-4 text-center">
+                                        {r.selfDone ? (
+                                          <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-150">✓ Sudah</span>
+                                        ) : (
+                                          <span className="inline-block text-[10px] font-black px-2 py-0.5 rounded-full border bg-rose-50 text-rose-700 border-rose-200 uppercase">⚠ Belum Diisi</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+
+                        <p className="text-[11px] text-gray-400 italic px-1">
+                          Catatan: "terlambat" = penilaian bersifat <strong>Wajib</strong> (dari Pemetaan) yang
+                          belum berstatus selesai. Sifat penilaian diatur di halaman Pemetaan (Mapping).
+                        </p>
+                      </div>
                     );
                   })()}
 

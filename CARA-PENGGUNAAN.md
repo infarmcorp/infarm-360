@@ -39,6 +39,7 @@ Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saa
 1. Lakukan penilaian 360° sesuai daftar "Rekan Kerja & Evaluasi dalam Daftar Penilaian Anda".
 2. Cek kolom **Garis Hubungan** — jika hubungan kerja salah, ajukan **Minta Koreksi**
    dengan alasan, lalu **Kirim Pengajuan**.
+   - Kolom **Sifat** menandai tiap penilaian **Wajib** atau **Opsional** (diatur HRD di Pemetaan).
 3. Klik **Mulai Nilai**:
    - Pilih **Aspek Budaya** (rail kiri) dan indikatornya (mis. "Q1 Pegang Komitmen").
    - Beri **Rating** (1–5) dan isi **Komentar** (wajib, min. 4 karakter).
@@ -118,13 +119,25 @@ Selain semua fitur Employee di atas, SPV punya:
 ### Pemetaan (Mapping)
 - **Impor Massal Pemetaan Excel** (unduh "Formulir Acuan.xlsx") atau **Pendaftaran
   Sepasang Relasi Manual** (pilih Penilai + Target → sistem isi Relasi Asosiasi otomatis →
-  **Daftarkan Relasi Manual**).
+  pilih **Sifat Penilaian** (Wajib/Opsional) → **Daftarkan Relasi Manual**).
+- **Sifat Penilaian**: tiap relasi bisa **Wajib** atau **Opsional**. Tampil di kolom Sifat
+  tabel mapping, di Daftar Penilaian Saya, dan di Progress 360. Default **Wajib**.
 - Tabel jadwal pemetaan bisa dihapus (akomodasi pegawai resign).
 - Tinjau **Permohonan Koreksi Garis Hubungan** (setujui/tolak).
 
 ### Progress 360 Feedback
 - Filter Divisi/Status/Nama; lihat status "Belum / Sudah Lengkap".
+- Tiap target penilaian menampilkan badge **Wajib/Opsional** (dari Pemetaan).
 - **Kirim Pengingat** ke email pegawai; **Paksa Selesai** untuk penyesuaian manual.
+
+### Flag Kepatuhan Penilaian
+- Memantau **kepatuhan** pengisian 360° dan memberi **punishment**.
+- **Flag keterlambatan**: pegawai dengan penilaian **Wajib** yang belum selesai, lengkap
+  dengan **jumlah** penilaian terlambat + daftar targetnya.
+- **Flag Self Assessment**: menandai pegawai yang **belum** mengisi penilaian diri sendiri.
+- **Punishment (pengurangan nilai)**: HRD input poin pengurangan per pegawai. Poin ini
+  **memotong Skor Akhir** (minimal 0) dan menjalar ke Review Hasil Akhir, Dashboard, dan
+  Monitor Kinerja. **Per kuartal** — banner menampilkan siklus aktif yang sedang dipunish.
 
 ### Monitor Kinerja & Dashboard Organisasi
 - Monitor **semua pegawai & semua divisi** (filter divisi/periode/pegawai).
@@ -176,10 +189,12 @@ peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
   Mengunci data agar bisa difinalisasi.
 
 ### 2. Pemetaan (Mapping) — *menentukan siapa menilai siapa*
-**Fungsi:** mendaftarkan pasangan Penilai → Target + Relasi (Atasan/Peer/Cross/Self).
+**Fungsi:** mendaftarkan pasangan Penilai → Target + Relasi (Atasan/Peer/Cross/Self) + **Sifat** (Wajib/Opsional).
 **Berdampak ke:**
 - **Daftar Penilaian Saya** tiap pegawai → menentukan **daftar orang yang wajib ia nilai**.
 - Kolom **Garis Hubungan** yang dilihat penilai (sumber "Minta Koreksi").
+- **Sifat Wajib/Opsional** → tampil di Daftar Penilaian Saya & Progress 360, dan menjadi
+  dasar **Flag Kepatuhan** (hanya penilaian Wajib yang dihitung "terlambat").
 - **Perhitungan 360**: relasi menentukan masuk kelas bobot mana (lihat Kelola Bobot).
 - **Progress 360**: total target yang harus diisi tiap orang dihitung dari mapping.
 - Hapus relasi (mis. pegawai resign) → target itu hilang dari daftar penilaian terkait.
@@ -224,15 +239,24 @@ peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
   sehingga data dianggap lengkap untuk finalisasi.
 - Tidak mengubah skor, tapi memengaruhi **kesiapan data** sebelum Review Hasil Akhir.
 
-### 8. Monitoring & Audit KPI — *pengawasan, bukan pengubahan*
+### 8. Flag Kepatuhan Penilaian & Punishment — *menghukum ketidakpatuhan*
+**Fungsi:** menandai keterlambatan penilaian **wajib** & Self Assessment yang kosong, lalu
+memberi **punishment** (pengurangan poin).
+**Berdampak ke:**
+- **Flag** dihitung dari **Sifat (Pemetaan)** + status pengisian (assessList).
+- **Punishment** → input poin **per kuartal** per pegawai → **memotong Skor Akhir** (minimal 0).
+- Pengurangan menjalar ke **Review Hasil Akhir, Dashboard, Monitor Kinerja** (matriks &
+  tren bulanan) untuk kuartal terkait.
+
+### 9. Monitoring & Audit KPI — *pengawasan, bukan pengubahan*
 **Fungsi:** melihat input & perubahan KPI yang dilakukan SPV (jejak audit).
 **Berdampak ke:** tidak mengubah data — alat **transparansi/kontrol** atas pekerjaan SPV.
 
-### 9. Monitor Kinerja & Dashboard Organisasi — *analitik, read-only*
+### 10. Monitor Kinerja & Dashboard Organisasi — *analitik, read-only*
 **Fungsi:** memantau **semua pegawai & semua divisi**, 4 dashboard agregat.
 **Berdampak ke:** tidak mengubah data — dasar **pengambilan keputusan** (promosi, pembinaan).
 
-### 10. Mode Ganda (HRD bertindak sebagai SPV)
+### 11. Mode Ganda (HRD bertindak sebagai SPV)
 **Fungsi:** HRD beralih ke mode SPV.
 **Berdampak ke:** HRD bisa **Input KPI** & **ACC Laporan Kinerja Tim** layaknya SPV untuk tim
 yang ditugaskan padanya. Di mode ini batasannya mengikuti aturan SPV.
@@ -247,6 +271,7 @@ Pemetaan ───────┤→ Daftar Penilaian (semua pegawai) → pengis
 Kelola Pertanyaan┘                                         │
 Kelola Bobot ───────────────────→ Skor 360 ──┐            │
                                    KPI (SPV) ─┴→ Skor Akhir → Monitor/Rekap/Dashboard
+Flag Kepatuhan → Punishment (−poin/kuartal) ──┘  │
                                                   │
 Review Hasil Akhir → Finalisasi → Laporan Hasil Saya (pegawai) + PDF
 Promosi & Penyesuaian → ACC Direksi

@@ -11,8 +11,9 @@ Bukan e-commerce — **tidak ada pembayaran, keranjang, stok, atau pengiriman ba
 Empat peran pengguna (lihat `src/types.ts` → `UserRole`):
 - **Employee** — mengisi penilaian 360 Feedback, lihat laporan hasil sendiri.
 - **SPV (Supervisor)** — input KPI bulanan tim, ACC laporan tim, monitor kinerja bawahan.
-- **HRD Admin** — kelola siklus periode, pertanyaan, bobot penilai, mapping, finalisasi
-  Final Report, dashboard organisasi. Punya **mode ganda**: bisa bertindak sebagai SPV.
+- **HRD Admin** — kelola siklus periode, pertanyaan, bobot penilai, mapping (termasuk
+  **sifat wajib/opsional**), flag kepatuhan + **punishment** (pengurangan poin per kuartal),
+  finalisasi Final Report, dashboard. Punya **mode ganda**: bisa bertindak sebagai SPV.
 - **Direksi** — dashboard eksekutif, ACC promosi/suksesi.
 
 Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`.
@@ -100,6 +101,9 @@ RESEND_API_KEY                 # server-only (jika email reminder dipakai)
 - Komentar & label UI berbahasa Indonesia mengikuti istilah di PANDUAN (mis. "Mulai Nilai",
   "Final Report", "Garis Hubungan") agar konsisten dengan dokumen pengguna.
 - Domain types ada di `src/types.ts` — perluas di sana, jangan duplikasi.
+- **Skor Akhir (SPA legacy)** = blend KPI+360 **dikurangi** punishment kepatuhan per kuartal
+  (`compliancePenalties[quarterKey][empId]`, min 0). Ada beberapa fungsi skor akhir terpisah
+  (komponen-level + lokal Monitor Kinerja); kalau mengubah rumus, sinkronkan semuanya.
 
 ## Perintah
 

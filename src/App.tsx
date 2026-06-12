@@ -6654,10 +6654,11 @@ export default function App() {
                     const getFilteredFinalScore = (empId: string, yr: string, mth: string, qtrKey: string) => {
                       const kpi = getFilteredKpiScore(empId, yr, mth, qtrKey);
                       const s360 = getFiltered360Score(empId, qtrKey);
+                      const penalty = compliancePenalties[empId] || 0; // punishment kepatuhan
                       if (qtrKey !== 'all' && !quarters[qtrKey]?.has360) {
-                        return kpi;
+                        return Math.max(0, kpi - penalty);
                       }
-                      return (kpi * 0.5) + (s360 * 0.5);
+                      return Math.max(0, (kpi * 0.5) + (s360 * 0.5) - penalty);
                     };
 
                     return (
@@ -7129,7 +7130,8 @@ export default function App() {
                           const qk = findQuarterForMonth(h.monthKey);
                           const has360 = qk ? !!quarters[qk]?.has360 : false;
                           const s360 = (qk && has360) ? (getScore360ForQuarter(selectedEmp.id, qk) ?? 0) : 0;
-                          const finalScoreVal = has360 ? (h.score * 0.5 + s360 * 0.5) : h.score;
+                          const penalty = compliancePenalties[selectedEmp.id] || 0; // punishment kepatuhan
+                          const finalScoreVal = Math.max(0, (has360 ? (h.score * 0.5 + s360 * 0.5) : h.score) - penalty);
                           return { monthKey: h.monthKey, label: h.label, kpi: h.score, s360, finalScoreVal };
                         });
 

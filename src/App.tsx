@@ -1245,6 +1245,40 @@ export default function App() {
     return scores.sort((a, b) => b[1] - a[1]);
   };
 
+  // 360 pegawai untuk konteks filter aktif (fallback skor awal).
+  const getEmp360Score = (eid: string): number | null => {
+    const qKeys = getFilteredQuarterKeys();
+    return getScore360ForQuarter(eid, qKeys[0] || activeQuarterKey) ?? INITIAL_SCORE_360[eid] ?? null;
+  };
+
+  // Matriks 9-Box talenta: KPI (≥90 / 80–89,99 / <80) × 360 (≥80 / 70–79,99 / <70).
+  const TALENT_BOXES = [
+    { key: 'star',     label: 'Star Talent',         kpiBand: 'hi',  s360Band: 'hi',  color: '#059669' },
+    { key: 'highperf', label: 'High Performer',      kpiBand: 'hi',  s360Band: 'mid', color: '#16a34a' },
+    { key: 'expert',   label: 'Expert / Lone Wolf',  kpiBand: 'hi',  s360Band: 'lo',  color: '#ca8a04' },
+    { key: 'highpot',  label: 'High Potential',      kpiBand: 'mid', s360Band: 'hi',  color: '#2563eb' },
+    { key: 'core',     label: 'Core Contributor',    kpiBand: 'mid', s360Band: 'mid', color: '#4f46e5' },
+    { key: 'align',    label: 'Needs Align',         kpiBand: 'mid', s360Band: 'lo',  color: '#d97706' },
+    { key: 'rough',    label: 'Rough Diamond',       kpiBand: 'lo',  s360Band: 'hi',  color: '#0891b2' },
+    { key: 'incons',   label: 'Inconsistent Player', kpiBand: 'lo',  s360Band: 'mid', color: '#ea580c' },
+    { key: 'under',    label: 'Underperformer',      kpiBand: 'lo',  s360Band: 'lo',  color: '#dc2626' },
+  ];
+  const kpiBandOf = (kpi: number) => (kpi >= 90 ? 'hi' : kpi >= 80 ? 'mid' : 'lo');
+  const s360BandOf = (s: number) => (s >= 80 ? 'hi' : s >= 70 ? 'mid' : 'lo');
+  const getTalentMatrix = () => {
+    const activeEmps = ALL_EMPS.filter(emp => filterDivision === 'Semua' || emp.dept === filterDivision);
+    const counts: Record<string, { id: string; name: string; kpi: number; s360: number }[]> = {};
+    TALENT_BOXES.forEach(b => { counts[b.key] = []; });
+    activeEmps.forEach(emp => {
+      const kpi = getFilteredKpiAverage(emp.id);
+      const s360 = getEmp360Score(emp.id);
+      if (kpi === null || s360 === null) return;
+      const box = TALENT_BOXES.find(b => b.kpiBand === kpiBandOf(kpi) && b.s360Band === s360BandOf(s360));
+      if (box) counts[box.key].push({ id: emp.id, name: emp.name, kpi, s360 });
+    });
+    return counts;
+  };
+
   const getFilteredCategories = () => {
     const activeEmps = ALL_EMPS.filter(emp => {
       if (filterDivision !== 'Semua' && emp.dept !== filterDivision) return false;
@@ -4054,6 +4088,88 @@ export default function App() {
                                 : `${filterQuarter !== 'Semua' ? filterQuarter : 'Semua Kuartal'} ${filterYear !== 'Semua' ? filterYear : 'Semua Tahun'}`
                             }
                           />
+
+                          {/* KLASIFIKASI TALENTA 9-BOX (KPI × 360°) */}
+                          {(() => {
+                            const matrix = getTalentMatrix();
+                            const total = Object.values(matrix).reduce((s, arr) => s + arr.length, 0);
+                            const kpiRows = [
+                              { band: 'hi', label: 'KPI ≥ 90' },
+                              { band: 'mid', label: 'KPI 80–89,99' },
+                              { band: 'lo', label: 'KPI < 80' },
+                            ];
+                            const s360Cols = [
+                              { band: 'hi', label: '360° ≥ 80' },
+                              { band: 'mid', label: '360° 70–79,99' },
+                              { band: 'lo', label: '360° < 70' },
+                            ];
+                            return (
+                              <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                                  <div>
+                                    <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">
+                                      Klasifikasi Talenta — Matriks 9-Box (KPI × 360°)
+                                    </h3>
+                                    <p className="text-xs text-gray-400 mt-0.5">
+                                      Pemetaan {total} pegawai berdasarkan capaian KPI &amp; Evaluasi 360°
+                                      ({filterDivision === 'Semua' ? 'semua divisi' : filterDivision}).
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="overflow-x-auto">
+                                  <div className="min-w-[660px]">
+                                    {/* Header kolom 360 */}
+                                    <div className="grid grid-cols-[120px_1fr_1fr_1fr] gap-2 mb-2">
+                                      <div className="flex items-end justify-center text-[9px] font-bold text-gray-400 uppercase">KPI ↓ / 360° →</div>
+                                      {s360Cols.map(c => (
+                                        <div key={c.band} className="text-center text-[10px] font-extrabold text-indigo-700 bg-indigo-50/60 rounded-lg py-1.5 border border-indigo-100">
+                                          {c.label}
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {/* Baris per band KPI */}
+                                    {kpiRows.map(row => (
+                                      <div key={row.band} className="grid grid-cols-[120px_1fr_1fr_1fr] gap-2 mb-2 items-stretch">
+                                        <div className="flex items-center justify-center text-[10px] font-extrabold text-emerald-800 bg-emerald-50/60 rounded-lg px-2 border border-emerald-100 text-center">
+                                          {row.label}
+                                        </div>
+                                        {s360Cols.map(col => {
+                                          const box = TALENT_BOXES.find(b => b.kpiBand === row.band && b.s360Band === col.band);
+                                          const emps = matrix[box.key] || [];
+                                          return (
+                                            <div
+                                              key={col.band}
+                                              style={{ borderTopColor: box.color }}
+                                              className="border border-gray-200 border-t-4 rounded-xl p-2.5 bg-white min-h-[92px] flex flex-col"
+                                            >
+                                              <div className="flex items-start justify-between gap-1">
+                                                <span className="text-[11px] font-extrabold text-slate-800 leading-tight">{box.label}</span>
+                                                <span className="text-sm font-black font-mono shrink-0" style={{ color: box.color }}>{emps.length}</span>
+                                              </div>
+                                              <div className="mt-1.5 flex flex-wrap gap-1">
+                                                {emps.slice(0, 4).map(e => (
+                                                  <span key={e.id} className="text-[9px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold" title={`${e.name} · KPI ${e.kpi.toFixed(1)} · 360 ${e.s360.toFixed(1)}`}>
+                                                    {e.name.split(' ')[0]}
+                                                  </span>
+                                                ))}
+                                                {emps.length > 4 && (
+                                                  <span className="text-[9px] text-gray-400 font-bold self-center">+{emps.length - 4}</span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                                <p className="text-[10px] text-gray-400 italic mt-2">
+                                  Band KPI: ≥90 / 80–89,99 / &lt;80 · Band 360°: ≥80 / 70–79,99 / &lt;70.
+                                  Pegawai tanpa data KPI/360 pada periode terpilih tidak dihitung.
+                                </p>
+                              </div>
+                            );
+                          })()}
 
                           {/* Top 5 Performers & bottom performers list sidebar grids inside dashboard */}
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

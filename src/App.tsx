@@ -1251,6 +1251,20 @@ export default function App() {
     return getScore360ForQuarter(eid, qKeys[0] || activeQuarterKey) ?? INITIAL_SCORE_360[eid] ?? null;
   };
 
+  // Kuartal efektif untuk klasifikasi talenta (9-Box & 4-Box A/B/C/D).
+  // Dikunci ke SATU kuartal agar KPI, 360°, dan Skor Akhir berasal dari periode
+  // yang sama (klasifikasi adil). Jika filter = satu kuartal → pakai kuartal itu;
+  // jika "Semua" (atau lebih dari satu) → fallback ke kuartal aktif.
+  const getTalentQuarterKey = (): string => {
+    const fq = getFilteredQuarterKeys();
+    return fq.length === 1 ? fq[0] : activeQuarterKey;
+  };
+  const getTalent360 = (eid: string, qKey: string): number | null =>
+    getScore360ForQuarter(eid, qKey) ?? INITIAL_SCORE_360[eid] ?? null;
+  // 360° hanya berlaku jika kuartal memang menyelenggarakan siklus 360° (flag has360).
+  // Saat NONAKTIF, klasifikasi tidak boleh mengarang 360° dari fallback.
+  const isTalent360Active = (qKey: string): boolean => !!quarters[qKey]?.has360;
+
   // Matriks 9-Box talenta: KPI (≥90 / 80–89,99 / <80) × 360 (≥80 / 70–79,99 / <70).
   const TALENT_BOXES = [
     { key: 'star',     label: 'Star Talent',         kpiBand: 'hi',  s360Band: 'hi',  color: '#059669' },
@@ -1266,17 +1280,77 @@ export default function App() {
   const kpiBandOf = (kpi: number) => (kpi >= 90 ? 'hi' : kpi >= 80 ? 'mid' : 'lo');
   const s360BandOf = (s: number) => (s >= 80 ? 'hi' : s >= 70 ? 'mid' : 'lo');
   const getTalentMatrix = () => {
+    const qKey = getTalentQuarterKey();
     const activeEmps = ALL_EMPS.filter(emp => filterDivision === 'Semua' || emp.dept === filterDivision);
     const counts: Record<string, { id: string; name: string; kpi: number; s360: number }[]> = {};
     TALENT_BOXES.forEach(b => { counts[b.key] = []; });
+    // Kuartal tanpa 360° → matriks 9-Box tidak dapat diplot (butuh sumbu 360°).
+    if (!isTalent360Active(qKey)) return counts;
     activeEmps.forEach(emp => {
-      const kpi = getFilteredKpiAverage(emp.id);
-      const s360 = getEmp360Score(emp.id);
+      const kpi = getQuarterKpiAverage(emp.id, qKey);
+      const s360 = getTalent360(emp.id, qKey);
       if (kpi === null || s360 === null) return;
       const box = TALENT_BOXES.find(b => b.kpiBand === kpiBandOf(kpi) && b.s360Band === s360BandOf(s360));
       if (box) counts[box.key].push({ id: emp.id, name: emp.name, kpi, s360 });
     });
     return counts;
+  };
+
+  // Matriks 4-Box A/B/C/D Player: berbasis Skor Akhir (+ syarat KPI & 360° untuk A).
+  // A: Skor Akhir ≥ 90 DAN KPI ≥ 90 DAN 360° ≥ 80 · B: Skor Akhir ≥ 80 · C: ≥ 70 · D: < 70.
+  const PLAYER_BOXES = [
+    { key: 'A', label: 'A Player', desc: 'Skor Akhir ≥ 90, KPI ≥ 90, 360° ≥ 80', color: '#059669' },
+    { key: 'B', label: 'B Player', desc: 'Skor Akhir ≥ 80',                       color: '#2563eb' },
+    { key: 'C', label: 'C Player', desc: 'Skor Akhir ≥ 70',                       color: '#d97706' },
+    { key: 'D', label: 'D Player', desc: 'Skor Akhir < 70',                       color: '#dc2626' },
+  ];
+  // active360=false (kuartal tanpa 360°) → gerbang A Player otomatis gagal.
+  const classifyPlayer = (final: number, kpi: number, s360: number, active360: boolean): string => {
+    if (active360 && final >= 90 && kpi >= 90 && s360 >= 80) return 'A';
+    if (final >= 80) return 'B';
+    if (final >= 70) return 'C';
+    return 'D';
+  };
+  const getPlayerMatrix = () => {
+    const qKey = getTalentQuarterKey();
+    const active360 = isTalent360Active(qKey);
+    const activeEmps = ALL_EMPS.filter(emp => filterDivision === 'Semua' || emp.dept === filterDivision);
+    const counts: Record<string, { id: string; name: string; kpi: number; s360: number | null; final: number }[]> =
+      { A: [], B: [], C: [], D: [] };
+    activeEmps.forEach(emp => {
+      const kpi = getQuarterKpiAverage(emp.id, qKey);
+      const final = getComputedFinalScore(emp.id, qKey);
+      if (kpi === null || final === null) return;
+      const s360 = active360 ? getTalent360(emp.id, qKey) : null;
+      if (active360 && s360 === null) return; // 360° aktif tapi belum ada data → tunda
+      const cat = classifyPlayer(final, kpi, s360 ?? 0, active360);
+      counts[cat].push({ id: emp.id, name: emp.name, kpi, s360, final });
+    });
+    return counts;
+  };
+
+  // Klasifikasi 9-Box & 4-Box untuk satu pegawai (basis kuartal terkunci), agar
+  // konsisten dengan kedua chart di Dashboard Organisasi.
+  const getEmpTalentBox = (eid: string) => {
+    const qKey = getTalentQuarterKey();
+    const kpi = getQuarterKpiAverage(eid, qKey);
+    if (kpi === null) return null;
+    // Kuartal tanpa 360° → badge N/A (klasifikasi 9-Box butuh nilai 360°).
+    if (!isTalent360Active(qKey)) return { label: 'N/A · Tanpa 360°', color: '#9ca3af', na: true };
+    const s360 = getTalent360(eid, qKey);
+    if (s360 === null) return null;
+    return TALENT_BOXES.find(b => b.kpiBand === kpiBandOf(kpi) && b.s360Band === s360BandOf(s360)) || null;
+  };
+  const getEmpPlayerBox = (eid: string) => {
+    const qKey = getTalentQuarterKey();
+    const active360 = isTalent360Active(qKey);
+    const kpi = getQuarterKpiAverage(eid, qKey);
+    const final = getComputedFinalScore(eid, qKey);
+    if (kpi === null || final === null) return null;
+    const s360 = active360 ? getTalent360(eid, qKey) : null;
+    if (active360 && s360 === null) return null;
+    const key = classifyPlayer(final, kpi, s360 ?? 0, active360);
+    return PLAYER_BOXES.find(b => b.key === key) || null;
   };
 
   const getFilteredCategories = () => {
@@ -3860,97 +3934,6 @@ export default function App() {
                   {page === 'analytics' && (
                     <div className="space-y-4">
                       
-                      {/* 4 FILTER UTAMA: TAHUN, KUARTAL, BULAN, DIVISI */}
-                      <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-xs space-y-4">
-                        <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
-                          <div className="flex items-center gap-2">
-                            <span className="p-1 rounded bg-emerald-50 text-emerald-700">
-                              <Layers className="w-4 h-4" />
-                            </span>
-                            <h3 className="text-xs font-black tracking-widest text-[#015f43] uppercase">Panel Filter Selektif Organisasi</h3>
-                          </div>
-                          <span className="text-[10px] font-mono text-gray-400 font-extrabold uppercase">Tahun · Kuartal · Bulan · Divisi</span>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                          {/* 1. FILTER TAHUN */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Tahun Laporan</label>
-                            <select
-                              value={filterYear}
-                              onChange={(e) => {
-                                setFilterYear(e.target.value);
-                                setFilterMonth('Semua'); // Reset month
-                              }}
-                              className="w-full text-xs p-2.5 border border-gray-250 rounded-xl font-bold text-gray-800 bg-gray-50/50 hover:bg-gray-50 focus:ring-1 focus:ring-emerald-700 focus:outline-none transition-all cursor-pointer shadow-3xs"
-                            >
-                              <option value="Semua">📅 Semua Tahun</option>
-                              <option value="2026">📅 2026</option>
-                            </select>
-                          </div>
-
-                          {/* 2. FILTER KUARTAL */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Kuartal Acuan</label>
-                            <select
-                              value={filterQuarter}
-                              onChange={(e) => {
-                                setFilterQuarter(e.target.value);
-                                setFilterMonth('Semua'); // Reset month
-                              }}
-                              className="w-full text-xs p-2.5 border border-gray-250 rounded-xl font-bold text-gray-800 bg-gray-50/50 hover:bg-gray-50 focus:ring-1 focus:ring-emerald-700 focus:outline-none transition-all cursor-pointer shadow-3xs"
-                            >
-                              <option value="Semua">📊 Semua Kuartal (Q1 - Q3)</option>
-                              <option value="Q1">📊 Kuartal 1 (Q1)</option>
-                              <option value="Q2">📊 Kuartal 2 (Q2)</option>
-                              <option value="Q3">📊 Kuartal 3 (Q3)</option>
-                            </select>
-                          </div>
-
-                          {/* 3. FILTER BULAN */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Bulan Spesifik</label>
-                            <select
-                              value={filterMonth}
-                              onChange={(e) => setFilterMonth(e.target.value)}
-                              className="w-full text-xs p-2.5 border border-gray-250 rounded-xl font-bold text-gray-800 bg-gray-50/50 hover:bg-gray-50 focus:ring-1 focus:ring-emerald-700 focus:outline-none transition-all cursor-pointer shadow-3xs"
-                            >
-                              <option value="Semua">🗓️ Semua Bulan</option>
-                              {getMonthOptionsInContext().map(m => {
-                                const parts = m.split('-');
-                                const monthNamesIndo: Record<string, string> = {
-                                  '01': 'Januari', '02': 'Februari', '03': 'Maret',
-                                  '04': 'April', '05': 'Mei', '06': 'Juni',
-                                  '07': 'Juli', '08': 'Agustus', '09': 'September',
-                                  '10': 'Oktober', '11': 'November', '12': 'Desember'
-                                };
-                                const label = parts[1] && monthNamesIndo[parts[1]] 
-                                  ? `${monthNamesIndo[parts[1]]} ${parts[0]}`
-                                  : m;
-                                return (
-                                  <option key={m} value={m}>🗓️ {label}</option>
-                                );
-                              })}
-                            </select>
-                          </div>
-
-                          {/* 4. FILTER DIVISI */}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Divisi / Departemen</label>
-                            <select
-                              value={filterDivision}
-                              onChange={(e) => setFilterDivision(e.target.value)}
-                              className="w-full text-xs p-2.5 border border-gray-250 rounded-xl font-bold text-gray-800 bg-gray-50/50 hover:bg-gray-50 focus:ring-1 focus:ring-emerald-700 focus:outline-none transition-all cursor-pointer shadow-3xs"
-                            >
-                              <option value="Semua">🏢 Semua Divisi</option>
-                              {Array.from(new Set(ALL_EMPS.map(emp => emp.dept))).map(d => (
-                                <option key={d} value={d}>🏢 Divisi {d}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-
                       {/* Top acuan selectors */}
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/50 p-4 border border-gray-150 rounded-2xl">
                         <div>
@@ -4018,6 +4001,97 @@ export default function App() {
                               ? "⚡ Set Tanpa 360°"
                               : "⚡ Aktifkan Kembali 360°"}
                           </button>
+                        </div>
+                      </div>
+
+                      {/* 4 FILTER UTAMA: TAHUN, KUARTAL, BULAN, DIVISI */}
+                      <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-xs space-y-4">
+                        <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="p-1 rounded bg-emerald-50 text-emerald-700">
+                              <Layers className="w-4 h-4" />
+                            </span>
+                            <h3 className="text-xs font-black tracking-widest text-[#015f43] uppercase">Panel Filter Selektif Organisasi</h3>
+                          </div>
+                          <span className="text-[10px] font-mono text-gray-400 font-extrabold uppercase">Tahun · Kuartal · Bulan · Divisi</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                          {/* 1. FILTER TAHUN */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Tahun Laporan</label>
+                            <select
+                              value={filterYear}
+                              onChange={(e) => {
+                                setFilterYear(e.target.value);
+                                setFilterMonth('Semua'); // Reset month
+                              }}
+                              className="w-full text-xs p-2.5 border border-gray-250 rounded-xl font-bold text-gray-800 bg-gray-50/50 hover:bg-gray-50 focus:ring-1 focus:ring-emerald-700 focus:outline-none transition-all cursor-pointer shadow-3xs"
+                            >
+                              <option value="Semua">📅 Semua Tahun</option>
+                              <option value="2026">📅 2026</option>
+                            </select>
+                          </div>
+
+                          {/* 2. FILTER KUARTAL */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Kuartal Acuan</label>
+                            <select
+                              value={filterQuarter}
+                              onChange={(e) => {
+                                setFilterQuarter(e.target.value);
+                                setFilterMonth('Semua'); // Reset month
+                              }}
+                              className="w-full text-xs p-2.5 border border-gray-250 rounded-xl font-bold text-gray-800 bg-gray-50/50 hover:bg-gray-50 focus:ring-1 focus:ring-emerald-700 focus:outline-none transition-all cursor-pointer shadow-3xs"
+                            >
+                              <option value="Semua">📊 Semua Kuartal (Q1 - Q3)</option>
+                              <option value="Q1">📊 Kuartal 1 (Q1)</option>
+                              <option value="Q2">📊 Kuartal 2 (Q2)</option>
+                              <option value="Q3">📊 Kuartal 3 (Q3)</option>
+                            </select>
+                          </div>
+
+                          {/* 3. FILTER BULAN */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Bulan Spesifik</label>
+                            <select
+                              value={filterMonth}
+                              onChange={(e) => setFilterMonth(e.target.value)}
+                              className="w-full text-xs p-2.5 border border-gray-250 rounded-xl font-bold text-gray-800 bg-gray-50/50 hover:bg-gray-50 focus:ring-1 focus:ring-emerald-700 focus:outline-none transition-all cursor-pointer shadow-3xs"
+                            >
+                              <option value="Semua">🗓️ Semua Bulan</option>
+                              {getMonthOptionsInContext().map(m => {
+                                const parts = m.split('-');
+                                const monthNamesIndo: Record<string, string> = {
+                                  '01': 'Januari', '02': 'Februari', '03': 'Maret',
+                                  '04': 'April', '05': 'Mei', '06': 'Juni',
+                                  '07': 'Juli', '08': 'Agustus', '09': 'September',
+                                  '10': 'Oktober', '11': 'November', '12': 'Desember'
+                                };
+                                const label = parts[1] && monthNamesIndo[parts[1]]
+                                  ? `${monthNamesIndo[parts[1]]} ${parts[0]}`
+                                  : m;
+                                return (
+                                  <option key={m} value={m}>🗓️ {label}</option>
+                                );
+                              })}
+                            </select>
+                          </div>
+
+                          {/* 4. FILTER DIVISI */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Divisi / Departemen</label>
+                            <select
+                              value={filterDivision}
+                              onChange={(e) => setFilterDivision(e.target.value)}
+                              className="w-full text-xs p-2.5 border border-gray-250 rounded-xl font-bold text-gray-800 bg-gray-50/50 hover:bg-gray-50 focus:ring-1 focus:ring-emerald-700 focus:outline-none transition-all cursor-pointer shadow-3xs"
+                            >
+                              <option value="Semua">🏢 Semua Divisi</option>
+                              {Array.from(new Set(ALL_EMPS.map(emp => emp.dept))).map(d => (
+                                <option key={d} value={d}>🏢 Divisi {d}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                       </div>
 
@@ -4093,6 +4167,7 @@ export default function App() {
                           {(() => {
                             const matrix = getTalentMatrix();
                             const total = Object.values(matrix).reduce((s, arr) => s + arr.length, 0);
+                            const active360 = isTalent360Active(getTalentQuarterKey());
                             const kpiRows = [
                               { band: 'hi', label: 'KPI ≥ 90' },
                               { band: 'mid', label: 'KPI 80–89,99' },
@@ -4116,6 +4191,16 @@ export default function App() {
                                     </p>
                                   </div>
                                 </div>
+                                {!active360 && (
+                                  <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+                                    <span className="text-amber-700 text-sm leading-none mt-0.5">⚠️</span>
+                                    <p className="text-[11px] text-amber-900 font-semibold leading-relaxed">
+                                      Kuartal {quarters[getTalentQuarterKey()]?.label || getTalentQuarterKey()} <strong>tanpa Evaluasi 360°</strong>.
+                                      Matriks 9-Box butuh sumbu 360°, sehingga tidak dapat ditampilkan untuk kuartal ini.
+                                      Gunakan <strong>Matriks 4-Box (A/B/C/D)</strong> di bawah yang berbasis Skor Akhir.
+                                    </p>
+                                  </div>
+                                )}
                                 <div className="overflow-x-auto">
                                   <div className="min-w-[660px]">
                                     {/* Header kolom 360 */}
@@ -4165,7 +4250,66 @@ export default function App() {
                                 </div>
                                 <p className="text-[10px] text-gray-400 italic mt-2">
                                   Band KPI: ≥90 / 80–89,99 / &lt;80 · Band 360°: ≥80 / 70–79,99 / &lt;70.
-                                  Pegawai tanpa data KPI/360 pada periode terpilih tidak dihitung.
+                                  Dihitung dari kuartal terpilih ({quarters[getTalentQuarterKey()]?.label || getTalentQuarterKey()}).
+                                  Pegawai tanpa data KPI/360 pada kuartal itu tidak dihitung.
+                                </p>
+                              </div>
+                            );
+                          })()}
+
+                          {/* KLASIFIKASI 4-BOX A/B/C/D PLAYER (berbasis Skor Akhir) */}
+                          {(() => {
+                            const matrix = getPlayerMatrix();
+                            const total = Object.values(matrix).reduce((s, arr) => s + arr.length, 0);
+                            const qKey = getTalentQuarterKey();
+                            return (
+                              <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                                  <div>
+                                    <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">
+                                      Klasifikasi Pemain — Matriks 4-Box (A / B / C / D Player)
+                                    </h3>
+                                    <p className="text-xs text-gray-400 mt-0.5">
+                                      Pemetaan {total} pegawai berdasarkan Skor Akhir
+                                      ({filterDivision === 'Semua' ? 'semua divisi' : filterDivision}).
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                  {PLAYER_BOXES.map(box => {
+                                    const emps = matrix[box.key] || [];
+                                    return (
+                                      <div
+                                        key={box.key}
+                                        style={{ borderTopColor: box.color }}
+                                        className="border border-gray-200 border-t-4 rounded-xl p-3 bg-white min-h-[120px] flex flex-col"
+                                      >
+                                        <div className="flex items-start justify-between gap-1">
+                                          <span className="text-[13px] font-black text-slate-800 leading-tight">{box.label}</span>
+                                          <span className="text-lg font-black font-mono shrink-0" style={{ color: box.color }}>{emps.length}</span>
+                                        </div>
+                                        <span className="text-[9px] text-gray-400 font-semibold mt-0.5 leading-tight">{box.desc}</span>
+                                        <div className="mt-2 flex flex-wrap gap-1">
+                                          {emps.slice(0, 6).map(e => (
+                                            <span key={e.id} className="text-[9px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold" title={`${e.name} · Skor ${e.final.toFixed(1)} · KPI ${e.kpi.toFixed(1)} · 360 ${e.s360 != null ? e.s360.toFixed(1) : 'N/A'}`}>
+                                              {e.name.split(' ')[0]}
+                                            </span>
+                                          ))}
+                                          {emps.length > 6 && (
+                                            <span className="text-[9px] text-gray-400 font-bold self-center">+{emps.length - 6}</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                <p className="text-[10px] text-gray-400 italic mt-2">
+                                  A: Skor Akhir ≥ 90 &amp; KPI ≥ 90 &amp; 360° ≥ 80 · B: Skor Akhir ≥ 80 · C: ≥ 70 · D: &lt; 70.
+                                  Dihitung dari kuartal terpilih ({quarters[qKey]?.label || qKey}).
+                                  Pegawai tanpa data pada kuartal itu tidak dihitung.
+                                  {!isTalent360Active(qKey) && (
+                                    <span className="text-amber-700 font-semibold not-italic"> Kuartal ini tanpa 360° → Skor Akhir = 100% KPI, kategori A Player tidak tersedia.</span>
+                                  )}
                                 </p>
                               </div>
                             );
@@ -4996,6 +5140,8 @@ export default function App() {
                                   <th className="py-3 px-4 text-center">Rerata KPI Kerja</th>
                                   <th className="py-3 px-4 text-center">Evaluasi 360°</th>
                                   <th className="py-3 px-4 text-center">Skor Akhir Kalibrasi</th>
+                                  <th className="py-3 px-4 text-center">Klasifikasi 9-Box</th>
+                                  <th className="py-3 px-4 text-center">A/B/C/D Player</th>
                                   <th className="py-3 px-4">Rencana Suksesi / Promosi</th>
                                   <th className="py-3 px-4 text-right">Kategori Evaluasi</th>
                                 </tr>
@@ -5012,7 +5158,7 @@ export default function App() {
                                   if (filteredList.length === 0) {
                                     return (
                                       <tr>
-                                        <td colSpan={7} className="py-12 text-center text-gray-405 font-bold italic">
+                                        <td colSpan={9} className="py-12 text-center text-gray-405 font-bold italic">
                                           Tidak ditemukan pegawai dengan nama &ldquo;{searchQueryAllEmployees}&rdquo;
                                         </td>
                                       </tr>
@@ -5028,6 +5174,8 @@ export default function App() {
                                       ? (is360ActiveForQ ? (getScore360ForQuarter(emp.id, selQAnalytics) ?? null) : (INITIAL_SCORE_360[emp.id] ?? null))
                                       : null;
                                     const finalScore = getFilteredFinalScore(emp.id);
+                                    const talentBox = getEmpTalentBox(emp.id);
+                                    const playerBox = getEmpPlayerBox(emp.id);
                                     const promPlan = promotions[emp.id] || null;
 
                                     return (
@@ -5072,6 +5220,31 @@ export default function App() {
                                             </span>
                                           ) : (
                                             <span className="text-gray-444 italic">—</span>
+                                          )}
+                                        </td>
+                                        <td className="py-3.5 px-4 text-center">
+                                          {talentBox ? (
+                                            <span
+                                              className="inline-block text-[10px] font-extrabold px-2 py-1 rounded-lg border"
+                                              style={{ color: talentBox.color, borderColor: talentBox.color, backgroundColor: `${talentBox.color}14` }}
+                                            >
+                                              {talentBox.label}
+                                            </span>
+                                          ) : (
+                                            <span className="text-gray-400 italic">—</span>
+                                          )}
+                                        </td>
+                                        <td className="py-3.5 px-4 text-center">
+                                          {playerBox ? (
+                                            <span
+                                              className="inline-flex items-center justify-center min-w-[2.75rem] text-[11px] font-black px-2 py-1 rounded-lg border"
+                                              style={{ color: playerBox.color, borderColor: playerBox.color, backgroundColor: `${playerBox.color}14` }}
+                                              title={playerBox.desc}
+                                            >
+                                              {playerBox.label}
+                                            </span>
+                                          ) : (
+                                            <span className="text-gray-400 italic">—</span>
                                           )}
                                         </td>
                                         <td className="py-3.5 px-4 max-w-xs">

@@ -104,6 +104,12 @@ RESEND_API_KEY                 # server-only (jika email reminder dipakai)
 - **Skor Akhir (SPA legacy)** = blend KPI+360 **dikurangi** punishment kepatuhan per kuartal
   (`compliancePenalties[quarterKey][empId]`, min 0). Ada beberapa fungsi skor akhir terpisah
   (komponen-level + lokal Monitor Kinerja); kalau mengubah rumus, sinkronkan semuanya.
+- **Klasifikasi talenta Dashboard** (9-Box KPI×360 & 4-Box A/B/C/D Player) **dikunci ke satu
+  kuartal** lewat `getTalentQuarterKey()` (filter satu kuartal → kuartal itu; "Semua" →
+  `activeQuarterKey`) agar KPI, 360°, dan Skor Akhir dari periode sama. Wajib hormati flag
+  `quarters[qKey].has360` (`isTalent360Active`): kuartal tanpa 360° → 9-Box tidak diplot &
+  kolom tabel `N/A`, dan kategori A Player nonaktif (Skor Akhir = 100% KPI). Helper inti:
+  `getTalentMatrix`, `getPlayerMatrix`, `getEmpTalentBox`, `getEmpPlayerBox`.
 
 ## Perintah
 

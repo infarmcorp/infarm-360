@@ -143,6 +143,25 @@ Selain semua fitur Employee di atas, SPV punya:
 - Monitor **semua pegawai & semua divisi** (filter divisi/periode/pegawai).
 - 4 dashboard: Kompilasi Kinerja Organisasi, Analisis Hasil KPI, Analisis 360 Feedback,
   Tabel Hasil Seluruh Pegawai.
+- **Panel Skenario Tanpa 360°** (toggle): set kuartal aktif memakai 360° atau tidak —
+  mengubah rumus Skor Akhir (KPI 50% + 360° 50% ↔ 100% KPI murni). Diikuti **Panel Filter
+  Selektif** (Tahun · Kuartal · Bulan · Divisi).
+
+#### Klasifikasi Talenta (tab Kompilasi)
+- **Matriks 9-Box (KPI × 360°)** — sebaran pegawai pada 9 kategori (Star Talent,
+  High Performer, Core Contributor, dst.) dari band KPI (≥90 / 80–89,99 / <80) ×
+  band 360° (≥80 / 70–79,99 / <70).
+- **Matriks 4-Box (A/B/C/D Player)** — berbasis **Skor Akhir**:
+  **A** (Skor ≥ 90 **dan** KPI ≥ 90 **dan** 360° ≥ 80) · **B** (Skor ≥ 80) ·
+  **C** (Skor ≥ 70) · **D** (Skor < 70).
+- **Dikunci per kuartal:** KPI, 360°, dan Skor Akhir diambil dari **kuartal yang sama**.
+  Jika filter = "Semua" → memakai **kuartal aktif** agar klasifikasi adil.
+- **Kuartal tanpa 360°:** 9-Box tidak ditampilkan (menampilkan info), dan kategori
+  **A Player tidak tersedia** (Skor Akhir = 100% KPI).
+
+#### Tabel Hasil Seluruh Pegawai
+- Kolom **Klasifikasi 9-Box** dan **A/B/C/D Player** per pegawai (konsisten dengan kedua
+  matriks di atas). Saat kuartal tanpa 360°, kolom 9-Box menampilkan **N/A · Tanpa 360°**.
 
 ---
 
@@ -253,8 +272,13 @@ memberi **punishment** (pengurangan poin).
 **Berdampak ke:** tidak mengubah data — alat **transparansi/kontrol** atas pekerjaan SPV.
 
 ### 10. Monitor Kinerja & Dashboard Organisasi — *analitik, read-only*
-**Fungsi:** memantau **semua pegawai & semua divisi**, 4 dashboard agregat.
+**Fungsi:** memantau **semua pegawai & semua divisi**, 4 dashboard agregat, termasuk
+**Matriks 9-Box** (KPI × 360°) & **Matriks 4-Box A/B/C/D Player** (berbasis Skor Akhir).
 **Berdampak ke:** tidak mengubah data — dasar **pengambilan keputusan** (promosi, pembinaan).
+- Klasifikasi **dikunci per kuartal** (KPI, 360°, Skor Akhir dari periode sama; fallback
+  ke kuartal aktif saat filter "Semua").
+- Mengikuti **Skenario Tanpa 360°** (#1): kuartal tanpa 360° → 9-Box disembunyikan & kolom
+  9-Box jadi **N/A**, kategori **A Player** tidak tersedia (Skor Akhir = 100% KPI).
 
 ### 11. Mode Ganda (HRD bertindak sebagai SPV)
 **Fungsi:** HRD beralih ke mode SPV.

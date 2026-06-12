@@ -256,14 +256,14 @@ export const DEPT_SCORES: [string, number][] = [
 ];
 
 export const INITIAL_MAPPINGS: Mapping[] = [
-  { id: 'M01', penilaiId: 'EMP002', penilaiName: 'Budi Santoso', yangDinilaiId: 'EMP001', yangDinilaiName: 'Andi Pratama', relasi: 'Peer' },
-  { id: 'M02', penilaiId: 'EMP003', penilaiName: 'Citra Dewi', yangDinilaiId: 'EMP001', yangDinilaiName: 'Andi Pratama', relasi: 'Peer' },
-  { id: 'M03', penilaiId: 'SPV001', penilaiName: 'Gunawan Wibowo', yangDinilaiId: 'EMP001', yangDinilaiName: 'Andi Pratama', relasi: 'SPV→Employee' },
-  { id: 'M04', penilaiId: 'HRD001', penilaiName: 'Irma Suryani', yangDinilaiId: 'EMP001', yangDinilaiName: 'Andi Pratama', relasi: 'HRD→Employee' },
-  { id: 'M05', penilaiId: 'EMP001', penilaiName: 'Andi Pratama', yangDinilaiId: 'EMP002', yangDinilaiName: 'Budi Santoso', relasi: 'Peer' },
-  { id: 'M06', penilaiId: 'DIR001', penilaiName: 'Joko Widiatmoko', yangDinilaiId: 'SPV001', yangDinilaiName: 'Gunawan Wibowo', relasi: 'Direksi→SPV' },
-  { id: 'M07', penilaiId: 'EMP003', penilaiName: 'Citra Dewi', yangDinilaiId: 'EMP002', yangDinilaiName: 'Budi Santoso', relasi: 'Peer' },
-  { id: 'M08', penilaiId: 'EMP004', penilaiName: 'Dinda Rahayu', yangDinilaiId: 'EMP003', yangDinilaiName: 'Citra Dewi', relasi: 'Peer' }
+  { id: 'M01', penilaiId: 'EMP002', penilaiName: 'Budi Santoso', yangDinilaiId: 'EMP001', yangDinilaiName: 'Andi Pratama', relasi: 'Peer', sifat: 'wajib' },
+  { id: 'M02', penilaiId: 'EMP003', penilaiName: 'Citra Dewi', yangDinilaiId: 'EMP001', yangDinilaiName: 'Andi Pratama', relasi: 'Peer', sifat: 'opsional' },
+  { id: 'M03', penilaiId: 'SPV001', penilaiName: 'Gunawan Wibowo', yangDinilaiId: 'EMP001', yangDinilaiName: 'Andi Pratama', relasi: 'SPV→Employee', sifat: 'wajib' },
+  { id: 'M04', penilaiId: 'HRD001', penilaiName: 'Irma Suryani', yangDinilaiId: 'EMP001', yangDinilaiName: 'Andi Pratama', relasi: 'HRD→Employee', sifat: 'wajib' },
+  { id: 'M05', penilaiId: 'EMP001', penilaiName: 'Andi Pratama', yangDinilaiId: 'EMP002', yangDinilaiName: 'Budi Santoso', relasi: 'Peer', sifat: 'wajib' },
+  { id: 'M06', penilaiId: 'DIR001', penilaiName: 'Joko Widiatmoko', yangDinilaiId: 'SPV001', yangDinilaiName: 'Gunawan Wibowo', relasi: 'Direksi→SPV', sifat: 'wajib' },
+  { id: 'M07', penilaiId: 'EMP003', penilaiName: 'Citra Dewi', yangDinilaiId: 'EMP002', yangDinilaiName: 'Budi Santoso', relasi: 'Peer', sifat: 'opsional' },
+  { id: 'M08', penilaiId: 'EMP004', penilaiName: 'Dinda Rahayu', yangDinilaiId: 'EMP003', yangDinilaiName: 'Citra Dewi', relasi: 'Peer', sifat: 'opsional' }
 ];
 
 export const INDONESIAN_MONTHS = [

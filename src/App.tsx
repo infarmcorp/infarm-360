@@ -526,6 +526,7 @@ export default function App() {
   const [mappingInputPenilai, setMappingInputPenilai] = useState<string>('');
   const [mappingInputDinilai, setMappingInputDinilai] = useState<string>('');
   const [mappingInputRelasi, setMappingInputRelasi] = useState<string>('Peer');
+  const [mappingInputSifat, setMappingInputSifat] = useState<'wajib' | 'opsional'>('wajib');
 
   const [relationRequests, setRelationRequests] = useState<RelationCorrectionRequest[]>(() => {
     const saved = localStorage.getItem('infarm_relation_requests');
@@ -1667,6 +1668,16 @@ export default function App() {
     showToast(`Siklus periodik baru ${label} diluncurkan!`, 'ok');
   };
 
+  // Sifat penilaian (wajib/opsional) bersumber dari Mapping; default 'wajib'.
+  const getSifatForPair = (penilaiId: string, targetId: string): 'wajib' | 'opsional' => {
+    const m = mappings.find(mp => mp.penilaiId === penilaiId && mp.yangDinilaiId === targetId);
+    return m?.sifat === 'opsional' ? 'opsional' : 'wajib';
+  };
+  const sifatBadgeClass = (sifat: 'wajib' | 'opsional') =>
+    sifat === 'opsional'
+      ? 'bg-slate-100 text-slate-600 border-slate-200'
+      : 'bg-rose-50 text-rose-700 border-rose-200';
+
   // Mapping Admin actions
   const handleAddMapping = () => {
     if (!mappingInputPenilai || !mappingInputDinilai) {
@@ -1689,13 +1700,15 @@ export default function App() {
       penilaiName: penilaiUser.name,
       yangDinilaiId: dinilaiUser.id,
       yangDinilaiName: dinilaiUser.name,
-      relasi: mappingInputRelasi
+      relasi: mappingInputRelasi,
+      sifat: mappingInputSifat
     };
 
     setMappings(prev => [...prev, newMap]);
-    showToast(`Hubungan evaluasi ${penilaiUser.name} → ${dinilaiUser.name} (${mappingInputRelasi}) berhasil ditambahkan!`, 'ok');
+    showToast(`Hubungan evaluasi ${penilaiUser.name} → ${dinilaiUser.name} (${mappingInputRelasi} · ${mappingInputSifat}) berhasil ditambahkan!`, 'ok');
     setMappingInputPenilai('');
     setMappingInputDinilai('');
+    setMappingInputSifat('wajib');
   };
 
   const handleRemoveMapping = (mapId: string) => {
@@ -2524,6 +2537,7 @@ export default function App() {
                                 <th className="py-2.5 px-4 w-1/3">Nama Pegawai & ID</th>
                                 <th className="py-2.5 px-4">Departemen</th>
                                 <th className="py-2.5 px-4 text-center">Garis Hubungan</th>
+                                <th className="py-2.5 px-4 text-center">Sifat</th>
                                 <th className="py-2.5 px-4">Status Pengisian</th>
                                 <th className="py-2.5 px-4 text-right">Aksi Tindak Lanjut</th>
                               </tr>
@@ -2541,7 +2555,7 @@ export default function App() {
                                 if (list.length === 0) {
                                   return (
                                     <tr>
-                                      <td colSpan={5} className="py-8 text-center text-gray-400 font-medium">
+                                      <td colSpan={6} className="py-8 text-center text-gray-400 font-medium">
                                         Anda tidak memiliki daftar penilaian 360° yang terjadwal.
                                       </td>
                                     </tr>
@@ -2606,6 +2620,16 @@ export default function App() {
                                             })()
                                           )}
                                         </div>
+                                      </td>
+                                      <td className="py-3.5 px-4 text-center">
+                                        {(() => {
+                                          const sifat = item.id === activeUser.id ? 'wajib' : getSifatForPair(activeUser.id, item.id);
+                                          return (
+                                            <span className={`inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full border uppercase tracking-wide ${sifatBadgeClass(sifat)}`}>
+                                              {sifat === 'opsional' ? 'Opsional' : 'Wajib'}
+                                            </span>
+                                          );
+                                        })()}
                                       </td>
                                       <td className="py-3.5 px-4">
                                         {item.status === 'done' ? (
@@ -4982,7 +5006,7 @@ export default function App() {
                             <span className="text-[10px] text-gray-400">Sistem akan menyarankan tipe relasi secara otomatis berdasarkan hirarki jabatan penilai dan target.</span>
                           </div>
                           
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             <div>
                               <label className="block text-[10px] text-gray-400 font-bold mb-1">PEGAWAI PENILAI</label>
                               <select
@@ -5031,6 +5055,18 @@ export default function App() {
                                 <option value="Atasan">Atasan</option>
                                 <option value="Cross">Cross</option>
                                 <option value="Self Assessment">Self Assessment</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] text-gray-400 font-bold mb-1">SIFAT PENILAIAN</label>
+                              <select
+                                value={mappingInputSifat}
+                                onChange={(e) => setMappingInputSifat(e.target.value as 'wajib' | 'opsional')}
+                                className="w-full text-xs p-2.5 border border-gray-200 rounded-xl bg-white font-bold text-rose-800"
+                              >
+                                <option value="wajib">Wajib</option>
+                                <option value="opsional">Opsional</option>
                               </select>
                             </div>
                           </div>
@@ -5117,6 +5153,7 @@ export default function App() {
                                       <th className="py-2.5 px-4 animate-fade-in">Pegawai Penilai (Sponsor)</th>
                                       <th className="py-2.5 px-4">Pegawai Sasaran (Target)</th>
                                       <th className="py-2.5 px-4 text-center animate-fade-in">Relasi</th>
+                                      <th className="py-2.5 px-4 text-center">Sifat</th>
                                       <th className="py-2.5 px-4 text-center animate-fade-in">Garis Hubungan</th>
                                       <th className="py-2.5 px-4 text-center">Status Pemetaan</th>
                                       <th className="py-2.5 px-4 text-right">Tindakan Khusus</th>
@@ -5125,7 +5162,7 @@ export default function App() {
                                   <tbody>
                                     {filteredMappings.length === 0 ? (
                                       <tr>
-                                        <td colSpan={6} className="py-12 text-center text-gray-400 font-medium">
+                                        <td colSpan={7} className="py-12 text-center text-gray-400 font-medium">
                                           Tidak ada data pemetaan yang cocok dengan filter penilai / target di atas.
                                         </td>
                                       </tr>
@@ -5150,6 +5187,16 @@ export default function App() {
                                               }`}>
                                                 {relasiValue}
                                               </span>
+                                            </td>
+                                            <td className="py-3 px-4 text-center">
+                                              {(() => {
+                                                const sifat = mItem.sifat === 'opsional' ? 'opsional' : 'wajib';
+                                                return (
+                                                  <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase ${sifatBadgeClass(sifat)}`}>
+                                                    {sifat === 'opsional' ? 'Opsional' : 'Wajib'}
+                                                  </span>
+                                                );
+                                              })()}
                                             </td>
                                             <td className="py-3 px-4 text-center font-mono text-[10px] text-slate-700">
                                               {hubunganValue}
@@ -7877,6 +7924,14 @@ export default function App() {
                                                             <span className="text-[9px] font-bold bg-indigo-50 text-indigo-800 py-0.5 px-2 rounded-full border border-indigo-100 uppercase">
                                                               {relasiLabel}
                                                             </span>
+                                                            {(() => {
+                                                              const sifat = getSifatForPair(a.id, task.id);
+                                                              return (
+                                                                <span className={`text-[9px] font-bold py-0.5 px-2 rounded-full border uppercase ${sifatBadgeClass(sifat)}`}>
+                                                                  {sifat === 'opsional' ? 'Opsional' : 'Wajib'}
+                                                                </span>
+                                                              );
+                                                            })()}
                                                           </div>
                                                           <span className="block text-[9px] text-gray-400 font-mono">ID Target: {task.id} • Dept: {targetUser?.dept || '—'}</span>
                                                         </div>

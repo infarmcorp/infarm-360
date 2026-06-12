@@ -42,6 +42,8 @@ export interface Mapping {
   yangDinilaiId: string;
   yangDinilaiName: string;
   relasi: 'Peer' | 'SPV→Employee' | 'HRD→Employee' | 'Direksi→SPV' | string;
+  /** Sifat penilaian: wajib (default) atau opsional. */
+  sifat?: 'wajib' | 'opsional';
 }
 
 export interface RecommendationField {

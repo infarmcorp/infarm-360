@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck, BarChart3,
-  Menu, X, LogOut, Building2, Briefcase, Award,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 
@@ -21,10 +21,14 @@ const ROLE_LABEL: Record<Role, string> = {
 };
 
 function menuFor(role: Role, hrdMode: HrdMode): Section[] {
-  const main: Item[] = [{ href: '/penilaian', label: 'Daftar Penilaian Saya', icon: Star }];
+  // Legacy: "Daftar Penilaian Saya" disembunyikan untuk HRD murni (mode admin) —
+  // hanya muncul saat HRD bertindak sebagai SPV, atau untuk peran selain HRD.
+  const isHrdSpv = role === 'hrd' && hrdMode === 'spv';
+  const main: Item[] = [];
+  if (role !== 'hrd' || isHrdSpv) main.push({ href: '/penilaian', label: 'Daftar Penilaian Saya', icon: Star });
   if (role === 'employee' || role === 'spv') main.push({ href: '/laporan', label: 'Laporan Hasil Saya', icon: FileText });
 
-  const sections: Section[] = [{ title: 'Navigasi Utama', items: main }];
+  const sections: Section[] = main.length ? [{ title: 'Navigasi Utama', items: main }] : [];
 
   if (role === 'spv') {
     sections.push({
@@ -56,6 +60,7 @@ function menuFor(role: Role, hrdMode: HrdMode): Section[] {
       title: 'Pemantauan',
       items: [
         { href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp },
+        { href: '/kpi?tab=riwayat', label: 'Monitoring & Audit KPI', icon: Clock },
         { href: '/kpi?tab=rekap', label: 'Rekapitulasi Kuartal', icon: BarChart3 },
       ],
     });

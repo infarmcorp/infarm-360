@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { AppShell, type Role } from './app-shell';
 
@@ -19,9 +20,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { data: ap } = await supabase
     .from('periods').select('label, status').eq('status', 'active').limit(1).maybeSingle();
 
+  // Mode tampilan HRD (dual-mode): default 'admin'. Hanya berlaku untuk peran hrd.
+  const jar = await cookies();
+  const hrdMode = jar.get('hrd_mode')?.value === 'spv' ? 'spv' : 'admin';
+
   return (
     <AppShell
       role={role}
+      hrdMode={hrdMode}
       name={emp?.name ?? user.email ?? 'Pengguna'}
       dept={emp?.dept ?? '—'}
       empCode={emp?.emp_code ?? '—'}

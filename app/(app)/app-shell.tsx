@@ -6,10 +6,12 @@ import { usePathname } from 'next/navigation';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck, BarChart3,
-  Menu, X, LogOut,
+  Menu, X, LogOut, Building2, Briefcase,
 } from 'lucide-react';
+import { setHrdMode } from './mode-actions';
 
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
+export type HrdMode = 'admin' | 'spv';
 
 type Item = { href: string; label: string; icon: React.ElementType };
 type Section = { title?: string; items: Item[] };
@@ -18,7 +20,7 @@ const ROLE_LABEL: Record<Role, string> = {
   employee: 'Pegawai Operasional', spv: 'Supervisor (SPV)', hrd: 'HRD Admin', direksi: 'Direktur',
 };
 
-function menuFor(role: Role): Section[] {
+function menuFor(role: Role, hrdMode: HrdMode): Section[] {
   const main: Item[] = [{ href: '/penilaian', label: 'Daftar Penilaian Saya', icon: Star }];
   if (role === 'employee' || role === 'spv') main.push({ href: '/laporan', label: 'Laporan Hasil Saya', icon: FileText });
 
@@ -35,7 +37,8 @@ function menuFor(role: Role): Section[] {
     });
   }
 
-  if (role === 'hrd') {
+  // HRD dual-mode: 'admin' → alat administrator; 'spv' → tugas supervisor.
+  if (role === 'hrd' && hrdMode === 'admin') {
     sections.push({
       title: 'Menu Administrator',
       items: [
@@ -57,6 +60,19 @@ function menuFor(role: Role): Section[] {
     });
   }
 
+  if (role === 'hrd' && hrdMode === 'spv') {
+    // ACC laporan tim adalah fungsi SPV (RLS is_my_member) → HRD pakai "Review Hasil
+    // Akhir" di mode Admin; di sini hanya tugas yang relevan untuk HRD-as-SPV.
+    sections.push({
+      title: 'Menu Supervisor',
+      items: [
+        { href: '/kpi', label: 'Input KPI', icon: Target },
+        { href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp },
+        { href: '/kpi?tab=rekap', label: 'Rekapitulasi Kuartal', icon: BarChart3 },
+      ],
+    });
+  }
+
   if (role === 'direksi') {
     sections.push({
       title: 'Eksekutif',
@@ -72,14 +88,14 @@ function menuFor(role: Role): Section[] {
 }
 
 export function AppShell({
-  role, name, dept, empCode, periodLabel, periodActive, children,
+  role, hrdMode, name, dept, empCode, periodLabel, periodActive, children,
 }: {
-  role: Role; name: string; dept: string; empCode: string;
+  role: Role; hrdMode: HrdMode; name: string; dept: string; empCode: string;
   periodLabel: string | null; periodActive: boolean; children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const sections = menuFor(role);
+  const sections = menuFor(role, hrdMode);
 
   const isActive = (href: string) => {
     const path = href.split('?')[0];
@@ -99,6 +115,29 @@ export function AppShell({
           </div>
         </div>
       </div>
+
+      {/* Toggle dual-mode HRD */}
+      {role === 'hrd' && (
+        <div className="px-3 py-2.5 border-b border-gray-150 bg-indigo-50/40">
+          <div className="grid grid-cols-2 gap-1.5">
+            <form action={setHrdMode.bind(null, 'admin')}>
+              <button type="submit" className={`w-full flex items-center justify-center gap-1 text-[10px] font-bold py-1.5 rounded-lg transition-colors ${
+                hrdMode === 'admin' ? 'bg-emerald-700 text-white shadow-2xs' : 'bg-white text-gray-500 hover:text-gray-700 border border-gray-200'}`}>
+                <Building2 className="w-3 h-3" /> HRD Admin
+              </button>
+            </form>
+            <form action={setHrdMode.bind(null, 'spv')}>
+              <button type="submit" className={`w-full flex items-center justify-center gap-1 text-[10px] font-bold py-1.5 rounded-lg transition-colors ${
+                hrdMode === 'spv' ? 'bg-emerald-700 text-white shadow-2xs' : 'bg-white text-gray-500 hover:text-gray-700 border border-gray-200'}`}>
+                <Briefcase className="w-3 h-3" /> SPV Mode
+              </button>
+            </form>
+          </div>
+          <p className="text-[9px] text-gray-400 text-center mt-1">
+            {hrdMode === 'spv' ? 'Bertindak sebagai Supervisor' : 'Mengelola seluruh sistem'}
+          </p>
+        </div>
+      )}
 
       {/* Period indicator */}
       <div className="px-4 py-2.5 bg-emerald-50/50 border-b border-gray-150 flex items-center justify-between text-xs">

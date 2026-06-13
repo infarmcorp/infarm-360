@@ -41,7 +41,7 @@ export default async function KpiPage({
       </div>
 
       {tab === 'input' && canInput ? (
-        <InputTab supabase={supabase} userId={user.id} />
+        <InputTab supabase={supabase} userId={user.id} role={role} />
       ) : (
         <RekapView role={role} userId={user.id} periodParam={period} />
       )}
@@ -49,17 +49,27 @@ export default async function KpiPage({
   );
 }
 
-/** Tab Input KPI: anggota tim + bulan periode aktif (RLS membatasi ke tim SPV). */
+/**
+ * Tab Input KPI: SPV → anggota tim (RLS is_my_member). HRD (mode SPV) → semua pegawai
+ * non-direksi (RLS is_hrd mengizinkan tulis KPI siapa pun).
+ */
 async function InputTab({
-  supabase, userId,
+  supabase, userId, role,
 }: {
-  supabase: Awaited<ReturnType<typeof createClient>>; userId: string;
+  supabase: Awaited<ReturnType<typeof createClient>>; userId: string; role: string;
 }) {
-  const { data: teamRows } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);
-  const memberIds = (teamRows ?? []).map((r) => r.employee_id);
-  const { data: emps } = memberIds.length
-    ? await supabase.from('employees').select('id, emp_code, name, dept').in('id', memberIds)
-    : { data: [] };
+  let emps: { id: string; emp_code: string; name: string; dept: string }[] = [];
+  if (role === 'hrd') {
+    const { data } = await supabase.from('employees').select('id, emp_code, name, dept').neq('role', 'direksi');
+    emps = data ?? [];
+  } else {
+    const { data: teamRows } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);
+    const memberIds = (teamRows ?? []).map((r) => r.employee_id);
+    const { data } = memberIds.length
+      ? await supabase.from('employees').select('id, emp_code, name, dept').in('id', memberIds)
+      : { data: [] };
+    emps = data ?? [];
+  }
   const members = (emps ?? []).map((e) => ({ id: e.id, code: e.emp_code, name: e.name, dept: e.dept }));
 
   const { data: activePeriods } = await supabase.from('periods').select('id').eq('status', 'active');

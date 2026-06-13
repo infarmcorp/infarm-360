@@ -155,8 +155,9 @@ export default async function HomePage() {
       </div>
 
       <p className="mt-4 text-center text-[11px] text-gray-400">
-        Versi lama (demo localStorage) masih di{' '}
-        <Link href="/" className="underline">halaman utama</Link>.
+        Versi lama (demo localStorage) tersedia di{' '}
+        <Link href="/legacy" className="underline">/legacy</Link>{' '}
+        untuk fitur yang belum dimigrasi.
       </p>
     </main>
   );

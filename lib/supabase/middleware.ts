@@ -5,17 +5,18 @@ import type { Database } from '@/lib/database.types';
 /**
  * Refresh sesi Supabase di tiap request + lindungi route termigrasi.
  *
- * PENTING: route `/` (SPA legacy) & `/login`/`/auth` dibiarkan publik agar demo
- * lama (localStorage) tetap jalan. Route lain butuh sesi → diarahkan ke /login.
+ * PENTING (Fase 6 Cutover, Opsi B): `/` kini server-redirect ke /home atau /login
+ * (cek sesi sendiri), jadi tetap publik. `/legacy` (SPA demo localStorage), `/login`,
+ * & `/auth` juga publik. Route lain butuh sesi → diarahkan ke /login.
  */
-const PUBLIC_PREFIXES = ['/login', '/auth'];
+const PUBLIC_PREFIXES = ['/login', '/auth', '/legacy'];
 
 export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isPublic =
     path === '/' || PUBLIC_PREFIXES.some((p) => path.startsWith(p));
 
-  // Route publik (SPA legacy & login): tak perlu sentuh Supabase → hemat latensi.
+  // Route publik (`/`, SPA legacy & login): tak perlu sentuh Supabase → hemat latensi.
   if (isPublic) return NextResponse.next({ request });
 
   let response = NextResponse.next({ request });

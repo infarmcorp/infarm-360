@@ -1,14 +1,12 @@
-'use client';
-
-import dynamic from 'next/dynamic';
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 
 /**
- * Home — sementara merender SPA lama (as-is) selama migrasi bertahap.
- * Dimuat client-only (ssr:false) karena App legacy mengakses localStorage saat render.
- * Fitur yang sudah dimigrasi punya route Next.js sendiri (mis. /kpi).
+ * Pintu utama (Fase 6 Cutover, Opsi B): versi nyata Supabase.
+ * Sudah login → /home; belum → /login. SPA legacy diparkir di /legacy.
  */
-const App = dynamic(() => import('@/src/App'), { ssr: false });
-
-export default function Home() {
-  return <App />;
+export default async function Home() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  redirect(user ? '/home' : '/login');
 }

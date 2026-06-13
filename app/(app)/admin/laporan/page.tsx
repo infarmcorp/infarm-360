@@ -73,7 +73,7 @@ export default async function AdminLaporanPage() {
           {rows.map((r) => (
             <tr key={r.id}>
               <td className="py-3 pr-3">
-                <span className="font-bold text-gray-800 block">{r.name}</span>
+                <Link href={`/laporan/${r.id}`} className="font-bold text-gray-800 block hover:text-emerald-700 hover:underline">{r.name}</Link>
                 <span className="text-[11px] text-gray-400">{r.dept}</span>
               </td>
               <td className="py-3 px-3 text-center font-mono font-black text-slate-800">

@@ -1,1 +1,19 @@
 @import "tailwindcss";
+
+/* Cetak / Unduh PDF: sembunyikan kerangka aplikasi, tampilkan hanya dokumen. */
+@media print {
+  .app-sidebar,
+  .app-mobile-header,
+  .no-print { display: none !important; }
+
+  /* Konten memenuhi halaman cetak tanpa scroll/padding berlebih. */
+  main { padding: 0 !important; }
+  main > div {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+  body { background: #fff !important; }
+  .break-inside-avoid { break-inside: avoid; }
+}

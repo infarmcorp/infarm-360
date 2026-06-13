@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { CorrectionButton } from './correction-button';
+import { AdhocForm } from './adhoc-form';
 
 const REL_LABEL: Record<string, string> = {
   Atasan: 'Atasan', Peer: 'Rekan (Peer)', Cross: 'Lintas Divisi', Self: 'Diri Sendiri', Bawahan: 'Bawahan',
@@ -49,6 +50,14 @@ export default async function PenilaianPage() {
     .eq('assessor_id', user.id).eq('period_id', ap.id).eq('status', 'pending');
   const pendingCorr = new Set((corrs ?? []).map((c) => c.target_id));
 
+  // Kandidat Ad-Hoc: pegawai non-direksi, bukan diri, belum ada di daftar penilaian.
+  const alreadyListed = new Set<string>([user.id, ...targetIds]);
+  const { data: allEmps } = await supabase.from('employees').select('id, name, dept, role').neq('role', 'direksi');
+  const candidates = (allEmps ?? [])
+    .filter((e) => !alreadyListed.has(e.id))
+    .map((e) => ({ id: e.id, name: e.name, dept: e.dept }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   const items = rows
     .map((r) => ({
       id: r.id,
@@ -65,9 +74,10 @@ export default async function PenilaianPage() {
 
   return (
     <Shell periodLabel={ap.label}>
+      <AdhocForm candidates={candidates} />
       {items.length === 0 ? (
         <p className="text-sm text-gray-500">
-          Belum ada penilaian yang ditugaskan kepada Anda di periode ini.
+          Belum ada penilaian rutin yang ditugaskan. Gunakan panel Ad-Hoc di atas untuk menilai rekan kerja.
         </p>
       ) : (
         <div className="overflow-x-auto">

@@ -90,6 +90,15 @@ export default async function HomePage() {
           )}
           {role === 'hrd' && (
             <Link
+              href="/admin/pemetaan"
+              className="block border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors"
+            >
+              <span className="font-bold text-gray-800 text-sm">Pemetaan Penilai 360°</span>
+              <span className="block text-xs text-gray-400">Atur siapa menilai siapa + relasi &amp; sifat.</span>
+            </Link>
+          )}
+          {role === 'hrd' && (
+            <Link
               href="/admin/360"
               className="block border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors"
             >

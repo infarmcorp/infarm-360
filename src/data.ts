@@ -19,9 +19,12 @@ export const INITIAL_USERS: User[] = [
 
 export const ALL_EMPS = INITIAL_USERS.filter(u => u.role !== 'direksi');
 
+// Tim SPV selaras divisi (otorisasi RLS is_my_member): SPV hanya mengakses KPI/360
+// anggota divisinya sendiri. Gunawan (Operasional) & Hesti (Marketing). EMP005 (Finance)
+// belum punya SPV → hanya HRD yang mengelola.
 export const SPV_TEAMS: { [spvId: string]: string[] } = {
-  SPV001: ['EMP001', 'EMP002', 'EMP003', 'EMP004'],
-  SPV002: ['EMP003', 'EMP004', 'EMP005']
+  SPV001: ['EMP001', 'EMP002'], // Operasional
+  SPV002: ['EMP003', 'EMP004']  // Marketing
 };
 
 export const INITIAL_ASSESSEES: { [userId: string]: AssesseeStatus[] } = {

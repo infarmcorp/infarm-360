@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck, BarChart3,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 
@@ -51,6 +51,7 @@ function menuFor(role: Role, hrdMode: HrdMode): Section[] {
         { href: '/admin/pemetaan', label: 'Pemetaan 360°', icon: Network },
         { href: '/admin/pertanyaan', label: 'Kelola Pertanyaan', icon: HelpCircle },
         { href: '/admin/bobot', label: 'Bobot & Kalkulasi 360°', icon: Scale },
+        { href: '/admin/progress', label: 'Progress 360 Feedback', icon: CircleCheckBig },
         { href: '/admin/kepatuhan', label: 'Flag Kepatuhan', icon: ShieldAlert },
         { href: '/admin/laporan', label: 'Review Hasil Akhir', icon: ClipboardCheck },
         { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award },

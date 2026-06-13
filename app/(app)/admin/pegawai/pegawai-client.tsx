@@ -53,6 +53,21 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
 
   const allCodes = useMemo(() => rows.map((r) => r.empCode), [rows]);
 
+  // Deteksi duplikat di UI (server tetap penegak akhir): kode/email yang sudah dipakai
+  // pegawai LAIN (kecuali baris yang sedang diedit).
+  const dupCode = useMemo(() => {
+    if (!form) return null;
+    const code = form.empCode.trim().toUpperCase();
+    if (!code) return null;
+    return rows.find((r) => r.id !== form.id && r.empCode.toUpperCase() === code) ?? null;
+  }, [form, rows]);
+  const dupEmail = useMemo(() => {
+    if (!form) return null;
+    const email = form.email.trim().toLowerCase();
+    if (!email) return null;
+    return rows.find((r) => r.id !== form.id && r.email.toLowerCase() === email) ?? null;
+  }, [form, rows]);
+
   const shown = rows.filter((r) => {
     if (q.trim() && !`${r.name} ${r.empCode} ${r.email}`.toLowerCase().includes(q.toLowerCase())) return false;
     if (fRole !== 'all' && r.role !== fRole) return false;
@@ -95,6 +110,8 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
+    if (dupCode) { setToast({ ok: false, text: `Kode ${form.empCode.toUpperCase()} sudah dipakai oleh ${dupCode.name}.` }); return; }
+    if (dupEmail) { setToast({ ok: false, text: `Email ${form.email} sudah dipakai oleh ${dupEmail.name}.` }); return; }
     const spvId = form.spvId || null;
     if (form.id) {
       act(() => updateEmployee({ id: form.id, name: form.name, empCode: form.empCode, dept: form.dept, role: form.role, email: form.email, spvId }), true);
@@ -150,12 +167,15 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
             </Field>
             <Field label="Kode Pegawai">
               <input value={form.empCode} onChange={(e) => set('empCode', e.target.value.toUpperCase())} required
-                className="inp font-mono" placeholder="mis. FT2021-001" />
-              <span className="block text-[10px] text-gray-400 mt-0.5">Bebas mengikuti skema perusahaan; saran melanjutkan nomor terakhir.</span>
+                className={`inp font-mono ${dupCode ? 'border-rose-400 ring-1 ring-rose-300' : ''}`} placeholder="mis. FT2021-001" />
+              {dupCode
+                ? <span className="block text-[10px] text-rose-600 font-semibold mt-0.5">⚠ Kode sudah dipakai oleh {dupCode.name} ({dupCode.dept}).</span>
+                : <span className="block text-[10px] text-gray-400 mt-0.5">Bebas mengikuti skema perusahaan; saran melanjutkan nomor terakhir.</span>}
             </Field>
             <Field label="Email (boleh placeholder)">
               <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} required
-                className="inp" placeholder="nama@infarm.test" />
+                className={`inp ${dupEmail ? 'border-rose-400 ring-1 ring-rose-300' : ''}`} placeholder="nama@infarm.test" />
+              {dupEmail && <span className="block text-[10px] text-rose-600 font-semibold mt-0.5">⚠ Email sudah dipakai oleh {dupEmail.name}.</span>}
             </Field>
             {!form.id && (
               <Field label="Sandi Awal">
@@ -175,7 +195,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
             </Field>
           </div>
           <div className="flex items-center gap-2 pt-1">
-            <button type="submit" disabled={pending}
+            <button type="submit" disabled={pending || !!dupCode || !!dupEmail}
               className="text-xs font-bold px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-60">
               {pending ? 'Menyimpan…' : form.id ? 'Simpan Perubahan' : 'Buat Pegawai'}
             </button>

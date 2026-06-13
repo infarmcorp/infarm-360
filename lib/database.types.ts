@@ -9,6 +9,7 @@
 export type UserRole = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type RelationKind = 'Atasan' | 'Peer' | 'Cross' | 'Self' | 'Bawahan';
 export type AssessmentStatus = 'draft' | 'submitted';
+export type WeightValues = { atasan?: number; peer?: number; cross?: number; self?: number; internal?: number };
 
 export interface Database {
   public: {
@@ -89,6 +90,18 @@ export interface Database {
         Row: { assessment_id: string; question_id: string; answer: string | null };
         Insert: { assessment_id: string; question_id: string; answer?: string | null };
         Update: Partial<Database['public']['Tables']['assessment_qual_answers']['Insert']>;
+        Relationships: [];
+      };
+      weight_schemes: {
+        Row: { id: string; period_id: string; model: '4class' | '2class'; weights: WeightValues; is_active: boolean; updated_by: string | null; updated_at: string };
+        Insert: { period_id: string; model: '4class' | '2class'; weights: WeightValues; is_active?: boolean; updated_by?: string | null };
+        Update: Partial<Database['public']['Tables']['weight_schemes']['Insert']>;
+        Relationships: [];
+      };
+      result_360: {
+        Row: { employee_id: string; period_id: string; score: number | null; computed_at: string };
+        Insert: { employee_id: string; period_id: string; score?: number | null; computed_at?: string };
+        Update: Partial<Database['public']['Tables']['result_360']['Insert']>;
         Relationships: [];
       };
     };

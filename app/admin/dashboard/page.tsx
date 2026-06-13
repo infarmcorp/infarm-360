@@ -2,8 +2,9 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import {
-  finalScoreOf, talentBoxOf, playerClassOf, PLAYER_BOXES, type PlayerClass,
+  finalScoreOf, talentBoxOf, playerClassOf, type PlayerClass,
 } from '@/lib/scoring';
+import { DashboardVisual } from './dashboard-visual';
 
 /**
  * Dashboard Organisasi (HRD) — versi termigrasi Supabase.
@@ -62,8 +63,41 @@ export default async function DashboardPage() {
     return { id: e.id, name: e.name, dept: e.dept, kpiAvg, s360, final, box, player };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));
 
-  const playerCount: Record<PlayerClass, number> = { A: 0, B: 0, C: 0, D: 0 };
-  rows.forEach((r) => { if (r.player) playerCount[r.player]++; });
+  // Rerata KPI per departemen (untuk bar chart visual).
+  const deptAgg = new Map<string, { sum: number; n: number }>();
+  rows.forEach((r) => {
+    if (r.kpiAvg == null) return;
+    const a = deptAgg.get(r.dept) ?? { sum: 0, n: 0 };
+    a.sum += r.kpiAvg; a.n += 1; deptAgg.set(r.dept, a);
+  });
+  const deptScores: [string, number][] = [...deptAgg.entries()]
+    .map(([d, a]) => [d, a.sum / a.n] as [string, number])
+    .sort((a, b) => b[1] - a[1]);
+
+  // Rataan sub-aspek 360° (rating ×20), dari penilaian terkirim periode aktif, Self dikecualikan.
+  const { data: aspectRows } = await supabase
+    .from('culture_aspects').select('id, name, order_idx').eq('period_id', ap.id).order('order_idx');
+  const aspectList = aspectRows ?? [];
+  const { data: indRows } = aspectList.length
+    ? await supabase.from('indicators').select('id, aspect_id').in('aspect_id', aspectList.map((a) => a.id))
+    : { data: [] };
+  const indToAspect = new Map((indRows ?? []).map((i) => [i.id, i.aspect_id]));
+  const { data: asmtRows } = await supabase
+    .from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted');
+  const nonSelfIds = (asmtRows ?? []).filter((a) => a.assessor_id !== a.target_id).map((a) => a.id);
+  const { data: scoreRows } = nonSelfIds.length
+    ? await supabase.from('assessment_indicator_scores').select('indicator_id, rating').in('assessment_id', nonSelfIds)
+    : { data: [] };
+  const aspAgg = new Map<string, { sum: number; n: number }>();
+  (scoreRows ?? []).forEach((s) => {
+    const aid = indToAspect.get(s.indicator_id);
+    if (!aid || s.rating == null) return;
+    const a = aspAgg.get(aid) ?? { sum: 0, n: 0 };
+    a.sum += s.rating; a.n += 1; aspAgg.set(aid, a);
+  });
+  const aspectScores = aspectList
+    .map((a) => ({ aspek: a.name, score: aspAgg.has(a.id) ? (aspAgg.get(a.id)!.sum / aspAgg.get(a.id)!.n) * 20 : 0 }))
+    .filter((a) => a.score > 0);
 
   return (
     <Shell>
@@ -77,18 +111,25 @@ export default async function DashboardPage() {
         <Link href="/home" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
       </div>
 
-      {/* Ringkasan 4-Box */}
-      <div className="grid grid-cols-4 gap-2 my-4">
-        {PLAYER_BOXES.map((b) => (
-          <div key={b.key} style={{ borderTopColor: b.color }}
-            className="border border-gray-200 border-t-4 rounded-xl p-3 text-center">
-            <div className="text-lg font-black font-mono" style={{ color: b.color }}>{playerCount[b.key]}</div>
-            <div className="text-[10px] font-bold text-gray-500">{b.label}</div>
-          </div>
-        ))}
+      <div className="my-5">
+        <DashboardVisual
+          rows={rows.map((r) => ({
+            id: r.id, name: r.name, dept: r.dept,
+            kpiAvg: r.kpiAvg, s360: r.s360, final: r.final,
+            boxKey: r.box?.key ?? null, player: r.player,
+          }))}
+          deptScores={deptScores}
+          aspectScores={aspectScores}
+          has360={ap.has_360}
+          periodLabel={ap.label}
+        />
       </div>
 
-      <div className="overflow-x-auto">
+      <details className="mt-6 group">
+        <summary className="cursor-pointer text-xs font-bold text-gray-500 uppercase tracking-wider hover:text-gray-700 select-none">
+          ▸ Tabel Rinci Skor Seluruh Pegawai
+        </summary>
+      <div className="overflow-x-auto mt-3">
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
@@ -138,6 +179,7 @@ export default async function DashboardPage() {
         Skor Akhir = blend KPI+360 (50/50) − punishment, dikunci periode aktif. 9-Box butuh KPI &amp; 360;
         N/A bila salah satu belum ada. A Player butuh 360° aktif.
       </p>
+      </details>
     </Shell>
   );
 }

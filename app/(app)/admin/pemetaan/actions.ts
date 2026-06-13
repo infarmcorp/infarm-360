@@ -52,6 +52,38 @@ export async function createMapping(raw: unknown): Promise<Result> {
   return { ok: true };
 }
 
+const BulkRow = z.object({
+  assessorId: z.string().uuid(),
+  targetId: z.string().uuid(),
+  relation: z.enum(['Atasan', 'Peer', 'Cross', 'Self', 'Bawahan']),
+  mandatory: z.boolean(),
+});
+
+/** Impor mapping massal (HRD) dari Excel/CSV. Lewati baris Self yang penilai≠target & duplikat. */
+export async function createMappingsBulk(rawRows: unknown): Promise<{ ok: true; saved: number; skipped: number } | { ok: false; error: string }> {
+  const parsed = z.array(BulkRow).min(1).safeParse(rawRows);
+  if (!parsed.success) return { ok: false, error: 'Data impor tidak valid' };
+
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  const rows = parsed.data.filter((r) => !(r.assessorId === r.targetId && r.relation !== 'Self'));
+  if (rows.length === 0) return { ok: false, error: 'Tidak ada baris valid (penilai=target hanya untuk Self)' };
+
+  const { error, count } = await supabase.from('mappings').upsert(
+    rows.map((r) => ({ period_id: ap.id, assessor_id: r.assessorId, target_id: r.targetId, relation: r.relation, mandatory: r.mandatory, is_active: true })),
+    { onConflict: 'period_id,assessor_id,target_id', ignoreDuplicates: true, count: 'exact' },
+  );
+  if (error) return { ok: false, error: 'Gagal mengimpor: ' + error.message };
+
+  revalidatePath('/admin/pemetaan');
+  revalidatePath('/penilaian');
+  return { ok: true, saved: count ?? rows.length, skipped: parsed.data.length - rows.length };
+}
+
 export async function deleteMapping(mappingId: string): Promise<Result> {
   const supabase = await createClient();
   const auth = await requireHrd(supabase);

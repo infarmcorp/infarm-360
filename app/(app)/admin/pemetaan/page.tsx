@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { MappingForm } from './mapping-form';
 import { DeleteButton } from './delete-button';
 import { ReviewButton } from './review-button';
+import { MappingImport } from './mapping-import';
 
 /**
  * Pemetaan (Mapping) — HRD atur siapa menilai siapa di periode aktif. Dua tab:
@@ -57,7 +58,7 @@ export default async function PemetaanPage({
 
 /** Tab Pemetaan: form + daftar relasi. */
 async function PemetaanTab({ supabase, periodId }: { supabase: Awaited<ReturnType<typeof createClient>>; periodId: string }) {
-  const { data: emps } = await supabase.from('employees').select('id, name, dept').order('emp_code');
+  const { data: emps } = await supabase.from('employees').select('id, emp_code, name, dept').order('emp_code');
   const employees = emps ?? [];
   const empById = new Map(employees.map((e) => [e.id, e]));
   const { data: maps } = await supabase
@@ -68,7 +69,10 @@ async function PemetaanTab({ supabase, periodId }: { supabase: Awaited<ReturnTyp
 
   return (
     <>
-      <div className="mb-5"><MappingForm employees={employees} /></div>
+      <div className="mb-3"><MappingForm employees={employees} /></div>
+      <div className="mb-5">
+        <MappingImport employees={employees.map((e) => ({ id: e.id, code: e.emp_code, name: e.name }))} />
+      </div>
       {rows.length === 0 ? (
         <p className="text-sm text-gray-500">Belum ada pemetaan. Tambahkan di atas.</p>
       ) : (

@@ -1,5 +1,5 @@
 
-# CLAUDE.md — Infarm 360° Performance Appraisal System
+Kerj# CLAUDE.md — Infarm 360° Performance Appraisal System
 
 Panduan untuk Claude Code saat bekerja di repo ini.
 
@@ -20,29 +20,33 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`.
 
 ## Status Saat Ini vs Target
 
-> **PENTING:** Next.js **sudah** ada & **live di Vercel**. Supabase **belum** (belum ada
-> auth/DB nyata) — jangan asumsikan tabel/RLS sudah aktif.
+> **PENTING:** Migrasi fungsional **selesai & live**. Next.js + **Supabase aktif** (auth nyata,
+> 19 tabel, RLS penuh per peran, seed idempoten). `/` adalah gerbang auth versi Supabase;
+> SPA legacy tinggal arsip di `/legacy`. Lihat `progress.md` untuk peta fitur & route.
 
 **Kondisi sekarang (`as-is`):**
-- **Next.js 16 App Router** (sudah dikonversi dari Vite). React 19, Tailwind v4 (postcss),
-  `motion`, `lucide-react`.
-- **SPA legacy** (`src/App.tsx`, monolitik, state `useState`, data hardcoded `src/data.ts`)
-  masih dirender di route `/` secara **client-only** (`app/page.tsx` → `next/dynamic`
-  `ssr:false`). File legacy ditandai `@ts-nocheck` — utang migrasi, ditipekan bertahap.
-- Fitur yang sudah dimigrasi punya route Next.js + Server Action sendiri:
-  `app/(spv)/kpi/` (Input KPI) — referensi pola.
-- Supabase helpers di `lib/supabase/` + tipe DB subset `lib/database.types.ts`.
-- **Belum ada auth/DB live**: butuh `.env.local` Supabase + `supabase db push` + login.
-- **Sudah live di Vercel** (auto-deploy dari `main`). Login demo: semua user password
-  `Infarm@2026`; daftar kredensial di `lib/auth/demo-users.ts` (jadi sumber seed Supabase nanti).
+- **Next.js 16 App Router** (Turbopack, React 19, Tailwind v4, TS strict). `motion`,
+  `lucide-react`, `xlsx`.
+- **Supabase aktif** (ref `beajoczjpywozavatzmf`): auth `@supabase/ssr`, 19 tabel
+  (`supabase/migrations/0001`–`0004`), RLS penuh per peran, seed idempoten (`scripts/seed.ts`).
+- **Shell persisten** di route group `app/(app)/` — sidebar + landing per peran, sub-fitur
+  sebagai tab (`?tab=`). Helper Supabase: `lib/supabase/server.ts`
+  (`createClient` user-scoped/RLS vs `createAdminClient` service_role).
+- **Semua fitur (P1/P2/P3) sudah dimigrasi** — siklus 360°, KPI, dashboard visual, monitor,
+  rekap, suksesi, laporan rinci+PDF, progress 360, koreksi relasi, impor Excel, ad-hoc,
+  audit KPI, mode ganda HRD. Referensi pola end-to-end: `app/(app)/kpi/`.
+- **SPA legacy** (`src/App.tsx`, `@ts-nocheck`, data `src/data.ts`) tinggal **arsip di
+  `/legacy`** (client-only, banner "data contoh"). Akan dihapus pra-produksi.
+- **Live di Vercel** (auto-deploy dari `main`). Login demo: semua user password
+  `Infarm@2026`; daftar di `lib/auth/demo-users.ts` (= sumber seed).
 
-**Target (`to-be`) — arah migrasi:**
-- Migrasi ke **Next.js (App Router)** + **Supabase**.
-- Pecah `App.tsx` menjadi route + Server Components/Server Actions.
-- Ganti `src/data.ts` dengan tabel Supabase + Row Level Security per peran.
+**Sisa pra-produksi (`to-be`):**
+- Aktifkan email pengingat via **Resend** (placeholder `sendReminder`/`massReminder` di
+  `app/(app)/admin/progress/actions.ts`).
+- Hapus `/legacy`, `src/App.tsx`, `src/data.ts`.
+- Ganti email seed `nama@infarm.test` → email asli; rotasi kredensial.
 
-Saat mengerjakan fitur, konfirmasi dulu apakah menyentuh **SPA legacy** (`src/App.tsx` di
-route `/`) atau bagian yang sudah dimigrasi ke route Next.js (`app/`).
+Saat mengerjakan fitur, ingat: kerjakan di route Next.js `app/(app)/` (bukan SPA legacy).
 
 ## Keputusan Arsitektur (terkunci)
 
@@ -62,9 +66,9 @@ route `/`) atau bagian yang sudah dimigrasi ke route Next.js (`app/`).
 - **Backend**: Next.js Server Actions + Route Handlers
 - **Database & Auth**: Supabase (PostgreSQL, Auth, Storage, **RLS**, Edge Functions)
 - **Validasi**: Zod (di sisi server)
-- **Excel/CSV**: `xlsx` / `papaparse` — impor KPI massal & impor mapping 360.
-- **PDF**: library PDF (mis. `@react-pdf/renderer`) — fitur "Unduh PDF" laporan.
-- **Email**: Resend / Supabase — fitur "Kirim Pengingat" pengisian 360.
+- **Excel/CSV**: `xlsx` (parse di klien) — impor KPI massal & impor mapping 360.
+- **PDF**: print-to-PDF (`window.print()` + CSS `@media print`) — fitur "Unduh PDF" laporan.
+- **Email**: Resend — fitur "Kirim Pengingat" 360 (**belum aktif**, placeholder siap).
 - **Deployment**: Vercel · **Version Control**: GitHub · **Package Manager**: npm
 
 ## Deployment (Vercel)

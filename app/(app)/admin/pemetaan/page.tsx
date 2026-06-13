@@ -3,65 +3,80 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { MappingForm } from './mapping-form';
 import { DeleteButton } from './delete-button';
+import { ReviewButton } from './review-button';
 
 /**
- * Pemetaan (Mapping) — HRD atur siapa menilai siapa di periode aktif.
- * Menggerakkan "Daftar Penilaian Saya", kelas bobot 360, & Flag Kepatuhan.
+ * Pemetaan (Mapping) — HRD atur siapa menilai siapa di periode aktif. Dua tab:
+ * "Pemetaan" (relasi) & "Koreksi Relasi" (tinjau permohonan koreksi dari penilai —
+ * halaman-dalam-halaman ala legacy). Tab via ?tab=pemetaan|koreksi.
  */
-export default async function PemetaanPage() {
+export default async function PemetaanPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const { tab: tabParam } = await searchParams;
+  const tab = tabParam === 'koreksi' ? 'koreksi' : 'pemetaan';
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
   if (me?.role !== 'hrd') {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin.</p>
-      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin.</p></Shell>;
   }
 
   const { data: ap } = await supabase
     .from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif. Aktifkan periode dulu di Kelola Siklus Periode.</p></Shell>;
 
-  const { data: emps } = await supabase.from('employees').select('id, name, dept').order('emp_code');
-  const employees = emps ?? [];
-  const empById = new Map(employees.map((e) => [e.id, e]));
-
-  const { data: maps } = await supabase
-    .from('mappings').select('id, assessor_id, target_id, relation, mandatory')
-    .eq('period_id', ap.id).eq('is_active', true);
-  const rows = (maps ?? [])
-    .map((m) => ({
-      id: m.id,
-      assessor: empById.get(m.assessor_id)?.name ?? '—',
-      target: empById.get(m.target_id)?.name ?? '—',
-      relation: m.relation as string,
-      mandatory: m.mandatory,
-    }))
-    .sort((a, b) => a.assessor.localeCompare(b.assessor) || a.target.localeCompare(b.target));
+  // Hitung permohonan koreksi menunggu (untuk badge tab).
+  const { count: pendingCount } = await supabase
+    .from('relation_correction_requests')
+    .select('id', { count: 'exact', head: true })
+    .eq('period_id', ap.id).eq('status', 'pending');
 
   return (
     <Shell>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-xl font-bold text-gray-800">Pemetaan Penilai 360°</h1>
-          <p className="text-sm text-gray-500">Periode aktif: {ap.label} · {rows.length} relasi.</p>
-        </div>
-        <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+      <h1 className="text-xl font-bold text-gray-800">Pemetaan Penilai 360°</h1>
+      <p className="text-sm text-gray-500">Periode aktif: {ap.label}</p>
+
+      <div className="flex gap-1 mt-4 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
+        <Tab href="/admin/pemetaan?tab=pemetaan" active={tab === 'pemetaan'}>Pemetaan</Tab>
+        <Tab href="/admin/pemetaan?tab=koreksi" active={tab === 'koreksi'}>
+          Koreksi Relasi{pendingCount ? <span className="ml-1.5 text-[9px] bg-indigo-600 text-white px-1.5 py-0.5 rounded-full">{pendingCount}</span> : null}
+        </Tab>
       </div>
 
-      <div className="mb-5"><MappingForm employees={employees} /></div>
+      {tab === 'pemetaan'
+        ? <PemetaanTab supabase={supabase} periodId={ap.id} />
+        : <KoreksiTab supabase={supabase} periodId={ap.id} />}
+    </Shell>
+  );
+}
 
+/** Tab Pemetaan: form + daftar relasi. */
+async function PemetaanTab({ supabase, periodId }: { supabase: Awaited<ReturnType<typeof createClient>>; periodId: string }) {
+  const { data: emps } = await supabase.from('employees').select('id, name, dept').order('emp_code');
+  const employees = emps ?? [];
+  const empById = new Map(employees.map((e) => [e.id, e]));
+  const { data: maps } = await supabase
+    .from('mappings').select('id, assessor_id, target_id, relation, mandatory').eq('period_id', periodId).eq('is_active', true);
+  const rows = (maps ?? [])
+    .map((m) => ({ id: m.id, assessor: empById.get(m.assessor_id)?.name ?? '—', target: empById.get(m.target_id)?.name ?? '—', relation: m.relation as string, mandatory: m.mandatory }))
+    .sort((a, b) => a.assessor.localeCompare(b.assessor) || a.target.localeCompare(b.target));
+
+  return (
+    <>
+      <div className="mb-5"><MappingForm employees={employees} /></div>
       {rows.length === 0 ? (
         <p className="text-sm text-gray-500">Belum ada pemetaan. Tambahkan di atas.</p>
       ) : (
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
-              <th className="py-2 pr-3">Penilai</th>
-              <th className="py-2 px-3">Yang Dinilai</th>
-              <th className="py-2 px-3">Relasi</th>
-              <th className="py-2 px-3 text-center">Sifat</th>
-              <th className="py-2 pl-3 text-right">Aksi</th>
+              <th className="py-2 pr-3">Penilai</th><th className="py-2 px-3">Yang Dinilai</th><th className="py-2 px-3">Relasi</th>
+              <th className="py-2 px-3 text-center">Sifat</th><th className="py-2 pl-3 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -71,8 +86,7 @@ export default async function PemetaanPage() {
                 <td className="py-3 px-3 text-gray-700">{r.target}</td>
                 <td className="py-3 px-3 text-gray-500">{r.relation}</td>
                 <td className="py-3 px-3 text-center">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                    r.mandatory ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${r.mandatory ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
                     {r.mandatory ? 'Wajib' : 'Opsional'}
                   </span>
                 </td>
@@ -83,10 +97,60 @@ export default async function PemetaanPage() {
         </table>
       )}
       <p className="text-[10px] text-gray-400 italic mt-3">
-        Relasi menentukan kelas bobot 360 (Atasan/Peer/Cross/Self). Sifat Wajib jadi dasar
-        Flag Kepatuhan. Menghapus relasi menghilangkannya dari Daftar Penilaian terkait.
+        Relasi menentukan kelas bobot 360 (Atasan/Peer/Cross/Self). Sifat Wajib jadi dasar Flag Kepatuhan.
       </p>
-    </Shell>
+    </>
+  );
+}
+
+/** Tab Koreksi: permohonan koreksi relasi dari penilai → Setujui/Tolak. */
+async function KoreksiTab({ supabase, periodId }: { supabase: Awaited<ReturnType<typeof createClient>>; periodId: string }) {
+  const { data: reqs } = await supabase
+    .from('relation_correction_requests')
+    .select('id, assessor_id, target_id, old_relation, new_relation, reason, status')
+    .eq('period_id', periodId).order('created_at', { ascending: false });
+  const list = reqs ?? [];
+  const ids = [...new Set(list.flatMap((r) => [r.assessor_id, r.target_id]))];
+  const { data: emps } = ids.length ? await supabase.from('employees').select('id, name').in('id', ids) : { data: [] };
+  const nameById = new Map((emps ?? []).map((e) => [e.id, e.name]));
+
+  if (list.length === 0) return <p className="text-sm text-gray-500">Tidak ada permohonan koreksi relasi.</p>;
+
+  return (
+    <div className="space-y-3">
+      {list.map((r) => (
+        <div key={r.id} className="border border-gray-200 rounded-xl p-3 flex flex-col sm:flex-row justify-between gap-3">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              <span className="font-extrabold text-gray-800">{nameById.get(r.assessor_id) ?? '—'}</span>
+              <span className="text-gray-400">→</span>
+              <span className="font-extrabold text-gray-800">{nameById.get(r.target_id) ?? '—'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className="bg-rose-50 text-rose-700 font-bold px-1.5 py-0.5 rounded line-through">{r.old_relation ?? '—'}</span>
+              <span className="text-gray-400">menjadi</span>
+              <span className="bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded">{r.new_relation ?? '—'}</span>
+            </div>
+            <p className="text-[11px] text-gray-500 italic bg-gray-50 p-2 rounded-lg border border-gray-150">“{r.reason}”</p>
+          </div>
+          <div className="shrink-0 self-end sm:self-center">
+            {r.status === 'pending'
+              ? <ReviewButton requestId={r.id} />
+              : <span className={`text-[10px] font-black uppercase px-2 py-1 rounded border ${r.status === 'approved' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-gray-100 text-gray-400 border-gray-200'}`}>
+                  {r.status === 'approved' ? '✓ Diterima' : '✗ Ditolak'}
+                </span>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Tab({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <Link href={href} className={`px-4 py-1.5 text-xs font-extrabold rounded-lg transition-all ${active ? 'bg-white text-emerald-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+      {children}
+    </Link>
   );
 }
 

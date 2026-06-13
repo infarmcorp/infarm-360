@@ -12,6 +12,7 @@ export type AssessmentStatus = 'draft' | 'submitted';
 export type WeightValues = { atasan?: number; peer?: number; cross?: number; self?: number; internal?: number };
 export type ReportStatus = 'draft' | 'finalized';
 export type SuccessionStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
+export type CorrectionStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Database {
   public: {
@@ -116,6 +117,12 @@ export interface Database {
         Row: { id: string; employee_id: string; period_id: string; content: Record<string, unknown>; final_score: number | null; status: ReportStatus; spv_acc: boolean; finalized_by: string | null; pdf_path: string | null; updated_at: string };
         Insert: { employee_id: string; period_id: string; content?: Record<string, unknown>; final_score?: number | null; status?: ReportStatus; spv_acc?: boolean; finalized_by?: string | null; pdf_path?: string | null };
         Update: Partial<Database['public']['Tables']['final_reports']['Insert']>;
+        Relationships: [];
+      };
+      relation_correction_requests: {
+        Row: { id: string; mapping_id: string | null; period_id: string; assessor_id: string; target_id: string; old_relation: RelationKind | null; new_relation: RelationKind | null; reason: string; status: CorrectionStatus; reviewed_by: string | null; created_at: string };
+        Insert: { mapping_id?: string | null; period_id: string; assessor_id: string; target_id: string; old_relation?: RelationKind | null; new_relation?: RelationKind | null; reason: string; status?: CorrectionStatus; reviewed_by?: string | null };
+        Update: Partial<Database['public']['Tables']['relation_correction_requests']['Insert']>;
         Relationships: [];
       };
       succession_plans: {

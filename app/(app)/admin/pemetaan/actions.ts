@@ -62,3 +62,39 @@ export async function deleteMapping(mappingId: string): Promise<Result> {
   revalidatePath('/penilaian');
   return { ok: true };
 }
+
+/**
+ * Tinjau permohonan koreksi relasi (HRD). Setuju → perbarui relasi mapping terkait
+ * ke new_relation + tandai approved; Tolak → tandai rejected. RLS corr_review = HRD.
+ */
+export async function reviewCorrection(requestId: string, decision: 'approved' | 'rejected'): Promise<Result> {
+  if (decision !== 'approved' && decision !== 'rejected') return { ok: false, error: 'Keputusan tidak valid' };
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data: req } = await supabase
+    .from('relation_correction_requests')
+    .select('id, mapping_id, assessor_id, target_id, period_id, new_relation, status')
+    .eq('id', requestId).maybeSingle();
+  if (!req) return { ok: false, error: 'Permohonan tidak ditemukan' };
+  if (req.status !== 'pending') return { ok: false, error: 'Permohonan sudah diproses' };
+
+  if (decision === 'approved' && req.new_relation) {
+    // Perbarui relasi mapping (berdasarkan mapping_id, atau pasangan penilai→target).
+    const q = supabase.from('mappings').update({ relation: req.new_relation });
+    const upd = req.mapping_id
+      ? await q.eq('id', req.mapping_id)
+      : await q.eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).eq('period_id', req.period_id);
+    if (upd.error) return { ok: false, error: 'Gagal memperbarui mapping: ' + upd.error.message };
+  }
+
+  const { error } = await supabase.from('relation_correction_requests')
+    .update({ status: decision, reviewed_by: user?.id ?? null }).eq('id', requestId);
+  if (error) return { ok: false, error: 'Gagal: ' + error.message };
+
+  revalidatePath('/admin/pemetaan');
+  revalidatePath('/penilaian');
+  return { ok: true };
+}

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { CorrectionButton } from './correction-button';
 
 const REL_LABEL: Record<string, string> = {
   Atasan: 'Atasan', Peer: 'Rekan (Peer)', Cross: 'Lintas Divisi', Self: 'Diri Sendiri', Bawahan: 'Bawahan',
@@ -42,15 +43,23 @@ export default async function PenilaianPage() {
     .eq('assessor_id', user.id).eq('period_id', ap.id);
   const statusByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.status]));
 
+  // Permohonan koreksi relasi yang masih menunggu (untuk menandai baris).
+  const { data: corrs } = await supabase
+    .from('relation_correction_requests').select('target_id')
+    .eq('assessor_id', user.id).eq('period_id', ap.id).eq('status', 'pending');
+  const pendingCorr = new Set((corrs ?? []).map((c) => c.target_id));
+
   const items = rows
     .map((r) => ({
       id: r.id,
       targetId: r.target_id,
       name: empById.get(r.target_id)?.name ?? '(tidak diketahui)',
       dept: empById.get(r.target_id)?.dept ?? '—',
+      mappingId: r.id,
       relation: r.relation as string,
       mandatory: r.mandatory,
       status: statusByTarget.get(r.target_id) ?? null,
+      corrPending: pendingCorr.has(r.target_id),
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -93,12 +102,23 @@ export default async function PenilaianPage() {
                     <StatusBadge status={it.status} />
                   </td>
                   <td className="py-3 pl-3 text-right">
-                    <Link
-                      href={`/penilaian/${it.targetId}`}
-                      className="text-xs font-bold text-emerald-700 hover:underline"
-                    >
-                      {it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai'}
-                    </Link>
+                    <div className="flex items-center justify-end gap-3">
+                      {it.relation !== 'Self' && (
+                        <CorrectionButton
+                          mappingId={it.mappingId}
+                          targetId={it.targetId}
+                          targetName={it.name}
+                          currentRelation={it.relation}
+                          pending={it.corrPending}
+                        />
+                      )}
+                      <Link
+                        href={`/penilaian/${it.targetId}`}
+                        className="text-xs font-bold text-emerald-700 hover:underline"
+                      >
+                        {it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai'}
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

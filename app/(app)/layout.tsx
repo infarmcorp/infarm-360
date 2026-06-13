@@ -1,0 +1,34 @@
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { AppShell, type Role } from './app-shell';
+
+/**
+ * Shell aplikasi (route group `(app)`): sidebar persisten + konten yang berganti,
+ * menggantikan pola "Beranda hub". URL tiap route tidak berubah (route group tak
+ * memengaruhi path). Auth + profil + indikator periode aktif dimuat sekali di sini.
+ */
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { data: emp } = await supabase
+    .from('employees').select('emp_code, name, dept, role').eq('id', user.id).maybeSingle();
+  const role = (emp?.role ?? 'employee') as Role;
+
+  const { data: ap } = await supabase
+    .from('periods').select('label, status').eq('status', 'active').limit(1).maybeSingle();
+
+  return (
+    <AppShell
+      role={role}
+      name={emp?.name ?? user.email ?? 'Pengguna'}
+      dept={emp?.dept ?? '—'}
+      empCode={emp?.emp_code ?? '—'}
+      periodLabel={ap?.label ?? null}
+      periodActive={ap?.status === 'active'}
+    >
+      {children}
+    </AppShell>
+  );
+}

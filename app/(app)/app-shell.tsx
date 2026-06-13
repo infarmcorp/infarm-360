@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck, BarChart3,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 
@@ -47,6 +47,7 @@ function menuFor(role: Role, hrdMode: HrdMode): Section[] {
       title: 'Menu Administrator',
       items: [
         { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
+        { href: '/admin/pegawai', label: 'Kelola Pegawai', icon: UserCog },
         { href: '/admin/periode', label: 'Kelola Periode', icon: CalendarRange },
         { href: '/admin/pemetaan', label: 'Pemetaan 360°', icon: Network },
         { href: '/admin/pertanyaan', label: 'Kelola Pertanyaan', icon: HelpCircle },

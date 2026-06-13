@@ -33,7 +33,10 @@ function revalidate() {
 }
 
 const Role = z.enum(['employee', 'spv', 'hrd', 'direksi']);
-const EmpCode = z.string().trim().regex(/^[A-Za-z]{2,6}\d{2,5}$/, 'Kode pegawai: 2–6 huruf + angka (mis. EMP010)');
+// Kode pegawai bebas mengikuti skema perusahaan (mis. EMP010 atau FT2021-001).
+// Mulai alfanumerik; boleh huruf/angka + pemisah - . _ / ; 2–24 karakter.
+const EmpCode = z.string().trim().min(2, 'Kode pegawai minimal 2 karakter').max(24, 'Kode pegawai maksimal 24 karakter')
+  .regex(/^[A-Za-z0-9][A-Za-z0-9._/-]*$/, 'Kode pegawai: huruf/angka, boleh pemisah - . _ / (mis. FT2021-001)');
 const Email = z.string().trim().email('Email tidak valid');
 const Password = z.string().min(6, 'Sandi minimal 6 karakter');
 const OptId = z.string().uuid().nullish();

@@ -12,8 +12,21 @@ export type EmpRow = {
 export type SpvOpt = { id: string; name: string; dept: string };
 
 const ROLE_LABEL: Record<Role, string> = { employee: 'Pegawai', spv: 'Supervisor', hrd: 'HRD Admin', direksi: 'Direksi' };
-const ROLE_PREFIX: Record<Role, string> = { employee: 'EMP', spv: 'SPV', hrd: 'HRD', direksi: 'DIR' };
 const ROLE_OPTS: Role[] = ['employee', 'spv', 'hrd', 'direksi'];
+
+/**
+ * Saran kode pegawai berikutnya: lanjutkan SKEMA yang sudah dipakai (apa pun bentuknya,
+ * mis. EMP010 → EMP011, FT2026-100 → FT2026-101) dengan menaikkan gugus angka terakhir
+ * sambil mempertahankan awalan & lebar nol. Kosong bila belum ada data → HRD isi sendiri.
+ */
+function nextCode(codes: string[]): string {
+  const list = codes.filter(Boolean);
+  if (!list.length) return '';
+  const latest = list.slice().sort().at(-1)!;
+  const m = latest.match(/^(.*?)(\d+)(\D*)$/);
+  if (!m) return '';
+  return m[1] + String(Number(m[2]) + 1).padStart(m[2].length, '0') + m[3];
+}
 
 type FormState = {
   id: string | null; name: string; empCode: string; dept: string; role: Role;
@@ -38,13 +51,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
     spv: rows.filter((r) => r.role === 'spv').length,
   }), [rows]);
 
-  // Saran kode pegawai berikut untuk peran terpilih (EMP/SPV/HRD/DIR + urut).
-  const suggestCode = (role: Role) => {
-    const pfx = ROLE_PREFIX[role];
-    const max = rows.filter((r) => r.empCode.startsWith(pfx))
-      .reduce((m, r) => Math.max(m, parseInt(r.empCode.slice(pfx.length), 10) || 0), 0);
-    return pfx + String(max + 1).padStart(3, '0');
-  };
+  const allCodes = useMemo(() => rows.map((r) => r.empCode), [rows]);
 
   const shown = rows.filter((r) => {
     if (q.trim() && !`${r.name} ${r.empCode} ${r.email}`.toLowerCase().includes(q.toLowerCase())) return false;
@@ -56,7 +63,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
 
   function openAdd() {
     setToast(null);
-    setForm({ ...EMPTY, empCode: suggestCode('employee') });
+    setForm({ ...EMPTY, empCode: nextCode(allCodes) });
   }
   function openEdit(r: EmpRow) {
     setToast(null);
@@ -67,8 +74,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
     setForm((f) => {
       if (!f) return f;
       const next = { ...f, [k]: v };
-      // Saat menambah (belum ada id): auto-isi kode & email mengikuti peran/nama.
-      if (k === 'role' && !f.id) next.empCode = suggestCode(v as Role);
+      // Saat menambah (belum ada id): auto-isi email dari nama (kode tak bergantung peran).
       if (k === 'name' && !f.id && (!f.email || f.email.endsWith('@infarm.test'))) {
         const s = slug(v as string);
         next.email = s ? `${s}@infarm.test` : '';
@@ -144,7 +150,8 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
             </Field>
             <Field label="Kode Pegawai">
               <input value={form.empCode} onChange={(e) => set('empCode', e.target.value.toUpperCase())} required
-                className="inp font-mono" placeholder="EMP010" />
+                className="inp font-mono" placeholder="mis. FT2021-001" />
+              <span className="block text-[10px] text-gray-400 mt-0.5">Bebas mengikuti skema perusahaan; saran melanjutkan nomor terakhir.</span>
             </Field>
             <Field label="Email (boleh placeholder)">
               <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} required

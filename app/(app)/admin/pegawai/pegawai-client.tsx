@@ -9,7 +9,7 @@ export type EmpRow = {
   id: string; empCode: string; name: string; dept: string; role: Role;
   active: boolean; email: string; spvId: string | null; spvName: string | null;
 };
-export type SpvOpt = { id: string; name: string; dept: string };
+export type SpvOpt = { id: string; name: string; dept: string; role: Role };
 
 const ROLE_LABEL: Record<Role, string> = { employee: 'Pegawai', spv: 'Supervisor', hrd: 'HRD Admin', direksi: 'Direksi' };
 const ROLE_OPTS: Role[] = ['employee', 'spv', 'hrd', 'direksi'];
@@ -190,7 +190,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
             <Field label="Atasan / SPV (opsional)">
               <select value={form.spvId} onChange={(e) => set('spvId', e.target.value)} className="inp bg-white">
                 <option value="">— Tanpa atasan —</option>
-                {spvs.filter((s) => s.id !== form.id).map((s) => <option key={s.id} value={s.id}>{s.name} · {s.dept}</option>)}
+                {spvs.filter((s) => s.id !== form.id).map((s) => <option key={s.id} value={s.id}>{s.name} · {ROLE_LABEL[s.role]} · {s.dept}</option>)}
               </select>
             </Field>
           </div>

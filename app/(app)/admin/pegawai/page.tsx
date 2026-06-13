@@ -48,9 +48,10 @@ export default async function PegawaiPage() {
     };
   });
 
+  // Calon atasan: SPV, HRD, atau Direksi yang aktif (mis. Direksi→SPV).
   const spvs: SpvOpt[] = list
-    .filter((e) => (e.role === 'spv' || e.role === 'hrd') && e.is_active)
-    .map((e) => ({ id: e.id, name: e.name, dept: e.dept }));
+    .filter((e) => (e.role === 'spv' || e.role === 'hrd' || e.role === 'direksi') && e.is_active)
+    .map((e) => ({ id: e.id, name: e.name, dept: e.dept, role: e.role }));
   const depts = [...new Set(list.map((e) => e.dept))].sort();
 
   return (

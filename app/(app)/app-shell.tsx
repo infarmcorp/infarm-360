@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
-  Network, HelpCircle, Scale, Calculator, ShieldAlert, ClipboardCheck, BarChart3,
+  Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck, BarChart3,
   Menu, X, LogOut,
 } from 'lucide-react';
 
@@ -43,8 +43,7 @@ function menuFor(role: Role): Section[] {
         { href: '/admin/periode', label: 'Kelola Periode', icon: CalendarRange },
         { href: '/admin/pemetaan', label: 'Pemetaan 360°', icon: Network },
         { href: '/admin/pertanyaan', label: 'Kelola Pertanyaan', icon: HelpCircle },
-        { href: '/admin/bobot', label: 'Kelola Bobot', icon: Scale },
-        { href: '/admin/360', label: 'Kalkulasi Skor 360°', icon: Calculator },
+        { href: '/admin/bobot', label: 'Bobot & Kalkulasi 360°', icon: Scale },
         { href: '/admin/kepatuhan', label: 'Flag Kepatuhan', icon: ShieldAlert },
         { href: '/admin/laporan', label: 'Review Hasil Akhir', icon: ClipboardCheck },
       ],

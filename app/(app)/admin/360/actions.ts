@@ -119,6 +119,7 @@ export async function computeResult360(): Promise<ComputeResult> {
   const { error } = await admin.from('result_360').upsert(rows, { onConflict: 'employee_id,period_id' });
   if (error) return { ok: false, error: 'Gagal menulis result_360: ' + error.message };
 
-  revalidatePath('/admin/360');
+  revalidatePath('/admin/bobot');
+  revalidatePath('/admin/dashboard');
   return { ok: true, computed: rows.length, periodLabel: ap.label };
 }

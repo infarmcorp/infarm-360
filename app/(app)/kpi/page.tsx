@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { KpiForm } from './kpi-form';
 import { RekapView } from './rekap-view';
+import { RiwayatView } from './riwayat-view';
 
 /**
  * Kinerja Tim (SPV/HRD/Direksi). Dua tab: "Input KPI" (SPV/HRD isi skor bulanan tim)
@@ -26,22 +27,26 @@ export default async function KpiPage({
     return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD / Direksi.</p></Shell>;
   }
 
-  // Tab efektif: Direksi tak bisa input → default rekap.
-  const tab = tabParam === 'rekap' || (tabParam !== 'input' && !canInput) ? 'rekap' : 'input';
+  // Tab efektif: Direksi tak bisa input/riwayat → default rekap.
+  const requested = tabParam === 'rekap' || tabParam === 'riwayat' || tabParam === 'input' ? tabParam : null;
+  const tab = (requested === 'input' || requested === 'riwayat') && !canInput ? 'rekap' : (requested ?? (canInput ? 'input' : 'rekap'));
 
   return (
     <Shell>
       <h1 className="text-xl font-bold text-gray-800">Kinerja Tim</h1>
-      <p className="mt-1 text-sm text-gray-500">Input KPI bulanan &amp; rekapitulasi per kuartal anggota tim.</p>
+      <p className="mt-1 text-sm text-gray-500">Input KPI bulanan, riwayat audit, &amp; rekapitulasi per kuartal anggota tim.</p>
 
       {/* Tab nav */}
       <div className="flex gap-1 mt-4 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
         {canInput && <Tab href="/kpi?tab=input" active={tab === 'input'}>Input KPI</Tab>}
+        {canInput && <Tab href="/kpi?tab=riwayat" active={tab === 'riwayat'}>Riwayat &amp; Audit</Tab>}
         <Tab href="/kpi?tab=rekap" active={tab === 'rekap'}>Rekapitulasi Kuartal</Tab>
       </div>
 
       {tab === 'input' && canInput ? (
         <InputTab supabase={supabase} userId={user.id} role={role} />
+      ) : tab === 'riwayat' && canInput ? (
+        <RiwayatView role={role} userId={user.id} />
       ) : (
         <RekapView role={role} userId={user.id} periodParam={period} />
       )}

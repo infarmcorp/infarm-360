@@ -104,6 +104,12 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['result_360']['Insert']>;
         Relationships: [];
       };
+      compliance_penalties: {
+        Row: { employee_id: string; period_id: string; points: number; reason: string | null; set_by: string | null; updated_at: string };
+        Insert: { employee_id: string; period_id: string; points?: number; reason?: string | null; set_by?: string | null };
+        Update: Partial<Database['public']['Tables']['compliance_penalties']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

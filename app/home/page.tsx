@@ -63,6 +63,15 @@ export default async function HomePage() {
               <span className="block text-xs text-gray-400">Hitung skor 360 terbobot dari penilaian terkirim.</span>
             </Link>
           )}
+          {(role === 'hrd' || role === 'direksi') && (
+            <Link
+              href="/admin/dashboard"
+              className="block border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors"
+            >
+              <span className="font-bold text-gray-800 text-sm">Dashboard Organisasi</span>
+              <span className="block text-xs text-gray-400">Skor Akhir, klasifikasi 9-Box &amp; A/B/C/D Player.</span>
+            </Link>
+          )}
         </div>
 
         <form action="/auth/signout" method="post" className="mt-6">

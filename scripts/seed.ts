@@ -10,7 +10,7 @@
  */
 import { readFileSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
-import { INITIAL_USERS, SPV_TEAMS, INSTANT_QUARTERS, Q_QUANT, Q_QUAL, INITIAL_MAPPINGS } from '../src/data';
+import { INITIAL_USERS, SPV_TEAMS, INSTANT_QUARTERS, Q_QUANT, Q_QUAL, INITIAL_MAPPINGS, INITIAL_KPI_HIST } from '../src/data';
 import { DEMO_USERS } from '../lib/auth/demo-users';
 
 // Relasi legacy → enum relation_kind DB (jaga semantik kelas penilai: atasan/peer/cross).
@@ -153,6 +153,24 @@ async function main() {
       .upsert(mapRows, { onConflict: 'period_id,assessor_id,target_id' });
     if (error) throw new Error('mappings: ' + error.message);
     console.log(`\n  ✓ mappings (Q3-2026): ${mapRows.length}`);
+  }
+
+  // 7) KPI SCORES (skor terkini per bulan, dari INITIAL_KPI_HIST) -----------
+  // Data performa demo agar Dashboard punya Skor Akhir. Mudah diganti via UI /kpi.
+  const kpiRows: { employee_id: string; ym: string; score: number; updated_by: string | null }[] = [];
+  for (const [empCode, byMonth] of Object.entries(INITIAL_KPI_HIST)) {
+    const empId = idByCode.get(empCode);
+    if (!empId) continue;
+    for (const [ym, hist] of Object.entries(byMonth as Record<string, { score: number; by: string }[]>)) {
+      if (!hist.length) continue;
+      const latest = hist[hist.length - 1]; // skor terbaru bulan itu
+      kpiRows.push({ employee_id: empId, ym, score: latest.score, updated_by: idByCode.get(latest.by) ?? null });
+    }
+  }
+  if (kpiRows.length) {
+    const { error } = await sb.from('kpi_scores').upsert(kpiRows, { onConflict: 'employee_id,ym' });
+    if (error) throw new Error('kpi_scores: ' + error.message);
+    console.log(`  ✓ kpi_scores: ${kpiRows.length}`);
   }
 
   console.log('\n== SEED SELESAI ==');

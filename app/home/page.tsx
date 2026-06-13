@@ -1,0 +1,75 @@
+import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
+
+const ROLE_LABEL: Record<string, string> = {
+  employee: 'Pegawai Operasional',
+  spv: 'Supervisor (SPV)',
+  hrd: 'HRD Admin',
+  direksi: 'Direktur',
+};
+
+/**
+ * Hub pegawai yang sudah login (versi termigrasi Supabase).
+ * Sementara menautkan fitur yang sudah dimigrasi (Input KPI). Akan bertambah per fase.
+ */
+export default async function HomePage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const { data: emp } = await supabase
+    .from('employees')
+    .select('emp_code, name, dept, role')
+    .eq('id', user.id)
+    .single();
+
+  const role = emp?.role ?? 'employee';
+  const canKpi = role === 'spv' || role === 'hrd';
+
+  return (
+    <main className="mx-auto max-w-2xl p-6">
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+        <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">Selamat datang</p>
+        <h1 className="text-xl font-bold text-gray-800 mt-1">{emp?.name ?? user.email}</h1>
+        <p className="text-sm text-gray-500">
+          {emp?.dept} · {ROLE_LABEL[role] ?? role} · <span className="font-mono">{emp?.emp_code}</span>
+        </p>
+
+        <div className="mt-5 grid gap-3">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Fitur tersedia</p>
+          <Link
+            href="/penilaian"
+            className="block border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors"
+          >
+            <span className="font-bold text-gray-800 text-sm">Daftar Penilaian Saya</span>
+            <span className="block text-xs text-gray-400">Orang yang harus Anda nilai di periode aktif.</span>
+          </Link>
+          {canKpi && (
+            <Link
+              href="/kpi"
+              className="block border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors"
+            >
+              <span className="font-bold text-gray-800 text-sm">Input KPI Bulanan</span>
+              <span className="block text-xs text-gray-400">Isi skor KPI anggota tim Anda.</span>
+            </Link>
+          )}
+        </div>
+
+        <form action="/auth/signout" method="post" className="mt-6">
+          <button
+            type="submit"
+            className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline"
+          >
+            Keluar
+          </button>
+        </form>
+      </div>
+
+      <p className="mt-4 text-center text-[11px] text-gray-400">
+        Versi lama (demo localStorage) masih di{' '}
+        <Link href="/" className="underline">halaman utama</Link>.
+      </p>
+    </main>
+  );
+}

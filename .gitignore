@@ -9,3 +9,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Supabase CLI temp
+supabase/.temp/

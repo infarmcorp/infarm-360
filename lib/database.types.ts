@@ -7,6 +7,8 @@
  * Enums/CompositeTypes + Relationships per tabel) agar `.from()` ter-tipe, bukan `never`.
  */
 export type UserRole = 'employee' | 'spv' | 'hrd' | 'direksi';
+export type RelationKind = 'Atasan' | 'Peer' | 'Cross' | 'Self' | 'Bawahan';
+export type AssessmentStatus = 'draft' | 'submitted';
 
 export interface Database {
   public: {
@@ -47,10 +49,52 @@ export interface Database {
         Update: never;
         Relationships: [];
       };
+      mappings: {
+        Row: { id: string; period_id: string; assessor_id: string; target_id: string; relation: RelationKind; mandatory: boolean; is_active: boolean; created_at: string };
+        Insert: { period_id: string; assessor_id: string; target_id: string; relation: RelationKind; mandatory?: boolean; is_active?: boolean };
+        Update: Partial<Database['public']['Tables']['mappings']['Insert']>;
+        Relationships: [];
+      };
+      assessments: {
+        Row: { id: string; period_id: string; assessor_id: string; target_id: string; status: AssessmentStatus; is_adhoc: boolean; submitted_at: string | null; created_at: string };
+        Insert: { period_id: string; assessor_id: string; target_id: string; status?: AssessmentStatus; is_adhoc?: boolean; submitted_at?: string | null };
+        Update: Partial<Database['public']['Tables']['assessments']['Insert']>;
+        Relationships: [];
+      };
+      culture_aspects: {
+        Row: { id: string; period_id: string; name: string; order_idx: number };
+        Insert: { period_id: string; name: string; order_idx?: number };
+        Update: Partial<Database['public']['Tables']['culture_aspects']['Insert']>;
+        Relationships: [];
+      };
+      indicators: {
+        Row: { id: string; aspect_id: string; text: string; order_idx: number; is_active: boolean };
+        Insert: { aspect_id: string; text: string; order_idx?: number; is_active?: boolean };
+        Update: Partial<Database['public']['Tables']['indicators']['Insert']>;
+        Relationships: [];
+      };
+      qualitative_questions: {
+        Row: { id: string; period_id: string; text: string; order_idx: number };
+        Insert: { period_id: string; text: string; order_idx?: number };
+        Update: Partial<Database['public']['Tables']['qualitative_questions']['Insert']>;
+        Relationships: [];
+      };
+      assessment_indicator_scores: {
+        Row: { assessment_id: string; indicator_id: string; rating: number | null; comment: string | null };
+        Insert: { assessment_id: string; indicator_id: string; rating?: number | null; comment?: string | null };
+        Update: Partial<Database['public']['Tables']['assessment_indicator_scores']['Insert']>;
+        Relationships: [];
+      };
+      assessment_qual_answers: {
+        Row: { assessment_id: string; question_id: string; answer: string | null };
+        Insert: { assessment_id: string; question_id: string; answer?: string | null };
+        Update: Partial<Database['public']['Tables']['assessment_qual_answers']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
-    Enums: { user_role: UserRole };
+    Enums: { user_role: UserRole; relation_kind: RelationKind; assessment_status: AssessmentStatus };
     CompositeTypes: Record<string, never>;
   };
 }

@@ -1,0 +1,69 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { createClient } from '@/lib/supabase/server';
+import { finalScoreOf } from '@/lib/scoring';
+
+/**
+ * Review Hasil Akhir (HRD): hitung Skor Akhir kalibrasi & tulis final_reports.
+ *
+ * Keamanan: RLS fr_hrd mengizinkan HRD menulis final_reports (tak perlu service_role).
+ * Finalisasi mengubah status → 'finalized' sehingga pegawai bisa melihat (fr_read).
+ */
+async function computeFinal(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  periodId: string, has360: boolean, employeeId: string,
+) {
+  const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', periodId);
+  const yms = (months ?? []).map((m) => m.ym);
+  const { data: kpi } = yms.length
+    ? await supabase.from('kpi_scores').select('score').eq('employee_id', employeeId).in('ym', yms)
+    : { data: [] };
+  const kpiAvg = kpi && kpi.length ? kpi.reduce((a, b) => a + b.score, 0) / kpi.length : null;
+  const { data: r } = await supabase.from('result_360').select('score')
+    .eq('employee_id', employeeId).eq('period_id', periodId).maybeSingle();
+  const s360 = r?.score ?? null;
+  const { data: p } = await supabase.from('compliance_penalties').select('points')
+    .eq('employee_id', employeeId).eq('period_id', periodId).maybeSingle();
+  const penalty = p?.points ?? 0;
+  return { kpiAvg, s360, penalty, final: finalScoreOf(kpiAvg, s360, has360, penalty) };
+}
+
+export type FinalizeResult = { ok: true; finalScore: number; finalized: boolean } | { ok: false; error: string };
+
+export async function saveOrFinalizeReport(employeeId: string, finalize: boolean): Promise<FinalizeResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
+  if (me?.role !== 'hrd') return { ok: false, error: 'Hanya HRD yang dapat memfinalisasi laporan' };
+
+  const { data: ap } = await supabase
+    .from('periods').select('id, has_360, status').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  const { kpiAvg, final } = await computeFinal(supabase, ap.id, ap.has_360, employeeId);
+  if (kpiAvg == null || final == null) {
+    return { ok: false, error: 'Skor Akhir belum bisa dihitung (KPI pegawai masih kosong)' };
+  }
+
+  const status = finalize ? 'finalized' : 'draft';
+  const { data: existing } = await supabase
+    .from('final_reports').select('id')
+    .eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase.from('final_reports')
+      .update({ final_score: final, status, finalized_by: finalize ? user.id : null })
+      .eq('id', existing.id);
+    if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
+  } else {
+    const { error } = await supabase.from('final_reports')
+      .insert({ employee_id: employeeId, period_id: ap.id, final_score: final, status, finalized_by: finalize ? user.id : null });
+    if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
+  }
+
+  revalidatePath('/admin/laporan');
+  revalidatePath('/laporan');
+  return { ok: true, finalScore: final, finalized: finalize };
+}

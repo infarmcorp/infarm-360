@@ -45,6 +45,13 @@ export default async function HomePage() {
             <span className="font-bold text-gray-800 text-sm">Daftar Penilaian Saya</span>
             <span className="block text-xs text-gray-400">Orang yang harus Anda nilai di periode aktif.</span>
           </Link>
+          <Link
+            href="/laporan"
+            className="block border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors"
+          >
+            <span className="font-bold text-gray-800 text-sm">Laporan Hasil Saya</span>
+            <span className="block text-xs text-gray-400">Skor Akhir Anda (setelah difinalisasi HRD).</span>
+          </Link>
           {canKpi && (
             <Link
               href="/kpi"
@@ -52,6 +59,24 @@ export default async function HomePage() {
             >
               <span className="font-bold text-gray-800 text-sm">Input KPI Bulanan</span>
               <span className="block text-xs text-gray-400">Isi skor KPI anggota tim Anda.</span>
+            </Link>
+          )}
+          {canKpi && (
+            <Link
+              href="/laporan-tim"
+              className="block border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors"
+            >
+              <span className="font-bold text-gray-800 text-sm">Laporan Kinerja Tim</span>
+              <span className="block text-xs text-gray-400">Tinjau &amp; beri ACC laporan anggota tim.</span>
+            </Link>
+          )}
+          {role === 'hrd' && (
+            <Link
+              href="/admin/laporan"
+              className="block border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors"
+            >
+              <span className="font-bold text-gray-800 text-sm">Review Hasil Akhir</span>
+              <span className="block text-xs text-gray-400">Finalisasi Skor Akhir kalibrasi pegawai.</span>
             </Link>
           )}
           {role === 'hrd' && (

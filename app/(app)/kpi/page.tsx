@@ -55,8 +55,9 @@ export default async function KpiPage({
 }
 
 /**
- * Tab Input KPI: SPV → anggota tim (RLS is_my_member). HRD (mode SPV) → semua pegawai
- * non-direksi (RLS is_hrd mengizinkan tulis KPI siapa pun).
+ * Tab Input KPI: SPV → anggota tim (RLS is_my_member). HRD (mode SPV) → hanya pegawai
+ * di DIVISINYA SENDIRI (mis. Irma/HRD hanya divisi HRD). RLS is_hrd tetap mengizinkan
+ * tulis KPI siapa pun, tetapi UI sengaja membatasi ke divisi HRD sesuai kebijakan.
  */
 async function InputTab({
   supabase, userId, role,
@@ -65,7 +66,10 @@ async function InputTab({
 }) {
   let emps: { id: string; emp_code: string; name: string; dept: string }[] = [];
   if (role === 'hrd') {
-    const { data } = await supabase.from('employees').select('id, emp_code, name, dept').neq('role', 'direksi');
+    const { data: me } = await supabase.from('employees').select('dept').eq('id', userId).maybeSingle();
+    const { data } = await supabase
+      .from('employees').select('id, emp_code, name, dept')
+      .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi');
     emps = data ?? [];
   } else {
     const { data: teamRows } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);

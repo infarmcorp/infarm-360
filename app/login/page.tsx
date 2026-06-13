@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { DEMO_USERS } from '@/lib/auth/demo-users';
 import { LoginForm } from './login-form';
 
 /**
@@ -18,14 +19,17 @@ export default async function LoginPage({
   const { data } = await supabase.auth.getUser();
   if (data.user) redirect(next);
 
+  // Roster (tanpa password) untuk dropdown login ala legacy.
+  const users = DEMO_USERS.map((u) => ({ email: u.email, name: u.name, role: u.role, dept: u.dept }));
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
       <div className="w-full max-w-sm bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
         <h1 className="text-lg font-bold text-gray-800">Infarm 360° Portal</h1>
-        <p className="text-sm text-gray-500 mb-5">Masuk dengan akun Anda.</p>
-        <LoginForm next={next} />
+        <p className="text-sm text-gray-500 mb-5">Pilih peran &amp; nama Anda, lalu masukkan sandi.</p>
+        <LoginForm next={next} users={users} />
         <p className="mt-4 text-[11px] text-gray-400">
-          Akun demo: <code>nama@infarm.test</code> · sandi <code>Infarm@2026</code>.
+          Akun demo · sandi <code>Infarm@2026</code>.
         </p>
       </div>
     </main>

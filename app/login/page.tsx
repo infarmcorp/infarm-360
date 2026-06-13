@@ -12,7 +12,7 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const sp = await searchParams;
-  const next = sp.next && sp.next.startsWith('/') ? sp.next : '/home';
+  const next = sp.next && sp.next.startsWith('/') ? sp.next : '/';
 
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();

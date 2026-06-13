@@ -20,9 +20,9 @@ export default function LegacyPage() {
         <span>
           <strong>Versi lama (demo)</strong> — data contoh di browser ini, bukan sistem nyata.
           Untuk data & login resmi, gunakan{' '}
-          <Link href="/home" className="underline font-semibold">aplikasi utama</Link>.
+          <Link href="/" className="underline font-semibold">aplikasi utama</Link>.
         </span>
-        <Link href="/home" className="shrink-0 underline font-semibold">Ke aplikasi utama →</Link>
+        <Link href="/" className="shrink-0 underline font-semibold">Ke aplikasi utama →</Link>
       </div>
       <App />
     </>

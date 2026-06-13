@@ -5,7 +5,7 @@ import type { Database } from '@/lib/database.types';
 /**
  * Refresh sesi Supabase di tiap request + lindungi route termigrasi.
  *
- * PENTING (Fase 6 Cutover, Opsi B): `/` kini server-redirect ke /home atau /login
+ * PENTING (Fase 6 Cutover, Opsi B): `/` kini server-redirect ke landing per peran atau /login
  * (cek sesi sendiri), jadi tetap publik. `/legacy` (SPA demo localStorage), `/login`,
  * & `/auth` juga publik. Route lain butuh sesi → diarahkan ke /login.
  */

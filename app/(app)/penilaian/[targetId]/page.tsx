@@ -80,7 +80,7 @@ export default async function AssessPage({
   }));
 
   return (
-    <main className="mx-auto max-w-2xl p-6">
+    <main className="w-full p-4 sm:p-5 lg:p-6">
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
         <div className="flex items-center justify-between mb-1">
           <h1 className="text-xl font-bold text-gray-800">Mulai Nilai</h1>
@@ -113,7 +113,7 @@ export default async function AssessPage({
 
 function Notice({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto max-w-2xl p-6">
+    <main className="w-full p-4 sm:p-5 lg:p-6">
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
         <p className="text-sm text-gray-600">{children}</p>
         <Link href="/penilaian" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">

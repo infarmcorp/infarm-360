@@ -99,7 +99,7 @@ export default async function Result360Page() {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto max-w-2xl p-6">
+    <main className="w-full p-4 sm:p-5 lg:p-6">
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
     </main>
   );

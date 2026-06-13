@@ -88,6 +88,15 @@ export default async function HomePage() {
               <span className="block text-xs text-gray-400">Hitung skor 360 terbobot dari penilaian terkirim.</span>
             </Link>
           )}
+          {role === 'hrd' && (
+            <Link
+              href="/admin/kepatuhan"
+              className="block border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors"
+            >
+              <span className="font-bold text-gray-800 text-sm">Flag Kepatuhan &amp; Punishment</span>
+              <span className="block text-xs text-gray-400">Pantau keterlambatan wajib &amp; beri pengurangan poin.</span>
+            </Link>
+          )}
           {(role === 'hrd' || role === 'direksi') && (
             <Link
               href="/admin/dashboard"

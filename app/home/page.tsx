@@ -26,6 +26,7 @@ export default async function HomePage() {
 
   const role = emp?.role ?? 'employee';
   const canKpi = role === 'spv' || role === 'hrd';
+  const canMonitor = role === 'spv' || role === 'hrd' || role === 'direksi';
 
   return (
     <main className="mx-auto max-w-2xl p-6">
@@ -68,6 +69,15 @@ export default async function HomePage() {
             >
               <span className="font-bold text-gray-800 text-sm">Laporan Kinerja Tim</span>
               <span className="block text-xs text-gray-400">Tinjau &amp; beri ACC laporan anggota tim.</span>
+            </Link>
+          )}
+          {canMonitor && (
+            <Link
+              href="/monitor"
+              className="block border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 transition-colors"
+            >
+              <span className="font-bold text-gray-800 text-sm">Monitor Kinerja</span>
+              <span className="block text-xs text-gray-400">Tren bulanan KPI, 360°, &amp; Skor Akhir per pegawai.</span>
             </Link>
           )}
           {role === 'hrd' && (

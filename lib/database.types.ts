@@ -11,6 +11,7 @@ export type RelationKind = 'Atasan' | 'Peer' | 'Cross' | 'Self' | 'Bawahan';
 export type AssessmentStatus = 'draft' | 'submitted';
 export type WeightValues = { atasan?: number; peer?: number; cross?: number; self?: number; internal?: number };
 export type ReportStatus = 'draft' | 'finalized';
+export type SuccessionStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
 
 export interface Database {
   public: {
@@ -115,6 +116,12 @@ export interface Database {
         Row: { id: string; employee_id: string; period_id: string; content: Record<string, unknown>; final_score: number | null; status: ReportStatus; spv_acc: boolean; finalized_by: string | null; pdf_path: string | null; updated_at: string };
         Insert: { employee_id: string; period_id: string; content?: Record<string, unknown>; final_score?: number | null; status?: ReportStatus; spv_acc?: boolean; finalized_by?: string | null; pdf_path?: string | null };
         Update: Partial<Database['public']['Tables']['final_reports']['Insert']>;
+        Relationships: [];
+      };
+      succession_plans: {
+        Row: { id: string; employee_id: string; period_id: string; plan: string; justification: string | null; status: SuccessionStatus; proposed_by: string | null; direksi_id: string | null; direksi_comment: string | null; created_at: string };
+        Insert: { employee_id: string; period_id: string; plan: string; justification?: string | null; status?: SuccessionStatus; proposed_by?: string | null; direksi_id?: string | null; direksi_comment?: string | null };
+        Update: Partial<Database['public']['Tables']['succession_plans']['Insert']>;
         Relationships: [];
       };
     };

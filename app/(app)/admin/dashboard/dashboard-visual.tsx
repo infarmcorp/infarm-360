@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Award, Target, Flame, TrendingUp } from 'lucide-react';
+import { Award, Target, Flame, TrendingUp, Building2, Users, BarChart3 } from 'lucide-react';
 import {
   TALENT_BOXES, PLAYER_BOXES, type PlayerClass,
 } from '@/lib/scoring';
@@ -22,9 +23,12 @@ type Props = {
   rows: Row[];
   deptScores: [string, number][];
   aspectScores: { aspek: string; score: number }[];
+  monthly: { ym: string; avg: number }[];
   has360: boolean;
   periodLabel: string;
 };
+
+type SubTab = 'compilation' | 'kpi' | 'feedback' | 'table';
 
 const PLAYER_DESC: Record<PlayerClass, string> = {
   A: 'Skor ≥90 · KPI ≥90 · 360° ≥80',
@@ -33,18 +37,60 @@ const PLAYER_DESC: Record<PlayerClass, string> = {
   D: 'Skor Akhir < 70',
 };
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const ymLabel = (ym: string) => {
+  const [y, m] = ym.split('-');
+  return `${MONTHS[Number(m) - 1] ?? m} '${y.slice(2)}`;
+};
 const firstName = (n: string) => n.split(' ')[0];
+const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 
-export function DashboardVisual({ rows, deptScores, aspectScores, has360, periodLabel }: Props) {
+const TABS: { key: SubTab; label: string; icon: React.ElementType }[] = [
+  { key: 'compilation', label: 'Kompilasi Kinerja Organisasi', icon: Building2 },
+  { key: 'kpi', label: 'Analisis Hasil KPI', icon: Award },
+  { key: 'feedback', label: 'Analisis 360 Feedback', icon: TrendingUp },
+  { key: 'table', label: 'Tabel Hasil Seluruh Pegawai', icon: Users },
+];
+
+export function DashboardVisual({ rows, deptScores, aspectScores, monthly, has360, periodLabel }: Props) {
+  const [tab, setTab] = useState<SubTab>('compilation');
+
+  return (
+    <div className="space-y-5">
+      {/* Sub-tab nav */}
+      <div className="flex border-b border-gray-200 gap-1.5 overflow-x-auto scrollbar-none">
+        {TABS.map((t) => {
+          const Icon = t.icon;
+          const active = tab === t.key;
+          return (
+            <button key={t.key} type="button" onClick={() => setTab(t.key)}
+              className={`flex items-center gap-2 py-2 px-4 text-xs font-bold border-b-2 transition-all shrink-0 ${
+                active ? 'border-emerald-700 text-emerald-950' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
+              <Icon className="w-4 h-4 text-emerald-700" />
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === 'compilation' && <CompilationTab rows={rows} has360={has360} periodLabel={periodLabel} />}
+      {tab === 'kpi' && <KpiTab rows={rows} deptScores={deptScores} monthly={monthly} />}
+      {tab === 'feedback' && <FeedbackTab rows={rows} aspectScores={aspectScores} has360={has360} periodLabel={periodLabel} />}
+      {tab === 'table' && <TableTab rows={rows} has360={has360} />}
+    </div>
+  );
+}
+
+/* ───────────────────────── TAB 1 — KOMPILASI (talenta) ───────────────────────── */
+function CompilationTab({ rows, has360, periodLabel }: { rows: Row[]; has360: boolean; periodLabel: string }) {
   const scored = rows.filter((r) => r.final != null);
-  const orgAvg = scored.length ? scored.reduce((s, r) => s + (r.final ?? 0), 0) / scored.length : 0;
+  const orgAvg = mean(scored.map((r) => r.final ?? 0));
   const aPlayers = rows.filter((r) => r.player === 'A').length;
   const coaching = scored.filter((r) => (r.final ?? 99) < 85).length;
   const dominant = (['A', 'B', 'C', 'D'] as PlayerClass[])
     .map((k) => ({ k, n: rows.filter((r) => r.player === k).length }))
     .sort((a, b) => b.n - a.n)[0];
 
-  // Grup 9-Box & 4-Box.
   const boxGroups = new Map<string, Row[]>();
   rows.forEach((r) => { if (r.boxKey) { const a = boxGroups.get(r.boxKey) ?? []; a.push(r); boxGroups.set(r.boxKey, a); } });
   const playerGroups = new Map<PlayerClass, Row[]>();
@@ -54,19 +100,14 @@ export function DashboardVisual({ rows, deptScores, aspectScores, has360, period
   const bottom = [...scored].filter((r) => (r.final ?? 99) < 85).sort((a, b) => (a.final ?? 99) - (b.final ?? 99)).slice(0, 4);
 
   const kpiRows = [
-    { band: 'hi', label: 'KPI ≥ 90' },
-    { band: 'mid', label: 'KPI 80–89,99' },
-    { band: 'lo', label: 'KPI < 80' },
+    { band: 'hi', label: 'KPI ≥ 90' }, { band: 'mid', label: 'KPI 80–89,99' }, { band: 'lo', label: 'KPI < 80' },
   ] as const;
   const s360Cols = [
-    { band: 'hi', label: '360° ≥ 80' },
-    { band: 'mid', label: '360° 70–79,99' },
-    { band: 'lo', label: '360° < 70' },
+    { band: 'hi', label: '360° ≥ 80' }, { band: 'mid', label: '360° 70–79,99' }, { band: 'lo', label: '360° < 70' },
   ] as const;
 
   return (
     <div className="space-y-6">
-      {/* Stat mini grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Stat icon={<Award className="w-6 h-6" />} tint="emerald" value={orgAvg.toFixed(1)} label="Rataan Skor Akhir Organisasi" />
         <Stat icon={<Target className="w-6 h-6" />} tint="blue" value={String(aPlayers)} label="A Player" />
@@ -74,81 +115,31 @@ export function DashboardVisual({ rows, deptScores, aspectScores, has360, period
         <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={dominant?.n ? `${dominant.k} Player` : '—'} label="Kategori Dominan" />
       </div>
 
-      {/* Bar: distribusi kategori (player) + departemen */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-xs">
-          <h4 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2"><span>📊</span> Distribusi Kategori Pemain</h4>
-          <div className="space-y-4">
-            {PLAYER_BOXES.map((b, idx) => {
-              const count = playerGroups.get(b.key)?.length ?? 0;
-              const denom = scored.length || 1;
-              const max = Math.max(...PLAYER_BOXES.map((p) => playerGroups.get(p.key)?.length ?? 0), 1);
-              return (
-                <div key={b.key} className="space-y-1">
-                  <div className="flex justify-between text-xs font-medium text-gray-600">
-                    <span>{b.label}</span>
-                    <span className="text-gray-900 font-mono">{count} Pegawai ({((count / denom) * 100).toFixed(1)}%)</span>
-                  </div>
-                  <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${(count / max) * 100}%` }}
-                      transition={{ duration: 0.8, delay: idx * 0.1 }} style={{ backgroundColor: b.color }}
-                      className="h-full rounded-full shadow-inner" />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-xs">
-          <h4 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2"><span>🏢</span> Skor KPI Rata-rata per Departemen</h4>
-          <div className="space-y-4">
-            {deptScores.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada data KPI.</p>}
-            {deptScores.map(([dept, score], idx) => (
-              <div key={dept} className="space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-semibold text-gray-700">{dept}</span>
-                  <span className="text-xs font-bold text-emerald-800 font-mono bg-emerald-50 px-2 py-0.5 rounded-md">{score.toFixed(1)}</span>
-                </div>
-                <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(score, 100)}%` }}
-                    transition={{ duration: 1, delay: idx * 0.08 }} className="h-full bg-emerald-600 rounded-md" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Bar: sub-aspek 360 */}
-      <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-xs relative overflow-hidden">
-        <h4 className="text-sm font-semibold text-gray-800 mb-4 flex items-center gap-2"><span>✨</span> Evaluasi Budaya 360° (Rataan Sub-Aspek)</h4>
-        {!has360 && (
-          <div className="mb-4 p-2.5 bg-amber-50 border border-amber-200 rounded-xl">
-            <p className="text-[11px] text-amber-900 font-semibold">360° nonaktif di {periodLabel} — aspek di bawah dari penilaian yang sudah terkirim (jika ada).</p>
-          </div>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          {aspectScores.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada skor 360° terkirim.</p>}
-          {aspectScores.map((asp, idx) => {
-            const c = asp.score >= 90 ? 'bg-indigo-600' : asp.score >= 80 ? 'bg-indigo-500' : 'bg-amber-500';
+      {/* Distribusi kategori pemain */}
+      <Card title="📊 Distribusi Kategori Pemain">
+        <div className="space-y-4">
+          {PLAYER_BOXES.map((b, idx) => {
+            const count = playerGroups.get(b.key)?.length ?? 0;
+            const denom = scored.length || 1;
+            const max = Math.max(...PLAYER_BOXES.map((p) => playerGroups.get(p.key)?.length ?? 0), 1);
             return (
-              <div key={asp.aspek} className="space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-medium text-gray-700">⭐ {asp.aspek}</span>
-                  <span className="text-xs font-semibold text-indigo-900 font-mono bg-indigo-50 px-2 py-0.5 rounded-md">{asp.score.toFixed(1)} / 100</span>
+              <div key={b.key} className="space-y-1">
+                <div className="flex justify-between text-xs font-medium text-gray-600">
+                  <span>{b.label}</span>
+                  <span className="text-gray-900 font-mono">{count} Pegawai ({((count / denom) * 100).toFixed(1)}%)</span>
                 </div>
-                <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(asp.score, 100)}%` }}
-                    transition={{ duration: 1, delay: idx * 0.08 }} className={`h-full rounded-md ${c}`} />
+                <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${(count / max) * 100}%` }}
+                    transition={{ duration: 0.8, delay: idx * 0.1 }} style={{ backgroundColor: b.color }}
+                    className="h-full rounded-full shadow-inner" />
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
+      </Card>
 
-      {/* 9-Box grid */}
+      {/* 9-Box */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
         <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Klasifikasi Talenta — Matriks 9-Box (KPI × 360°)</h3>
         <p className="text-xs text-gray-400 mt-0.5 mb-4">Pemetaan {[...boxGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai (KPI &amp; 360° tersedia).</p>
@@ -198,7 +189,7 @@ export function DashboardVisual({ rows, deptScores, aspectScores, has360, period
         <p className="text-[10px] text-gray-400 italic mt-2">Band KPI: ≥90 / 80–89,99 / &lt;80 · Band 360°: ≥80 / 70–79,99 / &lt;70. Pegawai tanpa KPI/360° tidak dihitung.</p>
       </div>
 
-      {/* 4-Box cards */}
+      {/* 4-Box */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
         <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Klasifikasi Pemain — Matriks 4-Box (A / B / C / D Player)</h3>
         <p className="text-xs text-gray-400 mt-0.5 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan Skor Akhir.</p>
@@ -230,54 +221,226 @@ export function DashboardVisual({ rows, deptScores, aspectScores, has360, period
         </p>
       </div>
 
-      {/* Top / bottom performers */}
+      {/* Top / bottom */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
-          <h3 className="text-xs font-bold text-emerald-800 tracking-wider uppercase mb-3 flex items-center gap-1.5">
-            <span className="p-1 rounded-md bg-emerald-50 text-emerald-800">🏆</span><span>Bintang Performa Utama</span>
-          </h3>
+        <Card title="🏆 Bintang Performa Utama" tone="emerald">
           <div className="divide-y divide-gray-100">
             {top.length === 0 && <p className="text-xs text-gray-400 italic py-2">Belum ada Skor Akhir.</p>}
             {top.map((e, idx) => (
               <div key={e.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-xs font-bold text-emerald-800 w-5">#{idx + 1}</span>
-                  <div>
-                    <span className="font-bold text-gray-800 block text-xs">{e.name}</span>
-                    <span className="text-[10px] text-gray-400 block">{e.dept}</span>
-                  </div>
+                  <div><span className="font-bold text-gray-800 block text-xs">{e.name}</span><span className="text-[10px] text-gray-400 block">{e.dept}</span></div>
                 </div>
                 <span className="font-mono font-extrabold text-sm text-emerald-800">{e.final?.toFixed(1)}</span>
               </div>
             ))}
           </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
-          <h3 className="text-xs font-bold text-rose-700 tracking-wider uppercase mb-3 flex items-center gap-1.5">
-            <span className="p-1 rounded-md bg-rose-50 text-rose-700">⚠️</span><span>Sasaran Mentoring / Coaching</span>
-          </h3>
+        </Card>
+        <Card title="⚠️ Sasaran Mentoring / Coaching" tone="rose">
           <div className="divide-y divide-gray-100">
             {bottom.length === 0 && <p className="text-xs text-gray-400 italic py-2">Tidak ada di bawah 85.</p>}
             {bottom.map((e) => (
               <div key={e.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-rose-50 text-rose-800 font-bold flex items-center justify-center text-[11px]">{e.name.substring(0, 2)}</div>
-                  <div>
-                    <span className="font-bold text-gray-800 block text-xs">{e.name}</span>
-                    <span className="text-[10px] text-gray-400 block">{e.dept}</span>
-                  </div>
+                  <div><span className="font-bold text-gray-800 block text-xs">{e.name}</span><span className="text-[10px] text-gray-400 block">{e.dept}</span></div>
                 </div>
                 <span className="font-mono font-extrabold text-sm text-rose-700">{e.final?.toFixed(1)}</span>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
 }
 
+/* ───────────────────────── TAB 2 — ANALISIS KPI ───────────────────────── */
+function KpiTab({ rows, deptScores, monthly }: { rows: Row[]; deptScores: [string, number][]; monthly: { ym: string; avg: number }[] }) {
+  const kpis = rows.map((r) => r.kpiAvg).filter((v): v is number => v != null);
+  const avgKpi = mean(kpis);
+  const maxKpi = kpis.length ? Math.max(...kpis) : 0;
+  const pctOver80 = kpis.length ? (kpis.filter((s) => s >= 80).length / kpis.length) * 100 : 0;
+
+  const ranked = rows.filter((r) => r.kpiAvg != null).sort((a, b) => (b.kpiAvg ?? 0) - (a.kpiAvg ?? 0));
+  const top = ranked.slice(0, 6);
+  const low = [...ranked].reverse().slice(0, 6);
+  const maxMonthly = Math.max(...monthly.map((m) => m.avg), 1);
+
+  return (
+    <div className="space-y-6">
+      <Banner tone="emerald" tag="Analisis Khusus KPI" title="Analisis Pencapaian KPI Bulanan Organisasi"
+        desc="Evaluasi kinerja objektif berdasarkan target kuantitatif bulanan per departemen pada periode aktif." icon={<Award className="w-56 h-56" />} />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Stat icon={<Award className="w-6 h-6" />} tint="emerald" value={avgKpi.toFixed(1)} label="Rerata KPI Organisasi" />
+        <Stat icon={<Target className="w-6 h-6" />} tint="blue" value={maxKpi.toFixed(1)} label="Skor KPI Tertinggi" />
+        <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={`${pctOver80.toFixed(0)}%`} label="KPI Di Atas Standar (≥80)" />
+        <Stat icon={<BarChart3 className="w-6 h-6" />} tint="amber" value={`${monthly.length} Bulan`} label="Siklus Penilaian Terpilih" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card title="🏢 Rerata KPI Bulanan per Departemen">
+          <div className="space-y-4">
+            {deptScores.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada data KPI.</p>}
+            {deptScores.map(([dept, score], i) => (
+              <div key={dept} className="space-y-1">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-700">{dept}</span>
+                  <span className="font-bold text-emerald-800 font-mono bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">{score.toFixed(1)} / 100</span>
+                </div>
+                <div className="h-2.5 bg-gray-100 rounded-md overflow-hidden">
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(score, 100)}%` }}
+                    transition={{ duration: 0.8, delay: i * 0.1 }} className="h-full bg-gradient-to-r from-emerald-500 to-teal-600 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card title="📅 Perkembangan KPI Bulanan Organisasi">
+          {monthly.length === 0 ? <p className="text-xs text-gray-400 italic font-bold">Tidak ada data bulan untuk periode ini.</p> : (
+            <div className="space-y-4">
+              {monthly.map((m, i) => (
+                <div key={m.ym} className="space-y-1">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-700">{ymLabel(m.ym)}</span>
+                    <span className="font-bold text-indigo-800 font-mono bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">{m.avg.toFixed(1)}</span>
+                  </div>
+                  <div className="h-2.5 bg-gray-100 rounded-md overflow-hidden">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${(m.avg / maxMonthly) * 100}%` }}
+                      transition={{ duration: 0.8, delay: i * 0.1 }} className="h-full bg-gradient-to-r from-indigo-500 to-blue-600 rounded-md" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Leaderboard title="🏆 Bintang KPI Teratas" tone="emerald" items={top} valueOf={(r) => r.kpiAvg} />
+        <Leaderboard title="📈 KPI Terendah / Perlu Bimbingan" tone="rose" items={low} valueOf={(r) => r.kpiAvg} />
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────── TAB 3 — ANALISIS 360 ───────────────────────── */
+function FeedbackTab({ rows, aspectScores, has360, periodLabel }: { rows: Row[]; aspectScores: { aspek: string; score: number }[]; has360: boolean; periodLabel: string }) {
+  const s360s = rows.map((r) => r.s360).filter((v): v is number => v != null);
+  const avg360 = mean(s360s);
+  const max360 = s360s.length ? Math.max(...s360s) : 0;
+  const assessed = s360s.length;
+  const ranked = rows.filter((r) => r.s360 != null).sort((a, b) => (b.s360 ?? 0) - (a.s360 ?? 0));
+
+  return (
+    <div className="space-y-6">
+      {!has360 ? (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 shadow-3xs">
+          <p className="text-sm font-black text-amber-900">Periode {periodLabel} tanpa Evaluasi 360°</p>
+          <p className="text-xs text-amber-800 mt-1">Komponen 360° tidak aktif untuk periode ini, sehingga Skor Akhir = 100% KPI. Data di bawah hanya muncul bila ada penilaian terkirim.</p>
+        </div>
+      ) : (
+        <Banner tone="indigo" tag="Analisis Khusus 360°" title="Analisis Umpan Balik Budaya 360°"
+          desc="Capaian aspek budaya organisasi dari rata-rata penilaian terkirim (Self dikecualikan) pada periode aktif." icon={<TrendingUp className="w-56 h-56" />} />
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={avg360.toFixed(1)} label="Rerata Skor 360° Organisasi" />
+        <Stat icon={<Target className="w-6 h-6" />} tint="blue" value={max360.toFixed(1)} label="Skor 360° Tertinggi" />
+        <Stat icon={<Users className="w-6 h-6" />} tint="emerald" value={String(assessed)} label="Pegawai Ternilai 360°" />
+      </div>
+
+      <Card title="✨ Evaluasi Budaya 360° (Rataan Sub-Aspek)">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          {aspectScores.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada skor 360° terkirim.</p>}
+          {aspectScores.map((asp, idx) => {
+            const c = asp.score >= 90 ? 'bg-indigo-600' : asp.score >= 80 ? 'bg-indigo-500' : 'bg-amber-500';
+            return (
+              <div key={asp.aspek} className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-gray-700">⭐ {asp.aspek}</span>
+                  <span className="text-xs font-semibold text-indigo-900 font-mono bg-indigo-50 px-2 py-0.5 rounded-md">{asp.score.toFixed(1)} / 100</span>
+                </div>
+                <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(asp.score, 100)}%` }}
+                    transition={{ duration: 1, delay: idx * 0.08 }} className={`h-full rounded-md ${c}`} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Leaderboard title="🌟 360° Teratas" tone="indigo" items={ranked.slice(0, 6)} valueOf={(r) => r.s360} />
+        <Leaderboard title="📉 360° Terendah" tone="rose" items={[...ranked].reverse().slice(0, 6)} valueOf={(r) => r.s360} />
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────── TAB 4 — TABEL ───────────────────────── */
+function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
+      <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight mb-4">Tabel Hasil Seluruh Pegawai</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+              <th className="py-2 pr-3">Pegawai</th>
+              <th className="py-2 px-3 text-center">Rerata KPI</th>
+              <th className="py-2 px-3 text-center">Skor 360°</th>
+              <th className="py-2 px-3 text-center">Skor Akhir</th>
+              <th className="py-2 px-3">9-Box</th>
+              <th className="py-2 pl-3 text-center">Player</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {rows.map((r) => {
+              const box = r.boxKey ? TALENT_BOXES.find((b) => b.key === r.boxKey) : null;
+              return (
+                <tr key={r.id}>
+                  <td className="py-3 pr-3">
+                    <span className="font-bold text-gray-800 block">{r.name}</span>
+                    <span className="text-[11px] text-gray-400">{r.dept}</span>
+                  </td>
+                  <td className="py-3 px-3 text-center font-mono text-emerald-700">{r.kpiAvg != null ? r.kpiAvg.toFixed(1) : '—'}</td>
+                  <td className="py-3 px-3 text-center font-mono text-indigo-700">{r.s360 != null ? r.s360.toFixed(1) : '—'}</td>
+                  <td className="py-3 px-3 text-center font-mono font-black text-slate-800">{r.final != null ? r.final.toFixed(1) : '—'}</td>
+                  <td className="py-3 px-3">
+                    {box ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded border"
+                        style={{ color: box.color, borderColor: box.color, backgroundColor: `${box.color}14` }}>{box.label}</span>
+                    ) : <span className="text-gray-400 text-xs italic">N/A</span>}
+                  </td>
+                  <td className="py-3 pl-3 text-center">
+                    {r.player ? (
+                      <span className={`text-[11px] font-black px-2 py-0.5 rounded border ${
+                        r.player === 'A' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        r.player === 'B' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        r.player === 'C' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                        'bg-rose-50 text-rose-700 border-rose-200'}`}>{r.player}</span>
+                    ) : <span className="text-gray-400 text-xs">—</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-[10px] text-gray-400 italic mt-3">
+        Skor Akhir = blend KPI+360 (50/50) − punishment, dikunci periode aktif. 9-Box butuh KPI &amp; 360; N/A bila salah satu belum ada.
+        {!has360 && ' A Player butuh 360° aktif.'}
+      </p>
+    </div>
+  );
+}
+
+/* ───────────────────────── Komponen bersama ───────────────────────── */
 const TINT: Record<string, string> = {
   emerald: 'bg-emerald-50 text-emerald-600',
   blue: 'bg-blue-50 text-blue-600',
@@ -292,6 +455,70 @@ function Stat({ icon, tint, value, label }: { icon: React.ReactNode; tint: strin
       <div>
         <div className="text-2xl font-semibold text-gray-800">{value}</div>
         <div className="text-xs text-gray-400">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+function Card({ title, tone, children }: { title: string; tone?: 'emerald' | 'rose'; children: React.ReactNode }) {
+  const head = tone === 'emerald' ? 'text-emerald-800' : tone === 'rose' ? 'text-rose-700' : 'text-gray-800';
+  return (
+    <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-xs">
+      <h4 className={`text-sm font-semibold mb-4 ${head}`}>{title}</h4>
+      {children}
+    </div>
+  );
+}
+
+function Banner({ tone, tag, title, desc, icon }: { tone: 'emerald' | 'indigo'; tag: string; title: string; desc: string; icon: React.ReactNode }) {
+  const grad = tone === 'emerald' ? 'from-emerald-700 to-teal-800' : 'from-indigo-700 to-blue-800';
+  return (
+    <div className={`bg-gradient-to-r ${grad} rounded-3xl p-5 sm:p-6 text-white shadow-md relative overflow-hidden`}>
+      <div className="absolute right-0 bottom-0 opacity-10 translate-x-1/4 translate-y-1/4 scale-150">{icon}</div>
+      <div className="relative z-10 space-y-2">
+        <span className="px-2.5 py-1 rounded-full bg-white/15 text-white/90 text-[10px] font-extrabold uppercase tracking-wide border border-white/20">{tag}</span>
+        <h2 className="text-xl sm:text-2xl font-black tracking-tight">{title}</h2>
+        <p className="text-xs sm:text-sm text-white/90 leading-relaxed max-w-3xl">{desc}</p>
+      </div>
+    </div>
+  );
+}
+
+function bandBadge(v: number | null) {
+  if (v == null) return null;
+  const cls = v >= 90 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    : v >= 80 ? 'bg-blue-50 text-blue-700 border-blue-200'
+    : v >= 70 ? 'bg-amber-50 text-amber-700 border-amber-200'
+    : 'bg-rose-50 text-rose-700 border-rose-200';
+  const label = v >= 90 ? 'Sangat Baik' : v >= 80 ? 'Baik' : v >= 70 ? 'Cukup' : 'Kurang';
+  return <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${cls}`}>{label}</span>;
+}
+
+function Leaderboard({ title, tone, items, valueOf }: { title: string; tone: 'emerald' | 'rose' | 'indigo'; items: Row[]; valueOf: (r: Row) => number | null }) {
+  const head = tone === 'emerald' ? 'text-emerald-800' : tone === 'indigo' ? 'text-indigo-800' : 'text-rose-700';
+  const chip = tone === 'emerald' ? 'text-emerald-800 bg-emerald-50 border-emerald-150'
+    : tone === 'indigo' ? 'text-indigo-800 bg-indigo-50 border-indigo-150' : 'text-rose-800 bg-rose-50 border-rose-150';
+  const rowBg = tone === 'rose' ? 'bg-rose-50/10 border-rose-100 border-dashed' : tone === 'indigo' ? 'bg-indigo-50/20 border-indigo-100' : 'bg-emerald-50/20 border-emerald-100';
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
+      <h3 className={`text-xs font-bold tracking-wider uppercase mb-4 border-b border-gray-100 pb-2.5 ${head}`}>{title}</h3>
+      <div className="space-y-3">
+        {items.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada data.</p>}
+        {items.map((e, idx) => {
+          const v = valueOf(e);
+          return (
+            <div key={e.id} className={`p-3 rounded-xl border flex items-center justify-between gap-4 ${rowBg}`}>
+              <div className="flex items-center gap-3">
+                <span className={`font-mono text-xs font-black w-5 ${head}`}>#{idx + 1}</span>
+                <div><span className="font-bold text-gray-800 text-xs block">{e.name}</span><span className="text-[10px] text-gray-400 block">{e.dept}</span></div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <span className={`font-mono font-black text-xs px-2 py-1 rounded border ${chip}`}>{v != null ? v.toFixed(1) : '—'}</span>
+                {bandBadge(v)}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

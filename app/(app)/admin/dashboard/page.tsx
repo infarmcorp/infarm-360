@@ -41,17 +41,23 @@ export default async function DashboardPage() {
 
   // Gelombang 2 — query turunan (butuh hasil gelombang 1), saling independen → paralel.
   const [kpiRes, indRes, scoreRes] = await Promise.all([
-    ymList.length ? supabase.from('kpi_scores').select('employee_id, score').in('ym', ymList) : Promise.resolve({ data: [] as { employee_id: string; score: number }[] }),
+    ymList.length ? supabase.from('kpi_scores').select('employee_id, ym, score').in('ym', ymList) : Promise.resolve({ data: [] as { employee_id: string; ym: string; score: number }[] }),
     aspectList.length ? supabase.from('indicators').select('id, aspect_id').in('aspect_id', aspectList.map((a) => a.id)) : Promise.resolve({ data: [] as { id: string; aspect_id: string }[] }),
     nonSelfIds.length ? supabase.from('assessment_indicator_scores').select('indicator_id, rating').in('assessment_id', nonSelfIds) : Promise.resolve({ data: [] as { indicator_id: string; rating: number | null }[] }),
   ]);
 
-  // Rerata KPI per pegawai.
+  // Rerata KPI per pegawai + rerata KPI organisasi per bulan (untuk Analisis KPI).
   const kpiAgg = new Map<string, { sum: number; n: number }>();
+  const monthAgg = new Map<string, { sum: number; n: number }>();
   (kpiRes.data ?? []).forEach((r) => {
     const a = kpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 };
     a.sum += r.score; a.n += 1; kpiAgg.set(r.employee_id, a);
+    const m = monthAgg.get(r.ym) ?? { sum: 0, n: 0 };
+    m.sum += r.score; m.n += 1; monthAgg.set(r.ym, m);
   });
+  const monthly = ymList
+    .map((ym) => ({ ym, avg: monthAgg.has(ym) ? monthAgg.get(ym)!.sum / monthAgg.get(ym)!.n : 0 }))
+    .filter((m) => m.avg > 0);
 
   // Skor 360 (hasil komputasi) + punishment.
   const s360By = new Map((r360Res.data ?? []).map((r) => [r.employee_id, r.score]));
@@ -114,66 +120,11 @@ export default async function DashboardPage() {
           }))}
           deptScores={deptScores}
           aspectScores={aspectScores}
+          monthly={monthly}
           has360={ap.has_360}
           periodLabel={ap.label}
         />
       </div>
-
-      <details className="mt-6 group">
-        <summary className="cursor-pointer text-xs font-bold text-gray-500 uppercase tracking-wider hover:text-gray-700 select-none">
-          ▸ Tabel Rinci Skor Seluruh Pegawai
-        </summary>
-      <div className="overflow-x-auto mt-3">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
-              <th className="py-2 pr-3">Pegawai</th>
-              <th className="py-2 px-3 text-center">Rerata KPI</th>
-              <th className="py-2 px-3 text-center">Skor 360°</th>
-              <th className="py-2 px-3 text-center">Skor Akhir</th>
-              <th className="py-2 px-3">9-Box</th>
-              <th className="py-2 pl-3 text-center">Player</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td className="py-3 pr-3">
-                  <span className="font-bold text-gray-800 block">{r.name}</span>
-                  <span className="text-[11px] text-gray-400">{r.dept}</span>
-                </td>
-                <td className="py-3 px-3 text-center font-mono text-emerald-700">{r.kpiAvg != null ? r.kpiAvg.toFixed(1) : '—'}</td>
-                <td className="py-3 px-3 text-center font-mono text-indigo-700">{r.s360 != null ? r.s360.toFixed(1) : '—'}</td>
-                <td className="py-3 px-3 text-center font-mono font-black text-slate-800">{r.final != null ? r.final.toFixed(1) : '—'}</td>
-                <td className="py-3 px-3">
-                  {r.box ? (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded border"
-                      style={{ color: r.box.color, borderColor: r.box.color, backgroundColor: `${r.box.color}14` }}>
-                      {r.box.label}
-                    </span>
-                  ) : <span className="text-gray-400 text-xs italic">N/A</span>}
-                </td>
-                <td className="py-3 pl-3 text-center">
-                  {r.player ? (
-                    <span className={`text-[11px] font-black px-2 py-0.5 rounded border ${
-                      r.player === 'A' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                      r.player === 'B' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                      r.player === 'C' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                      'bg-rose-50 text-rose-700 border-rose-200'}`}>
-                      {r.player}
-                    </span>
-                  ) : <span className="text-gray-400 text-xs">—</span>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="text-[10px] text-gray-400 italic mt-3">
-        Skor Akhir = blend KPI+360 (50/50) − punishment, dikunci periode aktif. 9-Box butuh KPI &amp; 360;
-        N/A bila salah satu belum ada. A Player butuh 360° aktif.
-      </p>
-      </details>
     </Shell>
   );
 }

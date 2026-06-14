@@ -19,14 +19,15 @@ export default async function ProgressPage() {
   const { data: ap } = await supabase.from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
 
-  const { data: emps } = await supabase.from('employees').select('id, name, dept');
-  const empById = new Map((emps ?? []).map((e) => [e.id, e]));
-
-  const { data: maps } = await supabase.from('mappings')
-    .select('assessor_id, target_id').eq('period_id', ap.id).eq('is_active', true);
-  const { data: asmts } = await supabase.from('assessments')
-    .select('assessor_id, target_id, status').eq('period_id', ap.id);
-  const submitted = new Set((asmts ?? []).filter((a) => a.status === 'submitted').map((a) => `${a.assessor_id}|${a.target_id}`));
+  // Independen (hanya butuh ap.id / tak butuh apa pun) → paralel.
+  const [empsRes, mapsRes, asmtsRes] = await Promise.all([
+    supabase.from('employees').select('id, name, dept'),
+    supabase.from('mappings').select('assessor_id, target_id').eq('period_id', ap.id).eq('is_active', true),
+    supabase.from('assessments').select('assessor_id, target_id, status').eq('period_id', ap.id),
+  ]);
+  const empById = new Map((empsRes.data ?? []).map((e) => [e.id, e]));
+  const maps = mapsRes.data;
+  const submitted = new Set((asmtsRes.data ?? []).filter((a) => a.status === 'submitted').map((a) => `${a.assessor_id}|${a.target_id}`));
 
   // Kelompokkan tugas per penilai.
   const byAssessor = new Map<string, { targetId: string }[]>();

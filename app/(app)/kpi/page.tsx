@@ -64,29 +64,30 @@ async function InputTab({
 }: {
   supabase: Awaited<ReturnType<typeof createClient>>; userId: string; role: string;
 }) {
-  let emps: { id: string; emp_code: string; name: string; dept: string }[] = [];
-  if (role === 'hrd') {
-    const { data: me } = await supabase.from('employees').select('dept').eq('id', userId).maybeSingle();
-    const { data } = await supabase
-      .from('employees').select('id, emp_code, name, dept')
-      .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi');
-    emps = data ?? [];
-  } else {
+  // Dua rantai independen — lingkup pegawai vs periode/bulan aktif → jalankan paralel.
+  const scopeEmps = async (): Promise<{ id: string; emp_code: string; name: string; dept: string }[]> => {
+    if (role === 'hrd') {
+      const { data: me } = await supabase.from('employees').select('dept').eq('id', userId).maybeSingle();
+      const { data } = await supabase
+        .from('employees').select('id, emp_code, name, dept')
+        .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi');
+      return data ?? [];
+    }
     const { data: teamRows } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);
     const memberIds = (teamRows ?? []).map((r) => r.employee_id);
-    const { data } = memberIds.length
-      ? await supabase.from('employees').select('id, emp_code, name, dept').in('id', memberIds)
-      : { data: [] };
-    emps = data ?? [];
-  }
-  const members = (emps ?? []).map((e) => ({ id: e.id, code: e.emp_code, name: e.name, dept: e.dept }));
-
-  const { data: activePeriods } = await supabase.from('periods').select('id').eq('status', 'active');
-  const periodIds = (activePeriods ?? []).map((p) => p.id);
-  const { data: monthRows } = periodIds.length
-    ? await supabase.from('period_months').select('ym').in('period_id', periodIds).order('ym')
-    : { data: [] };
-  const monthOptions = (monthRows ?? []).map((m) => m.ym);
+    if (!memberIds.length) return [];
+    const { data } = await supabase.from('employees').select('id, emp_code, name, dept').in('id', memberIds);
+    return data ?? [];
+  };
+  const scopeMonths = async (): Promise<string[]> => {
+    const { data: activePeriods } = await supabase.from('periods').select('id').eq('status', 'active');
+    const periodIds = (activePeriods ?? []).map((p) => p.id);
+    if (!periodIds.length) return [];
+    const { data: monthRows } = await supabase.from('period_months').select('ym').in('period_id', periodIds).order('ym');
+    return (monthRows ?? []).map((m) => m.ym);
+  };
+  const [emps, monthOptions] = await Promise.all([scopeEmps(), scopeMonths()]);
+  const members = emps.map((e) => ({ id: e.id, code: e.emp_code, name: e.name, dept: e.dept }));
 
   if (members.length === 0) return <p className="text-sm text-gray-500">Belum ada anggota tim yang ditugaskan kepada Anda.</p>;
   if (monthOptions.length === 0) return <p className="text-sm text-gray-500">Tidak ada periode aktif. Hubungi HRD untuk mengaktifkan siklus.</p>;

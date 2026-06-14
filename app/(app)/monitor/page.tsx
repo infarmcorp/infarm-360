@@ -44,17 +44,19 @@ export default async function MonitorPage() {
   }
   const empIds = empRows.map((e) => e.id);
 
-  // Periode + bulan + skor.
-  const { data: periods } = await supabase.from('periods').select('id, has_360');
-  const periodHas360 = new Map((periods ?? []).map((p) => [p.id, p.has_360]));
-  const { data: pmonths } = await supabase.from('period_months').select('period_id, ym');
-  const ymToPeriod = new Map((pmonths ?? []).map((m) => [m.ym, m.period_id]));
-
-  const { data: kpiRows } = await supabase.from('kpi_scores').select('employee_id, ym, score').in('employee_id', empIds);
-  const { data: r360 } = await supabase.from('result_360').select('employee_id, period_id, score').in('employee_id', empIds);
-  const s360By = new Map((r360 ?? []).map((r) => [`${r.employee_id}|${r.period_id}`, r.score]));
-  const { data: pen } = await supabase.from('compliance_penalties').select('employee_id, period_id, points').in('employee_id', empIds);
-  const penBy = new Map((pen ?? []).map((p) => [`${p.employee_id}|${p.period_id}`, p.points]));
+  // Periode + bulan + skor — semua independen (hanya butuh empIds) → paralel.
+  const [periodsRes, pmonthsRes, kpiRes, r360Res, penRes] = await Promise.all([
+    supabase.from('periods').select('id, has_360'),
+    supabase.from('period_months').select('period_id, ym'),
+    supabase.from('kpi_scores').select('employee_id, ym, score').in('employee_id', empIds),
+    supabase.from('result_360').select('employee_id, period_id, score').in('employee_id', empIds),
+    supabase.from('compliance_penalties').select('employee_id, period_id, points').in('employee_id', empIds),
+  ]);
+  const periodHas360 = new Map((periodsRes.data ?? []).map((p) => [p.id, p.has_360]));
+  const ymToPeriod = new Map((pmonthsRes.data ?? []).map((m) => [m.ym, m.period_id]));
+  const kpiRows = kpiRes.data;
+  const s360By = new Map((r360Res.data ?? []).map((r) => [`${r.employee_id}|${r.period_id}`, r.score]));
+  const penBy = new Map((penRes.data ?? []).map((p) => [`${p.employee_id}|${p.period_id}`, p.points]));
 
   // KPI per (employee, ym) → rerata bila ada beberapa baris.
   const kpiAgg = new Map<string, { sum: number; n: number }>();

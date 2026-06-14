@@ -25,31 +25,37 @@ export default async function DashboardPage() {
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
 
-  // Pegawai non-direksi.
-  const { data: empRows } = await supabase
-    .from('employees').select('id, name, dept').neq('role', 'direksi');
-  const emps = empRows ?? [];
+  // Gelombang 1 — query yang hanya butuh `ap.id` (atau tak butuh apa pun) dijalankan paralel.
+  const [empRes, monthsRes, r360Res, penRes, aspectRes, asmtRes] = await Promise.all([
+    supabase.from('employees').select('id, name, dept').neq('role', 'direksi'),
+    supabase.from('period_months').select('ym').eq('period_id', ap.id),
+    supabase.from('result_360').select('employee_id, score').eq('period_id', ap.id),
+    supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id),
+    supabase.from('culture_aspects').select('id, name, order_idx').eq('period_id', ap.id).order('order_idx'),
+    supabase.from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted'),
+  ]);
+  const emps = empRes.data ?? [];
+  const ymList = (monthsRes.data ?? []).map((m) => m.ym);
+  const aspectList = aspectRes.data ?? [];
+  const nonSelfIds = (asmtRes.data ?? []).filter((a) => a.assessor_id !== a.target_id).map((a) => a.id);
 
-  // Bulan periode aktif → rerata KPI per pegawai.
-  const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', ap.id);
-  const ymList = (months ?? []).map((m) => m.ym);
-  const { data: kpiRows } = ymList.length
-    ? await supabase.from('kpi_scores').select('employee_id, score').in('ym', ymList)
-    : { data: [] };
+  // Gelombang 2 — query turunan (butuh hasil gelombang 1), saling independen → paralel.
+  const [kpiRes, indRes, scoreRes] = await Promise.all([
+    ymList.length ? supabase.from('kpi_scores').select('employee_id, score').in('ym', ymList) : Promise.resolve({ data: [] as { employee_id: string; score: number }[] }),
+    aspectList.length ? supabase.from('indicators').select('id, aspect_id').in('aspect_id', aspectList.map((a) => a.id)) : Promise.resolve({ data: [] as { id: string; aspect_id: string }[] }),
+    nonSelfIds.length ? supabase.from('assessment_indicator_scores').select('indicator_id, rating').in('assessment_id', nonSelfIds) : Promise.resolve({ data: [] as { indicator_id: string; rating: number | null }[] }),
+  ]);
+
+  // Rerata KPI per pegawai.
   const kpiAgg = new Map<string, { sum: number; n: number }>();
-  (kpiRows ?? []).forEach((r) => {
+  (kpiRes.data ?? []).forEach((r) => {
     const a = kpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 };
     a.sum += r.score; a.n += 1; kpiAgg.set(r.employee_id, a);
   });
 
   // Skor 360 (hasil komputasi) + punishment.
-  const { data: r360 } = await supabase
-    .from('result_360').select('employee_id, score').eq('period_id', ap.id);
-  const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
-
-  const { data: pen } = await supabase
-    .from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id);
-  const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
+  const s360By = new Map((r360Res.data ?? []).map((r) => [r.employee_id, r.score]));
+  const penBy = new Map((penRes.data ?? []).map((p) => [p.employee_id, p.points]));
 
   const rows = emps.map((e) => {
     const agg = kpiAgg.get(e.id);
@@ -75,21 +81,9 @@ export default async function DashboardPage() {
     .sort((a, b) => b[1] - a[1]);
 
   // Rataan sub-aspek 360° (rating ×20), dari penilaian terkirim periode aktif, Self dikecualikan.
-  const { data: aspectRows } = await supabase
-    .from('culture_aspects').select('id, name, order_idx').eq('period_id', ap.id).order('order_idx');
-  const aspectList = aspectRows ?? [];
-  const { data: indRows } = aspectList.length
-    ? await supabase.from('indicators').select('id, aspect_id').in('aspect_id', aspectList.map((a) => a.id))
-    : { data: [] };
-  const indToAspect = new Map((indRows ?? []).map((i) => [i.id, i.aspect_id]));
-  const { data: asmtRows } = await supabase
-    .from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted');
-  const nonSelfIds = (asmtRows ?? []).filter((a) => a.assessor_id !== a.target_id).map((a) => a.id);
-  const { data: scoreRows } = nonSelfIds.length
-    ? await supabase.from('assessment_indicator_scores').select('indicator_id, rating').in('assessment_id', nonSelfIds)
-    : { data: [] };
+  const indToAspect = new Map((indRes.data ?? []).map((i) => [i.id, i.aspect_id]));
   const aspAgg = new Map<string, { sum: number; n: number }>();
-  (scoreRows ?? []).forEach((s) => {
+  (scoreRes.data ?? []).forEach((s) => {
     const aid = indToAspect.get(s.indicator_id);
     if (!aid || s.rating == null) return;
     const a = aspAgg.get(aid) ?? { sum: 0, n: 0 };

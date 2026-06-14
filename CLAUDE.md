@@ -1,5 +1,5 @@
 
-Kerj# CLAUDE.md — Infarm 360° Performance Appraisal System
+# CLAUDE.md — Infarm 360° Performance Appraisal System
 
 Panduan untuk Claude Code saat bekerja di repo ini.
 
@@ -35,6 +35,15 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`.
 - **Semua fitur (P1/P2/P3) sudah dimigrasi** — siklus 360°, KPI, dashboard visual, monitor,
   rekap, suksesi, laporan rinci+PDF, progress 360, koreksi relasi, impor Excel, ad-hoc,
   audit KPI, mode ganda HRD. Referensi pola end-to-end: `app/(app)/kpi/`.
+- **Pasca-migrasi (paritas legacy + peningkatan):**
+  - **Kelola Pegawai** (`app/(app)/admin/pegawai/`, HRD) — CRUD akun via `service_role`
+    (`admin.createUser`) + `employees`/`spv_team_members` user-scoped; email boleh placeholder,
+    nonaktif = `is_active:false` + ban akun; kode pegawai bebas-skema + peringatan duplikat.
+  - **Roster login dari DB** (employees aktif + email auth) — pegawai baru otomatis muncul;
+    fallback `DEMO_USERS` (`app/login/page.tsx`).
+  - **Dashboard**: 4 sub-tab (Kompilasi · Analisis KPI · Analisis 360 · Tabel) + **filter
+    Periode/Divisi** (server `?period=&dept=`) + pencarian tabel.
+  - **Performa**: `app/(app)/loading.tsx` (skeleton) + query halaman berat diparalelkan (`Promise.all`).
 - **SPA legacy** (`src/App.tsx`, `@ts-nocheck`, data `src/data.ts`) tinggal **arsip di
   `/legacy`** (client-only, banner "data contoh"). Akan dihapus pra-produksi.
 - **Live di Vercel** (auto-deploy dari `main`). Login demo: semua user password

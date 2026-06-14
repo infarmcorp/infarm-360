@@ -3,8 +3,9 @@
 Panduan pengguna aplikasi penilaian kinerja (Performance Appraisal) 360°.
 Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saat ini.
 
-> **Versi demo:** data masih contoh (tersimpan di browser/`localStorage`), belum
-> tersambung database. Semua user demo memakai password **`Infarm@2026`**.
+> **Status:** aplikasi **live** dengan database **Supabase** (auth nyata, RLS per peran).
+> Akun demo masih tersedia (password **`Infarm@2026`**) untuk uji coba; pegawai asli
+> dikelola lewat menu **HRD → Kelola Pegawai** (lihat di bawah).
 
 ---
 
@@ -12,11 +13,14 @@ Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saa
 
 1. Buka aplikasi (URL Vercel atau `http://localhost:3000` saat lokal).
 2. Pilih **Peran**: Employee / SPV / HRD Admin / Direksi.
-3. Pilih **Nama / ID Pegawai**.
-4. Masukkan **Password**: `Infarm@2026`.
-5. Klik masuk ke Workspace.
+3. Pilih **Nama** Anda (daftar nama diambil otomatis dari data pegawai aktif).
+4. Masukkan **Sandi**.
+5. Klik **Masuk**.
 
-**Daftar user demo** (semua password sama):
+> Pegawai baru yang ditambahkan HRD otomatis muncul di daftar nama. Tersedia juga
+> cadangan **"Masuk dengan email manual"** bila perlu.
+
+**Daftar akun demo** (password sama `Infarm@2026`):
 
 | Peran | Nama | Divisi |
 |---|---|---|
@@ -86,6 +90,22 @@ Selain semua fitur Employee di atas, SPV punya:
 
 ## Peran: HRD ADMIN
 
+### Kelola Pegawai
+Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
+1. **Tambah Pegawai** → isi Nama, Peran, Divisi, **Kode Pegawai**, Email, **Sandi Awal**,
+   dan (opsional) **Atasan/SPV**. Klik **Buat Pegawai**.
+   - **Email boleh placeholder** (mis. `nama@infarm.test`) — login pakai email+sandi tanpa
+     verifikasi inbox; ganti ke email asli kapan saja lewat **Ubah**.
+   - **Kode Pegawai bebas** mengikuti skema perusahaan (mis. `FT2021-001`); saran otomatis
+     melanjutkan nomor terakhir. Sistem **memperingatkan** bila kode/email duplikat.
+   - **Peran** (bukan kode) yang menentukan hak akses. **Atasan** bisa SPV, HRD, atau Direksi.
+2. **Ubah** — ganti nama/divisi/peran/kode, email, atau atasan.
+3. **Reset Sandi** — setel sandi baru (disarankan pegawai menggantinya sendiri).
+4. **Aktif/Nonaktif** — menonaktifkan **mengunci akun** (tak bisa login) tanpa menghapus
+   riwayat penilaian/KPI. Aktifkan kembali kapan pun.
+
+> Tips data asli: beri **sandi berbeda per orang** (jangan pakai sandi demo bersama).
+
 ### Kelola Siklus Periode
 1. **Kontrol Aktivasi Siklus**: beri **Label Periode**, set **Tanggal Mulai/Selesai**,
    centang **Aktifkan Angket Evaluasi 360** bila perlu, klik **Aktivasi Periode Penilaian**
@@ -128,7 +148,8 @@ Selain semua fitur Employee di atas, SPV punya:
 ### Progress 360 Feedback
 - Filter Divisi/Status/Nama; lihat status "Belum / Sudah Lengkap".
 - Tiap target penilaian menampilkan badge **Wajib/Opsional** (dari Pemetaan).
-- **Kirim Pengingat** ke email pegawai; **Paksa Selesai** untuk penyesuaian manual.
+- **Kirim Pengingat** / **Pengingat Massal** — *placeholder* (email aktif setelah integrasi
+  Resend); **Paksa Selesai** untuk menandai penilaian selesai (penyesuaian manual).
 
 ### Flag Kepatuhan Penilaian
 - Memantau **kepatuhan** pengisian 360° dan memberi **punishment**.
@@ -140,12 +161,17 @@ Selain semua fitur Employee di atas, SPV punya:
   Monitor Kinerja. **Per kuartal** — banner menampilkan siklus aktif yang sedang dipunish.
 
 ### Monitor Kinerja & Dashboard Organisasi
-- Monitor **semua pegawai & semua divisi** (filter divisi/periode/pegawai).
-- 4 dashboard: Kompilasi Kinerja Organisasi, Analisis Hasil KPI, Analisis 360 Feedback,
-  Tabel Hasil Seluruh Pegawai.
-- **Panel Skenario Tanpa 360°** (toggle): set kuartal aktif memakai 360° atau tidak —
-  mengubah rumus Skor Akhir (KPI 50% + 360° 50% ↔ 100% KPI murni). Diikuti **Panel Filter
-  Selektif** (Tahun · Kuartal · Bulan · Divisi).
+- **Monitor Kinerja**: tren bulanan KPI / 360° / Skor Akhir per pegawai; filter **Divisi**
+  & **Pegawai**. SPV → tim, HRD/Direksi → semua.
+- **Dashboard Organisasi** punya **Panel Filter** di atas: pilih **Periode/Kuartal** &
+  **Divisi** — seluruh chart dihitung ulang konsisten untuk lingkup itu (default: periode
+  aktif, semua divisi). Rumus Skor Akhir mengikuti flag **360° aktif/nonaktif** periode
+  terpilih (KPI 50% + 360° 50% ↔ 100% KPI murni).
+- **4 sub-dashboard (tab):**
+  - **Kompilasi Kinerja Organisasi** — stat talenta, distribusi pemain, Matriks 9-Box & 4-Box, top/bottom performer.
+  - **Analisis Hasil KPI** — rerata KPI organisasi, rerata KPI per departemen, perkembangan KPI bulanan, leaderboard KPI teratas/terendah.
+  - **Analisis 360 Feedback** — rerata 360°, rataan sub-aspek budaya, leaderboard 360° teratas/terendah.
+  - **Tabel Hasil Seluruh Pegawai** — tabel rinci + **pencarian nama/divisi** & **filter A/B/C/D Player**.
 
 #### Klasifikasi Talenta (tab Kompilasi)
 - **Matriks 9-Box (KPI × 360°)** — sebaran pegawai pada 9 kategori (Star Talent,
@@ -192,9 +218,9 @@ Selain semua fitur Employee di atas, SPV punya:
 HRD Admin adalah peran pusat: hampir semua aksinya **mengubah apa yang dilihat/dikerjakan
 peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
 
-> Catatan demo: sebagian skor (mis. Evaluasi 360 awal) masih nilai contoh statis. Penjelasan
-> "dampak" di bawah adalah perilaku yang dirancang; pada versi backend (Supabase) nanti
-> perhitungan berjalan penuh dari data nyata.
+> Catatan: backend **Supabase sudah aktif** — seluruh perhitungan (Skor 360°, Skor Akhir,
+> dsb.) berjalan penuh dari data nyata. Penjelasan "dampak" di bawah adalah perilaku
+> aktual aplikasi.
 
 ### 1. Kelola Siklus Periode — *gerbang utama seluruh proses*
 **Fungsi:** membuka/menutup kuartal & mengaktifkan angket 360.
@@ -253,7 +279,7 @@ peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
 ### 7. Progress 360 Feedback — *kontrol kelengkapan*
 **Fungsi:** pantau siapa sudah/belum mengisi; dorong penyelesaian.
 **Berdampak ke:**
-- **Kirim Pengingat** → notifikasi/email ke penilai yang belum selesai.
+- **Kirim Pengingat** → email ke penilai yang belum selesai (*placeholder* — aktif setelah Resend disiapkan).
 - **Paksa Selesai** → meng-override status pengisian menjadi selesai (penyesuaian manual),
   sehingga data dianggap lengkap untuk finalisasi.
 - Tidak mengubah skor, tapi memengaruhi **kesiapan data** sebelum Review Hasil Akhir.

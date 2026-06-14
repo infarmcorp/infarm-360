@@ -384,9 +384,28 @@ function FeedbackTab({ rows, aspectScores, has360, periodLabel }: { rows: Row[];
 
 /* ───────────────────────── TAB 4 — TABEL ───────────────────────── */
 function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
+  const [q, setQ] = useState('');
+  const [player, setPlayer] = useState<'all' | PlayerClass>('all');
+  const shown = rows.filter((r) => {
+    if (q.trim() && !`${r.name} ${r.dept}`.toLowerCase().includes(q.toLowerCase())) return false;
+    if (player !== 'all' && r.player !== player) return false;
+    return true;
+  });
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
-      <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight mb-4">Tabel Hasil Seluruh Pegawai</h3>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Tabel Hasil Seluruh Pegawai</h3>
+        <div className="flex gap-2">
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama / divisi…"
+            className="text-xs px-3 py-2 border border-gray-200 rounded-lg w-44 focus:outline-none focus:ring-1 focus:ring-emerald-600" />
+          <select value={player} onChange={(e) => setPlayer(e.target.value as typeof player)}
+            className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
+            <option value="all">Semua Player</option>
+            <option value="A">A Player</option><option value="B">B Player</option>
+            <option value="C">C Player</option><option value="D">D Player</option>
+          </select>
+        </div>
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
@@ -400,7 +419,8 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {rows.map((r) => {
+            {shown.length === 0 && <tr><td colSpan={6} className="py-6 text-center text-sm text-gray-500">Tidak ada pegawai sesuai filter.</td></tr>}
+            {shown.map((r) => {
               const box = r.boxKey ? TALENT_BOXES.find((b) => b.key === r.boxKey) : null;
               return (
                 <tr key={r.id}>

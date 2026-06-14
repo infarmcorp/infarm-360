@@ -5,13 +5,20 @@ import {
   finalScoreOf, talentBoxOf, playerClassOf,
 } from '@/lib/scoring';
 import { DashboardVisual } from './dashboard-visual';
+import { DashboardFilters } from './dashboard-filters';
 
 /**
- * Dashboard Organisasi (HRD) — versi termigrasi Supabase.
- * Gabung Rerata KPI (periode aktif) + result_360 + punishment → Skor Akhir,
- * lalu klasifikasi 9-Box & 4-Box. Dikunci ke periode aktif (KPI, 360, Skor sefase).
+ * Dashboard Organisasi (HRD/Direksi) — versi termigrasi Supabase.
+ * Gabung Rerata KPI + result_360 + punishment → Skor Akhir, lalu klasifikasi 9-Box & 4-Box.
+ * Lingkup dipilih lewat ?period=&dept= (default periode aktif, semua divisi); KPI, 360°,
+ * & Skor Akhir selalu dari periode + divisi yang sama agar konsisten.
  */
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string; dept?: string }>;
+}) {
+  const { period: periodParam, dept: deptParam } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -21,27 +28,41 @@ export default async function DashboardPage() {
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
-  const { data: ap } = await supabase
-    .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
+  // Daftar periode + periode terpilih (param → aktif → terbaru).
+  const { data: periodRows } = await supabase
+    .from('periods').select('id, label, has_360, status').order('label', { ascending: false });
+  const periodList = periodRows ?? [];
+  if (periodList.length === 0) return <Shell><p className="text-sm text-gray-500">Belum ada periode.</p></Shell>;
+  const ap = periodList.find((p) => p.id === periodParam)
+    ?? periodList.find((p) => p.status === 'active')
+    ?? periodList[0];
 
-  // Gelombang 1 — query yang hanya butuh `ap.id` (atau tak butuh apa pun) dijalankan paralel.
-  const [empRes, monthsRes, r360Res, penRes, aspectRes, asmtRes] = await Promise.all([
-    supabase.from('employees').select('id, name, dept').neq('role', 'direksi'),
+  // Pegawai non-direksi + daftar divisi; lingkup divisi terpilih (default semua).
+  const { data: allEmpRows } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi');
+  const allEmps = allEmpRows ?? [];
+  const deptList = [...new Set(allEmps.map((e) => e.dept))].sort();
+  const dept = deptParam && deptParam !== 'all' && deptList.includes(deptParam) ? deptParam : 'all';
+  const emps = dept === 'all' ? allEmps : allEmps.filter((e) => e.dept === dept);
+  const empIds = emps.map((e) => e.id);
+  const inScope = (id: string) => empIds.includes(id);
+
+  // Gelombang 1 — query periode terpilih, di-scope ke pegawai dalam lingkup divisi.
+  const [monthsRes, r360Res, penRes, aspectRes, asmtRes] = await Promise.all([
     supabase.from('period_months').select('ym').eq('period_id', ap.id),
     supabase.from('result_360').select('employee_id, score').eq('period_id', ap.id),
     supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id),
     supabase.from('culture_aspects').select('id, name, order_idx').eq('period_id', ap.id).order('order_idx'),
     supabase.from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted'),
   ]);
-  const emps = empRes.data ?? [];
   const ymList = (monthsRes.data ?? []).map((m) => m.ym);
   const aspectList = aspectRes.data ?? [];
-  const nonSelfIds = (asmtRes.data ?? []).filter((a) => a.assessor_id !== a.target_id).map((a) => a.id);
+  // Aspek 360° hanya dari penilaian terhadap target dalam lingkup (non-Self).
+  const nonSelfIds = (asmtRes.data ?? [])
+    .filter((a) => a.assessor_id !== a.target_id && inScope(a.target_id)).map((a) => a.id);
 
   // Gelombang 2 — query turunan (butuh hasil gelombang 1), saling independen → paralel.
   const [kpiRes, indRes, scoreRes] = await Promise.all([
-    ymList.length ? supabase.from('kpi_scores').select('employee_id, ym, score').in('ym', ymList) : Promise.resolve({ data: [] as { employee_id: string; ym: string; score: number }[] }),
+    ymList.length && empIds.length ? supabase.from('kpi_scores').select('employee_id, ym, score').in('ym', ymList).in('employee_id', empIds) : Promise.resolve({ data: [] as { employee_id: string; ym: string; score: number }[] }),
     aspectList.length ? supabase.from('indicators').select('id, aspect_id').in('aspect_id', aspectList.map((a) => a.id)) : Promise.resolve({ data: [] as { id: string; aspect_id: string }[] }),
     nonSelfIds.length ? supabase.from('assessment_indicator_scores').select('indicator_id, rating').in('assessment_id', nonSelfIds) : Promise.resolve({ data: [] as { indicator_id: string; rating: number | null }[] }),
   ]);
@@ -101,15 +122,22 @@ export default async function DashboardPage() {
 
   return (
     <Shell>
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between mb-3">
         <div>
           <h1 className="text-xl font-bold text-gray-800">Dashboard Organisasi</h1>
           <p className="text-sm text-gray-500">
-            Periode aktif: {ap.label} · {ap.has_360 ? '360° aktif (blend 50/50)' : '360° nonaktif (KPI murni)'}
+            {ap.label}{ap.status === 'active' ? ' (aktif)' : ''} · {dept === 'all' ? 'semua divisi' : `divisi ${dept}`} · {ap.has_360 ? '360° aktif (blend 50/50)' : '360° nonaktif (KPI murni)'}
           </p>
         </div>
         <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
       </div>
+
+      <DashboardFilters
+        periods={periodList.map((p) => ({ id: p.id, label: p.label, status: p.status }))}
+        depts={deptList}
+        currentPeriod={ap.id}
+        currentDept={dept}
+      />
 
       <div className="my-5">
         <DashboardVisual

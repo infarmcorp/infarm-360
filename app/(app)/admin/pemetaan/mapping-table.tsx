@@ -29,12 +29,21 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
 
   if (rows.length === 0) return <p className="text-sm text-gray-500">Belum ada pemetaan. Tambahkan di atas.</p>;
 
+  // Label total dinamis mengikuti filter aktif.
+  const aName = assessors.find((a) => a.id === fAssessor)?.name;
+  const tName = targets.find((t) => t.id === fTarget)?.name;
+  const totalLabel = !active
+    ? `Total ${rows.length} pasangan penilaian`
+    : aName && tName ? `${shown.length} pasangan · ${aName} → ${tName}`
+    : aName ? `${shown.length} pasangan dinilai oleh ${aName}`
+    : `${shown.length} pasangan menilai ${tName}`;
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h3 className="text-sm font-extrabold text-slate-800">Daftar Pemetaan</h3>
-        <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
-          Total {rows.length} pasangan penilaian
+        <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${active ? 'text-indigo-800 bg-indigo-50 border-indigo-200' : 'text-emerald-800 bg-emerald-50 border-emerald-200'}`}>
+          {totalLabel}{active && <span className="font-normal text-gray-400"> · dari {rows.length}</span>}
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -52,7 +61,6 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
           <button type="button" onClick={() => { setFAssessor('all'); setFTarget('all'); }}
             className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
         )}
-        <span className="text-[11px] text-gray-400 ml-auto">{shown.length} dari {rows.length} relasi</span>
       </div>
 
       {shown.length === 0 ? (

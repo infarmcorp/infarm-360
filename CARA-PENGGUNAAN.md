@@ -13,12 +13,14 @@ Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saa
 
 1. Buka aplikasi (URL Vercel atau `http://localhost:3000` saat lokal).
 2. Pilih **Peran**: Employee / SPV / HRD Admin / Direksi.
-3. Pilih **Nama** Anda (daftar nama diambil otomatis dari data pegawai aktif).
+3. Pilih **Nama** Anda — dropdown punya **kotak pencarian**; ketik sebagian nama untuk
+   menyaring (daftar nama diambil otomatis dari data pegawai aktif).
 4. Masukkan **Sandi**.
 5. Klik **Masuk**.
 
 > Pegawai baru yang ditambahkan HRD otomatis muncul di daftar nama. Tersedia juga
-> cadangan **"Masuk dengan email manual"** bila perlu.
+> cadangan **"Masuk dengan email manual"** bila perlu. Dropdown nama berfitur pencarian
+> juga dipakai di Pemetaan (Penilai/Target) & Penilaian Ad-Hoc.
 
 **Daftar akun demo** (password sama `Infarm@2026`):
 
@@ -114,16 +116,27 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
 2. **Arsip & Riwayat Kuartal**: meninjau riwayat kuartal ber-penilaian 360°.
 
 ### Kelola Pertanyaan
-- Edit/hapus indikator kuantitatif (rating 1–5) per aspek (hapus = permanen, tak bisa undo).
-- **Tambah Indikator Kuantitatif Baru** → "Tambah Indikator ke Aspek".
-- **Umpan Balik Kualitatif (Esai Bebas)** untuk pertanyaan kualitatif.
+- Tiap aspek menampilkan daftar indikator kuantitatif (rating 1–5) — edit teks atau
+  **nonaktifkan** (indikator dinonaktifkan, bukan dihapus, agar skor historis utuh).
+- **Section khusus "Tambah Indikator Kuantitatif Baru"** (di bawah semua aspek): pilih
+  **Aspek** → isi **Judul Ringkas** + **Deskripsi Perilaku** (opsional) → **Tambah Indikator ke Aspek**.
+- **Umpan Balik Kualitatif (Esai Bebas)** untuk pertanyaan kualitatif (hapus = permanen).
 
-### Kelola Bobot Penilai
-- **Model 4-Kelas** (Atasan, Peer, Cross beda bobot) atau **Model 2-Kelas** (Atasan vs Internal).
-- Atur via geser/input angka. **Reset Default** atau **Simpan & Terapkan Bobot**.
+### Bobot & Kalkulasi Skor 360° (satu halaman)
+- **Bobot Penilai**: pilih **Model 4-Kelas** (Atasan/Peer/Cross/Self) atau **2-Kelas**
+  (Atasan/Internal), atur angka, lalu **Simpan & Terapkan Bobot**.
+- **Kalkulasi Skor 360°**: tombol **Hitung Ulang Skor 360°** menulis hasil resmi
+  (`result_360`) memakai model aktif + tabel hasil per pegawai. (Tab terpisah lama
+  sudah disatukan ke halaman ini.)
+- **Perbandingan Model 4-Kelas vs 2-Kelas**: pratinjau skor tiap pegawai bila dihitung
+  dengan kedua model sekaligus + **Selisih**, membantu memilih model sebelum Hitung Ulang.
+  (Pratinjau tak mengubah data.)
 
-### Monitoring & Audit KPI
-- Memantau input & perubahan KPI yang dilakukan SPV.
+### Monitoring & Audit KPI (HRD Admin)
+- **Satu halaman** berisi **Rekapitulasi Kuartal** + **Riwayat & Audit Perubahan KPI**
+  ditumpuk (tanpa tab; tab "Input KPI" tidak muncul di mode admin — input adalah tugas SPV).
+- **Riwayat & Audit** punya **pencarian nama/divisi** pegawai.
+- Memantau input & perubahan KPI yang dilakukan SPV (jejak audit append-only).
 
 ### Promosi & Penyesuaian
 - Pilih **Rencana Suksesi (Rekomendasi HRD)** per pegawai, isi **Catatan Justifikasi**.
@@ -138,16 +151,18 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
 
 ### Pemetaan (Mapping)
 - **Impor Massal Pemetaan Excel** (unduh "Formulir Acuan.xlsx") atau **Pendaftaran
-  Sepasang Relasi Manual** (pilih Penilai + Target → sistem isi Relasi Asosiasi otomatis →
-  pilih **Sifat Penilaian** (Wajib/Opsional) → **Daftarkan Relasi Manual**).
+  Sepasang Relasi Manual** (pilih Penilai + Target lewat dropdown **berpencarian** →
+  pilih Relasi & **Sifat Penilaian** (Wajib/Opsional) → **Daftarkan Relasi Manual**).
 - **Sifat Penilaian**: tiap relasi bisa **Wajib** atau **Opsional**. Tampil di kolom Sifat
   tabel mapping, di Daftar Penilaian Saya, dan di Progress 360. Default **Wajib**.
-- Tabel jadwal pemetaan bisa dihapus (akomodasi pegawai resign).
-- Tinjau **Permohonan Koreksi Garis Hubungan** (setujui/tolak).
+- Daftar pemetaan menampilkan **"Total N pasangan penilaian"** + **filter Penilai & Target**
+  (dengan tombol Bersihkan). Tiap baris bisa dihapus (akomodasi pegawai resign).
+- Tinjau **Permohonan Koreksi Garis Hubungan** (setujui/tolak) di tab Koreksi Relasi.
 
 ### Progress 360 Feedback
-- Filter Divisi/Status/Nama; lihat status "Belum / Sudah Lengkap".
-- Tiap target penilaian menampilkan badge **Wajib/Opsional** (dari Pemetaan).
+- Filter Divisi/Status/Nama; lihat status "Belum / Sudah Lengkap" + progres per penilai.
+- Klik **Rincian** → daftar target yang belum dinilai; tiap target menampilkan badge
+  **Relasi** (Atasan/Peer/Cross/Self/Bawahan) dan **Wajib/Opsional** (dari Pemetaan).
 - **Kirim Pengingat** / **Pengingat Massal** — *placeholder* (email aktif setelah integrasi
   Resend); **Paksa Selesai** untuk menandai penilaian selesai (penyesuaian manual).
 
@@ -161,17 +176,24 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
   Monitor Kinerja. **Per kuartal** — banner menampilkan siklus aktif yang sedang dipunish.
 
 ### Monitor Kinerja & Dashboard Organisasi
-- **Monitor Kinerja**: tren bulanan KPI / 360° / Skor Akhir per pegawai; filter **Divisi**
-  & **Pegawai**. SPV → tim, HRD/Direksi → semua.
-- **Dashboard Organisasi** punya **Panel Filter** di atas: pilih **Periode/Kuartal** &
-  **Divisi** — seluruh chart dihitung ulang konsisten untuk lingkup itu (default: periode
-  aktif, semua divisi). Rumus Skor Akhir mengikuti flag **360° aktif/nonaktif** periode
-  terpilih (KPI 50% + 360° 50% ↔ 100% KPI murni).
-- **4 sub-dashboard (tab):**
-  - **Kompilasi Kinerja Organisasi** — stat talenta, distribusi pemain, Matriks 9-Box & 4-Box, top/bottom performer.
-  - **Analisis Hasil KPI** — rerata KPI organisasi, rerata KPI per departemen, perkembangan KPI bulanan, leaderboard KPI teratas/terendah.
-  - **Analisis 360 Feedback** — rerata 360°, rataan sub-aspek budaya, leaderboard 360° teratas/terendah.
-  - **Tabel Hasil Seluruh Pegawai** — tabel rinci + **pencarian nama/divisi** & **filter A/B/C/D Player**.
+*(Keduanya ada di section sidebar **Pemantauan**.)*
+
+**Monitor Kinerja** — banner "Sistem Intelijen Kinerja Tim" + 3 filter (**Divisi**,
+**Pegawai**, **Periode/Kuartal**). SPV → tim, HRD/Direksi → semua. Dua mode:
+- **Perbandingan antar-pegawai** (saat Pegawai = "Bandingkan Semua") — bar Skor Akhir
+  berperingkat + tabel KPI/360°/Skor Akhir, di-scope periode terpilih (atau rerata lintas periode).
+- **Tren bulanan individual** (saat satu pegawai dipilih) — grafik KPI/360°/Skor Akhir per bulan + tabel.
+
+**Dashboard Organisasi** — **Panel Filter** di atas: **Periode/Kuartal** & **Divisi**;
+seluruh chart dihitung ulang konsisten untuk lingkup itu (default: periode aktif, semua
+divisi). Skor Akhir mengikuti flag **360° aktif/nonaktif** periode terpilih (KPI 50% +
+360° 50% ↔ 100% KPI murni). **4 sub-dashboard (tab):**
+- **Kompilasi Kinerja Organisasi** — stat talenta, **Distribusi Kategori Kinerja**,
+  **Rencana Tindak Lanjut**, **Skor KPI per Divisi**, **Evaluasi Budaya 360° (sub-aspek)**,
+  Matriks **9-Box** & **4-Box**, **Papan Pertimbangan Suksesi & Promosi (Skor ≥ 90)**, top/bottom.
+- **Analisis Hasil KPI** — rerata KPI organisasi, KPI per divisi, perkembangan KPI bulanan, leaderboard KPI teratas/terendah.
+- **Analisis 360 Feedback** — rerata 360°, rataan sub-aspek budaya, leaderboard 360° teratas/terendah.
+- **Tabel Hasil Seluruh Pegawai** — tabel rinci + **pencarian nama/divisi** & **filter A/B/C/D Player**.
 
 #### Klasifikasi Talenta (tab Kompilasi)
 - **Matriks 9-Box (KPI × 360°)** — sebaran pegawai pada 9 kategori (Star Talent,
@@ -180,9 +202,9 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
 - **Matriks 4-Box (A/B/C/D Player)** — berbasis **Skor Akhir**:
   **A** (Skor ≥ 90 **dan** KPI ≥ 90 **dan** 360° ≥ 80) · **B** (Skor ≥ 80) ·
   **C** (Skor ≥ 70) · **D** (Skor < 70).
-- **Dikunci per kuartal:** KPI, 360°, dan Skor Akhir diambil dari **kuartal yang sama**.
-  Jika filter = "Semua" → memakai **kuartal aktif** agar klasifikasi adil.
-- **Kuartal tanpa 360°:** 9-Box tidak ditampilkan (menampilkan info), dan kategori
+- **Sefase periode:** KPI, 360°, dan Skor Akhir diambil dari **periode yang dipilih** di
+  Panel Filter (default periode aktif) agar klasifikasi adil.
+- **Periode tanpa 360°:** 9-Box tidak ditampilkan (menampilkan info), dan kategori
   **A Player tidak tersedia** (Skor Akhir = 100% KPI).
 
 #### Tabel Hasil Seluruh Pegawai
@@ -298,13 +320,14 @@ memberi **punishment** (pengurangan poin).
 **Berdampak ke:** tidak mengubah data — alat **transparansi/kontrol** atas pekerjaan SPV.
 
 ### 10. Monitor Kinerja & Dashboard Organisasi — *analitik, read-only*
-**Fungsi:** memantau **semua pegawai & semua divisi**, 4 dashboard agregat, termasuk
-**Matriks 9-Box** (KPI × 360°) & **Matriks 4-Box A/B/C/D Player** (berbasis Skor Akhir).
+**Fungsi:** memantau **semua pegawai & semua divisi** (keduanya di section Pemantauan),
+4 sub-dashboard agregat, termasuk **Matriks 9-Box** (KPI × 360°) & **Matriks 4-Box
+A/B/C/D Player** (berbasis Skor Akhir), serta **Papan Pertimbangan Suksesi**.
 **Berdampak ke:** tidak mengubah data — dasar **pengambilan keputusan** (promosi, pembinaan).
-- Klasifikasi **dikunci per kuartal** (KPI, 360°, Skor Akhir dari periode sama; fallback
-  ke kuartal aktif saat filter "Semua").
-- Mengikuti **Skenario Tanpa 360°** (#1): kuartal tanpa 360° → 9-Box disembunyikan & kolom
-  9-Box jadi **N/A**, kategori **A Player** tidak tersedia (Skor Akhir = 100% KPI).
+- Klasifikasi **sefase periode** lewat Panel Filter (KPI, 360°, Skor Akhir dari **periode
+  yang dipilih**; default periode aktif).
+- Mengikuti flag **360°** periode (dari Kelola Periode, #1): periode tanpa 360° → 9-Box
+  disembunyikan & kolom 9-Box jadi **N/A**, kategori **A Player** tidak tersedia (Skor Akhir = 100% KPI).
 
 ### 11. Mode Ganda (HRD bertindak sebagai SPV)
 **Fungsi:** HRD beralih ke mode SPV.

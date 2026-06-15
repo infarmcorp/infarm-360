@@ -98,6 +98,94 @@ export async function createEmployee(raw: unknown): Promise<Result> {
   return { ok: true, msg: `Pegawai ${name} berhasil ditambahkan.` };
 }
 
+// ── Impor pegawai massal dari Excel ────────────────────────────────────────
+const BulkRow = z.object({
+  name: z.string().trim().min(2, 'Nama minimal 2 karakter'),
+  empCode: EmpCode,
+  dept: z.string().trim().min(1, 'Divisi wajib diisi'),
+  role: Role,
+  email: Email,
+  password: Password,
+  spvCode: z.string().trim().optional().default(''), // kode pegawai atasan (opsional)
+});
+
+export type BulkResult =
+  | { ok: true; created: number; skipped: number; failed: { code: string; reason: string }[] }
+  | { ok: false; error: string };
+
+/**
+ * Tambah BANYAK pegawai sekaligus (HRD). Tiap baris: buat akun auth → employees →
+ * (opsional) tautkan atasan via KODE pegawai (harus sudah ada / dibuat di baris sebelumnya).
+ * Idempoten-aman: baris dengan kode/email yang sudah dipakai DILEWATI (bukan menimpa).
+ * Diproses berurutan agar rollback per-baris bersih & kode atasan dari batch bisa dirujuk.
+ */
+export async function createEmployeesBulk(rawRows: unknown): Promise<BulkResult> {
+  const parsed = z.array(BulkRow).min(1, 'Tidak ada baris').max(500, 'Maksimal 500 baris per impor').safeParse(rawRows);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Data impor tidak valid' };
+
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const admin = createAdminClient();
+
+  // Peta kode→id pegawai yang sudah ada (untuk deteksi duplikat & resolusi atasan).
+  const { data: existing } = await supabase.from('employees').select('id, emp_code');
+  const codeToId = new Map<string, string>();
+  (existing ?? []).forEach((e) => codeToId.set(e.emp_code.toUpperCase(), e.id));
+
+  let created = 0, skipped = 0;
+  const failed: { code: string; reason: string }[] = [];
+  const seenCode = new Set<string>();
+  const seenEmail = new Set<string>();
+
+  for (const r of parsed.data) {
+    const code = r.empCode.toUpperCase();
+    const email = r.email.toLowerCase();
+
+    // Lewati duplikat (dalam batch maupun yang sudah ada di DB).
+    if (seenCode.has(code) || codeToId.has(code)) { skipped++; continue; }
+    if (seenEmail.has(email)) { skipped++; continue; }
+    seenCode.add(code); seenEmail.add(email);
+
+    // 1) Akun auth.
+    const { data: cu, error: cErr } = await admin.auth.admin.createUser({
+      email: r.email, password: r.password, email_confirm: true,
+      user_metadata: { name: r.name, emp_code: code },
+    });
+    if (cErr || !cu?.user) {
+      if (/already|registered|exists/i.test(cErr?.message ?? '')) { skipped++; }
+      else failed.push({ code, reason: 'akun gagal: ' + (cErr?.message ?? 'tidak diketahui') });
+      continue;
+    }
+    const newId = cu.user.id;
+
+    // 2) Baris employees (rollback akun bila gagal).
+    const { error: eErr } = await supabase.from('employees')
+      .insert({ id: newId, emp_code: code, name: r.name, dept: r.dept, role: r.role, is_active: true });
+    if (eErr) {
+      await admin.auth.admin.deleteUser(newId);
+      if (eErr.code === '23505') { skipped++; } else failed.push({ code, reason: 'data gagal: ' + eErr.message });
+      continue;
+    }
+    codeToId.set(code, newId); // bisa jadi atasan untuk baris berikutnya
+
+    // 3) Tautkan atasan via kode (opsional; abaikan bila kode tak dikenal).
+    const spvId = r.spvCode ? codeToId.get(r.spvCode.toUpperCase()) : undefined;
+    if (spvId && spvId !== newId) {
+      await supabase.from('spv_team_members').insert({ spv_id: spvId, employee_id: newId });
+    }
+    created++;
+  }
+
+  await logHrdAction({
+    action: 'employee.import', category: 'pegawai',
+    summary: `Impor massal pegawai: ${created} dibuat, ${skipped} dilewati${failed.length ? `, ${failed.length} gagal` : ''}`,
+    meta: { created, skipped, failed: failed.length },
+  });
+  revalidate();
+  return { ok: true, created, skipped, failed };
+}
+
 const UpdateInput = z.object({
   id: z.string().uuid(),
   name: z.string().trim().min(2, 'Nama minimal 2 karakter'),

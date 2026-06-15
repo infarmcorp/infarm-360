@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { PegawaiClient, type EmpRow, type SpvOpt } from './pegawai-client';
+import { PegawaiImport } from './pegawai-import';
 
 /**
  * Kelola Pegawai (HRD): direktori akun + tambah/edit/nonaktif + reset sandi + atasan.
@@ -56,11 +57,14 @@ export default async function PegawaiPage() {
 
   return (
     <Shell>
-      <div className="mb-4">
-        <h1 className="text-xl font-bold text-gray-800">Kelola Pegawai</h1>
-        <p className="text-sm text-gray-500">
-          Tambah, ubah, atau nonaktifkan akun pegawai. Email boleh placeholder — login pakai sandi, ganti email asli kapan saja.
-        </p>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold text-gray-800">Kelola Pegawai</h1>
+          <p className="text-sm text-gray-500">
+            Tambah, ubah, atau nonaktifkan akun pegawai. Email boleh placeholder — login pakai sandi, ganti email asli kapan saja.
+          </p>
+        </div>
+        <PegawaiImport rows={rows} />
       </div>
       <PegawaiClient rows={rows} spvs={spvs} depts={depts} />
     </Shell>

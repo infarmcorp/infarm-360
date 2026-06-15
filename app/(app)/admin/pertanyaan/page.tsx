@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { IndicatorManager } from './indicator-manager';
+import { AddIndicatorForm } from './add-indicator-form';
 import { QualManager } from './qual-manager';
 
 /**
@@ -49,11 +50,11 @@ export default async function PertanyaanPage() {
         {aspectList.map((a) => (
           <IndicatorManager
             key={a.id}
-            aspectId={a.id}
             aspectName={a.name}
             indicators={indicators.filter((i) => i.aspect_id === a.id).map((i) => ({ id: i.id, text: i.text, is_active: i.is_active }))}
           />
         ))}
+        <AddIndicatorForm aspects={aspectList.map((a) => ({ id: a.id, name: a.name }))} />
         <QualManager questions={(quals ?? []).map((q) => ({ id: q.id, text: q.text }))} />
       </div>
 

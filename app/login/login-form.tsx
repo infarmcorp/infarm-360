@@ -1,9 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { SearchableSelect } from '@/components/searchable-select';
+
+// Fitur "Lupa Sandi" (Opsi 2) dormant sampai email aktif — tampil hanya bila flag 'true'.
+const PW_RESET_ON = process.env.NEXT_PUBLIC_ENABLE_PW_RESET === 'true';
 
 type RosterUser = { email: string; name: string; role: string; dept: string };
 
@@ -121,6 +125,12 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
       >
         {manual ? '← Pilih dari daftar' : 'Masuk dengan email manual'}
       </button>
+
+      {PW_RESET_ON && (
+        <Link href="/auth/lupa-sandi" className="block text-center text-[11px] text-emerald-700 hover:text-emerald-800 hover:underline">
+          Lupa sandi?
+        </Link>
+      )}
     </form>
   );
 }

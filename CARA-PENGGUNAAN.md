@@ -130,8 +130,9 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
 - **Umpan Balik Kualitatif (Esai Bebas)** untuk pertanyaan kualitatif (hapus = permanen).
 
 ### Bobot & Kalkulasi Skor 360° (satu halaman)
-- **Bobot Penilai**: pilih **Model 4-Kelas** (Atasan/Peer/Cross/Self) atau **2-Kelas**
-  (Atasan/Internal), atur angka, lalu **Simpan & Terapkan Bobot**.
+- **Bobot Penilai**: pilih **Model 4-Kelas** (Atasan/Peer/Cross/**Bawahan**/Self) atau **2-Kelas**
+  (Atasan/Internal — Internal = Peer+Cross+Bawahan), atur angka, lalu **Simpan & Terapkan Bobot**.
+  **Self** selalu dikecualikan dari total. Setelah mengubah, jalankan **Hitung Ulang Skor 360°**.
 - **Kalkulasi Skor 360°**: tombol **Hitung Ulang Skor 360°** menulis hasil resmi
   (`result_360`) memakai model aktif + tabel hasil per pegawai. (Tab terpisah lama
   sudah disatukan ke halaman ini.)

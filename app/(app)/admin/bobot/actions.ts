@@ -17,6 +17,7 @@ const Input = z.object({
   atasan: z.coerce.number().min(0).max(100),
   peer: z.coerce.number().min(0).max(100),
   cross: z.coerce.number().min(0).max(100),
+  bawahan: z.coerce.number().min(0).max(100),
   self: z.coerce.number().min(0).max(100),
   internal: z.coerce.number().min(0).max(100),
 });
@@ -39,7 +40,7 @@ export async function saveWeights(raw: unknown): Promise<SaveResult> {
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
   const weights: WeightValues = v.model === '4class'
-    ? { atasan: v.atasan, peer: v.peer, cross: v.cross, self: v.self }
+    ? { atasan: v.atasan, peer: v.peer, cross: v.cross, bawahan: v.bawahan, self: v.self }
     : { atasan: v.atasan, internal: v.internal };
 
   const { data: existing } = await supabase

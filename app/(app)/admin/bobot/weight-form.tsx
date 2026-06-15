@@ -4,13 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveWeights } from './actions';
 
-type Init = { model: '4class' | '2class'; atasan: number; peer: number; cross: number; self: number; internal: number };
+type Init = { model: '4class' | '2class'; atasan: number; peer: number; cross: number; bawahan: number; self: number; internal: number };
 
 export function WeightForm({ initial }: { initial: Init }) {
   const router = useRouter();
   const [model, setModel] = useState(initial.model);
   const [w, setW] = useState({
-    atasan: initial.atasan, peer: initial.peer, cross: initial.cross, self: initial.self, internal: initial.internal,
+    atasan: initial.atasan, peer: initial.peer, cross: initial.cross, bawahan: initial.bawahan, self: initial.self, internal: initial.internal,
   });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -18,7 +18,7 @@ export function WeightForm({ initial }: { initial: Init }) {
   const set = (k: keyof typeof w) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setW((p) => ({ ...p, [k]: Number(e.target.value) }));
 
-  const total = model === '4class' ? w.atasan + w.peer + w.cross : w.atasan + w.internal;
+  const total = model === '4class' ? w.atasan + w.peer + w.cross + w.bawahan : w.atasan + w.internal;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,14 +43,14 @@ export function WeightForm({ initial }: { initial: Init }) {
         <label className="block text-[10px] font-bold text-gray-400 mb-1">Model Bobot</label>
         <select value={model} onChange={(e) => setModel(e.target.value as '4class' | '2class')}
           className="text-sm px-2 py-1.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
-          <option value="4class">4-Kelas (Atasan / Peer / Cross / Self)</option>
+          <option value="4class">4-Kelas (Atasan / Peer / Cross / Bawahan / Self)</option>
           <option value="2class">2-Kelas (Atasan / Internal)</option>
         </select>
       </div>
 
       {model === '4class' ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {field('Atasan', 'atasan')}{field('Peer', 'peer')}{field('Cross', 'cross')}{field('Self', 'self')}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {field('Atasan', 'atasan')}{field('Peer', 'peer')}{field('Cross', 'cross')}{field('Bawahan', 'bawahan')}{field('Self', 'self')}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">

@@ -9,7 +9,7 @@
 export type UserRole = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type RelationKind = 'Atasan' | 'Peer' | 'Cross' | 'Self' | 'Bawahan';
 export type AssessmentStatus = 'draft' | 'submitted';
-export type WeightValues = { atasan?: number; peer?: number; cross?: number; self?: number; internal?: number };
+export type WeightValues = { atasan?: number; peer?: number; cross?: number; bawahan?: number; self?: number; internal?: number };
 export type ReportStatus = 'draft' | 'finalized';
 export type SuccessionStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
 export type CorrectionStatus = 'pending' | 'approved' | 'rejected';

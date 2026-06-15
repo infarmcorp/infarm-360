@@ -10,9 +10,10 @@ import { RecomputeButton } from '../360/recompute-button';
  * + rekap result_360 + perbandingan model 4-Kelas vs 2-Kelas (preview dari penilaian
  * terkirim). Bobot menentukan kalkulasi, jadi semuanya menyatu di sini.
  */
-const classOf = (rel: RelationKind): 'atasan' | 'peer' | 'cross' | 'self' => {
+const classOf = (rel: RelationKind): 'atasan' | 'peer' | 'cross' | 'bawahan' | 'self' => {
   if (rel === 'Atasan') return 'atasan';
   if (rel === 'Cross') return 'cross';
+  if (rel === 'Bawahan') return 'bawahan';
   if (rel === 'Self') return 'self';
   return 'peer';
 };
@@ -38,7 +39,8 @@ export default async function BobotPage() {
   const w = (ws?.weights ?? {}) as WeightValues;
   const model = (ws?.model ?? '4class') as '4class' | '2class';
   const initial = {
-    model, atasan: w.atasan ?? 50, peer: w.peer ?? 30, cross: w.cross ?? 20, self: w.self ?? 0, internal: w.internal ?? 60,
+    model, atasan: w.atasan ?? 40, peer: w.peer ?? 25, cross: w.cross ?? 15, bawahan: w.bawahan ?? 20,
+    self: w.self ?? 0, internal: w.internal ?? 60,
   };
 
   // Data untuk rekap result_360 + perbandingan model (paralel).
@@ -68,7 +70,7 @@ export default async function BobotPage() {
   const relByPair = new Map<string, RelationKind>();
   (mapRes.data ?? []).forEach((m) => relByPair.set(`${m.assessor_id}:${m.target_id}`, m.relation));
 
-  type Groups = { atasan: number[]; peer: number[]; cross: number[] };
+  type Groups = { atasan: number[]; peer: number[]; cross: number[]; bawahan: number[] };
   const byTarget = new Map<string, Groups>();
   for (const a of asmts) {
     if (a.assessor_id === a.target_id) continue; // Self dikecualikan
@@ -77,19 +79,19 @@ export default async function BobotPage() {
     const s100 = m * 20; if (s100 <= 0) continue;
     const cls = classOf(relByPair.get(`${a.assessor_id}:${a.target_id}`) ?? 'Peer');
     if (cls === 'self') continue;
-    const g = byTarget.get(a.target_id) ?? { atasan: [], peer: [], cross: [] };
+    const g = byTarget.get(a.target_id) ?? { atasan: [], peer: [], cross: [], bawahan: [] };
     g[cls].push(s100); byTarget.set(a.target_id, g);
   }
 
-  const wa = initial.atasan, wp = initial.peer, wc = initial.cross, wi = initial.internal;
+  const wa = initial.atasan, wp = initial.peer, wc = initial.cross, wb = initial.bawahan, wi = initial.internal;
   const compare = [...byTarget.entries()].map(([id, g]) => {
-    const aA = avg(g.atasan), pA = avg(g.peer), cA = avg(g.cross);
-    // 4-Kelas: Atasan/Peer/Cross (Self dikecualikan).
+    const aA = avg(g.atasan), pA = avg(g.peer), cA = avg(g.cross), bA = avg(g.bawahan);
+    // 4-Kelas: Atasan/Peer/Cross/Bawahan (Self dikecualikan).
     let s4: number | null = null;
-    { let sum = 0, tw = 0; for (const [v, wt] of [[aA, wa], [pA, wp], [cA, wc]] as [number | null, number][]) if (v != null) { sum += v * wt; tw += wt; } if (tw > 0) s4 = round1(sum / tw); }
-    // 2-Kelas: Atasan vs Internal (Peer+Cross).
+    { let sum = 0, tw = 0; for (const [v, wt] of [[aA, wa], [pA, wp], [cA, wc], [bA, wb]] as [number | null, number][]) if (v != null) { sum += v * wt; tw += wt; } if (tw > 0) s4 = round1(sum / tw); }
+    // 2-Kelas: Atasan vs Internal (Peer+Cross+Bawahan).
     let s2: number | null = null;
-    { const internal = avg([...g.peer, ...g.cross]); if (aA != null && internal != null && wa + wi > 0) s2 = round1((aA * wa + internal * wi) / (wa + wi)); else if (aA != null) s2 = round1(aA); else if (internal != null) s2 = round1(internal); }
+    { const internal = avg([...g.peer, ...g.cross, ...g.bawahan]); if (aA != null && internal != null && wa + wi > 0) s2 = round1((aA * wa + internal * wi) / (wa + wi)); else if (aA != null) s2 = round1(aA); else if (internal != null) s2 = round1(internal); }
     return { id, name: empById.get(id)?.name ?? '—', dept: empById.get(id)?.dept ?? '—', s4, s2 };
   }).sort((a, b) => (b.s4 ?? 0) - (a.s4 ?? 0));
 
@@ -147,7 +149,7 @@ export default async function BobotPage() {
       <Section title="Perbandingan Model: 4-Kelas vs 2-Kelas">
         <p className="text-[11px] text-gray-500 mb-3">
           Pratinjau skor 360° tiap pegawai bila dihitung dengan kedua model, memakai bobot yang tersimpan
-          (4-Kelas: Atasan {wa}/Peer {wp}/Cross {wc} · 2-Kelas: Atasan {wa}/Internal {wi}). Membantu memilih
+          (4-Kelas: Atasan {wa}/Peer {wp}/Cross {wc}/Bawahan {wb} · 2-Kelas: Atasan {wa}/Internal {wi}). Membantu memilih
           model sebelum <strong>Hitung Ulang</strong>. Kolom <strong>{model === '4class' ? '4-Kelas' : '2-Kelas'}</strong> adalah model aktif.
         </p>
         {compare.length === 0 ? (

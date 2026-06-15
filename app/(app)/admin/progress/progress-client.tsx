@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { forceComplete, sendReminder, massReminder } from './actions';
 
-export type Pending = { targetId: string; targetName: string };
+export type Pending = { targetId: string; targetName: string; relation: string; mandatory: boolean };
 export type AssessorRow = { id: string; name: string; dept: string; total: number; done: number; pending: Pending[] };
 
 export function ProgressClient({ rows }: { rows: AssessorRow[] }) {
@@ -109,10 +109,16 @@ export function ProgressClient({ rows }: { rows: AssessorRow[] }) {
                 <div className="mt-3 space-y-1.5 border-t border-gray-100 pt-2">
                   <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Belum dinilai:</p>
                   {r.pending.map((p) => (
-                    <div key={p.targetId} className="flex items-center justify-between text-xs">
-                      <span className="text-gray-700">{p.targetName}</span>
+                    <div key={p.targetId} className="flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                        <span className="text-gray-700 font-semibold">{p.targetName}</span>
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">{p.relation}</span>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${p.mandatory ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                          {p.mandatory ? 'Wajib' : 'Opsional'}
+                        </span>
+                      </div>
                       <button type="button" onClick={() => act(() => forceComplete(r.id, p.targetId))} disabled={pending}
-                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-60">
+                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-60 shrink-0">
                         Paksa Selesai
                       </button>
                     </div>

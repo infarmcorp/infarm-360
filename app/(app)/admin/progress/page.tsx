@@ -22,24 +22,26 @@ export default async function ProgressPage() {
   // Independen (hanya butuh ap.id / tak butuh apa pun) → paralel.
   const [empsRes, mapsRes, asmtsRes] = await Promise.all([
     supabase.from('employees').select('id, name, dept'),
-    supabase.from('mappings').select('assessor_id, target_id').eq('period_id', ap.id).eq('is_active', true),
+    supabase.from('mappings').select('assessor_id, target_id, relation, mandatory').eq('period_id', ap.id).eq('is_active', true),
     supabase.from('assessments').select('assessor_id, target_id, status').eq('period_id', ap.id),
   ]);
   const empById = new Map((empsRes.data ?? []).map((e) => [e.id, e]));
   const maps = mapsRes.data;
   const submitted = new Set((asmtsRes.data ?? []).filter((a) => a.status === 'submitted').map((a) => `${a.assessor_id}|${a.target_id}`));
 
-  // Kelompokkan tugas per penilai.
-  const byAssessor = new Map<string, { targetId: string }[]>();
+  // Kelompokkan tugas per penilai (bawa relasi & sifat wajib/opsional).
+  const byAssessor = new Map<string, { targetId: string; relation: string; mandatory: boolean }[]>();
   (maps ?? []).forEach((m) => {
-    const a = byAssessor.get(m.assessor_id) ?? []; a.push({ targetId: m.target_id }); byAssessor.set(m.assessor_id, a);
+    const a = byAssessor.get(m.assessor_id) ?? [];
+    a.push({ targetId: m.target_id, relation: m.relation as string, mandatory: m.mandatory });
+    byAssessor.set(m.assessor_id, a);
   });
 
   const rows: AssessorRow[] = [...byAssessor.entries()].map(([assessorId, tasks]) => {
     const e = empById.get(assessorId);
     const pending = tasks
       .filter((t) => !submitted.has(`${assessorId}|${t.targetId}`))
-      .map((t) => ({ targetId: t.targetId, targetName: empById.get(t.targetId)?.name ?? '—' }));
+      .map((t) => ({ targetId: t.targetId, targetName: empById.get(t.targetId)?.name ?? '—', relation: t.relation, mandatory: t.mandatory }));
     return {
       id: assessorId,
       name: e?.name ?? '—',

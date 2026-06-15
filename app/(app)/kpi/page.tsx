@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { KpiForm } from './kpi-form';
@@ -6,9 +7,11 @@ import { RekapView } from './rekap-view';
 import { RiwayatView } from './riwayat-view';
 
 /**
- * Kinerja Tim (SPV/HRD/Direksi). Dua tab: "Input KPI" (SPV/HRD isi skor bulanan tim)
- * & "Rekapitulasi Kuartal" (ringkasan per periode). Direksi hanya tab Rekap (read-only).
- * Tab via ?tab=input|rekap. RLS membatasi data ke lingkup peran.
+ * Kinerja Tim / Monitoring KPI (SPV/HRD/Direksi). Tab via ?tab=input|riwayat|rekap.
+ *  - Input KPI: aktivitas SUPERVISI → hanya SPV atau HRD dalam mode SPV.
+ *  - Riwayat & Audit: SPV (tim) / HRD (semua, monitoring).
+ *  - Rekapitulasi Kuartal: + Direksi (read-only).
+ * RLS membatasi data ke lingkup peran.
  */
 export default async function KpiPage({
   searchParams,
@@ -21,31 +24,42 @@ export default async function KpiPage({
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
   const role = me?.role ?? 'employee';
-  const canInput = role === 'spv' || role === 'hrd';
-  const canView = canInput || role === 'direksi';
+  const jar = await cookies();
+  const hrdMode = jar.get('hrd_mode')?.value === 'spv' ? 'spv' : 'admin';
+
+  // Input KPI hanya untuk SPV / HRD mode-SPV; HRD mode-admin = monitoring (riwayat + rekap).
+  const canInput = role === 'spv' || (role === 'hrd' && hrdMode === 'spv');
+  const canAudit = role === 'spv' || role === 'hrd';
+  const canView = canAudit || role === 'direksi';
   if (!canView) {
     return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD / Direksi.</p></Shell>;
   }
 
-  // Tab efektif: Direksi tak bisa input/riwayat → default rekap.
-  const requested = tabParam === 'rekap' || tabParam === 'riwayat' || tabParam === 'input' ? tabParam : null;
-  const tab = (requested === 'input' || requested === 'riwayat') && !canInput ? 'rekap' : (requested ?? (canInput ? 'input' : 'rekap'));
+  // Tab efektif: jatuhkan ke tab pertama yang diizinkan bila param tak valid untuk peran.
+  const allowed = new Set<string>([...(canInput ? ['input'] : []), ...(canAudit ? ['riwayat'] : []), 'rekap']);
+  const requested = tabParam && allowed.has(tabParam) ? tabParam : null;
+  const tab = requested ?? (canInput ? 'input' : canAudit ? 'riwayat' : 'rekap');
+
+  const heading = canInput ? 'Kinerja Tim' : 'Monitoring & Audit KPI';
+  const subheading = canInput
+    ? 'Input KPI bulanan, riwayat audit, & rekapitulasi per kuartal anggota tim.'
+    : 'Pantau jejak audit KPI & rekapitulasi kuartal seluruh pegawai.';
 
   return (
     <Shell>
-      <h1 className="text-xl font-bold text-gray-800">Kinerja Tim</h1>
-      <p className="mt-1 text-sm text-gray-500">Input KPI bulanan, riwayat audit, &amp; rekapitulasi per kuartal anggota tim.</p>
+      <h1 className="text-xl font-bold text-gray-800">{heading}</h1>
+      <p className="mt-1 text-sm text-gray-500">{subheading}</p>
 
       {/* Tab nav */}
       <div className="flex gap-1 mt-4 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
         {canInput && <Tab href="/kpi?tab=input" active={tab === 'input'}>Input KPI</Tab>}
-        {canInput && <Tab href="/kpi?tab=riwayat" active={tab === 'riwayat'}>Riwayat &amp; Audit</Tab>}
+        {canAudit && <Tab href="/kpi?tab=riwayat" active={tab === 'riwayat'}>Riwayat &amp; Audit</Tab>}
         <Tab href="/kpi?tab=rekap" active={tab === 'rekap'}>Rekapitulasi Kuartal</Tab>
       </div>
 
       {tab === 'input' && canInput ? (
         <InputTab supabase={supabase} userId={user.id} role={role} />
-      ) : tab === 'riwayat' && canInput ? (
+      ) : tab === 'riwayat' && canAudit ? (
         <RiwayatView role={role} userId={user.id} />
       ) : (
         <RekapView role={role} userId={user.id} periodParam={period} />

@@ -4,8 +4,9 @@ Panduan pengguna aplikasi penilaian kinerja (Performance Appraisal) 360°.
 Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saat ini.
 
 > **Status:** aplikasi **live** dengan database **Supabase** (auth nyata, RLS per peran).
-> Akun demo masih tersedia (password **`Infarm@2026`**) untuk uji coba; pegawai asli
-> dikelola lewat menu **HRD → Kelola Pegawai** (lihat di bawah).
+> Seluruh akun saat ini memakai sandi awal bersama **`Infarm2026`** (hasil reset massal) —
+> sebaiknya tiap pegawai menggantinya. Pegawai asli dikelola lewat menu
+> **HRD → Kelola Pegawai** (lihat di bawah).
 
 ---
 
@@ -22,7 +23,7 @@ Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saa
 > cadangan **"Masuk dengan email manual"** bila perlu. Dropdown nama berfitur pencarian
 > juga dipakai di Pemetaan (Penilai/Target) & Penilaian Ad-Hoc.
 
-**Daftar akun demo** (password sama `Infarm@2026`):
+**Daftar akun demo** (sandi awal bersama `Infarm2026`):
 
 | Peran | Nama | Divisi |
 |---|---|---|
@@ -36,6 +37,23 @@ Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saa
 
 > HRD Admin punya **2 mode**: bertindak sebagai **SPV** atau sebagai **HRD Admin**
 > (mengelola seluruh sistem).
+
+---
+
+## Tugas & Notifikasi (semua peran)
+
+Di **sidebar bagian atas** terdapat panel **"Tugas & Notifikasi"** dengan badge jumlah
+(juga muncul di tombol menu pada layar ponsel). Isinya **diturunkan otomatis** dari data —
+tak perlu ditandai "sudah dibaca", selalu mengikuti keadaan nyata akun yang login:
+
+- **X penilaian 360° menunggu diisi** → ke Daftar Penilaian Saya.
+- **Laporan Hasil Anda sudah final** (Employee/SPV) → ke Laporan Hasil Saya.
+- **X anggota belum ada KPI [bulan]** (SPV / HRD mode-SPV) → ke Input KPI.
+- **X penilaian 360° belum lengkap** & **X laporan belum difinalisasi** (HRD Admin).
+- **X usulan suksesi menunggu ACC** (Direksi).
+
+Tiap baris adalah tautan langsung ke halaman terkait. Bila kosong: *"Tak ada tugas tertunda 🎉"*.
+Panel hanya aktif saat ada **periode aktif**.
 
 ---
 
@@ -105,6 +123,13 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
 3. **Reset Sandi** — setel sandi baru (disarankan pegawai menggantinya sendiri).
 4. **Aktif/Nonaktif** — menonaktifkan **mengunci akun** (tak bisa login) tanpa menghapus
    riwayat penilaian/KPI. Aktifkan kembali kapan pun.
+5. **Impor dari Excel** (tombol di kanan atas) — tambah **banyak pegawai sekaligus**.
+   Kolom: `nama`, `kode`, `divisi`, `peran` (employee/spv/hrd/direksi), opsional `email`
+   (kosong → otomatis dari nama), `sandi` (kosong → **Sandi Default**), `atasan` (kode pegawai).
+   Ada **Unduh template**, **Sandi Default**, dan **pratinjau tervalidasi** (✓ valid / ↷ dilewati
+   karena duplikat / ✗ tidak valid + alasan) sebelum impor. Duplikat **dilewati** (tak menimpa).
+   Tip: impor pegawai ber-peran **SPV/atasan dulu** agar kolom `atasan` bawahan langsung tertaut.
+6. **Filter & cari** — kotak pencarian + filter **Peran**, **Divisi**, dan **Status**.
 
 > Tips data asli: beri **sandi berbeda per orang** (jangan pakai sandi demo bersama).
 
@@ -142,9 +167,21 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
 
 ### Monitoring & Audit KPI (HRD Admin)
 - **Satu halaman** berisi **Rekapitulasi Kuartal** + **Riwayat & Audit Perubahan KPI**
-  ditumpuk (tanpa tab; tab "Input KPI" tidak muncul di mode admin — input adalah tugas SPV).
+  berdampingan (split view; tab "Input KPI" tidak muncul di mode admin — input adalah tugas SPV).
 - **Riwayat & Audit** punya **pencarian nama/divisi** pegawai.
 - Memantau input & perubahan KPI yang dilakukan SPV (jejak audit append-only).
+- Saat HRD beralih ke **mode SPV**, ketiga bagian (Input, Riwayat, Rekapitulasi) **hanya
+  menampilkan pegawai di divisi HRD-nya sendiri**, konsisten dengan kebijakan SPV.
+
+### Log Aktivitas HRD (Pemantauan)
+- **Jejak audit aksi sensitif HRD** — *read-only* & **tak bisa diubah/dihapus** (append-only).
+  Dapat dibuka HRD **dan Direksi** (pengawasan).
+- Tercatat otomatis: aktif/kunci/toggle-360 **periode**, simpan **bobot**, **Hitung Ulang 360°**,
+  finalisasi/draft **laporan**, **punishment**, kelola **pegawai** (buat/ubah/aktif/reset sandi/impor),
+  **pemetaan** (buat/impor/hapus/koreksi), paksa-selesai **progress**, kelola **pertanyaan**.
+  *(Sandi tidak pernah dicatat.)*
+- Tiap entri: **waktu** (WIB) · **pelaku** · **kategori** (badge) · **ringkasan**.
+  Tersedia **filter Kategori & Pelaku** + **pencarian teks** (menampilkan 500 entri terbaru).
 
 ### Promosi & Penyesuaian
 - Pilih **Rencana Suksesi (Rekomendasi HRD)** per pegawai, isi **Catatan Justifikasi**.
@@ -226,6 +263,8 @@ divisi). Skor Akhir mengikuti flag **360° aktif/nonaktif** periode terpilih (KP
 - **Daftar Penilaian Saya** — sama seperti Employee (mengisi 360°).
 - **Dashboard Eksekutif** — sama dengan Dashboard Organisasi HRD.
 - **Monitor Kinerja** — memantau semua pegawai (filter divisi/periode/pegawai).
+- **Log Aktivitas HRD** — *read-only*, mengawasi jejak aksi sensitif HRD (sama seperti yang
+  dilihat HRD; lihat bagian HRD Admin).
 - **Promosi & Penyesuaian** — respon **Kewenangan Diskusi / ACC Direksi** terhadap
   Rencana Suksesi yang diajukan HRD.
 
@@ -340,7 +379,15 @@ A/B/C/D Player** (berbasis Skor Akhir), serta **Papan Pertimbangan Suksesi**.
 ### 11. Mode Ganda (HRD bertindak sebagai SPV)
 **Fungsi:** HRD beralih ke mode SPV.
 **Berdampak ke:** HRD bisa **Input KPI** & **ACC Laporan Kinerja Tim** layaknya SPV untuk tim
-yang ditugaskan padanya. Di mode ini batasannya mengikuti aturan SPV.
+yang ditugaskan padanya. Di mode ini batasannya mengikuti aturan SPV — termasuk **Input KPI,
+Riwayat & Audit, dan Rekapitulasi** yang hanya menampilkan pegawai **divisi HRD-nya sendiri**.
+
+### 12. Log Aktivitas HRD (jejak audit)
+**Fungsi:** mencatat **otomatis** setiap aksi sensitif HRD ke jejak **append-only** (tak bisa
+diubah/dihapus). **Tidak mengubah data** — alat **akuntabilitas**.
+**Berdampak ke:** memberi HRD & **Direksi** rekaman *siapa melakukan apa & kapan* (kunci periode,
+ubah bobot, Hitung Ulang 360°, finalisasi, punishment, kelola akun/pemetaan/pertanyaan, dll).
+Berguna saat audit/sengketa. Sandi tak pernah dicatat.
 
 ---
 

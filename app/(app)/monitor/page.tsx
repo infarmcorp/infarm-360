@@ -46,14 +46,17 @@ export default async function MonitorPage() {
 
   // Periode + bulan + skor — semua independen (hanya butuh empIds) → paralel.
   const [periodsRes, pmonthsRes, kpiRes, r360Res, penRes] = await Promise.all([
-    supabase.from('periods').select('id, has_360'),
+    supabase.from('periods').select('id, label, has_360, start_date').order('start_date', { ascending: true }),
     supabase.from('period_months').select('period_id, ym'),
     supabase.from('kpi_scores').select('employee_id, ym, score').in('employee_id', empIds),
     supabase.from('result_360').select('employee_id, period_id, score').in('employee_id', empIds),
     supabase.from('compliance_penalties').select('employee_id, period_id, points').in('employee_id', empIds),
   ]);
-  const periodHas360 = new Map((periodsRes.data ?? []).map((p) => [p.id, p.has_360]));
+  const periodInfo = periodsRes.data ?? [];
+  const periodHas360 = new Map(periodInfo.map((p) => [p.id, p.has_360]));
   const ymToPeriod = new Map((pmonthsRes.data ?? []).map((m) => [m.ym, m.period_id]));
+  const monthsByPeriod = new Map<string, string[]>();
+  (pmonthsRes.data ?? []).forEach((m) => { const a = monthsByPeriod.get(m.period_id) ?? []; a.push(m.ym); monthsByPeriod.set(m.period_id, a); });
   const kpiRows = kpiRes.data;
   const s360By = new Map((r360Res.data ?? []).map((r) => [`${r.employee_id}|${r.period_id}`, r.score]));
   const penBy = new Map((penRes.data ?? []).map((p) => [`${p.employee_id}|${p.period_id}`, p.points]));
@@ -67,6 +70,7 @@ export default async function MonitorPage() {
   });
 
   const employees: EmpTrend[] = empRows.map((e) => {
+    // Tren per bulan.
     const yms = [...new Set((kpiRows ?? []).filter((r) => r.employee_id === e.id).map((r) => r.ym))].sort();
     const trend = yms.map((ym) => {
       const agg = kpiAgg.get(`${e.id}|${ym}`)!;
@@ -78,16 +82,30 @@ export default async function MonitorPage() {
       const base = has360 && s360 > 0 ? kpi * 0.5 + s360 * 0.5 : kpi;
       return { ym, label: labelOf(ym), kpi, s360, final: Math.max(0, base - penalty) };
     });
-    return { id: e.id, name: e.name, dept: e.dept, trend };
-  }).filter((e) => e.trend.length > 0);
+    // Ringkasan per periode (untuk mode Perbandingan).
+    const byPeriod = periodInfo.map((p) => {
+      const pYms = monthsByPeriod.get(p.id) ?? [];
+      const kpis = pYms.map((ym) => { const ag = kpiAgg.get(`${e.id}|${ym}`); return ag ? ag.sum / ag.n : null; }).filter((v): v is number => v != null);
+      const kpiAvg = kpis.length ? kpis.reduce((a, b) => a + b, 0) / kpis.length : null;
+      const s360 = p.has_360 ? (s360By.get(`${e.id}|${p.id}`) ?? null) : null;
+      const penalty = penBy.get(`${e.id}|${p.id}`) ?? 0;
+      if (kpiAvg == null && s360 == null) return null;
+      const base = p.has_360 && s360 != null && s360 > 0 ? (kpiAvg ?? 0) * 0.5 + s360 * 0.5 : (kpiAvg ?? 0);
+      const final = kpiAvg == null && s360 == null ? null : Math.max(0, base - penalty);
+      return { periodId: p.id, label: p.label, kpi: kpiAvg, s360, final };
+    }).filter((x): x is NonNullable<typeof x> => x != null);
+    return { id: e.id, name: e.name, dept: e.dept, trend, byPeriod };
+  }).filter((e) => e.trend.length > 0 || e.byPeriod.length > 0);
+
+  const periods = periodInfo.map((p) => ({ id: p.id, label: p.label }));
 
   return (
     <Shell>
       <Header />
       <div className="mt-5">
         {employees.length > 0
-          ? <MonitorChart employees={employees} />
-          : <p className="text-sm text-gray-500">Belum ada data KPI bulanan untuk pegawai dalam lingkup Anda.</p>}
+          ? <MonitorChart employees={employees} periods={periods} />
+          : <p className="text-sm text-gray-500">Belum ada data kinerja untuk pegawai dalam lingkup Anda.</p>}
       </div>
     </Shell>
   );
@@ -95,12 +113,20 @@ export default async function MonitorPage() {
 
 function Header() {
   return (
-    <div className="flex items-center justify-between">
-      <div>
-        <h1 className="text-xl font-bold text-gray-800">Monitor Kinerja</h1>
-        <p className="text-sm text-gray-500">Tren bulanan KPI, Evaluasi 360°, &amp; Skor Akhir per pegawai.</p>
+    <div className="bg-gradient-to-r from-emerald-800 to-indigo-900 rounded-2xl p-5 sm:p-6 text-white shadow-md relative overflow-hidden">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1.5">
+          <span className="inline-flex py-1 px-2.5 bg-white/10 rounded-full text-[10px] font-bold tracking-wider uppercase border border-white/15">
+            Sistem Intelijen Kinerja Tim
+          </span>
+          <h1 className="text-xl font-bold tracking-tight">Monitor Kinerja &amp; Tren Karyawan</h1>
+          <p className="text-xs text-emerald-100/90 leading-relaxed max-w-2xl">
+            Pemetaan performa berbasis KPI Rerata, Evaluasi 360°, &amp; Skor Akhir — bandingkan antar-pegawai
+            atau telusuri tren bulanan per individu, terfilter divisi &amp; periode.
+          </p>
+        </div>
+        <Link href="/" className="text-[11px] text-emerald-200 hover:text-white shrink-0">← Beranda</Link>
       </div>
-      <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
     </div>
   );
 }

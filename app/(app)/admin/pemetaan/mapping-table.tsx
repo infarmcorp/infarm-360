@@ -31,6 +31,12 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h3 className="text-sm font-extrabold text-slate-800">Daftar Pemetaan</h3>
+        <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+          Total {rows.length} pasangan penilaian
+        </span>
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         <select value={fAssessor} onChange={(e) => setFAssessor(e.target.value)}
           className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">

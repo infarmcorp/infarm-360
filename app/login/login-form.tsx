@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { SearchableSelect } from '@/components/searchable-select';
 
 type RosterUser = { email: string; name: string; role: string; dept: string };
 
@@ -66,14 +67,13 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
           {role && (
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1">Nama Pegawai</label>
-              <select
+              <SearchableSelect
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
-              >
-                <option value="">— Pilih Nama —</option>
-                {namesForRole.map((u) => <option key={u.email} value={u.email}>{u.name} · {u.dept}</option>)}
-              </select>
+                onChange={setEmail}
+                placeholder="— Pilih Nama —"
+                options={namesForRole.map((u) => ({ value: u.email, label: `${u.name} · ${u.dept}` }))}
+                className="text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
+              />
             </div>
           )}
         </>

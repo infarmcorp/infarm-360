@@ -63,7 +63,6 @@ function menuFor(role: Role, hrdMode: HrdMode): Section[] {
         { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
         { href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp },
         { href: '/kpi?tab=riwayat', label: 'Monitoring & Audit KPI', icon: Clock },
-        { href: '/kpi?tab=rekap', label: 'Rekapitulasi Kuartal', icon: BarChart3 },
       ],
     });
   }

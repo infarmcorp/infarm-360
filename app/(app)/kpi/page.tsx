@@ -35,36 +35,62 @@ export default async function KpiPage({
     return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD / Direksi.</p></Shell>;
   }
 
-  // Tab efektif: jatuhkan ke tab pertama yang diizinkan bila param tak valid untuk peran.
-  const allowed = new Set<string>([...(canInput ? ['input'] : []), ...(canAudit ? ['riwayat'] : []), 'rekap']);
-  const requested = tabParam && allowed.has(tabParam) ? tabParam : null;
-  const tab = requested ?? (canInput ? 'input' : canAudit ? 'riwayat' : 'rekap');
+  // Mode INPUT (SPV / HRD-SPV): berfitur tab. Mode MONITORING (HRD admin / Direksi):
+  // satu halaman — Rekapitulasi + Riwayat & Audit ditumpuk (ala legacy), tanpa tab.
+  if (!canInput) {
+    return (
+      <Shell>
+        <h1 className="text-xl font-bold text-gray-800">{canAudit ? 'Monitoring & Audit KPI' : 'Rekapitulasi Kuartal'}</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          {canAudit ? 'Rekapitulasi kuartal & jejak audit perubahan KPI seluruh pegawai dalam satu tampilan.' : 'Ringkasan capaian KPI, 360°, & Skor Akhir per kuartal.'}
+        </p>
 
-  const heading = canInput ? 'Kinerja Tim' : 'Monitoring & Audit KPI';
-  const subheading = canInput
-    ? 'Input KPI bulanan, riwayat audit, & rekapitulasi per kuartal anggota tim.'
-    : 'Pantau jejak audit KPI & rekapitulasi kuartal seluruh pegawai.';
+        <Section title="Rekapitulasi Kuartal">
+          <RekapView role={role} userId={user.id} periodParam={period} />
+        </Section>
+        {canAudit && (
+          <Section title="Riwayat & Audit Perubahan KPI">
+            <RiwayatView role={role} userId={user.id} />
+          </Section>
+        )}
+      </Shell>
+    );
+  }
+
+  // Mode input (tab).
+  const allowed = new Set<string>(['input', 'riwayat', 'rekap']);
+  const requested = tabParam && allowed.has(tabParam) ? tabParam : null;
+  const tab = requested ?? 'input';
 
   return (
     <Shell>
-      <h1 className="text-xl font-bold text-gray-800">{heading}</h1>
-      <p className="mt-1 text-sm text-gray-500">{subheading}</p>
+      <h1 className="text-xl font-bold text-gray-800">Kinerja Tim</h1>
+      <p className="mt-1 text-sm text-gray-500">Input KPI bulanan, riwayat audit, &amp; rekapitulasi per kuartal anggota tim.</p>
 
       {/* Tab nav */}
       <div className="flex gap-1 mt-4 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
-        {canInput && <Tab href="/kpi?tab=input" active={tab === 'input'}>Input KPI</Tab>}
-        {canAudit && <Tab href="/kpi?tab=riwayat" active={tab === 'riwayat'}>Riwayat &amp; Audit</Tab>}
+        <Tab href="/kpi?tab=input" active={tab === 'input'}>Input KPI</Tab>
+        <Tab href="/kpi?tab=riwayat" active={tab === 'riwayat'}>Riwayat &amp; Audit</Tab>
         <Tab href="/kpi?tab=rekap" active={tab === 'rekap'}>Rekapitulasi Kuartal</Tab>
       </div>
 
-      {tab === 'input' && canInput ? (
+      {tab === 'input' ? (
         <InputTab supabase={supabase} userId={user.id} role={role} />
-      ) : tab === 'riwayat' && canAudit ? (
+      ) : tab === 'riwayat' ? (
         <RiwayatView role={role} userId={user.id} />
       ) : (
         <RekapView role={role} userId={user.id} periodParam={period} />
       )}
     </Shell>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mt-6 first:mt-5">
+      <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight mb-3 pb-2 border-b border-gray-100">{title}</h2>
+      {children}
+    </div>
   );
 }
 

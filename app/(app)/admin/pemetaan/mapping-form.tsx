@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createMapping } from './actions';
+import { SearchableSelect } from '@/components/searchable-select';
 
 type Emp = { id: string; name: string; dept: string };
 const RELATIONS = ['Atasan', 'Peer', 'Cross', 'Self', 'Bawahan'] as const;
@@ -26,7 +27,8 @@ export function MappingForm({ employees }: { employees: Emp[] }) {
     router.refresh();
   }
 
-  const opt = (e: Emp) => <option key={e.id} value={e.id}>{e.name} ({e.dept})</option>;
+  const options = employees.map((e) => ({ value: e.id, label: `${e.name} (${e.dept})` }));
+  const inputCls = 'text-sm px-2 py-1.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500';
 
   return (
     <form onSubmit={submit} className="border border-gray-200 rounded-xl p-4 bg-gray-50/50 space-y-3">
@@ -34,19 +36,11 @@ export function MappingForm({ employees }: { employees: Emp[] }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-[10px] font-bold text-gray-400 mb-1">Penilai</label>
-          <select value={assessorId} onChange={(e) => setAssessorId(e.target.value)} required
-            className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
-            <option value="">— pilih penilai —</option>
-            {employees.map(opt)}
-          </select>
+          <SearchableSelect value={assessorId} onChange={setAssessorId} options={options} placeholder="— pilih penilai —" className={inputCls} />
         </div>
         <div>
           <label className="block text-[10px] font-bold text-gray-400 mb-1">Yang Dinilai</label>
-          <select value={targetId} onChange={(e) => setTargetId(e.target.value)} required
-            className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
-            <option value="">— pilih target —</option>
-            {employees.map(opt)}
-          </select>
+          <SearchableSelect value={targetId} onChange={setTargetId} options={options} placeholder="— pilih target —" className={inputCls} />
         </div>
         <div>
           <label className="block text-[10px] font-bold text-gray-400 mb-1">Relasi</label>

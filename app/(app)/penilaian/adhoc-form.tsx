@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Plus } from 'lucide-react';
 import { addAdhocTarget } from './adhoc-actions';
+import { SearchableSelect } from '@/components/searchable-select';
 
 type Candidate = { id: string; name: string; dept: string };
 
@@ -29,15 +30,17 @@ export function AdhocForm({ candidates }: { candidates: Candidate[] }) {
         <p className="text-[11px] text-emerald-800">Anda berhak menilai <strong>rekan kerja lain</strong> yang tidak tercantum di daftar rutin (dihitung sebagai relasi Lintas Unit).</p>
       </div>
       <div className="flex flex-col sm:flex-row items-stretch gap-2">
-        <select
-          value={targetId}
-          onChange={(e) => setTargetId(e.target.value)}
-          disabled={pending || candidates.length === 0}
-          className="w-full sm:flex-1 text-xs p-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-700 font-medium disabled:bg-gray-50"
-        >
-          <option value="">{candidates.length ? '— Pilih Rekan Kerja untuk Dinilai —' : 'Semua rekan sudah ada di daftar Anda'}</option>
-          {candidates.map((c) => <option key={c.id} value={c.id}>{c.name} — {c.dept}</option>)}
-        </select>
+        <div className="w-full sm:flex-1">
+          <SearchableSelect
+            value={targetId}
+            onChange={setTargetId}
+            disabled={pending || candidates.length === 0}
+            options={candidates.map((c) => ({ value: c.id, label: `${c.name} — ${c.dept}` }))}
+            placeholder={candidates.length ? '— Pilih Rekan Kerja untuk Dinilai —' : 'Semua rekan sudah ada di daftar Anda'}
+            searchPlaceholder="Cari rekan…"
+            className="text-xs p-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-700 font-medium disabled:bg-gray-50"
+          />
+        </div>
         <button
           type="button"
           onClick={add}

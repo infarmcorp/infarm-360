@@ -86,9 +86,9 @@ export default async function KpiPage({
       {tab === 'input' ? (
         <InputTab supabase={supabase} userId={user.id} role={role} />
       ) : tab === 'riwayat' ? (
-        <RiwayatView role={role} userId={user.id} />
+        <RiwayatView role={role} userId={user.id} hrdMode={hrdMode} />
       ) : (
-        <RekapView role={role} userId={user.id} periodParam={period} />
+        <RekapView role={role} userId={user.id} periodParam={period} hrdMode={hrdMode} />
       )}
     </Shell>
   );

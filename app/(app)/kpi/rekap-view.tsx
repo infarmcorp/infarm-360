@@ -16,7 +16,7 @@ const KAT = (f: number | null) =>
     : f >= 70 ? { t: 'Cukup', c: 'text-amber-700' }
     : { t: 'Perlu Pembinaan', c: 'text-rose-700' };
 
-export async function RekapView({ role, userId, periodParam }: { role: string; userId: string; periodParam?: string }) {
+export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }: { role: string; userId: string; periodParam?: string; hrdMode?: 'admin' | 'spv' }) {
   const supabase = await createClient();
 
   const { data: periods } = await supabase.from('periods').select('id, label, has_360, status').order('label');
@@ -26,6 +26,8 @@ export async function RekapView({ role, userId, periodParam }: { role: string; u
     ?? periodList.find((p) => p.status === 'active')
     ?? periodList[0];
 
+  // Lingkup pegawai. SPV → tim; HRD mode-SPV → hanya DIVISINYA (selaras Input KPI);
+  // HRD admin / Direksi → semua pegawai non-direksi.
   let empRows: { id: string; name: string; dept: string }[] = [];
   if (role === 'spv') {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);
@@ -34,6 +36,11 @@ export async function RekapView({ role, userId, periodParam }: { role: string; u
       const { data } = await supabase.from('employees').select('id, name, dept').in('id', ids);
       empRows = data ?? [];
     }
+  } else if (role === 'hrd' && hrdMode === 'spv') {
+    const { data: me } = await supabase.from('employees').select('dept').eq('id', userId).maybeSingle();
+    const { data } = await supabase.from('employees').select('id, name, dept')
+      .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi');
+    empRows = data ?? [];
   } else {
     const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi');
     empRows = data ?? [];

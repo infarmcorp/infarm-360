@@ -12,13 +12,19 @@ const fmt = (iso: string) => {
     d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 };
 
-export async function RiwayatView({ role, userId }: { role: string; userId: string }) {
+export async function RiwayatView({ role, userId, hrdMode = 'admin' }: { role: string; userId: string; hrdMode?: 'admin' | 'spv' }) {
   const supabase = await createClient();
 
-  // Lingkup pegawai.
+  // Lingkup pegawai. HRD admin → semua; HRD mode-SPV → hanya DIVISINYA (selaras Input KPI);
+  // SPV → anggota timnya.
   let empRows: { id: string; name: string; dept: string }[] = [];
-  if (role === 'hrd') {
+  if (role === 'hrd' && hrdMode === 'admin') {
     const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi');
+    empRows = data ?? [];
+  } else if (role === 'hrd') {
+    const { data: me } = await supabase.from('employees').select('dept').eq('id', userId).maybeSingle();
+    const { data } = await supabase.from('employees').select('id, name, dept')
+      .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi');
     empRows = data ?? [];
   } else {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { logHrdAction } from '@/lib/audit/log';
 
 /**
  * Pemetaan (Mapping) penilai→target untuk periode aktif (HRD).
@@ -47,6 +48,11 @@ export async function createMapping(raw: unknown): Promise<Result> {
   if (error) {
     return { ok: false, error: error.code === '23505' ? 'Pasangan penilai→target ini sudah ada' : 'Gagal: ' + error.message };
   }
+  await logHrdAction({
+    action: 'mapping.create', category: 'pemetaan',
+    summary: `Menambah pemetaan penilai→target (relasi ${relation}, ${mandatory ? 'Wajib' : 'Opsional'})`,
+    targetType: 'mapping', meta: { assessor_id: assessorId, target_id: targetId, relation, mandatory },
+  });
   revalidatePath('/admin/pemetaan');
   revalidatePath('/penilaian');
   return { ok: true };
@@ -79,6 +85,11 @@ export async function createMappingsBulk(rawRows: unknown): Promise<{ ok: true; 
   );
   if (error) return { ok: false, error: 'Gagal mengimpor: ' + error.message };
 
+  await logHrdAction({
+    action: 'mapping.import', category: 'pemetaan',
+    summary: `Impor massal pemetaan: ${count ?? rows.length} tersimpan, ${parsed.data.length - rows.length} dilewati`,
+    targetType: 'mapping', meta: { saved: count ?? rows.length, skipped: parsed.data.length - rows.length },
+  });
   revalidatePath('/admin/pemetaan');
   revalidatePath('/penilaian');
   return { ok: true, saved: count ?? rows.length, skipped: parsed.data.length - rows.length };
@@ -90,6 +101,11 @@ export async function deleteMapping(mappingId: string): Promise<Result> {
   if (!auth.ok) return { ok: false, error: auth.error };
   const { error } = await supabase.from('mappings').delete().eq('id', mappingId);
   if (error) return { ok: false, error: 'Gagal menghapus: ' + error.message };
+  await logHrdAction({
+    action: 'mapping.delete', category: 'pemetaan',
+    summary: 'Menghapus satu pemetaan penilai→target',
+    targetType: 'mapping', targetId: mappingId,
+  });
   revalidatePath('/admin/pemetaan');
   revalidatePath('/penilaian');
   return { ok: true };
@@ -126,6 +142,12 @@ export async function reviewCorrection(requestId: string, decision: 'approved' |
     .update({ status: decision, reviewed_by: user?.id ?? null }).eq('id', requestId);
   if (error) return { ok: false, error: 'Gagal: ' + error.message };
 
+  await logHrdAction({
+    action: 'correction.review', category: 'pemetaan',
+    summary: `${decision === 'approved' ? 'Menyetujui' : 'Menolak'} permohonan koreksi garis hubungan`,
+    targetType: 'correction_request', targetId: requestId,
+    meta: { decision, new_relation: req.new_relation ?? null },
+  });
   revalidatePath('/admin/pemetaan');
   revalidatePath('/penilaian');
   return { ok: true };

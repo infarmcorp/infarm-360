@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { logHrdAction } from '@/lib/audit/log';
 
 /**
  * Punishment kepatuhan (HRD): pengurangan poin per pegawai per periode.
@@ -38,6 +39,12 @@ export async function setPenalty(raw: unknown): Promise<PenaltyResult> {
   );
   if (error) return { ok: false, error: 'Gagal menyimpan punishment: ' + error.message };
 
+  const { data: emp } = await supabase.from('employees').select('name').eq('id', employeeId).maybeSingle();
+  await logHrdAction({
+    action: 'penalty.set', category: 'kepatuhan',
+    summary: `Menetapkan punishment ${points} poin untuk ${emp?.name ?? employeeId}${reason ? ` — alasan: ${reason}` : ''}`,
+    targetType: 'employee', targetId: employeeId, targetLabel: emp?.name ?? null, meta: { points, reason: reason || null },
+  });
   revalidatePath('/admin/kepatuhan');
   revalidatePath('/admin/dashboard');
   revalidatePath('/admin/laporan');

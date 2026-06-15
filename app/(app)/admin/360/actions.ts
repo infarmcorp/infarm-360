@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { logHrdAction } from '@/lib/audit/log';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 
 /**
@@ -119,6 +120,11 @@ export async function computeResult360(): Promise<ComputeResult> {
   const { error } = await admin.from('result_360').upsert(rows, { onConflict: 'employee_id,period_id' });
   if (error) return { ok: false, error: 'Gagal menulis result_360: ' + error.message };
 
+  await logHrdAction({
+    action: 'score360.recompute', category: 'skor',
+    summary: `Menghitung ulang Skor 360° periode "${ap.label}" (${rows.length} pegawai, model ${ws.model === '4class' ? '4-Kelas' : '2-Kelas'})`,
+    targetType: 'period', targetId: ap.id, targetLabel: ap.label, meta: { computed: rows.length, model: ws.model },
+  });
   revalidatePath('/admin/bobot');
   revalidatePath('/admin/dashboard');
   return { ok: true, computed: rows.length, periodLabel: ap.label };

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { logHrdAction } from '@/lib/audit/log';
 
 /**
  * Kelola Pegawai (HRD): kelola akun + baris employees + keanggotaan tim SPV.
@@ -88,6 +89,11 @@ export async function createEmployee(raw: unknown): Promise<Result> {
     if (tErr) { revalidate(); return { ok: true, msg: 'Pegawai dibuat, tapi gagal menautkan atasan: ' + tErr.message }; }
   }
 
+  await logHrdAction({
+    action: 'employee.create', category: 'pegawai',
+    summary: `Menambah pegawai ${name} (${empCode.toUpperCase()}, ${role}, ${dept})`,
+    targetType: 'employee', targetId: newId, targetLabel: name, meta: { emp_code: empCode.toUpperCase(), role, dept, email },
+  });
   revalidate();
   return { ok: true, msg: `Pegawai ${name} berhasil ditambahkan.` };
 }
@@ -131,6 +137,11 @@ export async function updateEmployee(raw: unknown): Promise<Result> {
     if (tErr) { revalidate(); return { ok: true, msg: 'Data tersimpan, tapi gagal menautkan atasan: ' + tErr.message }; }
   }
 
+  await logHrdAction({
+    action: 'employee.update', category: 'pegawai',
+    summary: `Mengubah data pegawai ${name} (${empCode.toUpperCase()}, ${role}, ${dept})`,
+    targetType: 'employee', targetId: id, targetLabel: name, meta: { emp_code: empCode.toUpperCase(), role, dept, email },
+  });
   revalidate();
   return { ok: true, msg: 'Perubahan disimpan.' };
 }
@@ -150,6 +161,12 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
   const { error: bErr } = await admin.auth.admin.updateUserById(id, { ban_duration: active ? 'none' : BAN_FOREVER });
   if (bErr) return { ok: false, error: 'Status diubah, tapi gagal mengunci akun: ' + bErr.message };
 
+  const { data: emp } = await supabase.from('employees').select('name').eq('id', id).maybeSingle();
+  await logHrdAction({
+    action: active ? 'employee.activate' : 'employee.deactivate', category: 'pegawai',
+    summary: `${active ? 'Mengaktifkan' : 'Menonaktifkan (mengunci akun)'} pegawai ${emp?.name ?? id}`,
+    targetType: 'employee', targetId: id, targetLabel: emp?.name ?? null,
+  });
   revalidate();
   return { ok: true, msg: active ? 'Pegawai diaktifkan.' : 'Pegawai dinonaktifkan (akun dikunci).' };
 }
@@ -165,5 +182,12 @@ export async function resetPassword(id: string, newPassword: string): Promise<Re
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.updateUserById(id, { password: newPassword });
   if (error) return { ok: false, error: 'Gagal: ' + error.message };
+
+  const { data: emp } = await supabase.from('employees').select('name').eq('id', id).maybeSingle();
+  await logHrdAction({
+    action: 'employee.reset_password', category: 'pegawai',
+    summary: `Mereset sandi pegawai ${emp?.name ?? id}`, // sandi TIDAK dicatat
+    targetType: 'employee', targetId: id, targetLabel: emp?.name ?? null,
+  });
   return { ok: true, msg: 'Sandi berhasil direset.' };
 }

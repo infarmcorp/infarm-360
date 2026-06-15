@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { logHrdAction } from '@/lib/audit/log';
 import { finalScoreOf } from '@/lib/scoring';
 
 /**
@@ -63,6 +64,15 @@ export async function saveOrFinalizeReport(employeeId: string, finalize: boolean
     if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
   }
 
+  const { data: emp } = await supabase.from('employees').select('name').eq('id', employeeId).maybeSingle();
+  await logHrdAction({
+    action: finalize ? 'report.finalize' : 'report.save_draft', category: 'laporan',
+    summary: finalize
+      ? `Memfinalisasi Hasil Akhir ${emp?.name ?? employeeId} (Skor Akhir ${final}) — laporan dirilis ke pegawai`
+      : `Menyimpan draft Hasil Akhir ${emp?.name ?? employeeId} (Skor Akhir ${final})`,
+    targetType: 'employee', targetId: employeeId, targetLabel: emp?.name ?? null,
+    meta: { final_score: final, period_id: ap.id },
+  });
   revalidatePath('/admin/laporan');
   revalidatePath('/laporan');
   return { ok: true, finalScore: final, finalized: finalize };

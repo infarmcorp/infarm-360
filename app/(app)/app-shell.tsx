@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck, BarChart3,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 
@@ -63,6 +63,7 @@ function menuFor(role: Role, hrdMode: HrdMode): Section[] {
         { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
         { href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp },
         { href: '/kpi?tab=riwayat', label: 'Monitoring & Audit KPI', icon: Clock },
+        { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText },
       ],
     });
   }
@@ -87,6 +88,7 @@ function menuFor(role: Role, hrdMode: HrdMode): Section[] {
         { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
         { href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp },
         { href: '/kpi?tab=rekap', label: 'Rekapitulasi Kuartal', icon: BarChart3 },
+        { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText },
         { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award },
       ],
     });

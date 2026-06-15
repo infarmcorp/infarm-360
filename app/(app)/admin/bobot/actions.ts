@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { logHrdAction } from '@/lib/audit/log';
 import type { WeightValues } from '@/lib/database.types';
 
 /**
@@ -54,6 +55,11 @@ export async function saveWeights(raw: unknown): Promise<SaveResult> {
     if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
   }
 
+  await logHrdAction({
+    action: 'weights.save', category: 'bobot',
+    summary: `Mengubah bobot penilai 360° ke Model ${v.model === '4class' ? '4-Kelas' : '2-Kelas'}`,
+    targetType: 'period', targetId: ap.id, meta: { model: v.model, weights },
+  });
   revalidatePath('/admin/bobot');
   return { ok: true };
 }

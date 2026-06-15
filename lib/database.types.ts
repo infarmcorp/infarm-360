@@ -113,6 +113,12 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['compliance_penalties']['Insert']>;
         Relationships: [];
       };
+      hrd_audit_log: {
+        Row: { id: number; actor_id: string | null; actor_name: string | null; action: string; category: string; summary: string; target_type: string | null; target_id: string | null; target_label: string | null; meta: Record<string, unknown> | null; created_at: string };
+        Insert: { actor_id?: string | null; actor_name?: string | null; action: string; category?: string; summary: string; target_type?: string | null; target_id?: string | null; target_label?: string | null; meta?: Record<string, unknown> | null };
+        Update: never;
+        Relationships: [];
+      };
       final_reports: {
         Row: { id: string; employee_id: string; period_id: string; content: Record<string, unknown>; final_score: number | null; status: ReportStatus; spv_acc: boolean; finalized_by: string | null; pdf_path: string | null; updated_at: string };
         Insert: { employee_id: string; period_id: string; content?: Record<string, unknown>; final_score?: number | null; status?: ReportStatus; spv_acc?: boolean; finalized_by?: string | null; pdf_path?: string | null };

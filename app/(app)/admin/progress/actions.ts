@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { logHrdAction } from '@/lib/audit/log';
 
 /**
  * Progress 360 (HRD): pantau kelengkapan pengisian + intervensi.
@@ -37,6 +38,11 @@ export async function forceComplete(assessorId: string, targetId: string): Promi
   );
   if (error) return { ok: false, error: 'Gagal: ' + error.message };
 
+  await logHrdAction({
+    action: 'progress.force_complete', category: 'progress',
+    summary: 'Memaksa-selesai satu penilaian 360° (penyesuaian manual)',
+    targetType: 'assessment', meta: { assessor_id: assessorId, target_id: targetId },
+  });
   revalidatePath('/admin/progress');
   revalidatePath('/admin/kepatuhan');
   return { ok: true, msg: 'Penilaian ditandai selesai.' };

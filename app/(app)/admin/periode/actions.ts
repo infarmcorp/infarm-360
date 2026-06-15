@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { logHrdAction } from '@/lib/audit/log';
 
 /**
  * Kelola Siklus Periode (HRD) — gerbang seluruh proses.
@@ -67,6 +68,11 @@ export async function createPeriod(raw: unknown): Promise<Result> {
     .insert(months.map((ym) => ({ period_id: period.id, ym })));
   if (mErr) return { ok: false, error: 'Periode dibuat tapi gagal isi bulan: ' + mErr.message };
 
+  await logHrdAction({
+    action: 'period.create', category: 'periode',
+    summary: `Membuat periode "${label}" (${startDate} s.d. ${endDate}, 360° ${has360 ? 'aktif' : 'nonaktif'})`,
+    targetType: 'period', targetId: period.id, targetLabel: label,
+  });
   revalidatePath('/admin/periode');
   return { ok: true };
 }
@@ -80,6 +86,13 @@ export async function activatePeriod(periodId: string): Promise<Result> {
   if (e1) return { ok: false, error: 'Gagal: ' + e1.message };
   const { error: e2 } = await supabase.from('periods').update({ status: 'active' }).eq('id', periodId);
   if (e2) return { ok: false, error: 'Gagal: ' + e2.message };
+
+  const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();
+  await logHrdAction({
+    action: 'period.activate', category: 'periode',
+    summary: `Mengaktifkan periode "${pr?.label ?? periodId}" (periode lain diakhiri)`,
+    targetType: 'period', targetId: periodId, targetLabel: pr?.label ?? null,
+  });
   revalidatePath('/admin/periode');
   return { ok: true };
 }
@@ -90,6 +103,13 @@ export async function endPeriod(periodId: string): Promise<Result> {
   if (!auth.ok) return { ok: false, error: auth.error };
   const { error } = await supabase.from('periods').update({ status: 'ended' }).eq('id', periodId);
   if (error) return { ok: false, error: 'Gagal mengunci: ' + error.message };
+
+  const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();
+  await logHrdAction({
+    action: 'period.lock', category: 'periode',
+    summary: `Mengunci & mengakhiri periode "${pr?.label ?? periodId}"`,
+    targetType: 'period', targetId: periodId, targetLabel: pr?.label ?? null,
+  });
   revalidatePath('/admin/periode');
   return { ok: true };
 }
@@ -100,6 +120,13 @@ export async function toggleHas360(periodId: string, value: boolean): Promise<Re
   if (!auth.ok) return { ok: false, error: auth.error };
   const { error } = await supabase.from('periods').update({ has_360: value }).eq('id', periodId);
   if (error) return { ok: false, error: 'Gagal: ' + error.message };
+
+  const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();
+  await logHrdAction({
+    action: 'period.toggle360', category: 'periode',
+    summary: `${value ? 'Mengaktifkan' : 'Menonaktifkan'} komponen 360° pada periode "${pr?.label ?? periodId}"`,
+    targetType: 'period', targetId: periodId, targetLabel: pr?.label ?? null, meta: { has_360: value },
+  });
   revalidatePath('/admin/periode');
   revalidatePath('/admin/dashboard');
   return { ok: true };

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import { getTodos } from '@/lib/todos/compute';
 import { AppShell, type Role } from './app-shell';
 
 /**
@@ -24,6 +25,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const jar = await cookies();
   const hrdMode = jar.get('hrd_mode')?.value === 'spv' ? 'spv' : 'admin';
 
+  // Tugas & Notifikasi (diturunkan dari data; best-effort, tak memblokir render).
+  const todos = await getTodos(supabase, user.id, role, hrdMode);
+
   return (
     <AppShell
       role={role}
@@ -33,6 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       empCode={emp?.emp_code ?? '—'}
       periodLabel={ap?.label ?? null}
       periodActive={ap?.status === 'active'}
+      todos={todos}
     >
       {children}
     </AppShell>

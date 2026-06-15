@@ -6,9 +6,10 @@ import { usePathname } from 'next/navigation';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck, BarChart3,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
+import type { TodoItem, TodoTone } from '@/lib/todos/compute';
 
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type HrdMode = 'admin' | 'spv';
@@ -97,11 +98,15 @@ function menuFor(role: Role, hrdMode: HrdMode): Section[] {
   return sections;
 }
 
+const TODO_DOT: Record<TodoTone, string> = {
+  amber: 'bg-amber-500', emerald: 'bg-emerald-500', indigo: 'bg-indigo-500', rose: 'bg-rose-500', blue: 'bg-blue-500',
+};
+
 export function AppShell({
-  role, hrdMode, name, dept, empCode, periodLabel, periodActive, children,
+  role, hrdMode, name, dept, empCode, periodLabel, periodActive, todos, children,
 }: {
   role: Role; hrdMode: HrdMode; name: string; dept: string; empCode: string;
-  periodLabel: string | null; periodActive: boolean; children: React.ReactNode;
+  periodLabel: string | null; periodActive: boolean; todos: TodoItem[]; children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -158,6 +163,34 @@ export function AppShell({
         <span className="text-[9px] bg-emerald-100 font-bold uppercase py-0.5 px-2 rounded-full border border-emerald-200 shrink-0">
           {periodActive ? 'Aktif' : 'Kunci'}
         </span>
+      </div>
+
+      {/* Tugas & Notifikasi (diturunkan dari data) */}
+      <div className="px-3 py-2.5 border-b border-gray-150">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <Bell className="w-3.5 h-3.5 text-amber-500" />
+          <span className="text-[9px] font-bold text-gray-500 tracking-wider uppercase">Tugas &amp; Notifikasi</span>
+          {todos.length > 0 && (
+            <span className="ml-auto text-[9px] font-black text-white bg-amber-500 rounded-full px-1.5 min-w-[18px] text-center">{todos.length}</span>
+          )}
+        </div>
+        {todos.length === 0 ? (
+          <p className="text-[10px] text-gray-400">Tak ada tugas tertunda. 🎉</p>
+        ) : (
+          <div className="space-y-1">
+            {todos.map((t) => (
+              <Link
+                key={t.id}
+                href={t.href}
+                onClick={() => setOpen(false)}
+                className="flex items-start gap-1.5 text-[11px] leading-snug text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md px-1.5 py-1 transition-colors"
+              >
+                <span className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${TODO_DOT[t.tone]}`} />
+                <span>{t.label}</span>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Nav */}
@@ -217,8 +250,11 @@ export function AppShell({
       {/* Content */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="app-mobile-header no-print md:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200">
-          <button type="button" onClick={() => setOpen((v) => !v)} className="text-gray-600">
+          <button type="button" onClick={() => setOpen((v) => !v)} className="relative text-gray-600">
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {!open && todos.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 text-[8px] font-black text-white bg-amber-500 rounded-full px-1 min-w-[14px] text-center leading-[14px]">{todos.length}</span>
+            )}
           </button>
           <span className="text-sm font-extrabold text-gray-800">Infarm 360°</span>
         </header>

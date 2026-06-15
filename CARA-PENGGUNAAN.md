@@ -108,6 +108,13 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
 
 > Tips data asli: beri **sandi berbeda per orang** (jangan pakai sandi demo bersama).
 
+> **Lupa Sandi via email (belum aktif).** Alur reset sandi mandiri lewat email sudah siap
+> tapi sengaja disembunyikan. Untuk mengaktifkannya (agar pegawai bisa "Lupa sandi?" sendiri
+> di halaman login): (1) isi **email asli** tiap pegawai di sini; (2) aktifkan **SMTP/Resend**
+> di Supabase → *Authentication → Emails*; (3) daftarkan **Redirect URL**
+> `https://<domain>/auth/callback` di *Authentication → URL Configuration*; (4) set env Vercel
+> `NEXT_PUBLIC_ENABLE_PW_RESET=true` lalu redeploy. Sebelum itu, sandi diatur HRD lewat **Reset Sandi**.
+
 ### Kelola Siklus Periode
 1. **Kontrol Aktivasi Siklus**: beri **Label Periode**, set **Tanggal Mulai/Selesai**,
    centang **Aktifkan Angket Evaluasi 360** bila perlu, klik **Aktivasi Periode Penilaian**

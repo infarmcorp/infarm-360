@@ -46,7 +46,6 @@ function menuFor(role: Role, hrdMode: HrdMode): Section[] {
     sections.push({
       title: 'Menu Administrator',
       items: [
-        { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
         { href: '/admin/pegawai', label: 'Kelola Pegawai', icon: UserCog },
         { href: '/admin/periode', label: 'Kelola Periode', icon: CalendarRange },
         { href: '/admin/pemetaan', label: 'Pemetaan 360°', icon: Network },
@@ -61,6 +60,7 @@ function menuFor(role: Role, hrdMode: HrdMode): Section[] {
     sections.push({
       title: 'Pemantauan',
       items: [
+        { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
         { href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp },
         { href: '/kpi?tab=riwayat', label: 'Monitoring & Audit KPI', icon: Clock },
         { href: '/kpi?tab=rekap', label: 'Rekapitulasi Kuartal', icon: BarChart3 },

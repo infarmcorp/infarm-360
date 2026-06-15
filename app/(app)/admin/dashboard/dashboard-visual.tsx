@@ -19,11 +19,14 @@ export type Row = {
   player: PlayerClass | null;
 };
 
+export type SuccessionPlan = { id: string; plan: string; status: string };
+
 type Props = {
   rows: Row[];
   deptScores: [string, number][];
   aspectScores: { aspek: string; score: number }[];
   monthly: { ym: string; avg: number }[];
+  successionPlans: SuccessionPlan[];
   has360: boolean;
   periodLabel: string;
 };
@@ -52,7 +55,7 @@ const TABS: { key: SubTab; label: string; icon: React.ElementType }[] = [
   { key: 'table', label: 'Tabel Hasil Seluruh Pegawai', icon: Users },
 ];
 
-export function DashboardVisual({ rows, deptScores, aspectScores, monthly, has360, periodLabel }: Props) {
+export function DashboardVisual({ rows, deptScores, aspectScores, monthly, successionPlans, has360, periodLabel }: Props) {
   const [tab, setTab] = useState<SubTab>('compilation');
 
   return (
@@ -73,7 +76,7 @@ export function DashboardVisual({ rows, deptScores, aspectScores, monthly, has36
         })}
       </div>
 
-      {tab === 'compilation' && <CompilationTab rows={rows} has360={has360} periodLabel={periodLabel} />}
+      {tab === 'compilation' && <CompilationTab rows={rows} deptScores={deptScores} aspectScores={aspectScores} successionPlans={successionPlans} has360={has360} periodLabel={periodLabel} />}
       {tab === 'kpi' && <KpiTab rows={rows} deptScores={deptScores} monthly={monthly} />}
       {tab === 'feedback' && <FeedbackTab rows={rows} aspectScores={aspectScores} has360={has360} periodLabel={periodLabel} />}
       {tab === 'table' && <TableTab rows={rows} has360={has360} />}
@@ -82,8 +85,38 @@ export function DashboardVisual({ rows, deptScores, aspectScores, monthly, has36
 }
 
 /* ───────────────────────── TAB 1 — KOMPILASI (talenta) ───────────────────────── */
-function CompilationTab({ rows, has360, periodLabel }: { rows: Row[]; has360: boolean; periodLabel: string }) {
+const STATUS_BADGE: Record<string, { cls: string; label: string }> = {
+  approved: { cls: 'bg-emerald-50 text-emerald-800 border-emerald-250', label: '🟢 Disetujui' },
+  rejected: { cls: 'bg-rose-50 text-rose-800 border-rose-250', label: '🔴 Ditolak' },
+  submitted: { cls: 'bg-blue-50 text-blue-800 border-blue-200', label: '🔵 Diajukan' },
+  draft: { cls: 'bg-amber-50 text-amber-800 border-amber-250', label: '🟡 Draf' },
+};
+
+function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has360, periodLabel }: {
+  rows: Row[]; deptScores: [string, number][]; aspectScores: { aspek: string; score: number }[];
+  successionPlans: SuccessionPlan[]; has360: boolean; periodLabel: string;
+}) {
   const scored = rows.filter((r) => r.final != null);
+  const denom = scored.length || 1;
+
+  // Distribusi Kategori Kinerja & Rencana Tindak Lanjut — band Skor Akhir (ala legacy).
+  const band = (min: number, max: number) => scored.filter((r) => (r.final ?? -1) >= min && (r.final ?? -1) < max).length;
+  const categories = [
+    { label: 'Melampaui Ekspektasi (Skor ≥ 90)', count: band(90, 1e9), color: '#10B981' },
+    { label: 'Memenuhi Ekspektasi (Skor 80–89)', count: band(80, 90), color: '#3B82F6' },
+    { label: 'Perlu Peningkatan (Skor 70–79)', count: band(70, 80), color: '#F59E0B' },
+    { label: 'Di Bawah Ekspektasi (Skor < 70)', count: band(-1, 70), color: '#EF4444' },
+  ];
+  const recommendations = [
+    { label: 'Promosi Akselerasi Jabatan', count: band(90, 1e9), color: '#047857' },
+    { label: 'Pertahankan Posisi & Jalur Bonus', count: band(80, 90), color: '#0284C7' },
+    { label: 'Program Workshop & Intervensi', count: band(70, 80), color: '#D97706' },
+    { label: 'Pelatihan Intensif Mutu', count: band(-1, 70), color: '#DC2626' },
+  ];
+
+  // Papan Pertimbangan Suksesi & Promosi — pegawai Skor Akhir ≥ 90 + rencana suksesinya.
+  const planById = new Map(successionPlans.map((p) => [p.id, p]));
+  const candidates = scored.filter((r) => (r.final ?? 0) >= 90).sort((a, b) => (b.final ?? 0) - (a.final ?? 0));
   const orgAvg = mean(scored.map((r) => r.final ?? 0));
   const aPlayers = rows.filter((r) => r.player === 'A').length;
   const coaching = scored.filter((r) => (r.final ?? 99) < 85).length;
@@ -115,29 +148,53 @@ function CompilationTab({ rows, has360, periodLabel }: { rows: Row[]; has360: bo
         <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={dominant?.n ? `${dominant.k} Player` : '—'} label="Kategori Dominan" />
       </div>
 
-      {/* Distribusi kategori pemain */}
-      <Card title="📊 Distribusi Kategori Pemain">
-        <div className="space-y-4">
-          {PLAYER_BOXES.map((b, idx) => {
-            const count = playerGroups.get(b.key)?.length ?? 0;
-            const denom = scored.length || 1;
-            const max = Math.max(...PLAYER_BOXES.map((p) => playerGroups.get(p.key)?.length ?? 0), 1);
-            return (
-              <div key={b.key} className="space-y-1">
-                <div className="flex justify-between text-xs font-medium text-gray-600">
-                  <span>{b.label}</span>
-                  <span className="text-gray-900 font-mono">{count} Pegawai ({((count / denom) * 100).toFixed(1)}%)</span>
+      {/* Distribusi Kategori Kinerja + Rencana Tindak Lanjut */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card title="📊 Distribusi Kategori Kinerja"><CountBars items={categories} denom={denom} /></Card>
+        <Card title="🎯 Rencana Tindak Lanjut Organisasi"><CountBars items={recommendations} denom={denom} /></Card>
+      </div>
+
+      {/* Skor KPI per Divisi + Evaluasi Budaya 360° */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card title="🏢 Skor KPI Rata-rata per Divisi">
+          <div className="space-y-4">
+            {deptScores.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada data KPI.</p>}
+            {deptScores.map(([dept, score], i) => (
+              <div key={dept} className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-semibold text-gray-700">{dept}</span>
+                  <span className="text-xs font-bold text-emerald-800 font-mono bg-emerald-50 px-2 py-0.5 rounded-md">{score.toFixed(1)}</span>
                 </div>
-                <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${(count / max) * 100}%` }}
-                    transition={{ duration: 0.8, delay: idx * 0.1 }} style={{ backgroundColor: b.color }}
-                    className="h-full rounded-full shadow-inner" />
+                <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(score, 100)}%` }}
+                    transition={{ duration: 1, delay: i * 0.08 }} className="h-full bg-emerald-600 rounded-md" />
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </Card>
+            ))}
+          </div>
+        </Card>
+        <Card title="✨ Evaluasi Budaya 360° (Rataan Sub-Aspek)">
+          {!has360 && <p className="text-[11px] text-amber-800 font-semibold mb-3 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2">360° nonaktif di {periodLabel} — aspek dari penilaian terkirim (bila ada).</p>}
+          <div className="space-y-4">
+            {aspectScores.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada skor 360° terkirim.</p>}
+            {aspectScores.map((asp, idx) => {
+              const c = asp.score >= 90 ? 'bg-indigo-600' : asp.score >= 80 ? 'bg-indigo-500' : 'bg-amber-500';
+              return (
+                <div key={asp.aspek} className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-gray-700">⭐ {asp.aspek}</span>
+                    <span className="text-xs font-semibold text-indigo-900 font-mono bg-indigo-50 px-2 py-0.5 rounded-md">{asp.score.toFixed(1)} / 100</span>
+                  </div>
+                  <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(asp.score, 100)}%` }}
+                      transition={{ duration: 1, delay: idx * 0.08 }} className={`h-full rounded-md ${c}`} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
 
       {/* 9-Box */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
@@ -219,6 +276,46 @@ function CompilationTab({ rows, has360, periodLabel }: { rows: Row[]; has360: bo
           A: Skor ≥90 &amp; KPI ≥90 &amp; 360° ≥80 · B: ≥80 · C: ≥70 · D: &lt;70.
           {!has360 && <span className="text-amber-700 font-semibold not-italic"> Tanpa 360° → Skor Akhir = 100% KPI, A Player tidak tersedia.</span>}
         </p>
+      </div>
+
+      {/* Papan Pertimbangan Suksesi & Promosi (Skor ≥ 90) */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
+        <h3 className="text-xs font-extrabold text-indigo-950 tracking-wider uppercase mb-3 flex items-center gap-1.5">
+          <span className="p-1 rounded-md bg-indigo-50 text-indigo-800">🎯</span>
+          <span>Papan Pertimbangan Suksesi &amp; Promosi (Skor ≥ 90)</span>
+        </h3>
+        {candidates.length === 0 ? (
+          <p className="text-xs text-gray-400 italic text-center py-6 font-medium">
+            Belum ada pegawai dengan Skor Akhir ≥ 90 pada lingkup ini. Rencana suksesi belum diusulkan.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[520px]">
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200 text-[9px] uppercase tracking-wider text-gray-400">
+                  <th className="py-2.5 px-4 font-extrabold">Nama Pegawai</th>
+                  <th className="py-2.5 px-4 text-center font-extrabold">Skor Akhir</th>
+                  <th className="py-2.5 px-4 font-extrabold">Rencana Suksesi (Pilihan HRD)</th>
+                  <th className="py-2.5 px-4 text-center font-extrabold">Status Direksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {candidates.map((e) => {
+                  const plan = planById.get(e.id);
+                  const badge = plan ? (STATUS_BADGE[plan.status] ?? STATUS_BADGE.draft) : null;
+                  return (
+                    <tr key={e.id} className="border-b border-gray-100 last:border-none">
+                      <td className="py-3 px-4"><div className="font-extrabold text-gray-800 text-sm">{e.name}</div><div className="text-[10px] text-gray-400 font-bold">{e.dept}</div></td>
+                      <td className="py-3 px-4 text-center"><span className="font-mono font-black text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded inline-block text-[11px] border border-emerald-100">{e.final?.toFixed(1)}</span></td>
+                      <td className="py-3 px-4">{plan ? <span className="font-extrabold text-slate-800 block">{plan.plan}</span> : <span className="text-gray-400 italic">Belum ada rencana — usulkan di menu Promosi &amp; Suksesi</span>}</td>
+                      <td className="py-3 px-4 text-center">{badge ? <span className={`inline-block text-[9px] font-black uppercase px-2.5 py-1 rounded-full border ${badge.cls}`}>{badge.label}</span> : <span className="text-gray-300 text-[10px]">—</span>}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Top / bottom */}
@@ -476,6 +573,28 @@ function Stat({ icon, tint, value, label }: { icon: React.ReactNode; tint: strin
         <div className="text-2xl font-semibold text-gray-800">{value}</div>
         <div className="text-xs text-gray-400">{label}</div>
       </div>
+    </div>
+  );
+}
+
+/** Bar berlabel + hitung (Distribusi Kategori Kinerja & Rencana Tindak Lanjut). */
+function CountBars({ items, denom }: { items: { label: string; count: number; color: string }[]; denom: number }) {
+  const max = Math.max(...items.map((c) => c.count), 1);
+  return (
+    <div className="space-y-4">
+      {items.map((it, idx) => (
+        <div key={it.label} className="space-y-1">
+          <div className="flex justify-between text-xs font-medium text-gray-600">
+            <span>{it.label}</span>
+            <span className="text-gray-900 font-mono">{it.count} Pegawai ({((it.count / denom) * 100).toFixed(1)}%)</span>
+          </div>
+          <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
+            <motion.div initial={{ width: 0 }} animate={{ width: `${(it.count / max) * 100}%` }}
+              transition={{ duration: 0.8, delay: idx * 0.1 }} style={{ backgroundColor: it.color }}
+              className="h-full rounded-full shadow-inner" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -41,6 +41,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
   const [q, setQ] = useState('');
   const [fRole, setFRole] = useState<'all' | Role>('all');
   const [fStatus, setFStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  const [fDept, setFDept] = useState('all');
   const [form, setForm] = useState<FormState | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
@@ -71,6 +72,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
   const shown = rows.filter((r) => {
     if (q.trim() && !`${r.name} ${r.empCode} ${r.email}`.toLowerCase().includes(q.toLowerCase())) return false;
     if (fRole !== 'all' && r.role !== fRole) return false;
+    if (fDept !== 'all' && r.dept !== fDept) return false;
     if (fStatus === 'active' && !r.active) return false;
     if (fStatus === 'inactive' && r.active) return false;
     return true;
@@ -213,6 +215,10 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
         <select value={fRole} onChange={(e) => setFRole(e.target.value as typeof fRole)} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
           <option value="all">Semua Peran</option>
           {ROLE_OPTS.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+        </select>
+        <select value={fDept} onChange={(e) => setFDept(e.target.value)} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
+          <option value="all">Semua Divisi</option>
+          {depts.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
         <select value={fStatus} onChange={(e) => setFStatus(e.target.value as typeof fStatus)} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
           <option value="all">Semua Status</option>

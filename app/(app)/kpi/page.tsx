@@ -38,22 +38,31 @@ export default async function KpiPage({
   // Mode INPUT (SPV / HRD-SPV): berfitur tab. Mode MONITORING (HRD admin / Direksi):
   // satu halaman — Rekapitulasi + Riwayat & Audit ditumpuk (ala legacy), tanpa tab.
   if (!canInput) {
+    // Direksi (tanpa audit) → hanya rekap. HRD admin → split view rekap | riwayat.
+    if (!canAudit) {
+      return (
+        <Shell>
+          <h1 className="text-xl font-bold text-gray-800">Rekapitulasi Kuartal</h1>
+          <p className="mt-1 text-sm text-gray-500">Ringkasan capaian KPI, 360°, &amp; Skor Akhir per kuartal.</p>
+          <div className="mt-4"><RekapView role={role} userId={user.id} periodParam={period} /></div>
+        </Shell>
+      );
+    }
     return (
-      <Shell>
-        <h1 className="text-xl font-bold text-gray-800">{canAudit ? 'Monitoring & Audit KPI' : 'Rekapitulasi Kuartal'}</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          {canAudit ? 'Rekapitulasi kuartal & jejak audit perubahan KPI seluruh pegawai dalam satu tampilan.' : 'Ringkasan capaian KPI, 360°, & Skor Akhir per kuartal.'}
-        </p>
-
-        <Section title="Rekapitulasi Kuartal">
-          <RekapView role={role} userId={user.id} periodParam={period} />
-        </Section>
-        {canAudit && (
-          <Section title="Riwayat & Audit Perubahan KPI">
+      <main className="w-full p-4 sm:p-5 lg:p-6">
+        <div className="mb-4">
+          <h1 className="text-xl font-bold text-gray-800">Monitoring &amp; Audit KPI</h1>
+          <p className="mt-1 text-sm text-gray-500">Rekapitulasi kuartal &amp; jejak audit perubahan KPI seluruh pegawai — tampilan berdampingan.</p>
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+          <Panel title="Rekapitulasi Kuartal">
+            <RekapView role={role} userId={user.id} periodParam={period} />
+          </Panel>
+          <Panel title="Riwayat & Audit Perubahan KPI">
             <RiwayatView role={role} userId={user.id} />
-          </Section>
-        )}
-      </Shell>
+          </Panel>
+        </div>
+      </main>
     );
   }
 
@@ -85,11 +94,12 @@ export default async function KpiPage({
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+/** Kartu panel split-view dengan header lengket & scroll vertikal independen. */
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mt-6 first:mt-5">
-      <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight mb-3 pb-2 border-b border-gray-100">{title}</h2>
-      {children}
+    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col max-h-[78vh]">
+      <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight px-5 py-3 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">{title}</h2>
+      <div className="p-5 overflow-y-auto">{children}</div>
     </div>
   );
 }

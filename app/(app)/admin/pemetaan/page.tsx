@@ -5,6 +5,7 @@ import { MappingForm } from './mapping-form';
 import { ReviewButton } from './review-button';
 import { MappingImport } from './mapping-import';
 import { MappingTable } from './mapping-table';
+import { CopyMapping } from './copy-mapping';
 
 /**
  * Pemetaan (Mapping) — HRD atur siapa menilai siapa di periode aktif. Dua tab:
@@ -61,6 +62,9 @@ async function PemetaanTab({ supabase, periodId }: { supabase: Awaited<ReturnTyp
   const { data: emps } = await supabase.from('employees').select('id, emp_code, name, dept').order('emp_code');
   const employees = emps ?? [];
   const empById = new Map(employees.map((e) => [e.id, e]));
+  // Periode lain (untuk fitur "Salin Pemetaan"), terbaru dulu.
+  const { data: otherPeriods } = await supabase
+    .from('periods').select('id, label').neq('id', periodId).order('start_date', { ascending: false });
   const { data: maps } = await supabase
     .from('mappings').select('id, assessor_id, target_id, relation, mandatory').eq('period_id', periodId).eq('is_active', true);
   const rows = (maps ?? [])
@@ -74,8 +78,9 @@ async function PemetaanTab({ supabase, periodId }: { supabase: Awaited<ReturnTyp
   return (
     <>
       <div className="mb-3"><MappingForm employees={employees} /></div>
-      <div className="mb-5">
+      <div className="mb-5 flex flex-wrap items-start gap-2">
         <MappingImport employees={employees.map((e) => ({ id: e.id, code: e.emp_code, name: e.name }))} />
+        <CopyMapping periods={otherPeriods ?? []} />
       </div>
       <MappingTable rows={rows} />
     </>

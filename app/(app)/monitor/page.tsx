@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { MonitorChart, type EmpTrend } from './monitor-chart';
@@ -25,7 +26,12 @@ export default async function MonitorPage() {
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
-  // Lingkup pegawai.
+  // Mode HRD (dual-mode): mode-SPV dibatasi seperti SPV (hanya divisinya sendiri).
+  const jar = await cookies();
+  const hrdMode = jar.get('hrd_mode')?.value === 'spv' ? 'spv' : 'admin';
+
+  // Lingkup pegawai. SPV → tim; HRD mode-SPV → hanya DIVISINYA (selaras Input KPI/Rekap);
+  // HRD admin / Direksi → semua pegawai non-direksi.
   let empRows: { id: string; name: string; dept: string }[] = [];
   if (role === 'spv') {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', user.id);
@@ -34,6 +40,11 @@ export default async function MonitorPage() {
       const { data } = await supabase.from('employees').select('id, name, dept').in('id', ids);
       empRows = data ?? [];
     }
+  } else if (role === 'hrd' && hrdMode === 'spv') {
+    const { data: meDept } = await supabase.from('employees').select('dept').eq('id', user.id).maybeSingle();
+    const { data } = await supabase.from('employees').select('id, name, dept')
+      .eq('dept', meDept?.dept ?? '__none__').neq('role', 'direksi');
+    empRows = data ?? [];
   } else {
     const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi');
     empRows = data ?? [];

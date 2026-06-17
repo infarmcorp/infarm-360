@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { IndicatorManager } from './indicator-manager';
 import { AddIndicatorForm } from './add-indicator-form';
+import { AddAspectForm } from './add-aspect-form';
 import { QualManager } from './qual-manager';
 import { EmptyState } from '@/components/empty-state';
 
@@ -57,17 +58,21 @@ export default async function PertanyaanPage() {
       </div>
 
       <div className="space-y-3">
-        {aspectList.map((a) => (
+        <AddAspectForm hasAspects={aspectList.length > 0} />
+        {aspectList.map((a, idx) => (
           <IndicatorManager
             key={a.id}
+            aspectId={a.id}
             aspectName={a.name}
+            canUp={idx > 0}
+            canDown={idx < aspectList.length - 1}
             indicators={indicators.filter((i) => i.aspect_id === a.id).map((i) => ({
               id: i.id, text: i.text, is_active: i.is_active,
               description: i.description ?? '', ratingGuide: i.rating_guide ?? null,
             }))}
           />
         ))}
-        <AddIndicatorForm aspects={aspectList.map((a) => ({ id: a.id, name: a.name }))} />
+        {aspectList.length > 0 && <AddIndicatorForm aspects={aspectList.map((a) => ({ id: a.id, name: a.name }))} />}
         <QualManager questions={(quals ?? []).map((q) => ({ id: q.id, text: q.text }))} />
       </div>
 

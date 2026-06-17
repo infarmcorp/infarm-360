@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
-import { updateIndicator, toggleIndicator, deleteIndicator } from './actions';
+import { ChevronDown, ChevronRight, Trash2, ChevronUp, Pencil, Check, X } from 'lucide-react';
+import { updateIndicator, toggleIndicator, deleteIndicator, renameAspect, deleteAspect, moveAspect } from './actions';
 
 type Ind = { id: string; text: string; is_active: boolean; description: string; ratingGuide: Record<string, string> | null };
 
@@ -11,7 +11,11 @@ const RATING_LABELS: Record<string, string> = {
   '1': 'Hampir Tidak Pernah', '2': 'Jarang', '3': 'Kadang', '4': 'Sering', '5': 'Selalu',
 };
 
-export function IndicatorManager({ aspectName, indicators }: { aspectName: string; indicators: Ind[] }) {
+export function IndicatorManager({
+  aspectId, aspectName, indicators, canUp, canDown,
+}: {
+  aspectId: string; aspectName: string; indicators: Ind[]; canUp: boolean; canDown: boolean;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -26,13 +30,62 @@ export function IndicatorManager({ aspectName, indicators }: { aspectName: strin
 
   return (
     <section className="border border-gray-200 rounded-xl p-3">
-      <h3 className="text-sm font-extrabold text-emerald-800 mb-2">{aspectName}</h3>
+      <AspectHeader aspectId={aspectId} aspectName={aspectName} canUp={canUp} canDown={canDown} run={run} busy={busy} count={indicators.length} />
       <div className="space-y-2">
         {indicators.map((ind) => <IndicatorRow key={ind.id} ind={ind} run={run} busy={busy} />)}
         {indicators.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada indikator.</p>}
       </div>
       {err && <p className="text-[10px] text-rose-600 mt-1">{err}</p>}
     </section>
+  );
+}
+
+/** Header aspek: nama (edit inline), geser urutan, & hapus (bila kosong). */
+function AspectHeader({
+  aspectId, aspectName, canUp, canDown, run, busy, count,
+}: {
+  aspectId: string; aspectName: string; canUp: boolean; canDown: boolean;
+  run: (fn: () => Promise<{ ok: boolean; error?: string }>) => Promise<boolean>; busy: boolean; count: number;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(aspectName);
+
+  async function save() {
+    if (!name.trim() || name.trim() === aspectName) { setEditing(false); setName(aspectName); return; }
+    const ok = await run(() => renameAspect(aspectId, name.trim()));
+    if (ok) setEditing(false);
+  }
+  async function remove() {
+    if (count > 0) { await run(async () => ({ ok: false, error: `Aspek masih punya ${count} indikator — hapus indikatornya dulu.` })); return; }
+    if (!window.confirm(`Hapus aspek "${aspectName}"?`)) return;
+    await run(() => deleteAspect(aspectId));
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-2 mb-2">
+      {editing ? (
+        <div className="flex items-center gap-1 flex-1">
+          <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setEditing(false); setName(aspectName); } }}
+            className="flex-1 text-sm font-bold p-1 border border-emerald-300 rounded focus:ring-1 focus:ring-emerald-600 outline-none" />
+          <button type="button" onClick={save} disabled={busy} title="Simpan" className="text-emerald-700 hover:text-emerald-900 p-0.5"><Check className="w-4 h-4" /></button>
+          <button type="button" onClick={() => { setEditing(false); setName(aspectName); }} title="Batal" className="text-gray-400 hover:text-gray-600 p-0.5"><X className="w-4 h-4" /></button>
+        </div>
+      ) : (
+        <h3 className="text-sm font-extrabold text-emerald-800 flex items-center gap-1.5">
+          {aspectName}
+          <span className="text-[10px] font-semibold text-gray-400">· {count} indikator</span>
+        </h3>
+      )}
+      {!editing && (
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button type="button" onClick={() => setEditing(true)} disabled={busy} title="Ubah nama" className="text-gray-400 hover:text-emerald-700 p-1"><Pencil className="w-3.5 h-3.5" /></button>
+          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'up'))} disabled={busy || !canUp} title="Naik" className="text-gray-400 hover:text-gray-700 p-1 disabled:opacity-30"><ChevronUp className="w-4 h-4" /></button>
+          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'down'))} disabled={busy || !canDown} title="Turun" className="text-gray-400 hover:text-gray-700 p-1 disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
+          <button type="button" onClick={remove} disabled={busy} title="Hapus aspek" className="text-gray-400 hover:text-rose-600 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+        </div>
+      )}
+    </div>
   );
 }
 

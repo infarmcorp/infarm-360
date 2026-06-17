@@ -37,6 +37,76 @@ function normGuide(g?: Record<string, string>): Record<string, string> | null {
   return Object.keys(out).length ? out : null;
 }
 
+const AspectName = z.string().trim().min(2, 'Nama aspek terlalu pendek').max(60);
+
+/** Tambah aspek (kelompok indikator) ke periode aktif. Nama unik (case-insensitive). */
+export async function addAspect(rawName: string): Promise<Result> {
+  const name = AspectName.safeParse(rawName);
+  if (!name.success) return { ok: false, error: name.error.issues[0].message };
+  const c = await ctx(); if (!c.ok) return c;
+  const { data: dup } = await c.supabase.from('culture_aspects')
+    .select('id').eq('period_id', c.periodId).ilike('name', name.data).maybeSingle();
+  if (dup) return { ok: false, error: `Aspek "${name.data}" sudah ada` };
+  const { data: last } = await c.supabase.from('culture_aspects')
+    .select('order_idx').eq('period_id', c.periodId).order('order_idx', { ascending: false }).limit(1).maybeSingle();
+  const { error } = await c.supabase.from('culture_aspects')
+    .insert({ period_id: c.periodId, name: name.data, order_idx: (last?.order_idx ?? -1) + 1 });
+  if (error) return { ok: false, error: 'Gagal menambah aspek: ' + error.message };
+  await logHrdAction({ action: 'aspect.add', category: 'pertanyaan', summary: `Menambah aspek: "${name.data}"` });
+  revalidatePath('/admin/pertanyaan'); revalidatePath('/penilaian');
+  return { ok: true };
+}
+
+/** Ubah nama aspek (milik periode aktif). */
+export async function renameAspect(aspectId: string, rawName: string): Promise<Result> {
+  const name = AspectName.safeParse(rawName);
+  if (!name.success) return { ok: false, error: name.error.issues[0].message };
+  const c = await ctx(); if (!c.ok) return c;
+  const { data: own } = await c.supabase.from('culture_aspects').select('id').eq('id', aspectId).eq('period_id', c.periodId).maybeSingle();
+  if (!own) return { ok: false, error: 'Aspek tidak ditemukan di periode aktif' };
+  const { data: dup } = await c.supabase.from('culture_aspects')
+    .select('id').eq('period_id', c.periodId).ilike('name', name.data).neq('id', aspectId).maybeSingle();
+  if (dup) return { ok: false, error: `Aspek "${name.data}" sudah ada` };
+  const { error } = await c.supabase.from('culture_aspects').update({ name: name.data }).eq('id', aspectId);
+  if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
+  await logHrdAction({ action: 'aspect.update', category: 'pertanyaan', summary: `Mengubah nama aspek menjadi: "${name.data}"`, targetType: 'aspect', targetId: aspectId });
+  revalidatePath('/admin/pertanyaan'); revalidatePath('/penilaian');
+  return { ok: true };
+}
+
+/** Hapus aspek — AMAN: hanya bila belum punya indikator (mencegah cascade ke skor). */
+export async function deleteAspect(aspectId: string): Promise<Result> {
+  if (!z.string().uuid().safeParse(aspectId).success) return { ok: false, error: 'Input tidak valid' };
+  const c = await ctx(); if (!c.ok) return c;
+  const { data: own } = await c.supabase.from('culture_aspects').select('id').eq('id', aspectId).eq('period_id', c.periodId).maybeSingle();
+  if (!own) return { ok: false, error: 'Aspek tidak ditemukan di periode aktif' };
+  const { count } = await c.supabase.from('indicators').select('*', { count: 'exact', head: true }).eq('aspect_id', aspectId);
+  if ((count ?? 0) > 0) return { ok: false, error: `Aspek masih punya ${count} indikator — hapus indikatornya dulu.` };
+  const { error } = await c.supabase.from('culture_aspects').delete().eq('id', aspectId);
+  if (error) return { ok: false, error: 'Gagal menghapus: ' + error.message };
+  await logHrdAction({ action: 'aspect.delete', category: 'pertanyaan', summary: 'Menghapus satu aspek (kosong)', targetType: 'aspect', targetId: aspectId });
+  revalidatePath('/admin/pertanyaan'); revalidatePath('/penilaian');
+  return { ok: true };
+}
+
+/** Geser urutan aspek ke atas/bawah (tukar order_idx dengan tetangganya). */
+export async function moveAspect(aspectId: string, dir: 'up' | 'down'): Promise<Result> {
+  const c = await ctx(); if (!c.ok) return c;
+  const { data: list } = await c.supabase.from('culture_aspects')
+    .select('id, order_idx').eq('period_id', c.periodId).order('order_idx');
+  const arr = list ?? [];
+  const i = arr.findIndex((a) => a.id === aspectId);
+  if (i < 0) return { ok: false, error: 'Aspek tidak ditemukan' };
+  const j = dir === 'up' ? i - 1 : i + 1;
+  if (j < 0 || j >= arr.length) return { ok: true }; // sudah di ujung — no-op
+  const a = arr[i], b = arr[j];
+  await c.supabase.from('culture_aspects').update({ order_idx: b.order_idx }).eq('id', a.id);
+  await c.supabase.from('culture_aspects').update({ order_idx: a.order_idx }).eq('id', b.id);
+  await logHrdAction({ action: 'aspect.reorder', category: 'pertanyaan', summary: 'Mengurutkan ulang aspek', targetType: 'aspect', targetId: aspectId });
+  revalidatePath('/admin/pertanyaan'); revalidatePath('/penilaian');
+  return { ok: true };
+}
+
 export async function addIndicator(aspectId: string, rawText: string, rawDesc?: string, rawGuide?: Record<string, string>): Promise<Result> {
   const text = Text.safeParse(rawText);
   if (!text.success) return { ok: false, error: text.error.issues[0].message };

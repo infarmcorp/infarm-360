@@ -57,6 +57,49 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`.
 
 Saat mengerjakan fitur, ingat: kerjakan di route Next.js `app/(app)/` (bukan SPA legacy).
 
+## Kekurangan, Rekomendasi & Pengembangan
+
+Daftar hidup (perbarui saat ada perubahan). Sumber: tinjauan internal + catatan pengguna
+huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
+
+### A. Paritas legacy yang belum lengkap (dicatat pengguna)
+- **Form "Mulai Nilai" berbeda dari legacy** (`app/(app)/penilaian/[targetId]/assess-form.tsx`).
+  Alur/UX pengisian 360° tidak sama dengan SPA legacy (`src/App.tsx` FormAssess). Perlu
+  tinjau paritas (tata letak aspek/indikator, navigasi antar-indikator) bila kesamaan diinginkan.
+- **"Batalkan Pengisian" tidak ada.** Legacy punya "Batal / Pilih Ulang" + "Batalkan";
+  versi Next.js belum punya tombol **batal/buang draf** di `assess-form.tsx`. Rekomendasi:
+  tambah aksi buang-draf (hapus `assessments` draft + skor terkait, RLS milik penilai).
+- *(Catatan pengguna soal Komentar Audit KPI = perilaku yang MEMANG diinginkan, bukan bug:*
+  *edit skor wajib komentar; input KPI pertama boleh tanpa komentar. Pertahankan.)*
+
+### B. Wajib sebelum go-live (keamanan & kebersihan)
+- **Sandi bersama `Infarm2026`** untuk semua akun → minta tiap pegawai ganti; beri sandi
+  berbeda per orang. Risiko impersonasi (inti integritas 360°).
+- **Self-service ganti sandi (Opsi 1) belum dibangun** — rancangan siap (halaman `/akun`
+  + `updateUser({password})`). Paling cepat menutup risiko sandi bersama tanpa email.
+- **Lupa Sandi via email (Opsi 2) dormant** — kode siap di `app/auth/lupa-sandi`,
+  `/auth/callback`, `/auth/perbarui-sandi`; aktifkan dengan email asli + Resend/SMTP +
+  `NEXT_PUBLIC_ENABLE_PW_RESET=true` (lihat `progress.md`).
+- **Email seed `nama@infarm.test` → email asli**; prasyarat Opsi 2 & pengingat 360°.
+- **Hapus arsip legacy** `/legacy`, `src/App.tsx`, `src/data.ts` (catatan: `src/data.ts`
+  masih dipakai `scripts/seed.ts` — lepaskan dulu).
+
+### C. Fungsional bernilai tinggi (pengembangan)
+- **Pengingat email 360° (Resend)** — placeholder `sendReminder`/`massReminder` di
+  `app/(app)/admin/progress/actions.ts`.
+- **Ekspor Excel** dashboard/rekap (kini hanya PDF print) — HRD/Direksi sering butuh data mentah.
+- **Deadline periode lebih tegas** — tampilkan sisa hari + auto-warning saat mendekati
+  `end_date` (kini hanya kunci manual).
+- **Ganti email mandiri** (opsional, lanjutan Opsi 1) — pertimbangkan verifikasi vs instan.
+
+### D. Keandalan teknis
+- **Belum ada satu pun tes.** Prioritaskan unit test logika skor: `lib/scoring.ts`
+  (`finalScoreOf`, `playerClassOf`), kalkulasi 360 (`app/(app)/admin/360/actions.ts`,
+  termasuk kelas **Bawahan**), klasifikasi 9-Box/4-Box. Regresi di sini = angka salah diam-diam.
+- **Verifikasi RLS menyeluruh per peran** (skrip uji terprogram) sebelum produksi.
+- **Aksesibilitas & mobile** — kontras, label form, navigasi keyboard dropdown custom;
+  uji tabel lebar (dashboard, pemetaan) di layar kecil.
+
 ## Keputusan Arsitektur (terkunci)
 
 1. **Migrasi penuh ke Next.js App Router, bertahap** (bukan rewrite sekaligus, bukan

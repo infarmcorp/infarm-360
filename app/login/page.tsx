@@ -60,7 +60,7 @@ export default async function LoginPage({
         <p className="text-sm text-gray-500 mb-5">Pilih peran &amp; nama Anda, lalu masukkan sandi.</p>
         <LoginForm next={next} users={users} />
         <p className="mt-4 text-[11px] text-gray-400">
-          Akun demo · sandi <code>Infarm@2026</code>.
+          Sandi awal · <code>Infarm2026</code>.
         </p>
       </div>
     </main>

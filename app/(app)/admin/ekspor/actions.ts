@@ -13,6 +13,8 @@ import { finalScoreOf, playerClassOf } from '@/lib/scoring';
  */
 export type Row = Record<string, string | number | null>;
 export type ExportResult = { ok: true; rows: Row[] } | { ok: false; error: string };
+export type Sheet = { name: string; rows: Row[] };
+export type ConfigResult = { ok: true; sheets: Sheet[] } | { ok: false; error: string };
 type Admin = ReturnType<typeof createAdminClient>;
 
 async function requireHrd(): Promise<boolean> {
@@ -217,6 +219,142 @@ export async function exportAssessments(periodId?: string | null): Promise<Expor
     }
   }
   return { ok: true, rows };
+}
+
+/** Ringkas nilai bobot jadi string "Atasan 40% · Peer 25% · …" sesuai model. */
+function weightsSummary(model: string | null, w: Record<string, number> | null): string {
+  if (!model || !w) return '—';
+  const order = model === '2class' ? ['atasan', 'internal'] : ['atasan', 'peer', 'cross', 'bawahan', 'self'];
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  return order.filter((k) => w[k] != null).map((k) => `${cap(k)} ${w[k]}%`).join(' · ') || '—';
+}
+
+/**
+ * Rekap Konfigurasi Periode (HRD) — "potret" SEMUA pengaturan yang diterapkan HRD per kuartal:
+ * status & tanggal, pakai 360° atau tidak, bulan KPI (sumber data KPI), model & bobot penilai,
+ * aspek + indikator, pertanyaan esai, serta jumlah pemetaan/punishment/skor 360 terhitung.
+ * Multi-sheet: Ringkasan · Bobot Penilai · Bulan KPI · Aspek & Indikator · Pertanyaan Esai.
+ * Bila periodId null → mencakup seluruh periode (satu baris per periode di tiap sheet).
+ */
+export async function exportPeriodConfig(periodId?: string | null): Promise<ConfigResult> {
+  if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
+  const admin = createAdminClient();
+  const [
+    { data: periodsAll }, { data: pmonths }, { data: weights },
+    { data: aspectsAll }, { data: qualsAll }, { data: mapsAll }, { data: penAll }, { data: r360 },
+  ] = await Promise.all([
+    admin.from('periods').select('id, code, label, status, start_date, end_date, has_360').order('start_date'),
+    admin.from('period_months').select('period_id, ym'),
+    admin.from('weight_schemes').select('period_id, model, weights, is_active').eq('is_active', true),
+    admin.from('culture_aspects').select('id, period_id, name, order_idx').order('order_idx'),
+    admin.from('qualitative_questions').select('id, period_id, text, order_idx').order('order_idx'),
+    admin.from('mappings').select('period_id, is_active'),
+    admin.from('compliance_penalties').select('period_id'),
+    admin.from('result_360').select('period_id, score'),
+  ]);
+  const periods = (periodsAll ?? []).filter((p) => !periodId || p.id === periodId);
+  if (periods.length === 0) return { ok: false, error: 'Periode tidak ditemukan.' };
+  const pids = new Set(periods.map((p) => p.id));
+
+  // Indikator hanya bisa difilter via aspect → bangun peta aspect→period dulu.
+  const aspects = (aspectsAll ?? []).filter((a) => pids.has(a.period_id));
+  const aspectPid = new Map(aspects.map((a) => [a.id, a.period_id]));
+  const aspectName = new Map(aspects.map((a) => [a.id, a.name]));
+  const { data: indsAll } = aspects.length
+    ? await admin.from('indicators').select('id, aspect_id, text, is_active, description, rating_guide')
+        .in('aspect_id', aspects.map((a) => a.id))
+    : { data: [] as { id: string; aspect_id: string; text: string; is_active: boolean; description: string | null; rating_guide: Record<string, string> | null }[] };
+  const inds = indsAll ?? [];
+
+  // Agregat per periode.
+  const ymByP = new Map<string, string[]>();
+  (pmonths ?? []).forEach((m) => { if (pids.has(m.period_id)) { const a = ymByP.get(m.period_id) ?? []; a.push(m.ym); ymByP.set(m.period_id, a); } });
+  const wByP = new Map((weights ?? []).filter((w) => pids.has(w.period_id)).map((w) => [w.period_id, w]));
+  const aspectCountByP = new Map<string, number>();
+  aspects.forEach((a) => aspectCountByP.set(a.period_id, (aspectCountByP.get(a.period_id) ?? 0) + 1));
+  const indActiveByP = new Map<string, number>(), indTotalByP = new Map<string, number>();
+  inds.forEach((i) => {
+    const pid = aspectPid.get(i.aspect_id); if (!pid) return;
+    indTotalByP.set(pid, (indTotalByP.get(pid) ?? 0) + 1);
+    if (i.is_active) indActiveByP.set(pid, (indActiveByP.get(pid) ?? 0) + 1);
+  });
+  const qualCountByP = new Map<string, number>();
+  (qualsAll ?? []).forEach((q) => { if (pids.has(q.period_id)) qualCountByP.set(q.period_id, (qualCountByP.get(q.period_id) ?? 0) + 1); });
+  const mapCountByP = new Map<string, number>();
+  (mapsAll ?? []).forEach((m) => { if (pids.has(m.period_id) && m.is_active) mapCountByP.set(m.period_id, (mapCountByP.get(m.period_id) ?? 0) + 1); });
+  const penCountByP = new Map<string, number>();
+  (penAll ?? []).forEach((p) => { if (pids.has(p.period_id)) penCountByP.set(p.period_id, (penCountByP.get(p.period_id) ?? 0) + 1); });
+  const r360CountByP = new Map<string, number>();
+  (r360 ?? []).forEach((r) => { if (pids.has(r.period_id) && r.score != null) r360CountByP.set(r.period_id, (r360CountByP.get(r.period_id) ?? 0) + 1); });
+
+  const STATUS = (s: string) => (s === 'active' ? 'Aktif' : 'Terkunci/Selesai');
+
+  // Sheet 1 — Ringkasan: satu baris per periode, seluruh pengaturan inti.
+  const ringkasan: Row[] = periods.map((p) => {
+    const w = wByP.get(p.id);
+    const yms = (ymByP.get(p.id) ?? []).sort();
+    return {
+      periode: p.label, kode: p.code, status: STATUS(p.status),
+      mulai: p.start_date, selesai: p.end_date,
+      pakai_360: p.has_360 ? 'Ya' : 'Tidak',
+      jumlah_bulan_kpi: yms.length, bulan_kpi: yms.join(', '),
+      model_bobot: w ? (w.model === '4class' ? '4-Kelas' : '2-Kelas') : '—',
+      bobot: weightsSummary(w?.model ?? null, (w?.weights as Record<string, number>) ?? null),
+      jumlah_aspek: aspectCountByP.get(p.id) ?? 0,
+      indikator_aktif: indActiveByP.get(p.id) ?? 0,
+      indikator_total: indTotalByP.get(p.id) ?? 0,
+      pertanyaan_esai: qualCountByP.get(p.id) ?? 0,
+      jumlah_pemetaan: mapCountByP.get(p.id) ?? 0,
+      jumlah_punishment: penCountByP.get(p.id) ?? 0,
+      skor_360_terhitung: p.has_360 ? (r360CountByP.get(p.id) ?? 0) : '—',
+    };
+  });
+
+  // Sheet 2 — Bobot Penilai: rincian tiap komponen bobot per periode.
+  const bobot: Row[] = periods.map((p) => {
+    const w = wByP.get(p.id);
+    const v = (w?.weights as Record<string, number>) ?? {};
+    return {
+      periode: p.label,
+      model: w ? (w.model === '4class' ? '4-Kelas' : '2-Kelas') : '— (belum diatur)',
+      atasan_pct: v.atasan ?? null, peer_pct: v.peer ?? null, cross_pct: v.cross ?? null,
+      bawahan_pct: v.bawahan ?? null, self_pct: v.self ?? null, internal_pct: v.internal ?? null,
+    };
+  });
+
+  // Sheet 3 — Bulan KPI: sumber data KPI (satu baris per bulan per periode).
+  const bulanKpi: Row[] = [];
+  for (const p of periods) for (const ym of (ymByP.get(p.id) ?? []).sort()) bulanKpi.push({ periode: p.label, bulan: ym });
+
+  // Sheet 4 — Aspek & Indikator: pertanyaan kuantitatif yang dipakai.
+  const aspekInd: Row[] = inds
+    .filter((i) => aspectPid.has(i.aspect_id))
+    .map((i) => {
+      const pid = aspectPid.get(i.aspect_id)!;
+      const plabel = periods.find((p) => p.id === pid)?.label ?? '';
+      return {
+        periode: plabel, aspek: aspectName.get(i.aspect_id) ?? '', indikator: i.text,
+        status: i.is_active ? 'Aktif' : 'Nonaktif',
+        deskripsi: i.description ?? '',
+        panduan_rating: i.rating_guide && Object.keys(i.rating_guide).length ? 'Ada' : '—',
+      };
+    });
+
+  // Sheet 5 — Pertanyaan Esai (kualitatif).
+  const esai: Row[] = (qualsAll ?? [])
+    .filter((q) => pids.has(q.period_id))
+    .map((q) => ({ periode: periods.find((p) => p.id === q.period_id)?.label ?? '', pertanyaan: q.text }));
+
+  return {
+    ok: true,
+    sheets: [
+      { name: 'Ringkasan', rows: ringkasan },
+      { name: 'Bobot Penilai', rows: bobot },
+      { name: 'Bulan KPI', rows: bulanKpi },
+      { name: 'Aspek & Indikator', rows: aspekInd },
+      { name: 'Pertanyaan Esai', rows: esai },
+    ],
+  };
 }
 
 /** Dataset Pemetaan: periode, penilai, target, relasi, sifat. */

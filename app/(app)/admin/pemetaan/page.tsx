@@ -6,6 +6,7 @@ import { ReviewButton } from './review-button';
 import { MappingImport } from './mapping-import';
 import { MappingTable } from './mapping-table';
 import { CopyMapping } from './copy-mapping';
+import { EmptyState } from '@/components/empty-state';
 
 /**
  * Pemetaan (Mapping) — HRD atur siapa menilai siapa di periode aktif. Dua tab:
@@ -30,7 +31,21 @@ export default async function PemetaanPage({
 
   const { data: ap } = await supabase
     .from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif. Aktifkan periode dulu di Kelola Siklus Periode.</p></Shell>;
+  if (!ap) return (
+    <Shell>
+      <EmptyState
+        icon="🗺️"
+        title="Belum ada periode aktif"
+        description="Pemetaan penilai mengikat ke periode aktif. Aktifkan sebuah periode dulu, baru atur siapa menilai siapa."
+        steps={[
+          { text: <>Buka <strong>Kelola Siklus Periode</strong></> },
+          { text: <>Buat / pilih periode lalu tekan <strong>Aktivasi</strong></> },
+          { text: <>Kembali ke sini untuk menyusun pemetaan</> },
+        ]}
+        actions={[{ label: 'Ke Kelola Periode', href: '/admin/periode', primary: true }]}
+      />
+    </Shell>
+  );
 
   // Hitung permohonan koreksi menunggu (untuk badge tab).
   const { count: pendingCount } = await supabase

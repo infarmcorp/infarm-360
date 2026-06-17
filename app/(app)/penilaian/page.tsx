@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { CorrectionButton } from './correction-button';
 import { AdhocForm } from './adhoc-form';
+import { EmptyState } from '@/components/empty-state';
 
 const REL_LABEL: Record<string, string> = {
   Atasan: 'Atasan', Peer: 'Rekan (Peer)', Cross: 'Lintas Divisi', Self: 'Diri Sendiri', Bawahan: 'Bawahan',
@@ -22,7 +23,16 @@ export default async function PenilaianPage() {
   const { data: ap } = await supabase
     .from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) {
-    return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif. Hubungi HRD.</p></Shell>;
+    return (
+      <Shell>
+        <EmptyState
+          icon="⏳"
+          title="Belum ada periode penilaian yang dibuka"
+          description="Saat ini tidak ada periode aktif, jadi belum ada penilaian yang bisa diisi. Periode dibuka oleh HRD."
+          note="Anda akan melihat daftar tugas penilaian di sini begitu HRD mengaktifkan periode baru."
+        />
+      </Shell>
+    );
   }
 
   const { data: maps } = await supabase

@@ -6,6 +6,7 @@ import {
 } from '@/lib/scoring';
 import { DashboardVisual } from './dashboard-visual';
 import { DashboardFilters } from './dashboard-filters';
+import { EmptyState } from '@/components/empty-state';
 
 /**
  * Dashboard Organisasi (HRD/Direksi) — versi termigrasi Supabase.
@@ -32,7 +33,21 @@ export default async function DashboardPage({
   const { data: periodRows } = await supabase
     .from('periods').select('id, label, has_360, status').order('label', { ascending: false });
   const periodList = periodRows ?? [];
-  if (periodList.length === 0) return <Shell><p className="text-sm text-gray-500">Belum ada periode.</p></Shell>;
+  if (periodList.length === 0) return (
+    <Shell>
+      <EmptyState
+        icon="📊"
+        title="Dashboard belum punya data"
+        description="Dashboard merangkum KPI, 360°, & Skor Akhir per periode. Belum ada periode, jadi belum ada yang bisa ditampilkan."
+        steps={[
+          { text: <>Buat & aktifkan periode di <strong>Kelola Siklus Periode</strong></> },
+          { text: <>Isi KPI bulanan & jalankan penilaian 360°</> },
+          { text: <>Jalankan <strong>Hitung Ulang Skor 360°</strong> → grafik terisi</> },
+        ]}
+        actions={me?.role === 'hrd' ? [{ label: 'Ke Kelola Periode', href: '/admin/periode', primary: true }] : undefined}
+      />
+    </Shell>
+  );
   const ap = periodList.find((p) => p.id === periodParam)
     ?? periodList.find((p) => p.status === 'active')
     ?? periodList[0];

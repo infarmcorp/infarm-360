@@ -28,7 +28,16 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
   const shown = rows.filter((r) => (fAssessor === 'all' || r.assessorId === fAssessor) && (fTarget === 'all' || r.targetId === fTarget));
   const active = fAssessor !== 'all' || fTarget !== 'all';
 
-  if (rows.length === 0) return <p className="text-sm text-gray-500">Belum ada pemetaan. Tambahkan di atas.</p>;
+  if (rows.length === 0) return (
+    <div className="border-2 border-dashed border-gray-200 rounded-xl p-5 text-center">
+      <p className="text-2xl mb-1">🔗</p>
+      <p className="text-sm font-bold text-gray-700">Belum ada pemetaan penilai untuk periode ini</p>
+      <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+        Tentukan siapa menilai siapa dengan salah satu cara di atas:
+        <strong> tambah manual</strong>, <strong>impor Excel</strong>, atau <strong>salin dari periode sebelumnya</strong> (tetap bisa diedit).
+      </p>
+    </div>
+  );
 
   // Label total dinamis mengikuti filter aktif.
   const aName = assessors.find((a) => a.id === fAssessor)?.name;

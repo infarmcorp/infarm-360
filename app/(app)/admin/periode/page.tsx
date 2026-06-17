@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { PeriodForm } from './period-form';
 import { PeriodActions } from './period-actions';
+import { EmptyState } from '@/components/empty-state';
 
 /**
  * Kelola Siklus Periode (HRD). Buat/aktivasi/kunci periode + toggle 360.
@@ -38,6 +39,20 @@ export default async function PeriodePage() {
 
       <div className="mb-5"><PeriodForm /></div>
 
+      {list.length === 0 ? (
+        <EmptyState
+          icon="🗓️"
+          title="Belum ada periode"
+          description="Periode (kuartal) adalah gerbang seluruh proses penilaian. Buat yang pertama lewat form di atas, lalu lengkapi langkah berikut sebelum penilaian dapat diisi."
+          steps={[
+            { text: <>Buat periode/kuartal pertama (form di atas)</> },
+            { text: <>Susun <strong>Pertanyaan</strong> & atur <strong>Bobot Penilai</strong></> },
+            { text: <>Atur <strong>Pemetaan</strong> penilai (siapa menilai siapa)</> },
+            { text: <>Tekan <strong>Aktivasi</strong> — pengisian 360° & KPI terbuka</> },
+          ]}
+          note="Hanya satu periode aktif pada satu waktu."
+        />
+      ) : (
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
@@ -73,6 +88,7 @@ export default async function PeriodePage() {
           ))}
         </tbody>
       </table>
+      )}
       <p className="text-[10px] text-gray-400 italic mt-3">
         Hanya satu periode aktif pada satu waktu — mengaktivasi periode akan mengunci yang lain.
         Periode baru harus diisi pertanyaan &amp; mapping (kelola terpisah) sebelum penilaian.

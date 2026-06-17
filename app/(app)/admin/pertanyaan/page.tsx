@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { IndicatorManager } from './indicator-manager';
 import { AddIndicatorForm } from './add-indicator-form';
 import { QualManager } from './qual-manager';
+import { EmptyState } from '@/components/empty-state';
 
 /**
  * Kelola Pertanyaan (HRD): indikator kuantitatif per aspek + pertanyaan kualitatif
@@ -21,7 +22,16 @@ export default async function PertanyaanPage() {
 
   const { data: ap } = await supabase
     .from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return (
+    <Shell>
+      <EmptyState
+        icon="📝"
+        title="Belum ada periode aktif"
+        description="Pertanyaan (indikator & esai) disusun per periode aktif. Aktifkan periode dulu untuk mengelolanya."
+        actions={[{ label: 'Ke Kelola Periode', href: '/admin/periode', primary: true }]}
+      />
+    </Shell>
+  );
 
   const { data: aspects } = await supabase
     .from('culture_aspects').select('id, name, order_idx').eq('period_id', ap.id).order('order_idx');

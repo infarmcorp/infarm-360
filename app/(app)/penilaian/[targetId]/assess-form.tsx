@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { submitAssessment } from '../actions';
+import { submitAssessment, discardAssessment } from '../actions';
 
 type Group = { id: string; name: string; indicators: { id: string; text: string }[] };
 type Question = { id: string; text: string };
@@ -13,12 +13,14 @@ export function AssessForm({
   questions,
   initialScores,
   initialAnswers,
+  hasDraft = false,
 }: {
   targetId: string;
   groups: Group[];
   questions: Question[];
   initialScores: Record<string, { rating: number | null; comment: string }>;
   initialAnswers: Record<string, string>;
+  hasDraft?: boolean;
 }) {
   const router = useRouter();
   const allIndicators = groups.flatMap((g) => g.indicators);
@@ -67,6 +69,17 @@ export function AssessForm({
     } else {
       router.refresh();
     }
+  }
+
+  async function discard() {
+    if (!window.confirm('Buang draf penilaian ini? Semua rating & komentar yang tersimpan akan dihapus.')) return;
+    setBusy(true);
+    setError(null);
+    const res = await discardAssessment(targetId);
+    setBusy(false);
+    if (!res.ok) { setError(res.error); return; }
+    router.push('/penilaian');
+    router.refresh();
   }
 
   return (
@@ -133,11 +146,29 @@ export function AssessForm({
 
       {error && <p className="text-xs text-rose-600 font-semibold">{error}</p>}
 
-      <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+      <div className="flex items-center justify-between border-t border-gray-100 pt-4 gap-2 flex-wrap">
         <span className="text-xs text-gray-400">
           {ratedCount}/{allIndicators.length} indikator dinilai
         </span>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => router.push('/penilaian')}
+            className="text-sm font-bold px-4 py-2 rounded-lg border border-gray-300 text-gray-500 hover:bg-gray-50 disabled:opacity-60"
+          >
+            Batal
+          </button>
+          {hasDraft && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={discard}
+              className="text-sm font-bold px-4 py-2 rounded-lg border border-rose-300 text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+            >
+              Buang Draf
+            </button>
+          )}
           <button
             type="button"
             disabled={busy}

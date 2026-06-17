@@ -105,6 +105,7 @@ export default async function AssessPage({
           questions={questions.map((q) => ({ id: q.id, text: q.text }))}
           initialScores={initialScores}
           initialAnswers={initialAnswers}
+          hasDraft={existing?.status === 'draft'}
         />
       </div>
     </main>

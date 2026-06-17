@@ -106,3 +106,31 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
   revalidatePath(`/penilaian/${targetId}`);
   return { ok: true, status };
 }
+
+/**
+ * Buang Draf 360° (PANDUAN legacy: "Batalkan Pengisian"). Menghapus assessment DRAF
+ * milik penilai untuk target di periode aktif — skor & jawaban ikut terhapus (FK
+ * on delete cascade). Penilaian yang SUDAH terkirim tak bisa dibuang dari sini.
+ * RLS asmt_write membatasi delete ke assessor sendiri + periode aktif.
+ */
+export async function discardAssessment(targetId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!z.string().uuid().safeParse(targetId).success) return { ok: false, error: 'Input tidak valid' };
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+
+  const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  const { data: ex } = await supabase.from('assessments').select('id, status')
+    .eq('assessor_id', auth.user.id).eq('target_id', targetId).eq('period_id', ap.id).maybeSingle();
+  if (!ex) return { ok: false, error: 'Tidak ada draf untuk dibuang' };
+  if (ex.status !== 'draft') return { ok: false, error: 'Penilaian sudah terkirim — tidak bisa dibuang dari sini' };
+
+  const { error } = await supabase.from('assessments').delete().eq('id', ex.id);
+  if (error) return { ok: false, error: 'Gagal membuang draf: ' + error.message };
+
+  revalidatePath('/penilaian');
+  revalidatePath(`/penilaian/${targetId}`);
+  return { ok: true };
+}

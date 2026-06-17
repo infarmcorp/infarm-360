@@ -114,6 +114,35 @@ export async function endPeriod(periodId: string): Promise<Result> {
   return { ok: true };
 }
 
+/**
+ * Kesiapan periode AKTIF — palang pengaman sebelum HRD mengaktifkan periode lain
+ * (yang akan MENGUNCI periode aktif sekarang). Mengembalikan jumlah pekerjaan tertunda:
+ * 360° belum lengkap, draf belum dikirim, laporan belum difinalisasi.
+ */
+export async function activePeriodReadiness(): Promise<
+  { ok: true; active: { id: string; label: string; pending360: number; drafts: number; unfinalized: number } | null }
+  | { ok: false; error: string }
+> {
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+
+  const { data: ap } = await supabase
+    .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: true, active: null };
+
+  const [maps, subs, drafts, emps, finals] = await Promise.all([
+    supabase.from('mappings').select('*', { count: 'exact', head: true }).eq('period_id', ap.id),
+    supabase.from('assessments').select('*', { count: 'exact', head: true }).eq('period_id', ap.id).eq('status', 'submitted'),
+    supabase.from('assessments').select('*', { count: 'exact', head: true }).eq('period_id', ap.id).eq('status', 'draft'),
+    supabase.from('employees').select('*', { count: 'exact', head: true }).eq('is_active', true).neq('role', 'direksi'),
+    supabase.from('final_reports').select('*', { count: 'exact', head: true }).eq('period_id', ap.id).eq('status', 'finalized'),
+  ]);
+  const pending360 = ap.has_360 ? Math.max(0, (maps.count ?? 0) - (subs.count ?? 0)) : 0;
+  const unfinalized = Math.max(0, (emps.count ?? 0) - (finals.count ?? 0));
+  return { ok: true, active: { id: ap.id, label: ap.label, pending360, drafts: drafts.count ?? 0, unfinalized } };
+}
+
 export async function toggleHas360(periodId: string, value: boolean): Promise<Result> {
   const supabase = await createClient();
   const auth = await requireHrd(supabase);

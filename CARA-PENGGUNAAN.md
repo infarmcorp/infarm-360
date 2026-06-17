@@ -159,6 +159,13 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
    - **Kunci & Akhiri Periode** menutup penilaian (tak bisa isi/edit lagi).
 2. **Arsip & Riwayat Kuartal**: meninjau riwayat kuartal ber-penilaian 360°.
 
+> **Batas antar-kuartal.** Penilaian masuk ke **periode yang aktif saat Kirim**, bukan
+> berdasarkan tanggal. Jadi **biarkan periode lama tetap aktif** hingga seluruh penilaian +
+> KPI selesai (boleh melewati pergantian kalender), baru **Hitung Ulang → Finalisasi →
+> Kunci**, lalu aktifkan periode berikutnya. Bila menekan **Aktivasi** sementara periode
+> aktif masih punya **360° belum lengkap / draf / laporan belum final**, muncul **peringatan
+> konfirmasi** (mengaktifkan periode baru akan mengunci yang lama beserta drafnya).
+
 ### Kelola Pertanyaan
 - Tiap aspek menampilkan daftar indikator kuantitatif (rating 1–5) — edit teks atau
   **nonaktifkan** (indikator dinonaktifkan, bukan dihapus, agar skor historis utuh).

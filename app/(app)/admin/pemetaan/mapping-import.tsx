@@ -45,15 +45,40 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
     } finally { if (fileRef.current) fileRef.current.value = ''; }
   }
 
-  const valids = (parsed ?? []).filter((r) => r.assessor && r.target && r.relOk);
+  // Klasifikasikan tiap baris + alasan bila dilewati (pasangan siapa→siapa).
+  // 'dup' = pasangan penilai→target sama dengan baris sebelumnya (keunikan DB
+  // hanya penilai+target, relasi tak dihitung). 'self' = penilai=target tapi
+  // relasi bukan Self. 'invalid' = kode tak dikenal / relasi kosong.
+  const classified = useMemo(() => {
+    const seen = new Map<string, number>(); // pasangan → nomor baris pertama (1-based)
+    return (parsed ?? []).map((r, i) => {
+      let status: 'ok' | 'dup' | 'self' | 'invalid' = 'ok';
+      let reason = '';
+      if (!r.assessor) { status = 'invalid'; reason = `Kode penilai "${r.aCode || '?'}" tak dikenal`; }
+      else if (!r.target) { status = 'invalid'; reason = `Kode dinilai "${r.tCode || '?'}" tak dikenal`; }
+      else if (!r.relOk) { status = 'invalid'; reason = 'Relasi kosong/tak valid'; }
+      else if (r.assessor.id === r.target.id && r.relation !== 'Self') { status = 'self'; reason = 'Penilai = Dinilai tetapi relasi bukan Self'; }
+      else {
+        const key = `${r.assessor.id}|${r.target.id}`;
+        if (seen.has(key)) { status = 'dup'; reason = `Duplikat — pasangan sama dengan baris ${seen.get(key)}`; }
+        else seen.set(key, i + 1);
+      }
+      return { r, line: i + 1, status, reason };
+    });
+  }, [parsed]);
+
+  const oks = classified.filter((c) => c.status === 'ok');
+  const skips = classified.filter((c) => c.status !== 'ok');
 
   function apply() {
-    if (valids.length === 0) { setMsg({ ok: false, text: 'Tidak ada baris valid.' }); return; }
+    if (oks.length === 0) { setMsg({ ok: false, text: 'Tidak ada baris valid untuk diimpor.' }); return; }
     setMsg(null);
-    const payload = valids.map((r) => ({ assessorId: r.assessor!.id, targetId: r.target!.id, relation: r.relation, mandatory: r.mandatory }));
+    const payload = oks.map((c) => ({ assessorId: c.r.assessor!.id, targetId: c.r.target!.id, relation: c.r.relation, mandatory: c.r.mandatory }));
     start(async () => {
       const res = await createMappingsBulk(payload);
-      setMsg(res.ok ? { ok: true, text: `${res.saved} mapping diimpor${res.skipped ? `, ${res.skipped} dilewati` : ''}.` } : { ok: false, text: res.error });
+      setMsg(res.ok
+        ? { ok: true, text: `${res.saved} pemetaan diimpor${skips.length ? ` · ${skips.length} dilewati (lihat keterangan di pratinjau)` : ''}.` }
+        : { ok: false, text: res.error });
       if (res.ok) setParsed(null);
     });
   }
@@ -84,21 +109,40 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
 
       {parsed && (
         <>
+          {skips.length > 0 && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-900">
+              <strong>{skips.length} baris akan dilewati</strong> ({oks.length} akan diimpor). Pasangan yang dilewati:
+              <ul className="mt-1 space-y-0.5 max-h-28 overflow-y-auto">
+                {skips.map((c) => (
+                  <li key={c.line} className="flex gap-1.5">
+                    <span className="text-amber-500 shrink-0">baris {c.line}:</span>
+                    <span className="font-semibold">{(c.r.assessor?.name ?? c.r.aCode) || '?'} → {(c.r.target?.name ?? c.r.tCode) || '?'}</span>
+                    <span className="text-amber-700">— {c.reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="overflow-x-auto border border-gray-200 rounded-lg max-h-64 overflow-y-auto bg-white">
             <table className="w-full text-left text-[11px]">
               <thead><tr className="bg-gray-50 text-[9px] uppercase text-gray-400 border-b border-gray-200">
-                <th className="py-1.5 px-2">Penilai</th><th className="py-1.5 px-2">Dinilai</th><th className="py-1.5 px-2">Relasi</th><th className="py-1.5 px-2">Sifat</th><th className="py-1.5 px-2">Status</th>
+                <th className="py-1.5 px-2">#</th><th className="py-1.5 px-2">Penilai</th><th className="py-1.5 px-2">Dinilai</th><th className="py-1.5 px-2">Relasi</th><th className="py-1.5 px-2">Sifat</th><th className="py-1.5 px-2">Keterangan</th>
               </tr></thead>
               <tbody className="divide-y divide-gray-100">
-                {parsed.map((r, i) => {
-                  const ok = r.assessor && r.target && r.relOk;
+                {classified.map((c) => {
+                  const r = c.r;
                   return (
-                    <tr key={i} className={ok ? '' : 'bg-rose-50/40'}>
+                    <tr key={c.line} className={c.status === 'ok' ? '' : c.status === 'invalid' ? 'bg-rose-50/50' : 'bg-amber-50/60'}>
+                      <td className="py-1.5 px-2 text-gray-400 font-mono">{c.line}</td>
                       <td className="py-1.5 px-2">{r.assessor?.name ?? <span className="text-rose-600 font-mono">{r.aCode || '?'}</span>}</td>
                       <td className="py-1.5 px-2">{r.target?.name ?? <span className="text-rose-600 font-mono">{r.tCode || '?'}</span>}</td>
                       <td className="py-1.5 px-2">{r.relation || <span className="text-rose-600">?</span>}</td>
                       <td className="py-1.5 px-2">{r.mandatory ? 'Wajib' : 'Opsional'}</td>
-                      <td className="py-1.5 px-2">{ok ? <span className="text-emerald-700 font-bold">✓</span> : <span className="text-rose-600 font-bold">✗</span>}</td>
+                      <td className="py-1.5 px-2">
+                        {c.status === 'ok'
+                          ? <span className="text-emerald-700 font-bold">✓ Akan diimpor</span>
+                          : <span className="text-amber-800">✗ {c.reason}</span>}
+                      </td>
                     </tr>
                   );
                 })}
@@ -107,7 +151,7 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
           </div>
           <div className="flex items-center gap-3">
             <button onClick={apply} disabled={pending} className="rounded bg-emerald-700 px-3 py-1.5 text-white text-xs font-bold disabled:opacity-50">
-              {pending ? 'Mengimpor…' : `Impor ${valids.length} baris`}
+              {pending ? 'Mengimpor…' : `Impor ${oks.length} baris${skips.length ? ` (${skips.length} dilewati)` : ''}`}
             </button>
             <button onClick={() => setParsed(null)} disabled={pending} className="text-xs font-semibold text-gray-500 hover:underline">Batal</button>
           </div>

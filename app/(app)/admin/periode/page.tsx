@@ -53,7 +53,8 @@ export default async function PeriodePage() {
           note="Hanya satu periode aktif pada satu waktu."
         />
       ) : (
-      <table className="w-full text-left text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full text-left text-sm min-w-[560px]">
         <thead>
           <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
             <th className="py-2 pr-3">Periode</th>
@@ -88,6 +89,7 @@ export default async function PeriodePage() {
           ))}
         </tbody>
       </table>
+      </div>
       )}
       <p className="text-[10px] text-gray-400 italic mt-3">
         Hanya satu periode aktif pada satu waktu — mengaktivasi periode akan mengunci yang lain.

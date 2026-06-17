@@ -115,7 +115,7 @@ function ComparisonView({ rows, periodLabel }: { rows: { id: string; name: strin
 
       {/* Tabel rinci KPI / 360 / Skor Akhir */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
+        <table className="w-full text-left text-xs min-w-[480px]">
           <thead>
             <tr className="text-[10px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
               <th className="py-2 pr-3">Pegawai</th><th className="py-2 px-3">Divisi</th>
@@ -220,7 +220,7 @@ function TrendView({ name, trend }: { name: string; trend: TrendPoint[] }) {
 
       {trend.length > 0 && (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[420px]">
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
                 <th className="py-2 pr-3">Bulan</th>

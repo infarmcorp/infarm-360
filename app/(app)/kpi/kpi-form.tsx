@@ -125,7 +125,8 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
 
       {mode === 'manual' ? (
         <>
-          <table className="w-full border-collapse text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-sm min-w-[520px]">
             <thead>
               <tr className="border-b text-left">
                 <th className="py-2">Pegawai</th>
@@ -149,6 +150,7 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
               ))}
             </tbody>
           </table>
+          </div>
           <div className="flex items-center gap-3">
             <button onClick={submitManual} disabled={pending} className="rounded bg-emerald-700 px-4 py-2 text-white text-sm font-bold disabled:opacity-50">
               {pending ? 'Menyimpan…' : 'Simpan Semua Skor'}

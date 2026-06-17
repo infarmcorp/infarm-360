@@ -136,7 +136,8 @@ export default async function BobotPage() {
         {stored.length === 0 ? (
           <p className="text-sm text-gray-500">Belum ada hasil resmi. Klik <strong>Hitung Ulang Skor 360°</strong> setelah ada penilaian terkirim.</p>
         ) : (
-          <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm min-w-[420px]">
             <thead>
               <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
                 <th className="py-2 pr-3">Pegawai</th><th className="py-2 px-3">Divisi</th><th className="py-2 pl-3 text-right">Skor 360° Resmi</th>
@@ -152,6 +153,7 @@ export default async function BobotPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </Section>
 

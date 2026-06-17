@@ -92,7 +92,7 @@ export function AuditClient({ rows, maxRows }: { rows: AuditRow[]; maxRows: numb
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-sm min-w-[640px]">
             <thead>
               <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
                 <th className="py-2.5 px-4 whitespace-nowrap">Waktu</th>

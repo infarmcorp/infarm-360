@@ -84,7 +84,8 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
       {shown.length === 0 ? (
         <p className="text-sm text-gray-500">Tidak ada pemetaan sesuai filter.</p>
       ) : (
-        <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm min-w-[560px]">
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
               <th className="py-2 pr-3">Penilai</th><th className="py-2 px-3">Yang Dinilai</th><th className="py-2 px-3">Relasi</th>
@@ -107,6 +108,7 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
       <p className="text-[10px] text-gray-400 italic">
         Relasi menentukan kelas bobot 360 (Atasan/Peer/Cross/Self). Sifat Wajib jadi dasar Flag Kepatuhan.

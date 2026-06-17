@@ -33,7 +33,8 @@ export function RiwayatList({ groups }: { groups: EmpAudit[] }) {
             <span className="text-sm font-bold text-gray-800">{e.name} <span className="text-[11px] font-normal text-gray-400">· {e.dept}</span></span>
             <span className="text-[10px] text-gray-400">{e.entries.length} perubahan</span>
           </summary>
-          <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs min-w-[560px]">
             <thead>
               <tr className="text-[9px] uppercase tracking-wider text-gray-400 border-b border-gray-150 bg-white">
                 <th className="py-2 px-3">Bulan</th>
@@ -55,6 +56,7 @@ export function RiwayatList({ groups }: { groups: EmpAudit[] }) {
               ))}
             </tbody>
           </table>
+          </div>
         </details>
       ))}
     </div>

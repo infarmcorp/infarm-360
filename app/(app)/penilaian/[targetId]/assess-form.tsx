@@ -2,16 +2,25 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, CheckCircle2, X, Send, Save, XCircle, Trash2 } from 'lucide-react';
+import { ChevronLeft, CheckCircle2, X, Send, Save, XCircle, Trash2, ClipboardList, ChevronDown } from 'lucide-react';
 import { submitAssessment, discardAssessment } from '../actions';
 
-type Group = { id: string; name: string; indicators: { id: string; text: string }[] };
+type Indicator = { id: string; text: string; description?: string | null; ratingGuide?: Record<string, string> | null };
+type Group = { id: string; name: string; indicators: Indicator[] };
 type Question = { id: string; text: string };
 
 const RATING_LABELS: Record<number, string> = {
   1: 'Hampir Tidak Pernah', 2: 'Jarang', 3: 'Kadang', 4: 'Sering', 5: 'Selalu',
 };
 const QUAL = '__qual__';
+
+// Panduan Penilaian Umum (statis, paritas legacy) — berlaku untuk semua pertanyaan.
+const GENERAL_GUIDE = [
+  'Penilaian berbasis perilaku nyata sehari-hari, bukan kedekatan atau sentimen pribadi.',
+  'Skala 1 (Hampir Tidak Pernah) hingga 5 (Selalu) — sesuaikan dengan konsistensi tindakan target.',
+  'Wajib mengisi komentar/bukti perilaku (min. 4 karakter) sebagai dasar skor.',
+  'Gunakan rail aspek & navigasi Sebelumnya/Selanjutnya agar pengisian terstruktur.',
+];
 
 /**
  * Form Pengisian 360° — paritas legacy: rail aspek (kiri) + editor SATU indikator
@@ -34,10 +43,10 @@ export function AssessForm({
 
   // Daftar indikator rata dengan nomor Q global + aspek induk.
   const flat = useMemo(() => {
-    const arr: { gid: string; gname: string; id: string; text: string; qNum: number }[] = [];
+    const arr: { gid: string; gname: string; id: string; text: string; qNum: number; description?: string | null; ratingGuide?: Record<string, string> | null }[] = [];
     let n = 0;
     aspectGroups.forEach((g) => g.indicators.forEach((ind) => {
-      n += 1; arr.push({ gid: g.id, gname: g.name, id: ind.id, text: ind.text, qNum: n });
+      n += 1; arr.push({ gid: g.id, gname: g.name, id: ind.id, text: ind.text, qNum: n, description: ind.description, ratingGuide: ind.ratingGuide });
     }));
     return arr;
   }, [aspectGroups]);
@@ -63,6 +72,7 @@ export function AssessForm({
   const [activeId, setActiveId] = useState<string>(flat[0]?.id ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const indDone = (id: string) => ratings[id] != null && (comments[id] ?? '').trim().length >= 4;
   const doneCount = flat.filter((f) => indDone(f.id)).length;
@@ -135,6 +145,21 @@ export function AssessForm({
           <div style={{ width: `${pct}%` }} className="h-full bg-emerald-600 rounded-full transition-all" />
         </div>
         <span className="text-xs font-bold text-emerald-800 font-mono shrink-0">{doneCount}/{total} · {pct}%</span>
+      </div>
+
+      {/* Panduan Penilaian Umum (statis, berlaku semua pertanyaan) */}
+      <div className="bg-stone-50/70 border border-stone-200 rounded-xl">
+        <button type="button" onClick={() => setGuideOpen((o) => !o)}
+          className="w-full flex items-center gap-2 px-4 py-2.5 text-left">
+          <ClipboardList className="w-4 h-4 text-emerald-800 shrink-0" />
+          <span className="text-xs font-extrabold text-gray-800 flex-1">Panduan Penilaian Umum</span>
+          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${guideOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {guideOpen && (
+          <ul className="list-disc list-inside space-y-1.5 px-4 pb-3 text-[11px] text-gray-600 leading-relaxed">
+            {GENERAL_GUIDE.map((g, i) => <li key={i}>{g}</li>)}
+          </ul>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-4">
@@ -212,6 +237,28 @@ export function AssessForm({
                       className="p-1 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg shrink-0"><X className="w-4 h-4" /></button>
                   )}
                 </div>
+
+                {/* Deskripsi indikator (opsional, dari Kelola Pertanyaan) */}
+                {cur.description && (
+                  <div className="border-l-4 border-sky-500 bg-sky-50/40 p-3 rounded-r-lg text-[11px] text-sky-950 leading-relaxed">
+                    {cur.description}
+                  </div>
+                )}
+
+                {/* Panduan rating per level (opsional) */}
+                {cur.ratingGuide && Object.keys(cur.ratingGuide).length > 0 && (
+                  <div className="bg-stone-50/70 border border-stone-200 rounded-xl p-3 space-y-1.5">
+                    <span className="text-[10px] font-extrabold text-gray-700 uppercase tracking-wide flex items-center gap-1.5">
+                      <ClipboardList className="w-3.5 h-3.5 text-emerald-800" /> Panduan Rating
+                    </span>
+                    {[5, 4, 3, 2, 1].map((n) => cur.ratingGuide?.[String(n)] ? (
+                      <div key={n} className="flex gap-2 items-start text-[11px]">
+                        <span className="font-black text-emerald-800 font-mono w-4 text-center shrink-0 rounded bg-emerald-50 border border-emerald-100">{n}</span>
+                        <span className="text-gray-700 leading-snug"><strong className="text-gray-900">{RATING_LABELS[n]}</strong> · {cur.ratingGuide![String(n)]}</span>
+                      </div>
+                    ) : null)}
+                  </div>
+                )}
 
                 {/* Rating berlabel */}
                 <div className="bg-gray-50/60 border border-gray-200 rounded-xl p-3">

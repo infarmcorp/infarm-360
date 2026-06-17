@@ -66,8 +66,11 @@ huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
 - ~~**Form "Mulai Nilai" berbeda dari legacy.**~~ ✅ **Selesai** — `assess-form.tsx` dibangun
   ulang ke paritas legacy: **rail aspek** + editor **satu indikator** (Sebelumnya/Selanjutnya),
   **label rating** (Hampir Tidak Pernah…Selalu), **bar progres**, dan **komentar/bukti wajib
-  (min. 4 char)** divalidasi klien + server (`submitAssessment`). *Belum diport* (butuh kolom
-  DB baru): teks panduan rating & deskripsi kaya per-soal yang di legacy di-hardcode per indeks.
+  (min. 4 char)** divalidasi klien + server (`submitAssessment`).
+- ~~**Panduan rating & deskripsi per-soal belum ada.**~~ ✅ **Selesai** — migrasi `0006`
+  menambah `indicators.description` + `indicators.rating_guide` (jsonb). HRD mengisinya di
+  **Kelola Pertanyaan** (editor panduan per indikator). Form menampilkan **Panduan Penilaian
+  Umum** (statis) + deskripsi & panduan rating per indikator (opsional, hanya bila diisi).
 - ~~**"Batalkan Pengisian" tidak ada.**~~ ✅ **Selesai** — `assess-form.tsx` kini punya
   **Batal** (kembali tanpa simpan) & **Buang Draf** (`discardAssessment`, hapus draf +
   skor/jawaban via cascade; hanya draf, RLS milik penilai).

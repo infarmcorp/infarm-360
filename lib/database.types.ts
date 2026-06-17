@@ -72,8 +72,8 @@ export interface Database {
         Relationships: [];
       };
       indicators: {
-        Row: { id: string; aspect_id: string; text: string; order_idx: number; is_active: boolean };
-        Insert: { aspect_id: string; text: string; order_idx?: number; is_active?: boolean };
+        Row: { id: string; aspect_id: string; text: string; order_idx: number; is_active: boolean; description: string | null; rating_guide: Record<string, string> | null };
+        Insert: { aspect_id: string; text: string; order_idx?: number; is_active?: boolean; description?: string | null; rating_guide?: Record<string, string> | null };
         Update: Partial<Database['public']['Tables']['indicators']['Insert']>;
         Relationships: [];
       };

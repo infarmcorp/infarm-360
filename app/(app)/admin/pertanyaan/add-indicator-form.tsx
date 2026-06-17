@@ -22,9 +22,9 @@ export function AddIndicatorForm({ aspects }: { aspects: { id: string; name: str
     e.preventDefault();
     if (!aspectId) { setMsg({ ok: false, text: 'Pilih aspek dahulu.' }); return; }
     if (!title.trim()) { setMsg({ ok: false, text: 'Judul indikator wajib diisi.' }); return; }
-    const text = desc.trim() ? `${title.trim()} — ${desc.trim()}` : title.trim();
     setBusy(true); setMsg(null);
-    const res = await addIndicator(aspectId, text);
+    // Deskripsi disimpan di kolom tersendiri (muncul sebagai panduan di form penilaian).
+    const res = await addIndicator(aspectId, title.trim(), desc.trim());
     setBusy(false);
     if (!res.ok) { setMsg({ ok: false, text: res.error ?? 'Gagal menambah indikator.' }); return; }
     setMsg({ ok: true, text: 'Indikator kuantitatif berhasil ditambahkan.' });

@@ -65,8 +65,11 @@ Panel hanya aktif saat ada **periode aktif**.
    dengan alasan, lalu **Kirim Pengajuan**.
    - Kolom **Sifat** menandai tiap penilaian **Wajib** atau **Opsional** (diatur HRD di Pemetaan).
 3. Klik **Mulai Nilai** — form terpandu (rail aspek + satu indikator per layar):
+   - **Panduan Penilaian Umum** (kotak di atas, dapat dibuka/tutup) berlaku untuk semua soal.
    - **Rail Aspek Budaya** (kiri): pilih aspek; tiap aspek menampilkan progres **selesai/total**
      (✓ bila lengkap). Item terakhir **Umpan Balik Kualitatif** (opsional).
+   - Bila HRD mengisi panduan, tiap indikator menampilkan **deskripsi perilaku** + **panduan
+     rating per level** sebagai acuan menilai.
    - **Editor indikator** (kanan): pilih chip **Q1…Qn**, beri **Rating 1–5** (berlabel
      Hampir Tidak Pernah … Selalu), lalu isi **Komentar / Bukti Perilaku** — **wajib, min. 4
      karakter**. Tombol **× Bersihkan** mengosongkan jawaban indikator itu.
@@ -161,6 +164,10 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
   **nonaktifkan** (indikator dinonaktifkan, bukan dihapus, agar skor historis utuh).
 - **Section khusus "Tambah Indikator Kuantitatif Baru"** (di bawah semua aspek): pilih
   **Aspek** → isi **Judul Ringkas** + **Deskripsi Perilaku** (opsional) → **Tambah Indikator ke Aspek**.
+- **Panduan penilaian per indikator**: klik tanda ▸ di samping indikator untuk membuka editor —
+  isi **Deskripsi Perilaku** (kotak penjelasan di form penilaian) dan **Panduan Rating per Level**
+  (teks opsional untuk rating 1–5), lalu **Simpan Panduan**. Indikator ber-panduan ditandai
+  label "panduan". Panduan ini tampil sebagai acuan penilai di form **Mulai Nilai**.
 - **Umpan Balik Kualitatif (Esai Bebas)** untuk pertanyaan kualitatif (hapus = permanen).
 
 ### Bobot & Kalkulasi Skor 360° (satu halaman)

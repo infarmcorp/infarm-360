@@ -25,16 +25,33 @@ async function ctx(): Promise<
 
 type Result = { ok: true } | { ok: false; error: string };
 const Text = z.string().trim().min(3, 'Teks terlalu pendek').max(300);
+const Desc = z.string().trim().max(500).optional().default('');
+// Panduan rating: {"1".."5"} teks per level (opsional). Kosong → tak disimpan.
+const Guide = z.record(z.enum(['1', '2', '3', '4', '5']), z.string().trim().max(300)).optional();
 
-export async function addIndicator(aspectId: string, rawText: string): Promise<Result> {
+/** Normalisasi panduan rating → jsonb {level:teks} hanya untuk level berisi, atau null. */
+function normGuide(g?: Record<string, string>): Record<string, string> | null {
+  if (!g) return null;
+  const out: Record<string, string> = {};
+  for (const k of ['1', '2', '3', '4', '5']) { const v = (g[k] ?? '').trim(); if (v) out[k] = v; }
+  return Object.keys(out).length ? out : null;
+}
+
+export async function addIndicator(aspectId: string, rawText: string, rawDesc?: string, rawGuide?: Record<string, string>): Promise<Result> {
   const text = Text.safeParse(rawText);
   if (!text.success) return { ok: false, error: text.error.issues[0].message };
+  const desc = Desc.safeParse(rawDesc ?? '');
+  const guide = Guide.safeParse(rawGuide);
+  if (!desc.success) return { ok: false, error: 'Deskripsi terlalu panjang' };
   const c = await ctx(); if (!c.ok) return c;
   // Pastikan aspek milik periode aktif.
   const { data: asp } = await c.supabase.from('culture_aspects').select('id').eq('id', aspectId).eq('period_id', c.periodId).maybeSingle();
   if (!asp) return { ok: false, error: 'Aspek tidak ditemukan di periode aktif' };
   const { data: last } = await c.supabase.from('indicators').select('order_idx').eq('aspect_id', aspectId).order('order_idx', { ascending: false }).limit(1).maybeSingle();
-  const { error } = await c.supabase.from('indicators').insert({ aspect_id: aspectId, text: text.data, order_idx: (last?.order_idx ?? -1) + 1, is_active: true });
+  const { error } = await c.supabase.from('indicators').insert({
+    aspect_id: aspectId, text: text.data, order_idx: (last?.order_idx ?? -1) + 1, is_active: true,
+    description: desc.data || null, rating_guide: normGuide(guide.success ? guide.data : undefined),
+  });
   if (error) return { ok: false, error: 'Gagal menambah: ' + error.message };
   await logHrdAction({
     action: 'indicator.add', category: 'pertanyaan',
@@ -44,15 +61,23 @@ export async function addIndicator(aspectId: string, rawText: string): Promise<R
   return { ok: true };
 }
 
-export async function updateIndicator(indicatorId: string, rawText: string): Promise<Result> {
+export async function updateIndicator(indicatorId: string, rawText: string, rawDesc?: string, rawGuide?: Record<string, string>): Promise<Result> {
   const text = Text.safeParse(rawText);
   if (!text.success) return { ok: false, error: text.error.issues[0].message };
+  const desc = Desc.safeParse(rawDesc ?? '');
+  const guide = Guide.safeParse(rawGuide);
+  if (!desc.success) return { ok: false, error: 'Deskripsi terlalu panjang' };
   const c = await ctx(); if (!c.ok) return c;
-  const { error } = await c.supabase.from('indicators').update({ text: text.data }).eq('id', indicatorId);
+  // Hanya kirim description/rating_guide bila argumen diberikan (edit panduan), agar
+  // edit teks cepat tak menimpa panduan.
+  const patch: { text: string; description?: string | null; rating_guide?: Record<string, string> | null } = { text: text.data };
+  if (rawDesc !== undefined) patch.description = desc.data || null;
+  if (rawGuide !== undefined) patch.rating_guide = normGuide(guide.success ? guide.data : undefined);
+  const { error } = await c.supabase.from('indicators').update(patch).eq('id', indicatorId);
   if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
   await logHrdAction({
     action: 'indicator.update', category: 'pertanyaan',
-    summary: `Mengubah teks indikator menjadi: "${text.data}"`, targetType: 'indicator', targetId: indicatorId,
+    summary: `Mengubah indikator: "${text.data}"`, targetType: 'indicator', targetId: indicatorId,
   });
   revalidatePath('/admin/pertanyaan'); revalidatePath('/penilaian');
   return { ok: true };

@@ -92,7 +92,9 @@ huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
 ### C. Fungsional bernilai tinggi (pengembangan)
 - **Pengingat email 360° (Resend)** — placeholder `sendReminder`/`massReminder` di
   `app/(app)/admin/progress/actions.ts`.
-- **Ekspor Excel** dashboard/rekap (kini hanya PDF print) — HRD/Direksi sering butuh data mentah.
+- ~~**Ekspor Excel** dashboard/rekap.~~ ✅ **Selesai** — halaman **Ekspor Dataset**
+  (`/admin/ekspor`, HRD) unduh `.xlsx`: Pegawai, KPI Bulanan, Rekap Kinerja per Periode,
+  Penilaian 360° Detail, Pemetaan. (Tambah dataset baru di `admin/ekspor/actions.ts`.)
 - **Deadline periode lebih tegas** — tampilkan sisa hari + auto-warning saat mendekati
   `end_date` (kini hanya kunci manual).
 - **Ganti email mandiri** (opsional, lanjutan Opsi 1) — pertimbangkan verifikasi vs instan.

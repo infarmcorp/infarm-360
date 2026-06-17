@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, ChevronRight } from 'lucide-react';
-import { updateIndicator, toggleIndicator } from './actions';
+import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { updateIndicator, toggleIndicator, deleteIndicator } from './actions';
 
 type Ind = { id: string; text: string; is_active: boolean; description: string; ratingGuide: Record<string, string> | null };
 
@@ -70,6 +70,11 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
         <button type="button" disabled={busy} onClick={() => run(() => toggleIndicator(ind.id, !ind.is_active))}
           className="text-[10px] font-bold px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 shrink-0">
           {ind.is_active ? 'Nonaktif' : 'Aktifkan'}
+        </button>
+        <button type="button" disabled={busy} title="Hapus indikator (hanya bila belum dipakai penilaian)"
+          onClick={() => { if (window.confirm('Hapus indikator ini? Hanya bisa bila belum dipakai penilaian mana pun.')) run(() => deleteIndicator(ind.id)); }}
+          className="text-[10px] font-bold px-1.5 py-1 rounded border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50 shrink-0">
+          <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
 

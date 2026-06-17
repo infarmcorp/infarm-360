@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logHrdAction } from '@/lib/audit/log';
 
 /**
@@ -90,6 +90,32 @@ export async function toggleIndicator(indicatorId: string, isActive: boolean): P
   await logHrdAction({
     action: 'indicator.toggle', category: 'pertanyaan',
     summary: `${isActive ? 'Mengaktifkan' : 'Menonaktifkan'} satu indikator`, targetType: 'indicator', targetId: indicatorId,
+  });
+  revalidatePath('/admin/pertanyaan'); revalidatePath('/penilaian');
+  return { ok: true };
+}
+
+/**
+ * Hapus indikator (HRD). AMAN: hanya bila BELUM dipakai penilaian mana pun — sebab
+ * FK assessment_indicator_scores.indicator_id ON DELETE CASCADE akan menghapus skor
+ * historis. Bila sudah ada skor → tolak & sarankan "Nonaktifkan" agar histori utuh.
+ */
+export async function deleteIndicator(indicatorId: string): Promise<Result> {
+  if (!z.string().uuid().safeParse(indicatorId).success) return { ok: false, error: 'Input tidak valid' };
+  const c = await ctx(); if (!c.ok) return c;
+
+  const admin = createAdminClient();
+  const { count } = await admin.from('assessment_indicator_scores')
+    .select('*', { count: 'exact', head: true }).eq('indicator_id', indicatorId);
+  if ((count ?? 0) > 0) {
+    return { ok: false, error: `Indikator sudah dipakai ${count} penilaian — gunakan "Nonaktifkan" agar skor historis tetap utuh.` };
+  }
+
+  const { error } = await c.supabase.from('indicators').delete().eq('id', indicatorId);
+  if (error) return { ok: false, error: 'Gagal menghapus: ' + error.message };
+  await logHrdAction({
+    action: 'indicator.delete', category: 'pertanyaan',
+    summary: 'Menghapus satu indikator (belum dipakai penilaian)', targetType: 'indicator', targetId: indicatorId,
   });
   revalidatePath('/admin/pertanyaan'); revalidatePath('/penilaian');
   return { ok: true };

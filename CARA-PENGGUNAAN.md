@@ -168,7 +168,21 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
   isi **Deskripsi Perilaku** (kotak penjelasan di form penilaian) dan **Panduan Rating per Level**
   (teks opsional untuk rating 1–5), lalu **Simpan Panduan**. Indikator ber-panduan ditandai
   label "panduan". Panduan ini tampil sebagai acuan penilai di form **Mulai Nilai**.
+- **Hapus indikator**: tombol 🗑 di samping indikator. **Hanya bisa bila indikator belum
+  dipakai penilaian mana pun** (untuk menjaga skor historis). Bila sudah dipakai, gunakan
+  **Nonaktifkan** — indikator hilang dari form penilaian baru tanpa menghapus data lama.
 - **Umpan Balik Kualitatif (Esai Bebas)** untuk pertanyaan kualitatif (hapus = permanen).
+
+### Ekspor Dataset (Pemantauan)
+Unduh data mentah **Excel (.xlsx)** untuk olah data lanjutan (pivot/statistik/BI), mencakup
+seluruh periode. Dataset tersedia:
+- **Pegawai (Master)** — kode, nama, divisi, peran, status, atasan, email.
+- **KPI Bulanan** — skor KPI per pegawai per bulan (format panjang).
+- **Rekap Kinerja per Periode** — KPI rerata, Skor 360°, punishment, Skor Akhir, kategori, A/B/C/D.
+- **Penilaian 360° Detail** — raw feedback: penilai, target, relasi, indikator, rating, komentar.
+- **Pemetaan 360°** — pasangan penilai→target, relasi, sifat.
+
+> Data sensitif (nama, skor, komentar) — simpan & bagikan file dengan bertanggung jawab.
 
 ### Bobot & Kalkulasi Skor 360° (satu halaman)
 - **Bobot Penilai**: pilih **Model 4-Kelas** (Atasan/Peer/Cross/**Bawahan**/Self) atau **2-Kelas**

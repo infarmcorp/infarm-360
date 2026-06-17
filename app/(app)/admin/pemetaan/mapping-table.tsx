@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { DeleteButton } from './delete-button';
+import { SearchableSelect } from '@/components/searchable-select';
 
 export type MapRow = {
   id: string; assessorId: string; assessor: string; targetId: string; target: string;
@@ -47,16 +48,24 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <select value={fAssessor} onChange={(e) => setFAssessor(e.target.value)}
-          className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
-          <option value="all">👤 Semua Penilai</option>
-          {assessors.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
-        <select value={fTarget} onChange={(e) => setFTarget(e.target.value)}
-          className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-600">
-          <option value="all">🎯 Semua Target</option>
-          {targets.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-        </select>
+        <div className="w-full sm:w-56">
+          <SearchableSelect
+            value={fAssessor}
+            onChange={setFAssessor}
+            options={[{ value: 'all', label: '👤 Semua Penilai' }, ...assessors.map((a) => ({ value: a.id, label: a.name }))]}
+            searchPlaceholder="Cari penilai…"
+            className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
+          />
+        </div>
+        <div className="w-full sm:w-56">
+          <SearchableSelect
+            value={fTarget}
+            onChange={setFTarget}
+            options={[{ value: 'all', label: '🎯 Semua Target' }, ...targets.map((t) => ({ value: t.id, label: t.name }))]}
+            searchPlaceholder="Cari target…"
+            className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-600"
+          />
+        </div>
         {active && (
           <button type="button" onClick={() => { setFAssessor('all'); setFTarget('all'); }}
             className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>

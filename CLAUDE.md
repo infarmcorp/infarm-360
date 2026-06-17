@@ -66,9 +66,9 @@ huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
 - **Form "Mulai Nilai" berbeda dari legacy** (`app/(app)/penilaian/[targetId]/assess-form.tsx`).
   Alur/UX pengisian 360° tidak sama dengan SPA legacy (`src/App.tsx` FormAssess). Perlu
   tinjau paritas (tata letak aspek/indikator, navigasi antar-indikator) bila kesamaan diinginkan.
-- **"Batalkan Pengisian" tidak ada.** Legacy punya "Batal / Pilih Ulang" + "Batalkan";
-  versi Next.js belum punya tombol **batal/buang draf** di `assess-form.tsx`. Rekomendasi:
-  tambah aksi buang-draf (hapus `assessments` draft + skor terkait, RLS milik penilai).
+- ~~**"Batalkan Pengisian" tidak ada.**~~ ✅ **Selesai** — `assess-form.tsx` kini punya
+  **Batal** (kembali tanpa simpan) & **Buang Draf** (`discardAssessment`, hapus draf +
+  skor/jawaban via cascade; hanya draf, RLS milik penilai).
 - *(Catatan pengguna soal Komentar Audit KPI = perilaku yang MEMANG diinginkan, bukan bug:*
   *edit skor wajib komentar; input KPI pertama boleh tanpa komentar. Pertahankan.)*
 

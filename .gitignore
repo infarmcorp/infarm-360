@@ -12,3 +12,6 @@ coverage/
 
 # Supabase CLI temp
 supabase/.temp/
+
+# Backup dump dari scripts/reset-data.mjs (berisi data sensitif — jangan commit)
+backups/

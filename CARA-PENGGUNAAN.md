@@ -64,13 +64,19 @@ Panel hanya aktif saat ada **periode aktif**.
 2. Cek kolom **Garis Hubungan** — jika hubungan kerja salah, ajukan **Minta Koreksi**
    dengan alasan, lalu **Kirim Pengajuan**.
    - Kolom **Sifat** menandai tiap penilaian **Wajib** atau **Opsional** (diatur HRD di Pemetaan).
-3. Klik **Mulai Nilai**:
-   - Pilih **Aspek Budaya** (rail kiri) dan indikatornya (mis. "Q1 Pegang Komitmen").
-   - Beri **Rating** (1–5) dan isi **Komentar** (wajib, min. 4 karakter).
-   - Klik **Selanjutnya** untuk indikator berikutnya.
+3. Klik **Mulai Nilai** — form terpandu (rail aspek + satu indikator per layar):
+   - **Rail Aspek Budaya** (kiri): pilih aspek; tiap aspek menampilkan progres **selesai/total**
+     (✓ bila lengkap). Item terakhir **Umpan Balik Kualitatif** (opsional).
+   - **Editor indikator** (kanan): pilih chip **Q1…Qn**, beri **Rating 1–5** (berlabel
+     Hampir Tidak Pernah … Selalu), lalu isi **Komentar / Bukti Perilaku** — **wajib, min. 4
+     karakter**. Tombol **× Bersihkan** mengosongkan jawaban indikator itu.
+   - Navigasi **Sebelumnya / Selanjutnya** berpindah antar indikator (lintas aspek otomatis).
+     **Bar progres** di atas menunjukkan kelengkapan keseluruhan.
 4. Belum selesai? Klik **Simpan Draf** — lanjutkan lagi dari "Daftar Penilaian Saya".
-5. Sudah lengkap? Klik **Kirim Penilaian 360°**.
-6. **Batalkan Pengisian** untuk membatalkan.
+5. Sudah lengkap? Klik **Kirim Penilaian 360°**. Bila ada rating/komentar kurang, sistem
+   **melompat ke indikator yang belum lengkap**.
+6. **Batal** kembali ke daftar tanpa menyimpan; **Buang Draf** (muncul bila ada draf
+   tersimpan) menghapus draf beserta rating & komentarnya.
 7. Menilai orang di luar daftar: fitur **Hak Penilaian Ad-Hoc Mandiri** →
    "Pilih Rekan Kerja untuk Dinilai" → "Tambahkan Rekan" → nilai seperti biasa.
 
@@ -87,7 +93,10 @@ Selain semua fitur Employee di atas, SPV punya:
 
 ### Input KPI Anggota (bulanan)
 - **Pengisian Manual Apps**: pilih **Bulan & Tahun**, isi **Skor Baru (0–100)**,
-  klik **Simpan Semua Skor**. Saat mengedit, isi **Komentar Ringkas Audit**.
+  klik **Simpan Semua Skor**.
+  - **Input pertama** suatu pegawai **boleh tanpa komentar**.
+  - **Saat mengedit** skor yang sudah ada, **Komentar Ringkas Audit wajib diisi** — tanpa
+    komentar, perubahan **tidak bisa disimpan** (demi jejak audit yang jelas).
 - **Unggah Excel Kerja**: unduh "Format Template KPI Standard.xlsx", isi, drag-drop,
   tunggu ter-parsing, lalu **Pasang Data & Tinjau Kembali**.
 

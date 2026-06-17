@@ -63,9 +63,11 @@ Daftar hidup (perbarui saat ada perubahan). Sumber: tinjauan internal + catatan 
 huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
 
 ### A. Paritas legacy yang belum lengkap (dicatat pengguna)
-- **Form "Mulai Nilai" berbeda dari legacy** (`app/(app)/penilaian/[targetId]/assess-form.tsx`).
-  Alur/UX pengisian 360° tidak sama dengan SPA legacy (`src/App.tsx` FormAssess). Perlu
-  tinjau paritas (tata letak aspek/indikator, navigasi antar-indikator) bila kesamaan diinginkan.
+- ~~**Form "Mulai Nilai" berbeda dari legacy.**~~ ✅ **Selesai** — `assess-form.tsx` dibangun
+  ulang ke paritas legacy: **rail aspek** + editor **satu indikator** (Sebelumnya/Selanjutnya),
+  **label rating** (Hampir Tidak Pernah…Selalu), **bar progres**, dan **komentar/bukti wajib
+  (min. 4 char)** divalidasi klien + server (`submitAssessment`). *Belum diport* (butuh kolom
+  DB baru): teks panduan rating & deskripsi kaya per-soal yang di legacy di-hardcode per indeks.
 - ~~**"Batalkan Pengisian" tidak ada.**~~ ✅ **Selesai** — `assess-form.tsx` kini punya
   **Batal** (kembali tanpa simpan) & **Buang Draf** (`discardAssessment`, hapus draf +
   skor/jawaban via cascade; hanya draf, RLS milik penilai).

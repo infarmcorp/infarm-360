@@ -54,9 +54,14 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
     .maybeSingle();
   if (!mapping) return { ok: false, error: 'Anda tidak ditugaskan menilai pegawai ini' };
 
-  // Saat KIRIM, semua indikator wajib diberi rating.
-  if (status === 'submitted' && scores.some((s) => s.rating === null)) {
-    return { ok: false, error: 'Lengkapi seluruh rating indikator sebelum mengirim' };
+  // Saat KIRIM: semua indikator wajib rating + komentar/bukti perilaku (min. 4 karakter).
+  if (status === 'submitted') {
+    if (scores.some((s) => s.rating === null)) {
+      return { ok: false, error: 'Lengkapi seluruh rating indikator sebelum mengirim' };
+    }
+    if (scores.some((s) => (s.comment ?? '').trim().length < 4)) {
+      return { ok: false, error: 'Setiap indikator wajib komentar/bukti perilaku minimal 4 karakter' };
+    }
   }
 
   // Header assessment (upsert → dapat id).

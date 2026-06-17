@@ -174,15 +174,20 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
 - **Umpan Balik Kualitatif (Esai Bebas)** untuk pertanyaan kualitatif (hapus = permanen).
 
 ### Ekspor Dataset (Pemantauan)
-Unduh data mentah **Excel (.xlsx)** untuk olah data lanjutan (pivot/statistik/BI), mencakup
-seluruh periode. Dataset tersedia:
+Unduh data mentah **Excel (.xlsx)** untuk olah data lanjutan (pivot/statistik/BI). Pilih
+**Periode** lewat dropdown (atau **Semua Periode**) — berlaku untuk dataset ber-periode;
+**Pegawai** selalu lintas periode. Dataset tersedia:
 - **Pegawai (Master)** — kode, nama, divisi, peran, status, atasan, email.
 - **KPI Bulanan** — skor KPI per pegawai per bulan (format panjang).
+- **Log Audit KPI** — jejak perubahan KPI: bulan, skor, pengubah, waktu, catatan.
+- **Kepatuhan / Punishment** — poin punishment per pegawai, alasan, penetap.
 - **Rekap Kinerja per Periode** — KPI rerata, Skor 360°, punishment, Skor Akhir, kategori, A/B/C/D.
-- **Penilaian 360° Detail** — raw feedback: penilai, target, relasi, indikator, rating, komentar.
+- **Penilaian 360° Detail (anonim penilai)** — per pegawai dinilai: relasi, indikator, rating,
+  komentar (**identitas penilai sengaja tidak disertakan**).
 - **Pemetaan 360°** — pasangan penilai→target, relasi, sifat.
 
 > Data sensitif (nama, skor, komentar) — simpan & bagikan file dengan bertanggung jawab.
+> Nama file menyertakan periode terpilih untuk memudahkan arsip.
 
 ### Bobot & Kalkulasi Skor 360° (satu halaman)
 - **Bobot Penilai**: pilih **Model 4-Kelas** (Atasan/Peer/Cross/**Bawahan**/Self) atau **2-Kelas**

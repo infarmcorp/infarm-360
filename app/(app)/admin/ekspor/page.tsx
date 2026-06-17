@@ -22,6 +22,10 @@ export default async function EksporPage() {
     );
   }
 
+  const { data: periods } = await supabase
+    .from('periods').select('id, label, status, start_date').order('start_date', { ascending: false });
+  const periodOpts = (periods ?? []).map((p) => ({ id: p.id, label: p.label, active: p.status === 'active' }));
+
   return (
     <main className="w-full p-4 sm:p-5 lg:p-6">
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
@@ -31,9 +35,9 @@ export default async function EksporPage() {
         </div>
         <p className="text-sm text-gray-500 mb-4">
           Unduh data mentah dalam format <strong>Excel (.xlsx)</strong> untuk olah data lanjutan
-          (pivot, statistik, atau alat BI). Dataset mencakup seluruh periode.
+          (pivot, statistik, atau alat BI). Pilih <strong>periode</strong> atau seluruh periode.
         </p>
-        <EksporClient />
+        <EksporClient periods={periodOpts} />
         <p className="text-[10px] text-gray-400 italic mt-4">
           Data bersifat sensitif (memuat nama, skor, & komentar). Simpan & bagikan file secara bertanggung jawab.
         </p>

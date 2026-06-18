@@ -77,8 +77,11 @@ huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
 ### B. Wajib sebelum go-live (keamanan & kebersihan)
 - **Sandi bersama `Infarm2026`** untuk semua akun → minta tiap pegawai ganti; beri sandi
   berbeda per orang. Risiko impersonasi (inti integritas 360°).
-- **Self-service ganti sandi (Opsi 1) belum dibangun** — rancangan siap (halaman `/akun`
-  + `updateUser({password})`). Paling cepat menutup risiko sandi bersama tanpa email.
+- ~~**Self-service ganti sandi (Opsi 1) belum dibangun**~~ ✅ **Selesai** — halaman
+  **Akun Saya** (`app/(app)/akun/`, semua peran): verifikasi **sandi saat ini** via
+  `signInWithPassword` lalu `updateUser({password})` (Server Action `changeOwnPassword`,
+  Zod, min. 8 char). Tautan di footer sidebar. Sandi tak pernah dicatat. Menutup risiko
+  sandi bersama tanpa perlu email. (Tetap dorong tiap pegawai menggantinya.)
 - **Lupa Sandi via email (Opsi 2) dormant** — kode siap di `app/auth/lupa-sandi`,
   `/auth/callback`, `/auth/perbarui-sandi`; aktifkan dengan email asli + Resend/SMTP +
   `NEXT_PUBLIC_ENABLE_PW_RESET=true` (lihat `progress.md`).

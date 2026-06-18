@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 import type { TodoItem, TodoTone } from '@/lib/todos/compute';
@@ -208,12 +208,21 @@ export function AppShell({
         ))}
       </nav>
 
-      {/* User + logout */}
+      {/* User + akun + logout */}
       <div className="p-3 border-t border-gray-150">
         <div className="px-1 mb-2">
           <div className="text-xs font-bold text-gray-800 truncate">{name}</div>
           <div className="text-[10px] text-gray-400">{dept} · {ROLE_LABEL[role]} · <span className="font-mono">{empCode}</span></div>
         </div>
+        <Link
+          href="/akun"
+          onClick={() => setOpen(false)}
+          className={`w-full flex items-center gap-1.5 text-xs font-semibold rounded-lg py-2 px-2 mb-1 transition-colors ${
+            isActive('/akun') ? 'bg-emerald-50 text-emerald-900' : 'text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <KeyRound className="w-3.5 h-3.5 text-emerald-600" /> Akun Saya
+        </Link>
         <form action="/auth/signout" method="post">
           <button type="submit" className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg py-2 transition-colors">
             <LogOut className="w-3.5 h-3.5" /> Keluar

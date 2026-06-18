@@ -40,6 +40,21 @@ Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saa
 
 ---
 
+## Akun Saya — Ganti Sandi (semua peran)
+
+Di **footer sidebar** (bawah, dekat tombol Keluar) ada tautan **Akun Saya**. Halaman ini
+menampilkan info akun (nama, email login, divisi, peran, kode pegawai) dan form **Ganti Sandi**:
+
+1. Isi **Sandi Saat Ini** (verifikasi keamanan), **Sandi Baru** (min. 8 karakter), dan
+   **Ulangi Sandi Baru**.
+2. Klik **Simpan Sandi Baru**.
+
+> **Penting:** semua akun awalnya memakai **sandi bersama**. Tiap pegawai sebaiknya segera
+> mengganti dengan sandi pribadi lewat halaman ini — demi menjaga **integritas penilaian 360°**
+> (mencegah orang lain login & menilai atas nama Anda). Sandi tidak pernah dicatat sistem.
+
+---
+
 ## Tugas & Notifikasi (semua peran)
 
 Di **sidebar bagian atas** terdapat panel **"Tugas & Notifikasi"** dengan badge jumlah

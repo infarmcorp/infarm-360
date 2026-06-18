@@ -66,11 +66,8 @@ huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
 - ~~**Form "Mulai Nilai" berbeda dari legacy.**~~ ✅ **Selesai** — `assess-form.tsx` dibangun
   ulang ke paritas legacy: **rail aspek** + editor **satu indikator** (Sebelumnya/Selanjutnya),
   **label rating** (Hampir Tidak Pernah…Selalu), **bar progres**, dan **komentar/bukti wajib
-  (min. 4 char)** divalidasi klien + server (`submitAssessment`).
-- ~~**Panduan rating & deskripsi per-soal belum ada.**~~ ✅ **Selesai** — migrasi `0006`
-  menambah `indicators.description` + `indicators.rating_guide` (jsonb). HRD mengisinya di
-  **Kelola Pertanyaan** (editor panduan per indikator). Form menampilkan **Panduan Penilaian
-  Umum** (statis) + deskripsi & panduan rating per indikator (opsional, hanya bila diisi).
+  (min. 4 char)** divalidasi klien + server (`submitAssessment`). *Belum diport* (butuh kolom
+  DB baru): teks panduan rating & deskripsi kaya per-soal yang di legacy di-hardcode per indeks.
 - ~~**"Batalkan Pengisian" tidak ada.**~~ ✅ **Selesai** — `assess-form.tsx` kini punya
   **Batal** (kembali tanpa simpan) & **Buang Draf** (`discardAssessment`, hapus draf +
   skor/jawaban via cascade; hanya draf, RLS milik penilai).
@@ -92,9 +89,46 @@ huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
 ### C. Fungsional bernilai tinggi (pengembangan)
 - **Pengingat email 360° (Resend)** — placeholder `sendReminder`/`massReminder` di
   `app/(app)/admin/progress/actions.ts`.
-- ~~**Ekspor Excel** dashboard/rekap.~~ ✅ **Selesai** — halaman **Ekspor Dataset**
-  (`/admin/ekspor`, HRD) unduh `.xlsx`: Pegawai, KPI Bulanan, Rekap Kinerja per Periode,
-  Penilaian 360° Detail, Pemetaan. (Tambah dataset baru di `admin/ekspor/actions.ts`.)
+- **Ekspor Excel** dashboard/rekap (kini hanya PDF print) — HRD/Direksi sering butuh data mentah.
+- **Ringkasan Aspek 360° otomatis (Claude API) — REKOMENDASI, belum dibangun.**
+  Editor ringkasan per-aspek sudah ada (`app/(app)/laporan/aspect-summary-editor.tsx` →
+  `saveAspectSummaries`, tersimpan di `final_reports.content.aspectSummaries`; HRD bebas
+  menyunting lalu Simpan). Tambahkan tombol **"✨ Buat Ringkasan Otomatis"** per aspek yang
+  memanggil Server Action baru → kirim **rating + komentar anonim** aspek itu (dari
+  `data.byAspect`, **tanpa nama penilai**) ke Claude → isi textarea (HRD tetap edit & Simpan).
+  - **Yang diperlukan:** (1) `ANTHROPIC_API_KEY` **server-only** di Vercel (jangan
+    `NEXT_PUBLIC_*`, jangan di-commit); (2) `npm i @anthropic-ai/sdk`; (3) Server Action
+    HRD-only (`client.messages.create`); (4) pola **dorman/flag** seperti Resend —
+    `NEXT_PUBLIC_ENABLE_AI_SUMMARY=true`, tombol muncul hanya bila key terpasang.
+  - **Model:** `claude-haiku-4-5` (termurah, $1/$5 per 1 jt token) cukup untuk meringkas;
+    `claude-sonnet-4-6` ($3/$15) bila ingin prosa lebih halus.
+  - **Dasar perhitungan biaya:** 1 komentar/jawaban ≈ **1.000 karakter ≈ 250 token**
+    (±1 token tiap 4 karakter). Yang dikirim per *generate* = semua komentar/jawaban terkait +
+    daftar rating + instruksi (~250 token overhead/panggilan); output ringkasan ~250–300 token.
+    Kurs asumsi $1 ≈ Rp16.000. Biaya **hanya muncul saat tombol ditekan**, bukan tiap render.
+  - **Skenario referensi — 1 pegawai = 10 indikator × 10 penilai (100 komentar) + 3 esai ×
+    10 penilai (30 jawaban):**
+
+    | Komponen | Token input | Token output | Haiku 4.5 | Sonnet 4.6 |
+    |---|---|---|---|---|
+    | Indikator (5 aspek × 2 indikator) | ~26.250 | ~1.250 | $0.033 | $0.099 |
+    | Esai (3 pertanyaan) | ~7.750 | ~300 | $0.009 | $0.026 |
+    | **Total / pegawai** | **~34.000** | **~1.550** | **~$0.042 (Rp670)** | **~$0.125 (Rp2.000)** |
+
+  - **Total per kuartal (semua pegawai, skenario di atas):**
+
+    | Jumlah pegawai | Haiku | Sonnet |
+    |---|---|---|
+    | 50 pegawai | ~$2.1 (~Rp34 rb) | ~$6.3 (~Rp100 rb) |
+    | 100 pegawai | ~$4.2 (~Rp67 rb) | ~$12.5 (~Rp200 rb) |
+
+  - **Skenario lebih kecil** (per aspek, 1 komentar ≈ 1.000 karakter, Haiku): aspek kecil
+    (3 indikator × 6 penilai) ~$0.006, sedang (4×10) ~$0.012, besar (6×12) ~$0.020. Bila
+    rata-rata esai ~2.000 karakter (bukan 1.000), komponen esai ≈ 2× — total/pegawai naik
+    ke ~$0.05 Haiku (~Rp800), tetap sangat kecil.
+  - **Privasi:** komentar 360° = data kinerja sensitif; dengan API teks dikirim ke Anthropic
+    (sudah anonim, tanpa nama). Anthropic API menyimpan hingga 30 hari untuk operasional,
+    **bukan** untuk melatih model pada data API bisnis. Perlu persetujuan kebijakan internal.
 - **Deadline periode lebih tegas** — tampilkan sisa hari + auto-warning saat mendekati
   `end_date` (kini hanya kunci manual).
 - **Ganti email mandiri** (opsional, lanjutan Opsi 1) — pertimbangkan verifikasi vs instan.

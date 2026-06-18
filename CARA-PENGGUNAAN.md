@@ -97,6 +97,9 @@ Panel hanya aktif saat ada **periode aktif**.
 Selain semua fitur Employee di atas, SPV punya:
 
 ### Input KPI Anggota (bulanan)
+- Daftar berisi **anggota tim** SPV (dari Pemetaan atasan di Kelola Pegawai) **+ SPV sendiri**
+  — SPV juga mencatat **capaian KPI pribadinya**. (SPV hanya boleh menulis KPI anggota timnya
+  & dirinya sendiri; tidak bisa mengubah KPI rekan SPV lain — ditegakkan via RLS.)
 - **Pengisian Manual Apps**: pilih **Bulan & Tahun**, isi **Skor Baru (0–100)**,
   klik **Simpan Semua Skor**.
   - **Input pertama** suatu pegawai **boleh tanpa komentar**.

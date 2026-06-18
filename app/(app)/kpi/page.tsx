@@ -125,8 +125,9 @@ async function InputTab({
     }
     const { data: teamRows } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);
     const memberIds = (teamRows ?? []).map((r) => r.employee_id);
-    if (!memberIds.length) return [];
-    const { data } = await supabase.from('employees').select('id, emp_code, name, dept').in('id', memberIds);
+    // SPV juga mencatat capaian KPI dirinya sendiri → selalu sertakan userId.
+    const ids = [...new Set([userId, ...memberIds])];
+    const { data } = await supabase.from('employees').select('id, emp_code, name, dept').in('id', ids);
     return data ?? [];
   };
   const scopeMonths = async (): Promise<string[]> => {

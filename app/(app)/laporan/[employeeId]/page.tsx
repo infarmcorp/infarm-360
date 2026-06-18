@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { loadReport } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
+import { ReportActions } from '../report-actions';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
 import { RawFeedback } from '../raw-feedback';
 
@@ -37,8 +38,18 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     <Shell>
       <Link href="/admin/laporan" className="text-xs text-gray-500 hover:underline no-print">← Daftar Laporan</Link>
       <div className="mt-2">
-        {/* HRD: sembunyikan blok komentar-per-penilai (bernama) → diganti raw feedback anonim. */}
-        <ReportDoc data={data} anonymize={false} hideAssessorComments={isHrd} />
+        {/* HRD: panel aksi (Unduh PDF / Simpan Draf / Finalisasi Hasil) di atas dokumen. */}
+        {isHrd && (
+          <ReportActions
+            employeeId={employeeId}
+            status={data.status}
+            finalScore={data.finalScore}
+            canCompute={data.kpiAvg != null}
+          />
+        )}
+        {/* HRD: sembunyikan blok komentar-per-penilai (bernama) → diganti raw feedback anonim;
+            tombol Unduh PDF bawaan disembunyikan karena sudah ada di panel aksi. */}
+        <ReportDoc data={data} anonymize={false} hideAssessorComments={isHrd} hidePrint={isHrd} />
         {isHrd && data.has360 && (
           <>
             <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} />

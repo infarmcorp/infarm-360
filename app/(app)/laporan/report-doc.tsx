@@ -9,7 +9,7 @@ const RELATION_LABEL: Record<string, string> = {
 
 /** Dokumen Laporan rinci: radar aspek, ringkasan skor, komentar mentah per penilai.
  * `anonymize`=true (pegawai melihat laporannya sendiri) menyamarkan nama penilai. */
-export function ReportDoc({ data, anonymize, hideAssessorComments }: { data: ReportData; anonymize: boolean; hideAssessorComments?: boolean }) {
+export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: { data: ReportData; anonymize: boolean; hideAssessorComments?: boolean; hidePrint?: boolean }) {
   const aspectsWith = data.aspects.filter((a) => a.score != null);
   return (
     <div>
@@ -18,13 +18,15 @@ export function ReportDoc({ data, anonymize, hideAssessorComments }: { data: Rep
           <h1 className="text-xl font-bold text-gray-800">Dokumen Laporan Kinerja</h1>
           <p className="text-sm text-gray-500">{data.emp.name} · {data.emp.dept} · {data.periodLabel}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="shrink-0 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white"
-        >
-          <Download className="w-3.5 h-3.5" /> Unduh PDF
-        </button>
+        {!hidePrint && (
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="shrink-0 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white"
+          >
+            <Download className="w-3.5 h-3.5" /> Unduh PDF
+          </button>
+        )}
       </div>
 
       {/* Kop cetak (hanya saat print) */}

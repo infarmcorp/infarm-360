@@ -214,6 +214,30 @@ RESEND_API_KEY                 # server-only (jika email reminder dipakai)
   kolom tabel `N/A`, dan kategori A Player nonaktif (Skor Akhir = 100% KPI). Helper inti:
   `getTalentMatrix`, `getPlayerMatrix`, `getEmpTalentBox`, `getEmpPlayerBox`.
 
+## Pengujian (Vitest) — logika skor
+
+> **Kenapa ada:** rumus skor (Skor Akhir, 9-Box, A/B/C/D, bobot 360°) menentukan keputusan
+> SDM nyata (promosi, punishment, kategori talenta). Kesalahan rumus **tidak memunculkan
+> error** — aplikasi tetap jalan, angkanya saja yang salah ("salah diam-diam"). Tes mengunci
+> rumus: bila ada perubahan tak sengaja, `npm test` langsung **gagal merah** sebelum sampai
+> ke pengguna. Tes ini **bukan** aktivitas kuartalan — dijalankan saat **kode disentuh**.
+
+- **Jalankan:** `npm test` (sekali) atau `npm run test:watch` (mode pantau).
+- **Cakupan (28 tes):**
+  - `tests/scoring.test.ts` → `lib/scoring.ts`: `finalScoreOf` (blend 50/50, KPI-only, s360
+    null, punishment, floor 0), `playerClassOf` (A hanya bila 360 aktif & final≥90 & kpi≥90 &
+    360≥80; ambang B/C/D), `kpiBandOf`/`s360BandOf` (ambang band), `talentBoxOf` (9 kotak).
+  - `tests/score360.test.ts` → `lib/score360.ts`: `weightedScore360` model **4class** (semua
+    kelas, normalisasi bobot saat kelas kosong, **kelas Bawahan**, **Self dikecualikan**) &
+    **2class** (Internal = rerata semua skor Peer+Cross+Bawahan, fallback satu sisi).
+- **Rumus inti ada di KODE, bukan UI.** Yang bisa diubah HRD lewat aplikasi = *input* (bobot
+  %, 360° aktif/nonaktif, KPI, punishment). Cara blend (50/50) & ambang (≥90 dst.) terkunci di
+  `lib/scoring.ts` / `lib/score360.ts` — hanya berubah lewat edit kode + deploy.
+- **Kalau sengaja mengubah rumus:** perbarui juga tes terkait (kunci jawaban) agar lolos.
+  `lib/score360.ts` diekstrak dari `app/(app)/admin/360/actions.ts` — jaga keduanya sinkron.
+- **CI (`.github/workflows/ci.yml`)** menjalankan `npm test` + typecheck + build **otomatis
+  tiap push ke `main` & tiap PR**. Status ✓/✗ muncul di tab **Actions** GitHub.
+
 ## Perintah
 
 ```bash
@@ -222,4 +246,6 @@ npm run dev        # Next.js dev :3000
 npm run build      # next build (jalankan sebelum push — memvalidasi tipe & prerender)
 npm run typecheck  # tsc --noEmit
 npm run lint       # next lint
+npm test           # vitest run — unit test logika skor (lib/scoring.ts, lib/score360.ts)
+npm run test:watch # vitest mode pantau (re-run saat file berubah)
 ```

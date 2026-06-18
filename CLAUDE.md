@@ -137,9 +137,12 @@ huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
 - **Ganti email mandiri** (opsional, lanjutan Opsi 1) — pertimbangkan verifikasi vs instan.
 
 ### D. Keandalan teknis
-- **Belum ada satu pun tes.** Prioritaskan unit test logika skor: `lib/scoring.ts`
-  (`finalScoreOf`, `playerClassOf`), kalkulasi 360 (`app/(app)/admin/360/actions.ts`,
-  termasuk kelas **Bawahan**), klasifikasi 9-Box/4-Box. Regresi di sini = angka salah diam-diam.
+- ~~**Belum ada satu pun tes.**~~ 🟡 **Mulai** — **Vitest** terpasang (`npm test`).
+  Unit test logika skor sudah ada (28 tes, `tests/scoring.test.ts` + `tests/score360.test.ts`):
+  `lib/scoring.ts` (`finalScoreOf`, `playerClassOf`, band 9-Box/4-Box) & `lib/score360.ts`
+  (`weightedScore360` 4class/2class, **kelas Bawahan**, Self dikecualikan — diekstrak dari
+  `app/(app)/admin/360/actions.ts` agar murni & teruji). **Sisa:** tes integrasi RLS,
+  parsing impor Excel, dan Server Action lain.
 - **Verifikasi RLS menyeluruh per peran** (skrip uji terprogram) sebelum produksi.
 - **Aksesibilitas & mobile** — kontras, label form, navigasi keyboard dropdown custom;
   uji tabel lebar (dashboard, pemetaan) di layar kecil.

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logHrdAction } from '@/lib/audit/log';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
+import { classOf, avg, round1, weightedScore360, type Groups360 } from '@/lib/score360';
 
 /**
  * Kalkulasi skor 360 terbobot → tabel result_360 (PANDUAN: kalibrasi skor).
@@ -11,20 +12,9 @@ import type { RelationKind, WeightValues } from '@/lib/database.types';
  * Keamanan (inti aplikasi):
  *  - Hanya HRD yang boleh memicu (verifikasi peran via client ber-sesi).
  *  - Penulisan result_360 lewat service_role (RLS sengaja TIDAK memberi tulis ke client).
- *  - Rumus mengikuti SPA legacy getScore360ForQuarter: rata-rata rating per penilai ×20,
- *    dikelompokkan per kelas (Atasan/Peer/Cross/Self), Self DIKECUALIKAN dari total,
- *    lalu dibobot sesuai weight_scheme aktif (4class / 2class).
+ *  - Rumus murni (rata-rata ×20, pembobotan per kelas, Self dikecualikan) ada di
+ *    `lib/score360.ts` agar bisa diuji unit; di sini hanya I/O DB + otorisasi.
  */
-const classOf = (rel: RelationKind): 'atasan' | 'peer' | 'cross' | 'bawahan' | 'self' => {
-  if (rel === 'Atasan') return 'atasan';
-  if (rel === 'Cross') return 'cross';
-  if (rel === 'Bawahan') return 'bawahan';
-  if (rel === 'Self') return 'self';
-  return 'peer';
-};
-const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
-const round1 = (n: number) => Math.round(n * 10) / 10;
-
 export type ComputeResult = { ok: true; computed: number; periodLabel: string } | { ok: false; error: string };
 
 export async function computeResult360(): Promise<ComputeResult> {
@@ -73,8 +63,7 @@ export async function computeResult360(): Promise<ComputeResult> {
   (maps ?? []).forEach((m) => relByPair.set(`${m.assessor_id}:${m.target_id}`, m.relation));
 
   // Kelompokkan skor (×20) per target per kelas.
-  type Groups = { atasan: number[]; peer: number[]; cross: number[]; bawahan: number[]; self: number[] };
-  const byTarget = new Map<string, Groups>();
+  const byTarget = new Map<string, Groups360>();
   for (const a of asmts) {
     const rs = ratingsByAsmt.get(a.id);
     const m = rs && avg(rs);
@@ -89,31 +78,10 @@ export async function computeResult360(): Promise<ComputeResult> {
     byTarget.set(a.target_id, g);
   }
 
-  // Hitung skor terbobot per target.
+  // Hitung skor terbobot per target (rumus murni di lib/score360.ts).
   const rows: { employee_id: string; period_id: string; score: number }[] = [];
   for (const [targetId, g] of byTarget) {
-    const aAvg = avg(g.atasan), pAvg = avg(g.peer), cAvg = avg(g.cross), bAvg = avg(g.bawahan);
-    let score: number | null = null;
-
-    if (ws.model === '4class') {
-      const parts: [number | null, number][] = [
-        [aAvg, weights.atasan ?? 0],
-        [pAvg, weights.peer ?? 0],
-        [cAvg, weights.cross ?? 0],
-        [bAvg, weights.bawahan ?? 0],
-        // self DIKECUALIKAN dari total resmi
-      ];
-      let wSum = 0, tW = 0;
-      for (const [val, w] of parts) if (val != null) { wSum += val * w; tW += w; }
-      if (tW > 0) score = wSum / tW;
-    } else {
-      // 2class: Atasan vs Internal (peer+cross+bawahan)
-      const internal = avg([...g.peer, ...g.cross, ...g.bawahan]);
-      const wA = weights.atasan ?? 0, wI = weights.internal ?? 0;
-      if (aAvg != null && internal != null && wA + wI > 0) score = (aAvg * wA + internal * wI) / (wA + wI);
-      else if (aAvg != null) score = aAvg;
-      else if (internal != null) score = internal;
-    }
+    const score = weightedScore360(g, ws.model, weights);
     if (score != null) rows.push({ employee_id: targetId, period_id: ap.id, score: round1(score) });
   }
 

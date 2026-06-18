@@ -31,7 +31,9 @@ function menuFor(role: Role, hrdMode: HrdMode): Section[] {
 
   const sections: Section[] = main.length ? [{ title: 'Navigasi Utama', items: main }] : [];
 
-  if (role === 'spv') {
+  // SPV biasa & HRD dalam mode SPV memakai menu Supervisor yang sama (paritas SPV).
+  // Rekapitulasi Kuartal TIDAK jadi item terpisah — sudah ada sebagai tab di Input KPI Anggota.
+  if (role === 'spv' || isHrdSpv) {
     sections.push({
       title: 'Menu Supervisor',
       items: [
@@ -66,19 +68,6 @@ function menuFor(role: Role, hrdMode: HrdMode): Section[] {
         { href: '/kpi?tab=riwayat', label: 'Monitoring & Audit KPI', icon: Clock },
         { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText },
         { href: '/admin/ekspor', label: 'Ekspor Dataset', icon: Download },
-      ],
-    });
-  }
-
-  if (role === 'hrd' && hrdMode === 'spv') {
-    // ACC laporan tim adalah fungsi SPV (RLS is_my_member) → HRD pakai "Review Hasil
-    // Akhir" di mode Admin; di sini hanya tugas yang relevan untuk HRD-as-SPV.
-    sections.push({
-      title: 'Menu Supervisor',
-      items: [
-        { href: '/kpi', label: 'Input KPI', icon: Target },
-        { href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp },
-        { href: '/kpi?tab=rekap', label: 'Rekapitulasi Kuartal', icon: BarChart3 },
       ],
     });
   }

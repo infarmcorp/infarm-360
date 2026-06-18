@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logHrdAction } from '@/lib/audit/log';
-import { emailConfigured, sendEmail, reminderHtml } from '@/lib/email/resend';
+import { emailConfigured, sendEmail, reminderHtml } from '@/lib/email/mailer';
 
 /**
  * Progress 360 (HRD): pantau kelengkapan pengisian + intervensi.
@@ -14,7 +14,7 @@ import { emailConfigured, sendEmail, reminderHtml } from '@/lib/email/resend';
  */
 type Result = { ok: true; msg?: string } | { ok: false; error: string };
 
-const NOT_ACTIVE = 'Fitur email pengingat belum aktif (set RESEND_API_KEY di Vercel untuk mengaktifkan).';
+const NOT_ACTIVE = 'Fitur email pengingat belum aktif (set SMTP_USER+SMTP_PASS [Gmail] atau RESEND_API_KEY di Vercel).';
 
 /** Pasangan assessor→target yang BELUM submitted untuk periode aktif. */
 async function pendingByAssessor(

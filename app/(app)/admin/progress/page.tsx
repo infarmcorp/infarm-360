@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { ProgressClient, type AssessorRow } from './progress-client';
+import { ProgressClient, type AssessorRow, type TargetRow } from './progress-client';
 
 /**
  * Progress 360 Feedback (HRD): kelengkapan pengisian 360 per PENILAI di periode aktif.
@@ -52,13 +52,37 @@ export default async function ProgressPage() {
     };
   }).sort((a, b) => (a.done / Math.max(a.total, 1)) - (b.done / Math.max(b.total, 1)) || a.name.localeCompare(b.name));
 
+  // Kelompokkan tugas per yang DINILAI (target): total penilai yang ditugaskan & berapa
+  // yang sudah menilai dia. Penilai yang belum bawa relasi & sifat wajib/opsional.
+  const byTarget = new Map<string, { assessorId: string; relation: string; mandatory: boolean }[]>();
+  (maps ?? []).forEach((m) => {
+    const a = byTarget.get(m.target_id) ?? [];
+    a.push({ assessorId: m.assessor_id, relation: m.relation as string, mandatory: m.mandatory });
+    byTarget.set(m.target_id, a);
+  });
+
+  const targetRows: TargetRow[] = [...byTarget.entries()].map(([targetId, raters]) => {
+    const e = empById.get(targetId);
+    const pending = raters
+      .filter((t) => !submitted.has(`${t.assessorId}|${targetId}`))
+      .map((t) => ({ assessorId: t.assessorId, assessorName: empById.get(t.assessorId)?.name ?? '—', relation: t.relation, mandatory: t.mandatory }));
+    return {
+      id: targetId,
+      name: e?.name ?? '—',
+      dept: e?.dept ?? '—',
+      total: raters.length,
+      done: raters.length - pending.length,
+      pending,
+    };
+  }).sort((a, b) => (a.done / Math.max(a.total, 1)) - (b.done / Math.max(b.total, 1)) || a.name.localeCompare(b.name));
+
   return (
     <Shell>
       <div className="mb-4">
         <h1 className="text-xl font-bold text-gray-800">Progress 360 Feedback</h1>
-        <p className="text-sm text-gray-500">Periode aktif: {ap.label} · kelengkapan pengisian per penilai.</p>
+        <p className="text-sm text-gray-500">Periode aktif: {ap.label} · kelengkapan pengisian 360°.</p>
       </div>
-      <ProgressClient rows={rows} />
+      <ProgressClient rows={rows} targetRows={targetRows} />
     </Shell>
   );
 }

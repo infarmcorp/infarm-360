@@ -264,11 +264,17 @@ Klik **nama pegawai** untuk membuka **dokumen laporan rinci**.
 - Tinjau **Permohonan Koreksi Garis Hubungan** (setujui/tolak) di tab Koreksi Relasi.
 
 ### Progress 360 Feedback
-- Filter Divisi/Status/Nama; lihat status "Belum / Sudah Lengkap" + progres per penilai.
-- Klik **Rincian** → daftar target yang belum dinilai; tiap target menampilkan badge
+- **Dua tampilan** (toggle di atas):
+  - **Per Penilai** — untuk tiap penilai: total pegawai yang harus ia nilai & berapa sudah selesai.
+  - **Per yang Dinilai** — untuk tiap pegawai: **total penilai** yang ditugaskan menilainya &
+    **berapa penilai yang sudah menilai** dia (mis. `7/10 penilai`).
+- Filter Divisi/Status/Nama; lihat status "Belum / Sudah Lengkap" + bar progres.
+- Klik **Rincian** → di **Per Penilai**, daftar target yang belum ia nilai; di **Per yang
+  Dinilai**, daftar **penilai yang belum menilai** pegawai itu. Tiap baris menampilkan badge
   **Relasi** (Atasan/Peer/Cross/Self/Bawahan) dan **Wajib/Opsional** (dari Pemetaan).
-- **Kirim Pengingat** / **Pengingat Massal** — *placeholder* (email aktif setelah integrasi
-  Resend); **Paksa Selesai** untuk menandai penilaian selesai (penyesuaian manual).
+- **Kirim Pengingat** / **Pengingat Massal** / **Ingatkan** (per penilai di rincian) —
+  *placeholder* (email aktif setelah integrasi Resend); **Paksa Selesai** untuk menandai
+  penilaian selesai (penyesuaian manual).
 
 ### Flag Kepatuhan Penilaian
 - Memantau **kepatuhan** pengisian 360° dan memberi **punishment**.

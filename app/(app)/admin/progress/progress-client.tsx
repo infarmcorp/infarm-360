@@ -5,8 +5,12 @@ import { forceComplete, sendReminder, massReminder } from './actions';
 
 export type Pending = { targetId: string; targetName: string; relation: string; mandatory: boolean };
 export type AssessorRow = { id: string; name: string; dept: string; total: number; done: number; pending: Pending[] };
+/** Tampilan "per yang dinilai": berapa penilai ditugaskan & berapa sudah menilai dia. */
+export type PendingAssessor = { assessorId: string; assessorName: string; relation: string; mandatory: boolean };
+export type TargetRow = { id: string; name: string; dept: string; total: number; done: number; pending: PendingAssessor[] };
 
-export function ProgressClient({ rows }: { rows: AssessorRow[] }) {
+export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targetRows: TargetRow[] }) {
+  const [view, setView] = useState<'penilai' | 'dinilai'>('penilai');
   const [q, setQ] = useState('');
   const [dept, setDept] = useState('all');
   const [status, setStatus] = useState<'all' | 'lengkap' | 'belum'>('all');
@@ -14,17 +18,23 @@ export function ProgressClient({ rows }: { rows: AssessorRow[] }) {
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
 
-  const depts = useMemo(() => [...new Set(rows.map((r) => r.dept))].sort(), [rows]);
+  const depts = useMemo(
+    () => [...new Set([...rows, ...targetRows].map((r) => r.dept))].sort(),
+    [rows, targetRows],
+  );
+
+  // Daftar aktif sesuai tampilan terpilih (kedua tipe punya bentuk total/done/dept/name).
+  const active = view === 'penilai' ? rows : targetRows;
 
   const stats = useMemo(() => {
-    const total = rows.length;
-    const done = rows.filter((r) => r.total > 0 && r.done === r.total).length;
-    const tasks = rows.reduce((s, r) => s + r.total, 0);
-    const doneTasks = rows.reduce((s, r) => s + r.done, 0);
+    const total = active.length;
+    const done = active.filter((r) => r.total > 0 && r.done === r.total).length;
+    const tasks = active.reduce((s, r) => s + r.total, 0);
+    const doneTasks = active.reduce((s, r) => s + r.done, 0);
     return { total, done, pending: total - done, pct: tasks ? Math.round((doneTasks / tasks) * 100) : 0 };
-  }, [rows]);
+  }, [active]);
 
-  const shown = rows.filter((r) => {
+  const shown = active.filter((r) => {
     const complete = r.total > 0 && r.done === r.total;
     if (q.trim() && !r.name.toLowerCase().includes(q.toLowerCase())) return false;
     if (dept !== 'all' && r.dept !== dept) return false;
@@ -41,19 +51,38 @@ export function ProgressClient({ rows }: { rows: AssessorRow[] }) {
     });
   }
 
+  const isTarget = view === 'dinilai';
+
   return (
     <div className="space-y-4">
+      {/* Toggle tampilan */}
+      <div className="inline-flex rounded-lg border border-gray-200 p-0.5 bg-gray-50">
+        <button type="button" onClick={() => { setView('penilai'); setExpanded(null); }}
+          className={`text-xs font-bold px-3 py-1.5 rounded-md ${!isTarget ? 'bg-white shadow-sm text-emerald-700' : 'text-gray-500 hover:text-gray-700'}`}>
+          Per Penilai
+        </button>
+        <button type="button" onClick={() => { setView('dinilai'); setExpanded(null); }}
+          className={`text-xs font-bold px-3 py-1.5 rounded-md ${isTarget ? 'bg-white shadow-sm text-emerald-700' : 'text-gray-500 hover:text-gray-700'}`}>
+          Per yang Dinilai
+        </button>
+      </div>
+      <p className="text-[11px] text-gray-500 -mt-2">
+        {isTarget
+          ? 'Untuk tiap pegawai: total penilai yang ditugaskan menilainya & berapa yang sudah menilai.'
+          : 'Untuk tiap penilai: total pegawai yang harus ia nilai & berapa yang sudah ia selesaikan.'}
+      </p>
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <Stat label="Total Penilai" value={stats.total} c="text-slate-800" />
-        <Stat label="Lengkap" value={stats.done} c="text-emerald-700" />
+        <Stat label={isTarget ? 'Total Pegawai Dinilai' : 'Total Penilai'} value={stats.total} c="text-slate-800" />
+        <Stat label={isTarget ? 'Lengkap Dinilai' : 'Lengkap'} value={stats.done} c="text-emerald-700" />
         <Stat label="Belum" value={stats.pending} c="text-amber-700" />
         <Stat label="Progres Keseluruhan" value={`${stats.pct}%`} c="text-indigo-700" />
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-center">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama penilai…"
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={isTarget ? 'Cari nama pegawai…' : 'Cari nama penilai…'}
           className="text-xs px-3 py-2 border border-gray-200 rounded-lg flex-1 min-w-[160px] focus:outline-none focus:ring-1 focus:ring-emerald-600" />
         <select value={dept} onChange={(e) => setDept(e.target.value)} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
           <option value="all">Semua Divisi</option>
@@ -73,7 +102,7 @@ export function ProgressClient({ rows }: { rows: AssessorRow[] }) {
 
       {/* Rows */}
       <div className="space-y-2">
-        {shown.length === 0 && <p className="text-sm text-gray-500">Tidak ada penilai sesuai filter.</p>}
+        {shown.length === 0 && <p className="text-sm text-gray-500">Tidak ada {isTarget ? 'pegawai' : 'penilai'} sesuai filter.</p>}
         {shown.map((r) => {
           const complete = r.total > 0 && r.done === r.total;
           const pct = r.total ? Math.round((r.done / r.total) * 100) : 0;
@@ -86,9 +115,10 @@ export function ProgressClient({ rows }: { rows: AssessorRow[] }) {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${complete ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                    {r.done}/{r.total} {complete ? 'Lengkap' : 'Belum'}
+                    {r.done}/{r.total} {isTarget ? 'penilai' : ''} {complete ? 'Lengkap' : 'Belum'}
                   </span>
-                  {!complete && (
+                  {/* Pengingat per-penilai hanya di tampilan Per Penilai (r.id = penilai). */}
+                  {!isTarget && !complete && (
                     <button type="button" onClick={() => act(() => sendReminder(r.id))} disabled={pending}
                       className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 disabled:opacity-60">
                       Kirim Pengingat
@@ -107,22 +137,46 @@ export function ProgressClient({ rows }: { rows: AssessorRow[] }) {
               </div>
               {expanded === r.id && r.pending.length > 0 && (
                 <div className="mt-3 space-y-1.5 border-t border-gray-100 pt-2">
-                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Belum dinilai:</p>
-                  {r.pending.map((p) => (
-                    <div key={p.targetId} className="flex items-center justify-between gap-2 text-xs">
-                      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                        <span className="text-gray-700 font-semibold">{p.targetName}</span>
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">{p.relation}</span>
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${p.mandatory ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-                          {p.mandatory ? 'Wajib' : 'Opsional'}
-                        </span>
-                      </div>
-                      <button type="button" onClick={() => act(() => forceComplete(r.id, p.targetId))} disabled={pending}
-                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-60 shrink-0">
-                        Paksa Selesai
-                      </button>
-                    </div>
-                  ))}
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">
+                    {isTarget ? 'Penilai yang belum menilai:' : 'Belum dinilai:'}
+                  </p>
+                  {isTarget
+                    ? (r.pending as PendingAssessor[]).map((p) => (
+                        <div key={p.assessorId} className="flex items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                            <span className="text-gray-700 font-semibold">{p.assessorName}</span>
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">{p.relation}</span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${p.mandatory ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                              {p.mandatory ? 'Wajib' : 'Opsional'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button type="button" onClick={() => act(() => sendReminder(p.assessorId))} disabled={pending}
+                              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 disabled:opacity-60">
+                              Ingatkan
+                            </button>
+                            <button type="button" onClick={() => act(() => forceComplete(p.assessorId, r.id))} disabled={pending}
+                              className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-60">
+                              Paksa Selesai
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    : (r.pending as Pending[]).map((p) => (
+                        <div key={p.targetId} className="flex items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                            <span className="text-gray-700 font-semibold">{p.targetName}</span>
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">{p.relation}</span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${p.mandatory ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                              {p.mandatory ? 'Wajib' : 'Opsional'}
+                            </span>
+                          </div>
+                          <button type="button" onClick={() => act(() => forceComplete(r.id, p.targetId))} disabled={pending}
+                            className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-60 shrink-0">
+                            Paksa Selesai
+                          </button>
+                        </div>
+                      ))}
                 </div>
               )}
             </div>

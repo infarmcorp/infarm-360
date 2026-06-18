@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 import type { TodoItem, TodoTone } from '@/lib/todos/compute';
@@ -92,10 +92,11 @@ const TODO_DOT: Record<TodoTone, string> = {
 };
 
 export function AppShell({
-  role, hrdMode, name, dept, empCode, periodLabel, periodActive, todos, children,
+  role, hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, children,
 }: {
   role: Role; hrdMode: HrdMode; name: string; dept: string; empCode: string;
-  periodLabel: string | null; periodActive: boolean; todos: TodoItem[]; children: React.ReactNode;
+  periodLabel: string | null; periodActive: boolean; periodDaysLeft?: number | null;
+  todos: TodoItem[]; children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -143,15 +144,18 @@ export function AppShell({
         </div>
       )}
 
-      {/* Period indicator */}
-      <div className="px-4 py-2.5 bg-emerald-50/50 border-b border-gray-150 flex items-center justify-between text-xs">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className={`w-2 h-2 rounded-full shrink-0 ${periodActive ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
-          <span className="font-bold text-emerald-900 truncate">{periodLabel ?? 'Tanpa Periode'}</span>
+      {/* Period indicator + deadline */}
+      <div className="px-4 py-2.5 bg-emerald-50/50 border-b border-gray-150 text-xs">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className={`w-2 h-2 rounded-full shrink-0 ${periodActive ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+            <span className="font-bold text-emerald-900 truncate">{periodLabel ?? 'Tanpa Periode'}</span>
+          </div>
+          <span className="text-[9px] bg-emerald-100 font-bold uppercase py-0.5 px-2 rounded-full border border-emerald-200 shrink-0">
+            {periodActive ? 'Aktif' : 'Kunci'}
+          </span>
         </div>
-        <span className="text-[9px] bg-emerald-100 font-bold uppercase py-0.5 px-2 rounded-full border border-emerald-200 shrink-0">
-          {periodActive ? 'Aktif' : 'Kunci'}
-        </span>
+        {periodActive && periodDaysLeft != null && <Deadline daysLeft={periodDaysLeft} />}
       </div>
 
       {/* Tugas & Notifikasi (diturunkan dari data) */}
@@ -248,7 +252,8 @@ export function AppShell({
       {/* Content */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="app-mobile-header no-print md:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200">
-          <button type="button" onClick={() => setOpen((v) => !v)} className="relative text-gray-600">
+          <button type="button" onClick={() => setOpen((v) => !v)} className="relative text-gray-600"
+            aria-label={open ? 'Tutup menu navigasi' : 'Buka menu navigasi'} aria-expanded={open}>
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             {!open && todos.length > 0 && (
               <span className="absolute -top-1.5 -right-1.5 text-[8px] font-black text-white bg-amber-500 rounded-full px-1 min-w-[14px] text-center leading-[14px]">{todos.length}</span>
@@ -258,6 +263,21 @@ export function AppShell({
         </header>
         <div className="flex-1 overflow-y-auto">{children}</div>
       </div>
+    </div>
+  );
+}
+
+/** Indikator tenggat periode aktif: sisa hari + peringatan saat mendekati/melewati end_date. */
+function Deadline({ daysLeft }: { daysLeft: number }) {
+  const { text, cls } =
+    daysLeft < 0 ? { text: `Lewat tenggat ${Math.abs(daysLeft)} hari`, cls: 'text-rose-700 font-bold' }
+    : daysLeft === 0 ? { text: 'Berakhir hari ini', cls: 'text-rose-700 font-bold' }
+    : daysLeft <= 7 ? { text: `${daysLeft} hari lagi (mendekati tenggat)`, cls: 'text-amber-700 font-bold' }
+    : { text: `Tenggat: ${daysLeft} hari lagi`, cls: 'text-gray-400' };
+  return (
+    <div className={`mt-1 flex items-center gap-1 text-[10px] ${cls}`}>
+      {daysLeft <= 7 ? <AlertTriangle className="w-3 h-3 shrink-0" /> : <Clock className="w-3 h-3 shrink-0" />}
+      <span>{text}</span>
     </div>
   );
 }

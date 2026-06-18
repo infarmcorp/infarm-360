@@ -155,8 +155,9 @@ huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
   - **Privasi:** komentar 360° = data kinerja sensitif; dengan API teks dikirim ke Anthropic
     (sudah anonim, tanpa nama). Anthropic API menyimpan hingga 30 hari untuk operasional,
     **bukan** untuk melatih model pada data API bisnis. Perlu persetujuan kebijakan internal.
-- **Deadline periode lebih tegas** — tampilkan sisa hari + auto-warning saat mendekati
-  `end_date` (kini hanya kunci manual).
+- ~~**Deadline periode lebih tegas**~~ ✅ **Selesai** — indikator periode di sidebar
+  (`app-shell.tsx`) kini menampilkan **sisa hari** ke `end_date` + **peringatan amber ≤7 hari**
+  / **rose saat ≤0** (hari ini / lewat tenggat). Hitung di `layout.tsx` (`daysUntil`, basis tanggal UTC).
 - **Ganti email mandiri** (opsional, lanjutan Opsi 1) — pertimbangkan verifikasi vs instan.
 
 ### D. Keandalan teknis
@@ -167,8 +168,10 @@ huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
   `app/(app)/admin/360/actions.ts` agar murni & teruji). **Sisa:** tes integrasi RLS,
   parsing impor Excel, dan Server Action lain.
 - **Verifikasi RLS menyeluruh per peran** (skrip uji terprogram) sebelum produksi.
-- **Aksesibilitas & mobile** — kontras, label form, navigasi keyboard dropdown custom;
-  uji tabel lebar (dashboard, pemetaan) di layar kecil.
+- 🟡 **Aksesibilitas & mobile** — **Mulai**: `SearchableSelect` kini **keyboard-nav** penuh
+  (↑/↓/Enter/Esc) + ARIA (`combobox`/`listbox`/`option`, `aria-activedescendant`); tombol menu
+  mobile diberi `aria-label`/`aria-expanded`; tabel lebar sudah dibungkus `overflow-x-auto` +
+  `min-w`. **Sisa:** audit kontras menyeluruh, label form di sisa halaman, uji pembaca layar.
 
 ## Keputusan Arsitektur (terkunci)
 

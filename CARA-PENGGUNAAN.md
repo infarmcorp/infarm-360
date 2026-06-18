@@ -70,6 +70,13 @@ tak perlu ditandai "sudah dibaca", selalu mengikuti keadaan nyata akun yang logi
 Tiap baris adalah tautan langsung ke halaman terkait. Bila kosong: *"Tak ada tugas tertunda 🎉"*.
 Panel hanya aktif saat ada **periode aktif**.
 
+> **Indikator tenggat periode.** Di bawah label periode (sidebar) tampil **sisa hari** menuju
+> tanggal selesai: abu-abu bila masih lama, **kuning ⚠ saat ≤7 hari**, **merah saat berakhir
+> hari ini / lewat tenggat**. Membantu HRD mengejar penyelesaian sebelum periode dikunci.
+
+> **Navigasi keyboard.** Dropdown nama berpencarian bisa dioperasikan tanpa mouse: **↑/↓**
+> memilih, **Enter** mengonfirmasi, **Esc** menutup.
+
 ---
 
 ## Peran: EMPLOYEE

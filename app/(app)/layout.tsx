@@ -19,7 +19,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const role = (emp?.role ?? 'employee') as Role;
 
   const { data: ap } = await supabase
-    .from('periods').select('label, status').eq('status', 'active').limit(1).maybeSingle();
+    .from('periods').select('label, status, end_date').eq('status', 'active').limit(1).maybeSingle();
+
+  // Sisa hari menuju end_date (berbasis tanggal, UTC) → indikator deadline di sidebar.
+  const periodDaysLeft = ap?.end_date ? daysUntil(ap.end_date) : null;
 
   // Mode tampilan HRD (dual-mode): default 'admin'. Hanya berlaku untuk peran hrd.
   const jar = await cookies();
@@ -37,9 +40,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       empCode={emp?.emp_code ?? '—'}
       periodLabel={ap?.label ?? null}
       periodActive={ap?.status === 'active'}
+      periodDaysLeft={periodDaysLeft}
       todos={todos}
     >
       {children}
     </AppShell>
   );
+}
+
+/** Selisih hari (tanggal, UTC) dari hari ini ke end_date. >0 sisa, 0 hari ini, <0 lewat. */
+function daysUntil(endDate: string): number {
+  const end = new Date(endDate + 'T00:00:00Z').getTime();
+  const now = new Date();
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return Math.round((end - today) / 86400000);
 }

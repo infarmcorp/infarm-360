@@ -87,6 +87,8 @@ Panel hanya aktif saat ada **periode aktif**.
 > Muncul **setelah** disetujui & divalidasi SPV dan HRD.
 1. Pilih kuartal di **Pilih Kuartal Acuan**.
 2. **Unduh PDF** jika laporan sudah tersedia.
+3. **Radar Aspek 360°**: garis **penuh = Penilaian Rekan**, garis **putus-putus = Evaluasi Diri
+   (Self)** — pembanding persepsi diri vs rekan. Komentar penilai ditampilkan **anonim** (per relasi).
 
 ---
 
@@ -230,11 +232,26 @@ Unduh data mentah **Excel (.xlsx)** untuk olah data lanjutan (pivot/statistik/BI
 - Filter **Sektor/Divisi** dan **Saring Rencana Suksesi**.
 
 ### Review Hasil Akhir
-1. Filter **Siklus Acuan**.
-2. **Edit Laporan** per pegawai (klik tiap section, mis. "Jujur & Tanggung Jawab").
-3. Section **Rincian Komentar Murni (Raw Feedback)** = akumulasi komentar tiap indikator;
-   komentar dari **penilaian diri sendiri** ditandai badge **"Self"**.
-4. **Simpan Draft** → **Finalisasi Hasil** (setelah sepakat dengan SPV) → **Unduh PDF**.
+**Daftar pegawai** (tabel): kolom **Skor Akhir**, **ACC SPV**, **Status** (Draf/Final), plus
+aksi cepat **Draf**/**Finalisasi** per baris. Ada **pencarian nama/divisi** + **filter Divisi**.
+Klik **nama pegawai** untuk membuka **dokumen laporan rinci**.
+
+**Di halaman detail pegawai** (HRD):
+1. **Panel Aksi** (di atas dokumen) — badge **Status** & **Skor Akhir** terkini + tiga tombol:
+   - **Unduh PDF** — cetak/simpan laporan sebagai PDF.
+   - **Simpan Draf** — simpan tanpa merilis (status `draft`).
+   - **Finalisasi Hasil** — rilis ke pegawai (status `finalized`); dilakukan **setelah ACC SPV**.
+   - Bila **KPI pegawai masih kosong**, tombol simpan dinonaktifkan (Skor Akhir belum bisa dihitung).
+2. **Ringkasan skor** (Rerata KPI · Evaluasi 360° · Skor Akhir) + **Radar Aspek 360°** — garis
+   **penuh indigo = Penilaian Rekan**, garis **putus-putus amber = Evaluasi Diri (Self)**;
+   tiap aspek juga ditampilkan dua bar (**Rekan** vs **Diri**) sebagai pembanding.
+3. Section **Evaluasi Aspek Budaya & Perilaku 360°** — HRD menulis **ringkasan kalibrasi naratif
+   per aspek** (anonim, tanpa nama penilai); ketik di tiap kotak aspek lalu **Simpan Ringkasan**.
+   *(Rencana: tombol "Buat Ringkasan Otomatis" via Claude API — HRD tetap bisa menyunting; lihat CLAUDE.md.)*
+4. Section **Rincian Komentar Murni (Raw Feedback)** — **hanya HRD**, **anonim** (identitas
+   penilai disembunyikan), dikelompokkan **per aspek → per indikator**: menampilkan **akumulasi
+   rating mentah** (mis. 4, 5, 2, 3, 4, 1) + rerata + komentar; jawaban **esai** dikelompokkan
+   **per pertanyaan**. (Self dikecualikan agar konsisten dengan skor "Rekan".)
 
 ### Pemetaan (Mapping)
 - **Impor Massal Pemetaan Excel** (unduh "Formulir Acuan.xlsx") atau **Pendaftaran
@@ -373,13 +390,16 @@ peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
 - Berlaku setelah klik **Simpan & Terapkan Bobot**; **Reset Default** mengembalikan ke awal.
 
 ### 5. Review Hasil Akhir — *finalisasi & rilis laporan*
-**Fungsi:** audit & edit Final Report per pegawai, lalu finalisasi.
+**Fungsi:** audit Final Report per pegawai, tulis ringkasan aspek, lalu finalisasi. Tersedia
+**panel aksi** di halaman detail: **Unduh PDF · Simpan Draf · Finalisasi Hasil** (+ badge status & Skor Akhir).
 **Berdampak ke:**
-- **Simpan Draft** → tersimpan, belum dirilis.
+- **Simpan Draf** → tersimpan, belum dirilis.
 - **Finalisasi Hasil** → laporan **muncul untuk pegawai** di **Laporan Hasil Saya**
   (status final) & bisa **Unduh PDF**. Sebelum final, pegawai tidak melihat apa pun.
 - Idealnya dilakukan **setelah ACC SPV** (Laporan Kinerja Tim) — alur dua pihak.
-- Komentar **penilaian diri sendiri** ditandai badge **"Self"** di Rincian Komentar Murni.
+- **Ringkasan Aspek** (naratif HRD per aspek) tersimpan di laporan; **Rincian Komentar Murni**
+  (HRD-only, anonim) menampilkan akumulasi rating + komentar per indikator & esai per pertanyaan
+  (Self dikecualikan).
 
 ### 6. Promosi & Penyesuaian — *usulan ke Direksi*
 **Fungsi:** input Rencana Suksesi + Catatan Justifikasi per pegawai.

@@ -139,6 +139,13 @@ Daftar hidup (perbarui saat ada perubahan). Status: ✅ selesai · 🔄 sebagian
 - ⬜ **Lupa Sandi via email** (dormant) — kode siap (`app/auth/lupa-sandi`, `/auth/callback`,
   `/auth/perbarui-sandi`); aktifkan dgn email asli + SMTP/Resend + `NEXT_PUBLIC_ENABLE_PW_RESET=true`.
 - ⬜ **Email seed → asli** & **hapus arsip legacy** (lihat TO-DO di atas).
+- ⬜ **Audit npm — `xlsx` (high)** (DITUNDA). `xlsx@0.18.5` (registry npm) kena advisory
+  prototype-pollution + ReDoS; npm bilang "no fix available" karena SheetJS pindah ke CDN
+  resmi. **Fix:** `npm install https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz` (API sama,
+  kode impor tak berubah) → lalu `npm run build && npm test`. Urgensi rendah: `xlsx` hanya
+  mem-parse file yang **diunggah HRD sendiri** (bukan input publik). Catatan: `npm audit fix
+  --force` **DILARANG** di repo ini — akan menurunkan Next 16→9 (merusak app). Advisory
+  `postcss` (moderate) transitif dari Next → biarkan, beres saat Next update.
 
 ### Fungsional bernilai tinggi
 - 🔄 **Pengingat email 360°** — terbangun, **DORMAN** (aktif bila env email diset).

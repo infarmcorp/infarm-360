@@ -52,28 +52,18 @@ export default async function ProgressPage() {
     };
   }).sort((a, b) => (a.done / Math.max(a.total, 1)) - (b.done / Math.max(b.total, 1)) || a.name.localeCompare(b.name));
 
-  // Kelompokkan tugas per yang DINILAI (target): total penilai yang ditugaskan & berapa
-  // yang sudah menilai dia. Penilai yang belum bawa relasi & sifat wajib/opsional.
-  const byTarget = new Map<string, { assessorId: string; relation: string; mandatory: boolean }[]>();
+  // Info per yang DINILAI (target): total penilai yang ditugaskan & berapa yang sudah menilai dia.
+  const byTarget = new Map<string, string[]>();
   (maps ?? []).forEach((m) => {
     const a = byTarget.get(m.target_id) ?? [];
-    a.push({ assessorId: m.assessor_id, relation: m.relation as string, mandatory: m.mandatory });
+    a.push(m.assessor_id);
     byTarget.set(m.target_id, a);
   });
 
-  const targetRows: TargetRow[] = [...byTarget.entries()].map(([targetId, raters]) => {
+  const targetRows: TargetRow[] = [...byTarget.entries()].map(([targetId, assessorIds]) => {
     const e = empById.get(targetId);
-    const pending = raters
-      .filter((t) => !submitted.has(`${t.assessorId}|${targetId}`))
-      .map((t) => ({ assessorId: t.assessorId, assessorName: empById.get(t.assessorId)?.name ?? '—', relation: t.relation, mandatory: t.mandatory }));
-    return {
-      id: targetId,
-      name: e?.name ?? '—',
-      dept: e?.dept ?? '—',
-      total: raters.length,
-      done: raters.length - pending.length,
-      pending,
-    };
+    const done = assessorIds.filter((aid) => submitted.has(`${aid}|${targetId}`)).length;
+    return { id: targetId, name: e?.name ?? '—', dept: e?.dept ?? '—', total: assessorIds.length, done };
   }).sort((a, b) => (a.done / Math.max(a.total, 1)) - (b.done / Math.max(b.total, 1)) || a.name.localeCompare(b.name));
 
   return (

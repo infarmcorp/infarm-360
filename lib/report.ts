@@ -12,6 +12,10 @@ export type AssessorBlock = {
   comments: { indicator: string; rating: number | null; comment: string }[];
   answers: { question: string; answer: string }[];
 };
+/** Raw feedback ANONIM per indikator (untuk HRD): daftar rating mentah + komentar, tanpa nama penilai. */
+export type IndicatorRaw = { num: number; text: string; ratings: number[]; comments: string[] };
+export type AspectRaw = { name: string; indicators: IndicatorRaw[] };
+export type EssayGroup = { question: string; answers: string[] };
 export type ReportData = {
   emp: { id: string; name: string; dept: string };
   periodLabel: string;
@@ -23,6 +27,10 @@ export type ReportData = {
   penalty: number;
   aspects: AspectScore[];
   assessors: AssessorBlock[];
+  // Tambahan untuk view HRD (anonim, dikelompokkan):
+  byAspect: AspectRaw[];          // raw feedback per aspek → indikator (+ akumulasi rating)
+  essays: EssayGroup[];           // jawaban esai dikelompokkan per pertanyaan
+  aspectSummaries: Record<string, string>; // ringkasan HRD per aspek (tersimpan di content)
 };
 
 /**
@@ -44,14 +52,16 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
   const s360 = r?.score ?? null;
   const { data: pen } = await supabase.from('compliance_penalties').select('points').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
   const penalty = pen?.points ?? 0;
-  const { data: fr } = await supabase.from('final_reports').select('status, final_score').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
+  const { data: fr } = await supabase.from('final_reports').select('status, final_score, content').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
   const finalScore = fr?.final_score ?? finalScoreOf(kpiAvg, s360, period.has_360, penalty);
+  const frContent = (fr?.content ?? {}) as { aspectSummaries?: Record<string, string> };
+  const aspectSummaries = frContent.aspectSummaries ?? {};
 
   // Aspek & indikator periode.
   const { data: aspectRows } = await supabase.from('culture_aspects').select('id, name, order_idx').eq('period_id', period.id).order('order_idx');
   const aspectList = aspectRows ?? [];
   const { data: indRows } = aspectList.length
-    ? await supabase.from('indicators').select('id, aspect_id, text').in('aspect_id', aspectList.map((a) => a.id)) : { data: [] };
+    ? await supabase.from('indicators').select('id, aspect_id, text, order_idx').in('aspect_id', aspectList.map((a) => a.id)).order('order_idx') : { data: [] };
   const indById = new Map((indRows ?? []).map((i) => [i.id, i]));
   const indAspect = new Map((indRows ?? []).map((i) => [i.id, i.aspect_id]));
 
@@ -92,6 +102,31 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
     self: aggSelf.has(a.id) ? (aggSelf.get(a.id)!.sum / aggSelf.get(a.id)!.n) * 20 : null,
   }));
 
+  // Raw feedback ANONIM per aspek → indikator (untuk HRD). Self dikecualikan agar
+  // konsisten dgn skor "Rekan". Akumulasi rating mentah (mis. 4,5,2,3,4,1) + komentar.
+  const asmtAssessor = new Map(asmtList.map((a) => [a.id, a.assessor_id]));
+  const isSelfAsmt = (asmtId: string) => asmtAssessor.get(asmtId) === employeeId;
+  let qnum = 0;
+  const byAspect: AspectRaw[] = aspectList.map((asp) => {
+    const inds = (indRows ?? []).filter((i) => i.aspect_id === asp.id);
+    const indicators: IndicatorRaw[] = inds.map((ind) => {
+      qnum += 1;
+      const rows = (scoreRows ?? []).filter((s) => s.indicator_id === ind.id && !isSelfAsmt(s.assessment_id));
+      const ratings = rows.filter((s) => s.rating != null).map((s) => s.rating as number);
+      const comments = rows.filter((s) => s.comment && s.comment.trim()).map((s) => s.comment!.trim());
+      return { num: qnum, text: ind.text, ratings, comments };
+    });
+    return { name: asp.name, indicators };
+  });
+
+  // Esai dikelompokkan per pertanyaan (anonim, Self dikecualikan).
+  const essays: EssayGroup[] = (quals ?? []).map((q) => ({
+    question: q.text,
+    answers: (qaRows ?? [])
+      .filter((a) => a.question_id === q.id && !isSelfAsmt(a.assessment_id) && a.answer && a.answer.trim())
+      .map((a) => a.answer!.trim()),
+  })).filter((g) => g.answers.length > 0);
+
   // Komentar per penilai.
   const assessors: AssessorBlock[] = asmtList.map((a) => {
     const isSelf = a.assessor_id === employeeId;
@@ -114,5 +149,6 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
   return {
     emp, periodLabel: period.label, has360: period.has_360, status: fr?.status ?? null,
     finalScore, kpiAvg, s360, penalty, aspects, assessors,
+    byAspect, essays, aspectSummaries,
   };
 }

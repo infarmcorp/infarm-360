@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { logHrdAction } from '@/lib/audit/log';
 import { finalScoreOf } from '@/lib/scoring';
@@ -76,4 +77,51 @@ export async function saveOrFinalizeReport(employeeId: string, finalize: boolean
   revalidatePath('/admin/laporan');
   revalidatePath('/laporan');
   return { ok: true, finalScore: final, finalized: finalize };
+}
+
+/**
+ * Simpan ringkasan HRD per aspek (kalibrasi naratif) ke final_reports.content.aspectSummaries.
+ * Tidak mengubah status/skor — hanya menulis narasi. Membuat baris draft bila belum ada.
+ */
+const SummariesInput = z.record(z.string(), z.string().trim().max(2000));
+export async function saveAspectSummaries(employeeId: string, raw: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = SummariesInput.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'Ringkasan tidak valid' };
+  // Buang entri kosong.
+  const summaries: Record<string, string> = {};
+  for (const [k, v] of Object.entries(parsed.data)) { if (v.trim()) summaries[k] = v.trim(); }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
+  if (me?.role !== 'hrd') return { ok: false, error: 'Hanya HRD yang dapat menyimpan ringkasan' };
+
+  const { data: ap } = await supabase.from('periods').select('id, has_360').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  const { data: existing } = await supabase.from('final_reports')
+    .select('id, content').eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
+
+  if (existing) {
+    const content = { ...(existing.content as Record<string, unknown> ?? {}), aspectSummaries: summaries };
+    const { error } = await supabase.from('final_reports').update({ content }).eq('id', existing.id);
+    if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
+  } else {
+    const { final } = await computeFinal(supabase, ap.id, ap.has_360, employeeId);
+    const { error } = await supabase.from('final_reports').insert({
+      employee_id: employeeId, period_id: ap.id, final_score: final, status: 'draft',
+      content: { aspectSummaries: summaries },
+    });
+    if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
+  }
+
+  const { data: emp } = await supabase.from('employees').select('name').eq('id', employeeId).maybeSingle();
+  await logHrdAction({
+    action: 'report.save_summary', category: 'laporan',
+    summary: `Menyimpan ringkasan aspek 360° untuk ${emp?.name ?? employeeId}`,
+    targetType: 'employee', targetId: employeeId, targetLabel: emp?.name ?? null,
+  });
+  revalidatePath(`/laporan/${employeeId}`);
+  return { ok: true };
 }

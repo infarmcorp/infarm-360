@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { loadReport } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
+import { AspectSummaryEditor } from '../aspect-summary-editor';
+import { RawFeedback } from '../raw-feedback';
 
 /**
  * Dokumen Laporan rinci satu pegawai — untuk HRD/Direksi (semua) & SPV (tim, RLS
@@ -30,10 +32,20 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
+  const isHrd = role === 'hrd';
   return (
     <Shell>
       <Link href="/admin/laporan" className="text-xs text-gray-500 hover:underline no-print">← Daftar Laporan</Link>
-      <div className="mt-2"><ReportDoc data={data} anonymize={false} /></div>
+      <div className="mt-2">
+        {/* HRD: sembunyikan blok komentar-per-penilai (bernama) → diganti raw feedback anonim. */}
+        <ReportDoc data={data} anonymize={false} hideAssessorComments={isHrd} />
+        {isHrd && data.has360 && (
+          <>
+            <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} />
+            <RawFeedback byAspect={data.byAspect} essays={data.essays} />
+          </>
+        )}
+      </div>
     </Shell>
   );
 }

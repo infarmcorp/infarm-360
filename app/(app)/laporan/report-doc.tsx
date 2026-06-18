@@ -9,7 +9,7 @@ const RELATION_LABEL: Record<string, string> = {
 
 /** Dokumen Laporan rinci: radar aspek, ringkasan skor, komentar mentah per penilai.
  * `anonymize`=true (pegawai melihat laporannya sendiri) menyamarkan nama penilai. */
-export function ReportDoc({ data, anonymize }: { data: ReportData; anonymize: boolean }) {
+export function ReportDoc({ data, anonymize, hideAssessorComments }: { data: ReportData; anonymize: boolean; hideAssessorComments?: boolean }) {
   const aspectsWith = data.aspects.filter((a) => a.score != null);
   return (
     <div>
@@ -99,7 +99,7 @@ export function ReportDoc({ data, anonymize }: { data: ReportData; anonymize: bo
       )}
 
       {/* Komentar mentah per penilai */}
-      {data.has360 && data.assessors.length > 0 && (
+      {!hideAssessorComments && data.has360 && data.assessors.length > 0 && (
         <div className="mt-6">
           <h3 className="text-sm font-bold text-gray-700 mb-2">Rincian Komentar {anonymize ? '(Anonim)' : 'per Penilai'}</h3>
           <div className="space-y-3">
@@ -129,7 +129,7 @@ export function ReportDoc({ data, anonymize }: { data: ReportData; anonymize: bo
           </div>
         </div>
       )}
-      {data.has360 && data.assessors.length === 0 && (
+      {!hideAssessorComments && data.has360 && data.assessors.length === 0 && (
         <p className="mt-4 text-sm text-gray-500">Belum ada komentar dari penilai.</p>
       )}
 

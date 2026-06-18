@@ -46,24 +46,49 @@ export function ReportDoc({ data, anonymize }: { data: ReportData; anonymize: bo
       {/* Radar aspek 360 */}
       {data.has360 && aspectsWith.length >= 3 && (
         <div className="mt-6 grid md:grid-cols-2 gap-4 items-center">
-          <Radar aspects={data.aspects} />
-          <div className="space-y-2">
+          <div className="break-inside-avoid">
+            <Radar aspects={data.aspects} />
+            {/* Legenda radar — perjelas mana garis Rekan vs Self */}
+            <div className="flex items-center justify-center gap-4 mt-2 text-[10px]">
+              <span className="flex items-center gap-1.5">
+                <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#4f46e5" strokeWidth="2.5" /></svg>
+                <span className="font-bold text-indigo-700">Penilaian Rekan</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#f59e0b" strokeWidth="2.5" strokeDasharray="4,3" /></svg>
+                <span className="font-bold text-amber-600">Evaluasi Diri (Self)</span>
+              </span>
+            </div>
+          </div>
+          <div className="space-y-2.5">
             <h3 className="text-sm font-bold text-gray-700">Rincian Aspek Budaya (360°)</h3>
             {data.aspects.map((a) => (
               <div key={a.name} className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-700 font-medium">{a.name}</span>
-                  <span className="font-mono">
-                    <span className="text-indigo-700 font-bold">{a.score != null ? a.score.toFixed(1) : '—'}</span>
-                    {a.self != null && <span className="text-gray-400"> · diri {a.self.toFixed(0)}</span>}
-                  </span>
+                <span className="text-xs text-gray-700 font-medium">{a.name}</span>
+                {/* Bar Rekan (gabungan penilai, Self dikecualikan) */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-bold text-indigo-700 w-9 shrink-0">Rekan</span>
+                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(a.score ?? 0, 100)}%` }} />
+                  </div>
+                  <span className="text-[9px] font-mono font-bold text-indigo-700 w-7 text-right">{a.score != null ? a.score.toFixed(0) : '—'}</span>
                 </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(a.score ?? 0, 100)}%` }} />
-                </div>
+                {/* Bar Diri (evaluasi diri) — pembanding */}
+                {a.self != null && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-bold text-amber-600 w-9 shrink-0">Diri</span>
+                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-amber-400 rounded-full" style={{ width: `${Math.min(a.self, 100)}%` }} />
+                    </div>
+                    <span className="text-[9px] font-mono font-bold text-amber-600 w-7 text-right">{a.self.toFixed(0)}</span>
+                  </div>
+                )}
               </div>
             ))}
-            <p className="text-[10px] text-gray-400 italic">Garis penuh = penilaian rekan (Self dikecualikan); “diri” = evaluasi diri sebagai pembanding.</p>
+            <p className="text-[10px] text-gray-400 italic">
+              Bar <span className="text-indigo-700 font-bold">Rekan</span> = gabungan penilai (Self dikecualikan);
+              bar <span className="text-amber-600 font-bold">Diri</span> = evaluasi diri sebagai pembanding.
+            </p>
           </div>
         </div>
       )}

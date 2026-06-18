@@ -1,7 +1,25 @@
-
 # CLAUDE.md — Infarm 360° Performance Appraisal System
 
 Panduan untuk Claude Code saat bekerja di repo ini.
+
+## Sedang Dikerjakan (per 2026-06-18)
+
+**Fokus aktif:** pengerasan pra-produksi — keamanan, pengujian, CI, email, aksesibilitas.
+Migrasi fungsional **selesai & live**; yang tersisa sebagian besar aktivasi env + kebersihan.
+
+- **Baru selesai:** self-service ganti sandi (Akun Saya), unit test logika skor + CI, email
+  pengingat 360° (Gmail SMTP/Resend, dorman), indikator tenggat periode, aksesibilitas dropdown.
+- **Berikutnya (butuh aksi pengguna):** set env email (Gmail SMTP) → aktifkan pengingat +
+  reset sandi via email; ganti email seed → asli.
+- **Berikutnya (bisa digarap langsung):** tes parsing impor Excel; hapus arsip legacy.
+
+**File paling relevan:**
+- Skor & tes: `lib/scoring.ts`, `lib/score360.ts`, `tests/`, `.github/workflows/ci.yml`
+- Email: `lib/email/mailer.ts`, `app/(app)/admin/progress/actions.ts`
+- Akun/sesi: `app/(app)/akun/`, `app/login/`, `app/(app)/app-shell.tsx`
+- Pola end-to-end referensi: `app/(app)/kpi/` · Skema/RLS: `supabase/migrations/`
+
+---
 
 ## Apa Ini
 
@@ -10,168 +28,169 @@ Bukan e-commerce — **tidak ada pembayaran, keranjang, stok, atau pengiriman ba
 
 Empat peran pengguna (lihat `src/types.ts` → `UserRole`):
 - **Employee** — mengisi penilaian 360 Feedback, lihat laporan hasil sendiri.
-- **SPV (Supervisor)** — input KPI bulanan tim, ACC laporan tim, monitor kinerja bawahan.
-- **HRD Admin** — kelola siklus periode, pertanyaan, bobot penilai, mapping (termasuk
+- **SPV (Supervisor)** — input KPI bulanan tim (+ KPI dirinya sendiri), ACC laporan tim,
+  monitor kinerja bawahan.
+- **HRD Admin** — kelola siklus periode, pertanyaan (+ aspek), bobot penilai, mapping (termasuk
   **sifat wajib/opsional**), flag kepatuhan + **punishment** (pengurangan poin per kuartal),
   finalisasi Final Report, dashboard. Punya **mode ganda**: bisa bertindak sebagai SPV.
 - **Direksi** — dashboard eksekutif, ACC promosi/suksesi.
 
-Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`.
+Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`. Panduan pengguna: `CARA-PENGGUNAAN.md`.
 
 ## Status Saat Ini vs Target
 
-> **PENTING:** Migrasi fungsional **selesai & live**. Next.js + **Supabase aktif** (auth nyata,
-> 19 tabel, RLS penuh per peran, seed idempoten). `/` adalah gerbang auth versi Supabase;
-> SPA legacy tinggal arsip di `/legacy`. Lihat `progress.md` untuk peta fitur & route.
+> **PENTING:** Migrasi fungsional **selesai & live**. Next.js 16 + **Supabase aktif** (auth
+> nyata, RLS penuh per peran, seed idempoten). `/` = gerbang auth; SPA legacy tinggal arsip di
+> `/legacy`. Live di Vercel (auto-deploy dari `main`).
 
 **Kondisi sekarang (`as-is`):**
-- **Next.js 16 App Router** (Turbopack, React 19, Tailwind v4, TS strict). `motion`,
-  `lucide-react`, `xlsx`.
-- **Supabase aktif** (ref `beajoczjpywozavatzmf`): auth `@supabase/ssr`, 19 tabel
-  (`supabase/migrations/0001`–`0004`), RLS penuh per peran, seed idempoten (`scripts/seed.ts`).
+- **Stack:** Next.js 16 App Router (Turbopack, React 19, Tailwind v4, TS strict). Lib: `motion`,
+  `lucide-react`, `xlsx`, `zod`, `nodemailer`, `vitest` (dev).
+- **Supabase** (ref `beajoczjpywozavatzmf`): auth `@supabase/ssr`, **20 tabel** (migrasi
+  `supabase/migrations/0001`–`0008`), RLS penuh per peran, seed idempoten (`scripts/seed.ts`).
 - **Shell persisten** di route group `app/(app)/` — sidebar + landing per peran, sub-fitur
-  sebagai tab (`?tab=`). Helper Supabase: `lib/supabase/server.ts`
-  (`createClient` user-scoped/RLS vs `createAdminClient` service_role).
-- **Semua fitur (P1/P2/P3) sudah dimigrasi** — siklus 360°, KPI, dashboard visual, monitor,
-  rekap, suksesi, laporan rinci+PDF, progress 360, koreksi relasi, impor Excel, ad-hoc,
-  audit KPI, mode ganda HRD. Referensi pola end-to-end: `app/(app)/kpi/`.
-- **Pasca-migrasi (paritas legacy + peningkatan):**
-  - **Kelola Pegawai** (`app/(app)/admin/pegawai/`, HRD) — CRUD akun via `service_role`
-    (`admin.createUser`) + `employees`/`spv_team_members` user-scoped; email boleh placeholder,
-    nonaktif = `is_active:false` + ban akun; kode pegawai bebas-skema + peringatan duplikat.
-  - **Roster login dari DB** (employees aktif + email auth) — pegawai baru otomatis muncul;
-    fallback `DEMO_USERS` (`app/login/page.tsx`).
-  - **Dashboard**: 4 sub-tab (Kompilasi · Analisis KPI · Analisis 360 · Tabel) + **filter
-    Periode/Divisi** (server `?period=&dept=`) + pencarian tabel.
-  - **Performa**: `app/(app)/loading.tsx` (skeleton) + query halaman berat diparalelkan (`Promise.all`).
-- **SPA legacy** (`src/App.tsx`, `@ts-nocheck`, data `src/data.ts`) tinggal **arsip di
-  `/legacy`** (client-only, banner "data contoh"). Akan dihapus pra-produksi.
-- **Live di Vercel** (auto-deploy dari `main`). Login demo: semua user password
-  `Infarm@2026`; daftar di `lib/auth/demo-users.ts` (= sumber seed).
+  sebagai tab (`?tab=`). Helper: `lib/supabase/server.ts` (`createClient` user-scoped/RLS vs
+  `createAdminClient` service_role).
+- **Semua fitur P1/P2/P3 dimigrasi** — siklus 360°, KPI, dashboard visual (4 sub-tab + filter
+  Periode/Divisi), monitor, rekap, suksesi, laporan rinci+PDF, progress 360, koreksi relasi,
+  impor Excel, ad-hoc, audit KPI, mode ganda HRD, Kelola Pegawai (CRUD via service_role),
+  roster login dari DB.
+- **CI aktif** (`.github/workflows/ci.yml`): test + typecheck + build tiap push/PR.
+- Login: lihat `lib/auth/demo-users.ts` (= sumber seed). Sandi awal bersama (ganti per orang).
 
-**Sisa pra-produksi — TO-DO (`to-be`):**
-- [ ] **Aktifkan email pengingat 360°** — kode siap (DORMAN), tinggal **set env**. Pilih jalur
-      **Gmail SMTP** (tanpa domain — lihat "Aktivasi Gmail SMTP" di bawah) atau **Resend**
-      (butuh domain terverifikasi).
-- [ ] **Aktifkan "Lupa Sandi via email"** — dependensi sama (email asli + SMTP/Resend) +
-      flag `NEXT_PUBLIC_ENABLE_PW_RESET=true`. Bisa hidup bersamaan dgn pengingat 360°.
-- [ ] **Ganti email seed `nama@infarm.test` → email asli** (10 akun); prasyarat dua item di atas.
-- [ ] **Sandi awal berbeda per orang** (tugas HRD di Kelola Pegawai) — kurangi risiko sandi seragam.
-- [ ] **Hapus arsip legacy** `/legacy`, `src/App.tsx`, `src/data.ts` (lepaskan dulu
-      `scripts/seed.ts` yang masih pakai `src/data.ts`).
-- [ ] **Rotasi kredensial** sebelum produksi.
-
-### Aktivasi Gmail SMTP (pengingat email, tanpa beli domain)
-Pengirim = akun Gmail sendiri (mis. `infarmcorp@gmail.com`), limit ~500/hari (cukup utk ~100 pegawai).
-1. **Aktifkan 2-Step Verification** di akun Google → https://myaccount.google.com/security
-2. **Buat App Password** (16 char) → https://myaccount.google.com/apppasswords (muncul hanya bila 2FA aktif).
-3. **Set env di Vercel** (Settings → Environment Variables, server-only):
-   - `SMTP_USER` = email Gmail · `SMTP_PASS` = App Password · `SMTP_FROM` (opsional) = `Infarm 360 <email>`
-4. **Redeploy**. Tombol Kirim Pengingat / Pengingat Massal langsung mengirim betulan.
-- Kode: `lib/email/mailer.ts` (prioritas SMTP > Resend; dorman bila kosong). Catatan: tanpa
-  domain, Resend hanya kirim ke email pemilik akun — **Gmail SMTP** tak punya batasan itu.
-- Untuk produksi skala besar / pengirim ber-domain: beli domain → verifikasi di Resend →
-  set `RESEND_API_KEY` (+ `RESEND_FROM`); kode otomatis pakai Resend bila SMTP tak diset.
+**Sisa pra-produksi — TO-DO:**
+- ⬜ **Aktifkan email pengingat 360°** — kode siap (DORMAN), tinggal **set env** (Gmail SMTP
+  tanpa domain, atau Resend). Lihat "Aktivasi" di bawah.
+- ⬜ **Aktifkan "Lupa Sandi via email"** — dependensi sama (email asli + SMTP/Resend) + flag
+  `NEXT_PUBLIC_ENABLE_PW_RESET=true`. Hidup bersamaan dgn pengingat 360°.
+- ⬜ **Ganti email seed `nama@infarm.test` → email asli** (10 akun); prasyarat dua item di atas.
+- ⬜ **Sandi awal berbeda per orang** (tugas HRD di Kelola Pegawai) — kurangi risiko sandi seragam.
+- ⬜ **Hapus arsip legacy** `/legacy`, `src/App.tsx`, `src/data.ts` (lepaskan dulu
+  `scripts/seed.ts` yang masih pakai `src/data.ts`).
+- ⬜ **Rotasi kredensial** sebelum produksi.
+- ✅ **Self-service ganti sandi** — selesai (lihat Changelog).
+- ✅ **Unit test logika skor + CI** — selesai.
+- ✅ **Indikator tenggat periode** — selesai.
 
 Saat mengerjakan fitur, ingat: kerjakan di route Next.js `app/(app)/` (bukan SPA legacy).
 
-## Kekurangan, Rekomendasi & Pengembangan
+---
 
-Daftar hidup (perbarui saat ada perubahan). Sumber: tinjauan internal + catatan pengguna
-huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
+## Changelog (rekap perubahan)
 
-### A. Paritas legacy yang belum lengkap (dicatat pengguna)
-- ~~**Form "Mulai Nilai" berbeda dari legacy.**~~ ✅ **Selesai** — `assess-form.tsx` dibangun
-  ulang ke paritas legacy: **rail aspek** + editor **satu indikator** (Sebelumnya/Selanjutnya),
-  **label rating** (Hampir Tidak Pernah…Selalu), **bar progres**, dan **komentar/bukti wajib
-  (min. 4 char)** divalidasi klien + server (`submitAssessment`). *Belum diport* (butuh kolom
-  DB baru): teks panduan rating & deskripsi kaya per-soal yang di legacy di-hardcode per indeks.
-- ~~**"Batalkan Pengisian" tidak ada.**~~ ✅ **Selesai** — `assess-form.tsx` kini punya
-  **Batal** (kembali tanpa simpan) & **Buang Draf** (`discardAssessment`, hapus draf +
-  skor/jawaban via cascade; hanya draf, RLS milik penilai).
-- *(Catatan pengguna soal Komentar Audit KPI = perilaku yang MEMANG diinginkan, bukan bug:*
-  *edit skor wajib komentar; input KPI pertama boleh tanpa komentar. Pertahankan.)*
+Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 
-### B. Wajib sebelum go-live (keamanan & kebersihan)
-- **Sandi bersama `Infarm2026`** untuk semua akun → minta tiap pegawai ganti; beri sandi
-  berbeda per orang. Risiko impersonasi (inti integritas 360°).
-- ~~**Self-service ganti sandi (Opsi 1) belum dibangun**~~ ✅ **Selesai** — halaman
-  **Akun Saya** (`app/(app)/akun/`, semua peran): verifikasi **sandi saat ini** via
-  `signInWithPassword` lalu `updateUser({password})` (Server Action `changeOwnPassword`,
-  Zod, min. 8 char). Tautan di footer sidebar. Sandi tak pernah dicatat. Menutup risiko
-  sandi bersama tanpa perlu email. (Tetap dorong tiap pegawai menggantinya.)
-- **Lupa Sandi via email (Opsi 2) dormant** — kode siap di `app/auth/lupa-sandi`,
-  `/auth/callback`, `/auth/perbarui-sandi`; aktifkan dengan email asli + Resend/SMTP +
-  `NEXT_PUBLIC_ENABLE_PW_RESET=true` (lihat `progress.md`).
-- **Email seed `nama@infarm.test` → email asli**; prasyarat Opsi 2 & pengingat 360°.
-- **Hapus arsip legacy** `/legacy`, `src/App.tsx`, `src/data.ts` (catatan: `src/data.ts`
-  masih dipakai `scripts/seed.ts` — lepaskan dulu).
+### Fitur baru
+- **Akun Saya — ganti sandi mandiri** (`app/(app)/akun/`, semua peran): verifikasi sandi saat
+  ini (`signInWithPassword`) → `updateUser({password})`. Tautan di footer sidebar. Login juga
+  punya petunjuk "Lupa sandi? Hubungi HRD" (atau tautan reset email bila flag aktif).
+- **Email pengingat 360°** (`lib/email/mailer.ts`): 2 jalur — **Gmail SMTP** (`nodemailer`)
+  ATAU **Resend** REST; prioritas SMTP, **dorman** bila env kosong. `sendReminder`/`massReminder`
+  di `app/(app)/admin/progress/actions.ts` (email penilai dari auth, isi = target belum dinilai).
+- **Review Hasil Akhir revamp** (`app/(app)/laporan/`): panel aksi HRD di detail (Unduh PDF ·
+  Simpan Draf · Finalisasi Hasil + badge status/Skor Akhir), **radar self vs rekan** (garis
+  penuh = Rekan, putus = Diri) + dua bar per aspek, **Evaluasi Aspek** (ringkasan naratif HRD
+  per aspek → `final_reports.content.aspectSummaries`), **Rincian Komentar Murni** (HRD-only,
+  anonim, per aspek→indikator + akumulasi rating + esai per pertanyaan; Self dikecualikan).
+- **Progress 360 — dua progres per baris** (paritas legacy): "Menilai orang lain" + "Dinilai
+  oleh X/Y orang".
+- **Kelola Pertanyaan — Tambah/Kelola Aspek** + panduan rating/deskripsi per indikator
+  (migrasi 0006).
+- **SPV input KPI dirinya sendiri** (selain anggota tim) — migrasi 0008.
+- **Ekspor Dataset** (`/admin/ekspor`): dataset Pegawai, KPI, Audit KPI, Punishment, Rekap,
+  360° anonim, Pemetaan + **Rekap Konfigurasi Periode** (potret pengaturan HRD per kuartal).
+- **Indikator tenggat periode** (sidebar): sisa hari ke `end_date` + peringatan amber ≤7 hari /
+  rose saat hari-ini/lewat (`layout.tsx` `daysUntil`).
+- **Empty-state berpandu** (`components/empty-state.tsx`) di halaman kunci (anti tabel kosong).
+- **Impor pemetaan** — pratinjau menyebut pasangan yang dilewati + alasannya.
 
-### C. Fungsional bernilai tinggi (pengembangan)
-- ~~**Pengingat email 360°** — placeholder.~~ 🟡 **Terbangun (DORMAN)** —
-  `sendReminder`/`massReminder` (`app/(app)/admin/progress/actions.ts`) kirim email lewat
-  `lib/email/mailer.ts` (**2 jalur**: Gmail SMTP via `nodemailer` ATAU Resend REST; prioritas
-  SMTP). **Aktif bila `SMTP_USER`+`SMTP_PASS` ATAU `RESEND_API_KEY` diset**; tanpa itu tetap
-  pesan "belum aktif". Email penilai diambil dari auth (admin `getUserById`), isi = daftar
-  target yang belum dinilai. **Aktivasi Gmail (tanpa domain):** 2FA + App Password →
-  `SMTP_USER`/`SMTP_PASS` di Vercel.
-- **Ekspor Excel** dashboard/rekap (kini hanya PDF print) — HRD/Direksi sering butuh data mentah.
-- **Ringkasan Aspek 360° otomatis (Claude API) — REKOMENDASI, belum dibangun.**
-  Editor ringkasan per-aspek sudah ada (`app/(app)/laporan/aspect-summary-editor.tsx` →
-  `saveAspectSummaries`, tersimpan di `final_reports.content.aspectSummaries`; HRD bebas
-  menyunting lalu Simpan). Tambahkan tombol **"✨ Buat Ringkasan Otomatis"** per aspek yang
-  memanggil Server Action baru → kirim **rating + komentar anonim** aspek itu (dari
-  `data.byAspect`, **tanpa nama penilai**) ke Claude → isi textarea (HRD tetap edit & Simpan).
-  - **Yang diperlukan:** (1) `ANTHROPIC_API_KEY` **server-only** di Vercel (jangan
-    `NEXT_PUBLIC_*`, jangan di-commit); (2) `npm i @anthropic-ai/sdk`; (3) Server Action
-    HRD-only (`client.messages.create`); (4) pola **dorman/flag** seperti Resend —
-    `NEXT_PUBLIC_ENABLE_AI_SUMMARY=true`, tombol muncul hanya bila key terpasang.
-  - **Model:** `claude-haiku-4-5` (termurah, $1/$5 per 1 jt token) cukup untuk meringkas;
-    `claude-sonnet-4-6` ($3/$15) bila ingin prosa lebih halus.
-  - **Dasar perhitungan biaya:** 1 komentar/jawaban ≈ **1.000 karakter ≈ 250 token**
-    (±1 token tiap 4 karakter). Yang dikirim per *generate* = semua komentar/jawaban terkait +
-    daftar rating + instruksi (~250 token overhead/panggilan); output ringkasan ~250–300 token.
-    Kurs asumsi $1 ≈ Rp16.000. Biaya **hanya muncul saat tombol ditekan**, bukan tiap render.
-  - **Skenario referensi — 1 pegawai = 10 indikator × 10 penilai (100 komentar) + 3 esai ×
-    10 penilai (30 jawaban):**
+### Perbaikan (bug fix)
+- **Menu HRD mode-SPV = SPV biasa** (Input KPI Anggota · Laporan Kinerja Tim · Monitor); hapus
+  item "Rekapitulasi Kuartal" terpisah yang dobel dengan tab.
+- **Rekapitulasi Kuartal dihapus untuk Direksi** (menu + blokir akses `/kpi`).
+- **Konsistensi mobile**: tabel lebar dibungkus `overflow-x-auto` + `min-w`.
+- **Aksesibilitas**: `SearchableSelect` keyboard-nav (↑/↓/Enter/Esc) + ARIA; tombol menu mobile
+  `aria-label`/`aria-expanded`.
 
-    | Komponen | Token input | Token output | Haiku 4.5 | Sonnet 4.6 |
-    |---|---|---|---|---|
-    | Indikator (5 aspek × 2 indikator) | ~26.250 | ~1.250 | $0.033 | $0.099 |
-    | Esai (3 pertanyaan) | ~7.750 | ~300 | $0.009 | $0.026 |
-    | **Total / pegawai** | **~34.000** | **~1.550** | **~$0.042 (Rp670)** | **~$0.125 (Rp2.000)** |
+### Skema DB (migrasi)
+- `0005_hrd_audit_log` — tabel jejak audit HRD (append-only).
+- `0006_indicator_guide` — `indicators.description` + `indicators.rating_guide` (jsonb).
+- `0007_indexes` — 10 indeks pelengkap pada kolom FK (future-proofing).
+- `0008_spv_self_kpi` — helper `is_spv()` + perluas RLS `kpi_write`/`kpiaudit_insert` agar SPV
+  boleh tulis KPI **dirinya sendiri** (least-privilege; bukan seluruh divisi).
+- `final_reports.content` (jsonb, kolom lama) dipakai untuk `aspectSummaries` (tanpa migrasi baru).
 
-  - **Total per kuartal (semua pegawai, skenario di atas):**
+### Infra / Testing / CI
+- **Vitest** (`npm test`) + 28 unit test logika skor; rumus 360° diekstrak ke `lib/score360.ts`.
+- **GitHub Actions** (`.github/workflows/ci.yml`): test + typecheck + build tiap push/PR.
+- **Skrip reset** (`scripts/reset-*.{sql,mjs}`): backup→kosongkan, 3 tingkat granularitas
+  (transaksional / sisakan pegawai / pemetaan saja). `backups/` gitignored.
 
-    | Jumlah pegawai | Haiku | Sonnet |
-    |---|---|---|
-    | 50 pegawai | ~$2.1 (~Rp34 rb) | ~$6.3 (~Rp100 rb) |
-    | 100 pegawai | ~$4.2 (~Rp67 rb) | ~$12.5 (~Rp200 rb) |
+---
 
-  - **Skenario lebih kecil** (per aspek, 1 komentar ≈ 1.000 karakter, Haiku): aspek kecil
-    (3 indikator × 6 penilai) ~$0.006, sedang (4×10) ~$0.012, besar (6×12) ~$0.020. Bila
-    rata-rata esai ~2.000 karakter (bukan 1.000), komponen esai ≈ 2× — total/pegawai naik
-    ke ~$0.05 Haiku (~Rp800), tetap sangat kecil.
-  - **Privasi:** komentar 360° = data kinerja sensitif; dengan API teks dikirim ke Anthropic
-    (sudah anonim, tanpa nama). Anthropic API menyimpan hingga 30 hari untuk operasional,
-    **bukan** untuk melatih model pada data API bisnis. Perlu persetujuan kebijakan internal.
-- ~~**Deadline periode lebih tegas**~~ ✅ **Selesai** — indikator periode di sidebar
-  (`app-shell.tsx`) kini menampilkan **sisa hari** ke `end_date` + **peringatan amber ≤7 hari**
-  / **rose saat ≤0** (hari ini / lewat tenggat). Hitung di `layout.tsx` (`daysUntil`, basis tanggal UTC).
-- **Ganti email mandiri** (opsional, lanjutan Opsi 1) — pertimbangkan verifikasi vs instan.
+## Backlog & Rekomendasi (kekurangan / pengembangan)
 
-### D. Keandalan teknis
-- ~~**Belum ada satu pun tes.**~~ 🟡 **Mulai** — **Vitest** terpasang (`npm test`).
-  Unit test logika skor sudah ada (28 tes, `tests/scoring.test.ts` + `tests/score360.test.ts`):
-  `lib/scoring.ts` (`finalScoreOf`, `playerClassOf`, band 9-Box/4-Box) & `lib/score360.ts`
-  (`weightedScore360` 4class/2class, **kelas Bawahan**, Self dikecualikan — diekstrak dari
-  `app/(app)/admin/360/actions.ts` agar murni & teruji). **Sisa:** tes integrasi RLS,
-  parsing impor Excel, dan Server Action lain.
-- **Verifikasi RLS menyeluruh per peran** (skrip uji terprogram) sebelum produksi.
-- 🟡 **Aksesibilitas & mobile** — **Mulai**: `SearchableSelect` kini **keyboard-nav** penuh
-  (↑/↓/Enter/Esc) + ARIA (`combobox`/`listbox`/`option`, `aria-activedescendant`); tombol menu
-  mobile diberi `aria-label`/`aria-expanded`; tabel lebar sudah dibungkus `overflow-x-auto` +
-  `min-w`. **Sisa:** audit kontras menyeluruh, label form di sisa halaman, uji pembaca layar.
+Daftar hidup (perbarui saat ada perubahan). Status: ✅ selesai · 🔄 sebagian · ⬜ belum.
+
+### Keamanan pra-go-live
+- ⬜ **Sandi bersama** untuk semua akun → minta tiap pegawai ganti (via Akun Saya); HRD beri
+  sandi berbeda per orang. Risiko impersonasi (inti integritas 360°).
+- ✅ **Self-service ganti sandi** (Akun Saya) — menutup risiko sandi bersama tanpa email.
+- ⬜ **Lupa Sandi via email** (dormant) — kode siap (`app/auth/lupa-sandi`, `/auth/callback`,
+  `/auth/perbarui-sandi`); aktifkan dgn email asli + SMTP/Resend + `NEXT_PUBLIC_ENABLE_PW_RESET=true`.
+- ⬜ **Email seed → asli** & **hapus arsip legacy** (lihat TO-DO di atas).
+
+### Fungsional bernilai tinggi
+- 🔄 **Pengingat email 360°** — terbangun, **DORMAN** (aktif bila env email diset).
+- ✅ **Ekspor Excel** dashboard/rekap.
+- ✅ **Deadline periode lebih tegas** — indikator sisa hari + peringatan.
+- ⬜ **Ringkasan Aspek 360° otomatis (Claude API)** — REKOMENDASI, belum dibangun. Editor
+  per-aspek sudah ada; tambah tombol "✨ Buat Ringkasan Otomatis" → Server Action kirim rating +
+  komentar **anonim** (`data.byAspect`, tanpa nama) ke Claude → isi textarea (HRD edit & Simpan).
+  - **Perlu:** `ANTHROPIC_API_KEY` server-only, `@anthropic-ai/sdk`, Server Action HRD-only,
+    pola dorman (`NEXT_PUBLIC_ENABLE_AI_SUMMARY=true`). Model: `claude-haiku-4-5` (termurah).
+  - **Biaya** (1 komentar ≈ 1.000 char ≈ 250 token; Haiku, kurs $1≈Rp16rb): ~**$0.04/pegawai**
+    (skenario 100 komentar + 30 jawaban esai) → **~$2–4/kuartal untuk 50–100 pegawai**. Biaya
+    hanya saat tombol ditekan. Sonnet ≈ 3×.
+  - **Privasi:** komentar dikirim ke Anthropic (sudah anonim); retensi API 30 hari, bukan utk
+    melatih model pada data bisnis. Perlu persetujuan kebijakan internal.
+
+### Keandalan teknis
+- 🔄 **Tes** — Vitest + 28 tes logika skor terpasang. **Sisa:** tes parsing impor Excel,
+  Server Action lain, integrasi RLS.
+- ⬜ **Verifikasi RLS terprogram per peran** sebelum produksi (mis. SPV coba tulis KPI rekan
+  SPV → harus ditolak).
+- 🔄 **Aksesibilitas & mobile** — dropdown keyboard-nav/ARIA + tabel lebar wrapped. **Sisa:**
+  audit kontras menyeluruh, label form di sisa halaman, uji pembaca layar.
+
+### Pengembangan opsional
+- Bulk-finalisasi laporan ber-ACC SPV · Ekspor Log Aktivitas HRD ke Excel · Branch protection
+  GitHub (PR butuh CI hijau) · Ganti email mandiri (lanjutan Akun Saya).
+
+> Catatan paritas legacy yang **memang diinginkan** (bukan bug): edit skor KPI wajib komentar;
+> input KPI pertama boleh tanpa komentar. Pertahankan.
+
+---
+
+## Aktivasi (saat siap produksi)
+
+### Email pengingat / reset sandi — Gmail SMTP (tanpa beli domain)
+Pengirim = akun Gmail sendiri (mis. `infarmcorp@gmail.com`), limit ~500/hari (cukup ~100 pegawai).
+1. **Aktifkan 2-Step Verification** → https://myaccount.google.com/security
+2. **Buat App Password** (16 char) → https://myaccount.google.com/apppasswords (perlu 2FA aktif).
+3. **Set env di Vercel** (server-only): `SMTP_USER`=email · `SMTP_PASS`=App Password ·
+   `SMTP_FROM` (opsional)=`Infarm 360 <email>`.
+4. **Redeploy.** Tombol Kirim Pengingat / Pengingat Massal langsung mengirim.
+
+Kode: `lib/email/mailer.ts` (prioritas SMTP > Resend; dorman bila kosong). Untuk produksi
+ber-domain: beli domain → verifikasi di Resend → set `RESEND_API_KEY` (+ `RESEND_FROM`); kode
+otomatis pakai Resend bila SMTP tak diset. (Tanpa domain, Resend hanya kirim ke email pemilik akun.)
+
+### Lupa Sandi via email
+Setelah email asli + SMTP/Resend di atas: daftarkan **Redirect URL** `https://<domain>/auth/callback`
+di Supabase → Authentication → URL Configuration; set `NEXT_PUBLIC_ENABLE_PW_RESET=true`; redeploy.
+
+---
 
 ## Keputusan Arsitektur (terkunci)
 
@@ -185,15 +204,15 @@ huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
 
 ## Tech Stack (Target)
 
-- **Framework**: Next.js 16 (App Router, terbaru — verifikasi versi pasti saat scaffold)
-- **Language**: TypeScript (strict mode)
+- **Framework**: Next.js 16 (App Router) · **Language**: TypeScript (strict)
 - **Frontend**: React 19, Tailwind CSS v4
 - **Backend**: Next.js Server Actions + Route Handlers
 - **Database & Auth**: Supabase (PostgreSQL, Auth, Storage, **RLS**, Edge Functions)
 - **Validasi**: Zod (di sisi server)
 - **Excel/CSV**: `xlsx` (parse di klien) — impor KPI massal & impor mapping 360.
-- **PDF**: print-to-PDF (`window.print()` + CSS `@media print`) — fitur "Unduh PDF" laporan.
-- **Email**: Resend — fitur "Kirim Pengingat" 360 (**belum aktif**, placeholder siap).
+- **PDF**: print-to-PDF (`window.print()` + CSS `@media print`).
+- **Email**: Gmail SMTP (`nodemailer`) atau Resend — kode aktif, **dorman** sampai env diset.
+- **Testing**: Vitest (`npm test`) · **CI**: GitHub Actions
 - **Deployment**: Vercel · **Version Control**: GitHub · **Package Manager**: npm
 
 ## Deployment (Vercel)
@@ -205,16 +224,13 @@ huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY      # server-only
-RESEND_API_KEY                 # server-only — aktifkan pengingat email 360° (jalur Resend)
+RESEND_API_KEY                 # server-only — pengingat email 360° (jalur Resend, butuh domain)
 RESEND_FROM                    # server-only, opsional — mis. "Infarm 360 <noreply@domain>"
-SMTP_USER                      # server-only — email Gmail (jalur SMTP, alternatif Resend)
+SMTP_USER                      # server-only — email Gmail (jalur SMTP, tanpa domain)
 SMTP_PASS                      # server-only — App Password Gmail (butuh 2FA)
 SMTP_FROM                      # server-only, opsional — mis. "Infarm 360 <infarmcorp@gmail.com>"
+NEXT_PUBLIC_ENABLE_PW_RESET    # 'true' utk aktifkan alur "Lupa Sandi via email"
 ```
-
-> **Email pengingat — dua jalur** (`lib/email/mailer.ts`, prioritas SMTP > Resend, DORMAN
-> bila keduanya kosong): **Gmail SMTP** (`SMTP_USER`+`SMTP_PASS`, tanpa domain, ~500/hari) atau
-> **Resend** (`RESEND_API_KEY`, butuh domain terverifikasi utk produksi). Pakai `nodemailer`.
 
 ## Security Rules
 
@@ -238,9 +254,9 @@ SMTP_FROM                      # server-only, opsional — mis. "Infarm 360 <inf
 - Komentar & label UI berbahasa Indonesia mengikuti istilah di PANDUAN (mis. "Mulai Nilai",
   "Final Report", "Garis Hubungan") agar konsisten dengan dokumen pengguna.
 - Domain types ada di `src/types.ts` — perluas di sana, jangan duplikasi.
-- **Skor Akhir (SPA legacy)** = blend KPI+360 **dikurangi** punishment kepatuhan per kuartal
-  (`compliancePenalties[quarterKey][empId]`, min 0). Ada beberapa fungsi skor akhir terpisah
-  (komponen-level + lokal Monitor Kinerja); kalau mengubah rumus, sinkronkan semuanya.
+- **Skor Akhir** = blend KPI+360 **dikurangi** punishment kepatuhan per kuartal (min 0). Rumus
+  murni terkunci di `lib/scoring.ts` & `lib/score360.ts` (lihat Pengujian); kalau mengubah,
+  sinkronkan semua tempat + perbarui tesnya.
 - **Klasifikasi talenta Dashboard** (9-Box KPI×360 & 4-Box A/B/C/D Player) **dikunci ke satu
   kuartal** lewat `getTalentQuarterKey()` (filter satu kuartal → kuartal itu; "Semua" →
   `activeQuarterKey`) agar KPI, 360°, dan Skor Akhir dari periode sama. Wajib hormati flag
@@ -254,23 +270,21 @@ SMTP_FROM                      # server-only, opsional — mis. "Infarm 360 <inf
 > SDM nyata (promosi, punishment, kategori talenta). Kesalahan rumus **tidak memunculkan
 > error** — aplikasi tetap jalan, angkanya saja yang salah ("salah diam-diam"). Tes mengunci
 > rumus: bila ada perubahan tak sengaja, `npm test` langsung **gagal merah** sebelum sampai
-> ke pengguna. Tes ini **bukan** aktivitas kuartalan — dijalankan saat **kode disentuh**.
+> ke pengguna. **Bukan** aktivitas kuartalan — dijalankan saat **kode disentuh**.
 
 - **Jalankan:** `npm test` (sekali) atau `npm run test:watch` (mode pantau).
 - **Cakupan (28 tes):**
   - `tests/scoring.test.ts` → `lib/scoring.ts`: `finalScoreOf` (blend 50/50, KPI-only, s360
     null, punishment, floor 0), `playerClassOf` (A hanya bila 360 aktif & final≥90 & kpi≥90 &
-    360≥80; ambang B/C/D), `kpiBandOf`/`s360BandOf` (ambang band), `talentBoxOf` (9 kotak).
-  - `tests/score360.test.ts` → `lib/score360.ts`: `weightedScore360` model **4class** (semua
-    kelas, normalisasi bobot saat kelas kosong, **kelas Bawahan**, **Self dikecualikan**) &
-    **2class** (Internal = rerata semua skor Peer+Cross+Bawahan, fallback satu sisi).
-- **Rumus inti ada di KODE, bukan UI.** Yang bisa diubah HRD lewat aplikasi = *input* (bobot
-  %, 360° aktif/nonaktif, KPI, punishment). Cara blend (50/50) & ambang (≥90 dst.) terkunci di
-  `lib/scoring.ts` / `lib/score360.ts` — hanya berubah lewat edit kode + deploy.
-- **Kalau sengaja mengubah rumus:** perbarui juga tes terkait (kunci jawaban) agar lolos.
-  `lib/score360.ts` diekstrak dari `app/(app)/admin/360/actions.ts` — jaga keduanya sinkron.
-- **CI (`.github/workflows/ci.yml`)** menjalankan `npm test` + typecheck + build **otomatis
-  tiap push ke `main` & tiap PR**. Status ✓/✗ muncul di tab **Actions** GitHub.
+    360≥80; ambang B/C/D), `kpiBandOf`/`s360BandOf`, `talentBoxOf` (9 kotak).
+  - `tests/score360.test.ts` → `lib/score360.ts`: `weightedScore360` **4class** (semua kelas,
+    normalisasi bobot, **kelas Bawahan**, **Self dikecualikan**) & **2class** (Internal = rerata
+    semua skor Peer+Cross+Bawahan, fallback satu sisi).
+- **Rumus inti ada di KODE, bukan UI.** Yang bisa diubah HRD lewat aplikasi = *input* (bobot %,
+  360° aktif/nonaktif, KPI, punishment). Cara blend & ambang terkunci di kode.
+- **Kalau sengaja mengubah rumus:** perbarui tes terkait. `lib/score360.ts` diekstrak dari
+  `app/(app)/admin/360/actions.ts` — jaga sinkron.
+- **CI** menjalankan `npm test` + typecheck + build tiap push/PR (tab Actions GitHub).
 
 ## Perintah
 
@@ -281,5 +295,5 @@ npm run build      # next build (jalankan sebelum push — memvalidasi tipe & pr
 npm run typecheck  # tsc --noEmit
 npm run lint       # next lint
 npm test           # vitest run — unit test logika skor (lib/scoring.ts, lib/score360.ts)
-npm run test:watch # vitest mode pantau (re-run saat file berubah)
+npm run test:watch # vitest mode pantau
 ```

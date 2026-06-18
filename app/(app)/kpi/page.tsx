@@ -28,26 +28,17 @@ export default async function KpiPage({
   const hrdMode = jar.get('hrd_mode')?.value === 'spv' ? 'spv' : 'admin';
 
   // Input KPI hanya untuk SPV / HRD mode-SPV; HRD mode-admin = monitoring (riwayat + rekap).
+  // Direksi TIDAK punya akses ke halaman ini (Rekapitulasi Kuartal dihapus untuk Direksi).
   const canInput = role === 'spv' || (role === 'hrd' && hrdMode === 'spv');
   const canAudit = role === 'spv' || role === 'hrd';
-  const canView = canAudit || role === 'direksi';
+  const canView = canAudit;
   if (!canView) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD / Direksi.</p></Shell>;
+    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD.</p></Shell>;
   }
 
-  // Mode INPUT (SPV / HRD-SPV): berfitur tab. Mode MONITORING (HRD admin / Direksi):
-  // satu halaman — Rekapitulasi + Riwayat & Audit ditumpuk (ala legacy), tanpa tab.
+  // Mode INPUT (SPV / HRD-SPV): berfitur tab. Mode MONITORING (HRD admin):
+  // satu halaman — Rekapitulasi + Riwayat & Audit berdampingan (ala legacy), tanpa tab.
   if (!canInput) {
-    // Direksi (tanpa audit) → hanya rekap. HRD admin → split view rekap | riwayat.
-    if (!canAudit) {
-      return (
-        <Shell>
-          <h1 className="text-xl font-bold text-gray-800">Rekapitulasi Kuartal</h1>
-          <p className="mt-1 text-sm text-gray-500">Ringkasan capaian KPI, 360°, &amp; Skor Akhir per kuartal.</p>
-          <div className="mt-4"><RekapView role={role} userId={user.id} periodParam={period} /></div>
-        </Shell>
-      );
-    }
     return (
       <main className="w-full p-4 sm:p-5 lg:p-6">
         <div className="mb-4">

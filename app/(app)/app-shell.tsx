@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
-  Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck, BarChart3,
+  Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck,
   Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
@@ -78,7 +78,6 @@ function menuFor(role: Role, hrdMode: HrdMode): Section[] {
       items: [
         { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
         { href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp },
-        { href: '/kpi?tab=rekap', label: 'Rekapitulasi Kuartal', icon: BarChart3 },
         { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText },
         { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award },
       ],

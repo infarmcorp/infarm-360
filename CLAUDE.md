@@ -90,8 +90,12 @@ huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
   masih dipakai `scripts/seed.ts` — lepaskan dulu).
 
 ### C. Fungsional bernilai tinggi (pengembangan)
-- **Pengingat email 360° (Resend)** — placeholder `sendReminder`/`massReminder` di
-  `app/(app)/admin/progress/actions.ts`.
+- ~~**Pengingat email 360° (Resend)** — placeholder.~~ 🟡 **Terbangun (DORMAN)** —
+  `sendReminder`/`massReminder` (`app/(app)/admin/progress/actions.ts`) kirim email via Resend
+  REST (`lib/email/resend.ts`, tanpa SDK). **Aktif bila `RESEND_API_KEY` diset**; tanpa itu
+  tetap menampilkan pesan "belum aktif". Email penilai diambil dari auth (admin `getUserById`),
+  isi = daftar target yang belum dinilai. **Aktivasi:** set `RESEND_API_KEY` (+ opsional
+  `RESEND_FROM`) di Vercel; tanpa domain terverifikasi, Resend hanya kirim ke email pemilik akun.
 - **Ekspor Excel** dashboard/rekap (kini hanya PDF print) — HRD/Direksi sering butuh data mentah.
 - **Ringkasan Aspek 360° otomatis (Claude API) — REKOMENDASI, belum dibangun.**
   Editor ringkasan per-aspek sudah ada (`app/(app)/laporan/aspect-summary-editor.tsx` →
@@ -179,7 +183,8 @@ huruf-kapital di `CARA-PENGGUNAAN.md`. Urut dari paling penting.
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY      # server-only
-RESEND_API_KEY                 # server-only (jika email reminder dipakai)
+RESEND_API_KEY                 # server-only — aktifkan pengingat email 360°
+RESEND_FROM                    # server-only, opsional — mis. "Infarm 360 <noreply@domain>"
 ```
 
 ## Security Rules

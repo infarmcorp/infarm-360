@@ -126,10 +126,14 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
         {manual ? '← Pilih dari daftar' : 'Masuk dengan email manual'}
       </button>
 
-      {PW_RESET_ON && (
+      {PW_RESET_ON ? (
         <Link href="/auth/lupa-sandi" className="block text-center text-[11px] text-emerald-700 hover:text-emerald-800 hover:underline">
           Lupa sandi?
         </Link>
+      ) : (
+        <p className="text-center text-[11px] text-gray-400">
+          Lupa sandi? <span className="text-gray-500 font-semibold">Hubungi HRD untuk reset.</span>
+        </p>
       )}
     </form>
   );

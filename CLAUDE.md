@@ -49,11 +49,29 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`.
 - **Live di Vercel** (auto-deploy dari `main`). Login demo: semua user password
   `Infarm@2026`; daftar di `lib/auth/demo-users.ts` (= sumber seed).
 
-**Sisa pra-produksi (`to-be`):**
-- Aktifkan email pengingat via **Resend** (placeholder `sendReminder`/`massReminder` di
-  `app/(app)/admin/progress/actions.ts`).
-- Hapus `/legacy`, `src/App.tsx`, `src/data.ts`.
-- Ganti email seed `nama@infarm.test` → email asli; rotasi kredensial.
+**Sisa pra-produksi — TO-DO (`to-be`):**
+- [ ] **Aktifkan email pengingat 360°** — kode siap (DORMAN), tinggal **set env**. Pilih jalur
+      **Gmail SMTP** (tanpa domain — lihat "Aktivasi Gmail SMTP" di bawah) atau **Resend**
+      (butuh domain terverifikasi).
+- [ ] **Aktifkan "Lupa Sandi via email"** — dependensi sama (email asli + SMTP/Resend) +
+      flag `NEXT_PUBLIC_ENABLE_PW_RESET=true`. Bisa hidup bersamaan dgn pengingat 360°.
+- [ ] **Ganti email seed `nama@infarm.test` → email asli** (10 akun); prasyarat dua item di atas.
+- [ ] **Sandi awal berbeda per orang** (tugas HRD di Kelola Pegawai) — kurangi risiko sandi seragam.
+- [ ] **Hapus arsip legacy** `/legacy`, `src/App.tsx`, `src/data.ts` (lepaskan dulu
+      `scripts/seed.ts` yang masih pakai `src/data.ts`).
+- [ ] **Rotasi kredensial** sebelum produksi.
+
+### Aktivasi Gmail SMTP (pengingat email, tanpa beli domain)
+Pengirim = akun Gmail sendiri (mis. `infarmcorp@gmail.com`), limit ~500/hari (cukup utk ~100 pegawai).
+1. **Aktifkan 2-Step Verification** di akun Google → https://myaccount.google.com/security
+2. **Buat App Password** (16 char) → https://myaccount.google.com/apppasswords (muncul hanya bila 2FA aktif).
+3. **Set env di Vercel** (Settings → Environment Variables, server-only):
+   - `SMTP_USER` = email Gmail · `SMTP_PASS` = App Password · `SMTP_FROM` (opsional) = `Infarm 360 <email>`
+4. **Redeploy**. Tombol Kirim Pengingat / Pengingat Massal langsung mengirim betulan.
+- Kode: `lib/email/mailer.ts` (prioritas SMTP > Resend; dorman bila kosong). Catatan: tanpa
+  domain, Resend hanya kirim ke email pemilik akun — **Gmail SMTP** tak punya batasan itu.
+- Untuk produksi skala besar / pengirim ber-domain: beli domain → verifikasi di Resend →
+  set `RESEND_API_KEY` (+ `RESEND_FROM`); kode otomatis pakai Resend bila SMTP tak diset.
 
 Saat mengerjakan fitur, ingat: kerjakan di route Next.js `app/(app)/` (bukan SPA legacy).
 

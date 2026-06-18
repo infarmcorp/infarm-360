@@ -17,6 +17,11 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
   const [pending, start] = useTransition();
 
   const depts = useMemo(() => [...new Set(rows.map((r) => r.dept))].sort(), [rows]);
+  // Peta "dinilai oleh": berapa penilai sudah menilai pegawai ini (legacy: kolom "Menilai Si Penilai").
+  const dinilaiBy = useMemo(
+    () => new Map(targetRows.map((t) => [t.id, { done: t.done, total: t.total }])),
+    [targetRows],
+  );
 
   const stats = useMemo(() => {
     const total = rows.length;
@@ -79,6 +84,9 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
         {shown.map((r) => {
           const complete = r.total > 0 && r.done === r.total;
           const pct = r.total ? Math.round((r.done / r.total) * 100) : 0;
+          const by = dinilaiBy.get(r.id);
+          const byComplete = !!by && by.total > 0 && by.done === by.total;
+          const byPct = by && by.total ? Math.round((by.done / by.total) * 100) : 0;
           return (
             <div key={r.id} className="border border-gray-200 rounded-xl p-3">
               <div className="flex items-center justify-between gap-3">
@@ -104,8 +112,26 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
                   )}
                 </div>
               </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden mt-2">
-                <div className={`h-full rounded-full ${complete ? 'bg-emerald-500' : 'bg-amber-400'}`} style={{ width: `${pct}%` }} />
+              {/* Dua progres berdampingan (paritas legacy): "Menilai" vs "Dinilai oleh". */}
+              <div className="grid sm:grid-cols-2 gap-x-4 gap-y-2 mt-2">
+                <div>
+                  <div className="flex justify-between items-center text-[9px] font-bold text-gray-400 mb-0.5">
+                    <span>Menilai orang lain</span>
+                    <span>{r.done}/{r.total} · {pct}%</span>
+                  </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${complete ? 'bg-emerald-500' : 'bg-amber-400'}`} style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between items-center text-[9px] font-bold text-gray-400 mb-0.5">
+                    <span>Dinilai oleh</span>
+                    <span>{by ? `${by.done}/${by.total} orang · ${byPct}%` : '—'}</span>
+                  </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${byComplete ? 'bg-indigo-600' : 'bg-amber-400'}`} style={{ width: `${byPct}%` }} />
+                  </div>
+                </div>
               </div>
               {expanded === r.id && r.pending.length > 0 && (
                 <div className="mt-3 space-y-1.5 border-t border-gray-100 pt-2">
@@ -132,51 +158,11 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
         })}
       </div>
       <p className="text-[10px] text-gray-400 italic">
-        “Paksa Selesai” menandai penilaian sebagai terkirim (tanpa skor) agar tak lagi terhitung terlambat.
-        “Kirim Pengingat” akan mengirim email saat integrasi Resend diaktifkan.
+        Tiap baris menampilkan dua progres: <strong>Menilai orang lain</strong> (tugas penilai
+        terhadap orang lain) &amp; <strong>Dinilai oleh</strong> (berapa penilai sudah menilai pegawai
+        ini, mis. 7/10 orang). “Paksa Selesai” menandai penilaian terkirim agar tak terhitung
+        terlambat; “Kirim Pengingat” mengirim email saat integrasi Resend diaktifkan.
       </p>
-
-      {/* Info read-only: tiap pegawai sudah dinilai oleh berapa orang. */}
-      <DinilaiInfo targetRows={targetRows} q={q} dept={dept} />
-    </div>
-  );
-}
-
-/** Daftar informasi (tanpa aksi): tiap pegawai sudah dinilai oleh berapa penilai. */
-function DinilaiInfo({ targetRows, q, dept }: { targetRows: TargetRow[]; q: string; dept: string }) {
-  const shown = targetRows.filter((r) =>
-    (!q.trim() || r.name.toLowerCase().includes(q.toLowerCase())) &&
-    (dept === 'all' || r.dept === dept),
-  );
-  if (targetRows.length === 0) return null;
-  return (
-    <div className="border border-gray-200 rounded-xl p-3 mt-2">
-      <h2 className="text-sm font-bold text-gray-700">Sudah Dinilai oleh Berapa Orang (per pegawai)</h2>
-      <p className="text-[11px] text-gray-500 mb-2">
-        Informasi: untuk tiap pegawai, berapa penilai yang sudah menilainya dari total penilai yang ditugaskan
-        (mengikuti filter Nama &amp; Divisi di atas).
-      </p>
-      <div className="space-y-1.5">
-        {shown.length === 0 && <p className="text-xs text-gray-400 italic">Tidak ada pegawai sesuai filter.</p>}
-        {shown.map((r) => {
-          const complete = r.total > 0 && r.done === r.total;
-          const pct = r.total ? Math.round((r.done / r.total) * 100) : 0;
-          return (
-            <div key={r.id} className="flex items-center gap-2.5">
-              <div className="min-w-0 w-40 shrink-0">
-                <span className="text-xs font-semibold text-gray-700 truncate">{r.name}</span>
-                <span className="text-[10px] text-gray-400"> · {r.dept}</span>
-              </div>
-              <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full ${complete ? 'bg-emerald-500' : 'bg-amber-400'}`} style={{ width: `${pct}%` }} />
-              </div>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${complete ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                dinilai {r.done}/{r.total} orang
-              </span>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }

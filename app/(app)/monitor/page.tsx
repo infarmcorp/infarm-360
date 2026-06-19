@@ -36,11 +36,10 @@ export default async function MonitorPage() {
   let empRows: { id: string; name: string; dept: string }[] = [];
   if (role === 'spv') {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', user.id);
-    const ids = (team ?? []).map((t) => t.employee_id);
-    if (ids.length) {
-      const { data } = await supabase.from('employees').select('id, name, dept').in('id', ids);
-      empRows = data ?? [];
-    }
+    // SPV juga memantau dirinya sendiri (selaras Input KPI/Riwayat/Rekap/Laporan-Tim).
+    const ids = [...new Set([user.id, ...(team ?? []).map((t) => t.employee_id)])];
+    const { data } = await supabase.from('employees').select('id, name, dept').in('id', ids);
+    empRows = data ?? [];
   } else if (role === 'hrd' && hrdMode === 'spv') {
     const { data: meDept } = await supabase.from('employees').select('dept').eq('id', user.id).maybeSingle();
     const { data } = await supabase.from('employees').select('id, name, dept')

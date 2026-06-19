@@ -161,6 +161,11 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Impor pemetaan** — pratinjau menyebut pasangan yang dilewati + alasannya.
 
 ### Perbaikan (bug fix)
+- **Paritas SPV ↔ HRD-mode-SPV** (2 celah kecil): (A) menu **"Laporan Hasil Saya"** kini tampil
+  untuk **semua mode-base non-direksi** (termasuk HRD-mode-SPV), bukan hanya `employee`/`spv`
+  (`app-shell.tsx`); (B) **Monitor Kinerja** kini **menyertakan diri SPV** (selaras Input KPI/
+  Riwayat/Rekap/Laporan-Tim yang sudah memuat diri) — sebelumnya hanya lingkup HRD-mode-SPV
+  (divisi) yang memuat diri (`monitor/page.tsx`). Lingkup data tim-vs-divisi tetap by-design.
 - **Kebocoran umpan balik 360° mentah ke SPV** (migrasi 0012 + `app/(app)/laporan/`): sebelumnya
   SPV bisa membuka detail laporan anggota tim dan melihat **komentar per penilai BESERTA NAMA** sejak
   draf — bahkan **lebih dalam** dari HRD (yang justru hanya melihat versi anonim karena toggle

@@ -14,7 +14,10 @@ Migrasi fungsional **selesai & live**; yang tersisa sebagian besar aktivasi env 
 - **Berikutnya (butuh aksi pengguna):** set env email (Gmail SMTP) → aktifkan pengingat +
   reset sandi via email; ganti email seed → asli. **Komunikasikan ke HRD** langkah baru "Rilis ke
   SPV" (SPV tak lagi lihat detail tim sampai dirilis).
-- **Berikutnya (bisa digarap langsung):** assertion 360° untuk `verify:rls` (jaring regresi L3).
+- **Baru selesai (jaring regresi L3):** assertion 360° untuk `verify:rls` — kini **21 assertion**
+  (dari 12). Menambah fixture penilaian 360° (periode+aspek+indikator+esai, penilai OTH→target EMP)
+  & menegakkan **SPV tak boleh baca `assessments`/AIS/AQA anggota tim** (0012), + kontrol positif
+  (HRD baca penuh; penilai & target baca miliknya). Self-cleaning (cascade lewat hapus periode uji).
 
 **File paling relevan:**
 - Laporan & visibilitas: `lib/report.ts` (`loadReport`/`loadTeamReportForSpv`), `app/(app)/laporan/`,
@@ -217,11 +220,12 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   `aqa_read`. **Menutup kebocoran**: sebelumnya SPV bisa baca umpan balik 360° **mentah anggota tim
   hingga komentar BERNAMA** sejak draf. Kini SPV **tak pernah** baca tabel mentah; detail agregat
   untuk SPV dihitung server via `service_role` (`loadTeamReportForSpv`) — hanya saat `in_review`/
-  `finalized`. Diterapkan & diverifikasi (`pg_policies` bersih dari `is_my_member`; `verify:rls` 12/12).
+  `finalized`. Diterapkan & diverifikasi (`pg_policies` bersih dari `is_my_member`; `verify:rls` 21/21,
+  termasuk 3 assertion baru: SPV ditolak baca `assessments`/AIS/AQA anggota tim).
 - `0013_hrd_admin_grant` — `employees.is_hrd_admin boolean NOT NULL default false` + redefinisi
   `is_hrd()` → `role='hrd' OR is_hrd_admin`. Memisahkan **izin** HRD dari **posisi** `role`. Aditif
   & backward-compatible (default false → HRD lama tetap via `role='hrd'`). Diterapkan & diverifikasi
-  (kolom ada, `is_hrd()` hormati grant, `verify:rls` 12/12).
+  (kolom ada, `is_hrd()` hormati grant, `verify:rls` 21/21).
 - `final_reports.content` (jsonb, kolom lama) dipakai untuk `aspectSummaries` (tanpa migrasi baru).
 
 ### Infra / Testing / CI
@@ -244,7 +248,9 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   (logika `pick`/validasi/klasifikasi tak lagi inline). +27 tes (`tests/import.test.ts`). **Perbaikan
   kecil**: skor KPI kosong kini **dilewati** (dulu diimpor sebagai 0).
 - **Verifikasi RLS** — `scripts/verify-rls.ts` (`npm run verify:rls`): fixture user uji mandiri +
-  login per peran, 12 assertion `kpi_scores`; self-cleaning, aman ke data nyata. (Lihat Pengujian.)
+  login per peran, **21 assertion** (`kpi_scores` baca/tulis **+ umpan balik 360° mentah lapis 3**:
+  SPV ditolak baca `assessments`/AIS/AQA anggota tim [0012] + kontrol positif HRD/penilai/target);
+  self-cleaning, aman ke data nyata. (Lihat Pengujian.)
 
 ---
 
@@ -284,8 +290,10 @@ Daftar hidup (perbarui saat ada perubahan). Status: ✅ selesai · 🔄 sebagian
 - 🔄 **Tes** — Vitest + **55 tes** (logika skor + **parsing impor Excel** KPI & pemetaan 360°,
   `tests/import.test.ts`). **Sisa:** Server Action lain.
 - ✅ **Verifikasi RLS terprogram per peran** — `npm run verify:rls` (`scripts/verify-rls.ts`):
-  fixture uji mandiri (`RLSTEST-*`) + login per peran → 12 assertion `kpi_scores` (baca/tulis),
-  termasuk **SPV tulis KPI rekan SPV → DITOLAK**. Self-cleaning, aman ke data nyata. Manual pra-rilis.
+  fixture uji mandiri (`RLSTEST-*`) + login per peran → **21 assertion** `kpi_scores` (baca/tulis,
+  termasuk **SPV tulis KPI rekan SPV → DITOLAK**) **+ umpan balik 360° mentah lapis 3** (SPV ditolak
+  baca `assessments`/AIS/AQA anggota tim [0012]; kontrol positif HRD/penilai/target). Self-cleaning,
+  aman ke data nyata. Manual pra-rilis.
 - 🔄 **Aksesibilitas & mobile** — dropdown keyboard-nav/ARIA + tabel lebar wrapped.
   **Keputusan (2026-06-19):** a11y **tidak** didorong sampai dukungan pembaca layar/tunanetra —
   basis pengguna tak menjangkau itu (jangan tambah `aria-label`/`role`/uji NVDA tanpa diminta;
@@ -433,9 +441,13 @@ NEXT_PUBLIC_ENABLE_PW_RESET    # 'true' utk aktifkan alur "Lupa Sandi via email"
 skrip integrasi yang **membuat fixture user uji sendiri** (prefix `RLSTEST-*`, via service_role),
 login sebagai tiap peran (anon key) untuk menegakkan kebijakan RLS `kpi_scores` (SPV→tim+diri,
 Employee→diri, HRD/Direksi→semua; tulis lintas-SPV/Employee/Direksi DITOLAK; SPV tulis diri sendiri
-DIIZINKAN [0008]), lalu **menghapus seluruh fixture** (finally). **AMAN**: tak menyentuh data nyata,
-uji tulis pakai `UPDATE score=score` (idempoten). Butuh `NEXT_PUBLIC_SUPABASE_ANON_KEY` +
-`SUPABASE_SERVICE_ROLE_KEY` di `.env.local`. Jalankan manual pra-rilis (tak di CI — perlu kredensial).
+DIIZINKAN [0008]) **dan umpan balik 360° mentah lapis 3** (fixture penilaian OTH→EMP: SPV ditolak
+baca `assessments`/`assessment_indicator_scores`/`assessment_qual_answers` anggota timnya [0012];
+kontrol positif HRD baca penuh, penilai & target baca miliknya), lalu **menghapus seluruh fixture**
+(finally — termasuk hapus periode uji yang cascade ke seluruh turunan 360°). **AMAN**: tak menyentuh
+data nyata, uji tulis pakai `UPDATE score=score` (idempoten). Total **21 assertion**. Butuh
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` + `SUPABASE_SERVICE_ROLE_KEY` di `.env.local`. Jalankan manual
+pra-rilis (tak di CI — perlu kredensial).
 
 ## Klasifikasi Talenta — 9-Box & 4-Box (rincian ambang)
 

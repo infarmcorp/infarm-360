@@ -11,6 +11,13 @@
  *  - TULIS: SPV boleh tim & diri sendiri (0008); SPV DITOLAK untuk pegawai SPV lain;
  *    Employee & Direksi DITOLAK menulis KPI.
  *
+ * Yang diverifikasi pada umpan balik 360° MENTAH lapis 3 (migrasi 0012 — jaring regresi):
+ *  - SPV TIDAK PERNAH membaca assessments / assessment_indicator_scores /
+ *    assessment_qual_answers anggota timnya (komentar per penilai BESERTA NAMA).
+ *  - Kontrol positif: HRD baca semua; penilai baca penilaiannya sendiri; target
+ *    (pegawai dinilai) baca penilaian atas dirinya. → menjaga 0012 tak ter-regresi
+ *    (mis. is_my_member sengaja/tak sengaja dikembalikan ke asmt_read/ais_read/aqa_read).
+ *
  * Keluar kode 1 bila ada assertion gagal. Cleanup dijamin lewat finally.
  */
 import { readFileSync } from 'fs';
@@ -45,6 +52,11 @@ const FIX: Record<string, Fixture> = {
 };
 const ALL_EMAILS = Object.values(FIX).map((f) => f.email);
 const id: Record<string, string> = {}; // key (SPV/EMP/...) → auth user id
+
+// Fixture 360° (lapis 3): periode + aspek/indikator/pertanyaan + 1 penilaian
+// OTH→EMP (penilai luar tim SPV menilai anggota tim SPV) berstatus 'submitted'.
+const P_CODE = 'RLSTEST-P360'; // kode periode uji (dihapus → cascade ke semua turunannya)
+const aid: Record<string, string> = {}; // periodId/aspectId/indId/qId/asmtId
 const codeOf = (uid: string) => {
   const key = Object.keys(FIX).find((k) => id[k] === uid);
   return key ? FIX[key].code : uid;
@@ -72,6 +84,9 @@ async function listTestUserIds(): Promise<{ email: string; id: string }[]> {
 }
 
 async function cleanup() {
+  // Periode uji dulu — FK on delete cascade menyapu culture_aspects/indicators/
+  // qualitative_questions/assessments/assessment_indicator_scores/assessment_qual_answers.
+  await admin.from('periods').delete().eq('code', P_CODE);
   const users = await listTestUserIds();
   const ids = users.map((u) => u.id);
   if (ids.length) {
@@ -105,6 +120,35 @@ async function setup() {
   { const { error } = await admin.from('kpi_scores').insert(
       Object.values(id).map((uid) => ({ employee_id: uid, ym: YM, score: 80 })),
     ); if (error) throw new Error('kpi_scores: ' + error.message); }
+
+  // --- Fixture 360° lapis 3 ---
+  // Periode uji (has_360) + 1 aspek + 1 indikator + 1 pertanyaan esai.
+  { const { data, error } = await admin.from('periods').insert({
+      code: P_CODE, label: 'RLS Test 360', start_date: '2099-01-01', end_date: '2099-03-31',
+      status: 'active', has_360: true,
+    }).select('id').single();
+    if (error) throw new Error('periods: ' + error.message); aid.periodId = data.id; }
+  { const { data, error } = await admin.from('culture_aspects')
+      .insert({ period_id: aid.periodId, name: 'RLS Aspek', order_idx: 0 }).select('id').single();
+    if (error) throw new Error('culture_aspects: ' + error.message); aid.aspectId = data.id; }
+  { const { data, error } = await admin.from('indicators')
+      .insert({ aspect_id: aid.aspectId, text: 'RLS Indikator', order_idx: 0 }).select('id').single();
+    if (error) throw new Error('indicators: ' + error.message); aid.indId = data.id; }
+  { const { data, error } = await admin.from('qualitative_questions')
+      .insert({ period_id: aid.periodId, text: 'RLS Pertanyaan', order_idx: 0 }).select('id').single();
+    if (error) throw new Error('qualitative_questions: ' + error.message); aid.qId = data.id; }
+  // Penilaian OTH→EMP (penilai DI LUAR tim SPV, target = anggota tim SPV) — submitted.
+  { const { data, error } = await admin.from('assessments').insert({
+      period_id: aid.periodId, assessor_id: id.OTH, target_id: id.EMP, status: 'submitted', submitted_at: new Date().toISOString(),
+    }).select('id').single();
+    if (error) throw new Error('assessments: ' + error.message); aid.asmtId = data.id; }
+  // Komentar mentah per penilai (lapis 3 yang HARUS tersembunyi dari SPV).
+  { const { error } = await admin.from('assessment_indicator_scores').insert({
+      assessment_id: aid.asmtId, indicator_id: aid.indId, rating: 3, comment: 'KOMENTAR RAHASIA RLS',
+    }); if (error) throw new Error('assessment_indicator_scores: ' + error.message); }
+  { const { error } = await admin.from('assessment_qual_answers').insert({
+      assessment_id: aid.asmtId, question_id: aid.qId, answer: 'ESAI RAHASIA RLS',
+    }); if (error) throw new Error('assessment_qual_answers: ' + error.message); }
 }
 
 async function loginAs(email: string): Promise<SupabaseClient> {
@@ -129,6 +173,20 @@ async function tryKpiWrite(c: SupabaseClient, key: string): Promise<number> {
   return data?.length ?? 0;
 }
 
+/** Jumlah baris penilaian 360° (header/AIS/AQA) milik fixture yang terlihat client. */
+async function asmtVisible(c: SupabaseClient): Promise<number> {
+  const { data, error } = await c.from('assessments').select('id').eq('id', aid.asmtId);
+  return error ? 0 : (data?.length ?? 0);
+}
+async function aisVisible(c: SupabaseClient): Promise<number> {
+  const { data, error } = await c.from('assessment_indicator_scores').select('rating').eq('assessment_id', aid.asmtId);
+  return error ? 0 : (data?.length ?? 0);
+}
+async function aqaVisible(c: SupabaseClient): Promise<number> {
+  const { data, error } = await c.from('assessment_qual_answers').select('answer').eq('assessment_id', aid.asmtId);
+  return error ? 0 : (data?.length ?? 0);
+}
+
 async function main() {
   console.log('== VERIFIKASI RLS per peran (fixture uji) →', URL, '==\n');
   await cleanup();   // bersihkan sisa run sebelumnya bila ada
@@ -143,6 +201,10 @@ async function main() {
       check('TULIS kpi diri sendiri DIIZINKAN [migrasi 0008]', (await tryKpiWrite(c, 'SPV')) > 0);
       check('TULIS kpi pegawai SPV lain (OTH) DITOLAK', (await tryKpiWrite(c, 'OTH')) === 0);
       check('TULIS kpi SPV lain (SP2) DITOLAK', (await tryKpiWrite(c, 'SP2')) === 0);
+      // 360° lapis 3 — anggota tim EMP dinilai OTH; SPV TAK BOLEH lihat raw (0012).
+      check('BACA assessments anggota tim (EMP) DITOLAK [0012]', (await asmtVisible(c)) === 0);
+      check('BACA komentar indikator (AIS) anggota tim DITOLAK [0012]', (await aisVisible(c)) === 0);
+      check('BACA esai kualitatif (AQA) anggota tim DITOLAK [0012]', (await aqaVisible(c)) === 0);
       await c.auth.signOut();
     }
 
@@ -161,6 +223,23 @@ async function main() {
       const vis = await visibleTestKpiCodes(c);
       check('BACA kpi: seluruh fixture terlihat', sameSet(vis, Object.values(FIX).map((f) => f.code)), `terlihat: ${vis.sort().join(',')}`);
       check('TULIS kpi pegawai mana pun (EMP) DIIZINKAN', (await tryKpiWrite(c, 'EMP')) > 0);
+      // 360° lapis 3 — kontrol positif: HRD baca raw penuh (header + komentar + esai).
+      check('BACA assessments 360° DIIZINKAN (kontrol positif)', (await asmtVisible(c)) === 1);
+      check('BACA komentar indikator (AIS) DIIZINKAN', (await aisVisible(c)) === 1);
+      check('BACA esai kualitatif (AQA) DIIZINKAN', (await aqaVisible(c)) === 1);
+      await c.auth.signOut();
+    }
+
+    console.log('\n360° lapis 3 — kontrol positif penilai & target:');
+    {
+      const c = await loginAs(FIX.OTH.email); // OTH = penilai (assessor) atas penilaiannya
+      check('Penilai (OTH) BACA assessments-nya sendiri DIIZINKAN', (await asmtVisible(c)) === 1);
+      check('Penilai (OTH) BACA komentar indikatornya sendiri DIIZINKAN', (await aisVisible(c)) === 1);
+      await c.auth.signOut();
+    }
+    {
+      const c = await loginAs(FIX.EMP.email); // EMP = target (dinilai) atas dirinya
+      check('Target (EMP) BACA penilaian atas dirinya DIIZINKAN', (await asmtVisible(c)) === 1);
       await c.auth.signOut();
     }
 

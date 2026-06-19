@@ -99,8 +99,13 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   base** (`layout.tsx`), masuk Admin disengaja; redirect base → `/` (landing per posisi, `app/page.tsx`).
   **UI grant** di Kelola Pegawai (tombol perisai + badge "HRD", `setHrdAdmin` + audit
   `employee.grant_hrd`/`revoke_hrd`; hanya HRD Admin yang boleh, cegah eskalasi). RLS `is_hrd()`
-  kini = `role='hrd' OR is_hrd_admin`. **Tahap 2 (belum):** pindahkan HRD-yang-juga-SPV
-  (`role='hrd'`→`'spv'`+grant+`spv_team_members`) agar mode-SPV-nya pakai tim NYATA (bukan sedivisi).
+  kini = `role='hrd' OR is_hrd_admin`. **Tahap 2 — SENGAJA DILEWATI (keputusan 2026-06-19):**
+  rencana memindahkan HRD-yang-juga-SPV (`role='hrd'`→`'spv'`+grant+`spv_team_members`) **tidak
+  dikerjakan**. Alasan: tim Ulfa (satu-satunya HRD-SPV saat ini) = **seluruh divisi HRD-GA**, jadi
+  scope-sedivisi (tambalan HRD-mode-SPV) sudah menampilkan orang yang tepat **dan otomatis mencakup
+  rekrutan baru** divisi tanpa penautan manual `spv_team_members` (lebih tepat, bukan utang teknis).
+  Ulfa tetap `role='hrd'` (berfungsi penuh). Tahap 2 baru relevan bila kelak ada SPV yang **timnya ≠
+  seluruh divisinya** (sebagian / lintas divisi). Jangan kerjakan tanpa kasus seperti itu.
 - **Akun Saya — ganti sandi mandiri** (`app/(app)/akun/`, semua peran): verifikasi sandi saat
   ini (`signInWithPassword`) → `updateUser({password})`. Tautan di footer sidebar. Login juga
   punya petunjuk "Lupa sandi? Hubungi HRD" (atau tautan reset email bila flag aktif).

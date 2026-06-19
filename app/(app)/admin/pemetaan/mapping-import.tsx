@@ -71,8 +71,9 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
       </div>
       <p className="text-[11px] text-emerald-900">Kolom: <code>penilai</code>, <code>dinilai</code> (kode pegawai), <code>relasi</code> (Atasan/Peer/Cross/Self/Bawahan), <code>wajib</code> (wajib/opsional). <button type="button" onClick={template} className="underline font-bold">Unduh template</button>.</p>
       <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile}
+        aria-label="Berkas Excel pemetaan penilai"
         className="block text-xs file:mr-3 file:rounded file:border-0 file:bg-emerald-700 file:px-3 file:py-1.5 file:text-white file:font-bold" />
-      {parseErr && <p className="text-xs text-rose-600 font-semibold">{parseErr}</p>}
+      {parseErr && <p className="text-xs text-rose-600 font-semibold" role="alert">{parseErr}</p>}
 
       {parsed && (
         <>

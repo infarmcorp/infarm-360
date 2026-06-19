@@ -128,7 +128,11 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Rekapitulasi Kuartal dihapus untuk Direksi** (menu + blokir akses `/kpi`).
 - **Konsistensi mobile**: tabel lebar dibungkus `overflow-x-auto` + `min-w`.
 - **Aksesibilitas**: `SearchableSelect` keyboard-nav (↑/↓/Enter/Esc) + ARIA; tombol menu mobile
-  `aria-label`/`aria-expanded`.
+  `aria-label`/`aria-expanded`. **Batch 1 a11y** (dari audit): `aria-label` utk semua kontrol form
+  tanpa label (input skor/catatan KPI, poin punishment, teks indikator/panduan rating, pertanyaan
+  kualitatif, ringkasan aspek, input file impor, selektor periode) & tombol ikon-saja (kelola
+  indikator/aspek: simpan/batal/ubah/geser/hapus; tutup dialog koreksi) + sebagian `role`
+  status/alert. Sisa pengumuman status & audit kontras → batch lanjutan.
 
 ### Skema DB (migrasi)
 - `0005_hrd_audit_log` — tabel jejak audit HRD (append-only).
@@ -207,8 +211,11 @@ Daftar hidup (perbarui saat ada perubahan). Status: ✅ selesai · 🔄 sebagian
 - ✅ **Verifikasi RLS terprogram per peran** — `npm run verify:rls` (`scripts/verify-rls.ts`):
   fixture uji mandiri (`RLSTEST-*`) + login per peran → 12 assertion `kpi_scores` (baca/tulis),
   termasuk **SPV tulis KPI rekan SPV → DITOLAK**. Self-cleaning, aman ke data nyata. Manual pra-rilis.
-- 🔄 **Aksesibilitas & mobile** — dropdown keyboard-nav/ARIA + tabel lebar wrapped. **Sisa:**
-  audit kontras menyeluruh, label form di sisa halaman, uji pembaca layar.
+- 🔄 **Aksesibilitas & mobile** — dropdown keyboard-nav/ARIA + tabel lebar wrapped. **Batch 1
+  a11y selesai:** nama aksesibel (`aria-label`) utk kontrol form tanpa label & tombol ikon-saja
+  (kpi-form, penalty, indicator/qual-manager, aspect-summary, file-input impor, dll.). **Sisa:**
+  pengumuman status `role="status"`/`alert` (Batch 2, ~sebagian sudah), audit kontras menyeluruh,
+  uji pembaca layar.
 
 ### Pengembangan opsional
 - Bulk-finalisasi laporan ber-ACC SPV · Ekspor Log Aktivitas HRD ke Excel · Branch protection

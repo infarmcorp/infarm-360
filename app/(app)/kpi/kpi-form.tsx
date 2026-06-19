@@ -130,10 +130,12 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
                   <td className="py-2">{m.name} <span className="text-gray-400">· {m.dept}</span></td>
                   <td className="py-2">
                     <input type="number" min={0} max={100} inputMode="decimal" value={scores[m.id] ?? ''}
+                      aria-label={`Skor KPI ${m.name}`}
                       onChange={(e) => setScores((s) => ({ ...s, [m.id]: e.target.value }))} className="w-24 rounded border px-2 py-1" />
                   </td>
                   <td className="py-2">
                     <input type="text" placeholder="opsional" value={notes[m.id] ?? ''}
+                      aria-label={`Komentar audit ${m.name}`}
                       onChange={(e) => setNotes((n) => ({ ...n, [m.id]: e.target.value }))} className="w-full rounded border px-2 py-1" />
                   </td>
                 </tr>

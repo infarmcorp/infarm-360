@@ -54,6 +54,7 @@ export function AspectSummaryEditor({
               onChange={(e) => setVals((v) => ({ ...v, [a]: e.target.value }))}
               rows={3}
               placeholder={`Ringkasan kalibrasi HRD untuk aspek "${a}"…`}
+              aria-label={`Ringkasan kalibrasi aspek ${a}`}
               className="w-full text-xs p-3 outline-none resize-y text-gray-700 leading-relaxed"
             />
           </div>
@@ -63,7 +64,7 @@ export function AspectSummaryEditor({
             className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
             <Save className="w-3.5 h-3.5" /> {busy ? 'Menyimpan…' : 'Simpan Ringkasan'}
           </button>
-          {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
+          {msg && <span role="status" className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
         </div>
       </div>
     </section>

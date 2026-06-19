@@ -169,9 +169,10 @@ export function PegawaiImport({ rows }: { rows: EmpRow[] }) {
             className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600" />
         </label>
         <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile}
+          aria-label="Berkas Excel data pegawai"
           className="block text-xs file:mr-3 file:rounded file:border-0 file:bg-emerald-700 file:px-3 file:py-1.5 file:text-white file:font-bold" />
       </div>
-      {parseErr && <p className="text-xs text-rose-600 font-semibold">{parseErr}</p>}
+      {parseErr && <p className="text-xs text-rose-600 font-semibold" role="alert">{parseErr}</p>}
 
       {parsed && counts && (
         <>

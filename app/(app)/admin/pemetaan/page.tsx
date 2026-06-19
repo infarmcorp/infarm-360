@@ -61,7 +61,7 @@ export default async function PemetaanPage({
       <div className="flex gap-1 mt-4 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
         <Tab href="/admin/pemetaan?tab=pemetaan" active={tab === 'pemetaan'}>Pemetaan</Tab>
         <Tab href="/admin/pemetaan?tab=koreksi" active={tab === 'koreksi'}>
-          Koreksi Relasi{pendingCount ? <span className="ml-1.5 text-[9px] bg-indigo-600 text-white px-1.5 py-0.5 rounded-full">{pendingCount}</span> : null}
+          Koreksi Relasi{pendingCount ? <span className="ml-1.5 text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded-full">{pendingCount}</span> : null}
         </Tab>
       </div>
 
@@ -122,12 +122,12 @@ async function KoreksiTab({ supabase, periodId }: { supabase: Awaited<ReturnType
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap text-xs">
               <span className="font-extrabold text-gray-800">{nameById.get(r.assessor_id) ?? '—'}</span>
-              <span className="text-gray-400">→</span>
+              <span className="text-gray-500">→</span>
               <span className="font-extrabold text-gray-800">{nameById.get(r.target_id) ?? '—'}</span>
             </div>
             <div className="flex items-center gap-2 text-[11px]">
               <span className="bg-rose-50 text-rose-700 font-bold px-1.5 py-0.5 rounded line-through">{r.old_relation ?? '—'}</span>
-              <span className="text-gray-400">menjadi</span>
+              <span className="text-gray-500">menjadi</span>
               <span className="bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded">{r.new_relation ?? '—'}</span>
             </div>
             <p className="text-[11px] text-gray-500 italic bg-gray-50 p-2 rounded-lg border border-gray-150">“{r.reason}”</p>
@@ -135,7 +135,7 @@ async function KoreksiTab({ supabase, periodId }: { supabase: Awaited<ReturnType
           <div className="shrink-0 self-end sm:self-center">
             {r.status === 'pending'
               ? <ReviewButton requestId={r.id} />
-              : <span className={`text-[10px] font-black uppercase px-2 py-1 rounded border ${r.status === 'approved' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-gray-100 text-gray-400 border-gray-200'}`}>
+              : <span className={`text-[10px] font-black uppercase px-2 py-1 rounded border ${r.status === 'approved' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
                   {r.status === 'approved' ? '✓ Diterima' : '✗ Ditolak'}
                 </span>}
           </div>

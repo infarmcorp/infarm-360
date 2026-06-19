@@ -57,7 +57,7 @@ export default async function PeriodePage() {
       <div className="overflow-x-auto">
       <table className="w-full text-left text-sm min-w-[560px]">
         <thead>
-          <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+          <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
             <th className="py-2 pr-3">Periode</th>
             <th className="py-2 px-3">Rentang</th>
             <th className="py-2 px-3 text-center">360°</th>
@@ -71,13 +71,13 @@ export default async function PeriodePage() {
             <tr key={p.id}>
               <td className="py-3 pr-3">
                 <span className="font-bold text-gray-800 block">{p.label}</span>
-                <span className="text-[11px] text-gray-400 font-mono">{p.code} · {monthCount.get(p.id) ?? 0} bln</span>
+                <span className="text-[11px] text-gray-500 font-mono">{p.code} · {monthCount.get(p.id) ?? 0} bln</span>
               </td>
               <td className="py-3 px-3 text-[11px] text-gray-500">{p.start_date} → {p.end_date}</td>
               <td className="py-3 px-3 text-center">
                 {p.has_360
                   ? <span className="text-[10px] font-bold text-indigo-700">Aktif</span>
-                  : <span className="text-[10px] text-gray-400">Tanpa</span>}
+                  : <span className="text-[10px] text-gray-500">Tanpa</span>}
               </td>
               <td className="py-3 px-3 text-center">
                 <KpiStandardEditor periodId={p.id} value={p.kpi_standard} />
@@ -96,7 +96,7 @@ export default async function PeriodePage() {
       </table>
       </div>
       )}
-      <p className="text-[10px] text-gray-400 italic mt-3">
+      <p className="text-[10px] text-gray-500 italic mt-3">
         Hanya satu periode aktif pada satu waktu — mengaktivasi periode akan mengunci yang lain.
         Periode baru harus diisi pertanyaan &amp; mapping (kelola terpisah) sebelum penilaian.
       </p>

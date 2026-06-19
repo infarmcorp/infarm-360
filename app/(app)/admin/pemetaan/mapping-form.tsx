@@ -35,15 +35,15 @@ export function MappingForm({ employees }: { employees: Emp[] }) {
       <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Tambah Pemetaan</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block text-[10px] font-bold text-gray-400 mb-1">Penilai</label>
+          <label className="block text-[10px] font-bold text-gray-500 mb-1">Penilai</label>
           <SearchableSelect value={assessorId} onChange={setAssessorId} options={options} placeholder="— pilih penilai —" className={inputCls} />
         </div>
         <div>
-          <label className="block text-[10px] font-bold text-gray-400 mb-1">Yang Dinilai</label>
+          <label className="block text-[10px] font-bold text-gray-500 mb-1">Yang Dinilai</label>
           <SearchableSelect value={targetId} onChange={setTargetId} options={options} placeholder="— pilih target —" className={inputCls} />
         </div>
         <div>
-          <label className="block text-[10px] font-bold text-gray-400 mb-1">Relasi</label>
+          <label className="block text-[10px] font-bold text-gray-500 mb-1">Relasi</label>
           <select value={relation} onChange={(e) => setRelation(e.target.value as (typeof RELATIONS)[number])}
             className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
             {RELATIONS.map((r) => <option key={r} value={r}>{r}</option>)}

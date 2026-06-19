@@ -71,7 +71,7 @@ async function HrdView({
   return (
     <Shell>
       <Header />
-      <p className="text-[11px] text-gray-400 mt-1 mb-4">
+      <p className="text-[11px] text-gray-500 mt-1 mb-4">
         Periode aktif: {period.label}. Pertimbangkan kandidat (umumnya Skor Akhir ≥ 90), ajukan rencana ke Direksi.
       </p>
       <div className="space-y-3">
@@ -82,9 +82,9 @@ async function HrdView({
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-gray-800 text-sm">{r.name}</span>
-                  {r.final != null && r.final >= 90 && <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full">Kandidat</span>}
+                  {r.final != null && r.final >= 90 && <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full">Kandidat</span>}
                 </div>
-                <div className="text-[11px] text-gray-400">{r.dept}</div>
+                <div className="text-[11px] text-gray-500">{r.dept}</div>
                 <div className="mt-1 text-xs">Skor Akhir: <span className="font-mono font-black text-slate-800">{r.final != null ? r.final.toFixed(1) : '—'}</span></div>
                 {badge && <span className={`inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.c}`}>{badge.t}</span>}
                 {r.plan?.direksi_comment && <p className="mt-1 text-[10px] text-gray-500 italic">Direksi: “{r.plan.direksi_comment}”</p>}
@@ -132,7 +132,7 @@ async function DireksiView({
               <div key={p.id} className="border border-amber-200 bg-amber-50/40 rounded-xl p-3 grid md:grid-cols-[1fr_1.4fr] gap-3">
                 <div>
                   <span className="font-bold text-gray-800 text-sm block">{e?.name ?? '—'}</span>
-                  <span className="text-[11px] text-gray-400">{e?.dept}</span>
+                  <span className="text-[11px] text-gray-500">{e?.dept}</span>
                   <p className="mt-1.5 text-xs font-semibold text-gray-700">{p.plan}</p>
                   {p.justification && <p className="mt-1 text-[11px] text-gray-500">{p.justification}</p>}
                 </div>
@@ -154,7 +154,7 @@ async function DireksiView({
                 <div key={p.id} className="border border-gray-200 rounded-xl p-3 flex items-start justify-between gap-3">
                   <div>
                     <span className="font-bold text-gray-800 text-sm">{e?.name ?? '—'}</span>
-                    <span className="text-[11px] text-gray-400"> · {e?.dept}</span>
+                    <span className="text-[11px] text-gray-500"> · {e?.dept}</span>
                     <p className="text-xs text-gray-600 mt-0.5">{p.plan}</p>
                     {p.direksi_comment && <p className="text-[10px] text-gray-500 italic mt-0.5">Komentar: “{p.direksi_comment}”</p>}
                   </div>

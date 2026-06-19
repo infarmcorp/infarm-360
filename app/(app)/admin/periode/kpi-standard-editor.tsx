@@ -28,7 +28,7 @@ export function KpiStandardEditor({ periodId, value }: { periodId: string; value
   return (
     <div className="inline-flex flex-col items-center gap-0.5">
       <div className="inline-flex items-center gap-1">
-        <span className="text-[10px] text-gray-400">≥</span>
+        <span className="text-[10px] text-gray-500">≥</span>
         <input
           type="number"
           min={0}
@@ -42,7 +42,7 @@ export function KpiStandardEditor({ periodId, value }: { periodId: string; value
           className="w-14 text-center text-xs font-mono font-bold px-1.5 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
         />
       </div>
-      {err && <span className="text-[9px] text-rose-600">{err}</span>}
+      {err && <span className="text-[10px] text-rose-600">{err}</span>}
     </div>
   );
 }

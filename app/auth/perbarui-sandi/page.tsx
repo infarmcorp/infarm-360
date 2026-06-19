@@ -32,7 +32,7 @@ export default async function PerbaruiSandiPage() {
             </Link>
           </>
         )}
-        <Link href="/login" className="mt-4 block text-center text-[11px] text-gray-400 hover:text-gray-600 hover:underline">
+        <Link href="/login" className="mt-4 block text-center text-[11px] text-gray-500 hover:text-gray-600 hover:underline">
           ← Kembali ke Masuk
         </Link>
       </div>

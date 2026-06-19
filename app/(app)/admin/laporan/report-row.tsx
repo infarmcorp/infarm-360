@@ -19,7 +19,7 @@ export function ReportRowActions({ employeeId, canCompute }: { employeeId: strin
   }
 
   if (!canCompute) {
-    return <span className="text-[10px] text-gray-400 italic">KPI kosong</span>;
+    return <span className="text-[10px] text-gray-500 italic">KPI kosong</span>;
   }
 
   return (

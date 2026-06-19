@@ -154,7 +154,7 @@ export function PegawaiImport({ rows }: { rows: EmpRow[] }) {
     <div className="border border-emerald-200 bg-emerald-50/30 rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold text-emerald-950 uppercase tracking-wide">Impor Pegawai Massal</h3>
-        <button type="button" onClick={() => { setOpen(false); setParsed(null); setMsg(null); }} className="text-gray-400 hover:text-gray-600 text-xs">Tutup ✕</button>
+        <button type="button" onClick={() => { setOpen(false); setParsed(null); setMsg(null); }} className="text-gray-500 hover:text-gray-600 text-xs">Tutup ✕</button>
       </div>
       <p className="text-[11px] text-emerald-900">
         Kolom: <code>nama</code>, <code>kode</code>, <code>divisi</code>, <code>peran</code> (employee/spv/hrd/direksi),
@@ -182,7 +182,7 @@ export function PegawaiImport({ rows }: { rows: EmpRow[] }) {
           </div>
           <div className="overflow-x-auto border border-gray-200 rounded-lg max-h-72 overflow-y-auto bg-white">
             <table className="w-full text-left text-[11px]">
-              <thead><tr className="bg-gray-50 text-[9px] uppercase text-gray-400 border-b border-gray-200 sticky top-0">
+              <thead><tr className="bg-gray-50 text-[10px] uppercase text-gray-500 border-b border-gray-200 sticky top-0">
                 <th className="py-1.5 px-2">Nama</th><th className="py-1.5 px-2">Kode</th><th className="py-1.5 px-2">Divisi</th>
                 <th className="py-1.5 px-2">Peran</th><th className="py-1.5 px-2">Email</th><th className="py-1.5 px-2">Atasan</th><th className="py-1.5 px-2">Status</th>
               </tr></thead>

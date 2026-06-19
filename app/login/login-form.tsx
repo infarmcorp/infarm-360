@@ -121,7 +121,7 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
       <button
         type="button"
         onClick={() => { setManual((v) => !v); setEmail(''); setRole(''); setError(null); }}
-        className="w-full text-[11px] text-gray-400 hover:text-gray-600 hover:underline"
+        className="w-full text-[11px] text-gray-500 hover:text-gray-600 hover:underline"
       >
         {manual ? '← Pilih dari daftar' : 'Masuk dengan email manual'}
       </button>
@@ -131,7 +131,7 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
           Lupa sandi?
         </Link>
       ) : (
-        <p className="text-center text-[11px] text-gray-400">
+        <p className="text-center text-[11px] text-gray-500">
           Lupa sandi? <span className="text-gray-500 font-semibold">Hubungi HRD untuk reset.</span>
         </p>
       )}

@@ -38,7 +38,7 @@ export default async function EksporPage() {
           (pivot, statistik, atau alat BI). Pilih <strong>periode</strong> atau seluruh periode.
         </p>
         <EksporClient periods={periodOpts} />
-        <p className="text-[10px] text-gray-400 italic mt-4">
+        <p className="text-[10px] text-gray-500 italic mt-4">
           Data bersifat sensitif (memuat nama, skor, & komentar). Simpan & bagikan file secara bertanggung jawab.
         </p>
       </div>

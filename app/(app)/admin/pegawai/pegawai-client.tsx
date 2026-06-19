@@ -150,7 +150,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
         <form onSubmit={submit} className="border border-emerald-200 bg-emerald-50/40 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-gray-800">{form.id ? 'Ubah Pegawai' : 'Tambah Pegawai Baru'}</h2>
-            <button type="button" onClick={() => setForm(null)} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+            <button type="button" onClick={() => setForm(null)} className="text-gray-500 hover:text-gray-600"><X className="w-4 h-4" /></button>
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <Field label="Nama Lengkap">
@@ -172,7 +172,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                 className={`inp font-mono ${dupCode ? 'border-rose-400 ring-1 ring-rose-300' : ''}`} placeholder="mis. FT2021-001" />
               {dupCode
                 ? <span className="block text-[10px] text-rose-600 font-semibold mt-0.5">⚠ Kode sudah dipakai oleh {dupCode.name} ({dupCode.dept}).</span>
-                : <span className="block text-[10px] text-gray-400 mt-0.5">Bebas mengikuti skema perusahaan; saran melanjutkan nomor terakhir.</span>}
+                : <span className="block text-[10px] text-gray-500 mt-0.5">Bebas mengikuti skema perusahaan; saran melanjutkan nomor terakhir.</span>}
             </Field>
             <Field label="Email (boleh placeholder)">
               <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} required
@@ -231,7 +231,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm min-w-[640px]">
           <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+            <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
               <th className="py-2 pr-3">Pegawai</th>
               <th className="py-2 px-3">Divisi</th>
               <th className="py-2 px-3">Peran</th>
@@ -246,7 +246,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
               <tr key={r.id} className={r.active ? '' : 'opacity-55'}>
                 <td className="py-3 pr-3">
                   <span className="font-bold text-gray-800 block">{r.name}</span>
-                  <span className="text-[11px] text-gray-400 font-mono">{r.empCode}{r.email ? ` · ${r.email}` : ''}</span>
+                  <span className="text-[11px] text-gray-500 font-mono">{r.empCode}{r.email ? ` · ${r.email}` : ''}</span>
                 </td>
                 <td className="py-3 px-3 text-xs text-gray-600">{r.dept}</td>
                 <td className="py-3 px-3"><span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{ROLE_LABEL[r.role]}</span></td>
@@ -271,7 +271,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
         </table>
       </div>
 
-      <p className="text-[10px] text-gray-400 italic">
+      <p className="text-[10px] text-gray-500 italic">
         Nonaktif mengunci akun (tak bisa login) tanpa menghapus riwayat penilaian/KPI. Email boleh placeholder dan diganti kapan saja lewat “Ubah”.
       </p>
 
@@ -293,7 +293,7 @@ function Stat({ label, value, c }: { label: string; value: number; c: string }) 
   return (
     <div className="border border-gray-200 rounded-xl px-3 py-2 text-center min-w-[72px]">
       <div className={`text-lg font-black font-mono ${c}`}>{value}</div>
-      <div className="text-[9px] font-bold text-gray-500 uppercase tracking-wide">{label}</div>
+      <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">{label}</div>
     </div>
   );
 }

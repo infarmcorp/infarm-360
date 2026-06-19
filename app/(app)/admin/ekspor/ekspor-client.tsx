@@ -80,7 +80,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
           <option value="">Semua Periode</option>
           {periods.map((p) => <option key={p.id} value={p.id}>{p.label}{p.active ? ' (aktif)' : ''}</option>)}
         </select>
-        <span className="text-[11px] text-gray-400">Berlaku untuk dataset ber-periode (Pegawai selalu lintas periode).</span>
+        <span className="text-[11px] text-gray-500">Berlaku untuk dataset ber-periode (Pegawai selalu lintas periode).</span>
       </div>
 
       {/* Rekap Konfigurasi Periode — potret seluruh pengaturan HRD per kuartal (multi-sheet) */}
@@ -101,7 +101,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
             className="inline-flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
             <Download className="w-4 h-4" /> {busy === 'config' ? 'Menyiapkan…' : 'Unduh Rekap (.xlsx)'}
           </button>
-          <span className="text-[10px] text-gray-400">{selected ? selected.label : 'Semua periode'}</span>
+          <span className="text-[10px] text-gray-500">{selected ? selected.label : 'Semua periode'}</span>
         </div>
         {msg?.key === 'config' && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
       </div>
@@ -121,7 +121,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
                 className="inline-flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
                 <Download className="w-4 h-4" /> {busy === it.key ? 'Menyiapkan…' : 'Unduh Excel'}
               </button>
-              {it.scoped && <span className="text-[10px] text-gray-400">{selected ? selected.label : 'Semua periode'}</span>}
+              {it.scoped && <span className="text-[10px] text-gray-500">{selected ? selected.label : 'Semua periode'}</span>}
             </div>
             {msg?.key === it.key && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
           </div>

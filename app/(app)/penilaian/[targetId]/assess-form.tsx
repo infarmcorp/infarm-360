@@ -153,7 +153,7 @@ export function AssessForm({
           className="w-full flex items-center gap-2 px-4 py-2.5 text-left">
           <ClipboardList className="w-4 h-4 text-emerald-800 shrink-0" />
           <span className="text-xs font-extrabold text-gray-800 flex-1">Panduan Penilaian Umum</span>
-          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${guideOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${guideOpen ? 'rotate-180' : ''}`} />
         </button>
         {guideOpen && (
           <ul className="list-disc list-inside space-y-1.5 px-4 pb-3 text-[11px] text-gray-600 leading-relaxed">
@@ -200,7 +200,7 @@ export function AssessForm({
         <div className="min-w-0">
           {activeGroup === QUAL ? (
             <div className="border border-gray-200 rounded-2xl p-5 space-y-4">
-              <h3 className="text-sm font-extrabold text-indigo-800">Umpan Balik Kualitatif <span className="text-[10px] font-medium text-gray-400">(opsional)</span></h3>
+              <h3 className="text-sm font-extrabold text-indigo-800">Umpan Balik Kualitatif <span className="text-[10px] font-medium text-gray-500">(opsional)</span></h3>
               {questions.map((q) => (
                 <div key={q.id}>
                   <p className="text-sm text-gray-700 mb-1.5">{q.text}</p>
@@ -220,7 +220,7 @@ export function AssessForm({
                   return (
                     <button key={f.id} type="button" onClick={() => setActiveId(f.id)}
                       className={`px-3 py-2 rounded-xl border text-left min-w-[110px] max-w-[180px] flex-1 transition-all ${isActive ? 'border-sky-500 bg-sky-50 ring-1 ring-sky-500' : filled ? 'border-emerald-200 bg-emerald-50/40' : 'border-gray-200 bg-gray-50/60 hover:bg-gray-100'}`}>
-                      <span className="text-[9px] text-gray-400 font-bold block">Q{f.qNum}{filled ? ' ✓' : ''}</span>
+                      <span className="text-[10px] text-gray-500 font-bold block">Q{f.qNum}{filled ? ' ✓' : ''}</span>
                       <span className="text-[11px] leading-tight line-clamp-1 text-gray-700">{f.text}</span>
                     </button>
                   );
@@ -234,7 +234,7 @@ export function AssessForm({
                   {(ratings[cur.id] != null || (comments[cur.id] ?? '') !== '') && (
                     <button type="button" title="Bersihkan jawaban indikator ini"
                       onClick={() => { setRatings((p) => ({ ...p, [cur.id]: null })); setComments((p) => ({ ...p, [cur.id]: '' })); }}
-                      className="p-1 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg shrink-0"><X className="w-4 h-4" /></button>
+                      className="p-1 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg shrink-0"><X className="w-4 h-4" /></button>
                   )}
                 </div>
 
@@ -270,7 +270,7 @@ export function AssessForm({
                         <button key={n} type="button" onClick={() => setRatings((p) => ({ ...p, [cur.id]: n }))}
                           className={`flex flex-col items-center gap-1 py-2 rounded-lg border text-xs font-extrabold transition-all ${sel ? 'bg-emerald-700 text-white border-emerald-700 shadow' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'}`}>
                           <span className="text-sm">{n}</span>
-                          <span className={`text-[8.5px] text-center font-bold leading-tight ${sel ? 'text-emerald-50' : 'text-gray-400'}`}>{RATING_LABELS[n]}</span>
+                          <span className={`text-[8.5px] text-center font-bold leading-tight ${sel ? 'text-emerald-50' : 'text-gray-500'}`}>{RATING_LABELS[n]}</span>
                         </button>
                       );
                     })}
@@ -298,7 +298,7 @@ export function AssessForm({
                     className="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-200 bg-white hover:bg-gray-50 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed">
                     <ChevronLeft className="w-3.5 h-3.5" /> Sebelumnya
                   </button>
-                  <span className="font-mono text-[9px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded">Q{cur.qNum}/{total}</span>
+                  <span className="font-mono text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Q{cur.qNum}/{total}</span>
                   <button type="button" disabled={curPos >= total - 1} onClick={() => goTo(curPos + 1)}
                     className="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-200 bg-white hover:bg-gray-50 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed">
                     Selanjutnya <ChevronLeft className="w-3.5 h-3.5 rotate-180" />
@@ -319,7 +319,7 @@ export function AssessForm({
         <div className="flex gap-2">
           <button type="button" disabled={busy} onClick={() => router.push('/penilaian')}
             className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-lg text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-60">
-            <XCircle className="w-4 h-4 text-gray-400" /> Batal
+            <XCircle className="w-4 h-4 text-gray-500" /> Batal
           </button>
           {hasDraft && (
             <button type="button" disabled={busy} onClick={discard}

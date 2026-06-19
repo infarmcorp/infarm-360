@@ -93,7 +93,7 @@ export default async function PenilaianPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+              <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
                 <th className="py-2 pr-3">Yang Dinilai</th>
                 <th className="py-2 px-3">Garis Hubungan</th>
                 <th className="py-2 px-3 text-center">Sifat</th>
@@ -106,7 +106,7 @@ export default async function PenilaianPage() {
                 <tr key={it.id}>
                   <td className="py-3 pr-3">
                     <span className="font-bold text-gray-800 block">{it.name}</span>
-                    <span className="text-[11px] text-gray-400">{it.dept}</span>
+                    <span className="text-[11px] text-gray-500">{it.dept}</span>
                   </td>
                   <td className="py-3 px-3 text-gray-600">{REL_LABEL[it.relation] ?? it.relation}</td>
                   <td className="py-3 px-3 text-center">

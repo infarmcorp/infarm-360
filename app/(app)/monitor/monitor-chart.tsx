@@ -89,7 +89,7 @@ function ComparisonView({ rows, periodLabel }: { rows: { id: string; name: strin
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-gray-100 pb-4">
         <div>
           <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Perbandingan Skor Akhir Antar-Pegawai</h3>
-          <p className="text-xs text-gray-400 mt-0.5">{periodLabel} · {rows.length} pegawai · diurut Skor Akhir tertinggi.</p>
+          <p className="text-xs text-gray-500 mt-0.5">{periodLabel} · {rows.length} pegawai · diurut Skor Akhir tertinggi.</p>
         </div>
         <div className="flex items-center gap-4 text-[10px] text-gray-600 font-bold uppercase tracking-wider">
           <span className="flex items-center gap-1.5"><span className="w-3 h-2 bg-emerald-500 rounded inline-block" />KPI</span>
@@ -103,7 +103,7 @@ function ComparisonView({ rows, periodLabel }: { rows: { id: string; name: strin
         {rows.map((r, i) => (
           <div key={r.id} className="space-y-1">
             <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-slate-700">#{i + 1} {r.name} <span className="font-normal text-gray-400 text-[10px]">· {r.dept}</span></span>
+              <span className="font-bold text-slate-700">#{i + 1} {r.name} <span className="font-normal text-gray-500 text-[10px]">· {r.dept}</span></span>
               <span className="font-mono font-black text-slate-800">{fmt(r.final)}</span>
             </div>
             <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
@@ -117,7 +117,7 @@ function ComparisonView({ rows, periodLabel }: { rows: { id: string; name: strin
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs min-w-[480px]">
           <thead>
-            <tr className="text-[10px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+            <tr className="text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
               <th className="py-2 pr-3">Pegawai</th><th className="py-2 px-3">Divisi</th>
               <th className="py-2 px-3 text-center">KPI</th><th className="py-2 px-3 text-center">360°</th><th className="py-2 pl-3 text-center">Skor Akhir</th>
             </tr>
@@ -135,7 +135,7 @@ function ComparisonView({ rows, periodLabel }: { rows: { id: string; name: strin
           </tbody>
         </table>
       </div>
-      <p className="text-[10px] text-gray-400 italic">Pilih satu pegawai di filter untuk melihat tren bulanannya.</p>
+      <p className="text-[10px] text-gray-500 italic">Pilih satu pegawai di filter untuk melihat tren bulanannya.</p>
     </div>
   );
 }
@@ -150,7 +150,7 @@ function TrendView({ name, trend }: { name: string; trend: TrendPoint[] }) {
             <span>Tren Bulanan: KPI, Evaluasi 360° &amp; Skor Akhir</span>
             <span className="text-[10px] bg-sky-100 text-sky-800 py-0.5 px-2.5 rounded-full font-bold">{trend.length} Bulan</span>
           </h3>
-          <p className="text-xs text-gray-400 mt-1">{name} · KPI per bulan, 360° dari kuartal terkait, Skor Akhir (bobot 50/50 − punishment).</p>
+          <p className="text-xs text-gray-500 mt-1">{name} · KPI per bulan, 360° dari kuartal terkait, Skor Akhir (bobot 50/50 − punishment).</p>
         </div>
         <div className="flex items-center gap-4 text-[10px] text-gray-600 font-bold uppercase tracking-wider">
           <div className="flex items-center gap-1.5"><span className="w-3 h-0.5 border-t-2 border-dashed border-emerald-500 inline-block" /><span>KPI</span></div>
@@ -214,7 +214,7 @@ function TrendView({ name, trend }: { name: string; trend: TrendPoint[] }) {
             })()}
           </svg>
         ) : (
-          <div className="w-full text-center text-xs text-gray-400 italic py-20">Belum ada data bulanan untuk pegawai ini.</div>
+          <div className="w-full text-center text-xs text-gray-500 italic py-20">Belum ada data bulanan untuk pegawai ini.</div>
         )}
       </div>
 
@@ -222,7 +222,7 @@ function TrendView({ name, trend }: { name: string; trend: TrendPoint[] }) {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs min-w-[420px]">
             <thead>
-              <tr className="text-[10px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+              <tr className="text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
                 <th className="py-2 pr-3">Bulan</th>
                 <th className="py-2 px-3 text-center">KPI</th>
                 <th className="py-2 px-3 text-center">360°</th>

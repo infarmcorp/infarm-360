@@ -116,7 +116,7 @@ export function AppShell({
           <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black text-sm">i</div>
           <div className="leading-tight">
             <div className="text-sm font-extrabold text-gray-800">Infarm 360°</div>
-            <div className="text-[10px] text-gray-400">Performance Appraisal</div>
+            <div className="text-[10px] text-gray-500">Performance Appraisal</div>
           </div>
         </div>
       </div>
@@ -138,7 +138,7 @@ export function AppShell({
               </button>
             </form>
           </div>
-          <p className="text-[9px] text-gray-400 text-center mt-1">
+          <p className="text-[10px] text-gray-500 text-center mt-1">
             {hrdMode === 'spv' ? 'Bertindak sebagai Supervisor' : 'Mengelola seluruh sistem'}
           </p>
         </div>
@@ -151,7 +151,7 @@ export function AppShell({
             <span className={`w-2 h-2 rounded-full shrink-0 ${periodActive ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
             <span className="font-bold text-emerald-900 truncate">{periodLabel ?? 'Tanpa Periode'}</span>
           </div>
-          <span className="text-[9px] bg-emerald-100 font-bold uppercase py-0.5 px-2 rounded-full border border-emerald-200 shrink-0">
+          <span className="text-[10px] bg-emerald-100 font-bold uppercase py-0.5 px-2 rounded-full border border-emerald-200 shrink-0">
             {periodActive ? 'Aktif' : 'Kunci'}
           </span>
         </div>
@@ -162,13 +162,13 @@ export function AppShell({
       <div className="px-3 py-2.5 border-b border-gray-150">
         <div className="flex items-center gap-1.5 mb-1.5">
           <Bell className="w-3.5 h-3.5 text-amber-500" />
-          <span className="text-[9px] font-bold text-gray-500 tracking-wider uppercase">Tugas &amp; Notifikasi</span>
+          <span className="text-[10px] font-bold text-gray-500 tracking-wider uppercase">Tugas &amp; Notifikasi</span>
           {todos.length > 0 && (
-            <span className="ml-auto text-[9px] font-black text-white bg-amber-500 rounded-full px-1.5 min-w-[18px] text-center">{todos.length}</span>
+            <span className="ml-auto text-[10px] font-black text-white bg-amber-500 rounded-full px-1.5 min-w-[18px] text-center">{todos.length}</span>
           )}
         </div>
         {todos.length === 0 ? (
-          <p className="text-[10px] text-gray-400">Tak ada tugas tertunda. 🎉</p>
+          <p className="text-[10px] text-gray-500">Tak ada tugas tertunda. 🎉</p>
         ) : (
           <div className="space-y-1">
             {todos.map((t) => (
@@ -190,7 +190,7 @@ export function AppShell({
       <nav className="p-2 space-y-1 flex-1 overflow-y-auto">
         {sections.map((sec) => (
           <div key={sec.title ?? 'main'}>
-            {sec.title && <div className="text-[9px] font-bold text-gray-400 tracking-wider px-3 pt-3 pb-1 uppercase">{sec.title}</div>}
+            {sec.title && <div className="text-[10px] font-bold text-gray-500 tracking-wider px-3 pt-3 pb-1 uppercase">{sec.title}</div>}
             {sec.items.map((it) => {
               const Icon = it.icon;
               const active = isActive(it.href);
@@ -216,7 +216,7 @@ export function AppShell({
       <div className="p-3 border-t border-gray-150">
         <div className="px-1 mb-2">
           <div className="text-xs font-bold text-gray-800 truncate">{name}</div>
-          <div className="text-[10px] text-gray-400">{dept} · {ROLE_LABEL[role]} · <span className="font-mono">{empCode}</span></div>
+          <div className="text-[10px] text-gray-500">{dept} · {ROLE_LABEL[role]} · <span className="font-mono">{empCode}</span></div>
         </div>
         <Link
           href="/akun"
@@ -256,7 +256,7 @@ export function AppShell({
             aria-label={open ? 'Tutup menu navigasi' : 'Buka menu navigasi'} aria-expanded={open}>
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             {!open && todos.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 text-[8px] font-black text-white bg-amber-500 rounded-full px-1 min-w-[14px] text-center leading-[14px]">{todos.length}</span>
+              <span className="absolute -top-1.5 -right-1.5 text-[10px] font-black text-white bg-amber-500 rounded-full px-1 min-w-[14px] text-center leading-[14px]">{todos.length}</span>
             )}
           </button>
           <span className="text-sm font-extrabold text-gray-800">Infarm 360°</span>
@@ -273,7 +273,7 @@ function Deadline({ daysLeft }: { daysLeft: number }) {
     daysLeft < 0 ? { text: `Lewat tenggat ${Math.abs(daysLeft)} hari`, cls: 'text-rose-700 font-bold' }
     : daysLeft === 0 ? { text: 'Berakhir hari ini', cls: 'text-rose-700 font-bold' }
     : daysLeft <= 7 ? { text: `${daysLeft} hari lagi (mendekati tenggat)`, cls: 'text-amber-700 font-bold' }
-    : { text: `Tenggat: ${daysLeft} hari lagi`, cls: 'text-gray-400' };
+    : { text: `Tenggat: ${daysLeft} hari lagi`, cls: 'text-gray-500' };
   return (
     <div className={`mt-1 flex items-center gap-1 text-[10px] ${cls}`}>
       {daysLeft <= 7 ? <AlertTriangle className="w-3 h-3 shrink-0" /> : <Clock className="w-3 h-3 shrink-0" />}

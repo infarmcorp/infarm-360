@@ -118,7 +118,7 @@ export default async function BobotPage() {
       {/* 1. Bobot Penilai */}
       <Section title="Bobot Penilai">
         <WeightForm initial={initial} />
-        <p className="text-[10px] text-gray-400 italic mt-4">
+        <p className="text-[10px] text-gray-500 italic mt-4">
           Skor 360 = rata-rata rating tiap kelas penilai ×20, dibobot di sini (Self dikecualikan dari total).
           Perubahan berlaku setelah <strong>Hitung Ulang Skor 360°</strong> di bawah.
         </p>
@@ -128,7 +128,7 @@ export default async function BobotPage() {
       <Section title="Kalkulasi Skor 360°">
         <div className="mb-4">
           <RecomputeButton />
-          <p className="text-[11px] text-gray-400 mt-1.5">
+          <p className="text-[11px] text-gray-500 mt-1.5">
             Menulis hasil resmi ke <code>result_360</code> memakai model aktif:
             <strong> {model === '4class' ? '4-Kelas' : '2-Kelas'}</strong>. Self dikecualikan dari total.
           </p>
@@ -139,7 +139,7 @@ export default async function BobotPage() {
           <div className="overflow-x-auto">
           <table className="w-full text-left text-sm min-w-[420px]">
             <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+              <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
                 <th className="py-2 pr-3">Pegawai</th><th className="py-2 px-3">Divisi</th><th className="py-2 pl-3 text-right">Skor 360° Resmi</th>
               </tr>
             </thead>
@@ -170,7 +170,7 @@ export default async function BobotPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm min-w-[480px]">
               <thead>
-                <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+                <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
                   <th className="py-2 pr-3">Pegawai</th>
                   <th className={`py-2 px-3 text-right ${model === '4class' ? 'text-emerald-700' : ''}`}>4-Kelas{model === '4class' ? ' ●' : ''}</th>
                   <th className={`py-2 px-3 text-right ${model === '2class' ? 'text-emerald-700' : ''}`}>2-Kelas{model === '2class' ? ' ●' : ''}</th>
@@ -182,10 +182,10 @@ export default async function BobotPage() {
                   const delta = c.s4 != null && c.s2 != null ? round1(c.s4 - c.s2) : null;
                   return (
                     <tr key={c.id}>
-                      <td className="py-3 pr-3"><span className="font-bold text-gray-800 block">{c.name}</span><span className="text-[11px] text-gray-400">{c.dept}</span></td>
+                      <td className="py-3 pr-3"><span className="font-bold text-gray-800 block">{c.name}</span><span className="text-[11px] text-gray-500">{c.dept}</span></td>
                       <td className={`py-3 px-3 text-right font-mono ${model === '4class' ? 'font-black text-emerald-800' : 'text-gray-600'}`}>{c.s4 != null ? c.s4.toFixed(1) : '—'}</td>
                       <td className={`py-3 px-3 text-right font-mono ${model === '2class' ? 'font-black text-emerald-800' : 'text-gray-600'}`}>{c.s2 != null ? c.s2.toFixed(1) : '—'}</td>
-                      <td className={`py-3 pl-3 text-right font-mono font-bold ${delta == null ? 'text-gray-300' : delta > 0 ? 'text-emerald-700' : delta < 0 ? 'text-rose-600' : 'text-gray-400'}`}>
+                      <td className={`py-3 pl-3 text-right font-mono font-bold ${delta == null ? 'text-gray-300' : delta > 0 ? 'text-emerald-700' : delta < 0 ? 'text-rose-600' : 'text-gray-500'}`}>
                         {delta == null ? '—' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)}`}
                       </td>
                     </tr>
@@ -195,7 +195,7 @@ export default async function BobotPage() {
             </table>
           </div>
         )}
-        <p className="text-[10px] text-gray-400 italic mt-3">
+        <p className="text-[10px] text-gray-500 italic mt-3">
           Selisih = 4-Kelas − 2-Kelas. Pratinjau ini tidak mengubah data; skor resmi hanya berubah saat <strong>Hitung Ulang</strong>.
         </p>
       </Section>

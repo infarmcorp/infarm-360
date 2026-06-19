@@ -76,7 +76,7 @@ export default async function PertanyaanPage() {
         <QualManager questions={(quals ?? []).map((q) => ({ id: q.id, text: q.text }))} />
       </div>
 
-      <p className="text-[10px] text-gray-400 italic mt-3">
+      <p className="text-[10px] text-gray-500 italic mt-3">
         Indikator dinonaktifkan (bukan dihapus) agar skor historis tetap utuh — yang nonaktif
         tidak muncul di form penilaian baru. Pertanyaan esai dihapus permanen (beserta jawabannya).
       </p>

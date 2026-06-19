@@ -10,7 +10,7 @@ import { PeriodSelect } from './period-select';
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const labelOf = (ym: string) => { const [, m] = ym.split('-'); return MONTHS[Number(m) - 1] ?? m; };
 const KAT = (f: number | null) =>
-  f == null ? { t: '—', c: 'text-gray-400' }
+  f == null ? { t: '—', c: 'text-gray-500' }
     : f >= 90 ? { t: 'Sangat Baik', c: 'text-emerald-700' }
     : f >= 80 ? { t: 'Baik', c: 'text-blue-700' }
     : f >= 70 ? { t: 'Cukup', c: 'text-amber-700' }
@@ -97,7 +97,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs min-w-[640px]">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200 text-[9px] uppercase tracking-wider text-gray-400 font-bold">
+            <tr className="bg-gray-50 border-b border-gray-200 text-[10px] uppercase tracking-wider text-gray-500 font-bold">
               <th className="py-2.5 px-3">Pegawai</th>
               {ymList.map((ym) => <th key={ym} className="py-2.5 px-3 text-center">{labelOf(ym)}</th>)}
               <th className="py-2.5 px-3 text-center">Rataan KPI</th>
@@ -108,7 +108,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
           </thead>
           <tbody className="divide-y divide-gray-100">
             {rows.length === 0 && (
-              <tr><td colSpan={ymList.length + 4} className="py-6 text-center text-gray-400 italic">Tidak ada pegawai dalam lingkup Anda.</td></tr>
+              <tr><td colSpan={ymList.length + 4} className="py-6 text-center text-gray-500 italic">Tidak ada pegawai dalam lingkup Anda.</td></tr>
             )}
             {rows.map((r) => {
               const kat = KAT(r.final);
@@ -116,7 +116,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
                 <tr key={r.id} className="hover:bg-gray-50/40">
                   <td className="py-3 px-3">
                     <span className="font-bold text-gray-800 block">{r.name}</span>
-                    <span className="text-[10px] text-gray-400">{r.dept}</span>
+                    <span className="text-[10px] text-gray-500">{r.dept}</span>
                   </td>
                   {r.monthly.map((v, i) => (
                     <td key={i} className="py-3 px-3 text-center font-mono text-gray-500">{v != null ? v.toFixed(1) : '—'}</td>
@@ -131,7 +131,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
           </tbody>
         </table>
       </div>
-      <p className="text-[10px] text-gray-400 italic mt-3">
+      <p className="text-[10px] text-gray-500 italic mt-3">
         Rataan KPI = rerata bulan ber-skor di kuartal ini. Skor Akhir = blend KPI+360 (50/50) − punishment
         {sel.has_360 ? '' : ' (kuartal KPI saja → 100% KPI)'}. Kategori: ≥90 Sangat Baik · ≥80 Baik · ≥70 Cukup · &lt;70 Perlu Pembinaan.
       </p>

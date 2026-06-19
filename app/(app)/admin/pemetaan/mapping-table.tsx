@@ -53,7 +53,7 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h3 className="text-sm font-extrabold text-slate-800">Daftar Pemetaan</h3>
         <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${active ? 'text-indigo-800 bg-indigo-50 border-indigo-200' : 'text-emerald-800 bg-emerald-50 border-emerald-200'}`}>
-          {totalLabel}{active && <span className="font-normal text-gray-400"> · dari {rows.length}</span>}
+          {totalLabel}{active && <span className="font-normal text-gray-500"> · dari {rows.length}</span>}
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -87,7 +87,7 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
         <div className="overflow-x-auto">
         <table className="w-full text-left text-sm min-w-[560px]">
           <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+            <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
               <th className="py-2 pr-3">Penilai</th><th className="py-2 px-3">Yang Dinilai</th><th className="py-2 px-3">Relasi</th>
               <th className="py-2 px-3 text-center">Sifat</th><th className="py-2 pl-3 text-right">Aksi</th>
             </tr>
@@ -110,7 +110,7 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
         </table>
         </div>
       )}
-      <p className="text-[10px] text-gray-400 italic">
+      <p className="text-[10px] text-gray-500 italic">
         Relasi menentukan kelas bobot 360 (Atasan/Peer/Cross/Self). Sifat Wajib jadi dasar Flag Kepatuhan.
       </p>
     </div>

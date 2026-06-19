@@ -40,7 +40,7 @@ export function CopyMapping({ periods }: { periods: P[] }) {
     <div className="border border-indigo-200 bg-indigo-50/30 rounded-xl p-4 space-y-2">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold text-indigo-950 uppercase tracking-wide">Salin Pemetaan dari Periode Lain</h3>
-        <button type="button" onClick={() => { setOpen(false); setMsg(null); }} className="text-gray-400 hover:text-gray-600 text-xs">Tutup ✕</button>
+        <button type="button" onClick={() => { setOpen(false); setMsg(null); }} className="text-gray-500 hover:text-gray-600 text-xs">Tutup ✕</button>
       </div>
       <p className="text-[11px] text-indigo-900">
         Menyalin seluruh pasangan penilai→target dari periode terpilih ke periode aktif. Pasangan yang

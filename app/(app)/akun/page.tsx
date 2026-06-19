@@ -48,7 +48,7 @@ export default async function AkunPage() {
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex gap-3">
-      <dt className="w-28 shrink-0 text-gray-400 font-semibold uppercase tracking-wide text-[10px] pt-0.5">{label}</dt>
+      <dt className="w-28 shrink-0 text-gray-500 font-semibold uppercase tracking-wide text-[10px] pt-0.5">{label}</dt>
       <dd className={`text-gray-700 ${mono ? 'font-mono' : 'font-semibold'}`}>{value}</dd>
     </div>
   );

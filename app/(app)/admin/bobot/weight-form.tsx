@@ -31,7 +31,7 @@ export function WeightForm({ initial }: { initial: Init }) {
 
   const field = (label: string, k: keyof typeof w) => (
     <div>
-      <label className="block text-[10px] font-bold text-gray-400 mb-1">{label}</label>
+      <label className="block text-[10px] font-bold text-gray-500 mb-1">{label}</label>
       <input type="number" min={0} max={100} value={w[k]} onChange={set(k)}
         className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-lg text-right focus:outline-none focus:ring-1 focus:ring-emerald-500" />
     </div>
@@ -40,7 +40,7 @@ export function WeightForm({ initial }: { initial: Init }) {
   return (
     <form onSubmit={submit} className="space-y-4">
       <div>
-        <label className="block text-[10px] font-bold text-gray-400 mb-1">Model Bobot</label>
+        <label className="block text-[10px] font-bold text-gray-500 mb-1">Model Bobot</label>
         <select value={model} onChange={(e) => setModel(e.target.value as '4class' | '2class')}
           className="text-sm px-2 py-1.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
           <option value="4class">4-Kelas (Atasan / Peer / Cross / Bawahan / Self)</option>
@@ -58,7 +58,7 @@ export function WeightForm({ initial }: { initial: Init }) {
         </div>
       )}
 
-      <p className="text-[11px] text-gray-400">
+      <p className="text-[11px] text-gray-500">
         Total bobot resmi (Self dikecualikan): <span className="font-mono font-bold">{total}</span>
         {total !== 100 && <span className="text-amber-600"> — umumnya 100</span>}
       </p>

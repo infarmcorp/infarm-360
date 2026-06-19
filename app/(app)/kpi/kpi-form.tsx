@@ -127,7 +127,7 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
             <tbody>
               {shown.map((m) => (
                 <tr key={m.id} className="border-b">
-                  <td className="py-2">{m.name} <span className="text-gray-400">· {m.dept}</span></td>
+                  <td className="py-2">{m.name} <span className="text-gray-500">· {m.dept}</span></td>
                   <td className="py-2">
                     <input type="number" min={0} max={100} inputMode="decimal" value={scores[m.id] ?? ''}
                       onChange={(e) => setScores((s) => ({ ...s, [m.id]: e.target.value }))} className="w-24 rounded border px-2 py-1" />
@@ -163,7 +163,7 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
               <div className="overflow-x-auto border border-gray-200 rounded-xl">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="bg-gray-50 text-[10px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+                    <tr className="bg-gray-50 text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
                       <th className="py-2 px-3">Kode</th><th className="py-2 px-3">Pegawai</th>
                       <th className="py-2 px-3 text-center">Skor</th><th className="py-2 px-3">Catatan</th><th className="py-2 px-3">Status</th>
                     </tr>

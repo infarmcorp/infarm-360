@@ -40,7 +40,7 @@ export function ReportActions({
           ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">Final</span>
           : status === 'draft'
           ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">Draf</span>
-          : <span className="text-[10px] text-gray-400">belum disimpan</span>}
+          : <span className="text-[10px] text-gray-500">belum disimpan</span>}
         {finalScore != null && <span className="text-[11px] font-mono font-bold text-slate-700">Skor Akhir {finalScore.toFixed(1)}</span>}
       </div>
 
@@ -50,7 +50,7 @@ export function ReportActions({
       </button>
 
       {!canCompute ? (
-        <span className="text-[11px] text-gray-400 italic">KPI pegawai masih kosong — belum bisa disimpan.</span>
+        <span className="text-[11px] text-gray-500 italic">KPI pegawai masih kosong — belum bisa disimpan.</span>
       ) : (
         <>
           <button type="button" disabled={busy !== null} onClick={() => run(false)}

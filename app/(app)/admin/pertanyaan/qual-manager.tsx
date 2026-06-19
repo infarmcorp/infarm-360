@@ -29,7 +29,7 @@ export function QualManager({ questions }: { questions: Q[] }) {
       <h3 className="text-sm font-extrabold text-indigo-800 mb-2">Pertanyaan Kualitatif (Esai)</h3>
       <div className="space-y-2">
         {questions.map((q) => <QualRow key={q.id} q={q} run={run} busy={busy} />)}
-        {questions.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada pertanyaan kualitatif.</p>}
+        {questions.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada pertanyaan kualitatif.</p>}
       </div>
       <div className="flex gap-1.5 mt-2.5">
         <input value={newText} onChange={(e) => setNewText(e.target.value)} placeholder="Pertanyaan esai baru…"

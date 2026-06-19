@@ -33,7 +33,7 @@ export function IndicatorManager({
       <AspectHeader aspectId={aspectId} aspectName={aspectName} canUp={canUp} canDown={canDown} run={run} busy={busy} count={indicators.length} />
       <div className="space-y-2">
         {indicators.map((ind) => <IndicatorRow key={ind.id} ind={ind} run={run} busy={busy} />)}
-        {indicators.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada indikator.</p>}
+        {indicators.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada indikator.</p>}
       </div>
       {err && <p className="text-[10px] text-rose-600 mt-1">{err}</p>}
     </section>
@@ -69,20 +69,20 @@ function AspectHeader({
             onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setEditing(false); setName(aspectName); } }}
             className="flex-1 text-sm font-bold p-1 border border-emerald-300 rounded focus:ring-1 focus:ring-emerald-600 outline-none" />
           <button type="button" onClick={save} disabled={busy} title="Simpan" className="text-emerald-700 hover:text-emerald-900 p-0.5"><Check className="w-4 h-4" /></button>
-          <button type="button" onClick={() => { setEditing(false); setName(aspectName); }} title="Batal" className="text-gray-400 hover:text-gray-600 p-0.5"><X className="w-4 h-4" /></button>
+          <button type="button" onClick={() => { setEditing(false); setName(aspectName); }} title="Batal" className="text-gray-500 hover:text-gray-600 p-0.5"><X className="w-4 h-4" /></button>
         </div>
       ) : (
         <h3 className="text-sm font-extrabold text-emerald-800 flex items-center gap-1.5">
           {aspectName}
-          <span className="text-[10px] font-semibold text-gray-400">· {count} indikator</span>
+          <span className="text-[10px] font-semibold text-gray-500">· {count} indikator</span>
         </h3>
       )}
       {!editing && (
         <div className="flex items-center gap-0.5 shrink-0">
-          <button type="button" onClick={() => setEditing(true)} disabled={busy} title="Ubah nama" className="text-gray-400 hover:text-emerald-700 p-1"><Pencil className="w-3.5 h-3.5" /></button>
-          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'up'))} disabled={busy || !canUp} title="Naik" className="text-gray-400 hover:text-gray-700 p-1 disabled:opacity-30"><ChevronUp className="w-4 h-4" /></button>
-          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'down'))} disabled={busy || !canDown} title="Turun" className="text-gray-400 hover:text-gray-700 p-1 disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
-          <button type="button" onClick={remove} disabled={busy} title="Hapus aspek" className="text-gray-400 hover:text-rose-600 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+          <button type="button" onClick={() => setEditing(true)} disabled={busy} title="Ubah nama" className="text-gray-500 hover:text-emerald-700 p-1"><Pencil className="w-3.5 h-3.5" /></button>
+          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'up'))} disabled={busy || !canUp} title="Naik" className="text-gray-500 hover:text-gray-700 p-1 disabled:opacity-30"><ChevronUp className="w-4 h-4" /></button>
+          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'down'))} disabled={busy || !canDown} title="Turun" className="text-gray-500 hover:text-gray-700 p-1 disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
+          <button type="button" onClick={remove} disabled={busy} title="Hapus aspek" className="text-gray-500 hover:text-rose-600 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
         </div>
       )}
     </div>
@@ -110,12 +110,12 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
     <div className={`rounded-lg ${ind.is_active ? '' : 'opacity-50'}`}>
       <div className="flex items-center gap-1.5">
         <button type="button" onClick={() => setOpen((o) => !o)} title="Panduan penilaian"
-          className="text-gray-400 hover:text-gray-600 shrink-0">
+          className="text-gray-500 hover:text-gray-600 shrink-0">
           {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
         </button>
         <input value={text} onChange={(e) => setText(e.target.value)}
           className="flex-1 text-xs px-2 py-1 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-        {hasGuide && !open && <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-1 py-0.5 rounded shrink-0">panduan</span>}
+        {hasGuide && !open && <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-1 py-0.5 rounded shrink-0">panduan</span>}
         {dirtyText && (
           <button type="button" disabled={busy} onClick={() => run(() => updateIndicator(ind.id, text))}
             className="text-[10px] font-bold px-2 py-1 rounded bg-emerald-600 text-white disabled:opacity-50 shrink-0">Simpan</button>
@@ -134,13 +134,13 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
       {open && (
         <div className="mt-2 ml-5 p-3 bg-gray-50/70 border border-gray-200 rounded-lg space-y-2.5">
           <div>
-            <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Deskripsi Perilaku (kotak penjelasan di form)</label>
+            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Deskripsi Perilaku (kotak penjelasan di form)</label>
             <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2}
               placeholder="Penjelasan singkat indikator ini bagi penilai…"
               className="w-full text-[11px] p-2 bg-white border border-gray-250 rounded focus:ring-1 focus:ring-emerald-600 outline-none resize-none" />
           </div>
           <div>
-            <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">Panduan Rating per Level (opsional)</label>
+            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Panduan Rating per Level (opsional)</label>
             <div className="space-y-1.5">
               {['1', '2', '3', '4', '5'].map((lv) => (
                 <div key={lv} className="flex items-start gap-1.5">

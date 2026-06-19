@@ -38,7 +38,7 @@ export function AkunForm() {
         {msg?.ok ? <Check className="w-4 h-4" /> : <KeyRound className="w-4 h-4" />}
         {busy ? 'Menyimpan…' : 'Simpan Sandi Baru'}
       </button>
-      <p className="text-[10px] text-gray-400 italic">
+      <p className="text-[10px] text-gray-500 italic">
         Demi keamanan, masukkan sandi saat ini untuk mengonfirmasi. Sandi tidak pernah dicatat.
       </p>
     </form>

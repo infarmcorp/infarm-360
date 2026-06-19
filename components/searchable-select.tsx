@@ -79,15 +79,15 @@ export function SearchableSelect({
         aria-label={ariaLabel}
         className={`w-full flex items-center justify-between gap-2 text-left ${className}`}
       >
-        <span className={selected ? '' : 'text-gray-400'}>{selected ? selected.label : placeholder}</span>
-        <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
+        <span className={selected ? '' : 'text-gray-500'}>{selected ? selected.label : placeholder}</span>
+        <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" />
       </button>
 
       {open && !disabled && (
         <div className="absolute z-30 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
           <div className="p-2 border-b border-gray-100 bg-white sticky top-0">
             <div className="flex items-center gap-1.5 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg">
-              <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" aria-hidden="true" />
+              <Search className="w-3.5 h-3.5 text-gray-500 shrink-0" aria-hidden="true" />
               <input
                 autoFocus
                 value={q}
@@ -104,7 +104,7 @@ export function SearchableSelect({
             </div>
           </div>
           <div ref={listRef} id={listId} role="listbox" className="max-h-56 overflow-y-auto py-1">
-            {filtered.length === 0 && <div className="px-3 py-2 text-xs text-gray-400 italic">Tidak ada yang cocok.</div>}
+            {filtered.length === 0 && <div className="px-3 py-2 text-xs text-gray-500 italic">Tidak ada yang cocok.</div>}
             {filtered.map((o, i) => (
               <button
                 key={o.value}

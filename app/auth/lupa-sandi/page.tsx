@@ -18,7 +18,7 @@ export default function LupaSandiPage() {
           Masukkan email Anda. Kami kirimkan tautan untuk membuat sandi baru.
         </p>
         <LupaSandiForm />
-        <Link href="/login" className="mt-4 block text-center text-[11px] text-gray-400 hover:text-gray-600 hover:underline">
+        <Link href="/login" className="mt-4 block text-center text-[11px] text-gray-500 hover:text-gray-600 hover:underline">
           ← Kembali ke Masuk
         </Link>
       </div>

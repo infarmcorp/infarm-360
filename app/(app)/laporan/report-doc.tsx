@@ -69,25 +69,25 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
                 <span className="text-xs text-gray-700 font-medium">{a.name}</span>
                 {/* Bar Rekan (gabungan penilai, Self dikecualikan) */}
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] font-bold text-indigo-700 w-9 shrink-0">Rekan</span>
+                  <span className="text-[10px] font-bold text-indigo-700 w-9 shrink-0">Rekan</span>
                   <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(a.score ?? 0, 100)}%` }} />
                   </div>
-                  <span className="text-[9px] font-mono font-bold text-indigo-700 w-7 text-right">{a.score != null ? a.score.toFixed(0) : '—'}</span>
+                  <span className="text-[10px] font-mono font-bold text-indigo-700 w-7 text-right">{a.score != null ? a.score.toFixed(0) : '—'}</span>
                 </div>
                 {/* Bar Diri (evaluasi diri) — pembanding */}
                 {a.self != null && (
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-bold text-amber-600 w-9 shrink-0">Diri</span>
+                    <span className="text-[10px] font-bold text-amber-600 w-9 shrink-0">Diri</span>
                     <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div className="h-full bg-amber-400 rounded-full" style={{ width: `${Math.min(a.self, 100)}%` }} />
                     </div>
-                    <span className="text-[9px] font-mono font-bold text-amber-600 w-7 text-right">{a.self.toFixed(0)}</span>
+                    <span className="text-[10px] font-mono font-bold text-amber-600 w-7 text-right">{a.self.toFixed(0)}</span>
                   </div>
                 )}
               </div>
             ))}
-            <p className="text-[10px] text-gray-400 italic">
+            <p className="text-[10px] text-gray-500 italic">
               Bar <span className="text-indigo-700 font-bold">Rekan</span> = gabungan penilai (Self dikecualikan);
               bar <span className="text-amber-600 font-bold">Diri</span> = evaluasi diri sebagai pembanding.
             </p>
@@ -111,18 +111,18 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
                   <span className="text-xs font-bold text-gray-800">
                     {anonymize ? (RELATION_LABEL[b.relation] ?? b.relation) : b.assessorName}
                   </span>
-                  {b.isSelf && <span className="text-[9px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full">Self</span>}
-                  {!anonymize && <span className="text-[9px] text-gray-400">· {RELATION_LABEL[b.relation] ?? b.relation}</span>}
+                  {b.isSelf && <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full">Self</span>}
+                  {!anonymize && <span className="text-[10px] text-gray-500">· {RELATION_LABEL[b.relation] ?? b.relation}</span>}
                 </div>
                 {b.answers.map((a, j) => (
                   <div key={j} className="mb-1.5">
-                    <p className="text-[10px] text-gray-400 font-semibold">{a.question}</p>
+                    <p className="text-[10px] text-gray-500 font-semibold">{a.question}</p>
                     <p className="text-xs text-gray-700">{a.answer}</p>
                   </div>
                 ))}
                 {b.comments.map((c, j) => (
                   <div key={`c${j}`} className="mb-1 flex gap-2">
-                    <span className="text-[10px] text-gray-400 shrink-0">{c.indicator}{c.rating != null ? ` (${c.rating})` : ''}:</span>
+                    <span className="text-[10px] text-gray-500 shrink-0">{c.indicator}{c.rating != null ? ` (${c.rating})` : ''}:</span>
                     <span className="text-xs text-gray-700">{c.comment}</span>
                   </div>
                 ))}
@@ -135,7 +135,7 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
         <p className="mt-4 text-sm text-gray-500">Belum ada komentar dari penilai.</p>
       )}
 
-      <p className="text-[10px] text-gray-400 mt-6 print:mt-10">
+      <p className="text-[10px] text-gray-500 mt-6 print:mt-10">
         Dicetak dari Infarm 360° Performance Appraisal · {data.periodLabel} · Skor Akhir kalibrasi.
       </p>
     </div>
@@ -145,7 +145,7 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
 function ScoreCard({ label, value, color, big }: { label: string; value: number | null; color: string; big?: boolean }) {
   return (
     <div className="border border-gray-200 rounded-xl p-3 text-center break-inside-avoid">
-      <p className="text-[10px] text-gray-400 uppercase font-bold">{label}</p>
+      <p className="text-[10px] text-gray-500 uppercase font-bold">{label}</p>
       <p className={`font-black font-mono ${color} ${big ? 'text-3xl' : 'text-xl'}`}>{value != null ? value.toFixed(1) : '—'}</p>
     </div>
   );

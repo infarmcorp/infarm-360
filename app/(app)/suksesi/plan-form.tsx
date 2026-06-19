@@ -76,7 +76,7 @@ export function PlanForm({
           )}
         </div>
       )}
-      {locked && <p className="text-[10px] text-gray-400 italic">Sudah {status === 'approved' ? 'disetujui' : 'ditolak'} Direksi — terkunci.</p>}
+      {locked && <p className="text-[10px] text-gray-500 italic">Sudah {status === 'approved' ? 'disetujui' : 'ditolak'} Direksi — terkunci.</p>}
       {msg && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
     </div>
   );

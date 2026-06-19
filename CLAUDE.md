@@ -129,6 +129,9 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Konsistensi mobile**: tabel lebar dibungkus `overflow-x-auto` + `min-w`.
 - **Aksesibilitas**: `SearchableSelect` keyboard-nav (↑/↓/Enter/Esc) + ARIA; tombol menu mobile
   `aria-label`/`aria-expanded`.
+- **Keterbacaan teks (kontras + ukuran)**: `text-gray-400`→`text-gray-500` (lulus WCAG AA) &
+  teks <10px→`text-[10px]` di seluruh `app/`+`components/`; SVG chart, em-dash/bullet, & badge
+  berlatar warna dikecualikan. Murni visual untuk **semua** pengguna awas (lihat Backlog).
 
 ### Skema DB (migrasi)
 - `0005_hrd_audit_log` — tabel jejak audit HRD (append-only).
@@ -210,8 +213,14 @@ Daftar hidup (perbarui saat ada perubahan). Status: ✅ selesai · 🔄 sebagian
 - 🔄 **Aksesibilitas & mobile** — dropdown keyboard-nav/ARIA + tabel lebar wrapped.
   **Keputusan (2026-06-19):** a11y **tidak** didorong sampai dukungan pembaca layar/tunanetra —
   basis pengguna tak menjangkau itu (jangan tambah `aria-label`/`role`/uji NVDA tanpa diminta;
-  percobaan sebelumnya di-revert). **Yang masih relevan (opsional):** audit kontras/keterbacaan
-  teks (mis. abu-abu kecil) — menguntungkan **semua** pengguna awas, bukan khusus disabilitas.
+  percobaan sebelumnya di-revert).
+- ✅ **Audit kontras/keterbacaan teks (2026-06-19)** — SELESAI. Bukan a11y disabilitas;
+  menguntungkan **semua** pengguna awas (HP/proyektor/ruang terang). `text-gray-400` (rasio
+  ~2.8:1, **gagal** WCAG AA) → `text-gray-500` (~4.6:1, **lulus**) di seluruh `app/`+`components/`;
+  teks <10px (`text-[8px]`/`text-[9px]`) → `text-[10px]`. **Dikecualikan** (sengaja): label di
+  dalam SVG chart (radar `report-doc`, data point `monitor-chart`) — bump bikin grafik berdesakan;
+  `text-gray-300` pada em-dash/bullet pemisah; badge berlatar warna (kontras dari pasangan latar).
+  Murni `className` — logika/tipe/rumus tak tersentuh; `npm run build` hijau.
 
 ### Pengembangan opsional
 - Bulk-finalisasi laporan ber-ACC SPV · Ekspor Log Aktivitas HRD ke Excel · Branch protection

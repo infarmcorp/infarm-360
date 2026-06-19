@@ -37,7 +37,7 @@ export function EmptyState({
               }`}>
                 {s.done ? '✓' : i + 1}
               </span>
-              <span className={s.done ? 'text-gray-400 line-through' : ''}>{s.text}</span>
+              <span className={s.done ? 'text-gray-500 line-through' : ''}>{s.text}</span>
             </li>
           ))}
         </ol>
@@ -59,7 +59,7 @@ export function EmptyState({
         </div>
       )}
 
-      {note && <p className="text-[11px] text-gray-400 italic mt-1 max-w-md">{note}</p>}
+      {note && <p className="text-[11px] text-gray-500 italic mt-1 max-w-md">{note}</p>}
     </div>
   );
 }

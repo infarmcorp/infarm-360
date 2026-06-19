@@ -18,7 +18,7 @@ export function AccButton({ employeeId, acc, hasReport }: { employeeId: string; 
     router.refresh();
   }
 
-  if (!hasReport) return <span className="text-[10px] text-gray-400 italic">menunggu HRD</span>;
+  if (!hasReport) return <span className="text-[10px] text-gray-500 italic">menunggu HRD</span>;
 
   return (
     <div className="flex flex-col items-end gap-1">

@@ -81,7 +81,7 @@ export default async function KepatuhanPage() {
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm min-w-[520px]">
           <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+            <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
               <th className="py-2 pr-3">Pegawai</th>
               <th className="py-2 px-3 text-center">Wajib Telat</th>
               <th className="py-2 px-3 text-center">Self</th>
@@ -93,7 +93,7 @@ export default async function KepatuhanPage() {
               <tr key={r.id}>
                 <td className="py-3 pr-3">
                   <span className="font-bold text-gray-800 block">{r.name}</span>
-                  <span className="text-[11px] text-gray-400">{r.dept}</span>
+                  <span className="text-[11px] text-gray-500">{r.dept}</span>
                 </td>
                 <td className="py-3 px-3 text-center">
                   {r.lateCount > 0 ? (
@@ -115,7 +115,7 @@ export default async function KepatuhanPage() {
           </tbody>
         </table>
       </div>
-      <p className="text-[10px] text-gray-400 italic mt-3">
+      <p className="text-[10px] text-gray-500 italic mt-3">
         &quot;Wajib Telat&quot; = penilaian bersifat Wajib (mapping) yang belum dikirim (arahkan kursor untuk daftar nama).
         Punishment memotong Skor Akhir pegawai di periode ini (min 0).
       </p>

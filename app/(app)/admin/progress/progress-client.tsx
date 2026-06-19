@@ -92,7 +92,7 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <span className="font-bold text-gray-800 text-sm">{r.name}</span>
-                  <span className="text-[11px] text-gray-400"> · {r.dept}</span>
+                  <span className="text-[11px] text-gray-500"> · {r.dept}</span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${complete ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
@@ -115,7 +115,7 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
               {/* Dua progres berdampingan (paritas legacy): "Menilai" vs "Dinilai oleh". */}
               <div className="grid sm:grid-cols-2 gap-x-4 gap-y-2 mt-2">
                 <div>
-                  <div className="flex justify-between items-center text-[9px] font-bold text-gray-400 mb-0.5">
+                  <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 mb-0.5">
                     <span>Menilai orang lain</span>
                     <span>{r.done}/{r.total} · {pct}%</span>
                   </div>
@@ -124,7 +124,7 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
                   </div>
                 </div>
                 <div>
-                  <div className="flex justify-between items-center text-[9px] font-bold text-gray-400 mb-0.5">
+                  <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 mb-0.5">
                     <span>Dinilai oleh</span>
                     <span>{by ? `${by.done}/${by.total} orang · ${byPct}%` : '—'}</span>
                   </div>
@@ -135,13 +135,13 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
               </div>
               {expanded === r.id && r.pending.length > 0 && (
                 <div className="mt-3 space-y-1.5 border-t border-gray-100 pt-2">
-                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Belum dinilai:</p>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Belum dinilai:</p>
                   {r.pending.map((p) => (
                     <div key={p.targetId} className="flex items-center justify-between gap-2 text-xs">
                       <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                         <span className="text-gray-700 font-semibold">{p.targetName}</span>
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">{p.relation}</span>
-                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${p.mandatory ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">{p.relation}</span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${p.mandatory ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
                           {p.mandatory ? 'Wajib' : 'Opsional'}
                         </span>
                       </div>
@@ -157,7 +157,7 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
           );
         })}
       </div>
-      <p className="text-[10px] text-gray-400 italic">
+      <p className="text-[10px] text-gray-500 italic">
         Tiap baris menampilkan dua progres: <strong>Menilai orang lain</strong> (tugas penilai
         terhadap orang lain) &amp; <strong>Dinilai oleh</strong> (berapa penilai sudah menilai pegawai
         ini, mis. 7/10 orang). “Paksa Selesai” menandai penilaian terkirim agar tak terhitung

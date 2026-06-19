@@ -159,7 +159,7 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="🏢 Skor KPI Rata-rata per Divisi">
           <div className="space-y-4">
-            {deptScores.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada data KPI.</p>}
+            {deptScores.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada data KPI.</p>}
             {deptScores.map(([dept, score], i) => (
               <div key={dept} className="space-y-1">
                 <div className="flex justify-between items-center">
@@ -177,7 +177,7 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
         <Card title="✨ Evaluasi Budaya 360° (Rataan Sub-Aspek)">
           {!has360 && <p className="text-[11px] text-amber-800 font-semibold mb-3 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2">360° nonaktif di {periodLabel} — aspek dari penilaian terkirim (bila ada).</p>}
           <div className="space-y-4">
-            {aspectScores.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada skor 360° terkirim.</p>}
+            {aspectScores.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada skor 360° terkirim.</p>}
             {aspectScores.map((asp, idx) => {
               const c = asp.score >= 90 ? 'bg-indigo-600' : asp.score >= 80 ? 'bg-indigo-500' : 'bg-amber-500';
               return (
@@ -200,7 +200,7 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
       {/* 9-Box */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
         <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Klasifikasi Talenta — Matriks 9-Box (KPI × 360°)</h3>
-        <p className="text-xs text-gray-400 mt-0.5 mb-4">Pemetaan {[...boxGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai (KPI &amp; 360° tersedia).</p>
+        <p className="text-xs text-gray-500 mt-0.5 mb-4">Pemetaan {[...boxGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai (KPI &amp; 360° tersedia).</p>
         {!has360 && (
           <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
             <span className="text-amber-700 text-sm leading-none mt-0.5">⚠️</span>
@@ -212,7 +212,7 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
         <div className="overflow-x-auto">
           <div className="min-w-[660px]">
             <div className="grid grid-cols-[120px_1fr_1fr_1fr] gap-2 mb-2">
-              <div className="flex items-end justify-center text-[9px] font-bold text-gray-400 uppercase">KPI ↓ / 360° →</div>
+              <div className="flex items-end justify-center text-[10px] font-bold text-gray-500 uppercase">KPI ↓ / 360° →</div>
               {s360Cols.map((c) => (
                 <div key={c.band} className="text-center text-[10px] font-extrabold text-indigo-700 bg-indigo-50/60 rounded-lg py-1.5 border border-indigo-100">{c.label}</div>
               ))}
@@ -232,10 +232,10 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
                       </div>
                       <div className="mt-1.5 flex flex-wrap gap-1">
                         {emps.slice(0, 4).map((e) => (
-                          <span key={e.id} className="text-[9px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
+                          <span key={e.id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
                             title={`${e.name} · KPI ${e.kpiAvg?.toFixed(1)} · 360 ${e.s360?.toFixed(1)}`}>{firstName(e.name)}</span>
                         ))}
-                        {emps.length > 4 && <span className="text-[9px] text-gray-400 font-bold self-center">+{emps.length - 4}</span>}
+                        {emps.length > 4 && <span className="text-[10px] text-gray-500 font-bold self-center">+{emps.length - 4}</span>}
                       </div>
                     </div>
                   );
@@ -244,13 +244,13 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
             ))}
           </div>
         </div>
-        <p className="text-[10px] text-gray-400 italic mt-2">Band KPI: ≥90 / 80–89,99 / &lt;80 · Band 360°: ≥80 / 70–79,99 / &lt;70. Pegawai tanpa KPI/360° tidak dihitung.</p>
+        <p className="text-[10px] text-gray-500 italic mt-2">Band KPI: ≥90 / 80–89,99 / &lt;80 · Band 360°: ≥80 / 70–79,99 / &lt;70. Pegawai tanpa KPI/360° tidak dihitung.</p>
       </div>
 
       {/* 4-Box */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
         <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Klasifikasi Pemain — Matriks 4-Box (A / B / C / D Player)</h3>
-        <p className="text-xs text-gray-400 mt-0.5 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan Skor Akhir.</p>
+        <p className="text-xs text-gray-500 mt-0.5 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan Skor Akhir.</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {PLAYER_BOXES.map((box) => {
             const emps = playerGroups.get(box.key) ?? [];
@@ -261,19 +261,19 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
                   <span className="text-[13px] font-black text-slate-800 leading-tight">{box.label}</span>
                   <span className="text-lg font-black font-mono shrink-0" style={{ color: box.color }}>{emps.length}</span>
                 </div>
-                <span className="text-[9px] text-gray-400 font-semibold mt-0.5 leading-tight">{PLAYER_DESC[box.key]}</span>
+                <span className="text-[10px] text-gray-500 font-semibold mt-0.5 leading-tight">{PLAYER_DESC[box.key]}</span>
                 <div className="mt-2 flex flex-wrap gap-1">
                   {emps.slice(0, 6).map((e) => (
-                    <span key={e.id} className="text-[9px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
+                    <span key={e.id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
                       title={`${e.name} · Skor ${e.final?.toFixed(1)} · KPI ${e.kpiAvg?.toFixed(1)} · 360 ${e.s360 != null ? e.s360.toFixed(1) : 'N/A'}`}>{firstName(e.name)}</span>
                   ))}
-                  {emps.length > 6 && <span className="text-[9px] text-gray-400 font-bold self-center">+{emps.length - 6}</span>}
+                  {emps.length > 6 && <span className="text-[10px] text-gray-500 font-bold self-center">+{emps.length - 6}</span>}
                 </div>
               </div>
             );
           })}
         </div>
-        <p className="text-[10px] text-gray-400 italic mt-2">
+        <p className="text-[10px] text-gray-500 italic mt-2">
           A: Skor ≥90 &amp; KPI ≥90 &amp; 360° ≥80 · B: ≥80 · C: ≥70 · D: &lt;70.
           {!has360 && <span className="text-amber-700 font-semibold not-italic"> Tanpa 360° → Skor Akhir = 100% KPI, A Player tidak tersedia.</span>}
         </p>
@@ -286,14 +286,14 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
           <span>Papan Pertimbangan Suksesi &amp; Promosi (Skor ≥ 90)</span>
         </h3>
         {candidates.length === 0 ? (
-          <p className="text-xs text-gray-400 italic text-center py-6 font-medium">
+          <p className="text-xs text-gray-500 italic text-center py-6 font-medium">
             Belum ada pegawai dengan Skor Akhir ≥ 90 pada lingkup ini. Rencana suksesi belum diusulkan.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs min-w-[520px]">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-[9px] uppercase tracking-wider text-gray-400">
+                <tr className="bg-gray-50 border-b border-gray-200 text-[10px] uppercase tracking-wider text-gray-500">
                   <th className="py-2.5 px-4 font-extrabold">Nama Pegawai</th>
                   <th className="py-2.5 px-4 text-center font-extrabold">Skor Akhir</th>
                   <th className="py-2.5 px-4 font-extrabold">Rencana Suksesi (Pilihan HRD)</th>
@@ -306,10 +306,10 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
                   const badge = plan ? (STATUS_BADGE[plan.status] ?? STATUS_BADGE.draft) : null;
                   return (
                     <tr key={e.id} className="border-b border-gray-100 last:border-none">
-                      <td className="py-3 px-4"><div className="font-extrabold text-gray-800 text-sm">{e.name}</div><div className="text-[10px] text-gray-400 font-bold">{e.dept}</div></td>
+                      <td className="py-3 px-4"><div className="font-extrabold text-gray-800 text-sm">{e.name}</div><div className="text-[10px] text-gray-500 font-bold">{e.dept}</div></td>
                       <td className="py-3 px-4 text-center"><span className="font-mono font-black text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded inline-block text-[11px] border border-emerald-100">{e.final?.toFixed(1)}</span></td>
-                      <td className="py-3 px-4">{plan ? <span className="font-extrabold text-slate-800 block">{plan.plan}</span> : <span className="text-gray-400 italic">Belum ada rencana — usulkan di menu Promosi &amp; Suksesi</span>}</td>
-                      <td className="py-3 px-4 text-center">{badge ? <span className={`inline-block text-[9px] font-black uppercase px-2.5 py-1 rounded-full border ${badge.cls}`}>{badge.label}</span> : <span className="text-gray-300 text-[10px]">—</span>}</td>
+                      <td className="py-3 px-4">{plan ? <span className="font-extrabold text-slate-800 block">{plan.plan}</span> : <span className="text-gray-500 italic">Belum ada rencana — usulkan di menu Promosi &amp; Suksesi</span>}</td>
+                      <td className="py-3 px-4 text-center">{badge ? <span className={`inline-block text-[10px] font-black uppercase px-2.5 py-1 rounded-full border ${badge.cls}`}>{badge.label}</span> : <span className="text-gray-300 text-[10px]">—</span>}</td>
                     </tr>
                   );
                 })}
@@ -323,12 +323,12 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="🏆 Bintang Performa Utama" tone="emerald">
           <div className="divide-y divide-gray-100">
-            {top.length === 0 && <p className="text-xs text-gray-400 italic py-2">Belum ada Skor Akhir.</p>}
+            {top.length === 0 && <p className="text-xs text-gray-500 italic py-2">Belum ada Skor Akhir.</p>}
             {top.map((e, idx) => (
               <div key={e.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-xs font-bold text-emerald-800 w-5">#{idx + 1}</span>
-                  <div><span className="font-bold text-gray-800 block text-xs">{e.name}</span><span className="text-[10px] text-gray-400 block">{e.dept}</span></div>
+                  <div><span className="font-bold text-gray-800 block text-xs">{e.name}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
                 </div>
                 <span className="font-mono font-extrabold text-sm text-emerald-800">{e.final?.toFixed(1)}</span>
               </div>
@@ -337,12 +337,12 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
         </Card>
         <Card title="⚠️ Sasaran Mentoring / Coaching" tone="rose">
           <div className="divide-y divide-gray-100">
-            {bottom.length === 0 && <p className="text-xs text-gray-400 italic py-2">Tidak ada di bawah 85.</p>}
+            {bottom.length === 0 && <p className="text-xs text-gray-500 italic py-2">Tidak ada di bawah 85.</p>}
             {bottom.map((e) => (
               <div key={e.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-rose-50 text-rose-800 font-bold flex items-center justify-center text-[11px]">{e.name.substring(0, 2)}</div>
-                  <div><span className="font-bold text-gray-800 block text-xs">{e.name}</span><span className="text-[10px] text-gray-400 block">{e.dept}</span></div>
+                  <div><span className="font-bold text-gray-800 block text-xs">{e.name}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
                 </div>
                 <span className="font-mono font-extrabold text-sm text-rose-700">{e.final?.toFixed(1)}</span>
               </div>
@@ -385,7 +385,7 @@ function KpiTab({ rows, deptScores, monthly, kpiStandard }: { rows: Row[]; deptS
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card title="🏢 Rerata KPI Bulanan per Departemen">
           <div className="space-y-4">
-            {deptScores.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada data KPI.</p>}
+            {deptScores.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada data KPI.</p>}
             {deptScores.map(([dept, score], i) => (
               <div key={dept} className="space-y-1">
                 <div className="flex justify-between items-center text-xs">
@@ -402,7 +402,7 @@ function KpiTab({ rows, deptScores, monthly, kpiStandard }: { rows: Row[]; deptS
         </Card>
 
         <Card title="📅 Perkembangan KPI Bulanan Organisasi">
-          {monthly.length === 0 ? <p className="text-xs text-gray-400 italic font-bold">Tidak ada data bulan untuk periode ini.</p> : (
+          {monthly.length === 0 ? <p className="text-xs text-gray-500 italic font-bold">Tidak ada data bulan untuk periode ini.</p> : (
             <div className="space-y-4">
               {monthly.map((m, i) => (
                 <div key={m.ym} className="space-y-1">
@@ -457,7 +457,7 @@ function FeedbackTab({ rows, aspectScores, has360, periodLabel }: { rows: Row[];
 
       <Card title="✨ Evaluasi Budaya 360° (Rataan Sub-Aspek)">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          {aspectScores.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada skor 360° terkirim.</p>}
+          {aspectScores.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada skor 360° terkirim.</p>}
           {aspectScores.map((asp, idx) => {
             const c = asp.score >= 90 ? 'bg-indigo-600' : asp.score >= 80 ? 'bg-indigo-500' : 'bg-amber-500';
             return (
@@ -511,7 +511,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm min-w-[640px]">
           <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+            <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
               <th className="py-2 pr-3">Pegawai</th>
               <th className="py-2 px-3 text-center">Rerata KPI</th>
               <th className="py-2 px-3 text-center">Skor 360°</th>
@@ -528,7 +528,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
                 <tr key={r.id}>
                   <td className="py-3 pr-3">
                     <span className="font-bold text-gray-800 block">{r.name}</span>
-                    <span className="text-[11px] text-gray-400">{r.dept}</span>
+                    <span className="text-[11px] text-gray-500">{r.dept}</span>
                   </td>
                   <td className="py-3 px-3 text-center font-mono text-emerald-700">{r.kpiAvg != null ? r.kpiAvg.toFixed(1) : '—'}</td>
                   <td className="py-3 px-3 text-center font-mono text-indigo-700">{r.s360 != null ? r.s360.toFixed(1) : '—'}</td>
@@ -537,7 +537,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
                     {box ? (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded border"
                         style={{ color: box.color, borderColor: box.color, backgroundColor: `${box.color}14` }}>{box.label}</span>
-                    ) : <span className="text-gray-400 text-xs italic">N/A</span>}
+                    ) : <span className="text-gray-500 text-xs italic">N/A</span>}
                   </td>
                   <td className="py-3 pl-3 text-center">
                     {r.player ? (
@@ -546,7 +546,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
                         r.player === 'B' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                         r.player === 'C' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                         'bg-rose-50 text-rose-700 border-rose-200'}`}>{r.player}</span>
-                    ) : <span className="text-gray-400 text-xs">—</span>}
+                    ) : <span className="text-gray-500 text-xs">—</span>}
                   </td>
                 </tr>
               );
@@ -554,7 +554,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
           </tbody>
         </table>
       </div>
-      <p className="text-[10px] text-gray-400 italic mt-3">
+      <p className="text-[10px] text-gray-500 italic mt-3">
         Skor Akhir = blend KPI+360 (50/50) − punishment, dikunci periode aktif. 9-Box butuh KPI &amp; 360; N/A bila salah satu belum ada.
         {!has360 && ' A Player butuh 360° aktif.'}
       </p>
@@ -577,7 +577,7 @@ function Stat({ icon, tint, value, label, sub }: { icon: React.ReactNode; tint: 
       <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${TINT[tint]}`}>{icon}</div>
       <div className="min-w-0">
         <div className="text-2xl font-semibold text-gray-800">{value}</div>
-        <div className="text-xs text-gray-400">{label}</div>
+        <div className="text-xs text-gray-500">{label}</div>
         {sub && <div className="text-[11px] font-bold text-gray-600 truncate" title={sub}>{sub}</div>}
       </div>
     </div>
@@ -637,7 +637,7 @@ function bandBadge(v: number | null) {
     : v >= 70 ? 'bg-amber-50 text-amber-700 border-amber-200'
     : 'bg-rose-50 text-rose-700 border-rose-200';
   const label = v >= 90 ? 'Sangat Baik' : v >= 80 ? 'Baik' : v >= 70 ? 'Cukup' : 'Kurang';
-  return <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${cls}`}>{label}</span>;
+  return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cls}`}>{label}</span>;
 }
 
 function Leaderboard({ title, tone, items, valueOf }: { title: string; tone: 'emerald' | 'rose' | 'indigo'; items: Row[]; valueOf: (r: Row) => number | null }) {
@@ -649,14 +649,14 @@ function Leaderboard({ title, tone, items, valueOf }: { title: string; tone: 'em
     <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
       <h3 className={`text-xs font-bold tracking-wider uppercase mb-4 border-b border-gray-100 pb-2.5 ${head}`}>{title}</h3>
       <div className="space-y-3">
-        {items.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada data.</p>}
+        {items.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada data.</p>}
         {items.map((e, idx) => {
           const v = valueOf(e);
           return (
             <div key={e.id} className={`p-3 rounded-xl border flex items-center justify-between gap-4 ${rowBg}`}>
               <div className="flex items-center gap-3">
                 <span className={`font-mono text-xs font-black w-5 ${head}`}>#{idx + 1}</span>
-                <div><span className="font-bold text-gray-800 text-xs block">{e.name}</span><span className="text-[10px] text-gray-400 block">{e.dept}</span></div>
+                <div><span className="font-bold text-gray-800 text-xs block">{e.name}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
               </div>
               <div className="flex items-center gap-2.5">
                 <span className={`font-mono font-black text-xs px-2 py-1 rounded border ${chip}`}>{v != null ? v.toFixed(1) : '—'}</span>

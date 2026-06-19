@@ -61,7 +61,7 @@ export default async function AdminLaporanPage() {
       </div>
 
       <ReportTable rows={rows} depts={depts} />
-      <p className="text-[10px] text-gray-400 italic mt-3">
+      <p className="text-[10px] text-gray-500 italic mt-3">
         Alur ideal: Simpan Draf → SPV ACC (Laporan Kinerja Tim) → Finalisasi. Setelah final,
         pegawai melihatnya di Laporan Hasil Saya.
       </p>

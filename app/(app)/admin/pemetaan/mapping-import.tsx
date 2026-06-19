@@ -67,7 +67,7 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
     <div className="border border-emerald-200 bg-emerald-50/30 rounded-xl p-3 space-y-2">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold text-emerald-950 uppercase tracking-wide">Impor Mapping Massal</h3>
-        <button type="button" onClick={() => { setOpen(false); setParsed(null); setMsg(null); }} className="text-gray-400 hover:text-gray-600 text-xs">Tutup ✕</button>
+        <button type="button" onClick={() => { setOpen(false); setParsed(null); setMsg(null); }} className="text-gray-500 hover:text-gray-600 text-xs">Tutup ✕</button>
       </div>
       <p className="text-[11px] text-emerald-900">Kolom: <code>penilai</code>, <code>dinilai</code> (kode pegawai), <code>relasi</code> (Atasan/Peer/Cross/Self/Bawahan), <code>wajib</code> (wajib/opsional). <button type="button" onClick={template} className="underline font-bold">Unduh template</button>.</p>
       <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile}
@@ -92,7 +92,7 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
           )}
           <div className="overflow-x-auto border border-gray-200 rounded-lg max-h-64 overflow-y-auto bg-white">
             <table className="w-full text-left text-[11px]">
-              <thead><tr className="bg-gray-50 text-[9px] uppercase text-gray-400 border-b border-gray-200">
+              <thead><tr className="bg-gray-50 text-[10px] uppercase text-gray-500 border-b border-gray-200">
                 <th className="py-1.5 px-2">#</th><th className="py-1.5 px-2">Penilai</th><th className="py-1.5 px-2">Dinilai</th><th className="py-1.5 px-2">Relasi</th><th className="py-1.5 px-2">Sifat</th><th className="py-1.5 px-2">Keterangan</th>
               </tr></thead>
               <tbody className="divide-y divide-gray-100">
@@ -100,7 +100,7 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
                   const r = c.r;
                   return (
                     <tr key={c.line} className={c.status === 'ok' ? '' : c.status === 'invalid' ? 'bg-rose-50/50' : 'bg-amber-50/60'}>
-                      <td className="py-1.5 px-2 text-gray-400 font-mono">{c.line}</td>
+                      <td className="py-1.5 px-2 text-gray-500 font-mono">{c.line}</td>
                       <td className="py-1.5 px-2">{r.assessor?.name ?? <span className="text-rose-600 font-mono">{r.aCode || '?'}</span>}</td>
                       <td className="py-1.5 px-2">{r.target?.name ?? <span className="text-rose-600 font-mono">{r.tCode || '?'}</span>}</td>
                       <td className="py-1.5 px-2">{r.relation || <span className="text-rose-600">?</span>}</td>

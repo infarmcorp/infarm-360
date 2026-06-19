@@ -40,7 +40,7 @@ export function AddIndicatorForm({ aspects }: { aspects: { id: string; name: str
       <form onSubmit={submit} className="space-y-3 bg-emerald-50/30 p-3 rounded-xl border border-emerald-100">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
-            <label className="block text-[9px] font-bold text-emerald-800 uppercase tracking-wider mb-0.5">Aspek Kelompok</label>
+            <label className="block text-[10px] font-bold text-emerald-800 uppercase tracking-wider mb-0.5">Aspek Kelompok</label>
             <select value={aspectId} onChange={(e) => setAspectId(e.target.value)}
               className="w-full text-[11px] p-1.5 bg-white border border-gray-250 rounded-md focus:ring-1 focus:ring-emerald-700 outline-none text-gray-700 font-semibold cursor-pointer">
               {aspects.length === 0 && <option value="">— belum ada aspek —</option>}
@@ -48,13 +48,13 @@ export function AddIndicatorForm({ aspects }: { aspects: { id: string; name: str
             </select>
           </div>
           <div>
-            <label className="block text-[9px] font-bold text-emerald-800 uppercase tracking-wider mb-0.5">Judul Ringkas</label>
+            <label className="block text-[10px] font-bold text-emerald-800 uppercase tracking-wider mb-0.5">Judul Ringkas</label>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Contoh: Kejujuran Finansial"
               className="w-full text-xs p-1.5 bg-white border border-gray-250 rounded-md focus:ring-1 focus:ring-emerald-700 outline-none font-semibold text-gray-800" />
           </div>
         </div>
         <div>
-          <label className="block text-[9px] font-bold text-emerald-800 uppercase tracking-wider mb-0.5">Deskripsi Perilaku (opsional)</label>
+          <label className="block text-[10px] font-bold text-emerald-800 uppercase tracking-wider mb-0.5">Deskripsi Perilaku (opsional)</label>
           <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2}
             placeholder="Contoh: Senantiasa memelihara transparansi & ketepatan laporan operasional…"
             className="w-full text-xs p-1.5 bg-white border border-gray-250 rounded-md focus:ring-1 focus:ring-emerald-700 outline-none text-gray-800 leading-relaxed resize-none" />

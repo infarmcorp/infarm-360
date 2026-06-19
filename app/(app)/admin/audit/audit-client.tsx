@@ -81,7 +81,7 @@ export function AuditClient({ rows, maxRows }: { rows: AuditRow[]; maxRows: numb
           <button type="button" onClick={() => { setCat('all'); setActor('all'); setQ(''); }}
             className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
         )}
-        <span className="text-[11px] text-gray-400 ml-auto">
+        <span className="text-[11px] text-gray-500 ml-auto">
           {shown.length} dari {rows.length} entri{rows.length >= maxRows && ` (maks. ${maxRows} terbaru)`}
         </span>
       </div>
@@ -94,7 +94,7 @@ export function AuditClient({ rows, maxRows }: { rows: AuditRow[]; maxRows: numb
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm min-w-[640px]">
             <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+              <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
                 <th className="py-2.5 px-4 whitespace-nowrap">Waktu</th>
                 <th className="py-2.5 px-3">Pelaku</th>
                 <th className="py-2.5 px-3">Kategori</th>

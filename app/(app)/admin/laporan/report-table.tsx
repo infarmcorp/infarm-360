@@ -42,13 +42,13 @@ export function ReportTable({ rows, depts }: { rows: ReportRow[]; depts: string[
           <button type="button" onClick={() => { setQ(''); setFDept('all'); }}
             className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
         )}
-        <span className="text-[11px] text-gray-400 ml-auto">{shown.length} dari {rows.length} pegawai</span>
+        <span className="text-[11px] text-gray-500 ml-auto">{shown.length} dari {rows.length} pegawai</span>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm min-w-[620px]">
           <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
+            <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
               <th className="py-2 pr-3">Pegawai</th>
               <th className="py-2 px-3">Divisi</th>
               <th className="py-2 px-3 text-center">Skor Akhir</th>
@@ -59,7 +59,7 @@ export function ReportTable({ rows, depts }: { rows: ReportRow[]; depts: string[
           </thead>
           <tbody className="divide-y divide-gray-100">
             {shown.length === 0 && (
-              <tr><td colSpan={6} className="py-6 text-center text-gray-400 italic">Tidak ada pegawai sesuai filter.</td></tr>
+              <tr><td colSpan={6} className="py-6 text-center text-gray-500 italic">Tidak ada pegawai sesuai filter.</td></tr>
             )}
             {shown.map((r) => (
               <tr key={r.id}>
@@ -73,14 +73,14 @@ export function ReportTable({ rows, depts }: { rows: ReportRow[]; depts: string[
                 <td className="py-3 px-3 text-center">
                   {r.spvAcc
                     ? <span className="text-[10px] font-bold text-emerald-700">✔ ACC</span>
-                    : <span className="text-[10px] text-gray-400">belum</span>}
+                    : <span className="text-[10px] text-gray-500">belum</span>}
                 </td>
                 <td className="py-3 px-3 text-center">
                   {r.status === 'finalized'
                     ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">Final</span>
                     : r.status === 'draft'
                     ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">Draf</span>
-                    : <span className="text-[10px] text-gray-400">—</span>}
+                    : <span className="text-[10px] text-gray-500">—</span>}
                 </td>
                 <td className="py-3 pl-3 text-right">
                   <ReportRowActions employeeId={r.id} canCompute={r.final != null} />

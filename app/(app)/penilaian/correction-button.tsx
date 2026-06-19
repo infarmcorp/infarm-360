@@ -43,11 +43,11 @@ export function CorrectionButton({
           <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-3.5 text-left">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-extrabold text-indigo-900 uppercase tracking-wide">Koreksi Relasi Kerja</h3>
-              <button type="button" onClick={() => setOpen(false)} disabled={busy} className="text-gray-400 hover:text-gray-600">✕</button>
+              <button type="button" onClick={() => setOpen(false)} disabled={busy} className="text-gray-500 hover:text-gray-600">✕</button>
             </div>
             <p className="text-xs text-gray-500">Ajukan penyesuaian garis hubungan penilaian terhadap <strong>{targetName}</strong>. Akan divalidasi HRD.</p>
             <div>
-              <label className="block text-[10px] uppercase font-extrabold text-gray-400 mb-1">Garis Hubungan Saat Ini</label>
+              <label className="block text-[10px] uppercase font-extrabold text-gray-500 mb-1">Garis Hubungan Saat Ini</label>
               <div className="text-xs font-bold text-gray-800 bg-gray-50 px-3 py-2.5 rounded-lg border border-gray-200">{REL_LABEL[currentRelation] ?? currentRelation}</div>
             </div>
             <div>

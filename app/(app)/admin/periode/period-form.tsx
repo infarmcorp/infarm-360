@@ -31,17 +31,17 @@ export function PeriodForm() {
       <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Buat Periode Baru</p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
-          <label className="block text-[10px] font-bold text-gray-400 mb-1">Label (mis. Q4 2026)</label>
+          <label className="block text-[10px] font-bold text-gray-500 mb-1">Label (mis. Q4 2026)</label>
           <input value={label} onChange={(e) => setLabel(e.target.value)} required placeholder="Q4 2026"
             className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500" />
         </div>
         <div>
-          <label className="block text-[10px] font-bold text-gray-400 mb-1">Tanggal Mulai</label>
+          <label className="block text-[10px] font-bold text-gray-500 mb-1">Tanggal Mulai</label>
           <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required
             className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500" />
         </div>
         <div>
-          <label className="block text-[10px] font-bold text-gray-400 mb-1">Tanggal Selesai</label>
+          <label className="block text-[10px] font-bold text-gray-500 mb-1">Tanggal Selesai</label>
           <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required
             className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500" />
         </div>
@@ -55,7 +55,7 @@ export function PeriodForm() {
         <input id="kpiStandard" type="number" min={0} max={100} value={kpiStandard}
           onChange={(e) => setKpiStandard(e.target.value)}
           className="w-16 text-center text-sm px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-        <span className="text-[10px] text-gray-400">tak memengaruhi rumus skor; bisa diubah per kuartal</span>
+        <span className="text-[10px] text-gray-500">tak memengaruhi rumus skor; bisa diubah per kuartal</span>
       </div>
       {err && <p className="text-xs text-rose-600 font-semibold">{err}</p>}
       <button type="submit" disabled={busy}

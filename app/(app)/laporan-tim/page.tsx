@@ -50,10 +50,10 @@ export default async function LaporanTimPage() {
     : { data: [] };
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
 
-  // Boleh buka detail (lapis 2)? HRD penuh; SPV hanya setelah HRD rilis (in_review)
-  // atau final — kecuali laporan dirinya sendiri yang mengikuti aturan pegawai (final).
+  // Boleh buka detail (lapis 2)? Halaman ini dipakai SPV & HRD mode-SPV — keduanya
+  // dibatasi setara: detail terbuka hanya setelah HRD rilis (in_review)/final; laporan
+  // diri sendiri mengikuti aturan pegawai (final saja). Detail tetap TANPA komentar mentah.
   const canOpenDetail = (status: string | null, isSelf: boolean): boolean => {
-    if (me.role === 'hrd') return true;
     if (isSelf) return status === 'finalized';
     return status === 'in_review' || status === 'finalized';
   };

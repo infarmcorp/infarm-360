@@ -139,6 +139,10 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   draf — bahkan **lebih dalam** dari HRD (yang justru hanya melihat versi anonim karena toggle
   `hideAssessorComments` keliru di-kunci ke `isHrd`). Kini SPV **tak pernah** melihat lapis 3 (RLS
   dicabut + jalur SPV diganti `loadTeamReportForSpv` yang membuang `assessors`/`byAspect`/`essays`).
+- **HRD mode-SPV ikut dibatasi setara SPV** (lanjutan): halaman detail laporan dulu mem-branch hanya
+  per `role`, jadi HRD dalam **mode-SPV** tetap melihat raw 360° (anonim) + panel HRD. Kini halaman
+  membaca cookie `hrd_mode`; mode-SPV memakai `loadTeamReportForHrdSpv` (lingkup sedivisi, gating
+  status, **buang lapis 3**) → tampilan setara SPV. Raw & finalisasi hanya di **mode admin**.
 - **SPV sendiri muncul di Riwayat & Audit + Rekapitulasi Kuartal** (`app/(app)/kpi/riwayat-view.tsx`,
   `rekap-view.tsx`): cabang SPV kini menyertakan `userId` (`[userId, ...team]`) — selaras tab Input
   KPI (migrasi 0008). Sebelumnya hanya `spv_team_members`, jadi KPI diri sendiri tak terlihat di dua

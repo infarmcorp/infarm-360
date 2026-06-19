@@ -194,3 +194,35 @@ export async function loadTeamReportForSpv(
   // Buang lapis 3 (komentar mentah + per-penilai) sebelum keluar ke SPV.
   return { ...full, assessors: [], byAspect: [], essays: [] };
 }
+
+/**
+ * Versi HRD mode-SPV dari loadTeamReportForSpv. HRD secara RLS punya akses penuh,
+ * tetapi saat bertindak SEBAGAI SPV (cookie hrd_mode='spv') harus dibatasi setara
+ * SPV: HANYA detail agregat (L1+L2), TANPA umpan balik mentah (L3). Lingkup =
+ * pegawai SEDIVISI HRD (selaras Laporan Kinerja Tim mode-SPV & Input KPI), bukan
+ * spv_team_members (HRD umumnya tak punya entri di situ).
+ */
+export async function loadTeamReportForHrdSpv(
+  hrdId: string,
+  employeeId: string,
+  period: { id: string; label: string; has_360: boolean },
+): Promise<ReportData | null> {
+  const admin = createAdminClient() as unknown as SB;
+
+  const isSelf = employeeId === hrdId;
+  if (!isSelf) {
+    const { data: me } = await admin.from('employees').select('dept').eq('id', hrdId).maybeSingle();
+    const { data: emp } = await admin.from('employees').select('dept, role').eq('id', employeeId).maybeSingle();
+    if (!emp || emp.role === 'direksi' || !me?.dept || emp.dept !== me.dept) return null; // di luar divisi
+  }
+
+  const { data: fr } = await admin.from('final_reports')
+    .select('status').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
+  const status = fr?.status ?? null;
+  const visible = isSelf ? status === 'finalized' : (status === 'in_review' || status === 'finalized');
+  if (!visible) return null;
+
+  const full = await loadReport(admin, employeeId, period);
+  if (!full) return null;
+  return { ...full, assessors: [], byAspect: [], essays: [] };
+}

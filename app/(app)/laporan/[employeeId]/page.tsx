@@ -1,7 +1,8 @@
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { loadReport, loadTeamReportForSpv } from '@/lib/report';
+import { loadReport, loadTeamReportForSpv, loadTeamReportForHrdSpv } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
 import { ReportActions } from '../report-actions';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
@@ -9,8 +10,11 @@ import { AspectSummaryView } from '../aspect-summary-view';
 import { RawFeedback } from '../raw-feedback';
 
 /**
- * Dokumen Laporan rinci satu pegawai — untuk HRD/Direksi (semua) & SPV (tim, RLS
- * is_my_member). Nama penilai DITAMPILKAN (bukan anonim). Data tunduk RLS pemanggil.
+ * Dokumen Laporan rinci satu pegawai. Tiga jalur tampilan:
+ *  - SPV & HRD mode-SPV → DETAIL AGREGAT saja (L1+L2, anonim, TANPA komentar mentah),
+ *    tampak hanya bila HRD sudah merilis ('in_review') / final.
+ *  - HRD mode-admin → laporan penuh + panel aksi & raw feedback (anonim).
+ *  - Direksi → laporan penuh (read-only, sesuai kebijakan).
  */
 export default async function LaporanDetailPage({ params }: { params: Promise<{ employeeId: string }> }) {
   const { employeeId } = await params;
@@ -24,20 +28,28 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
+  // Mode HRD (dual-mode): mode-SPV dibatasi setara SPV (tanpa raw 360°).
+  const jar = await cookies();
+  const hrdSpvMode = role === 'hrd' && jar.get('hrd_mode')?.value === 'spv';
+  // Jalur "seperti SPV": SPV biasa ATAU HRD yang sedang bertindak sebagai SPV.
+  const asSpv = role === 'spv' || hrdSpvMode;
+
   const { data: ap } = await supabase
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
 
-  // Tautan kembali sadar-peran: SPV ke Laporan Kinerja Tim, HRD/Direksi ke Daftar Laporan.
-  const back = role === 'spv'
+  // Tautan kembali sadar-peran: jalur SPV ke Laporan Kinerja Tim, HRD-admin/Direksi ke Daftar Laporan.
+  const back = asSpv
     ? { href: '/laporan-tim', label: '← Laporan Kinerja Tim' }
     : { href: '/admin/laporan', label: '← Daftar Laporan' };
 
-  // Jalur SPV: HANYA detail agregat (radar/aspek + ringkasan aspek HRD), tanpa umpan
-  // balik mentah (lapis 3). Tampak hanya bila HRD sudah merilis ('in_review') atau
-  // 'finalized' — lihat loadTeamReportForSpv (gating membership + status + buang raw).
-  if (role === 'spv') {
-    const data = await loadTeamReportForSpv(user.id, employeeId, ap);
+  // Jalur "seperti SPV" (SPV biasa + HRD mode-SPV): HANYA detail agregat (radar/aspek +
+  // ringkasan aspek HRD), tanpa umpan balik mentah (lapis 3). Tampak hanya bila HRD sudah
+  // merilis ('in_review') / 'finalized'. SPV → lingkup tim formal; HRD mode-SPV → sedivisi.
+  if (asSpv) {
+    const data = role === 'spv'
+      ? await loadTeamReportForSpv(user.id, employeeId, ap)
+      : await loadTeamReportForHrdSpv(user.id, employeeId, ap);
     if (!data) {
       return (
         <Shell>

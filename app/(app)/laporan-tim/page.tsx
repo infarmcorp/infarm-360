@@ -4,10 +4,13 @@ import { createClient } from '@/lib/supabase/server';
 import { TeamTable, type TeamRow } from './team-table';
 
 /**
- * Laporan Kinerja Tim (SPV): tinjau & ACC laporan anggota tim.
- * RLS membatasi baca/ACC ke anggota tim (is_my_member). ACC perlu laporan draf dari HRD.
- * Baris SPV sendiri ikut ditampilkan agar SPV bisa memantau laporannya (migrasi 0009);
- * baca termasuk draf, tetapi ACC sendiri tidak diizinkan.
+ * Laporan Kinerja Tim (SPV / HRD mode-SPV): tinjau & ACC laporan.
+ * Lingkup anggota mengikuti kebijakan Input KPI (lihat kpi/page.tsx):
+ *  - SPV          → anggota tim formal (spv_team_members) + DIRINYA SENDIRI.
+ *  - HRD mode-SPV → pegawai di DIVISINYA SENDIRI (incl. dirinya), bukan spv_team_members
+ *    (HRD umumnya tak punya entri di tabel itu). RLS is_hrd mengizinkan baca/ACC penuh.
+ * Baris diri sendiri ditandai "Anda"; ACC sendiri dinonaktifkan (integritas). SPV bisa baca
+ * laporan draf-nya lewat migrasi 0009; HRD bisa baca semua draf lewat is_hrd.
  */
 export default async function LaporanTimPage() {
   const supabase = await createClient();
@@ -24,16 +27,23 @@ export default async function LaporanTimPage() {
     .from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
 
-  const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', user.id);
-  const memberIds = (team ?? []).map((t) => t.employee_id);
-  const { data: emps } = memberIds.length
-    ? await supabase.from('employees').select('id, name, dept').in('id', memberIds) : { data: [] };
-  const members = emps ?? [];
+  // Resolusi lingkup anggota per peran (selalu memuat diri sendiri).
+  let members: { id: string; name: string; dept: string | null }[] = [];
+  if (me.role === 'hrd') {
+    // HRD mode-SPV: pegawai sedivisinya sendiri (kecuali Direksi); query dept sudah memuat dirinya.
+    const { data } = await supabase.from('employees')
+      .select('id, name, dept').eq('dept', me.dept ?? '__none__').neq('role', 'direksi');
+    members = data ?? [];
+  } else {
+    const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', user.id);
+    const memberIds = (team ?? []).map((t) => t.employee_id);
+    const { data: emps } = memberIds.length
+      ? await supabase.from('employees').select('id, name, dept').in('id', memberIds) : { data: [] };
+    // SPV bukan anggota timnya sendiri → tambahkan manual untuk pemantauan laporan pribadi.
+    members = [...(emps ?? []), { id: user.id, name: me.name, dept: me.dept }];
+  }
 
-  // Sertakan baris SPV sendiri (di luar anggota tim formal) untuk pemantauan laporan pribadi.
-  const selfRow = me.role === 'spv' ? { id: user.id, name: me.name, dept: me.dept } : null;
-  const reportIds = [...memberIds, ...(selfRow ? [user.id] : [])];
-
+  const reportIds = members.map((e) => e.id);
   const { data: reports } = reportIds.length
     ? await supabase.from('final_reports').select('employee_id, status, spv_acc, final_score')
         .eq('period_id', ap.id).in('employee_id', reportIds)
@@ -54,10 +64,9 @@ export default async function LaporanTimPage() {
     };
   };
 
-  const rows: TeamRow[] = [
-    ...members.map((e) => toRow(e, false)),
-    ...(selfRow ? [toRow(selfRow, true)] : []),
-  ].sort((a, b) => a.name.localeCompare(b.name));
+  const rows: TeamRow[] = members
+    .map((e) => toRow(e, e.id === user.id))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <Shell>

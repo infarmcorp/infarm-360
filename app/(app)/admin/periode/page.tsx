@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { PeriodForm } from './period-form';
 import { PeriodActions } from './period-actions';
+import { KpiStandardEditor } from './kpi-standard-editor';
 import { EmptyState } from '@/components/empty-state';
 
 /**
@@ -20,7 +21,7 @@ export default async function PeriodePage() {
   }
 
   const { data: periods } = await supabase
-    .from('periods').select('id, code, label, start_date, end_date, status, has_360').order('start_date', { ascending: false });
+    .from('periods').select('id, code, label, start_date, end_date, status, has_360, kpi_standard').order('start_date', { ascending: false });
   const list = periods ?? [];
 
   const { data: monthRows } = await supabase.from('period_months').select('period_id');
@@ -60,6 +61,7 @@ export default async function PeriodePage() {
             <th className="py-2 pr-3">Periode</th>
             <th className="py-2 px-3">Rentang</th>
             <th className="py-2 px-3 text-center">360°</th>
+            <th className="py-2 px-3 text-center">Standar KPI</th>
             <th className="py-2 px-3 text-center">Status</th>
             <th className="py-2 pl-3 text-right">Aksi</th>
           </tr>
@@ -76,6 +78,9 @@ export default async function PeriodePage() {
                 {p.has_360
                   ? <span className="text-[10px] font-bold text-indigo-700">Aktif</span>
                   : <span className="text-[10px] text-gray-400">Tanpa</span>}
+              </td>
+              <td className="py-3 px-3 text-center">
+                <KpiStandardEditor periodId={p.id} value={p.kpi_standard} />
               </td>
               <td className="py-3 px-3 text-center">
                 {p.status === 'active'

@@ -31,7 +31,7 @@ export default async function DashboardPage({
 
   // Daftar periode + periode terpilih (param → aktif → terbaru).
   const { data: periodRows } = await supabase
-    .from('periods').select('id, label, has_360, status').order('label', { ascending: false });
+    .from('periods').select('id, label, has_360, status, kpi_standard').order('label', { ascending: false });
   const periodList = periodRows ?? [];
   if (periodList.length === 0) return (
     <Shell>
@@ -171,6 +171,7 @@ export default async function DashboardPage({
           successionPlans={successionPlans}
           has360={ap.has_360}
           periodLabel={ap.label}
+          kpiStandard={ap.kpi_standard}
         />
       </div>
     </Shell>

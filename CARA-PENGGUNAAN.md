@@ -132,12 +132,16 @@ Selain semua fitur Employee di atas, SPV punya:
 
 ### Riwayat & Audit Perubahan
 - "Rekam Audit Skor Perubahan KPI" — filter **Pilih Pegawai Tim** untuk meninjau perubahan.
+- **Termasuk diri sendiri**: jejak audit KPI SPV pribadi ikut tampil (muncul setelah ada
+  perubahan KPI dirinya).
 
 ### Rekapitulasi Kuartal
-- Rekap capaian KPI, Hasil 360, & Skor Akhir bawahan. Filter **Tahun** & **Kuartal**.
+- Rekap capaian KPI, Hasil 360, & Skor Akhir bawahan **+ SPV sendiri**. Filter **Tahun** & **Kuartal**.
 
 ### Laporan Kinerja Tim
 - Tinjau "Final Report" tiap pegawai; klik section pegawai untuk lihat Hasil 360.
+- **Baris diri sendiri** ikut tampil (badge "Anda") untuk memantau laporan pribadi — termasuk
+  saat masih **draf**; **ACC sendiri dinonaktifkan**. **Kotak pencarian** nama/divisi tersedia.
 - Klik **ACC** jika sudah sesuai (koordinasi dengan HRD bila ada ketidaksesuaian).
 
 ### Monitor Kinerja
@@ -181,10 +185,15 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
 
 ### Kelola Siklus Periode
 1. **Kontrol Aktivasi Siklus**: beri **Label Periode**, set **Tanggal Mulai/Selesai**,
-   centang **Aktifkan Angket Evaluasi 360** bila perlu, klik **Aktivasi Periode Penilaian**
-   (form 360 di "Daftar Penilaian Saya" jadi aktif).
+   centang **Aktifkan Angket Evaluasi 360** bila perlu, set **Standar/Target KPI** (lihat di
+   bawah), klik **Aktivasi Periode Penilaian** (form 360 di "Daftar Penilaian Saya" jadi aktif).
    - **Kunci & Akhiri Periode** menutup penilaian (tak bisa isi/edit lagi).
 2. **Arsip & Riwayat Kuartal**: meninjau riwayat kuartal ber-penilaian 360°.
+
+> **Standar/Target KPI (kolom "Standar KPI").** Angka target (default 80) yang **bisa diatur
+> per kuartal** — saat buat periode atau diubah langsung di tabel periode (ketik angka → Enter/klik
+> luar). Dipakai **hanya** untuk kartu **"KPI Di Atas Standar (≥N)"** di Dashboard (% pegawai yang
+> mencapai target). **Tidak memengaruhi perhitungan Skor Akhir/9-Box/A-B-C-D** — itu rumus terkunci.
 
 > **Batas antar-kuartal.** Penilaian masuk ke **periode yang aktif saat Kirim**, bukan
 > berdasarkan tanggal. Jadi **biarkan periode lama tetap aktif** hingga seluruh penilaian +
@@ -324,7 +333,9 @@ divisi). Skor Akhir mengikuti flag **360° aktif/nonaktif** periode terpilih (KP
 - **Kompilasi Kinerja Organisasi** — stat talenta, **Distribusi Kategori Kinerja**,
   **Rencana Tindak Lanjut**, **Skor KPI per Divisi**, **Evaluasi Budaya 360° (sub-aspek)**,
   Matriks **9-Box** & **4-Box**, **Papan Pertimbangan Suksesi & Promosi (Skor ≥ 90)**, top/bottom.
-- **Analisis Hasil KPI** — rerata KPI organisasi, KPI per divisi, perkembangan KPI bulanan, leaderboard KPI teratas/terendah.
+- **Analisis Hasil KPI** — rerata KPI organisasi, **Skor KPI Tertinggi & Terendah** (dengan
+  nama pegawai), **% KPI Di Atas Standar (≥N)** (N = Standar KPI periode, diatur HRD di Kelola
+  Periode), KPI per divisi, perkembangan KPI bulanan, leaderboard KPI teratas/terendah.
 - **Analisis 360 Feedback** — rerata 360°, rataan sub-aspek budaya, leaderboard 360° teratas/terendah.
 - **Tabel Hasil Seluruh Pegawai** — tabel rinci + **pencarian nama/divisi** & **filter A/B/C/D Player**.
 
@@ -469,9 +480,9 @@ A/B/C/D Player** (berbasis Skor Akhir), serta **Papan Pertimbangan Suksesi**.
 
 ### 11. Mode Ganda (HRD bertindak sebagai SPV)
 **Fungsi:** HRD beralih ke mode SPV.
-**Berdampak ke:** HRD bisa **Input KPI** & **ACC Laporan Kinerja Tim** layaknya SPV untuk tim
-yang ditugaskan padanya. Di mode ini batasannya mengikuti aturan SPV — termasuk **Input KPI,
-Riwayat & Audit, dan Rekapitulasi** yang hanya menampilkan pegawai **divisi HRD-nya sendiri**.
+**Berdampak ke:** HRD bisa **Input KPI** & **ACC Laporan Kinerja Tim** layaknya SPV. Di mode ini
+batasannya mengikuti aturan SPV — **Input KPI, Riwayat & Audit, Rekapitulasi, dan Laporan Kinerja
+Tim** semuanya hanya menampilkan pegawai **divisi HRD-nya sendiri** (termasuk dirinya).
 
 ### 12. Log Aktivitas HRD (jejak audit)
 **Fungsi:** mencatat **otomatis** setiap aksi sensitif HRD ke jejak **append-only** (tak bisa

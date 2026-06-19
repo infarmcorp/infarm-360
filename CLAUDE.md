@@ -101,6 +101,16 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   muncul sebagai baris sendiri (badge "Anda") menampilkan Skor Akhir & Status **meski laporan
   masih draf** (lewat migrasi 0009); ACC sendiri sengaja dinonaktifkan (integritas). Tabel
   dipindah ke komponen client `team-table.tsx` dengan kotak **pencarian nama/divisi** instan.
+  **HRD mode-SPV**: lingkup baris kini = **pegawai sedivisi HRD** (incl. dirinya), selaras
+  kebijakan Input KPI — bukan `spv_team_members` yang kosong untuk HRD (`is_hrd` baca/ACC penuh).
+- **Standar/Target KPI per kuartal** (`periods.kpi_standard`, migrasi 0010): HRD set angka target
+  per periode di **Kelola Siklus Periode** (editor inline `kpi-standard-editor.tsx` + field di
+  form buat-periode). Dashboard tab **Analisis Hasil KPI** memakai nilai ini untuk kartu **"KPI
+  Di Atas Standar (≥N)"** (filter + label dinamis). **Murni metrik pelaporan** — TIDAK menyentuh
+  rumus skor di `lib/scoring.ts`. Ganti standar tiap kuartal tanpa deploy.
+- **Dashboard — kartu KPI tertinggi/terendah berlabel nama** (`admin/dashboard/dashboard-visual.tsx`):
+  kartu "Skor KPI Tertinggi" kini menampilkan **nama pegawai**, + kartu baru **"Skor KPI Terendah"**
+  (nama + skor). `Stat` diperluas prop `sub`.
 - **Ekspor Dataset** (`/admin/ekspor`): dataset Pegawai, KPI, Audit KPI, Punishment, Rekap,
   360° anonim, Pemetaan + **Rekap Konfigurasi Periode** (potret pengaturan HRD per kuartal).
 - **Indikator tenggat periode** (sidebar): sisa hari ke `end_date` + peringatan amber ≤7 hari /
@@ -109,6 +119,10 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Impor pemetaan** — pratinjau menyebut pasangan yang dilewati + alasannya.
 
 ### Perbaikan (bug fix)
+- **SPV sendiri muncul di Riwayat & Audit + Rekapitulasi Kuartal** (`app/(app)/kpi/riwayat-view.tsx`,
+  `rekap-view.tsx`): cabang SPV kini menyertakan `userId` (`[userId, ...team]`) — selaras tab Input
+  KPI (migrasi 0008). Sebelumnya hanya `spv_team_members`, jadi KPI diri sendiri tak terlihat di dua
+  sub-tab itu. RLS baca-diri (`kpi/kpiaudit/r360/penalty`) sudah mengizinkan `employee_id = auth.uid()`.
 - **Menu HRD mode-SPV = SPV biasa** (Input KPI Anggota · Laporan Kinerja Tim · Monitor); hapus
   item "Rekapitulasi Kuartal" terpisah yang dobel dengan tab.
 - **Rekapitulasi Kuartal dihapus untuk Direksi** (menu + blokir akses `/kpi`).
@@ -126,6 +140,9 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   auth.uid()` → SPV kini bisa **membaca laporan dirinya sendiri termasuk yang masih draf**
   (pemantauan). Izin **tulis/ACC tidak berubah** (`fr_spv_acc` tetap `is_my_member`, mengecualikan
   diri sendiri). Diterapkan & diverifikasi langsung ke DB (Supabase CLI tak punya binary platform).
+- `0010_period_kpi_standard` — `periods.kpi_standard smallint NOT NULL default 80` (+ check 0–100):
+  target KPI per kuartal untuk metrik dashboard "% di atas standar". **Murni pelaporan**, bukan
+  ambang rumus skor (jangan disuntikkan ke `lib/scoring.ts`). Diterapkan & diverifikasi ke DB.
 - `final_reports.content` (jsonb, kolom lama) dipakai untuk `aspectSummaries` (tanpa migrasi baru).
 
 ### Infra / Testing / CI

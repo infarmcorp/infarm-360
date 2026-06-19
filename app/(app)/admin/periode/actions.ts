@@ -42,12 +42,13 @@ const CreateInput = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal mulai tidak valid'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal selesai tidak valid'),
   has360: z.boolean(),
+  kpiStandard: z.number().int().min(0).max(100).default(80),
 });
 
 export async function createPeriod(raw: unknown): Promise<Result> {
   const parsed = CreateInput.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
-  const { label, startDate, endDate, has360 } = parsed.data;
+  const { label, startDate, endDate, has360, kpiStandard } = parsed.data;
   if (endDate < startDate) return { ok: false, error: 'Tanggal selesai sebelum tanggal mulai' };
 
   const supabase = await createClient();
@@ -59,7 +60,7 @@ export async function createPeriod(raw: unknown): Promise<Result> {
   if (months.length === 0) return { ok: false, error: 'Rentang bulan kosong' };
 
   const { data: period, error } = await supabase.from('periods')
-    .insert({ code, label, start_date: startDate, end_date: endDate, status: 'ended', has_360: has360 })
+    .insert({ code, label, start_date: startDate, end_date: endDate, status: 'ended', has_360: has360, kpi_standard: kpiStandard })
     .select('id').single();
   if (error) {
     return { ok: false, error: error.code === '23505' ? `Kode "${code}" sudah ada` : 'Gagal membuat periode: ' + error.message };
@@ -141,6 +142,31 @@ export async function activePeriodReadiness(): Promise<
   const pending360 = ap.has_360 ? Math.max(0, (maps.count ?? 0) - (subs.count ?? 0)) : 0;
   const unfinalized = Math.max(0, (emps.count ?? 0) - (finals.count ?? 0));
   return { ok: true, active: { id: ap.id, label: ap.label, pending360, drafts: drafts.count ?? 0, unfinalized } };
+}
+
+/**
+ * Set Target/Standar KPI periode (metrik dashboard "% di atas standar"). HRD-only.
+ * Murni pelaporan — tidak memengaruhi rumus skor (lihat migrasi 0010).
+ */
+export async function setKpiStandard(periodId: string, value: number): Promise<Result> {
+  if (!Number.isInteger(value) || value < 0 || value > 100) {
+    return { ok: false, error: 'Standar KPI harus bilangan bulat 0–100' };
+  }
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const { error } = await supabase.from('periods').update({ kpi_standard: value }).eq('id', periodId);
+  if (error) return { ok: false, error: 'Gagal: ' + error.message };
+
+  const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();
+  await logHrdAction({
+    action: 'period.setKpiStandard', category: 'periode',
+    summary: `Mengatur Standar KPI periode "${pr?.label ?? periodId}" → ≥${value}`,
+    targetType: 'period', targetId: periodId, targetLabel: pr?.label ?? null, meta: { kpi_standard: value },
+  });
+  revalidatePath('/admin/periode');
+  revalidatePath('/admin/dashboard');
+  return { ok: true };
 }
 
 export async function toggleHas360(periodId: string, value: boolean): Promise<Result> {

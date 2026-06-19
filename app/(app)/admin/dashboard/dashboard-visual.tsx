@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Award, Target, Flame, TrendingUp, Building2, Users, BarChart3 } from 'lucide-react';
+import { Award, Target, Flame, TrendingUp, TrendingDown, Building2, Users, BarChart3 } from 'lucide-react';
 import {
   TALENT_BOXES, PLAYER_BOXES, type PlayerClass,
 } from '@/lib/scoring';
@@ -29,6 +29,7 @@ type Props = {
   successionPlans: SuccessionPlan[];
   has360: boolean;
   periodLabel: string;
+  kpiStandard: number;
 };
 
 type SubTab = 'compilation' | 'kpi' | 'feedback' | 'table';
@@ -55,7 +56,7 @@ const TABS: { key: SubTab; label: string; icon: React.ElementType }[] = [
   { key: 'table', label: 'Tabel Hasil Seluruh Pegawai', icon: Users },
 ];
 
-export function DashboardVisual({ rows, deptScores, aspectScores, monthly, successionPlans, has360, periodLabel }: Props) {
+export function DashboardVisual({ rows, deptScores, aspectScores, monthly, successionPlans, has360, periodLabel, kpiStandard }: Props) {
   const [tab, setTab] = useState<SubTab>('compilation');
 
   return (
@@ -77,7 +78,7 @@ export function DashboardVisual({ rows, deptScores, aspectScores, monthly, succe
       </div>
 
       {tab === 'compilation' && <CompilationTab rows={rows} deptScores={deptScores} aspectScores={aspectScores} successionPlans={successionPlans} has360={has360} periodLabel={periodLabel} />}
-      {tab === 'kpi' && <KpiTab rows={rows} deptScores={deptScores} monthly={monthly} />}
+      {tab === 'kpi' && <KpiTab rows={rows} deptScores={deptScores} monthly={monthly} kpiStandard={kpiStandard} />}
       {tab === 'feedback' && <FeedbackTab rows={rows} aspectScores={aspectScores} has360={has360} periodLabel={periodLabel} />}
       {tab === 'table' && <TableTab rows={rows} has360={has360} />}
     </div>
@@ -354,13 +355,14 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
 }
 
 /* ───────────────────────── TAB 2 — ANALISIS KPI ───────────────────────── */
-function KpiTab({ rows, deptScores, monthly }: { rows: Row[]; deptScores: [string, number][]; monthly: { ym: string; avg: number }[] }) {
+function KpiTab({ rows, deptScores, monthly, kpiStandard }: { rows: Row[]; deptScores: [string, number][]; monthly: { ym: string; avg: number }[]; kpiStandard: number }) {
   const kpis = rows.map((r) => r.kpiAvg).filter((v): v is number => v != null);
   const avgKpi = mean(kpis);
-  const maxKpi = kpis.length ? Math.max(...kpis) : 0;
-  const pctOver80 = kpis.length ? (kpis.filter((s) => s >= 80).length / kpis.length) * 100 : 0;
+  const pctOverStd = kpis.length ? (kpis.filter((s) => s >= kpiStandard).length / kpis.length) * 100 : 0;
 
   const ranked = rows.filter((r) => r.kpiAvg != null).sort((a, b) => (b.kpiAvg ?? 0) - (a.kpiAvg ?? 0));
+  const topEmp = ranked[0] ?? null;             // KPI tertinggi (pegawai + skor)
+  const lowEmp = ranked.length ? ranked[ranked.length - 1] : null; // KPI terendah
   const top = ranked.slice(0, 6);
   const low = [...ranked].reverse().slice(0, 6);
   const maxMonthly = Math.max(...monthly.map((m) => m.avg), 1);
@@ -370,10 +372,13 @@ function KpiTab({ rows, deptScores, monthly }: { rows: Row[]; deptScores: [strin
       <Banner tone="emerald" tag="Analisis Khusus KPI" title="Analisis Pencapaian KPI Bulanan Organisasi"
         desc="Evaluasi kinerja objektif berdasarkan target kuantitatif bulanan per departemen pada periode aktif." icon={<Award className="w-56 h-56" />} />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
         <Stat icon={<Award className="w-6 h-6" />} tint="emerald" value={avgKpi.toFixed(1)} label="Rerata KPI Organisasi" />
-        <Stat icon={<Target className="w-6 h-6" />} tint="blue" value={maxKpi.toFixed(1)} label="Skor KPI Tertinggi" />
-        <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={`${pctOver80.toFixed(0)}%`} label="KPI Di Atas Standar (≥80)" />
+        <Stat icon={<Target className="w-6 h-6" />} tint="blue"
+          value={topEmp?.kpiAvg != null ? topEmp.kpiAvg.toFixed(1) : '—'} label="Skor KPI Tertinggi" sub={topEmp?.name} />
+        <Stat icon={<TrendingDown className="w-6 h-6" />} tint="rose"
+          value={lowEmp?.kpiAvg != null ? lowEmp.kpiAvg.toFixed(1) : '—'} label="Skor KPI Terendah" sub={lowEmp?.name} />
+        <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={`${pctOverStd.toFixed(0)}%`} label={`KPI Di Atas Standar (≥${kpiStandard})`} />
         <Stat icon={<BarChart3 className="w-6 h-6" />} tint="amber" value={`${monthly.length} Bulan`} label="Siklus Penilaian Terpilih" />
       </div>
 
@@ -563,15 +568,17 @@ const TINT: Record<string, string> = {
   blue: 'bg-blue-50 text-blue-600',
   amber: 'bg-amber-50 text-amber-600',
   indigo: 'bg-indigo-50 text-indigo-600',
+  rose: 'bg-rose-50 text-rose-600',
 };
 
-function Stat({ icon, tint, value, label }: { icon: React.ReactNode; tint: string; value: string; label: string }) {
+function Stat({ icon, tint, value, label, sub }: { icon: React.ReactNode; tint: string; value: string; label: string; sub?: string }) {
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-xs flex items-center gap-4">
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${TINT[tint]}`}>{icon}</div>
-      <div>
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${TINT[tint]}`}>{icon}</div>
+      <div className="min-w-0">
         <div className="text-2xl font-semibold text-gray-800">{value}</div>
         <div className="text-xs text-gray-400">{label}</div>
+        {sub && <div className="text-[11px] font-bold text-gray-600 truncate" title={sub}>{sub}</div>}
       </div>
     </div>
   );

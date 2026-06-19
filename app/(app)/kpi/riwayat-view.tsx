@@ -28,11 +28,10 @@ export async function RiwayatView({ role, userId, hrdMode = 'admin' }: { role: s
     empRows = data ?? [];
   } else {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);
-    const ids = (team ?? []).map((t) => t.employee_id);
-    if (ids.length) {
-      const { data } = await supabase.from('employees').select('id, name, dept').in('id', ids);
-      empRows = data ?? [];
-    }
+    // SPV juga mencatat KPI dirinya sendiri (migrasi 0008) → sertakan dalam lingkup audit.
+    const ids = [...new Set([userId, ...(team ?? []).map((t) => t.employee_id)])];
+    const { data } = await supabase.from('employees').select('id, name, dept').in('id', ids);
+    empRows = data ?? [];
   }
   if (empRows.length === 0) return <p className="text-sm text-gray-500">Belum ada anggota tim dalam lingkup Anda.</p>;
   empRows.sort((a, b) => a.name.localeCompare(b.name));

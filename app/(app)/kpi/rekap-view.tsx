@@ -31,11 +31,10 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
   let empRows: { id: string; name: string; dept: string }[] = [];
   if (role === 'spv') {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);
-    const ids = (team ?? []).map((t) => t.employee_id);
-    if (ids.length) {
-      const { data } = await supabase.from('employees').select('id, name, dept').in('id', ids);
-      empRows = data ?? [];
-    }
+    // SPV juga mencatat KPI dirinya sendiri (migrasi 0008) → sertakan dalam rekap.
+    const ids = [...new Set([userId, ...(team ?? []).map((t) => t.employee_id)])];
+    const { data } = await supabase.from('employees').select('id, name, dept').in('id', ids);
+    empRows = data ?? [];
   } else if (role === 'hrd' && hrdMode === 'spv') {
     const { data: me } = await supabase.from('employees').select('dept').eq('id', userId).maybeSingle();
     const { data } = await supabase.from('employees').select('id, name, dept')

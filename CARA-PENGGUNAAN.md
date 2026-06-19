@@ -139,10 +139,19 @@ Selain semua fitur Employee di atas, SPV punya:
 - Rekap capaian KPI, Hasil 360, & Skor Akhir bawahan **+ SPV sendiri**. Filter **Tahun** & **Kuartal**.
 
 ### Laporan Kinerja Tim
-- Tinjau "Final Report" tiap pegawai; klik section pegawai untuk lihat Hasil 360.
-- **Baris diri sendiri** ikut tampil (badge "Anda") untuk memantau laporan pribadi — termasuk
-  saat masih **draf**; **ACC sendiri dinonaktifkan**. **Kotak pencarian** nama/divisi tersedia.
-- Klik **ACC** jika sudah sesuai (koordinasi dengan HRD bila ada ketidaksesuaian).
+- Tinjau "Final Report" tiap pegawai. Kolom **Skor Akhir** & **Status** tampil untuk semua anggota.
+- **Visibilitas bertahap** (diatur HRD):
+  - **Draf** → Anda hanya melihat **angka Skor Akhir**; tautan detail **terkunci**
+    ("detail menunggu rilis HRD").
+  - **Ditinjau** (HRD sudah menekan *Rilis ke SPV*) atau **Final** → tautan **terbuka**: Anda bisa
+    membuka **detail agregat** — radar/skor per aspek + **ringkasan aspek dari HRD** (anonim).
+    **Komentar mentah per penilai tidak pernah ditampilkan ke SPV** (menjaga anonimitas 360°).
+- Saat status **Ditinjau**, koordinasikan/diskusikan dengan HRD **di luar aplikasi** bila ada
+  ketidaksesuaian, lalu klik **ACC** bila sudah setuju. **ACC tidak menghambat finalisasi** — HRD
+  tetap bisa finalisasi tanpa menunggu ACC Anda (mis. bila Anda sedang cuti).
+- **Baris diri sendiri** ikut tampil (badge "Anda"); **ACC sendiri dinonaktifkan**, dan detail
+  laporan pribadi mengikuti aturan pegawai (terbuka hanya saat **Final**). **Kotak pencarian**
+  nama/divisi tersedia.
 
 ### Monitor Kinerja
 - Memantau kinerja bawahan. **SPV hanya melihat pegawai sedivisi** dengannya.
@@ -266,15 +275,19 @@ Unduh data mentah **Excel (.xlsx)** untuk olah data lanjutan (pivot/statistik/BI
 - Filter **Sektor/Divisi** dan **Saring Rencana Suksesi**.
 
 ### Review Hasil Akhir
-**Daftar pegawai** (tabel): kolom **Skor Akhir**, **ACC SPV**, **Status** (Draf/Final), plus
-aksi cepat **Draf**/**Finalisasi** per baris. Ada **pencarian nama/divisi** + **filter Divisi**.
+**Daftar pegawai** (tabel): kolom **Skor Akhir**, **ACC SPV**, **Status** (Draf/Ditinjau SPV/Final),
+plus aksi cepat **Draf**/**Finalisasi** per baris. Ada **pencarian nama/divisi** + **filter Divisi**.
 Klik **nama pegawai** untuk membuka **dokumen laporan rinci**.
 
 **Di halaman detail pegawai** (HRD):
-1. **Panel Aksi** (di atas dokumen) — badge **Status** & **Skor Akhir** terkini + tiga tombol:
+1. **Panel Aksi** (di atas dokumen) — badge **Status** & **Skor Akhir** terkini + tombol:
    - **Unduh PDF** — cetak/simpan laporan sebagai PDF.
-   - **Simpan Draf** — simpan tanpa merilis (status `draft`).
-   - **Finalisasi Hasil** — rilis ke pegawai (status `finalized`); dilakukan **setelah ACC SPV**.
+   - **Simpan Draf** — simpan tanpa merilis (status `draft`); SPV hanya lihat angka Skor Akhir.
+   - **Rilis ke SPV** — status `in_review`: SPV terkait kini bisa membuka **detail agregat**
+     (radar/aspek + ringkasan aspek HRD, **tanpa** komentar mentah) untuk ditinjau & diskusi
+     **di luar aplikasi**. Langkah **opsional** — tujuannya alignment sebelum finalisasi.
+   - **Finalisasi Hasil** — rilis ke **pegawai** (status `finalized`). Bisa dari `draft` **atau**
+     `in_review`; **tidak wajib menunggu ACC SPV** (anti-macet bila SPV lambat/cuti).
    - Bila **KPI pegawai masih kosong**, tombol simpan dinonaktifkan (Skor Akhir belum bisa dihitung).
 2. **Ringkasan skor** (Rerata KPI · Evaluasi 360° · Skor Akhir) + **Radar Aspek 360°** — garis
    **penuh indigo = Penilaian Rekan**, garis **putus-putus amber = Evaluasi Diri (Self)**;
@@ -375,7 +388,8 @@ divisi). Skor Akhir mengikuti flag **360° aktif/nonaktif** periode terpilih (KP
 2. **Semua pegawai** mengisi penilaian 360° di "Daftar Penilaian Saya".
 3. **SPV** input KPI bulanan tiap anggota tim.
 4. **HRD** pantau progress 360 → kunci periode bila sudah lengkap.
-5. **HRD** Review Hasil Akhir → diskusi & **ACC bersama SPV** → **Finalisasi**.
+5. **HRD** Review Hasil Akhir (`draft`) → **Rilis ke SPV** (`in_review`) → SPV tinjau detail
+   agregat + diskusi di luar app (**ACC opsional, non-blok**) → **Finalisasi** (`finalized`).
 6. **Pegawai** melihat **Laporan Hasil Saya** setelah final.
 7. **HRD → Direksi**: usulan promosi/suksesi untuk **ACC Direksi**.
 
@@ -429,17 +443,20 @@ peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
   **Papan Pertimbangan Suksesi** (skor > 90).
 - Berlaku setelah klik **Simpan & Terapkan Bobot**; **Reset Default** mengembalikan ke awal.
 
-### 5. Review Hasil Akhir — *finalisasi & rilis laporan*
-**Fungsi:** audit Final Report per pegawai, tulis ringkasan aspek, lalu finalisasi. Tersedia
-**panel aksi** di halaman detail: **Unduh PDF · Simpan Draf · Finalisasi Hasil** (+ badge status & Skor Akhir).
+### 5. Review Hasil Akhir — *finalisasi & rilis laporan bertahap*
+**Fungsi:** audit Final Report per pegawai, tulis ringkasan aspek, rilis ke SPV, lalu finalisasi.
+**Panel aksi** di halaman detail: **Unduh PDF · Simpan Draf · Rilis ke SPV · Finalisasi Hasil**
+(+ badge status & Skor Akhir). **Alur tiga tahap: `draft → in_review → finalized`.**
 **Berdampak ke:**
-- **Simpan Draf** → tersimpan, belum dirilis.
-- **Finalisasi Hasil** → laporan **muncul untuk pegawai** di **Laporan Hasil Saya**
-  (status final) & bisa **Unduh PDF**. Sebelum final, pegawai tidak melihat apa pun.
-- Idealnya dilakukan **setelah ACC SPV** (Laporan Kinerja Tim) — alur dua pihak.
+- **Simpan Draf** (`draft`) → tersimpan; SPV hanya melihat **angka Skor Akhir** (detail terkunci).
+- **Rilis ke SPV** (`in_review`) → SPV terkait bisa membuka **detail agregat** (radar/aspek +
+  ringkasan aspek HRD, **anonim, tanpa komentar mentah**) untuk ditinjau; diskusi **di luar aplikasi**.
+  Langkah **opsional**. ACC SPV bersifat **non-blok** (tak menghambat finalisasi).
+- **Finalisasi Hasil** (`finalized`) → laporan **muncul untuk pegawai** di **Laporan Hasil Saya**
+  & bisa **Unduh PDF**. Bisa dari `draft` atau `in_review`. Sebelum final, pegawai tidak melihat apa pun.
 - **Ringkasan Aspek** (naratif HRD per aspek) tersimpan di laporan; **Rincian Komentar Murni**
   (HRD-only, anonim) menampilkan akumulasi rating + komentar per indikator & esai per pertanyaan
-  (Self dikecualikan).
+  (Self dikecualikan). **Komentar mentah/per-penilai tidak pernah ditampilkan ke SPV.**
 
 ### 6. Promosi & Penyesuaian — *usulan ke Direksi*
 **Fungsi:** input Rencana Suksesi + Catatan Justifikasi per pegawai.
@@ -503,6 +520,6 @@ Kelola Bobot ───────────────────→ Skor 3
                                    KPI (SPV) ─┴→ Skor Akhir → Monitor/Rekap/Dashboard
 Flag Kepatuhan → Punishment (−poin/kuartal) ──┘  │
                                                   │
-Review Hasil Akhir → Finalisasi → Laporan Hasil Saya (pegawai) + PDF
+Review Hasil Akhir (draft → Rilis ke SPV/in_review → Finalisasi) → Laporan Hasil Saya (pegawai) + PDF
 Promosi & Penyesuaian → ACC Direksi
 ```

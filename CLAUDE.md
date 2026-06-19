@@ -7,13 +7,18 @@ Panduan untuk Claude Code saat bekerja di repo ini.
 **Fokus aktif:** pengerasan pra-produksi — keamanan, pengujian, CI, email, aksesibilitas.
 Migrasi fungsional **selesai & live**; yang tersisa sebagian besar aktivasi env + kebersihan.
 
-- **Baru selesai:** self-service ganti sandi (Akun Saya), unit test logika skor + CI, email
-  pengingat 360° (Gmail SMTP/Resend, dorman), indikator tenggat periode, aksesibilitas dropdown.
+- **Baru selesai:** **alur visibilitas laporan bertahap** (`draft → in_review → finalized`, migrasi
+  0011/0012 — tutup kebocoran raw 360° ke SPV + tombol "Rilis ke SPV"); audit kontras/keterbacaan
+  teks (WCAG AA); hapus Monitor Kinerja untuk Direksi; self-service ganti sandi; unit test skor + CI;
+  email pengingat 360° (dorman); indikator tenggat periode.
 - **Berikutnya (butuh aksi pengguna):** set env email (Gmail SMTP) → aktifkan pengingat +
-  reset sandi via email; ganti email seed → asli.
-- **Berikutnya (bisa digarap langsung):** tes parsing impor Excel.
+  reset sandi via email; ganti email seed → asli. **Komunikasikan ke HRD** langkah baru "Rilis ke
+  SPV" (SPV tak lagi lihat detail tim sampai dirilis).
+- **Berikutnya (bisa digarap langsung):** assertion 360° untuk `verify:rls` (jaring regresi L3).
 
 **File paling relevan:**
+- Laporan & visibilitas: `lib/report.ts` (`loadReport`/`loadTeamReportForSpv`), `app/(app)/laporan/`,
+  `app/(app)/laporan-tim/`, `app/(app)/admin/laporan/actions.ts` · RLS: `supabase/migrations/0012`
 - Skor & tes: `lib/scoring.ts`, `lib/score360.ts`, `tests/`, `.github/workflows/ci.yml`
 - Email: `lib/email/mailer.ts`, `app/(app)/admin/progress/actions.ts`
 - Akun/sesi: `app/(app)/akun/`, `app/login/`, `app/(app)/app-shell.tsx`
@@ -322,8 +327,11 @@ NEXT_PUBLIC_ENABLE_PW_RESET    # 'true' utk aktifkan alur "Lupa Sandi via email"
   Hanya `NEXT_PUBLIC_*` yang boleh sampai ke client.
 - **Otorisasi berbasis peran adalah inti keamanan aplikasi ini.** Tegakkan dengan
   **Supabase Row Level Security (RLS)** di level database, bukan hanya cek di UI:
-  - Employee hanya boleh baca/tulis penilaian & laporan miliknya.
-  - SPV hanya boleh akses KPI/laporan bawahannya.
+  - Employee hanya boleh baca/tulis penilaian & laporan miliknya (laporan: hanya saat `finalized`).
+  - SPV hanya boleh akses KPI/laporan bawahannya. **Umpan balik 360° MENTAH (komentar/identitas
+    per penilai, lapis 3) TIDAK PERNAH boleh dibaca SPV** — RLS `asmt_read`/`ais_read`/`aqa_read`
+    sengaja **tanpa** `is_my_member` (migrasi 0012). Detail agregat SPV (radar/aspek + ringkasan HRD)
+    dihitung server via `service_role` (`loadTeamReportForSpv`), hanya saat laporan `in_review`/`finalized`.
   - HRD Admin akses penuh; mode-SPV dibatasi seperti SPV.
   - Direksi read-only + ACC promosi.
 - Logika sensitif (kalibrasi skor akhir, finalisasi Final Report, aktivasi/kunci periode,

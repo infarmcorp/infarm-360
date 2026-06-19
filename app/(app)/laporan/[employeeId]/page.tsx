@@ -34,9 +34,13 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   }
 
   const isHrd = role === 'hrd';
+  // Tautan kembali sadar-peran: SPV ke Laporan Kinerja Tim, HRD/Direksi ke Daftar Laporan.
+  const back = role === 'spv'
+    ? { href: '/laporan-tim', label: '← Laporan Kinerja Tim' }
+    : { href: '/admin/laporan', label: '← Daftar Laporan' };
   return (
     <Shell>
-      <Link href="/admin/laporan" className="text-xs text-gray-500 hover:underline no-print">← Daftar Laporan</Link>
+      <Link href={back.href} className="text-xs text-gray-500 hover:underline no-print">{back.label}</Link>
       <div className="mt-2">
         {/* HRD: panel aksi (Unduh PDF / Simpan Draf / Finalisasi Hasil) di atas dokumen. */}
         {isHrd && (

@@ -305,6 +305,54 @@ NEXT_PUBLIC_ENABLE_PW_RESET    # 'true' utk aktifkan alur "Lupa Sandi via email"
   `app/(app)/admin/360/actions.ts` — jaga sinkron.
 - **CI** menjalankan `npm test` + typecheck + build tiap push/PR (tab Actions GitHub).
 
+## Klasifikasi Talenta — 9-Box & 4-Box (rincian ambang)
+
+> Sumber kebenaran: `lib/scoring.ts` (terkunci + diuji `tests/scoring.test.ts`). Bagian ini
+> hanya menjabarkan; **kalau mengubah ambang, ubah di kode lalu sinkronkan tabel ini + tes**.
+> Dua input klasifikasi: **KPI** (rerata capaian KPI satu kuartal) dan **Skor 360°** (hasil
+> `weightedScore360` di `lib/score360.ts`). Keduanya **dikunci ke satu kuartal** lewat
+> `getTalentQuarterKey()`; kuartal tanpa 360° (`has360=false`) → 9-Box tak diplot, kolom `N/A`,
+> dan kategori A Player nonaktif.
+
+### Skor Akhir (prasyarat 4-Box) — `finalScoreOf`
+- **360° aktif & ada:** `Skor Akhir = KPI×0.5 + 360×0.5` (blend 50/50).
+- **360° nonaktif / null:** `Skor Akhir = KPI` murni (100% KPI).
+- Lalu **dikurangi punishment** kepatuhan kuartal; **lantai 0** (`max(0, base − penalty)`).
+- KPI `null` → Skor Akhir `null` (belum bisa diklasifikasi).
+
+### 9-Box — KPI × 360° (`talentBoxOf`, `kpiBandOf`, `s360BandOf`)
+Pita (band) tiap sumbu — **batas atas inklusif ke pita lebih tinggi**:
+
+| Band | KPI (`kpiBandOf`) | Skor 360° (`s360BandOf`) |
+|------|-------------------|--------------------------|
+| **hi**  (tinggi) | `≥ 90`        | `≥ 80`                   |
+| **mid** (sedang) | `80 – 89.99`  | `70 – 79.99`             |
+| **lo**  (rendah) | `< 80`        | `< 70`                   |
+
+Kotak = perpotongan band KPI (baris) × band 360° (kolom):
+
+| KPI ↓ \ 360° → | **hi** (≥80) | **mid** (70–79) | **lo** (<70) |
+|----------------|--------------|-----------------|--------------|
+| **hi** (≥90)   | Star Talent          | High Performer       | Expert / Lone Wolf   |
+| **mid** (80–89)| High Potential       | Core Contributor     | Needs Align          |
+| **lo** (<80)   | Rough Diamond        | Inconsistent Player  | Underperformer       |
+
+- Kuartal tanpa 360° aktif → **tidak diplot** (butuh sumbu 360°).
+
+### 4-Box — A/B/C/D Player (`playerClassOf`)
+Dievaluasi **berurutan** (cek A dulu; kalau gagal jatuh ke ambang Skor Akhir saja):
+
+| Kelas | Syarat |
+|-------|--------|
+| **A Player** | **butuh 360° aktif & ada** `DAN` `Skor Akhir ≥ 90` `DAN` `KPI ≥ 90` `DAN` `360° ≥ 80` |
+| **B Player** | `Skor Akhir ≥ 80` (dan bukan A) |
+| **C Player** | `Skor Akhir ≥ 70` |
+| **D Player** | `Skor Akhir < 70` |
+
+- **A Player hanya mungkin bila 360° aktif** (`has360=true` & `s360≠null`). Di kuartal tanpa
+  360°, Skor Akhir = 100% KPI dan kelas tertinggi yang bisa dicapai adalah **B** (≥80).
+- Hanya **A** memakai syarat majemuk (final + KPI + 360 sekaligus); **B/C/D** murni dari Skor Akhir.
+
 ## Perintah
 
 ```bash

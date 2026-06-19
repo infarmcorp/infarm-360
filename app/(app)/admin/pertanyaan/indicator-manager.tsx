@@ -35,7 +35,7 @@ export function IndicatorManager({
         {indicators.map((ind) => <IndicatorRow key={ind.id} ind={ind} run={run} busy={busy} />)}
         {indicators.length === 0 && <p className="text-xs text-gray-400 italic">Belum ada indikator.</p>}
       </div>
-      {err && <p className="text-[10px] text-rose-600 mt-1" role="alert">{err}</p>}
+      {err && <p className="text-[10px] text-rose-600 mt-1">{err}</p>}
     </section>
   );
 }
@@ -68,8 +68,8 @@ function AspectHeader({
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setEditing(false); setName(aspectName); } }}
             className="flex-1 text-sm font-bold p-1 border border-emerald-300 rounded focus:ring-1 focus:ring-emerald-600 outline-none" />
-          <button type="button" onClick={save} disabled={busy} title="Simpan" aria-label="Simpan nama aspek" className="text-emerald-700 hover:text-emerald-900 p-0.5"><Check className="w-4 h-4" /></button>
-          <button type="button" onClick={() => { setEditing(false); setName(aspectName); }} title="Batal" aria-label="Batal ubah nama aspek" className="text-gray-400 hover:text-gray-600 p-0.5"><X className="w-4 h-4" /></button>
+          <button type="button" onClick={save} disabled={busy} title="Simpan" className="text-emerald-700 hover:text-emerald-900 p-0.5"><Check className="w-4 h-4" /></button>
+          <button type="button" onClick={() => { setEditing(false); setName(aspectName); }} title="Batal" className="text-gray-400 hover:text-gray-600 p-0.5"><X className="w-4 h-4" /></button>
         </div>
       ) : (
         <h3 className="text-sm font-extrabold text-emerald-800 flex items-center gap-1.5">
@@ -79,10 +79,10 @@ function AspectHeader({
       )}
       {!editing && (
         <div className="flex items-center gap-0.5 shrink-0">
-          <button type="button" onClick={() => setEditing(true)} disabled={busy} title="Ubah nama" aria-label={`Ubah nama aspek ${aspectName}`} className="text-gray-400 hover:text-emerald-700 p-1"><Pencil className="w-3.5 h-3.5" /></button>
-          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'up'))} disabled={busy || !canUp} title="Naik" aria-label={`Naikkan urutan aspek ${aspectName}`} className="text-gray-400 hover:text-gray-700 p-1 disabled:opacity-30"><ChevronUp className="w-4 h-4" /></button>
-          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'down'))} disabled={busy || !canDown} title="Turun" aria-label={`Turunkan urutan aspek ${aspectName}`} className="text-gray-400 hover:text-gray-700 p-1 disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
-          <button type="button" onClick={remove} disabled={busy} title="Hapus aspek" aria-label={`Hapus aspek ${aspectName}`} className="text-gray-400 hover:text-rose-600 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+          <button type="button" onClick={() => setEditing(true)} disabled={busy} title="Ubah nama" className="text-gray-400 hover:text-emerald-700 p-1"><Pencil className="w-3.5 h-3.5" /></button>
+          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'up'))} disabled={busy || !canUp} title="Naik" className="text-gray-400 hover:text-gray-700 p-1 disabled:opacity-30"><ChevronUp className="w-4 h-4" /></button>
+          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'down'))} disabled={busy || !canDown} title="Turun" className="text-gray-400 hover:text-gray-700 p-1 disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
+          <button type="button" onClick={remove} disabled={busy} title="Hapus aspek" className="text-gray-400 hover:text-rose-600 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
         </div>
       )}
     </div>
@@ -110,11 +110,10 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
     <div className={`rounded-lg ${ind.is_active ? '' : 'opacity-50'}`}>
       <div className="flex items-center gap-1.5">
         <button type="button" onClick={() => setOpen((o) => !o)} title="Panduan penilaian"
-          aria-label="Panduan penilaian indikator" aria-expanded={open}
           className="text-gray-400 hover:text-gray-600 shrink-0">
           {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
         </button>
-        <input value={text} onChange={(e) => setText(e.target.value)} aria-label="Teks indikator"
+        <input value={text} onChange={(e) => setText(e.target.value)}
           className="flex-1 text-xs px-2 py-1 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500" />
         {hasGuide && !open && <span className="text-[8px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-1 py-0.5 rounded shrink-0">panduan</span>}
         {dirtyText && (
@@ -126,7 +125,6 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
           {ind.is_active ? 'Nonaktif' : 'Aktifkan'}
         </button>
         <button type="button" disabled={busy} title="Hapus indikator (hanya bila belum dipakai penilaian)"
-          aria-label="Hapus indikator"
           onClick={() => { if (window.confirm('Hapus indikator ini? Hanya bisa bila belum dipakai penilaian mana pun.')) run(() => deleteIndicator(ind.id)); }}
           className="text-[10px] font-bold px-1.5 py-1 rounded border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50 shrink-0">
           <Trash2 className="w-3.5 h-3.5" />
@@ -149,7 +147,6 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
                   <span className="text-[10px] font-black text-emerald-800 font-mono w-4 text-center shrink-0 mt-1.5">{lv}</span>
                   <input value={guide[lv]} onChange={(e) => setGuide((p) => ({ ...p, [lv]: e.target.value }))}
                     placeholder={`${RATING_LABELS[lv]} — contoh/kriteria…`}
-                    aria-label={`Panduan rating level ${lv} (${RATING_LABELS[lv]})`}
                     className="flex-1 text-[11px] px-2 py-1 bg-white border border-gray-250 rounded focus:ring-1 focus:ring-emerald-600 outline-none" />
                 </div>
               ))}

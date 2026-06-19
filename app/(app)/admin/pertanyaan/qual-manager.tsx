@@ -33,12 +33,11 @@ export function QualManager({ questions }: { questions: Q[] }) {
       </div>
       <div className="flex gap-1.5 mt-2.5">
         <input value={newText} onChange={(e) => setNewText(e.target.value)} placeholder="Pertanyaan esai baru…"
-          aria-label="Pertanyaan kualitatif baru"
           className="flex-1 text-xs px-2 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500" />
         <button type="button" disabled={busy || !newText.trim()} onClick={add}
           className="text-[11px] font-bold px-2.5 py-1 rounded bg-indigo-700 hover:bg-indigo-800 text-white disabled:opacity-50">Tambah</button>
       </div>
-      {err && <p className="text-[10px] text-rose-600 mt-1" role="alert">{err}</p>}
+      {err && <p className="text-[10px] text-rose-600 mt-1">{err}</p>}
     </section>
   );
 }
@@ -48,7 +47,7 @@ function QualRow({ q, run, busy }: { q: Q; run: (fn: () => Promise<{ ok: boolean
   const dirty = text.trim() !== q.text;
   return (
     <div className="flex items-center gap-1.5">
-      <input value={text} onChange={(e) => setText(e.target.value)} aria-label="Teks pertanyaan kualitatif"
+      <input value={text} onChange={(e) => setText(e.target.value)}
         className="flex-1 text-xs px-2 py-1 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500" />
       {dirty && (
         <button type="button" disabled={busy} onClick={() => run(() => updateQualQuestion(q.id, text))}

@@ -57,7 +57,7 @@ export function PeriodForm() {
           className="w-16 text-center text-sm px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500" />
         <span className="text-[10px] text-gray-400">tak memengaruhi rumus skor; bisa diubah per kuartal</span>
       </div>
-      {err && <p className="text-xs text-rose-600 font-semibold" role="alert">{err}</p>}
+      {err && <p className="text-xs text-rose-600 font-semibold">{err}</p>}
       <button type="submit" disabled={busy}
         className="text-sm font-bold px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-60">
         {busy ? 'Membuat…' : 'Buat Periode'}

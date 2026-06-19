@@ -28,7 +28,6 @@ export function PenaltyInput({ employeeId, initial }: { employeeId: string; init
           type="number" min={0} max={100} step={0.5}
           value={value}
           onChange={(e) => { setValue(e.target.value); setState('idle'); }}
-          aria-label="Poin punishment (0–100)"
           className="w-16 text-xs px-2 py-1 border border-gray-300 rounded text-right focus:outline-none focus:ring-1 focus:ring-rose-500"
         />
         <button type="button" disabled={busy} onClick={save}
@@ -36,8 +35,8 @@ export function PenaltyInput({ employeeId, initial }: { employeeId: string; init
           {busy ? '…' : 'Simpan'}
         </button>
       </div>
-      {state === 'ok' && <span role="status" className="text-[10px] text-emerald-600 font-semibold">tersimpan</span>}
-      {state === 'err' && <span role="alert" className="text-[10px] text-rose-600 max-w-[140px] text-right">{err}</span>}
+      {state === 'ok' && <span className="text-[10px] text-emerald-600 font-semibold">tersimpan</span>}
+      {state === 'err' && <span className="text-[10px] text-rose-600 max-w-[140px] text-right">{err}</span>}
     </div>
   );
 }

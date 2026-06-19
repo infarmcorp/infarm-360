@@ -34,7 +34,7 @@ export function ReportRowActions({ employeeId, canCompute }: { employeeId: strin
           {busy === 'final' ? '…' : 'Finalisasi'}
         </button>
       </div>
-      {err && <span className="text-[10px] text-rose-600 max-w-[140px] text-right" role="alert">{err}</span>}
+      {err && <span className="text-[10px] text-rose-600 max-w-[140px] text-right">{err}</span>}
     </div>
   );
 }

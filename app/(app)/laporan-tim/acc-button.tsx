@@ -28,7 +28,7 @@ export function AccButton({ employeeId, acc, hasReport }: { employeeId: string; 
         }`}>
         {busy ? '…' : acc ? '✔ ACC (batalkan)' : 'Beri ACC'}
       </button>
-      {err && <span className="text-[10px] text-rose-600 max-w-[150px] text-right" role="alert">{err}</span>}
+      {err && <span className="text-[10px] text-rose-600 max-w-[150px] text-right">{err}</span>}
     </div>
   );
 }

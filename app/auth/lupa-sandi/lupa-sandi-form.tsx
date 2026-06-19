@@ -50,7 +50,7 @@ export function LupaSandiForm() {
           className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
         />
       </div>
-      {error && <p className="text-xs text-rose-600 font-semibold" role="alert">{error}</p>}
+      {error && <p className="text-xs text-rose-600 font-semibold">{error}</p>}
       <button
         type="submit"
         disabled={loading}

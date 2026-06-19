@@ -50,7 +50,7 @@ export function AdhocForm({ candidates }: { candidates: Candidate[] }) {
           <Plus className="w-4 h-4" /> {pending ? 'Menambah…' : 'Tambahkan Rekan'}
         </button>
       </div>
-      {msg && <p role="status" className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
+      {msg && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
     </div>
   );
 }

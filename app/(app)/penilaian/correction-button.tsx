@@ -43,7 +43,7 @@ export function CorrectionButton({
           <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-5 space-y-3.5 text-left">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-extrabold text-indigo-900 uppercase tracking-wide">Koreksi Relasi Kerja</h3>
-              <button type="button" onClick={() => setOpen(false)} disabled={busy} aria-label="Tutup dialog" className="text-gray-400 hover:text-gray-600">✕</button>
+              <button type="button" onClick={() => setOpen(false)} disabled={busy} className="text-gray-400 hover:text-gray-600">✕</button>
             </div>
             <p className="text-xs text-gray-500">Ajukan penyesuaian garis hubungan penilaian terhadap <strong>{targetName}</strong>. Akan divalidasi HRD.</p>
             <div>
@@ -63,7 +63,7 @@ export function CorrectionButton({
                 placeholder="Mis. 'Beliau bukan atasan saya melainkan rekan sejawat di divisi yang sama.'"
                 className="w-full text-xs p-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600" />
             </div>
-            {err && <p className="text-[11px] text-rose-600 font-semibold" role="alert">{err}</p>}
+            {err && <p className="text-[11px] text-rose-600 font-semibold">{err}</p>}
             <div className="flex justify-end gap-2 pt-1">
               <button type="button" onClick={() => setOpen(false)} disabled={busy}
                 className="text-xs font-bold text-gray-500 hover:text-gray-700 border border-gray-200 px-4 py-2 rounded-lg">Batal</button>

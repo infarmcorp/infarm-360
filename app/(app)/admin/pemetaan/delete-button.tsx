@@ -23,7 +23,7 @@ export function DeleteButton({ mappingId }: { mappingId: string }) {
         className="text-[11px] font-bold px-2 py-1 rounded border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50">
         {busy ? '…' : 'Hapus'}
       </button>
-      {err && <span className="text-[10px] text-rose-600" role="alert">{err}</span>}
+      {err && <span className="text-[10px] text-rose-600">{err}</span>}
     </div>
   );
 }

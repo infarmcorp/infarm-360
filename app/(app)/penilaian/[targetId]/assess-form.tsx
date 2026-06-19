@@ -205,7 +205,7 @@ export function AssessForm({
                 <div key={q.id}>
                   <p className="text-sm text-gray-700 mb-1.5">{q.text}</p>
                   <textarea rows={2} value={answers[q.id]} onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))}
-                    placeholder="Jawaban (opsional)" aria-label={q.text}
+                    placeholder="Jawaban (opsional)"
                     className="w-full text-xs px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500" />
                 </div>
               ))}
@@ -312,7 +312,7 @@ export function AssessForm({
         </div>
       </div>
 
-      {error && <p className="text-xs text-rose-600 font-semibold" role="alert">{error}</p>}
+      {error && <p className="text-xs text-rose-600 font-semibold">{error}</p>}
 
       {/* Kontrol bawah */}
       <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 flex flex-col sm:flex-row justify-between gap-2">

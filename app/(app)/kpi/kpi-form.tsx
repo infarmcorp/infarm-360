@@ -130,12 +130,10 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
                   <td className="py-2">{m.name} <span className="text-gray-400">· {m.dept}</span></td>
                   <td className="py-2">
                     <input type="number" min={0} max={100} inputMode="decimal" value={scores[m.id] ?? ''}
-                      aria-label={`Skor KPI ${m.name}`}
                       onChange={(e) => setScores((s) => ({ ...s, [m.id]: e.target.value }))} className="w-24 rounded border px-2 py-1" />
                   </td>
                   <td className="py-2">
                     <input type="text" placeholder="opsional" value={notes[m.id] ?? ''}
-                      aria-label={`Komentar audit ${m.name}`}
                       onChange={(e) => setNotes((n) => ({ ...n, [m.id]: e.target.value }))} className="w-full rounded border px-2 py-1" />
                   </td>
                 </tr>
@@ -147,7 +145,7 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
             <button onClick={submitManual} disabled={pending} className="rounded bg-emerald-700 px-4 py-2 text-white text-sm font-bold disabled:opacity-50">
               {pending ? 'Menyimpan…' : 'Simpan Semua Skor'}
             </button>
-            {msg && <span role="status" className={`text-sm font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
+            {msg && <span className={`text-sm font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
           </div>
         </>
       ) : (
@@ -158,7 +156,7 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
           </div>
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile}
             className="block text-sm file:mr-3 file:rounded file:border-0 file:bg-emerald-700 file:px-3 file:py-1.5 file:text-white file:font-bold" />
-          {parseErr && <p className="text-sm text-rose-600 font-semibold" role="alert">{parseErr}</p>}
+          {parseErr && <p className="text-sm text-rose-600 font-semibold">{parseErr}</p>}
 
           {parsed && (
             <>
@@ -191,7 +189,7 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
                   {pending ? 'Menyimpan…' : `Terapkan & Simpan (${parsed.filter(isValidKpiRow).length} baris)`}
                 </button>
                 <button onClick={() => setParsed(null)} disabled={pending} className="text-sm font-semibold text-gray-500 hover:underline">Batal</button>
-                {msg && <span role="status" className={`text-sm font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
+                {msg && <span className={`text-sm font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
               </div>
             </>
           )}

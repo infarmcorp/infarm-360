@@ -65,7 +65,7 @@ export function ReportActions({
       )}
 
       {msg && (
-        <span role="status" className={`w-full text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>
+        <span className={`w-full text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>
       )}
     </div>
   );

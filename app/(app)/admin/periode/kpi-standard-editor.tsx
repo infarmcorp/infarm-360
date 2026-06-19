@@ -42,7 +42,7 @@ export function KpiStandardEditor({ periodId, value }: { periodId: string; value
           className="w-14 text-center text-xs font-mono font-bold px-1.5 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
         />
       </div>
-      {err && <span className="text-[9px] text-rose-600" role="alert">{err}</span>}
+      {err && <span className="text-[9px] text-rose-600">{err}</span>}
     </div>
   );
 }

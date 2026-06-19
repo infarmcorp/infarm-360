@@ -2,9 +2,10 @@
 
 import { useMemo, useRef, useState, useTransition } from 'react';
 import { saveKpiScores } from './actions';
+import { parseKpiRows, isValidKpiRow, type KpiMember, type KpiParsedRow } from '@/lib/import/parse';
 
-type Member = { id: string; code: string; name: string; dept: string };
-type ParsedRow = { code: string; score: number; note: string; member: Member | null };
+type Member = KpiMember;
+type ParsedRow = KpiParsedRow;
 
 /**
  * Form input KPI — dua mode (ala legacy): Manual & Impor Excel.
@@ -25,7 +26,6 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
 
   const depts = useMemo(() => [...new Set(members.map((m) => m.dept))].sort(), [members]);
   const shown = useMemo(() => (dept === 'all' ? members : members.filter((m) => m.dept === dept)), [members, dept]);
-  const byCode = useMemo(() => new Map(members.map((m) => [m.code.toUpperCase(), m])), [members]);
 
   function submitManual() {
     setMsg(null);
@@ -51,17 +51,7 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
       const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
       if (raw.length === 0) { setParseErr('File kosong atau tanpa baris data.'); return; }
 
-      const pick = (row: Record<string, unknown>, keys: string[]) => {
-        const found = Object.keys(row).find((k) => keys.includes(k.trim().toLowerCase()));
-        return found ? String(row[found]).trim() : '';
-      };
-      const rows: ParsedRow[] = raw.map((r) => {
-        const code = pick(r, ['emp_code', 'kode', 'kode pegawai', 'id']).toUpperCase();
-        const scoreStr = pick(r, ['score', 'skor', 'nilai', 'kpi']);
-        const note = pick(r, ['note', 'catatan', 'komentar']);
-        const score = Number(scoreStr);
-        return { code, score, note, member: byCode.get(code) ?? null };
-      }).filter((r) => r.code);
+      const rows = parseKpiRows(raw, members);
       if (rows.length === 0) { setParseErr('Tidak menemukan kolom kode pegawai (emp_code/kode).'); return; }
       setParsed(rows);
     } catch {
@@ -74,7 +64,7 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
   function applyExcel() {
     if (!parsed) return;
     setMsg(null);
-    const valid = parsed.filter((r) => r.member && Number.isFinite(r.score) && r.score >= 0 && r.score <= 100);
+    const valid = parsed.filter(isValidKpiRow);
     if (valid.length === 0) { setMsg({ ok: false, text: 'Tidak ada baris valid (kode cocok & skor 0–100).' }); return; }
     const rows = valid.map((r) => ({ employeeId: r.member!.id, score: String(r.score), note: r.note || 'Impor Excel' }));
     startTransition(async () => {
@@ -180,7 +170,7 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {parsed.map((r, i) => {
-                      const valid = !!r.member && Number.isFinite(r.score) && r.score >= 0 && r.score <= 100;
+                      const valid = isValidKpiRow(r);
                       return (
                         <tr key={i} className={valid ? '' : 'bg-rose-50/40'}>
                           <td className="py-2 px-3 font-mono">{r.code}</td>
@@ -196,7 +186,7 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
               </div>
               <div className="flex items-center gap-3">
                 <button onClick={applyExcel} disabled={pending} className="rounded bg-emerald-700 px-4 py-2 text-white text-sm font-bold disabled:opacity-50">
-                  {pending ? 'Menyimpan…' : `Terapkan & Simpan (${parsed.filter((r) => r.member && Number.isFinite(r.score) && r.score >= 0 && r.score <= 100).length} baris)`}
+                  {pending ? 'Menyimpan…' : `Terapkan & Simpan (${parsed.filter(isValidKpiRow).length} baris)`}
                 </button>
                 <button onClick={() => setParsed(null)} disabled={pending} className="text-sm font-semibold text-gray-500 hover:underline">Batal</button>
                 {msg && <span className={`text-sm font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}

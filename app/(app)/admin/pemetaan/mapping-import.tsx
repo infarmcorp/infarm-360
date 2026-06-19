@@ -2,13 +2,10 @@
 
 import { useMemo, useRef, useState, useTransition } from 'react';
 import { createMappingsBulk } from './actions';
+import { parseMappingRows, classifyMappingRows, type MapEmp, type MapParsedRow } from '@/lib/import/parse';
 
-type Emp = { id: string; code: string; name: string };
-type Row = { aCode: string; tCode: string; relation: string; mandatory: boolean; assessor: Emp | null; target: Emp | null; relOk: boolean };
-
-const RELATIONS = ['Atasan', 'Peer', 'Cross', 'Self', 'Bawahan'];
-const normRel = (s: string) => RELATIONS.find((r) => r.toLowerCase() === s.trim().toLowerCase()) ?? '';
-const normMand = (s: string) => ['wajib', 'true', '1', 'ya', 'y'].includes(s.trim().toLowerCase());
+type Emp = MapEmp;
+type Row = MapParsedRow;
 
 /** Impor mapping massal dari Excel/CSV (HRD). */
 export function MappingImport({ employees }: { employees: Emp[] }) {
@@ -18,7 +15,6 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
-  const byCode = useMemo(() => new Map(employees.map((e) => [e.code.toUpperCase(), e])), [employees]);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; if (!file) return;
@@ -27,17 +23,7 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
       const XLSX = await import('xlsx');
       const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
       const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]], { defval: '' });
-      const pick = (row: Record<string, unknown>, keys: string[]) => {
-        const f = Object.keys(row).find((k) => keys.includes(k.trim().toLowerCase()));
-        return f ? String(row[f]).trim() : '';
-      };
-      const rows: Row[] = raw.map((r) => {
-        const aCode = pick(r, ['penilai', 'assessor_code', 'assessor', 'penilai_code']).toUpperCase();
-        const tCode = pick(r, ['dinilai', 'target_code', 'target', 'dinilai_code']).toUpperCase();
-        const relation = normRel(pick(r, ['relasi', 'relation']));
-        const mandatory = normMand(pick(r, ['wajib', 'mandatory', 'sifat']));
-        return { aCode, tCode, relation, mandatory, assessor: byCode.get(aCode) ?? null, target: byCode.get(tCode) ?? null, relOk: !!relation };
-      }).filter((r) => r.aCode || r.tCode);
+      const rows = parseMappingRows(raw, employees);
       if (rows.length === 0) { setParseErr('Tidak menemukan kolom penilai/dinilai.'); return; }
       setParsed(rows);
     } catch {
@@ -45,27 +31,8 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
     } finally { if (fileRef.current) fileRef.current.value = ''; }
   }
 
-  // Klasifikasikan tiap baris + alasan bila dilewati (pasangan siapa→siapa).
-  // 'dup' = pasangan penilai→target sama dengan baris sebelumnya (keunikan DB
-  // hanya penilai+target, relasi tak dihitung). 'self' = penilai=target tapi
-  // relasi bukan Self. 'invalid' = kode tak dikenal / relasi kosong.
-  const classified = useMemo(() => {
-    const seen = new Map<string, number>(); // pasangan → nomor baris pertama (1-based)
-    return (parsed ?? []).map((r, i) => {
-      let status: 'ok' | 'dup' | 'self' | 'invalid' = 'ok';
-      let reason = '';
-      if (!r.assessor) { status = 'invalid'; reason = `Kode penilai "${r.aCode || '?'}" tak dikenal`; }
-      else if (!r.target) { status = 'invalid'; reason = `Kode dinilai "${r.tCode || '?'}" tak dikenal`; }
-      else if (!r.relOk) { status = 'invalid'; reason = 'Relasi kosong/tak valid'; }
-      else if (r.assessor.id === r.target.id && r.relation !== 'Self') { status = 'self'; reason = 'Penilai = Dinilai tetapi relasi bukan Self'; }
-      else {
-        const key = `${r.assessor.id}|${r.target.id}`;
-        if (seen.has(key)) { status = 'dup'; reason = `Duplikat — pasangan sama dengan baris ${seen.get(key)}`; }
-        else seen.set(key, i + 1);
-      }
-      return { r, line: i + 1, status, reason };
-    });
-  }, [parsed]);
+  // Klasifikasi tiap baris + alasan bila dilewati (logika murni di lib/import/parse.ts).
+  const classified = useMemo(() => classifyMappingRows(parsed ?? []), [parsed]);
 
   const oks = classified.filter((c) => c.status === 'ok');
   const skips = classified.filter((c) => c.status !== 'ok');

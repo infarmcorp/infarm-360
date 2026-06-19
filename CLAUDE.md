@@ -160,6 +160,12 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Hapus arsip SPA legacy** — route `/legacy` + seluruh `src/` (`App.tsx`/`data.ts`/`types.ts`)
   dihapus. Data benih seed dipindah ke **`scripts/seed-data.ts`** (mandiri, tipe inline) agar
   `scripts/seed.ts` tak lagi bergantung `src/`. Build/typecheck/test hijau tanpa `src/`.
+- **Ekstrak parsing impor → `lib/import/parse.ts`** (murni, teruji): `parseKpiRows`/`isValidKpiRow`
+  & `parseMappingRows`/`classifyMappingRows`. `kpi-form.tsx` + `mapping-import.tsx` kini memakainya
+  (logika `pick`/validasi/klasifikasi tak lagi inline). +27 tes (`tests/import.test.ts`). **Perbaikan
+  kecil**: skor KPI kosong kini **dilewati** (dulu diimpor sebagai 0).
+- **Verifikasi RLS** — `scripts/verify-rls.ts` (`npm run verify:rls`): fixture user uji mandiri +
+  login per peran, 12 assertion `kpi_scores`; self-cleaning, aman ke data nyata. (Lihat Pengujian.)
 
 ---
 
@@ -196,10 +202,11 @@ Daftar hidup (perbarui saat ada perubahan). Status: ✅ selesai · 🔄 sebagian
     melatih model pada data bisnis. Perlu persetujuan kebijakan internal.
 
 ### Keandalan teknis
-- 🔄 **Tes** — Vitest + 28 tes logika skor terpasang. **Sisa:** tes parsing impor Excel,
-  Server Action lain, integrasi RLS.
-- ⬜ **Verifikasi RLS terprogram per peran** sebelum produksi (mis. SPV coba tulis KPI rekan
-  SPV → harus ditolak).
+- 🔄 **Tes** — Vitest + **55 tes** (logika skor + **parsing impor Excel** KPI & pemetaan 360°,
+  `tests/import.test.ts`). **Sisa:** Server Action lain.
+- ✅ **Verifikasi RLS terprogram per peran** — `npm run verify:rls` (`scripts/verify-rls.ts`):
+  fixture uji mandiri (`RLSTEST-*`) + login per peran → 12 assertion `kpi_scores` (baca/tulis),
+  termasuk **SPV tulis KPI rekan SPV → DITOLAK**. Self-cleaning, aman ke data nyata. Manual pra-rilis.
 - 🔄 **Aksesibilitas & mobile** — dropdown keyboard-nav/ARIA + tabel lebar wrapped. **Sisa:**
   audit kontras menyeluruh, label form di sisa halaman, uji pembaca layar.
 
@@ -293,7 +300,8 @@ NEXT_PUBLIC_ENABLE_PW_RESET    # 'true' utk aktifkan alur "Lupa Sandi via email"
 - TypeScript strict; hindari `any`.
 - Komentar & label UI berbahasa Indonesia mengikuti istilah di PANDUAN (mis. "Mulai Nilai",
   "Final Report", "Garis Hubungan") agar konsisten dengan dokumen pengguna.
-- Domain types ada di `src/types.ts` — perluas di sana, jangan duplikasi.
+- Domain types: skema DB di `lib/database.types.ts`; tipe per-fitur inline/di lib terkait
+  (arsip `src/types.ts` sudah dihapus). Jangan duplikasi — perluas di lib yang relevan.
 - **Skor Akhir** = blend KPI+360 **dikurangi** punishment kepatuhan per kuartal (min 0). Rumus
   murni terkunci di `lib/scoring.ts` & `lib/score360.ts` (lihat Pengujian); kalau mengubah,
   sinkronkan semua tempat + perbarui tesnya.
@@ -304,7 +312,7 @@ NEXT_PUBLIC_ENABLE_PW_RESET    # 'true' utk aktifkan alur "Lupa Sandi via email"
   kolom tabel `N/A`, dan kategori A Player nonaktif (Skor Akhir = 100% KPI). Helper inti:
   `getTalentMatrix`, `getPlayerMatrix`, `getEmpTalentBox`, `getEmpPlayerBox`.
 
-## Pengujian (Vitest) — logika skor
+## Pengujian (Vitest — logika skor & parsing impor) + Verifikasi RLS
 
 > **Kenapa ada:** rumus skor (Skor Akhir, 9-Box, A/B/C/D, bobot 360°) menentukan keputusan
 > SDM nyata (promosi, punishment, kategori talenta). Kesalahan rumus **tidak memunculkan
@@ -313,18 +321,30 @@ NEXT_PUBLIC_ENABLE_PW_RESET    # 'true' utk aktifkan alur "Lupa Sandi via email"
 > ke pengguna. **Bukan** aktivitas kuartalan — dijalankan saat **kode disentuh**.
 
 - **Jalankan:** `npm test` (sekali) atau `npm run test:watch` (mode pantau).
-- **Cakupan (28 tes):**
+- **Cakupan (55 tes):**
   - `tests/scoring.test.ts` → `lib/scoring.ts`: `finalScoreOf` (blend 50/50, KPI-only, s360
     null, punishment, floor 0), `playerClassOf` (A hanya bila 360 aktif & final≥90 & kpi≥90 &
     360≥80; ambang B/C/D), `kpiBandOf`/`s360BandOf`, `talentBoxOf` (9 kotak).
   - `tests/score360.test.ts` → `lib/score360.ts`: `weightedScore360` **4class** (semua kelas,
     normalisasi bobot, **kelas Bawahan**, **Self dikecualikan**) & **2class** (Internal = rerata
     semua skor Peer+Cross+Bawahan, fallback satu sisi).
+  - `tests/import.test.ts` → `lib/import/parse.ts`: parsing impor Excel **KPI** (`parseKpiRows`,
+    `isValidKpiRow`: alias kolom, normalisasi kode uppercase, skor kosong→tak valid, batas 0–100)
+    & **pemetaan 360°** (`parseMappingRows`, `classifyMappingRows`: ok/invalid/self/dup, alias,
+    penomoran baris) + 1 uji round-trip lewat `xlsx` asli (paritas jalur klien).
 - **Rumus inti ada di KODE, bukan UI.** Yang bisa diubah HRD lewat aplikasi = *input* (bobot %,
   360° aktif/nonaktif, KPI, punishment). Cara blend & ambang terkunci di kode.
 - **Kalau sengaja mengubah rumus:** perbarui tes terkait. `lib/score360.ts` diekstrak dari
   `app/(app)/admin/360/actions.ts` — jaga sinkron.
 - **CI** menjalankan `npm test` + typecheck + build tiap push/PR (tab Actions GitHub).
+
+**Verifikasi RLS terprogram** (`npm run verify:rls` → `scripts/verify-rls.ts`): bukan unit test —
+skrip integrasi yang **membuat fixture user uji sendiri** (prefix `RLSTEST-*`, via service_role),
+login sebagai tiap peran (anon key) untuk menegakkan kebijakan RLS `kpi_scores` (SPV→tim+diri,
+Employee→diri, HRD/Direksi→semua; tulis lintas-SPV/Employee/Direksi DITOLAK; SPV tulis diri sendiri
+DIIZINKAN [0008]), lalu **menghapus seluruh fixture** (finally). **AMAN**: tak menyentuh data nyata,
+uji tulis pakai `UPDATE score=score` (idempoten). Butuh `NEXT_PUBLIC_SUPABASE_ANON_KEY` +
+`SUPABASE_SERVICE_ROLE_KEY` di `.env.local`. Jalankan manual pra-rilis (tak di CI — perlu kredensial).
 
 ## Klasifikasi Talenta — 9-Box & 4-Box (rincian ambang)
 

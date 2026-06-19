@@ -10,7 +10,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify:rls": "npx tsx scripts/verify-rls.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

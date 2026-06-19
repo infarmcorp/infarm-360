@@ -1,17 +1,20 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { AccButton } from './acc-button';
+import { TeamTable, type TeamRow } from './team-table';
 
 /**
  * Laporan Kinerja Tim (SPV): tinjau & ACC laporan anggota tim.
  * RLS membatasi baca/ACC ke anggota tim (is_my_member). ACC perlu laporan draf dari HRD.
+ * Baris SPV sendiri ikut ditampilkan agar SPV bisa memantau laporannya (migrasi 0009);
+ * baca termasuk draf, tetapi ACC sendiri tidak diizinkan.
  */
 export default async function LaporanTimPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees')
+    .select('role, name, dept').eq('id', user.id).maybeSingle();
   if (me?.role !== 'spv' && me?.role !== 'hrd') {
     return <Shell><p className="text-sm text-gray-600">Halaman ini untuk Supervisor.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
@@ -27,15 +30,34 @@ export default async function LaporanTimPage() {
     ? await supabase.from('employees').select('id, name, dept').in('id', memberIds) : { data: [] };
   const members = emps ?? [];
 
-  const { data: reports } = memberIds.length
+  // Sertakan baris SPV sendiri (di luar anggota tim formal) untuk pemantauan laporan pribadi.
+  const selfRow = me.role === 'spv' ? { id: user.id, name: me.name, dept: me.dept } : null;
+  const reportIds = [...memberIds, ...(selfRow ? [user.id] : [])];
+
+  const { data: reports } = reportIds.length
     ? await supabase.from('final_reports').select('employee_id, status, spv_acc, final_score')
-        .eq('period_id', ap.id).in('employee_id', memberIds)
+        .eq('period_id', ap.id).in('employee_id', reportIds)
     : { data: [] };
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
 
-  const rows = members
-    .map((e) => ({ id: e.id, name: e.name, dept: e.dept, rep: repBy.get(e.id) }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const toRow = (e: { id: string; name: string; dept: string | null }, isSelf: boolean): TeamRow => {
+    const rep = repBy.get(e.id);
+    return {
+      id: e.id,
+      name: e.name,
+      dept: e.dept,
+      finalScore: rep?.final_score ?? null,
+      status: rep?.status ?? null,
+      hasReport: !!rep,
+      spvAcc: !!rep?.spv_acc,
+      isSelf,
+    };
+  };
+
+  const rows: TeamRow[] = [
+    ...members.map((e) => toRow(e, false)),
+    ...(selfRow ? [toRow(selfRow, true)] : []),
+  ].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <Shell>
@@ -50,41 +72,7 @@ export default async function LaporanTimPage() {
       {rows.length === 0 ? (
         <p className="text-sm text-gray-500">Belum ada anggota tim yang ditugaskan.</p>
       ) : (
-        <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm min-w-[480px]">
-          <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-gray-400 border-b border-gray-200">
-              <th className="py-2 pr-3">Anggota</th>
-              <th className="py-2 px-3 text-center">Skor Akhir</th>
-              <th className="py-2 px-3 text-center">Status</th>
-              <th className="py-2 pl-3 text-right">ACC</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td className="py-3 pr-3">
-                  <Link href={`/laporan/${r.id}`} className="font-bold text-gray-800 block hover:text-emerald-700 hover:underline">{r.name}</Link>
-                  <span className="text-[11px] text-gray-400">{r.dept}</span>
-                </td>
-                <td className="py-3 px-3 text-center font-mono font-black text-slate-800">
-                  {r.rep?.final_score != null ? r.rep.final_score.toFixed(1) : '—'}
-                </td>
-                <td className="py-3 px-3 text-center">
-                  {r.rep?.status === 'finalized'
-                    ? <span className="text-[10px] font-bold text-emerald-700">Final</span>
-                    : r.rep?.status === 'draft'
-                    ? <span className="text-[10px] font-bold text-amber-700">Draf</span>
-                    : <span className="text-[10px] text-gray-400">—</span>}
-                </td>
-                <td className="py-3 pl-3 text-right">
-                  <AccButton employeeId={r.id} acc={!!r.rep?.spv_acc} hasReport={!!r.rep} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
+        <TeamTable rows={rows} />
       )}
     </Shell>
   );

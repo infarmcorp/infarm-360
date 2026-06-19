@@ -97,6 +97,10 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Kelola Pertanyaan — Tambah/Kelola Aspek** + panduan rating/deskripsi per indikator
   (migrasi 0006).
 - **SPV input KPI dirinya sendiri** (selain anggota tim) — migrasi 0008.
+- **Laporan Kinerja Tim — baris SPV sendiri + pencarian** (`app/(app)/laporan-tim/`): SPV kini
+  muncul sebagai baris sendiri (badge "Anda") menampilkan Skor Akhir & Status **meski laporan
+  masih draf** (lewat migrasi 0009); ACC sendiri sengaja dinonaktifkan (integritas). Tabel
+  dipindah ke komponen client `team-table.tsx` dengan kotak **pencarian nama/divisi** instan.
 - **Ekspor Dataset** (`/admin/ekspor`): dataset Pegawai, KPI, Audit KPI, Punishment, Rekap,
   360° anonim, Pemetaan + **Rekap Konfigurasi Periode** (potret pengaturan HRD per kuartal).
 - **Indikator tenggat periode** (sidebar): sisa hari ke `end_date` + peringatan amber ≤7 hari /
@@ -118,6 +122,10 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - `0007_indexes` — 10 indeks pelengkap pada kolom FK (future-proofing).
 - `0008_spv_self_kpi` — helper `is_spv()` + perluas RLS `kpi_write`/`kpiaudit_insert` agar SPV
   boleh tulis KPI **dirinya sendiri** (least-privilege; bukan seluruh divisi).
+- `0009_spv_self_report_read` — RLS `fr_read` ditambah kondisi `is_spv() AND employee_id =
+  auth.uid()` → SPV kini bisa **membaca laporan dirinya sendiri termasuk yang masih draf**
+  (pemantauan). Izin **tulis/ACC tidak berubah** (`fr_spv_acc` tetap `is_my_member`, mengecualikan
+  diri sendiri). Diterapkan & diverifikasi langsung ke DB (Supabase CLI tak punya binary platform).
 - `final_reports.content` (jsonb, kolom lama) dipakai untuk `aspectSummaries` (tanpa migrasi baru).
 
 ### Infra / Testing / CI
@@ -125,6 +133,10 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **GitHub Actions** (`.github/workflows/ci.yml`): test + typecheck + build tiap push/PR.
 - **Skrip reset** (`scripts/reset-*.{sql,mjs}`): backup→kosongkan, 3 tingkat granularitas
   (transaksional / sisakan pegawai / pemetaan saja). `backups/` gitignored.
+- **Skrip terapkan migrasi** (`scripts/apply-migration.mjs`): jalankan satu file SQL migrasi ke
+  DB via `pg` + `SUPABASE_DB_URL` (dalam transaksi, auto-rollback bila gagal). Dipakai karena
+  **Supabase CLI tak punya binary** untuk platform ini (Windows). `pg` dipasang sementara
+  (`npm install --no-save pg`) lalu dilepas — bukan dependensi tetap project.
 
 ---
 

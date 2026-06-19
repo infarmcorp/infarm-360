@@ -5,8 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 import { MonitorChart, type EmpTrend } from './monitor-chart';
 
 /**
- * Monitor Kinerja (SPV/HRD/Direksi) — tren bulanan KPI / 360° / Skor Akhir per pegawai.
- * SPV dibatasi anggota timnya; HRD/Direksi seluruh pegawai non-direksi. Lintas periode
+ * Monitor Kinerja (SPV/HRD) — tren bulanan KPI / 360° / Skor Akhir per pegawai.
+ * SPV dibatasi anggota timnya; HRD admin seluruh pegawai non-direksi. Lintas periode
  * (semua bulan yang punya KPI). Skor Akhir per bulan = blend KPI+360 kuartal terkait − punishment.
  */
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -21,8 +21,8 @@ export default async function MonitorPage() {
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
   const role = me?.role;
-  if (role !== 'spv' && role !== 'hrd' && role !== 'direksi') {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD / Direksi.</p>
+  if (role !== 'spv' && role !== 'hrd') {
+    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
@@ -31,7 +31,7 @@ export default async function MonitorPage() {
   const hrdMode = jar.get('hrd_mode')?.value === 'spv' ? 'spv' : 'admin';
 
   // Lingkup pegawai. SPV → tim; HRD mode-SPV → hanya DIVISINYA (selaras Input KPI/Rekap);
-  // HRD admin / Direksi → semua pegawai non-direksi.
+  // HRD admin → semua pegawai non-direksi.
   let empRows: { id: string; name: string; dept: string }[] = [];
   if (role === 'spv') {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', user.id);

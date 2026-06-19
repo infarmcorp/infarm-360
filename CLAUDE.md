@@ -126,6 +126,8 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Menu HRD mode-SPV = SPV biasa** (Input KPI Anggota · Laporan Kinerja Tim · Monitor); hapus
   item "Rekapitulasi Kuartal" terpisah yang dobel dengan tab.
 - **Rekapitulasi Kuartal dihapus untuk Direksi** (menu + blokir akses `/kpi`).
+- **Monitor Kinerja dihapus untuk Direksi** (menu Eksekutif + blokir akses `/monitor` di server;
+  pola sama dgn Rekapitulasi Kuartal). SPV & HRD tak terpengaruh.
 - **Konsistensi mobile**: tabel lebar dibungkus `overflow-x-auto` + `min-w`.
 - **Aksesibilitas**: `SearchableSelect` keyboard-nav (↑/↓/Enter/Esc) + ARIA; tombol menu mobile
   `aria-label`/`aria-expanded`.

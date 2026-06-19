@@ -77,7 +77,6 @@ function menuFor(role: Role, hrdMode: HrdMode): Section[] {
       title: 'Eksekutif',
       items: [
         { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
-        { href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp },
         { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText },
         { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award },
       ],

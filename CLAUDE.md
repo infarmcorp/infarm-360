@@ -11,7 +11,7 @@ Migrasi fungsional **selesai & live**; yang tersisa sebagian besar aktivasi env 
   pengingat 360° (Gmail SMTP/Resend, dorman), indikator tenggat periode, aksesibilitas dropdown.
 - **Berikutnya (butuh aksi pengguna):** set env email (Gmail SMTP) → aktifkan pengingat +
   reset sandi via email; ganti email seed → asli.
-- **Berikutnya (bisa digarap langsung):** tes parsing impor Excel; hapus arsip legacy.
+- **Berikutnya (bisa digarap langsung):** tes parsing impor Excel.
 
 **File paling relevan:**
 - Skor & tes: `lib/scoring.ts`, `lib/score360.ts`, `tests/`, `.github/workflows/ci.yml`
@@ -40,8 +40,8 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`. Panduan pengguna: `CA
 ## Status Saat Ini vs Target
 
 > **PENTING:** Migrasi fungsional **selesai & live**. Next.js 16 + **Supabase aktif** (auth
-> nyata, RLS penuh per peran, seed idempoten). `/` = gerbang auth; SPA legacy tinggal arsip di
-> `/legacy`. Live di Vercel (auto-deploy dari `main`).
+> nyata, RLS penuh per peran, seed idempoten). `/` = gerbang auth; arsip SPA legacy sudah
+> **dihapus** (route `/legacy`, `src/`). Live di Vercel (auto-deploy dari `main`).
 
 **Kondisi sekarang (`as-is`):**
 - **Stack:** Next.js 16 App Router (Turbopack, React 19, Tailwind v4, TS strict). Lib: `motion`,
@@ -65,8 +65,8 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`. Panduan pengguna: `CA
   `NEXT_PUBLIC_ENABLE_PW_RESET=true`. Hidup bersamaan dgn pengingat 360°.
 - ⬜ **Ganti email seed `nama@infarm.test` → email asli** (10 akun); prasyarat dua item di atas.
 - ⬜ **Sandi awal berbeda per orang** (tugas HRD di Kelola Pegawai) — kurangi risiko sandi seragam.
-- ⬜ **Hapus arsip legacy** `/legacy`, `src/App.tsx`, `src/data.ts` (lepaskan dulu
-  `scripts/seed.ts` yang masih pakai `src/data.ts`).
+- ✅ **Hapus arsip legacy** `/legacy`, `src/` — selesai. Seed dilepas ke `scripts/seed-data.ts`
+  (mandiri), lalu route legacy + `src/App.tsx`/`data.ts`/`types.ts` dihapus.
 - ⬜ **Rotasi kredensial** sebelum produksi.
 - ✅ **Self-service ganti sandi** — selesai (lihat Changelog).
 - ✅ **Unit test logika skor + CI** — selesai.
@@ -154,6 +154,12 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   DB via `pg` + `SUPABASE_DB_URL` (dalam transaksi, auto-rollback bila gagal). Dipakai karena
   **Supabase CLI tak punya binary** untuk platform ini (Windows). `pg` dipasang sementara
   (`npm install --no-save pg`) lalu dilepas — bukan dependensi tetap project.
+- **Upgrade `xlsx` → 0.20.3 (CDN SheetJS resmi)** — menutup advisory **high** (prototype-pollution
+  + ReDoS) yang tak ada fix-nya di registry npm. `package.json` menunjuk tarball CDN; API & kode
+  impor tak berubah. `npm audit fix --force` tetap **DILARANG** (menurunkan Next 16→9).
+- **Hapus arsip SPA legacy** — route `/legacy` + seluruh `src/` (`App.tsx`/`data.ts`/`types.ts`)
+  dihapus. Data benih seed dipindah ke **`scripts/seed-data.ts`** (mandiri, tipe inline) agar
+  `scripts/seed.ts` tak lagi bergantung `src/`. Build/typecheck/test hijau tanpa `src/`.
 
 ---
 
@@ -167,14 +173,12 @@ Daftar hidup (perbarui saat ada perubahan). Status: ✅ selesai · 🔄 sebagian
 - ✅ **Self-service ganti sandi** (Akun Saya) — menutup risiko sandi bersama tanpa email.
 - ⬜ **Lupa Sandi via email** (dormant) — kode siap (`app/auth/lupa-sandi`, `/auth/callback`,
   `/auth/perbarui-sandi`); aktifkan dgn email asli + SMTP/Resend + `NEXT_PUBLIC_ENABLE_PW_RESET=true`.
-- ⬜ **Email seed → asli** & **hapus arsip legacy** (lihat TO-DO di atas).
-- ⬜ **Audit npm — `xlsx` (high)** (DITUNDA). `xlsx@0.18.5` (registry npm) kena advisory
-  prototype-pollution + ReDoS; npm bilang "no fix available" karena SheetJS pindah ke CDN
-  resmi. **Fix:** `npm install https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz` (API sama,
-  kode impor tak berubah) → lalu `npm run build && npm test`. Urgensi rendah: `xlsx` hanya
-  mem-parse file yang **diunggah HRD sendiri** (bukan input publik). Catatan: `npm audit fix
-  --force` **DILARANG** di repo ini — akan menurunkan Next 16→9 (merusak app). Advisory
-  `postcss` (moderate) transitif dari Next → biarkan, beres saat Next update.
+- ⬜ **Email seed → asli** (lihat TO-DO di atas). ✅ **Hapus arsip legacy** — selesai.
+- ✅ **Audit npm — `xlsx` (high)** — **SELESAI**. Di-upgrade ke `xlsx@0.20.3` dari CDN resmi
+  SheetJS (`package.json` → `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`); advisory
+  prototype-pollution + ReDoS tertutup, API/kode impor tak berubah, `build`+`test` hijau.
+  Catatan tetap berlaku: `npm audit fix --force` **DILARANG** (menurunkan Next 16→9). Sisa
+  advisory `postcss` (moderate) transitif dari Next → biarkan, beres saat Next update.
 
 ### Fungsional bernilai tinggi
 - 🔄 **Pengingat email 360°** — terbangun, **DORMAN** (aktif bila env email diset).

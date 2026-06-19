@@ -10,7 +10,7 @@
  */
 import { readFileSync } from 'fs';
 import { createClient } from '@supabase/supabase-js';
-import { INITIAL_USERS, SPV_TEAMS, INSTANT_QUARTERS, Q_QUANT, Q_QUAL, INITIAL_MAPPINGS, INITIAL_KPI_HIST } from '../src/data';
+import { INITIAL_USERS, SPV_TEAMS, INSTANT_QUARTERS, Q_QUANT, Q_QUAL, INITIAL_MAPPINGS, INITIAL_KPI_HIST } from './seed-data';
 import { DEMO_USERS } from '../lib/auth/demo-users';
 
 // Relasi legacy → enum relation_kind DB (jaga semantik kelas penilai: atasan/peer/cross).

@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server';
 /**
  * Pintu utama: belum login → /login. Sudah login → landing per peran (ala legacy):
  * Pegawai → Daftar Penilaian · SPV → Input KPI · HRD/Direksi → Dashboard.
- * SPA legacy diparkir di /legacy.
  */
 export default async function Home() {
   const supabase = await createClient();

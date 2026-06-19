@@ -97,6 +97,28 @@ export default async function DashboardPage({
     .map((ym) => ({ ym, avg: monthAgg.has(ym) ? monthAgg.get(ym)!.sum / monthAgg.get(ym)!.n : 0 }))
     .filter((m) => m.avg > 0);
 
+  // Heatmap Capaian KPI per Divisi × Bulan (tab Analisis Hasil KPI).
+  // Agregasi rerata KPI per (divisi, bulan) dari baris kpi_scores dalam lingkup.
+  const ymSorted = [...ymList].sort();
+  const empDept = new Map(emps.map((e) => [e.id, e.dept]));
+  const dmAgg = new Map<string, { sum: number; n: number }>(); // key `${dept}|${ym}`
+  (kpiRes.data ?? []).forEach((r) => {
+    const d = empDept.get(r.employee_id);
+    if (!d) return;
+    const k = `${d}|${r.ym}`;
+    const a = dmAgg.get(k) ?? { sum: 0, n: 0 };
+    a.sum += r.score; a.n += 1; dmAgg.set(k, a);
+  });
+  const deptMonthly = [...new Set(emps.map((e) => e.dept))].sort()
+    .map((d) => ({
+      dept: d,
+      cells: ymSorted.map((ym) => {
+        const a = dmAgg.get(`${d}|${ym}`);
+        return { ym, avg: a ? a.sum / a.n : null };
+      }),
+    }))
+    .filter((r) => r.cells.some((c) => c.avg != null));
+
   // Skor 360 (hasil komputasi) + punishment.
   const s360By = new Map((r360Res.data ?? []).map((r) => [r.employee_id, r.score]));
   const penBy = new Map((penRes.data ?? []).map((p) => [p.employee_id, p.points]));
@@ -169,6 +191,8 @@ export default async function DashboardPage({
           deptScores={deptScores}
           aspectScores={aspectScores}
           monthly={monthly}
+          deptMonthly={deptMonthly}
+          months={ymSorted}
           successionPlans={successionPlans}
           has360={ap.has_360}
           periodLabel={ap.label}

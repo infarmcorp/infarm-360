@@ -21,11 +21,16 @@ export type Row = {
 
 export type SuccessionPlan = { id: string; plan: string; status: string };
 
+/** Baris heatmap KPI per divisi: satu sel per bulan (null = belum ada data). */
+export type DeptMonthRow = { dept: string; cells: { ym: string; avg: number | null }[] };
+
 type Props = {
   rows: Row[];
   deptScores: [string, number][];
   aspectScores: { aspek: string; score: number }[];
   monthly: { ym: string; avg: number }[];
+  deptMonthly: DeptMonthRow[];
+  months: string[];
   successionPlans: SuccessionPlan[];
   has360: boolean;
   periodLabel: string;
@@ -56,7 +61,7 @@ const TABS: { key: SubTab; label: string; icon: React.ElementType }[] = [
   { key: 'table', label: 'Tabel Hasil Seluruh Pegawai', icon: Users },
 ];
 
-export function DashboardVisual({ rows, deptScores, aspectScores, monthly, successionPlans, has360, periodLabel, kpiStandard }: Props) {
+export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptMonthly, months, successionPlans, has360, periodLabel, kpiStandard }: Props) {
   const [tab, setTab] = useState<SubTab>('compilation');
 
   return (
@@ -78,7 +83,7 @@ export function DashboardVisual({ rows, deptScores, aspectScores, monthly, succe
       </div>
 
       {tab === 'compilation' && <CompilationTab rows={rows} deptScores={deptScores} aspectScores={aspectScores} successionPlans={successionPlans} has360={has360} periodLabel={periodLabel} />}
-      {tab === 'kpi' && <KpiTab rows={rows} deptScores={deptScores} monthly={monthly} kpiStandard={kpiStandard} />}
+      {tab === 'kpi' && <KpiTab rows={rows} deptScores={deptScores} monthly={monthly} deptMonthly={deptMonthly} months={months} kpiStandard={kpiStandard} />}
       {tab === 'feedback' && <FeedbackTab rows={rows} aspectScores={aspectScores} has360={has360} periodLabel={periodLabel} />}
       {tab === 'table' && <TableTab rows={rows} has360={has360} />}
     </div>
@@ -355,7 +360,7 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
 }
 
 /* ───────────────────────── TAB 2 — ANALISIS KPI ───────────────────────── */
-function KpiTab({ rows, deptScores, monthly, kpiStandard }: { rows: Row[]; deptScores: [string, number][]; monthly: { ym: string; avg: number }[]; kpiStandard: number }) {
+function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard }: { rows: Row[]; deptScores: [string, number][]; monthly: { ym: string; avg: number }[]; deptMonthly: DeptMonthRow[]; months: string[]; kpiStandard: number }) {
   const kpis = rows.map((r) => r.kpiAvg).filter((v): v is number => v != null);
   const avgKpi = mean(kpis);
   const pctOverStd = kpis.length ? (kpis.filter((s) => s >= kpiStandard).length / kpis.length) * 100 : 0;
@@ -381,6 +386,8 @@ function KpiTab({ rows, deptScores, monthly, kpiStandard }: { rows: Row[]; deptS
         <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={`${pctOverStd.toFixed(0)}%`} label={`KPI Di Atas Standar (≥${kpiStandard})`} />
         <Stat icon={<BarChart3 className="w-6 h-6" />} tint="amber" value={`${monthly.length} Bulan`} label="Siklus Penilaian Terpilih" />
       </div>
+
+      <KpiHeatmap deptMonthly={deptMonthly} months={months} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card title="🏢 Rerata KPI Bulanan per Departemen">
@@ -558,6 +565,74 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
         Skor Akhir = blend KPI+360 (50/50) − punishment, dikunci periode aktif. 9-Box butuh KPI &amp; 360; N/A bila salah satu belum ada.
         {!has360 && ' A Player butuh 360° aktif.'}
       </p>
+    </div>
+  );
+}
+
+/* ───────────────────────── Heatmap KPI / Divisi × Bulan ───────────────────────── */
+/**
+ * Warna sel heatmap dari skor KPI — gradien merah (rendah) → kuning → hijau (tinggi).
+ * Skala 50→100 dipetakan ke hue 0°(merah)→130°(hijau); <50 tetap merah pekat.
+ * Teks putih (lightness sel ~42% memberi kontras cukup di seluruh rentang).
+ */
+function heatColor(v: number | null): { bg: string; fg: string } {
+  if (v == null) return { bg: '#f9fafb', fg: '#9ca3af' };
+  const t = Math.max(0, Math.min(1, (v - 50) / 50));
+  return { bg: `hsl(${(t * 130).toFixed(0)}, 60%, 42%)`, fg: '#ffffff' };
+}
+
+function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; months: string[] }) {
+  if (deptMonthly.length === 0 || months.length === 0) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
+        <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight mb-1">Capaian KPI / Divisi</h3>
+        <p className="text-xs text-gray-500 italic mt-2">Belum ada data KPI bulanan untuk lingkup ini.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
+      <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
+        <div>
+          <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Capaian KPI / Divisi</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Rerata skor KPI per divisi tiap bulan — makin hijau makin tinggi.</p>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500">
+          <span>Rendah</span>
+          <span className="h-2.5 w-24 rounded-full" style={{ background: 'linear-gradient(to right, hsl(0,60%,42%), hsl(65,60%,42%), hsl(130,60%,42%))' }} />
+          <span>Tinggi</span>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full border-separate border-spacing-1 text-xs min-w-[560px]">
+          <thead>
+            <tr>
+              <th className="text-left py-2 px-3 text-[10px] font-extrabold uppercase tracking-wider text-gray-500 sticky left-0 bg-white">Divisi</th>
+              {months.map((ym) => (
+                <th key={ym} className="text-center py-2 px-2 text-[10px] font-extrabold uppercase tracking-wider text-gray-500 whitespace-nowrap">{ymLabel(ym)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {deptMonthly.map((row) => (
+              <tr key={row.dept}>
+                <td className="py-2 px-3 font-bold text-slate-700 whitespace-nowrap sticky left-0 bg-white">{row.dept}</td>
+                {row.cells.map((c) => {
+                  const { bg, fg } = heatColor(c.avg);
+                  return (
+                    <td key={c.ym} className="text-center font-mono font-bold rounded-md py-2.5 px-2"
+                      style={{ backgroundColor: bg, color: fg }}
+                      title={`${row.dept} · ${ymLabel(c.ym)} · ${c.avg != null ? c.avg.toFixed(2) : 'tanpa data'}`}>
+                      {c.avg != null ? c.avg.toFixed(2) : '—'}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-[10px] text-gray-500 italic mt-3">Sel = rerata KPI seluruh pegawai divisi pada bulan itu (lingkup periode &amp; filter divisi aktif). &ldquo;—&rdquo; = belum ada input KPI.</p>
     </div>
   );
 }

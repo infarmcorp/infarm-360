@@ -150,6 +150,12 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   form buat-periode). Dashboard tab **Analisis Hasil KPI** memakai nilai ini untuk kartu **"KPI
   Di Atas Standar (≥N)"** (filter + label dinamis). **Murni metrik pelaporan** — TIDAK menyentuh
   rumus skor di `lib/scoring.ts`. Ganti standar tiap kuartal tanpa deploy.
+- **Dashboard — heatmap "Capaian KPI / Divisi"** (tab Analisis Hasil KPI, `admin/dashboard/`):
+  tabel matriks **divisi × bulan** dengan sel berwarna gradien merah→kuning→hijau (skala 50–100
+  → hue 0°–130°, `heatColor`/`KpiHeatmap` di `dashboard-visual.tsx`). Server `page.tsx` agregasi
+  rerata KPI per `(dept, ym)` dari `kpi_scores` yang **sudah di-scope** lingkup periode+filter
+  divisi (tanpa query baru) → props `deptMonthly`/`months`. Ikut filter periode/divisi dashboard;
+  sel kosong "—". **Murni pelaporan** (tak menyentuh `lib/scoring.ts`).
 - **Dashboard — kartu KPI tertinggi/terendah berlabel nama** (`admin/dashboard/dashboard-visual.tsx`):
   kartu "Skor KPI Tertinggi" kini menampilkan **nama pegawai**, + kartu baru **"Skor KPI Terendah"**
   (nama + skor). `Stat` diperluas prop `sub`.

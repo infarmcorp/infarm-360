@@ -2,30 +2,33 @@
 
 Panduan untuk Claude Code saat bekerja di repo ini.
 
-## Sedang Dikerjakan (per 2026-06-18)
+## Sedang Dikerjakan (per 2026-06-19)
 
-**Fokus aktif:** pengerasan pra-produksi — keamanan, pengujian, CI, email, aksesibilitas.
-Migrasi fungsional **selesai & live**; yang tersisa sebagian besar aktivasi env + kebersihan.
+**Fokus aktif:** pengerasan pra-produksi — keamanan, pengujian, email, aksesibilitas.
+Migrasi fungsional **selesai & live**; sisa sebagian besar aktivasi env + kebersihan.
 
-- **Baru selesai:** **alur visibilitas laporan bertahap** (`draft → in_review → finalized`, migrasi
-  0011/0012 — tutup kebocoran raw 360° ke SPV + tombol "Rilis ke SPV"); audit kontras/keterbacaan
-  teks (WCAG AA); hapus Monitor Kinerja untuk Direksi; self-service ganti sandi; unit test skor + CI;
-  email pengingat 360° (dorman); indikator tenggat periode.
-- **Berikutnya (butuh aksi pengguna):** set env email (Gmail SMTP) → aktifkan pengingat +
-  reset sandi via email; ganti email seed → asli. **Komunikasikan ke HRD** langkah baru "Rilis ke
-  SPV" (SPV tak lagi lihat detail tim sampai dirilis).
-- **Baru selesai (jaring regresi L3):** assertion 360° untuk `verify:rls` — kini **21 assertion**
-  (dari 12). Menambah fixture penilaian 360° (periode+aspek+indikator+esai, penilai OTH→target EMP)
-  & menegakkan **SPV tak boleh baca `assessments`/AIS/AQA anggota tim** (0012), + kontrol positif
-  (HRD baca penuh; penilai & target baca miliknya). Self-cleaning (cascade lewat hapus periode uji).
+- **Baru selesai (session ini & sebelumnya):**
+  - **Alur visibilitas laporan bertahap** (`draft → in_review → finalized`, migrasi 0011/0012) —
+    tutup kebocoran raw 360° ke SPV + tombol "Rilis ke SPV".
+  - **Izin HRD Admin sebagai grant** (`is_hrd_admin`, migrasi 0013) + `canAdmin()` di ~25 file.
+  - **Jaring regresi L3** — `verify:rls` kini **21 assertion** (dari 12): fixture 360° + tegakkan
+    SPV ditolak baca `assessments`/AIS/AQA anggota tim, plus kontrol positif HRD/penilai/target.
+  - **Heatmap "Capaian KPI / Divisi"** (dashboard tab Analisis Hasil KPI) — matriks divisi × bulan.
+  - **Paritas SPV ↔ HRD-mode-SPV** (Laporan Hasil Saya + Monitor menyertakan diri); audit
+    kontras WCAG AA; self-service ganti sandi; email pengingat 360° (dorman); indikator tenggat.
+- **Berikutnya (butuh aksi pengguna):** set env email (Gmail SMTP) → aktifkan pengingat + reset
+  sandi via email; ganti email seed → asli; sandi awal beda per orang. **Komunikasikan ke HRD**
+  langkah baru "Rilis ke SPV" (SPV tak lagi lihat detail tim sampai dirilis).
+- **Berikutnya (bisa digarap langsung):** branch protection GitHub (PR butuh CI hijau); tes Server
+  Action (finalisasi/`releaseToSpv`/`setHrdAdmin`/ACC). Lihat **TO-DO & Backlog**.
 
 **File paling relevan:**
-- Laporan & visibilitas: `lib/report.ts` (`loadReport`/`loadTeamReportForSpv`), `app/(app)/laporan/`,
-  `app/(app)/laporan-tim/`, `app/(app)/admin/laporan/actions.ts` · RLS: `supabase/migrations/0012`
-- Skor & tes: `lib/scoring.ts`, `lib/score360.ts`, `tests/`, `.github/workflows/ci.yml`
-- Email: `lib/email/mailer.ts`, `app/(app)/admin/progress/actions.ts`
-- Akun/sesi: `app/(app)/akun/`, `app/login/`, `app/(app)/app-shell.tsx`
-- Pola end-to-end referensi: `app/(app)/kpi/` · Skema/RLS: `supabase/migrations/`
+- Laporan & visibilitas: `lib/report.ts` (`loadReport`/`loadTeamReportForSpv`/`loadTeamReportForHrdSpv`),
+  `app/(app)/laporan/`, `app/(app)/laporan-tim/`, `app/(app)/admin/laporan/actions.ts` · RLS: migrasi 0012
+- Dashboard: `app/(app)/admin/dashboard/` (`page.tsx` + `dashboard-visual.tsx`)
+- Skor & tes: `lib/scoring.ts`, `lib/score360.ts`, `tests/`, `scripts/verify-rls.ts`, `.github/workflows/ci.yml`
+- Izin/sesi: `lib/auth/roles.ts` (`canAdmin`), `app/(app)/layout.tsx`, `app/(app)/app-shell.tsx`, `app/login/`
+- Email: `lib/email/mailer.ts`, `app/(app)/admin/progress/actions.ts` · Skema/RLS: `supabase/migrations/`
 
 ---
 
@@ -34,7 +37,7 @@ Migrasi fungsional **selesai & live**; yang tersisa sebagian besar aktivasi env 
 Aplikasi web **penilaian kinerja (Performance Appraisal) 360° internal** untuk Infarm.
 Bukan e-commerce — **tidak ada pembayaran, keranjang, stok, atau pengiriman barang.**
 
-Empat peran pengguna (lihat `src/types.ts` → `UserRole`):
+Empat peran pengguna (kolom `employees.role`; logika kewenangan di `lib/auth/roles.ts`):
 - **Employee** — mengisi penilaian 360 Feedback, lihat laporan hasil sendiri.
 - **SPV (Supervisor)** — input KPI bulanan tim (+ KPI dirinya sendiri), ACC laporan tim,
   monitor kinerja bawahan.
@@ -67,7 +70,7 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`. Panduan pengguna: `CA
 - **Stack:** Next.js 16 App Router (Turbopack, React 19, Tailwind v4, TS strict). Lib: `motion`,
   `lucide-react`, `xlsx`, `zod`, `nodemailer`, `vitest` (dev).
 - **Supabase** (ref `beajoczjpywozavatzmf`): auth `@supabase/ssr`, **20 tabel** (migrasi
-  `supabase/migrations/0001`–`0008`), RLS penuh per peran, seed idempoten (`scripts/seed.ts`).
+  `supabase/migrations/0001`–`0013`), RLS penuh per peran, seed idempoten (`scripts/seed.ts`).
 - **Shell persisten** di route group `app/(app)/` — sidebar + landing per peran, sub-fitur
   sebagai tab (`?tab=`). Helper: `lib/supabase/server.ts` (`createClient` user-scoped/RLS vs
   `createAdminClient` service_role).
@@ -78,21 +81,12 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`. Panduan pengguna: `CA
 - **CI aktif** (`.github/workflows/ci.yml`): test + typecheck + build tiap push/PR.
 - Login: lihat `lib/auth/demo-users.ts` (= sumber seed). Sandi awal bersama (ganti per orang).
 
-**Sisa pra-produksi — TO-DO:**
-- ⬜ **Aktifkan email pengingat 360°** — kode siap (DORMAN), tinggal **set env** (Gmail SMTP
-  tanpa domain, atau Resend). Lihat "Aktivasi" di bawah.
-- ⬜ **Aktifkan "Lupa Sandi via email"** — dependensi sama (email asli + SMTP/Resend) + flag
-  `NEXT_PUBLIC_ENABLE_PW_RESET=true`. Hidup bersamaan dgn pengingat 360°.
-- ⬜ **Ganti email seed `nama@infarm.test` → email asli** (10 akun); prasyarat dua item di atas.
-- ⬜ **Sandi awal berbeda per orang** (tugas HRD di Kelola Pegawai) — kurangi risiko sandi seragam.
-- ✅ **Hapus arsip legacy** `/legacy`, `src/` — selesai. Seed dilepas ke `scripts/seed-data.ts`
-  (mandiri), lalu route legacy + `src/App.tsx`/`data.ts`/`types.ts` dihapus.
-- ⬜ **Rotasi kredensial** sebelum produksi.
-- ✅ **Self-service ganti sandi** — selesai (lihat Changelog).
-- ✅ **Unit test logika skor + CI** — selesai.
-- ✅ **Indikator tenggat periode** — selesai.
+**Sisa pra-produksi:** sebagian besar **aktivasi env** (email pengingat 360° + reset sandi) &
+kebersihan akun (email seed asli, sandi beda per orang, rotasi kredensial). Daftar lengkap +
+status di **TO-DO & Backlog** di bawah.
 
-Saat mengerjakan fitur, ingat: kerjakan di route Next.js `app/(app)/` (bukan SPA legacy).
+Saat mengerjakan fitur, ingat: kerjakan di route Next.js `app/(app)/` (arsip SPA legacy `src/`
+sudah dihapus).
 
 ---
 
@@ -229,7 +223,8 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - `final_reports.content` (jsonb, kolom lama) dipakai untuk `aspectSummaries` (tanpa migrasi baru).
 
 ### Infra / Testing / CI
-- **Vitest** (`npm test`) + 28 unit test logika skor; rumus 360° diekstrak ke `lib/score360.ts`.
+- **Vitest** (`npm test`) + **55 tes** (logika skor + parsing impor Excel); rumus 360° diekstrak
+  ke `lib/score360.ts`. Rincian di bagian **Pengujian**.
 - **GitHub Actions** (`.github/workflows/ci.yml`): test + typecheck + build tiap push/PR.
 - **Skrip reset** (`scripts/reset-*.{sql,mjs}`): backup→kosongkan, 3 tingkat granularitas
   (transaksional / sisakan pegawai / pemetaan saja). `backups/` gitignored.
@@ -254,17 +249,20 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 
 ---
 
-## Backlog & Rekomendasi (kekurangan / pengembangan)
+## TO-DO & Backlog (kekurangan / pengembangan)
 
-Daftar hidup (perbarui saat ada perubahan). Status: ✅ selesai · 🔄 sebagian · ⬜ belum.
+Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: ✅ selesai ·
+🔄 sebagian · ⬜ belum. Item **butuh-aksi-pengguna** ditandai 🔑.
 
 ### Keamanan pra-go-live
-- ⬜ **Sandi bersama** untuk semua akun → minta tiap pegawai ganti (via Akun Saya); HRD beri
-  sandi berbeda per orang. Risiko impersonasi (inti integritas 360°).
+- 🔑⬜ **Sandi awal seragam** untuk semua akun → minta tiap pegawai ganti (via Akun Saya); HRD beri
+  sandi berbeda per orang (Kelola Pegawai). Risiko impersonasi (inti integritas 360°).
 - ✅ **Self-service ganti sandi** (Akun Saya) — menutup risiko sandi bersama tanpa email.
-- ⬜ **Lupa Sandi via email** (dormant) — kode siap (`app/auth/lupa-sandi`, `/auth/callback`,
+- 🔑⬜ **Lupa Sandi via email** (dormant) — kode siap (`app/auth/lupa-sandi`, `/auth/callback`,
   `/auth/perbarui-sandi`); aktifkan dgn email asli + SMTP/Resend + `NEXT_PUBLIC_ENABLE_PW_RESET=true`.
-- ⬜ **Email seed → asli** (lihat TO-DO di atas). ✅ **Hapus arsip legacy** — selesai.
+- 🔑⬜ **Email seed `nama@infarm.test` → asli** (10 akun) — prasyarat pengingat 360° + reset sandi.
+- 🔑⬜ **Rotasi kredensial** (`SUPABASE_SERVICE_ROLE_KEY` dll) sebelum produksi.
+- ✅ **Hapus arsip legacy** `/legacy` + `src/` — selesai (seed dilepas ke `scripts/seed-data.ts`).
 - ✅ **Audit npm — `xlsx` (high)** — **SELESAI**. Di-upgrade ke `xlsx@0.20.3` dari CDN resmi
   SheetJS (`package.json` → `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`); advisory
   prototype-pollution + ReDoS tertutup, API/kode impor tak berubah, `build`+`test` hijau.
@@ -272,9 +270,10 @@ Daftar hidup (perbarui saat ada perubahan). Status: ✅ selesai · 🔄 sebagian
   advisory `postcss` (moderate) transitif dari Next → biarkan, beres saat Next update.
 
 ### Fungsional bernilai tinggi
-- 🔄 **Pengingat email 360°** — terbangun, **DORMAN** (aktif bila env email diset).
+- 🔑🔄 **Pengingat email 360°** — terbangun, **DORMAN** (aktif bila env email diset).
 - ✅ **Ekspor Excel** dashboard/rekap.
 - ✅ **Deadline periode lebih tegas** — indikator sisa hari + peringatan.
+- ✅ **Heatmap Capaian KPI per Divisi × Bulan** (dashboard tab Analisis Hasil KPI).
 - ⬜ **Ringkasan Aspek 360° otomatis (Claude API)** — REKOMENDASI, belum dibangun. Editor
   per-aspek sudah ada; tambah tombol "✨ Buat Ringkasan Otomatis" → Server Action kirim rating +
   komentar **anonim** (`data.byAspect`, tanpa nama) ke Claude → isi textarea (HRD edit & Simpan).
@@ -287,13 +286,15 @@ Daftar hidup (perbarui saat ada perubahan). Status: ✅ selesai · 🔄 sebagian
     melatih model pada data bisnis. Perlu persetujuan kebijakan internal.
 
 ### Keandalan teknis
-- 🔄 **Tes** — Vitest + **55 tes** (logika skor + **parsing impor Excel** KPI & pemetaan 360°,
-  `tests/import.test.ts`). **Sisa:** Server Action lain.
+- 🔄 **Tes unit** — Vitest **55 tes** (logika skor + parsing impor Excel KPI & pemetaan 360°).
+- ⬜ **Tes Server Action** (finalisasi laporan, `releaseToSpv`, `setHrdAdmin`, ACC) — belum ada;
+  butuh mock Supabase. Nilai sedang. **Task baru (diskusi 2026-06-19).**
+- ⬜ **Branch protection GitHub** — PR ke `main` belum wajib CI hijau (push langsung bisa lolos
+  walau build merah). Setting GitHub, ~5 menit. **Task baru (diskusi 2026-06-19).**
 - ✅ **Verifikasi RLS terprogram per peran** — `npm run verify:rls` (`scripts/verify-rls.ts`):
-  fixture uji mandiri (`RLSTEST-*`) + login per peran → **21 assertion** `kpi_scores` (baca/tulis,
-  termasuk **SPV tulis KPI rekan SPV → DITOLAK**) **+ umpan balik 360° mentah lapis 3** (SPV ditolak
-  baca `assessments`/AIS/AQA anggota tim [0012]; kontrol positif HRD/penilai/target). Self-cleaning,
-  aman ke data nyata. Manual pra-rilis.
+  fixture uji mandiri (`RLSTEST-*`) → **21 assertion** `kpi_scores` (baca/tulis, termasuk **SPV
+  tulis KPI rekan SPV → DITOLAK**) **+ 360° mentah lapis 3** (SPV ditolak baca `assessments`/AIS/AQA
+  anggota tim [0012]; kontrol positif HRD/penilai/target). Self-cleaning, aman ke data nyata.
 - 🔄 **Aksesibilitas & mobile** — dropdown keyboard-nav/ARIA + tabel lebar wrapped.
   **Keputusan (2026-06-19):** a11y **tidak** didorong sampai dukungan pembaca layar/tunanetra —
   basis pengguna tak menjangkau itu (jangan tambah `aria-label`/`role`/uji NVDA tanpa diminta;
@@ -307,8 +308,8 @@ Daftar hidup (perbarui saat ada perubahan). Status: ✅ selesai · 🔄 sebagian
   Murni `className` — logika/tipe/rumus tak tersentuh; `npm run build` hijau.
 
 ### Pengembangan opsional
-- Bulk-finalisasi laporan ber-ACC SPV · Ekspor Log Aktivitas HRD ke Excel · Branch protection
-  GitHub (PR butuh CI hijau) · Ganti email mandiri (lanjutan Akun Saya).
+- ⬜ Bulk-finalisasi laporan ber-ACC SPV · ⬜ Ekspor Log Aktivitas HRD ke Excel · ⬜ Ganti email
+  mandiri (lanjutan Akun Saya).
 
 > Catatan paritas legacy yang **memang diinginkan** (bukan bug): edit skor KPI wajib komentar;
 > input KPI pertama boleh tanpa komentar. Pertahankan.

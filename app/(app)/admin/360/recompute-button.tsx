@@ -33,7 +33,7 @@ export function RecomputeButton() {
         {busy ? 'Menghitung…' : 'Hitung Ulang Skor 360°'}
       </button>
       {msg && (
-        <span className={`text-xs font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>
+        <span role="status" className={`text-xs font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>
           {msg.text}
         </span>
       )}

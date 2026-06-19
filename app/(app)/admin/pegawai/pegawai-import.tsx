@@ -215,7 +215,7 @@ export function PegawaiImport({ rows }: { rows: EmpRow[] }) {
           </div>
         </>
       )}
-      {msg && <p className={`text-xs font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
+      {msg && <p role="status" className={`text-xs font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
     </div>
   );
 }

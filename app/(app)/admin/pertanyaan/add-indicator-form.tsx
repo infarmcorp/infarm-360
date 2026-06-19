@@ -59,7 +59,7 @@ export function AddIndicatorForm({ aspects }: { aspects: { id: string; name: str
             placeholder="Contoh: Senantiasa memelihara transparansi & ketepatan laporan operasional…"
             className="w-full text-xs p-1.5 bg-white border border-gray-250 rounded-md focus:ring-1 focus:ring-emerald-700 outline-none text-gray-800 leading-relaxed resize-none" />
         </div>
-        {msg && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
+        {msg && <p role="status" className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
         <button type="submit" disabled={busy}
           className="w-full bg-emerald-800 hover:bg-emerald-900 disabled:opacity-60 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5">
           <Plus className="w-3.5 h-3.5" /> {busy ? 'Menyimpan…' : 'Tambah Indikator ke Aspek'}

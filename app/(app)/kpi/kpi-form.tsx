@@ -147,7 +147,7 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
             <button onClick={submitManual} disabled={pending} className="rounded bg-emerald-700 px-4 py-2 text-white text-sm font-bold disabled:opacity-50">
               {pending ? 'Menyimpan…' : 'Simpan Semua Skor'}
             </button>
-            {msg && <span className={`text-sm font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
+            {msg && <span role="status" className={`text-sm font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
           </div>
         </>
       ) : (
@@ -158,7 +158,7 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
           </div>
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile}
             className="block text-sm file:mr-3 file:rounded file:border-0 file:bg-emerald-700 file:px-3 file:py-1.5 file:text-white file:font-bold" />
-          {parseErr && <p className="text-sm text-rose-600 font-semibold">{parseErr}</p>}
+          {parseErr && <p className="text-sm text-rose-600 font-semibold" role="alert">{parseErr}</p>}
 
           {parsed && (
             <>
@@ -191,7 +191,7 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
                   {pending ? 'Menyimpan…' : `Terapkan & Simpan (${parsed.filter(isValidKpiRow).length} baris)`}
                 </button>
                 <button onClick={() => setParsed(null)} disabled={pending} className="text-sm font-semibold text-gray-500 hover:underline">Batal</button>
-                {msg && <span className={`text-sm font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
+                {msg && <span role="status" className={`text-sm font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
               </div>
             </>
           )}

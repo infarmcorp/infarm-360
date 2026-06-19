@@ -37,7 +37,7 @@ export function RespondForm({ planId }: { planId: string }) {
           Tolak
         </button>
       </div>
-      {msg && <p className="text-[11px] font-semibold text-rose-600">{msg}</p>}
+      {msg && <p className="text-[11px] font-semibold text-rose-600" role="alert">{msg}</p>}
     </div>
   );
 }

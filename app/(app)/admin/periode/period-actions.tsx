@@ -67,7 +67,7 @@ export function PeriodActions({
           {has360 ? 'Set Tanpa 360°' : 'Aktifkan 360°'}
         </button>
       </div>
-      {err && <span className="text-[10px] text-rose-600 max-w-[150px] text-right">{err}</span>}
+      {err && <span className="text-[10px] text-rose-600 max-w-[150px] text-right" role="alert">{err}</span>}
     </div>
   );
 }

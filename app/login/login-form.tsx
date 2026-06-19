@@ -108,7 +108,7 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
         />
       </div>
 
-      {error && <p className="text-xs text-rose-600 font-semibold">{error}</p>}
+      {error && <p className="text-xs text-rose-600 font-semibold" role="alert">{error}</p>}
 
       <button
         type="submit"

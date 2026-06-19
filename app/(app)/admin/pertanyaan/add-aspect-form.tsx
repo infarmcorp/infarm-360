@@ -46,7 +46,7 @@ export function AddAspectForm({ hasAspects }: { hasAspects: boolean }) {
           <Plus className="w-3.5 h-3.5" /> {busy ? 'Menyimpan…' : 'Tambah Aspek'}
         </button>
       </form>
-      {msg && <p className={`text-[11px] font-semibold mt-1.5 ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
+      {msg && <p role="status" className={`text-[11px] font-semibold mt-1.5 ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
     </section>
   );
 }

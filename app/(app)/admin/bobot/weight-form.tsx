@@ -63,7 +63,7 @@ export function WeightForm({ initial }: { initial: Init }) {
         {total !== 100 && <span className="text-amber-600"> — umumnya 100</span>}
       </p>
 
-      {msg && <p className={`text-xs font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
+      {msg && <p role="status" className={`text-xs font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
 
       <button type="submit" disabled={busy}
         className="text-sm font-bold px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-60">

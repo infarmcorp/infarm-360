@@ -131,8 +131,10 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   `aria-label`/`aria-expanded`. **Batch 1 a11y** (dari audit): `aria-label` utk semua kontrol form
   tanpa label (input skor/catatan KPI, poin punishment, teks indikator/panduan rating, pertanyaan
   kualitatif, ringkasan aspek, input file impor, selektor periode) & tombol ikon-saja (kelola
-  indikator/aspek: simpan/batal/ubah/geser/hapus; tutup dialog koreksi) + sebagian `role`
-  status/alert. Sisa pengumuman status & audit kontras → batch lanjutan.
+  indikator/aspek: simpan/batal/ubah/geser/hapus; tutup dialog koreksi). **Batch 2 a11y**:
+  pengumuman status pembaca layar — `role="alert"` utk pesan error & `role="status"` utk pesan
+  sukses/info di ~28 form (login/akun/sandi, KPI, pemetaan, periode, pertanyaan, suksesi, laporan,
+  penilaian, dll.). Sisa: audit kontras WCAG AA + uji pembaca layar.
 
 ### Skema DB (migrasi)
 - `0005_hrd_audit_log` — tabel jejak audit HRD (append-only).
@@ -211,11 +213,10 @@ Daftar hidup (perbarui saat ada perubahan). Status: ✅ selesai · 🔄 sebagian
 - ✅ **Verifikasi RLS terprogram per peran** — `npm run verify:rls` (`scripts/verify-rls.ts`):
   fixture uji mandiri (`RLSTEST-*`) + login per peran → 12 assertion `kpi_scores` (baca/tulis),
   termasuk **SPV tulis KPI rekan SPV → DITOLAK**. Self-cleaning, aman ke data nyata. Manual pra-rilis.
-- 🔄 **Aksesibilitas & mobile** — dropdown keyboard-nav/ARIA + tabel lebar wrapped. **Batch 1
-  a11y selesai:** nama aksesibel (`aria-label`) utk kontrol form tanpa label & tombol ikon-saja
-  (kpi-form, penalty, indicator/qual-manager, aspect-summary, file-input impor, dll.). **Sisa:**
-  pengumuman status `role="status"`/`alert` (Batch 2, ~sebagian sudah), audit kontras menyeluruh,
-  uji pembaca layar.
+- 🔄 **Aksesibilitas & mobile** — dropdown keyboard-nav/ARIA + tabel lebar wrapped. **Batch 1+2
+  a11y selesai:** (1) nama aksesibel (`aria-label`) utk kontrol form tanpa label & tombol ikon-saja;
+  (2) pengumuman status — `role="alert"` (error) / `role="status"` (sukses/info) di ~28 form.
+  **Sisa:** audit kontras menyeluruh (WCAG AA) + uji pembaca layar (NVDA/VoiceOver).
 
 ### Pengembangan opsional
 - Bulk-finalisasi laporan ber-ACC SPV · Ekspor Log Aktivitas HRD ke Excel · Branch protection

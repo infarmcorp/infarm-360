@@ -31,7 +31,7 @@ export function AkunForm() {
       <Field label="Sandi Baru" value={next} onChange={setNext} autoComplete="new-password" placeholder="Minimal 8 karakter" />
       <Field label="Ulangi Sandi Baru" value={confirm} onChange={setConfirm} autoComplete="new-password" />
       {msg && (
-        <p className={`text-xs font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>
+        <p role="status" className={`text-xs font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>
       )}
       <button type="submit" disabled={busy}
         className="inline-flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors">

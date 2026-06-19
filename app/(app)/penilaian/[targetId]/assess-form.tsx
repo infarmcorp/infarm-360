@@ -312,7 +312,7 @@ export function AssessForm({
         </div>
       </div>
 
-      {error && <p className="text-xs text-rose-600 font-semibold">{error}</p>}
+      {error && <p className="text-xs text-rose-600 font-semibold" role="alert">{error}</p>}
 
       {/* Kontrol bawah */}
       <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 flex flex-col sm:flex-row justify-between gap-2">

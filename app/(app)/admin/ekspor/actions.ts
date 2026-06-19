@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { canAdmin } from '@/lib/auth/roles';
 import { finalScoreOf, playerClassOf } from '@/lib/scoring';
 
 /**
@@ -21,8 +22,8 @@ async function requireHrd(): Promise<boolean> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
-  return me?.role === 'hrd';
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  return canAdmin(me);
 }
 
 const KAT = (f: number | null) =>

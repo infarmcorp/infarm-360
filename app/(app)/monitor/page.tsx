@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { canAdmin } from '@/lib/auth/roles';
 import { MonitorChart, type EmpTrend } from './monitor-chart';
 
 /**
@@ -19,9 +20,9 @@ export default async function MonitorPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
   const role = me?.role;
-  if (role !== 'spv' && role !== 'hrd') {
+  if (role !== 'spv' && !canAdmin(me)) {
     return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }

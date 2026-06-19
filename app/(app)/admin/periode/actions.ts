@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { canAdmin } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 
 /**
@@ -18,8 +19,8 @@ async function requireHrd(
 ): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
-  if (me?.role !== 'hrd') return { ok: false, error: 'Hanya HRD yang dapat mengelola periode' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat mengelola periode' };
   return { ok: true, userId: user.id };
 }
 

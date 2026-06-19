@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { canAdmin } from '@/lib/auth/roles';
 import { loadReport, loadTeamReportForSpv, loadTeamReportForHrdSpv } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
 import { ReportActions } from '../report-actions';
@@ -21,17 +22,18 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
   const role = me?.role;
-  if (role !== 'hrd' && role !== 'direksi' && role !== 'spv') {
+  const isAdmin = canAdmin(me);
+  if (!isAdmin && role !== 'direksi' && role !== 'spv') {
     return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD / Direksi.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
-  // Mode HRD (dual-mode): mode-SPV dibatasi setara SPV (tanpa raw 360°).
+  // Mode HRD (dual-mode): HRD-posisi mode-SPV dibatasi setara SPV (tanpa raw 360°).
   const jar = await cookies();
   const hrdSpvMode = role === 'hrd' && jar.get('hrd_mode')?.value === 'spv';
-  // Jalur "seperti SPV": SPV biasa ATAU HRD yang sedang bertindak sebagai SPV.
+  // Jalur "seperti SPV": SPV biasa ATAU HRD-posisi yang sedang bertindak sebagai SPV.
   const asSpv = role === 'spv' || hrdSpvMode;
 
   const { data: ap } = await supabase
@@ -78,13 +80,14 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
-  const isHrd = role === 'hrd';
+  // isAdmin (pemegang izin HRD, bukan asSpv & bukan direksi) → tampilan admin penuh
+  // (panel aksi + raw feedback anonim). Direksi → read-only penuh.
   return (
     <Shell>
       <Link href={back.href} className="text-xs text-gray-500 hover:underline no-print">{back.label}</Link>
       <div className="mt-2">
         {/* HRD: panel aksi (Unduh PDF / Simpan Draf / Rilis ke SPV / Finalisasi Hasil). */}
-        {isHrd && (
+        {isAdmin && (
           <ReportActions
             employeeId={employeeId}
             status={data.status}
@@ -94,8 +97,8 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
         )}
         {/* HRD: sembunyikan blok komentar-per-penilai (bernama) → diganti raw feedback anonim;
             tombol Unduh PDF bawaan disembunyikan karena sudah ada di panel aksi. */}
-        <ReportDoc data={data} anonymize={false} hideAssessorComments={isHrd} hidePrint={isHrd} />
-        {isHrd && data.has360 && (
+        <ReportDoc data={data} anonymize={false} hideAssessorComments={isAdmin} hidePrint={isAdmin} />
+        {isAdmin && data.has360 && (
           <>
             <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} />
             <RawFeedback byAspect={data.byAspect} essays={data.essays} />

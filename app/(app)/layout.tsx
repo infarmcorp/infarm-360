@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import { canAdmin } from '@/lib/auth/roles';
 import { getTodos } from '@/lib/todos/compute';
 import { AppShell, type Role } from './app-shell';
 
@@ -15,8 +16,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect('/login');
 
   const { data: emp } = await supabase
-    .from('employees').select('emp_code, name, dept, role').eq('id', user.id).maybeSingle();
+    .from('employees').select('emp_code, name, dept, role, is_hrd_admin').eq('id', user.id).maybeSingle();
   const role = (emp?.role ?? 'employee') as Role;
+  const isAdmin = canAdmin(emp);
 
   const { data: ap } = await supabase
     .from('periods').select('label, status, end_date').eq('status', 'active').limit(1).maybeSingle();
@@ -24,9 +26,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // Sisa hari menuju end_date (berbasis tanggal, UTC) → indikator deadline di sidebar.
   const periodDaysLeft = ap?.end_date ? daysUntil(ap.end_date) : null;
 
-  // Mode tampilan HRD (dual-mode): default 'admin'. Hanya berlaku untuk peran hrd.
+  // Dual-mode (hanya relevan bila punya izin HRD/canAdmin). Token 'spv' = mode posisi-asli (base).
+  // DEFAULT = base/posisi-asli (lebih aman; masuk Admin harus disengaja via toggle).
   const jar = await cookies();
-  const hrdMode = jar.get('hrd_mode')?.value === 'spv' ? 'spv' : 'admin';
+  const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
 
   // Tugas & Notifikasi (diturunkan dari data; best-effort, tak memblokir render).
   const todos = await getTodos(supabase, user.id, role, hrdMode);
@@ -34,6 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <AppShell
       role={role}
+      canAdmin={isAdmin}
       hrdMode={hrdMode}
       name={emp?.name ?? user.email ?? 'Pengguna'}
       dept={emp?.dept ?? '—'}

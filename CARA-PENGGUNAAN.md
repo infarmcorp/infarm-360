@@ -495,8 +495,18 @@ A/B/C/D Player** (berbasis Skor Akhir), serta **Papan Pertimbangan Suksesi**.
 - Mengikuti flag **360°** periode (dari Kelola Periode, #1): periode tanpa 360° → 9-Box
   disembunyikan & kolom 9-Box jadi **N/A**, kategori **A Player** tidak tersedia (Skor Akhir = 100% KPI).
 
-### 11. Mode Ganda (HRD bertindak sebagai SPV)
-**Fungsi:** HRD beralih ke mode SPV.
+### 11. Mode Ganda (berganti "topi") & Izin HRD Admin
+**Inti:** "HRD Admin" adalah **izin mengoperasikan aplikasi**, bukan jabatan. Seseorang berposisi
+**Pegawai** atau **SPV** bisa **diberi izin HRD Admin** tanpa kehilangan posisi/tim aslinya.
+**Pemberian izin:** di **Kelola Pegawai**, tekan tombol **perisai** pada baris pegawai (badge "HRD"
+muncul). Hanya HRD Admin yang boleh memberi/mencabut; tercatat di **Log Aktivitas HRD**.
+**Cara berganti topi:** pemegang izin melihat tombol **Mode Admin ↔ Mode Pegawai/SPV** di sidebar.
+- **Saat login** mendarat di **Mode posisi-asli** (aman); masuk **Mode Admin** disengaja via tombol.
+- **Mode posisi-asli:** Pegawai → isi 360° & Laporan Hasil Saya; SPV → Menu Supervisor (tim).
+- **Mode Admin:** seluruh Menu Administrator + Pemantauan.
+- Tombol = **lensa tampilan**, bukan tembok keamanan (DB tetap mengenali izinnya).
+
+**Fungsi (HRD-posisi bertindak sebagai SPV):** HRD beralih ke mode SPV.
 **Berdampak ke:** HRD bisa **Input KPI** & **ACC Laporan Kinerja Tim** layaknya SPV. Di mode ini
 batasannya mengikuti aturan SPV — **Input KPI, Riwayat & Audit, Rekapitulasi, dan Laporan Kinerja
 Tim** semuanya hanya menampilkan pegawai **divisi HRD-nya sendiri** (termasuk dirinya).

@@ -1,13 +1,13 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import { UserPlus, Pencil, KeyRound, Power, X } from 'lucide-react';
-import { createEmployee, updateEmployee, setEmployeeActive, resetPassword } from './actions';
+import { UserPlus, Pencil, KeyRound, Power, X, ShieldCheck } from 'lucide-react';
+import { createEmployee, updateEmployee, setEmployeeActive, resetPassword, setHrdAdmin } from './actions';
 
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type EmpRow = {
   id: string; empCode: string; name: string; dept: string; role: Role;
-  active: boolean; email: string; spvId: string | null; spvName: string | null;
+  isHrdAdmin: boolean; active: boolean; email: string; spvId: string | null; spvName: string | null;
 };
 export type SpvOpt = { id: string; name: string; dept: string; role: Role };
 
@@ -249,7 +249,12 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                   <span className="text-[11px] text-gray-500 font-mono">{r.empCode}{r.email ? ` · ${r.email}` : ''}</span>
                 </td>
                 <td className="py-3 px-3 text-xs text-gray-600">{r.dept}</td>
-                <td className="py-3 px-3"><span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{ROLE_LABEL[r.role]}</span></td>
+                <td className="py-3 px-3">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{ROLE_LABEL[r.role]}</span>
+                  {r.isHrdAdmin && r.role !== 'hrd' && (
+                    <span className="ml-1 inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700" title="Punya izin HRD Admin (grant)"><ShieldCheck className="w-2.5 h-2.5" /> HRD</span>
+                  )}
+                </td>
                 <td className="py-3 px-3 text-xs text-gray-500">{r.spvName ?? '—'}</td>
                 <td className="py-3 px-3 text-center">
                   {r.active
@@ -264,6 +269,11 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                   <button type="button" onClick={() => act(() => setEmployeeActive(r.id, !r.active))} disabled={pending}
                     title={r.active ? 'Nonaktifkan' : 'Aktifkan'}
                     className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg disabled:opacity-60 ${r.active ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-700 hover:bg-emerald-50'}`}><Power className="w-3.5 h-3.5" /></button>
+                  {r.role !== 'direksi' && r.role !== 'hrd' && (
+                    <button type="button" onClick={() => act(() => setHrdAdmin(r.id, !r.isHrdAdmin))} disabled={pending}
+                      title={r.isHrdAdmin ? 'Cabut izin HRD Admin' : 'Beri izin HRD Admin'}
+                      className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg disabled:opacity-60 ${r.isHrdAdmin ? 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-500 hover:bg-gray-100'}`}><ShieldCheck className="w-3.5 h-3.5" /></button>
+                  )}
                 </td>
               </tr>
             ))}

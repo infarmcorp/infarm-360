@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { canAdmin } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { finalScoreOf } from '@/lib/scoring';
 
@@ -37,8 +38,8 @@ export async function saveOrFinalizeReport(employeeId: string, finalize: boolean
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
-  if (me?.role !== 'hrd') return { ok: false, error: 'Hanya HRD yang dapat memfinalisasi laporan' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat memfinalisasi laporan' };
 
   const { data: ap } = await supabase
     .from('periods').select('id, has_360, status').eq('status', 'active').limit(1).maybeSingle();
@@ -89,8 +90,8 @@ export async function releaseToSpv(employeeId: string): Promise<FinalizeResult> 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
-  if (me?.role !== 'hrd') return { ok: false, error: 'Hanya HRD yang dapat merilis laporan' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat merilis laporan' };
 
   const { data: ap } = await supabase
     .from('periods').select('id, has_360, status').eq('status', 'active').limit(1).maybeSingle();
@@ -148,8 +149,8 @@ export async function saveAspectSummaries(employeeId: string, raw: unknown): Pro
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
-  if (me?.role !== 'hrd') return { ok: false, error: 'Hanya HRD yang dapat menyimpan ringkasan' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat menyimpan ringkasan' };
 
   const { data: ap } = await supabase.from('periods').select('id, has_360').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };

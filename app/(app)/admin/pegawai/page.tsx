@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { canAdmin } from '@/lib/auth/roles';
 import { PegawaiClient, type EmpRow, type SpvOpt } from './pegawai-client';
 import { PegawaiImport } from './pegawai-import';
 
@@ -11,13 +12,13 @@ export default async function PegawaiPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
-  if (me?.role !== 'hrd') {
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  if (!canAdmin(me)) {
     return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin.</p></Shell>;
   }
 
   const { data: emps } = await supabase
-    .from('employees').select('id, emp_code, name, dept, role, is_active').order('emp_code');
+    .from('employees').select('id, emp_code, name, dept, role, is_hrd_admin, is_active').order('emp_code');
   const list = emps ?? [];
 
   // Atasan per pegawai (1 SPV utama untuk tampilan; relasi DB tetap many-to-many).
@@ -44,7 +45,7 @@ export default async function PegawaiPage() {
     const spvId = spvByEmp.get(e.id) ?? null;
     return {
       id: e.id, empCode: e.emp_code, name: e.name, dept: e.dept, role: e.role,
-      active: e.is_active, email: emailById.get(e.id) ?? '',
+      isHrdAdmin: e.is_hrd_admin, active: e.is_active, email: emailById.get(e.id) ?? '',
       spvId, spvName: spvId ? nameById.get(spvId) ?? null : null,
     };
   });

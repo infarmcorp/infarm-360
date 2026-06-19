@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { canAdmin } from '@/lib/auth/roles';
 import { AuditClient, type AuditRow } from './audit-client';
 
 /**
@@ -13,9 +14,9 @@ export default async function AuditPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
   const role = me?.role ?? 'employee';
-  if (role !== 'hrd' && role !== 'direksi') {
+  if (!canAdmin(me) && role !== 'direksi') {
     return (
       <main className="w-full p-4 sm:p-5 lg:p-6">
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">

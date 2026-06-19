@@ -49,6 +49,9 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
       setError('Sandi salah atau akun tidak ditemukan.');
       return;
     }
+    // Reset mode tampilan: tiap login mulai dari Mode posisi-asli (base) — cegah cookie
+    // 'hrd_mode' sesi/pengguna sebelumnya membawa langsung ke Mode Admin di browser bersama.
+    document.cookie = 'hrd_mode=; path=/; max-age=0; samesite=lax';
     router.push(next);
     router.refresh();
   }

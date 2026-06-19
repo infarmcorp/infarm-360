@@ -21,19 +21,20 @@ const ROLE_LABEL: Record<Role, string> = {
   employee: 'Pegawai Operasional', spv: 'Supervisor (SPV)', hrd: 'HRD Admin', direksi: 'Direktur',
 };
 
-function menuFor(role: Role, hrdMode: HrdMode): Section[] {
-  // Legacy: "Daftar Penilaian Saya" disembunyikan untuk HRD murni (mode admin) —
-  // hanya muncul saat HRD bertindak sebagai SPV, atau untuk peran selain HRD.
-  const isHrdSpv = role === 'hrd' && hrdMode === 'spv';
+function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode): Section[] {
+  // Tampilan admin hanya bila punya izin HRD (canAdmin) DAN sedang di mode admin.
+  // Mode "posisi-asli" (base) = bukan adminView; HRD-posisi base = perlakuan SPV (legacy).
+  const adminView = canAdmin && hrdMode === 'admin';
+  const supervisorView = !adminView && (role === 'spv' || role === 'hrd');
   const main: Item[] = [];
-  if (role !== 'hrd' || isHrdSpv) main.push({ href: '/penilaian', label: 'Daftar Penilaian Saya', icon: Star });
-  if (role === 'employee' || role === 'spv') main.push({ href: '/laporan', label: 'Laporan Hasil Saya', icon: FileText });
+  if (!adminView && role !== 'direksi') main.push({ href: '/penilaian', label: 'Daftar Penilaian Saya', icon: Star });
+  if (!adminView && (role === 'employee' || role === 'spv')) main.push({ href: '/laporan', label: 'Laporan Hasil Saya', icon: FileText });
 
   const sections: Section[] = main.length ? [{ title: 'Navigasi Utama', items: main }] : [];
 
   // SPV biasa & HRD dalam mode SPV memakai menu Supervisor yang sama (paritas SPV).
   // Rekapitulasi Kuartal TIDAK jadi item terpisah — sudah ada sebagai tab di Input KPI Anggota.
-  if (role === 'spv' || isHrdSpv) {
+  if (supervisorView) {
     sections.push({
       title: 'Menu Supervisor',
       items: [
@@ -44,8 +45,8 @@ function menuFor(role: Role, hrdMode: HrdMode): Section[] {
     });
   }
 
-  // HRD dual-mode: 'admin' → alat administrator; 'spv' → tugas supervisor.
-  if (role === 'hrd' && hrdMode === 'admin') {
+  // Dual-mode: 'admin' → alat administrator (butuh izin HRD); 'base' → tugas posisi asli.
+  if (adminView) {
     sections.push({
       title: 'Menu Administrator',
       items: [
@@ -91,15 +92,15 @@ const TODO_DOT: Record<TodoTone, string> = {
 };
 
 export function AppShell({
-  role, hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, children,
+  role, canAdmin, hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, children,
 }: {
-  role: Role; hrdMode: HrdMode; name: string; dept: string; empCode: string;
+  role: Role; canAdmin: boolean; hrdMode: HrdMode; name: string; dept: string; empCode: string;
   periodLabel: string | null; periodActive: boolean; periodDaysLeft?: number | null;
   todos: TodoItem[]; children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const sections = menuFor(role, hrdMode);
+  const sections = menuFor(role, canAdmin, hrdMode);
 
   const isActive = (href: string) => {
     const path = href.split('?')[0];
@@ -120,8 +121,9 @@ export function AppShell({
         </div>
       </div>
 
-      {/* Toggle dual-mode HRD */}
-      {role === 'hrd' && (
+      {/* Toggle dual-mode: tampil bila punya izin HRD (canAdmin). Mode 'base' (token 'spv')
+          = bertindak sesuai posisi asli (Pegawai/SPV); 'admin' = mengoperasikan aplikasi. */}
+      {canAdmin && (
         <div className="px-3 py-2.5 border-b border-gray-150 bg-indigo-50/40">
           <div className="grid grid-cols-2 gap-1.5">
             <form action={setHrdMode.bind(null, 'admin')}>
@@ -133,12 +135,12 @@ export function AppShell({
             <form action={setHrdMode.bind(null, 'spv')}>
               <button type="submit" className={`w-full flex items-center justify-center gap-1 text-[10px] font-bold py-1.5 rounded-lg transition-colors ${
                 hrdMode === 'spv' ? 'bg-emerald-700 text-white shadow-2xs' : 'bg-white text-gray-500 hover:text-gray-700 border border-gray-200'}`}>
-                <Briefcase className="w-3 h-3" /> SPV Mode
+                <Briefcase className="w-3 h-3" /> {role === 'employee' ? 'Mode Pegawai' : 'Mode SPV'}
               </button>
             </form>
           </div>
           <p className="text-[10px] text-gray-500 text-center mt-1">
-            {hrdMode === 'spv' ? 'Bertindak sebagai Supervisor' : 'Mengelola seluruh sistem'}
+            {hrdMode === 'spv' ? (role === 'employee' ? 'Bertindak sebagai Pegawai' : 'Bertindak sebagai Supervisor') : 'Mengelola seluruh sistem'}
           </p>
         </div>
       )}

@@ -37,7 +37,12 @@ Empat peran pengguna (lihat `src/types.ts` → `UserRole`):
   monitor kinerja bawahan.
 - **HRD Admin** — kelola siklus periode, pertanyaan (+ aspek), bobot penilai, mapping (termasuk
   **sifat wajib/opsional**), flag kepatuhan + **punishment** (pengurangan poin per kuartal),
-  finalisasi Final Report, dashboard. Punya **mode ganda**: bisa bertindak sebagai SPV.
+  finalisasi Final Report, dashboard. Punya **mode ganda**: bisa bertindak sesuai posisi aslinya.
+  > **PENTING (per 2026-06-19):** "HRD Admin" kini **IZIN (grant `is_hrd_admin`), bukan posisi**.
+  > Seseorang berposisi `employee`/`spv` bisa **diberi izin HRD** tanpa kehilangan posisinya. Cek
+  > kewenangan HRD via `canAdmin()` (`lib/auth/roles.ts`) / RLS `is_hrd()` (= `role='hrd' OR
+  > is_hrd_admin`), **bukan** `role === 'hrd'` mentah. Dual-mode = **Mode Admin ↔ Mode posisi-asli**
+  > (token cookie `hrd_mode`: `admin` | `spv`=base); **default login = base** (masuk Admin disengaja).
 - **Direksi** — dashboard eksekutif, ACC promosi/suksesi.
 
 Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`. Panduan pengguna: `CARA-PENGGUNAAN.md`.
@@ -86,6 +91,16 @@ Saat mengerjakan fitur, ingat: kerjakan di route Next.js `app/(app)/` (bukan SPA
 Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 
 ### Fitur baru
+- **Izin "HRD Admin" terpisah dari posisi (`is_hrd_admin`, migrasi 0013)**: "HRD Admin" jadi
+  **kapabilitas**, bukan jabatan. Pegawai `employee`/`spv` bisa **diberi izin HRD** (grant) tanpa
+  kehilangan posisi/tim aslinya. Helper `canAdmin()` (`lib/auth/roles.ts`) menggantikan cek
+  `role==='hrd'` mentah di ~25 file (guard admin + scope data). **Dual-mode digeneralisasi**:
+  tombol **Mode Admin ↔ Mode posisi-asli** (Pegawai/SPV) tampil bila `canAdmin`; **default login =
+  base** (`layout.tsx`), masuk Admin disengaja; redirect base → `/` (landing per posisi, `app/page.tsx`).
+  **UI grant** di Kelola Pegawai (tombol perisai + badge "HRD", `setHrdAdmin` + audit
+  `employee.grant_hrd`/`revoke_hrd`; hanya HRD Admin yang boleh, cegah eskalasi). RLS `is_hrd()`
+  kini = `role='hrd' OR is_hrd_admin`. **Tahap 2 (belum):** pindahkan HRD-yang-juga-SPV
+  (`role='hrd'`→`'spv'`+grant+`spv_team_members`) agar mode-SPV-nya pakai tim NYATA (bukan sedivisi).
 - **Akun Saya — ganti sandi mandiri** (`app/(app)/akun/`, semua peran): verifikasi sandi saat
   ini (`signInWithPassword`) → `updateUser({password})`. Tautan di footer sidebar. Login juga
   punya petunjuk "Lupa sandi? Hubungi HRD" (atau tautan reset email bila flag aktif).
@@ -180,6 +195,10 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   hingga komentar BERNAMA** sejak draf. Kini SPV **tak pernah** baca tabel mentah; detail agregat
   untuk SPV dihitung server via `service_role` (`loadTeamReportForSpv`) — hanya saat `in_review`/
   `finalized`. Diterapkan & diverifikasi (`pg_policies` bersih dari `is_my_member`; `verify:rls` 12/12).
+- `0013_hrd_admin_grant` — `employees.is_hrd_admin boolean NOT NULL default false` + redefinisi
+  `is_hrd()` → `role='hrd' OR is_hrd_admin`. Memisahkan **izin** HRD dari **posisi** `role`. Aditif
+  & backward-compatible (default false → HRD lama tetap via `role='hrd'`). Diterapkan & diverifikasi
+  (kolom ada, `is_hrd()` hormati grant, `verify:rls` 12/12).
 - `final_reports.content` (jsonb, kolom lama) dipakai untuk `aspectSummaries` (tanpa migrasi baru).
 
 ### Infra / Testing / CI

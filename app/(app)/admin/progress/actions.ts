@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { canAdmin } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { emailConfigured, sendEmail, reminderHtml } from '@/lib/email/mailer';
 
@@ -38,8 +39,8 @@ async function pendingByAssessor(
 async function requireHrd(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
-  if (me?.role !== 'hrd') return { ok: false as const, error: 'Hanya HRD yang dapat mengakses Progress 360' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  if (!canAdmin(me)) return { ok: false as const, error: 'Hanya HRD yang dapat mengakses Progress 360' };
   return { ok: true as const, userId: user.id };
 }
 

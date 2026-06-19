@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { canAdmin } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 
 /**
@@ -22,8 +23,8 @@ const BAN_FOREVER = '876000h'; // ~100 tahun
 async function requireHrd(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
-  if (me?.role !== 'hrd') return { ok: false as const, error: 'Hanya HRD yang dapat mengelola pegawai' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  if (!canAdmin(me)) return { ok: false as const, error: 'Hanya HRD yang dapat mengelola pegawai' };
   return { ok: true as const, userId: user.id };
 }
 
@@ -31,6 +32,29 @@ function revalidate() {
   revalidatePath('/admin/pegawai');
   revalidatePath('/admin/pemetaan');
   revalidatePath('/login');
+}
+
+/**
+ * Beri/cabut izin HRD Admin (grant `is_hrd_admin`) — kapabilitas mengoperasikan
+ * aplikasi, TERPISAH dari posisi `role`. Hanya HRD Admin yang boleh; tercatat di
+ * Log Aktivitas HRD. RLS emp_manage (HRD) mengizinkan UPDATE baris employees.
+ */
+export async function setHrdAdmin(employeeId: string, value: boolean): Promise<Result> {
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return auth;
+
+  const { data: target } = await supabase.from('employees').select('name').eq('id', employeeId).maybeSingle();
+  const { error } = await supabase.from('employees').update({ is_hrd_admin: value }).eq('id', employeeId);
+  if (error) return { ok: false, error: 'Gagal mengubah izin: ' + error.message };
+
+  await logHrdAction({
+    action: value ? 'employee.grant_hrd' : 'employee.revoke_hrd', category: 'pegawai',
+    summary: `${value ? 'Memberi' : 'Mencabut'} izin HRD Admin untuk ${target?.name ?? employeeId}`,
+    targetType: 'employee', targetId: employeeId, targetLabel: target?.name ?? null,
+  });
+  revalidate();
+  return { ok: true, msg: value ? 'Izin HRD Admin diberikan.' : 'Izin HRD Admin dicabut.' };
 }
 
 const Role = z.enum(['employee', 'spv', 'hrd', 'direksi']);

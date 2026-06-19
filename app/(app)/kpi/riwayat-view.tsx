@@ -12,13 +12,13 @@ const fmt = (iso: string) => {
     d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 };
 
-export async function RiwayatView({ role, userId, hrdMode = 'admin' }: { role: string; userId: string; hrdMode?: 'admin' | 'spv' }) {
+export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'admin' }: { role: string; canAdmin?: boolean; userId: string; hrdMode?: 'admin' | 'spv' }) {
   const supabase = await createClient();
 
-  // Lingkup pegawai. HRD admin → semua; HRD mode-SPV → hanya DIVISINYA (selaras Input KPI);
-  // SPV → anggota timnya.
+  // Lingkup pegawai. Izin HRD (canAdmin) di mode admin → semua; HRD-posisi mode-SPV → DIVISINYA
+  // (selaras Input KPI); SPV → anggota timnya. Pemegang grant non-HRD pakai cabang admin (semua).
   let empRows: { id: string; name: string; dept: string }[] = [];
-  if (role === 'hrd' && hrdMode === 'admin') {
+  if (canAdmin && hrdMode === 'admin') {
     const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi');
     empRows = data ?? [];
   } else if (role === 'hrd') {

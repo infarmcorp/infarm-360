@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { canAdmin } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 import { classOf, avg, round1, weightedScore360, type Groups360 } from '@/lib/score360';
@@ -22,8 +23,8 @@ export async function computeResult360(): Promise<ComputeResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
-  if (me?.role !== 'hrd') return { ok: false, error: 'Hanya HRD yang dapat menghitung skor 360' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat menghitung skor 360' };
 
   // 2) Komputasi pakai service_role (baca semua + tulis result_360).
   const admin = createAdminClient();

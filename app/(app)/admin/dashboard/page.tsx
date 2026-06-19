@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { canAdmin } from '@/lib/auth/roles';
 import {
   finalScoreOf, talentBoxOf, playerClassOf,
 } from '@/lib/scoring';
@@ -23,8 +24,8 @@ export default async function DashboardPage({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
-  if (me?.role !== 'hrd' && me?.role !== 'direksi') {
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  if (!canAdmin(me) && me?.role !== 'direksi') {
     return <Shell><p className="text-sm text-gray-600">Halaman ini untuk HRD / Direksi.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
@@ -44,7 +45,7 @@ export default async function DashboardPage({
           { text: <>Isi KPI bulanan & jalankan penilaian 360°</> },
           { text: <>Jalankan <strong>Hitung Ulang Skor 360°</strong> → grafik terisi</> },
         ]}
-        actions={me?.role === 'hrd' ? [{ label: 'Ke Kelola Periode', href: '/admin/periode', primary: true }] : undefined}
+        actions={canAdmin(me) ? [{ label: 'Ke Kelola Periode', href: '/admin/periode', primary: true }] : undefined}
       />
     </Shell>
   );

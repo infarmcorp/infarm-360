@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { canAdmin } from '@/lib/auth/roles';
 import { KpiForm } from './kpi-form';
 import { RekapView } from './rekap-view';
 import { RiwayatView } from './riwayat-view';
@@ -22,15 +23,17 @@ export default async function KpiPage({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
   const role = me?.role ?? 'employee';
+  const admin = canAdmin(me);
   const jar = await cookies();
   const hrdMode = jar.get('hrd_mode')?.value === 'spv' ? 'spv' : 'admin';
 
-  // Input KPI hanya untuk SPV / HRD mode-SPV; HRD mode-admin = monitoring (riwayat + rekap).
+  // Input KPI hanya untuk SPV / HRD-posisi mode-SPV (fungsi supervisi; butuh tim/divisi).
+  // Monitoring & Audit KPI (baca semua) untuk pemegang izin HRD (admin) / SPV (tim).
   // Direksi TIDAK punya akses ke halaman ini (Rekapitulasi Kuartal dihapus untuk Direksi).
   const canInput = role === 'spv' || (role === 'hrd' && hrdMode === 'spv');
-  const canAudit = role === 'spv' || role === 'hrd';
+  const canAudit = role === 'spv' || admin;
   const canView = canAudit;
   if (!canView) {
     return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD.</p></Shell>;
@@ -50,7 +53,7 @@ export default async function KpiPage({
             <RekapView role={role} userId={user.id} periodParam={period} />
           </Panel>
           <Panel title="Riwayat & Audit Perubahan KPI">
-            <RiwayatView role={role} userId={user.id} />
+            <RiwayatView role={role} canAdmin={admin} userId={user.id} />
           </Panel>
         </div>
       </main>
@@ -77,7 +80,7 @@ export default async function KpiPage({
       {tab === 'input' ? (
         <InputTab supabase={supabase} userId={user.id} role={role} />
       ) : tab === 'riwayat' ? (
-        <RiwayatView role={role} userId={user.id} hrdMode={hrdMode} />
+        <RiwayatView role={role} canAdmin={admin} userId={user.id} hrdMode={hrdMode} />
       ) : (
         <RekapView role={role} userId={user.id} periodParam={period} hrdMode={hrdMode} />
       )}

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { canAdmin } from '@/lib/auth/roles';
 
 /**
  * Promosi & Suksesi: HRD mengajukan rencana per pegawai (draft/submit), Direksi
@@ -12,17 +13,18 @@ import { createClient } from '@/lib/supabase/server';
 type Result = { ok: true } | { ok: false; error: string };
 
 async function ctx(): Promise<
-  { ok: false; error: string } | { ok: true; supabase: Awaited<ReturnType<typeof createClient>>; userId: string; role: string; periodId: string }
+  { ok: false; error: string } | { ok: true; supabase: Awaited<ReturnType<typeof createClient>>; userId: string; role: string; isAdmin: boolean; periodId: string }
 > {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
   const role = me?.role ?? '';
-  if (role !== 'hrd' && role !== 'direksi') return { ok: false, error: 'Tidak berwenang' };
+  const isAdmin = canAdmin(me);
+  if (!isAdmin && role !== 'direksi') return { ok: false, error: 'Tidak berwenang' };
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
-  return { ok: true, supabase, userId: user.id, role, periodId: ap.id };
+  return { ok: true, supabase, userId: user.id, role, isAdmin, periodId: ap.id };
 }
 
 const PlanText = z.string().trim().min(3, 'Rencana terlalu pendek').max(200);
@@ -36,7 +38,7 @@ export async function upsertPlan(employeeId: string, rawPlan: string, rawJust: s
   if (!just.success) return { ok: false, error: 'Justifikasi terlalu panjang' };
 
   const c = await ctx(); if (!c.ok) return c;
-  if (c.role !== 'hrd') return { ok: false, error: 'Hanya HRD yang dapat mengajukan rencana' };
+  if (!c.isAdmin) return { ok: false, error: 'Hanya HRD yang dapat mengajukan rencana' };
 
   const status = submit ? 'submitted' : 'draft';
   const { data: existing } = await c.supabase
@@ -59,7 +61,7 @@ export async function upsertPlan(employeeId: string, rawPlan: string, rawJust: s
 /** HRD: hapus rencana (mis. salah ajukan). */
 export async function deletePlan(planId: string): Promise<Result> {
   const c = await ctx(); if (!c.ok) return c;
-  if (c.role !== 'hrd') return { ok: false, error: 'Hanya HRD yang dapat menghapus rencana' };
+  if (!c.isAdmin) return { ok: false, error: 'Hanya HRD yang dapat menghapus rencana' };
   const { error } = await c.supabase.from('succession_plans').delete().eq('id', planId);
   if (error) return { ok: false, error: 'Gagal menghapus: ' + error.message };
   revalidatePath('/suksesi');

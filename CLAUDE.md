@@ -92,6 +92,16 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   penuh = Rekan, putus = Diri) + dua bar per aspek, **Evaluasi Aspek** (ringkasan naratif HRD
   per aspek → `final_reports.content.aspectSummaries`), **Rincian Komentar Murni** (HRD-only,
   anonim, per aspek→indikator + akumulasi rating + esai per pertanyaan; Self dikecualikan).
+- **Alur visibilitas laporan bertahap** (`draft → in_review → finalized`, migrasi 0011/0012):
+  aplikasi **hanya mengatur visibilitas + ACC** (diskusi HRD–SPV terjadi di luar app). Tiga lapis
+  informasi — **L1** Skor Akhir (angka), **L2** detail agregat (radar/aspek + ringkasan aspek HRD,
+  anonim), **L3** komentar mentah per penilai. Aturan: **SPV** lihat **L1 sejak `draft`**; **L2 hanya
+  setelah HRD menekan "Rilis ke SPV" (`in_review`)** atau final; **L3 tidak pernah ke SPV**. **Pegawai**
+  hanya saat `finalized`. Tombol HRD baru **"Rilis ke SPV"** (`releaseToSpv`, audit `report.release_spv`),
+  badge status `Ditinjau SPV`. **ACC SPV non-blok** — HRD bebas finalisasi tanpa menunggu ACC (anti-macet
+  bila SPV cuti/lambat). Detail SPV dirender via `loadTeamReportForSpv` (server `service_role`, buang L3);
+  tautan detail di Laporan Kinerja Tim **terkunci** sampai dirilis. Laporan **diri sendiri** (SPV=pegawai)
+  ikut aturan pegawai (hanya `finalized`).
 - **Progress 360 — dua progres per baris** (paritas legacy): "Menilai orang lain" + "Dinilai
   oleh X/Y orang".
 - **Kelola Pertanyaan — Tambah/Kelola Aspek** + panduan rating/deskripsi per indikator
@@ -119,6 +129,11 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Impor pemetaan** — pratinjau menyebut pasangan yang dilewati + alasannya.
 
 ### Perbaikan (bug fix)
+- **Kebocoran umpan balik 360° mentah ke SPV** (migrasi 0012 + `app/(app)/laporan/`): sebelumnya
+  SPV bisa membuka detail laporan anggota tim dan melihat **komentar per penilai BESERTA NAMA** sejak
+  draf — bahkan **lebih dalam** dari HRD (yang justru hanya melihat versi anonim karena toggle
+  `hideAssessorComments` keliru di-kunci ke `isHrd`). Kini SPV **tak pernah** melihat lapis 3 (RLS
+  dicabut + jalur SPV diganti `loadTeamReportForSpv` yang membuang `assessors`/`byAspect`/`essays`).
 - **SPV sendiri muncul di Riwayat & Audit + Rekapitulasi Kuartal** (`app/(app)/kpi/riwayat-view.tsx`,
   `rekap-view.tsx`): cabang SPV kini menyertakan `userId` (`[userId, ...team]`) — selaras tab Input
   KPI (migrasi 0008). Sebelumnya hanya `spv_team_members`, jadi KPI diri sendiri tak terlihat di dua
@@ -148,6 +163,14 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - `0010_period_kpi_standard` — `periods.kpi_standard smallint NOT NULL default 80` (+ check 0–100):
   target KPI per kuartal untuk metrik dashboard "% di atas standar". **Murni pelaporan**, bukan
   ambang rumus skor (jangan disuntikkan ke `lib/scoring.ts`). Diterapkan & diverifikasi ke DB.
+- `0011_report_in_review` — `ALTER TYPE report_status ADD VALUE 'in_review'` (aditif). Status
+  baru di antara `draft` & `finalized` untuk tahap **HRD merilis ke SPV**. ⚠️ Harus diterapkan
+  **terpisah** dari 0012 (nilai enum baru tak boleh dipakai di transaksi yang sama saat dibuat).
+- `0012_report_visibility_rls` — **cabut `is_my_member(target_id)`** dari `asmt_read`/`ais_read`/
+  `aqa_read`. **Menutup kebocoran**: sebelumnya SPV bisa baca umpan balik 360° **mentah anggota tim
+  hingga komentar BERNAMA** sejak draf. Kini SPV **tak pernah** baca tabel mentah; detail agregat
+  untuk SPV dihitung server via `service_role` (`loadTeamReportForSpv`) — hanya saat `in_review`/
+  `finalized`. Diterapkan & diverifikasi (`pg_policies` bersih dari `is_my_member`; `verify:rls` 12/12).
 - `final_reports.content` (jsonb, kolom lama) dipakai untuk `aspectSummaries` (tanpa migrasi baru).
 
 ### Infra / Testing / CI

@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import type { ReportStatus } from '@/lib/database.types';
 import { ReportRowActions } from './report-row';
 
 export type ReportRow = {
   id: string; name: string; dept: string;
-  final: number | null; status: 'draft' | 'finalized' | null; spvAcc: boolean;
+  final: number | null; status: ReportStatus | null; spvAcc: boolean;
 };
 
 /** Tabel Review Hasil Akhir + pencarian nama/divisi & filter Divisi (client). */
@@ -78,6 +79,8 @@ export function ReportTable({ rows, depts }: { rows: ReportRow[]; depts: string[
                 <td className="py-3 px-3 text-center">
                   {r.status === 'finalized'
                     ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">Final</span>
+                    : r.status === 'in_review'
+                    ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-indigo-50 text-indigo-700 border-indigo-200">Ditinjau SPV</span>
                     : r.status === 'draft'
                     ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">Draf</span>
                     : <span className="text-[10px] text-gray-500">—</span>}

@@ -50,17 +50,27 @@ export default async function LaporanTimPage() {
     : { data: [] };
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
 
+  // Boleh buka detail (lapis 2)? HRD penuh; SPV hanya setelah HRD rilis (in_review)
+  // atau final — kecuali laporan dirinya sendiri yang mengikuti aturan pegawai (final).
+  const canOpenDetail = (status: string | null, isSelf: boolean): boolean => {
+    if (me.role === 'hrd') return true;
+    if (isSelf) return status === 'finalized';
+    return status === 'in_review' || status === 'finalized';
+  };
+
   const toRow = (e: { id: string; name: string; dept: string | null }, isSelf: boolean): TeamRow => {
     const rep = repBy.get(e.id);
+    const status = rep?.status ?? null;
     return {
       id: e.id,
       name: e.name,
       dept: e.dept,
       finalScore: rep?.final_score ?? null,
-      status: rep?.status ?? null,
+      status,
       hasReport: !!rep,
       spvAcc: !!rep?.spv_acc,
       isSelf,
+      detailOpen: canOpenDetail(status, isSelf),
     };
   };
 

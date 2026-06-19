@@ -1,10 +1,11 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { loadReport } from '@/lib/report';
+import { loadReport, loadTeamReportForSpv } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
 import { ReportActions } from '../report-actions';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
+import { AspectSummaryView } from '../aspect-summary-view';
 import { RawFeedback } from '../raw-feedback';
 
 /**
@@ -27,6 +28,38 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
 
+  // Tautan kembali sadar-peran: SPV ke Laporan Kinerja Tim, HRD/Direksi ke Daftar Laporan.
+  const back = role === 'spv'
+    ? { href: '/laporan-tim', label: '← Laporan Kinerja Tim' }
+    : { href: '/admin/laporan', label: '← Daftar Laporan' };
+
+  // Jalur SPV: HANYA detail agregat (radar/aspek + ringkasan aspek HRD), tanpa umpan
+  // balik mentah (lapis 3). Tampak hanya bila HRD sudah merilis ('in_review') atau
+  // 'finalized' — lihat loadTeamReportForSpv (gating membership + status + buang raw).
+  if (role === 'spv') {
+    const data = await loadTeamReportForSpv(user.id, employeeId, ap);
+    if (!data) {
+      return (
+        <Shell>
+          <Link href={back.href} className="text-xs text-gray-500 hover:underline no-print">{back.label}</Link>
+          <p className="text-sm text-gray-500 mt-3">
+            Laporan belum dirilis HRD untuk ditinjau, atau di luar lingkup tim Anda.
+          </p>
+        </Shell>
+      );
+    }
+    return (
+      <Shell>
+        <Link href={back.href} className="text-xs text-gray-500 hover:underline no-print">{back.label}</Link>
+        <div className="mt-2">
+          <ReportDoc data={data} anonymize hideAssessorComments />
+          {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
+        </div>
+      </Shell>
+    );
+  }
+
+  // Jalur HRD / Direksi: laporan penuh (tunduk RLS; raw 360° untuk HRD anonim).
   const data = await loadReport(supabase, employeeId, ap);
   if (!data) {
     return <Shell><p className="text-sm text-gray-500">Data tidak ditemukan atau di luar lingkup akses Anda.</p>
@@ -34,15 +67,11 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   }
 
   const isHrd = role === 'hrd';
-  // Tautan kembali sadar-peran: SPV ke Laporan Kinerja Tim, HRD/Direksi ke Daftar Laporan.
-  const back = role === 'spv'
-    ? { href: '/laporan-tim', label: '← Laporan Kinerja Tim' }
-    : { href: '/admin/laporan', label: '← Daftar Laporan' };
   return (
     <Shell>
       <Link href={back.href} className="text-xs text-gray-500 hover:underline no-print">{back.label}</Link>
       <div className="mt-2">
-        {/* HRD: panel aksi (Unduh PDF / Simpan Draf / Finalisasi Hasil) di atas dokumen. */}
+        {/* HRD: panel aksi (Unduh PDF / Simpan Draf / Rilis ke SPV / Finalisasi Hasil). */}
         {isHrd && (
           <ReportActions
             employeeId={employeeId}

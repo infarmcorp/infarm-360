@@ -1,4 +1,4 @@
-import type { createClient } from '@/lib/supabase/server';
+import { createAdminClient, type createClient } from '@/lib/supabase/server';
 import { finalScoreOf } from '@/lib/scoring';
 
 type SB = Awaited<ReturnType<typeof createClient>>;
@@ -151,4 +151,46 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
     finalScore, kpiAvg, s360, penalty, aspects, assessors,
     byAspect, essays, aspectSummaries,
   };
+}
+
+/**
+ * Laporan untuk SPV (Laporan Kinerja Tim) — HANYA detail AGREGAT, tanpa umpan
+ * balik mentah lapis 3 (komentar/identitas per penilai). Dipakai menggantikan
+ * loadReport pada jalur SPV karena RLS kini mencabut akses SPV ke tabel mentah
+ * 360° (migrasi 0012) — agregat dihitung di server via service_role lalu lapis 3
+ * DIBUANG sebelum dikembalikan.
+ *
+ * Visibilitas:
+ *  - Anggota tim: tampak hanya bila HRD sudah merilis (status 'in_review') atau
+ *    sudah 'finalized'.
+ *  - Diri sendiri (SPV = pegawai): tampak hanya bila 'finalized' (aturan pegawai).
+ *  - Di luar tim / status lebih awal → null (ditolak).
+ *
+ * Mengembalikan ReportData dengan assessors/byAspect/essays DIKOSONGKAN; pemanggil
+ * tetap wajib merender anonim (anonymize + hideAssessorComments).
+ */
+export async function loadTeamReportForSpv(
+  spvId: string,
+  employeeId: string,
+  period: { id: string; label: string; has_360: boolean },
+): Promise<ReportData | null> {
+  const admin = createAdminClient() as unknown as SB;
+
+  const isSelf = employeeId === spvId;
+  if (!isSelf) {
+    const { data: mem } = await admin.from('spv_team_members')
+      .select('employee_id').eq('spv_id', spvId).eq('employee_id', employeeId).maybeSingle();
+    if (!mem) return null; // di luar tim formal
+  }
+
+  const { data: fr } = await admin.from('final_reports')
+    .select('status').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
+  const status = fr?.status ?? null;
+  const visible = isSelf ? status === 'finalized' : (status === 'in_review' || status === 'finalized');
+  if (!visible) return null; // belum dirilis HRD (anggota) / belum final (diri sendiri)
+
+  const full = await loadReport(admin, employeeId, period);
+  if (!full) return null;
+  // Buang lapis 3 (komentar mentah + per-penilai) sebelum keluar ke SPV.
+  return { ...full, assessors: [], byAspect: [], essays: [] };
 }

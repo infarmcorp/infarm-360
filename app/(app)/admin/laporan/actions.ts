@@ -80,6 +80,60 @@ export async function saveOrFinalizeReport(employeeId: string, finalize: boolean
 }
 
 /**
+ * Rilis hasil ke SPV (HRD): status 'draft' → 'in_review'. Setelah ini SPV anggota
+ * tim boleh melihat DETAIL AGREGAT (radar/aspek + ringkasan aspek HRD, tanpa raw).
+ * Tidak mengubah skor; menghitung & menyimpan final_score bila baris belum ada.
+ * NON-BLOK terhadap finalisasi — HRD tetap bisa finalisasi tanpa menunggu ACC SPV.
+ */
+export async function releaseToSpv(employeeId: string): Promise<FinalizeResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
+  if (me?.role !== 'hrd') return { ok: false, error: 'Hanya HRD yang dapat merilis laporan' };
+
+  const { data: ap } = await supabase
+    .from('periods').select('id, has_360, status').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  const { kpiAvg, final } = await computeFinal(supabase, ap.id, ap.has_360, employeeId);
+  if (kpiAvg == null || final == null) {
+    return { ok: false, error: 'Skor Akhir belum bisa dihitung (KPI pegawai masih kosong)' };
+  }
+
+  const { data: existing } = await supabase
+    .from('final_reports').select('id, status')
+    .eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
+
+  if (existing?.status === 'finalized') {
+    return { ok: false, error: 'Laporan sudah difinalisasi — tidak bisa dikembalikan ke tahap tinjauan SPV' };
+  }
+
+  if (existing) {
+    const { error } = await supabase.from('final_reports')
+      .update({ final_score: final, status: 'in_review', finalized_by: null })
+      .eq('id', existing.id);
+    if (error) return { ok: false, error: 'Gagal merilis: ' + error.message };
+  } else {
+    const { error } = await supabase.from('final_reports')
+      .insert({ employee_id: employeeId, period_id: ap.id, final_score: final, status: 'in_review' });
+    if (error) return { ok: false, error: 'Gagal merilis: ' + error.message };
+  }
+
+  const { data: emp } = await supabase.from('employees').select('name').eq('id', employeeId).maybeSingle();
+  await logHrdAction({
+    action: 'report.release_spv', category: 'laporan',
+    summary: `Merilis Hasil Akhir ${emp?.name ?? employeeId} ke SPV untuk ditinjau (Skor Akhir ${final})`,
+    targetType: 'employee', targetId: employeeId, targetLabel: emp?.name ?? null,
+    meta: { final_score: final, period_id: ap.id },
+  });
+  revalidatePath('/admin/laporan');
+  revalidatePath('/laporan-tim');
+  revalidatePath(`/laporan/${employeeId}`);
+  return { ok: true, finalScore: final, finalized: false };
+}
+
+/**
  * Simpan ringkasan HRD per aspek (kalibrasi naratif) ke final_reports.content.aspectSummaries.
  * Tidak mengubah status/skor — hanya menulis narasi. Membuat baris draft bila belum ada.
  */

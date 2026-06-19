@@ -13,6 +13,7 @@ export type TeamRow = {
   hasReport: boolean;
   spvAcc: boolean;
   isSelf: boolean;
+  detailOpen: boolean; // boleh buka detail laporan (lapis 2)? — SPV hanya bila sudah dirilis HRD
 };
 
 /**
@@ -60,18 +61,34 @@ export function TeamTable({ rows }: { rows: TeamRow[] }) {
               {filtered.map((r) => (
                 <tr key={r.id}>
                   <td className="py-3 pr-3">
-                    <Link
-                      href={`/laporan/${r.id}`}
-                      className="font-bold text-gray-800 inline-flex items-center gap-1.5 hover:text-emerald-700 hover:underline"
-                    >
-                      {r.name}
-                      {r.isSelf && (
-                        <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1 py-0.5">
-                          Anda
-                        </span>
+                    {r.detailOpen ? (
+                      <Link
+                        href={`/laporan/${r.id}`}
+                        className="font-bold text-gray-800 inline-flex items-center gap-1.5 hover:text-emerald-700 hover:underline"
+                      >
+                        {r.name}
+                        {r.isSelf && (
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1 py-0.5">
+                            Anda
+                          </span>
+                        )}
+                      </Link>
+                    ) : (
+                      <span className="font-bold text-gray-800 inline-flex items-center gap-1.5">
+                        {r.name}
+                        {r.isSelf && (
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1 py-0.5">
+                            Anda
+                          </span>
+                        )}
+                      </span>
+                    )}
+                    <span className="text-[11px] text-gray-500 block">
+                      {r.dept}
+                      {!r.detailOpen && !r.isSelf && (
+                        <span className="ml-1 italic text-gray-400">· detail menunggu rilis HRD</span>
                       )}
-                    </Link>
-                    <span className="text-[11px] text-gray-500 block">{r.dept}</span>
+                    </span>
                   </td>
                   <td className="py-3 px-3 text-center font-mono font-black text-slate-800">
                     {r.finalScore != null ? r.finalScore.toFixed(1) : '—'}
@@ -79,6 +96,8 @@ export function TeamTable({ rows }: { rows: TeamRow[] }) {
                   <td className="py-3 px-3 text-center">
                     {r.status === 'finalized' ? (
                       <span className="text-[10px] font-bold text-emerald-700">Final</span>
+                    ) : r.status === 'in_review' ? (
+                      <span className="text-[10px] font-bold text-indigo-700">Ditinjau</span>
                     ) : r.status === 'draft' ? (
                       <span className="text-[10px] font-bold text-amber-700">Draf</span>
                     ) : (

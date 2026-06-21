@@ -66,7 +66,6 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode): Section[] {
       title: 'Pemantauan',
       items: [
         { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
-        { href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp },
         { href: '/kpi?tab=riwayat', label: 'Monitoring & Audit KPI', icon: Clock },
         { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText },
         { href: '/admin/ekspor', label: 'Ekspor Dataset', icon: Download },

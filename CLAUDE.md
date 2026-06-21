@@ -14,6 +14,9 @@ Migrasi fungsional **selesai & live**; sisa sebagian besar aktivasi env + kebers
   - **Jaring regresi L3** — `verify:rls` kini **21 assertion** (dari 12): fixture 360° + tegakkan
     SPV ditolak baca `assessments`/AIS/AQA anggota tim, plus kontrol positif HRD/penilai/target.
   - **Heatmap "Capaian KPI / Divisi"** (dashboard tab Analisis Hasil KPI) — matriks divisi × bulan.
+  - **Palet warna skor terpadu** (dashboard, commit `c0e13f2`) — `heatColor` jadi gradasi 4 jangkar
+    (`≤70` merah · `80` kuning · `90` hijau · `≥97.5` biru) dipakai lintas bar/chip KPI & 360°;
+    kategori kinerja pakai palet diskrit; rename judul "per Divisi" / "Perkembangan KPI Bulanan".
   - **Paritas SPV ↔ HRD-mode-SPV** (Laporan Hasil Saya + Monitor menyertakan diri); audit
     kontras WCAG AA; self-service ganti sandi; email pengingat 360° (dorman); indikator tenggat.
 - **Berikutnya (butuh aksi pengguna):** set env email (Gmail SMTP) → aktifkan pengingat + reset
@@ -148,11 +151,23 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   Di Atas Standar (≥N)"** (filter + label dinamis). **Murni metrik pelaporan** — TIDAK menyentuh
   rumus skor di `lib/scoring.ts`. Ganti standar tiap kuartal tanpa deploy.
 - **Dashboard — heatmap "Capaian KPI / Divisi"** (tab Analisis Hasil KPI, `admin/dashboard/`):
-  tabel matriks **divisi × bulan** dengan sel berwarna gradien merah→kuning→hijau (skala 50–100
-  → hue 0°–130°, `heatColor`/`KpiHeatmap` di `dashboard-visual.tsx`). Server `page.tsx` agregasi
+  tabel matriks **divisi × bulan** dengan sel berwarna (lihat **palet skor terpadu** di bawah,
+  `heatColor`/`KpiHeatmap` di `dashboard-visual.tsx`). Server `page.tsx` agregasi
   rerata KPI per `(dept, ym)` dari `kpi_scores` yang **sudah di-scope** lingkup periode+filter
   divisi (tanpa query baru) → props `deptMonthly`/`months`. Ikut filter periode/divisi dashboard;
   sel kosong "—". **Murni pelaporan** (tak menyentuh `lib/scoring.ts`).
+- **Dashboard — palet warna skor terpadu** (`admin/dashboard/dashboard-visual.tsx`, commit `c0e13f2`):
+  satu skala warna konsisten untuk semua visual berbasis skor. **`heatColor(v)`** kini **gradasi
+  mulus interpolasi RGB** antar 4 jangkar — `≤70 #b71c1c` (merah) · `80 #ffc107` (kuning) · `90
+  #388e3c` (hijau) · `≥97.5 #183c6c` (biru tua); di luar rentang di-clamp; **teks per-luminance**
+  (gelap di sel terang spt. kuning, putih di sel pekat) → terbaca, selaras audit kontras WCAG.
+  Dipakai bar+chip: **heatmap** Capaian KPI/Divisi, **Rerata KPI Bulanan per Divisi**, **Perkembangan
+  KPI Bulanan**, **Skor KPI Rata-rata per Divisi**, **Evaluasi Budaya 360°** (tab Kompilasi & Analisis
+  360). **Distribusi Kategori Kinerja** & **Rencana Tindak Lanjut** pakai **palet diskrit** (tanpa
+  gradasi) dari jangkar yang sama: ≥90 biru · 80–89 hijau · 70–79 kuning · <70 merah (tier teratas
+  digeser hijau→biru agar konsisten). Rename judul: "per Departemen"→**"per Divisi"**; "Perkembangan
+  KPI Bulanan Organisasi"→**"Perkembangan KPI Bulanan"**. **Murni visual** (className/style) — logika
+  & rumus skor tak tersentuh.
 - **Dashboard — kartu KPI tertinggi/terendah berlabel nama** (`admin/dashboard/dashboard-visual.tsx`):
   kartu "Skor KPI Tertinggi" kini menampilkan **nama pegawai**, + kartu baru **"Skor KPI Terendah"**
   (nama + skor). `Stat` diperluas prop `sub`.
@@ -186,7 +201,11 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   item "Rekapitulasi Kuartal" terpisah yang dobel dengan tab.
 - **Rekapitulasi Kuartal dihapus untuk Direksi** (menu + blokir akses `/kpi`).
 - **Monitor Kinerja dihapus untuk Direksi** (menu Eksekutif + blokir akses `/monitor` di server;
-  pola sama dgn Rekapitulasi Kuartal). SPV & HRD tak terpengaruh.
+  pola sama dgn Rekapitulasi Kuartal).
+- **Monitor Kinerja dihapus untuk HRD Admin (Mode Admin)** (`app-shell.tsx` seksi Pemantauan +
+  blokir server `/monitor`): kini halaman hanya untuk **tampilan Supervisor** — guard pakai
+  `supervisorView = !adminView && (role==='spv' || role==='hrd')`. **Paritas tetap utuh**: SPV biasa
+  & **HRD dalam Mode SPV** tetap punya Monitor (lingkup tim/divisi); hanya Mode Admin yang kehilangan.
 - **Konsistensi mobile**: tabel lebar dibungkus `overflow-x-auto` + `min-w`.
 - **Aksesibilitas**: `SearchableSelect` keyboard-nav (↑/↓/Enter/Esc) + ARIA; tombol menu mobile
   `aria-label`/`aria-expanded`.

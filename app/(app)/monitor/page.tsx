@@ -22,17 +22,22 @@ export default async function MonitorPage() {
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
   const role = me?.role;
-  if (role !== 'spv' && !canAdmin(me)) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD.</p>
-      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
-  }
 
   // Mode HRD (dual-mode): mode-SPV dibatasi seperti SPV (hanya divisinya sendiri).
   const jar = await cookies();
   const hrdMode = jar.get('hrd_mode')?.value === 'spv' ? 'spv' : 'admin';
 
-  // Lingkup pegawai. SPV → tim; HRD mode-SPV → hanya DIVISINYA (selaras Input KPI/Rekap);
-  // HRD admin → semua pegawai non-direksi.
+  // Monitor Kinerja = halaman Supervisor. Sengaja DIHAPUS dari Mode HRD Admin — hanya untuk
+  // tampilan Supervisor (SPV biasa & HRD dalam Mode SPV). Paritas tetap terjaga: HRD mode-SPV
+  // diperlakukan persis seperti SPV (lihat ATURAN PARITAS di CLAUDE.md).
+  const adminView = canAdmin(me) && hrdMode === 'admin';
+  const supervisorView = !adminView && (role === 'spv' || role === 'hrd');
+  if (!supervisorView) {
+    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV (atau HRD dalam Mode SPV).</p>
+      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+  }
+
+  // Lingkup pegawai. SPV → tim; HRD mode-SPV → hanya DIVISINYA (selaras Input KPI/Rekap).
   let empRows: { id: string; name: string; dept: string }[] = [];
   if (role === 'spv') {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', user.id);

@@ -108,16 +108,16 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
   // Distribusi Kategori Kinerja & Rencana Tindak Lanjut — band Skor Akhir (ala legacy).
   const band = (min: number, max: number) => scored.filter((r) => (r.final ?? -1) >= min && (r.final ?? -1) < max).length;
   const categories = [
-    { label: 'Melampaui Ekspektasi (Skor ≥ 90)', count: band(90, 1e9), color: '#10B981' },
-    { label: 'Memenuhi Ekspektasi (Skor 80–89)', count: band(80, 90), color: '#3B82F6' },
-    { label: 'Perlu Peningkatan (Skor 70–79)', count: band(70, 80), color: '#F59E0B' },
-    { label: 'Di Bawah Ekspektasi (Skor < 70)', count: band(-1, 70), color: '#EF4444' },
+    { label: 'Melampaui Ekspektasi (Skor ≥ 90)', count: band(90, 1e9), color: '#183c6c' },
+    { label: 'Memenuhi Ekspektasi (Skor 80–89)', count: band(80, 90), color: '#388e3c' },
+    { label: 'Perlu Peningkatan (Skor 70–79)', count: band(70, 80), color: '#ffc107' },
+    { label: 'Di Bawah Ekspektasi (Skor < 70)', count: band(-1, 70), color: '#b71c1c' },
   ];
   const recommendations = [
-    { label: 'Promosi Akselerasi Jabatan', count: band(90, 1e9), color: '#047857' },
-    { label: 'Pertahankan Posisi & Jalur Bonus', count: band(80, 90), color: '#0284C7' },
-    { label: 'Program Workshop & Intervensi', count: band(70, 80), color: '#D97706' },
-    { label: 'Pelatihan Intensif Mutu', count: band(-1, 70), color: '#DC2626' },
+    { label: 'Promosi Akselerasi Jabatan', count: band(90, 1e9), color: '#183c6c' },
+    { label: 'Pertahankan Posisi & Jalur Bonus', count: band(80, 90), color: '#388e3c' },
+    { label: 'Program Workshop & Intervensi', count: band(70, 80), color: '#ffc107' },
+    { label: 'Pelatihan Intensif Mutu', count: band(-1, 70), color: '#b71c1c' },
   ];
 
   // Papan Pertimbangan Suksesi & Promosi — pegawai Skor Akhir ≥ 90 + rencana suksesinya.
@@ -165,18 +165,21 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
         <Card title="🏢 Skor KPI Rata-rata per Divisi">
           <div className="space-y-4">
             {deptScores.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada data KPI.</p>}
-            {deptScores.map(([dept, score], i) => (
-              <div key={dept} className="space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-semibold text-gray-700">{dept}</span>
-                  <span className="text-xs font-bold text-emerald-800 font-mono bg-emerald-50 px-2 py-0.5 rounded-md">{score.toFixed(1)}</span>
+            {deptScores.map(([dept, score], i) => {
+              const hc = heatColor(score);
+              return (
+                <div key={dept} className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-gray-700">{dept}</span>
+                    <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{score.toFixed(1)}</span>
+                  </div>
+                  <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(score, 100)}%` }}
+                      transition={{ duration: 1, delay: i * 0.08 }} className="h-full rounded-md" style={{ backgroundColor: hc.bg }} />
+                  </div>
                 </div>
-                <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(score, 100)}%` }}
-                    transition={{ duration: 1, delay: i * 0.08 }} className="h-full bg-emerald-600 rounded-md" />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
         <Card title="✨ Evaluasi Budaya 360° (Rataan Sub-Aspek)">
@@ -184,16 +187,16 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
           <div className="space-y-4">
             {aspectScores.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada skor 360° terkirim.</p>}
             {aspectScores.map((asp, idx) => {
-              const c = asp.score >= 90 ? 'bg-indigo-600' : asp.score >= 80 ? 'bg-indigo-500' : 'bg-amber-500';
+              const hc = heatColor(asp.score);
               return (
                 <div key={asp.aspek} className="space-y-1">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-medium text-gray-700">⭐ {asp.aspek}</span>
-                    <span className="text-xs font-semibold text-indigo-900 font-mono bg-indigo-50 px-2 py-0.5 rounded-md">{asp.score.toFixed(1)} / 100</span>
+                    <span className="text-xs font-semibold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{asp.score.toFixed(1)} / 100</span>
                   </div>
                   <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
                     <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(asp.score, 100)}%` }}
-                      transition={{ duration: 1, delay: idx * 0.08 }} className={`h-full rounded-md ${c}`} />
+                      transition={{ duration: 1, delay: idx * 0.08 }} className="h-full rounded-md" style={{ backgroundColor: hc.bg }} />
                   </div>
                 </div>
               );
@@ -390,39 +393,45 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard }:
       <KpiHeatmap deptMonthly={deptMonthly} months={months} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="🏢 Rerata KPI Bulanan per Departemen">
+        <Card title="🏢 Rerata KPI Bulanan per Divisi">
           <div className="space-y-4">
             {deptScores.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada data KPI.</p>}
-            {deptScores.map(([dept, score], i) => (
-              <div key={dept} className="space-y-1">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-700">{dept}</span>
-                  <span className="font-bold text-emerald-800 font-mono bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">{score.toFixed(1)} / 100</span>
+            {deptScores.map(([dept, score], i) => {
+              const hc = heatColor(score);
+              return (
+                <div key={dept} className="space-y-1">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-slate-700">{dept}</span>
+                    <span className="font-bold font-mono px-2 py-0.5 rounded" style={{ backgroundColor: hc.bg, color: hc.fg }}>{score.toFixed(1)} / 100</span>
+                  </div>
+                  <div className="h-2.5 bg-gray-100 rounded-md overflow-hidden">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(score, 100)}%` }}
+                      transition={{ duration: 0.8, delay: i * 0.1 }} className="h-full rounded-md" style={{ backgroundColor: hc.bg }} />
+                  </div>
                 </div>
-                <div className="h-2.5 bg-gray-100 rounded-md overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(score, 100)}%` }}
-                    transition={{ duration: 0.8, delay: i * 0.1 }} className="h-full bg-gradient-to-r from-emerald-500 to-teal-600 rounded-md" />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
 
-        <Card title="📅 Perkembangan KPI Bulanan Organisasi">
+        <Card title="📅 Perkembangan KPI Bulanan">
           {monthly.length === 0 ? <p className="text-xs text-gray-500 italic font-bold">Tidak ada data bulan untuk periode ini.</p> : (
             <div className="space-y-4">
-              {monthly.map((m, i) => (
-                <div key={m.ym} className="space-y-1">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-slate-700">{ymLabel(m.ym)}</span>
-                    <span className="font-bold text-indigo-800 font-mono bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">{m.avg.toFixed(1)}</span>
+              {monthly.map((m, i) => {
+                const hc = heatColor(m.avg);
+                return (
+                  <div key={m.ym} className="space-y-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-700">{ymLabel(m.ym)}</span>
+                      <span className="font-bold font-mono px-2 py-0.5 rounded" style={{ backgroundColor: hc.bg, color: hc.fg }}>{m.avg.toFixed(1)}</span>
+                    </div>
+                    <div className="h-2.5 bg-gray-100 rounded-md overflow-hidden">
+                      <motion.div initial={{ width: 0 }} animate={{ width: `${(m.avg / maxMonthly) * 100}%` }}
+                        transition={{ duration: 0.8, delay: i * 0.1 }} className="h-full rounded-md" style={{ backgroundColor: hc.bg }} />
+                    </div>
                   </div>
-                  <div className="h-2.5 bg-gray-100 rounded-md overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${(m.avg / maxMonthly) * 100}%` }}
-                      transition={{ duration: 0.8, delay: i * 0.1 }} className="h-full bg-gradient-to-r from-indigo-500 to-blue-600 rounded-md" />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Card>
@@ -466,16 +475,16 @@ function FeedbackTab({ rows, aspectScores, has360, periodLabel }: { rows: Row[];
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           {aspectScores.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada skor 360° terkirim.</p>}
           {aspectScores.map((asp, idx) => {
-            const c = asp.score >= 90 ? 'bg-indigo-600' : asp.score >= 80 ? 'bg-indigo-500' : 'bg-amber-500';
+            const hc = heatColor(asp.score);
             return (
               <div key={asp.aspek} className="space-y-1">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-medium text-gray-700">⭐ {asp.aspek}</span>
-                  <span className="text-xs font-semibold text-indigo-900 font-mono bg-indigo-50 px-2 py-0.5 rounded-md">{asp.score.toFixed(1)} / 100</span>
+                  <span className="text-xs font-semibold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{asp.score.toFixed(1)} / 100</span>
                 </div>
                 <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
                   <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(asp.score, 100)}%` }}
-                    transition={{ duration: 1, delay: idx * 0.08 }} className={`h-full rounded-md ${c}`} />
+                    transition={{ duration: 1, delay: idx * 0.08 }} className="h-full rounded-md" style={{ backgroundColor: hc.bg }} />
                 </div>
               </div>
             );
@@ -571,14 +580,40 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
 
 /* ───────────────────────── Heatmap KPI / Divisi × Bulan ───────────────────────── */
 /**
- * Warna sel heatmap dari skor KPI — gradien merah (rendah) → kuning → hijau (tinggi).
- * Skala 50→100 dipetakan ke hue 0°(merah)→130°(hijau); <50 tetap merah pekat.
- * Teks putih (lightness sel ~42% memberi kontras cukup di seluruh rentang).
+ * Warna sel heatmap dari skor KPI — gradasi mulus (interpolasi linier RGB) antar 4 jangkar:
+ *   ≤70 #b71c1c (merah) · 80 #ffc107 (kuning) · 90 #388e3c (hijau) · ≥97.5 #183c6c (biru tua).
+ * Nilai di antara jangkar dicampur proporsional; di luar rentang di-clamp ke ujung terdekat.
+ * Warna teks dipilih per-luminance sel (gelap di sel terang spt. kuning, putih di sel pekat)
+ * agar nilai tetap terbaca — selaras audit kontras WCAG.
  */
+const HEAT_STOPS: { v: number; rgb: [number, number, number] }[] = [
+  { v: 70, rgb: [183, 28, 28] },   // #b71c1c
+  { v: 80, rgb: [255, 193, 7] },   // #ffc107
+  { v: 90, rgb: [56, 142, 60] },   // #388e3c
+  { v: 97.5, rgb: [24, 60, 108] }, // #183c6c
+];
+
 function heatColor(v: number | null): { bg: string; fg: string } {
   if (v == null) return { bg: '#f9fafb', fg: '#9ca3af' };
-  const t = Math.max(0, Math.min(1, (v - 50) / 50));
-  return { bg: `hsl(${(t * 130).toFixed(0)}, 60%, 42%)`, fg: '#ffffff' };
+  const last = HEAT_STOPS.length - 1;
+  let rgb: [number, number, number];
+  if (v <= HEAT_STOPS[0].v) rgb = HEAT_STOPS[0].rgb;
+  else if (v >= HEAT_STOPS[last].v) rgb = HEAT_STOPS[last].rgb;
+  else {
+    let i = 0;
+    while (v > HEAT_STOPS[i + 1].v) i++;
+    const a = HEAT_STOPS[i], b = HEAT_STOPS[i + 1];
+    const t = (v - a.v) / (b.v - a.v);
+    rgb = [
+      Math.round(a.rgb[0] + (b.rgb[0] - a.rgb[0]) * t),
+      Math.round(a.rgb[1] + (b.rgb[1] - a.rgb[1]) * t),
+      Math.round(a.rgb[2] + (b.rgb[2] - a.rgb[2]) * t),
+    ];
+  }
+  // Luminance perseptual (0–255): teks gelap bila sel terang (mis. di sekitar kuning).
+  const lum = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
+  const fg = lum > 150 ? '#1f2937' : '#ffffff';
+  return { bg: `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`, fg };
 }
 
 function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; months: string[] }) {
@@ -595,11 +630,11 @@ function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; mont
       <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
         <div>
           <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Capaian KPI / Divisi</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Rerata skor KPI per divisi tiap bulan — makin hijau makin tinggi.</p>
+          <p className="text-xs text-gray-500 mt-0.5">Rerata skor KPI per divisi tiap bulan — merah (rendah) → kuning → hijau → biru tua (tertinggi).</p>
         </div>
         <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500">
           <span>Rendah</span>
-          <span className="h-2.5 w-24 rounded-full" style={{ background: 'linear-gradient(to right, hsl(0,60%,42%), hsl(65,60%,42%), hsl(130,60%,42%))' }} />
+          <span className="h-2.5 w-24 rounded-full" style={{ background: 'linear-gradient(to right, #b71c1c 0%, #ffc107 36%, #388e3c 73%, #183c6c 100%)' }} />
           <span>Tinggi</span>
         </div>
       </div>

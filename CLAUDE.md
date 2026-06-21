@@ -154,7 +154,15 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   Periode & Divisi (kini grid 3 kolom). **Murni filter bantu klien** yang mempersempit daftar
   periode (mis. hanya kuartal 2026); tahun diturunkan dari `periods.start_date` (tahun periode
   terpilih = nilai dropdown — tanpa searchParam baru). Ganti tahun → lompat ke periode **aktif**
-  tahun itu (atau teratas). Lingkup data tetap satu periode (server via `?period=`).
+  tahun itu (atau teratas). Lingkup chart per-periode tetap satu periode (server via `?period=`).
+- **Dashboard — tren tahunan (trendline) KPI & 360°** (`admin/dashboard/`): dua grafik garis
+  org-level **lintas periode dalam tahun terpilih** (`TrendLine` SVG di `dashboard-visual.tsx`).
+  Tab **Analisis Hasil KPI** → "Tren KPI Bulanan {tahun} (Jan–Des)"; tab **Analisis 360 Feedback**
+  → "Tren 360° per Kuartal {tahun}" (hanya kuartal ber-360°). Masing-masing + kartu **rerata
+  tahun**. Server `page.tsx` query lintas-periode: KPI rentang `${year}-01..-12` (`yearMonthly`),
+  360° `result_360` per periode tahun itu (`year360`), keduanya di-scope `empIds` (**ikut filter
+  divisi**). Domain-y trendline adaptif; titik berwarna `heatColor`. **Murni pelaporan** (tak
+  menyentuh `lib/scoring.ts`).
 - **Dashboard — heatmap "Capaian KPI / Divisi"** (tab Analisis Hasil KPI, `admin/dashboard/`):
   tabel matriks **divisi × bulan** dengan sel berwarna (lihat **palet skor terpadu** di bawah,
   `heatColor`/`KpiHeatmap` di `dashboard-visual.tsx`). Server `page.tsx` agregasi

@@ -119,6 +119,40 @@ export default async function DashboardPage({
     }))
     .filter((r) => r.cells.some((c) => c.avg != null));
 
+  // ── Tren Tahunan (lintas periode dalam tahun terpilih) ──────────────────
+  // KPI per bulan (Jan–Des) + 360° per kuartal, org-level (ikut filter divisi via empIds).
+  // Murni pelaporan: query lintas-periode tahun yang sama, TIDAK menyentuh lib/scoring.ts.
+  const selYear = Number(String(ap.start_date).slice(0, 4)) || 0;
+  const periodsInYear = periodList
+    .filter((p) => Number(String(p.start_date).slice(0, 4)) === selYear)
+    .sort((a, b) => String(a.start_date).localeCompare(String(b.start_date)));
+  const periodsInYearIds = periodsInYear.map((p) => p.id);
+  const [yearKpiRes, year360Res] = await Promise.all([
+    empIds.length
+      ? supabase.from('kpi_scores').select('ym, score').in('employee_id', empIds).gte('ym', `${selYear}-01`).lte('ym', `${selYear}-12`)
+      : Promise.resolve({ data: [] as { ym: string; score: number }[] }),
+    empIds.length && periodsInYearIds.length
+      ? supabase.from('result_360').select('period_id, score').in('employee_id', empIds).in('period_id', periodsInYearIds)
+      : Promise.resolve({ data: [] as { period_id: string; score: number }[] }),
+  ]);
+  const ymAgg = new Map<string, { sum: number; n: number }>();
+  (yearKpiRes.data ?? []).forEach((r) => {
+    const a = ymAgg.get(r.ym) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n += 1; ymAgg.set(r.ym, a);
+  });
+  const yearMonthly = [...ymAgg.entries()]
+    .map(([ym, a]) => ({ ym, avg: a.sum / a.n }))
+    .sort((x, y) => x.ym.localeCompare(y.ym));
+  const p360Agg = new Map<string, { sum: number; n: number }>();
+  (year360Res.data ?? []).forEach((r) => {
+    if (r.score == null) return;
+    const a = p360Agg.get(r.period_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n += 1; p360Agg.set(r.period_id, a);
+  });
+  const year360 = periodsInYear
+    .filter((p) => p360Agg.has(p.id))
+    .map((p) => ({ label: p.label, avg: p360Agg.get(p.id)!.sum / p360Agg.get(p.id)!.n }));
+  const yearKpiAvg = yearMonthly.length ? yearMonthly.reduce((s, m) => s + m.avg, 0) / yearMonthly.length : null;
+  const year360Avg = year360.length ? year360.reduce((s, m) => s + m.avg, 0) / year360.length : null;
+
   // Skor 360 (hasil komputasi) + punishment.
   const s360By = new Map((r360Res.data ?? []).map((r) => [r.employee_id, r.score]));
   const penBy = new Map((penRes.data ?? []).map((p) => [p.employee_id, p.points]));
@@ -196,6 +230,11 @@ export default async function DashboardPage({
           monthly={monthly}
           deptMonthly={deptMonthly}
           months={ymSorted}
+          yearLabel={selYear}
+          yearMonthly={yearMonthly}
+          year360={year360}
+          yearKpiAvg={yearKpiAvg}
+          year360Avg={year360Avg}
           successionPlans={successionPlans}
           has360={ap.has_360}
           periodLabel={ap.label}

@@ -31,6 +31,11 @@ type Props = {
   monthly: { ym: string; avg: number }[];
   deptMonthly: DeptMonthRow[];
   months: string[];
+  yearLabel: number;
+  yearMonthly: { ym: string; avg: number }[];
+  year360: { label: string; avg: number }[];
+  yearKpiAvg: number | null;
+  year360Avg: number | null;
   successionPlans: SuccessionPlan[];
   has360: boolean;
   periodLabel: string;
@@ -61,7 +66,7 @@ const TABS: { key: SubTab; label: string; icon: React.ElementType }[] = [
   { key: 'table', label: 'Tabel Hasil Seluruh Pegawai', icon: Users },
 ];
 
-export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptMonthly, months, successionPlans, has360, periodLabel, kpiStandard }: Props) {
+export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptMonthly, months, yearLabel, yearMonthly, year360, yearKpiAvg, year360Avg, successionPlans, has360, periodLabel, kpiStandard }: Props) {
   const [tab, setTab] = useState<SubTab>('compilation');
 
   return (
@@ -83,8 +88,8 @@ export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptM
       </div>
 
       {tab === 'compilation' && <CompilationTab rows={rows} deptScores={deptScores} aspectScores={aspectScores} successionPlans={successionPlans} has360={has360} periodLabel={periodLabel} />}
-      {tab === 'kpi' && <KpiTab rows={rows} deptScores={deptScores} monthly={monthly} deptMonthly={deptMonthly} months={months} kpiStandard={kpiStandard} />}
-      {tab === 'feedback' && <FeedbackTab rows={rows} aspectScores={aspectScores} has360={has360} periodLabel={periodLabel} />}
+      {tab === 'kpi' && <KpiTab rows={rows} deptScores={deptScores} monthly={monthly} deptMonthly={deptMonthly} months={months} kpiStandard={kpiStandard} yearLabel={yearLabel} yearMonthly={yearMonthly} yearKpiAvg={yearKpiAvg} />}
+      {tab === 'feedback' && <FeedbackTab rows={rows} aspectScores={aspectScores} has360={has360} periodLabel={periodLabel} yearLabel={yearLabel} year360={year360} year360Avg={year360Avg} />}
       {tab === 'table' && <TableTab rows={rows} has360={has360} />}
     </div>
   );
@@ -363,7 +368,7 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
 }
 
 /* ───────────────────────── TAB 2 — ANALISIS KPI ───────────────────────── */
-function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard }: { rows: Row[]; deptScores: [string, number][]; monthly: { ym: string; avg: number }[]; deptMonthly: DeptMonthRow[]; months: string[]; kpiStandard: number }) {
+function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, yearLabel, yearMonthly, yearKpiAvg }: { rows: Row[]; deptScores: [string, number][]; monthly: { ym: string; avg: number }[]; deptMonthly: DeptMonthRow[]; months: string[]; kpiStandard: number; yearLabel: number; yearMonthly: { ym: string; avg: number }[]; yearKpiAvg: number | null }) {
   const kpis = rows.map((r) => r.kpiAvg).filter((v): v is number => v != null);
   const avgKpi = mean(kpis);
   const pctOverStd = kpis.length ? (kpis.filter((s) => s >= kpiStandard).length / kpis.length) * 100 : 0;
@@ -391,6 +396,11 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard }:
       </div>
 
       <KpiHeatmap deptMonthly={deptMonthly} months={months} />
+
+      <Card title={`📈 Tren KPI Bulanan ${yearLabel} (Jan–Des)`}>
+        <YearTrendCaption value={yearKpiAvg} label={`Rerata KPI ${yearLabel}`} unit="org-level, ikut filter divisi" />
+        <TrendLine points={yearMonthly.map((m) => ({ label: ymShort(m.ym), value: m.avg }))} />
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card title="🏢 Rerata KPI Bulanan per Divisi">
@@ -446,7 +456,7 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard }:
 }
 
 /* ───────────────────────── TAB 3 — ANALISIS 360 ───────────────────────── */
-function FeedbackTab({ rows, aspectScores, has360, periodLabel }: { rows: Row[]; aspectScores: { aspek: string; score: number }[]; has360: boolean; periodLabel: string }) {
+function FeedbackTab({ rows, aspectScores, has360, periodLabel, yearLabel, year360, year360Avg }: { rows: Row[]; aspectScores: { aspek: string; score: number }[]; has360: boolean; periodLabel: string; yearLabel: number; year360: { label: string; avg: number }[]; year360Avg: number | null }) {
   const s360s = rows.map((r) => r.s360).filter((v): v is number => v != null);
   const avg360 = mean(s360s);
   const max360 = s360s.length ? Math.max(...s360s) : 0;
@@ -470,6 +480,11 @@ function FeedbackTab({ rows, aspectScores, has360, periodLabel }: { rows: Row[];
         <Stat icon={<Target className="w-6 h-6" />} tint="blue" value={max360.toFixed(1)} label="Skor 360° Tertinggi" />
         <Stat icon={<Users className="w-6 h-6" />} tint="emerald" value={String(assessed)} label="Pegawai Ternilai 360°" />
       </div>
+
+      <Card title={`📈 Tren 360° per Kuartal ${yearLabel}`}>
+        <YearTrendCaption value={year360Avg} label={`Rerata 360° ${yearLabel}`} unit="org-level, ikut filter divisi · hanya kuartal ber-360°" />
+        <TrendLine points={year360.map((q) => ({ label: q.label, value: q.avg }))} />
+      </Card>
 
       <Card title="✨ Evaluasi Budaya 360° (Rataan Sub-Aspek)">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
@@ -614,6 +629,64 @@ function heatColor(v: number | null): { bg: string; fg: string } {
   const lum = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
   const fg = lum > 150 ? '#1f2937' : '#ffffff';
   return { bg: `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`, fg };
+}
+
+/** Label bulan ringkas dari 'YYYY-MM' (mis. "Jan"). */
+const ymShort = (ym: string) => MONTHS[Number(ym.split('-')[1]) - 1] ?? ym;
+
+/** Keterangan ringkas di atas trendline: angka rerata tahun + konteks lingkup. */
+function YearTrendCaption({ value, label, unit }: { value: number | null; label: string; unit: string }) {
+  return (
+    <div className="flex items-baseline gap-2 mb-3">
+      <span className="text-2xl font-black text-slate-800 font-mono">{value != null ? value.toFixed(1) : '—'}</span>
+      <span className="text-xs font-bold text-gray-600">{label}</span>
+      <span className="text-[10px] text-gray-500">· {unit}</span>
+    </div>
+  );
+}
+
+/**
+ * Trendline SVG sederhana (garis + titik berlabel) — dipakai untuk tren tahunan KPI/360°.
+ * Domain-y adaptif (min−/max+ dibulatkan ke 5, lebar minimal 10) agar variasi terlihat;
+ * warna titik mengikuti palet skor terpadu (`heatColor`). Label di dalam SVG sengaja
+ * dikecualikan dari audit kontras (lihat CLAUDE.md) — ukuran fixed agar grafik tak berdesakan.
+ */
+function TrendLine({ points }: { points: { label: string; value: number }[] }) {
+  if (points.length === 0) return <p className="text-xs text-gray-500 italic">Belum ada data untuk tahun ini.</p>;
+  const W = 640, H = 200, padL = 30, padR = 14, padT = 20, padB = 26;
+  const vals = points.map((p) => p.value);
+  let lo = Math.max(0, Math.floor((Math.min(...vals) - 4) / 5) * 5);
+  let hi = Math.min(100, Math.ceil((Math.max(...vals) + 4) / 5) * 5);
+  if (hi - lo < 10) { hi = Math.min(100, lo + 10); lo = Math.max(0, hi - 10); }
+  const x = (i: number) => points.length === 1
+    ? (padL + W - padR) / 2
+    : padL + (i * (W - padL - padR)) / (points.length - 1);
+  const y = (v: number) => padT + (H - padT - padB) * (1 - (v - lo) / (hi - lo));
+  const grid = [lo, (lo + hi) / 2, hi];
+  const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(p.value).toFixed(1)}`).join(' ');
+  return (
+    <div className="overflow-x-auto">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[480px]" style={{ height: H }} preserveAspectRatio="xMidYMid meet">
+        {grid.map((g) => (
+          <g key={g}>
+            <line x1={padL} y1={y(g)} x2={W - padR} y2={y(g)} stroke="#e5e7eb" strokeWidth={1} />
+            <text x={padL - 5} y={y(g) + 3} textAnchor="end" fill="#6b7280" fontSize={10}>{g.toFixed(0)}</text>
+          </g>
+        ))}
+        <path d={path} fill="none" stroke="#94a3b8" strokeWidth={2} />
+        {points.map((p, i) => {
+          const { bg } = heatColor(p.value);
+          return (
+            <g key={`${p.label}-${i}`}>
+              <circle cx={x(i)} cy={y(p.value)} r={4.5} fill={bg} stroke="#fff" strokeWidth={1.5} />
+              <text x={x(i)} y={y(p.value) - 9} textAnchor="middle" fill="#374151" fontSize={10} fontWeight={700}>{p.value.toFixed(1)}</text>
+              <text x={x(i)} y={H - 8} textAnchor="middle" fill="#6b7280" fontSize={10}>{p.label}</text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
 }
 
 function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; months: string[] }) {

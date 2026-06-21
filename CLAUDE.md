@@ -163,11 +163,15 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   360° `result_360` per periode tahun itu (`year360`), keduanya di-scope `empIds` (**ikut filter
   divisi**). Domain-y trendline adaptif; titik berwarna `heatColor`. **Murni pelaporan** (tak
   menyentuh `lib/scoring.ts`).
-- **Dashboard — heatmap "Capaian KPI / Divisi"** (tab Analisis Hasil KPI, `admin/dashboard/`):
-  tabel matriks **divisi × bulan** dengan sel berwarna (lihat **palet skor terpadu** di bawah,
-  `heatColor`/`KpiHeatmap` di `dashboard-visual.tsx`). Server `page.tsx` agregasi
-  rerata KPI per `(dept, ym)` dari `kpi_scores` yang **sudah di-scope** lingkup periode+filter
-  divisi (tanpa query baru) → props `deptMonthly`/`months`. Ikut filter periode/divisi dashboard;
+- **Dashboard — heatmap "Capaian KPI / Divisi" + pie kategori KPI** (tab Analisis Hasil KPI,
+  `admin/dashboard/`): heatmap tabel matriks **divisi × bulan** dengan sel berwarna (lihat **palet
+  skor terpadu** di bawah, `heatColor`/`KpiHeatmap` di `dashboard-visual.tsx`). Server `page.tsx`
+  agregasi rerata KPI per `(dept, ym)` dari `kpi_scores` yang **sudah di-scope** lingkup
+  periode+filter divisi (tanpa query baru) → props `deptMonthly`/`months`. Di sampingnya **donut
+  "Distribusi Kategori KPI"** (`KpiCategoryPie`) — komposisi pegawai per kelas capaian **KPI**
+  (rerata `rows.kpiAvg`, bukan Skor Akhir): ≥90 Melampaui (biru `#183c6c`) · 80–89 Memenuhi (hijau
+  `#388e3c`) · 70–79 Perlu Peningkatan (kuning `#ffc107`) · <70 Di Bawah (merah `#b71c1c`). Keduanya
+  bersebelahan (`lg:grid-cols-3`: heatmap `col-span-2`, pie 1 kolom). Ikut filter periode/divisi;
   sel kosong "—". **Murni pelaporan** (tak menyentuh `lib/scoring.ts`).
 - **Dashboard — palet warna skor terpadu** (`admin/dashboard/dashboard-visual.tsx`, commit `c0e13f2`):
   satu skala warna konsisten untuk semua visual berbasis skor. **`heatColor(v)`** kini **gradasi

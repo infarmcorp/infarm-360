@@ -395,7 +395,10 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
         <Stat icon={<BarChart3 className="w-6 h-6" />} tint="amber" value={`${monthly.length} Bulan`} label="Siklus Penilaian Terpilih" />
       </div>
 
-      <KpiHeatmap deptMonthly={deptMonthly} months={months} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2"><KpiHeatmap deptMonthly={deptMonthly} months={months} /></div>
+        <KpiCategoryPie rows={rows} />
+      </div>
 
       <Card title={`📈 Tren KPI Bulanan ${yearLabel} (Jan–Des)`}>
         <YearTrendCaption value={yearKpiAvg} label={`Rerata KPI ${yearLabel}`} unit="org-level, ikut filter divisi" />
@@ -689,6 +692,66 @@ function TrendLine({ points }: { points: { label: string; value: number }[] }) {
   );
 }
 
+/**
+ * Pie/donut distribusi pegawai per kelas capaian KPI (palet diskrit, lihat CLAUDE.md):
+ *   ≥90 Melampaui (biru #183c6c) · 80–89 Memenuhi (hijau #388e3c) ·
+ *   70–79 Perlu Peningkatan (kuning #ffc107) · <70 Di Bawah (merah #b71c1c).
+ * Klasifikasi memakai rerata KPI pegawai (rows.kpiAvg), bukan Skor Akhir — selaras tab KPI.
+ */
+const KPI_CATS = [
+  { key: 'exceed', label: 'Melampaui Ekspektasi', hint: 'KPI ≥ 90', color: '#183c6c', test: (v: number) => v >= 90 },
+  { key: 'meet', label: 'Memenuhi Ekspektasi', hint: 'KPI 80–89', color: '#388e3c', test: (v: number) => v >= 80 && v < 90 },
+  { key: 'improve', label: 'Perlu Peningkatan', hint: 'KPI 70–79', color: '#ffc107', test: (v: number) => v >= 70 && v < 80 },
+  { key: 'below', label: 'Di Bawah Ekspektasi', hint: 'KPI < 70', color: '#b71c1c', test: (v: number) => v < 70 },
+] as const;
+
+function KpiCategoryPie({ rows }: { rows: Row[] }) {
+  const kpis = rows.map((r) => r.kpiAvg).filter((v): v is number => v != null);
+  const total = kpis.length;
+  const counts = KPI_CATS.map((c) => ({ ...c, n: kpis.filter((v) => c.test(v)).length }));
+  const R = 52, SW = 22, C = 2 * Math.PI * R;
+  let acc = 0;
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs flex flex-col">
+      <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Distribusi Kategori KPI</h3>
+      <p className="text-xs text-gray-500 mt-0.5 mb-4">Komposisi pegawai per kelas capaian KPI</p>
+      {total === 0 ? (
+        <p className="text-xs text-gray-500 italic">Belum ada data KPI.</p>
+      ) : (
+        <div className="flex flex-col items-center gap-4">
+          <svg viewBox="0 0 140 140" className="w-40 h-40 shrink-0">
+            <g transform="rotate(-90 70 70)">
+              {counts.map((c) => {
+                if (c.n === 0) return null;
+                const len = (c.n / total) * C;
+                const seg = (
+                  <circle key={c.key} cx={70} cy={70} r={R} fill="none" stroke={c.color}
+                    strokeWidth={SW} strokeDasharray={`${len.toFixed(2)} ${(C - len).toFixed(2)}`} strokeDashoffset={-acc} />
+                );
+                acc += len;
+                return seg;
+              })}
+            </g>
+            <text x={70} y={66} textAnchor="middle" fill="#1f2937" fontSize={24} fontWeight={800}>{total}</text>
+            <text x={70} y={84} textAnchor="middle" fill="#6b7280" fontSize={9}>Pegawai</text>
+          </svg>
+          <div className="w-full space-y-1.5">
+            {counts.map((c) => (
+              <div key={c.key} className="flex items-center gap-2 text-xs">
+                <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: c.color }} />
+                <span className="font-semibold text-gray-700 flex-1 leading-tight">{c.label}
+                  <span className="text-gray-500 font-normal"> · {c.hint}</span></span>
+                <span className="font-mono font-bold text-gray-800">{c.n}</span>
+                <span className="font-mono text-gray-500 w-9 text-right">{((c.n / total) * 100).toFixed(0)}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; months: string[] }) {
   if (deptMonthly.length === 0 || months.length === 0) {
     return (
@@ -703,7 +766,7 @@ function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; mont
       <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
         <div>
           <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Capaian KPI / Divisi</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Rerata skor KPI per divisi tiap bulan — merah (rendah) → kuning → hijau → biru tua (tertinggi).</p>
+          <p className="text-xs text-gray-500 mt-0.5">Rerata skor KPI per divisi</p>
         </div>
         <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500">
           <span>Rendah</span>

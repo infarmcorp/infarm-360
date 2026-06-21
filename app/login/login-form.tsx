@@ -52,7 +52,11 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
     // Reset mode tampilan: tiap login mulai dari Mode posisi-asli (base) — cegah cookie
     // 'hrd_mode' sesi/pengguna sebelumnya membawa langsung ke Mode Admin di browser bersama.
     document.cookie = 'hrd_mode=; path=/; max-age=0; samesite=lax';
-    router.push(next);
+    // Karena mode direset ke base, JANGAN ikuti `next` yang menuju rute admin (mis. middleware
+    // menyimpan /admin/dashboard saat sesi habis) — itu membuat halaman = Admin tapi toggle = SPV.
+    // Lewatkan ke '/' agar gerbang memilih landing sesuai posisi-asli (base). Rute non-admin tetap.
+    const target = next.startsWith('/admin') ? '/' : next;
+    router.push(target);
     router.refresh();
   }
 

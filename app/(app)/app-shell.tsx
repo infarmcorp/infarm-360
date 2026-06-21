@@ -9,6 +9,7 @@ import {
   Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
+import { BrandLogo } from '@/components/brand-logo';
 import type { TodoItem, TodoTone } from '@/lib/todos/compute';
 
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
@@ -113,7 +114,7 @@ export function AppShell({
       {/* Brand */}
       <div className="p-4 border-b border-gray-150">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black text-sm">i</div>
+          <BrandLogo className="w-14 h-14 -my-3 shrink-0" />
           <div className="leading-tight">
             <div className="text-sm font-extrabold text-gray-800">Infarm 360°</div>
             <div className="text-[10px] text-gray-500">Performance Appraisal</div>
@@ -260,6 +261,7 @@ export function AppShell({
               <span className="absolute -top-1.5 -right-1.5 text-[10px] font-black text-white bg-amber-500 rounded-full px-1 min-w-[14px] text-center leading-[14px]">{todos.length}</span>
             )}
           </button>
+          <BrandLogo className="w-11 h-11 -my-2 shrink-0" />
           <span className="text-sm font-extrabold text-gray-800">Infarm 360°</span>
         </header>
         <div className="flex-1 overflow-y-auto">{children}</div>

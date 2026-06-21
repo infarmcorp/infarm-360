@@ -25,7 +25,8 @@ export default async function MonitorPage() {
 
   // Mode HRD (dual-mode): mode-SPV dibatasi seperti SPV (hanya divisinya sendiri).
   const jar = await cookies();
-  const hrdMode = jar.get('hrd_mode')?.value === 'spv' ? 'spv' : 'admin';
+  // Cookie absen = base/SPV (konsisten dgn layout.tsx & app/page.tsx; login mereset ke base).
+  const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
 
   // Monitor Kinerja = halaman Supervisor. Sengaja DIHAPUS dari Mode HRD Admin — hanya untuk
   // tampilan Supervisor (SPV biasa & HRD dalam Mode SPV). Paritas tetap terjaga: HRD mode-SPV

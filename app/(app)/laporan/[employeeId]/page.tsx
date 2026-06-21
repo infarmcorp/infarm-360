@@ -31,8 +31,9 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   }
 
   // Mode HRD (dual-mode): HRD-posisi mode-SPV dibatasi setara SPV (tanpa raw 360°).
+  // Cookie absen = base/SPV (konsisten dgn layout.tsx; login mereset ke base) → bukan hanya 'spv'.
   const jar = await cookies();
-  const hrdSpvMode = role === 'hrd' && jar.get('hrd_mode')?.value === 'spv';
+  const hrdSpvMode = role === 'hrd' && jar.get('hrd_mode')?.value !== 'admin';
   // Jalur "seperti SPV": SPV biasa ATAU HRD-posisi yang sedang bertindak sebagai SPV.
   const asSpv = role === 'spv' || hrdSpvMode;
 

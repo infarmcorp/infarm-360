@@ -27,7 +27,8 @@ export default async function KpiPage({
   const role = me?.role ?? 'employee';
   const admin = canAdmin(me);
   const jar = await cookies();
-  const hrdMode = jar.get('hrd_mode')?.value === 'spv' ? 'spv' : 'admin';
+  // Cookie absen = base/SPV (konsisten dgn layout.tsx & app/page.tsx; login mereset ke base).
+  const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
 
   // Input KPI hanya untuk SPV / HRD-posisi mode-SPV (fungsi supervisi; butuh tim/divisi).
   // Monitoring & Audit KPI (baca semua) untuk pemegang izin HRD (admin) / SPV (tim).

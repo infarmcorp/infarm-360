@@ -173,6 +173,9 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   `#388e3c`) · 70–79 Perlu Peningkatan (kuning `#ffc107`) · <70 Di Bawah (merah `#b71c1c`). Keduanya
   bersebelahan (`lg:grid-cols-3`: heatmap `col-span-2`, pie 1 kolom). Ikut filter periode/divisi;
   sel kosong "—". **Murni pelaporan** (tak menyentuh `lib/scoring.ts`).
+- **Logo merek (`public/logo.png`)** — lambang "i" lama diganti logo Infarm asli via komponen
+  `components/brand-logo.tsx` (`<img src="/logo.png">`, object-contain). Dipakai di sidebar
+  (`app-shell.tsx`, diperbesar dgn margin negatif agar tinggi header tetap) & header mobile.
 - **Dashboard — palet warna skor terpadu** (`admin/dashboard/dashboard-visual.tsx`, commit `c0e13f2`):
   satu skala warna konsisten untuk semua visual berbasis skor. **`heatColor(v)`** kini **gradasi
   mulus interpolasi RGB** antar 4 jangkar — `≤70 #b71c1c` (merah) · `80 #ffc107` (kuning) · `90
@@ -196,6 +199,17 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Impor pemetaan** — pratinjau menyebut pasangan yang dilewati + alasannya.
 
 ### Perbaikan (bug fix)
+- **Default `hrd_mode` tak konsisten → halaman Admin saat toggle SPV** (paritas): cookie `hrd_mode`
+  **absen** (terjadi tepat setelah login yang mereset ke base) harus berarti **base/SPV**, tapi
+  `kpi/page.tsx`, `monitor/page.tsx`, & `laporan/[employeeId]/page.tsx` keliru memperlakukannya
+  sebagai **admin** (`=== 'spv' ? 'spv' : 'admin'`). Akibatnya toggle tampil SPV (dari `layout.tsx`
+  yang sudah benar) tapi `/kpi` menampilkan "Monitoring & Audit KPI **seluruh pegawai**", `/monitor`
+  keliru menolak, & detail laporan tampil raw admin. **Diseragamkan** ke `=== 'admin' ? 'admin' : 'spv'`
+  (laporan: `value !== 'admin'`) — konsisten dgn `layout.tsx`/`app/page.tsx`.
+- **Login: `next` rute admin bikin landing tak sinkron** (`app/login/login-form.tsx`): saat sesi
+  habis di `/admin/*`, middleware menyimpan `?next=/admin/...`; login mereset mode ke base lalu
+  mendarat di rute admin → halaman Admin tapi toggle SPV. Kini `next` yang menuju `/admin/*`
+  dilewatkan ke `/` (gerbang memilih landing sesuai posisi-asli); rute non-admin tetap dihormati.
 - **Paritas SPV ↔ HRD-mode-SPV** (2 celah kecil): (A) menu **"Laporan Hasil Saya"** kini tampil
   untuk **semua mode-base non-direksi** (termasuk HRD-mode-SPV), bukan hanya `employee`/`spv`
   (`app-shell.tsx`); (B) **Monitor Kinerja** kini **menyertakan diri SPV** (selaras Input KPI/

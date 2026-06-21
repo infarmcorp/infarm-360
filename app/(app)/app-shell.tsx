@@ -28,9 +28,9 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode): Section[] {
   const adminView = canAdmin && hrdMode === 'admin';
   const supervisorView = !adminView && (role === 'spv' || role === 'hrd');
   const main: Item[] = [];
-  if (!adminView && role !== 'direksi') main.push({ href: '/penilaian', label: 'Daftar Penilaian Saya', icon: Star });
-  // Paritas: "Laporan Hasil Saya" untuk semua mode-base non-direksi (termasuk HRD-mode-SPV).
-  if (!adminView && role !== 'direksi') main.push({ href: '/laporan', label: 'Laporan Hasil Saya', icon: FileText });
+  // Tampil untuk semua peran di mode base (termasuk Direksi); hanya disembunyikan di Mode Admin.
+  if (!adminView) main.push({ href: '/penilaian', label: 'Daftar Penilaian Saya', icon: Star });
+  if (!adminView) main.push({ href: '/laporan', label: 'Laporan Hasil Saya', icon: FileText });
 
   const sections: Section[] = main.length ? [{ title: 'Navigasi Utama', items: main }] : [];
 

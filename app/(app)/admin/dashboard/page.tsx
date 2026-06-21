@@ -32,7 +32,7 @@ export default async function DashboardPage({
 
   // Daftar periode + periode terpilih (param → aktif → terbaru).
   const { data: periodRows } = await supabase
-    .from('periods').select('id, label, has_360, status, kpi_standard').order('label', { ascending: false });
+    .from('periods').select('id, label, has_360, status, kpi_standard, start_date').order('label', { ascending: false });
   const periodList = periodRows ?? [];
   if (periodList.length === 0) return (
     <Shell>
@@ -175,7 +175,10 @@ export default async function DashboardPage({
       </div>
 
       <DashboardFilters
-        periods={periodList.map((p) => ({ id: p.id, label: p.label, status: p.status }))}
+        periods={periodList.map((p) => ({
+          id: p.id, label: p.label, status: p.status,
+          year: Number(String(p.start_date).slice(0, 4)) || 0,
+        }))}
         depts={deptList}
         currentPeriod={ap.id}
         currentDept={dept}

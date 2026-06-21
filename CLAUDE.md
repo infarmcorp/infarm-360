@@ -150,6 +150,11 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   form buat-periode). Dashboard tab **Analisis Hasil KPI** memakai nilai ini untuk kartu **"KPI
   Di Atas Standar (≥N)"** (filter + label dinamis). **Murni metrik pelaporan** — TIDAK menyentuh
   rumus skor di `lib/scoring.ts`. Ganti standar tiap kuartal tanpa deploy.
+- **Dashboard — filter Tahun** (`admin/dashboard/dashboard-filters.tsx`): dropdown Tahun di samping
+  Periode & Divisi (kini grid 3 kolom). **Murni filter bantu klien** yang mempersempit daftar
+  periode (mis. hanya kuartal 2026); tahun diturunkan dari `periods.start_date` (tahun periode
+  terpilih = nilai dropdown — tanpa searchParam baru). Ganti tahun → lompat ke periode **aktif**
+  tahun itu (atau teratas). Lingkup data tetap satu periode (server via `?period=`).
 - **Dashboard — heatmap "Capaian KPI / Divisi"** (tab Analisis Hasil KPI, `admin/dashboard/`):
   tabel matriks **divisi × bulan** dengan sel berwarna (lihat **palet skor terpadu** di bawah,
   `heatColor`/`KpiHeatmap` di `dashboard-visual.tsx`). Server `page.tsx` agregasi

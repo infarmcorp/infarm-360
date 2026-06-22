@@ -94,6 +94,12 @@ export function AssessForm({
     const f = flat[idx];
     if (f) { setActiveGroup(f.gid); setActiveId(f.id); }
   }
+  // "Selanjutnya": antar-indikator; dari indikator TERAKHIR → lompat ke Umpan Balik Kualitatif.
+  function goNext() {
+    if (curPos < total - 1) goTo(curPos + 1);
+    else if (hasQual) setActiveGroup(QUAL);
+  }
+  const atLastQuant = curPos >= total - 1;
 
   async function save(status: 'draft' | 'submitted') {
     setBusy(true); setError(null);
@@ -209,6 +215,16 @@ export function AssessForm({
                     className="w-full text-xs px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500" />
                 </div>
               ))}
+              {/* Navigasi: kembali ke indikator kuantitatif terakhir (simetri dgn "Selanjutnya"). */}
+              {total > 0 && (
+                <div className="flex justify-between items-center pt-2 border-t border-gray-100 text-xs font-bold text-gray-600">
+                  <button type="button" onClick={() => goTo(total - 1)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-200 bg-white hover:bg-gray-50 rounded-lg">
+                    <ChevronLeft className="w-3.5 h-3.5" /> Sebelumnya
+                  </button>
+                  <span className="font-mono text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Langkah terakhir</span>
+                </div>
+              )}
             </div>
           ) : cur ? (
             <div className="space-y-3">
@@ -299,9 +315,9 @@ export function AssessForm({
                     <ChevronLeft className="w-3.5 h-3.5" /> Sebelumnya
                   </button>
                   <span className="font-mono text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Q{cur.qNum}/{total}</span>
-                  <button type="button" disabled={curPos >= total - 1} onClick={() => goTo(curPos + 1)}
+                  <button type="button" disabled={atLastQuant && !hasQual} onClick={goNext}
                     className="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-200 bg-white hover:bg-gray-50 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed">
-                    Selanjutnya <ChevronLeft className="w-3.5 h-3.5 rotate-180" />
+                    {atLastQuant && hasQual ? 'Ke Umpan Balik Kualitatif' : 'Selanjutnya'} <ChevronLeft className="w-3.5 h-3.5 rotate-180" />
                   </button>
                 </div>
               </div>

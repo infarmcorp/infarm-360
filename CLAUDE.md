@@ -199,6 +199,11 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Impor pemetaan** — pratinjau menyebut pasangan yang dilewati + alasannya.
 
 ### Perbaikan (bug fix)
+- **Form 360° — "Selanjutnya" dari indikator terakhir mentok** (`penilaian/[targetId]/assess-form.tsx`):
+  tombol dulu `disabled` di indikator kuantitatif terakhir → tak bisa lanjut ke **Umpan Balik
+  Kualitatif** (grup `QUAL` terpisah, hanya via rail). Kini `goNext()` melompat ke kualitatif dari
+  indikator terakhir (label jadi "Ke Umpan Balik Kualitatif"); panel kualitatif diberi tombol
+  "Sebelumnya" → kembali ke indikator terakhir (simetri).
 - **Default `hrd_mode` tak konsisten → halaman Admin saat toggle SPV** (paritas): cookie `hrd_mode`
   **absen** (terjadi tepat setelah login yang mereset ke base) harus berarti **base/SPV**, tapi
   `kpi/page.tsx`, `monitor/page.tsx`, & `laporan/[employeeId]/page.tsx` keliru memperlakukannya

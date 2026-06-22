@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify:rls": "npx tsx scripts/verify-rls.ts"
+    "verify:rls": "npx tsx scripts/verify-rls.ts",
+    "loadtest:provision": "node scripts/loadtest/provision.mjs",
+    "loadtest:teardown": "node scripts/loadtest/teardown.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

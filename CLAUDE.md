@@ -14,9 +14,10 @@ Migrasi fungsional **selesai & live**; sisa sebagian besar aktivasi env + kebers
   - **Jaring regresi L3** — `verify:rls` kini **21 assertion** (dari 12): fixture 360° + tegakkan
     SPV ditolak baca `assessments`/AIS/AQA anggota tim, plus kontrol positif HRD/penilai/target.
   - **Heatmap "Capaian KPI / Divisi"** (dashboard tab Analisis Hasil KPI) — matriks divisi × bulan.
-  - **Palet warna skor terpadu** (dashboard, commit `c0e13f2`) — `heatColor` jadi gradasi 4 jangkar
-    (`≤70` merah · `80` kuning · `90` hijau · `≥97.5` biru) dipakai lintas bar/chip KPI & 360°;
-    kategori kinerja pakai palet diskrit; rename judul "per Divisi" / "Perkembangan KPI Bulanan".
+  - **Palet warna skor terpadu** (lib bersama `lib/score-color.ts`, commit `c0e13f2`→`9a82667`) —
+    `heatColor` gradasi 4 jangkar (`≤70` merah · `80` kuning · `90` hijau · `≥97.5` biru) dipakai
+    lintas bar/chip KPI & 360° di **dashboard** + bar **Perbandingan Skor Akhir** di **Monitor
+    Kinerja**; kategori kinerja pakai palet diskrit; rename judul "per Divisi" / "Perkembangan KPI Bulanan".
   - **Paritas SPV ↔ HRD-mode-SPV** (Laporan Hasil Saya + Monitor menyertakan diri); audit
     kontras WCAG AA; self-service ganti sandi; email pengingat 360° (dorman); indikator tenggat.
 - **Berikutnya (butuh aksi pengguna):** set env email (Gmail SMTP) → aktifkan pengingat + reset
@@ -176,18 +177,21 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Logo merek (`public/logo.png`)** — lambang "i" lama diganti logo Infarm asli via komponen
   `components/brand-logo.tsx` (`<img src="/logo.png">`, object-contain). Dipakai di sidebar
   (`app-shell.tsx`, diperbesar dgn margin negatif agar tinggi header tetap) & header mobile.
-- **Dashboard — palet warna skor terpadu** (`admin/dashboard/dashboard-visual.tsx`, commit `c0e13f2`):
-  satu skala warna konsisten untuk semua visual berbasis skor. **`heatColor(v)`** kini **gradasi
-  mulus interpolasi RGB** antar 4 jangkar — `≤70 #b71c1c` (merah) · `80 #ffc107` (kuning) · `90
-  #388e3c` (hijau) · `≥97.5 #183c6c` (biru tua); di luar rentang di-clamp; **teks per-luminance**
-  (gelap di sel terang spt. kuning, putih di sel pekat) → terbaca, selaras audit kontras WCAG.
-  Dipakai bar+chip: **heatmap** Capaian KPI/Divisi, **Rerata KPI Bulanan per Divisi**, **Perkembangan
+- **Palet warna skor terpadu** (`lib/score-color.ts`, commit `c0e13f2` lalu `9a82667`):
+  satu skala warna konsisten untuk semua visual berbasis skor, **diekstrak ke modul bersama**
+  (`heatColor` + `HEAT_LEGEND_GRADIENT`) agar dipakai dashboard **dan** Monitor Kinerja tanpa
+  duplikasi/drift. **`heatColor(v)`** = **gradasi mulus interpolasi RGB** antar 4 jangkar — `≤70
+  #b71c1c` (merah) · `80 #ffc107` (kuning) · `90 #388e3c` (hijau) · `≥97.5 #183c6c` (biru tua); di
+  luar rentang di-clamp; **teks per-luminance** (gelap di sel terang spt. kuning, putih di sel pekat)
+  → terbaca, selaras audit kontras WCAG. Dipakai bar+chip di **dashboard** (`dashboard-visual.tsx`,
+  impor dari lib): **heatmap** Capaian KPI/Divisi, **Rerata KPI Bulanan per Divisi**, **Perkembangan
   KPI Bulanan**, **Skor KPI Rata-rata per Divisi**, **Evaluasi Budaya 360°** (tab Kompilasi & Analisis
-  360). **Distribusi Kategori Kinerja** & **Rencana Tindak Lanjut** pakai **palet diskrit** (tanpa
-  gradasi) dari jangkar yang sama: ≥90 biru · 80–89 hijau · 70–79 kuning · <70 merah (tier teratas
-  digeser hijau→biru agar konsisten). Rename judul: "per Departemen"→**"per Divisi"**; "Perkembangan
-  KPI Bulanan Organisasi"→**"Perkembangan KPI Bulanan"**. **Murni visual** (className/style) — logika
-  & rumus skor tak tersentuh.
+  360); dan di **Monitor Kinerja** (`monitor/monitor-chart.tsx`) — bar **"Perbandingan Skor Akhir
+  Antar-Pegawai"** (SPV & HRD mode-SPV). **Distribusi Kategori Kinerja** & **Rencana Tindak Lanjut**
+  pakai **palet diskrit** (tanpa gradasi) dari jangkar yang sama: ≥90 biru · 80–89 hijau · 70–79
+  kuning · <70 merah (tier teratas digeser hijau→biru agar konsisten). Rename judul: "per
+  Departemen"→**"per Divisi"**; "Perkembangan KPI Bulanan Organisasi"→**"Perkembangan KPI Bulanan"**.
+  **Murni visual** (className/style) — logika & rumus skor tak tersentuh.
 - **Dashboard — kartu KPI tertinggi/terendah berlabel nama** (`admin/dashboard/dashboard-visual.tsx`):
   kartu "Skor KPI Tertinggi" kini menampilkan **nama pegawai**, + kartu baru **"Skor KPI Terendah"**
   (nama + skor). `Stat` diperluas prop `sub`.

@@ -23,18 +23,6 @@ Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saa
 > cadangan **"Masuk dengan email manual"** bila perlu. Dropdown nama berfitur pencarian
 > juga dipakai di Pemetaan (Penilai/Target) & Penilaian Ad-Hoc.
 
-**Daftar akun demo** (sandi awal bersama `Infarm2026`):
-
-| Peran | Nama | Divisi |
-|---|---|---|
-| Employee | Andi Pratama, Budi Santoso | Operasional |
-| Employee | Citra Dewi, Dinda Rahayu | Marketing |
-| Employee | Eko Prasetyo | Finance |
-| SPV | Gunawan Wibowo | Operasional |
-| SPV | Hesti Lestari | Marketing |
-| HRD Admin | Irma Suryani | HRD |
-| Direksi | Joko Widiatmoko, Kartini Puspita | Direksi |
-
 > HRD Admin punya **2 mode**: bertindak sebagai **SPV** atau sebagai **HRD Admin**
 > (mengelola seluruh sistem).
 

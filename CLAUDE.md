@@ -230,6 +230,11 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   sub-tab itu. RLS baca-diri (`kpi/kpiaudit/r360/penalty`) sudah mengizinkan `employee_id = auth.uid()`.
 - **Menu HRD mode-SPV = SPV biasa** (Input KPI Anggota · Laporan Kinerja Tim · Monitor); hapus
   item "Rekapitulasi Kuartal" terpisah yang dobel dengan tab.
+- **Menu "Daftar Penilaian Saya" & "Laporan Hasil Saya" dikembalikan untuk Direksi** (`app-shell.tsx`):
+  regresi dari commit grant HRD (Tahap 1) yang menambah filter `role !== 'direksi'` tanpa diminta —
+  sebelumnya Direksi memang punya kedua menu. Syarat kini cukup `!adminView` (tampil semua peran di
+  mode base; sembunyi hanya di Mode Admin). Guard server `/penilaian` & `/laporan` tak berubah (tanpa
+  batasan peran; tampilkan data sendiri / empty-state) → aman untuk Direksi.
 - **Rekapitulasi Kuartal dihapus untuk Direksi** (menu + blokir akses `/kpi`).
 - **Monitor Kinerja dihapus untuk Direksi** (menu Eksekutif + blokir akses `/monitor` di server;
   pola sama dgn Rekapitulasi Kuartal).

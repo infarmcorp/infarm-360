@@ -373,12 +373,15 @@ divisi). Skor Akhir mengikuti flag **360° aktif/nonaktif** periode terpilih (KP
 ## Peran: DIREKSI
 
 - **Daftar Penilaian Saya** — sama seperti Employee (mengisi 360°).
+- **Laporan Hasil Saya** — laporan hasil 360° diri sendiri (muncul setelah HRD finalisasi).
 - **Dashboard Eksekutif** — sama dengan Dashboard Organisasi HRD.
-- **Monitor Kinerja** — memantau semua pegawai (filter divisi/periode/pegawai).
 - **Log Aktivitas HRD** — *read-only*, mengawasi jejak aksi sensitif HRD (sama seperti yang
   dilihat HRD; lihat bagian HRD Admin).
 - **Promosi & Penyesuaian** — respon **Kewenangan Diskusi / ACC Direksi** terhadap
   Rencana Suksesi yang diajukan HRD.
+
+> Catatan: Direksi **tidak** punya "Monitor Kinerja" maupun "Rekapitulasi Kuartal" (sengaja
+> dihapus — keduanya milik SPV/HRD). Pemantauan agregat Direksi lewat **Dashboard Eksekutif**.
 
 ---
 

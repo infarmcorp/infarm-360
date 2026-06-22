@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { heatColor } from '@/lib/score-color';
 
 export type TrendPoint = { ym: string; label: string; kpi: number; s360: number; final: number };
 export type PeriodPoint = { periodId: string; label: string; kpi: number | null; s360: number | null; final: number | null };
@@ -82,7 +83,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function ComparisonView({ rows, periodLabel }: { rows: { id: string; name: string; dept: string; kpi: number | null; s360: number | null; final: number | null }[]; periodLabel: string }) {
   if (rows.length === 0) return <p className="text-sm text-gray-500">Belum ada data kinerja untuk lingkup ini.</p>;
   const fmt = (v: number | null) => (v != null ? v.toFixed(1) : '—');
-  const barColor = (v: number) => (v >= 90 ? 'bg-emerald-500' : v >= 80 ? 'bg-sky-500' : v >= 70 ? 'bg-amber-500' : 'bg-rose-500');
+  // Palet skor terpadu — gradasi mulus (lihat lib/score-color.ts).
+  const barColor = (v: number) => heatColor(v).bg;
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs space-y-5">
@@ -107,7 +109,7 @@ function ComparisonView({ rows, periodLabel }: { rows: { id: string; name: strin
               <span className="font-mono font-black text-slate-800">{fmt(r.final)}</span>
             </div>
             <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
-              <div className={`h-full rounded-md ${r.final != null ? barColor(r.final) : 'bg-gray-300'}`} style={{ width: `${Math.min(r.final ?? 0, 100)}%` }} />
+              <div className="h-full rounded-md" style={{ width: `${Math.min(r.final ?? 0, 100)}%`, backgroundColor: r.final != null ? barColor(r.final) : '#d1d5db' }} />
             </div>
           </div>
         ))}

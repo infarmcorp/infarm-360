@@ -4,7 +4,12 @@ import { useMemo, useState, useTransition } from 'react';
 import { forceComplete, sendReminder, massReminder } from './actions';
 
 export type Pending = { targetId: string; targetName: string; relation: string; mandatory: boolean };
-export type AssessorRow = { id: string; name: string; dept: string; total: number; done: number; pending: Pending[] };
+export type AssessorRow = {
+  id: string; name: string; dept: string;
+  total: number; done: number;              // semua tugas (wajib + opsional) — info sekunder
+  mandatoryTotal: number; mandatoryDone: number; // kelengkapan ditentukan dari WAJIB saja
+  pending: Pending[];
+};
 /** Info read-only "per yang dinilai": berapa penilai ditugaskan & berapa sudah menilai dia. */
 export type TargetRow = { id: string; name: string; dept: string; total: number; done: number };
 
@@ -23,16 +28,19 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
     [targetRows],
   );
 
+  // Kelengkapan = semua penilaian WAJIB selesai (opsional tak menentukan). Tanpa wajib → lengkap.
+  const isComplete = (r: AssessorRow) => r.mandatoryDone >= r.mandatoryTotal;
+
   const stats = useMemo(() => {
     const total = rows.length;
-    const done = rows.filter((r) => r.total > 0 && r.done === r.total).length;
-    const tasks = rows.reduce((s, r) => s + r.total, 0);
-    const doneTasks = rows.reduce((s, r) => s + r.done, 0);
+    const done = rows.filter(isComplete).length;
+    const tasks = rows.reduce((s, r) => s + r.mandatoryTotal, 0);
+    const doneTasks = rows.reduce((s, r) => s + r.mandatoryDone, 0);
     return { total, done, pending: total - done, pct: tasks ? Math.round((doneTasks / tasks) * 100) : 0 };
   }, [rows]);
 
   const shown = rows.filter((r) => {
-    const complete = r.total > 0 && r.done === r.total;
+    const complete = isComplete(r);
     if (q.trim() && !r.name.toLowerCase().includes(q.toLowerCase())) return false;
     if (dept !== 'all' && r.dept !== dept) return false;
     if (status === 'lengkap' && !complete) return false;
@@ -53,9 +61,9 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Stat label="Total Penilai" value={stats.total} c="text-slate-800" />
-        <Stat label="Lengkap" value={stats.done} c="text-emerald-700" />
-        <Stat label="Belum" value={stats.pending} c="text-amber-700" />
-        <Stat label="Progres Keseluruhan" value={`${stats.pct}%`} c="text-indigo-700" />
+        <Stat label="Lengkap (wajib)" value={stats.done} c="text-emerald-700" />
+        <Stat label="Belum (wajib)" value={stats.pending} c="text-amber-700" />
+        <Stat label="Progres Wajib" value={`${stats.pct}%`} c="text-indigo-700" />
       </div>
 
       {/* Controls */}
@@ -82,8 +90,9 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
       <div className="space-y-2">
         {shown.length === 0 && <p className="text-sm text-gray-500">Tidak ada penilai sesuai filter.</p>}
         {shown.map((r) => {
-          const complete = r.total > 0 && r.done === r.total;
-          const pct = r.total ? Math.round((r.done / r.total) * 100) : 0;
+          const complete = isComplete(r);
+          const pct = r.mandatoryTotal ? Math.round((r.mandatoryDone / r.mandatoryTotal) * 100) : 100;
+          const optionalPending = r.pending.filter((p) => !p.mandatory).length;
           const by = dinilaiBy.get(r.id);
           const byComplete = !!by && by.total > 0 && by.done === by.total;
           const byPct = by && by.total ? Math.round((by.done / by.total) * 100) : 0;
@@ -96,7 +105,7 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${complete ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                    {r.done}/{r.total} {complete ? 'Lengkap' : 'Belum'}
+                    {r.mandatoryDone}/{r.mandatoryTotal} wajib · {complete ? 'Lengkap' : 'Belum'}
                   </span>
                   {!complete && (
                     <button type="button" onClick={() => act(() => sendReminder(r.id))} disabled={pending}
@@ -116,12 +125,15 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
               <div className="grid sm:grid-cols-2 gap-x-4 gap-y-2 mt-2">
                 <div>
                   <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 mb-0.5">
-                    <span>Menilai orang lain</span>
-                    <span>{r.done}/{r.total} · {pct}%</span>
+                    <span>Menilai (wajib)</span>
+                    <span>{r.mandatoryDone}/{r.mandatoryTotal} · {pct}%</span>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${complete ? 'bg-emerald-500' : 'bg-amber-400'}`} style={{ width: `${pct}%` }} />
                   </div>
+                  {optionalPending > 0 && (
+                    <p className="text-[10px] text-gray-400 mt-0.5">+{optionalPending} opsional belum (tak memengaruhi status)</p>
+                  )}
                 </div>
                 <div>
                   <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 mb-0.5">
@@ -158,10 +170,11 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
         })}
       </div>
       <p className="text-[10px] text-gray-500 italic">
-        Tiap baris menampilkan dua progres: <strong>Menilai orang lain</strong> (tugas penilai
-        terhadap orang lain) &amp; <strong>Dinilai oleh</strong> (berapa penilai sudah menilai pegawai
-        ini, mis. 7/10 orang). “Paksa Selesai” menandai penilaian terkirim agar tak terhitung
-        terlambat; “Kirim Pengingat” mengirim email saat integrasi Resend diaktifkan.
+        <strong>Status "Lengkap"</strong> dihitung dari penilaian <strong>WAJIB</strong> saja — penilaian
+        opsional tak memengaruhi status/kartu (tetap ditampilkan di Rincian untuk dipantau). Tiap baris:
+        <strong> Menilai (wajib)</strong> (tugas wajib penilai) &amp; <strong>Dinilai oleh</strong> (berapa
+        penilai sudah menilai pegawai ini). “Paksa Selesai” menandai penilaian terkirim; “Kirim Pengingat”
+        mengirim email saat integrasi Resend diaktifkan.
       </p>
     </div>
   );

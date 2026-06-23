@@ -99,6 +99,18 @@ sudah dihapus).
 Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 
 ### Fitur baru
+- **Progress 360 — kelengkapan berbasis WAJIB saja** (`admin/progress/`): kartu **Lengkap/Belum/
+  Progres** + badge per-baris + filter status kini menghitung "lengkap" = semua penilaian **mandatory**
+  selesai (opsional tak menentukan). `page.tsx` tambah `mandatoryTotal`/`mandatoryDone` per penilai;
+  `progress-client.tsx` `isComplete = mandatoryDone >= mandatoryTotal`, bar jadi "Menilai (wajib)",
+  opsional yang belum ditandai "+N opsional belum" (tetap bisa Paksa Selesai dari Rincian). Sort by
+  rasio wajib.
+- **Kelola Pertanyaan — "Pakai Pertanyaan Periode Sebelumnya"** (`admin/pertanyaan/`):
+  Server Action `importQuestionsFromPeriod` menyalin **aspek + indikator AKTIF + esai** dari periode
+  lain ke periode aktif. **Idempoten/aman dobel**: aspek (per nama) & esai (per teks) yang sudah ada
+  **dilewati**; indikator nonaktif tak ikut; skor historis tak tersentuh (baris baru). UI `copy-questions-form.tsx`
+  (dropdown periode sumber + ringkasan aspek/indikator/esai + konfirmasi); `page.tsx` menghitung ringkasan
+  per periode (RLS `*_read` = `using(true)` → boleh baca lintas-periode). Audit `questions.import`.
 - **Izin "HRD Admin" terpisah dari posisi (`is_hrd_admin`, migrasi 0013)**: "HRD Admin" jadi
   **kapabilitas**, bukan jabatan. Pegawai `employee`/`spv` bisa **diberi izin HRD** (grant) tanpa
   kehilangan posisi/tim aslinya. Helper `canAdmin()` (`lib/auth/roles.ts`) menggantikan cek
@@ -386,6 +398,18 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
     melatih model pada data bisnis. Perlu persetujuan kebijakan internal.
 
 ### Keandalan teknis
+- ⬜ **Cek pra-finalisasi tertunda (catatan 2026-06-23)** — Prioritas 1 (uji fungsional+keamanan di
+  browser) **SUDAH lolos** (laporan pegawai agregat, ACC gating, guard ringkasan, SPV lihat laporan
+  diri, wajib-komentar edit KPI, L3 aman). **Sisa yang BELUM dicek:**
+  - **#8 Kelengkapan 360°** — baru ~3 pegawai submit; **jangan finalisasi periode** sebelum
+    pengisian cukup (cek Progress 360 / dorong via pengingat). Data sesedikit ini → skor tak representatif.
+  - **#9 Sanity Skor Akhir di data nyata** — verifikasi `Skor Akhir = blend(KPI,360) − punishment` untuk
+    beberapa pegawai nyata.
+  - **#10 Kunci & Akhiri Periode** — pastikan setelah dikunci, isi/edit ditolak server.
+  - **#11 Aktivasi periode baru** saat periode lama belum lengkap → peringatan konfirmasi muncul.
+  - **#13 Uji beban k6** (`scripts/loadtest/`) sebelum buka ke ~100 pengguna (belum dijalankan).
+  - **#14 Blank di HP** (URL Vercel) — di-skip pengguna; dugaan browser/OS HP lama; belum dikejar.
+  - (Pra-go-live email/sandi/rotasi kredensial/branch-protection tetap di bagian Keamanan & item bawah.)
 - 🔄 **Tes unit** — Vitest **55 tes** (logika skor + parsing impor Excel KPI & pemetaan 360°).
 - ⬜ **Tes Server Action** (finalisasi laporan, `releaseToSpv`, `setHrdAdmin`, ACC) — belum ada;
   butuh mock Supabase. Nilai sedang. **Task baru (diskusi 2026-06-19).**

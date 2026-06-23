@@ -192,6 +192,88 @@ export async function deleteIndicator(indicatorId: string): Promise<Result> {
   return { ok: true };
 }
 
+/**
+ * Salin pertanyaan (aspek + indikator AKTIF + esai) dari periode LAIN ke periode aktif.
+ * Aman & idempoten: aspek yang NAMANYA sudah ada di periode aktif DILEWATI (cegah dobel);
+ * esai dengan teks identik juga dilewati. Hanya menyalin indikator `is_active`. Skor historis
+ * tak tersentuh (indikator baru = baris baru di periode aktif). Pakai service_role utk baca
+ * lintas-periode + tulis (HRD sudah diotorisasi via ctx/canAdmin).
+ */
+export type ImportResult =
+  | { ok: true; aspects: number; indicators: number; quals: number; skipped: number }
+  | { ok: false; error: string };
+
+export async function importQuestionsFromPeriod(sourcePeriodId: string): Promise<ImportResult> {
+  if (!z.string().uuid().safeParse(sourcePeriodId).success) return { ok: false, error: 'Input tidak valid' };
+  const c = await ctx(); if (!c.ok) return c;
+  if (sourcePeriodId === c.periodId) return { ok: false, error: 'Periode sumber sama dengan periode aktif' };
+
+  const admin = createAdminClient();
+  const { data: srcAspects } = await admin.from('culture_aspects')
+    .select('id, name, order_idx').eq('period_id', sourcePeriodId).order('order_idx');
+  const { data: srcQuals } = await admin.from('qualitative_questions')
+    .select('text, order_idx').eq('period_id', sourcePeriodId).order('order_idx');
+  if ((srcAspects?.length ?? 0) === 0 && (srcQuals?.length ?? 0) === 0) {
+    return { ok: false, error: 'Periode sumber tidak punya pertanyaan untuk disalin' };
+  }
+  const srcAspectIds = (srcAspects ?? []).map((a) => a.id);
+  const { data: srcInds } = srcAspectIds.length
+    ? await admin.from('indicators')
+        .select('aspect_id, text, order_idx, is_active, description, rating_guide')
+        .in('aspect_id', srcAspectIds).order('order_idx')
+    : { data: [] };
+
+  // Aspek yang sudah ada di periode aktif (cegah dobel berdasarkan nama).
+  const { data: tgtAspects } = await admin.from('culture_aspects')
+    .select('name, order_idx').eq('period_id', c.periodId);
+  const tgtNames = new Set((tgtAspects ?? []).map((a) => a.name.trim().toLowerCase()));
+  let aspectOrder = Math.max(-1, ...(tgtAspects ?? []).map((a) => a.order_idx));
+
+  let nAspects = 0, nInds = 0, skipped = 0;
+  for (const a of srcAspects ?? []) {
+    if (tgtNames.has(a.name.trim().toLowerCase())) { skipped++; continue; }
+    aspectOrder++;
+    const { data: newAsp, error } = await admin.from('culture_aspects')
+      .insert({ period_id: c.periodId, name: a.name, order_idx: aspectOrder }).select('id').single();
+    if (error || !newAsp) return { ok: false, error: 'Gagal menyalin aspek: ' + (error?.message ?? 'tak diketahui') };
+    nAspects++;
+    const inds = (srcInds ?? []).filter((i) => i.aspect_id === a.id && i.is_active);
+    if (inds.length) {
+      const rows = inds.map((i, idx) => ({
+        aspect_id: newAsp.id, text: i.text, order_idx: idx, is_active: true,
+        description: i.description ?? null, rating_guide: i.rating_guide ?? null,
+      }));
+      const { error: ie } = await admin.from('indicators').insert(rows);
+      if (ie) return { ok: false, error: 'Gagal menyalin indikator: ' + ie.message };
+      nInds += rows.length;
+    }
+  }
+
+  // Esai kualitatif (lewati teks yang sudah ada).
+  const { data: tgtQuals } = await admin.from('qualitative_questions')
+    .select('text, order_idx').eq('period_id', c.periodId);
+  const tgtQualTexts = new Set((tgtQuals ?? []).map((q) => q.text.trim().toLowerCase()));
+  let qOrder = Math.max(-1, ...(tgtQuals ?? []).map((q) => q.order_idx));
+  const newQuals: { period_id: string; text: string; order_idx: number }[] = [];
+  for (const q of srcQuals ?? []) {
+    if (tgtQualTexts.has(q.text.trim().toLowerCase())) { skipped++; continue; }
+    qOrder++;
+    newQuals.push({ period_id: c.periodId, text: q.text, order_idx: qOrder });
+  }
+  if (newQuals.length) {
+    const { error: qe } = await admin.from('qualitative_questions').insert(newQuals);
+    if (qe) return { ok: false, error: 'Gagal menyalin esai: ' + qe.message };
+  }
+
+  await logHrdAction({
+    action: 'questions.import', category: 'pertanyaan',
+    summary: `Menyalin pertanyaan dari periode lain → ${nAspects} aspek, ${nInds} indikator, ${newQuals.length} esai (${skipped} dilewati karena sudah ada)`,
+    targetType: 'period', targetId: sourcePeriodId,
+  });
+  revalidatePath('/admin/pertanyaan'); revalidatePath('/penilaian');
+  return { ok: true, aspects: nAspects, indicators: nInds, quals: newQuals.length, skipped };
+}
+
 export async function addQualQuestion(rawText: string): Promise<Result> {
   const text = Text.safeParse(rawText);
   if (!text.success) return { ok: false, error: text.error.issues[0].message };

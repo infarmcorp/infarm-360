@@ -209,6 +209,12 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
 > konfirmasi** (mengaktifkan periode baru akan mengunci yang lama beserta drafnya).
 
 ### Kelola Pertanyaan
+- **Pakai Pertanyaan Periode Sebelumnya** (panel hijau di atas): pilih **periode sumber** dari
+  dropdown (menampilkan jumlah aspek · indikator · esai) → **Salin ke Periode Aktif** → konfirmasi.
+  Menyalin **aspek + indikator aktif + pertanyaan esai** dari periode itu ke periode aktif. **Aman dari
+  duplikat**: aspek/esai yang **namanya/teksnya sudah ada** otomatis **dilewati** (tak menimpa). Skor
+  historis tak tersentuh (indikator baru = baris baru periode aktif). Hasil menampilkan jumlah disalin
+  + dilewati. Hemat waktu di awal kuartal baru tanpa mengetik ulang.
 - Tiap aspek menampilkan daftar indikator kuantitatif (rating 1–5) — edit teks atau
   **nonaktifkan** (indikator dinonaktifkan, bukan dihapus, agar skor historis utuh).
 - **Section khusus "Tambah Indikator Kuantitatif Baru"** (di bawah semua aspek): pilih
@@ -321,9 +327,13 @@ Klik **nama pegawai** untuk membuka **dokumen laporan rinci**.
 - Tinjau **Permohonan Koreksi Garis Hubungan** (setujui/tolak) di tab Koreksi Relasi.
 
 ### Progress 360 Feedback
+- **Status "Lengkap" dihitung dari penilaian WAJIB saja.** Seorang penilai dianggap **Lengkap** bila
+  seluruh penilaian **Wajib**-nya selesai; penilaian **Opsional tidak memengaruhi** status maupun kartu
+  ringkasan (**Lengkap (wajib) · Belum (wajib) · Progres Wajib**). Opsional yang belum diisi tetap
+  ditampilkan ("+N opsional belum") + bisa di-Paksa Selesai dari Rincian.
 - Filter Divisi/Status/Nama; lihat status "Belum / Sudah Lengkap".
 - Tiap baris menampilkan **dua progres berdampingan** (paritas legacy):
-  - **Menilai orang lain** — tugas penilai terhadap orang lain (mis. `5/8 · 63%`).
+  - **Menilai (wajib)** — tugas **wajib** penilai terhadap orang lain (mis. `5/8 · 63%`).
   - **Dinilai oleh** — **berapa penilai yang sudah menilai pegawai ini** dari total yang
     ditugaskan (mis. `7/10 orang · 70%`).
 - Klik **Rincian** → daftar target yang belum dinilai; tiap target menampilkan badge

@@ -43,15 +43,25 @@ export default async function ProgressPage() {
     const pending = tasks
       .filter((t) => !submitted.has(`${assessorId}|${t.targetId}`))
       .map((t) => ({ targetId: t.targetId, targetName: empById.get(t.targetId)?.name ?? '—', relation: t.relation, mandatory: t.mandatory }));
+    // Kelengkapan diukur dari penilaian WAJIB saja (opsional tak menentukan "lengkap").
+    const mandatoryTasks = tasks.filter((t) => t.mandatory);
+    const mandatoryDone = mandatoryTasks.filter((t) => submitted.has(`${assessorId}|${t.targetId}`)).length;
     return {
       id: assessorId,
       name: e?.name ?? '—',
       dept: e?.dept ?? '—',
       total: tasks.length,
       done: tasks.length - pending.length,
+      mandatoryTotal: mandatoryTasks.length,
+      mandatoryDone,
       pending,
     };
-  }).sort((a, b) => (a.done / Math.max(a.total, 1)) - (b.done / Math.max(b.total, 1)) || a.name.localeCompare(b.name));
+  }).sort((a, b) => {
+    // Urutkan dari yang kelengkapan WAJIB-nya paling rendah (tak ada wajib → dianggap penuh).
+    const ra = a.mandatoryTotal ? a.mandatoryDone / a.mandatoryTotal : 1;
+    const rb = b.mandatoryTotal ? b.mandatoryDone / b.mandatoryTotal : 1;
+    return ra - rb || a.name.localeCompare(b.name);
+  });
 
   // Info per yang DINILAI (target): total penilai yang ditugaskan & berapa yang sudah menilai dia.
   const byTarget = new Map<string, string[]>();

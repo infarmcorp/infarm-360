@@ -62,6 +62,13 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
     if (scores.some((s) => (s.comment ?? '').trim().length < 4)) {
       return { ok: false, error: 'Setiap indikator wajib komentar/bukti perilaku minimal 4 karakter' };
     }
+    // Semua pertanyaan kualitatif (esai) periode ini wajib terisi.
+    const { data: quals } = await supabase
+      .from('qualitative_questions').select('id').eq('period_id', ap.id);
+    const answeredQ = new Set(answers.filter((a) => (a.answer ?? '').trim().length > 0).map((a) => a.questionId));
+    if ((quals ?? []).some((q) => !answeredQ.has(q.id))) {
+      return { ok: false, error: 'Semua pertanyaan kualitatif (esai) wajib diisi sebelum mengirim' };
+    }
   }
 
   // Header assessment (upsert → dapat id).

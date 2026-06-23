@@ -95,9 +95,13 @@ export function AssessForm({
   const hydratedRef = useRef(false);
 
   const indDone = (id: string) => ratings[id] != null && (comments[id] ?? '').trim().length >= 4;
-  const doneCount = flat.filter((f) => indDone(f.id)).length;
-  const total = flat.length;
-  const pct = total ? Math.round((doneCount / total) * 100) : 0;
+  const indDoneCount = flat.filter((f) => indDone(f.id)).length;
+  const total = flat.length;                                  // jumlah indikator (dipakai navigasi)
+  const qualDone = questions.filter((q) => (answers[q.id] ?? '').trim().length > 0).length;
+  // Progres mencakup indikator + esai kualitatif (kini WAJIB semua).
+  const progTotal = total + (hasQual ? questions.length : 0);
+  const progDone = indDoneCount + (hasQual ? qualDone : 0);
+  const pct = progTotal ? Math.round((progDone / progTotal) * 100) : 0;
 
   const curList = flat.filter((f) => f.gid === activeGroup);
   const cur = flat.find((f) => f.id === activeId) ?? curList[0] ?? null;
@@ -171,6 +175,15 @@ export function AssessForm({
         return;
       }
     }
+    // Semua pertanyaan kualitatif (esai) wajib diisi.
+    if (hasQual) {
+      const empty = questions.find((q) => (answers[q.id] ?? '').trim().length === 0);
+      if (empty) {
+        setActiveGroup(QUAL);
+        setError('Semua pertanyaan Umpan Balik Kualitatif wajib diisi sebelum mengirim.');
+        return;
+      }
+    }
     setError(null);
     lockRef.current = true;     // hentikan autosave selama proses kirim
     setConfirmSend(true);
@@ -200,8 +213,6 @@ export function AssessForm({
     router.push('/penilaian'); router.refresh();
   }
 
-  const qualAnswered = questions.filter((q) => (answers[q.id] ?? '').trim().length > 0).length;
-
   // Layar sukses setelah Kirim — kepastian "terkirim" tanpa langsung lompat halaman.
   if (sentDone) {
     return (
@@ -230,7 +241,7 @@ export function AssessForm({
           <div className="h-2.5 bg-gray-100 flex-1 rounded-full overflow-hidden">
             <div style={{ width: `${pct}%` }} className="h-full bg-emerald-600 rounded-full transition-all" />
           </div>
-          <span className="text-xs font-bold text-emerald-800 font-mono shrink-0">{doneCount}/{total} · {pct}%</span>
+          <span className="text-xs font-bold text-emerald-800 font-mono shrink-0">{progDone}/{progTotal} · {pct}%</span>
         </div>
         <AutoSaveHint state={saveState} disabled={initialStatus === 'submitted'} />
       </div>
@@ -278,7 +289,7 @@ export function AssessForm({
               <span className={`text-xs leading-tight block ${activeGroup === QUAL ? 'font-extrabold text-indigo-950' : 'font-semibold text-gray-700'}`}>Umpan Balik Kualitatif</span>
               <span className="flex items-center justify-between mt-1.5 text-[10px] font-bold text-gray-500">
                 <span>{questions.length} pertanyaan</span>
-                <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-mono">{qualAnswered}/{questions.length}</span>
+                <span className={`px-1.5 py-0.5 rounded font-mono ${qualDone >= questions.length ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>{qualDone}/{questions.length}</span>
               </span>
             </button>
           )}
@@ -288,15 +299,19 @@ export function AssessForm({
         <div className="min-w-0">
           {activeGroup === QUAL ? (
             <div className="border border-gray-200 rounded-2xl p-5 space-y-4">
-              <h3 className="text-sm font-extrabold text-indigo-800">Umpan Balik Kualitatif <span className="text-[10px] font-medium text-gray-500">(opsional)</span></h3>
-              {questions.map((q) => (
-                <div key={q.id}>
-                  <p className="text-sm text-gray-700 mb-1.5">{q.text}</p>
-                  <textarea rows={2} value={answers[q.id]} onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))}
-                    placeholder="Jawaban (opsional)"
-                    className="w-full text-xs px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                </div>
-              ))}
+              <h3 className="text-sm font-extrabold text-indigo-800">Umpan Balik Kualitatif <span className="text-[10px] font-bold text-rose-500">(wajib diisi semua)</span></h3>
+              {questions.map((q) => {
+                const filled = (answers[q.id] ?? '').trim().length > 0;
+                return (
+                  <div key={q.id}>
+                    <p className="text-sm text-gray-700 mb-1.5">{q.text} <span className="text-rose-500">*</span></p>
+                    <textarea rows={2} value={answers[q.id]} onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))}
+                      placeholder="Tulis jawaban Anda…"
+                      className={`w-full text-xs px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 ${filled ? 'border-gray-200' : 'border-rose-200'}`} />
+                    {!filled && <p className="text-[10px] text-rose-500 font-semibold mt-0.5">Wajib diisi</p>}
+                  </div>
+                );
+              })}
               {/* Navigasi: kembali ke indikator kuantitatif terakhir (simetri dgn "Selanjutnya"). */}
               {total > 0 && (
                 <div className="flex justify-between items-center pt-2 border-t border-gray-100 text-xs font-bold text-gray-600">

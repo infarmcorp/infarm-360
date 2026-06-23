@@ -90,7 +90,17 @@ export default async function PenilaianPage() {
           Belum ada penilaian rutin yang ditugaskan. Gunakan panel Ad-Hoc di atas untuk menilai rekan kerja.
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        <>
+          <div className="mb-4 flex items-start gap-2 bg-sky-50 border border-sky-200 rounded-xl p-3 text-[12px] text-sky-900">
+            <span aria-hidden>ℹ️</span>
+            <p className="leading-relaxed">
+              Periksa kolom <strong>Garis Hubungan</strong> tiap rekan. Bila relasi Anda dengan rekan itu
+              keliru (mis. tertulis Rekan padahal Anda atasannya), klik <strong>“Minta Koreksi”</strong>
+              agar HRD memperbaikinya — relasi menentukan <strong>bobot Skor 360°</strong>, sehingga
+              memengaruhi hasil akhir pegawai.
+            </p>
+          </div>
+          <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
@@ -144,7 +154,8 @@ export default async function PenilaianPage() {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
     </Shell>
   );

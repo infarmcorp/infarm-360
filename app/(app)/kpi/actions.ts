@@ -49,6 +49,25 @@ export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
     return { ok: false, error: `Bulan ${ym} tidak berada dalam periode aktif` };
   }
 
+  // Aturan paritas legacy: input KPI PERTAMA (belum ada baris bulan ini) boleh tanpa
+  // komentar; input KEDUA pada bulan SAMA = EDIT capaian → WAJIB Komentar Audit.
+  // Cek per pegawai: bila skor bulan ini sudah ada tapi komentar kosong → tolak.
+  const empIds = rows.map((r) => r.employeeId);
+  const { data: existingRows } = await supabase
+    .from('kpi_scores').select('employee_id').eq('ym', ym).in('employee_id', empIds);
+  const existing = new Set((existingRows ?? []).map((r) => r.employee_id));
+  const missingNote = rows.filter((r) => existing.has(r.employeeId) && !(r.note && r.note.trim()));
+  if (missingNote.length > 0) {
+    const { data: emps } = await supabase
+      .from('employees').select('id, name').in('id', missingNote.map((r) => r.employeeId));
+    const names = (emps ?? []).map((e) => e.name);
+    const label = names.length ? names.join(', ') : `${missingNote.length} pegawai`;
+    return {
+      ok: false,
+      error: `Perubahan capaian KPI bulan ${ym} wajib disertai Komentar Audit (input kedua = edit): ${label}.`,
+    };
+  }
+
   // Upsert skor terkini. RLS menolak baris di luar tim SPV → ditangkap sebagai error.
   const { error: upsertErr } = await supabase.from('kpi_scores').upsert(
     rows.map((r) => ({

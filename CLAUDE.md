@@ -203,6 +203,12 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Impor pemetaan** — pratinjau menyebut pasangan yang dilewati + alasannya.
 
 ### Perbaikan (bug fix)
+- **Edit KPI bulan sama tersimpan tanpa Komentar Audit** (`kpi/actions.ts`): aturan paritas legacy
+  "input KPI pertama boleh tanpa komentar; **edit wajib komentar**" hanya ada di label kolom, tak
+  ditegakkan server — `saveKpiScores` langsung upsert. Akibatnya input KPI **kedua di bulan sama**
+  (= edit capaian) tersimpan tanpa komentar. Kini server cek per pegawai: bila skor bulan itu **sudah
+  ada** & komentar kosong → **ditolak** dengan pesan menyebut nama pegawai. Berlaku otomatis untuk SPV
+  **dan** HRD mode-SPV (satu action). Jalur Impor Excel tak terpengaruh (note default "Impor Excel").
 - **Laporan pegawai (final) tampil "raw"** (`laporan/page.tsx`): halaman Laporan Hasil Saya
   merender `<ReportDoc anonymize />` **tanpa** `hideAssessorComments`, jadi pegawai melihat
   **komentar mentah per penilai (lapis 3)** meski nama disamarkan. Kini pegawai hanya melihat

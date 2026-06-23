@@ -203,6 +203,25 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Impor pemetaan** — pratinjau menyebut pasangan yang dilewati + alasannya.
 
 ### Perbaikan (bug fix)
+- **Laporan pegawai (final) tampil "raw"** (`laporan/page.tsx`): halaman Laporan Hasil Saya
+  merender `<ReportDoc anonymize />` **tanpa** `hideAssessorComments`, jadi pegawai melihat
+  **komentar mentah per penilai (lapis 3)** meski nama disamarkan. Kini pegawai hanya melihat
+  **agregat L1+L2** (skor + radar/aspek + **Ringkasan Aspek HRD** via `AspectSummaryView`); lapis 3
+  **dibuang dari payload** (`{...data, assessors:[], byAspect:[], essays:[]}`) agar tak terserialisasi
+  ke browser — konsisten dgn jalur SPV `loadTeamReportForSpv`.
+- **ACC Laporan Tim bisa diklik saat masih `draft`** (`laporan-tim/`): tombol "Beri ACC" tampil
+  selama laporan ada, tanpa cek status — SPV bisa meng-ACC sebelum HRD "Rilis ke SPV". Kini ACC
+  hanya terbuka saat status `in_review`/`finalized` (badge "menunggu rilis HRD" saat draf), ditegakkan
+  **klien + server** (`team-table.tsx` `canAcc`, `acc-button.tsx`, guard status di `actions.ts setSpvAcc`).
+- **Ringkasan aspek 360° HRD hilang setelah relogin / tak tampil ke SPV** (`laporan/aspect-summary-editor.tsx`,
+  `admin/laporan/actions.ts`): editor "Simpan Ringkasan" **terpisah** dari panel "Rilis ke SPV"/
+  "Finalisasi", jadi HRD mengetik ringkasan lalu klik Rilis (tanpa Simpan) → teks hanya di state lokal,
+  tak pernah tersimpan; `router.refresh` tak mereset textarea → tampak "tersimpan" padahal hilang saat
+  relogin, dan SPV tak melihatnya. Kini editor punya **indikator "belum disimpan"** (banner amber +
+  tombol berubah warna) yang menegaskan Rilis/Finalisasi **tidak** menyimpan ringkasan, **router.refresh
+  setelah simpan** (tampilan = isi DB), dan `saveAspectSummaries` kini `.select()` saat update → update
+  **0-baris** (RLS tolak diam-diam) dilaporkan sebagai gagal, bukan sukses palsu. (Persistensi DB sendiri
+  sudah benar; ini jebakan UX + pengerasan.)
 - **Form 360° — "Selanjutnya" dari indikator terakhir mentok** (`penilaian/[targetId]/assess-form.tsx`):
   tombol dulu `disabled` di indikator kuantitatif terakhir → tak bisa lanjut ke **Umpan Balik
   Kualitatif** (grup `QUAL` terpisah, hanya via rail). Kini `goNext()` melompat ke kualitatif dari

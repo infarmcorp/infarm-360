@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { setSpvAcc } from './actions';
 
-export function AccButton({ employeeId, acc, hasReport }: { employeeId: string; acc: boolean; hasReport: boolean }) {
+export function AccButton({ employeeId, acc, hasReport, canAcc }: { employeeId: string; acc: boolean; hasReport: boolean; canAcc: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -19,6 +19,9 @@ export function AccButton({ employeeId, acc, hasReport }: { employeeId: string; 
   }
 
   if (!hasReport) return <span className="text-[10px] text-gray-500 italic">menunggu HRD</span>;
+  // ACC baru terbuka setelah HRD "Rilis ke SPV" (status in_review/finalized). Sebelum itu
+  // (masih draf), SPV belum boleh meng-ACC — tegakkan juga di server (setSpvAcc).
+  if (!canAcc) return <span className="text-[10px] text-gray-500 italic">menunggu rilis HRD</span>;
 
   return (
     <div className="flex flex-col items-end gap-1">

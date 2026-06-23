@@ -160,8 +160,12 @@ export async function saveAspectSummaries(employeeId: string, raw: unknown): Pro
 
   if (existing) {
     const content = { ...(existing.content as Record<string, unknown> ?? {}), aspectSummaries: summaries };
-    const { error } = await supabase.from('final_reports').update({ content }).eq('id', existing.id);
+    // .select() agar tahu jumlah baris terupdate — RLS yang menolak diam-diam (0 baris,
+    // tanpa error) tak lagi lolos sebagai "tersimpan".
+    const { data: upd, error } = await supabase.from('final_reports')
+      .update({ content }).eq('id', existing.id).select('id');
     if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
+    if (!upd || upd.length === 0) return { ok: false, error: 'Gagal menyimpan ringkasan (akses ditolak / laporan tak ditemukan)' };
   } else {
     const { final } = await computeFinal(supabase, ap.id, ap.has_360, employeeId);
     const { error } = await supabase.from('final_reports').insert({

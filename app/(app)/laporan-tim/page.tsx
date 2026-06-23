@@ -71,6 +71,8 @@ export default async function LaporanTimPage() {
       spvAcc: !!rep?.spv_acc,
       isSelf,
       detailOpen: canOpenDetail(status, isSelf),
+      // ACC hanya setelah HRD merilis (in_review) atau final; bukan diri sendiri.
+      canAcc: !isSelf && (status === 'in_review' || status === 'finalized'),
     };
   };
 

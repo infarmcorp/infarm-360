@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, Save } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Sparkles, Save, AlertTriangle } from 'lucide-react';
 import { saveAspectSummaries } from '@/app/(app)/admin/laporan/actions';
 
 /**
@@ -20,13 +21,21 @@ export function AspectSummaryEditor({
     return o;
   });
   const [busy, setBusy] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const router = useRouter();
 
   async function save() {
     setBusy(true); setMsg(null);
     const res = await saveAspectSummaries(employeeId, vals);
     setBusy(false);
-    setMsg(res.ok ? { ok: true, text: 'Ringkasan tersimpan.' } : { ok: false, text: res.error });
+    if (res.ok) {
+      setDirty(false);
+      setMsg({ ok: true, text: 'Ringkasan tersimpan.' });
+      router.refresh(); // sinkronkan tampilan dgn isi DB (hindari "terlihat tersimpan" padahal belum)
+    } else {
+      setMsg({ ok: false, text: res.error });
+    }
   }
 
   if (aspects.length === 0) return null;
@@ -51,17 +60,26 @@ export function AspectSummaryEditor({
             </div>
             <textarea
               value={vals[a] ?? ''}
-              onChange={(e) => setVals((v) => ({ ...v, [a]: e.target.value }))}
+              onChange={(e) => { setDirty(true); setMsg(null); setVals((v) => ({ ...v, [a]: e.target.value })); }}
               rows={3}
               placeholder={`Ringkasan kalibrasi HRD untuk aspek "${a}"…`}
               className="w-full text-xs p-3 outline-none resize-y text-gray-700 leading-relaxed"
             />
           </div>
         ))}
+        {dirty && (
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 no-print">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+            Perubahan belum disimpan. Klik <strong>Simpan Ringkasan</strong> dulu — tombol
+            &quot;Rilis ke SPV&quot;/&quot;Finalisasi&quot; <strong>tidak</strong> menyimpan ringkasan ini.
+          </p>
+        )}
         <div className="flex items-center gap-3 no-print">
           <button type="button" onClick={save} disabled={busy}
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
-            <Save className="w-3.5 h-3.5" /> {busy ? 'Menyimpan…' : 'Simpan Ringkasan'}
+            className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg text-white disabled:opacity-50 ${
+              dirty ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-700 hover:bg-emerald-800'
+            }`}>
+            <Save className="w-3.5 h-3.5" /> {busy ? 'Menyimpan…' : dirty ? 'Simpan Ringkasan •' : 'Simpan Ringkasan'}
           </button>
           {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
         </div>

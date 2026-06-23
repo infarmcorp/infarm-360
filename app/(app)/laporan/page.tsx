@@ -2,11 +2,14 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { loadReport } from '@/lib/report';
 import { ReportDoc } from './report-doc';
+import { AspectSummaryView } from './aspect-summary-view';
 
 /**
  * Laporan Hasil Saya (pegawai). Tampil bila HRD sudah FINALISASI (RLS fr_read:
- * employee hanya melihat laporannya yang status='finalized'). Dokumen rinci: radar
- * aspek, ringkasan skor, komentar mentah (nama penilai DIANONIMKAN untuk pegawai).
+ * employee hanya melihat laporannya yang status='finalized'). Tampilan AGREGAT (L1+L2):
+ * ringkasan skor, radar aspek, dan Ringkasan Aspek HRD (anonim). Komentar mentah per
+ * penilai (lapis 3) TIDAK ditampilkan — dan dibuang dari payload agar tak terkirim ke
+ * klien (konsisten dgn jalur SPV `loadTeamReportForSpv`).
  */
 export default async function LaporanSayaPage() {
   const supabase = await createClient();
@@ -34,7 +37,16 @@ export default async function LaporanSayaPage() {
   const data = await loadReport(supabase, user.id, ap);
   if (!data) return <Shell><p className="text-sm text-gray-500">Data laporan tidak ditemukan.</p></Shell>;
 
-  return <Shell><ReportDoc data={data} anonymize /></Shell>;
+  // Buang lapis 3 (komentar mentah per penilai) sebelum render — pegawai hanya melihat
+  // agregat (L1+L2). Array dikosongkan agar tak ikut terserialisasi ke browser.
+  const safe = { ...data, assessors: [], byAspect: [], essays: [] };
+
+  return (
+    <Shell>
+      <ReportDoc data={safe} anonymize hideAssessorComments />
+      {safe.has360 && <AspectSummaryView summaries={safe.aspectSummaries} />}
+    </Shell>
+  );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {

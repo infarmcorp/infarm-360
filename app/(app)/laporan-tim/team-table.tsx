@@ -14,6 +14,7 @@ export type TeamRow = {
   spvAcc: boolean;
   isSelf: boolean;
   detailOpen: boolean; // boleh buka detail laporan (lapis 2)? — SPV hanya bila sudah dirilis HRD
+  canAcc: boolean;     // boleh beri ACC? — hanya setelah HRD "Rilis ke SPV" (in_review/finalized)
 };
 
 /**
@@ -108,7 +109,7 @@ export function TeamTable({ rows }: { rows: TeamRow[] }) {
                     {r.isSelf ? (
                       <span className="text-[10px] text-gray-500 italic">laporan Anda</span>
                     ) : (
-                      <AccButton employeeId={r.id} acc={r.spvAcc} hasReport={r.hasReport} />
+                      <AccButton employeeId={r.id} acc={r.spvAcc} hasReport={r.hasReport} canAcc={r.canAcc} />
                     )}
                   </td>
                 </tr>

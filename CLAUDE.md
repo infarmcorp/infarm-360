@@ -220,7 +220,11 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   kartu "Skor KPI Tertinggi" kini menampilkan **nama pegawai**, + kartu baru **"Skor KPI Terendah"**
   (nama + skor). `Stat` diperluas prop `sub`.
 - **Ekspor Dataset** (`/admin/ekspor`): dataset Pegawai, KPI, Audit KPI, Punishment, Rekap,
-  360° anonim, Pemetaan + **Rekap Konfigurasi Periode** (potret pengaturan HRD per kuartal).
+  360° kuantitatif anonim (+ kolom **aspek budaya**), **Umpan Balik Kualitatif 360° (esai, anonim)**,
+  Pemetaan + **Rekap Konfigurasi Periode** (potret pengaturan HRD per kuartal). Penilaian 360°
+  Detail kini menyertakan kolom `aspek` (dari `indicators.aspect_id`→`culture_aspects.name`);
+  dataset esai baru = `assessment_qual_answers`→`qualitative_questions` (`exportQualAnswers`,
+  kolom periode·dinilai·divisi·relasi·pertanyaan·jawaban, jawaban kosong dilewati).
 - **Indikator tenggat periode** (sidebar): sisa hari ke `end_date` + peringatan amber ≤7 hari /
   rose saat hari-ini/lewat (`layout.tsx` `daysUntil`).
 - **Empty-state berpandu** (`components/empty-state.tsx`) di halaman kunci (anti tabel kosong).

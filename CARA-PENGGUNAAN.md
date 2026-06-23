@@ -238,8 +238,12 @@ Unduh data mentah **Excel (.xlsx)** untuk olah data lanjutan (pivot/statistik/BI
 - **Log Audit KPI** — jejak perubahan KPI: bulan, skor, pengubah, waktu, catatan.
 - **Kepatuhan / Punishment** — poin punishment per pegawai, alasan, penetap.
 - **Rekap Kinerja per Periode** — KPI rerata, Skor 360°, punishment, Skor Akhir, kategori, A/B/C/D.
-- **Penilaian 360° Detail (anonim penilai)** — per pegawai dinilai: relasi, indikator, rating,
-  komentar (**identitas penilai sengaja tidak disertakan**).
+- **Penilaian 360° Detail (anonim penilai)** — per pegawai dinilai: relasi, **aspek budaya**
+  (mis. "Jujur & Tanggung Jawab"), indikator, rating, komentar (**identitas penilai sengaja
+  tidak disertakan**).
+- **Umpan Balik Kualitatif 360° (esai, anonim)** — jawaban pertanyaan esai per pegawai dinilai:
+  relasi, pertanyaan, jawaban (**tanpa identitas penilai**; beda dari komentar per-indikator di
+  dataset di atas — ini jawaban esai terpisah).
 - **Pemetaan 360°** — pasangan penilai→target, relasi, sifat.
 
 > Data sensitif (nama, skor, komentar) — simpan & bagikan file dengan bertanggung jawab.

@@ -160,11 +160,11 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
  * 360° (migrasi 0012) — agregat dihitung di server via service_role lalu lapis 3
  * DIBUANG sebelum dikembalikan.
  *
- * Visibilitas:
- *  - Anggota tim: tampak hanya bila HRD sudah merilis (status 'in_review') atau
- *    sudah 'finalized'.
- *  - Diri sendiri (SPV = pegawai): tampak hanya bila 'finalized' (aturan pegawai).
- *  - Di luar tim / status lebih awal → null (ditolak).
+ * Visibilitas (sama untuk anggota tim & diri sendiri):
+ *  - Tampak bila HRD sudah merilis (status 'in_review') atau sudah 'finalized'.
+ *  - SPV boleh meninjau detail agregat DIRINYA sendiri sejak 'in_review' (ACC diri tetap
+ *    nonaktif). Halaman pegawai "Laporan Hasil Saya" tetap terpisah & final-only.
+ *  - Di luar tim / status lebih awal (draft) → null (ditolak).
  *
  * Mengembalikan ReportData dengan assessors/byAspect/essays DIKOSONGKAN; pemanggil
  * tetap wajib merender anonim (anonymize + hideAssessorComments).
@@ -186,8 +186,8 @@ export async function loadTeamReportForSpv(
   const { data: fr } = await admin.from('final_reports')
     .select('status').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
   const status = fr?.status ?? null;
-  const visible = isSelf ? status === 'finalized' : (status === 'in_review' || status === 'finalized');
-  if (!visible) return null; // belum dirilis HRD (anggota) / belum final (diri sendiri)
+  const visible = status === 'in_review' || status === 'finalized'; // termasuk diri sendiri
+  if (!visible) return null; // belum dirilis HRD
 
   const full = await loadReport(admin, employeeId, period);
   if (!full) return null;
@@ -219,7 +219,7 @@ export async function loadTeamReportForHrdSpv(
   const { data: fr } = await admin.from('final_reports')
     .select('status').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
   const status = fr?.status ?? null;
-  const visible = isSelf ? status === 'finalized' : (status === 'in_review' || status === 'finalized');
+  const visible = status === 'in_review' || status === 'finalized'; // termasuk diri sendiri
   if (!visible) return null;
 
   const full = await loadReport(admin, employeeId, period);

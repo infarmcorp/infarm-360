@@ -203,6 +203,17 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Impor pemetaan** — pratinjau menyebut pasangan yang dilewati + alasannya.
 
 ### Perbaikan (bug fix)
+- **SPV tak bisa tinjau detail laporan dirinya sebelum Final** (`laporan-tim/page.tsx`, `lib/report.ts`):
+  laporan diri-sendiri dulu hanya terbuka saat `finalized` (aturan pegawai). Kini disamakan dgn anggota
+  tim — detail agregat dapat dibuka sejak `in_review` (`canOpenDetail` & `loadTeamReportForSpv`/
+  `loadTeamReportForHrdSpv` ubah gate diri `finalized`→`in_review||finalized`). **ACC diri tetap
+  nonaktif**; "Laporan Hasil Saya" pegawai tetap final-only; L3 tetap tak pernah ke SPV.
+- **Rilis/Finalisasi bisa jalan dgn ringkasan aspek belum disimpan** (Opsi A — guard konfirmasi):
+  `saveAspectSummaries` & panel aksi terpisah → HRD bisa Rilis tanpa menyimpan ringkasan terbaru.
+  Tambah `summary-dirty.tsx` (Context berbagi status dirty antara `aspect-summary-editor.tsx` &
+  `report-actions.tsx`); tombol **Rilis ke SPV**/**Finalisasi** kini memunculkan **konfirmasi**
+  ("Batal — simpan dulu" / "Lanjut tanpa ringkasan") bila ada ringkasan belum disimpan. Jalur HRD
+  detail dibungkus `SummaryDirtyProvider`.
 - **Edit KPI bulan sama tersimpan tanpa Komentar Audit** (`kpi/actions.ts`): aturan paritas legacy
   "input KPI pertama boleh tanpa komentar; **edit wajib komentar**" hanya ada di label kolom, tak
   ditegakkan server — `saveKpiScores` langsung upsert. Akibatnya input KPI **kedua di bulan sama**

@@ -94,11 +94,17 @@ Panel hanya aktif saat ada **periode aktif**.
    "Pilih Rekan Kerja untuk Dinilai" → "Tambahkan Rekan" → nilai seperti biasa.
 
 ### Laporan Hasil Saya
-> Muncul **setelah** disetujui & divalidasi SPV dan HRD.
+> Muncul **hanya setelah HRD melakukan Finalisasi** (status `finalized`). Sebelum itu tampil
+> "belum difinalisasi". ACC SPV bersifat non-blok — tidak menghambat finalisasi.
 1. Pilih kuartal di **Pilih Kuartal Acuan**.
 2. **Unduh PDF** jika laporan sudah tersedia.
-3. **Radar Aspek 360°**: garis **penuh = Penilaian Rekan**, garis **putus-putus = Evaluasi Diri
-   (Self)** — pembanding persepsi diri vs rekan. Komentar penilai ditampilkan **anonim** (per relasi).
+3. Tampilan berupa **ringkasan agregat (anonim)**, bukan komentar mentah:
+   - **Ringkasan skor** (Rerata KPI · Evaluasi 360° · Skor Akhir).
+   - **Radar Aspek 360°**: garis **penuh = Penilaian Rekan**, garis **putus-putus = Evaluasi Diri
+     (Self)** — pembanding persepsi diri vs rekan, + bar Rekan vs Diri per aspek.
+   - **Evaluasi Aspek Budaya & Perilaku 360°** — ringkasan naratif dari HRD per aspek (anonim).
+   > **Komentar mentah per penilai TIDAK ditampilkan** ke pegawai (menjaga anonimitas 360°);
+   > yang tampil hanya agregat di atas.
 
 ---
 
@@ -134,12 +140,15 @@ Selain semua fitur Employee di atas, SPV punya:
   - **Ditinjau** (HRD sudah menekan *Rilis ke SPV*) atau **Final** → tautan **terbuka**: Anda bisa
     membuka **detail agregat** — radar/skor per aspek + **ringkasan aspek dari HRD** (anonim).
     **Komentar mentah per penilai tidak pernah ditampilkan ke SPV** (menjaga anonimitas 360°).
+- **Tombol ACC hanya muncul setelah HRD "Rilis ke SPV"** (status Ditinjau/Final). Saat masih
+  **Draf**, kolom ACC menampilkan "**menunggu rilis HRD**" — Anda belum bisa meng-ACC (ditegakkan
+  di klien & server).
 - Saat status **Ditinjau**, koordinasikan/diskusikan dengan HRD **di luar aplikasi** bila ada
-  ketidaksesuaian, lalu klik **ACC** bila sudah setuju. **ACC tidak menghambat finalisasi** — HRD
+  ketidaksesuaian, lalu klik **Beri ACC** bila sudah setuju. **ACC tidak menghambat finalisasi** — HRD
   tetap bisa finalisasi tanpa menunggu ACC Anda (mis. bila Anda sedang cuti).
-- **Baris diri sendiri** ikut tampil (badge "Anda"); **ACC sendiri dinonaktifkan**, dan detail
-  laporan pribadi mengikuti aturan pegawai (terbuka hanya saat **Final**). **Kotak pencarian**
-  nama/divisi tersedia.
+- **Baris diri sendiri** ikut tampil (badge "Anda"); **ACC sendiri dinonaktifkan**. Detail laporan
+  pribadi kini **bisa Anda buka sejak status Ditinjau** (in_review) — sama seperti detail anggota tim
+  (agregat anonim, tanpa komentar mentah). **Kotak pencarian** nama/divisi tersedia.
 
 ### Monitor Kinerja
 - Memantau kinerja bawahan. **SPV hanya melihat pegawai sedivisi** dengannya.
@@ -240,6 +249,14 @@ Unduh data mentah **Excel (.xlsx)** untuk olah data lanjutan (pivot/statistik/BI
   dengan kedua model sekaligus + **Selisih**, membantu memilih model sebelum Hitung Ulang.
   (Pratinjau tak mengubah data.)
 
+> **Kapan kedua model menghasilkan angka BERBEDA?** Hanya bila seorang pegawai dinilai oleh
+> **beberapa kelas relasi sekaligus** — khususnya **Atasan + internal (Peer/Cross/Bawahan)**,
+> atau beberapa kelas internal dengan rata-rata berbeda. Bila pegawai hanya dinilai **satu kelas**
+> (mis. hanya Peer), **4-Kelas dan 2-Kelas menghasilkan angka identik** — bukan bug, melainkan
+> sifat rumus (cuma ada satu sumber untuk dibobot). Jadi bila setelah Hitung Ulang tak terlihat
+> beda antar-model, pastikan dulu **penilaian 360° sudah cukup terisi dari berbagai relasi** (cek
+> Progress 360) — beda baru muncul saat data multi-relasi tersedia.
+
 ### Monitoring & Audit KPI (HRD Admin)
 - **Satu halaman** berisi **Rekapitulasi Kuartal** + **Riwayat & Audit Perubahan KPI**
   berdampingan (split view; tab "Input KPI" tidak muncul di mode admin — input adalah tugas SPV).
@@ -282,6 +299,11 @@ Klik **nama pegawai** untuk membuka **dokumen laporan rinci**.
    tiap aspek juga ditampilkan dua bar (**Rekan** vs **Diri**) sebagai pembanding.
 3. Section **Evaluasi Aspek Budaya & Perilaku 360°** — HRD menulis **ringkasan kalibrasi naratif
    per aspek** (anonim, tanpa nama penilai); ketik di tiap kotak aspek lalu **Simpan Ringkasan**.
+   > **Penting — ringkasan disimpan TERPISAH.** Tombol **Rilis ke SPV** / **Finalisasi** **TIDAK**
+   > menyimpan ringkasan ini — Anda **wajib klik "Simpan Ringkasan"** sendiri. Saat ada perubahan
+   > belum disimpan, muncul **banner kuning "Perubahan belum disimpan"**, dan bila Anda menekan
+   > **Rilis/Finalisasi** dalam keadaan itu akan muncul **konfirmasi** ("Batal — simpan dulu" /
+   > "Lanjut tanpa ringkasan"). Bila lupa simpan, SPV/pegawai melihat laporan **tanpa ringkasan terbaru**.
    *(Rencana: tombol "Buat Ringkasan Otomatis" via Claude API — HRD tetap bisa menyunting; lihat CLAUDE.md.)*
 4. Section **Rincian Komentar Murni (Raw Feedback)** — **hanya HRD**, **anonim** (identitas
    penilai disembunyikan), dikelompokkan **per aspek → per indikator**: menampilkan **akumulasi
@@ -373,16 +395,58 @@ divisi). Skor Akhir mengikuti flag **360° aktif/nonaktif** periode terpilih (KP
 
 ---
 
-## Alur Lengkap (ringkas)
+## Alur Lengkap — dari penilaian hingga rilis ke pegawai
 
-1. **HRD** aktivasi periode + (opsional) aktifkan angket 360 + atur mapping & bobot.
-2. **Semua pegawai** mengisi penilaian 360° di "Daftar Penilaian Saya".
-3. **SPV** input KPI bulanan tiap anggota tim.
-4. **HRD** pantau progress 360 → kunci periode bila sudah lengkap.
-5. **HRD** Review Hasil Akhir (`draft`) → **Rilis ke SPV** (`in_review`) → SPV tinjau detail
-   agregat + diskusi di luar app (**ACC opsional, non-blok**) → **Finalisasi** (`finalized`).
-6. **Pegawai** melihat **Laporan Hasil Saya** setelah final.
-7. **HRD → Direksi**: usulan promosi/suksesi untuk **ACC Direksi**.
+### Tahap demi tahap
+
+**Tahap 0 — HRD menyiapkan siklus.** Aktivasi periode (+ opsional angket 360° + Standar KPI),
+atur **Pemetaan** (siapa menilai siapa + relasi + sifat Wajib/Opsional), atur **Bobot Penilai**.
+*Tanpa periode aktif, form 360° tidak terbuka.*
+
+**Tahap 1 — Pegawai mengisi 360°.** Setiap pegawai (semua peran) di **Daftar Penilaian Saya** →
+Mulai Nilai → rating + komentar (wajib ≥4 karakter) → Umpan Balik Kualitatif → **Simpan Draf**
+atau **Kirim**. Tersimpan sebagai data mentah (lapis 3).
+
+**Tahap 2 — SPV input KPI bulanan.** Untuk tiap anggota tim **+ dirinya**. Input pertama boleh
+tanpa komentar; **edit (input kedua di bulan sama) WAJIB Komentar Audit** — bila kosong, ditolak.
+
+**Tahap 3 — HRD hitung Skor 360°.** Bobot & Kalkulasi → **Hitung Ulang Skor 360°** → menulis
+`result_360`. *Bila tidak diklik, komponen 360° kosong → Skor Akhir = 100% KPI.*
+
+**Tahap 4 — HRD menyusun laporan** (Review Hasil Akhir → detail pegawai), **dua aksi terpisah**:
+- **(a) Ringkasan kualitatif** — tulis narasi per aspek → **WAJIB klik "Simpan Ringkasan"**.
+- **(b) Status laporan** — **Simpan Draf** / **Rilis ke SPV** / **Finalisasi**.
+  > Rilis/Finalisasi **tidak** menyimpan ringkasan; bila ada ringkasan belum disimpan muncul
+  > **konfirmasi**.
+
+**Tahap 5 — SPV meninjau & ACC** (status `in_review`). SPV buka **detail agregat** anggota
+(radar/aspek + ringkasan HRD, anonim, **tanpa lapis 3**) → **Beri ACC** (tombol muncul **hanya
+setelah Rilis**). Diskusi HRD–SPV **di luar aplikasi**; **ACC non-blok**. Laporan **diri SPV
+sendiri** kini juga bisa dibuka detailnya sejak `in_review` (ACC sendiri tetap nonaktif).
+
+**Tahap 6 — Finalisasi & rilis ke pegawai.** HRD klik **Finalisasi** (status `finalized`) →
+pegawai melihat **Laporan Hasil Saya** berupa **agregat** (skor + radar/aspek + ringkasan HRD),
+**bukan** komentar mentah. Bisa Unduh PDF.
+
+**Tahap 7 — HRD → Direksi.** Usulan promosi/suksesi untuk **ACC Direksi**.
+
+### Transisi status & siapa melihat apa
+
+```
+draft ───────────→ in_review ─────────→ finalized
+(Simpan Draf)      (Rilis ke SPV)        (Finalisasi)
+```
+
+| Status | HRD (admin) | SPV — anggota tim | SPV — laporan sendiri | Pegawai |
+|--------|-------------|-------------------|------------------------|---------|
+| **draft** | Penuh + raw anonim | Skor saja (detail terkunci, ACC "menunggu rilis") | Skor saja (detail terkunci) | — (belum tampil) |
+| **in_review** | Penuh + raw anonim | **Detail agregat + Beri ACC** | **Detail agregat** (ACC off) | — (belum tampil) |
+| **finalized** | Penuh + raw anonim | Detail agregat | Detail agregat | **Laporan Hasil Saya (agregat)** |
+
+**Tiga lapis informasi:**
+- **L1** Skor Akhir (angka) — SPV lihat sejak `draft`.
+- **L2** Detail agregat (radar/aspek + ringkasan HRD, anonim) — SPV/diri sejak `in_review`; pegawai saat `finalized`.
+- **L3** Komentar mentah per penilai — **HANYA HRD** (anonim); **tidak pernah** ke SPV maupun pegawai.
 
 ---
 

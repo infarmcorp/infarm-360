@@ -9,6 +9,7 @@ import { ReportActions } from '../report-actions';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
 import { AspectSummaryView } from '../aspect-summary-view';
 import { RawFeedback } from '../raw-feedback';
+import { SummaryDirtyProvider } from '../summary-dirty';
 
 /**
  * Dokumen Laporan rinci satu pegawai. Tiga jalur tampilan:
@@ -86,26 +87,30 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   return (
     <Shell>
       <Link href={back.href} className="text-xs text-gray-500 hover:underline no-print">{back.label}</Link>
-      <div className="mt-2">
-        {/* HRD: panel aksi (Unduh PDF / Simpan Draf / Rilis ke SPV / Finalisasi Hasil). */}
-        {isAdmin && (
-          <ReportActions
-            employeeId={employeeId}
-            status={data.status}
-            finalScore={data.finalScore}
-            canCompute={data.kpiAvg != null}
-          />
-        )}
-        {/* HRD: sembunyikan blok komentar-per-penilai (bernama) → diganti raw feedback anonim;
-            tombol Unduh PDF bawaan disembunyikan karena sudah ada di panel aksi. */}
-        <ReportDoc data={data} anonymize={false} hideAssessorComments={isAdmin} hidePrint={isAdmin} />
-        {isAdmin && data.has360 && (
-          <>
-            <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} />
-            <RawFeedback byAspect={data.byAspect} essays={data.essays} />
-          </>
-        )}
-      </div>
+      {/* Provider berbagi status "ringkasan belum disimpan" antara editor & panel aksi
+          (guard konfirmasi saat Rilis/Finalisasi). */}
+      <SummaryDirtyProvider>
+        <div className="mt-2">
+          {/* HRD: panel aksi (Unduh PDF / Simpan Draf / Rilis ke SPV / Finalisasi Hasil). */}
+          {isAdmin && (
+            <ReportActions
+              employeeId={employeeId}
+              status={data.status}
+              finalScore={data.finalScore}
+              canCompute={data.kpiAvg != null}
+            />
+          )}
+          {/* HRD: sembunyikan blok komentar-per-penilai (bernama) → diganti raw feedback anonim;
+              tombol Unduh PDF bawaan disembunyikan karena sudah ada di panel aksi. */}
+          <ReportDoc data={data} anonymize={false} hideAssessorComments={isAdmin} hidePrint={isAdmin} />
+          {isAdmin && data.has360 && (
+            <>
+              <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} />
+              <RawFeedback byAspect={data.byAspect} essays={data.essays} />
+            </>
+          )}
+        </div>
+      </SummaryDirtyProvider>
     </Shell>
   );
 }

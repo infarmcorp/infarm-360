@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Save, AlertTriangle } from 'lucide-react';
 import { saveAspectSummaries } from '@/app/(app)/admin/laporan/actions';
+import { useSummaryDirty } from './summary-dirty';
 
 /**
  * Section 4 — EVALUASI ASPEK BUDAYA & PERILAKU 360° (HRD).
@@ -21,7 +22,7 @@ export function AspectSummaryEditor({
     return o;
   });
   const [busy, setBusy] = useState(false);
-  const [dirty, setDirty] = useState(false);
+  const { dirty, setDirty } = useSummaryDirty(); // dibagi ke ReportActions (guard rilis)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const router = useRouter();
 

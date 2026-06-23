@@ -51,12 +51,11 @@ export default async function LaporanTimPage() {
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
 
   // Boleh buka detail (lapis 2)? Halaman ini dipakai SPV & HRD mode-SPV — keduanya
-  // dibatasi setara: detail terbuka hanya setelah HRD rilis (in_review)/final; laporan
-  // diri sendiri mengikuti aturan pegawai (final saja). Detail tetap TANPA komentar mentah.
-  const canOpenDetail = (status: string | null, isSelf: boolean): boolean => {
-    if (isSelf) return status === 'finalized';
-    return status === 'in_review' || status === 'finalized';
-  };
+  // dibatasi setara: detail terbuka setelah HRD rilis (in_review) atau final — termasuk
+  // laporan DIRI SENDIRI (boleh tinjau detail agregat dirinya sejak Ditinjau SPV).
+  // Detail tetap TANPA komentar mentah; ACC diri sendiri tetap nonaktif (lihat kolom ACC).
+  const canOpenDetail = (status: string | null): boolean =>
+    status === 'in_review' || status === 'finalized';
 
   const toRow = (e: { id: string; name: string; dept: string | null }, isSelf: boolean): TeamRow => {
     const rep = repBy.get(e.id);
@@ -70,7 +69,7 @@ export default async function LaporanTimPage() {
       hasReport: !!rep,
       spvAcc: !!rep?.spv_acc,
       isSelf,
-      detailOpen: canOpenDetail(status, isSelf),
+      detailOpen: canOpenDetail(status),
       // ACC hanya setelah HRD merilis (in_review) atau final; bukan diri sendiri.
       canAcc: !isSelf && (status === 'in_review' || status === 'finalized'),
     };

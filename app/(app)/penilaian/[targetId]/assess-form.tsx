@@ -262,9 +262,10 @@ export function AssessForm({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-4">
-        {/* RAIL aspek */}
-        <div className="space-y-2">
-          <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider">Aspek Budaya</label>
+        {/* RAIL aspek — HP: strip horizontal yang bisa di-geser; layar lebar (lg): vertikal. */}
+        <div>
+          <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Aspek Budaya</label>
+          <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
           {aspectGroups.map((g) => {
             const items = flat.filter((f) => f.gid === g.id);
             const done = items.filter((f) => indDone(f.id)).length;
@@ -272,7 +273,7 @@ export function AssessForm({
             const active = activeGroup === g.id;
             return (
               <button key={g.id} type="button" onClick={() => selectGroup(g.id)}
-                className={`w-full p-3 rounded-xl border text-left transition-all ${active ? 'border-emerald-700 bg-emerald-50/60 ring-1 ring-emerald-700' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
+                className={`shrink-0 w-[150px] lg:w-full p-3 rounded-xl border text-left transition-all ${active ? 'border-emerald-700 bg-emerald-50/60 ring-1 ring-emerald-700' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
                 <span className={`text-xs leading-tight block ${active ? 'font-extrabold text-emerald-950' : 'font-semibold text-gray-700'}`}>{g.name}</span>
                 <span className="flex items-center justify-between mt-1.5 text-[10px] font-bold text-gray-500">
                   <span>{items.length} indikator</span>
@@ -285,7 +286,7 @@ export function AssessForm({
           })}
           {hasQual && (
             <button type="button" onClick={() => selectGroup(QUAL)}
-              className={`w-full p-3 rounded-xl border text-left transition-all ${activeGroup === QUAL ? 'border-indigo-600 bg-indigo-50/60 ring-1 ring-indigo-600' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
+              className={`shrink-0 w-[150px] lg:w-full p-3 rounded-xl border text-left transition-all ${activeGroup === QUAL ? 'border-indigo-600 bg-indigo-50/60 ring-1 ring-indigo-600' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
               <span className={`text-xs leading-tight block ${activeGroup === QUAL ? 'font-extrabold text-indigo-950' : 'font-semibold text-gray-700'}`}>Umpan Balik Kualitatif</span>
               <span className="flex items-center justify-between mt-1.5 text-[10px] font-bold text-gray-500">
                 <span>{questions.length} pertanyaan</span>
@@ -293,6 +294,7 @@ export function AssessForm({
               </span>
             </button>
           )}
+          </div>
         </div>
 
         {/* EDITOR */}
@@ -381,12 +383,21 @@ export function AssessForm({
                       const sel = ratings[cur.id] === n;
                       return (
                         <button key={n} type="button" onClick={() => setRatings((p) => ({ ...p, [cur.id]: n }))}
-                          className={`flex flex-col items-center gap-1 py-2 rounded-lg border text-xs font-extrabold transition-all ${sel ? 'bg-emerald-700 text-white border-emerald-700 shadow' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'}`}>
-                          <span className="text-sm">{n}</span>
-                          <span className={`text-[8.5px] text-center font-bold leading-tight ${sel ? 'text-emerald-50' : 'text-gray-500'}`}>{RATING_LABELS[n]}</span>
+                          className={`flex flex-col items-center gap-0.5 py-2.5 rounded-lg border font-extrabold transition-all ${sel ? 'bg-emerald-700 text-white border-emerald-700 shadow' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'}`}>
+                          <span className="text-lg leading-none">{n}</span>
+                          {/* Label mungil hanya di layar lebar; di HP digantikan baris "Pilihan Anda" di bawah. */}
+                          <span className={`hidden sm:block text-[9px] text-center font-bold leading-tight ${sel ? 'text-emerald-50' : 'text-gray-500'}`}>{RATING_LABELS[n]}</span>
                         </button>
                       );
                     })}
+                  </div>
+                  {/* Label terbaca untuk rating terpilih — terutama berguna di HP (label tombol disembunyikan). */}
+                  <div className="mt-2 text-center sm:hidden">
+                    {ratings[cur.id] != null ? (
+                      <span className="text-xs font-bold text-emerald-800">Pilihan Anda: {ratings[cur.id]} · {RATING_LABELS[ratings[cur.id]!]}</span>
+                    ) : (
+                      <span className="text-xs font-semibold text-gray-400">Pilih rating 1 (Hampir Tidak Pernah) – 5 (Selalu)</span>
+                    )}
                   </div>
                 </div>
 

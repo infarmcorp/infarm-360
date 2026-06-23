@@ -52,7 +52,8 @@ tak perlu ditandai "sudah dibaca", selalu mengikuti keadaan nyata akun yang logi
 - **X penilaian 360° menunggu diisi** → ke Daftar Penilaian Saya.
 - **Laporan Hasil Anda sudah final** (Employee/SPV) → ke Laporan Hasil Saya.
 - **X anggota belum ada KPI [bulan]** (SPV / HRD mode-SPV) → ke Input KPI.
-- **X penilaian 360° belum lengkap** & **X laporan belum difinalisasi** (HRD Admin).
+- **X permohonan koreksi relasi menunggu**, **X penilaian 360° belum lengkap**, & **X laporan belum
+  difinalisasi** (HRD Admin).
 - **X usulan suksesi menunggu ACC** (Direksi).
 
 Tiap baris adalah tautan langsung ke halaman terkait. Bila kosong: *"Tak ada tugas tertunda 🎉"*.
@@ -300,6 +301,11 @@ Klik **nama pegawai** untuk membuka **dokumen laporan rinci**.
    - **Finalisasi Hasil** — rilis ke **pegawai** (status `finalized`). Bisa dari `draft` **atau**
      `in_review`; **tidak wajib menunggu ACC SPV** (anti-macet bila SPV lambat/cuti).
    - Bila **KPI pegawai masih kosong**, tombol simpan dinonaktifkan (Skor Akhir belum bisa dihitung).
+   - **Peringatan "Skor 360° belum mutakhir" (banner amber)**: muncul bila ada perubahan **setelah**
+     Skor 360° terakhir dihitung — **penilaian** dikirim/diubah, **atau koreksi relasi di-ACC** (yang
+     mengubah kelas bobot). Artinya angka Skor 360°/Skor Akhir yang tampil masih lama ("basi").
+     Jalankan **"Hitung Ulang Skor 360°"** (halaman Bobot & Kalkulasi) lalu Simpan/Rilis/Finalisasi
+     **ulang** agar skor mengikuti data terbaru.
 2. **Ringkasan skor** (Rerata KPI · Evaluasi 360° · Skor Akhir) + **Radar Aspek 360°** — garis
    **penuh indigo = Penilaian Rekan**, garis **putus-putus amber = Evaluasi Diri (Self)**;
    tiap aspek juga ditampilkan dua bar (**Rekan** vs **Diri**) sebagai pembanding.

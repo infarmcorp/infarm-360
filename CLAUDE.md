@@ -99,6 +99,18 @@ sudah dihapus).
 Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 
 ### Fitur baru
+- **Notifikasi HRD: koreksi relasi menunggu** (`lib/todos/compute.ts`): panel "Tugas & Notifikasi"
+  HRD Admin kini menghitung `relation_correction_requests` status `pending` periode aktif → item
+  rose "N permohonan koreksi relasi menunggu" → `/admin/pemetaan`. (Tone `rose` sudah ada di shell.)
+- **Peringatan "Skor 360° basi" di Review Hasil Akhir** (`laporan/[employeeId]/page.tsx`,
+  `admin/360/actions.ts`, `admin/pemetaan/actions.ts`, migrasi 0014): bila ada perubahan **setelah**
+  `result_360` terakhir dihitung — (a) **penilaian** dikirim/diubah (`assessments.submitted_at >
+  computed_at`) ATAU (b) **koreksi relasi di-ACC** (`relation_correction_requests.reviewed_at >
+  computed_at`, yang mengubah kelas bobot) — atau ada penilaian tapi belum pernah dihitung, halaman
+  detail laporan (jalur HRD) menampilkan **banner amber** mengingatkan Hitung Ulang Skor 360° +
+  simpan/finalisasi ulang. Prasyarat: `computeResult360` kini menulis `computed_at` eksplisit tiap
+  hitung ulang (UPDATE/upsert ikut memperbarui stempel, bukan hanya saat INSERT); `reviewCorrection`
+  menulis `reviewed_at` saat ACC. Hanya HRD pada periode ber-360°.
 - **Progress 360 — kelengkapan berbasis WAJIB saja** (`admin/progress/`): kartu **Lengkap/Belum/
   Progres** + badge per-baris + filter status kini menghitung "lengkap" = semua penilaian **mandatory**
   selesai (opsional tak menentukan). `page.tsx` tambah `mandatoryTotal`/`mandatoryDone` per penilai;
@@ -332,6 +344,10 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   `is_hrd()` → `role='hrd' OR is_hrd_admin`. Memisahkan **izin** HRD dari **posisi** `role`. Aditif
   & backward-compatible (default false → HRD lama tetap via `role='hrd'`). Diterapkan & diverifikasi
   (kolom ada, `is_hrd()` hormati grant, `verify:rls` 21/21).
+- `0014_correction_reviewed_at` — `relation_correction_requests.reviewed_at timestamptz` (nullable):
+  stempel waktu HRD MENYETUJUI/menolak koreksi relasi (beda dari `created_at` = saat diajukan). Dipakai
+  deteksi "Skor 360° basi" (koreksi di-ACC setelah hitung ulang → kelas bobot berubah). Aditif &
+  backward-compatible (baris lama NULL → tak memicu peringatan). Diterapkan & diverifikasi (kolom ada).
 - `final_reports.content` (jsonb, kolom lama) dipakai untuk `aspectSummaries` (tanpa migrasi baru).
 
 ### Infra / Testing / CI

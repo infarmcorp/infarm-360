@@ -80,10 +80,13 @@ export async function computeResult360(): Promise<ComputeResult> {
   }
 
   // Hitung skor terbobot per target (rumus murni di lib/score360.ts).
-  const rows: { employee_id: string; period_id: string; score: number }[] = [];
+  // computed_at di-set eksplisit agar UPDATE (upsert) ikut memperbarui stempel waktu —
+  // dipakai mendeteksi "skor basi" bila penilaian diubah setelah hitung ulang terakhir.
+  const computedAt = new Date().toISOString();
+  const rows: { employee_id: string; period_id: string; score: number; computed_at: string }[] = [];
   for (const [targetId, g] of byTarget) {
     const score = weightedScore360(g, ws.model, weights);
-    if (score != null) rows.push({ employee_id: targetId, period_id: ap.id, score: round1(score) });
+    if (score != null) rows.push({ employee_id: targetId, period_id: ap.id, score: round1(score), computed_at: computedAt });
   }
 
   if (rows.length === 0) return { ok: false, error: 'Tidak ada skor yang dapat dihitung' };

@@ -177,7 +177,7 @@ export async function reviewCorrection(requestId: string, decision: 'approved' |
   }
 
   const { error } = await supabase.from('relation_correction_requests')
-    .update({ status: decision, reviewed_by: user?.id ?? null }).eq('id', requestId);
+    .update({ status: decision, reviewed_by: user?.id ?? null, reviewed_at: new Date().toISOString() }).eq('id', requestId);
   if (error) return { ok: false, error: 'Gagal: ' + error.message };
 
   await logHrdAction({
@@ -188,5 +188,6 @@ export async function reviewCorrection(requestId: string, decision: 'approved' |
   });
   revalidatePath('/admin/pemetaan');
   revalidatePath('/penilaian');
+  revalidatePath(`/laporan/${req.target_id}`); // perbarui peringatan "skor 360° basi"
   return { ok: true };
 }

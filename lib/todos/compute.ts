@@ -73,7 +73,7 @@ async function countKpiMissing(supabase: SB, periodId: string, userId: string): 
   return { missing: ids.length - new Set((have ?? []).map((h) => h.employee_id)).size, ym };
 }
 
-/** Tugas HRD Admin: penilaian 360 belum lengkap + laporan belum final. */
+/** Tugas HRD Admin: koreksi relasi menunggu + penilaian 360 belum lengkap + laporan belum final. */
 async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): Promise<TodoItem[]> {
   const out: TodoItem[] = [];
   if (has360) {
@@ -84,10 +84,13 @@ async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): P
     const pending = (mapCount ?? 0) - (subCount ?? 0);
     if (pending > 0) out.push({ id: 'hrd-progress', tone: 'amber', href: '/admin/progress', label: `${pending} penilaian 360° belum lengkap` });
   }
-  const [{ count: empCount }, { count: finalCount }] = await Promise.all([
+  const [{ count: empCount }, { count: finalCount }, { count: corrCount }] = await Promise.all([
     supabase.from('employees').select('*', { count: 'exact', head: true }).eq('is_active', true).neq('role', 'direksi'),
     supabase.from('final_reports').select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('status', 'finalized'),
+    supabase.from('relation_correction_requests').select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('status', 'pending'),
   ]);
+  // Permohonan Koreksi Relasi menunggu ACC HRD (di Pemetaan → tab Koreksi Relasi).
+  if ((corrCount ?? 0) > 0) out.push({ id: 'hrd-corr', tone: 'rose', href: '/admin/pemetaan', label: `${corrCount} permohonan koreksi relasi menunggu` });
   const pendingReports = (empCount ?? 0) - (finalCount ?? 0);
   if (pendingReports > 0) out.push({ id: 'hrd-final', tone: 'blue', href: '/admin/laporan', label: `${pendingReports} laporan belum difinalisasi` });
   return out;

@@ -82,6 +82,27 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
+  // Deteksi "Skor 360° basi": skor usang bila ada perubahan SETELAH hitung ulang terakhir —
+  // (a) penilaian terkirim/diubah (assessments.submitted_at > result_360.computed_at), ATAU
+  // (b) KOREKSI RELASI di-ACC (reviewed_at > computed_at) yang mengubah kelas bobot. Juga basi
+  // bila ada penilaian tapi result_360 belum pernah dihitung. Hanya HRD pada periode ber-360°.
+  let score360Stale = false;
+  if (isAdmin && data.has360) {
+    const [r360meta, lastAsmt, lastCorr] = await Promise.all([
+      supabase.from('result_360').select('computed_at').eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle(),
+      supabase.from('assessments').select('submitted_at').eq('target_id', employeeId).eq('period_id', ap.id)
+        .eq('status', 'submitted').order('submitted_at', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('relation_correction_requests').select('reviewed_at').eq('target_id', employeeId).eq('period_id', ap.id)
+        .eq('status', 'approved').not('reviewed_at', 'is', null).order('reviewed_at', { ascending: false }).limit(1).maybeSingle(),
+    ]);
+    const computedAt = r360meta.data?.computed_at ?? null;
+    const lastSubmitted = lastAsmt.data?.submitted_at ?? null;
+    const lastReviewed = lastCorr.data?.reviewed_at ?? null;
+    const newerThanCompute = (ts: string | null) =>
+      !!ts && (!computedAt || new Date(ts).getTime() > new Date(computedAt).getTime());
+    score360Stale = newerThanCompute(lastSubmitted) || newerThanCompute(lastReviewed);
+  }
+
   // isAdmin (pemegang izin HRD, bukan asSpv & bukan direksi) → tampilan admin penuh
   // (panel aksi + raw feedback anonim). Direksi → read-only penuh.
   return (
@@ -91,6 +112,19 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
           (guard konfirmasi saat Rilis/Finalisasi). */}
       <SummaryDirtyProvider>
         <div className="mt-2">
+          {/* Peringatan skor 360° basi: penilaian berubah setelah hitung ulang terakhir. */}
+          {isAdmin && score360Stale && (
+            <div className="mb-3 flex items-start gap-2 bg-amber-50 border border-amber-300 rounded-xl p-3 text-[12px] text-amber-900 no-print">
+              <span aria-hidden>⚠️</span>
+              <div>
+                <strong>Skor 360° mungkin belum mutakhir.</strong> Ada penilaian yang dikirim/diubah{' '}
+                <strong>setelah</strong> Skor 360° terakhir dihitung. Jalankan{' '}
+                <strong>&quot;Hitung Ulang Skor 360°&quot;</strong> di halaman{' '}
+                <Link href="/admin/bobot" className="underline font-bold">Bobot &amp; Kalkulasi</Link>, lalu
+                Simpan Draf / Rilis / Finalisasi ulang agar Skor Akhir mencerminkan penilaian terbaru.
+              </div>
+            </div>
+          )}
           {/* HRD: panel aksi (Unduh PDF / Simpan Draf / Rilis ke SPV / Finalisasi Hasil). */}
           {isAdmin && (
             <ReportActions

@@ -126,8 +126,8 @@ export interface Database {
         Relationships: [];
       };
       relation_correction_requests: {
-        Row: { id: string; mapping_id: string | null; period_id: string; assessor_id: string; target_id: string; old_relation: RelationKind | null; new_relation: RelationKind | null; reason: string; status: CorrectionStatus; reviewed_by: string | null; created_at: string };
-        Insert: { mapping_id?: string | null; period_id: string; assessor_id: string; target_id: string; old_relation?: RelationKind | null; new_relation?: RelationKind | null; reason: string; status?: CorrectionStatus; reviewed_by?: string | null };
+        Row: { id: string; mapping_id: string | null; period_id: string; assessor_id: string; target_id: string; old_relation: RelationKind | null; new_relation: RelationKind | null; reason: string; status: CorrectionStatus; reviewed_by: string | null; reviewed_at: string | null; created_at: string };
+        Insert: { mapping_id?: string | null; period_id: string; assessor_id: string; target_id: string; old_relation?: RelationKind | null; new_relation?: RelationKind | null; reason: string; status?: CorrectionStatus; reviewed_by?: string | null; reviewed_at?: string | null };
         Update: Partial<Database['public']['Tables']['relation_correction_requests']['Insert']>;
         Relationships: [];
       };

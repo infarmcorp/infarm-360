@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Download, FileSpreadsheet } from 'lucide-react';
 import {
-  exportEmployees, exportKpi, exportKpiAudit, exportPenalties, exportRekap, exportAssessments, exportMappings,
+  exportEmployees, exportKpi, exportKpiAudit, exportPenalties, exportRekap, exportAssessments, exportQualAnswers, exportMappings,
   exportPeriodConfig, type ExportResult,
 } from './actions';
 
@@ -20,7 +20,8 @@ const ITEMS: Item[] = [
   { key: 'kpiaudit', title: 'Log Audit KPI', desc: 'Jejak perubahan KPI: bulan, skor, pengubah, waktu, catatan.', file: 'log-audit-kpi', sheet: 'AuditKPI', scoped: true, load: (p) => exportKpiAudit(p) },
   { key: 'penalty', title: 'Kepatuhan / Punishment', desc: 'Poin punishment per pegawai, alasan, penetap.', file: 'kepatuhan-punishment', sheet: 'Punishment', scoped: true, load: (p) => exportPenalties(p) },
   { key: 'rekap', title: 'Rekap Kinerja per Periode', desc: 'KPI rerata, Skor 360°, punishment, Skor Akhir, kategori, A/B/C/D.', file: 'rekap-kinerja', sheet: 'Rekap', scoped: true, load: (p) => exportRekap(p) },
-  { key: 'asmt', title: 'Penilaian 360° Detail (anonim penilai)', desc: 'Raw feedback per pegawai dinilai: relasi, indikator, rating, komentar — tanpa identitas penilai.', file: 'penilaian-360-detail', sheet: 'Penilaian360', scoped: true, load: (p) => exportAssessments(p) },
+  { key: 'asmt', title: 'Penilaian 360° Detail (anonim penilai)', desc: 'Raw feedback kuantitatif per pegawai dinilai: relasi, aspek budaya, indikator, rating, komentar — tanpa identitas penilai.', file: 'penilaian-360-detail', sheet: 'Penilaian360', scoped: true, load: (p) => exportAssessments(p) },
+  { key: 'qual', title: 'Umpan Balik Kualitatif 360° (esai, anonim)', desc: 'Jawaban pertanyaan esai per pegawai dinilai: relasi, pertanyaan, jawaban — tanpa identitas penilai.', file: 'umpan-balik-kualitatif-360', sheet: 'Kualitatif360', scoped: true, load: (p) => exportQualAnswers(p) },
   { key: 'map', title: 'Pemetaan 360°', desc: 'Pasangan penilai → target, relasi, sifat (Wajib/Opsional).', file: 'pemetaan', sheet: 'Pemetaan', scoped: true, load: (p) => exportMappings(p) },
 ];
 

@@ -182,23 +182,25 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
   return { ok: true, rows };
 }
 
-/** Dataset Penilaian 360 Detail (ANONIM penilai): periode, target, divisi, relasi, indikator, rating, komentar. */
+/** Dataset Penilaian 360 Detail (ANONIM penilai): periode, target, divisi, relasi, aspek, indikator, rating, komentar. */
 export async function exportAssessments(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
-  const [{ data: emps }, { data: periods }, asmtRes, { data: inds }, { data: maps }] = await Promise.all([
+  const [{ data: emps }, { data: periods }, asmtRes, { data: inds }, { data: aspects }, { data: maps }] = await Promise.all([
     admin.from('employees').select('id, emp_code, name, dept'),
     admin.from('periods').select('id, label'),
     (periodId
       ? admin.from('assessments').select('id, period_id, assessor_id, target_id, status').eq('status', 'submitted').eq('period_id', periodId)
       : admin.from('assessments').select('id, period_id, assessor_id, target_id, status').eq('status', 'submitted')),
-    admin.from('indicators').select('id, text'),
+    admin.from('indicators').select('id, text, aspect_id'),
+    admin.from('culture_aspects').select('id, name'),
     admin.from('mappings').select('assessor_id, target_id, period_id, relation'),
   ]);
   const asmts = asmtRes.data ?? [];
   const byId = new Map((emps ?? []).map((e) => [e.id, e]));
   const periodLabel = new Map((periods ?? []).map((p) => [p.id, p.label]));
-  const indText = new Map((inds ?? []).map((i) => [i.id, i.text]));
+  const aspectName = new Map((aspects ?? []).map((a) => [a.id, a.name]));
+  const indMeta = new Map((inds ?? []).map((i) => [i.id, { text: i.text, aspek: aspectName.get(i.aspect_id) ?? '' }]));
   const relBy = new Map((maps ?? []).map((m) => [`${m.assessor_id}|${m.target_id}|${m.period_id}`, m.relation]));
   const asmtIds = asmts.map((a) => a.id);
   const scoresByAsmt = new Map<string, { indicator_id: string; rating: number | null; comment: string | null }[]>();
@@ -211,11 +213,59 @@ export async function exportAssessments(periodId?: string | null): Promise<Expor
     const target = byId.get(a.target_id);
     const rel = a.assessor_id === a.target_id ? 'Self' : relBy.get(`${a.assessor_id}|${a.target_id}|${a.period_id}`) ?? '';
     for (const s of scoresByAsmt.get(a.id) ?? []) {
+      const ind = indMeta.get(s.indicator_id);
       rows.push({
         periode: periodLabel.get(a.period_id) ?? '',
         dinilai: target?.name ?? '', divisi: target?.dept ?? '',
-        relasi: rel, indikator: indText.get(s.indicator_id) ?? '',
+        relasi: rel, aspek: ind?.aspek ?? '', indikator: ind?.text ?? '',
         rating: s.rating, komentar: s.comment ?? '',
+      });
+    }
+  }
+  return { ok: true, rows };
+}
+
+/**
+ * Dataset Umpan Balik Kualitatif 360° / esai (ANONIM penilai): periode, target, divisi,
+ * relasi, pertanyaan, jawaban. Sumber `assessment_qual_answers` → `qualitative_questions`
+ * (jawaban esai terpisah, beda dari komentar per-indikator di exportAssessments).
+ */
+export async function exportQualAnswers(periodId?: string | null): Promise<ExportResult> {
+  if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
+  const admin = createAdminClient();
+  const [{ data: emps }, { data: periods }, asmtRes, { data: quals }, { data: maps }] = await Promise.all([
+    admin.from('employees').select('id, name, dept'),
+    admin.from('periods').select('id, label'),
+    (periodId
+      ? admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted').eq('period_id', periodId)
+      : admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted')),
+    admin.from('qualitative_questions').select('id, text, order_idx').order('order_idx'),
+    admin.from('mappings').select('assessor_id, target_id, period_id, relation'),
+  ]);
+  const asmts = asmtRes.data ?? [];
+  const byId = new Map((emps ?? []).map((e) => [e.id, e]));
+  const periodLabel = new Map((periods ?? []).map((p) => [p.id, p.label]));
+  const qOrder = new Map((quals ?? []).map((q, i) => [q.id, i]));
+  const qText = new Map((quals ?? []).map((q) => [q.id, q.text]));
+  const relBy = new Map((maps ?? []).map((m) => [`${m.assessor_id}|${m.target_id}|${m.period_id}`, m.relation]));
+  const asmtIds = asmts.map((a) => a.id);
+  const ansByAsmt = new Map<string, { question_id: string; answer: string | null }[]>();
+  if (asmtIds.length) {
+    const { data: ans } = await admin.from('assessment_qual_answers').select('assessment_id, question_id, answer').in('assessment_id', asmtIds);
+    (ans ?? []).forEach((x) => { const a = ansByAsmt.get(x.assessment_id) ?? []; a.push(x); ansByAsmt.set(x.assessment_id, a); });
+  }
+  const rows: Row[] = [];
+  for (const a of asmts) {
+    const target = byId.get(a.target_id);
+    const rel = a.assessor_id === a.target_id ? 'Self' : relBy.get(`${a.assessor_id}|${a.target_id}|${a.period_id}`) ?? '';
+    const answers = (ansByAsmt.get(a.id) ?? [])
+      .filter((x) => x.answer && x.answer.trim())
+      .sort((x, y) => (qOrder.get(x.question_id) ?? 0) - (qOrder.get(y.question_id) ?? 0));
+    for (const x of answers) {
+      rows.push({
+        periode: periodLabel.get(a.period_id) ?? '',
+        dinilai: target?.name ?? '', divisi: target?.dept ?? '',
+        relasi: rel, pertanyaan: qText.get(x.question_id) ?? '', jawaban: x.answer ?? '',
       });
     }
   }

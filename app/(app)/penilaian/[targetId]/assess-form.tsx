@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, CheckCircle2, X, Send, Save, XCircle, Trash2, ClipboardList, ChevronDown } from 'lucide-react';
+import { ChevronLeft, CheckCircle2, X, Send, Save, XCircle, Trash2, ClipboardList, ChevronDown, Loader2 } from 'lucide-react';
 import { submitAssessment, discardAssessment } from '../actions';
 
 type Indicator = { id: string; text: string; description?: string | null; ratingGuide?: Record<string, string> | null };
@@ -13,6 +13,9 @@ const RATING_LABELS: Record<number, string> = {
   1: 'Hampir Tidak Pernah', 2: 'Jarang', 3: 'Kadang', 4: 'Sering', 5: 'Selalu',
 };
 const QUAL = '__qual__';
+
+// Status auto-simpan draf.
+type SaveState = 'idle' | 'pending' | 'saving' | 'saved' | 'error';
 
 // Panduan Penilaian Umum (statis, paritas legacy) — berlaku untuk semua pertanyaan.
 const GENERAL_GUIDE = [
@@ -27,16 +30,24 @@ const GENERAL_GUIDE = [
  * (kanan) dengan navigasi Sebelumnya/Selanjutnya, label rating, bar progres, dan
  * komentar/bukti perilaku WAJIB (min. 4 karakter) sebelum kirim. Umpan balik
  * kualitatif jadi item terakhir di rail (opsional).
+ *
+ * UX tambahan:
+ *  - AUTO-SIMPAN draf (debounce 2.5s) tiap ada perubahan → kerja tak hilang bila HP
+ *    ter-lock/refresh. TIDAK aktif untuk penilaian yang sudah 'submitted' (agar tak
+ *    menurunkan status), dan dikunci selama proses Kirim agar tak menimpa status.
+ *  - Konfirmasi sebelum Kirim + layar sukses sesudahnya (kepastian terkirim).
  */
 export function AssessForm({
-  targetId, groups, questions, initialScores, initialAnswers, hasDraft = false,
+  targetId, targetName, groups, questions, initialScores, initialAnswers, hasDraft = false, initialStatus = null,
 }: {
   targetId: string;
+  targetName: string;
   groups: Group[];
   questions: Question[];
   initialScores: Record<string, { rating: number | null; comment: string }>;
   initialAnswers: Record<string, string>;
   hasDraft?: boolean;
+  initialStatus?: 'draft' | 'submitted' | null;
 }) {
   const router = useRouter();
   const aspectGroups = useMemo(() => groups.filter((g) => g.indicators.length > 0), [groups]);
@@ -73,6 +84,15 @@ export function AssessForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
+  const [confirmSend, setConfirmSend] = useState(false);
+  const [sentDone, setSentDone] = useState(false);
+
+  // Pengaman auto-save: lockRef = jangan autosave (sedang konfirmasi/kirim/selesai);
+  // savingRef = ada autosave berjalan; hydratedRef = lewati render awal.
+  const lockRef = useRef(false);
+  const savingRef = useRef(false);
+  const hydratedRef = useRef(false);
 
   const indDone = (id: string) => ratings[id] != null && (comments[id] ?? '').trim().length >= 4;
   const doneCount = flat.filter((f) => indDone(f.id)).length;
@@ -82,6 +102,33 @@ export function AssessForm({
   const curList = flat.filter((f) => f.gid === activeGroup);
   const cur = flat.find((f) => f.id === activeId) ?? curList[0] ?? null;
   const curPos = cur ? flat.findIndex((f) => f.id === cur.id) : -1;
+
+  const buildPayload = (status: 'draft' | 'submitted') => ({
+    targetId, status,
+    scores: flat.map((f) => ({ indicatorId: f.id, rating: ratings[f.id] ?? null, comment: comments[f.id] ?? '' })),
+    answers: questions.map((q) => ({ questionId: q.id, answer: answers[q.id] ?? '' })),
+  });
+
+  // AUTO-SIMPAN draf: debounce 2.5s setelah perubahan terakhir.
+  useEffect(() => {
+    if (!hydratedRef.current) { hydratedRef.current = true; return; }      // lewati mount awal
+    if (initialStatus === 'submitted' || lockRef.current || busy || sentDone) return; // jangan turunkan status / balapan kirim
+    const hasContent =
+      flat.some((f) => ratings[f.id] != null || (comments[f.id] ?? '').trim().length > 0) ||
+      questions.some((q) => (answers[q.id] ?? '').trim().length > 0);
+    if (!hasContent) return;                                               // jangan buat draf kosong
+
+    setSaveState('pending');
+    const t = setTimeout(async () => {
+      if (lockRef.current || savingRef.current) return;
+      savingRef.current = true; setSaveState('saving');
+      const res = await submitAssessment(buildPayload('draft'));
+      savingRef.current = false;
+      setSaveState(res.ok ? 'saved' : 'error');
+    }, 2500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ratings, comments, answers]);
 
   function selectGroup(gid: string) {
     setActiveGroup(gid);
@@ -101,22 +148,17 @@ export function AssessForm({
   }
   const atLastQuant = curPos >= total - 1;
 
-  async function save(status: 'draft' | 'submitted') {
+  // Simpan Draf manual.
+  async function saveDraft() {
     setBusy(true); setError(null);
-    const payload = {
-      targetId, status,
-      scores: flat.map((f) => ({ indicatorId: f.id, rating: ratings[f.id] ?? null, comment: comments[f.id] ?? '' })),
-      answers: questions.map((q) => ({ questionId: q.id, answer: answers[q.id] ?? '' })),
-    };
-    const res = await submitAssessment(payload);
+    const res = await submitAssessment(buildPayload('draft'));
     setBusy(false);
-    if (!res.ok) { setError(res.error); return; }
-    if (status === 'submitted') { router.push('/penilaian'); router.refresh(); }
-    else router.refresh();
+    if (!res.ok) { setError(res.error); setSaveState('error'); return; }
+    setSaveState('saved'); router.refresh();
   }
 
+  // Tahap 1 Kirim: validasi → tampilkan konfirmasi (kunci autosave).
   function submit() {
-    // Validasi: tiap indikator wajib rating + komentar ≥ 4. Lompat ke yang kurang.
     for (const f of flat) {
       if (ratings[f.id] == null) {
         setActiveGroup(f.gid); setActiveId(f.id);
@@ -129,7 +171,24 @@ export function AssessForm({
         return;
       }
     }
-    save('submitted');
+    setError(null);
+    lockRef.current = true;     // hentikan autosave selama proses kirim
+    setConfirmSend(true);
+  }
+
+  function cancelSend() {
+    setConfirmSend(false);
+    lockRef.current = false;    // izinkan autosave lagi
+  }
+
+  // Tahap 2 Kirim: tunggu autosave yang sedang jalan agar tak menimpa status, lalu kirim.
+  async function doSend() {
+    setConfirmSend(false); setBusy(true); setError(null);
+    for (let i = 0; i < 60 && savingRef.current; i++) await new Promise((r) => setTimeout(r, 50));
+    const res = await submitAssessment(buildPayload('submitted'));
+    setBusy(false);
+    if (!res.ok) { setError(res.error); lockRef.current = false; return; }
+    setSentDone(true);
   }
 
   async function discard() {
@@ -143,14 +202,37 @@ export function AssessForm({
 
   const qualAnswered = questions.filter((q) => (answers[q.id] ?? '').trim().length > 0).length;
 
+  // Layar sukses setelah Kirim — kepastian "terkirim" tanpa langsung lompat halaman.
+  if (sentDone) {
+    return (
+      <div className="flex flex-col items-center text-center py-10 px-4">
+        <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
+          <CheckCircle2 className="w-9 h-9 text-emerald-700" />
+        </div>
+        <h2 className="text-lg font-extrabold text-gray-900">Penilaian Terkirim ✓</h2>
+        <p className="text-sm text-gray-600 mt-1.5 max-w-md">
+          Penilaian untuk <span className="font-bold text-gray-800">{targetName}</span> berhasil dikirim.
+          Anda masih bisa <span className="font-semibold">mengeditnya kapan saja</span> dari Daftar Penilaian.
+        </p>
+        <button type="button" onClick={() => { router.push('/penilaian'); router.refresh(); }}
+          className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white">
+          <ChevronLeft className="w-4 h-4" /> Kembali ke Daftar Penilaian
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      {/* Bar progres */}
-      <div className="bg-white border border-gray-200 rounded-xl p-3 flex items-center gap-3">
-        <div className="h-2.5 bg-gray-100 flex-1 rounded-full overflow-hidden">
-          <div style={{ width: `${pct}%` }} className="h-full bg-emerald-600 rounded-full transition-all" />
+      {/* Bar progres + indikator auto-simpan */}
+      <div className="bg-white border border-gray-200 rounded-xl p-3 space-y-2">
+        <div className="flex items-center gap-3">
+          <div className="h-2.5 bg-gray-100 flex-1 rounded-full overflow-hidden">
+            <div style={{ width: `${pct}%` }} className="h-full bg-emerald-600 rounded-full transition-all" />
+          </div>
+          <span className="text-xs font-bold text-emerald-800 font-mono shrink-0">{doneCount}/{total} · {pct}%</span>
         </div>
-        <span className="text-xs font-bold text-emerald-800 font-mono shrink-0">{doneCount}/{total} · {pct}%</span>
+        <AutoSaveHint state={saveState} disabled={initialStatus === 'submitted'} />
       </div>
 
       {/* Panduan Penilaian Umum (statis, berlaku semua pertanyaan) */}
@@ -330,6 +412,26 @@ export function AssessForm({
 
       {error && <p className="text-xs text-rose-600 font-semibold">{error}</p>}
 
+      {/* Konfirmasi Kirim */}
+      {confirmSend && (
+        <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-sm text-emerald-950 font-semibold">
+            Kirim penilaian untuk <span className="font-extrabold">{targetName}</span>?
+            <span className="block text-[11px] font-normal text-emerald-800 mt-0.5">Setelah dikirim, Anda tetap bisa mengeditnya kapan saja.</span>
+          </p>
+          <div className="flex gap-2 shrink-0">
+            <button type="button" disabled={busy} onClick={cancelSend}
+              className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-lg text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-60">
+              Batal
+            </button>
+            <button type="button" disabled={busy} onClick={doSend}
+              className="inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
+              <Send className="w-4 h-4 text-emerald-100" /> {busy ? 'Mengirim…' : 'Ya, Kirim Sekarang'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Kontrol bawah */}
       <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 flex flex-col sm:flex-row justify-between gap-2">
         <div className="flex gap-2">
@@ -345,11 +447,11 @@ export function AssessForm({
           )}
         </div>
         <div className="flex gap-2">
-          <button type="button" disabled={busy} onClick={() => save('draft')}
+          <button type="button" disabled={busy} onClick={saveDraft}
             className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-lg text-indigo-900 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-60">
             <Save className="w-4 h-4 text-indigo-700" /> Simpan Draf
           </button>
-          <button type="button" disabled={busy || total === 0} onClick={submit}
+          <button type="button" disabled={busy || total === 0 || saveState === 'saving' || confirmSend} onClick={submit}
             className="inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
             <Send className="w-4 h-4 text-emerald-100" /> {busy ? 'Memproses…' : 'Kirim Penilaian 360°'}
           </button>
@@ -357,4 +459,16 @@ export function AssessForm({
       </div>
     </div>
   );
+}
+
+/** Indikator kecil status auto-simpan draf. */
+function AutoSaveHint({ state, disabled }: { state: SaveState; disabled: boolean }) {
+  if (disabled) {
+    return <p className="text-[11px] text-gray-400">Penilaian sudah terkirim — perubahan disimpan saat Anda menekan Kirim.</p>;
+  }
+  if (state === 'saving') return <p className="text-[11px] text-gray-500 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Menyimpan otomatis…</p>;
+  if (state === 'pending') return <p className="text-[11px] text-amber-600 font-semibold">Perubahan belum disimpan…</p>;
+  if (state === 'saved') return <p className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tersimpan otomatis</p>;
+  if (state === 'error') return <p className="text-[11px] text-rose-600 font-semibold">Gagal menyimpan otomatis — tekan “Simpan Draf”.</p>;
+  return <p className="text-[11px] text-gray-400">Draf tersimpan otomatis saat Anda mengisi.</p>;
 }

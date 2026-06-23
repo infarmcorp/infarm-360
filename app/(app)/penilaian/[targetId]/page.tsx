@@ -108,11 +108,13 @@ export default async function AssessPage({
         <AssessForm
           key={targetId}
           targetId={targetId}
+          targetName={target?.name ?? 'pegawai ini'}
           groups={groups}
           questions={questions.map((q) => ({ id: q.id, text: q.text }))}
           initialScores={initialScores}
           initialAnswers={initialAnswers}
           hasDraft={existing?.status === 'draft'}
+          initialStatus={existing?.status ?? null}
         />
       </div>
     </main>

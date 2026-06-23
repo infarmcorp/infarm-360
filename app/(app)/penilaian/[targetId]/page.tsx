@@ -101,7 +101,12 @@ export default async function AssessPage({
           )}
         </p>
 
+        {/* key=targetId → form di-MOUNT ULANG tiap ganti target. Tanpa ini, berpindah dari
+            /penilaian/A ke /penilaian/B (tanpa reload) membuat React mempertahankan state
+            (activeGroup/activeId/rating/komentar) target sebelumnya → form bisa terbuka di
+            "Umpan Balik Kualitatif" atau menampilkan jawaban target lama. */}
         <AssessForm
+          key={targetId}
           targetId={targetId}
           groups={groups}
           questions={questions.map((q) => ({ id: q.id, text: q.text }))}

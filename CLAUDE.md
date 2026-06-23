@@ -2,12 +2,29 @@
 
 Panduan untuk Claude Code saat bekerja di repo ini.
 
-## Sedang Dikerjakan (per 2026-06-19)
+## Sedang Dikerjakan (per 2026-06-23)
 
-**Fokus aktif:** pengerasan pra-produksi — keamanan, pengujian, email, aksesibilitas.
+**Fokus aktif:** pengerasan UX form penilaian + persiapan demo/trial pegawai & peluncuran Q2.
 Migrasi fungsional **selesai & live**; sisa sebagian besar aktivasi env + kebersihan.
 
-- **Baru selesai (session ini & sebelumnya):**
+- **Pengerasan UX form penilaian + persiapan trial/Q2 (2026-06-23):**
+  - Form "Mulai Nilai" (`app/(app)/penilaian/[targetId]/`): `key={targetId}` (remount bersih
+    antar-target), **auto-simpan draf** (debounce 5 detik) + indikator status, **konfirmasi sebelum
+    Kirim** + **layar sukses** dgn pengingat sisa penilaian wajib, **esai kualitatif kini WAJIB**
+    (ditegakkan klien + server), keterbacaan rating (angka besar + label "Pilihan Anda" di HP) &
+    **rail aspek responsif** (strip horizontal di HP, vertikal di `lg:`).
+  - Daftar Penilaian (`app/(app)/penilaian/page.tsx`): banner penjelasan **Garis Hubungan** +
+    ajakan Minta Koreksi; kartu **"Penilaian Wajib Anda X/Y"** (sifat Wajib).
+  - Ekspor (`app/(app)/admin/ekspor/`): dataset **Umpan Balik Kualitatif 360° (esai)** +
+    kolom **aspek** budaya di Penilaian 360° kuantitatif.
+  - **Reset periode trial Q1 2026 - V2** via script sementala: hapus residu 360° (assessments+
+    result_360+koreksi), kembalikan relasi **semua-Peer**; **KPI + pemetaan + pertanyaan
+    dipertahankan** → siap demo. Backup ke `backups/` (gitignored).
+  - **Keputusan terkunci:** aturan **semua komentar (min 4 char) + semua esai WAJIB** bersifat
+    **mutlak** (kebijakan, ditegakkan via punishment) — jangan dilonggarkan tanpa permintaan.
+  - **REKOMENDASI.md (baru):** kesiapan trial/demo, stagger, kapasitas Q2 (55 pegawai/600 pasang/
+    7 hari → free-tier cukup), kenapa file lokal tak cocok, cadangan data harian.
+- **Baru selesai (session sebelumnya):**
   - **Alur visibilitas laporan bertahap** (`draft → in_review → finalized`, migrasi 0011/0012) —
     tutup kebocoran raw 360° ke SPV + tombol "Rilis ke SPV".
   - **Izin HRD Admin sebagai grant** (`is_hrd_admin`, migrasi 0013) + `canAdmin()` di ~25 file.
@@ -99,6 +116,32 @@ sudah dihapus).
 Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 
 ### Fitur baru
+- **Form penilaian — auto-simpan draf + konfirmasi & layar sukses** (`penilaian/[targetId]/assess-form.tsx`):
+  **auto-simpan draf** (debounce **5 detik**) tiap perubahan rating/komentar/esai → kerja tak hilang
+  saat HP ter-lock/refresh; indikator status (belum disimpan / menyimpan / tersimpan / gagal) di bawah
+  bar progres. **Pengaman:** tak autosave penilaian `submitted` (cegah turun status), tak buat draf
+  kosong, **lockRef** mengunci autosave saat proses Kirim + `doSend` menunggu autosave in-flight agar
+  status tak tertimpa. Tombol Kirim → **konfirmasi** ("Kirim penilaian untuk <Nama>?") → **layar sukses**
+  (✓ + pengingat sisa penilaian wajib, tombol "Lanjut ke Penilaian Berikutnya" bila masih ada).
+  Server `submitAssessment` menerima draf parsial; `key={targetId}` di `page.tsx` me-remount form bersih
+  tiap ganti target.
+- **Form penilaian — esai kualitatif WAJIB** (`assess-form.tsx` + `penilaian/actions.ts`): Umpan Balik
+  Kualitatif yang dulu **opsional** kini **wajib semua**. Validasi klien (lompat ke tab + pesan) **dan**
+  server (`submitAssessment` query `qualitative_questions` periode, tolak bila ada yang belum terjawab).
+  Bar progres mencakup esai (mis. 13/13 = 10 indikator + 3 esai); label "(opsional)" → "(wajib diisi
+  semua)" + tanda `*` & hint "Wajib diisi". **Keputusan terkunci** (kebijakan mutlak — jangan dilonggarkan).
+- **Form penilaian — keterbacaan rating & rail responsif HP** (`assess-form.tsx`): angka rating 1–5
+  diperbesar; label mungil hanya di layar lebar, di HP digantikan baris **"Pilihan Anda: N · Label"**.
+  Rail aspek: **strip horizontal yang bisa di-geser di HP** (`overflow-x-auto`, tombol `w-[150px]`),
+  **vertikal di `lg:`** — editor langsung tampak tanpa scroll panjang.
+- **Daftar Penilaian — ringkasan wajib + info Garis Hubungan** (`penilaian/page.tsx`): kartu hijau
+  **"Penilaian Wajib Anda X/Y sudah dikirim"** + bar progres (hanya sifat Wajib; detail page menghitung
+  `mandatoryTotal`/`mandatoryDoneOthers`/`thisMandatory` untuk layar sukses). Banner biru menjelaskan
+  kolom **Garis Hubungan** & mendorong **Minta Koreksi** (relasi → bobot Skor 360° → hasil akhir).
+- **Ekspor — Umpan Balik Kualitatif 360° (esai) + kolom aspek** (`admin/ekspor/`): dataset baru
+  `exportQualAnswers` (`assessment_qual_answers`→`qualitative_questions`; periode·dinilai·divisi·relasi·
+  pertanyaan·jawaban, anonim penilai, jawaban kosong dilewati). Dataset kuantitatif `exportAssessments`
+  ditambah kolom **aspek** (dari `indicators.aspect_id`→`culture_aspects.name`).
 - **Notifikasi HRD: koreksi relasi menunggu** (`lib/todos/compute.ts`): panel "Tugas & Notifikasi"
   HRD Admin kini menghitung `relation_correction_requests` status `pending` periode aktif → item
   rose "N permohonan koreksi relasi menunggu" → `/admin/pemetaan`. (Tone `rose` sudah ada di shell.)
@@ -231,6 +274,13 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Impor pemetaan** — pratinjau menyebut pasangan yang dilewati + alasannya.
 
 ### Perbaikan (bug fix)
+- **Form penilaian — kebocoran state antar-target** (`penilaian/[targetId]/page.tsx`): `<AssessForm>`
+  dirender **tanpa `key`** → berpindah dari `/penilaian/A` ke `/penilaian/B` (navigasi klien tanpa
+  reload) membuat React mempertahankan state komponen (activeGroup/activeId/rating/komentar) target
+  sebelumnya → form B bisa terbuka di tab "Umpan Balik Kualitatif" atau menampilkan isian target A.
+  Diperbaiki dgn `key={targetId}` → form **remount bersih** tiap ganti target. Relevan untuk alur
+  menilai banyak orang berurutan. (Catatan: glitch "klik Q2 → kualitatif" **berbeda** — disimpulkan
+  karena indikator periode belum lengkap saat tes; tak terulang dgn data penuh.)
 - **SPV tak bisa tinjau detail laporan dirinya sebelum Final** (`laporan-tim/page.tsx`, `lib/report.ts`):
   laporan diri-sendiri dulu hanya terbuka saat `finalized` (aturan pegawai). Kini disamakan dgn anggota
   tim — detail agregat dapat dibuka sejak `in_review` (`canOpenDetail` & `loadTeamReportForSpv`/

@@ -71,28 +71,39 @@ Panel hanya aktif saat ada **periode aktif**.
 ## Peran: EMPLOYEE
 
 ### Daftar Penilaian Saya
+- Di atas tabel ada **kartu "Penilaian Wajib Anda: X dari Y sudah dikirim"** (+ bar progres) —
+  hanya menghitung penilaian **berstatus Wajib**, agar Anda tahu sisa tugas.
+- **Banner info Garis Hubungan**: jelaskan bahwa relasi (Atasan/Peer/Bawahan/dst.) **menentukan
+  bobot Skor 360°** → bila keliru, gunakan **Minta Koreksi**.
 1. Lakukan penilaian 360° sesuai daftar "Rekan Kerja & Evaluasi dalam Daftar Penilaian Anda".
 2. Cek kolom **Garis Hubungan** — jika hubungan kerja salah, ajukan **Minta Koreksi**
-   dengan alasan, lalu **Kirim Pengajuan**.
+   dengan alasan, lalu **Kirim Pengajuan**. (Abaikan bila relasi sudah benar.)
    - Kolom **Sifat** menandai tiap penilaian **Wajib** atau **Opsional** (diatur HRD di Pemetaan).
 3. Klik **Mulai Nilai** — form terpandu (rail aspek + satu indikator per layar):
    - **Panduan Penilaian Umum** (kotak di atas, dapat dibuka/tutup) berlaku untuk semua soal.
-   - **Rail Aspek Budaya** (kiri): pilih aspek; tiap aspek menampilkan progres **selesai/total**
-     (✓ bila lengkap). Item terakhir **Umpan Balik Kualitatif** (opsional).
+   - **Rail Aspek Budaya**: pilih aspek; tiap aspek menampilkan progres **selesai/total** (✓ bila
+     lengkap). Item terakhir **Umpan Balik Kualitatif** — kini **WAJIB diisi semua**, bukan opsional.
+     Di **HP** rail jadi **strip horizontal yang bisa di-geser**; di layar lebar tampil vertikal di kiri.
    - Bila HRD mengisi panduan, tiap indikator menampilkan **deskripsi perilaku** + **panduan
      rating per level** sebagai acuan menilai.
-   - **Editor indikator** (kanan): pilih chip **Q1…Qn**, beri **Rating 1–5** (berlabel
-     Hampir Tidak Pernah … Selalu), lalu isi **Komentar / Bukti Perilaku** — **wajib, min. 4
-     karakter**. Tombol **× Bersihkan** mengosongkan jawaban indikator itu.
-   - Navigasi **Sebelumnya / Selanjutnya** berpindah antar indikator (lintas aspek otomatis).
-     **Bar progres** di atas menunjukkan kelengkapan keseluruhan.
+   - **Editor indikator**: pilih chip **Q1…Qn**, beri **Rating 1–5** (di HP, label makna muncul
+     sebagai **"Pilihan Anda: N · Label"** di bawah angka), lalu isi **Komentar / Bukti Perilaku** —
+     **wajib, min. 4 karakter**. Tombol **× Bersihkan** mengosongkan jawaban indikator itu.
+   - Navigasi **Sebelumnya / Selanjutnya** berpindah antar indikator; dari indikator terakhir tombol
+     berubah **"Ke Umpan Balik Kualitatif"**. **Bar progres** mencakup indikator **dan esai** (mis. 13/13).
+   - **Auto-simpan otomatis**: isian tersimpan sendiri ~5 detik setelah Anda berhenti mengetik
+     (indikator **"Tersimpan otomatis ✓"** di bawah bar progres). Boleh berhenti & lanjut nanti dari
+     perangkat mana pun (draf tersimpan di server). Butuh internet; bila gagal, indikator merah →
+     tekan **Simpan Draf**.
 4. Belum selesai? Klik **Simpan Draf** — lanjutkan lagi dari "Daftar Penilaian Saya".
-5. Sudah lengkap? Klik **Kirim Penilaian 360°**. Bila ada rating/komentar kurang, sistem
-   **melompat ke indikator yang belum lengkap**.
+5. Sudah lengkap? Klik **Kirim Penilaian 360°** → muncul **konfirmasi** ("Kirim penilaian untuk
+   <Nama>?") → **Ya, Kirim**. Bila ada rating/komentar/**esai** kurang, sistem **melompat ke bagian
+   yang belum lengkap**. Setelah berhasil tampil **layar sukses** + pengingat **sisa penilaian wajib**
+   (tombol **"Lanjut ke Penilaian Berikutnya"** bila masih ada). Penilaian terkirim **tetap bisa diedit**.
 6. **Batal** kembali ke daftar tanpa menyimpan; **Buang Draf** (muncul bila ada draf
    tersimpan) menghapus draf beserta rating & komentarnya.
-7. Menilai orang di luar daftar: fitur **Hak Penilaian Ad-Hoc Mandiri** →
-   "Pilih Rekan Kerja untuk Dinilai" → "Tambahkan Rekan" → nilai seperti biasa.
+7. Menilai orang di luar daftar: fitur **Hak Penilaian Ad-Hoc Mandiri** (opsional) →
+   "Pilih Rekan Kerja untuk Dinilai" → "Tambahkan Rekan" → nilai seperti biasa (relasi Lintas Unit).
 
 ### Laporan Hasil Saya
 > Muncul **hanya setelah HRD melakukan Finalisasi** (status `finalized`). Sebelum itu tampil

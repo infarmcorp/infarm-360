@@ -73,6 +73,20 @@ export default async function AssessPage({
     (an ?? []).forEach((a) => { initialAnswers[a.question_id] = a.answer ?? ''; });
   }
 
+  // Progres penilaian WAJIB user (untuk layar sukses: ingatkan sisa tugas wajib).
+  const { data: myMaps } = await supabase
+    .from('mappings').select('target_id, mandatory')
+    .eq('assessor_id', user.id).eq('period_id', ap.id).eq('is_active', true);
+  const mandTargets = (myMaps ?? []).filter((m) => m.mandatory).map((m) => m.target_id);
+  const { data: myDone } = mandTargets.length
+    ? await supabase.from('assessments').select('target_id')
+        .eq('assessor_id', user.id).eq('period_id', ap.id).eq('status', 'submitted').in('target_id', mandTargets)
+    : { data: [] };
+  const doneSet = new Set((myDone ?? []).map((a) => a.target_id));
+  const mandatoryTotal = mandTargets.length;
+  const mandatoryDoneOthers = mandTargets.filter((t) => t !== targetId && doneSet.has(t)).length;
+  const thisMandatory = !!mapping.mandatory;
+
   const groups = aspects.map((a) => ({
     id: a.id,
     name: a.name,
@@ -115,6 +129,9 @@ export default async function AssessPage({
           initialAnswers={initialAnswers}
           hasDraft={existing?.status === 'draft'}
           initialStatus={existing?.status ?? null}
+          mandatoryTotal={mandatoryTotal}
+          mandatoryDoneOthers={mandatoryDoneOthers}
+          thisMandatory={thisMandatory}
         />
       </div>
     </main>

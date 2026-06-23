@@ -32,13 +32,14 @@ const GENERAL_GUIDE = [
  * kualitatif jadi item terakhir di rail (opsional).
  *
  * UX tambahan:
- *  - AUTO-SIMPAN draf (debounce 2.5s) tiap ada perubahan → kerja tak hilang bila HP
+ *  - AUTO-SIMPAN draf (debounce 5s) tiap ada perubahan → kerja tak hilang bila HP
  *    ter-lock/refresh. TIDAK aktif untuk penilaian yang sudah 'submitted' (agar tak
  *    menurunkan status), dan dikunci selama proses Kirim agar tak menimpa status.
  *  - Konfirmasi sebelum Kirim + layar sukses sesudahnya (kepastian terkirim).
  */
 export function AssessForm({
   targetId, targetName, groups, questions, initialScores, initialAnswers, hasDraft = false, initialStatus = null,
+  mandatoryTotal = 0, mandatoryDoneOthers = 0, thisMandatory = false,
 }: {
   targetId: string;
   targetName: string;
@@ -48,6 +49,9 @@ export function AssessForm({
   initialAnswers: Record<string, string>;
   hasDraft?: boolean;
   initialStatus?: 'draft' | 'submitted' | null;
+  mandatoryTotal?: number;
+  mandatoryDoneOthers?: number;
+  thisMandatory?: boolean;
 }) {
   const router = useRouter();
   const aspectGroups = useMemo(() => groups.filter((g) => g.indicators.length > 0), [groups]);
@@ -113,7 +117,7 @@ export function AssessForm({
     answers: questions.map((q) => ({ questionId: q.id, answer: answers[q.id] ?? '' })),
   });
 
-  // AUTO-SIMPAN draf: debounce 2.5s setelah perubahan terakhir.
+  // AUTO-SIMPAN draf: debounce 5s setelah perubahan terakhir.
   useEffect(() => {
     if (!hydratedRef.current) { hydratedRef.current = true; return; }      // lewati mount awal
     if (initialStatus === 'submitted' || lockRef.current || busy || sentDone) return; // jangan turunkan status / balapan kirim
@@ -129,7 +133,7 @@ export function AssessForm({
       const res = await submitAssessment(buildPayload('draft'));
       savingRef.current = false;
       setSaveState(res.ok ? 'saved' : 'error');
-    }, 2500);
+    }, 5000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ratings, comments, answers]);
@@ -213,8 +217,10 @@ export function AssessForm({
     router.push('/penilaian'); router.refresh();
   }
 
-  // Layar sukses setelah Kirim — kepastian "terkirim" tanpa langsung lompat halaman.
+  // Layar sukses setelah Kirim — kepastian "terkirim" + ingatkan sisa penilaian WAJIB.
   if (sentDone) {
+    const doneNow = mandatoryDoneOthers + (thisMandatory ? 1 : 0);
+    const remaining = Math.max(0, mandatoryTotal - doneNow);
     return (
       <div className="flex flex-col items-center text-center py-10 px-4">
         <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
@@ -225,9 +231,16 @@ export function AssessForm({
           Penilaian untuk <span className="font-bold text-gray-800">{targetName}</span> berhasil dikirim.
           Anda masih bisa <span className="font-semibold">mengeditnya kapan saja</span> dari Daftar Penilaian.
         </p>
+        {mandatoryTotal > 0 && (
+          <div className={`mt-4 px-4 py-2.5 rounded-xl border text-sm font-bold ${remaining > 0 ? 'bg-amber-50 border-amber-300 text-amber-900' : 'bg-emerald-50 border-emerald-300 text-emerald-800'}`}>
+            {remaining > 0
+              ? <>Penilaian wajib: {doneNow}/{mandatoryTotal} selesai · <span className="font-extrabold">masih ada {remaining} lagi</span> untuk dikerjakan.</>
+              : <>🎉 Semua {mandatoryTotal} penilaian wajib Anda sudah selesai!</>}
+          </div>
+        )}
         <button type="button" onClick={() => { router.push('/penilaian'); router.refresh(); }}
           className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white">
-          <ChevronLeft className="w-4 h-4" /> Kembali ke Daftar Penilaian
+          <ChevronLeft className="w-4 h-4" /> {remaining > 0 ? 'Lanjut ke Penilaian Berikutnya' : 'Kembali ke Daftar Penilaian'}
         </button>
       </div>
     );

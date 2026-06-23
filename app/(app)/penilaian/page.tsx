@@ -82,9 +82,29 @@ export default async function PenilaianPage() {
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  // Ringkasan penilaian WAJIB (sifat = Wajib) — berapa harus dinilai vs sudah dikirim.
+  const mandatoryItems = items.filter((it) => it.mandatory);
+  const mandTotal = mandatoryItems.length;
+  const mandDone = mandatoryItems.filter((it) => it.status === 'submitted').length;
+
   return (
     <Shell periodLabel={ap.label}>
       <AdhocForm candidates={candidates} />
+      {mandTotal > 0 && (
+        <div className="mb-4 flex items-center justify-between gap-3 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+          <div className="min-w-0">
+            <p className="text-xs font-extrabold text-emerald-900">Penilaian Wajib Anda</p>
+            <p className="text-[11px] text-emerald-700">
+              {mandDone} dari {mandTotal} sudah dikirim
+              {mandDone < mandTotal ? ` · sisa ${mandTotal - mandDone} untuk dikerjakan` : ' · selesai semua 🎉'}
+            </p>
+          </div>
+          <div className="w-24 sm:w-32 h-2 bg-emerald-100 rounded-full overflow-hidden shrink-0">
+            <div className="h-full bg-emerald-600 rounded-full transition-all"
+              style={{ width: `${mandTotal ? Math.round((mandDone / mandTotal) * 100) : 0}%` }} />
+          </div>
+        </div>
+      )}
       {items.length === 0 ? (
         <p className="text-sm text-gray-500">
           Belum ada penilaian rutin yang ditugaskan. Gunakan panel Ad-Hoc di atas untuk menilai rekan kerja.

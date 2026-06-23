@@ -76,8 +76,8 @@ export function AspectSummaryEditor({
           </p>
         )}
         <div className="flex items-center gap-3 no-print">
-          <button type="button" onClick={save} disabled={busy}
-            className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg text-white disabled:opacity-50 ${
+          <button id="simpan-ringkasan" type="button" onClick={save} disabled={busy}
+            className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg text-white disabled:opacity-50 scroll-mt-24 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 ${
               dirty ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-700 hover:bg-emerald-800'
             }`}>
             <Save className="w-3.5 h-3.5" /> {busy ? 'Menyimpan…' : dirty ? 'Simpan Ringkasan •' : 'Simpan Ringkasan'}

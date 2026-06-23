@@ -37,6 +37,15 @@ export function ReportActions({
     if (c === 'release') release();
     else if (c === 'final') run(true);
   }
+  // Batal → arahkan HRD ke tombol "Simpan Ringkasan" (scroll + fokus) agar langsung simpan.
+  function cancelConfirm() {
+    setConfirm(null);
+    const btn = document.getElementById('simpan-ringkasan');
+    if (btn) {
+      btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => btn.focus({ preventScroll: true }), 350);
+    }
+  }
 
   async function run(finalize: boolean) {
     setBusy(finalize ? 'final' : 'draft');
@@ -106,7 +115,7 @@ export function ReportActions({
             Ringkasan aspek <strong>belum disimpan</strong>. {confirm === 'release' ? 'Rilis ke SPV' : 'Finalisasi'} <strong>tidak</strong> menyimpan ringkasan —
             SPV/pegawai akan melihat versi <strong>tanpa ringkasan terbaru</strong>.
           </span>
-          <button type="button" onClick={() => setConfirm(null)}
+          <button type="button" onClick={cancelConfirm}
             className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-amber-300 text-amber-800 hover:bg-amber-100">
             Batal (simpan ringkasan dulu)
           </button>

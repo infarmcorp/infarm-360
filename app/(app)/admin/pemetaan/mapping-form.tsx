@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createMapping } from './actions';
 import { SearchableSelect } from '@/components/searchable-select';
 
-type Emp = { id: string; name: string; dept: string };
+type Emp = { id: string; name: string; dept: string; is_external?: boolean };
 const RELATIONS = ['Atasan', 'Peer', 'Cross', 'Self', 'Bawahan'] as const;
 
 export function MappingForm({ employees }: { employees: Emp[] }) {
@@ -27,7 +27,10 @@ export function MappingForm({ employees }: { employees: Emp[] }) {
     router.refresh();
   }
 
-  const options = employees.map((e) => ({ value: e.id, label: `${e.name} (${e.dept})` }));
+  // Penilai: semua pegawai (termasuk eksternal). Target: HANYA internal — eksternal
+  // (vendor/freelance) hanya boleh menilai, tak boleh dinilai.
+  const assessorOptions = employees.map((e) => ({ value: e.id, label: `${e.name} (${e.dept})${e.is_external ? ' · Eksternal' : ''}` }));
+  const targetOptions = employees.filter((e) => !e.is_external).map((e) => ({ value: e.id, label: `${e.name} (${e.dept})` }));
   const inputCls = 'text-sm px-2 py-1.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500';
 
   return (
@@ -36,11 +39,11 @@ export function MappingForm({ employees }: { employees: Emp[] }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-[10px] font-bold text-gray-500 mb-1">Penilai</label>
-          <SearchableSelect value={assessorId} onChange={setAssessorId} options={options} placeholder="— pilih penilai —" className={inputCls} />
+          <SearchableSelect value={assessorId} onChange={setAssessorId} options={assessorOptions} placeholder="— pilih penilai —" className={inputCls} />
         </div>
         <div>
           <label className="block text-[10px] font-bold text-gray-500 mb-1">Yang Dinilai</label>
-          <SearchableSelect value={targetId} onChange={setTargetId} options={options} placeholder="— pilih target —" className={inputCls} />
+          <SearchableSelect value={targetId} onChange={setTargetId} options={targetOptions} placeholder="— pilih target —" className={inputCls} />
         </div>
         <div>
           <label className="block text-[10px] font-bold text-gray-500 mb-1">Relasi</label>

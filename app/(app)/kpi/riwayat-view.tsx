@@ -19,12 +19,12 @@ export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'a
   // (selaras Input KPI); SPV → anggota timnya. Pemegang grant non-HRD pakai cabang admin (semua).
   let empRows: { id: string; name: string; dept: string }[] = [];
   if (canAdmin && hrdMode === 'admin') {
-    const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi');
+    const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false);
     empRows = data ?? [];
   } else if (role === 'hrd') {
     const { data: me } = await supabase.from('employees').select('dept').eq('id', userId).maybeSingle();
     const { data } = await supabase.from('employees').select('id, name, dept')
-      .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi');
+      .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false);
     empRows = data ?? [];
   } else {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);

@@ -30,9 +30,10 @@ export async function addAdhocTarget(rawTargetId: string): Promise<Result> {
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
   // Pastikan target adalah pegawai sah.
-  const { data: target } = await supabase.from('employees').select('id, role').eq('id', targetId).maybeSingle();
+  const { data: target } = await supabase.from('employees').select('id, role, is_external').eq('id', targetId).maybeSingle();
   if (!target) return { ok: false, error: 'Pegawai tidak ditemukan' };
   if (target.role === 'direksi') return { ok: false, error: 'Direksi tidak dinilai lewat Ad-Hoc' };
+  if (target.is_external) return { ok: false, error: 'Pegawai eksternal hanya dapat menjadi penilai, tidak dapat dinilai' };
 
   // Cegah duplikat (mapping rutin maupun ad-hoc sebelumnya).
   const { data: existing } = await supabase

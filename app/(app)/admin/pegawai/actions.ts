@@ -74,13 +74,14 @@ const CreateInput = z.object({
   email: Email,
   password: Password,
   spvId: OptId, // atasan/SPV (opsional)
+  isExternal: z.boolean().optional().default(false), // penilai eksternal (vendor/freelance)
 });
 
 /** Tambah pegawai baru: buat akun auth → baris employees → (opsional) tautkan ke tim SPV. */
 export async function createEmployee(raw: unknown): Promise<Result> {
   const parsed = CreateInput.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
-  const { name, empCode, dept, role, email, password, spvId } = parsed.data;
+  const { name, empCode, dept, role, email, password, spvId, isExternal } = parsed.data;
 
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
@@ -101,7 +102,7 @@ export async function createEmployee(raw: unknown): Promise<Result> {
 
   // 2) Baris employees (RLS emp_manage = HRD). Rollback akun bila gagal.
   const { error: eErr } = await supabase.from('employees')
-    .insert({ id: newId, emp_code: empCode.toUpperCase(), name, dept, role, is_active: true });
+    .insert({ id: newId, emp_code: empCode.toUpperCase(), name, dept, role, is_external: isExternal, is_active: true });
   if (eErr) {
     await admin.auth.admin.deleteUser(newId); // bersihkan akun yatim
     return { ok: false, error: eErr.code === '23505' ? 'Kode pegawai sudah dipakai' : 'Gagal menyimpan data: ' + eErr.message };
@@ -115,8 +116,8 @@ export async function createEmployee(raw: unknown): Promise<Result> {
 
   await logHrdAction({
     action: 'employee.create', category: 'pegawai',
-    summary: `Menambah pegawai ${name} (${empCode.toUpperCase()}, ${role}, ${dept})`,
-    targetType: 'employee', targetId: newId, targetLabel: name, meta: { emp_code: empCode.toUpperCase(), role, dept, email },
+    summary: `Menambah pegawai ${name} (${empCode.toUpperCase()}, ${role}, ${dept})${isExternal ? ' — Eksternal' : ''}`,
+    targetType: 'employee', targetId: newId, targetLabel: name, meta: { emp_code: empCode.toUpperCase(), role, dept, email, is_external: isExternal },
   });
   revalidate();
   return { ok: true, msg: `Pegawai ${name} berhasil ditambahkan.` };
@@ -218,13 +219,14 @@ const UpdateInput = z.object({
   role: Role,
   email: Email,
   spvId: OptId,
+  isExternal: z.boolean().optional().default(false),
 });
 
 /** Ubah data pegawai: name/dept/role/emp_code + email (akun) + atasan (tim SPV tunggal). */
 export async function updateEmployee(raw: unknown): Promise<Result> {
   const parsed = UpdateInput.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
-  const { id, name, empCode, dept, role, email, spvId } = parsed.data;
+  const { id, name, empCode, dept, role, email, spvId, isExternal } = parsed.data;
 
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
@@ -232,7 +234,7 @@ export async function updateEmployee(raw: unknown): Promise<Result> {
   const admin = createAdminClient();
 
   const { error: eErr } = await supabase.from('employees')
-    .update({ name, emp_code: empCode.toUpperCase(), dept, role }).eq('id', id);
+    .update({ name, emp_code: empCode.toUpperCase(), dept, role, is_external: isExternal }).eq('id', id);
   if (eErr) return { ok: false, error: eErr.code === '23505' ? 'Kode pegawai sudah dipakai' : 'Gagal menyimpan: ' + eErr.message };
 
   // Sinkronkan email akun bila berubah.
@@ -251,8 +253,8 @@ export async function updateEmployee(raw: unknown): Promise<Result> {
 
   await logHrdAction({
     action: 'employee.update', category: 'pegawai',
-    summary: `Mengubah data pegawai ${name} (${empCode.toUpperCase()}, ${role}, ${dept})`,
-    targetType: 'employee', targetId: id, targetLabel: name, meta: { emp_code: empCode.toUpperCase(), role, dept, email },
+    summary: `Mengubah data pegawai ${name} (${empCode.toUpperCase()}, ${role}, ${dept})${isExternal ? ' — Eksternal' : ''}`,
+    targetType: 'employee', targetId: id, targetLabel: name, meta: { emp_code: empCode.toUpperCase(), role, dept, email, is_external: isExternal },
   });
   revalidate();
   return { ok: true, msg: 'Perubahan disimpan.' };

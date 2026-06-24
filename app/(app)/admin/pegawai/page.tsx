@@ -18,7 +18,7 @@ export default async function PegawaiPage() {
   }
 
   const { data: emps } = await supabase
-    .from('employees').select('id, emp_code, name, dept, role, is_hrd_admin, is_active').order('emp_code');
+    .from('employees').select('id, emp_code, name, dept, role, is_hrd_admin, is_external, is_active').order('emp_code');
   const list = emps ?? [];
 
   // Atasan per pegawai (1 SPV utama untuk tampilan; relasi DB tetap many-to-many).
@@ -45,7 +45,7 @@ export default async function PegawaiPage() {
     const spvId = spvByEmp.get(e.id) ?? null;
     return {
       id: e.id, empCode: e.emp_code, name: e.name, dept: e.dept, role: e.role,
-      isHrdAdmin: e.is_hrd_admin, active: e.is_active, email: emailById.get(e.id) ?? '',
+      isHrdAdmin: e.is_hrd_admin, isExternal: e.is_external, active: e.is_active, email: emailById.get(e.id) ?? '',
       spvId, spvName: spvId ? nameById.get(spvId) ?? null : null,
     };
   });

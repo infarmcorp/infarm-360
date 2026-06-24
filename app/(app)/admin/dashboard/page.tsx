@@ -54,7 +54,7 @@ export default async function DashboardPage({
     ?? periodList[0];
 
   // Pegawai non-direksi + daftar divisi; lingkup divisi terpilih (default semua).
-  const { data: allEmpRows } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi');
+  const { data: allEmpRows } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false);
   const allEmps = allEmpRows ?? [];
   const deptList = [...new Set(allEmps.map((e) => e.dept))].sort();
   const dept = deptParam && deptParam !== 'all' && deptList.includes(deptParam) ? deptParam : 'all';

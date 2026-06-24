@@ -63,7 +63,8 @@ export default async function PenilaianPage() {
 
   // Kandidat Ad-Hoc: pegawai non-direksi, bukan diri, belum ada di daftar penilaian.
   const alreadyListed = new Set<string>([user.id, ...targetIds]);
-  const { data: allEmps } = await supabase.from('employees').select('id, name, dept, role').neq('role', 'direksi');
+  // Eksternal (vendor/freelance) hanya MENILAI, tak boleh jadi target → keluarkan dari kandidat Ad-Hoc.
+  const { data: allEmps } = await supabase.from('employees').select('id, name, dept, role').neq('role', 'direksi').eq('is_external', false);
   const candidates = (allEmps ?? [])
     .filter((e) => !alreadyListed.has(e.id))
     .map((e) => ({ id: e.id, name: e.name, dept: e.dept }))

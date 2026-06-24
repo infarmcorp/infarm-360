@@ -115,7 +115,7 @@ async function InputTab({
       const { data: me } = await supabase.from('employees').select('dept').eq('id', userId).maybeSingle();
       const { data } = await supabase
         .from('employees').select('id, emp_code, name, dept')
-        .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi');
+        .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false);
       return data ?? [];
     }
     const { data: teamRows } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);

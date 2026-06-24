@@ -7,7 +7,7 @@ import { createEmployee, updateEmployee, setEmployeeActive, resetPassword, setHr
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type EmpRow = {
   id: string; empCode: string; name: string; dept: string; role: Role;
-  isHrdAdmin: boolean; active: boolean; email: string; spvId: string | null; spvName: string | null;
+  isHrdAdmin: boolean; isExternal: boolean; active: boolean; email: string; spvId: string | null; spvName: string | null;
 };
 export type SpvOpt = { id: string; name: string; dept: string; role: Role };
 
@@ -30,9 +30,9 @@ function nextCode(codes: string[]): string {
 
 type FormState = {
   id: string | null; name: string; empCode: string; dept: string; role: Role;
-  email: string; password: string; spvId: string;
+  email: string; password: string; spvId: string; isExternal: boolean;
 };
-const EMPTY: FormState = { id: null, name: '', empCode: '', dept: '', role: 'employee', email: '', password: '', spvId: '' };
+const EMPTY: FormState = { id: null, name: '', empCode: '', dept: '', role: 'employee', email: '', password: '', spvId: '', isExternal: false };
 
 const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, '.');
 const randPass = () => 'Inf' + Math.random().toString(36).slice(2, 8) + Math.floor(10 + Math.random() * 89);
@@ -84,7 +84,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
   }
   function openEdit(r: EmpRow) {
     setToast(null);
-    setForm({ id: r.id, name: r.name, empCode: r.empCode, dept: r.dept, role: r.role, email: r.email, password: '', spvId: r.spvId ?? '' });
+    setForm({ id: r.id, name: r.name, empCode: r.empCode, dept: r.dept, role: r.role, email: r.email, password: '', spvId: r.spvId ?? '', isExternal: r.isExternal });
   }
 
   function set<K extends keyof FormState>(k: K, v: FormState[K]) {
@@ -116,9 +116,9 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
     if (dupEmail) { setToast({ ok: false, text: `Email ${form.email} sudah dipakai oleh ${dupEmail.name}.` }); return; }
     const spvId = form.spvId || null;
     if (form.id) {
-      act(() => updateEmployee({ id: form.id, name: form.name, empCode: form.empCode, dept: form.dept, role: form.role, email: form.email, spvId }), true);
+      act(() => updateEmployee({ id: form.id, name: form.name, empCode: form.empCode, dept: form.dept, role: form.role, email: form.email, spvId, isExternal: form.isExternal }), true);
     } else {
-      act(() => createEmployee({ name: form.name, empCode: form.empCode, dept: form.dept, role: form.role, email: form.email, password: form.password, spvId }), true);
+      act(() => createEmployee({ name: form.name, empCode: form.empCode, dept: form.dept, role: form.role, email: form.email, password: form.password, spvId, isExternal: form.isExternal }), true);
     }
   }
 
@@ -195,6 +195,13 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                 {spvs.filter((s) => s.id !== form.id).map((s) => <option key={s.id} value={s.id}>{s.name} · {ROLE_LABEL[s.role]} · {s.dept}</option>)}
               </select>
             </Field>
+            <label className="sm:col-span-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/60 p-2.5 cursor-pointer">
+              <input type="checkbox" checked={form.isExternal} onChange={(e) => set('isExternal', e.target.checked)} className="mt-0.5 accent-amber-600" />
+              <span className="text-[11px] text-amber-900 leading-snug">
+                <span className="font-bold">Penilai eksternal</span> (vendor/freelance/mitra) — hanya <strong>menilai</strong> pegawai
+                (relasi Cross), <strong>tanpa</strong> KPI/Skor Akhir/laporan & disembunyikan dari dashboard. Bukan untuk pegawai internal Infarm.
+              </span>
+            </label>
           </div>
           <div className="flex items-center gap-2 pt-1">
             <button type="submit" disabled={pending || !!dupCode || !!dupEmail}
@@ -253,6 +260,9 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{ROLE_LABEL[r.role]}</span>
                   {r.isHrdAdmin && r.role !== 'hrd' && (
                     <span className="ml-1 inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700" title="Punya izin HRD Admin (grant)"><ShieldCheck className="w-2.5 h-2.5" /> HRD</span>
+                  )}
+                  {r.isExternal && (
+                    <span className="ml-1 inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800" title="Penilai eksternal (vendor/freelance) — hanya menilai, bukan dinilai">Eksternal</span>
                   )}
                 </td>
                 <td className="py-3 px-3 text-xs text-gray-500">{r.spvName ?? '—'}</td>

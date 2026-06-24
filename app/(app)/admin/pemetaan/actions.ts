@@ -45,6 +45,10 @@ export async function createMapping(raw: unknown): Promise<Result> {
     .from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
+  // Eksternal (vendor/freelance) hanya boleh MENILAI, tak boleh jadi target.
+  const { data: tgt } = await supabase.from('employees').select('is_external').eq('id', targetId).maybeSingle();
+  if (tgt?.is_external) return { ok: false, error: 'Pegawai eksternal hanya dapat menjadi penilai, tidak dapat dinilai' };
+
   const { error } = await supabase.from('mappings')
     .insert({ period_id: ap.id, assessor_id: assessorId, target_id: targetId, relation, mandatory, is_active: true });
   if (error) {
@@ -78,8 +82,13 @@ export async function createMappingsBulk(rawRows: unknown): Promise<{ ok: true; 
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
-  const rows = parsed.data.filter((r) => !(r.assessorId === r.targetId && r.relation !== 'Self'));
-  if (rows.length === 0) return { ok: false, error: 'Tidak ada baris valid (penilai=target hanya untuk Self)' };
+  // Eksternal tak boleh jadi target → buang baris yang menargetkan pegawai eksternal.
+  const { data: extRows } = await supabase.from('employees').select('id').eq('is_external', true);
+  const externalIds = new Set((extRows ?? []).map((e) => e.id));
+  const rows = parsed.data
+    .filter((r) => !(r.assessorId === r.targetId && r.relation !== 'Self'))
+    .filter((r) => !externalIds.has(r.targetId));
+  if (rows.length === 0) return { ok: false, error: 'Tidak ada baris valid (penilai=target hanya untuk Self; eksternal tak boleh jadi target)' };
 
   const { error, count } = await supabase.from('mappings').upsert(
     rows.map((r) => ({ period_id: ap.id, assessor_id: r.assessorId, target_id: r.targetId, relation: r.relation, mandatory: true, is_active: true })),
@@ -112,9 +121,15 @@ export async function copyMappingsFromPeriod(sourcePeriodId: string): Promise<{ 
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
   if (sourcePeriodId === ap.id) return { ok: false, error: 'Periode sumber sama dengan periode aktif' };
 
-  const { data: src } = await supabase.from('mappings')
+  const { data: srcAll } = await supabase.from('mappings')
     .select('assessor_id, target_id, relation, mandatory').eq('period_id', sourcePeriodId).eq('is_active', true);
-  if (!src || src.length === 0) return { ok: false, error: 'Periode sumber tidak memiliki pemetaan untuk disalin' };
+  if (!srcAll || srcAll.length === 0) return { ok: false, error: 'Periode sumber tidak memiliki pemetaan untuk disalin' };
+
+  // Eksternal tak boleh jadi target (mis. status berubah sejak periode sumber) → buang.
+  const { data: extRows } = await supabase.from('employees').select('id').eq('is_external', true);
+  const externalIds = new Set((extRows ?? []).map((e) => e.id));
+  const src = srcAll.filter((m) => !externalIds.has(m.target_id));
+  if (src.length === 0) return { ok: false, error: 'Periode sumber hanya berisi target eksternal — tidak ada yang disalin' };
 
   const { error, count } = await supabase.from('mappings').upsert(
     src.map((m) => ({ period_id: ap.id, assessor_id: m.assessor_id, target_id: m.target_id, relation: m.relation, mandatory: true, is_active: true })),

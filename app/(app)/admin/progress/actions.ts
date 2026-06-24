@@ -9,13 +9,18 @@ import { logHrdAction } from '@/lib/audit/log';
 import { emailConfigured, sendEmail, reminderHtml } from '@/lib/email/mailer';
 
 /**
- * URL dasar aplikasi untuk tautan di email. Prioritas env eksplisit
- * (NEXT_PUBLIC_APP_URL/SITE_URL) → fallback ke host permintaan (Vercel mengisi
- * x-forwarded-host/proto). Mengembalikan '' bila tak terdeteksi (tombol disembunyikan).
+ * URL dasar aplikasi untuk tautan di email — selalu domain PRODUKSI yang stabil,
+ * BUKAN host tempat HRD membuka portal (mis. preview deploy/localhost). Prioritas:
+ *   1) env eksplisit NEXT_PUBLIC_APP_URL / NEXT_PUBLIC_SITE_URL (override penuh),
+ *   2) VERCEL_PROJECT_PRODUCTION_URL (domain produksi kanonik yang diisi Vercel),
+ *   3) fallback host permintaan (hanya untuk dev lokal).
+ * Mengembalikan '' bila tak terdeteksi (tombol disembunyikan).
  */
 async function appBaseUrl(): Promise<string> {
   const env = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL;
   if (env && /^https?:\/\//i.test(env)) return env.replace(/\/+$/, '');
+  const prod = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  if (prod) return `https://${prod.replace(/\/+$/, '')}`;
   const h = await headers();
   const host = h.get('x-forwarded-host') ?? h.get('host');
   const proto = h.get('x-forwarded-proto') ?? 'https';
@@ -114,7 +119,7 @@ export async function sendReminder(assessorId: string): Promise<Result> {
   const send = await sendEmail({
     to: email,
     subject: `Pengingat Penilaian 360° — ${ap.label}`,
-    html: reminderHtml(assessorEmp?.name ?? 'Rekan', ap.label, names, base ? `${base}/penilaian` : undefined),
+    html: reminderHtml(assessorEmp?.name ?? 'Rekan', ap.label, names, base ? `${base}/login` : undefined),
   });
   if (!send.ok) {
     return send.reason === 'not_configured'
@@ -158,7 +163,7 @@ export async function massReminder(): Promise<Result> {
   }
 
   const base = await appBaseUrl();
-  const link = base ? `${base}/penilaian` : undefined;
+  const link = base ? `${base}/login` : undefined;
   let sent = 0, failed = 0, skipped = 0;
   for (const [assessorId, targetIds] of pending) {
     const email = emailById.get(assessorId);

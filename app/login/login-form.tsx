@@ -29,8 +29,13 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
     () => ROLE_ORDER.filter((r) => users.some((u) => u.role === r)),
     [users],
   );
-  const namesForRole = useMemo(
-    () => users.filter((u) => u.role === role).sort((a, b) => a.name.localeCompare(b.name)),
+  // Opsi nama (urut), tersaring oleh Peran (opsional). Label menyertakan PERAN agar
+  // tersampaikan sejak login. Pencarian teks ditangani DI DALAM SearchableSelect.
+  const nameOptions = useMemo(
+    () =>
+      (role ? users.filter((u) => u.role === role) : [...users])
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((u) => ({ value: u.email, label: `${u.name} · ${u.dept} — ${ROLE_LABEL[u.role] ?? u.role}` })),
     [users, role],
   );
 
@@ -64,29 +69,37 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
     <form onSubmit={handleSubmit} className="space-y-3">
       {!manual ? (
         <>
+          {/* Peran = penyaring opsional. <select> native → andal di semua HP. */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Peran</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Peran (opsional)</label>
             <select
               value={role}
               onChange={(e) => { setRole(e.target.value); setEmail(''); }}
               className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
             >
-              <option value="">— Pilih Peran —</option>
+              <option value="">— Semua Peran —</option>
               {roles.map((r) => <option key={r} value={r}>{ROLE_LABEL[r] ?? r}</option>)}
             </select>
           </div>
-          {role && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Nama Pegawai</label>
-              <SearchableSelect
-                value={email}
-                onChange={setEmail}
-                placeholder="— Pilih Nama —"
-                options={namesForRole.map((u) => ({ value: u.email, label: `${u.name} · ${u.dept}` }))}
-                className="text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
-              />
-            </div>
-          )}
+          {/* Nama SELALU tampil (tak digerbang state `role`) → akar bug "field tak muncul"
+              hilang. Combobox dgn PENCARIAN DI DALAM dropdown; tiap opsi menyertakan PERAN.
+              Bila combobox bermasalah di perangkat tertentu, tersedia "email manual" di bawah. */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Nama Pegawai</label>
+            <SearchableSelect
+              value={email}
+              onChange={(val) => {
+                setEmail(val);
+                // Auto-isi Peran dari nama terpilih → konfirmasi peran sebelum sandi.
+                const u = users.find((x) => x.email === val);
+                if (u) setRole(u.role);
+              }}
+              options={nameOptions}
+              placeholder="— Pilih / Cari Nama —"
+              searchPlaceholder="Cari nama / divisi…"
+              className="text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
+            />
+          </div>
         </>
       ) : (
         <div>

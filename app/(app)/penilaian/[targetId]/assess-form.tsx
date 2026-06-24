@@ -97,6 +97,8 @@ export function AssessForm({
   const lockRef = useRef(false);
   const savingRef = useRef(false);
   const hydratedRef = useRef(false);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const navedRef = useRef(false);
 
   const indDone = (id: string) => ratings[id] != null && (comments[id] ?? '').trim().length >= 4;
   const indDoneCount = flat.filter((f) => indDone(f.id)).length;
@@ -140,6 +142,16 @@ export function AssessForm({
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ratings, comments, answers]);
+
+  // Saat BERPINDAH indikator/aspek/kualitatif (bukan saat mengetik): lepas fokus
+  // (iOS → zoom-out, Android → tutup keyboard) lalu gulir ke pertanyaan di HP.
+  useEffect(() => {
+    if (!navedRef.current) { navedRef.current = true; return; }   // lewati mount awal
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [activeId, activeGroup]);
 
   function selectGroup(gid: string) {
     setActiveGroup(gid);
@@ -314,7 +326,7 @@ export function AssessForm({
         </div>
 
         {/* EDITOR */}
-        <div className="min-w-0">
+        <div ref={editorRef} className="min-w-0 scroll-mt-24">
           {activeGroup === QUAL ? (
             <div className="border border-gray-200 rounded-2xl p-5 space-y-4">
               <h3 className="text-sm font-extrabold text-indigo-800">Umpan Balik Kualitatif <span className="text-[10px] font-bold text-rose-500">(wajib diisi semua)</span></h3>

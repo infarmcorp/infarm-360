@@ -5,9 +5,10 @@ import { canAdmin } from '@/lib/auth/roles';
 
 /**
  * Pintu utama: belum login → /login. Sudah login → landing per peran & mode.
- * Pemegang izin HRD (canAdmin) di MODE ADMIN → Dashboard; selain itu landing
- * sesuai POSISI ASLI: Pegawai → Daftar Penilaian · SPV/HRD-base → Input KPI ·
- * Direksi → Dashboard. (Dual-mode: default base; token cookie 'admin' = mode admin.)
+ * Pemegang izin HRD (canAdmin) di MODE ADMIN → Dashboard; Direksi → Dashboard;
+ * selain itu (Pegawai / SPV / HRD-base) → **Daftar Penilaian Saya** — tugas penilaian
+ * adalah landing paling relevan selama periode aktif; Input KPI tetap di menu sidebar.
+ * (Dual-mode: default base; token cookie 'admin' = mode admin.)
  */
 export default async function Home() {
   const supabase = await createClient();
@@ -20,7 +21,6 @@ export default async function Home() {
   const adminMode = jar.get('hrd_mode')?.value === 'admin';
 
   const dest = canAdmin(emp) && adminMode ? '/admin/dashboard'
-    : role === 'spv' || role === 'hrd' ? '/kpi'
     : role === 'direksi' ? '/admin/dashboard'
     : '/penilaian';
   redirect(dest);

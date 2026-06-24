@@ -31,7 +31,8 @@ type Result = { ok: true } | { ok: false; error: string };
 export async function createMapping(raw: unknown): Promise<Result> {
   const parsed = CreateInput.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
-  const { assessorId, targetId, relation, mandatory } = parsed.data;
+  const { assessorId, targetId, relation } = parsed.data;
+  const mandatory = true; // kebijakan: penilaian yang ditugaskan HRD selalu WAJIB
   if (assessorId === targetId && relation !== 'Self') {
     return { ok: false, error: 'Penilai = target hanya boleh untuk relasi Self' };
   }
@@ -81,7 +82,7 @@ export async function createMappingsBulk(rawRows: unknown): Promise<{ ok: true; 
   if (rows.length === 0) return { ok: false, error: 'Tidak ada baris valid (penilai=target hanya untuk Self)' };
 
   const { error, count } = await supabase.from('mappings').upsert(
-    rows.map((r) => ({ period_id: ap.id, assessor_id: r.assessorId, target_id: r.targetId, relation: r.relation, mandatory: r.mandatory, is_active: true })),
+    rows.map((r) => ({ period_id: ap.id, assessor_id: r.assessorId, target_id: r.targetId, relation: r.relation, mandatory: true, is_active: true })),
     { onConflict: 'period_id,assessor_id,target_id', ignoreDuplicates: true, count: 'exact' },
   );
   if (error) return { ok: false, error: 'Gagal mengimpor: ' + error.message };
@@ -116,7 +117,7 @@ export async function copyMappingsFromPeriod(sourcePeriodId: string): Promise<{ 
   if (!src || src.length === 0) return { ok: false, error: 'Periode sumber tidak memiliki pemetaan untuk disalin' };
 
   const { error, count } = await supabase.from('mappings').upsert(
-    src.map((m) => ({ period_id: ap.id, assessor_id: m.assessor_id, target_id: m.target_id, relation: m.relation, mandatory: m.mandatory, is_active: true })),
+    src.map((m) => ({ period_id: ap.id, assessor_id: m.assessor_id, target_id: m.target_id, relation: m.relation, mandatory: true, is_active: true })),
     { onConflict: 'period_id,assessor_id,target_id', ignoreDuplicates: true, count: 'exact' },
   );
   if (error) return { ok: false, error: 'Gagal menyalin: ' + error.message };

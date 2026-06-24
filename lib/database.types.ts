@@ -54,8 +54,8 @@ export interface Database {
         Relationships: [];
       };
       mappings: {
-        Row: { id: string; period_id: string; assessor_id: string; target_id: string; relation: RelationKind; mandatory: boolean; is_active: boolean; created_at: string };
-        Insert: { period_id: string; assessor_id: string; target_id: string; relation: RelationKind; mandatory?: boolean; is_active?: boolean };
+        Row: { id: string; period_id: string; assessor_id: string; target_id: string; relation: RelationKind; mandatory: boolean; is_adhoc: boolean; is_active: boolean; created_at: string };
+        Insert: { period_id: string; assessor_id: string; target_id: string; relation: RelationKind; mandatory?: boolean; is_adhoc?: boolean; is_active?: boolean };
         Update: Partial<Database['public']['Tables']['mappings']['Insert']>;
         Relationships: [];
       };

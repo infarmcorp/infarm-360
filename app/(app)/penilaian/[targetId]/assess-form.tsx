@@ -106,6 +106,9 @@ export function AssessForm({
   const progTotal = total + (hasQual ? questions.length : 0);
   const progDone = indDoneCount + (hasQual ? qualDone : 0);
   const pct = progTotal ? Math.round((progDone / progTotal) * 100) : 0;
+  // Kelengkapan total → tombol Kirim adaptif (lengkapi vs kirim).
+  const allComplete = total > 0 && progDone >= progTotal;
+  const remaining = Math.max(0, progTotal - progDone);
 
   const curList = flat.filter((f) => f.gid === activeGroup);
   const cur = flat.find((f) => f.id === activeId) ?? curList[0] ?? null;
@@ -490,9 +493,16 @@ export function AssessForm({
             className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-lg text-indigo-900 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-60">
             <Save className="w-4 h-4 text-indigo-700" /> Simpan Draf
           </button>
+          {/* Tombol adaptif: belum lengkap → "Lengkapi" (kuning, tetap bisa diklik untuk
+              memandu ke yang kurang); lengkap → "Kirim" (hijau). */}
           <button type="button" disabled={busy || total === 0 || saveState === 'saving' || confirmSend} onClick={submit}
-            className="inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
-            <Send className="w-4 h-4 text-emerald-100" /> {busy ? 'Memproses…' : 'Kirim Penilaian 360°'}
+            className={`inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-lg disabled:opacity-50 ${
+              allComplete
+                ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                : 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200'
+            }`}>
+            <Send className={`w-4 h-4 ${allComplete ? 'text-emerald-100' : 'text-amber-700'}`} />
+            {busy ? 'Memproses…' : allComplete ? 'Kirim Penilaian 360°' : `Lengkapi Penilaian (${remaining} tersisa)`}
           </button>
         </div>
       </div>

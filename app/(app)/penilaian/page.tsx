@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { CorrectionButton } from './correction-button';
 import { AdhocForm } from './adhoc-form';
+import { AdhocDeleteButton } from './adhoc-delete-button';
 import { EmptyState } from '@/components/empty-state';
 
 const REL_LABEL: Record<string, string> = {
@@ -37,7 +38,7 @@ export default async function PenilaianPage() {
 
   const { data: maps } = await supabase
     .from('mappings')
-    .select('id, target_id, relation, mandatory')
+    .select('id, target_id, relation, mandatory, is_adhoc')
     .eq('assessor_id', user.id)
     .eq('period_id', ap.id)
     .eq('is_active', true);
@@ -77,6 +78,7 @@ export default async function PenilaianPage() {
       mappingId: r.id,
       relation: r.relation as string,
       mandatory: r.mandatory,
+      isAdhoc: r.is_adhoc,
       status: statusByTarget.get(r.target_id) ?? null,
       corrPending: pendingCorr.has(r.target_id),
     }))
@@ -153,7 +155,10 @@ export default async function PenilaianPage() {
                   </td>
                   <td className="py-3 pl-3 text-right">
                     <div className="flex items-center justify-end gap-3">
-                      {it.relation !== 'Self' && (
+                      {it.isAdhoc && (
+                        <AdhocDeleteButton targetId={it.targetId} targetName={it.name} submitted={it.status === 'submitted'} />
+                      )}
+                      {it.relation !== 'Self' && !it.isAdhoc && (
                         <CorrectionButton
                           mappingId={it.mappingId}
                           targetId={it.targetId}

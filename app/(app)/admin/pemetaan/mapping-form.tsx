@@ -13,14 +13,14 @@ export function MappingForm({ employees }: { employees: Emp[] }) {
   const [assessorId, setAssessorId] = useState('');
   const [targetId, setTargetId] = useState('');
   const [relation, setRelation] = useState<(typeof RELATIONS)[number]>('Peer');
-  const [mandatory, setMandatory] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setErr(null);
-    const res = await createMapping({ assessorId, targetId, relation, mandatory });
+    // Kebijakan: semua penilaian yang ditugaskan HRD bersifat WAJIB (tak ada Opsional).
+    const res = await createMapping({ assessorId, targetId, relation, mandatory: true });
     setBusy(false);
     if (!res.ok) { setErr(res.error); return; }
     setTargetId('');
@@ -50,10 +50,9 @@ export function MappingForm({ employees }: { employees: Emp[] }) {
           </select>
         </div>
         <div className="flex items-end">
-          <label className="flex items-center gap-2 text-xs text-gray-600 pb-1.5">
-            <input type="checkbox" checked={mandatory} onChange={(e) => setMandatory(e.target.checked)} />
-            Wajib (jika tidak: Opsional)
-          </label>
+          <p className="text-xs text-gray-600 pb-1.5">
+            Sifat: <span className="font-bold text-rose-600">Wajib</span> — semua penilaian wajib (kebijakan).
+          </p>
         </div>
       </div>
       {err && <p className="text-xs text-rose-600 font-semibold">{err}</p>}

@@ -70,9 +70,20 @@ async function sendViaResend({ to, subject, html }: { to: string | string[]; sub
   }
 }
 
-/** Template HTML pengingat 360° (daftar nama yang belum dinilai). */
-export function reminderHtml(assessorName: string, periodLabel: string, pendingNames: string[]): string {
+/**
+ * Template HTML pengingat 360° (daftar nama yang belum dinilai).
+ * `appUrl` opsional → bila ada, tampilkan tombol "Buka Portal" yang menautkan ke
+ * Daftar Penilaian Saya. Dorman-aman: tanpa appUrl, tombol tak dirender.
+ */
+export function reminderHtml(assessorName: string, periodLabel: string, pendingNames: string[], appUrl?: string): string {
   const items = pendingNames.map((n) => `<li style="margin:2px 0">${escapeHtml(n)}</li>`).join('');
+  const safeUrl = appUrl && /^https?:\/\//i.test(appUrl) ? appUrl : '';
+  const button = safeUrl
+    ? `<p style="margin:20px 0">
+         <a href="${escapeHtml(safeUrl)}" style="display:inline-block;background:#047857;color:#ffffff;text-decoration:none;font-weight:bold;padding:11px 22px;border-radius:8px">Buka Portal Infarm 360°</a>
+       </p>
+       <p style="color:#9ca3af;font-size:12px;margin:0">Atau salin tautan ini: <a href="${escapeHtml(safeUrl)}" style="color:#047857">${escapeHtml(safeUrl)}</a></p>`
+    : '';
   return `
   <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#1f2937">
     <h2 style="color:#047857;margin-bottom:4px">Pengingat Penilaian 360°</h2>
@@ -81,6 +92,7 @@ export function reminderHtml(assessorName: string, periodLabel: string, pendingN
     <p>Anda masih memiliki <strong>${pendingNames.length}</strong> penilaian 360° yang belum diselesaikan:</p>
     <ul style="padding-left:18px">${items}</ul>
     <p>Mohon selesaikan melalui menu <strong>Daftar Penilaian Saya</strong> di portal Infarm 360°.</p>
+    ${button}
     <p style="color:#9ca3af;font-size:12px;margin-top:24px">Email otomatis dari Infarm 360° Performance Appraisal. Mohon tidak membalas.</p>
   </div>`;
 }

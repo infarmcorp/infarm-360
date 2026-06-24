@@ -1,11 +1,26 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { emailConfigured, sendEmail, reminderHtml } from '@/lib/email/mailer';
+
+/**
+ * URL dasar aplikasi untuk tautan di email. Prioritas env eksplisit
+ * (NEXT_PUBLIC_APP_URL/SITE_URL) → fallback ke host permintaan (Vercel mengisi
+ * x-forwarded-host/proto). Mengembalikan '' bila tak terdeteksi (tombol disembunyikan).
+ */
+async function appBaseUrl(): Promise<string> {
+  const env = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL;
+  if (env && /^https?:\/\//i.test(env)) return env.replace(/\/+$/, '');
+  const h = await headers();
+  const host = h.get('x-forwarded-host') ?? h.get('host');
+  const proto = h.get('x-forwarded-proto') ?? 'https';
+  return host ? `${proto}://${host}` : '';
+}
 
 /**
  * Progress 360 (HRD): pantau kelengkapan pengisian + intervensi.
@@ -95,10 +110,11 @@ export async function sendReminder(assessorId: string): Promise<Result> {
   const email = u.user?.email;
   if (!email) return { ok: false, error: 'Penilai belum punya email akun untuk dikirimi pengingat.' };
 
+  const base = await appBaseUrl();
   const send = await sendEmail({
     to: email,
     subject: `Pengingat Penilaian 360° — ${ap.label}`,
-    html: reminderHtml(assessorEmp?.name ?? 'Rekan', ap.label, names),
+    html: reminderHtml(assessorEmp?.name ?? 'Rekan', ap.label, names, base ? `${base}/penilaian` : undefined),
   });
   if (!send.ok) {
     return send.reason === 'not_configured'
@@ -141,6 +157,8 @@ export async function massReminder(): Promise<Result> {
     if (data.users.length < 200) break;
   }
 
+  const base = await appBaseUrl();
+  const link = base ? `${base}/penilaian` : undefined;
   let sent = 0, failed = 0, skipped = 0;
   for (const [assessorId, targetIds] of pending) {
     const email = emailById.get(assessorId);
@@ -149,7 +167,7 @@ export async function massReminder(): Promise<Result> {
     const r = await sendEmail({
       to: email,
       subject: `Pengingat Penilaian 360° — ${ap.label}`,
-      html: reminderHtml(nameById.get(assessorId) ?? 'Rekan', ap.label, names),
+      html: reminderHtml(nameById.get(assessorId) ?? 'Rekan', ap.label, names, link),
     });
     if (r.ok) sent++; else failed++;
   }

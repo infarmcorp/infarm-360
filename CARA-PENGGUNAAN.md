@@ -13,15 +13,17 @@ Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saa
 ## Login
 
 1. Buka aplikasi (URL Vercel atau `http://localhost:3000` saat lokal).
-2. Pilih **Peran**: Employee / SPV / HRD Admin / Direksi.
-3. Pilih **Nama** Anda — dropdown punya **kotak pencarian**; ketik sebagian nama untuk
-   menyaring (daftar nama diambil otomatis dari data pegawai aktif).
-4. Masukkan **Sandi**.
-5. Klik **Masuk**.
+2. Pilih **Nama** Anda — dropdown punya **kotak pencarian**; ketik sebagian nama untuk
+   menyaring (daftar diambil otomatis dari data pegawai aktif, lengkap dengan **posisi** di label).
+   Saat nama dipilih, **Peran terisi otomatis** → langsung ke Sandi. (Bisa juga pilih **Peran**
+   dulu untuk menyaring daftar nama; keduanya valid.)
+3. Masukkan **Sandi**.
+4. Klik **Masuk**.
 
-> Pegawai baru yang ditambahkan HRD otomatis muncul di daftar nama. Tersedia juga
-> cadangan **"Masuk dengan email manual"** bila perlu. Dropdown nama berfitur pencarian
-> juga dipakai di Pemetaan (Penilai/Target) & Penilaian Ad-Hoc.
+> **Field nama selalu tampil** sejak halaman dibuka (perbaikan: dulu bisa tak muncul di HP lambat
+> bila pengguna menyentuh sebelum halaman siap). Pegawai baru yang ditambahkan HRD otomatis muncul.
+> Tersedia juga cadangan **"Masuk dengan email manual"**. Dropdown nama berfitur pencarian juga
+> dipakai di Pemetaan (Penilai/Target) & Penilaian Ad-Hoc.
 
 > HRD Admin punya **2 mode**: bertindak sebagai **SPV** atau sebagai **HRD Admin**
 > (mengelola seluruh sistem).
@@ -104,6 +106,8 @@ Panel hanya aktif saat ada **periode aktif**.
    tersimpan) menghapus draf beserta rating & komentarnya.
 7. Menilai orang di luar daftar: fitur **Hak Penilaian Ad-Hoc Mandiri** (opsional) →
    "Pilih Rekan Kerja untuk Dinilai" → "Tambahkan Rekan" → nilai seperti biasa (relasi Lintas Unit).
+   Target ad-hoc bisa **Dihapus** lewat tombol di barisnya — **kecuali** penilaiannya **sudah
+   terkirim** (tombol dinonaktifkan demi menjaga data 360°). Pegawai eksternal tak bisa jadi target ad-hoc.
 
 ### Laporan Hasil Saya
 > Muncul **hanya setelah HRD melakukan Finalisasi** (status `finalized`). Sebelum itu tampil
@@ -180,7 +184,12 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
    - **Kode Pegawai bebas** mengikuti skema perusahaan (mis. `FT2021-001`); saran otomatis
      melanjutkan nomor terakhir. Sistem **memperingatkan** bila kode/email duplikat.
    - **Peran** (bukan kode) yang menentukan hak akses. **Atasan** bisa SPV, HRD, atau Direksi.
-2. **Ubah** — ganti nama/divisi/peran/kode, email, atau atasan.
+   - **Penilai eksternal** (centang opsional) — untuk **vendor/freelance/mitra** yang ikut
+     **menilai** pegawai Infarm. Eksternal **hanya menjadi penilai** (relasi Cross): mereka **tidak**
+     punya KPI/Skor Akhir/laporan dan **tidak muncul** di dashboard/monitor/laporan; di Pemetaan &
+     Ad-Hoc mereka **tak bisa dipilih sebagai "Yang Dinilai"**. Skor yang mereka berikan tetap masuk
+     ke **Skor 360°** pegawai lewat bobot Cross. Baris eksternal ditandai badge **"Eksternal"**.
+2. **Ubah** — ganti nama/divisi/peran/kode, email, atasan, atau status **Penilai eksternal**.
 3. **Reset Sandi** — setel sandi baru (disarankan pegawai menggantinya sendiri).
 4. **Aktif/Nonaktif** — menonaktifkan **mengunci akun** (tak bisa login) tanpa menghapus
    riwayat penilaian/KPI. Aktifkan kembali kapan pun.
@@ -512,6 +521,8 @@ peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
 - **Progress 360**: total target yang harus diisi tiap orang dihitung dari mapping.
 - Hapus relasi (mis. pegawai resign) → target itu hilang dari daftar penilaian terkait.
 - Setujui/tolak **Permohonan Koreksi** → mengubah relasi yang sudah terdaftar.
+- **Penilai eksternal** (vendor/freelance, ditandai di Kelola Pegawai) **boleh dipilih sebagai
+  Penilai** tapi **tidak muncul** di daftar "Yang Dinilai" — mereka hanya menilai, tak pernah dinilai.
 
 ### 3. Kelola Pertanyaan — *isi form penilaian*
 **Fungsi:** tambah/edit/hapus indikator kuantitatif (rating 1–5) & pertanyaan kualitatif.

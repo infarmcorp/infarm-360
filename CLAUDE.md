@@ -2,11 +2,33 @@
 
 Panduan untuk Claude Code saat bekerja di repo ini.
 
-## Sedang Dikerjakan (per 2026-06-23)
+## Sedang Dikerjakan (per 2026-06-24)
 
-**Fokus aktif:** pengerasan UX form penilaian + persiapan demo/trial pegawai & peluncuran Q2.
+**Fokus aktif:** tindak lanjut hasil trial pegawai + persiapan peluncuran Q2.
 Migrasi fungsional **selesai & live**; sisa sebagian besar aktivasi env + kebersihan.
 
+- **Tindak lanjut trial pegawai (2026-06-24):**
+  - **Penilai eksternal (vendor/freelance)** (`is_external`, migrasi 0016): pegawai eksternal
+    **hanya MENILAI** (relasi Cross), **tanpa** KPI/Skor Akhir/laporan, **disembunyikan** dari
+    dashboard/KPI/monitor/laporan/kepatuhan/suksesi/notifikasi (filter `.eq('is_external',false)`
+    pada query subjek `.neq('role','direksi')`). **Tak boleh jadi target** (berlapis: form pemetaan
+    target hanya internal; `createMapping`/`addAdhocTarget` tolak; bulk+copy buang target eksternal;
+    kandidat Ad-Hoc dikecualikan). **Tetap penilai** di Progress 360 & pemetaan-penilai. UI grant di
+    Kelola Pegawai (checkbox + badge "Eksternal"). Commit `90c652e`.
+  - **Login: dropdown nama tak muncul di HP** (`app/login/login-form.tsx`, `220f90d`): field nama dulu
+    di-gate `{role && …}` → gagal saat interaksi sebelum hidrasi (HP lambat). Kini **field nama selalu
+    dirender** (`SearchableSelect` + cari), label menyertakan posisi, dan **memilih nama otomatis
+    mengisi role** → pengguna lanjut ke sandi. `next` rute admin tetap dilewatkan ke `/`.
+  - **Hapus Ad-Hoc + semua sifat WAJIB + landing SPV** (`f6e25f6`): tombol **Hapus** target ad-hoc
+    milik sendiri (`removeAdhocTarget`; **nonaktif bila sudah terkirim**, `is_adhoc` migrasi 0015);
+    pemetaan kini **selalu `mandatory:true`** (checkbox opsional dihapus dari form + dipaksa server di
+    create/bulk/copy); landing base SPV/HRD/Pegawai → **`/penilaian`** (Daftar Penilaian Saya), bukan
+    Input KPI; tombol Kirim 360° **adaptif** (kunci + arahkan bila belum lengkap).
+  - **UX HP — gulir ke pertanyaan + reset zoom** (`assess-form.tsx`, `df017a1`): saat navigasi
+    indikator/aspek/kualitatif, `blur` elemen aktif (iOS zoom-out / Android tutup keyboard) +
+    `scrollIntoView` ke editor (HP `<1024px`).
+  - **Keputusan:** trial = uji beban dunia-nyata (tak perlu k6); jalur pengisian **tak punya race**
+    (tiap orang menulis baris terpisah). k6 hanya via **staging** (tolak produksi), belum dijalankan.
 - **Pengerasan UX form penilaian + persiapan trial/Q2 (2026-06-23):**
   - Form "Mulai Nilai" (`app/(app)/penilaian/[targetId]/`): `key={targetId}` (remount bersih
     antar-target), **auto-simpan draf** (debounce 5 detik) + indikator status, **konfirmasi sebelum
@@ -116,6 +138,17 @@ sudah dihapus).
 Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 
 ### Fitur baru
+- **Penilai eksternal (vendor/freelance)** (`employees.is_external`, migrasi 0016; Kelola Pegawai
+  + ~15 file): pegawai bertanda **Eksternal** hanya bertindak sebagai **penilai 360°** (relasi Cross),
+  **tidak** punya KPI/Skor Akhir/laporan, dan **disembunyikan** dari semua jalur **subjek** (dashboard,
+  KPI input/riwayat/rekap, monitor, laporan-tim, finalisasi laporan, kepatuhan, suksesi, notifikasi HRD)
+  via `.eq('is_external', false)` pada query enumerasi `.neq('role','direksi')`. **Tak boleh jadi target**
+  (berlapis): di form pemetaan daftar "Yang Dinilai" hanya internal; server `createMapping` & ad-hoc
+  `addAdhocTarget` **menolak** target eksternal; impor massal & salin-pemetaan **membuang** baris target
+  eksternal; kandidat Ad-Hoc dikecualikan. **Tetap muncul sebagai penilai** di Progress 360 & dropdown
+  penilai pemetaan. UI: checkbox **"Penilai eksternal"** (create/update) + badge **"Eksternal"** di Kelola
+  Pegawai; `is_external` dicatat di Log Aktivitas HRD. Skornya masuk ke 360° pegawai lewat bobot **Cross**
+  tanpa eksternal pernah muncul di laporan/dashboard. (Keputusan: eksternal = penilai-saja, tanpa hasil.)
 - **Form penilaian — auto-simpan draf + konfirmasi & layar sukses** (`penilaian/[targetId]/assess-form.tsx`):
   **auto-simpan draf** (debounce **5 detik**) tiap perubahan rating/komentar/esai → kerja tak hilang
   saat HP ter-lock/refresh; indikator status (belum disimpan / menyimpan / tersimpan / gagal) di bawah
@@ -402,6 +435,14 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   stempel waktu HRD MENYETUJUI/menolak koreksi relasi (beda dari `created_at` = saat diajukan). Dipakai
   deteksi "Skor 360° basi" (koreksi di-ACC setelah hitung ulang → kelas bobot berubah). Aditif &
   backward-compatible (baris lama NULL → tak memicu peringatan). Diterapkan & diverifikasi (kolom ada).
+- `0015_mapping_is_adhoc` — `mappings.is_adhoc boolean NOT NULL default false`: penanda eksplisit
+  pemetaan **Ad-Hoc** (ditambah mandiri penilai) agar bisa **dihapus** tanpa rancu penugasan HRD.
+  Backfill: baris `mandatory=false AND relation='Cross'` lama → `is_adhoc=true` (sejak "semua wajib",
+  satu-satunya sumber non-mandatory adalah Ad-Hoc). Aditif & backward-compatible. Diterapkan & diverifikasi.
+- `0016_employee_is_external` — `employees.is_external boolean NOT NULL default false`: penanda
+  **pegawai eksternal** (vendor/freelance) yang **hanya menilai** (relasi Cross), tanpa KPI/Skor Akhir/
+  laporan & disembunyikan dari jalur subjek. Aditif & backward-compatible (default false → semua pegawai
+  lama = internal). Diterapkan ke DB produksi & diverifikasi (kolom ada).
 - `final_reports.content` (jsonb, kolom lama) dipakai untuk `aspectSummaries` (tanpa migrasi baru).
 
 ### Infra / Testing / CI

@@ -494,6 +494,25 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
 
 ### Fungsional bernilai tinggi
 - 🔑🔄 **Pengingat email 360°** — terbangun, **DORMAN** (aktif bila env email diset).
+  - **Aktif (per 2026-06-24):** Gmail SMTP di-set di Vercel (`SMTP_USER`=`infarmdataanalyst@gmail.com`
+    +`SMTP_PASS`+`SMTP_FROM`, scope Production). Email pengingat **berfungsi**. Tombol "Buka Portal"
+    di template menautkan ke **domain produksi Vercel `/login`** via `appBaseUrl()` (prioritas
+    `NEXT_PUBLIC_APP_URL`→`VERCEL_PROJECT_PRODUCTION_URL`→host). Tombol "Kirim Pengingat" hanya
+    muncul utk penilai **belum lengkap** (mandatory); server `sendReminder` tolak kirim bila 0 sisa.
+- ⬜ **Email "Undangan & Info Akun" (onboarding sekali di awal periode)** — RENCANA (disetujui
+  2026-06-24), **belum dibangun**. Tombol **terpisah** dari "Kirim Pengingat": HRD klik sekali saat
+  periode mulai → email berisi **nama, peran, email (ID login), sandi, link `/login`, daftar belum
+  dinilai, + panduan ringkas per peran**. "Kirim Pengingat" yang ada tetap (hanya daftar belum dinilai)
+  untuk reminder berikutnya.
+  - **Keputusan password = Opsi A:** karena Supabase simpan password sbg **hash satu arah** (tak bisa
+    dibaca), onboarding **men-set sandi acak unik per orang** (`admin.updateUserById`) lalu email memuat
+    sandi itu. Bekerja dgn Gmail SMTP yang sudah aktif; **sekaligus menuntaskan** item "sandi beda per
+    orang". ⚠️ Kirim ulang = sandi **di-set ulang** → tombol dibuat **disengaja** (+ konfirmasi massal),
+    kirim **sebelum** orang ganti sandi sendiri. (Opsi B = link "Atur Sandi" tanpa plaintext, ditolak
+    krn perlu mengaktifkan alur Lupa Sandi dulu.)
+  - **Rencana bangun:** `sendOnboarding(id)`/`massOnboarding()` di `admin/progress/actions.ts` +
+    `onboardingHtml(...)` di `lib/email/mailer.ts` + tombol di `progress-client.tsx` + audit
+    `progress.onboarding`. **Saat dibangun: perbarui CLAUDE.md (Changelog) + CARA-PENGGUNAAN.md.**
 - ✅ **Ekspor Excel** dashboard/rekap.
 - ✅ **Deadline periode lebih tegas** — indikator sisa hari + peringatan.
 - ✅ **Heatmap Capaian KPI per Divisi × Bulan** (dashboard tab Analisis Hasil KPI).

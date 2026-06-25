@@ -22,7 +22,7 @@ export default async function PenilaianPage() {
   if (!user) redirect('/login');
 
   const { data: ap } = await supabase
-    .from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
+    .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) {
     return (
       <Shell>
@@ -31,6 +31,19 @@ export default async function PenilaianPage() {
           title="Belum ada periode penilaian yang dibuka"
           description="Saat ini tidak ada periode aktif, jadi belum ada penilaian yang bisa diisi. Periode dibuka oleh HRD."
           note="Anda akan melihat daftar tugas penilaian di sini begitu HRD mengaktifkan periode baru."
+        />
+      </Shell>
+    );
+  }
+  // Komponen 360° belum dibuka HRD (periode aktif tapi 360° "tanpa") → form belum tampil.
+  if (!ap.has_360) {
+    return (
+      <Shell periodLabel={ap.label}>
+        <EmptyState
+          icon="🔒"
+          title="Penilaian 360° belum dibuka"
+          description="HRD belum membuka komponen 360° untuk periode ini. Daftar penilaian akan muncul di sini begitu HRD mengaktifkannya."
+          note="Tidak ada yang perlu Anda lakukan sekarang — tunggu pengumuman dari HRD."
         />
       </Shell>
     );

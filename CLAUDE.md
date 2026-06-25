@@ -138,6 +138,14 @@ sudah dihapus).
 Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 
 ### Fitur baru
+- **Toggle 360° = saklar buka/tutup form penilaian** (`has_360` jadi gerbang, bukan hanya skor):
+  bila periode aktif `has_360=false` ("Set Tanpa 360°"), **form 360° disembunyikan** dari pegawai —
+  `/penilaian` & `/penilaian/[targetId]` tampilkan empty-state "Penilaian 360° belum dibuka". **"Aktifkan
+  360°"** = peluncuran serentak ke semua pegawai berpemetaan. Guard server di **semua aksi tulis 360°**
+  (`submitAssessment`, `addAdhocTarget`, `requestCorrection`) menolak bila `has_360=false`. Memungkinkan
+  alur HRD: aktivasi → Set Tanpa 360° → susun Pertanyaan/Bobot/Pemetaan (form tertutup) → **Aktifkan 360°**
+  (buka) → finalisasi. Tooltip toggle di Kelola Periode menjelaskan efeknya. (`has_360` lama hanya
+  memengaruhi skor/dashboard; kini juga akses form — konsisten dgn makna "Tanpa 360°".)
 - **Email "Undangan & Info Akun" (onboarding)** (`admin/progress/`, `lib/email/mailer.ts`):
   tombol **"Undangan"** (per-orang) + **"Kirim Undangan Massal"** di Progress 360, **terpisah** dari
   "Kirim Pengingat". `sendOnboarding`/`massOnboarding` **men-set sandi acak unik** (`genPassword` →
@@ -543,7 +551,10 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
     pengisian cukup (cek Progress 360 / dorong via pengingat). Data sesedikit ini → skor tak representatif.
   - **#9 Sanity Skor Akhir di data nyata** — verifikasi `Skor Akhir = blend(KPI,360) − punishment` untuk
     beberapa pegawai nyata.
-  - **#10 Kunci & Akhiri Periode** — pastikan setelah dikunci, isi/edit ditolak server.
+  - **#10 Kunci & Akhiri Periode** — ✅ **ditegakkan**: semua aksi tulis (KPI `saveKpiScores`,
+    360° `submitAssessment`/`discardAssessment`/`addAdhocTarget`/`requestCorrection`) keys ke
+    `status='active'` → periode `ended` otomatis tertolak (RLS asmt_write juga cek active). Verifikasi
+    fungsional cepat di browser masih disarankan, tapi guard server sudah ada.
   - **#11 Aktivasi periode baru** saat periode lama belum lengkap → peringatan konfirmasi muncul.
   - **#13 Uji beban k6** (`scripts/loadtest/`) sebelum buka ke ~100 pengguna (belum dijalankan).
   - **#14 Blank di HP** (URL Vercel) — di-skip pengguna; dugaan browser/OS HP lama; belum dikejar.

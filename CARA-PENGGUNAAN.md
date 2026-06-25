@@ -213,8 +213,15 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
 ### Kelola Siklus Periode
 1. **Kontrol Aktivasi Siklus**: beri **Label Periode**, set **Tanggal Mulai/Selesai**,
    centang **Aktifkan Angket Evaluasi 360** bila perlu, set **Standar/Target KPI** (lihat di
-   bawah), klik **Aktivasi Periode Penilaian** (form 360 di "Daftar Penilaian Saya" jadi aktif).
-   - **Kunci & Akhiri Periode** menutup penilaian (tak bisa isi/edit lagi).
+   bawah), klik **Aktivasi Periode Penilaian**.
+   - **Set Tanpa 360° / Aktifkan 360°** = **saklar buka/tutup form penilaian 360°**:
+     - **"Set Tanpa 360°"** → form 360° **disembunyikan** dari pegawai (mereka lihat "Penilaian 360°
+       belum dibuka") **dan** skor 360° tak dihitung. Pakai saat **menyiapkan** Pertanyaan/Bobot/Pemetaan.
+     - **"Aktifkan 360°"** → form **tampil serentak** ke semua pegawai yang punya pemetaan = **peluncuran**.
+     - **Alur disarankan:** Aktivasi → **Set Tanpa 360°** → susun Pertanyaan → Bobot → Pemetaan
+       (semua aman, form masih tertutup) → **Aktifkan 360°** (buka) → umumkan via email → finalisasi.
+   - **Kunci & Akhiri Periode** menutup **seluruh** periode (KPI **dan** 360°) di akhir siklus;
+     server menolak isi/edit setelahnya. Berbeda dari toggle 360° yang hanya membuka/menutup bagian 360°.
 2. **Arsip & Riwayat Kuartal**: meninjau riwayat kuartal ber-penilaian 360°.
 
 > **Standar/Target KPI (kolom "Standar KPI").** Angka target (default 80) yang **bisa diatur

@@ -63,6 +63,9 @@ export function PeriodActions({
           </button>
         )}
         <button type="button" disabled={busy} onClick={() => run(() => toggleHas360(periodId, !has360))}
+          title={has360
+            ? 'Menutup komponen 360°: form penilaian disembunyikan dari pegawai & skor 360° tak dihitung.'
+            : 'Membuka komponen 360°: form penilaian tampil ke pegawai yang punya pemetaan & skor 360° dihitung.'}
           className="text-[11px] font-bold px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50">
           {has360 ? 'Set Tanpa 360°' : 'Aktifkan 360°'}
         </button>

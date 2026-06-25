@@ -222,6 +222,10 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
        (semua aman, form masih tertutup) → **Aktifkan 360°** (buka) → umumkan via email → finalisasi.
    - **Kunci & Akhiri Periode** menutup **seluruh** periode (KPI **dan** 360°) di akhir siklus;
      server menolak isi/edit setelahnya. Berbeda dari toggle 360° yang hanya membuka/menutup bagian 360°.
+     **Muncul konfirmasi** sebelum mengunci — memperingatkan bila masih ada **laporan belum
+     difinalisasi** / 360° belum lengkap / draf belum dikirim, karena **setelah dikunci, finalisasi
+     tak bisa** dilakukan tanpa **mengaktifkan ulang** periode. (Urutan benar: **finalisasi semua
+     dulu → baru Kunci & Akhiri**.)
 2. **Arsip & Riwayat Kuartal**: meninjau riwayat kuartal ber-penilaian 360°.
 
 > **Standar/Target KPI (kolom "Standar KPI").** Angka target (default 80) yang **bisa diatur
@@ -318,9 +322,16 @@ Unduh data mentah **Excel (.xlsx)** untuk olah data lanjutan (pivot/statistik/BI
 - Filter **Sektor/Divisi** dan **Saring Rencana Suksesi**.
 
 ### Review Hasil Akhir
-**Daftar pegawai** (tabel): kolom **Skor Akhir**, **ACC SPV**, **Status** (Draf/Ditinjau SPV/Final),
-plus aksi cepat **Draf**/**Finalisasi** per baris. Ada **pencarian nama/divisi** + **filter Divisi**.
-Klik **nama pegawai** untuk membuka **dokumen laporan rinci**.
+**Daftar pegawai** (tabel): kolom **Skor Akhir**, **Dinilai oleh** (saat 360° aktif), **ACC SPV**,
+**Status** (Draf/Ditinjau SPV/Final), plus aksi cepat **Draf**/**Finalisasi** per baris. Ada
+**pencarian nama/divisi**, **filter Divisi**, dan **filter Kelengkapan 360°**. Klik **nama pegawai**
+untuk membuka **dokumen laporan rinci**.
+
+- **Kolom "Dinilai oleh X/Y"** = berapa penilai **wajib** pegawai itu yang sudah **submit** (badge
+  **hijau + ✓** bila lengkap, **amber** bila belum, **"—"** bila tak ada penilai ditugaskan).
+- **Filter "Kelengkapan 360°"**: **Semua / Lengkap dinilai (siap review) / Belum lengkap** +
+  ringkasan **"N siap review"** — memudahkan HRD memilih siapa yang **datanya sudah cukup** untuk
+  difinalisasi. (Pakai sebagai panduan #8: jangan finalisasi sebelum pengisian memadai.)
 
 **Di halaman detail pegawai** (HRD):
 1. **Panel Aksi** (di atas dokumen) — badge **Status** & **Skor Akhir** terkini + tombol:

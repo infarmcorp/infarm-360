@@ -138,6 +138,22 @@ sudah dihapus).
 Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 
 ### Fitur baru
+- **Konfirmasi in-app `ConfirmDialog`** (`components/confirm-dialog.tsx`): modal bergaya aplikasi
+  (overlay + kartu, Esc/klik-luar = batal, `text-left` agar tak terpengaruh perataan sel tabel)
+  menggantikan `window.confirm`/`prompt` browser di **~8 titik**: Kelola Periode (**Kunci & Akhiri**,
+  **Aktivasi**), Kelola Pegawai (**Reset Sandi** — modal + input sandi), Kelola Pertanyaan (**hapus
+  aspek/indikator**), Progress 360 (**Undangan Massal/per-orang**), Form Penilaian (**Buang Draf**).
+  Reusable: terima `children` (mis. input/daftar), `tone` danger/primary, `busy`. (Sisa: hapus ad-hoc
+  pegawai + alert error — belum dikonversi.)
+- **Review Hasil Akhir — kolom & filter "Kelengkapan 360°"** (`admin/laporan/`): kolom **"Dinilai oleh
+  X/Y"** (penilai WAJIB yang sudah submit per pegawai; badge hijau+✓ bila lengkap, tampil hanya saat
+  360° aktif) + filter **Semua / Lengkap dinilai (siap review) / Belum lengkap** + ringkasan **"N siap
+  review"**. Bantu HRD tahu siapa yang datanya cukup untuk difinalisasi (dukung #8). Dihitung di
+  `page.tsx` dari mappings (mandatory) vs assessments submitted; `report-table.tsx` filter klien.
+- **Peringatan pra-"Kunci & Akhiri Periode"** (`period-actions.tsx` `endWithGuard`): konfirmasi sebelum
+  mengunci — peringatkan bila masih ada **laporan belum difinalisasi** / 360° belum lengkap / draf belum
+  dikirim, + tegaskan **setelah dikunci finalisasi tak bisa tanpa aktivasi ulang**. Cegah HRD mengunci
+  terlalu dini (pakai `activePeriodReadiness` yang sudah ada).
 - **Toggle 360° = saklar buka/tutup form penilaian** (`has_360` jadi gerbang, bukan hanya skor):
   bila periode aktif `has_360=false` ("Set Tanpa 360°"), **form 360° disembunyikan** dari pegawai —
   `/penilaian` & `/penilaian/[targetId]` tampilkan empty-state "Penilaian 360° belum dibuka". **"Aktifkan
@@ -200,7 +216,8 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   computed_at`) ATAU (b) **koreksi relasi di-ACC** (`relation_correction_requests.reviewed_at >
   computed_at`, yang mengubah kelas bobot) — atau ada penilaian tapi belum pernah dihitung, halaman
   detail laporan (jalur HRD) menampilkan **banner amber** mengingatkan Hitung Ulang Skor 360° +
-  simpan/finalisasi ulang. Prasyarat: `computeResult360` kini menulis `computed_at` eksplisit tiap
+  simpan/finalisasi ulang. **Banner menyebut PENYEBAB spesifik** (daftar): penilaian diubah penilai,
+  koreksi relasi di-ACC, atau belum pernah dihitung — agar HRD tahu konteksnya. Prasyarat: `computeResult360` kini menulis `computed_at` eksplisit tiap
   hitung ulang (UPDATE/upsert ikut memperbarui stempel, bukan hanya saat INSERT); `reviewCorrection`
   menulis `reviewed_at` saat ACC. Hanya HRD pada periode ber-360°.
 - **Progress 360 — kelengkapan berbasis WAJIB saja** (`admin/progress/`): kartu **Lengkap/Belum/

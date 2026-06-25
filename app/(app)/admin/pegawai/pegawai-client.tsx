@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { UserPlus, Pencil, KeyRound, Power, X, ShieldCheck } from 'lucide-react';
 import { createEmployee, updateEmployee, setEmployeeActive, resetPassword, setHrdAdmin } from './actions';
 
@@ -45,6 +45,13 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
   const [form, setForm] = useState<FormState | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
+  // Gulir ke form saat dibuka (tambah/edit) — form dirender di atas, jadi tanpa ini
+  // edit baris bawah membuat form muncul di luar layar. openTick memicu efek tiap buka.
+  const formRef = useRef<HTMLFormElement>(null);
+  const [openTick, setOpenTick] = useState(0);
+  useEffect(() => {
+    if (openTick) formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [openTick]);
 
   const stats = useMemo(() => ({
     total: rows.length,
@@ -81,10 +88,12 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
   function openAdd() {
     setToast(null);
     setForm({ ...EMPTY, empCode: nextCode(allCodes) });
+    setOpenTick((n) => n + 1);
   }
   function openEdit(r: EmpRow) {
     setToast(null);
     setForm({ id: r.id, name: r.name, empCode: r.empCode, dept: r.dept, role: r.role, email: r.email, password: '', spvId: r.spvId ?? '', isExternal: r.isExternal });
+    setOpenTick((n) => n + 1);
   }
 
   function set<K extends keyof FormState>(k: K, v: FormState[K]) {
@@ -147,7 +156,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
 
       {/* Form tambah/edit */}
       {form && (
-        <form onSubmit={submit} className="border border-emerald-200 bg-emerald-50/40 rounded-xl p-4 space-y-3">
+        <form ref={formRef} onSubmit={submit} className="scroll-mt-20 border border-emerald-200 bg-emerald-50/40 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-gray-800">{form.id ? 'Ubah Pegawai' : 'Tambah Pegawai Baru'}</h2>
             <button type="button" onClick={() => setForm(null)} className="text-gray-500 hover:text-gray-600"><X className="w-4 h-4" /></button>

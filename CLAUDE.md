@@ -515,6 +515,10 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
     di template menautkan ke **domain produksi Vercel `/login`** via `appBaseUrl()` (prioritas
     `NEXT_PUBLIC_APP_URL`→`VERCEL_PROJECT_PRODUCTION_URL`→host). Tombol "Kirim Pengingat" hanya
     muncul utk penilai **belum lengkap** (mandatory); server `sendReminder` tolak kirim bila 0 sisa.
+  - **Anti-spam — alternatif plain-text:** `sendEmail` kini selalu mengirim **multipart** (HTML +
+    teks); versi teks diturunkan otomatis dari HTML via `htmlToText` (tautan jadi "teks (url)").
+    Menurunkan skor spam tanpa ubah pemanggil. Solusi spam **permanen** tetap domain sendiri + Resend
+    (SPF/DKIM/DMARC). (Selesai 2026-06-25.)
 - ✅ **Email "Undangan & Info Akun" (onboarding sekali di awal periode)** — **SELESAI** (2026-06-25).
   Tombol **terpisah** dari "Kirim Pengingat" di Progress 360: **"Undangan"** (per-orang) + **"Kirim
   Undangan Massal"** (konfirmasi). Email berisi **nama, peran, email (ID login), sandi, link `/login`,

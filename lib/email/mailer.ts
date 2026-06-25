@@ -25,14 +25,17 @@ export function emailConfigured(): boolean {
   return provider() !== null;
 }
 
-export async function sendEmail(msg: { to: string | string[]; subject: string; html: string }): Promise<SendResult> {
+export async function sendEmail(msg: { to: string | string[]; subject: string; html: string; text?: string }): Promise<SendResult> {
   const p = provider();
   if (!p) return { ok: false, reason: 'not_configured' };
-  return p === 'smtp' ? sendViaSmtp(msg) : sendViaResend(msg);
+  // Selalu sertakan alternatif PLAIN-TEXT (multipart) → menurunkan skor spam & terbaca di
+  // klien tanpa HTML. Bila tak diberikan eksplisit, diturunkan otomatis dari HTML.
+  const text = msg.text ?? htmlToText(msg.html);
+  return p === 'smtp' ? sendViaSmtp({ ...msg, text }) : sendViaResend({ ...msg, text });
 }
 
 /** Jalur 1 — Gmail (atau SMTP lain) via nodemailer. App Password boleh berisi spasi. */
-async function sendViaSmtp({ to, subject, html }: { to: string | string[]; subject: string; html: string }): Promise<SendResult> {
+async function sendViaSmtp({ to, subject, html, text }: { to: string | string[]; subject: string; html: string; text: string }): Promise<SendResult> {
   const user = process.env.SMTP_USER!;
   const pass = (process.env.SMTP_PASS ?? '').replace(/\s+/g, ''); // App Password sering ditulis berspasi
   const host = process.env.SMTP_HOST || 'smtp.gmail.com';
@@ -43,7 +46,7 @@ async function sendViaSmtp({ to, subject, html }: { to: string | string[]; subje
       host, port, secure: port === 465, // 465 = SSL; 587 = STARTTLS
       auth: { user, pass },
     });
-    await transporter.sendMail({ from, to: Array.isArray(to) ? to.join(',') : to, subject, html });
+    await transporter.sendMail({ from, to: Array.isArray(to) ? to.join(',') : to, subject, html, text });
     return { ok: true };
   } catch (e) {
     return { ok: false, reason: 'error', detail: String(e).slice(0, 300) };
@@ -51,14 +54,14 @@ async function sendViaSmtp({ to, subject, html }: { to: string | string[]; subje
 }
 
 /** Jalur 2 — Resend REST API (tanpa SDK). */
-async function sendViaResend({ to, subject, html }: { to: string | string[]; subject: string; html: string }): Promise<SendResult> {
+async function sendViaResend({ to, subject, html, text }: { to: string | string[]; subject: string; html: string; text: string }): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY!;
   const from = process.env.RESEND_FROM || 'Infarm 360 <onboarding@resend.dev>';
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to: Array.isArray(to) ? to : [to], subject, html }),
+      body: JSON.stringify({ from, to: Array.isArray(to) ? to : [to], subject, html, text }),
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
@@ -99,6 +102,31 @@ export function reminderHtml(assessorName: string, periodLabel: string, pendingN
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] ?? c));
+}
+
+/**
+ * Konversi HTML email → plain-text yang rapi (alternatif multipart, anti-spam).
+ * Pertahankan tautan sebagai "teks (url)", item daftar sebagai "- ", dan jaga baris baru
+ * pada blok. Bukan parser HTML penuh — cukup untuk template email sederhana kita.
+ */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<\s*(br|hr)\s*\/?>/gi, '\n')
+    .replace(/<\s*li[^>]*>/gi, '\n- ')
+    .replace(/<\s*\/\s*(p|div|h[1-6]|tr|ul|ol|li|table)\s*>/gi, '\n')
+    .replace(/<\s*a[^>]*href\s*=\s*"([^"]*)"[^>]*>([\s\S]*?)<\s*\/\s*a\s*>/gi,
+      (_m, href, label) => {
+        const t = label.replace(/<[^>]+>/g, '').trim();
+        return t && t !== href ? `${t} (${href})` : href;
+      })
+    .replace(/<[^>]+>/g, '')                 // buang sisa tag
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&').replace(/&lt;/gi, '<').replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"').replace(/&#39;/gi, "'")
+    .replace(/[ \t]+\n/g, '\n')              // rapikan spasi sebelum newline
+    .replace(/\n{3,}/g, '\n\n')              // maksimal satu baris kosong
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
 }
 
 const ROLE_LABEL_ID: Record<string, string> = {

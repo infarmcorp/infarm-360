@@ -143,8 +143,9 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   menggantikan `window.confirm`/`prompt` browser di **~8 titik**: Kelola Periode (**Kunci & Akhiri**,
   **Aktivasi**), Kelola Pegawai (**Reset Sandi** — modal + input sandi), Kelola Pertanyaan (**hapus
   aspek/indikator**), Progress 360 (**Undangan Massal/per-orang**), Form Penilaian (**Buang Draf**).
-  Reusable: terima `children` (mis. input/daftar), `tone` danger/primary, `busy`. (Sisa: hapus ad-hoc
-  pegawai + alert error — belum dikonversi.)
+  Reusable: terima `children` (mis. input/daftar), `tone` danger/primary, `busy`. (**Pop-up hapus
+  ad-hoc + alert error SENGAJA DIBIARKAN** pakai pop-up browser — keputusan 2026-06-25, lihat
+  "Keputusan terkunci" di bawah; bukan utang teknis.)
 - **Review Hasil Akhir — kolom & filter "Kelengkapan 360°"** (`admin/laporan/`): kolom **"Dinilai oleh
   X/Y"** (penilai WAJIB yang sudah submit per pegawai; badge hijau+✓ bila lengkap, tampil hanya saat
   360° aktif) + filter **Semua / Lengkap dinilai (siap review) / Belum lengkap** + ringkasan **"N siap
@@ -522,10 +523,19 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
   Setelah diganti → **Kirim Undangan Massal** (otomatis set sandi unik = tuntaskan "sandi beda per orang").
 - 🔑⬜ **Rotasi kredensial** (`SUPABASE_SERVICE_ROLE_KEY` dll) sebelum produksi — service_role menembus
   seluruh RLS; bila pernah ter-share saat dev → bocor = seluruh data terbuka.
-- 🔑⬜ **Cadangan data (backup) rutin** — **KRUSIAL & sering terlupa**. Supabase **free tier** nyaris
-  tanpa backup otomatis → salah hapus/migrasi = **data satu kuartal hilang permanen**. Jadwalkan
-  **ekspor/pg_dump rutin** (harian / akhir periode). Ekspor Dataset Excel = cadangan parsial; perlu
-  dump DB penuh untuk pemulihan. (Skrip backup bisa dibuat — lihat Keandalan teknis.)
+- 🔑🔄 **Cadangan data (backup) rutin** — **KRUSIAL & sering terlupa**. Supabase **free tier** nyaris
+  tanpa backup otomatis → salah hapus/migrasi = **data satu kuartal hilang permanen**.
+  - ✅ **Skrip backup+restore SELESAI & TERUJI (2026-06-25):** `scripts/backup.mjs` (non-destruktif,
+    dump **22 tabel** = 20 publik + `auth.users`/`auth.identities` incl. sandi ter-hash → JSON ke
+    `backups/backup-<stamp>/`) & `scripts/restore.mjs` (upsert generik: deteksi PK + jsonb + buang
+    kolom generated otomatis; 1 transaksi+rollback; FK/trigger dimatikan via `session_replication_role`;
+    wajib argumen folder + kata `PULIHKAN`; flag `--no-auth`). Pakai pola `npm install --no-save pg`
+    → jalankan → `npm uninstall --no-save pg` (sama spt skrip reset). **Restore diuji idempoten** ke DB
+    nyata: 2593 baris, jumlah baris cocok 100% (tanpa duplikat).
+  - 🔑⬜ **SISA (aksi pengguna):** (a) **jalankan rutin** (akhir periode + sebelum migrasi/reset);
+    (b) **salin hasil ke luar laptop** (Google Drive/eksternal) — aturan 3-2-1, backup di laptop saja =
+    satu titik kegagalan; (c) **opsional otomatis terjadwal** (Windows Task Scheduler / GitHub Actions
+    cron — belum dibuat). Ekspor Dataset Excel = cadangan parsial; dump penuh lewat skrip ini.
 - ✅ **Hapus arsip legacy** `/legacy` + `src/` — selesai (seed dilepas ke `scripts/seed-data.ts`).
 - ✅ **Audit npm — `xlsx` (high)** — **SELESAI**. Di-upgrade ke `xlsx@0.20.3` dari CDN resmi
   SheetJS (`package.json` → `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`); advisory
@@ -587,12 +597,12 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
   - **#11 Aktivasi periode baru** saat periode lama belum lengkap → peringatan konfirmasi muncul.
   - **#13 Uji beban k6** (`scripts/loadtest/`) sebelum buka ke ~100 pengguna (belum dijalankan).
   - **#14 Blank di HP** (URL Vercel) — di-skip pengguna; dugaan browser/OS HP lama; belum dikejar.
-  - **#15 Jalankan `npm run verify:rls`** pra-Q2 — pastikan kebijakan keamanan masih utuh setelah
-    migrasi 0015/0016 (eksternal/ad-hoc) sebelum data nyata masuk. Aman & self-cleaning.
+  - ✅ **#15 `npm run verify:rls`** pra-Q2 — **DIJALANKAN 2026-06-25, 21/21 lolos** (RLS utuh pasca
+    migrasi 0015/0016; lapis 3 tetap tertutup utk SPV). Ulangi bila ada migrasi/perubahan RLS baru.
   - **#16 Dependensi KPI utk finalisasi** — `saveOrFinalizeReport` menolak bila KPI pegawai kosong
     (KPI = 50% Skor Akhir). Pastikan SPV input KPI semua bulan periode sebelum tahap finalisasi.
-  - **#17 Penegasan "Wajib tekan Kirim" ke pegawai** — draf (auto-save) **tak** terhitung/ter-ekspor;
-    hanya `submitted`. Tegaskan di undangan/form agar pegawai tak berhenti di draf. (belum dibangun)
+  - ❌ **#17 Penegasan "Wajib tekan Kirim" — TIDAK DIKERJAKAN** (keputusan 2026-06-25): berhenti di
+    draf = **kelalaian pegawai**, bukan tanggung jawab app. Lihat "Keputusan terkunci" di bawah.
   - (Pra-go-live email/sandi/rotasi kredensial/**backup rutin**/branch-protection tetap di bagian Keamanan & item bawah.)
 - 🔄 **Tes unit** — Vitest **55 tes** (logika skor + parsing impor Excel KPI & pemetaan 360°).
 - ⬜ **Tes Server Action** (finalisasi laporan, `releaseToSpv`, `setHrdAdmin`, ACC) — belum ada;
@@ -621,6 +631,13 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
 
 > Catatan paritas legacy yang **memang diinginkan** (bukan bug): edit skor KPI wajib komentar;
 > input KPI pertama boleh tanpa komentar. Pertahankan.
+
+> **Keputusan terkunci — app tegakkan kebijakan, bukan tambal kelalaian (2026-06-25):** aplikasi
+> menegakkan **integritas & kebijakan** (RLS, wajib-komentar/esai, gate periode/360°), **bukan**
+> mengakomodasi tiap kelalaian individu. Konsekuensi: **#17 penegasan "wajib tekan Kirim"** &
+> **pop-up hapus ad-hoc/alert error → ConfirmDialog TIDAK dikerjakan**. Berhenti di draf atau salah
+> klik = kelalaian pegawai, ditanggung pengguna (mis. tercermin di Progress 360 / kepatuhan), bukan
+> dipagari UI. Jangan usulkan fitur "pengaman keteledoran" sejenis tanpa permintaan eksplisit.
 
 ---
 

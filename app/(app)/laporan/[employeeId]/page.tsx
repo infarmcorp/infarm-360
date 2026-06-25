@@ -87,6 +87,7 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   // (b) KOREKSI RELASI di-ACC (reviewed_at > computed_at) yang mengubah kelas bobot. Juga basi
   // bila ada penilaian tapi result_360 belum pernah dihitung. Hanya HRD pada periode ber-360°.
   let score360Stale = false;
+  const staleReasons: string[] = []; // alasan spesifik kenapa skor basi (untuk banner)
   if (isAdmin && data.has360) {
     const [r360meta, lastAsmt, lastCorr] = await Promise.all([
       supabase.from('result_360').select('computed_at').eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle(),
@@ -100,7 +101,17 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     const lastReviewed = lastCorr.data?.reviewed_at ?? null;
     const newerThanCompute = (ts: string | null) =>
       !!ts && (!computedAt || new Date(ts).getTime() > new Date(computedAt).getTime());
-    score360Stale = newerThanCompute(lastSubmitted) || newerThanCompute(lastReviewed);
+    const neverComputed = !computedAt && !!lastSubmitted;
+    const staleByAssessment = newerThanCompute(lastSubmitted);
+    const staleByCorrection = newerThanCompute(lastReviewed);
+
+    if (neverComputed) {
+      staleReasons.push('Skor 360° belum pernah dihitung untuk pegawai ini, padahal sudah ada penilaian yang masuk.');
+    } else {
+      if (staleByAssessment) staleReasons.push('Ada penilaian 360° yang dikirim atau diubah oleh penilai setelah Skor 360° terakhir dihitung.');
+      if (staleByCorrection) staleReasons.push('Ada Koreksi Garis Hubungan yang disetujui (ACC) setelah Skor 360° terakhir dihitung — kelas bobot penilai berubah sehingga skor perlu dihitung ulang.');
+    }
+    score360Stale = staleReasons.length > 0;
   }
 
   // isAdmin (pemegang izin HRD, bukan asSpv & bukan direksi) → tampilan admin penuh
@@ -117,11 +128,13 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
             <div className="mb-3 flex items-start gap-2 bg-amber-50 border border-amber-300 rounded-xl p-3 text-[12px] text-amber-900 no-print">
               <span aria-hidden>⚠️</span>
               <div>
-                <strong>Skor 360° mungkin belum mutakhir.</strong> Ada penilaian yang dikirim/diubah{' '}
-                <strong>setelah</strong> Skor 360° terakhir dihitung. Jalankan{' '}
-                <strong>&quot;Hitung Ulang Skor 360°&quot;</strong> di halaman{' '}
+                <strong>Skor 360° mungkin belum mutakhir.</strong> Penyebab:
+                <ul className="list-disc pl-5 mt-1 mb-1.5 space-y-0.5">
+                  {staleReasons.map((r, i) => <li key={i}>{r}</li>)}
+                </ul>
+                Jalankan <strong>&quot;Hitung Ulang Skor 360°&quot;</strong> di halaman{' '}
                 <Link href="/admin/bobot" className="underline font-bold">Bobot &amp; Kalkulasi</Link>, lalu
-                Simpan Draf / Rilis / Finalisasi ulang agar Skor Akhir mencerminkan penilaian terbaru.
+                Simpan Draf / Rilis / Finalisasi ulang agar Skor Akhir mencerminkan kondisi terbaru.
               </div>
             </div>
           )}

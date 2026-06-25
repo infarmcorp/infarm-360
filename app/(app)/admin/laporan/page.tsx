@@ -41,13 +41,31 @@ export default async function AdminLaporanPage() {
     .from('final_reports').select('employee_id, status, spv_acc, final_score').eq('period_id', ap.id);
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
 
+  // Kelengkapan "dinilai oleh": berapa penilai WAJIB yang sudah submit untuk tiap pegawai
+  // (selaras Progress 360 — kelengkapan berbasis penilaian wajib).
+  const { data: maps } = await supabase
+    .from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', ap.id).eq('is_active', true);
+  const { data: subs } = await supabase
+    .from('assessments').select('assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted');
+  const doneSet = new Set((subs ?? []).map((s) => `${s.assessor_id}|${s.target_id}`));
+  const ratedTotal = new Map<string, number>();
+  const ratedDone = new Map<string, number>();
+  (maps ?? []).forEach((m) => {
+    if (!m.mandatory) return; // kelengkapan berbasis WAJIB
+    ratedTotal.set(m.target_id, (ratedTotal.get(m.target_id) ?? 0) + 1);
+    if (doneSet.has(`${m.assessor_id}|${m.target_id}`)) ratedDone.set(m.target_id, (ratedDone.get(m.target_id) ?? 0) + 1);
+  });
+
   const rows: ReportRow[] = employees.map((e) => {
     const agg = kpiAgg.get(e.id);
     const kpiAvg = agg ? agg.sum / agg.n : null;
     const s360 = s360By.get(e.id) ?? null;
     const final = finalScoreOf(kpiAvg, s360, ap.has_360, penBy.get(e.id) ?? 0);
     const rep = repBy.get(e.id);
-    return { id: e.id, name: e.name, dept: e.dept, final, status: rep?.status ?? null, spvAcc: !!rep?.spv_acc };
+    return {
+      id: e.id, name: e.name, dept: e.dept, final, status: rep?.status ?? null, spvAcc: !!rep?.spv_acc,
+      ratedDone: ratedDone.get(e.id) ?? 0, ratedTotal: ratedTotal.get(e.id) ?? 0,
+    };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));
   const depts = [...new Set(employees.map((e) => e.dept))].sort();
 
@@ -61,7 +79,7 @@ export default async function AdminLaporanPage() {
         <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
       </div>
 
-      <ReportTable rows={rows} depts={depts} />
+      <ReportTable rows={rows} depts={depts} has360={ap.has_360} />
       <p className="text-[10px] text-gray-500 italic mt-3">
         Alur ideal: Simpan Draf → SPV ACC (Laporan Kinerja Tim) → Finalisasi. Setelah final,
         pegawai melihatnya di Laporan Hasil Saya.

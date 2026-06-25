@@ -8,22 +8,29 @@ import { ReportRowActions } from './report-row';
 export type ReportRow = {
   id: string; name: string; dept: string;
   final: number | null; status: ReportStatus | null; spvAcc: boolean;
+  ratedDone: number; ratedTotal: number; // penilai WAJIB yang sudah submit / total
 };
 
-/** Tabel Review Hasil Akhir + pencarian nama/divisi & filter Divisi (client). */
-export function ReportTable({ rows, depts }: { rows: ReportRow[]; depts: string[] }) {
+/** Lengkap dinilai = semua penilai WAJIB sudah submit (≥1 penilai ditugaskan). */
+const isRatedComplete = (r: ReportRow) => r.ratedTotal > 0 && r.ratedDone >= r.ratedTotal;
+
+/** Tabel Review Hasil Akhir + pencarian, filter Divisi & Kelengkapan 360° (client). */
+export function ReportTable({ rows, depts, has360 }: { rows: ReportRow[]; depts: string[]; has360: boolean }) {
   const [q, setQ] = useState('');
   const [fDept, setFDept] = useState('all');
+  const [fRated, setFRated] = useState<'all' | 'complete' | 'incomplete'>('all');
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return rows.filter((r) =>
       (fDept === 'all' || r.dept === fDept) &&
+      (fRated === 'all' || (fRated === 'complete' ? isRatedComplete(r) : !isRatedComplete(r))) &&
       (!needle || `${r.name} ${r.dept}`.toLowerCase().includes(needle)),
     );
-  }, [rows, q, fDept]);
+  }, [rows, q, fDept, fRated]);
 
-  const active = q.trim() !== '' || fDept !== 'all';
+  const active = q.trim() !== '' || fDept !== 'all' || fRated !== 'all';
+  const readyCount = useMemo(() => rows.filter(isRatedComplete).length, [rows]);
 
   return (
     <div className="space-y-3">
@@ -39,11 +46,22 @@ export function ReportTable({ rows, depts }: { rows: ReportRow[]; depts: string[
           <option value="all">Semua Divisi</option>
           {depts.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
+        {has360 && (
+          <select value={fRated} onChange={(e) => setFRated(e.target.value as typeof fRated)}
+            title="Saring berdasarkan kelengkapan penilaian 360° (penilai wajib yang sudah submit)"
+            className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
+            <option value="all">Semua Kelengkapan 360°</option>
+            <option value="complete">Lengkap dinilai (siap review)</option>
+            <option value="incomplete">Belum lengkap</option>
+          </select>
+        )}
         {active && (
-          <button type="button" onClick={() => { setQ(''); setFDept('all'); }}
+          <button type="button" onClick={() => { setQ(''); setFDept('all'); setFRated('all'); }}
             className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
         )}
-        <span className="text-[11px] text-gray-500 ml-auto">{shown.length} dari {rows.length} pegawai</span>
+        <span className="text-[11px] text-gray-500 ml-auto">
+          {shown.length} dari {rows.length} pegawai{has360 ? ` · ${readyCount} siap review` : ''}
+        </span>
       </div>
 
       <div className="overflow-x-auto">
@@ -53,6 +71,7 @@ export function ReportTable({ rows, depts }: { rows: ReportRow[]; depts: string[
               <th className="py-2 pr-3">Pegawai</th>
               <th className="py-2 px-3">Divisi</th>
               <th className="py-2 px-3 text-center">Skor Akhir</th>
+              {has360 && <th className="py-2 px-3 text-center">Dinilai oleh</th>}
               <th className="py-2 px-3 text-center">ACC SPV</th>
               <th className="py-2 px-3 text-center">Status</th>
               <th className="py-2 pl-3 text-right">Aksi</th>
@@ -60,7 +79,7 @@ export function ReportTable({ rows, depts }: { rows: ReportRow[]; depts: string[
           </thead>
           <tbody className="divide-y divide-gray-100">
             {shown.length === 0 && (
-              <tr><td colSpan={6} className="py-6 text-center text-gray-500 italic">Tidak ada pegawai sesuai filter.</td></tr>
+              <tr><td colSpan={has360 ? 7 : 6} className="py-6 text-center text-gray-500 italic">Tidak ada pegawai sesuai filter.</td></tr>
             )}
             {shown.map((r) => (
               <tr key={r.id}>
@@ -71,6 +90,15 @@ export function ReportTable({ rows, depts }: { rows: ReportRow[]; depts: string[
                 <td className="py-3 px-3 text-center font-mono font-black text-slate-800">
                   {r.final != null ? r.final.toFixed(1) : '—'}
                 </td>
+                {has360 && (
+                  <td className="py-3 px-3 text-center">
+                    {r.ratedTotal === 0
+                      ? <span className="text-[10px] text-gray-500">—</span>
+                      : <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isRatedComplete(r) ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                          {r.ratedDone}/{r.ratedTotal}{isRatedComplete(r) ? ' ✓' : ''}
+                        </span>}
+                  </td>
+                )}
                 <td className="py-3 px-3 text-center">
                   {r.spvAcc
                     ? <span className="text-[10px] font-bold text-emerald-700">✔ ACC</span>

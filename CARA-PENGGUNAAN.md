@@ -368,8 +368,16 @@ Klik **nama pegawai** untuk membuka **dokumen laporan rinci**.
     ditugaskan (mis. `7/10 orang · 70%`).
 - Klik **Rincian** → daftar target yang belum dinilai; tiap target menampilkan badge
   **Relasi** (Atasan/Peer/Cross/Self/Bawahan) dan **Wajib/Opsional** (dari Pemetaan).
-- **Kirim Pengingat** / **Pengingat Massal** — *placeholder* (email aktif setelah integrasi
-  Resend); **Paksa Selesai** untuk menandai penilaian selesai (penyesuaian manual).
+- **Kirim Pengingat** / **Kirim Pengingat Massal** — kirim email berisi **daftar yang belum
+  dinilai** (muncul hanya untuk penilai yang belum lengkap; yang sudah lengkap tak dikirimi).
+  Email memuat tombol **Buka Portal** ke halaman login.
+- **Undangan** / **Kirim Undangan Massal** — email **"Undangan & Info Akun"** untuk **awal periode**:
+  memuat **peran, email (ID login), sandi, tombol login, daftar yang belum dinilai, & panduan
+  ringkas sesuai peran**. ⚠️ Mengirim undangan **menyetel ulang sandi** orang itu (acak unik) →
+  lakukan **sekali di awal**, sebelum mereka mengganti sandi sendiri (ada konfirmasi). **Saat trial,
+  hanya alamat `@gmail.com` yang dikirimi**; alamat lain (mis. placeholder `@infarm.test`) **dilewati
+  tanpa** mengubah sandinya. (Untuk produksi semua domain: set env `ONBOARDING_GMAIL_ONLY=false`.)
+- **Paksa Selesai** — menandai penilaian selesai (penyesuaian manual).
 
 ### Flag Kepatuhan Penilaian
 - Memantau **kepatuhan** pengisian 360° dan memberi **punishment**.

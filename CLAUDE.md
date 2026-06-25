@@ -138,6 +138,14 @@ sudah dihapus).
 Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 
 ### Fitur baru
+- **Email "Undangan & Info Akun" (onboarding)** (`admin/progress/`, `lib/email/mailer.ts`):
+  tombol **"Undangan"** (per-orang) + **"Kirim Undangan Massal"** di Progress 360, **terpisah** dari
+  "Kirim Pengingat". `sendOnboarding`/`massOnboarding` **men-set sandi acak unik** (`genPassword` →
+  `admin.updateUserById`) lalu mengirim email (`onboardingHtml`) berisi **peran, email login, sandi,
+  tombol `/login`, daftar belum dinilai, & panduan ringkas per peran** (`roleGuide`). Dipakai sekali di
+  awal periode (sandi disetel ulang → kirim sebelum orang ganti sandi sendiri). **Filter TRIAL hanya
+  `@gmail.com`** (`onboardingAllowed`); non-gmail dilewati **tanpa** mengubah sandi (cegah lock-out);
+  set `ONBOARDING_GMAIL_ONLY=false` untuk produksi penuh. Audit `progress.onboarding`/`mass_onboarding`.
 - **Penilai eksternal (vendor/freelance)** (`employees.is_external`, migrasi 0016; Kelola Pegawai
   + ~15 file): pegawai bertanda **Eksternal** hanya bertindak sebagai **penilai 360°** (relasi Cross),
   **tidak** punya KPI/Skor Akhir/laporan, dan **disembunyikan** dari semua jalur **subjek** (dashboard,
@@ -499,20 +507,20 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
     di template menautkan ke **domain produksi Vercel `/login`** via `appBaseUrl()` (prioritas
     `NEXT_PUBLIC_APP_URL`→`VERCEL_PROJECT_PRODUCTION_URL`→host). Tombol "Kirim Pengingat" hanya
     muncul utk penilai **belum lengkap** (mandatory); server `sendReminder` tolak kirim bila 0 sisa.
-- ⬜ **Email "Undangan & Info Akun" (onboarding sekali di awal periode)** — RENCANA (disetujui
-  2026-06-24), **belum dibangun**. Tombol **terpisah** dari "Kirim Pengingat": HRD klik sekali saat
-  periode mulai → email berisi **nama, peran, email (ID login), sandi, link `/login`, daftar belum
-  dinilai, + panduan ringkas per peran**. "Kirim Pengingat" yang ada tetap (hanya daftar belum dinilai)
-  untuk reminder berikutnya.
-  - **Keputusan password = Opsi A:** karena Supabase simpan password sbg **hash satu arah** (tak bisa
-    dibaca), onboarding **men-set sandi acak unik per orang** (`admin.updateUserById`) lalu email memuat
-    sandi itu. Bekerja dgn Gmail SMTP yang sudah aktif; **sekaligus menuntaskan** item "sandi beda per
-    orang". ⚠️ Kirim ulang = sandi **di-set ulang** → tombol dibuat **disengaja** (+ konfirmasi massal),
-    kirim **sebelum** orang ganti sandi sendiri. (Opsi B = link "Atur Sandi" tanpa plaintext, ditolak
-    krn perlu mengaktifkan alur Lupa Sandi dulu.)
-  - **Rencana bangun:** `sendOnboarding(id)`/`massOnboarding()` di `admin/progress/actions.ts` +
-    `onboardingHtml(...)` di `lib/email/mailer.ts` + tombol di `progress-client.tsx` + audit
-    `progress.onboarding`. **Saat dibangun: perbarui CLAUDE.md (Changelog) + CARA-PENGGUNAAN.md.**
+- ✅ **Email "Undangan & Info Akun" (onboarding sekali di awal periode)** — **SELESAI** (2026-06-25).
+  Tombol **terpisah** dari "Kirim Pengingat" di Progress 360: **"Undangan"** (per-orang) + **"Kirim
+  Undangan Massal"** (konfirmasi). Email berisi **nama, peran, email (ID login), sandi, link `/login`,
+  daftar belum dinilai, + panduan ringkas per peran** (`onboardingHtml`). "Kirim Pengingat" tetap (hanya
+  daftar belum dinilai) untuk reminder berikutnya.
+  - **Password = Opsi A:** karena Supabase simpan password sbg **hash satu arah**, onboarding **men-set
+    sandi acak unik per orang** (`genPassword` → `admin.updateUserById`) lalu email memuat sandi itu.
+    Sekaligus menuntaskan "sandi beda per orang". ⚠️ Kirim ulang = sandi **di-set ulang** → tombol
+    disengaja + konfirmasi; kirim **sebelum** orang ganti sandi sendiri.
+  - **Filter TRIAL — hanya `@gmail.com`** (`onboardingAllowed`): non-gmail/placeholder (`@infarm.test`)
+    **DILEWATI tanpa mengubah sandi** (cegah akun terkunci dgn sandi tak terkirim). Default gmail-only;
+    untuk produksi penuh set env **`ONBOARDING_GMAIL_ONLY=false`** agar semua domain ikut.
+  - File: `sendOnboarding(id)`/`massOnboarding()` di `admin/progress/actions.ts`, `onboardingHtml(...)`
+    di `lib/email/mailer.ts`, tombol di `progress-client.tsx`, audit `progress.onboarding`/`mass_onboarding`.
 - ✅ **Ekspor Excel** dashboard/rekap.
 - ✅ **Deadline periode lebih tegas** — indikator sisa hari + peringatan.
 - ✅ **Heatmap Capaian KPI per Divisi × Bulan** (dashboard tab Analisis Hasil KPI).
@@ -628,6 +636,7 @@ SMTP_USER                      # server-only — email Gmail (jalur SMTP, tanpa 
 SMTP_PASS                      # server-only — App Password Gmail (butuh 2FA)
 SMTP_FROM                      # server-only, opsional — mis. "Infarm 360 <infarmcorp@gmail.com>"
 NEXT_PUBLIC_ENABLE_PW_RESET    # 'true' utk aktifkan alur "Lupa Sandi via email"
+ONBOARDING_GMAIL_ONLY          # server-only — 'false' utk kirim undangan ke SEMUA domain (default: hanya @gmail.com, mode trial)
 ```
 
 ## Security Rules

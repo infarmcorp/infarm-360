@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import { forceComplete, sendReminder, massReminder } from './actions';
+import { forceComplete, sendReminder, massReminder, sendOnboarding, massOnboarding } from './actions';
 
 export type Pending = { targetId: string; targetName: string; relation: string; mandatory: boolean };
 export type AssessorRow = {
@@ -83,6 +83,11 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
           className="text-xs font-bold px-3 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white disabled:opacity-60">
           🔔 Kirim Pengingat Massal
         </button>
+        <button type="button" disabled={pending}
+          onClick={() => { if (window.confirm('Kirim UNDANGAN & INFO AKUN ke semua pegawai ber-email @gmail.com? Sandi mereka akan DISETEL ULANG (acak unik) dan dikirim via email. Lakukan sekali di awal periode, sebelum mereka mengganti sandi sendiri.')) act(massOnboarding); }}
+          className="text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-60">
+          📨 Kirim Undangan Massal
+        </button>
       </div>
       {toast && <p className={`text-xs font-semibold ${toast.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{toast.text}</p>}
 
@@ -107,6 +112,12 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${complete ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
                     {r.mandatoryDone}/{r.mandatoryTotal} wajib · {complete ? 'Lengkap' : 'Belum'}
                   </span>
+                  <button type="button" disabled={pending}
+                    onClick={() => { if (window.confirm(`Kirim Undangan & Info Akun ke ${r.name}? Sandi-nya akan disetel ulang (acak) lalu dikirim via email (hanya bila alamatnya @gmail.com).`)) act(() => sendOnboarding(r.id)); }}
+                    title="Kirim undangan + info akun (peran, email, sandi baru, panduan)"
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">
+                    Undangan
+                  </button>
                   {!complete && (
                     <button type="button" onClick={() => act(() => sendReminder(r.id))} disabled={pending}
                       className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 disabled:opacity-60">
@@ -174,7 +185,9 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
         opsional tak memengaruhi status/kartu (tetap ditampilkan di Rincian untuk dipantau). Tiap baris:
         <strong> Menilai (wajib)</strong> (tugas wajib penilai) &amp; <strong>Dinilai oleh</strong> (berapa
         penilai sudah menilai pegawai ini). “Paksa Selesai” menandai penilaian terkirim; “Kirim Pengingat”
-        mengirim email saat integrasi Resend diaktifkan.
+        mengirim email berisi daftar yang belum dinilai; “Undangan” / “Kirim Undangan Massal” mengirim
+        info akun (peran, email, sandi baru, panduan) sekali di awal periode — sandi disetel ulang &amp;
+        saat trial hanya ke alamat @gmail.com.
       </p>
     </div>
   );

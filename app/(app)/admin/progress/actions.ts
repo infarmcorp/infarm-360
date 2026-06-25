@@ -6,7 +6,8 @@ import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
-import { emailConfigured, sendEmail, reminderHtml } from '@/lib/email/mailer';
+import { randomBytes } from 'crypto';
+import { emailConfigured, sendEmail, reminderHtml, onboardingHtml } from '@/lib/email/mailer';
 
 /**
  * URL dasar aplikasi untuk tautan di email — selalu domain PRODUKSI yang stabil,
@@ -65,6 +66,26 @@ async function requireHrd(supabase: Awaited<ReturnType<typeof createClient>>) {
 }
 
 const Id = z.string().uuid();
+
+/**
+ * Filter penerima onboarding. Selama TRIAL hanya kirim ke alamat @gmail.com (alamat
+ * placeholder spt. @infarm.test akan bounce). Default = gmail-only; untuk produksi
+ * penuh set env `ONBOARDING_GMAIL_ONLY=false` agar semua domain ikut.
+ */
+function onboardingAllowed(email: string | undefined | null): boolean {
+  if (!email) return false;
+  if (process.env.ONBOARDING_GMAIL_ONLY === 'false') return true;
+  return /@gmail\.com$/i.test(email.trim());
+}
+
+/** Sandi awal acak unik per orang (mudah dibaca: huruf+angka, tanpa karakter ambigu). */
+function genPassword(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  const bytes = randomBytes(10);
+  let body = '';
+  for (let i = 0; i < 10; i++) body += alphabet[bytes[i] % alphabet.length];
+  return `Inf-${body}`;
+}
 
 export async function forceComplete(assessorId: string, targetId: string): Promise<Result> {
   if (!Id.safeParse(assessorId).success || !Id.safeParse(targetId).success) return { ok: false, error: 'Input tidak valid' };
@@ -186,5 +207,124 @@ export async function massReminder(): Promise<Result> {
   return {
     ok: true,
     msg: `Pengingat massal: ${sent} terkirim${failed ? `, ${failed} gagal` : ''}${skipped ? `, ${skipped} tanpa email` : ''}.`,
+  };
+}
+
+/**
+ * Email "Undangan & Info Akun" (onboarding, sekali di awal periode) ke SATU pegawai.
+ * Opsi A: menyetel sandi acak unik (admin.updateUserById) lalu mengirimkannya di email
+ * bersama peran, email login, link, daftar belum dinilai, & panduan per peran.
+ * TRIAL: hanya alamat @gmail.com (lihat onboardingAllowed) — non-gmail DILEWATI tanpa
+ * mengubah sandi (cegah akun terkunci dgn sandi yang tak pernah terkirim).
+ */
+export async function sendOnboarding(employeeId: string): Promise<Result> {
+  if (!Id.safeParse(employeeId).success) return { ok: false, error: 'Input tidak valid' };
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!emailConfigured()) return { ok: true, msg: NOT_ACTIVE };
+
+  const { data: ap } = await supabase.from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  const { data: emp } = await supabase.from('employees').select('name, role, is_hrd_admin').eq('id', employeeId).maybeSingle();
+  if (!emp) return { ok: false, error: 'Pegawai tidak ditemukan' };
+
+  const admin = createAdminClient();
+  const { data: u } = await admin.auth.admin.getUserById(employeeId);
+  const email = u.user?.email;
+  if (!email) return { ok: false, error: 'Pegawai belum punya email akun.' };
+  if (!onboardingAllowed(email)) return { ok: true, msg: `Dilewati: ${email} bukan @gmail.com (mode trial).` };
+
+  // Set sandi acak unik LALU kirim (urutan penting: jangan reset bila gagal kirim email).
+  const password = genPassword();
+  const { error: pwErr } = await admin.auth.admin.updateUserById(employeeId, { password });
+  if (pwErr) return { ok: false, error: 'Gagal menyetel sandi: ' + pwErr.message };
+
+  const pendingIds = (await pendingByAssessor(supabase, ap.id)).get(employeeId) ?? [];
+  const { data: targetEmps } = pendingIds.length
+    ? await supabase.from('employees').select('id, name').in('id', pendingIds) : { data: [] };
+  const names = (targetEmps ?? []).map((e) => e.name);
+
+  const base = await appBaseUrl();
+  const send = await sendEmail({
+    to: email,
+    subject: `Undangan & Info Akun — Infarm 360° (${ap.label})`,
+    html: onboardingHtml({
+      name: emp.name, role: emp.role, isHrdAdmin: emp.is_hrd_admin, email, password,
+      periodLabel: ap.label, pendingNames: names, appUrl: base ? `${base}/login` : undefined,
+    }),
+  });
+  if (!send.ok) {
+    return send.reason === 'not_configured'
+      ? { ok: true, msg: NOT_ACTIVE }
+      : { ok: false, error: 'Sandi sudah diubah tapi email gagal dikirim' + (send.detail ? `: ${send.detail}` : '') };
+  }
+
+  await logHrdAction({
+    action: 'progress.onboarding', category: 'progress',
+    summary: `Kirim undangan & info akun ke ${emp.name} (sandi di-set ulang)`,
+    targetType: 'employee', targetId: employeeId, targetLabel: emp.name,
+  });
+  return { ok: true, msg: `Undangan terkirim ke ${emp.name} (${email}).` };
+}
+
+/**
+ * Kirim "Undangan & Info Akun" ke SEMUA pegawai aktif yang ber-email @gmail.com (trial).
+ * Tiap penerima disetel sandi acak unik. Non-gmail & tanpa email DILEWATI (tak diubah).
+ */
+export async function massOnboarding(): Promise<Result> {
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!emailConfigured()) return { ok: true, msg: NOT_ACTIVE };
+
+  const { data: ap } = await supabase.from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  const { data: emps } = await supabase.from('employees').select('id, name, role, is_hrd_admin').eq('is_active', true);
+  const list = emps ?? [];
+  const nameById = new Map(list.map((e) => [e.id, e.name]));
+  const pending = await pendingByAssessor(supabase, ap.id);
+
+  const admin = createAdminClient();
+  const emailById = new Map<string, string>();
+  for (let page = 1; ; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) break;
+    data.users.forEach((x) => { if (x.email) emailById.set(x.id, x.email); });
+    if (data.users.length < 200) break;
+  }
+
+  const base = await appBaseUrl();
+  const link = base ? `${base}/login` : undefined;
+  let sent = 0, failed = 0, skipped = 0;
+  for (const emp of list) {
+    const email = emailById.get(emp.id);
+    if (!onboardingAllowed(email)) { skipped++; continue; } // non-gmail / tanpa email → tak diubah
+    const password = genPassword();
+    const { error: pwErr } = await admin.auth.admin.updateUserById(emp.id, { password });
+    if (pwErr) { failed++; continue; }
+    const names = (pending.get(emp.id) ?? []).map((id) => nameById.get(id) ?? '—');
+    const r = await sendEmail({
+      to: email!,
+      subject: `Undangan & Info Akun — Infarm 360° (${ap.label})`,
+      html: onboardingHtml({
+        name: emp.name, role: emp.role, isHrdAdmin: emp.is_hrd_admin, email: email!, password,
+        periodLabel: ap.label, pendingNames: names, appUrl: link,
+      }),
+    });
+    if (r.ok) sent++; else failed++;
+  }
+
+  await logHrdAction({
+    action: 'progress.mass_onboarding', category: 'progress',
+    summary: `Undangan massal "${ap.label}": ${sent} terkirim, ${failed} gagal, ${skipped} dilewati (non-gmail/tanpa email)`,
+    targetType: 'period', targetId: ap.id, targetLabel: ap.label,
+    meta: { sent, failed, skipped },
+  });
+  return {
+    ok: true,
+    msg: `Undangan massal: ${sent} terkirim${failed ? `, ${failed} gagal` : ''}${skipped ? `, ${skipped} dilewati (non-gmail)` : ''}.`,
   };
 }

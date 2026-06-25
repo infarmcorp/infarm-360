@@ -48,11 +48,39 @@ export function PeriodActions({
     router.refresh();
   }
 
+  /** Kunci & Akhiri dengan palang pengaman: peringatkan terutama bila masih ada laporan
+   *  BELUM difinalisasi — setelah terkunci, finalisasi tak bisa tanpa aktivasi ulang. */
+  async function endWithGuard() {
+    setBusy(true); setErr(null);
+    const r = await activePeriodReadiness();
+    if (!r.ok) { setBusy(false); setErr(r.error); return; }
+    const a = r.active;
+    const issues: string[] = [];
+    if (a) {
+      if (a.unfinalized > 0) issues.push(`${a.unfinalized} laporan belum difinalisasi`);
+      if (a.pending360 > 0) issues.push(`${a.pending360} penilaian 360° belum lengkap`);
+      if (a.drafts > 0) issues.push(`${a.drafts} draf penilaian belum dikirim`);
+    }
+    const head = issues.length
+      ? `Periode ini masih punya:\n• ${issues.join('\n• ')}\n\n`
+      : '';
+    const ok = window.confirm(
+      `${head}Mengunci & mengakhiri periode akan MENUTUP-nya: penilaian/KPI tak bisa diisi/edit lagi, dan ` +
+      `Anda TIDAK bisa memfinalisasi laporan tanpa mengaktifkan ulang periode.\n\n` +
+      `${issues.length ? 'Sebaiknya finalisasi dulu yang tersisa. ' : ''}Lanjutkan mengunci & mengakhiri?`,
+    );
+    if (!ok) { setBusy(false); return; }
+    const res = await endPeriod(periodId);
+    setBusy(false);
+    if (!res.ok) { setErr(res.error ?? 'Gagal'); return; }
+    router.refresh();
+  }
+
   return (
     <div className="flex flex-col items-end gap-1">
       <div className="flex flex-wrap gap-1.5 justify-end">
         {status === 'active' ? (
-          <button type="button" disabled={busy} onClick={() => run(() => endPeriod(periodId))}
+          <button type="button" disabled={busy} onClick={endWithGuard}
             className="text-[11px] font-bold px-2 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50">
             Kunci &amp; Akhiri
           </button>

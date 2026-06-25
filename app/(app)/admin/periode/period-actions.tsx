@@ -3,6 +3,15 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { activatePeriod, endPeriod, toggleHas360, activePeriodReadiness } from './actions';
+import { ConfirmDialog } from '@/components/confirm-dialog';
+
+type Dialog = {
+  title: string;
+  body: React.ReactNode;
+  confirmLabel: string;
+  tone: 'danger' | 'primary';
+  onConfirm: () => Promise<void>;
+};
 
 export function PeriodActions({
   periodId, status, has360,
@@ -12,6 +21,7 @@ export function PeriodActions({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<Dialog | null>(null);
 
   async function run(fn: () => Promise<{ ok: boolean; error?: string }>) {
     setBusy(true); setErr(null);
@@ -21,59 +31,81 @@ export function PeriodActions({
     router.refresh();
   }
 
-  /** Aktivasi dengan palang pengaman: peringatkan bila periode aktif masih punya pekerjaan tertunda. */
-  async function activateWithGuard() {
+  /** Daftar pekerjaan tertunda periode aktif (untuk pesan dialog). */
+  function issuesOf(a: { pending360: number; drafts: number; unfinalized: number } | null): string[] {
+    const out: string[] = [];
+    if (!a) return out;
+    if (a.unfinalized > 0) out.push(`${a.unfinalized} laporan belum difinalisasi`);
+    if (a.pending360 > 0) out.push(`${a.pending360} penilaian 360° belum lengkap`);
+    if (a.drafts > 0) out.push(`${a.drafts} draf penilaian belum dikirim`);
+    return out;
+  }
+
+  /** Jalankan aksi dari dalam dialog (jaga busy + tutup + refresh). */
+  async function fromDialog(fn: () => Promise<{ ok: boolean; error?: string }>) {
     setBusy(true); setErr(null);
-    const r = await activePeriodReadiness();
-    if (r.ok && r.active) {
-      const a = r.active;
-      const issues: string[] = [];
-      if (a.pending360 > 0) issues.push(`${a.pending360} penilaian 360° belum lengkap`);
-      if (a.drafts > 0) issues.push(`${a.drafts} draf penilaian belum dikirim`);
-      if (a.unfinalized > 0) issues.push(`${a.unfinalized} laporan belum difinalisasi`);
-      if (issues.length) {
-        const ok = window.confirm(
-          `Periode aktif "${a.label}" masih punya:\n• ${issues.join('\n• ')}\n\n` +
-          `Mengaktifkan periode ini akan MENGUNCI "${a.label}" — penilaian/KPI-nya tak bisa diisi/edit lagi, ` +
-          `dan draf yang tersisa ikut terkunci.\n\nLanjutkan aktivasi?`,
-        );
-        if (!ok) { setBusy(false); return; }
-      }
-    } else if (!r.ok) {
-      setBusy(false); setErr(r.error); return;
-    }
-    const res = await activatePeriod(periodId);
+    const res = await fn();
     setBusy(false);
+    setDialog(null);
     if (!res.ok) { setErr(res.error ?? 'Gagal'); return; }
     router.refresh();
   }
 
-  /** Kunci & Akhiri dengan palang pengaman: peringatkan terutama bila masih ada laporan
-   *  BELUM difinalisasi — setelah terkunci, finalisasi tak bisa tanpa aktivasi ulang. */
+  /** Aktivasi: bila periode aktif masih punya pekerjaan tertunda → konfirmasi dulu. */
+  async function activateWithGuard() {
+    setBusy(true); setErr(null);
+    const r = await activePeriodReadiness();
+    setBusy(false);
+    if (!r.ok) { setErr(r.error); return; }
+    const issues = issuesOf(r.ok ? r.active : null);
+    if (issues.length && r.ok && r.active) {
+      const label = r.active.label;
+      setDialog({
+        title: 'Aktifkan periode ini?',
+        tone: 'danger',
+        confirmLabel: 'Ya, aktifkan',
+        body: (
+          <>
+            <p>Periode aktif <strong>“{label}”</strong> masih punya:</p>
+            <ul className="list-disc pl-5">{issues.map((s, i) => <li key={i}>{s}</li>)}</ul>
+            <p>Mengaktifkan periode ini akan <strong>MENGUNCI “{label}”</strong> — penilaian/KPI-nya
+              tak bisa diisi/edit lagi, dan draf yang tersisa ikut terkunci.</p>
+          </>
+        ),
+        onConfirm: () => fromDialog(() => activatePeriod(periodId)),
+      });
+      return;
+    }
+    await run(() => activatePeriod(periodId));
+  }
+
+  /** Kunci & Akhiri: selalu konfirmasi; peringatkan bila masih ada yang belum final. */
   async function endWithGuard() {
     setBusy(true); setErr(null);
     const r = await activePeriodReadiness();
-    if (!r.ok) { setBusy(false); setErr(r.error); return; }
-    const a = r.active;
-    const issues: string[] = [];
-    if (a) {
-      if (a.unfinalized > 0) issues.push(`${a.unfinalized} laporan belum difinalisasi`);
-      if (a.pending360 > 0) issues.push(`${a.pending360} penilaian 360° belum lengkap`);
-      if (a.drafts > 0) issues.push(`${a.drafts} draf penilaian belum dikirim`);
-    }
-    const head = issues.length
-      ? `Periode ini masih punya:\n• ${issues.join('\n• ')}\n\n`
-      : '';
-    const ok = window.confirm(
-      `${head}Mengunci & mengakhiri periode akan MENUTUP-nya: penilaian/KPI tak bisa diisi/edit lagi, dan ` +
-      `Anda TIDAK bisa memfinalisasi laporan tanpa mengaktifkan ulang periode.\n\n` +
-      `${issues.length ? 'Sebaiknya finalisasi dulu yang tersisa. ' : ''}Lanjutkan mengunci & mengakhiri?`,
-    );
-    if (!ok) { setBusy(false); return; }
-    const res = await endPeriod(periodId);
     setBusy(false);
-    if (!res.ok) { setErr(res.error ?? 'Gagal'); return; }
-    router.refresh();
+    if (!r.ok) { setErr(r.error); return; }
+    const issues = issuesOf(r.ok ? r.active : null);
+    setDialog({
+      title: 'Kunci & Akhiri Periode?',
+      tone: 'danger',
+      confirmLabel: 'Kunci & Akhiri',
+      body: (
+        <>
+          {issues.length > 0 && (
+            <>
+              <p>Periode ini masih punya:</p>
+              <ul className="list-disc pl-5">{issues.map((s, i) => <li key={i}>{s}</li>)}</ul>
+            </>
+          )}
+          <p>Mengunci & mengakhiri akan <strong>menutup periode</strong>: penilaian/KPI tak bisa
+            diisi/edit lagi, dan Anda <strong>tidak bisa memfinalisasi</strong> laporan tanpa
+            mengaktifkan ulang periode.</p>
+          {issues.length > 0 && <p className="font-semibold text-rose-700">Sebaiknya finalisasi dulu yang tersisa.</p>}
+        </>
+      ),
+      onConfirm: () => fromDialog(() => endPeriod(periodId)),
+    });
   }
 
   return (
@@ -99,6 +131,18 @@ export function PeriodActions({
         </button>
       </div>
       {err && <span className="text-[10px] text-rose-600 max-w-[150px] text-right">{err}</span>}
+
+      <ConfirmDialog
+        open={!!dialog}
+        title={dialog?.title ?? ''}
+        confirmLabel={dialog?.confirmLabel}
+        tone={dialog?.tone}
+        busy={busy}
+        onConfirm={() => dialog?.onConfirm()}
+        onCancel={() => { if (!busy) setDialog(null); }}
+      >
+        {dialog?.body}
+      </ConfirmDialog>
     </div>
   );
 }

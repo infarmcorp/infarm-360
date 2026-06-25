@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { forceComplete, sendReminder, massReminder, sendOnboarding, massOnboarding } from './actions';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 
 export type Pending = { targetId: string; targetName: string; relation: string; mandatory: boolean };
 export type AssessorRow = {
@@ -19,6 +20,7 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
   const [status, setStatus] = useState<'all' | 'lengkap' | 'belum'>('all');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
+  const [confirm, setConfirm] = useState<{ title: string; body: React.ReactNode; onYes: () => void } | null>(null);
   const [pending, start] = useTransition();
 
   const depts = useMemo(() => [...new Set(rows.map((r) => r.dept))].sort(), [rows]);
@@ -84,7 +86,17 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
           🔔 Kirim Pengingat Massal
         </button>
         <button type="button" disabled={pending}
-          onClick={() => { if (window.confirm('Kirim UNDANGAN & INFO AKUN ke semua pegawai ber-email @gmail.com? Sandi mereka akan DISETEL ULANG (acak unik) dan dikirim via email. Lakukan sekali di awal periode, sebelum mereka mengganti sandi sendiri.')) act(massOnboarding); }}
+          onClick={() => setConfirm({
+            title: 'Kirim Undangan Massal?',
+            onYes: () => act(massOnboarding),
+            body: (
+              <>
+                <p>Kirim <strong>Undangan &amp; Info Akun</strong> ke semua pegawai.</p>
+                <p>Sandi mereka akan <strong>DISETEL ULANG</strong> (acak unik) lalu dikirim via email.</p>
+                <p className="font-semibold text-rose-700">Lakukan sekali di awal periode, sebelum mereka mengganti sandi sendiri.</p>
+              </>
+            ),
+          })}
           className="text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-60">
           📨 Kirim Undangan Massal
         </button>
@@ -113,7 +125,13 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
                     {r.mandatoryDone}/{r.mandatoryTotal} wajib · {complete ? 'Lengkap' : 'Belum'}
                   </span>
                   <button type="button" disabled={pending}
-                    onClick={() => { if (window.confirm(`Kirim Undangan & Info Akun ke ${r.name}? Sandi-nya akan disetel ulang (acak) lalu dikirim via email (hanya bila alamatnya @gmail.com).`)) act(() => sendOnboarding(r.id)); }}
+                    onClick={() => setConfirm({
+                      title: `Kirim Undangan ke ${r.name}?`,
+                      onYes: () => act(() => sendOnboarding(r.id)),
+                      body: (
+                        <p>Sandi <strong>{r.name}</strong> akan <strong>disetel ulang</strong> (acak) lalu dikirim via email berisi info akun &amp; panduan.</p>
+                      ),
+                    })}
                     title="Kirim undangan + info akun (peran, email, sandi baru, panduan)"
                     className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">
                     Undangan
@@ -186,9 +204,21 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
         <strong> Menilai (wajib)</strong> (tugas wajib penilai) &amp; <strong>Dinilai oleh</strong> (berapa
         penilai sudah menilai pegawai ini). “Paksa Selesai” menandai penilaian terkirim; “Kirim Pengingat”
         mengirim email berisi daftar yang belum dinilai; “Undangan” / “Kirim Undangan Massal” mengirim
-        info akun (peran, email, sandi baru, panduan) sekali di awal periode — sandi disetel ulang &amp;
-        saat trial hanya ke alamat @gmail.com.
+        info akun (peran, email, sandi baru, panduan) sekali di awal periode — sandi disetel ulang.
       </p>
+
+      <ConfirmDialog
+        open={!!confirm}
+        icon="📨"
+        title={confirm?.title ?? ''}
+        tone="primary"
+        confirmLabel="Kirim"
+        busy={pending}
+        onConfirm={() => { confirm?.onYes(); setConfirm(null); }}
+        onCancel={() => setConfirm(null)}
+      >
+        {confirm?.body}
+      </ConfirmDialog>
     </div>
   );
 }

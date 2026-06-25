@@ -499,8 +499,16 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
 - ✅ **Self-service ganti sandi** (Akun Saya) — menutup risiko sandi bersama tanpa email.
 - 🔑⬜ **Lupa Sandi via email** (dormant) — kode siap (`app/auth/lupa-sandi`, `/auth/callback`,
   `/auth/perbarui-sandi`); aktifkan dgn email asli + SMTP/Resend + `NEXT_PUBLIC_ENABLE_PW_RESET=true`.
-- 🔑⬜ **Email seed `nama@infarm.test` → asli** (10 akun) — prasyarat pengingat 360° + reset sandi.
-- 🔑⬜ **Rotasi kredensial** (`SUPABASE_SERVICE_ROLE_KEY` dll) sebelum produksi.
+- 🔑⬜ **Email seed `nama@infarm.test` → asli** — **BLOCKER Q2**. Per 2026-06-25 baru **3 akun**
+  ber-`@gmail.com` (Andra, Christopher, Ulfa) + **4 akun `@notgmail.com`** (cek apakah email asli yang
+  sengaja diubah); sisanya placeholder. Tanpa email asli, undangan/pengingat tak sampai → 360° tak terisi.
+  Setelah diganti → **Kirim Undangan Massal** (otomatis set sandi unik = tuntaskan "sandi beda per orang").
+- 🔑⬜ **Rotasi kredensial** (`SUPABASE_SERVICE_ROLE_KEY` dll) sebelum produksi — service_role menembus
+  seluruh RLS; bila pernah ter-share saat dev → bocor = seluruh data terbuka.
+- 🔑⬜ **Cadangan data (backup) rutin** — **KRUSIAL & sering terlupa**. Supabase **free tier** nyaris
+  tanpa backup otomatis → salah hapus/migrasi = **data satu kuartal hilang permanen**. Jadwalkan
+  **ekspor/pg_dump rutin** (harian / akhir periode). Ekspor Dataset Excel = cadangan parsial; perlu
+  dump DB penuh untuk pemulihan. (Skrip backup bisa dibuat — lihat Keandalan teknis.)
 - ✅ **Hapus arsip legacy** `/legacy` + `src/` — selesai (seed dilepas ke `scripts/seed-data.ts`).
 - ✅ **Audit npm — `xlsx` (high)** — **SELESAI**. Di-upgrade ke `xlsx@0.20.3` dari CDN resmi
   SheetJS (`package.json` → `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`); advisory
@@ -562,7 +570,13 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
   - **#11 Aktivasi periode baru** saat periode lama belum lengkap → peringatan konfirmasi muncul.
   - **#13 Uji beban k6** (`scripts/loadtest/`) sebelum buka ke ~100 pengguna (belum dijalankan).
   - **#14 Blank di HP** (URL Vercel) — di-skip pengguna; dugaan browser/OS HP lama; belum dikejar.
-  - (Pra-go-live email/sandi/rotasi kredensial/branch-protection tetap di bagian Keamanan & item bawah.)
+  - **#15 Jalankan `npm run verify:rls`** pra-Q2 — pastikan kebijakan keamanan masih utuh setelah
+    migrasi 0015/0016 (eksternal/ad-hoc) sebelum data nyata masuk. Aman & self-cleaning.
+  - **#16 Dependensi KPI utk finalisasi** — `saveOrFinalizeReport` menolak bila KPI pegawai kosong
+    (KPI = 50% Skor Akhir). Pastikan SPV input KPI semua bulan periode sebelum tahap finalisasi.
+  - **#17 Penegasan "Wajib tekan Kirim" ke pegawai** — draf (auto-save) **tak** terhitung/ter-ekspor;
+    hanya `submitted`. Tegaskan di undangan/form agar pegawai tak berhenti di draf. (belum dibangun)
+  - (Pra-go-live email/sandi/rotasi kredensial/**backup rutin**/branch-protection tetap di bagian Keamanan & item bawah.)
 - 🔄 **Tes unit** — Vitest **55 tes** (logika skor + parsing impor Excel KPI & pemetaan 360°).
 - ⬜ **Tes Server Action** (finalisasi laporan, `releaseToSpv`, `setHrdAdmin`, ACC) — belum ada;
   butuh mock Supabase. Nilai sedang. **Task baru (diskusi 2026-06-19).**

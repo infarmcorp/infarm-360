@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { UserPlus, Pencil, KeyRound, Power, X, ShieldCheck } from 'lucide-react';
 import { createEmployee, updateEmployee, setEmployeeActive, resetPassword, setHrdAdmin } from './actions';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type EmpRow = {
@@ -44,6 +45,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
   const [fDept, setFDept] = useState('all');
   const [form, setForm] = useState<FormState | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
+  const [reset, setReset] = useState<{ r: EmpRow; pw: string } | null>(null); // dialog reset sandi
   const [pending, start] = useTransition();
   // Gulir ke form saat dibuka (tambah/edit) — form dirender di atas, jadi tanpa ini
   // edit baris bawah membuat form muncul di luar layar. openTick memicu efek tiap buka.
@@ -132,9 +134,15 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
   }
 
   function doReset(r: EmpRow) {
-    const np = window.prompt(`Sandi baru untuk ${r.name} (min. 6 karakter):`, randPass());
-    if (!np) return;
-    act(() => resetPassword(r.id, np));
+    setToast(null);
+    setReset({ r, pw: randPass() });
+  }
+  function submitReset() {
+    if (!reset) return;
+    if (reset.pw.trim().length < 6) { setToast({ ok: false, text: 'Sandi minimal 6 karakter.' }); return; }
+    const { r, pw } = reset;
+    setReset(null);
+    act(() => resetPassword(r.id, pw.trim()));
   }
 
   return (
@@ -303,6 +311,30 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
       <p className="text-[10px] text-gray-500 italic">
         Nonaktif mengunci akun (tak bisa login) tanpa menghapus riwayat penilaian/KPI. Email boleh placeholder dan diganti kapan saja lewat “Ubah”.
       </p>
+
+      <ConfirmDialog
+        open={!!reset}
+        icon="🔑"
+        title={reset ? `Reset sandi — ${reset.r.name}` : ''}
+        tone="primary"
+        confirmLabel="Setel Sandi"
+        busy={pending}
+        onConfirm={submitReset}
+        onCancel={() => { if (!pending) setReset(null); }}
+      >
+        <p>Setel sandi baru untuk pegawai ini. Disarankan pegawai menggantinya sendiri setelah login lewat <strong>Akun Saya</strong>.</p>
+        <div className="flex gap-1.5">
+          <input
+            value={reset?.pw ?? ''}
+            onChange={(e) => setReset((s) => (s ? { ...s, pw: e.target.value } : s))}
+            minLength={6}
+            placeholder="min. 6 karakter"
+            className="flex-1 text-sm px-2.5 py-1.5 border border-gray-300 rounded-lg font-mono focus:outline-none focus:ring-1 focus:ring-emerald-600"
+          />
+          <button type="button" onClick={() => setReset((s) => (s ? { ...s, pw: randPass() } : s))}
+            className="text-[11px] font-bold px-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0">Acak</button>
+        </div>
+      </ConfirmDialog>
 
       <style>{`.inp{width:100%;font-size:.8rem;padding:.5rem .65rem;border:1px solid #d1d5db;border-radius:.5rem;outline:none}.inp:focus{box-shadow:0 0 0 2px #047857}`}</style>
     </div>

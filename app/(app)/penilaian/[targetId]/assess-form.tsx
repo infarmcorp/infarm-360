@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, CheckCircle2, X, Send, Save, XCircle, Trash2, ClipboardList, ChevronDown, Loader2 } from 'lucide-react';
 import { submitAssessment, discardAssessment } from '../actions';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 
 type Indicator = { id: string; text: string; description?: string | null; ratingGuide?: Record<string, string> | null };
 type Group = { id: string; name: string; indicators: Indicator[] };
@@ -90,6 +91,7 @@ export function AssessForm({
   const [guideOpen, setGuideOpen] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [confirmSend, setConfirmSend] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [sentDone, setSentDone] = useState(false);
 
   // Pengaman auto-save: lockRef = jangan autosave (sedang konfirmasi/kirim/selesai);
@@ -223,11 +225,12 @@ export function AssessForm({
     setSentDone(true);
   }
 
-  async function discard() {
-    if (!window.confirm('Buang draf penilaian ini? Semua rating & komentar yang tersimpan akan dihapus.')) return;
+  function discard() { setConfirmDiscard(true); }
+  async function doDiscard() {
     setBusy(true); setError(null);
     const res = await discardAssessment(targetId);
     setBusy(false);
+    setConfirmDiscard(false);
     if (!res.ok) { setError(res.error); return; }
     router.push('/penilaian'); router.refresh();
   }
@@ -518,6 +521,17 @@ export function AssessForm({
           </button>
         </div>
       </div>
+      <ConfirmDialog
+        open={confirmDiscard}
+        title="Buang draf penilaian?"
+        tone="danger"
+        confirmLabel="Buang Draf"
+        busy={busy}
+        onConfirm={doDiscard}
+        onCancel={() => { if (!busy) setConfirmDiscard(false); }}
+      >
+        <p>Semua rating &amp; komentar yang tersimpan sebagai draf akan <strong>dihapus</strong>. Tindakan ini tak bisa dibatalkan.</p>
+      </ConfirmDialog>
     </div>
   );
 }

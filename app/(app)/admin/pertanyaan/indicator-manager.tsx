@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, ChevronRight, Trash2, ChevronUp, Pencil, Check, X } from 'lucide-react';
 import { updateIndicator, toggleIndicator, deleteIndicator, renameAspect, deleteAspect, moveAspect } from './actions';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 
 type Ind = { id: string; text: string; is_active: boolean; description: string; ratingGuide: Record<string, string> | null };
 
@@ -49,6 +50,7 @@ function AspectHeader({
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(aspectName);
+  const [confirmDel, setConfirmDel] = useState(false);
 
   async function save() {
     if (!name.trim() || name.trim() === aspectName) { setEditing(false); setName(aspectName); return; }
@@ -57,11 +59,11 @@ function AspectHeader({
   }
   async function remove() {
     if (count > 0) { await run(async () => ({ ok: false, error: `Aspek masih punya ${count} indikator — hapus indikatornya dulu.` })); return; }
-    if (!window.confirm(`Hapus aspek "${aspectName}"?`)) return;
-    await run(() => deleteAspect(aspectId));
+    setConfirmDel(true);
   }
 
   return (
+    <>
     <div className="flex items-center justify-between gap-2 mb-2">
       {editing ? (
         <div className="flex items-center gap-1 flex-1">
@@ -86,12 +88,25 @@ function AspectHeader({
         </div>
       )}
     </div>
+    <ConfirmDialog
+      open={confirmDel}
+      title="Hapus aspek?"
+      tone="danger"
+      confirmLabel="Hapus"
+      busy={busy}
+      onConfirm={async () => { const ok = await run(() => deleteAspect(aspectId)); if (ok) setConfirmDel(false); }}
+      onCancel={() => { if (!busy) setConfirmDel(false); }}
+    >
+      <p>Hapus aspek <strong>“{aspectName}”</strong>? Tindakan ini tak bisa dibatalkan.</p>
+    </ConfirmDialog>
+    </>
   );
 }
 
 function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ ok: boolean; error?: string }>) => Promise<boolean>; busy: boolean }) {
   const [text, setText] = useState(ind.text);
   const [open, setOpen] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
   const [desc, setDesc] = useState(ind.description);
   const [guide, setGuide] = useState<Record<string, string>>(() => ({
     '1': ind.ratingGuide?.['1'] ?? '', '2': ind.ratingGuide?.['2'] ?? '', '3': ind.ratingGuide?.['3'] ?? '',
@@ -107,6 +122,7 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
   }
 
   return (
+    <>
     <div className={`rounded-lg ${ind.is_active ? '' : 'opacity-50'}`}>
       <div className="flex items-center gap-1.5">
         <button type="button" onClick={() => setOpen((o) => !o)} title="Panduan penilaian"
@@ -125,7 +141,7 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
           {ind.is_active ? 'Nonaktif' : 'Aktifkan'}
         </button>
         <button type="button" disabled={busy} title="Hapus indikator (hanya bila belum dipakai penilaian)"
-          onClick={() => { if (window.confirm('Hapus indikator ini? Hanya bisa bila belum dipakai penilaian mana pun.')) run(() => deleteIndicator(ind.id)); }}
+          onClick={() => setConfirmDel(true)}
           className="text-[10px] font-bold px-1.5 py-1 rounded border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50 shrink-0">
           <Trash2 className="w-3.5 h-3.5" />
         </button>
@@ -160,5 +176,17 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
         </div>
       )}
     </div>
+    <ConfirmDialog
+      open={confirmDel}
+      title="Hapus indikator?"
+      tone="danger"
+      confirmLabel="Hapus"
+      busy={busy}
+      onConfirm={async () => { const ok = await run(() => deleteIndicator(ind.id)); if (ok) setConfirmDel(false); }}
+      onCancel={() => { if (!busy) setConfirmDel(false); }}
+    >
+      <p>Hapus indikator ini? Hanya bisa dihapus bila <strong>belum dipakai</strong> penilaian mana pun.</p>
+    </ConfirmDialog>
+    </>
   );
 }

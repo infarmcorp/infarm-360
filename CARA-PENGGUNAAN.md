@@ -485,6 +485,46 @@ pegawai melihat **Laporan Hasil Saya** berupa **agregat** (skor + radar/aspek + 
 
 **Tahap 7 — HRD → Direksi.** Usulan promosi/suksesi untuk **ACC Direksi**.
 
+### Ceklis HRD — Menjalankan Satu Periode (mulai → akhir)
+
+Rujukan langkah-demi-langkah lengkap dengan dampaknya. Urutan disarankan:
+
+```
+Buat → Aktivasi → Set Tanpa 360° → Pertanyaan → Bobot → Pemetaan
+   → Aktifkan 360° (LUNCURKAN) → Umumkan (email) → (pegawai mengisi)
+   → Hitung Skor 360° → Review → Rilis ke SPV → Finalisasi
+   → Kunci & Akhiri → periode berikutnya
+```
+
+| # | Aksi HRD | Dampak |
+|---|----------|--------|
+| 0 | **Buat periode** (label, tanggal, Standar KPI) | Periode dibuat, **belum aktif** — belum ada efek |
+| 1 | **Aktivasi Periode** | Status → **aktif**; **Input KPI** terbuka; **hanya 1 periode aktif** (yang lain otomatis diakhiri) |
+| 2 | **Set Tanpa 360°** | Form 360° **disembunyikan** dari pegawai — aman untuk menyiapkan |
+| 3 | **Kelola Pertanyaan → Bobot → Pemetaan** | Tersimpan ke periode; **belum terlihat** pegawai (360° masih tutup) |
+| 4 | **Aktifkan 360°** 🚀 | Form 360° **tampil serentak** ke semua pegawai berpemetaan = **peluncuran** |
+| 5 | **Kirim Undangan Massal** (lalu Pengingat) | Pegawai menerima info akun + sandi + panduan; tahu harus mulai |
+| 6 | *(pengisian berjalan)* — pantau **Progress 360** | Data 360° + KPI terkumpul; kirim pengingat utk yang belum |
+| 7 | **Hitung Ulang Skor 360°** | `result_360` terisi; banner "Skor 360° basi" bila ada perubahan setelah hitung |
+| 8 | **Review Hasil Akhir** → **Rilis ke SPV** | Status `in_review`; SPV bisa lihat detail agregat + ACC |
+| 9 | **Finalisasi** per pegawai | Status `finalized`; **pegawai bisa lihat Laporan Hasil Saya** |
+| 10 | **Kunci & Akhiri Periode** | Status **ended**; **semua isi/edit ditolak server**; periode jadi arsip |
+| 11 | **Aktivasi periode berikutnya** | Periode lama otomatis diakhiri; **palang kesiapan** bila masih ada tugas tertunda |
+
+**Dua "saklar" yang berbeda — jangan tertukar:**
+
+| Saklar | Mengatur | Dipakai kapan |
+|--------|----------|----------------|
+| **Aktifkan 360° / Set Tanpa 360°** | buka/tutup **bagian 360°** (form + skor) saja | di tengah persiapan/berjalan |
+| **Aktivasi / Kunci & Akhiri** | hidup/mati **seluruh periode** (KPI **dan** 360°) | awal & akhir siklus |
+
+> **Peluncuran 360° dikendalikan oleh "Aktifkan 360°"**, bukan oleh pembuatan pemetaan. Selama
+> 360° masih "Set Tanpa 360°", pegawai **tak melihat** form meski pemetaan sudah dibuat. **"Kunci &
+> Akhiri" hanya untuk akhir siklus** — bukan untuk menyembunyikan form sementara.
+
+> **Periode berikutnya:** ulangi langkah 0–10. Bila pegawai sudah pernah onboarding, **lewati langkah 5**
+> (cukup "Kirim Pengingat" biasa, tanpa Undangan Massal yang menyetel ulang sandi).
+
 ### Transisi status & siapa melihat apa
 
 ```

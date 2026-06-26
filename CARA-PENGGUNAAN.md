@@ -3,6 +3,9 @@
 Panduan pengguna aplikasi penilaian kinerja (Performance Appraisal) 360°.
 Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saat ini.
 
+> 📌 **Rincian tiap tombol per halaman** (fungsi · peran · kondisi · konfirmasi): lihat
+> [RINCIAN-TOMBOL.md](RINCIAN-TOMBOL.md) — kamus lengkap semua aksi di aplikasi.
+
 > **Status:** aplikasi **live** dengan database **Supabase** (auth nyata, RLS per peran).
 > Seluruh akun saat ini memakai sandi awal bersama **`Infarm2026`** (hasil reset massal) —
 > sebaiknya tiap pegawai menggantinya. Pegawai asli dikelola lewat menu

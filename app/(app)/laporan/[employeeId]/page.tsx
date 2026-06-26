@@ -9,7 +9,6 @@ import { ReportActions } from '../report-actions';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
 import { AspectSummaryView } from '../aspect-summary-view';
 import { RawFeedback } from '../raw-feedback';
-import { SummaryDirtyProvider } from '../summary-dirty';
 
 /**
  * Dokumen Laporan rinci satu pegawai. Tiga jalur tampilan:
@@ -119,10 +118,7 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   return (
     <Shell>
       <Link href={back.href} className="text-xs text-gray-500 hover:underline no-print">{back.label}</Link>
-      {/* Provider berbagi status "ringkasan belum disimpan" antara editor & panel aksi
-          (guard konfirmasi saat Rilis/Finalisasi). */}
-      <SummaryDirtyProvider>
-        <div className="mt-2">
+      <div className="mt-2">
           {/* Peringatan skor 360° basi: penilaian berubah setelah hitung ulang terakhir. */}
           {isAdmin && score360Stale && (
             <div className="mb-3 flex items-start gap-2 bg-amber-50 border border-amber-300 rounded-xl p-3 text-[12px] text-amber-900 no-print">
@@ -152,12 +148,11 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
           <ReportDoc data={data} anonymize={false} hideAssessorComments={isAdmin} hidePrint={isAdmin} />
           {isAdmin && data.has360 && (
             <>
-              <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} />
+              <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} locked={data.status === 'finalized'} />
               <RawFeedback byAspect={data.byAspect} essays={data.essays} />
             </>
           )}
         </div>
-      </SummaryDirtyProvider>
     </Shell>
   );
 }

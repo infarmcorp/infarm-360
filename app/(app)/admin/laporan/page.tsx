@@ -63,7 +63,8 @@ export default async function AdminLaporanPage() {
     const final = finalScoreOf(kpiAvg, s360, ap.has_360, penBy.get(e.id) ?? 0);
     const rep = repBy.get(e.id);
     return {
-      id: e.id, name: e.name, dept: e.dept, final, status: rep?.status ?? null, spvAcc: !!rep?.spv_acc,
+      id: e.id, name: e.name, dept: e.dept, final, storedFinal: rep?.final_score ?? null,
+      status: rep?.status ?? null, spvAcc: !!rep?.spv_acc,
       ratedDone: ratedDone.get(e.id) ?? 0, ratedTotal: ratedTotal.get(e.id) ?? 0,
     };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));
@@ -81,8 +82,10 @@ export default async function AdminLaporanPage() {
 
       <ReportTable rows={rows} depts={depts} has360={ap.has_360} />
       <p className="text-[10px] text-gray-500 italic mt-3">
-        Alur ideal: Simpan Draf → SPV ACC (Laporan Kinerja Tim) → Finalisasi. Setelah final,
-        pegawai melihatnya di Laporan Hasil Saya.
+        Klik <strong>Tinjau</strong> untuk membuka & mengelola laporan pegawai (Simpan Draf → Rilis ke SPV →
+        Finalisasi) di panel detail. Setelah <strong>Final</strong>, kolom Skor Akhir menampilkan angka
+        tersimpan yang dilihat pegawai; badge <strong>berubah</strong> muncul bila data terkini berbeda
+        (kembalikan ke draf lalu finalisasi ulang untuk memperbarui).
       </p>
     </Shell>
   );

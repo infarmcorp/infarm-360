@@ -156,7 +156,13 @@ export async function saveAspectSummaries(employeeId: string, raw: unknown): Pro
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
   const { data: existing } = await supabase.from('final_reports')
-    .select('id, content').eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
+    .select('id, content, status').eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
+
+  // Laporan FINAL terkunci: ringkasan tak bisa diubah sampai dikembalikan ke draf
+  // (selaras penguncian editor di UI — sumber kebenaran yang dilihat pegawai tak berubah diam-diam).
+  if (existing?.status === 'finalized') {
+    return { ok: false, error: 'Laporan sudah final — kembalikan ke draf dulu untuk mengedit ringkasan.' };
+  }
 
   if (existing) {
     const content = { ...(existing.content as Record<string, unknown> ?? {}), aspectSummaries: summaries };

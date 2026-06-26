@@ -3,11 +3,12 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { ReportStatus } from '@/lib/database.types';
-import { ReportRowActions } from './report-row';
 
 export type ReportRow = {
   id: string; name: string; dept: string;
-  final: number | null; status: ReportStatus | null; spvAcc: boolean;
+  final: number | null;        // Skor Akhir LIVE (dihitung dari KPI/360/punishment terkini)
+  storedFinal: number | null;  // Skor Akhir TERSIMPAN (snapshot final_reports) — yang dilihat pegawai
+  status: ReportStatus | null; spvAcc: boolean;
   ratedDone: number; ratedTotal: number; // penilai WAJIB yang sudah submit / total
 };
 
@@ -88,7 +89,26 @@ export function ReportTable({ rows, depts, has360 }: { rows: ReportRow[]; depts:
                 </td>
                 <td className="py-3 px-3 text-xs text-gray-600">{r.dept}</td>
                 <td className="py-3 px-3 text-center font-mono font-black text-slate-800">
-                  {r.final != null ? r.final.toFixed(1) : '—'}
+                  {(() => {
+                    // Baris FINAL: tampilkan angka TERSIMPAN (beku) yang dilihat pegawai.
+                    // Bila skor LIVE berbeda (KPI/360/punishment berubah sejak final) → badge "berubah".
+                    if (r.status === 'finalized') {
+                      const stored = r.storedFinal;
+                      const drift = r.final != null && stored != null && Math.abs(r.final - stored) >= 0.05;
+                      return (
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span>{stored != null ? stored.toFixed(1) : '—'}</span>
+                          {drift && (
+                            <span title={`Skor terkini ${r.final!.toFixed(1)} berbeda dari yang difinalisasi — Kembalikan ke Draf lalu Finalisasi ulang untuk memperbarui.`}
+                              className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                              berubah → {r.final!.toFixed(1)}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    }
+                    return r.final != null ? r.final.toFixed(1) : '—';
+                  })()}
                 </td>
                 {has360 && (
                   <td className="py-3 px-3 text-center">
@@ -114,7 +134,12 @@ export function ReportTable({ rows, depts, has360 }: { rows: ReportRow[]; depts:
                     : <span className="text-[10px] text-gray-500">—</span>}
                 </td>
                 <td className="py-3 pl-3 text-right">
-                  <ReportRowActions employeeId={r.id} canCompute={r.final != null} />
+                  {r.final == null
+                    ? <span className="text-[10px] text-gray-500 italic">KPI kosong</span>
+                    : <Link href={`/laporan/${r.id}`}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+                        Tinjau →
+                      </Link>}
                 </td>
               </tr>
             ))}

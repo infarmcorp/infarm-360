@@ -1,59 +1,91 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Save, AlertTriangle } from 'lucide-react';
+import { Sparkles, Lock } from 'lucide-react';
 import { saveAspectSummaries } from '@/app/(app)/admin/laporan/actions';
-import { useSummaryDirty } from './summary-dirty';
 
 /**
  * Section 4 — EVALUASI ASPEK BUDAYA & PERILAKU 360° (HRD).
  * HRD meringkas/mengkalibrasi hasil 360° per aspek (naratif), tersimpan di
  * final_reports.content.aspectSummaries. Anonim — tak menyebut nama penilai.
+ *
+ * AUTO-SIMPAN (debounce 5s + saat blur) — tak ada tombol "Simpan" manual, kerja
+ * tak hilang (pola sama dengan form penilaian). TERKUNCI bila laporan sudah
+ * `finalized`: harus "Kembalikan ke Draf" dulu untuk mengedit (cegah ubah diam-diam
+ * isi yang sudah dilihat pegawai).
  */
+type SaveState = 'idle' | 'pending' | 'saving' | 'saved' | 'error';
+
 export function AspectSummaryEditor({
-  employeeId, aspects, initial,
+  employeeId, aspects, initial, locked = false,
 }: {
-  employeeId: string; aspects: string[]; initial: Record<string, string>;
+  employeeId: string; aspects: string[]; initial: Record<string, string>; locked?: boolean;
 }) {
   const [vals, setVals] = useState<Record<string, string>>(() => {
     const o: Record<string, string> = {};
     aspects.forEach((a) => { o[a] = initial[a] ?? ''; });
     return o;
   });
-  const [busy, setBusy] = useState(false);
-  const { dirty, setDirty } = useSummaryDirty(); // dibagi ke ReportActions (guard rilis)
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>('idle');
   const router = useRouter();
+  const hydratedRef = useRef(false); // lewati render awal (mount)
+  const savingRef = useRef(false);
 
-  async function save() {
-    setBusy(true); setMsg(null);
+  const changed = aspects.some((a) => (vals[a] ?? '') !== (initial[a] ?? ''));
+
+  async function flush() {
+    if (locked || savingRef.current) return;
+    savingRef.current = true; setSaveState('saving');
     const res = await saveAspectSummaries(employeeId, vals);
-    setBusy(false);
-    if (res.ok) {
-      setDirty(false);
-      setMsg({ ok: true, text: 'Ringkasan tersimpan.' });
-      router.refresh(); // sinkronkan tampilan dgn isi DB (hindari "terlihat tersimpan" padahal belum)
-    } else {
-      setMsg({ ok: false, text: res.error });
-    }
+    savingRef.current = false;
+    setSaveState(res.ok ? 'saved' : 'error');
+    if (res.ok) router.refresh(); // sinkronkan tampilan dgn isi DB
   }
+
+  // AUTO-SIMPAN: debounce 5s setelah perubahan terakhir.
+  useEffect(() => {
+    if (!hydratedRef.current) { hydratedRef.current = true; return; }
+    if (locked || !changed) return;
+    setSaveState('pending');
+    const t = setTimeout(() => { void flush(); }, 5000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vals]);
 
   if (aspects.length === 0) return null;
 
+  const STATUS_TEXT: Record<SaveState, string> = {
+    idle: '', pending: 'Perubahan belum disimpan…', saving: 'Menyimpan…',
+    saved: '✓ Tersimpan otomatis', error: '✗ Gagal menyimpan — coba ubah lagi',
+  };
+
   return (
     <section className="mt-6 break-inside-avoid">
-      <div className="bg-emerald-700 text-white rounded-t-xl px-4 py-2.5">
+      <div className="bg-emerald-700 text-white rounded-t-xl px-4 py-2.5 flex items-center justify-between gap-2">
         <h2 className="text-sm font-extrabold uppercase tracking-wide flex items-center gap-2">
           <Sparkles className="w-4 h-4" /> Evaluasi Aspek Budaya &amp; Perilaku 360°
         </h2>
+        {locked && (
+          <span className="text-[10px] font-bold bg-white/15 px-2 py-0.5 rounded inline-flex items-center gap-1">
+            <Lock className="w-3 h-3" /> Terkunci (Final)
+          </span>
+        )}
       </div>
       <div className="border border-t-0 border-gray-200 rounded-b-xl p-4 space-y-3">
         <p className="text-[11px] text-gray-500 bg-emerald-50/60 border border-emerald-100 rounded-lg p-2">
           Rangkuman evaluasi 360° pelaku budaya perusahaan dari seluruh komentar penilai.
           Pihak manajemen (HRD) melakukan kalibrasi atas aspek ini secara adil &amp; transparan —
           <strong> tanpa menyebut identitas penilai</strong>.
+          {!locked && <> Tersimpan <strong>otomatis</strong> — tak perlu tombol Simpan.</>}
         </p>
+        {locked && (
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg p-2 no-print">
+            <Lock className="w-3.5 h-3.5 shrink-0" />
+            Laporan sudah <strong>final</strong> &amp; terlihat pegawai. Untuk mengubah ringkasan,
+            klik <strong>&quot;Kembalikan ke Draf&quot;</strong> di panel atas.
+          </p>
+        )}
         {aspects.map((a) => (
           <div key={a} className="border border-gray-200 rounded-xl overflow-hidden">
             <div className="px-3 py-2 bg-gray-50 border-b border-gray-150">
@@ -61,29 +93,22 @@ export function AspectSummaryEditor({
             </div>
             <textarea
               value={vals[a] ?? ''}
-              onChange={(e) => { setDirty(true); setMsg(null); setVals((v) => ({ ...v, [a]: e.target.value })); }}
+              disabled={locked}
+              onChange={(e) => { setVals((v) => ({ ...v, [a]: e.target.value })); }}
+              onBlur={() => { if (!locked && changed) void flush(); }} // simpan segera saat pindah fokus
               rows={3}
               placeholder={`Ringkasan kalibrasi HRD untuk aspek "${a}"…`}
-              className="w-full text-xs p-3 outline-none resize-y text-gray-700 leading-relaxed"
+              className="w-full text-xs p-3 outline-none resize-y text-gray-700 leading-relaxed disabled:bg-gray-50 disabled:text-gray-500"
             />
           </div>
         ))}
-        {dirty && (
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 no-print">
-            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-            Perubahan belum disimpan. Klik <strong>Simpan Ringkasan</strong> dulu — tombol
-            &quot;Rilis ke SPV&quot;/&quot;Finalisasi&quot; <strong>tidak</strong> menyimpan ringkasan ini.
+        {!locked && saveState !== 'idle' && (
+          <p className={`text-[11px] font-semibold no-print ${
+            saveState === 'error' ? 'text-rose-600' : saveState === 'saved' ? 'text-emerald-700' : 'text-amber-700'
+          }`}>
+            {STATUS_TEXT[saveState]}
           </p>
         )}
-        <div className="flex items-center gap-3 no-print">
-          <button id="simpan-ringkasan" type="button" onClick={save} disabled={busy}
-            className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg text-white disabled:opacity-50 scroll-mt-24 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 ${
-              dirty ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-700 hover:bg-emerald-800'
-            }`}>
-            <Save className="w-3.5 h-3.5" /> {busy ? 'Menyimpan…' : dirty ? 'Simpan Ringkasan •' : 'Simpan Ringkasan'}
-          </button>
-          {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
-        </div>
       </div>
     </section>
   );

@@ -66,8 +66,9 @@ tak perlu ditandai "sudah dibaca", selalu mengikuti keadaan nyata akun yang logi
 - **X penilaian 360° menunggu diisi** → ke Daftar Penilaian Saya.
 - **Laporan Hasil Anda sudah final** (Employee/SPV) → ke Laporan Hasil Saya.
 - **X anggota belum ada KPI [bulan]** (SPV / HRD mode-SPV) → ke Input KPI.
-- **X permohonan koreksi relasi menunggu**, **X penilaian 360° belum lengkap**, & **X laporan belum
-  difinalisasi** (HRD Admin).
+- **X permohonan koreksi relasi menunggu**, **X penilaian 360° belum lengkap**, **X laporan belum
+  difinalisasi**, & **X laporan final perlu dihitung ulang (data berubah)** → ke Review Hasil Akhir,
+  muncul bila skor tersimpan laporan final berbeda dari skor terkini (HRD Admin).
 - **X usulan suksesi menunggu ACC** (Direksi).
 
 Tiap baris adalah tautan langsung ke halaman terkait. Bila kosong: *"Tak ada tugas tertunda 🎉"*.
@@ -231,7 +232,11 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
    - **Set Tanpa 360° / Aktifkan 360°** = **saklar buka/tutup form penilaian 360°**:
      - **"Set Tanpa 360°"** → form 360° **disembunyikan** dari pegawai (mereka lihat "Penilaian 360°
        belum dibuka") **dan** skor 360° tak dihitung. Pakai saat **menyiapkan** Pertanyaan/Bobot/Pemetaan.
+       **Muncul konfirmasi** bila **sudah ada penilaian 360° terkirim** (karena menyembunyikan form +
+       mengubah Skor Akhir jadi 100% KPI); saat setup awal (belum ada data) langsung tanpa konfirmasi.
      - **"Aktifkan 360°"** → form **tampil serentak** ke semua pegawai yang punya pemetaan = **peluncuran**.
+       Kini **divalidasi**: ditolak bila belum ada **pertanyaan (indikator aktif)** atau **pemetaan**
+       (cegah form 360° kosong) — lengkapi dulu di **Kelola Pertanyaan / Pemetaan**.
      - **Alur disarankan:** Aktivasi → **Set Tanpa 360°** → susun Pertanyaan → Bobot → Pemetaan
        (semua aman, form masih tertutup) → **Aktifkan 360°** (buka) → umumkan via email → finalisasi.
    - **Kunci & Akhiri Periode** menutup **seluruh** periode (KPI **dan** 360°) di akhir siklus;
@@ -300,7 +305,8 @@ Unduh data mentah **Excel (.xlsx)** untuk olah data lanjutan (pivot/statistik/BI
   **Self** selalu dikecualikan dari total. Setelah mengubah, jalankan **Hitung Ulang Skor 360°**.
 - **Kalkulasi Skor 360°**: tombol **Hitung Ulang Skor 360°** menulis hasil resmi
   (`result_360`) memakai model aktif + tabel hasil per pegawai. (Tab terpisah lama
-  sudah disatukan ke halaman ini.)
+  sudah disatukan ke halaman ini.) Tombol **"Hitung Ulang Skor 360°"** kini **juga tersedia di
+  halaman Review Hasil Akhir** (kokpit), jadi HRD tak perlu berpindah halaman.
 - **Perbandingan Model 4-Kelas vs 2-Kelas**: pratinjau skor tiap pegawai bila dihitung
   dengan kedua model sekaligus + **Selisih**, membantu memilih model sebelum Hitung Ulang.
   (Pratinjau tak mengubah data.)
@@ -336,42 +342,68 @@ Unduh data mentah **Excel (.xlsx)** untuk olah data lanjutan (pivot/statistik/BI
 - Filter **Sektor/Divisi** dan **Saring Rencana Suksesi**.
 
 ### Review Hasil Akhir
-**Daftar pegawai** (tabel): kolom **Skor Akhir**, **Dinilai oleh** (saat 360° aktif), **ACC SPV**,
-**Status** (Draf/Ditinjau SPV/Final), plus aksi cepat **Draf**/**Finalisasi** per baris. Ada
-**pencarian nama/divisi**, **filter Divisi**, dan **filter Kelengkapan 360°**. Klik **nama pegawai**
-untuk membuka **dokumen laporan rinci**.
+**Daftar pegawai** (tabel "kokpit") berisi kolom **Pegawai · Divisi · KPI · 360° · Punish. ·
+Skor Akhir · Dinilai oleh · ACC SPV · Status · Aksi**. Ada **pencarian nama/divisi**, **filter
+Divisi**, dan **filter Kelengkapan 360°**. **Detail laporan rinci** dibuka lewat tombol **"Tinjau →"**
+di kolom Aksi — **nama pegawai tidak bisa diklik lagi**.
 
+- Di atas tabel ada **tombol "Hitung Ulang Skor 360° (semua)"** (tak perlu pindah ke halaman Bobot),
+  **chip ringkasan** "⚠ N pegawai: penilaian berubah — perlu hitung ulang", + pintasan **"⚖ Atur Bobot"**
+  & **"⚑ Flag Kepatuhan"**.
+- **Kolom KPI** = rerata KPI + indikator **"X/Y bulan"** (**amber** bila belum semua bulan terisi;
+  hover menampilkan bulan yang masih kosong).
+- **Kolom 360°** = skor 360° terhitung; **"belum"** bila belum dihitung; **"N/A"** bila periode tanpa
+  360°; badge **"⚠ perlu hitung"** bila penilaian berubah / koreksi relasi di-ACC sejak hitung terakhir.
+- **Kolom Punish.** = poin pengurangan (−poin) bila ada.
+- **Kolom Skor Akhir** untuk baris berstatus **Final** menampilkan **angka TERSIMPAN** (yang dilihat
+  pegawai) + badge **"berubah → N"** bila skor terkini berbeda (perlu finalisasi ulang).
 - **Kolom "Dinilai oleh X/Y"** = berapa penilai **wajib** pegawai itu yang sudah **submit** (badge
   **hijau + ✓** bila lengkap, **amber** bila belum, **"—"** bila tak ada penilai ditugaskan).
 - **Filter "Kelengkapan 360°"**: **Semua / Lengkap dinilai (siap review) / Belum lengkap** +
   ringkasan **"N siap review"** — memudahkan HRD memilih siapa yang **datanya sudah cukup** untuk
   difinalisasi. (Pakai sebagai panduan #8: jangan finalisasi sebelum pengisian memadai.)
 
+> **Beda dua istilah penanda skor:**
+> - **"perlu dihitung ulang"** (badge/chip) = Skor 360° **usang** (penilaian atau koreksi relasi
+>   berubah sejak hitung terakhir) → klik **Hitung Ulang Skor 360°**.
+> - **"berubah → N"** = laporan **sudah Final** tetapi skor terkini berbeda dari yang **tersimpan** →
+>   **Kembalikan ke Draf lalu Finalisasi ulang** agar pegawai melihat angka terbaru.
+
 **Di halaman detail pegawai** (HRD):
-1. **Panel Aksi** (di atas dokumen) — badge **Status** & **Skor Akhir** terkini + tombol:
-   - **Unduh PDF** — cetak/simpan laporan sebagai PDF.
-   - **Simpan Draf** — simpan tanpa merilis (status `draft`); SPV hanya lihat angka Skor Akhir.
-   - **Rilis ke SPV** — status `in_review`: SPV terkait kini bisa membuka **detail agregat**
-     (radar/aspek + ringkasan aspek HRD, **tanpa** komentar mentah) untuk ditinjau & diskusi
-     **di luar aplikasi**. Langkah **opsional** — tujuannya alignment sebelum finalisasi.
-   - **Finalisasi Hasil** — rilis ke **pegawai** (status `finalized`). Bisa dari `draft` **atau**
-     `in_review`; **tidak wajib menunggu ACC SPV** (anti-macet bila SPV lambat/cuti).
+1. **Panel Aksi** (di atas dokumen) — perilakunya **berbasis status** (state-machine) + badge
+   **Status** & **Skor Akhir** terkini (bila berbeda dari skor terkini, ada badge **"berubah → N"**):
+   - **Status draf / belum / Ditinjau SPV** (masih dapat diedit) → tombol **Unduh PDF · Simpan Draf ·
+     Rilis ke SPV · Finalisasi Hasil**. ("Rilis ke SPV" **hilang** setelah status sudah **Ditinjau SPV**.)
+     - **Unduh PDF** — cetak/simpan laporan sebagai PDF.
+     - **Simpan Draf** — simpan tanpa merilis (status `draft`); SPV hanya lihat angka Skor Akhir.
+     - **Rilis ke SPV** — status `in_review`: SPV terkait kini bisa membuka **detail agregat**
+       (radar/aspek + ringkasan aspek HRD, **tanpa** komentar mentah) untuk ditinjau & diskusi
+       **di luar aplikasi**. Langkah **opsional** — tujuannya alignment sebelum finalisasi.
+     - **Finalisasi Hasil** — rilis ke **pegawai** (status `finalized`). Bisa dari `draft` **atau**
+       `in_review`; **tidak wajib menunggu ACC SPV** (anti-macet bila SPV lambat/cuti). Tombol ini kini
+       memunculkan **konfirmasi LUNAK** (Batal / Ya, finalisasi — **tidak memblokir keras**) bila:
+       (a) Skor 360° **perlu dihitung ulang** (usang), ATAU (b) **KPI belum lengkap semua bulan**
+       (mis. "baru 2 dari 3 bulan; bila pegawai baru aktif sebagian periode, lanjutkan").
+   - **Status Final** → panel **READ-ONLY**: hanya **Unduh PDF** + tombol **"↩ Kembalikan ke Draf"**
+     (amber, **dengan konfirmasi** karena akan **menyembunyikan laporan dari pegawai** lagi). Untuk
+     mengubah apa pun saat sudah Final, **Kembalikan ke Draf** dulu.
    - Bila **KPI pegawai masih kosong**, tombol simpan dinonaktifkan (Skor Akhir belum bisa dihitung).
-   - **Peringatan "Skor 360° belum mutakhir" (banner amber)**: muncul bila ada perubahan **setelah**
-     Skor 360° terakhir dihitung — **penilaian** dikirim/diubah, **atau koreksi relasi di-ACC** (yang
-     mengubah kelas bobot). Artinya angka Skor 360°/Skor Akhir yang tampil masih lama ("basi").
-     Jalankan **"Hitung Ulang Skor 360°"** (halaman Bobot & Kalkulasi) lalu Simpan/Rilis/Finalisasi
-     **ulang** agar skor mengikuti data terbaru.
+   - **Peringatan "Skor 360° perlu dihitung ulang" (banner amber)**: muncul bila ada perubahan
+     **setelah** Skor 360° terakhir dihitung — **penilaian** dikirim/diubah, **atau koreksi relasi
+     di-ACC** (yang mengubah kelas bobot), atau **belum pernah dihitung**. Banner menyebut **penyebab
+     spesifik**. Artinya angka Skor 360°/Skor Akhir yang tampil masih lama. Jalankan **"Hitung Ulang
+     Skor 360°"** (tersedia di **Review Hasil Akhir** atau halaman **Bobot & Kalkulasi**) lalu
+     Simpan/Rilis/Finalisasi **ulang** agar skor mengikuti data terbaru.
 2. **Ringkasan skor** (Rerata KPI · Evaluasi 360° · Skor Akhir) + **Radar Aspek 360°** — garis
    **penuh indigo = Penilaian Rekan**, garis **putus-putus amber = Evaluasi Diri (Self)**;
    tiap aspek juga ditampilkan dua bar (**Rekan** vs **Diri**) sebagai pembanding.
 3. Section **Evaluasi Aspek Budaya & Perilaku 360°** — HRD menulis **ringkasan kalibrasi naratif
-   per aspek** (anonim, tanpa nama penilai); ketik di tiap kotak aspek lalu **Simpan Ringkasan**.
-   > **Penting — ringkasan disimpan TERPISAH.** Tombol **Rilis ke SPV** / **Finalisasi** **TIDAK**
-   > menyimpan ringkasan ini — Anda **wajib klik "Simpan Ringkasan"** sendiri. Saat ada perubahan
-   > belum disimpan, muncul **banner kuning "Perubahan belum disimpan"**, dan bila Anda menekan
-   > **Rilis/Finalisasi** dalam keadaan itu akan muncul **konfirmasi** ("Batal — simpan dulu" /
-   > "Lanjut tanpa ringkasan"). Bila lupa simpan, SPV/pegawai melihat laporan **tanpa ringkasan terbaru**.
+   per aspek** (anonim, tanpa nama penilai); ketik di tiap kotak aspek.
+   > **Auto-simpan.** Ringkasan kini **tersimpan otomatis** (debounce ~5 detik setelah berhenti
+   > mengetik + saat pindah fokus) dengan **indikator status** (belum disimpan / menyimpan… /
+   > ✓ tersimpan otomatis). **Tidak ada lagi tombol "Simpan Ringkasan" manual**, dan **tidak ada**
+   > banner "Perubahan belum disimpan" maupun konfirmasi saat Rilis/Finalisasi. Saat status **Final**,
+   > editor **terkunci** — **Kembalikan ke Draf** dulu untuk mengubah ringkasan.
    *(Rencana: tombol "Buat Ringkasan Otomatis" via Claude API — HRD tetap bisa menyunting; lihat CLAUDE.md.)*
 4. Section **Rincian Komentar Murni (Raw Feedback)** — **hanya HRD**, **anonim** (identitas
    penilai disembunyikan), dikelompokkan **per aspek → per indikator**: menampilkan **akumulasi
@@ -387,7 +419,10 @@ untuk membuka **dokumen laporan rinci**.
   penilaian **Opsional** adalah **Ad-Hoc** yang ditambahkan pegawai sendiri. Sifat tampil di kolom
   Sifat tabel mapping, di Daftar Penilaian Saya, dan di Progress 360.
 - Daftar pemetaan menampilkan **"Total N pasangan penilaian"** + **filter Penilai & Target**
-  (dengan tombol Bersihkan). Tiap baris bisa dihapus (akomodasi pegawai resign).
+  (dengan tombol Bersihkan). Tiap baris bisa **dihapus** (akomodasi pegawai resign). Bila pasangan
+  itu **sudah dinilai**, muncul **konfirmasi** dan penghapusan **sekaligus menghapus penilaian
+  360°-nya** — **hanya di periode itu** (periode sebelumnya tidak terpengaruh) — lalu skor 360°
+  **otomatis dihitung ulang**.
 - Tinjau **Permohonan Koreksi Garis Hubungan** (setujui/tolak) di tab Koreksi Relasi.
 
 ### Progress 360 Feedback
@@ -415,11 +450,18 @@ untuk membuka **dokumen laporan rinci**.
 
 ### Flag Kepatuhan Penilaian
 - Memantau **kepatuhan** pengisian 360° dan memberi **punishment**.
+- **Tabel default hanya menampilkan pegawai yang perlu perhatian** — yakni yang punya penilaian
+  **Wajib** telat, ATAU belum **self-assessment**, ATAU sudah punya **punishment**. Pegawai patuh
+  penuh & tanpa punishment **disembunyikan** agar halaman lebih bersih. Toggle **"Tampilkan semua
+  pegawai"** menampilkan seluruhnya (untuk memberi punishment manual ke pegawai patuh). Bila semua
+  patuh & tanpa punishment → **empty-state "Semua pegawai patuh"**.
+- **Kartu ringkasan kini 3**: **telat** · **belum self** · **Dengan punishment** (baru).
 - **Flag keterlambatan**: pegawai dengan penilaian **Wajib** yang belum selesai, lengkap
   dengan **jumlah** penilaian terlambat + daftar targetnya.
 - **Flag Self Assessment**: menandai pegawai yang **belum** mengisi penilaian diri sendiri.
-- **Punishment (pengurangan nilai)**: HRD input poin pengurangan per pegawai. Poin ini
-  **memotong Skor Akhir** (minimal 0) dan menjalar ke Review Hasil Akhir, Dashboard, dan
+- **Punishment (pengurangan nilai)**: HRD input poin pengurangan per pegawai. **Kolom Punishment
+  kosong bila belum ada** (placeholder "0", seperti KPI: kosong ≠ 0) — HRD mengisinya secara sadar.
+  Poin ini **memotong Skor Akhir** (minimal 0) dan menjalar ke Review Hasil Akhir, Dashboard, dan
   Monitor Kinerja. **Per kuartal** — banner menampilkan siklus aktif yang sedang dipunish.
 
 ### Monitor Kinerja & Dashboard Organisasi
@@ -495,11 +537,10 @@ tanpa komentar; **edit (input kedua di bulan sama) WAJIB Komentar Audit** — bi
 **Tahap 3 — HRD hitung Skor 360°.** Bobot & Kalkulasi → **Hitung Ulang Skor 360°** → menulis
 `result_360`. *Bila tidak diklik, komponen 360° kosong → Skor Akhir = 100% KPI.*
 
-**Tahap 4 — HRD menyusun laporan** (Review Hasil Akhir → detail pegawai), **dua aksi terpisah**:
-- **(a) Ringkasan kualitatif** — tulis narasi per aspek → **WAJIB klik "Simpan Ringkasan"**.
+**Tahap 4 — HRD menyusun laporan** (Review Hasil Akhir → detail pegawai):
+- **(a) Ringkasan kualitatif** — tulis narasi per aspek; **tersimpan otomatis** (auto-simpan, tanpa
+  tombol Simpan manual) dengan indikator status.
 - **(b) Status laporan** — **Simpan Draf** / **Rilis ke SPV** / **Finalisasi**.
-  > Rilis/Finalisasi **tidak** menyimpan ringkasan; bila ada ringkasan belum disimpan muncul
-  > **konfirmasi**.
 
 **Tahap 5 — SPV meninjau & ACC** (status `in_review`). SPV buka **detail agregat** anggota
 (radar/aspek + ringkasan HRD, anonim, **tanpa lapis 3**) → **Beri ACC** (tombol muncul **hanya
@@ -532,7 +573,7 @@ Buat → Aktivasi → Set Tanpa 360° → Pertanyaan → Bobot → Pemetaan
 | 4 | **Aktifkan 360°** 🚀 | Form 360° **tampil serentak** ke semua pegawai berpemetaan = **peluncuran** |
 | 5 | **Kirim Undangan Massal** (lalu Pengingat) | Pegawai menerima info akun + sandi + panduan; tahu harus mulai |
 | 6 | *(pengisian berjalan)* — pantau **Progress 360** | Data 360° + KPI terkumpul; kirim pengingat utk yang belum |
-| 7 | **Hitung Ulang Skor 360°** | `result_360` terisi; banner "Skor 360° basi" bila ada perubahan setelah hitung |
+| 7 | **Hitung Ulang Skor 360°** | `result_360` terisi; banner "Skor 360° perlu dihitung ulang" bila ada perubahan setelah hitung |
 | 8 | **Review Hasil Akhir** → **Rilis ke SPV** | Status `in_review`; SPV bisa lihat detail agregat + ACC |
 | 9 | **Finalisasi** per pegawai | Status `finalized`; **pegawai bisa lihat Laporan Hasil Saya** |
 | 10 | **Kunci & Akhiri Periode** | Status **ended**; **semua isi/edit ditolak server**; periode jadi arsip |
@@ -602,7 +643,9 @@ peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
   dasar **Flag Kepatuhan** (hanya penilaian Wajib yang dihitung "terlambat").
 - **Perhitungan 360**: relasi menentukan masuk kelas bobot mana (lihat Kelola Bobot).
 - **Progress 360**: total target yang harus diisi tiap orang dihitung dari mapping.
-- Hapus relasi (mis. pegawai resign) → target itu hilang dari daftar penilaian terkait.
+- Hapus relasi (mis. pegawai resign) → target itu hilang dari daftar penilaian terkait. Bila pasangan
+  **sudah dinilai**, hapus (dengan konfirmasi) **juga menghapus penilaian 360°-nya di periode itu saja**
+  → skor 360° **otomatis dihitung ulang**.
 - Setujui/tolak **Permohonan Koreksi** → mengubah relasi yang sudah terdaftar.
 - **Penilai eksternal** (vendor/freelance, ditandai di Kelola Pegawai) **boleh dipilih sebagai
   Penilai** tapi **tidak muncul** di daftar "Yang Dinilai" — mereka hanya menilai, tak pernah dinilai.
@@ -626,18 +669,23 @@ peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
 
 ### 5. Review Hasil Akhir — *finalisasi & rilis laporan bertahap*
 **Fungsi:** audit Final Report per pegawai, tulis ringkasan aspek, rilis ke SPV, lalu finalisasi.
-**Panel aksi** di halaman detail: **Unduh PDF · Simpan Draf · Rilis ke SPV · Finalisasi Hasil**
-(+ badge status & Skor Akhir). **Alur tiga tahap: `draft → in_review → finalized`.**
+**Panel aksi berbasis status** (state-machine) di halaman detail — saat masih dapat diedit
+(draf/belum/Ditinjau SPV): **Unduh PDF · Simpan Draf · Rilis ke SPV · Finalisasi Hasil**; saat
+**Final** panel jadi **read-only**: **Unduh PDF + "↩ Kembalikan ke Draf"** (amber, dengan konfirmasi).
+Badge **Status** & **Skor Akhir** + badge **"berubah → N"** bila skor terkini beda dari tersimpan.
+**Alur tiga tahap: `draft → in_review → finalized`.**
 **Berdampak ke:**
 - **Simpan Draf** (`draft`) → tersimpan; SPV hanya melihat **angka Skor Akhir** (detail terkunci).
 - **Rilis ke SPV** (`in_review`) → SPV terkait bisa membuka **detail agregat** (radar/aspek +
   ringkasan aspek HRD, **anonim, tanpa komentar mentah**) untuk ditinjau; diskusi **di luar aplikasi**.
   Langkah **opsional**. ACC SPV bersifat **non-blok** (tak menghambat finalisasi).
 - **Finalisasi Hasil** (`finalized`) → laporan **muncul untuk pegawai** di **Laporan Hasil Saya**
-  & bisa **Unduh PDF**. Bisa dari `draft` atau `in_review`. Sebelum final, pegawai tidak melihat apa pun.
-- **Ringkasan Aspek** (naratif HRD per aspek) tersimpan di laporan; **Rincian Komentar Murni**
-  (HRD-only, anonim) menampilkan akumulasi rating + komentar per indikator & esai per pertanyaan
-  (Self dikecualikan). **Komentar mentah/per-penilai tidak pernah ditampilkan ke SPV.**
+  & bisa **Unduh PDF**. Bisa dari `draft` atau `in_review`. Memunculkan **konfirmasi lunak** bila
+  Skor 360° perlu dihitung ulang atau KPI belum lengkap semua bulan (tidak memblokir keras). Sebelum
+  final, pegawai tidak melihat apa pun. Untuk mengedit laporan yang sudah Final, **Kembalikan ke Draf** dulu.
+- **Ringkasan Aspek** (naratif HRD per aspek) **tersimpan otomatis** (auto-simpan, tanpa tombol manual);
+  **Rincian Komentar Murni** (HRD-only, anonim) menampilkan akumulasi rating + komentar per indikator
+  & esai per pertanyaan (Self dikecualikan). **Komentar mentah/per-penilai tidak pernah ditampilkan ke SPV.**
 
 ### 6. Promosi & Penyesuaian — *usulan ke Direksi*
 **Fungsi:** input Rencana Suksesi + Catatan Justifikasi per pegawai.

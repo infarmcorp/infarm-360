@@ -138,7 +138,16 @@ async function InputTab({
   if (members.length === 0) return <p className="text-sm text-gray-500">Belum ada anggota tim yang ditugaskan kepada Anda.</p>;
   if (monthOptions.length === 0) return <p className="text-sm text-gray-500">Tidak ada periode aktif. Hubungi HRD untuk mengaktifkan siklus.</p>;
 
-  return <KpiForm members={members} months={monthOptions} />;
+  // Skor yang SUDAH ada (per pegawai+bulan dalam periode aktif) → dipakai pratinjau Excel
+  // menandai baris yang "akan menimpa" input sebelumnya. Hanya petunjuk visual; revalidate
+  // saat simpan menyegarkan map ini.
+  const { data: scoreRows } = await supabase
+    .from('kpi_scores').select('employee_id, ym, score')
+    .in('employee_id', members.map((m) => m.id)).in('ym', monthOptions);
+  const existing: Record<string, number> = {};
+  for (const r of scoreRows ?? []) existing[`${r.employee_id}|${r.ym}`] = r.score;
+
+  return <KpiForm members={members} months={monthOptions} existing={existing} />;
 }
 
 function Tab({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {

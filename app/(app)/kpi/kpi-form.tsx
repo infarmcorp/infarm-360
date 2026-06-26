@@ -12,7 +12,7 @@ type ParsedRow = KpiParsedRow;
  * Excel/CSV di-parse di klien (xlsx, dynamic import) → dicocokkan emp_code → pratinjau →
  * disimpan lewat Server Action yang sama (validasi Zod + audit di server).
  */
-export function KpiForm({ members, months }: { members: Member[]; months: string[] }) {
+export function KpiForm({ members, months, existing = {} }: { members: Member[]; months: string[]; existing?: Record<string, number> }) {
   const [ym, setYm] = useState(months[0]);
   const [dept, setDept] = useState('all');
   const [mode, setMode] = useState<'manual' | 'excel'>('manual');
@@ -171,19 +171,36 @@ export function KpiForm({ members, months }: { members: Member[]; months: string
                   <tbody className="divide-y divide-gray-100">
                     {parsed.map((r, i) => {
                       const valid = isValidKpiRow(r);
+                      const old = valid && r.member ? existing[`${r.member.id}|${ym}`] : undefined;
+                      const overwrite = old !== undefined;
                       return (
                         <tr key={i} className={valid ? '' : 'bg-rose-50/40'}>
                           <td className="py-2 px-3 font-mono">{r.code}</td>
                           <td className="py-2 px-3">{r.member?.name ?? <span className="text-rose-600">tidak cocok</span>}</td>
-                          <td className="py-2 px-3 text-center font-mono">{Number.isFinite(r.score) ? r.score : '—'}</td>
+                          <td className="py-2 px-3 text-center font-mono">
+                            {Number.isFinite(r.score) ? r.score : '—'}
+                            {overwrite && <span className="text-amber-700"> (dari {old})</span>}
+                          </td>
                           <td className="py-2 px-3 text-gray-500">{r.note || '—'}</td>
-                          <td className="py-2 px-3">{valid ? <span className="text-emerald-700 font-bold">✓ Siap</span> : <span className="text-rose-600 font-bold">✗ Dilewati</span>}</td>
+                          <td className="py-2 px-3">
+                            {!valid ? <span className="text-rose-600 font-bold">✗ Dilewati</span>
+                              : overwrite ? <span className="text-amber-700 font-bold">↻ Menimpa</span>
+                              : <span className="text-emerald-700 font-bold">✓ Siap</span>}
+                          </td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
               </div>
+              {(() => {
+                const overwriteN = parsed.filter((r) => isValidKpiRow(r) && r.member && existing[`${r.member.id}|${ym}`] !== undefined).length;
+                return overwriteN > 0 ? (
+                  <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    <strong>{overwriteN} baris akan menimpa</strong> skor bulan {ym} yang sudah ada (lihat tanda <span className="font-bold">↻ Menimpa</span>). Nilai lama tetap tersimpan di Riwayat &amp; Audit.
+                  </p>
+                ) : null;
+              })()}
               <div className="flex items-center gap-3">
                 <button onClick={applyExcel} disabled={pending} className="rounded bg-emerald-700 px-4 py-2 text-white text-sm font-bold disabled:opacity-50">
                   {pending ? 'Menyimpan…' : `Terapkan & Simpan (${parsed.filter(isValidKpiRow).length} baris)`}

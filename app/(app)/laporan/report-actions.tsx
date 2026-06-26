@@ -14,20 +14,36 @@ import { saveOrFinalizeReport, releaseToSpv } from '@/app/(app)/admin/laporan/ac
  * `canCompute`=false bila KPI pegawai masih kosong (Skor Akhir belum bisa dihitung).
  */
 export function ReportActions({
-  employeeId, status, finalScore, liveFinal, canCompute,
+  employeeId, status, finalScore, liveFinal, canCompute, totalMonths, missingMonths, stale360,
 }: {
   employeeId: string;
   status: string | null;
   finalScore: number | null;   // Skor Akhir TERSIMPAN (yang dilihat pegawai bila final)
   liveFinal: number | null;    // Skor Akhir TERKINI (dihitung dari KPI/360/punishment sekarang)
   canCompute: boolean;
+  totalMonths: number;         // jumlah bulan periode
+  missingMonths: string[];     // bulan KPI yang belum terisi
+  stale360: boolean;           // Skor 360° perlu dihitung ulang (penilaian/koreksi berubah)
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<'draft' | 'final' | 'release' | 'revert' | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [confirmRevert, setConfirmRevert] = useState(false);
+  const [confirmFinal, setConfirmFinal] = useState(false);
 
   const isFinal = status === 'finalized';
+
+  // Masalah yang patut dikonfirmasi sebelum Finalisasi (tak memblokir keras):
+  //  - Skor 360° usang (sebaiknya Hitung Ulang dulu) — bisa membekukan skor lama.
+  //  - KPI belum lengkap semua bulan (mungkin sah bila pegawai baru aktif sebagian periode).
+  const finalIssues: string[] = [];
+  if (stale360) finalIssues.push('Skor 360° belum dihitung ulang (perlu hitung ulang) — finalisasi sekarang membekukan skor 360° lama.');
+  if (missingMonths.length > 0) finalIssues.push(`KPI baru terisi ${totalMonths - missingMonths.length} dari ${totalMonths} bulan (belum ada: ${missingMonths.join(', ')}).`);
+
+  function finalGuard() {
+    if (finalIssues.length > 0) setConfirmFinal(true);
+    else run(true, 'final');
+  }
   // Baris FINAL: data dasar (KPI/360/punishment) berubah sejak difinalisasi?
   const drift = isFinal && finalScore != null && liveFinal != null && Math.abs(liveFinal - finalScore) >= 0.05;
 
@@ -103,7 +119,7 @@ export function ReportActions({
               <Send className="w-3.5 h-3.5" /> {busy === 'release' ? 'Merilis…' : 'Rilis ke SPV'}
             </button>
           )}
-          <button type="button" disabled={busy !== null} onClick={() => run(true, 'final')}
+          <button type="button" disabled={busy !== null} onClick={finalGuard}
             className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
             <CheckCircle2 className="w-3.5 h-3.5" /> {busy === 'final' ? 'Memfinalisasi…' : 'Finalisasi Hasil'}
           </button>
@@ -126,6 +142,30 @@ export function ReportActions({
             onClick={async () => { setConfirmRevert(false); await run(false, 'revert'); }}
             className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white">
             Ya, kembalikan ke draf
+          </button>
+        </div>
+      )}
+
+      {/* Konfirmasi sebelum Finalisasi bila ada masalah (360° usang / KPI belum lengkap). */}
+      {confirmFinal && (
+        <div className="w-full mt-1 flex flex-wrap items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+          <div className="flex items-start gap-1.5 text-[11px] font-semibold text-amber-800 mr-auto">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div>
+              Sebelum finalisasi, perhatikan:
+              <ul className="list-disc pl-4 mt-1 space-y-0.5 font-normal">
+                {finalIssues.map((s, i) => <li key={i}>{s}</li>)}
+              </ul>
+            </div>
+          </div>
+          <button type="button" disabled={busy !== null} onClick={() => setConfirmFinal(false)}
+            className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-amber-300 text-amber-800 hover:bg-amber-100">
+            Batal (perbaiki dulu)
+          </button>
+          <button type="button" disabled={busy !== null}
+            onClick={async () => { setConfirmFinal(false); await run(true, 'final'); }}
+            className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white">
+            Ya, finalisasi
           </button>
         </div>
       )}

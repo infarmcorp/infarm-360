@@ -2,9 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
+import { computeResult360 } from '@/app/(app)/admin/360/actions';
 
 /**
  * Pemetaan (Mapping) penilai→target untuk periode aktif (HRD).
@@ -149,19 +150,82 @@ export async function copyMappingsFromPeriod(sourcePeriodId: string): Promise<{ 
   return { ok: true, saved, skipped: src.length - saved };
 }
 
+/**
+ * Info pra-hapus pemetaan (untuk dialog konfirmasi): nama pasangan, relasi, dan
+ * apakah pasangan ini sudah punya penilaian 360° (draf/terkirim) di periode pemetaan.
+ */
+export async function mappingDeleteInfo(mappingId: string): Promise<
+  { ok: true; assessor: string; target: string; relation: string; hasAssessment: boolean; submitted: boolean }
+  | { ok: false; error: string }
+> {
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const { data: m } = await supabase.from('mappings')
+    .select('assessor_id, target_id, period_id, relation').eq('id', mappingId).maybeSingle();
+  if (!m) return { ok: false, error: 'Pemetaan tidak ditemukan' };
+  const { data: emps } = await supabase.from('employees').select('id, name').in('id', [m.assessor_id, m.target_id]);
+  const nameById = new Map((emps ?? []).map((e) => [e.id, e.name]));
+  const { data: asmts } = await supabase.from('assessments')
+    .select('status').eq('period_id', m.period_id).eq('assessor_id', m.assessor_id).eq('target_id', m.target_id);
+  return {
+    ok: true,
+    assessor: nameById.get(m.assessor_id) ?? '—',
+    target: nameById.get(m.target_id) ?? '—',
+    relation: m.relation,
+    hasAssessment: !!asmts && asmts.length > 0,
+    submitted: (asmts ?? []).some((a) => a.status === 'submitted'),
+  };
+}
+
 export async function deleteMapping(mappingId: string): Promise<Result> {
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
+
+  // Ambil pasangan + periode pemetaan SEBELUM dihapus (untuk hapus penilaian yang sama).
+  const { data: m } = await supabase.from('mappings')
+    .select('assessor_id, target_id, period_id').eq('id', mappingId).maybeSingle();
+
   const { error } = await supabase.from('mappings').delete().eq('id', mappingId);
   if (error) return { ok: false, error: 'Gagal menghapus: ' + error.message };
+
+  // Hapus penilaian 360° pasangan ini HANYA DI PERIODE PEMETAAN (anak-anaknya cascade
+  // via FK). Periode lain (mis. kuartal sebelumnya) tak tersentuh — beda period_id.
+  // Pakai service_role karena RLS tak memberi HRD hapus penilaian milik penilai lain.
+  let removedAssessment = false;
+  if (m) {
+    const admin = createAdminClient();
+    const { data: asmts } = await admin.from('assessments').select('id')
+      .eq('period_id', m.period_id).eq('assessor_id', m.assessor_id).eq('target_id', m.target_id);
+    if (asmts && asmts.length) {
+      const { error: delErr } = await admin.from('assessments').delete()
+        .eq('period_id', m.period_id).eq('assessor_id', m.assessor_id).eq('target_id', m.target_id);
+      if (delErr) return { ok: false, error: 'Pemetaan terhapus tapi gagal hapus penilaian: ' + delErr.message };
+      removedAssessment = true;
+
+      // Skor 360° kini usang (penilaian berkurang) — sinyal "perlu hitung ulang" TIDAK
+      // mendeteksi penghapusan, jadi hitung ulang OTOMATIS agar skor langsung benar.
+      // Bila target tak lagi punya penilaian → buang result_360-nya (tak ada yg dihitung).
+      const { count: remaining } = await admin.from('assessments').select('*', { count: 'exact', head: true })
+        .eq('period_id', m.period_id).eq('target_id', m.target_id).eq('status', 'submitted');
+      if ((remaining ?? 0) === 0) {
+        await admin.from('result_360').delete().eq('period_id', m.period_id).eq('employee_id', m.target_id);
+      }
+      await computeResult360(); // best-effort; mengupsert ulang skor target yang masih punya penilaian
+    }
+  }
+
   await logHrdAction({
     action: 'mapping.delete', category: 'pemetaan',
-    summary: 'Menghapus satu pemetaan penilai→target',
+    summary: removedAssessment
+      ? 'Menghapus pemetaan penilai→target + penilaian 360°-nya (periode pemetaan)'
+      : 'Menghapus satu pemetaan penilai→target',
     targetType: 'mapping', targetId: mappingId,
   });
   revalidatePath('/admin/pemetaan');
   revalidatePath('/penilaian');
+  revalidatePath('/admin/laporan');
   return { ok: true };
 }
 

@@ -114,6 +114,21 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     score360Stale = staleReasons.length > 0;
   }
 
+  // Bulan KPI yang belum terisi (untuk konfirmasi LUNAK saat Finalisasi — pegawai baru
+  // aktif sebagian periode itu sah; HRD yang memutuskan).
+  let kpiTotalMonths = 0;
+  let kpiMissingMonths: string[] = [];
+  if (isAdmin) {
+    const { data: pmonths } = await supabase.from('period_months').select('ym').eq('period_id', ap.id);
+    const allMonths = (pmonths ?? []).map((m) => m.ym).sort();
+    const { data: empKpi } = allMonths.length
+      ? await supabase.from('kpi_scores').select('ym').eq('employee_id', employeeId).in('ym', allMonths)
+      : { data: [] as { ym: string }[] };
+    const have = new Set((empKpi ?? []).map((k) => k.ym));
+    kpiTotalMonths = allMonths.length;
+    kpiMissingMonths = allMonths.filter((m) => !have.has(m));
+  }
+
   // isAdmin (pemegang izin HRD, bukan asSpv & bukan direksi) → tampilan admin penuh
   // (panel aksi + raw feedback anonim). Direksi → read-only penuh.
   return (
@@ -125,12 +140,13 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
             <div className="mb-3 flex items-start gap-2 bg-amber-50 border border-amber-300 rounded-xl p-3 text-[12px] text-amber-900 no-print">
               <span aria-hidden>⚠️</span>
               <div>
-                <strong>Skor 360° mungkin belum mutakhir.</strong> Penyebab:
+                <strong>Skor 360° perlu dihitung ulang.</strong> Penyebab:
                 <ul className="list-disc pl-5 mt-1 mb-1.5 space-y-0.5">
                   {staleReasons.map((r, i) => <li key={i}>{r}</li>)}
                 </ul>
-                Jalankan <strong>&quot;Hitung Ulang Skor 360°&quot;</strong> di halaman{' '}
-                <Link href="/admin/bobot" className="underline font-bold">Bobot &amp; Kalkulasi</Link>, lalu
+                Jalankan <strong>&quot;Hitung Ulang Skor 360°&quot;</strong> (tombol di halaman{' '}
+                <Link href="/admin/laporan" className="underline font-bold">Review Hasil Akhir</Link> atau{' '}
+                <Link href="/admin/bobot" className="underline font-bold">Bobot &amp; Kalkulasi</Link>), lalu
                 Simpan Draf / Rilis / Finalisasi ulang agar Skor Akhir mencerminkan kondisi terbaru.
               </div>
             </div>
@@ -143,6 +159,9 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
               finalScore={data.finalScore}
               liveFinal={finalScoreOf(data.kpiAvg, data.s360, data.has360, data.penalty)}
               canCompute={data.kpiAvg != null}
+              totalMonths={kpiTotalMonths}
+              missingMonths={kpiMissingMonths}
+              stale360={score360Stale}
             />
           )}
           {/* HRD: sembunyikan blok komentar-per-penilai (bernama) → diganti raw feedback anonim;

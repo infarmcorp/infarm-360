@@ -6,6 +6,12 @@ import type { ReportStatus } from '@/lib/database.types';
 
 export type ReportRow = {
   id: string; name: string; dept: string;
+  kpiAvg: number | null;       // rerata KPI bulanan
+  totalMonths: number;         // jumlah bulan periode
+  missingMonths: string[];     // bulan yang BELUM ada KPI (mis. ['2026-06'])
+  s360: number | null;         // Skor 360° terhitung (result_360); null = belum dihitung
+  needsRecompute: boolean;     // penilaian berubah sejak 360° terakhir dihitung → perlu Hitung Ulang
+  penalty: number;             // poin punishment (Flag Kepatuhan)
   final: number | null;        // Skor Akhir LIVE (dihitung dari KPI/360/punishment terkini)
   storedFinal: number | null;  // Skor Akhir TERSIMPAN (snapshot final_reports) — yang dilihat pegawai
   status: ReportStatus | null; spvAcc: boolean;
@@ -66,11 +72,14 @@ export function ReportTable({ rows, depts, has360 }: { rows: ReportRow[]; depts:
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm min-w-[620px]">
+        <table className="w-full text-left text-sm min-w-[820px]">
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
               <th className="py-2 pr-3">Pegawai</th>
               <th className="py-2 px-3">Divisi</th>
+              <th className="py-2 px-3 text-center">KPI</th>
+              <th className="py-2 px-3 text-center">360°</th>
+              <th className="py-2 px-3 text-center">Punish.</th>
               <th className="py-2 px-3 text-center">Skor Akhir</th>
               {has360 && <th className="py-2 px-3 text-center">Dinilai oleh</th>}
               <th className="py-2 px-3 text-center">ACC SPV</th>
@@ -80,7 +89,7 @@ export function ReportTable({ rows, depts, has360 }: { rows: ReportRow[]; depts:
           </thead>
           <tbody className="divide-y divide-gray-100">
             {shown.length === 0 && (
-              <tr><td colSpan={has360 ? 7 : 6} className="py-6 text-center text-gray-500 italic">Tidak ada pegawai sesuai filter.</td></tr>
+              <tr><td colSpan={has360 ? 10 : 9} className="py-6 text-center text-gray-500 italic">Tidak ada pegawai sesuai filter.</td></tr>
             )}
             {shown.map((r) => (
               <tr key={r.id}>
@@ -88,6 +97,35 @@ export function ReportTable({ rows, depts, has360 }: { rows: ReportRow[]; depts:
                   <span className="font-bold text-gray-800">{r.name}</span>
                 </td>
                 <td className="py-3 px-3 text-xs text-gray-600">{r.dept}</td>
+                <td className="py-3 px-3 text-center font-mono text-slate-600">
+                  {r.kpiAvg == null ? <span className="text-rose-500 text-[10px]">kosong</span> : (
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span>{r.kpiAvg.toFixed(1)}</span>
+                      {r.totalMonths > 0 && (
+                        <span className={r.missingMonths.length ? 'text-[9px] font-bold text-amber-700' : 'text-[9px] text-gray-400'}
+                          title={r.missingMonths.length ? `Bulan belum ada KPI: ${r.missingMonths.join(', ')}` : 'Semua bulan terisi'}>
+                          {r.totalMonths - r.missingMonths.length}/{r.totalMonths} bln
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </td>
+                <td className="py-3 px-3 text-center font-mono text-slate-600">
+                  {!has360 ? <span className="text-[10px] text-gray-400">N/A</span>
+                    : r.s360 == null ? <span className="text-[10px] text-amber-600">belum</span>
+                    : (
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span>{r.s360.toFixed(1)}</span>
+                        {r.needsRecompute && (
+                          <span title="Penilaian berubah sejak skor 360° terakhir dihitung — klik Hitung Ulang Skor 360°."
+                            className="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">⚠ perlu hitung</span>
+                        )}
+                      </div>
+                    )}
+                </td>
+                <td className="py-3 px-3 text-center font-mono">
+                  {r.penalty > 0 ? <span className="text-rose-600 font-bold">−{r.penalty}</span> : <span className="text-gray-400">0</span>}
+                </td>
                 <td className="py-3 px-3 text-center font-mono font-black text-slate-800">
                   {(() => {
                     // Baris FINAL: tampilkan angka TERSIMPAN (beku) yang dilihat pegawai.

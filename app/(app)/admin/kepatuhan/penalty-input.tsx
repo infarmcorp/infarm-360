@@ -6,7 +6,8 @@ import { setPenalty } from './actions';
 
 export function PenaltyInput({ employeeId, initial }: { employeeId: string; initial: number }) {
   const router = useRouter();
-  const [value, setValue] = useState(String(initial));
+  // Kosong bila belum ada punishment (seperti KPI: kosong ≠ 0) → HRD isi secara sadar.
+  const [value, setValue] = useState(initial > 0 ? String(initial) : '');
   const [busy, setBusy] = useState(false);
   const [state, setState] = useState<'idle' | 'ok' | 'err'>('idle');
   const [err, setErr] = useState<string | null>(null);
@@ -27,6 +28,7 @@ export function PenaltyInput({ employeeId, initial }: { employeeId: string; init
         <input
           type="number" min={0} max={100} step={0.5}
           value={value}
+          placeholder="0"
           onChange={(e) => { setValue(e.target.value); setState('idle'); }}
           className="w-16 text-xs px-2 py-1 border border-gray-300 rounded text-right focus:outline-none focus:ring-1 focus:ring-rose-500"
         />

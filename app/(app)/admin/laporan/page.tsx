@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
 import { ReportTable, type ReportRow } from './report-table';
+import { Recompute360Button } from './recompute-360-button';
 
 /**
  * Review Hasil Akhir (HRD): hitung Skor Akhir tiap pegawai, lihat ACC SPV & status,
@@ -28,13 +29,20 @@ export default async function AdminLaporanPage() {
 
   const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', ap.id);
   const yms = (months ?? []).map((m) => m.ym);
+  const sortedMonths = [...yms].sort();
   const { data: kpiRows } = yms.length
-    ? await supabase.from('kpi_scores').select('employee_id, score').in('ym', yms) : { data: [] };
+    ? await supabase.from('kpi_scores').select('employee_id, score, ym').in('ym', yms) : { data: [] };
   const kpiAgg = new Map<string, { sum: number; n: number }>();
-  (kpiRows ?? []).forEach((r) => { const a = kpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n++; kpiAgg.set(r.employee_id, a); });
+  const kpiMonthsByEmp = new Map<string, Set<string>>(); // bulan yang sudah ada KPI per pegawai
+  (kpiRows ?? []).forEach((r) => {
+    const a = kpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n++; kpiAgg.set(r.employee_id, a);
+    const s = kpiMonthsByEmp.get(r.employee_id) ?? new Set<string>(); s.add(r.ym); kpiMonthsByEmp.set(r.employee_id, s);
+  });
 
-  const { data: r360 } = await supabase.from('result_360').select('employee_id, score').eq('period_id', ap.id);
+  const { data: r360 } = await supabase.from('result_360').select('employee_id, score, computed_at').eq('period_id', ap.id);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
+  // computed_at per pegawai → deteksi "perlu hitung ulang" (penilaian berubah setelah hitung).
+  const computedAtBy = new Map((r360 ?? []).map((r) => [r.employee_id, r.computed_at]));
   const { data: pen } = await supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id);
   const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
   const { data: reports } = await supabase
@@ -46,8 +54,15 @@ export default async function AdminLaporanPage() {
   const { data: maps } = await supabase
     .from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', ap.id).eq('is_active', true);
   const { data: subs } = await supabase
-    .from('assessments').select('assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted');
+    .from('assessments').select('assessor_id, target_id, submitted_at').eq('period_id', ap.id).eq('status', 'submitted');
   const doneSet = new Set((subs ?? []).map((s) => `${s.assessor_id}|${s.target_id}`));
+  // submitted_at TERBARU per pegawai (sebagai target) → dibandingkan dgn computed_at result_360.
+  const maxSubByTarget = new Map<string, string>();
+  (subs ?? []).forEach((s) => {
+    if (!s.submitted_at) return;
+    const cur = maxSubByTarget.get(s.target_id);
+    if (!cur || s.submitted_at > cur) maxSubByTarget.set(s.target_id, s.submitted_at);
+  });
   const ratedTotal = new Map<string, number>();
   const ratedDone = new Map<string, number>();
   (maps ?? []).forEach((m) => {
@@ -56,18 +71,47 @@ export default async function AdminLaporanPage() {
     if (doneSet.has(`${m.assessor_id}|${m.target_id}`)) ratedDone.set(m.target_id, (ratedDone.get(m.target_id) ?? 0) + 1);
   });
 
+  // Koreksi Garis Hubungan yang DI-ACC (mengubah kelas bobot) → juga memicu "perlu hitung".
+  // reviewed_at TERBARU per pegawai (target) dibandingkan dgn computed_at result_360.
+  const { data: corrs } = await supabase
+    .from('relation_correction_requests').select('target_id, reviewed_at')
+    .eq('period_id', ap.id).eq('status', 'approved').not('reviewed_at', 'is', null);
+  const maxReviewedByTarget = new Map<string, string>();
+  (corrs ?? []).forEach((c) => {
+    if (!c.reviewed_at) return;
+    const cur = maxReviewedByTarget.get(c.target_id);
+    if (!cur || c.reviewed_at > cur) maxReviewedByTarget.set(c.target_id, c.reviewed_at);
+  });
+
   const rows: ReportRow[] = employees.map((e) => {
     const agg = kpiAgg.get(e.id);
     const kpiAvg = agg ? agg.sum / agg.n : null;
     const s360 = s360By.get(e.id) ?? null;
-    const final = finalScoreOf(kpiAvg, s360, ap.has_360, penBy.get(e.id) ?? 0);
+    const penalty = penBy.get(e.id) ?? 0;
+    const final = finalScoreOf(kpiAvg, s360, ap.has_360, penalty);
     const rep = repBy.get(e.id);
+    // Perlu hitung ulang 360°: ada penilaian dikirim/diubah setelah result_360 terakhir dihitung
+    // (atau sudah ada penilaian tapi belum pernah dihitung). Hanya relevan saat 360° aktif.
+    const maxSub = maxSubByTarget.get(e.id) ?? null;
+    const computedAt = computedAtBy.get(e.id) ?? null;
+    const maxReviewed = maxReviewedByTarget.get(e.id) ?? null;
+    const staleByAssessment = maxSub != null && (computedAt == null || maxSub > computedAt);
+    // Koreksi relevan hanya RELATIF terhadap hitung sebelumnya (butuh computedAt).
+    const staleByCorrection = maxReviewed != null && computedAt != null && maxReviewed > computedAt;
+    const needsRecompute = ap.has_360 && (staleByAssessment || staleByCorrection);
+    // Bulan KPI yang belum terisi (untuk indikator "X/Y bulan" + konfirmasi finalisasi).
+    const presentMonths = kpiMonthsByEmp.get(e.id) ?? new Set<string>();
+    const missingMonths = sortedMonths.filter((m) => !presentMonths.has(m));
     return {
-      id: e.id, name: e.name, dept: e.dept, final, storedFinal: rep?.final_score ?? null,
+      id: e.id, name: e.name, dept: e.dept,
+      kpiAvg, s360, penalty, needsRecompute,
+      totalMonths: sortedMonths.length, missingMonths,
+      final, storedFinal: rep?.final_score ?? null,
       status: rep?.status ?? null, spvAcc: !!rep?.spv_acc,
       ratedDone: ratedDone.get(e.id) ?? 0, ratedTotal: ratedTotal.get(e.id) ?? 0,
     };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));
+  const staleCount = rows.filter((r) => r.needsRecompute).length;
   const depts = [...new Set(employees.map((e) => e.dept))].sort();
 
   return (
@@ -78,6 +122,20 @@ export default async function AdminLaporanPage() {
           <p className="text-sm text-gray-500">Periode aktif: {ap.label} · finalisasi Skor Akhir kalibrasi.</p>
         </div>
         <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+      </div>
+
+      {/* Kokpit: hitung 360° + pintasan, agar HRD tak bolak-balik halaman. */}
+      <div className="flex flex-wrap items-center gap-2 mb-4 bg-slate-50 border border-slate-200 rounded-xl p-3">
+        {ap.has_360 && <Recompute360Button />}
+        {ap.has_360 && staleCount > 0 && (
+          <span className="text-[11px] font-bold text-amber-800 bg-amber-100 border border-amber-200 rounded-full px-2.5 py-1">
+            ⚠ {staleCount} pegawai: penilaian berubah — perlu hitung ulang
+          </span>
+        )}
+        <div className="flex items-center gap-2 ml-auto">
+          <Link href="/admin/bobot" className="text-[11px] font-bold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-white">⚖ Atur Bobot</Link>
+          <Link href="/admin/kepatuhan" className="text-[11px] font-bold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-white">⚑ Flag Kepatuhan</Link>
+        </div>
       </div>
 
       <ReportTable rows={rows} depts={depts} has360={ap.has_360} />

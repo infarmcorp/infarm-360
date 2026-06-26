@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { activatePeriod, endPeriod, toggleHas360, activePeriodReadiness } from './actions';
+import { activatePeriod, endPeriod, toggleHas360, activePeriodReadiness, count360Submitted } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
 type Dialog = {
@@ -79,6 +79,37 @@ export function PeriodActions({
     await run(() => activatePeriod(periodId));
   }
 
+  /**
+   * Toggle 360°. Menyalakan (Aktifkan 360°) langsung. Mematikan (Set Tanpa 360°):
+   * bila SUDAH ada penilaian terkirim → konfirmasi (mengubah rumus + menyembunyikan form).
+   * Saat setup awal (belum ada data) → langsung, tanpa nag.
+   */
+  async function toggle360Guard() {
+    if (!has360) { await run(() => toggleHas360(periodId, true)); return; }
+    setBusy(true); setErr(null);
+    const r = await count360Submitted(periodId);
+    setBusy(false);
+    if (!r.ok) { setErr(r.error); return; }
+    if (r.count > 0) {
+      setDialog({
+        title: 'Matikan komponen 360°?',
+        tone: 'danger',
+        confirmLabel: 'Ya, matikan 360°',
+        body: (
+          <>
+            <p>Sudah ada <strong>{r.count} penilaian 360° terkirim</strong> di periode ini.</p>
+            <p>Mematikan 360° akan <strong>menyembunyikan form penilaian</strong> dari pegawai &amp;
+              mengubah <strong>Skor Akhir menjadi 100% KPI</strong> (komponen 360° tak dihitung &amp;
+              klasifikasi talenta berubah). Lanjut?</p>
+          </>
+        ),
+        onConfirm: () => fromDialog(() => toggleHas360(periodId, false)),
+      });
+      return;
+    }
+    await run(() => toggleHas360(periodId, false));
+  }
+
   /** Kunci & Akhiri: selalu konfirmasi; peringatkan bila masih ada yang belum final. */
   async function endWithGuard() {
     setBusy(true); setErr(null);
@@ -122,7 +153,7 @@ export function PeriodActions({
             Aktivasi
           </button>
         )}
-        <button type="button" disabled={busy} onClick={() => run(() => toggleHas360(periodId, !has360))}
+        <button type="button" disabled={busy} onClick={toggle360Guard}
           title={has360
             ? 'Menutup komponen 360°: form penilaian disembunyikan dari pegawai & skor 360° tak dihitung.'
             : 'Membuka komponen 360°: form penilaian tampil ke pegawai yang punya pemetaan & skor 360° dihitung.'}

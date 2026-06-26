@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
-import { PenaltyInput } from './penalty-input';
+import { KepatuhanTable } from './kepatuhan-table';
 
 /**
  * Flag Kepatuhan Penilaian & Punishment (HRD).
@@ -57,6 +57,7 @@ export default async function KepatuhanPage() {
 
   const totalLate = rows.filter((r) => r.lateCount > 0).length;
   const totalSelfMissing = rows.filter((r) => r.selfMissing).length;
+  const totalPunished = rows.filter((r) => r.points > 0).length;
 
   return (
     <Shell>
@@ -68,7 +69,7 @@ export default async function KepatuhanPage() {
         <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 mb-4">
+      <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="border border-rose-200 bg-rose-50/50 rounded-xl p-3 text-center">
           <div className="text-lg font-black text-rose-700">{totalLate}</div>
           <div className="text-[10px] font-bold text-gray-500">Pegawai telat (penilaian wajib)</div>
@@ -77,48 +78,17 @@ export default async function KepatuhanPage() {
           <div className="text-lg font-black text-amber-700">{totalSelfMissing}</div>
           <div className="text-[10px] font-bold text-gray-500">Belum self-assessment</div>
         </div>
+        <div className="border border-slate-200 bg-slate-50/50 rounded-xl p-3 text-center">
+          <div className="text-lg font-black text-slate-700">{totalPunished}</div>
+          <div className="text-[10px] font-bold text-gray-500">Dengan punishment</div>
+        </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm min-w-[520px]">
-          <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
-              <th className="py-2 pr-3">Pegawai</th>
-              <th className="py-2 px-3 text-center">Wajib Telat</th>
-              <th className="py-2 px-3 text-center">Self</th>
-              <th className="py-2 pl-3 text-right">Punishment (poin)</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {rows.map((r) => (
-              <tr key={r.id}>
-                <td className="py-3 pr-3">
-                  <span className="font-bold text-gray-800 block">{r.name}</span>
-                  <span className="text-[11px] text-gray-500">{r.dept}</span>
-                </td>
-                <td className="py-3 px-3 text-center">
-                  {r.lateCount > 0 ? (
-                    <span className="text-[11px] font-bold text-rose-700" title={r.lateTargets.join(', ')}>
-                      {r.lateCount} telat
-                    </span>
-                  ) : <span className="text-[11px] text-emerald-600">✔ patuh</span>}
-                </td>
-                <td className="py-3 px-3 text-center">
-                  {r.selfMissing
-                    ? <span className="text-[10px] font-bold text-amber-700">belum</span>
-                    : <span className="text-[10px] text-emerald-600">✔</span>}
-                </td>
-                <td className="py-3 pl-3 text-right">
-                  <PenaltyInput employeeId={r.id} initial={r.points} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <KepatuhanTable rows={rows} />
       <p className="text-[10px] text-gray-500 italic mt-3">
-        &quot;Wajib Telat&quot; = penilaian bersifat Wajib (mapping) yang belum dikirim (arahkan kursor untuk daftar nama).
-        Punishment memotong Skor Akhir pegawai di periode ini (min 0).
+        Default menampilkan pegawai yang <strong>perlu perhatian</strong> (penilaian wajib telat, belum
+        self-assessment, atau sudah punya punishment). &quot;Wajib Telat&quot; = penilaian bersifat Wajib (mapping)
+        yang belum dikirim (arahkan kursor untuk daftar nama). Punishment memotong Skor Akhir pegawai di periode ini (min 0).
       </p>
     </Shell>
   );

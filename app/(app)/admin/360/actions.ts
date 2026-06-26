@@ -101,5 +101,6 @@ export async function computeResult360(): Promise<ComputeResult> {
   });
   revalidatePath('/admin/bobot');
   revalidatePath('/admin/dashboard');
+  revalidatePath('/admin/laporan');
   return { ok: true, computed: rows.length, periodLabel: ap.label };
 }

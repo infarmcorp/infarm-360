@@ -170,10 +170,39 @@ export async function setKpiStandard(periodId: string, value: number): Promise<R
   return { ok: true };
 }
 
+/** Jumlah penilaian 360° TERKIRIM di periode — dipakai memutuskan konfirmasi "matikan 360°". */
+export async function count360Submitted(periodId: string): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const { count } = await supabase.from('assessments')
+    .select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('status', 'submitted');
+  return { ok: true, count: count ?? 0 };
+}
+
 export async function toggleHas360(periodId: string, value: boolean): Promise<Result> {
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
+
+  // Validasi PRA-PELUNCURAN saat MENGAKTIFKAN 360°: harus sudah ada pertanyaan (indikator
+  // aktif) & pemetaan — cegah form 360° kosong/rusak saat tampil ke pegawai.
+  if (value) {
+    const { data: aspects } = await supabase.from('culture_aspects').select('id').eq('period_id', periodId);
+    const aspectIds = (aspects ?? []).map((a) => a.id);
+    const { count: indCount } = aspectIds.length
+      ? await supabase.from('indicators').select('*', { count: 'exact', head: true }).in('aspect_id', aspectIds).eq('is_active', true)
+      : { count: 0 };
+    const { count: mapCount } = await supabase.from('mappings')
+      .select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('is_active', true);
+    const missing: string[] = [];
+    if (!indCount) missing.push('pertanyaan (indikator aktif)');
+    if (!mapCount) missing.push('pemetaan penilai→target');
+    if (missing.length) {
+      return { ok: false, error: `Tidak bisa mengaktifkan 360°: belum ada ${missing.join(' & ')}. Lengkapi dulu di Kelola Pertanyaan / Pemetaan.` };
+    }
+  }
+
   const { error } = await supabase.from('periods').update({ has_360: value }).eq('id', periodId);
   if (error) return { ok: false, error: 'Gagal: ' + error.message };
 

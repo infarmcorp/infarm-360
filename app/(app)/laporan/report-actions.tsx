@@ -14,11 +14,12 @@ import { saveOrFinalizeReport, releaseToSpv } from '@/app/(app)/admin/laporan/ac
  * `canCompute`=false bila KPI pegawai masih kosong (Skor Akhir belum bisa dihitung).
  */
 export function ReportActions({
-  employeeId, status, finalScore, canCompute,
+  employeeId, status, finalScore, liveFinal, canCompute,
 }: {
   employeeId: string;
   status: string | null;
-  finalScore: number | null;
+  finalScore: number | null;   // Skor Akhir TERSIMPAN (yang dilihat pegawai bila final)
+  liveFinal: number | null;    // Skor Akhir TERKINI (dihitung dari KPI/360/punishment sekarang)
   canCompute: boolean;
 }) {
   const router = useRouter();
@@ -27,6 +28,8 @@ export function ReportActions({
   const [confirmRevert, setConfirmRevert] = useState(false);
 
   const isFinal = status === 'finalized';
+  // Baris FINAL: data dasar (KPI/360/punishment) berubah sejak difinalisasi?
+  const drift = isFinal && finalScore != null && liveFinal != null && Math.abs(liveFinal - finalScore) >= 0.05;
 
   async function run(finalize: boolean, mode: 'draft' | 'final' | 'revert') {
     setBusy(mode);
@@ -65,6 +68,12 @@ export function ReportActions({
           ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">Draf</span>
           : <span className="text-[10px] text-gray-500">belum disimpan</span>}
         {finalScore != null && <span className="text-[11px] font-mono font-bold text-slate-700">Skor Akhir {finalScore.toFixed(1)}</span>}
+        {drift && (
+          <span title={`Skor terkini ${liveFinal!.toFixed(1)} berbeda dari yang difinalisasi (${finalScore!.toFixed(1)}) — KPI/360°/punishment berubah. Kembalikan ke Draf lalu Finalisasi ulang untuk memperbarui.`}
+            className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+            berubah → {liveFinal!.toFixed(1)}
+          </span>
+        )}
       </div>
 
       <button type="button" onClick={() => window.print()}

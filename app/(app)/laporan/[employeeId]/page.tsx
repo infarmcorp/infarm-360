@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
+import { finalScoreOf } from '@/lib/scoring';
 import { loadReport, loadTeamReportForSpv, loadTeamReportForHrdSpv } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
 import { ReportActions } from '../report-actions';
@@ -140,6 +141,7 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
               employeeId={employeeId}
               status={data.status}
               finalScore={data.finalScore}
+              liveFinal={finalScoreOf(data.kpiAvg, data.s360, data.has360, data.penalty)}
               canCompute={data.kpiAvg != null}
             />
           )}

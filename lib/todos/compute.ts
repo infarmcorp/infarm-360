@@ -1,4 +1,5 @@
 import type { createClient } from '@/lib/supabase/server';
+import { finalScoreOf } from '@/lib/scoring';
 
 /**
  * Tugas & Notifikasi in-app — DITURUNKAN dari data yang sudah ada (tanpa tabel baru).
@@ -93,7 +94,44 @@ async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): P
   if ((corrCount ?? 0) > 0) out.push({ id: 'hrd-corr', tone: 'rose', href: '/admin/pemetaan', label: `${corrCount} permohonan koreksi relasi menunggu` });
   const pendingReports = (empCount ?? 0) - (finalCount ?? 0);
   if (pendingReports > 0) out.push({ id: 'hrd-final', tone: 'blue', href: '/admin/laporan', label: `${pendingReports} laporan belum difinalisasi` });
+  // Laporan FINAL yang skornya sudah usang (KPI/360°/punishment berubah sejak difinalisasi).
+  const stale = await countStaleFinalReports(supabase, periodId, has360);
+  if (stale > 0) out.push({ id: 'hrd-stale', tone: 'amber', href: '/admin/laporan', label: `${stale} laporan final perlu dihitung ulang (data berubah)` });
   return out;
+}
+
+/**
+ * Hitung laporan FINAL yang Skor Akhir TERSIMPAN-nya beda dari skor TERKINI — artinya
+ * KPI/360°/punishment berubah setelah finalisasi (pegawai masih melihat angka lama).
+ * Bandingkan final_score tersimpan vs finalScoreOf(KPI,360,punishment) terkini.
+ */
+async function countStaleFinalReports(supabase: SB, periodId: string, has360: boolean): Promise<number> {
+  const { data: reports } = await supabase.from('final_reports')
+    .select('employee_id, final_score').eq('period_id', periodId).eq('status', 'finalized');
+  if (!reports?.length) return 0;
+  const ids = reports.map((r) => r.employee_id);
+
+  const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', periodId);
+  const yms = (months ?? []).map((m) => m.ym);
+  const { data: kpi } = yms.length
+    ? await supabase.from('kpi_scores').select('employee_id, score').in('employee_id', ids).in('ym', yms)
+    : { data: [] as { employee_id: string; score: number }[] };
+  const agg = new Map<string, { sum: number; n: number }>();
+  (kpi ?? []).forEach((r) => { const a = agg.get(r.employee_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n++; agg.set(r.employee_id, a); });
+
+  const { data: r360 } = await supabase.from('result_360').select('employee_id, score').eq('period_id', periodId);
+  const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
+  const { data: pen } = await supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', periodId);
+  const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
+
+  let n = 0;
+  for (const rep of reports) {
+    const a = agg.get(rep.employee_id);
+    const kpiAvg = a ? a.sum / a.n : null;
+    const live = finalScoreOf(kpiAvg, s360By.get(rep.employee_id) ?? null, has360, penBy.get(rep.employee_id) ?? 0);
+    if (live != null && rep.final_score != null && Math.abs(live - rep.final_score) >= 0.05) n++;
+  }
+  return n;
 }
 
 /** Direksi: usulan suksesi yang diajukan HRD & menunggu ACC. */

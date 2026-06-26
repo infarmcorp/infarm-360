@@ -85,7 +85,7 @@ export function ReportTable({ rows, depts, has360 }: { rows: ReportRow[]; depts:
             {shown.map((r) => (
               <tr key={r.id}>
                 <td className="py-3 pr-3">
-                  <Link href={`/laporan/${r.id}`} className="font-bold text-gray-800 hover:text-emerald-700 hover:underline">{r.name}</Link>
+                  <span className="font-bold text-gray-800">{r.name}</span>
                 </td>
                 <td className="py-3 px-3 text-xs text-gray-600">{r.dept}</td>
                 <td className="py-3 px-3 text-center font-mono font-black text-slate-800">

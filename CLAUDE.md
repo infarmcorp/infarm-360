@@ -536,6 +536,10 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
     (b) **salin hasil ke luar laptop** (Google Drive/eksternal) — aturan 3-2-1, backup di laptop saja =
     satu titik kegagalan; (c) **opsional otomatis terjadwal** (Windows Task Scheduler / GitHub Actions
     cron — belum dibuat). Ekspor Dataset Excel = cadangan parsial; dump penuh lewat skrip ini.
+  - ⏰ **PENGINGAT Q2 (diminta pengguna 2026-06-25):** saat **periode Q2 berjalan**, tawarkan lagi
+    **penjadwalan backup otomatis** — rekomendasi **GitHub Actions cron + artifact** (tak bergantung
+    laptop nyala; perlu secret `SUPABASE_DB_URL` di GitHub). Belum mendesak di trial krn data berubah
+    di momen kritis (akhir periode), bukan tiap menit.
 - ✅ **Hapus arsip legacy** `/legacy` + `src/` — selesai (seed dilepas ke `scripts/seed-data.ts`).
 - ✅ **Audit npm — `xlsx` (high)** — **SELESAI**. Di-upgrade ke `xlsx@0.20.3` dari CDN resmi
   SheetJS (`package.json` → `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`); advisory

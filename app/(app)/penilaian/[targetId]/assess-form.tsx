@@ -386,7 +386,7 @@ export function AssessForm({
 
                 {/* Deskripsi indikator (opsional, dari Kelola Pertanyaan) */}
                 {cur.description && (
-                  <div className="border-l-4 border-sky-500 bg-sky-50/40 p-3 rounded-r-lg text-[11px] text-sky-950 leading-relaxed">
+                  <div className="border border-sky-200 border-l-4 border-l-sky-500 bg-sky-100/80 p-3.5 rounded-lg shadow-sm text-[13px] text-sky-950 leading-relaxed font-semibold">
                     {cur.description}
                   </div>
                 )}

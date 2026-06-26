@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { PasswordInput } from '@/components/password-input';
 
 /** Form sandi baru + konfirmasi. Sandi min. 8 karakter. Setelah sukses → ke beranda. */
 export function PerbaruiSandiForm() {
@@ -44,26 +45,11 @@ export function PerbaruiSandiForm() {
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
         <label className="block text-xs font-semibold text-gray-600 mb-1">Sandi Baru</label>
-        <input
-          type="password"
-          required
-          autoComplete="new-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Minimal 8 karakter"
-          className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
-        />
+        <PasswordInput autoComplete="new-password" value={password} onChange={setPassword} placeholder="Minimal 8 karakter" />
       </div>
       <div>
         <label className="block text-xs font-semibold text-gray-600 mb-1">Ulangi Sandi Baru</label>
-        <input
-          type="password"
-          required
-          autoComplete="new-password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
-        />
+        <PasswordInput autoComplete="new-password" value={confirm} onChange={setConfirm} />
       </div>
       {error && <p className="text-xs text-rose-600 font-semibold">{error}</p>}
       <button

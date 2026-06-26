@@ -475,7 +475,7 @@ function FeedbackTab({ rows, aspectScores, has360, periodLabel, yearLabel, year3
           <p className="text-xs text-amber-800 mt-1">Komponen 360° tidak aktif untuk periode ini, sehingga Skor Akhir = 100% KPI. Data di bawah hanya muncul bila ada penilaian terkirim.</p>
         </div>
       ) : (
-        <Banner tone="indigo" tag="Analisis Khusus 360°" title="Analisis Umpan Balik Budaya 360°"
+        <Banner tone="emerald" tag="Analisis Khusus 360°" title="Analisis Umpan Balik Budaya 360°"
           desc="Capaian aspek budaya organisasi dari rata-rata penilaian terkirim (Self dikecualikan) pada periode aktif." icon={<TrendingUp className="w-56 h-56" />} />
       )}
 

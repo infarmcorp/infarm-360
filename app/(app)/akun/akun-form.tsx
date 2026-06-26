@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { KeyRound, Check } from 'lucide-react';
 import { changeOwnPassword } from './actions';
+import { PasswordInput } from '@/components/password-input';
 
 /** Form ganti sandi: sandi saat ini + sandi baru + konfirmasi. Min. 8 karakter. */
 export function AkunForm() {
@@ -53,15 +54,7 @@ function Field({
   return (
     <div>
       <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
-      <input
-        type="password"
-        required
-        autoComplete={autoComplete}
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
-      />
+      <PasswordInput value={value} onChange={onChange} autoComplete={autoComplete} placeholder={placeholder} />
     </div>
   );
 }

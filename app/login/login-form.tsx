@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { SearchableSelect } from '@/components/searchable-select';
+import { PasswordInput } from '@/components/password-input';
 
 // Fitur "Lupa Sandi" (Opsi 2) dormant sampai email aktif — tampil hanya bila flag 'true'.
 const PW_RESET_ON = process.env.NEXT_PUBLIC_ENABLE_PW_RESET === 'true';
@@ -118,14 +119,7 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
 
       <div>
         <label className="block text-xs font-semibold text-gray-600 mb-1">Sandi</label>
-        <input
-          type="password"
-          required
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
-        />
+        <PasswordInput autoComplete="current-password" value={password} onChange={setPassword} />
       </div>
 
       {error && <p className="text-xs text-rose-600 font-semibold">{error}</p>}

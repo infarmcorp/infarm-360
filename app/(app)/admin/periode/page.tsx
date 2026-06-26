@@ -5,6 +5,7 @@ import { canAdmin } from '@/lib/auth/roles';
 import { PeriodForm } from './period-form';
 import { PeriodActions } from './period-actions';
 import { KpiStandardEditor } from './kpi-standard-editor';
+import { ReadinessPanel } from './readiness-panel';
 import { EmptyState } from '@/components/empty-state';
 
 /**
@@ -29,6 +30,22 @@ export default async function PeriodePage() {
   const monthCount = new Map<string, number>();
   (monthRows ?? []).forEach((m) => monthCount.set(m.period_id, (monthCount.get(m.period_id) ?? 0) + 1));
 
+  // Kesiapan peluncuran 360° untuk periode AKTIF (informatif, read-only).
+  const active = list.find((p) => p.status === 'active') ?? null;
+  let readiness: { indCount: number; mapCount: number; hasWeights: boolean } | null = null;
+  if (active) {
+    const { data: aspects } = await supabase.from('culture_aspects').select('id').eq('period_id', active.id);
+    const aspectIds = (aspects ?? []).map((a) => a.id);
+    const [ind, map, wt] = await Promise.all([
+      aspectIds.length
+        ? supabase.from('indicators').select('*', { count: 'exact', head: true }).in('aspect_id', aspectIds).eq('is_active', true)
+        : Promise.resolve({ count: 0 }),
+      supabase.from('mappings').select('*', { count: 'exact', head: true }).eq('period_id', active.id).eq('is_active', true),
+      supabase.from('weight_schemes').select('id').eq('period_id', active.id).eq('is_active', true).maybeSingle(),
+    ]);
+    readiness = { indCount: ind.count ?? 0, mapCount: map.count ?? 0, hasWeights: !!wt.data };
+  }
+
   return (
     <Shell>
       <div className="flex items-center justify-between mb-4">
@@ -40,6 +57,16 @@ export default async function PeriodePage() {
       </div>
 
       <div className="mb-5"><PeriodForm /></div>
+
+      {active && readiness && (
+        <ReadinessPanel
+          periodLabel={active.label}
+          indCount={readiness.indCount}
+          mapCount={readiness.mapCount}
+          hasWeights={readiness.hasWeights}
+          has360={active.has_360}
+        />
+      )}
 
       {list.length === 0 ? (
         <EmptyState

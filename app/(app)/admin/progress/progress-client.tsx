@@ -115,12 +115,12 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
           const byPct = by && by.total ? Math.round((by.done / by.total) * 100) : 0;
           return (
             <div key={r.id} className="border border-gray-200 rounded-xl p-3">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                 <div className="min-w-0">
                   <span className="font-bold text-gray-800 text-sm">{r.name}</span>
                   <span className="text-[11px] text-gray-500"> · {r.dept}</span>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${complete ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
                     {r.mandatoryDone}/{r.mandatoryTotal} wajib · {complete ? 'Lengkap' : 'Belum'}
                   </span>

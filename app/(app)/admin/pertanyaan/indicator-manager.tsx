@@ -124,13 +124,13 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
   return (
     <>
     <div className={`rounded-lg ${ind.is_active ? '' : 'opacity-50'}`}>
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 flex-wrap">
         <button type="button" onClick={() => setOpen((o) => !o)} title="Panduan penilaian"
           className="text-gray-500 hover:text-gray-600 shrink-0">
           {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
         </button>
         <input value={text} onChange={(e) => setText(e.target.value)}
-          className="flex-1 text-xs px-2 py-1 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+          className="flex-1 min-w-[140px] text-xs px-2 py-1 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500" />
         {hasGuide && !open && <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-1 py-0.5 rounded shrink-0">panduan</span>}
         {dirtyText && (
           <button type="button" disabled={busy} onClick={() => run(() => updateIndicator(ind.id, text))}

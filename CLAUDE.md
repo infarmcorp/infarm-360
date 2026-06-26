@@ -601,6 +601,14 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
   - **#11 Aktivasi periode baru** saat periode lama belum lengkap → peringatan konfirmasi muncul.
   - **#13 Uji beban k6** (`scripts/loadtest/`) sebelum buka ke ~100 pengguna (belum dijalankan).
   - **#14 Blank di HP** (URL Vercel) — di-skip pengguna; dugaan browser/OS HP lama; belum dikejar.
+  - **#18 "Selanjutnya" macet di iPhone (MENUNGGU REPRODUKSI, 2026-06-26)** — saat mengisi 360° di
+    iPhone, tombol **Selanjutnya** tak memindah indikator sampai user **Simpan Draf → keluar → masuk
+    lagi**. Logika React benar (`goNext` = `curPos+1`, tak ber-gate, tombol tak disabled; jalan setelah
+    reload) → **bukan bug logika**, melainkan **interaksi iOS Safari + keyboard**. Hipotesis: (1)
+    keyboard menutupi tombol nav di bawah editor → tap tak kena; (2) tap pertama "dimakan" untuk menutup
+    keyboard (blur). Saat kembali fresh tak ada kolom fokus → bisa. **Belum diperbaiki** (user tunggu
+    pengguna coba lagi). Fix kandidat bila terkonfirmasi: nav pakai `onPointerDown` + blur proaktif,
+    atau bar nav sticky di atas keyboard. Hanya bisa diverifikasi di iPhone fisik.
   - ✅ **#15 `npm run verify:rls`** pra-Q2 — **DIJALANKAN 2026-06-25, 21/21 lolos** (RLS utuh pasca
     migrasi 0015/0016; lapis 3 tetap tertutup utk SPV). Ulangi bila ada migrasi/perubahan RLS baru.
   - **#16 Dependensi KPI utk finalisasi** — `saveOrFinalizeReport` menolak bila KPI pegawai kosong

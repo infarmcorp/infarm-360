@@ -6,10 +6,16 @@ Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saa
 > 📌 **Rincian tiap tombol per halaman** (fungsi · peran · kondisi · konfirmasi): lihat
 > [RINCIAN-TOMBOL.md](RINCIAN-TOMBOL.md) — kamus lengkap semua aksi di aplikasi.
 
-> **Status:** aplikasi **live** dengan database **Supabase** (auth nyata, RLS per peran).
-> Seluruh akun saat ini memakai sandi awal bersama **`Infarm2026`** (hasil reset massal) —
-> sebaiknya tiap pegawai menggantinya. Pegawai asli dikelola lewat menu
+> **Status:** aplikasi **live** dengan database **Supabase** (auth nyata, RLS per peran); email
+> pengingat & undangan **aktif** (Gmail SMTP). **Sandi:** saat HRD menekan **Kirim Undangan**
+> (onboarding), tiap pegawai disetel **sandi acak unik** yang dikirim via email; pegawai dapat
+> menggantinya sendiri lewat **Akun Saya**. Bila pegawai lupa sandi, HRD **Reset Sandi** atau kirim
+> **Undangan** ulang **ke orang itu** (tak mengganggu yang lain). Pegawai dikelola lewat
 > **HRD → Kelola Pegawai** (lihat di bawah).
+>
+> ⚠️ **Hati-hati "Kirim Undangan Massal":** tombol ini **menyetel ulang sandi SEMUA orang** jadi
+> acak baru — termasuk yang sudah mengganti sandinya sendiri. Lakukan **sekali di awal periode**;
+> untuk pengingat berikutnya pakai **Kirim Pengingat** (tak menyentuh sandi).
 
 ---
 
@@ -42,9 +48,12 @@ menampilkan info akun (nama, email login, divisi, peran, kode pegawai) dan form 
    **Ulangi Sandi Baru**.
 2. Klik **Simpan Sandi Baru**.
 
-> **Penting:** semua akun awalnya memakai **sandi bersama**. Tiap pegawai sebaiknya segera
-> mengganti dengan sandi pribadi lewat halaman ini — demi menjaga **integritas penilaian 360°**
-> (mencegah orang lain login & menilai atas nama Anda). Sandi tidak pernah dicatat sistem.
+> **Ikon mata** di samping tiap kolom sandi (di sini, di Login, & di reset via email)
+> menampilkan/menyembunyikan tulisan sandi — agar Anda bisa memastikan ketikan benar.
+
+> **Penting:** sandi awal dikirim **per orang** lewat email **Undangan** (acak unik). Tiap pegawai
+> sebaiknya segera menggantinya dengan sandi pribadi lewat halaman ini — demi menjaga **integritas
+> penilaian 360°** (mencegah orang lain login & menilai atas nama Anda). Sandi tidak pernah dicatat sistem.
 
 ---
 
@@ -193,7 +202,8 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
      Ad-Hoc mereka **tak bisa dipilih sebagai "Yang Dinilai"**. Skor yang mereka berikan tetap masuk
      ke **Skor 360°** pegawai lewat bobot Cross. Baris eksternal ditandai badge **"Eksternal"**.
 2. **Ubah** — ganti nama/divisi/peran/kode, email, atasan, atau status **Penilai eksternal**.
-3. **Reset Sandi** — setel sandi baru (disarankan pegawai menggantinya sendiri).
+3. **Reset Sandi** — modal konfirmasi untuk setel sandi baru (tombol **Acak** mengisi sandi acak);
+   disarankan pegawai menggantinya sendiri setelahnya.
 4. **Aktif/Nonaktif** — menonaktifkan **mengunci akun** (tak bisa login) tanpa menghapus
    riwayat penilaian/KPI. Aktifkan kembali kapan pun.
 5. **Impor dari Excel** (tombol di kanan atas) — tambah **banyak pegawai sekaligus**.
@@ -204,7 +214,8 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
    Tip: impor pegawai ber-peran **SPV/atasan dulu** agar kolom `atasan` bawahan langsung tertaut.
 6. **Filter & cari** — kotak pencarian + filter **Peran**, **Divisi**, dan **Status**.
 
-> Tips data asli: beri **sandi berbeda per orang** (jangan pakai sandi demo bersama).
+> Tips data asli: sandi **berbeda per orang** kini otomatis terpenuhi lewat **Progress 360 →
+> Kirim Undangan** (men-set sandi acak unik per orang). Tak perlu menyetel sandi manual satu-satu.
 
 > **Lupa Sandi via email (belum aktif).** Alur reset sandi mandiri lewat email sudah siap
 > tapi sengaja disembunyikan. Untuk mengaktifkannya (agar pegawai bisa "Lupa sandi?" sendiri
@@ -368,11 +379,13 @@ untuk membuka **dokumen laporan rinci**.
    **per pertanyaan**. (Self dikecualikan agar konsisten dengan skor "Rekan".)
 
 ### Pemetaan (Mapping)
-- **Impor Massal Pemetaan Excel** (unduh "Formulir Acuan.xlsx") atau **Pendaftaran
-  Sepasang Relasi Manual** (pilih Penilai + Target lewat dropdown **berpencarian** →
-  pilih Relasi & **Sifat Penilaian** (Wajib/Opsional) → **Daftarkan Relasi Manual**).
-- **Sifat Penilaian**: tiap relasi bisa **Wajib** atau **Opsional**. Tampil di kolom Sifat
-  tabel mapping, di Daftar Penilaian Saya, dan di Progress 360. Default **Wajib**.
+- **Tambah Relasi (manual)**: pilih **Penilai** + **Target** lewat dropdown **berpencarian** →
+  pilih **Relasi** → **Tambah Relasi**. Bisa juga **+ Impor dari Excel** (unduh template) atau
+  **Salin dari Periode Sebelumnya**.
+- **Sifat Penilaian**: setiap relasi yang dibuat HRD kini **selalu Wajib** (kebijakan; pilihan
+  Opsional telah dihapus dari form & dipaksa di server untuk create/impor/salin). Satu-satunya
+  penilaian **Opsional** adalah **Ad-Hoc** yang ditambahkan pegawai sendiri. Sifat tampil di kolom
+  Sifat tabel mapping, di Daftar Penilaian Saya, dan di Progress 360.
 - Daftar pemetaan menampilkan **"Total N pasangan penilaian"** + **filter Penilai & Target**
   (dengan tombol Bersihkan). Tiap baris bisa dihapus (akomodasi pegawai resign).
 - Tinjau **Permohonan Koreksi Garis Hubungan** (setujui/tolak) di tab Koreksi Relasi.
@@ -580,7 +593,8 @@ peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
   Mengunci data agar bisa difinalisasi.
 
 ### 2. Pemetaan (Mapping) — *menentukan siapa menilai siapa*
-**Fungsi:** mendaftarkan pasangan Penilai → Target + Relasi (Atasan/Peer/Cross/Self) + **Sifat** (Wajib/Opsional).
+**Fungsi:** mendaftarkan pasangan Penilai → Target + Relasi (Atasan/Peer/Cross/Bawahan/Self) + **Sifat** (Wajib/Opsional).
+**Catatan:** sejak kebijakan "semua Wajib", setiap relasi baru otomatis **Wajib** (opsi Opsional dihapus dari form; satu-satunya sumber Opsional = penilaian **Ad-Hoc** mandiri pegawai).
 **Berdampak ke:**
 - **Daftar Penilaian Saya** tiap pegawai → menentukan **daftar orang yang wajib ia nilai**.
 - Kolom **Garis Hubungan** yang dilihat penilai (sumber "Minta Koreksi").
@@ -607,7 +621,8 @@ peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
 - **Nilai Evaluasi 360** tiap pegawai → mengubah **Skor Akhir** → menjalar ke Monitor
   Kinerja, Rekapitulasi Kuartal, Review Hasil Akhir, Dashboard, **Kategori Evaluasi**, dan
   **Papan Pertimbangan Suksesi** (skor > 90).
-- Berlaku setelah klik **Simpan & Terapkan Bobot**; **Reset Default** mengembalikan ke awal.
+- Berlaku setelah klik **Simpan & Terapkan Bobot**, lalu jalankan **Hitung Ulang Skor 360°**
+  (menyimpan bobot saja tidak otomatis menghitung ulang).
 
 ### 5. Review Hasil Akhir — *finalisasi & rilis laporan bertahap*
 **Fungsi:** audit Final Report per pegawai, tulis ringkasan aspek, rilis ke SPV, lalu finalisasi.
@@ -633,7 +648,9 @@ peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
 ### 7. Progress 360 Feedback — *kontrol kelengkapan*
 **Fungsi:** pantau siapa sudah/belum mengisi; dorong penyelesaian.
 **Berdampak ke:**
-- **Kirim Pengingat** → email ke penilai yang belum selesai (*placeholder* — aktif setelah Resend disiapkan).
+- **Kirim Pengingat** → email ke penilai yang belum selesai (**aktif** via Gmail SMTP; tombol "Buka
+  Portal" ke halaman login). **Kirim Undangan** (awal periode) mengirim info akun + **sandi acak unik**
+  (menyetel ulang sandi orang itu). Saat trial hanya alamat `@gmail.com` yang dikirimi.
 - **Paksa Selesai** → meng-override status pengisian menjadi selesai (penyesuaian manual),
   sehingga data dianggap lengkap untuk finalisasi.
 - Tidak mengubah skor, tapi memengaruhi **kesiapan data** sebelum Review Hasil Akhir.

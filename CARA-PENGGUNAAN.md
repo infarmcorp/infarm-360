@@ -570,6 +570,43 @@ keduanya           :  lalu DIKURANGI punishment (Flag Kepatuhan), minimal 0
 > Selama belum ditekan, pegawai tetap melihat foto lama — itulah sebabnya kedua badge penting
 > diperhatikan sebelum menutup periode.
 
+### Bagan alur perhitungan
+
+> Dirender otomatis di GitHub. Di VS Code, pasang ekstensi **"Markdown Preview Mermaid Support"**
+> agar tampil di Preview.
+
+```mermaid
+flowchart TD
+    A["SPV input KPI bulanan (0-100)"] --> B["KPI = rerata bulan TERISI<br/>(bulan kosong tidak dihitung)"]
+    C["Penilai isi 360° (rating 1-5)"] --> D{"HRD klik<br/>Hitung Ulang Skor 360°?"}
+    D -- "belum" --> D0["Komponen 360° dianggap kosong"]
+    D -- "ya" --> E["Skor 360° = rata berbobot per relasi<br/>Self dikecualikan → simpan result_360"]
+    B --> F{"360° aktif & ada?"}
+    E --> F
+    D0 --> F
+    F -- "ya" --> G["Skor Akhir = KPI x 0,5 + 360° x 0,5"]
+    F -- "tidak" --> H["Skor Akhir = KPI (100%)"]
+    G --> I["dikurangi punishment (lantai 0)"]
+    H --> I
+    I --> J{"HRD Finalisasi?"}
+    J -- "belum" --> L["Draf — pegawai belum lihat"]
+    J -- "ya" --> K["final_score BEKU<br/>pegawai lihat Laporan Hasil Saya"]
+```
+
+### Bagan alur saat ada edit / interupsi
+
+```mermaid
+flowchart TD
+    X["Penilaian diedit/dikirim<br/>ATAU Koreksi Relasi di-ACC"] --> Y["Skor 360° usang<br/>badge: perlu dihitung ulang"]
+    Y --> Z["HRD: Hitung Ulang Skor 360°"]
+    Z --> W{"Laporan sudah Final?"}
+    W -- "tidak" --> U["Simpan Draf / Finalisasi seperti biasa"]
+    W -- "ya" --> V["final_score lama != skor terkini<br/>badge: berubah -> N"]
+    V --> R["HRD: Kembalikan ke Draf -> Finalisasi ulang"]
+    R --> S["Pegawai lihat angka terbaru"]
+    M["Pemetaan dihapus (sudah dinilai)"] --> N["Penilaian periode itu terhapus<br/>360° OTOMATIS dihitung ulang"]
+```
+
 ---
 
 ## Alur Lengkap — dari penilaian hingga rilis ke pegawai

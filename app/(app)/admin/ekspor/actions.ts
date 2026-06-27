@@ -2,7 +2,7 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
-import { finalScoreOf, playerClassOf } from '@/lib/scoring';
+import { finalScoreOf, playerClassOf, playerLabelOf, perfLabelOf } from '@/lib/scoring';
 
 /**
  * Ekspor dataset untuk olah data lanjutan (HRD). Halaman ini hanya untuk HRD; setelah
@@ -26,8 +26,7 @@ async function requireHrd(): Promise<boolean> {
   return canAdmin(me);
 }
 
-const KAT = (f: number | null) =>
-  f == null ? '—' : f >= 90 ? 'Sangat Baik' : f >= 80 ? 'Baik' : f >= 70 ? 'Cukup' : 'Perlu Pembinaan';
+const KAT = (f: number | null) => perfLabelOf(f);
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
 /** ym→label periode + himpunan ym yang diizinkan bila difilter ke satu periode. */
@@ -170,12 +169,12 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
       const penalty = penBy.get(`${e.id}|${p.id}`) ?? 0;
       if (kpiAvg == null && s360 == null) continue;
       const final = finalScoreOf(kpiAvg, s360, p.has_360, penalty);
-      const player = final != null && kpiAvg != null ? playerClassOf(final, kpiAvg, s360, p.has_360) : null;
+      const player = playerClassOf(kpiAvg, s360); // s360 sudah null bila 360 nonaktif
       rows.push({
         periode: p.label, kode: e.emp_code, nama: e.name, divisi: e.dept,
         kpi_rerata: kpiAvg != null ? r1(kpiAvg) : null, skor_360: s360 != null ? r1(s360) : null,
         punishment: penalty, skor_akhir: final != null ? r1(final) : null,
-        kategori: KAT(final), player: player ?? '',
+        kategori: KAT(final), player: playerLabelOf(player),
       });
     }
   }

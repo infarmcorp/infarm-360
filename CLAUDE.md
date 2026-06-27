@@ -743,12 +743,11 @@ ONBOARDING_GMAIL_ONLY          # server-only — 'false' utk kirim undangan ke S
 - **Skor Akhir** = blend KPI+360 **dikurangi** punishment kepatuhan per kuartal (min 0). Rumus
   murni terkunci di `lib/scoring.ts` & `lib/score360.ts` (lihat Pengujian); kalau mengubah,
   sinkronkan semua tempat + perbarui tesnya.
-- **Klasifikasi talenta Dashboard** (9-Box KPI×360 & 4-Box A/B/C/D Player) **dikunci ke satu
-  kuartal** lewat `getTalentQuarterKey()` (filter satu kuartal → kuartal itu; "Semua" →
-  `activeQuarterKey`) agar KPI, 360°, dan Skor Akhir dari periode sama. Wajib hormati flag
-  `quarters[qKey].has360` (`isTalent360Active`): kuartal tanpa 360° → 9-Box tidak diplot &
-  kolom tabel `N/A`, dan kategori A Player nonaktif (Skor Akhir = 100% KPI). Helper inti:
-  `getTalentMatrix`, `getPlayerMatrix`, `getEmpTalentBox`, `getEmpPlayerBox`.
+- **Klasifikasi talenta Dashboard** (9-Box KPI×360 & 4-Box A/B-Culture/B-KPI/C — **tanpa D**) **dikunci
+  ke satu kuartal** lewat filter periode agar KPI, 360°, dan Skor Akhir dari periode sama. Kuartal
+  tanpa 360° → 9-Box tidak diplot & kolom tabel `N/A`; pada 4-Box hanya **B-KPI / C** yang mungkin
+  (A & B-Culture butuh sumbu 360°). 4-Box berbasis **KPI × 360° langsung** (ambang 80), bukan Skor
+  Akhir — lihat **Klasifikasi Talenta** di bawah.
 
 ## Pengujian (Vitest — logika skor & parsing impor) + Verifikasi RLS
 
@@ -759,10 +758,10 @@ ONBOARDING_GMAIL_ONLY          # server-only — 'false' utk kirim undangan ke S
 > ke pengguna. **Bukan** aktivitas kuartalan — dijalankan saat **kode disentuh**.
 
 - **Jalankan:** `npm test` (sekali) atau `npm run test:watch` (mode pantau).
-- **Cakupan (55 tes):**
+- **Cakupan (56 tes):**
   - `tests/scoring.test.ts` → `lib/scoring.ts`: `finalScoreOf` (blend 50/50, KPI-only, s360
-    null, punishment, floor 0), `playerClassOf` (A hanya bila 360 aktif & final≥90 & kpi≥90 &
-    360≥80; ambang B/C/D), `kpiBandOf`/`s360BandOf`, `talentBoxOf` (9 kotak).
+    null, punishment, floor 0), `playerClassOf` (KPI×360° ambang 80 → A / B-Culture / B-KPI / C,
+    null bila keduanya kosong, nilai hilang <80; **tanpa D**), `kpiBandOf`/`s360BandOf`, `talentBoxOf` (9 kotak).
   - `tests/score360.test.ts` → `lib/score360.ts`: `weightedScore360` **4class** (semua kelas,
     normalisasi bobot, **kelas Bawahan**, **Self dikecualikan**) & **2class** (Internal = rerata
     semua skor Peer+Cross+Bawahan, fallback satu sisi).
@@ -822,19 +821,23 @@ Kotak = perpotongan band KPI (baris) × band 360° (kolom):
 
 - Kuartal tanpa 360° aktif → **tidak diplot** (butuh sumbu 360°).
 
-### 4-Box — A/B/C/D Player (`playerClassOf`)
-Dievaluasi **berurutan** (cek A dulu; kalau gagal jatuh ke ambang Skor Akhir saja):
+### 4-Box — A / B-Culture / B-KPI / C (`playerClassOf`)
+**Berbasis KPI (rerata) × Skor 360° LANGSUNG, ambang 80 — BUKAN Skor Akhir. Tidak ada D Player.**
+Signature: `playerClassOf(kpi: number|null, s360: number|null): PlayerClass|null`.
 
-| Kelas | Syarat |
+| Kelas (`key`) | Syarat |
 |-------|--------|
-| **A Player** | **butuh 360° aktif & ada** `DAN` `Skor Akhir ≥ 90` `DAN` `KPI ≥ 90` `DAN` `360° ≥ 80` |
-| **B Player** | `Skor Akhir ≥ 80` (dan bukan A) |
-| **C Player** | `Skor Akhir ≥ 70` |
-| **D Player** | `Skor Akhir < 70` |
+| `null` (tak terklasifikasi) | KPI **dan** 360° keduanya kosong |
+| **A Player** (`A`) | `KPI ≥ 80` **DAN** `360° ≥ 80` |
+| **B Player (High Culture)** (`B_CULTURE`) | `KPI < 80` **DAN** `360° ≥ 80` |
+| **B Player (High KPI)** (`B_KPI`) | `KPI ≥ 80` **DAN** `360° < 80` |
+| **C Player** (`C`) | keduanya `< 80` |
 
-- **A Player hanya mungkin bila 360° aktif** (`has360=true` & `s360≠null`). Di kuartal tanpa
-  360°, Skor Akhir = 100% KPI dan kelas tertinggi yang bisa dicapai adalah **B** (≥80).
-- Hanya **A** memakai syarat majemuk (final + KPI + 360 sekaligus); **B/C/D** murni dari Skor Akhir.
+- Nilai hilang (`null`) diperlakukan **di bawah 80** — kecuali **keduanya** kosong (→ `null`).
+- **Tanpa 360°** (`has360=false` → s360 null): tak ada sumbu budaya → hanya **B-KPI** (KPI≥80) atau
+  **C** yang mungkin; **A & B-Culture tidak tersedia**. (Pemanggil melewatkan `has_360 ? s360 : null`.)
+- Berbeda dari versi lama (yang berbasis Skor Akhir + ada D). Diubah atas permintaan (rumus Excel HRD).
+- 9-Box (`talentBoxOf`) **tidak berubah** (tetap band 90/80 × 80/70, butuh KPI & 360 keduanya ada).
 
 ## Perintah
 

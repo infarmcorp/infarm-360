@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { finalScoreOf, playerClassOf } from '@/lib/scoring';
+import { finalScoreOf, playerClassOf, playerLabelOf, perfCategoryOf, perfLabelOf } from '@/lib/scoring';
 import { PeriodSelect } from './period-select';
 
 /**
@@ -9,12 +9,14 @@ import { PeriodSelect } from './period-select';
  */
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const labelOf = (ym: string) => { const [, m] = ym.split('-'); return MONTHS[Number(m) - 1] ?? m; };
-const KAT = (f: number | null) =>
-  f == null ? { t: '—', c: 'text-gray-500' }
-    : f >= 90 ? { t: 'Sangat Baik', c: 'text-emerald-700' }
-    : f >= 80 ? { t: 'Baik', c: 'text-blue-700' }
-    : f >= 70 ? { t: 'Cukup', c: 'text-amber-700' }
-    : { t: 'Perlu Pembinaan', c: 'text-rose-700' };
+// Warna per kategori terpadu (label dari perfLabelOf agar seragam dgn dashboard/ekspor).
+const KAT_COLOR: Record<string, string> = {
+  exceed: 'text-emerald-700', meet: 'text-blue-700', improve: 'text-amber-700', below: 'text-rose-700',
+};
+const KAT = (f: number | null) => {
+  const c = perfCategoryOf(f);
+  return { t: perfLabelOf(f), c: c ? KAT_COLOR[c] : 'text-gray-500' };
+};
 
 export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }: { role: string; userId: string; periodParam?: string; hrdMode?: 'admin' | 'spv' }) {
   const supabase = await createClient();
@@ -79,7 +81,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
     const s360 = s360By.get(e.id) ?? null;
     const penalty = penBy.get(e.id) ?? 0;
     const final = finalScoreOf(kpiAvg, s360, sel.has_360, penalty);
-    const player = final != null && kpiAvg != null ? playerClassOf(final, kpiAvg, s360, sel.has_360) : null;
+    const player = playerClassOf(kpiAvg, sel.has_360 ? s360 : null);
     return { ...e, monthly, kpiAvg, s360, final, player };
   });
 
@@ -124,7 +126,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
                   <td className="py-3 px-3 text-center font-mono font-bold text-emerald-700">{r.kpiAvg != null ? r.kpiAvg.toFixed(1) : '—'}</td>
                   {sel.has_360 && <td className="py-3 px-3 text-center font-mono font-bold text-indigo-700">{r.s360 != null ? r.s360.toFixed(1) : '—'}</td>}
                   <td className="py-3 px-3 text-center font-mono font-black text-slate-900 text-sm">{r.final != null ? r.final.toFixed(1) : '—'}</td>
-                  <td className={`py-3 px-3 text-right font-bold ${kat.c}`}>{kat.t}{r.player ? ` · ${r.player}` : ''}</td>
+                  <td className={`py-3 px-3 text-right font-bold ${kat.c}`}>{kat.t}{r.player ? ` · ${playerLabelOf(r.player)}` : ''}</td>
                 </tr>
               );
             })}
@@ -133,7 +135,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
       </div>
       <p className="text-[10px] text-gray-500 italic mt-3">
         Rataan KPI = rerata bulan ber-skor di kuartal ini. Skor Akhir = blend KPI+360 (50/50) − punishment
-        {sel.has_360 ? '' : ' (kuartal KPI saja → 100% KPI)'}. Kategori: ≥90 Sangat Baik · ≥80 Baik · ≥70 Cukup · &lt;70 Perlu Pembinaan.
+        {sel.has_360 ? '' : ' (kuartal KPI saja → 100% KPI)'}. Kategori: ≥90 Melampaui · ≥80 Memenuhi · ≥70 Perlu Peningkatan · &lt;70 Di Bawah Ekspektasi.
       </p>
     </div>
   );

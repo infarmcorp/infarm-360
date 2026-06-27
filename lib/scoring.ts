@@ -25,22 +25,67 @@ export function talentBoxOf(kpi: number, s360: number): TalentBox | null {
   return TALENT_BOXES.find((b) => b.kpiBand === kpiBandOf(kpi) && b.s360Band === s360BandOf(s360)) ?? null;
 }
 
-export type PlayerClass = 'A' | 'B' | 'C' | 'D';
+export type PlayerClass = 'A' | 'B_CULTURE' | 'B_KPI' | 'C';
 
 export const PLAYER_BOXES: { key: PlayerClass; label: string; color: string }[] = [
-  { key: 'A', label: 'A Player', color: '#059669' },
-  { key: 'B', label: 'B Player', color: '#2563eb' },
-  { key: 'C', label: 'C Player', color: '#d97706' },
-  { key: 'D', label: 'D Player', color: '#dc2626' },
+  { key: 'A',         label: 'A Player',                color: '#059669' },
+  { key: 'B_CULTURE', label: 'B Player (High Culture)', color: '#2563eb' },
+  { key: 'B_KPI',     label: 'B Player (High KPI)',     color: '#4f46e5' },
+  { key: 'C',         label: 'C Player',                color: '#dc2626' },
 ];
 
-/** A: final≥90 & kpi≥90 & 360≥80 (butuh 360 aktif) · B: ≥80 · C: ≥70 · D: <70. */
-export function playerClassOf(final: number, kpi: number, s360: number | null, has360: boolean): PlayerClass {
-  if (has360 && s360 != null && final >= 90 && kpi >= 90 && s360 >= 80) return 'A';
-  if (final >= 80) return 'B';
-  if (final >= 70) return 'C';
-  return 'D';
+/** Label penuh kelas pemain (untuk badge/ekspor). */
+export const playerLabelOf = (p: PlayerClass | null): string =>
+  PLAYER_BOXES.find((b) => b.key === p)?.label ?? '';
+
+/**
+ * 4-Box A/B/C berbasis KPI (rerata) × 360° LANGSUNG, ambang 80 — bukan Skor Akhir.
+ * Mengikuti rumus:
+ *   keduanya kosong            → null (tak terklasifikasi)
+ *   KPI ≥80 & 360 ≥80          → A Player
+ *   KPI <80 & 360 ≥80          → B Player (High Culture)
+ *   KPI ≥80 & 360 <80          → B Player (High KPI)
+ *   selain itu (keduanya <80)  → C Player
+ * Nilai hilang (null) diperlakukan sebagai DI BAWAH 80 — kecuali KEDUANYA kosong (→ null).
+ * Tidak ada D Player. (360 nonaktif → s360 null → otomatis jatuh ke B-KPI / C.)
+ */
+export function playerClassOf(kpi: number | null, s360: number | null): PlayerClass | null {
+  if (kpi == null && s360 == null) return null;
+  const k = kpi ?? -1;
+  const s = s360 ?? -1;
+  if (k >= 80 && s >= 80) return 'A';
+  if (k < 80 && s >= 80) return 'B_CULTURE';
+  if (k >= 80 && s < 80) return 'B_KPI';
+  return 'C';
 }
+
+/**
+ * SATU klasifikasi kinerja terpadu (dipakai di seluruh aplikasi — dashboard, rekap, ekspor).
+ * Ambang skor (0–100): ≥90 Melampaui · 80–89,99 Memenuhi · 70–79,99 Perlu Peningkatan · <70 Di Bawah.
+ * Hindari label lain (Sangat Baik/Baik/Cukup/Kurang) agar tak membingungkan.
+ */
+export type PerfCategory = 'exceed' | 'meet' | 'improve' | 'below';
+
+export const PERF_LABEL: Record<PerfCategory, string> = {
+  exceed: 'Melampaui Ekspektasi',
+  meet: 'Memenuhi Ekspektasi',
+  improve: 'Perlu Peningkatan',
+  below: 'Di Bawah Ekspektasi',
+};
+
+export function perfCategoryOf(score: number | null): PerfCategory | null {
+  if (score == null) return null;
+  if (score >= 90) return 'exceed';
+  if (score >= 80) return 'meet';
+  if (score >= 70) return 'improve';
+  return 'below';
+}
+
+/** Label klasifikasi dari skor (—  bila null). */
+export const perfLabelOf = (score: number | null): string => {
+  const c = perfCategoryOf(score);
+  return c ? PERF_LABEL[c] : '—';
+};
 
 /** Skor Akhir = blend KPI+360 (50/50) bila 360 aktif & ada; jika tidak = KPI murni. Lalu − penalty (min 0). */
 export function finalScoreOf(

@@ -38,27 +38,33 @@ describe('talentBoxOf — 9-Box KPI×360', () => {
   });
 });
 
-describe('playerClassOf — 4-Box A/B/C/D (berbasis Skor Akhir)', () => {
-  it('A hanya bila 360 aktif & final≥90 & kpi≥90 & 360≥80', () => {
-    expect(playerClassOf(92, 92, 85, true)).toBe('A');
+describe('playerClassOf — 4-Box A/B-Culture/B-KPI/C (KPI × 360°, ambang 80, tanpa D)', () => {
+  it('keduanya kosong → null', () => {
+    expect(playerClassOf(null, null)).toBeNull();
   });
-  it('bukan A bila salah satu syarat gagal', () => {
-    expect(playerClassOf(92, 88, 85, true)).toBe('B'); // kpi < 90
-    expect(playerClassOf(92, 92, 79, true)).toBe('B'); // 360 < 80
-    expect(playerClassOf(88, 92, 85, true)).toBe('B'); // final < 90
+  it('A: KPI≥80 & 360≥80', () => {
+    expect(playerClassOf(80, 80)).toBe('A');
+    expect(playerClassOf(90, 85)).toBe('A');
+    expect(playerClassOf(100, 100)).toBe('A');
   });
-  it('A nonaktif saat 360 tidak aktif (jatuh ke B walau angka tinggi)', () => {
-    expect(playerClassOf(95, 95, 85, false)).toBe('B');
+  it('B Player (High Culture): KPI<80 & 360≥80', () => {
+    expect(playerClassOf(79.99, 80)).toBe('B_CULTURE');
+    expect(playerClassOf(60, 95)).toBe('B_CULTURE');
   });
-  it('A nonaktif saat 360 null walau has360 true', () => {
-    expect(playerClassOf(95, 95, null, true)).toBe('B');
+  it('B Player (High KPI): KPI≥80 & 360<80', () => {
+    expect(playerClassOf(80, 79.99)).toBe('B_KPI');
+    expect(playerClassOf(95, 60)).toBe('B_KPI');
   });
-  it('ambang B/C/D', () => {
-    expect(playerClassOf(80, 70, null, false)).toBe('B');
-    expect(playerClassOf(79.99, 70, null, false)).toBe('C');
-    expect(playerClassOf(70, 60, null, false)).toBe('C');
-    expect(playerClassOf(69.99, 60, null, false)).toBe('D');
-    expect(playerClassOf(0, 0, null, false)).toBe('D');
+  it('C: keduanya <80', () => {
+    expect(playerClassOf(79.99, 79.99)).toBe('C');
+    expect(playerClassOf(50, 50)).toBe('C');
+    expect(playerClassOf(0, 0)).toBe('C');
+  });
+  it('nilai hilang diperlakukan <80 (kecuali keduanya kosong)', () => {
+    expect(playerClassOf(90, null)).toBe('B_KPI');     // KPI tinggi, 360 belum ada
+    expect(playerClassOf(null, 90)).toBe('B_CULTURE');  // 360 tinggi, KPI belum ada
+    expect(playerClassOf(70, null)).toBe('C');          // KPI rendah, 360 belum ada
+    expect(playerClassOf(null, 70)).toBe('C');          // 360 rendah, KPI belum ada
   });
 });
 

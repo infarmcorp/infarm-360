@@ -516,13 +516,15 @@ divisi). Skor Akhir mengikuti flag **360° aktif/nonaktif** periode terpilih (KP
 - **Matriks 9-Box (KPI × 360°)** — sebaran pegawai pada 9 kategori (Star Talent,
   High Performer, Core Contributor, dst.) dari band KPI (≥90 / 80–89,99 / <80) ×
   band 360° (≥80 / 70–79,99 / <70).
-- **Matriks 4-Box (A/B/C/D Player)** — berbasis **Skor Akhir**:
-  **A** (Skor ≥ 90 **dan** KPI ≥ 90 **dan** 360° ≥ 80) · **B** (Skor ≥ 80) ·
-  **C** (Skor ≥ 70) · **D** (Skor < 70).
-- **Sefase periode:** KPI, 360°, dan Skor Akhir diambil dari **periode yang dipilih** di
-  Panel Filter (default periode aktif) agar klasifikasi adil.
-- **Periode tanpa 360°:** 9-Box tidak ditampilkan (menampilkan info), dan kategori
-  **A Player tidak tersedia** (Skor Akhir = 100% KPI).
+- **Matriks 4-Box (A / B Culture / B KPI / C)** — berbasis **KPI (rerata) × Skor 360° langsung**,
+  ambang **80** (bukan Skor Akhir, **tanpa kelas D**):
+  **A** (KPI ≥ 80 **dan** 360° ≥ 80) · **B Player (High Culture)** (KPI < 80 **dan** 360° ≥ 80) ·
+  **B Player (High KPI)** (KPI ≥ 80 **dan** 360° < 80) · **C** (keduanya < 80).
+  Pegawai dengan KPI & 360° **keduanya kosong** tak terklasifikasi.
+- **Sefase periode:** KPI & 360° diambil dari **periode yang dipilih** di Panel Filter
+  (default periode aktif) agar klasifikasi adil. Semua pegawai ditampilkan di tiap kotak.
+- **Periode tanpa 360°:** 9-Box tidak ditampilkan; pada 4-Box hanya **B (High KPI)** atau **C**
+  yang mungkin — **A & B (High Culture) tidak tersedia** (butuh sumbu 360°).
 
 #### Tabel Hasil Seluruh Pegawai
 - Kolom **Klasifikasi 9-Box** dan **A/B/C/D Player** per pegawai (konsisten dengan kedua
@@ -859,7 +861,7 @@ memberi **punishment** (pengurangan poin).
 ### 10. Monitor Kinerja & Dashboard Organisasi — *analitik, read-only*
 **Fungsi:** memantau **semua pegawai & semua divisi** (keduanya di section Pemantauan),
 4 sub-dashboard agregat, termasuk **Matriks 9-Box** (KPI × 360°) & **Matriks 4-Box
-A/B/C/D Player** (berbasis Skor Akhir), serta **Papan Pertimbangan Suksesi**.
+A / B-Culture / B-KPI / C** (berbasis KPI × 360° langsung, ambang 80, tanpa D), serta **Papan Pertimbangan Suksesi**.
 **Berdampak ke:** tidak mengubah data — dasar **pengambilan keputusan** (promosi, pembinaan).
 - Klasifikasi **sefase periode** lewat Panel Filter (KPI, 360°, Skor Akhir dari **periode
   yang dipilih**; default periode aktif).

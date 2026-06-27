@@ -164,8 +164,8 @@ export default async function DashboardPage({
     const penalty = penBy.get(e.id) ?? 0;
     const final = finalScoreOf(kpiAvg, s360, ap.has_360, penalty);
     const box = kpiAvg != null && s360 != null ? talentBoxOf(kpiAvg, s360) : null;
-    const player = final != null && kpiAvg != null
-      ? playerClassOf(final, kpiAvg, s360, ap.has_360) : null;
+    // 4-Box: berbasis KPI × 360° langsung (360 nonaktif → tanpa sumbu budaya).
+    const player = playerClassOf(kpiAvg, ap.has_360 ? s360 : null);
     return { id: e.id, name: e.name, dept: e.dept, kpiAvg, s360, final, box, player };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));
 

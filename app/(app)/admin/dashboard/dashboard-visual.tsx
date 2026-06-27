@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Award, Target, Flame, TrendingUp, TrendingDown, Building2, Users, BarChart3 } from 'lucide-react';
 import {
-  TALENT_BOXES, PLAYER_BOXES, type PlayerClass,
+  TALENT_BOXES, PLAYER_BOXES, type PlayerClass, perfLabelOf,
 } from '@/lib/scoring';
 import { heatColor, HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
 
@@ -46,10 +46,21 @@ type Props = {
 type SubTab = 'compilation' | 'kpi' | 'feedback' | 'table';
 
 const PLAYER_DESC: Record<PlayerClass, string> = {
-  A: 'Skor ≥90 · KPI ≥90 · 360° ≥80',
-  B: 'Skor Akhir ≥ 80',
-  C: 'Skor Akhir 70–79,99',
-  D: 'Skor Akhir < 70',
+  A: 'KPI ≥80 · 360° ≥80',
+  B_CULTURE: 'KPI <80 · 360° ≥80',
+  B_KPI: 'KPI ≥80 · 360° <80',
+  C: 'KPI <80 · 360° <80',
+};
+
+/** Label ringkas untuk badge tabel. */
+const PLAYER_BADGE: Record<PlayerClass, string> = {
+  A: 'A', B_CULTURE: 'B · Culture', B_KPI: 'B · KPI', C: 'C',
+};
+const PLAYER_COLOR: Record<PlayerClass, string> = {
+  A: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  B_CULTURE: 'bg-blue-50 text-blue-700 border-blue-200',
+  B_KPI: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  C: 'bg-rose-50 text-rose-700 border-rose-200',
 };
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -132,8 +143,8 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
   const orgAvg = mean(scored.map((r) => r.final ?? 0));
   const aPlayers = rows.filter((r) => r.player === 'A').length;
   const coaching = scored.filter((r) => (r.final ?? 99) < 85).length;
-  const dominant = (['A', 'B', 'C', 'D'] as PlayerClass[])
-    .map((k) => ({ k, n: rows.filter((r) => r.player === k).length }))
+  const dominant = PLAYER_BOXES
+    .map((b) => ({ label: b.label, n: rows.filter((r) => r.player === b.key).length }))
     .sort((a, b) => b.n - a.n)[0];
 
   const boxGroups = new Map<string, Row[]>();
@@ -157,7 +168,7 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
         <Stat icon={<Award className="w-6 h-6" />} tint="emerald" value={orgAvg.toFixed(1)} label="Rataan Skor Akhir Organisasi" />
         <Stat icon={<Target className="w-6 h-6" />} tint="blue" value={String(aPlayers)} label="A Player" />
         <Stat icon={<Flame className="w-6 h-6" />} tint="amber" value={String(coaching)} label="Perlu Coaching (<85)" />
-        <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={dominant?.n ? `${dominant.k} Player` : '—'} label="Kategori Dominan" />
+        <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={dominant?.n ? dominant.label : '—'} label="Kategori Dominan" />
       </div>
 
       {/* Distribusi Kategori Kinerja + Rencana Tindak Lanjut */}
@@ -245,11 +256,10 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
                         <span className="text-sm font-black font-mono shrink-0" style={{ color: box.color }}>{emps.length}</span>
                       </div>
                       <div className="mt-1.5 flex flex-wrap gap-1">
-                        {emps.slice(0, 4).map((e) => (
+                        {emps.map((e) => (
                           <span key={e.id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
                             title={`${e.name} · KPI ${e.kpiAvg?.toFixed(1)} · 360 ${e.s360?.toFixed(1)}`}>{firstName(e.name)}</span>
                         ))}
-                        {emps.length > 4 && <span className="text-[10px] text-gray-500 font-bold self-center">+{emps.length - 4}</span>}
                       </div>
                     </div>
                   );
@@ -263,8 +273,8 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
 
       {/* 4-Box */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
-        <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Klasifikasi Pemain — Matriks 4-Box (A / B / C / D Player)</h3>
-        <p className="text-xs text-gray-500 mt-0.5 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan Skor Akhir.</p>
+        <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Klasifikasi Pemain — Matriks 4-Box (A / B Culture / B KPI / C)</h3>
+        <p className="text-xs text-gray-500 mt-0.5 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan KPI × 360° (ambang 80).</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {PLAYER_BOXES.map((box) => {
             const emps = playerGroups.get(box.key) ?? [];
@@ -277,19 +287,19 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
                 </div>
                 <span className="text-[10px] text-gray-500 font-semibold mt-0.5 leading-tight">{PLAYER_DESC[box.key]}</span>
                 <div className="mt-2 flex flex-wrap gap-1">
-                  {emps.slice(0, 6).map((e) => (
+                  {emps.map((e) => (
                     <span key={e.id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
-                      title={`${e.name} · Skor ${e.final?.toFixed(1)} · KPI ${e.kpiAvg?.toFixed(1)} · 360 ${e.s360 != null ? e.s360.toFixed(1) : 'N/A'}`}>{firstName(e.name)}</span>
+                      title={`${e.name} · KPI ${e.kpiAvg?.toFixed(1)} · 360 ${e.s360 != null ? e.s360.toFixed(1) : 'N/A'}`}>{firstName(e.name)}</span>
                   ))}
-                  {emps.length > 6 && <span className="text-[10px] text-gray-500 font-bold self-center">+{emps.length - 6}</span>}
                 </div>
               </div>
             );
           })}
         </div>
         <p className="text-[10px] text-gray-500 italic mt-2">
-          A: Skor ≥90 &amp; KPI ≥90 &amp; 360° ≥80 · B: ≥80 · C: ≥70 · D: &lt;70.
-          {!has360 && <span className="text-amber-700 font-semibold not-italic"> Tanpa 360° → Skor Akhir = 100% KPI, A Player tidak tersedia.</span>}
+          Berbasis KPI × 360° (ambang 80): A = KPI≥80 &amp; 360°≥80 · B Culture = KPI&lt;80 &amp; 360°≥80 ·
+          B KPI = KPI≥80 &amp; 360°&lt;80 · C = keduanya &lt;80. Tanpa kelas D.
+          {!has360 && <span className="text-amber-700 font-semibold not-italic"> Tanpa 360° → tak ada sumbu budaya, A &amp; B-Culture tidak tersedia.</span>}
         </p>
       </div>
 
@@ -538,8 +548,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
           <select value={player} onChange={(e) => setPlayer(e.target.value as typeof player)}
             className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
             <option value="all">Semua Player</option>
-            <option value="A">A Player</option><option value="B">B Player</option>
-            <option value="C">C Player</option><option value="D">D Player</option>
+            {PLAYER_BOXES.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
           </select>
         </div>
       </div>
@@ -576,11 +585,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
                   </td>
                   <td className="py-3 pl-3 text-center">
                     {r.player ? (
-                      <span className={`text-[11px] font-black px-2 py-0.5 rounded border ${
-                        r.player === 'A' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                        r.player === 'B' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                        r.player === 'C' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                        'bg-rose-50 text-rose-700 border-rose-200'}`}>{r.player}</span>
+                      <span className={`text-[11px] font-black px-2 py-0.5 rounded border ${PLAYER_COLOR[r.player]}`}>{PLAYER_BADGE[r.player]}</span>
                     ) : <span className="text-gray-500 text-xs">—</span>}
                   </td>
                 </tr>
@@ -591,7 +596,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
       </div>
       <p className="text-[10px] text-gray-500 italic mt-3">
         Skor Akhir = blend KPI+360 (50/50) − punishment, dikunci periode aktif. 9-Box butuh KPI &amp; 360; N/A bila salah satu belum ada.
-        {!has360 && ' A Player butuh 360° aktif.'}
+        Player (A/B/C) berbasis KPI × 360° (ambang 80).{!has360 && ' Tanpa 360° → A & B-Culture tidak tersedia.'}
       </p>
     </div>
   );
@@ -846,8 +851,7 @@ function bandBadge(v: number | null) {
     : v >= 80 ? 'bg-blue-50 text-blue-700 border-blue-200'
     : v >= 70 ? 'bg-amber-50 text-amber-700 border-amber-200'
     : 'bg-rose-50 text-rose-700 border-rose-200';
-  const label = v >= 90 ? 'Sangat Baik' : v >= 80 ? 'Baik' : v >= 70 ? 'Cukup' : 'Kurang';
-  return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cls}`}>{label}</span>;
+  return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cls}`}>{perfLabelOf(v)}</span>;
 }
 
 function Leaderboard({ title, tone, items, valueOf }: { title: string; tone: 'emerald' | 'rose' | 'indigo'; items: Row[]; valueOf: (r: Row) => number | null }) {

@@ -59,9 +59,6 @@ export default async function LoginPage({
         <h1 className="text-lg font-bold text-gray-800">Infarm 360° Portal</h1>
         <p className="text-sm text-gray-500 mb-5">Pilih peran &amp; nama Anda, lalu masukkan sandi.</p>
         <LoginForm next={next} users={users} />
-        <p className="mt-4 text-[11px] text-gray-500">
-          Sandi awal · <code>Infarm2026</code>.
-        </p>
       </div>
     </main>
   );

@@ -611,6 +611,30 @@ flowchart TD
 
 ## Alur Lengkap — dari penilaian hingga rilis ke pegawai
 
+### Bagan alur tahapan (Tahap 0–7)
+
+> Dirender otomatis di GitHub. Di VS Code, pasang ekstensi **"Markdown Preview Mermaid Support"**.
+
+```mermaid
+flowchart TD
+    T0["Tahap 0 — HRD siapkan siklus<br/>Aktivasi · Pertanyaan · Bobot · Pemetaan · Aktifkan 360°"]
+    T0 --> T1["Tahap 1 — Pegawai isi 360°<br/>(Daftar Penilaian → Kirim)"]
+    T0 --> T2["Tahap 2 — SPV input KPI bulanan<br/>(tim + dirinya)"]
+    T1 --> T3["Tahap 3 — HRD Hitung Ulang Skor 360°<br/>→ result_360"]
+    T3 --> T4["Tahap 4 — HRD susun laporan<br/>ringkasan aspek (auto-simpan)"]
+    T2 --> T4
+    T4 --> S1{"Status laporan?"}
+    S1 -- "Simpan Draf" --> DR["draft — SPV lihat skor saja"]
+    S1 -- "Rilis ke SPV (opsional)" --> IR["in_review — SPV lihat detail agregat"]
+    IR --> ACC["Tahap 5 — SPV Beri ACC (non-blok)"]
+    DR --> FIN["Tahap 6 — HRD Finalisasi"]
+    IR --> FIN
+    ACC --> FIN
+    FIN --> FR["finalized — Pegawai lihat Laporan Hasil Saya + Unduh PDF"]
+    FR --> T7["Tahap 7 — HRD ajukan Suksesi → ACC Direksi"]
+    FR --> LOCK["Kunci & Akhiri Periode → jadi arsip"]
+```
+
 ### Tahap demi tahap
 
 **Tahap 0 — HRD menyiapkan siklus.** Aktivasi periode (+ opsional angket 360° + Standar KPI),

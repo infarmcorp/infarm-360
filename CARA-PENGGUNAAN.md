@@ -519,6 +519,59 @@ divisi). Skor Akhir mengikuti flag **360° aktif/nonaktif** periode terpilih (KP
 
 ---
 
+## Bagaimana Nilai Dihitung — KPI, 360°, Skor Akhir, & Dampak Edit
+
+Bagian ini merangkai **dari input mentah hingga angka akhir** dalam satu tempat, plus apa yang
+terjadi bila ada **edit/interupsi** di tengah jalan. (Rumus inti terkunci di kode & diuji otomatis;
+HRD hanya mengubah *input*: KPI, bobot, 360° aktif/nonaktif, punishment.)
+
+### 1. Nilai KPI
+- SPV memasukkan skor **0–100 per bulan** untuk tiap pegawai (Input KPI).
+- **KPI pegawai = rerata bulan yang TERISI.** Bulan yang belum diisi **tidak** dihitung sebagai 0 —
+  hanya tidak ikut rata-rata. (Mis. terisi 2 dari 3 bulan → rerata dari 2 bulan itu; kolom KPI di
+  Review Hasil Akhir menandai **"2/3 bln"** amber agar HRD sadar belum lengkap.)
+
+### 2. Skor 360°
+- Tiap penilai memberi **rating 1–5** per indikator → diubah ke **skala 0–100**.
+- Skor digabung **berbobot menurut kelas relasi** penilai (Atasan / Peer / Cross / Bawahan pada
+  Model 4-Kelas, atau Atasan / Internal pada Model 2-Kelas). **Self selalu dikecualikan** dari total.
+- ⚠️ **Skor 360° baru "jadi" saat HRD menekan "Hitung Ulang Skor 360°".** Hasilnya disimpan sebagai
+  **foto/snapshot** (`result_360`) bertanda waktu. Sebelum ditekan, komponen 360° dianggap kosong →
+  Skor Akhir = 100% KPI.
+
+### 3. Skor Akhir
+```
+360° aktif & ada   :  Skor Akhir = KPI × 0,5  +  Skor 360° × 0,5
+tanpa 360°         :  Skor Akhir = KPI (100%)
+keduanya           :  lalu DIKURANGI punishment (Flag Kepatuhan), minimal 0
+```
+- KPI kosong → Skor Akhir belum bisa dihitung (tombol simpan laporan dinonaktifkan).
+
+### 4. Dua macam angka: "live" vs "foto beku"
+- **Angka live** dihitung ulang **tiap halaman dibuka** dari data terkini.
+- **Foto beku** ada dua: **Skor 360°** (`result_360`, berubah hanya saat *Hitung Ulang*) dan
+  **laporan Final** (`final_score`, berubah hanya saat *Finalisasi ulang*). Pegawai melihat **foto
+  beku**, bukan live.
+- Bila foto beku **ketinggalan** dari data terkini, aplikasi menandainya (lihat tabel di bawah).
+
+### 5. Bila ada edit / interupsi di tengah jalan
+
+| Kejadian | Akibat | Yang harus dilakukan HRD |
+|---|---|---|
+| Penilai **mengubah / mengirim** penilaian setelah Hitung Ulang | Skor 360° (`result_360`) **usang** → badge **"⚠ perlu hitung"** | Klik **Hitung Ulang Skor 360°** |
+| **Koreksi Garis Hubungan di-ACC** | Kelas bobot penilai berubah → usang | Hitung Ulang Skor 360° |
+| **Pemetaan dihapus** (pasangan sudah dinilai) | Penilaiannya di periode itu ikut terhapus → skor 360° **otomatis dihitung ulang** | (tak perlu aksi) |
+| **KPI diedit** (bulan yang sudah ada) | Wajib isi **Komentar Audit**; bila kosong → ditolak | Simpan Draf laporan → Skor Akhir dihitung ulang dari data terkini |
+| **Punishment diubah** | Skor Akhir **live** berubah | (terbawa otomatis saat simpan/finalisasi) |
+| Data berubah **setelah laporan Final** | `final_score` tersimpan ≠ skor terkini → badge **"berubah → N"** | **Kembalikan ke Draf → Finalisasi ulang** agar pegawai melihat angka terbaru |
+
+> **Ringkas:** badge **"perlu dihitung ulang"** = Skor 360° (foto) usang → *Hitung Ulang*. Badge
+> **"berubah → N"** = laporan **Final** (foto) usang → *Kembalikan ke Draf lalu Finalisasi ulang*.
+> Selama belum ditekan, pegawai tetap melihat foto lama — itulah sebabnya kedua badge penting
+> diperhatikan sebelum menutup periode.
+
+---
+
 ## Alur Lengkap — dari penilaian hingga rilis ke pegawai
 
 ### Tahap demi tahap

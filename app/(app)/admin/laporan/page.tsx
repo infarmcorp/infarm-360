@@ -112,6 +112,10 @@ export default async function AdminLaporanPage() {
     };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));
   const staleCount = rows.filter((r) => r.needsRecompute).length;
+  // "Belum pernah dihitung" = ada penilaian masuk tapi result_360 masih kosong (subset staleCount)
+  // → Skor Akhir mereka masih 100% KPI. Dibedakan agar pesan langkah lebih jelas.
+  const neverCount = rows.filter((r) => ap.has_360 && r.s360 == null && maxSubByTarget.has(r.id)).length;
+  const changedCount = Math.max(0, staleCount - neverCount);
   const depts = [...new Set(employees.map((e) => e.dept))].sort();
 
   return (
@@ -124,17 +128,42 @@ export default async function AdminLaporanPage() {
         <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
       </div>
 
-      {/* Kokpit: hitung 360° + pintasan, agar HRD tak bolak-balik halaman. */}
-      <div className="flex flex-wrap items-center gap-2 mb-4 bg-slate-50 border border-slate-200 rounded-xl p-3">
-        {ap.has_360 && <Recompute360Button />}
-        {ap.has_360 && staleCount > 0 && (
-          <span className="text-[11px] font-bold text-amber-800 bg-amber-100 border border-amber-200 rounded-full px-2.5 py-1">
-            ⚠ {staleCount} pegawai: penilaian berubah — perlu hitung ulang
-          </span>
+      {/* Penanda langkah + kokpit hitung 360°, agar HRD tahu urutan & tak bolak-balik halaman. */}
+      <div className="mb-4 space-y-2">
+        {/* Strip alur bernomor — selalu tampil saat 360° aktif. */}
+        {ap.has_360 && (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-600">
+            <span className="font-bold text-slate-700">Alur Review:</span>
+            <span className="font-semibold px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200">① Hitung Ulang Skor 360°</span>
+            <span aria-hidden className="text-gray-400">→</span>
+            <span className="font-semibold px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200">② Tinjau &amp; susun ringkasan</span>
+            <span aria-hidden className="text-gray-400">→</span>
+            <span className="font-semibold px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200">③ Finalisasi</span>
+          </div>
         )}
-        <div className="flex items-center gap-2 ml-auto">
-          <Link href="/admin/bobot" className="text-[11px] font-bold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-white">⚖ Atur Bobot</Link>
-          <Link href="/admin/kepatuhan" className="text-[11px] font-bold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-white">⚑ Flag Kepatuhan</Link>
+
+        {/* Banner langkah wajib: 360° aktif tapi ada yang belum/perlu dihitung. */}
+        {ap.has_360 && staleCount > 0 && (
+          <div className="flex items-start gap-2 bg-amber-50 border border-amber-300 rounded-xl p-3 text-[12px] text-amber-900">
+            <span aria-hidden>⚠️</span>
+            <div>
+              <strong>Langkah ①: Hitung Ulang Skor 360° dulu.</strong> Skor 360° hanya diperbarui saat tombol ini ditekan —
+              {neverCount > 0 && <> <strong>{neverCount} pegawai belum pernah dihitung</strong> (Skor Akhir mereka masih 100% KPI).</>}
+              {changedCount > 0 && <> <strong>{changedCount} pegawai perlu dihitung ulang</strong> (penilaian/koreksi berubah sejak hitung terakhir).</>}
+              {' '}Tekan tombol di bawah <strong>sebelum</strong> Tinjau &amp; Finalisasi agar Skor Akhir benar.
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
+          {ap.has_360 && <Recompute360Button />}
+          {ap.has_360 && staleCount === 0 && (
+            <span className="text-[11px] font-semibold text-emerald-700">✓ Skor 360° mutakhir</span>
+          )}
+          <div className="flex items-center gap-2 ml-auto">
+            <Link href="/admin/bobot" className="text-[11px] font-bold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-white">⚖ Atur Bobot</Link>
+            <Link href="/admin/kepatuhan" className="text-[11px] font-bold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-white">⚑ Flag Kepatuhan</Link>
+          </div>
         </div>
       </div>
 

@@ -76,6 +76,10 @@ export function ReadinessPanel({
           <p className="text-gray-600 mt-0.5">Buka-tutup <strong>bagian 360° saja</strong> (form + skor). Di tengah persiapan/berjalan.</p>
         </div>
       </div>
+
+      <p className="mt-2 text-[10px] text-gray-500">
+        <strong>Urutan tutup periode:</strong> Hitung Ulang Skor 360° → Finalisasi semua laporan → baru <strong>Kunci &amp; Akhiri</strong>.
+      </p>
     </div>
   );
 }

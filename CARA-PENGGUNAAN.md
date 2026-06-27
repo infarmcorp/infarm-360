@@ -448,6 +448,31 @@ di kolom Aksi — **nama pegawai tidak bisa diklik lagi**.
   tanpa** mengubah sandinya. (Untuk produksi semua domain: set env `ONBOARDING_GMAIL_ONLY=false`.)
 - **Paksa Selesai** — menandai penilaian selesai (penyesuaian manual).
 
+### Sandi & Onboarding — tombol mana?
+
+Empat aksi sering tertukar. Yang penting: **mana yang mengubah sandi.**
+
+| Tombol (lokasi) | Mengubah sandi? | Fungsi | Kapan |
+|---|---|---|---|
+| **Undangan / Undangan Massal** (Progress 360) | ✅ **YA** — set sandi acak baru | Email info akun + sandi + panduan | **Sekali di awal** periode |
+| **Kirim Pengingat / Massal** (Progress 360) | ❌ **Tidak** | Email daftar yang belum dinilai | Rutin selama periode |
+| **Reset Sandi** (Kelola Pegawai) | ✅ **YA** — HRD set sandi baru | Tangani **1 orang** lupa sandi | Insidental |
+| **Lupa Sandi** (halaman login) | ✅ ya, **oleh pegawai sendiri** | Reset mandiri via email | Dorman (belum aktif) |
+
+> **Hanya 2 tombol yang Anda (HRD) tekan & mengubah sandi: Undangan dan Reset Sandi.** "Kirim
+> Pengingat" **tidak pernah** menyentuh sandi. ⚠️ "Undangan Massal" menyetel ulang sandi **semua
+> orang** (termasuk yang sudah menggantinya sendiri) — pakai sekali di awal, lalu cukup "Kirim Pengingat".
+
+```mermaid
+flowchart TD
+    Q{"Situasinya apa?"}
+    Q -- "Awal periode, semua pegawai" --> A["Kirim Undangan Massal<br/>(set sandi + info akun)"]
+    Q -- "1 pegawai baru / belum onboarding" --> B["Undangan (per-orang)"]
+    Q -- "1 pegawai LUPA sandi" --> C["Reset Sandi di Kelola Pegawai"]
+    Q -- "Mengejar yang belum mengisi" --> D["Kirim Pengingat<br/>(sandi TIDAK berubah)"]
+    Q -- "Pegawai mau ganti sandi sendiri" --> E["Pegawai pakai Akun Saya<br/>(atau Lupa Sandi bila aktif)"]
+```
+
 ### Flag Kepatuhan Penilaian
 - Memantau **kepatuhan** pengisian 360° dan memberi **punishment**.
 - **Tabel default hanya menampilkan pegawai yang perlu perhatian** — yakni yang punya penilaian

@@ -63,13 +63,12 @@ export default async function DashboardPage({
   const inScope = (id: string) => empIds.includes(id);
 
   // Gelombang 1 — query periode terpilih, di-scope ke pegawai dalam lingkup divisi.
-  const [monthsRes, r360Res, penRes, aspectRes, asmtRes, planRes] = await Promise.all([
+  const [monthsRes, r360Res, penRes, aspectRes, asmtRes] = await Promise.all([
     supabase.from('period_months').select('ym').eq('period_id', ap.id),
     supabase.from('result_360').select('employee_id, score').eq('period_id', ap.id),
     supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id),
     supabase.from('culture_aspects').select('id, name, order_idx').eq('period_id', ap.id).order('order_idx'),
     supabase.from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted'),
-    supabase.from('succession_plans').select('employee_id, plan, status').eq('period_id', ap.id),
   ]);
   const ymList = (monthsRes.data ?? []).map((m) => m.ym);
   const aspectList = aspectRes.data ?? [];
@@ -193,9 +192,6 @@ export default async function DashboardPage({
     .map((a) => ({ aspek: a.name, score: aspAgg.has(a.id) ? (aspAgg.get(a.id)!.sum / aspAgg.get(a.id)!.n) * 20 : 0 }))
     .filter((a) => a.score > 0);
 
-  // Rencana suksesi per pegawai (untuk Papan Pertimbangan Suksesi di tab Kompilasi).
-  const successionPlans = (planRes.data ?? []).map((p) => ({ id: p.employee_id, plan: p.plan, status: p.status as string }));
-
   return (
     <Shell>
       <div className="flex items-center justify-between mb-3">
@@ -235,7 +231,6 @@ export default async function DashboardPage({
           year360={year360}
           yearKpiAvg={yearKpiAvg}
           year360Avg={year360Avg}
-          successionPlans={successionPlans}
           has360={ap.has_360}
           periodLabel={ap.label}
           kpiStandard={ap.kpi_standard}

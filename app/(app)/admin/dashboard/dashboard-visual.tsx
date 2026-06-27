@@ -20,7 +20,6 @@ export type Row = {
   player: PlayerClass | null;
 };
 
-export type SuccessionPlan = { id: string; plan: string; status: string };
 
 /** Baris heatmap KPI per divisi: satu sel per bulan (null = belum ada data). */
 export type DeptMonthRow = { dept: string; cells: { ym: string; avg: number | null }[] };
@@ -37,7 +36,6 @@ type Props = {
   year360: { label: string; avg: number }[];
   yearKpiAvg: number | null;
   year360Avg: number | null;
-  successionPlans: SuccessionPlan[];
   has360: boolean;
   periodLabel: string;
   kpiStandard: number;
@@ -78,7 +76,7 @@ const TABS: { key: SubTab; label: string; icon: React.ElementType }[] = [
   { key: 'table', label: 'Tabel Hasil Seluruh Pegawai', icon: Users },
 ];
 
-export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptMonthly, months, yearLabel, yearMonthly, year360, yearKpiAvg, year360Avg, successionPlans, has360, periodLabel, kpiStandard }: Props) {
+export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptMonthly, months, yearLabel, yearMonthly, year360, yearKpiAvg, year360Avg, has360, periodLabel, kpiStandard }: Props) {
   const [tab, setTab] = useState<SubTab>('compilation');
 
   return (
@@ -99,7 +97,7 @@ export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptM
         })}
       </div>
 
-      {tab === 'compilation' && <CompilationTab rows={rows} deptScores={deptScores} aspectScores={aspectScores} successionPlans={successionPlans} has360={has360} periodLabel={periodLabel} />}
+      {tab === 'compilation' && <CompilationTab rows={rows} deptScores={deptScores} aspectScores={aspectScores} has360={has360} periodLabel={periodLabel} />}
       {tab === 'kpi' && <KpiTab rows={rows} deptScores={deptScores} monthly={monthly} deptMonthly={deptMonthly} months={months} kpiStandard={kpiStandard} yearLabel={yearLabel} yearMonthly={yearMonthly} yearKpiAvg={yearKpiAvg} />}
       {tab === 'feedback' && <FeedbackTab rows={rows} aspectScores={aspectScores} has360={has360} periodLabel={periodLabel} yearLabel={yearLabel} year360={year360} year360Avg={year360Avg} />}
       {tab === 'table' && <TableTab rows={rows} has360={has360} />}
@@ -108,16 +106,9 @@ export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptM
 }
 
 /* ───────────────────────── TAB 1 — KOMPILASI (talenta) ───────────────────────── */
-const STATUS_BADGE: Record<string, { cls: string; label: string }> = {
-  approved: { cls: 'bg-emerald-50 text-emerald-800 border-emerald-250', label: '🟢 Disetujui' },
-  rejected: { cls: 'bg-rose-50 text-rose-800 border-rose-250', label: '🔴 Ditolak' },
-  submitted: { cls: 'bg-blue-50 text-blue-800 border-blue-200', label: '🔵 Diajukan' },
-  draft: { cls: 'bg-amber-50 text-amber-800 border-amber-250', label: '🟡 Draf' },
-};
-
-function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has360, periodLabel }: {
+function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }: {
   rows: Row[]; deptScores: [string, number][]; aspectScores: { aspek: string; score: number }[];
-  successionPlans: SuccessionPlan[]; has360: boolean; periodLabel: string;
+  has360: boolean; periodLabel: string;
 }) {
   const scored = rows.filter((r) => r.final != null);
   const denom = scored.length || 1;
@@ -138,8 +129,6 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
   ];
 
   // Papan Pertimbangan Suksesi & Promosi — pegawai Skor Akhir ≥ 90 + rencana suksesinya.
-  const planById = new Map(successionPlans.map((p) => [p.id, p]));
-  const candidates = scored.filter((r) => (r.final ?? 0) >= 90).sort((a, b) => (b.final ?? 0) - (a.final ?? 0));
   const orgAvg = mean(scored.map((r) => r.final ?? 0));
   const aPlayers = rows.filter((r) => r.player === 'A').length;
   const coaching = scored.filter((r) => (r.final ?? 99) < 85).length;
@@ -301,46 +290,6 @@ function CompilationTab({ rows, deptScores, aspectScores, successionPlans, has36
           B KPI = KPI≥80 &amp; 360°&lt;80 · C = keduanya &lt;80. Tanpa kelas D.
           {!has360 && <span className="text-amber-700 font-semibold not-italic"> Tanpa 360° → tak ada sumbu budaya, A &amp; B-Culture tidak tersedia.</span>}
         </p>
-      </div>
-
-      {/* Papan Pertimbangan Suksesi & Promosi (Skor ≥ 90) */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
-        <h3 className="text-xs font-extrabold text-indigo-950 tracking-wider uppercase mb-3 flex items-center gap-1.5">
-          <span className="p-1 rounded-md bg-indigo-50 text-indigo-800">🎯</span>
-          <span>Papan Pertimbangan Suksesi &amp; Promosi (Skor ≥ 90)</span>
-        </h3>
-        {candidates.length === 0 ? (
-          <p className="text-xs text-gray-500 italic text-center py-6 font-medium">
-            Belum ada pegawai dengan Skor Akhir ≥ 90 pada lingkup ini. Rencana suksesi belum diusulkan.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs min-w-[520px]">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-[10px] uppercase tracking-wider text-gray-500">
-                  <th className="py-2.5 px-4 font-extrabold">Nama Pegawai</th>
-                  <th className="py-2.5 px-4 text-center font-extrabold">Skor Akhir</th>
-                  <th className="py-2.5 px-4 font-extrabold">Rencana Suksesi (Pilihan HRD)</th>
-                  <th className="py-2.5 px-4 text-center font-extrabold">Status Direksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {candidates.map((e) => {
-                  const plan = planById.get(e.id);
-                  const badge = plan ? (STATUS_BADGE[plan.status] ?? STATUS_BADGE.draft) : null;
-                  return (
-                    <tr key={e.id} className="border-b border-gray-100 last:border-none">
-                      <td className="py-3 px-4"><div className="font-extrabold text-gray-800 text-sm">{e.name}</div><div className="text-[10px] text-gray-500 font-bold">{e.dept}</div></td>
-                      <td className="py-3 px-4 text-center"><span className="font-mono font-black text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded inline-block text-[11px] border border-emerald-100">{e.final?.toFixed(1)}</span></td>
-                      <td className="py-3 px-4">{plan ? <span className="font-extrabold text-slate-800 block">{plan.plan}</span> : <span className="text-gray-500 italic">Belum ada rencana — usulkan di menu Promosi &amp; Suksesi</span>}</td>
-                      <td className="py-3 px-4 text-center">{badge ? <span className={`inline-block text-[10px] font-black uppercase px-2.5 py-1 rounded-full border ${badge.cls}`}>{badge.label}</span> : <span className="text-gray-300 text-[10px]">—</span>}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
 
       {/* Top / bottom */}

@@ -1,6 +1,6 @@
 # RINCIAN TOMBOL — Infarm 360° Performance Appraisal
 
-Kamus lengkap **setiap tombol/aksi di semua halaman**, diambil langsung dari kode (akurat per 2026-06-26).
+Kamus lengkap **setiap tombol/aksi di semua halaman**, diambil langsung dari kode (akurat per 2026-06-27).
 Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi · Peran · Kondisi (kapan muncul/nonaktif) · Konfirmasi**.
 
 ## Cara membaca
@@ -196,7 +196,12 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **Standar KPI inline** (per baris) | `setKpiStandard` (metrik dashboard) | HRD Admin | On blur/Enter bila berubah | — |
 | **Aktivasi** | `activatePeriod` (mengunci periode aktif lama) | HRD Admin | Hanya bila belum aktif | **Kondisional** — ConfirmDialog "Aktifkan periode ini?" bila periode lama belum lengkap |
 | **Kunci & Akhiri** | `endPeriod` (kunci edit) | HRD Admin | Hanya bila aktif | **Selalu** — ConfirmDialog "Kunci & Akhiri Periode?" (daftar isu tertunda) |
-| **Set Tanpa 360° / Aktifkan 360°** | `toggleHas360` (buka/tutup gerbang form 360°) | HRD Admin | Selalu; nonaktif saat busy | — (tooltip) |
+| **Aktifkan 360°** | `toggleHas360(true)` (buka gerbang form 360° = peluncuran) | HRD Admin | Saat `has_360=false`; **divalidasi** — tolak bila belum ada pertanyaan/pemetaan | — (langsung) |
+| **Set Tanpa 360°** | `toggleHas360(false)` (tutup form 360°, Skor Akhir jadi 100% KPI) | HRD Admin | Saat `has_360=true` | **Kondisional** — ConfirmDialog "Matikan komponen 360°?" bila sudah ada penilaian terkirim |
+| **Lengkapi →** (panel Kesiapan 360°) | Tautan ke Kelola Pertanyaan / Pemetaan / Bobot | HRD Admin | Panel kesiapan periode aktif; per prasyarat yang belum lengkap | — |
+
+> **Panel "Kesiapan Peluncuran 360°"** (atas tabel, hanya periode aktif): checklist read-only
+> (pertanyaan · pemetaan · bobot) + badge status + legenda dua saklar. Murni penuntun, tanpa aksi tulis.
 
 ### Pemetaan Penilai 360° (`/admin/pemetaan`)
 
@@ -206,7 +211,7 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **+ Impor dari Excel / Unduh template / Impor N baris / Batal / ✕** | Impor pemetaan massal (`createMappingsBulk`; buang target eksternal) | HRD Admin | Panel impor | — (pratinjau + daftar dilewati) |
 | **Salin dari Periode Sebelumnya / Salin Pemetaan / ✕** | `copyMappingsFromPeriod` | HRD Admin | Bila ada periode lain | — |
 | **Penilai/Target/Bersihkan** | Filter daftar | HRD Admin | "Bersihkan" bila filter aktif | — |
-| **Hapus** (per baris) | `deleteMapping` | HRD Admin | Nonaktif saat busy | — (langsung) |
+| **Hapus** (per baris) | `deleteMapping` (akomodasi resign). Bila pasangan **sudah dinilai** → hapus penilaian 360°-nya **di periode itu saja** + **auto Hitung Ulang Skor 360°** | HRD Admin | Nonaktif saat busy | **Kondisional** — ConfirmDialog (peringatan bila sudah ada penilaian) via `mappingDeleteInfo` |
 | **Setujui / Tolak** (tab Koreksi Relasi) | `reviewCorrection` (approve mengubah relasi mapping) | HRD Admin | Hanya request `pending` | — |
 | **Tab Pemetaan / Koreksi Relasi** | Navigasi (+ badge pending) | HRD Admin | Selalu | — |
 
@@ -251,26 +256,39 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | Tombol | Fungsi | Peran | Kondisi | Konfirmasi |
 |--------|--------|-------|---------|------------|
 | **Cari + Dropdown Divisi / Kelengkapan 360° / Bersihkan** | Filter baris (klien); filter kelengkapan = penilai WAJIB lengkap | HRD Admin | Filter kelengkapan hanya saat `has_360` | — |
-| **Nama pegawai (link)** | Buka detail `/laporan/{id}` | HRD Admin | Selalu | — |
-| **Draf** | `saveOrFinalizeReport(false)` (simpan draf Skor Akhir) | HRD Admin | "KPI kosong" bila KPI belum ada | — |
-| **Finalisasi** | `saveOrFinalizeReport(true)` (pegawai bisa lihat) | HRD Admin | Tak muncul bila KPI kosong | — |
+| **Hitung Ulang Skor 360° (semua)** | `computeResult360` semua pegawai (tanpa pindah ke halaman Bobot) | HRD Admin | Di atas tabel; nonaktif saat busy | — |
+| **⚖ Atur Bobot / ⚑ Flag Kepatuhan** | Pintasan ke `/admin/bobot` & `/admin/kepatuhan` | HRD Admin | Di atas tabel | — |
+| **Tinjau →** (kolom Aksi) | Buka detail `/laporan/{id}` (state-machine ada di detail) | HRD Admin | "KPI kosong" bila KPI belum ada (nama **tidak** bisa diklik lagi) | — |
+
+> Tabel = **kokpit** read-only: kolom KPI ("X/Y bln" amber bila kurang) · 360° ("belum"/"N/A"/
+> "⚠ perlu hitung") · Punish. · Skor Akhir (baris Final = angka **tersimpan** + badge "berubah → N"
+> bila skor terkini beda) · Dinilai oleh X/Y · ACC SPV · Status. Aksi Simpan/Finalisasi/Rilis kini
+> **hanya di halaman detail** (Panel Aksi di bawah).
 
 ### Detail Laporan — Panel Aksi HRD (`/laporan/[employeeId]`)
+
+Panel **berbasis status (state-machine)**: saat masih dapat diedit (draf/belum/Ditinjau SPV)
+tombol edit muncul; saat **Final** panel jadi read-only (hanya Unduh PDF + Kembalikan ke Draf).
 
 | Tombol | Fungsi | Peran | Kondisi | Konfirmasi |
 |--------|--------|-------|---------|------------|
 | **Unduh PDF** | `window.print()` | HRD Admin | Selalu | — |
-| **Simpan Draf** | `saveOrFinalizeReport(false)` | HRD Admin | Diganti pesan bila KPI kosong | — |
-| **Rilis ke SPV** | `releaseToSpv` → status `in_review` (SPV bisa lihat agregat) | HRD Admin | Tak muncul bila sudah in_review/finalized | Inline **bila ringkasan aspek belum disimpan** |
-| **Finalisasi Hasil** | `saveOrFinalizeReport(true)` → `finalized` | HRD Admin | Tersembunyi bila KPI kosong | Inline **bila ringkasan belum disimpan** |
-| **Simpan Ringkasan** | `saveAspectSummaries` (ringkasan aspek 360°) | HRD Admin | Hanya bila `has360` & ada aspek; amber saat dirty | — |
-| **Hitung Ulang Skor 360°** (link) | Tautan ke `/admin/bobot` | HRD Admin | Di banner "Skor 360° mungkin belum mutakhir" (sebut penyebab) | — |
+| **Simpan Draf** | `saveOrFinalizeReport(false)` → status `draft` | HRD Admin | Hanya saat belum Final; "KPI kosong" → dinonaktifkan | — |
+| **Rilis ke SPV** | `releaseToSpv` → status `in_review` (SPV bisa lihat agregat) | HRD Admin | Hanya saat belum Final & belum `in_review` | — |
+| **Finalisasi Hasil** | `saveOrFinalizeReport(true)` → `finalized` (pegawai bisa lihat) | HRD Admin | Hanya saat belum Final; tersembunyi bila KPI kosong | **Kondisional (lunak)** — konfirmasi bila Skor 360° perlu dihitung ulang / KPI belum lengkap semua bulan |
+| **↩ Kembalikan ke Draf** | `saveOrFinalizeReport(false)` (buka kunci, sembunyikan dari pegawai) | HRD Admin | **Hanya saat status Final** | **Ya** — konfirmasi (menyembunyikan dari pegawai) |
+| **Hitung Ulang Skor 360°** (link) | Tautan ke `/admin/laporan` atau `/admin/bobot` | HRD Admin | Di banner "Skor 360° perlu dihitung ulang" (sebut penyebab spesifik) | — |
+
+> **Ringkasan Aspek 360°** kini **auto-simpan** (`saveAspectSummaries`, debounce ~5 detik + saat
+> blur) dengan indikator status — **tidak ada lagi tombol "Simpan Ringkasan" manual**, dan tidak
+> ada konfirmasi "belum disimpan" saat Rilis/Finalisasi. Saat Final, editor ringkasan **terkunci**.
 
 ### Flag Kepatuhan (`/admin/kepatuhan`)
 
 | Tombol | Fungsi | Peran | Kondisi | Konfirmasi |
 |--------|--------|-------|---------|------------|
-| **Input Punishment + Simpan** (per baris) | `setPenalty` (potong Skor Akhir, min 0) | HRD Admin | Nonaktif saat busy | — |
+| **Input Punishment + Simpan** (per baris) | `setPenalty` (potong Skor Akhir, min 0; kolom **kosong** bila belum ada — placeholder "0") | HRD Admin | Nonaktif saat busy | — |
+| **Tampilkan semua pegawai** (toggle) | Tampilkan seluruh pegawai (default hanya yang **perlu perhatian**: telat / belum self / sudah ada punishment) | HRD Admin | Selalu | — |
 
 ### Ekspor Dataset (`/admin/ekspor`)
 

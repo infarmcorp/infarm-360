@@ -4,10 +4,15 @@ Status migrasi dari **SPA legacy** (`src/App.tsx`, localStorage, data contoh) ke
 **Next.js App Router + Supabase** (auth nyata, PostgreSQL, RLS, live di Vercel).
 
 > Ringkas: **migrasi fungsional selesai — seluruh fitur (P1/P2/P3) sudah termigrasi & live.**
-> `/` kini gerbang auth versi Supabase; SPA legacy tinggal arsip di `/legacy`. Satu-satunya
-> sisa opsional: aktivasi email pengingat via Resend (butuh setup eksternal).
+> `/` kini gerbang auth versi Supabase; **arsip SPA legacy (`/legacy` + `src/`) sudah DIHAPUS**.
+> Email pengingat/undangan **aktif** (Gmail SMTP). Pengembangan kini bersifat penyempurnaan
+> (UX, pengerasan aksi HRD, dokumentasi) — bukan lagi migrasi.
 
-Terakhir diperbarui: 2026-06-13
+> **Catatan:** dokumen ini adalah **log historis migrasi** (sebagian besar selesai). Untuk status
+> & changelog terkini lihat **[CLAUDE.md](CLAUDE.md)** (sumber kebenaran), pemakaian di
+> **[CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md)**, rincian tombol di **[RINCIAN-TOMBOL.md](RINCIAN-TOMBOL.md)**.
+
+Terakhir diperbarui: 2026-06-27 (koreksi fakta usang; legacy dihapus, email aktif)
 
 ---
 
@@ -16,7 +21,7 @@ Terakhir diperbarui: 2026-06-13
 ### Fondasi & Infrastruktur
 - [x] **Next.js 16 App Router** (Turbopack, React 19, Tailwind v4, TS strict) — sudah live di Vercel, auto-deploy dari `main`.
 - [x] **Supabase provisioning** (ref `beajoczjpywozavatzmf`, region ap-northeast-1).
-- [x] **Skema DB** — 19 tabel (`0001_init.sql`) + RLS penuh per peran (`0002_policies.sql`) + `compliance_penalties` (`0003`) + `mappings.mandatory` (`0004`).
+- [x] **Skema DB** — 20 tabel + RLS penuh per peran, migrasi `0001`–`0016` (lihat CLAUDE.md untuk daftar lengkap; mis. 0011/0012 visibilitas laporan, 0013 grant HRD, 0015 ad-hoc, 0016 penilai eksternal).
 - [x] **Seed idempoten** (`scripts/seed.ts`) — 10 akun auth, employees, tim SPV, periode, aspek/indikator/pertanyaan, bobot, mapping, KPI (72 baris) dari `src/data.ts`.
 - [x] **Auth Supabase** — `@supabase/ssr`, proxy Next 16 (`proxy.ts`), login/logout, gating route.
 
@@ -39,8 +44,8 @@ Terakhir diperbarui: 2026-06-13
 - [x] **Kelola Pertanyaan** (`/admin/pertanyaan`) — indikator (soft-delete) + pertanyaan esai.
 
 ### Cutover (Fase 6, Opsi B)
-- [x] `/` → server-redirect **berbasis peran** (tanpa sesi → `/login`; Pegawai → `/penilaian`, SPV → `/kpi`, HRD/Direksi → `/admin/dashboard`).
-- [x] SPA legacy diparkir di `/legacy` (banner "data contoh"), publik sementara.
+- [x] `/` → server-redirect **berbasis peran** (tanpa sesi → `/login`; landing per posisi-asli; HRD masuk Mode Admin disengaja).
+- [x] **Arsip SPA legacy (`/legacy` + seluruh `src/`) DIHAPUS** — data benih dipindah ke `scripts/seed-data.ts` (mandiri).
 - [x] Hub `/home` **dihapus** — diganti shell persisten + landing per peran (lihat Restrukturisasi UI).
 
 ---
@@ -100,20 +105,20 @@ link di `app/login/login-form.tsx` (`NEXT_PUBLIC_ENABLE_PW_RESET`).
 4. Set env di **Vercel** (Production): `NEXT_PUBLIC_ENABLE_PW_RESET=true` → redeploy.
 
 ### Penutup
-- [ ] Saat semua gap tertutup → **hapus** `/legacy`, `src/App.tsx`, `src/data.ts`.
-- [ ] (Pra-produksi) Ganti email seed `nama@infarm.test` → email asli; rotasi kredensial.
+- [x] Hapus `/legacy`, `src/App.tsx`, `src/data.ts` — **selesai** (benih dipindah ke `scripts/seed-data.ts`).
+- [ ] 🔑 (Pra-produksi) Ganti email seed `nama@infarm.test` → email asli; rotasi kredensial; backup rutin. *(status terkini di CLAUDE.md → TO-DO & Backlog)*
 
 ---
 
 ## Peta Route Saat Ini
 
-Semua route di bawah `(app)/` berbagi shell sidebar persisten (kecuali `/login`, `/auth`, `/legacy`).
+Semua route di bawah `(app)/` berbagi shell sidebar persisten (kecuali `/login`, `/auth`).
 
 | Route | Peran | Status |
 |---|---|---|
 | `/` | semua | ✅ gerbang auth (redirect berbasis peran) |
 | `/login`, `/auth/signout` | publik | ✅ |
-| `/legacy` | publik (sementara) | ✅ SPA lama (data contoh) |
+| ~~`/legacy`~~ | — | ❌ dihapus (arsip SPA + `src/` dibuang) |
 | `/penilaian`, `/penilaian/[targetId]` | semua (+ panel Ad-Hoc & Minta Koreksi) | ✅ |
 | `/laporan`, `/laporan/[employeeId]` | pegawai (anonim) / HRD·Direksi·SPV (bernama) | ✅ |
 | `/kpi` (tab: input · riwayat · rekap) | SPV/HRD | ✅ |

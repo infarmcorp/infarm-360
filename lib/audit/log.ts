@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 /**
  * Jejak audit aksi sensitif HRD → tabel hrd_audit_log (append-only).
@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/server';
  */
 export type AuditCategory =
   | 'periode' | 'bobot' | 'skor' | 'laporan' | 'kepatuhan'
-  | 'pegawai' | 'pemetaan' | 'pertanyaan' | 'progress';
+  | 'pegawai' | 'pemetaan' | 'pertanyaan' | 'progress' | 'suksesi';
 
 export type AuditEntry = {
   action: string;                 // kode mesin, mis. 'period.lock', 'weights.save'
@@ -40,5 +40,32 @@ export async function logHrdAction(entry: AuditEntry): Promise<void> {
     });
   } catch {
     // Audit gagal tak boleh memblokir aksi HRD — abaikan diam-diam.
+  }
+}
+
+/**
+ * Varian service-role untuk mencatat aksi pelaku yang BUKAN HRD (mis. ACC Direksi),
+ * yang ditolak oleh RLS hrd_audit_insert (`with check is_hrd()`). Pelaku diberikan
+ * eksplisit (tak diambil dari sesi). Tetap best-effort (tak memblokir aksi utama).
+ */
+export async function logAuditAsService(
+  entry: AuditEntry,
+  actor: { id: string; name: string | null },
+): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    await admin.from('hrd_audit_log').insert({
+      actor_id: actor.id,
+      actor_name: actor.name,
+      action: entry.action,
+      category: entry.category,
+      summary: entry.summary,
+      target_type: entry.targetType ?? null,
+      target_id: entry.targetId ?? null,
+      target_label: entry.targetLabel ?? null,
+      meta: entry.meta ?? null,
+    });
+  } catch {
+    // Abaikan diam-diam.
   }
 }

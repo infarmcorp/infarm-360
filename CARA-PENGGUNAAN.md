@@ -331,8 +331,9 @@ Unduh data mentah **Excel (.xlsx)** untuk olah data lanjutan (pivot/statistik/BI
 - **Jejak audit aksi sensitif HRD** — *read-only* & **tak bisa diubah/dihapus** (append-only).
   Dapat dibuka HRD **dan Direksi** (pengawasan).
 - Tercatat otomatis: aktif/kunci/toggle-360 **periode**, simpan **bobot**, **Hitung Ulang 360°**,
-  finalisasi/draft **laporan**, **punishment**, kelola **pegawai** (buat/ubah/aktif/reset sandi/impor),
-  **pemetaan** (buat/impor/hapus/koreksi), paksa-selesai **progress**, kelola **pertanyaan**.
+  finalisasi/draft/rilis **laporan**, **punishment**, kelola **pegawai** (buat/ubah/aktif/reset sandi/impor),
+  **pemetaan** (buat/impor/hapus/koreksi), undangan/pengingat/paksa-selesai **progress**, kelola
+  **pertanyaan**, dan **suksesi** (HRD ajukan/hapus rencana + **ACC/tolak Direksi**).
   *(Sandi tidak pernah dicatat.)*
 - Tiap entri: **waktu** (WIB) · **pelaku** · **kategori** (badge) · **ringkasan**.
   Tersedia **filter Kategori & Pelaku** + **pencarian teks** (menampilkan 500 entri terbaru).

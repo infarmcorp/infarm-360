@@ -15,7 +15,7 @@ export type AuditRow = {
 const CAT_LABEL: Record<string, string> = {
   periode: 'Periode', bobot: 'Bobot', skor: 'Skor 360°', laporan: 'Laporan',
   kepatuhan: 'Kepatuhan', pegawai: 'Pegawai', pemetaan: 'Pemetaan',
-  pertanyaan: 'Pertanyaan', progress: 'Progress', lain: 'Lain',
+  pertanyaan: 'Pertanyaan', progress: 'Progress', suksesi: 'Suksesi', lain: 'Lain',
 };
 const CAT_COLOR: Record<string, string> = {
   periode: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -27,6 +27,7 @@ const CAT_COLOR: Record<string, string> = {
   pemetaan: 'bg-teal-50 text-teal-700 border-teal-200',
   pertanyaan: 'bg-cyan-50 text-cyan-700 border-cyan-200',
   progress: 'bg-orange-50 text-orange-700 border-orange-200',
+  suksesi: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200',
   lain: 'bg-gray-50 text-gray-600 border-gray-200',
 };
 

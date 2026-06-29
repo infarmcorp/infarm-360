@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 export function ConfirmDialog({
   open, icon = '⚠️', title, children,
   confirmLabel = 'Lanjutkan', cancelLabel = 'Batal', tone = 'danger', busy = false,
+  confirmDisabled = false,
   onConfirm, onCancel,
 }: {
   open: boolean;
@@ -20,6 +21,7 @@ export function ConfirmDialog({
   cancelLabel?: string;
   tone?: 'danger' | 'primary';
   busy?: boolean;
+  confirmDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -54,7 +56,7 @@ export function ConfirmDialog({
             className="text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50">
             {cancelLabel}
           </button>
-          <button type="button" onClick={onConfirm} disabled={busy}
+          <button type="button" onClick={onConfirm} disabled={busy || confirmDisabled}
             className={`text-xs font-bold px-4 py-2 rounded-lg text-white disabled:opacity-50 ${
               tone === 'danger' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-700 hover:bg-emerald-800'
             }`}>

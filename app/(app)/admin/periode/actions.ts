@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 
@@ -211,6 +211,89 @@ export async function toggleHas360(periodId: string, value: boolean): Promise<Re
     action: 'period.toggle360', category: 'periode',
     summary: `${value ? 'Mengaktifkan' : 'Menonaktifkan'} komponen 360° pada periode "${pr?.label ?? periodId}"`,
     targetType: 'period', targetId: periodId, targetLabel: pr?.label ?? null, meta: { has_360: value },
+  });
+  revalidatePath('/admin/periode');
+  revalidatePath('/admin/dashboard');
+  return { ok: true };
+}
+
+/**
+ * Bulan yang UNIK milik sebuah periode (tak dipakai periode lain). KPI dikunci per
+ * (employee, ym) — TIDAK cascade dari periods & bisa dipakai bersama bila dua periode
+ * berbagi bulan. Maka KPI hanya boleh dihapus untuk bulan yang khusus periode ini.
+ */
+async function uniqueMonthsOf(
+  admin: ReturnType<typeof createAdminClient>, periodId: string,
+): Promise<string[]> {
+  const { data: pm } = await admin.from('period_months').select('ym').eq('period_id', periodId);
+  const myYms = (pm ?? []).map((r) => r.ym);
+  if (!myYms.length) return [];
+  const { data: other } = await admin.from('period_months').select('ym').neq('period_id', periodId).in('ym', myYms);
+  const shared = new Set((other ?? []).map((r) => r.ym));
+  return myYms.filter((y) => !shared.has(y));
+}
+
+/**
+ * Rekap isi sebuah periode untuk dialog konfirmasi Hapus (meyakinkan HRD soal dampak).
+ * `kpi` = jumlah baris KPI di bulan yang UNIK milik periode ini (yang akan ikut terhapus);
+ * bulan yang dipakai bersama periode lain TIDAK dihitung & tidak akan dihapus.
+ */
+export async function periodDataCounts(periodId: string): Promise<
+  | { ok: true; label: string; status: string; counts: { assessments: number; mappings: number; finalReports: number; kpi: number } }
+  | { ok: false; error: string }
+> {
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+
+  const admin = createAdminClient();
+  const { data: p } = await admin.from('periods').select('label, status').eq('id', periodId).maybeSingle();
+  if (!p) return { ok: false, error: 'Periode tidak ditemukan' };
+
+  const cnt = async (q: PromiseLike<{ count: number | null }>) => (await q).count ?? 0;
+  const assessments = await cnt(admin.from('assessments').select('*', { count: 'exact', head: true }).eq('period_id', periodId));
+  const mappings = await cnt(admin.from('mappings').select('*', { count: 'exact', head: true }).eq('period_id', periodId));
+  const finalReports = await cnt(admin.from('final_reports').select('*', { count: 'exact', head: true }).eq('period_id', periodId));
+  const uniqueYms = await uniqueMonthsOf(admin, periodId);
+  const kpi = uniqueYms.length
+    ? await cnt(admin.from('kpi_scores').select('*', { count: 'exact', head: true }).in('ym', uniqueYms))
+    : 0;
+
+  return { ok: true, label: p.label, status: p.status, counts: { assessments, mappings, finalReports, kpi } };
+}
+
+/**
+ * HAPUS PERIODE beserta seluruh datanya. Pengaman: hanya HRD, periode AKTIF ditolak
+ * (harus "Kunci & Akhiri" dulu), wajib konfirmasi ketik `HAPUS`. Penghapusan baris
+ * periods cascade ke months/aspek/indikator/pertanyaan/bobot/pemetaan/koreksi/penilaian
+ * (+anak)/result_360/punishment/laporan final/suksesi. KPI (per ym, tak cascade) dihapus
+ * manual HANYA untuk bulan unik periode ini agar tak mengganggu periode lain.
+ */
+export async function deletePeriod(periodId: string, confirmText: string): Promise<Result> {
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (confirmText.trim().toUpperCase() !== 'HAPUS') return { ok: false, error: 'Ketik HAPUS untuk konfirmasi.' };
+
+  const admin = createAdminClient();
+  const { data: p } = await admin.from('periods').select('label, status').eq('id', periodId).maybeSingle();
+  if (!p) return { ok: false, error: 'Periode tidak ditemukan' };
+  if (p.status === 'active') return { ok: false, error: 'Periode aktif tidak bisa dihapus. "Kunci & Akhiri" dulu.' };
+
+  // KPI tak cascade dari periods → hapus manual, hanya bulan UNIK periode ini.
+  const uniqueYms = await uniqueMonthsOf(admin, periodId);
+  if (uniqueYms.length) {
+    await admin.from('kpi_audit').delete().in('ym', uniqueYms);
+    await admin.from('kpi_scores').delete().in('ym', uniqueYms);
+  }
+
+  const { error } = await admin.from('periods').delete().eq('id', periodId);
+  if (error) return { ok: false, error: 'Gagal menghapus periode: ' + error.message };
+
+  await logHrdAction({
+    action: 'period.delete', category: 'periode',
+    summary: `Menghapus periode "${p.label}" beserta seluruh datanya`,
+    targetType: 'period', targetId: periodId, targetLabel: p.label,
   });
   revalidatePath('/admin/periode');
   revalidatePath('/admin/dashboard');

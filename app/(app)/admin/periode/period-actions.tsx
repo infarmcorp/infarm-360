@@ -2,8 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { activatePeriod, endPeriod, toggleHas360, activePeriodReadiness, count360Submitted } from './actions';
+import { activatePeriod, endPeriod, toggleHas360, activePeriodReadiness, count360Submitted, periodDataCounts, deletePeriod } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+
+type DelState = {
+  label: string;
+  counts: { assessments: number; mappings: number; finalReports: number; kpi: number };
+};
 
 type Dialog = {
   title: string;
@@ -22,6 +27,8 @@ export function PeriodActions({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog | null>(null);
+  const [del, setDel] = useState<DelState | null>(null);
+  const [delText, setDelText] = useState('');
 
   async function run(fn: () => Promise<{ ok: boolean; error?: string }>) {
     setBusy(true); setErr(null);
@@ -139,6 +146,28 @@ export function PeriodActions({
     });
   }
 
+  /** Hapus periode: ambil rekap isi dulu → buka dialog konfirmasi (wajib ketik HAPUS). */
+  async function askDelete() {
+    setBusy(true); setErr(null);
+    const r = await periodDataCounts(periodId);
+    setBusy(false);
+    if (!r.ok) { setErr(r.error); return; }
+    setDelText('');
+    setDel({ label: r.label, counts: r.counts });
+  }
+
+  async function doDelete() {
+    setBusy(true); setErr(null);
+    const res = await deletePeriod(periodId, delText);
+    setBusy(false);
+    if (!res.ok) { setErr(res.error ?? 'Gagal'); return; }
+    setDel(null);
+    router.refresh();
+  }
+
+  const delEmpty = del && del.counts.assessments === 0 && del.counts.mappings === 0
+    && del.counts.finalReports === 0 && del.counts.kpi === 0;
+
   return (
     <div className="flex flex-col items-end gap-1">
       <div className="flex flex-wrap gap-1.5 justify-end">
@@ -160,6 +189,13 @@ export function PeriodActions({
           className="text-[11px] font-bold px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50">
           {has360 ? 'Set Tanpa 360°' : 'Aktifkan 360°'}
         </button>
+        <button type="button" disabled={busy || status === 'active'} onClick={askDelete}
+          title={status === 'active'
+            ? 'Periode aktif tidak bisa dihapus — "Kunci & Akhiri" dulu.'
+            : 'Hapus periode ini beserta seluruh datanya (permanen).'}
+          className="text-[11px] font-bold px-2 py-1 rounded border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed">
+          Hapus
+        </button>
       </div>
       {err && <span className="text-[10px] text-rose-600 max-w-[150px] text-right">{err}</span>}
 
@@ -173,6 +209,42 @@ export function PeriodActions({
         onCancel={() => { if (!busy) setDialog(null); }}
       >
         {dialog?.body}
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={!!del}
+        icon="🗑️"
+        title={`Hapus periode "${del?.label ?? ''}"?`}
+        confirmLabel="Hapus Permanen"
+        tone="danger"
+        busy={busy}
+        confirmDisabled={delText.trim().toUpperCase() !== 'HAPUS'}
+        onConfirm={doDelete}
+        onCancel={() => { if (!busy) { setDel(null); setErr(null); } }}
+      >
+        {delEmpty ? (
+          <p>Periode ini <strong>tidak memiliki data</strong> (tanpa penilaian, KPI, laporan, atau pemetaan).</p>
+        ) : (
+          <>
+            <p>Periode ini berisi data berikut yang akan <strong>ikut terhapus permanen</strong>:</p>
+            <ul className="list-disc pl-5">
+              {del && del.counts.assessments > 0 && <li>{del.counts.assessments} penilaian 360° (+ jawaban rating &amp; esai)</li>}
+              {del && del.counts.kpi > 0 && <li>{del.counts.kpi} skor KPI (bulan khusus periode ini)</li>}
+              {del && del.counts.finalReports > 0 && <li>{del.counts.finalReports} laporan final</li>}
+              {del && del.counts.mappings > 0 && <li>{del.counts.mappings} pemetaan penilai→target</li>}
+            </ul>
+            <p>Juga aspek, indikator/pertanyaan, bobot, koreksi relasi, hasil 360°, dan punishment periode ini.</p>
+          </>
+        )}
+        <p className="font-semibold text-rose-700">Tindakan ini tidak bisa dibatalkan.</p>
+        <label className="block">
+          <span className="text-[12px] text-gray-600">Ketik <strong>HAPUS</strong> untuk mengonfirmasi:</span>
+          <input
+            type="text" value={delText} onChange={(e) => setDelText(e.target.value)}
+            autoFocus disabled={busy} placeholder="HAPUS"
+            className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-rose-200"
+          />
+        </label>
       </ConfirmDialog>
     </div>
   );

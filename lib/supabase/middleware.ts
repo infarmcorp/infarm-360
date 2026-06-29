@@ -8,8 +8,12 @@ import type { Database } from '@/lib/database.types';
  * PENTING (Fase 6 Cutover, Opsi B): `/` kini server-redirect ke landing per peran atau /login
  * (cek sesi sendiri), jadi tetap publik. `/legacy` (SPA demo localStorage), `/login`,
  * & `/auth` juga publik. Route lain butuh sesi → diarahkan ke /login.
+ *
+ * `/panduan` (PDF panduan per peran di public/) WAJIB publik: dilampirkan ke email
+ * onboarding & diunduh provider email (Gmail/Resend) tanpa sesi — bila digate, provider
+ * hanya mendapat halaman login, bukan PDF.
  */
-const PUBLIC_PREFIXES = ['/login', '/auth', '/legacy'];
+const PUBLIC_PREFIXES = ['/login', '/auth', '/legacy', '/panduan'];
 
 export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;

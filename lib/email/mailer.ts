@@ -13,6 +13,9 @@ import nodemailer from 'nodemailer';
 
 export type SendResult = { ok: true } | { ok: false; reason: 'not_configured' | 'error'; detail?: string };
 
+/** Lampiran email: file diambil provider dari URL publik (mis. /panduan/x.pdf). */
+export type EmailAttachment = { filename: string; path: string };
+
 type Provider = 'smtp' | 'resend' | null;
 
 function provider(): Provider {
@@ -25,7 +28,7 @@ export function emailConfigured(): boolean {
   return provider() !== null;
 }
 
-export async function sendEmail(msg: { to: string | string[]; subject: string; html: string; text?: string }): Promise<SendResult> {
+export async function sendEmail(msg: { to: string | string[]; subject: string; html: string; text?: string; attachments?: EmailAttachment[] }): Promise<SendResult> {
   const p = provider();
   if (!p) return { ok: false, reason: 'not_configured' };
   // Selalu sertakan alternatif PLAIN-TEXT (multipart) → menurunkan skor spam & terbaca di
@@ -35,7 +38,7 @@ export async function sendEmail(msg: { to: string | string[]; subject: string; h
 }
 
 /** Jalur 1 — Gmail (atau SMTP lain) via nodemailer. App Password boleh berisi spasi. */
-async function sendViaSmtp({ to, subject, html, text }: { to: string | string[]; subject: string; html: string; text: string }): Promise<SendResult> {
+async function sendViaSmtp({ to, subject, html, text, attachments }: { to: string | string[]; subject: string; html: string; text: string; attachments?: EmailAttachment[] }): Promise<SendResult> {
   const user = process.env.SMTP_USER!;
   const pass = (process.env.SMTP_PASS ?? '').replace(/\s+/g, ''); // App Password sering ditulis berspasi
   const host = process.env.SMTP_HOST || 'smtp.gmail.com';
@@ -46,7 +49,11 @@ async function sendViaSmtp({ to, subject, html, text }: { to: string | string[];
       host, port, secure: port === 465, // 465 = SSL; 587 = STARTTLS
       auth: { user, pass },
     });
-    await transporter.sendMail({ from, to: Array.isArray(to) ? to.join(',') : to, subject, html, text });
+    await transporter.sendMail({
+      from, to: Array.isArray(to) ? to.join(',') : to, subject, html, text,
+      // nodemailer mengunduh sendiri tiap `path` (URL) → jadikan lampiran.
+      ...(attachments?.length ? { attachments: attachments.map((a) => ({ filename: a.filename, path: a.path })) } : {}),
+    });
     return { ok: true };
   } catch (e) {
     return { ok: false, reason: 'error', detail: String(e).slice(0, 300) };
@@ -54,14 +61,18 @@ async function sendViaSmtp({ to, subject, html, text }: { to: string | string[];
 }
 
 /** Jalur 2 — Resend REST API (tanpa SDK). */
-async function sendViaResend({ to, subject, html, text }: { to: string | string[]; subject: string; html: string; text: string }): Promise<SendResult> {
+async function sendViaResend({ to, subject, html, text, attachments }: { to: string | string[]; subject: string; html: string; text: string; attachments?: EmailAttachment[] }): Promise<SendResult> {
   const key = process.env.RESEND_API_KEY!;
   const from = process.env.RESEND_FROM || 'Infarm 360 <onboarding@resend.dev>';
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from, to: Array.isArray(to) ? to : [to], subject, html, text }),
+      // Resend mengunduh tiap `path` (URL) menjadi lampiran.
+      body: JSON.stringify({
+        from, to: Array.isArray(to) ? to : [to], subject, html, text,
+        ...(attachments?.length ? { attachments: attachments.map((a) => ({ filename: a.filename, path: a.path })) } : {}),
+      }),
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
@@ -132,6 +143,30 @@ function htmlToText(html: string): string {
 const ROLE_LABEL_ID: Record<string, string> = {
   employee: 'Pegawai', spv: 'Supervisor', hrd: 'HRD Admin', direksi: 'Direksi',
 };
+
+/**
+ * Panduan PDF per peran — disimpan di public/panduan/. File mengikuti peran EFEKTIF:
+ * HRD (atau pemegang grant is_hrd_admin) → panduan HRD; selain itu sesuai role. Bila
+ * file/peran tak dikenal → null (email tetap terkirim tanpa lampiran). `filename` =
+ * nama yang tampil di klien email penerima.
+ */
+const PANDUAN_PDF: Record<string, { file: string; filename: string }> = {
+  hrd:      { file: 'panduan-hrd.pdf',      filename: 'Panduan HRD Admin - Infarm 360.pdf' },
+  spv:      { file: 'panduan-spv.pdf',      filename: 'Panduan Supervisor - Infarm 360.pdf' },
+  direksi:  { file: 'panduan-direksi.pdf',  filename: 'Panduan Direksi - Infarm 360.pdf' },
+  employee: { file: 'panduan-pegawai.pdf',  filename: 'Panduan Pegawai - Infarm 360.pdf' },
+};
+
+/**
+ * Lampiran panduan PDF sesuai peran penerima. Mengembalikan null bila base URL kosong
+ * (tak bisa membentuk tautan) — pemanggil cukup mengirim tanpa lampiran.
+ */
+export function panduanAttachment(role: string, isHrdAdmin: boolean, base: string): EmailAttachment | null {
+  const key = (role === 'hrd' || isHrdAdmin) ? 'hrd' : role;
+  const def = PANDUAN_PDF[key];
+  if (!def || !base) return null;
+  return { filename: def.filename, path: `${base.replace(/\/+$/, '')}/panduan/${def.file}` };
+}
 
 /** Panduan ringkas per peran untuk email onboarding (3–5 langkah inti). */
 function roleGuide(role: string, isHrdAdmin: boolean): string[] {

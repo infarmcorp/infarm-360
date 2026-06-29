@@ -203,16 +203,20 @@ export async function deleteMapping(mappingId: string): Promise<Result> {
         .eq('period_id', m.period_id).eq('assessor_id', m.assessor_id).eq('target_id', m.target_id);
       if (delErr) return { ok: false, error: 'Pemetaan terhapus tapi gagal hapus penilaian: ' + delErr.message };
       removedAssessment = true;
+    }
 
-      // Skor 360° kini usang (penilaian berkurang) — sinyal "perlu hitung ulang" TIDAK
-      // mendeteksi penghapusan, jadi hitung ulang OTOMATIS agar skor langsung benar.
-      // Bila target tak lagi punya penilaian → buang result_360-nya (tak ada yg dihitung).
-      const { count: remaining } = await admin.from('assessments').select('*', { count: 'exact', head: true })
-        .eq('period_id', m.period_id).eq('target_id', m.target_id).eq('status', 'submitted');
-      if ((remaining ?? 0) === 0) {
-        await admin.from('result_360').delete().eq('period_id', m.period_id).eq('employee_id', m.target_id);
-      }
-      await computeResult360(); // best-effort; mengupsert ulang skor target yang masih punya penilaian
+    // Rekonsiliasi skor 360° target — SELALU dijalankan tiap pemetaan dihapus, terlepas
+    // dari apakah langkah ini yang menghapus penilaiannya (penilaian bisa sudah hilang lebih
+    // dulu, mis. via skrip reset → blok di atas terlewat). Sinyal "perlu hitung ulang" TIDAK
+    // mendeteksi penghapusan, jadi lakukan manual:
+    //   target tak punya penilaian submitted → buang result_360 (tak ada yg dihitung);
+    //   masih punya → hitung ulang agar skor mencerminkan penilai yang tersisa.
+    const { count: remaining } = await admin.from('assessments').select('*', { count: 'exact', head: true })
+      .eq('period_id', m.period_id).eq('target_id', m.target_id).eq('status', 'submitted');
+    if ((remaining ?? 0) === 0) {
+      await admin.from('result_360').delete().eq('period_id', m.period_id).eq('employee_id', m.target_id);
+    } else {
+      await computeResult360(); // best-effort; upsert ulang skor target yang masih punya penilaian
     }
   }
 

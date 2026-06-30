@@ -47,8 +47,13 @@ export async function createMapping(raw: unknown): Promise<Result> {
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
   // Eksternal (vendor/freelance) hanya boleh MENILAI, tak boleh jadi target.
-  const { data: tgt } = await supabase.from('employees').select('is_external').eq('id', targetId).maybeSingle();
+  const { data: pair } = await supabase.from('employees').select('id, is_external, is_active').in('id', [assessorId, targetId]);
+  const tgt = (pair ?? []).find((e) => e.id === targetId);
+  const asr = (pair ?? []).find((e) => e.id === assessorId);
   if (tgt?.is_external) return { ok: false, error: 'Pegawai eksternal hanya dapat menjadi penilai, tidak dapat dinilai' };
+  // Pegawai nonaktif tak boleh masuk siklus baru (penilai maupun target).
+  if (asr && !asr.is_active) return { ok: false, error: 'Penilai berstatus nonaktif — tidak bisa ditugaskan menilai' };
+  if (tgt && !tgt.is_active) return { ok: false, error: 'Pegawai yang dinilai berstatus nonaktif — tidak bisa menjadi target' };
 
   const { error } = await supabase.from('mappings')
     .insert({ period_id: ap.id, assessor_id: assessorId, target_id: targetId, relation, mandatory, is_active: true });
@@ -83,13 +88,15 @@ export async function createMappingsBulk(rawRows: unknown): Promise<{ ok: true; 
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
-  // Eksternal tak boleh jadi target → buang baris yang menargetkan pegawai eksternal.
-  const { data: extRows } = await supabase.from('employees').select('id').eq('is_external', true);
-  const externalIds = new Set((extRows ?? []).map((e) => e.id));
+  // Eksternal tak boleh jadi target; pegawai NONAKTIF tak boleh masuk siklus (penilai/target).
+  const { data: empMeta } = await supabase.from('employees').select('id, is_external, is_active');
+  const externalIds = new Set((empMeta ?? []).filter((e) => e.is_external).map((e) => e.id));
+  const inactiveIds = new Set((empMeta ?? []).filter((e) => !e.is_active).map((e) => e.id));
   const rows = parsed.data
     .filter((r) => !(r.assessorId === r.targetId && r.relation !== 'Self'))
-    .filter((r) => !externalIds.has(r.targetId));
-  if (rows.length === 0) return { ok: false, error: 'Tidak ada baris valid (penilai=target hanya untuk Self; eksternal tak boleh jadi target)' };
+    .filter((r) => !externalIds.has(r.targetId))
+    .filter((r) => !inactiveIds.has(r.assessorId) && !inactiveIds.has(r.targetId));
+  if (rows.length === 0) return { ok: false, error: 'Tidak ada baris valid (penilai=target hanya untuk Self; eksternal tak boleh jadi target; pegawai nonaktif dilewati)' };
 
   const { error, count } = await supabase.from('mappings').upsert(
     rows.map((r) => ({ period_id: ap.id, assessor_id: r.assessorId, target_id: r.targetId, relation: r.relation, mandatory: true, is_active: true })),
@@ -126,11 +133,15 @@ export async function copyMappingsFromPeriod(sourcePeriodId: string): Promise<{ 
     .select('assessor_id, target_id, relation, mandatory').eq('period_id', sourcePeriodId).eq('is_active', true);
   if (!srcAll || srcAll.length === 0) return { ok: false, error: 'Periode sumber tidak memiliki pemetaan untuk disalin' };
 
-  // Eksternal tak boleh jadi target (mis. status berubah sejak periode sumber) → buang.
-  const { data: extRows } = await supabase.from('employees').select('id').eq('is_external', true);
-  const externalIds = new Set((extRows ?? []).map((e) => e.id));
-  const src = srcAll.filter((m) => !externalIds.has(m.target_id));
-  if (src.length === 0) return { ok: false, error: 'Periode sumber hanya berisi target eksternal — tidak ada yang disalin' };
+  // Eksternal tak boleh jadi target & pegawai NONAKTIF tak boleh masuk siklus (mis. status
+  // berubah sejak periode sumber) → buang baris dengan penilai/target eksternal/nonaktif.
+  const { data: empMeta } = await supabase.from('employees').select('id, is_external, is_active');
+  const externalIds = new Set((empMeta ?? []).filter((e) => e.is_external).map((e) => e.id));
+  const inactiveIds = new Set((empMeta ?? []).filter((e) => !e.is_active).map((e) => e.id));
+  const src = srcAll
+    .filter((m) => !externalIds.has(m.target_id))
+    .filter((m) => !inactiveIds.has(m.assessor_id) && !inactiveIds.has(m.target_id));
+  if (src.length === 0) return { ok: false, error: 'Periode sumber tak punya pasangan valid untuk disalin (target eksternal / pegawai nonaktif dilewati)' };
 
   const { error, count } = await supabase.from('mappings').upsert(
     src.map((m) => ({ period_id: ap.id, assessor_id: m.assessor_id, target_id: m.target_id, relation: m.relation, mandatory: true, is_active: true })),

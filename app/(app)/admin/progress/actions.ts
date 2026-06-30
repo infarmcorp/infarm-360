@@ -250,8 +250,10 @@ export async function sendOnboarding(employeeId: string): Promise<Result> {
   const { data: ap } = await supabase.from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
-  const { data: emp } = await supabase.from('employees').select('name, role, is_hrd_admin').eq('id', employeeId).maybeSingle();
+  const { data: emp } = await supabase.from('employees').select('name, role, is_hrd_admin, is_active').eq('id', employeeId).maybeSingle();
   if (!emp) return { ok: false, error: 'Pegawai tidak ditemukan' };
+  // Pegawai nonaktif: jangan reset sandi & kirim undangan (akun terkunci, di luar siklus).
+  if (!emp.is_active) return { ok: false, error: 'Pegawai berstatus nonaktif — undangan tidak dikirim.' };
 
   const admin = createAdminClient();
   const { data: u } = await admin.auth.admin.getUserById(employeeId);

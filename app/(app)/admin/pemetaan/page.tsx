@@ -75,7 +75,9 @@ export default async function PemetaanPage({
 
 /** Tab Pemetaan: form + daftar relasi. */
 async function PemetaanTab({ supabase, periodId }: { supabase: Awaited<ReturnType<typeof createClient>>; periodId: string }) {
-  const { data: emps } = await supabase.from('employees').select('id, emp_code, name, dept, is_external').order('emp_code');
+  // Hanya pegawai AKTIF yang boleh masuk pemetaan baru (dropdown + roster pratinjau impor) →
+  // pegawai nonaktif tak muncul & namanya di Excel akan ditandai "tidak dikenal/dilewati".
+  const { data: emps } = await supabase.from('employees').select('id, emp_code, name, dept, is_external').eq('is_active', true).order('emp_code');
   const employees = emps ?? [];
   const empById = new Map(employees.map((e) => [e.id, e]));
   // Periode lain (untuk fitur "Salin Pemetaan"), terbaru dulu.

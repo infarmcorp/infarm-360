@@ -43,9 +43,10 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
 
   // Periode aktif + komponen 360° harus dibuka (locked/ended → bukan aktif → ditolak).
   const { data: ap } = await supabase
-    .from('periods').select('id, has_360').eq('status', 'active').limit(1).maybeSingle();
+    .from('periods').select('id, has_360, form_open').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
   if (!ap.has_360) return { ok: false, error: 'Penilaian 360° untuk periode ini belum dibuka oleh HRD' };
+  if (!ap.form_open) return { ok: false, error: 'Form penilaian 360° sedang ditutup HRD (tahap peninjauan hasil)' };
 
   // Penilai harus ditugaskan menilai target ini (mapping aktif).
   const { data: mapping } = await supabase

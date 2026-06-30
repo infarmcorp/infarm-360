@@ -18,14 +18,14 @@ export async function getTodos(
 ): Promise<TodoItem[]> {
   try {
     const { data: ap } = await supabase
-      .from('periods').select('id, has_360, status').eq('status', 'active').limit(1).maybeSingle();
+      .from('periods').select('id, has_360, form_open, status').eq('status', 'active').limit(1).maybeSingle();
     if (!ap) return [];
 
     const assesses = role !== 'hrd' || hrdMode === 'spv';     // HRD murni tak punya "Penilaian Saya"
     const isSpvLike = role === 'spv' || (role === 'hrd' && hrdMode === 'spv');
 
     const [assessPending, reportReady, kpiMissing, hrdTodos, direksiTodos] = await Promise.all([
-      assesses && ap.has_360 ? countAssessPending(supabase, ap.id, userId) : Promise.resolve(0),
+      assesses && ap.has_360 && ap.form_open ? countAssessPending(supabase, ap.id, userId) : Promise.resolve(0),
       (role === 'employee' || role === 'spv') ? countReportReady(supabase, ap.id, userId) : Promise.resolve(0),
       isSpvLike ? countKpiMissing(supabase, ap.id, userId) : Promise.resolve(null),
       role === 'hrd' && hrdMode === 'admin' ? hrdAdminTodos(supabase, ap.id, ap.has_360) : Promise.resolve([]),

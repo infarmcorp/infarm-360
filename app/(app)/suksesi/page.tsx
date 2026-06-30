@@ -49,7 +49,7 @@ async function HrdView({
   period: { id: string; label: string; has_360: boolean };
   planBy: Map<string, { id: string; plan: string; justification: string | null; status: string; direksi_comment: string | null }>;
 }) {
-  const { data: emps } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false);
+  const { data: emps } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
   const employees = emps ?? [];
 
   const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', period.id);

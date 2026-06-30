@@ -49,10 +49,10 @@ export default async function MonitorPage() {
   } else if (role === 'hrd' && hrdMode === 'spv') {
     const { data: meDept } = await supabase.from('employees').select('dept').eq('id', user.id).maybeSingle();
     const { data } = await supabase.from('employees').select('id, name, dept')
-      .eq('dept', meDept?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false);
+      .eq('dept', meDept?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
     empRows = data ?? [];
   } else {
-    const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false);
+    const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
     empRows = data ?? [];
   }
 

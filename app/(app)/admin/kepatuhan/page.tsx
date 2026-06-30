@@ -24,7 +24,7 @@ export default async function KepatuhanPage() {
     .from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
 
-  const { data: emps } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false);
+  const { data: emps } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
   const employees = emps ?? [];
   const nameById = new Map(employees.map((e) => [e.id, e.name]));
 

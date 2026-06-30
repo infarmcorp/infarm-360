@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { activatePeriod, endPeriod, toggleHas360, activePeriodReadiness, count360Submitted, periodDataCounts, deletePeriod } from './actions';
+import { activatePeriod, endPeriod, toggleHas360, toggleFormOpen, activePeriodReadiness, count360Submitted, periodDataCounts, deletePeriod } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
 type DelState = {
@@ -19,9 +19,9 @@ type Dialog = {
 };
 
 export function PeriodActions({
-  periodId, status, has360,
+  periodId, status, has360, formOpen,
 }: {
-  periodId: string; status: 'active' | 'ended'; has360: boolean;
+  periodId: string; status: 'active' | 'ended'; has360: boolean; formOpen: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -189,6 +189,15 @@ export function PeriodActions({
           className="text-[11px] font-bold px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50">
           {has360 ? 'Set Tanpa 360°' : 'Aktifkan 360°'}
         </button>
+        {status === 'active' && has360 && (
+          <button type="button" disabled={busy} onClick={() => run(() => toggleFormOpen(periodId, !formOpen))}
+            title={formOpen
+              ? 'Menutup form: pegawai berhenti mengisi (tahap review). 360° TETAP dihitung & Hitung Ulang tetap tersedia.'
+              : 'Membuka kembali form agar pegawai bisa melanjutkan pengisian 360°.'}
+            className="text-[11px] font-bold px-2 py-1 rounded border border-indigo-200 text-indigo-700 hover:bg-indigo-50 disabled:opacity-50">
+            {formOpen ? 'Tutup Form' : 'Buka Form'}
+          </button>
+        )}
         <button type="button" disabled={busy || status === 'active'} onClick={askDelete}
           title={status === 'active'
             ? 'Periode aktif tidak bisa dihapus — "Kunci & Akhiri" dulu.'

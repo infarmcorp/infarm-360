@@ -26,9 +26,10 @@ export async function addAdhocTarget(rawTargetId: string): Promise<Result> {
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
   if (targetId === user.id) return { ok: false, error: 'Tidak dapat menilai diri sendiri lewat Ad-Hoc' };
 
-  const { data: ap } = await supabase.from('periods').select('id, status, has_360').eq('status', 'active').limit(1).maybeSingle();
+  const { data: ap } = await supabase.from('periods').select('id, status, has_360, form_open').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
   if (!ap.has_360) return { ok: false, error: 'Penilaian 360° untuk periode ini belum dibuka oleh HRD' };
+  if (!ap.form_open) return { ok: false, error: 'Form penilaian 360° sedang ditutup HRD (tahap peninjauan hasil)' };
 
   // Pastikan target adalah pegawai sah.
   const { data: target } = await supabase.from('employees').select('id, role, is_external').eq('id', targetId).maybeSingle();

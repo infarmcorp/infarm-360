@@ -54,7 +54,7 @@ export default async function KpiPage({
             <RekapView role={role} userId={user.id} periodParam={period} />
           </Panel>
           <Panel title="Riwayat & Audit Perubahan KPI">
-            <RiwayatView role={role} canAdmin={admin} userId={user.id} />
+            <RiwayatView role={role} canAdmin={admin} userId={user.id} byPeriod periodParam={period} />
           </Panel>
         </div>
       </main>
@@ -115,7 +115,7 @@ async function InputTab({
       const { data: me } = await supabase.from('employees').select('dept').eq('id', userId).maybeSingle();
       const { data } = await supabase
         .from('employees').select('id, emp_code, name, dept')
-        .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false);
+        .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
       return data ?? [];
     }
     const { data: teamRows } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);

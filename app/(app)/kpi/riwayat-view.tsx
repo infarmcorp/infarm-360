@@ -12,19 +12,35 @@ const fmt = (iso: string) => {
     d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 };
 
-export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'admin' }: { role: string; canAdmin?: boolean; userId: string; hrdMode?: 'admin' | 'spv' }) {
+export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'admin', byPeriod = false, periodParam }: { role: string; canAdmin?: boolean; userId: string; hrdMode?: 'admin' | 'spv'; byPeriod?: boolean; periodParam?: string }) {
   const supabase = await createClient();
+
+  // Penyaringan per periode (untuk halaman Monitoring berdampingan): batasi audit ke
+  // bulan periode terpilih — resolusi SAMA dgn RekapView agar satu dropdown ?period=
+  // mengatur kedua panel. Bila byPeriod=false (mis. tab SPV) → tampilkan semua periode.
+  let ymFilter: string[] | null = null;
+  if (byPeriod) {
+    const { data: periods } = await supabase.from('periods').select('id, label, status').order('label');
+    const list = periods ?? [];
+    const sel = list.find((p) => p.id === periodParam)
+      ?? list.find((p) => p.status === 'active')
+      ?? list[0];
+    if (!sel) return <p className="text-sm text-gray-500">Belum ada periode.</p>;
+    const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', sel.id);
+    ymFilter = (months ?? []).map((m) => m.ym);
+    if (ymFilter.length === 0) return <p className="text-sm text-gray-500">Periode ini belum memiliki bulan.</p>;
+  }
 
   // Lingkup pegawai. Izin HRD (canAdmin) di mode admin → semua; HRD-posisi mode-SPV → DIVISINYA
   // (selaras Input KPI); SPV → anggota timnya. Pemegang grant non-HRD pakai cabang admin (semua).
   let empRows: { id: string; name: string; dept: string }[] = [];
   if (canAdmin && hrdMode === 'admin') {
-    const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false);
+    const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
     empRows = data ?? [];
   } else if (role === 'hrd') {
     const { data: me } = await supabase.from('employees').select('dept').eq('id', userId).maybeSingle();
     const { data } = await supabase.from('employees').select('id, name, dept')
-      .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false);
+      .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
     empRows = data ?? [];
   } else {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);
@@ -36,13 +52,14 @@ export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'a
   if (empRows.length === 0) return <p className="text-sm text-gray-500">Belum ada anggota tim dalam lingkup Anda.</p>;
   empRows.sort((a, b) => a.name.localeCompare(b.name));
 
-  const { data: audit } = await supabase
+  let auditQuery = supabase
     .from('kpi_audit')
     .select('employee_id, ym, score, changed_by, changed_at, note')
-    .in('employee_id', empRows.map((e) => e.id))
-    .order('changed_at', { ascending: false });
+    .in('employee_id', empRows.map((e) => e.id));
+  if (ymFilter) auditQuery = auditQuery.in('ym', ymFilter);
+  const { data: audit } = await auditQuery.order('changed_at', { ascending: false });
   const rows = audit ?? [];
-  if (rows.length === 0) return <p className="text-sm text-gray-500">Belum ada jejak audit KPI. Riwayat tercatat otomatis setiap input skor.</p>;
+  if (rows.length === 0) return <p className="text-sm text-gray-500">{byPeriod ? 'Belum ada jejak audit KPI untuk periode ini.' : 'Belum ada jejak audit KPI. Riwayat tercatat otomatis setiap input skor.'}</p>;
 
   // Nama pengubah.
   const changerIds = [...new Set(rows.map((r) => r.changed_by).filter(Boolean) as string[])];

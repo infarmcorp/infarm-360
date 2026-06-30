@@ -40,10 +40,10 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
   } else if (role === 'hrd' && hrdMode === 'spv') {
     const { data: me } = await supabase.from('employees').select('dept').eq('id', userId).maybeSingle();
     const { data } = await supabase.from('employees').select('id, name, dept')
-      .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false);
+      .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
     empRows = data ?? [];
   } else {
-    const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false);
+    const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
     empRows = data ?? [];
   }
   empRows.sort((a, b) => a.name.localeCompare(b.name));

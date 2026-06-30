@@ -24,7 +24,7 @@ export default async function AdminLaporanPage() {
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
 
-  const { data: emps } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false);
+  const { data: emps } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
   const employees = emps ?? [];
 
   const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', ap.id);

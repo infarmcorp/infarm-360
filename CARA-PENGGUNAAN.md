@@ -239,6 +239,21 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
        (cegah form 360° kosong) — lengkapi dulu di **Kelola Pertanyaan / Pemetaan**.
      - **Alur disarankan:** Aktivasi → **Set Tanpa 360°** → susun Pertanyaan → Bobot → Pemetaan
        (semua aman, form masih tertutup) → **Aktifkan 360°** (buka) → umumkan via email → finalisasi.
+   - **Tutup Form / Buka Form** (muncul saat periode aktif & 360° menyala) = **bekukan pengisian
+     pegawai untuk tahap review — TANPA mematikan 360°.** Beda dari "Set Tanpa 360°":
+     - **"Tutup Form"** → pegawai berhenti mengisi/kirim (lihat "Form sedang ditutup"), **tetapi
+       360° TETAP dihitung** ke Skor Akhir **dan tombol Hitung Ulang Skor 360° tetap tersedia**.
+       Pakai saat hendak **meninjau & memfinalisasi** dengan data yang sudah beku. Penilaian yang
+       sudah dikirim **tetap tersimpan**.
+     - **"Buka Form"** → mengembalikan akses pengisian bagi pegawai.
+     - Gunakan **Tutup Form** (bukan "Set Tanpa 360°") bila ingin menghentikan pengisian sambil
+       tetap menghitung & me-review 360°.
+   - **Hapus Periode** (tombol merah; **nonaktif** untuk periode aktif — "Kunci & Akhiri" dulu):
+     menghapus periode **beserta SELURUH datanya** secara permanen. Dialog menampilkan rekap isi
+     (penilaian/KPI/laporan/pemetaan) lalu **wajib mengetik `HAPUS`**. Cascade menghapus penilaian,
+     hasil 360°, laporan final, pemetaan, pertanyaan, bobot, dst. **KPI** (terkunci per bulan)
+     hanya dihapus untuk **bulan yang khusus periode itu** — bulan yang dipakai bersama periode lain
+     **aman**. Pakai untuk merapikan periode salah/duplikat. **Backup dulu** sebelum menghapus.
    - **Kunci & Akhiri Periode** menutup **seluruh** periode (KPI **dan** 360°) di akhir siklus;
      server menolak isi/edit setelahnya. Berbeda dari toggle 360° yang hanya membuka/menutup bagian 360°.
      **Muncul konfirmasi** sebelum mengunci — memperingatkan bila masih ada **laporan belum
@@ -322,7 +337,9 @@ Unduh data mentah **Excel (.xlsx)** untuk olah data lanjutan (pivot/statistik/BI
 ### Monitoring & Audit KPI (HRD Admin)
 - **Satu halaman** berisi **Rekapitulasi Kuartal** + **Riwayat & Audit Perubahan KPI**
   berdampingan (split view; tab "Input KPI" tidak muncul di mode admin — input adalah tugas SPV).
-- **Riwayat & Audit** punya **pencarian nama/divisi** pegawai.
+- **Riwayat & Audit** punya **pencarian nama/divisi** pegawai serta tombol **Buka semua / Tutup semua**.
+- **Filter periode** (dropdown di Rekapitulasi Kuartal) kini **berlaku untuk kedua panel** — mengubah
+  periode menyaring Rekapitulasi **dan** Riwayat & Audit sekaligus.
 - Memantau input & perubahan KPI yang dilakukan SPV (jejak audit append-only).
 - Saat HRD beralih ke **mode SPV**, ketiga bagian (Input, Riwayat, Rekapitulasi) **hanya
   menampilkan pegawai di divisi HRD-nya sendiri**, konsisten dengan kebijakan SPV.
@@ -443,7 +460,9 @@ di kolom Aksi — **nama pegawai tidak bisa diklik lagi**.
   Email memuat tombol **Buka Portal** ke halaman login.
 - **Undangan** / **Kirim Undangan Massal** — email **"Undangan & Info Akun"** untuk **awal periode**:
   memuat **peran, email (ID login), sandi, tombol login, daftar yang belum dinilai, & panduan
-  ringkas sesuai peran**. ⚠️ Mengirim undangan **menyetel ulang sandi** orang itu (acak unik) →
+  ringkas sesuai peran**. **Dilampiri PDF panduan sesuai peran** (pegawai/SPV/HRD/direksi) — file
+  di `public/panduan/` (`panduan-pegawai.pdf`, dst.); bila file belum ada, email tetap terkirim
+  tanpa lampiran. ⚠️ Mengirim undangan **menyetel ulang sandi** orang itu (acak unik) →
   lakukan **sekali di awal**, sebelum mereka mengganti sandi sendiri (ada konfirmasi). **Saat trial,
   hanya alamat `@gmail.com` yang dikirimi**; alamat lain (mis. placeholder `@infarm.test`) **dilewati
   tanpa** mengubah sandinya. (Untuk produksi semua domain: set env `ONBOARDING_GMAIL_ONLY=false`.)
@@ -476,6 +495,9 @@ flowchart TD
 
 ### Flag Kepatuhan Penilaian
 - Memantau **kepatuhan** pengisian 360° dan memberi **punishment**.
+- **Pegawai non-aktif tidak ikut** — hanya pegawai aktif yang dihitung kepatuhannya (yang sudah
+  dinonaktifkan tak lagi diflag telat/belum-self). Berlaku konsisten di Dashboard, Rekap, Monitor,
+  Laporan Tim, Suksesi, & Review Hasil Akhir (pegawai non-aktif dikecualikan dari daftar subjek).
 - **Tabel default hanya menampilkan pegawai yang perlu perhatian** — yakni yang punya penilaian
   **Wajib** telat, ATAU belum **self-assessment**, ATAU sudah punya **punishment**. Pegawai patuh
   penuh & tanpa punishment **disembunyikan** agar halaman lebih bersih. Toggle **"Tampilkan semua

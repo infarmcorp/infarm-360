@@ -23,7 +23,7 @@ export default async function PeriodePage() {
   }
 
   const { data: periods } = await supabase
-    .from('periods').select('id, code, label, start_date, end_date, status, has_360, kpi_standard').order('start_date', { ascending: false });
+    .from('periods').select('id, code, label, start_date, end_date, status, has_360, form_open, kpi_standard').order('start_date', { ascending: false });
   const list = periods ?? [];
 
   const { data: monthRows } = await supabase.from('period_months').select('period_id');
@@ -116,7 +116,7 @@ export default async function PeriodePage() {
                   : <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-gray-50 text-gray-500 border-gray-200">Terkunci</span>}
               </td>
               <td className="py-3 pl-3 text-right">
-                <PeriodActions periodId={p.id} status={p.status} has360={p.has_360} />
+                <PeriodActions periodId={p.id} status={p.status} has360={p.has_360} formOpen={p.form_open} />
               </td>
             </tr>
           ))}

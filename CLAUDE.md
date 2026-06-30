@@ -2,10 +2,22 @@
 
 Panduan untuk Claude Code saat bekerja di repo ini.
 
-## Sedang Dikerjakan (per 2026-06-24)
+## Sedang Dikerjakan (per 2026-06-30)
 
-**Fokus aktif:** tindak lanjut hasil trial pegawai + persiapan peluncuran Q2.
+**Fokus aktif:** persiapan akhir trial + pengerasan operasional HRD.
 Migrasi fungsional **selesai & live**; sisa sebagian besar aktivasi env + kebersihan.
+
+- **Sesi 2026-06-30 (sebagian masih LOCALHOST, belum push):**
+  - **PUSHED & live:** Hapus Periode (+ pengaman ketik HAPUS, cascade, KPI bulan-unik), lampiran
+    panduan PDF per peran di email Undangan (+ `/panduan` publik di middleware), perbaikan
+    `deleteMapping` rekonsiliasi `result_360`, hapus Papan Suksesi di dashboard, perbaikan tanggal
+    mulai periode Q1 (skrip), skrip operasional `reset-people`/`readiness-check`/`fix-period-start-year`.
+  - **LOCALHOST (belum push):** filter `is_active` di semua daftar subjek (kepatuhan/dashboard/rekap/
+    monitor/laporan-tim/laporan/suksesi/penilaian-adhoc/input-KPI); filter periode Monitoring berlaku
+    ke panel Riwayat & Audit; **fitur Tutup/Buka Form (migrasi 0017 `form_open`)** — migrasi SUDAH
+    diterapkan ke DB (aditif, default true; aman utk app live yg belum pakai kolomnya).
+  - **Data trial:** reset 6 akun uji (Mawar/Kiki/Mr.X-Y-Z-A) — data 360°/KPI dibersihkan, akun &
+    pemetaan dipertahankan. Backup pra-aksi di `backups/`.
 
 - **Tindak lanjut trial pegawai (2026-06-24):**
   - **Penilai eksternal (vendor/freelance)** (`is_external`, migrasi 0016): pegawai eksternal
@@ -138,6 +150,30 @@ sudah dihapus).
 Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 
 ### Fitur baru
+- **Tutup/Buka Form penilaian — terpisah dari `has_360`** (migrasi 0017, `periods.form_open`):
+  saklar **"Tutup Form"** di Kelola Periode membekukan pengisian pegawai (tahap review) **tanpa**
+  mematikan 360° di skor & **tanpa** menyembunyikan tombol Hitung Ulang. Sebelumnya satu-satunya cara
+  menutup form adalah "Set Tanpa 360°" yang juga membuang 360° dari Skor Akhir & menyembunyikan
+  Hitung Ulang — tak cocok untuk skenario "tutup form untuk review". Gerbang form pegawai kini
+  `has_360 && form_open` (`penilaian/page.tsx` + `[targetId]`); guard tulis (`submitAssessment`/
+  `addAdhocTarget`/`requestCorrection`) tolak bila `!form_open`; todo "penilaian tertunda" tak muncul
+  saat form tertutup. Saklar UI di `period-actions.tsx` (`toggleFormOpen`), tampil saat aktif & 360°
+  ON; audit `period.toggleForm`. `ConfirmDialog` dapat prop `confirmDisabled`.
+- **Hapus Periode + seluruh datanya** (`admin/periode/`, `deletePeriod`/`periodDataCounts`):
+  tombol **Hapus** per baris — periode AKTIF ditolak (Kunci & Akhiri dulu), dialog menampilkan rekap
+  isi (penilaian/KPI/laporan/pemetaan) + **wajib ketik `HAPUS`** (klien + server), hanya HRD, audit
+  `period.delete`. Hapus baris periods **cascade** ke seluruh turunan 360°; **KPI** (kunci per `ym`,
+  tak cascade) dihapus manual **hanya untuk bulan UNIK** periode itu → KPI periode lain yang berbagi
+  bulan **aman**.
+- **Lampiran panduan PDF per peran di email Undangan** (`lib/email/mailer.ts` `panduanAttachment`,
+  `admin/progress/actions.ts`): email onboarding melampirkan PDF sesuai peran (`public/panduan/
+  panduan-{pegawai,spv,hrd,direksi}.pdf`; pemegang grant `is_hrd_admin` → panduan HRD). `sendEmail`
+  dukung lampiran di kedua jalur (Gmail SMTP & Resend, via URL). Pengaman: cek keberadaan PDF (HEAD)
+  dulu — bila tak ada, email tetap terkirim tanpa lampiran; cache per peran di mass. Middleware
+  menjadikan `/panduan` **publik** agar provider email bisa mengunduh PDF tanpa sesi.
+- **Filter periode Monitoring berlaku untuk kedua panel** (`kpi/riwayat-view.tsx` prop `byPeriod`/
+  `periodParam`): dropdown periode di Rekapitulasi Kuartal kini juga menyaring **Riwayat & Audit**
+  (lewat bulan periode, resolusi sama). Hanya di halaman Monitoring berdampingan; tab SPV tetap semua.
 - **Konfirmasi in-app `ConfirmDialog`** (`components/confirm-dialog.tsx`): modal bergaya aplikasi
   (overlay + kartu, Esc/klik-luar = batal, `text-left` agar tak terpengaruh perataan sel tabel)
   menggantikan `window.confirm`/`prompt` browser di **~8 titik**: Kelola Periode (**Kunci & Akhiri**,
@@ -341,6 +377,26 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 - **Impor pemetaan** — pratinjau menyebut pasangan yang dilewati + alasannya.
 
 ### Perbaikan (bug fix)
+- **Pegawai non-aktif ikut terflag/terhitung sebagai subjek** (~10 file): query enumerasi subjek
+  dulu hanya `.neq('role','direksi').eq('is_external', false)` tanpa `is_active` → pegawai nonaktif
+  tetap muncul di Kepatuhan (terflag "telat"/"belum self"), Dashboard, Rekap, Monitor, Laporan Tim,
+  Review Hasil Akhir, Suksesi, kandidat Ad-Hoc, & lingkup Input KPI. Kini **semua situs pola subjek
+  ditambah `.eq('is_active', true)`** (konsisten dgn cara externals dikecualikan). **TIDAK** disentuh:
+  Ekspor (dump penuh), `bobot` (peta nama lookup — agar nama subjek lama tetap tampil), readiness
+  (sudah ada is_active).
+- **`result_360` basi setelah hapus pemetaan bila penilaian sudah hilang lebih dulu**
+  (`admin/pemetaan/actions.ts` `deleteMapping`): rekonsiliasi skor (buang/hitung-ulang) dulu bersarang
+  di `if (asmts.length)` → terlewat bila penilaian target sudah dihapus (mis. via skrip reset),
+  menyisakan skor 360° basi tanpa banner. Kini rekonsiliasi **selalu** jalan tiap pemetaan dihapus:
+  0 penilaian submitted → buang `result_360`; masih ada → `computeResult360()`.
+- **Dashboard — Papan Pertimbangan Suksesi & Promosi dihapus** (`admin/dashboard/`): panel + query
+  `succession_plans` + variabel terkait dibuang dari tab Kompilasi (atas permintaan). Menu Promosi &
+  Suksesi terpisah tetap utuh.
+- **Filter Tahun dashboard salah kelompok karena tanggal mulai di ujung tahun** (data + saran kode):
+  periode Q1 2026 tersimpan `start_date` 31 Des → dibaca tahun 2025 oleh `slice(0,4)`. Diperbaiki via
+  skrip `scripts/fix-period-start-year.mjs` (set ke 2026-01-01). Akar: human-error input tanggal
+  (jalur form bersih, tak menggeser). Skrip operasional baru: `reset-people.mjs` (reset data 360°/KPI
+  per pegawai, akun+pemetaan dipertahankan) & `readiness-check.mjs` (cek kesiapan periode, read-only).
 - **Form penilaian — kebocoran state antar-target** (`penilaian/[targetId]/page.tsx`): `<AssessForm>`
   dirender **tanpa `key`** → berpindah dari `/penilaian/A` ke `/penilaian/B` (navigasi klien tanpa
   reload) membuat React mempertahankan state komponen (activeGroup/activeId/rating/komentar) target
@@ -477,6 +533,13 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   **pegawai eksternal** (vendor/freelance) yang **hanya menilai** (relasi Cross), tanpa KPI/Skor Akhir/
   laporan & disembunyikan dari jalur subjek. Aditif & backward-compatible (default false → semua pegawai
   lama = internal). Diterapkan ke DB produksi & diverifikasi (kolom ada).
+- `0017_period_form_open` — `periods.form_open boolean NOT NULL default true`: **memisahkan**
+  "form penilaian terbuka untuk pegawai" dari `has_360` ("360° dihitung ke skor"). Memungkinkan HRD
+  **menutup form** (membekukan pengisian untuk review/finalisasi) **tanpa** mematikan 360° & **tanpa**
+  menyembunyikan tombol Hitung Ulang. Gerbang form pegawai = `has_360 && form_open`; guard tulis
+  (`submitAssessment`/`addAdhocTarget`/`requestCorrection`) menolak bila `!form_open`. Saklar UI
+  **"Tutup/Buka Form"** di Kelola Periode (terpisah dari "Set Tanpa 360°"); audit `period.toggleForm`.
+  Aditif & backward-compatible (default true → perilaku lama). Diterapkan ke DB produksi & diverifikasi.
 - `final_reports.content` (jsonb, kolom lama) dipakai untuk `aspectSummaries` (tanpa migrasi baru).
 
 ### Infra / Testing / CI
@@ -640,6 +703,23 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
 ### Pengembangan opsional
 - ⬜ Bulk-finalisasi laporan ber-ACC SPV · ⬜ Ekspor Log Aktivitas HRD ke Excel · ⬜ Ganti email
   mandiri (lanjutan Akun Saya).
+- ⬜ **Akses HRD granular (per-bagian) + "Peringkas Hasil" lintas-divisi** (diminta 2026-06-30,
+  DITUNDA): grant HRD saat ini **semua-atau-tidak** (`is_hrd_admin` → `canAdmin()` penuh; lihat
+  `lib/auth/roles.ts`). Rencana "granular ringan": kolom `employees.hrd_sections text[]` (kosong=penuh,
+  backward-compatible) + helper `canSection(actor, section)` dipakai di menu + guard halaman + Server
+  Action ~11 bagian (pegawai/periode/pemetaan/pertanyaan/bobot/progress/kepatuhan/laporan/dashboard/
+  ekspor/log); `role='hrd'` asli tetap penuh; UI centang bagian di Kelola Pegawai.
+  - **Use case khusus (inti permintaan):** beri pegawai (mis. divisi HRD) akses **Review Hasil Akhir
+    untuk SEMUA divisi KECUALI divisinya sendiri** → membantu HRD meringkas/menulis Ringkasan Aspek
+    tanpa melihat hasil rekan sedivisinya (konflik kepentingan/privasi). Butuh **scope tambahan**:
+    "lihat semua divisi kecuali milik sendiri".
+  - ⚠️ **Caveat keamanan (WAJIB diingat):** "granular ringan" hanya batas **aplikasi**; **RLS tetap
+    penuh** (`is_hrd()` = `role='hrd' OR is_hrd_admin`) → pemegang grant masih bisa membaca data
+    divisinya sendiri (termasuk **L3 mentah 360°**) lewat API. Karena tujuan use case ini justru
+    **MENCEGAH** melihat divisi sendiri (batas privasi), gating app-only **TIDAK cukup** — perlu
+    **RLS-level scoping** (Opsi C). Realistis: kebijakan RLS khusus "baca assessments/AIS/AQA untuk
+    target di divisi ≠ divisi penilai-pemegang-grant". Jangan kerjakan versi app-only untuk kebutuhan
+    privasi ini tanpa RLS, karena memberi rasa aman palsu.
 
 > Catatan paritas legacy yang **memang diinginkan** (bukan bug): edit skor KPI wajib komentar;
 > input KPI pertama boleh tanpa komentar. Pertahankan.

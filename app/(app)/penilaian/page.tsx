@@ -22,7 +22,7 @@ export default async function PenilaianPage() {
   if (!user) redirect('/login');
 
   const { data: ap } = await supabase
-    .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
+    .from('periods').select('id, label, has_360, form_open').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) {
     return (
       <Shell>
@@ -44,6 +44,20 @@ export default async function PenilaianPage() {
           title="Penilaian 360° belum dibuka"
           description="HRD belum membuka komponen 360° untuk periode ini. Daftar penilaian akan muncul di sini begitu HRD mengaktifkannya."
           note="Tidak ada yang perlu Anda lakukan sekarang — tunggu pengumuman dari HRD."
+        />
+      </Shell>
+    );
+  }
+  // Form ditutup HRD (pembekuan untuk review/finalisasi) — 360° tetap dihitung, tapi
+  // pengisian dihentikan sementara. Beda dari "Tanpa 360°" (yang mematikan skor 360°).
+  if (!ap.form_open) {
+    return (
+      <Shell periodLabel={ap.label}>
+        <EmptyState
+          icon="🔒"
+          title="Form penilaian sedang ditutup"
+          description="HRD sementara menutup pengisian penilaian 360° untuk periode ini (tahap peninjauan hasil)."
+          note="Penilaian yang sudah Anda kirim tetap tersimpan. Bila Anda merasa masih perlu mengisi, hubungi HRD."
         />
       </Shell>
     );
@@ -77,7 +91,7 @@ export default async function PenilaianPage() {
   // Kandidat Ad-Hoc: pegawai non-direksi, bukan diri, belum ada di daftar penilaian.
   const alreadyListed = new Set<string>([user.id, ...targetIds]);
   // Eksternal (vendor/freelance) hanya MENILAI, tak boleh jadi target → keluarkan dari kandidat Ad-Hoc.
-  const { data: allEmps } = await supabase.from('employees').select('id, name, dept, role').neq('role', 'direksi').eq('is_external', false);
+  const { data: allEmps } = await supabase.from('employees').select('id, name, dept, role').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
   const candidates = (allEmps ?? [])
     .filter((e) => !alreadyListed.has(e.id))
     .map((e) => ({ id: e.id, name: e.name, dept: e.dept }))

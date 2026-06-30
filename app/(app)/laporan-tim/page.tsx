@@ -32,7 +32,7 @@ export default async function LaporanTimPage() {
   if (me.role === 'hrd') {
     // HRD mode-SPV: pegawai sedivisinya sendiri (kecuali Direksi); query dept sudah memuat dirinya.
     const { data } = await supabase.from('employees')
-      .select('id, name, dept').eq('dept', me.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false);
+      .select('id, name, dept').eq('dept', me.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
     members = data ?? [];
   } else {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', user.id);

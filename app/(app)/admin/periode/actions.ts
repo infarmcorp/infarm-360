@@ -218,6 +218,28 @@ export async function toggleHas360(periodId: string, value: boolean): Promise<Re
 }
 
 /**
+ * Buka/Tutup FORM penilaian 360° (form_open) — TERPISAH dari has_360. Menutup form hanya
+ * menghentikan pengisian pegawai (tahap review/finalisasi); 360° TETAP dihitung ke skor &
+ * tombol Hitung Ulang tetap tersedia. has_360 tak tersentuh.
+ */
+export async function toggleFormOpen(periodId: string, value: boolean): Promise<Result> {
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const { error } = await supabase.from('periods').update({ form_open: value }).eq('id', periodId);
+  if (error) return { ok: false, error: 'Gagal: ' + error.message };
+  const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();
+  await logHrdAction({
+    action: 'period.toggleForm', category: 'periode',
+    summary: `${value ? 'Membuka' : 'Menutup'} form penilaian 360° pada periode "${pr?.label ?? periodId}"`,
+    targetType: 'period', targetId: periodId, targetLabel: pr?.label ?? null, meta: { form_open: value },
+  });
+  revalidatePath('/admin/periode');
+  revalidatePath('/penilaian');
+  return { ok: true };
+}
+
+/**
  * Bulan yang UNIK milik sebuah periode (tak dipakai periode lain). KPI dikunci per
  * (employee, ym) — TIDAK cascade dari periods & bisa dipakai bersama bila dua periode
  * berbagi bulan. Maka KPI hanya boleh dihapus untuk bulan yang khusus periode ini.

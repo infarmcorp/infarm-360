@@ -532,9 +532,12 @@ flowchart TD
 
 ### Flag Kepatuhan Penilaian
 - Memantau **kepatuhan** pengisian 360° dan memberi **punishment**.
-- **Pegawai non-aktif tidak ikut** — hanya pegawai aktif yang dihitung kepatuhannya (yang sudah
-  dinonaktifkan tak lagi diflag telat/belum-self). Berlaku konsisten di Dashboard, Rekap, Monitor,
-  Laporan Tim, Suksesi, & Review Hasil Akhir (pegawai non-aktif dikecualikan dari daftar subjek).
+- **Pegawai non-aktif tidak ikut kepatuhan** — hanya pegawai aktif yang dihitung (yang dinonaktifkan
+  tak lagi diflag telat/belum-self). Pengecualian **ketat** ini berlaku di halaman **flag/siklus**:
+  Kepatuhan, Progress 360, Daftar Penilaian, & Suksesi. **Di halaman pelaporan** (Dashboard, Rekap,
+  Monitor, Laporan Tim, Review Hasil Akhir) pegawai non-aktif **tetap tampil bila punya data periode**
+  (Opsi B) — agar hasil kuartalnya tak hilang & masih bisa difinalisasi; di Dashboard diberi penanda
+  **"nonaktif"**.
 - **Tabel default hanya menampilkan pegawai yang perlu perhatian** — yakni yang punya penilaian
   **Wajib** telat, ATAU belum **self-assessment**, ATAU sudah punya **punishment**. Pegawai patuh
   penuh & tanpa punishment **disembunyikan** agar halaman lebih bersih. Toggle **"Tampilkan semua

@@ -181,6 +181,46 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
   return { ok: true, rows };
 }
 
+/**
+ * Dataset Ringkasan Aspek Naratif (HRD/Peninjau): teks evaluasi per aspek yang ditulis
+ * di Review Hasil Akhir, tersimpan di final_reports.content.aspectSummaries. Satu baris
+ * per (pegawai × aspek) yang punya ringkasan; entri kosong dilewati.
+ */
+export async function exportAspectSummaries(periodId?: string | null): Promise<ExportResult> {
+  if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
+  const admin = createAdminClient();
+  const [{ data: emps }, { data: periods }, { data: reports }] = await Promise.all([
+    admin.from('employees').select('id, emp_code, name, dept'),
+    admin.from('periods').select('id, label, start_date').order('start_date'),
+    admin.from('final_reports').select('employee_id, period_id, status, content'),
+  ]);
+  const empById = new Map((emps ?? []).map((e) => [e.id, e]));
+  const plabel = new Map((periods ?? []).map((p) => [p.id, p.label]));
+  const STATUS: Record<string, string> = { draft: 'Draf', in_review: 'Ditinjau SPV', finalized: 'Final' };
+
+  const rows: Row[] = [];
+  for (const r of reports ?? []) {
+    if (periodId && r.period_id !== periodId) continue;
+    const content = (r.content ?? {}) as { aspectSummaries?: Record<string, string> };
+    const summaries = content.aspectSummaries ?? {};
+    const e = empById.get(r.employee_id);
+    for (const [aspek, teks] of Object.entries(summaries)) {
+      if (!teks || !teks.trim()) continue;
+      rows.push({
+        periode: plabel.get(r.period_id) ?? r.period_id,
+        kode: e?.emp_code ?? null, nama: e?.name ?? '—', divisi: e?.dept ?? '—',
+        status_laporan: STATUS[r.status] ?? r.status,
+        aspek, ringkasan: teks.trim(),
+      });
+    }
+  }
+  rows.sort((a, b) =>
+    String(a.periode).localeCompare(String(b.periode)) ||
+    String(a.nama).localeCompare(String(b.nama)) ||
+    String(a.aspek).localeCompare(String(b.aspek)));
+  return { ok: true, rows };
+}
+
 /** Dataset Penilaian 360 Detail (ANONIM penilai): periode, target, divisi, relasi, aspek, indikator, rating, komentar. */
 export async function exportAssessments(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };

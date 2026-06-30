@@ -54,7 +54,9 @@ export default async function DashboardPage({
     ?? periodList[0];
 
   // Pegawai non-direksi + daftar divisi; lingkup divisi terpilih (default semua).
-  const { data: allEmpRows } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
+  // Pelaporan: ambil TANPA filter is_active; nonaktif disaring belakangan kecuali punya data
+  // di periode (KPI/360°) → hasil kuartal pegawai yang resign di akhir periode tetap tampil.
+  const { data: allEmpRows } = await supabase.from('employees').select('id, name, dept, is_active').neq('role', 'direksi').eq('is_external', false);
   const allEmps = allEmpRows ?? [];
   const deptList = [...new Set(allEmps.map((e) => e.dept))].sort();
   const dept = deptParam && deptParam !== 'all' && deptList.includes(deptParam) ? deptParam : 'all';
@@ -165,8 +167,10 @@ export default async function DashboardPage({
     const box = kpiAvg != null && s360 != null ? talentBoxOf(kpiAvg, s360) : null;
     // 4-Box: berbasis KPI × 360° langsung (360 nonaktif → tanpa sumbu budaya).
     const player = playerClassOf(kpiAvg, ap.has_360 ? s360 : null);
-    return { id: e.id, name: e.name, dept: e.dept, kpiAvg, s360, final, box, player };
-  }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));
+    return { id: e.id, name: e.name, dept: e.dept, is_active: e.is_active, kpiAvg, s360, final, box, player };
+  }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1))
+    // Tampilkan yang AKTIF atau PUNYA DATA di periode (KPI/360°); nonaktif tanpa data disembunyikan.
+    .filter((r) => r.is_active || r.kpiAvg != null || r.s360 != null);
 
   // Rerata KPI per departemen (untuk bar chart visual).
   const deptAgg = new Map<string, { sum: number; n: number }>();

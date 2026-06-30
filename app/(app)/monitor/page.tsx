@@ -39,20 +39,20 @@ export default async function MonitorPage() {
   }
 
   // Lingkup pegawai. SPV → tim; HRD mode-SPV → hanya DIVISINYA (selaras Input KPI/Rekap).
-  let empRows: { id: string; name: string; dept: string }[] = [];
+  let empRows: { id: string; name: string; dept: string; is_active: boolean }[] = [];
   if (role === 'spv') {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', user.id);
     // SPV juga memantau dirinya sendiri (selaras Input KPI/Riwayat/Rekap/Laporan-Tim).
     const ids = [...new Set([user.id, ...(team ?? []).map((t) => t.employee_id)])];
-    const { data } = await supabase.from('employees').select('id, name, dept').in('id', ids);
+    const { data } = await supabase.from('employees').select('id, name, dept, is_active').in('id', ids);
     empRows = data ?? [];
   } else if (role === 'hrd' && hrdMode === 'spv') {
     const { data: meDept } = await supabase.from('employees').select('dept').eq('id', user.id).maybeSingle();
-    const { data } = await supabase.from('employees').select('id, name, dept')
-      .eq('dept', meDept?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
+    const { data } = await supabase.from('employees').select('id, name, dept, is_active')
+      .eq('dept', meDept?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false);
     empRows = data ?? [];
   } else {
-    const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
+    const { data } = await supabase.from('employees').select('id, name, dept, is_active').neq('role', 'direksi').eq('is_external', false);
     empRows = data ?? [];
   }
 
@@ -86,7 +86,14 @@ export default async function MonitorPage() {
     a.sum += r.score; a.n += 1; kpiAgg.set(k, a);
   });
 
-  const employees: EmpTrend[] = empRows.map((e) => {
+  // Pelaporan: tampilkan yang AKTIF atau yang PUNYA DATA (KPI/360° apa pun) — nonaktif tanpa
+  // data disembunyikan; nonaktif yang sudah dinilai/ber-KPI tetap tampil di tren.
+  const dataIds = new Set<string>([
+    ...(kpiRows ?? []).map((r) => r.employee_id),
+    ...(r360Res.data ?? []).map((r) => r.employee_id),
+  ]);
+  const keepRows = empRows.filter((e) => e.is_active || dataIds.has(e.id));
+  const employees: EmpTrend[] = keepRows.map((e) => {
     // Tren per bulan.
     const yms = [...new Set((kpiRows ?? []).filter((r) => r.employee_id === e.id).map((r) => r.ym))].sort();
     const trend = yms.map((ym) => {

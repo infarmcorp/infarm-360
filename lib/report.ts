@@ -226,3 +226,38 @@ export async function loadTeamReportForHrdSpv(
   if (!full) return null;
   return { ...full, assessors: [], byAspect: [], essays: [] };
 }
+
+/**
+ * Laporan untuk PENINJAU HASIL LINTAS DIVISI (grant is_cross_reviewer, migrasi 0018).
+ * Tujuan: membantu HRD meringkas Hasil Akhir 360° pegawai di DIVISI LAIN — sengaja
+ * MENGECUALIKAN divisi peninjau sendiri (konflik kepentingan/privasi rekan sedivisi).
+ *
+ * Keamanan (penegakan privasi NYATA, bukan app-only): peninjau berposisi non-HRD →
+ * RLS menolak akses tabel mentah, jadi SATU-SATUNYA jalur baca adalah fungsi ini yang
+ * memakai service_role TAPI menolak bila target sedivisi/peminjau bukan pemegang grant.
+ *
+ * Kedalaman data = L2 + komentar ANONIM (skor, radar/aspek, byAspect, essays) — yang
+ * dibutuhkan untuk menulis Ringkasan Aspek. Blok per-penilai BERNAMA (assessors / L3)
+ * tetap DIBUANG. Tak ada gerbang status: peninjau mendampingi kerja review HRD sejak draf.
+ */
+export async function loadCrossDivisionReport(
+  reviewerId: string,
+  employeeId: string,
+  period: { id: string; label: string; has_360: boolean },
+): Promise<ReportData | null> {
+  const admin = createAdminClient() as unknown as SB;
+
+  const { data: reviewer } = await admin.from('employees')
+    .select('dept, is_cross_reviewer').eq('id', reviewerId).maybeSingle();
+  if (!reviewer?.is_cross_reviewer || !reviewer.dept) return null; // bukan pemegang grant
+
+  const { data: emp } = await admin.from('employees')
+    .select('dept, role, is_external').eq('id', employeeId).maybeSingle();
+  // Target wajib: ada, non-direksi, non-eksternal, & DIVISI BERBEDA dari peninjau.
+  if (!emp || emp.role === 'direksi' || emp.is_external || emp.dept === reviewer.dept) return null;
+
+  const full = await loadReport(admin, employeeId, period);
+  if (!full) return null;
+  // Buang blok per-penilai bernama (L3). Pertahankan byAspect/essays (komentar anonim).
+  return { ...full, assessors: [] };
+}

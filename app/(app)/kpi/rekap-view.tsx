@@ -30,20 +30,23 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
 
   // Lingkup pegawai. SPV → tim; HRD mode-SPV → hanya DIVISINYA (selaras Input KPI);
   // HRD admin / Direksi → semua pegawai non-direksi.
-  let empRows: { id: string; name: string; dept: string }[] = [];
+  // Pelaporan: enumerasi TANPA filter is_active; pegawai nonaktif disaring belakangan HANYA
+  // bila tak punya data di periode (lihat filter `shown`). Jadi nonaktif yang sudah punya
+  // KPI/360° di kuartal ini tetap muncul (mis. resign di akhir periode) & bisa difinalisasi.
+  let empRows: { id: string; name: string; dept: string; is_active: boolean }[] = [];
   if (role === 'spv') {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);
     // SPV juga mencatat KPI dirinya sendiri (migrasi 0008) → sertakan dalam rekap.
     const ids = [...new Set([userId, ...(team ?? []).map((t) => t.employee_id)])];
-    const { data } = await supabase.from('employees').select('id, name, dept').in('id', ids);
+    const { data } = await supabase.from('employees').select('id, name, dept, is_active').in('id', ids);
     empRows = data ?? [];
   } else if (role === 'hrd' && hrdMode === 'spv') {
     const { data: me } = await supabase.from('employees').select('dept').eq('id', userId).maybeSingle();
-    const { data } = await supabase.from('employees').select('id, name, dept')
-      .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
+    const { data } = await supabase.from('employees').select('id, name, dept, is_active')
+      .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false);
     empRows = data ?? [];
   } else {
-    const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
+    const { data } = await supabase.from('employees').select('id, name, dept, is_active').neq('role', 'direksi').eq('is_external', false);
     empRows = data ?? [];
   }
   empRows.sort((a, b) => a.name.localeCompare(b.name));
@@ -84,6 +87,9 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
     const player = playerClassOf(kpiAvg, sel.has_360 ? s360 : null);
     return { ...e, monthly, kpiAvg, s360, final, player };
   });
+  // Pelaporan: tampilkan yang AKTIF atau yang PUNYA DATA di periode (KPI/360°) — nonaktif
+  // tanpa data disembunyikan; nonaktif yang sudah dinilai/ber-KPI di kuartal ini tetap tampil.
+  const shown = rows.filter((r) => r.is_active || r.kpiAvg != null || r.s360 != null);
 
   return (
     <div>
@@ -109,10 +115,10 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {rows.length === 0 && (
+            {shown.length === 0 && (
               <tr><td colSpan={ymList.length + 4} className="py-6 text-center text-gray-500 italic">Tidak ada pegawai dalam lingkup Anda.</td></tr>
             )}
-            {rows.map((r) => {
+            {shown.map((r) => {
               const kat = KAT(r.final);
               return (
                 <tr key={r.id} className="hover:bg-gray-50/40">

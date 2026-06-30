@@ -24,7 +24,9 @@ export default async function AdminLaporanPage() {
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
 
-  const { data: emps } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
+  // Pelaporan: ambil TANPA filter is_active; nonaktif disaring belakangan kecuali punya data
+  // periode (KPI/360°/laporan) → pegawai yang resign di akhir periode tetap bisa difinalisasi.
+  const { data: emps } = await supabase.from('employees').select('id, name, dept, is_active').neq('role', 'direksi').eq('is_external', false);
   const employees = emps ?? [];
 
   const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', ap.id);
@@ -111,12 +113,16 @@ export default async function AdminLaporanPage() {
       ratedDone: ratedDone.get(e.id) ?? 0, ratedTotal: ratedTotal.get(e.id) ?? 0,
     };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));
-  const staleCount = rows.filter((r) => r.needsRecompute).length;
+  // Tampilkan yang AKTIF atau PUNYA DATA periode (KPI/360°/sudah ada laporan); nonaktif tanpa
+  // data disembunyikan. Pegawai nonaktif yang sudah dinilai/ber-KPI tetap bisa difinalisasi.
+  const activeIds = new Set(employees.filter((e) => e.is_active).map((e) => e.id));
+  const shownRows = rows.filter((r) => activeIds.has(r.id) || r.kpiAvg != null || r.s360 != null || r.status != null);
+  const staleCount = shownRows.filter((r) => r.needsRecompute).length;
   // "Belum pernah dihitung" = ada penilaian masuk tapi result_360 masih kosong (subset staleCount)
   // → Skor Akhir mereka masih 100% KPI. Dibedakan agar pesan langkah lebih jelas.
-  const neverCount = rows.filter((r) => ap.has_360 && r.s360 == null && maxSubByTarget.has(r.id)).length;
+  const neverCount = shownRows.filter((r) => ap.has_360 && r.s360 == null && maxSubByTarget.has(r.id)).length;
   const changedCount = Math.max(0, staleCount - neverCount);
-  const depts = [...new Set(employees.map((e) => e.dept))].sort();
+  const depts = [...new Set(shownRows.map((r) => r.dept))].sort();
 
   return (
     <Shell>
@@ -167,7 +173,7 @@ export default async function AdminLaporanPage() {
         </div>
       </div>
 
-      <ReportTable rows={rows} depts={depts} has360={ap.has_360} />
+      <ReportTable rows={shownRows} depts={depts} has360={ap.has_360} />
       <p className="text-[10px] text-gray-500 italic mt-3">
         Klik <strong>Tinjau</strong> untuk membuka & mengelola laporan pegawai (Simpan Draf → Rilis ke SPV →
         Finalisasi) di panel detail. Setelah <strong>Final</strong>, kolom Skor Akhir menampilkan angka

@@ -16,9 +16,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect('/login');
 
   const { data: emp } = await supabase
-    .from('employees').select('emp_code, name, dept, role, is_hrd_admin').eq('id', user.id).maybeSingle();
+    .from('employees').select('emp_code, name, dept, role, is_hrd_admin, is_cross_reviewer').eq('id', user.id).maybeSingle();
   const role = (emp?.role ?? 'employee') as Role;
   const isAdmin = canAdmin(emp);
+  const isCrossReviewer = !!emp?.is_cross_reviewer;
 
   const { data: ap } = await supabase
     .from('periods').select('label, status, end_date').eq('status', 'active').limit(1).maybeSingle();
@@ -38,6 +39,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <AppShell
       role={role}
       canAdmin={isAdmin}
+      isCrossReviewer={isCrossReviewer}
       hrdMode={hrdMode}
       name={emp?.name ?? user.email ?? 'Pengguna'}
       dept={emp?.dept ?? '—'}

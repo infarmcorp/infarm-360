@@ -57,6 +57,30 @@ export async function setHrdAdmin(employeeId: string, value: boolean): Promise<R
   return { ok: true, msg: value ? 'Izin HRD Admin diberikan.' : 'Izin HRD Admin dicabut.' };
 }
 
+/**
+ * Beri/cabut izin "Peninjau Hasil Lintas Divisi" (grant `is_cross_reviewer`, migrasi 0018).
+ * Kapabilitas SEMPIT: membuka jalur /peninjau (lihat + tulis Ringkasan Aspek untuk pegawai
+ * di DIVISI LAIN, bukan divisi sendiri). TIDAK memberi akses HRD penuh & tidak menyentuh
+ * is_hrd()/RLS. Hanya HRD Admin yang boleh memberi; tercatat di Log Aktivitas HRD.
+ */
+export async function setCrossReviewer(employeeId: string, value: boolean): Promise<Result> {
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return auth;
+
+  const { data: target } = await supabase.from('employees').select('name').eq('id', employeeId).maybeSingle();
+  const { error } = await supabase.from('employees').update({ is_cross_reviewer: value }).eq('id', employeeId);
+  if (error) return { ok: false, error: 'Gagal mengubah izin: ' + error.message };
+
+  await logHrdAction({
+    action: value ? 'employee.grant_cross_reviewer' : 'employee.revoke_cross_reviewer', category: 'pegawai',
+    summary: `${value ? 'Memberi' : 'Mencabut'} izin Peninjau Hasil Lintas Divisi untuk ${target?.name ?? employeeId}`,
+    targetType: 'employee', targetId: employeeId, targetLabel: target?.name ?? null,
+  });
+  revalidate();
+  return { ok: true, msg: value ? 'Izin Peninjau Lintas Divisi diberikan.' : 'Izin Peninjau Lintas Divisi dicabut.' };
+}
+
 const Role = z.enum(['employee', 'spv', 'hrd', 'direksi']);
 // Kode pegawai bebas mengikuti skema perusahaan (mis. EMP010 atau FT2021-001).
 // Mulai alfanumerik; boleh huruf/angka + pemisah - . _ / ; 2–24 karakter.
@@ -271,6 +295,12 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
   const { error } = await supabase.from('employees').update({ is_active: active }).eq('id', id);
   if (error) return { ok: false, error: 'Gagal: ' + error.message };
 
+  // Pemetaan ikut dinonaktifkan/diaktifkan → orang keluar/masuk siklus penilaian (tak lagi
+  // dihitung di Progress 360 & tak jadi tugas penilai lain) TANPA menghapus data (reversibel).
+  const { error: mErr } = await supabase.from('mappings')
+    .update({ is_active: active }).or(`assessor_id.eq.${id},target_id.eq.${id}`);
+  if (mErr) return { ok: false, error: 'Status diubah, tapi gagal memperbarui pemetaan: ' + mErr.message };
+
   const admin = createAdminClient();
   const { error: bErr } = await admin.auth.admin.updateUserById(id, { ban_duration: active ? 'none' : BAN_FOREVER });
   if (bErr) return { ok: false, error: 'Status diubah, tapi gagal mengunci akun: ' + bErr.message };
@@ -278,7 +308,7 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
   const { data: emp } = await supabase.from('employees').select('name').eq('id', id).maybeSingle();
   await logHrdAction({
     action: active ? 'employee.activate' : 'employee.deactivate', category: 'pegawai',
-    summary: `${active ? 'Mengaktifkan' : 'Menonaktifkan (mengunci akun)'} pegawai ${emp?.name ?? id}`,
+    summary: `${active ? 'Mengaktifkan' : 'Menonaktifkan (mengunci akun)'} pegawai ${emp?.name ?? id} + ${active ? 'mengaktifkan' : 'menonaktifkan'} pemetaannya`,
     targetType: 'employee', targetId: id, targetLabel: emp?.name ?? null,
   });
   revalidate();

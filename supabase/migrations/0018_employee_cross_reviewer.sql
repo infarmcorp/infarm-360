@@ -1,0 +1,14 @@
+-- 0018_employee_cross_reviewer
+-- Grant "Peninjau Hasil Lintas Divisi": pegawai (mis. divisi HRD) yang diberi izin
+-- MEMBANTU MERINGKAS Hasil Akhir 360° untuk SEMUA divisi KECUALI divisinya sendiri
+-- (mencegah konflik kepentingan/privasi atas rekan sedivisinya).
+--
+-- PENTING — keamanan: kolom ini SENGAJA TIDAK menyentuh is_hrd() (= role='hrd' OR
+-- is_hrd_admin). Pemegang grant yang berposisi `employee` tetap pegawai biasa di level
+-- RLS → TIDAK bisa membaca L3 mentah 360° siapa pun lewat API (termasuk divisinya).
+-- Akses lintas-divisi diberikan HANYA lewat server (service_role) di jalur /peninjau
+-- yang menegakkan filter "divisi target ≠ divisi peninjau". Jadi batas privasi nyata,
+-- bukan app-only. Lihat lib/report.ts loadCrossDivisionReport + app/(app)/peninjau/.
+--
+-- Aditif & backward-compatible (default false → semua pegawai lama tanpa izin ini).
+alter table employees add column if not exists is_cross_reviewer boolean not null default false;

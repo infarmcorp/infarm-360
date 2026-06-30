@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, ScanEye,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 import { BrandLogo } from '@/components/brand-logo';
@@ -22,7 +22,7 @@ const ROLE_LABEL: Record<Role, string> = {
   employee: 'Pegawai Operasional', spv: 'Supervisor (SPV)', hrd: 'HRD Admin', direksi: 'Direktur',
 };
 
-function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode): Section[] {
+function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewer: boolean): Section[] {
   // Tampilan admin hanya bila punya izin HRD (canAdmin) DAN sedang di mode admin.
   // Mode "posisi-asli" (base) = bukan adminView; HRD-posisi base = perlakuan SPV (legacy).
   const adminView = canAdmin && hrdMode === 'admin';
@@ -31,6 +31,8 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode): Section[] {
   // Tampil untuk semua peran di mode base (termasuk Direksi); hanya disembunyikan di Mode Admin.
   if (!adminView) main.push({ href: '/penilaian', label: 'Daftar Penilaian Saya', icon: Star });
   if (!adminView) main.push({ href: '/laporan', label: 'Laporan Hasil Saya', icon: FileText });
+  // Peninjau Hasil Lintas Divisi (grant is_cross_reviewer) — hanya di mode base.
+  if (!adminView && isCrossReviewer) main.push({ href: '/peninjau', label: 'Review Lintas Divisi', icon: ScanEye });
 
   const sections: Section[] = main.length ? [{ title: 'Navigasi Utama', items: main }] : [];
 
@@ -93,15 +95,15 @@ const TODO_DOT: Record<TodoTone, string> = {
 };
 
 export function AppShell({
-  role, canAdmin, hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, children,
+  role, canAdmin, isCrossReviewer = false, hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, children,
 }: {
-  role: Role; canAdmin: boolean; hrdMode: HrdMode; name: string; dept: string; empCode: string;
+  role: Role; canAdmin: boolean; isCrossReviewer?: boolean; hrdMode: HrdMode; name: string; dept: string; empCode: string;
   periodLabel: string | null; periodActive: boolean; periodDaysLeft?: number | null;
   todos: TodoItem[]; children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const sections = menuFor(role, canAdmin, hrdMode);
+  const sections = menuFor(role, canAdmin, hrdMode, isCrossReviewer);
 
   const isActive = (href: string) => {
     const path = href.split('?')[0];

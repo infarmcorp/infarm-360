@@ -28,19 +28,21 @@ export default async function LaporanTimPage() {
   if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
 
   // Resolusi lingkup anggota per peran (selalu memuat diri sendiri).
-  let members: { id: string; name: string; dept: string | null }[] = [];
+  // Pelaporan: enumerasi TANPA filter is_active; nonaktif disaring belakangan kecuali punya
+  // laporan di periode → laporan pegawai yang resign di akhir periode tetap bisa ditinjau.
+  let members: { id: string; name: string; dept: string | null; is_active: boolean }[] = [];
   if (me.role === 'hrd') {
     // HRD mode-SPV: pegawai sedivisinya sendiri (kecuali Direksi); query dept sudah memuat dirinya.
     const { data } = await supabase.from('employees')
-      .select('id, name, dept').eq('dept', me.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
+      .select('id, name, dept, is_active').eq('dept', me.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false);
     members = data ?? [];
   } else {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', user.id);
     const memberIds = (team ?? []).map((t) => t.employee_id);
     const { data: emps } = memberIds.length
-      ? await supabase.from('employees').select('id, name, dept').in('id', memberIds) : { data: [] };
+      ? await supabase.from('employees').select('id, name, dept, is_active').in('id', memberIds) : { data: [] };
     // SPV bukan anggota timnya sendiri → tambahkan manual untuk pemantauan laporan pribadi.
-    members = [...(emps ?? []), { id: user.id, name: me.name, dept: me.dept }];
+    members = [...(emps ?? []), { id: user.id, name: me.name, dept: me.dept, is_active: true }];
   }
 
   const reportIds = members.map((e) => e.id);
@@ -75,8 +77,11 @@ export default async function LaporanTimPage() {
     };
   };
 
+  const activeIds = new Set(members.filter((m) => m.is_active).map((m) => m.id));
   const rows: TeamRow[] = members
     .map((e) => toRow(e, e.id === user.id))
+    // Tampilkan yang AKTIF atau yang PUNYA laporan di periode; nonaktif tanpa laporan disembunyikan.
+    .filter((r) => activeIds.has(r.id) || r.hasReport)
     .sort((a, b) => a.name.localeCompare(b.name));
 
   return (

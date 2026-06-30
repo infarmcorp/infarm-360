@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { UserPlus, Pencil, KeyRound, Power, X, ShieldCheck } from 'lucide-react';
-import { createEmployee, updateEmployee, setEmployeeActive, resetPassword, setHrdAdmin } from './actions';
+import { UserPlus, Pencil, KeyRound, Power, X, ShieldCheck, ScanEye } from 'lucide-react';
+import { createEmployee, updateEmployee, setEmployeeActive, resetPassword, setHrdAdmin, setCrossReviewer } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type EmpRow = {
   id: string; empCode: string; name: string; dept: string; role: Role;
-  isHrdAdmin: boolean; isExternal: boolean; active: boolean; email: string; spvId: string | null; spvName: string | null;
+  isHrdAdmin: boolean; isExternal: boolean; isCrossReviewer: boolean; active: boolean; email: string; spvId: string | null; spvName: string | null;
 };
 export type SpvOpt = { id: string; name: string; dept: string; role: Role };
 
@@ -281,6 +281,9 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                   {r.isExternal && (
                     <span className="ml-1 inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800" title="Penilai eksternal (vendor/freelance) — hanya menilai, bukan dinilai">Eksternal</span>
                   )}
+                  {r.isCrossReviewer && (
+                    <span className="ml-1 inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700" title="Peninjau Hasil Lintas Divisi — boleh meringkas hasil divisi LAIN (bukan divisinya sendiri)"><ScanEye className="w-2.5 h-2.5" /> Peninjau</span>
+                  )}
                 </td>
                 <td className="py-3 px-3 text-xs text-gray-500">{r.spvName ?? '—'}</td>
                 <td className="py-3 px-3 text-center">
@@ -300,6 +303,11 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                     <button type="button" onClick={() => act(() => setHrdAdmin(r.id, !r.isHrdAdmin))} disabled={pending}
                       title={r.isHrdAdmin ? 'Cabut izin HRD Admin' : 'Beri izin HRD Admin'}
                       className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg disabled:opacity-60 ${r.isHrdAdmin ? 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-500 hover:bg-gray-100'}`}><ShieldCheck className="w-3.5 h-3.5" /></button>
+                  )}
+                  {r.role !== 'direksi' && r.role !== 'hrd' && (
+                    <button type="button" onClick={() => act(() => setCrossReviewer(r.id, !r.isCrossReviewer))} disabled={pending}
+                      title={r.isCrossReviewer ? 'Cabut izin Peninjau Lintas Divisi' : 'Beri izin Peninjau Hasil Lintas Divisi (meringkas hasil divisi lain)'}
+                      className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg disabled:opacity-60 ${r.isCrossReviewer ? 'text-violet-700 bg-violet-50 hover:bg-violet-100' : 'text-gray-500 hover:bg-gray-100'}`}><ScanEye className="w-3.5 h-3.5" /></button>
                   )}
                 </td>
               </tr>

@@ -186,7 +186,11 @@ export default async function PenilaianPage() {
                       {it.isAdhoc && (
                         <AdhocDeleteButton targetId={it.targetId} targetName={it.name} submitted={it.status === 'submitted'} />
                       )}
-                      {it.relation !== 'Self' && !it.isAdhoc && (
+                      {/* Minta Koreksi tersedia untuk SEMUA pemetaan (termasuk Ad-Hoc): target ad-hoc
+                          dikunci relasi 'Cross' saat dibuat, padahal hubungan sebenarnya bisa berbeda
+                          (mis. ternyata Bawahan/Atasan). Penilai mengajukan koreksi → HRD yang menyetujui
+                          (gatekeeper), jadi bobot tetap tak bisa digelembungkan sepihak. Self dikecualikan. */}
+                      {it.relation !== 'Self' && (
                         <CorrectionButton
                           mappingId={it.mappingId}
                           targetId={it.targetId}

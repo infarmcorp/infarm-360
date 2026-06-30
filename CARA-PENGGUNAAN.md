@@ -121,6 +121,10 @@ Panel hanya aktif saat ada **periode aktif**.
    "Pilih Rekan Kerja untuk Dinilai" → "Tambahkan Rekan" → nilai seperti biasa (relasi Lintas Unit).
    Target ad-hoc bisa **Dihapus** lewat tombol di barisnya — **kecuali** penilaiannya **sudah
    terkirim** (tombol dinonaktifkan demi menjaga data 360°). Pegawai eksternal tak bisa jadi target ad-hoc.
+   - **Minta Koreksi juga berlaku untuk target Ad-Hoc.** Saat ditambahkan, relasi ad-hoc dikunci
+     **Lintas Divisi (Cross)**; bila hubungan sebenarnya berbeda (mis. ternyata **Bawahan/Atasan**),
+     klik **"Minta Koreksi"** di baris itu agar HRD memperbaiki relasinya → bobot Skor 360° jadi tepat.
+     Perubahan tetap **disetujui HRD** (tak bisa diubah sepihak).
 
 ### Laporan Hasil Saya
 > Muncul **hanya setelah HRD melakukan Finalisasi** (status `finalized`). Sebelum itu tampil
@@ -134,6 +138,26 @@ Panel hanya aktif saat ada **periode aktif**.
    - **Evaluasi Aspek Budaya & Perilaku 360°** — ringkasan naratif dari HRD per aspek (anonim).
    > **Komentar mentah per penilai TIDAK ditampilkan** ke pegawai (menjaga anonimitas 360°);
    > yang tampil hanya agregat di atas.
+
+---
+
+## Akses Khusus: Review Lintas Divisi (grant "Peninjau")
+
+Muncul **hanya** bila HRD memberi izin **Peninjau Lintas Divisi** (Kelola Pegawai → tombol 👁️).
+Ditujukan untuk pegawai (mis. divisi HRD) yang **membantu HRD meringkas** Hasil Akhir 360° —
+**tanpa** boleh melihat hasil rekan **sedivisinya sendiri** (jaga konflik kepentingan/privasi).
+
+Menu **"Review Lintas Divisi"** muncul di Navigasi Utama. Di dalamnya:
+- **Daftar pegawai divisi LAIN** (divisi Anda sendiri sengaja **tidak ditampilkan**) + skor, status,
+  & kelengkapan "dinilai oleh X/Y". Cari/filter divisi. Klik **Tinjau**.
+- **Detail pegawai:** Skor Akhir, **radar/aspek**, & **komentar anonim** (tanpa nama penilai), lalu
+  Anda bisa **menulis Ringkasan Aspek** (tersimpan otomatis).
+- **Yang TIDAK bisa Anda lakukan:** merilis ke SPV, memfinalisasi, mengubah skor/bobot, atau melihat
+  **nama penilai** — itu tetap kewenangan HRD. Laporan yang sudah **final** → ringkasan terkunci.
+
+> Keamanan: pemegang izin ini **tetap pegawai biasa** di mata sistem — tak bisa mengintip data 360°
+> mentah siapa pun (termasuk divisinya) lewat cara lain. Akses lintas-divisi hanya tersedia di
+> halaman ini dan otomatis menyaring divisinya sendiri.
 
 ---
 
@@ -206,7 +230,12 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
 3. **Reset Sandi** — modal konfirmasi untuk setel sandi baru (tombol **Acak** mengisi sandi acak);
    disarankan pegawai menggantinya sendiri setelahnya.
 4. **Aktif/Nonaktif** — menonaktifkan **mengunci akun** (tak bisa login) tanpa menghapus
-   riwayat penilaian/KPI. Aktifkan kembali kapan pun.
+   riwayat penilaian/KPI, **dan ikut menonaktifkan pemetaannya** (orang itu keluar dari siklus:
+   tak lagi dihitung di Progress 360 & tak jadi tugas penilai lain). Aktifkan kembali kapan pun →
+   pemetaan ikut aktif lagi. Catatan: di halaman **pelaporan** (Dashboard/Rekap/Monitor/Laporan Tim/
+   Review Hasil Akhir), pegawai nonaktif yang **sudah punya data di periode** (KPI/360°/laporan)
+   **tetap ditampilkan** agar hasil kuartalnya tak hilang & bisa difinalisasi (mis. resign di akhir
+   periode); di halaman **flag/siklus** (Kepatuhan/Progress/Penilaian) mereka **disembunyikan**.
 5. **Impor dari Excel** (tombol di kanan atas) — tambah **banyak pegawai sekaligus**.
    Kolom: `nama`, `kode`, `divisi`, `peran` (employee/spv/hrd/direksi), opsional `email`
    (kosong → otomatis dari nama), `sandi` (kosong → **Sandi Default**), `atasan` (kode pegawai).
@@ -214,6 +243,12 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
    karena duplikat / ✗ tidak valid + alasan) sebelum impor. Duplikat **dilewati** (tak menimpa).
    Tip: impor pegawai ber-peran **SPV/atasan dulu** agar kolom `atasan` bawahan langsung tertaut.
 6. **Filter & cari** — kotak pencarian + filter **Peran**, **Divisi**, dan **Status**.
+7. **Beri izin (grant) — dua tombol kecil di kolom Aksi:**
+   - 🛡️ **Izin HRD Admin** — menjadikan pegawai (employee/SPV) mampu mengoperasikan **seluruh** fitur
+     HRD (mode ganda). Ditandai badge **"HRD"**.
+   - 👁️ **Peninjau Lintas Divisi** — izin **sempit**: pegawai (mis. divisi HRD) boleh **membantu
+     meringkas Hasil Akhir 360°** pegawai di **divisi LAIN** (lihat **Review Lintas Divisi** di bawah).
+     Ditandai badge **"Peninjau"**. **Bukan** akses HRD penuh.
 
 > Tips data asli: sandi **berbeda per orang** kini otomatis terpenuhi lewat **Progress 360 →
 > Kirim Undangan** (men-set sandi acak unik per orang). Tak perlu menyetel sandi manual satu-satu.
@@ -909,6 +944,17 @@ Tim** semuanya hanya menampilkan pegawai **divisi HRD-nya sendiri** (termasuk di
   melihat **detail agregat** (radar/aspek + ringkasan aspek HRD), **tanpa komentar mentah per
   penilai** — sama seperti SPV biasa, dan detail terkunci sampai laporan **Ditinjau/Final**. Untuk
   melihat raw 360° (anonim) & finalisasi, HRD kembali ke **mode admin** (Review Hasil Akhir).
+
+**Izin lain — "Peninjau Lintas Divisi" (terpisah dari Izin HRD Admin):** izin **sempit** agar pegawai
+(mis. divisi HRD) membantu **meringkas Hasil Akhir 360° divisi LAIN** (kecuali divisinya sendiri).
+Beri lewat tombol 👁️ di Kelola Pegawai (badge "Peninjau"); pemegangnya dapat menu **Review Lintas
+Divisi** (lihat bagian *Akses Khusus*). **Bukan** akses HRD penuh — tak bisa rilis/finalisasi & tak
+melihat nama penilai.
+
+> **Catatan kebijakan — tak ada "halaman custom" buatan HRD.** Pemberian izin hanya **membuka akses
+> ke halaman yang sudah ada**; HRD **tidak** bisa merakit halaman/tampilan baru sendiri. Kebutuhan
+> tampilan baru ditangani sebagai **permintaan fitur ke pengembang** (dengan aturan keamanan yang
+> tepat), bukan saklar di aplikasi — ini menjaga data tetap aman & konsisten.
 
 ### 12. Log Aktivitas HRD (jejak audit)
 **Fungsi:** mencatat **otomatis** setiap aksi sensitif HRD ke jejak **append-only** (tak bisa

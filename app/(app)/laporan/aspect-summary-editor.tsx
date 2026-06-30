@@ -16,11 +16,16 @@ import { saveAspectSummaries } from '@/app/(app)/admin/laporan/actions';
  * isi yang sudah dilihat pegawai).
  */
 type SaveState = 'idle' | 'pending' | 'saving' | 'saved' | 'error';
+type SaveResult = { ok: true } | { ok: false; error: string };
+type SaveFn = (employeeId: string, vals: Record<string, string>) => Promise<SaveResult>;
 
 export function AspectSummaryEditor({
-  employeeId, aspects, initial, locked = false,
+  employeeId, aspects, initial, locked = false, saveAction = saveAspectSummaries,
 }: {
   employeeId: string; aspects: string[]; initial: Record<string, string>; locked?: boolean;
+  // Jalur HRD memakai saveAspectSummaries (default); jalur Peninjau Lintas Divisi
+  // memasukkan saveCrossAspectSummaries (service_role + cek divisi). Signature sama.
+  saveAction?: SaveFn;
 }) {
   const [vals, setVals] = useState<Record<string, string>>(() => {
     const o: Record<string, string> = {};
@@ -37,7 +42,7 @@ export function AspectSummaryEditor({
   async function flush() {
     if (locked || savingRef.current) return;
     savingRef.current = true; setSaveState('saving');
-    const res = await saveAspectSummaries(employeeId, vals);
+    const res = await saveAction(employeeId, vals);
     savingRef.current = false;
     setSaveState(res.ok ? 'saved' : 'error');
     if (res.ok) router.refresh(); // sinkronkan tampilan dgn isi DB

@@ -16,8 +16,26 @@ Migrasi fungsional **selesai & live**; sisa sebagian besar aktivasi env + kebers
     monitor/laporan-tim/laporan/suksesi/penilaian-adhoc/input-KPI); filter periode Monitoring berlaku
     ke panel Riwayat & Audit; **fitur Tutup/Buka Form (migrasi 0017 `form_open`)** — migrasi SUDAH
     diterapkan ke DB (aditif, default true; aman utk app live yg belum pakai kolomnya).
+  - **LOCALHOST (belum push) — Opsi B pelaporan:** halaman **pelaporan** (Dashboard/Rekap/Monitor/
+    Laporan-Tim/Review Hasil Akhir) kini menampilkan pegawai **aktif ATAU yang punya data di periode**
+    (KPI/360°/laporan) — bukan filter `is_active` keras — agar hasil kuartal pegawai yang **resign di
+    akhir periode** tak hilang & tetap bisa difinalisasi. Halaman **flag/siklus** (Kepatuhan/Progress/
+    Penilaian/input-KPI) tetap **hanya aktif**. Juga: **`setEmployeeActive` ikut menonaktifkan/
+    mengaktifkan pemetaan** pegawai (`mappings.is_active`) — keluar/masuk siklus tanpa hapus data.
+  - **LOCALHOST (belum push) — Minta Koreksi relasi untuk target Ad-Hoc:** tombol "Minta Koreksi"
+    di Daftar Penilaian kini tampil juga untuk baris **Ad-Hoc** (sebelumnya di-gate `!it.isAdhoc`).
+    Ad-hoc dikunci relasi 'Cross' saat dibuat; bila hubungan nyata berbeda (Bawahan/Atasan), penilai
+    bisa ajukan koreksi → **HRD tetap gatekeeper** (tak bisa inflasi bobot sepihak). Server
+    `requestCorrection` sudah mendukung (hanya cek kepemilikan) — perubahan murni buka UI-gate di
+    `penilaian/page.tsx`. Self tetap dikecualikan.
+  - **LOCALHOST (belum push) — Peninjau Hasil Lintas Divisi (migrasi 0018 `is_cross_reviewer`):**
+    grant baru agar pegawai (mis. divisi HRD) bisa **meringkas Hasil Akhir 360° divisi LAIN** (kecuali
+    divisinya sendiri). Migrasi SUDAH diterapkan ke DB (aditif, default false). Detail di Changelog →
+    Fitur baru. **Keputusan terkunci (2026-06-30): TIDAK ada "page-builder" untuk HRD** — lihat
+    Keputusan terkunci di bawah.
   - **Data trial:** reset 6 akun uji (Mawar/Kiki/Mr.X-Y-Z-A) — data 360°/KPI dibersihkan, akun &
-    pemetaan dipertahankan. Backup pra-aksi di `backups/`.
+    pemetaan dipertahankan. Backup pra-aksi di `backups/`. Lalu **6 akun uji dihapus permanen**
+    (akun+data) via `scripts/delete-people.mjs` (commit `908a661`).
 
 - **Tindak lanjut trial pegawai (2026-06-24):**
   - **Penilai eksternal (vendor/freelance)** (`is_external`, migrasi 0016): pegawai eksternal
@@ -150,6 +168,21 @@ sudah dihapus).
 Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
 
 ### Fitur baru
+- **Peninjau Hasil Lintas Divisi** (grant `employees.is_cross_reviewer`, migrasi 0018; jalur
+  `app/(app)/peninjau/`): izin SEMPIT agar pegawai (mis. divisi HRD) **membantu meringkas Hasil Akhir
+  360° pegawai di SEMUA divisi KECUALI divisinya sendiri** (konflik kepentingan/privasi rekan sedivisi).
+  Kewenangan: **lihat (L2 + komentar ANONIM) + tulis Ringkasan Aspek** — TANPA rilis/finalisasi/
+  hitung-ulang (tetap milik HRD). **Keamanan (privasi NYATA, bukan app-only):** `is_cross_reviewer`
+  **sengaja TIDAK** menyentuh `is_hrd()` → pemegang grant berposisi `employee` tetap pegawai biasa di
+  level RLS (tak bisa baca L3 siapa pun, termasuk divisinya, lewat API). Akses lintas-divisi diberi
+  **hanya** lewat server (`service_role`) di `loadCrossDivisionReport` yang menegakkan **"divisi target
+  ≠ divisi peninjau"** + menolak direksi/eksternal; blok per-penilai bernama (L3) tetap dibuang.
+  Tulis ringkasan via `saveCrossAspectSummaries` (service_role, cek divisi, tolak bila `finalized`,
+  audit `crossreview.save_summary` lewat `logAuditAsService` krn pelaku non-HRD). UI: grant di Kelola
+  Pegawai (`setCrossReviewer` + tombol/badge "Peninjau"); menu base "Review Lintas Divisi"
+  (`canCrossReview` di `lib/auth/roles.ts`); `AspectSummaryEditor` dapat prop `saveAction` (default
+  HRD `saveAspectSummaries`, jalur peninjau override). Daftar `/peninjau` (`cross-table.tsx`) +
+  detail `/peninjau/[employeeId]`.
 - **Tutup/Buka Form penilaian — terpisah dari `has_360`** (migrasi 0017, `periods.form_open`):
   saklar **"Tutup Form"** di Kelola Periode membekukan pengisian pegawai (tahap review) **tanpa**
   mematikan 360° di skor & **tanpa** menyembunyikan tombol Hitung Ulang. Sebelumnya satu-satunya cara
@@ -540,6 +573,12 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   (`submitAssessment`/`addAdhocTarget`/`requestCorrection`) menolak bila `!form_open`. Saklar UI
   **"Tutup/Buka Form"** di Kelola Periode (terpisah dari "Set Tanpa 360°"); audit `period.toggleForm`.
   Aditif & backward-compatible (default true → perilaku lama). Diterapkan ke DB produksi & diverifikasi.
+- `0018_employee_cross_reviewer` — `employees.is_cross_reviewer boolean NOT NULL default false`: grant
+  **Peninjau Hasil Lintas Divisi**. **SENGAJA TIDAK** menyentuh `is_hrd()` (= `role='hrd' OR
+  is_hrd_admin`) → pemegang grant tetap pegawai biasa di level RLS; akses lintas-divisi diberi hanya
+  lewat server (`service_role`) di jalur `/peninjau` yang menegakkan "divisi target ≠ divisi peninjau".
+  Jadi batas privasi NYATA (bukan app-only). Aditif & backward-compatible (default false). Diterapkan
+  ke DB produksi.
 - `final_reports.content` (jsonb, kolom lama) dipakai untuk `aspectSummaries` (tanpa migrasi baru).
 
 ### Infra / Testing / CI
@@ -703,26 +742,56 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
 ### Pengembangan opsional
 - ⬜ Bulk-finalisasi laporan ber-ACC SPV · ⬜ Ekspor Log Aktivitas HRD ke Excel · ⬜ Ganti email
   mandiri (lanjutan Akun Saya).
-- ⬜ **Akses HRD granular (per-bagian) + "Peringkas Hasil" lintas-divisi** (diminta 2026-06-30,
-  DITUNDA): grant HRD saat ini **semua-atau-tidak** (`is_hrd_admin` → `canAdmin()` penuh; lihat
-  `lib/auth/roles.ts`). Rencana "granular ringan": kolom `employees.hrd_sections text[]` (kosong=penuh,
-  backward-compatible) + helper `canSection(actor, section)` dipakai di menu + guard halaman + Server
-  Action ~11 bagian (pegawai/periode/pemetaan/pertanyaan/bobot/progress/kepatuhan/laporan/dashboard/
-  ekspor/log); `role='hrd'` asli tetap penuh; UI centang bagian di Kelola Pegawai.
-  - **Use case khusus (inti permintaan):** beri pegawai (mis. divisi HRD) akses **Review Hasil Akhir
-    untuk SEMUA divisi KECUALI divisinya sendiri** → membantu HRD meringkas/menulis Ringkasan Aspek
-    tanpa melihat hasil rekan sedivisinya (konflik kepentingan/privasi). Butuh **scope tambahan**:
-    "lihat semua divisi kecuali milik sendiri".
-  - ⚠️ **Caveat keamanan (WAJIB diingat):** "granular ringan" hanya batas **aplikasi**; **RLS tetap
-    penuh** (`is_hrd()` = `role='hrd' OR is_hrd_admin`) → pemegang grant masih bisa membaca data
-    divisinya sendiri (termasuk **L3 mentah 360°**) lewat API. Karena tujuan use case ini justru
-    **MENCEGAH** melihat divisi sendiri (batas privasi), gating app-only **TIDAK cukup** — perlu
-    **RLS-level scoping** (Opsi C). Realistis: kebijakan RLS khusus "baca assessments/AIS/AQA untuk
-    target di divisi ≠ divisi penilai-pemegang-grant". Jangan kerjakan versi app-only untuk kebutuhan
-    privasi ini tanpa RLS, karena memberi rasa aman palsu.
+- ✅ **"Peninjau Hasil Lintas Divisi" (grant `is_cross_reviewer`, migrasi 0018)** — **SELESAI
+  (2026-06-30).** Pegawai (mis. divisi HRD) yang diberi izin dapat **meringkas Hasil Akhir 360°
+  pegawai di SEMUA divisi KECUALI divisinya sendiri** (membantu HRD menulis Ringkasan Aspek tanpa
+  melihat hasil rekan sedivisinya). Kewenangan: **lihat (L2 + komentar anonim) + tulis Ringkasan
+  Aspek** — TANPA rilis/finalisasi/hitung-ulang (tetap milik HRD).
+  - **Cara aman menghindari jebakan RLS:** kolom `is_cross_reviewer` **SENGAJA TIDAK** menyentuh
+    `is_hrd()` → pemegang grant berposisi `employee` tetap pegawai biasa di level RLS (tak bisa baca
+    L3 siapa pun, termasuk divisinya, lewat API). Akses lintas-divisi diberi **hanya** lewat server
+    (`service_role`) di jalur `/peninjau` yang menegakkan **"divisi target ≠ divisi peninjau"**.
+    Karena RLS menolak langsung, app-level scoping di sini = batas privasi **nyata** (bukan rasa aman
+    palsu). L3 (komentar per-penilai bernama) tetap **dibuang** di loader.
+  - **File:** migrasi `0018_employee_cross_reviewer.sql`; `lib/auth/roles.ts` `canCrossReview()`;
+    `lib/report.ts` `loadCrossDivisionReport()`; `app/(app)/peninjau/` (`page.tsx`+`cross-table.tsx`,
+    `[employeeId]/page.tsx`, `actions.ts` `saveCrossAspectSummaries`); grant UI di Kelola Pegawai
+    (`setCrossReviewer` + badge/tombol "Peninjau"); menu base `app-shell.tsx` ("Review Lintas Divisi");
+    `AspectSummaryEditor` dapat prop `saveAction`. Audit `employee.grant/revoke_cross_reviewer` &
+    `crossreview.save_summary` (lewat `logAuditAsService`, pelaku non-HRD).
+- ⬜ **Akses HRD granular penuh (per-bagian)** (diminta 2026-06-30, DITUNDA): grant HRD saat ini
+  **semua-atau-tidak** (`is_hrd_admin` → `canAdmin()` penuh; lihat `lib/auth/roles.ts`). Permintaan
+  (diskusi 2026-06-30): HRD ingin **memberi akses per-halaman berbeda per pegawai** (mis. A→{1,2,3},
+  B→{4,5,6}), **bisa berubah sewaktu-waktu & tak harus runut**. **Kesimpulan diskusi: ini LAYAK & tak
+  membuat app "terlalu dinamis"** — yang berubah adalah **data**, bukan kode (pola RBAC standar).
+  - **Desain (granular ringan):** kolom `employees.hrd_sections text[]` (kosong=penuh, backward-
+    compatible) + helper `canSection(actor, section)` dipakai di menu + guard halaman + Server Action.
+    UI = **grid centang** per pegawai di Kelola Pegawai; bisa diubah kapan saja tanpa deploy. Kombinasi
+    bebas per-user = sekadar baris data berbeda → murah.
+  - **KUNCI agar tak liar:** katalog bagian **TETAP** (~11 nama baku: pegawai/periode/pemetaan/
+    pertanyaan/bobot/progress/kepatuhan/laporan/dashboard/ekspor/log) — **bukan URL bebas**. Ini yang
+    menjaga terkendali; "halaman apa saja" yang membuatnya rapuh, daftar-tetap-yang-dicentang tidak.
+  - ⚠️ **PISAHKAN berdasarkan sensitivitas (wajib):** bagian **KONFIGURASI** (tak bocorkan data pribadi
+    — pertanyaan/bobot/periode/pemetaan) → **app-level `canSection` CUKUP**. Bagian **DATA SENSITIF**
+    (laporan/dashboard/ekspor/raw 360°) → app-only **TIDAK cukup**: bila pemegang grant tetap `is_hrd()`
+    penuh, ia masih bisa baca **L3 mentah 360°** lewat API meski menu disembunyikan (rasa aman palsu).
+    Untuk yang sensitif gunakan **pola Peninjau** (grant terpisah yang **TIDAK** menyalakan `is_hrd()`
+    + akses via `service_role` berfilter / RLS-level). Jangan campur halaman sensitif ke daftar centang
+    app-only. (RLS sulit mengekspresikan "daftar bagian arbitrer per-user" — itu satu-satunya bagian
+    yang benar-benar mahal, hanya relevan untuk halaman sensitif.)
 
 > Catatan paritas legacy yang **memang diinginkan** (bukan bug): edit skor KPI wajib komentar;
 > input KPI pertama boleh tanpa komentar. Pertahankan.
+
+> **Keputusan terkunci — TIDAK ada "page-builder" untuk HRD (2026-06-30):** sistem hanya memberi
+> **akses ke halaman yang SUDAH ADA** dari **katalog tetap**; HRD **tidak boleh** merakit/membuat
+> halaman/tampilan baru sendiri saat runtime. Membuat halaman baru = pekerjaan **developer** (kode +
+> RLS + uji + deploy), bukan tombol konfigurasi — sebab tiap halaman rakitan = permukaan kebocoran &
+> tanpa RLS yang sesuai (rasa aman palsu, lawan dari prinsip app ini). **Variasi per-mandat ditangani
+> lewat SCOPE/parameter pada halaman existing**, bukan menggandakan halaman (contoh: Peninjau Lintas
+> Divisi = SATU halaman Review yang menyesuaikan lingkup, bukan halaman baru per orang). Reframe tiap
+> permintaan jadi "halaman existing yang mana + lingkup apa". Permintaan yang benar-benar butuh tampilan
+> baru = **feature request ke developer** (antre, dengan RLS), bukan kapabilitas HRD.
 
 > **Keputusan terkunci — app tegakkan kebijakan, bukan tambal kelalaian (2026-06-25):** aplikasi
 > menegakkan **integritas & kebijakan** (RLS, wajib-komentar/esai, gate periode/360°), **bukan**

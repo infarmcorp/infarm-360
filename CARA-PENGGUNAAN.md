@@ -707,11 +707,15 @@ flowchart TD
 ```mermaid
 flowchart TD
     T0["Tahap 0 — HRD siapkan siklus<br/>Aktivasi · Pertanyaan · Bobot · Pemetaan · Aktifkan 360°"]
-    T0 --> T1["Tahap 1 — Pegawai isi 360°<br/>(Daftar Penilaian → Kirim)"]
+    T0 --> FORM{"Form penilaian terbuka?<br/>(has_360 & form_open)"}
+    FORM -- "Buka Form" --> T1["Tahap 1 — Pegawai isi 360°<br/>(Daftar Penilaian → Kirim)"]
+    FORM -- "Tutup Form" --> FZ["Form beku — pegawai tak bisa isi<br/>(360° tetap dihitung; tahap review)"]
     T0 --> T2["Tahap 2 — SPV input KPI bulanan<br/>(tim + dirinya)"]
     T1 --> T3["Tahap 3 — HRD Hitung Ulang Skor 360°<br/>→ result_360"]
+    FZ --> T3
     T3 --> T4["Tahap 4 — HRD susun laporan<br/>ringkasan aspek (auto-simpan)"]
     T2 --> T4
+    PR["Peninjau Lintas Divisi (grant)<br/>bantu ringkas aspek divisi LAIN"] -.-> T4
     T4 --> S1{"Status laporan?"}
     S1 -- "Simpan Draf" --> DR["draft — SPV lihat skor saja"]
     S1 -- "Rilis ke SPV (opsional)" --> IR["in_review — SPV lihat detail agregat"]
@@ -721,14 +725,17 @@ flowchart TD
     ACC --> FIN
     FIN --> FR["finalized — Pegawai lihat Laporan Hasil Saya + Unduh PDF"]
     FR --> T7["Tahap 7 — HRD ajukan Suksesi → ACC Direksi"]
-    FR --> LOCK["Kunci & Akhiri Periode → jadi arsip"]
+    FR --> LOCK["Kunci & Akhiri Periode → arsip"]
+    LOCK -.-> DEL["(opsional) Hapus Periode + seluruh datanya<br/>ketik HAPUS · periode aktif ditolak"]
 ```
 
 ### Tahap demi tahap
 
 **Tahap 0 — HRD menyiapkan siklus.** Aktivasi periode (+ opsional angket 360° + Standar KPI),
 atur **Pemetaan** (siapa menilai siapa + relasi + sifat Wajib/Opsional), atur **Bobot Penilai**.
-*Tanpa periode aktif, form 360° tidak terbuka.*
+*Tanpa periode aktif, form 360° tidak terbuka.* **Tutup/Buka Form** (`form_open`) memisahkan
+"pengisian pegawai" dari skor 360°: HRD bisa **menutup form** (membekukan pengisian untuk
+review/finalisasi) **tanpa** mematikan 360° — gerbang pegawai = `has_360 & form_open`.
 
 **Tahap 1 — Pegawai mengisi 360°.** Setiap pegawai (semua peran) di **Daftar Penilaian Saya** →
 Mulai Nilai → rating + komentar (wajib ≥4 karakter) → Umpan Balik Kualitatif → **Simpan Draf**
@@ -744,6 +751,9 @@ tanpa komentar; **edit (input kedua di bulan sama) WAJIB Komentar Audit** — bi
 - **(a) Ringkasan kualitatif** — tulis narasi per aspek; **tersimpan otomatis** (auto-simpan, tanpa
   tombol Simpan manual) dengan indikator status.
 - **(b) Status laporan** — **Simpan Draf** / **Rilis ke SPV** / **Finalisasi**.
+- **(c) Bantuan Peninjau Lintas Divisi** *(opsional)* — pegawai ber-grant **Peninjau** dapat
+  membantu menulis **Ringkasan Aspek** untuk pegawai **divisi lain** (lewat menu Review Lintas
+  Divisi), tanpa bisa Rilis/Finalisasi. Lihat *Akses Khusus: Review Lintas Divisi*.
 
 **Tahap 5 — SPV meninjau & ACC** (status `in_review`). SPV buka **detail agregat** anggota
 (radar/aspek + ringkasan HRD, anonim, **tanpa lapis 3**) → **Beri ACC** (tombol muncul **hanya

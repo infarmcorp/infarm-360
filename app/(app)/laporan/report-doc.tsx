@@ -63,10 +63,15 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
             </div>
           </div>
           <div className="space-y-2.5">
-            <h3 className="text-sm font-bold text-gray-700">Rincian Aspek Budaya (360°)</h3>
-            {data.aspects.map((a) => (
+            <h3 className="text-sm font-bold text-gray-700">
+              Rincian Aspek Budaya (360°) <span className="text-[10px] font-normal text-gray-400">— nomor sesuai radar</span>
+            </h3>
+            {data.aspects.map((a, idx) => (
               <div key={a.name} className="space-y-1">
-                <span className="text-xs text-gray-700 font-medium">{a.name}</span>
+                <span className="text-xs text-gray-700 font-medium">
+                  <span className="inline-flex items-center justify-center w-4 h-4 mr-1.5 rounded-full bg-indigo-50 text-indigo-700 text-[9px] font-bold align-middle">{idx + 1}</span>
+                  {a.name}
+                </span>
                 {/* Bar Rekan (gabungan penilai, Self dikecualikan) */}
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-bold text-indigo-700 w-9 shrink-0">Rekan</span>
@@ -178,10 +183,17 @@ function Radar({ aspects }: { aspects: ReportData['aspects'] }) {
       {aspects.map((_, i) => { const [x, y] = axis(i); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#e5e7eb" strokeWidth="1" />; })}
       {hasSelf && <polygon points={poly('self')} fill="rgba(245,158,11,0.10)" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="4,3" />}
       <polygon points={poly('score')} fill="rgba(79,70,229,0.18)" stroke="#4f46e5" strokeWidth="2" />
-      {aspects.map((a, i) => {
+      {/* Label sumbu = NOMOR aspek (1..n) agar nama panjang/serupa tak terpotong & tak tumpang-tindih.
+          Nama lengkap tiap nomor ada di panel "Rincian Aspek Budaya" di sebelahnya. */}
+      {aspects.map((_, i) => {
         const [x, y] = axis(i);
         const lx = cx + (x - cx) * 1.16, ly = cy + (y - cy) * 1.16;
-        return <text key={i} x={lx} y={ly} textAnchor="middle" dominantBaseline="middle" className="fill-gray-500 text-[8px] font-bold">{a.name.split(' ')[0]}</text>;
+        return (
+          <g key={i}>
+            <circle cx={lx} cy={ly} r="8.5" fill="#eef2ff" stroke="#c7d2fe" strokeWidth="1" />
+            <text x={lx} y={ly} textAnchor="middle" dominantBaseline="central" className="fill-indigo-700 text-[9px] font-bold">{i + 1}</text>
+          </g>
+        );
       })}
     </svg>
   );

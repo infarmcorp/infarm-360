@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import {
-  finalScoreOf, talentBoxOf, playerClassOf,
+  finalScoreOf, playerClassOf,
 } from '@/lib/scoring';
 import { DashboardVisual } from './dashboard-visual';
 import { DashboardFilters } from './dashboard-filters';
@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/empty-state';
 
 /**
  * Dashboard Organisasi (HRD/Direksi) — versi termigrasi Supabase.
- * Gabung Rerata KPI + result_360 + punishment → Skor Akhir, lalu klasifikasi 9-Box & 4-Box.
+ * Gabung Rerata KPI + result_360 + punishment → Skor Akhir, lalu klasifikasi 4-Box.
  * Lingkup dipilih lewat ?period=&dept= (default periode aktif, semua divisi); KPI, 360°,
  * & Skor Akhir selalu dari periode + divisi yang sama agar konsisten.
  */
@@ -164,10 +164,9 @@ export default async function DashboardPage({
     const s360 = s360By.get(e.id) ?? null;
     const penalty = penBy.get(e.id) ?? 0;
     const final = finalScoreOf(kpiAvg, s360, ap.has_360, penalty);
-    const box = kpiAvg != null && s360 != null ? talentBoxOf(kpiAvg, s360) : null;
     // 4-Box: berbasis KPI × 360° langsung (360 nonaktif → tanpa sumbu budaya).
     const player = playerClassOf(kpiAvg, ap.has_360 ? s360 : null);
-    return { id: e.id, name: e.name, dept: e.dept, is_active: e.is_active, kpiAvg, s360, final, box, player };
+    return { id: e.id, name: e.name, dept: e.dept, is_active: e.is_active, kpiAvg, s360, final, player };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1))
     // Tampilkan yang AKTIF atau PUNYA DATA di periode (KPI/360°); nonaktif tanpa data disembunyikan.
     .filter((r) => r.is_active || r.kpiAvg != null || r.s360 != null);
@@ -223,7 +222,7 @@ export default async function DashboardPage({
           rows={rows.map((r) => ({
             id: r.id, name: r.name, dept: r.dept,
             kpiAvg: r.kpiAvg, s360: r.s360, final: r.final,
-            boxKey: r.box?.key ?? null, player: r.player,
+            player: r.player, isActive: r.is_active,
           }))}
           deptScores={deptScores}
           aspectScores={aspectScores}

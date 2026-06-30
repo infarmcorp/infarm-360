@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Award, Target, Flame, TrendingUp, TrendingDown, Building2, Users, BarChart3 } from 'lucide-react';
 import {
-  TALENT_BOXES, PLAYER_BOXES, type PlayerClass, perfLabelOf,
+  PLAYER_BOXES, type PlayerClass, perfLabelOf,
 } from '@/lib/scoring';
 import { heatColor, HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
 
@@ -16,8 +16,11 @@ export type Row = {
   kpiAvg: number | null;
   s360: number | null;
   final: number | null;
-  boxKey: string | null;
   player: PlayerClass | null;
+  // Pegawai nonaktif (resign) bisa tetap tampil bila punya data periode (Opsi B).
+  // Skornya TETAP dihitung di agregat (akurat per periode, hindari survivorship bias);
+  // penanda ini hanya untuk kejelasan visual di tabel.
+  isActive?: boolean;
 };
 
 
@@ -136,20 +139,11 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
     .map((b) => ({ label: b.label, n: rows.filter((r) => r.player === b.key).length }))
     .sort((a, b) => b.n - a.n)[0];
 
-  const boxGroups = new Map<string, Row[]>();
-  rows.forEach((r) => { if (r.boxKey) { const a = boxGroups.get(r.boxKey) ?? []; a.push(r); boxGroups.set(r.boxKey, a); } });
   const playerGroups = new Map<PlayerClass, Row[]>();
   rows.forEach((r) => { if (r.player) { const a = playerGroups.get(r.player) ?? []; a.push(r); playerGroups.set(r.player, a); } });
 
   const top = [...scored].sort((a, b) => (b.final ?? 0) - (a.final ?? 0)).slice(0, 4);
   const bottom = [...scored].filter((r) => (r.final ?? 99) < 85).sort((a, b) => (a.final ?? 99) - (b.final ?? 99)).slice(0, 4);
-
-  const kpiRows = [
-    { band: 'hi', label: 'KPI ≥ 90' }, { band: 'mid', label: 'KPI 80–89,99' }, { band: 'lo', label: 'KPI < 80' },
-  ] as const;
-  const s360Cols = [
-    { band: 'hi', label: '360° ≥ 80' }, { band: 'mid', label: '360° 70–79,99' }, { band: 'lo', label: '360° < 70' },
-  ] as const;
 
   return (
     <div className="space-y-6">
@@ -209,55 +203,6 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
             })}
           </div>
         </Card>
-      </div>
-
-      {/* 9-Box */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
-        <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Klasifikasi Talenta — Matriks 9-Box (KPI × 360°)</h3>
-        <p className="text-xs text-gray-500 mt-0.5 mb-4">Pemetaan {[...boxGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai (KPI &amp; 360° tersedia).</p>
-        {!has360 && (
-          <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
-            <span className="text-amber-700 text-sm leading-none mt-0.5">⚠️</span>
-            <p className="text-[11px] text-amber-900 font-semibold leading-relaxed">
-              {periodLabel} <strong>tanpa Evaluasi 360°</strong> — Matriks 9-Box butuh sumbu 360°. Gunakan Matriks 4-Box di bawah.
-            </p>
-          </div>
-        )}
-        <div className="overflow-x-auto">
-          <div className="min-w-[660px]">
-            <div className="grid grid-cols-[120px_1fr_1fr_1fr] gap-2 mb-2">
-              <div className="flex items-end justify-center text-[10px] font-bold text-gray-500 uppercase">KPI ↓ / 360° →</div>
-              {s360Cols.map((c) => (
-                <div key={c.band} className="text-center text-[10px] font-extrabold text-indigo-700 bg-indigo-50/60 rounded-lg py-1.5 border border-indigo-100">{c.label}</div>
-              ))}
-            </div>
-            {kpiRows.map((row) => (
-              <div key={row.band} className="grid grid-cols-[120px_1fr_1fr_1fr] gap-2 mb-2 items-stretch">
-                <div className="flex items-center justify-center text-[10px] font-extrabold text-emerald-800 bg-emerald-50/60 rounded-lg px-2 border border-emerald-100 text-center">{row.label}</div>
-                {s360Cols.map((col) => {
-                  const box = TALENT_BOXES.find((b) => b.kpiBand === row.band && b.s360Band === col.band)!;
-                  const emps = boxGroups.get(box.key) ?? [];
-                  return (
-                    <div key={col.band} style={{ borderTopColor: box.color }}
-                      className="border border-gray-200 border-t-4 rounded-xl p-2.5 bg-white min-h-[92px] flex flex-col">
-                      <div className="flex items-start justify-between gap-1">
-                        <span className="text-[11px] font-extrabold text-slate-800 leading-tight">{box.label}</span>
-                        <span className="text-sm font-black font-mono shrink-0" style={{ color: box.color }}>{emps.length}</span>
-                      </div>
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        {emps.map((e) => (
-                          <span key={e.id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
-                            title={`${e.name} · KPI ${e.kpiAvg?.toFixed(1)} · 360 ${e.s360?.toFixed(1)}`}>{firstName(e.name)}</span>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
-        <p className="text-[10px] text-gray-500 italic mt-2">Band KPI: ≥90 / 80–89,99 / &lt;80 · Band 360°: ≥80 / 70–79,99 / &lt;70. Pegawai tanpa KPI/360° tidak dihitung.</p>
       </div>
 
       {/* 4-Box */}
@@ -509,29 +454,26 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
               <th className="py-2 px-3 text-center">Rerata KPI</th>
               <th className="py-2 px-3 text-center">Skor 360°</th>
               <th className="py-2 px-3 text-center">Skor Akhir</th>
-              <th className="py-2 px-3">9-Box</th>
               <th className="py-2 pl-3 text-center">Player</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {shown.length === 0 && <tr><td colSpan={6} className="py-6 text-center text-sm text-gray-500">Tidak ada pegawai sesuai filter.</td></tr>}
+            {shown.length === 0 && <tr><td colSpan={5} className="py-6 text-center text-sm text-gray-500">Tidak ada pegawai sesuai filter.</td></tr>}
             {shown.map((r) => {
-              const box = r.boxKey ? TALENT_BOXES.find((b) => b.key === r.boxKey) : null;
               return (
                 <tr key={r.id}>
                   <td className="py-3 pr-3">
-                    <span className="font-bold text-gray-800 block">{r.name}</span>
+                    <span className="font-bold text-gray-800 block">
+                      {r.name}
+                      {r.isActive === false && (
+                        <span className="ml-1.5 align-middle text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600" title="Pegawai nonaktif (resign) — data periode ini tetap dihitung">nonaktif</span>
+                      )}
+                    </span>
                     <span className="text-[11px] text-gray-500">{r.dept}</span>
                   </td>
                   <td className="py-3 px-3 text-center font-mono text-emerald-700">{r.kpiAvg != null ? r.kpiAvg.toFixed(1) : '—'}</td>
                   <td className="py-3 px-3 text-center font-mono text-indigo-700">{r.s360 != null ? r.s360.toFixed(1) : '—'}</td>
                   <td className="py-3 px-3 text-center font-mono font-black text-slate-800">{r.final != null ? r.final.toFixed(1) : '—'}</td>
-                  <td className="py-3 px-3">
-                    {box ? (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded border"
-                        style={{ color: box.color, borderColor: box.color, backgroundColor: `${box.color}14` }}>{box.label}</span>
-                    ) : <span className="text-gray-500 text-xs italic">N/A</span>}
-                  </td>
                   <td className="py-3 pl-3 text-center">
                     {r.player ? (
                       <span className={`text-[11px] font-black px-2 py-0.5 rounded border ${PLAYER_COLOR[r.player]}`}>{PLAYER_BADGE[r.player]}</span>
@@ -544,7 +486,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
         </table>
       </div>
       <p className="text-[10px] text-gray-500 italic mt-3">
-        Skor Akhir = blend KPI+360 (50/50) − punishment, dikunci periode aktif. 9-Box butuh KPI &amp; 360; N/A bila salah satu belum ada.
+        Skor Akhir = blend KPI+360 (50/50) − punishment, dikunci periode aktif.
         Player (A/B/C) berbasis KPI × 360° (ambang 80).{!has360 && ' Tanpa 360° → A & B-Culture tidak tersedia.'}
       </p>
     </div>

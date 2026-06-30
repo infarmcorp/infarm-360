@@ -53,8 +53,10 @@ export default async function AdminLaporanPage() {
 
   // Kelengkapan "dinilai oleh": berapa penilai WAJIB yang sudah submit untuk tiap pegawai
   // (selaras Progress 360 — kelengkapan berbasis penilaian wajib).
+  // CATATAN: TANPA filter is_active — pegawai nonaktif (resign) pemetaannya dimatikan, tapi
+  // penilaian terhadapnya tetap sah; tanpa ini kolom "Dinilai oleh" jadi "—" yang menyesatkan.
   const { data: maps } = await supabase
-    .from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', ap.id).eq('is_active', true);
+    .from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', ap.id);
   const { data: subs } = await supabase
     .from('assessments').select('assessor_id, target_id, submitted_at').eq('period_id', ap.id).eq('status', 'submitted');
   const doneSet = new Set((subs ?? []).map((s) => `${s.assessor_id}|${s.target_id}`));

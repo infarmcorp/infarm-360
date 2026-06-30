@@ -22,6 +22,20 @@ Migrasi fungsional **selesai & live**; sisa sebagian besar aktivasi env + kebers
     akhir periode** tak hilang & tetap bisa difinalisasi. Halaman **flag/siklus** (Kepatuhan/Progress/
     Penilaian/input-KPI) tetap **hanya aktif**. Juga: **`setEmployeeActive` ikut menonaktifkan/
     mengaktifkan pemetaan** pegawai (`mappings.is_active`) — keluar/masuk siklus tanpa hapus data.
+  - **LOCALHOST (belum push) — pengerasan pasca-review + permintaan UI:**
+    - **F2** `setEmployeeActive`: reaktivasi hanya menyalakan pemetaan yang **sisi lawannya juga aktif**
+      (cegah mapping ke pegawai masih nonaktif pada kasus deaktivasi-ganda).
+    - **F4** `revalidate()` pegawai kini juga menyegarkan `/admin/progress` & `/penilaian` → Progress 360
+      & daftar penilaian rekan langsung menyesuaikan saat aktif/nonaktif.
+    - **F5** kolom "Dinilai oleh X/Y" di Review Hasil Akhir & Review Lintas Divisi dihitung **tanpa**
+      filter `is_active` pada mappings → pegawai nonaktif (resign) tak lagi tampil "—" menyesatkan.
+    - **F3** penanda badge **"nonaktif"** di Tabel Hasil Seluruh Pegawai (dashboard). Keputusan scope
+      dashboard: **tetap per-periode** (anti survivorship bias) — agregat tak diubah.
+    - **Hapus Matriks 9-Box dari dashboard** (matriks tab Kompilasi + kolom tabel) atas permintaan;
+      `talentBoxOf`/tes di `lib/scoring.ts` **tetap** (hanya tampilan dilepas). 4-Box tetap.
+    - **Label radar Review Hasil Akhir bernomor**: sumbu radar pakai nomor 1..n + daftar "Rincian
+      Aspek Budaya" menampilkan nomor→nama lengkap → nama aspek panjang/serupa tak terpotong
+      (`report-doc.tsx`, dulu `name.split(' ')[0]`).
   - **LOCALHOST (belum push) — Minta Koreksi relasi untuk target Ad-Hoc:** tombol "Minta Koreksi"
     di Daftar Penilaian kini tampil juga untuk baris **Ad-Hoc** (sebelumnya di-gate `!it.isAdhoc`).
     Ad-hoc dikunci relasi 'Cross' saat dibuat; bila hubungan nyata berbeda (Bawahan/Atasan), penilai
@@ -892,11 +906,14 @@ ONBOARDING_GMAIL_ONLY          # server-only — 'false' utk kirim undangan ke S
 - **Skor Akhir** = blend KPI+360 **dikurangi** punishment kepatuhan per kuartal (min 0). Rumus
   murni terkunci di `lib/scoring.ts` & `lib/score360.ts` (lihat Pengujian); kalau mengubah,
   sinkronkan semua tempat + perbarui tesnya.
-- **Klasifikasi talenta Dashboard** (9-Box KPI×360 & 4-Box A/B-Culture/B-KPI/C — **tanpa D**) **dikunci
-  ke satu kuartal** lewat filter periode agar KPI, 360°, dan Skor Akhir dari periode sama. Kuartal
-  tanpa 360° → 9-Box tidak diplot & kolom tabel `N/A`; pada 4-Box hanya **B-KPI / C** yang mungkin
-  (A & B-Culture butuh sumbu 360°). 4-Box berbasis **KPI × 360° langsung** (ambang 80), bukan Skor
-  Akhir — lihat **Klasifikasi Talenta** di bawah.
+- **Klasifikasi talenta Dashboard** (4-Box A/B-Culture/B-KPI/C — **tanpa D**) **dikunci ke satu
+  kuartal** lewat filter periode agar KPI, 360°, dan Skor Akhir dari periode sama. Kuartal tanpa 360°
+  → pada 4-Box hanya **B-KPI / C** yang mungkin (A & B-Culture butuh sumbu 360°). 4-Box berbasis
+  **KPI × 360° langsung** (ambang 80), bukan Skor Akhir — lihat **Klasifikasi Talenta** di bawah.
+  > **Matriks 9-Box DIHAPUS dari tampilan dashboard (2026-06-30)** atas permintaan — matriks tab
+  > Kompilasi + kolom tabel dibuang. **Rumus `talentBoxOf`/`kpiBandOf`/`s360BandOf` di `lib/scoring.ts`
+  > TETAP ADA & teruji** (jangan dihapus — bagian terkunci, mungkin dipakai ekspor/internal nanti);
+  > hanya UI dashboard yang dilepas.
 
 ## Pengujian (Vitest — logika skor & parsing impor) + Verifikasi RLS
 

@@ -57,8 +57,9 @@ export default async function PeninjauPage() {
   const statusBy = new Map((reports ?? []).map((r) => [r.employee_id, r.status]));
 
   // Kelengkapan "dinilai oleh" berbasis penilai WAJIB (selaras Review Hasil Akhir).
+  // TANPA filter is_active (lihat catatan di Review Hasil Akhir): pegawai nonaktif tetap akurat.
   const { data: maps } = await admin.from('mappings')
-    .select('assessor_id, target_id, mandatory').eq('period_id', ap.id).eq('is_active', true).in('target_id', empIds);
+    .select('assessor_id, target_id, mandatory').eq('period_id', ap.id).in('target_id', empIds);
   const { data: subs } = await admin.from('assessments')
     .select('assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted').in('target_id', empIds);
   const doneSet = new Set((subs ?? []).map((s) => `${s.assessor_id}|${s.target_id}`));

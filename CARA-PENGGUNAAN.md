@@ -134,7 +134,9 @@ Panel hanya aktif saat ada **periode aktif**.
 3. Tampilan berupa **ringkasan agregat (anonim)**, bukan komentar mentah:
    - **Ringkasan skor** (Rerata KPI · Evaluasi 360° · Skor Akhir).
    - **Radar Aspek 360°**: garis **penuh = Penilaian Rekan**, garis **putus-putus = Evaluasi Diri
-     (Self)** — pembanding persepsi diri vs rekan, + bar Rekan vs Diri per aspek.
+     (Self)** — pembanding persepsi diri vs rekan, + bar Rekan vs Diri per aspek. Sumbu radar diberi
+     **nomor** (1, 2, 3…); **nama lengkap tiap aspek** ada di daftar "Rincian Aspek Budaya" sesuai
+     nomornya — sehingga nama panjang/serupa tak terpotong.
    - **Evaluasi Aspek Budaya & Perilaku 360°** — ringkasan naratif dari HRD per aspek (anonim).
    > **Komentar mentah per penilai TIDAK ditampilkan** ke pegawai (menjaga anonimitas 360°);
    > yang tampil hanya agregat di atas.
@@ -562,17 +564,14 @@ divisi). Skor Akhir mengikuti flag **360° aktif/nonaktif** periode terpilih (KP
 360° 50% ↔ 100% KPI murni). **4 sub-dashboard (tab):**
 - **Kompilasi Kinerja Organisasi** — stat talenta, **Distribusi Kategori Kinerja**,
   **Rencana Tindak Lanjut**, **Skor KPI per Divisi**, **Evaluasi Budaya 360° (sub-aspek)**,
-  Matriks **9-Box** & **4-Box**, **Papan Pertimbangan Suksesi & Promosi (Skor ≥ 90)**, top/bottom.
+  Matriks **4-Box**, top/bottom.
 - **Analisis Hasil KPI** — rerata KPI organisasi, **Skor KPI Tertinggi & Terendah** (dengan
   nama pegawai), **% KPI Di Atas Standar (≥N)** (N = Standar KPI periode, diatur HRD di Kelola
   Periode), KPI per divisi, perkembangan KPI bulanan, leaderboard KPI teratas/terendah.
 - **Analisis 360 Feedback** — rerata 360°, rataan sub-aspek budaya, leaderboard 360° teratas/terendah.
-- **Tabel Hasil Seluruh Pegawai** — tabel rinci + **pencarian nama/divisi** & **filter A/B/C/D Player**.
+- **Tabel Hasil Seluruh Pegawai** — tabel rinci + **pencarian nama/divisi** & **filter A/B/C Player**.
 
 #### Klasifikasi Talenta (tab Kompilasi)
-- **Matriks 9-Box (KPI × 360°)** — sebaran pegawai pada 9 kategori (Star Talent,
-  High Performer, Core Contributor, dst.) dari band KPI (≥90 / 80–89,99 / <80) ×
-  band 360° (≥80 / 70–79,99 / <70).
 - **Matriks 4-Box (A / B Culture / B KPI / C)** — berbasis **KPI (rerata) × Skor 360° langsung**,
   ambang **80** (bukan Skor Akhir, **tanpa kelas D**):
   **A** (KPI ≥ 80 **dan** 360° ≥ 80) · **B Player (High Culture)** (KPI < 80 **dan** 360° ≥ 80) ·
@@ -580,12 +579,14 @@ divisi). Skor Akhir mengikuti flag **360° aktif/nonaktif** periode terpilih (KP
   Pegawai dengan KPI & 360° **keduanya kosong** tak terklasifikasi.
 - **Sefase periode:** KPI & 360° diambil dari **periode yang dipilih** di Panel Filter
   (default periode aktif) agar klasifikasi adil. Semua pegawai ditampilkan di tiap kotak.
-- **Periode tanpa 360°:** 9-Box tidak ditampilkan; pada 4-Box hanya **B (High KPI)** atau **C**
-  yang mungkin — **A & B (High Culture) tidak tersedia** (butuh sumbu 360°).
+- **Periode tanpa 360°:** pada 4-Box hanya **B (High KPI)** atau **C** yang mungkin —
+  **A & B (High Culture) tidak tersedia** (butuh sumbu 360°).
+- **Catatan:** Matriks **9-Box** **tidak lagi ditampilkan** di dashboard (dihapus atas permintaan).
+  Rumus 9-Box tetap ada di kode (`lib/scoring.ts`, terkunci & teruji) bila kelak diperlukan.
 
 #### Tabel Hasil Seluruh Pegawai
-- Kolom **Klasifikasi 9-Box** dan **A/B/C/D Player** per pegawai (konsisten dengan kedua
-  matriks di atas). Saat kuartal tanpa 360°, kolom 9-Box menampilkan **N/A · Tanpa 360°**.
+- Kolom **A/B/C Player** per pegawai (selaras Matriks 4-Box). Pegawai **nonaktif** yang masih
+  tampil (punya data periode) diberi penanda **"nonaktif"** di sebelah nama.
 
 ---
 
@@ -917,13 +918,13 @@ memberi **punishment** (pengurangan poin).
 
 ### 10. Monitor Kinerja & Dashboard Organisasi — *analitik, read-only*
 **Fungsi:** memantau **semua pegawai & semua divisi** (keduanya di section Pemantauan),
-4 sub-dashboard agregat, termasuk **Matriks 9-Box** (KPI × 360°) & **Matriks 4-Box
-A / B-Culture / B-KPI / C** (berbasis KPI × 360° langsung, ambang 80, tanpa D), serta **Papan Pertimbangan Suksesi**.
+4 sub-dashboard agregat, termasuk **Matriks 4-Box A / B-Culture / B-KPI / C** (berbasis KPI × 360°
+langsung, ambang 80, tanpa D). *(Matriks 9-Box sudah dihapus dari tampilan dashboard.)*
 **Berdampak ke:** tidak mengubah data — dasar **pengambilan keputusan** (promosi, pembinaan).
 - Klasifikasi **sefase periode** lewat Panel Filter (KPI, 360°, Skor Akhir dari **periode
   yang dipilih**; default periode aktif).
-- Mengikuti flag **360°** periode (dari Kelola Periode, #1): periode tanpa 360° → 9-Box
-  disembunyikan & kolom 9-Box jadi **N/A**, kategori **A Player** tidak tersedia (Skor Akhir = 100% KPI).
+- Mengikuti flag **360°** periode (dari Kelola Periode, #1): periode tanpa 360° → pada 4-Box
+  kategori **A & B-Culture** tidak tersedia (Skor Akhir = 100% KPI).
 
 ### 11. Mode Ganda (berganti "topi") & Izin HRD Admin
 **Inti:** "HRD Admin" adalah **izin mengoperasikan aplikasi**, bukan jabatan. Seseorang berposisi

@@ -32,6 +32,10 @@ function revalidate() {
   revalidatePath('/admin/pegawai');
   revalidatePath('/admin/pemetaan');
   revalidatePath('/login');
+  // Aktif/nonaktif & perubahan pemetaan langsung tercermin di Progress 360 & daftar
+  // penilaian rekan (target nonaktif hilang, reaktivasi muncul lagi) tanpa tunggu cache.
+  revalidatePath('/admin/progress');
+  revalidatePath('/penilaian');
 }
 
 /**
@@ -297,9 +301,30 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
 
   // Pemetaan ikut dinonaktifkan/diaktifkan → orang keluar/masuk siklus penilaian (tak lagi
   // dihitung di Progress 360 & tak jadi tugas penilai lain) TANPA menghapus data (reversibel).
-  const { error: mErr } = await supabase.from('mappings')
-    .update({ is_active: active }).or(`assessor_id.eq.${id},target_id.eq.${id}`);
-  if (mErr) return { ok: false, error: 'Status diubah, tapi gagal memperbarui pemetaan: ' + mErr.message };
+  if (!active) {
+    // Nonaktif: matikan SEMUA pemetaan orang ini (sebagai penilai maupun yang dinilai).
+    const { error: mErr } = await supabase.from('mappings')
+      .update({ is_active: false }).or(`assessor_id.eq.${id},target_id.eq.${id}`);
+    if (mErr) return { ok: false, error: 'Status diubah, tapi gagal memperbarui pemetaan: ' + mErr.message };
+  } else {
+    // Reaktivasi: HANYA hidupkan pemetaan yang sisi LAWANNYA juga aktif → cegah pemetaan
+    // menunjuk ke pegawai yang masih nonaktif (kasus deaktivasi-ganda lalu reaktivasi sebagian).
+    const { data: myMaps } = await supabase.from('mappings')
+      .select('id, assessor_id, target_id').or(`assessor_id.eq.${id},target_id.eq.${id}`);
+    const otherIds = [...new Set((myMaps ?? []).map((m) => (m.assessor_id === id ? m.target_id : m.assessor_id)))];
+    const activeOthers = new Set<string>();
+    if (otherIds.length) {
+      const { data: act } = await supabase.from('employees').select('id').in('id', otherIds).eq('is_active', true);
+      (act ?? []).forEach((e) => activeOthers.add(e.id));
+    }
+    const toEnable = (myMaps ?? [])
+      .filter((m) => activeOthers.has(m.assessor_id === id ? m.target_id : m.assessor_id))
+      .map((m) => m.id);
+    if (toEnable.length) {
+      const { error: mErr } = await supabase.from('mappings').update({ is_active: true }).in('id', toEnable);
+      if (mErr) return { ok: false, error: 'Status diubah, tapi gagal memperbarui pemetaan: ' + mErr.message };
+    }
+  }
 
   const admin = createAdminClient();
   const { error: bErr } = await admin.auth.admin.updateUserById(id, { ban_duration: active ? 'none' : BAN_FOREVER });

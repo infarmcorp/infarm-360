@@ -2,117 +2,58 @@
 
 Panduan untuk Claude Code saat bekerja di repo ini.
 
-## Sedang Dikerjakan (per 2026-06-30)
+## Sedang Dikerjakan (per 2026-07-01)
 
-**Fokus aktif:** persiapan akhir trial + pengerasan operasional HRD.
-Migrasi fungsional **selesai & live**; sisa sebagian besar aktivasi env + kebersihan.
+**Fokus aktif:** persiapan akhir trial + pengerasan operasional HRD. Migrasi fungsional
+**selesai & live**; sisa sebagian besar **aktivasi env** (email/sandi) + **kebersihan akun**.
 
-- **Sesi 2026-06-30 (sebagian masih LOCALHOST, belum push):**
-  - **PUSHED & live:** Hapus Periode (+ pengaman ketik HAPUS, cascade, KPI bulan-unik), lampiran
-    panduan PDF per peran di email Undangan (+ `/panduan` publik di middleware), perbaikan
-    `deleteMapping` rekonsiliasi `result_360`, hapus Papan Suksesi di dashboard, perbaikan tanggal
-    mulai periode Q1 (skrip), skrip operasional `reset-people`/`readiness-check`/`fix-period-start-year`.
-  - **LOCALHOST (belum push):** filter `is_active` di semua daftar subjek (kepatuhan/dashboard/rekap/
-    monitor/laporan-tim/laporan/suksesi/penilaian-adhoc/input-KPI); filter periode Monitoring berlaku
-    ke panel Riwayat & Audit; **fitur Tutup/Buka Form (migrasi 0017 `form_open`)** — migrasi SUDAH
-    diterapkan ke DB (aditif, default true; aman utk app live yg belum pakai kolomnya).
-  - **LOCALHOST (belum push) — Opsi B pelaporan:** halaman **pelaporan** (Dashboard/Rekap/Monitor/
-    Laporan-Tim/Review Hasil Akhir) kini menampilkan pegawai **aktif ATAU yang punya data di periode**
-    (KPI/360°/laporan) — bukan filter `is_active` keras — agar hasil kuartal pegawai yang **resign di
-    akhir periode** tak hilang & tetap bisa difinalisasi. Halaman **flag/siklus** (Kepatuhan/Progress/
-    Penilaian/input-KPI) tetap **hanya aktif**. Juga: **`setEmployeeActive` ikut menonaktifkan/
-    mengaktifkan pemetaan** pegawai (`mappings.is_active`) — keluar/masuk siklus tanpa hapus data.
-  - **LOCALHOST (belum push) — pengerasan pasca-review + permintaan UI:**
-    - **F2** `setEmployeeActive`: reaktivasi hanya menyalakan pemetaan yang **sisi lawannya juga aktif**
-      (cegah mapping ke pegawai masih nonaktif pada kasus deaktivasi-ganda).
-    - **F4** `revalidate()` pegawai kini juga menyegarkan `/admin/progress` & `/penilaian` → Progress 360
-      & daftar penilaian rekan langsung menyesuaikan saat aktif/nonaktif.
-    - **F5** kolom "Dinilai oleh X/Y" di Review Hasil Akhir & Review Lintas Divisi dihitung **tanpa**
-      filter `is_active` pada mappings → pegawai nonaktif (resign) tak lagi tampil "—" menyesatkan.
-    - **F3** penanda badge **"nonaktif"** di Tabel Hasil Seluruh Pegawai (dashboard). Keputusan scope
-      dashboard: **tetap per-periode** (anti survivorship bias) — agregat tak diubah.
-    - **Hapus Matriks 9-Box dari dashboard** (matriks tab Kompilasi + kolom tabel) atas permintaan;
-      `talentBoxOf`/tes di `lib/scoring.ts` **tetap** (hanya tampilan dilepas). 4-Box tetap.
-    - **Label radar Review Hasil Akhir bernomor**: sumbu radar pakai nomor 1..n + daftar "Rincian
-      Aspek Budaya" menampilkan nomor→nama lengkap → nama aspek panjang/serupa tak terpotong
-      (`report-doc.tsx`, dulu `name.split(' ')[0]`).
-  - **LOCALHOST (belum push) — Minta Koreksi relasi untuk target Ad-Hoc:** tombol "Minta Koreksi"
-    di Daftar Penilaian kini tampil juga untuk baris **Ad-Hoc** (sebelumnya di-gate `!it.isAdhoc`).
-    Ad-hoc dikunci relasi 'Cross' saat dibuat; bila hubungan nyata berbeda (Bawahan/Atasan), penilai
-    bisa ajukan koreksi → **HRD tetap gatekeeper** (tak bisa inflasi bobot sepihak). Server
-    `requestCorrection` sudah mendukung (hanya cek kepemilikan) — perubahan murni buka UI-gate di
-    `penilaian/page.tsx`. Self tetap dikecualikan.
-  - **LOCALHOST (belum push) — Peninjau Hasil Lintas Divisi (migrasi 0018 `is_cross_reviewer`):**
-    grant baru agar pegawai (mis. divisi HRD) bisa **meringkas Hasil Akhir 360° divisi LAIN** (kecuali
-    divisinya sendiri). Migrasi SUDAH diterapkan ke DB (aditif, default false). Detail di Changelog →
-    Fitur baru. **Keputusan terkunci (2026-06-30): TIDAK ada "page-builder" untuk HRD** — lihat
-    Keputusan terkunci di bawah.
-  - **Data trial:** reset 6 akun uji (Mawar/Kiki/Mr.X-Y-Z-A) — data 360°/KPI dibersihkan, akun &
-    pemetaan dipertahankan. Backup pra-aksi di `backups/`. Lalu **6 akun uji dihapus permanen**
-    (akun+data) via `scripts/delete-people.mjs` (commit `908a661`).
+**Status repo: BERSIH — semua pekerjaan sesi 2026-06-30 & 2026-07-01 sudah PUSHED & live.**
+Bagian ini hanya potret status; perincian tiap fitur ada di **Changelog** & **TO-DO** di bawah.
 
-- **Tindak lanjut trial pegawai (2026-06-24):**
-  - **Penilai eksternal (vendor/freelance)** (`is_external`, migrasi 0016): pegawai eksternal
-    **hanya MENILAI** (relasi Cross), **tanpa** KPI/Skor Akhir/laporan, **disembunyikan** dari
-    dashboard/KPI/monitor/laporan/kepatuhan/suksesi/notifikasi (filter `.eq('is_external',false)`
-    pada query subjek `.neq('role','direksi')`). **Tak boleh jadi target** (berlapis: form pemetaan
-    target hanya internal; `createMapping`/`addAdhocTarget` tolak; bulk+copy buang target eksternal;
-    kandidat Ad-Hoc dikecualikan). **Tetap penilai** di Progress 360 & pemetaan-penilai. UI grant di
-    Kelola Pegawai (checkbox + badge "Eksternal"). Commit `90c652e`.
-  - **Login: dropdown nama tak muncul di HP** (`app/login/login-form.tsx`, `220f90d`): field nama dulu
-    di-gate `{role && …}` → gagal saat interaksi sebelum hidrasi (HP lambat). Kini **field nama selalu
-    dirender** (`SearchableSelect` + cari), label menyertakan posisi, dan **memilih nama otomatis
-    mengisi role** → pengguna lanjut ke sandi. `next` rute admin tetap dilewatkan ke `/`.
-  - **Hapus Ad-Hoc + semua sifat WAJIB + landing SPV** (`f6e25f6`): tombol **Hapus** target ad-hoc
-    milik sendiri (`removeAdhocTarget`; **nonaktif bila sudah terkirim**, `is_adhoc` migrasi 0015);
-    pemetaan kini **selalu `mandatory:true`** (checkbox opsional dihapus dari form + dipaksa server di
-    create/bulk/copy); landing base SPV/HRD/Pegawai → **`/penilaian`** (Daftar Penilaian Saya), bukan
-    Input KPI; tombol Kirim 360° **adaptif** (kunci + arahkan bila belum lengkap).
-  - **UX HP — gulir ke pertanyaan + reset zoom** (`assess-form.tsx`, `df017a1`): saat navigasi
-    indikator/aspek/kualitatif, `blur` elemen aktif (iOS zoom-out / Android tutup keyboard) +
-    `scrollIntoView` ke editor (HP `<1024px`).
-  - **Keputusan:** trial = uji beban dunia-nyata (tak perlu k6); jalur pengisian **tak punya race**
-    (tiap orang menulis baris terpisah). k6 hanya via **staging** (tolak produksi), belum dijalankan.
-- **Pengerasan UX form penilaian + persiapan trial/Q2 (2026-06-23):**
-  - Form "Mulai Nilai" (`app/(app)/penilaian/[targetId]/`): `key={targetId}` (remount bersih
-    antar-target), **auto-simpan draf** (debounce 5 detik) + indikator status, **konfirmasi sebelum
-    Kirim** + **layar sukses** dgn pengingat sisa penilaian wajib, **esai kualitatif kini WAJIB**
-    (ditegakkan klien + server), keterbacaan rating (angka besar + label "Pilihan Anda" di HP) &
-    **rail aspek responsif** (strip horizontal di HP, vertikal di `lg:`).
-  - Daftar Penilaian (`app/(app)/penilaian/page.tsx`): banner penjelasan **Garis Hubungan** +
-    ajakan Minta Koreksi; kartu **"Penilaian Wajib Anda X/Y"** (sifat Wajib).
-  - Ekspor (`app/(app)/admin/ekspor/`): dataset **Umpan Balik Kualitatif 360° (esai)** +
-    kolom **aspek** budaya di Penilaian 360° kuantitatif.
-  - **Reset periode trial Q1 2026 - V2** via script sementala: hapus residu 360° (assessments+
-    result_360+koreksi), kembalikan relasi **semua-Peer**; **KPI + pemetaan + pertanyaan
-    dipertahankan** → siap demo. Backup ke `backups/` (gitignored).
-  - **Keputusan terkunci:** aturan **semua komentar (min 4 char) + semua esai WAJIB** bersifat
-    **mutlak** (kebijakan, ditegakkan via punishment) — jangan dilonggarkan tanpa permintaan.
-  - **REKOMENDASI.md (baru):** kesiapan trial/demo, stagger, kapasitas Q2 (55 pegawai/600 pasang/
-    7 hari → free-tier cukup), kenapa file lokal tak cocok, cadangan data harian.
-- **Baru selesai (session sebelumnya):**
-  - **Alur visibilitas laporan bertahap** (`draft → in_review → finalized`, migrasi 0011/0012) —
-    tutup kebocoran raw 360° ke SPV + tombol "Rilis ke SPV".
-  - **Izin HRD Admin sebagai grant** (`is_hrd_admin`, migrasi 0013) + `canAdmin()` di ~25 file.
-  - **Jaring regresi L3** — `verify:rls` kini **21 assertion** (dari 12): fixture 360° + tegakkan
-    SPV ditolak baca `assessments`/AIS/AQA anggota tim, plus kontrol positif HRD/penilai/target.
-  - **Heatmap "Capaian KPI / Divisi"** (dashboard tab Analisis Hasil KPI) — matriks divisi × bulan.
-  - **Palet warna skor terpadu** (lib bersama `lib/score-color.ts`, commit `c0e13f2`→`9a82667`) —
-    `heatColor` gradasi 4 jangkar (`≤70` merah · `80` kuning · `90` hijau · `≥97.5` biru) dipakai
-    lintas bar/chip KPI & 360° di **dashboard** + bar **Perbandingan Skor Akhir** di **Monitor
-    Kinerja**; kategori kinerja pakai palet diskrit; rename judul "per Divisi" / "Perkembangan KPI Bulanan".
-  - **Paritas SPV ↔ HRD-mode-SPV** (Laporan Hasil Saya + Monitor menyertakan diri); audit
-    kontras WCAG AA; self-service ganti sandi; email pengingat 360° (dorman); indikator tenggat.
-- **Berikutnya (butuh aksi pengguna):** set env email (Gmail SMTP) → aktifkan pengingat + reset
-  sandi via email; ganti email seed → asli; sandi awal beda per orang. **Komunikasikan ke HRD**
-  langkah baru "Rilis ke SPV" (SPV tak lagi lihat detail tim sampai dirilis).
+- **Sesi 2026-06-30 → 2026-07-01 (SEMUA sudah push & live):**
+  - **Peninjau Hasil Lintas Divisi** (grant `is_cross_reviewer`, migrasi 0018) — commit `0043678`.
+  - **Opsi B pelaporan:** halaman **pelaporan** (Dashboard/Rekap/Monitor/Laporan-Tim/Review Hasil
+    Akhir) tampilkan pegawai **aktif ATAU punya data di periode** (bukan `is_active` keras) → hasil
+    kuartal pegawai resign akhir-periode tak hilang. Halaman **flag/siklus** (Kepatuhan/Progress/
+    Penilaian/input-KPI) tetap **hanya aktif**. `setEmployeeActive` ikut toggle `mappings.is_active`.
+  - **Minta Koreksi relasi untuk target Ad-Hoc** (buka UI-gate `penilaian/page.tsx`) — commit `0043678`.
+  - **Hapus Matriks 9-Box dari dashboard** (4-Box **tetap**; `talentBoxOf`/tes di `lib/scoring.ts`
+    **tetap**) + **radar aspek bernomor** (`report-doc.tsx`) + **F2/F4/F5** pengerasan nonaktif +
+    **F3** badge "nonaktif" (dashboard tetap **per-periode**, anti survivorship bias) — commit `fb66d1a`.
+  - **Pegawai nonaktif diblokir dari pemetaan** (import/create/bulk/copy) + guard `sendOnboarding`;
+    nonaktif tak menerima undangan/pengingat — commit `a756cf5`.
+  - **Ekspor 360° gabungan 1 file (2 sheet)** + **Ekspor Ringkasan Aspek Naratif** — commit `85408ad`.
+  - **Tutup/Buka Form** (migrasi 0017 `form_open`), filter periode Monitoring ke Riwayat & Audit,
+    **Hapus Periode**, lampiran panduan PDF per peran di email undangan (+ `/panduan` publik),
+    fix `deleteMapping` rekonsiliasi `result_360` — commit `17e7f13`/`3627c55`/`597b4df`/`8e5f134` dst.
+  - **Data trial:** 6 akun uji dihapus permanen via `scripts/delete-people.mjs` (commit `908a661`);
+    backup pra-aksi di `backups/`.
+  - **Keputusan terkunci (2026-06-30): TIDAK ada "page-builder" untuk HRD** (lihat Keputusan terkunci).
+
+- **Riwayat sesi sebelumnya (ringkas — detail lengkap di Changelog):**
+  - **2026-06-24:** penilai eksternal (`is_external`, migrasi 0016); fix dropdown nama login HP
+    (`220f90d`); hapus Ad-Hoc + semua pemetaan **selalu wajib** + landing base → `/penilaian`
+    (`f6e25f6`); UX form HP (gulir + reset zoom, `df017a1`).
+  - **2026-06-23:** pengerasan form "Mulai Nilai" (auto-simpan draf, konfirmasi kirim, layar sukses,
+    **esai wajib**, rating terbaca, rail responsif); banner Garis Hubungan; **REKOMENDASI.md**.
+  - **Sesi lama:** alur visibilitas laporan bertahap (`draft→in_review→finalized`, migrasi 0011/0012);
+    grant HRD (`is_hrd_admin`, migrasi 0013) + `canAdmin()`; jaring regresi L3 (`verify:rls` 21 assertion);
+    heatmap KPI/divisi; palet warna skor terpadu (`lib/score-color.ts`); paritas SPV↔HRD-mode-SPV.
+  - **Keputusan terkunci:** semua komentar (min 4 char) + semua esai **WAJIB** (kebijakan mutlak).
+
+- **App sudah LIVE & berjalan (2026-07-01):** Undangan Massal terkirim → sandi unik per orang (✅).
+- **Berikutnya (butuh aksi pengguna 🔑):** **rotasi `SUPABASE_SERVICE_ROLE_KEY`** (bila pernah
+  ter-share saat dev); **backup rutin ke luar laptop**; (opsional) aktifkan Lupa Sandi via email untuk
+  akun beremail asli. **Komunikasikan ke HRD** langkah "Rilis ke SPV".
 - **Berikutnya (bisa digarap langsung):** branch protection GitHub (PR butuh CI hijau); tes Server
   Action (finalisasi/`releaseToSpv`/`setHrdAdmin`/ACC). Lihat **TO-DO & Backlog**.
 
 **File paling relevan:**
+- Peninjau lintas divisi: `app/(app)/peninjau/`, `lib/report.ts` (`loadCrossDivisionReport`), `lib/auth/roles.ts` (`canCrossReview`)
 - Laporan & visibilitas: `lib/report.ts` (`loadReport`/`loadTeamReportForSpv`/`loadTeamReportForHrdSpv`),
-  `app/(app)/laporan/`, `app/(app)/laporan-tim/`, `app/(app)/admin/laporan/actions.ts` · RLS: migrasi 0012
+  `app/(app)/laporan/`, `app/(app)/laporan-tim/`, `app/(app)/admin/laporan/` · RLS: migrasi 0012
 - Dashboard: `app/(app)/admin/dashboard/` (`page.tsx` + `dashboard-visual.tsx`)
+- Ekspor: `app/(app)/admin/ekspor/` (`actions.ts` + `ekspor-client.tsx`)
 - Skor & tes: `lib/scoring.ts`, `lib/score360.ts`, `tests/`, `scripts/verify-rls.ts`, `.github/workflows/ci.yml`
 - Izin/sesi: `lib/auth/roles.ts` (`canAdmin`), `app/(app)/layout.tsx`, `app/(app)/app-shell.tsx`, `app/login/`
 - Email: `lib/email/mailer.ts`, `app/(app)/admin/progress/actions.ts` · Skema/RLS: `supabase/migrations/`
@@ -418,12 +359,25 @@ Ringkas; detail per item ada di kode/commit. Urut tematik, bukan kronologis.
   Detail kini menyertakan kolom `aspek` (dari `indicators.aspect_id`→`culture_aspects.name`);
   dataset esai baru = `assessment_qual_answers`→`qualitative_questions` (`exportQualAnswers`,
   kolom periode·dinilai·divisi·relasi·pertanyaan·jawaban, jawaban kosong dilewati).
+  **Ekspor 360° gabungan (2026-07-01, commit `85408ad`):** tombol **"Ekspor 360° Lengkap"**
+  (`downloadCombined360`) menggabungkan **kuantitatif + kualitatif jadi 1 file** dua sheet
+  ("Kuantitatif" + "Kualitatif", via `XLSX.utils.book_append_sheet`) — tak perlu 2× ekspor terpisah
+  (dataset per-jenis lama tetap ada). **Ekspor Ringkasan Aspek Naratif (HRD)** (`exportAspectSummaries`)
+  = dump `final_reports.content.aspectSummaries`, satu baris per (pegawai × aspek), kolom
+  periode·kode·nama·divisi·status_laporan·aspek·ringkasan.
 - **Indikator tenggat periode** (sidebar): sisa hari ke `end_date` + peringatan amber ≤7 hari /
   rose saat hari-ini/lewat (`layout.tsx` `daysUntil`).
 - **Empty-state berpandu** (`components/empty-state.tsx`) di halaman kunci (anti tabel kosong).
 - **Impor pemetaan** — pratinjau menyebut pasangan yang dilewati + alasannya.
 
 ### Perbaikan (bug fix)
+- **Pegawai non-aktif tercatat ulang lewat Impor Pemetaan + tetap terkirim email** (commit `a756cf5`):
+  roster pratinjau impor & dropdown pemetaan dulu tanpa filter `is_active` → nama nonaktif bisa diinput
+  lagi via Excel (`is_active:true` di insert). Kini **diblokir berlapis**: roster/dropdown `.eq('is_active',
+  true)` (`pemetaan/page.tsx`); `createMapping` tolak assessor/target nonaktif; `createMappingsBulk` &
+  `copyMappingsFromPeriod` **buang** baris ber-pihak nonaktif. **Email:** `sendOnboarding` diberi guard
+  tolak bila `!is_active`; `massReminder`/`massOnboarding` sudah tak menyertakan nonaktif → **pegawai
+  nonaktif tak menerima undangan/pengingat**.
 - **Pegawai non-aktif ikut terflag/terhitung sebagai subjek** (~10 file): query enumerasi subjek
   dulu hanya `.neq('role','direksi').eq('is_external', false)` tanpa `is_active` → pegawai nonaktif
   tetap muncul di Kepatuhan (terflag "telat"/"belum self"), Dashboard, Rekap, Monitor, Laporan Tim,
@@ -628,15 +582,18 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
 🔄 sebagian · ⬜ belum. Item **butuh-aksi-pengguna** ditandai 🔑.
 
 ### Keamanan pra-go-live
-- 🔑⬜ **Sandi awal seragam** untuk semua akun → minta tiap pegawai ganti (via Akun Saya); HRD beri
-  sandi berbeda per orang (Kelola Pegawai). Risiko impersonasi (inti integritas 360°).
+- ✅ **Sandi awal seragam — TERATASI (2026-07-01):** **Kirim Undangan Massal sudah dijalankan** →
+  tiap akun kini punya **sandi unik per orang** (otomatis di-set saat onboarding). App **sudah live &
+  berjalan**. Celah impersonasi (inti integritas 360°) tertutup. (Tiap pegawai tetap bisa ganti sandi
+  sendiri via Akun Saya.)
 - ✅ **Self-service ganti sandi** (Akun Saya) — menutup risiko sandi bersama tanpa email.
 - 🔑⬜ **Lupa Sandi via email** (dormant) — kode siap (`app/auth/lupa-sandi`, `/auth/callback`,
   `/auth/perbarui-sandi`); aktifkan dgn email asli + SMTP/Resend + `NEXT_PUBLIC_ENABLE_PW_RESET=true`.
-- 🔑⬜ **Email seed `nama@infarm.test` → asli** — **BLOCKER Q2**. Per 2026-06-25 baru **3 akun**
-  ber-`@gmail.com` (Andra, Christopher, Ulfa) + **4 akun `@notgmail.com`** (cek apakah email asli yang
-  sengaja diubah); sisanya placeholder. Tanpa email asli, undangan/pengingat tak sampai → 360° tak terisi.
-  Setelah diganti → **Kirim Undangan Massal** (otomatis set sandi unik = tuntaskan "sandi beda per orang").
+- 🔑🔄 **Email seed `nama@infarm.test` → asli** — **Undangan Massal SUDAH terkirim & app live
+  (2026-07-01)** → akun beremail asli (`@gmail.com`) sudah onboard dengan sandi unik. **Sisa:** bila
+  masih ada akun placeholder (non-gmail/`@infarm.test`), ganti ke email asli lalu kirim undangan lagi
+  agar ikut menerima notifikasi (onboarding trial di-filter `@gmail.com`; set `ONBOARDING_GMAIL_ONLY=false`
+  untuk semua domain). Tanpa email asli, undangan/pengingat tak sampai → 360° tak terisi.
 - 🔑⬜ **Rotasi kredensial** (`SUPABASE_SERVICE_ROLE_KEY` dll) sebelum produksi — service_role menembus
   seluruh RLS; bila pernah ter-share saat dev → bocor = seluruh data terbuka.
 - 🔑🔄 **Cadangan data (backup) rutin** — **KRUSIAL & sering terlupa**. Supabase **free tier** nyaris
@@ -688,7 +645,8 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
     untuk produksi penuh set env **`ONBOARDING_GMAIL_ONLY=false`** agar semua domain ikut.
   - File: `sendOnboarding(id)`/`massOnboarding()` di `admin/progress/actions.ts`, `onboardingHtml(...)`
     di `lib/email/mailer.ts`, tombol di `progress-client.tsx`, audit `progress.onboarding`/`mass_onboarding`.
-- ✅ **Ekspor Excel** dashboard/rekap.
+- ✅ **Ekspor Excel** dashboard/rekap — + **ekspor 360° gabungan 1 file (2 sheet)** & **ekspor
+  Ringkasan Aspek Naratif HRD** (2026-07-01).
 - ✅ **Deadline periode lebih tegas** — indikator sisa hari + peringatan.
 - ✅ **Heatmap Capaian KPI per Divisi × Bulan** (dashboard tab Analisis Hasil KPI).
 - ⬜ **Ringkasan Aspek 360° otomatis (Claude API)** — REKOMENDASI, belum dibangun. Editor

@@ -1,17 +1,23 @@
 # REKOMENDASI — Persiapan Demo, Trial & Peluncuran Q2
 
 Catatan operasional & perencanaan (bukan teknis-kode). Sumber: diskusi 2026-06-23 menjelang
-demo/trial penilaian pegawai dan peluncuran Q2. Untuk perubahan kode lihat **CLAUDE.md**;
-untuk panduan pemakaian lihat **CARA-PENGGUNAAN.md**.
+demo/trial penilaian pegawai dan peluncuran Q2. **Diperbarui 2026-07-01** agar selaras dengan
+kondisi app yang sudah **LIVE**. Untuk perubahan kode lihat **CLAUDE.md**; untuk panduan pemakaian
+lihat **CARA-PENGGUNAAN.md**.
 
 ---
 
 ## 1. Status kesiapan aplikasi
 
-- **Aplikasi inti: ~95% siap.** Alur penilaian (login → isi → auto-simpan → validasi wajib →
+> **Update 2026-07-01:** app **sudah LIVE & berjalan** — Undangan Massal sudah terkirim (tiap akun
+> punya sandi unik per orang). Fase "persiapan demo/trial" di bawah sudah **terlewati**; bagian ini
+> dipertahankan sebagai konteks. Fokus kini = pengerasan operasional (backup rutin, rotasi kredensial,
+> email asli) — lihat **TO-DO** di CLAUDE.md.
+
+- **Aplikasi inti: siap & live.** Alur penilaian (login → isi → auto-simpan → validasi wajib →
   Kirim → konfirmasi → layar sukses → pengingat sisa) sudah teruji di **localhost & URL produksi**.
-- **Untuk demo/trial: ~90–94%.** Sisanya **operasional** (stagger, distribusi kredensial, kualitas
-  demo), bukan kesiapan aplikasi.
+- **Sisa pekerjaan bersifat operasional** (stagger, distribusi kredensial, backup harian), bukan
+  kesiapan aplikasi.
 - **Isu "blank di HP"** = masalah **perangkat tertentu** (jam/tanggal HP salah → sertifikat HTTPS
   gagal, atau jaringan), **bukan aplikasi** — HP lain bisa membuka. Bukan penghalang.
 
@@ -22,8 +28,9 @@ untuk panduan pemakaian lihat **CARA-PENGGUNAAN.md**.
 ### a. Brief / pengumuman pegawai (template siap-tempel)
 Sampaikan saat demo + saat membagikan link:
 
-1. **Link aplikasi** + cara tahu **email login** Anda (siapa dihubungi bila lupa) — sandi awal
-   bersama; **segera ganti** lewat **Akun Saya**.
+1. **Link aplikasi** + cara tahu **email login** Anda (siapa dihubungi bila lupa). **Sandi kini
+   unik per orang** — dikirim lewat email **Undangan & Info Akun**; disarankan **segera ganti**
+   lewat **Akun Saya**. (Sandi awal bersama sudah tidak berlaku sejak onboarding massal 2026-07-01.)
 2. **Anda menilai N orang** — kerjakan **semua** sampai muncul **layar sukses** tiap orang.
 3. **Wajib:** semua **rating + komentar (min 4 karakter) + semua esai** terisi baru bisa Kirim.
 4. **Coba minimal sekali tombol "Minta Koreksi"** bila relasi terasa keliru (bagian yang diuji;
@@ -32,7 +39,10 @@ Sampaikan saat demo + saat membagikan link:
 6. Bila **tidak bisa Kirim**, cek tab **"Umpan Balik Kualitatif"** (mungkin esai belum diisi).
 7. **Isi bertahap** sesuai gelombang/jam divisi (lihat stagger di bawah).
 
-### b. Checklist uji asap produksi (jalankan setelah deploy, ~5–10 menit, di HP + laptop)
+### b. Checklist uji asap (smoke-test) pasca-deploy — MASIH DIPAKAI
+> Bukan tugas pra-launch sekali-jalan, tapi **uji regresi cepat tiap ada deploy** (repo auto-deploy
+> dari `main` tiap push) — jalankan ~5–10 menit di HP + laptop untuk memastikan alur pengisian inti
+> tak rusak diam-diam. Isinya masih akurat dengan implementasi live.
 1. Login → Daftar Penilaian tampil target + kartu "Wajib 0/Y" + banner Garis Hubungan.
 2. Mulai Nilai → rail bisa di-geser di HP; rating tampil "Pilihan Anda: N · Label".
 3. Isi 1 indikator → tunggu ~5 detik → "Tersimpan otomatis ✓" → refresh → isian tetap ada.
@@ -40,7 +50,10 @@ Sampaikan saat demo + saat membagikan link:
 5. Isi esai → progres penuh → Kirim → konfirmasi → layar sukses + "masih ada N lagi".
 6. Kembali ke Daftar → kartu wajib bertambah; coba **Minta Koreksi**; coba **Akun Saya** ganti sandi.
 
-### c. Tes kredensial ke 2–3 orang dulu sebelum kirim massal (pastikan email/sandi & login benar).
+### c. ✅ Tes kredensial ke 2–3 orang sebelum kirim massal — SELESAI (terlewati)
+Langkah pra-kirim-massal ini sudah tidak relevan: **Undangan Massal telah dijalankan (2026-07-01)**
+dengan sandi unik per orang. Pertahankan hanya sebagai catatan; ulangi pola ini bila kelak melakukan
+pengiriman massal ke gelombang/domain baru (mis. saat `ONBOARDING_GMAIL_ONLY=false` untuk produksi penuh).
 
 ---
 
@@ -91,15 +104,21 @@ terhapus tiap pemanggilan, tak dibagi antar-instance). Data dari banyak HP harus
 perangkat → tak bisa menghimpun dari banyak orang. Menggantinya = menghilangkan fungsi inti.
 
 ### Pilihan keandalan (urut rekomendasi)
-1. **Tetap Supabase free + ekspor Excel harian sebagai cadangan** — gratis, sudah ada di
-   `/admin/ekspor` (dataset kuantitatif + kualitatif + rekap). Data tak pernah hanya di satu tempat.
+1. **Tetap Supabase free + backup rutin ke luar laptop** — gratis. Dua lapis:
+   - **Dump penuh (utama):** skrip `scripts/backup.mjs` (dump **22 tabel**, incl. `auth.users` /
+     sandi ter-hash → JSON) + `scripts/restore.mjs` — **sudah ada & teruji** (2026-06-25). Jalankan
+     di akhir periode & sebelum migrasi/reset, lalu **salin hasilnya ke luar laptop** (Google Drive/
+     eksternal — aturan 3-2-1; backup di laptop saja = satu titik kegagalan).
+   - **Ekspor Excel (cadangan parsial):** `/admin/ekspor` (dataset kuantitatif + kualitatif + rekap).
+     Berguna untuk analisis, tetapi **bukan pengganti dump penuh**.
 2. **Supabase Pro (~$25/bln)** — **opsional**; bukan untuk kapasitas (free cukup), tapi untuk
    **backup otomatis** + tanpa auto-pause + headroom compute. Pertimbangkan untuk **data Q2 asli**
    (bukan disposable) demi keandalan & pemulihan.
 3. **Self-host Postgres (VPS)** — kontrol penuh tapi beban operasional besar; tetap DB terpusat,
    bukan "file lokal".
 
-**Untuk Q2:** free-tier + **ekspor harian** sudah memadai; Pro hanya bila ingin backup otomatis.
+**Untuk Q2:** free-tier + **backup penuh rutin (disalin ke luar laptop)** sudah memadai; Pro / cron
+terjadwal (GitHub Actions) hanya bila ingin backup otomatis tanpa bergantung laptop nyala.
 
 ---
 
@@ -119,6 +138,10 @@ perangkat → tak bisa menghimpun dari banyak orang. Menggantinya = menghilangka
 
 ## 7. Catatan reset periode trial (Q1 2026 - V2)
 
+> **Catatan historis (2026-06-23) — bukan kondisi terkini.** Sejak potret ini, data telah banyak
+> berubah (mis. 6 akun uji dihapus permanen `908a661`, app sudah live). Simpan sebagai jejak proses,
+> bukan status DB sekarang.
+
 Per 2026-06-23 periode trial **Q1 2026 - V2** telah **direset agar siap demo**:
 - **Dihapus:** assessments (+ skor & esai cascade), result_360, permohonan koreksi relasi.
 - **Dikembalikan:** semua relasi mapping → **Peer** (kondisi awal demo "semua Peer").
@@ -132,8 +155,11 @@ update relasi → verifikasi). Periode trial ini **akan dibuang** setelah demo (
 
 ## 8. Daftar item operasional yang belum tuntas (non-kode)
 
-- 🔑 Distribusi email/sandi via app script + instruksi per-role (rencana ada).
+- ✅ Distribusi email/sandi — **selesai**: Undangan Massal terkirim, sandi unik per orang (2026-07-01).
 - 🔑 Demo penggunaan ke pegawai (tunjukkan: transisi ke esai, layar sukses, Minta Koreksi).
 - 🔑 Stagger gelombang + pengingat harian.
-- 🔑 Prosedur ekspor/backup harian selama periode aktif.
-- 🔑 Pertimbangan Supabase Pro untuk Q2 asli (backup otomatis) — opsional.
+- 🔑 Prosedur backup rutin (dump penuh `scripts/backup.mjs` + **salin ke luar laptop**) selama
+  periode aktif; ekspor Excel sebagai cadangan parsial.
+- 🔑 Rotasi `SUPABASE_SERVICE_ROLE_KEY` bila pernah ter-share saat dev (lihat TO-DO CLAUDE.md).
+- 🔑 Ganti email placeholder (`@infarm.test`/non-gmail) → email asli lalu kirim undangan lagi.
+- 🔑 Pertimbangan Supabase Pro / cron backup terjadwal untuk Q2 asli (backup otomatis) — opsional.

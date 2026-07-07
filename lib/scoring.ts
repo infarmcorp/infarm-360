@@ -87,16 +87,31 @@ export const perfLabelOf = (score: number | null): string => {
   return c ? PERF_LABEL[c] : '—';
 };
 
-/** Skor Akhir = blend KPI+360 (50/50) bila 360 aktif & ada; jika tidak = KPI murni. Lalu − penalty (min 0). */
+/**
+ * Skor Akhir = blend KPI+360 (50/50) bila 360 aktif & ada; jika tidak = KPI murni. Lalu − penalty (min 0).
+ *
+ * `allow360Only` (default false, OPT-IN): bila KPI kosong TAPI 360° aktif & ada, hitung Skor Akhir
+ * **murni dari 360°** alih-alih mengembalikan null. SENGAJA opt-in — hanya dinyalakan di
+ * **Review Hasil Akhir & Ekspor Rekap** (subjek ber-360°-tanpa-KPI, mis. Direksi). Pemakai lain
+ * (Dashboard, Suksesi, Rekap SPV, laporan pegawai, Peninjau) memakai default false → perilaku
+ * LAMA tak berubah (KPI kosong → null). Lihat TO-DO "Review Hasil Akhir — Direksi + 360°-tanpa-KPI".
+ */
 export function finalScoreOf(
   kpiAvg: number | null,
   s360: number | null,
   has360: boolean,
   penalty: number,
+  allow360Only = false,
 ): number | null {
-  if (kpiAvg == null) return null;
   let base: number;
-  if (!has360 || s360 == null) base = kpiAvg;
-  else base = kpiAvg * 0.5 + s360 * 0.5;
+  if (kpiAvg == null) {
+    // Default: tanpa KPI tak bisa dihitung. Opt-in: pakai 360° saja bila 360 aktif & ada.
+    if (allow360Only && has360 && s360 != null) base = s360;
+    else return null;
+  } else if (!has360 || s360 == null) {
+    base = kpiAvg;
+  } else {
+    base = kpiAvg * 0.5 + s360 * 0.5;
+  }
   return Math.max(0, base - penalty);
 }

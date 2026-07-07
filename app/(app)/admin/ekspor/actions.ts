@@ -18,6 +18,31 @@ export type Sheet = { name: string; rows: Row[] };
 export type ConfigResult = { ok: true; sheets: Sheet[] } | { ok: false; error: string };
 type Admin = ReturnType<typeof createAdminClient>;
 
+/**
+ * Ambil SELURUH baris tabel anak yang difilter `.in(col, ids)`, menembus DUA batas Supabase:
+ *  - CHUNK: `.in()` menaruh tiap id di URL → daftar id terlalu panjang (~16KB header) ditolak
+ *    total. Pecah ids jadi kelompok kecil dulu.
+ *  - PAGE: PostgREST membatasi 1000 baris/request (db.max_rows) → paginasi `.range()` tiap chunk.
+ * `run` harus menyertakan `.order(...)` deterministik agar paginasi antar-halaman tak bocor/dobel.
+ */
+async function fetchAllChunked<T>(
+  ids: string[],
+  run: (chunk: string[], from: number, to: number) => PromiseLike<{ data: T[] | null }>,
+): Promise<T[]> {
+  const CHUNK = 150;  // ~150 uuid × ~40 char ≈ 6KB — jauh di bawah batas header
+  const PAGE = 1000;  // batas baris/request PostgREST
+  const out: T[] = [];
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const chunk = ids.slice(i, i + CHUNK);
+    for (let from = 0; ; from += PAGE) {
+      const { data } = await run(chunk, from, from + PAGE - 1);
+      if (data?.length) out.push(...data);
+      if (!data || data.length < PAGE) break;
+    }
+  }
+  return out;
+}
+
 async function requireHrd(): Promise<boolean> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -144,7 +169,9 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   const [{ data: emps }, { data: periodsAll }, { data: pmonths }, { data: kpi }, { data: r360 }, { data: pen }] = await Promise.all([
-    admin.from('employees').select('id, emp_code, name, dept').neq('role', 'direksi'),
+    // Direksi SENGAJA IKUT (subjek 360° — keputusan 2026-07-08): guard `kpiAvg==null && s360==null`
+    // di bawah memastikan hanya yang PUNYA data (mis. Direksi ber-360°) yang muncul.
+    admin.from('employees').select('id, emp_code, name, dept'),
     admin.from('periods').select('id, label, has_360, start_date').order('start_date'),
     admin.from('period_months').select('period_id, ym'),
     admin.from('kpi_scores').select('employee_id, ym, score'),
@@ -168,7 +195,8 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
       const s360 = p.has_360 ? (s360By.get(`${e.id}|${p.id}`) ?? null) : null;
       const penalty = penBy.get(`${e.id}|${p.id}`) ?? 0;
       if (kpiAvg == null && s360 == null) continue;
-      const final = finalScoreOf(kpiAvg, s360, p.has_360, penalty);
+      // allow360Only: subjek ber-360°-tanpa-KPI (mis. Direksi) → Skor Akhir dari 360° saja.
+      const final = finalScoreOf(kpiAvg, s360, p.has_360, penalty, true);
       const player = playerClassOf(kpiAvg, s360); // s360 sudah null bila 360 nonaktif
       rows.push({
         periode: p.label, kode: e.emp_code, nama: e.name, divisi: e.dept,
@@ -244,8 +272,16 @@ export async function exportAssessments(periodId?: string | null): Promise<Expor
   const asmtIds = asmts.map((a) => a.id);
   const scoresByAsmt = new Map<string, { indicator_id: string; rating: number | null; comment: string | null }[]>();
   if (asmtIds.length) {
-    const { data: sc } = await admin.from('assessment_indicator_scores').select('assessment_id, indicator_id, rating, comment').in('assessment_id', asmtIds);
-    (sc ?? []).forEach((s) => { const a = scoresByAsmt.get(s.assessment_id) ?? []; a.push(s); scoresByAsmt.set(s.assessment_id, a); });
+    // Tarik SEMUA skor per-indikator, menembus batas 1000-baris/request & panjang URL .in()
+    // (lihat fetchAllChunked) — di kuartal penuh baris (assessment × indikator) mudah > 1000
+    // dan jumlah id mudah membuat URL .in() kepanjangan.
+    const sc = await fetchAllChunked(asmtIds, (chunk, from, to) =>
+      admin.from('assessment_indicator_scores')
+        .select('assessment_id, indicator_id, rating, comment')
+        .in('assessment_id', chunk)
+        .order('assessment_id').order('indicator_id')
+        .range(from, to));
+    sc.forEach((s) => { const a = scoresByAsmt.get(s.assessment_id) ?? []; a.push(s); scoresByAsmt.set(s.assessment_id, a); });
   }
   const rows: Row[] = [];
   for (const a of asmts) {
@@ -290,8 +326,14 @@ export async function exportQualAnswers(periodId?: string | null): Promise<Expor
   const asmtIds = asmts.map((a) => a.id);
   const ansByAsmt = new Map<string, { question_id: string; answer: string | null }[]>();
   if (asmtIds.length) {
-    const { data: ans } = await admin.from('assessment_qual_answers').select('assessment_id, question_id, answer').in('assessment_id', asmtIds);
-    (ans ?? []).forEach((x) => { const a = ansByAsmt.get(x.assessment_id) ?? []; a.push(x); ansByAsmt.set(x.assessment_id, a); });
+    // Tarik SEMUA jawaban esai — lihat catatan di fetchAllChunked (batas 1000-baris & panjang URL .in()).
+    const ans = await fetchAllChunked(asmtIds, (chunk, from, to) =>
+      admin.from('assessment_qual_answers')
+        .select('assessment_id, question_id, answer')
+        .in('assessment_id', chunk)
+        .order('assessment_id').order('question_id')
+        .range(from, to));
+    ans.forEach((x) => { const a = ansByAsmt.get(x.assessment_id) ?? []; a.push(x); ansByAsmt.set(x.assessment_id, a); });
   }
   const rows: Row[] = [];
   for (const a of asmts) {

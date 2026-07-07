@@ -26,7 +26,10 @@ export default async function AdminLaporanPage() {
 
   // Pelaporan: ambil TANPA filter is_active; nonaktif disaring belakangan kecuali punya data
   // periode (KPI/360°/laporan) → pegawai yang resign di akhir periode tetap bisa difinalisasi.
-  const { data: emps } = await supabase.from('employees').select('id, name, dept, is_active').neq('role', 'direksi').eq('is_external', false);
+  // Direksi SENGAJA IKUT di sini (subjek 360° — keputusan 2026-07-08): mereka tak punya KPI,
+  // jadi hanya tampil bila punya skor 360° (disaring `shownRows` di bawah). Ini KHUSUS halaman
+  // Review Hasil Akhir — Dashboard/KPI/kepatuhan tetap mengecualikan Direksi.
+  const { data: emps } = await supabase.from('employees').select('id, name, dept, is_active, role').eq('is_external', false);
   const employees = emps ?? [];
 
   const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', ap.id);
@@ -92,7 +95,7 @@ export default async function AdminLaporanPage() {
     const kpiAvg = agg ? agg.sum / agg.n : null;
     const s360 = s360By.get(e.id) ?? null;
     const penalty = penBy.get(e.id) ?? 0;
-    const final = finalScoreOf(kpiAvg, s360, ap.has_360, penalty);
+    const final = finalScoreOf(kpiAvg, s360, ap.has_360, penalty, true); // allow360Only: subjek ber-360°-tanpa-KPI (mis. Direksi) → skor dari 360°
     const rep = repBy.get(e.id);
     // Perlu hitung ulang 360°: ada penilaian dikirim/diubah setelah result_360 terakhir dihitung
     // (atau sudah ada penilaian tapi belum pernah dihitung). Hanya relevan saat 360° aktif.
@@ -117,7 +120,10 @@ export default async function AdminLaporanPage() {
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));
   // Tampilkan yang AKTIF atau PUNYA DATA periode (KPI/360°/sudah ada laporan); nonaktif tanpa
   // data disembunyikan. Pegawai nonaktif yang sudah dinilai/ber-KPI tetap bisa difinalisasi.
-  const activeIds = new Set(employees.filter((e) => e.is_active).map((e) => e.id));
+  // DIREKSI DIKECUALIKAN dari "tampil karena aktif": mereka tak pernah punya KPI, jadi tanpa ini
+  // Direksi aktif akan muncul sbg baris kosong tiap kuartal. Direksi hanya tampil bila PUNYA DATA
+  // (skor 360°/laporan) — lewat cabang `r.s360 != null || r.status != null` di bawah.
+  const activeIds = new Set(employees.filter((e) => e.is_active && e.role !== 'direksi').map((e) => e.id));
   const shownRows = rows.filter((r) => activeIds.has(r.id) || r.kpiAvg != null || r.s360 != null || r.status != null);
   const staleCount = shownRows.filter((r) => r.needsRecompute).length;
   // "Belum pernah dihitung" = ada penilaian masuk tapi result_360 masih kosong (subset staleCount)

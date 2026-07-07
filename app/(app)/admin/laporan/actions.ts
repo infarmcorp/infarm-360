@@ -29,7 +29,8 @@ async function computeFinal(
   const { data: p } = await supabase.from('compliance_penalties').select('points')
     .eq('employee_id', employeeId).eq('period_id', periodId).maybeSingle();
   const penalty = p?.points ?? 0;
-  return { kpiAvg, s360, penalty, final: finalScoreOf(kpiAvg, s360, has360, penalty) };
+  // allow360Only: subjek ber-360°-tanpa-KPI (mis. Direksi) → Skor Akhir dihitung dari 360° saja.
+  return { kpiAvg, s360, penalty, final: finalScoreOf(kpiAvg, s360, has360, penalty, true) };
 }
 
 export type FinalizeResult = { ok: true; finalScore: number; finalized: boolean } | { ok: false; error: string };
@@ -45,9 +46,11 @@ export async function saveOrFinalizeReport(employeeId: string, finalize: boolean
     .from('periods').select('id, has_360, status').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
-  const { kpiAvg, final } = await computeFinal(supabase, ap.id, ap.has_360, employeeId);
-  if (kpiAvg == null || final == null) {
-    return { ok: false, error: 'Skor Akhir belum bisa dihitung (KPI pegawai masih kosong)' };
+  const { final } = await computeFinal(supabase, ap.id, ap.has_360, employeeId);
+  if (final == null) {
+    // Tolak hanya bila KPI DAN 360° dua-duanya kosong (tak ada dasar skor). Subjek ber-360°-
+    // tanpa-KPI (mis. Direksi) TETAP boleh: Skor Akhir dari 360° (lihat computeFinal allow360Only).
+    return { ok: false, error: 'Skor Akhir belum bisa dihitung (KPI & Skor 360° pegawai keduanya masih kosong)' };
   }
 
   const status = finalize ? 'finalized' : 'draft';
@@ -97,9 +100,10 @@ export async function releaseToSpv(employeeId: string): Promise<FinalizeResult> 
     .from('periods').select('id, has_360, status').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
-  const { kpiAvg, final } = await computeFinal(supabase, ap.id, ap.has_360, employeeId);
-  if (kpiAvg == null || final == null) {
-    return { ok: false, error: 'Skor Akhir belum bisa dihitung (KPI pegawai masih kosong)' };
+  const { final } = await computeFinal(supabase, ap.id, ap.has_360, employeeId);
+  if (final == null) {
+    // Tolak hanya bila KPI & 360° dua-duanya kosong (selaras saveOrFinalizeReport).
+    return { ok: false, error: 'Skor Akhir belum bisa dihitung (KPI & Skor 360° pegawai keduanya masih kosong)' };
   }
 
   const { data: existing } = await supabase

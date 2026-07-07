@@ -173,11 +173,17 @@ export function ReportTable({ rows, depts, has360 }: { rows: ReportRow[]; depts:
                 </td>
                 <td className="py-3 pl-3 text-right">
                   {r.final == null
-                    ? <span className="text-[10px] text-gray-500 italic">KPI kosong</span>
-                    : <Link href={`/laporan/${r.id}`}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50">
-                        Tinjau →
-                      </Link>}
+                    ? <span className="text-[10px] text-gray-500 italic">KPI &amp; 360° kosong</span>
+                    : <span className="inline-flex items-center gap-1.5 justify-end">
+                        {/* Skor Akhir dari 360° saja (mis. Direksi) — beri konteks di samping tombol. */}
+                        {r.kpiAvg == null && r.s360 != null && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200" title="Skor Akhir dihitung dari 360° saja (belum/tak ada KPI)">Tanpa KPI</span>
+                        )}
+                        <Link href={`/laporan/${r.id}`}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+                          Tinjau →
+                        </Link>
+                      </span>}
                 </td>
               </tr>
             ))}

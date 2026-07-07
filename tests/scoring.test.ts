@@ -69,8 +69,18 @@ describe('playerClassOf — 4-Box A/B-Culture/B-KPI/C (KPI × 360°, ambang 80, 
 });
 
 describe('finalScoreOf — Skor Akhir = blend KPI+360 (50/50) − punishment, min 0', () => {
-  it('KPI kosong → null', () => {
+  it('KPI kosong → null (default, allow360Only=false)', () => {
     expect(finalScoreOf(null, 90, true, 0)).toBeNull();
+  });
+  it('KPI kosong + allow360Only → skor murni dari 360°', () => {
+    expect(finalScoreOf(null, 90, true, 0, true)).toBe(90);       // 360-only (mis. Direksi)
+    expect(finalScoreOf(null, 90, true, 10, true)).toBe(80);      // − punishment
+    expect(finalScoreOf(null, null, true, 0, true)).toBeNull();   // KPI & 360 keduanya kosong → null
+    expect(finalScoreOf(null, 90, false, 0, true)).toBeNull();    // 360 nonaktif → tak ada dasar
+  });
+  it('KPI ada → allow360Only tak mengubah hasil (blend/KPI seperti biasa)', () => {
+    expect(finalScoreOf(80, 90, true, 0, true)).toBe(85);
+    expect(finalScoreOf(80, null, true, 0, true)).toBe(80);
   });
   it('360 aktif & ada → rerata 50/50', () => {
     expect(finalScoreOf(80, 90, true, 0)).toBe(85);

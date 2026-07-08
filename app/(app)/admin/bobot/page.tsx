@@ -6,6 +6,7 @@ import type { WeightValues, RelationKind } from '@/lib/database.types';
 import { WeightForm } from './weight-form';
 import { RecomputeButton } from '../360/recompute-button';
 import { EmptyState } from '@/components/empty-state';
+import { fetchAllByIds } from '@/lib/supabase/paginate';
 
 /**
  * Kelola Bobot Penilai (HRD) — SATU halaman: skema bobot 360 + Hitung Ulang Skor 360°
@@ -69,12 +70,16 @@ export default async function BobotPage() {
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 
   // Perbandingan model: kelompokkan rating (×20) per target per kelas dari penilaian terkirim.
+  // DIPAGINASI + di-chunk: assessment_indicator_scores bisa >4000 baris → tanpa ini pratinjau
+  // perbandingan model terpotong di 1000 → angka simulasi SALAH & menyesatkan pilihan bobot HRD.
   const asmts = asmtRes.data ?? [];
-  const { data: scoreRows } = asmts.length
-    ? await supabase.from('assessment_indicator_scores').select('assessment_id, rating').in('assessment_id', asmts.map((a) => a.id))
-    : { data: [] };
+  const scoreRows = asmts.length
+    ? await fetchAllByIds<{ assessment_id: string; rating: number | null }>(asmts.map((a) => a.id), (chunk, from, to) =>
+        supabase.from('assessment_indicator_scores').select('assessment_id, rating')
+          .in('assessment_id', chunk).order('assessment_id').order('indicator_id').range(from, to))
+    : [];
   const ratingsByAsmt = new Map<string, number[]>();
-  (scoreRows ?? []).forEach((s) => {
+  scoreRows.forEach((s) => {
     if (s.rating == null) return;
     const arr = ratingsByAsmt.get(s.assessment_id) ?? []; arr.push(s.rating); ratingsByAsmt.set(s.assessment_id, arr);
   });

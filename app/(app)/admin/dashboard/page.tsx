@@ -5,6 +5,7 @@ import { canAdmin } from '@/lib/auth/roles';
 import {
   finalScoreOf, playerClassOf,
 } from '@/lib/scoring';
+import { fetchAllByIds } from '@/lib/supabase/paginate';
 import { DashboardVisual } from './dashboard-visual';
 import { DashboardFilters } from './dashboard-filters';
 import { EmptyState } from '@/components/empty-state';
@@ -79,10 +80,16 @@ export default async function DashboardPage({
     .filter((a) => a.assessor_id !== a.target_id && inScope(a.target_id)).map((a) => a.id);
 
   // Gelombang 2 — query turunan (butuh hasil gelombang 1), saling independen → paralel.
-  const [kpiRes, indRes, scoreRes] = await Promise.all([
+  // scoreRows DIPAGINASI + di-chunk: assessment_indicator_scores bisa >4000 baris (semua divisi)
+  // → tanpa ini rating aspek 360° terpotong di 1000 → radar "Evaluasi Budaya 360°" SALAH diam-diam.
+  const [kpiRes, indRes, scoreRows] = await Promise.all([
     ymList.length && empIds.length ? supabase.from('kpi_scores').select('employee_id, ym, score').in('ym', ymList).in('employee_id', empIds) : Promise.resolve({ data: [] as { employee_id: string; ym: string; score: number }[] }),
     aspectList.length ? supabase.from('indicators').select('id, aspect_id').in('aspect_id', aspectList.map((a) => a.id)) : Promise.resolve({ data: [] as { id: string; aspect_id: string }[] }),
-    nonSelfIds.length ? supabase.from('assessment_indicator_scores').select('indicator_id, rating').in('assessment_id', nonSelfIds) : Promise.resolve({ data: [] as { indicator_id: string; rating: number | null }[] }),
+    nonSelfIds.length
+      ? fetchAllByIds<{ indicator_id: string; rating: number | null }>(nonSelfIds, (chunk, from, to) =>
+          supabase.from('assessment_indicator_scores').select('indicator_id, rating')
+            .in('assessment_id', chunk).order('assessment_id').order('indicator_id').range(from, to))
+      : Promise.resolve([] as { indicator_id: string; rating: number | null }[]),
   ]);
 
   // Rerata KPI per pegawai + rerata KPI organisasi per bulan (untuk Analisis KPI).
@@ -185,7 +192,7 @@ export default async function DashboardPage({
   // Rataan sub-aspek 360° (rating ×20), dari penilaian terkirim periode aktif, Self dikecualikan.
   const indToAspect = new Map((indRes.data ?? []).map((i) => [i.id, i.aspect_id]));
   const aspAgg = new Map<string, { sum: number; n: number }>();
-  (scoreRes.data ?? []).forEach((s) => {
+  scoreRows.forEach((s) => {
     const aid = indToAspect.get(s.indicator_id);
     if (!aid || s.rating == null) return;
     const a = aspAgg.get(aid) ?? { sum: 0, n: 0 };

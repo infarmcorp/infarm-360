@@ -6,6 +6,7 @@ import { canAdmin } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 import { classOf, avg, round1, weightedScore360, type Groups360 } from '@/lib/score360';
+import { fetchAllPaged, fetchAllByIds } from '@/lib/supabase/paginate';
 
 /**
  * Kalkulasi skor 360 terbobot → tabel result_360 (PANDUAN: kalibrasi skor).
@@ -18,36 +19,7 @@ import { classOf, avg, round1, weightedScore360, type Groups360 } from '@/lib/sc
  */
 export type ComputeResult = { ok: true; computed: number; periodLabel: string } | { ok: false; error: string };
 
-/**
- * Ambil SEMUA baris query ber-filter, menembus batas default PostgREST **1000 baris/request**
- * (`db.max_rows`). WAJIB untuk perhitungan skor: data terpotong = skor 360° salah diam-diam.
- * `run` harus menyertakan `.order(...)` deterministik agar paginasi antar-halaman tak bocor/dobel.
- */
-async function fetchAllPaged<T>(run: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
-  const PAGE = 1000;
-  const out: T[] = [];
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await run(from, from + PAGE - 1);
-    if (error) throw new Error(typeof error === 'object' && error && 'message' in error ? String((error as { message: unknown }).message) : 'query gagal');
-    if (data?.length) out.push(...data);
-    if (!data || data.length < PAGE) break;
-  }
-  return out;
-}
-
-/**
- * Ambil SEMUA baris tabel anak yang difilter `.in(col, ids)`: **chunk ids** (cegah URL `.in()`
- * kepanjangan ~16KB) + **paginasi baris** (batas 1000/request). Lihat fetchAllPaged.
- */
-async function fetchAllByIds<T>(ids: string[], run: (chunk: string[], from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
-  const CHUNK = 150;
-  const out: T[] = [];
-  for (let i = 0; i < ids.length; i += CHUNK) {
-    const chunk = ids.slice(i, i + CHUNK);
-    out.push(...await fetchAllPaged((from, to) => run(chunk, from, to)));
-  }
-  return out;
-}
+// Helper paginasi/chunking (menembus batas 1000-baris & URL `.in()`) → lib/supabase/paginate.
 
 export async function computeResult360(): Promise<ComputeResult> {
   // 1) Otorisasi: harus HRD.

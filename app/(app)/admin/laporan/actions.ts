@@ -194,3 +194,55 @@ export async function saveAspectSummaries(employeeId: string, raw: unknown): Pro
   revalidatePath(`/laporan/${employeeId}`);
   return { ok: true };
 }
+
+/**
+ * Simpan ringkasan HRD per PERTANYAAN KUALITATIF (esai) → final_reports.content.qualSummaries.
+ * Kembar dari saveAspectSummaries; hanya field content yang berbeda. Tidak mengubah status/skor;
+ * membuat baris draft bila belum ada. Terkunci bila laporan sudah 'finalized'.
+ */
+export async function saveQualSummaries(employeeId: string, raw: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = SummariesInput.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'Ringkasan tidak valid' };
+  const summaries: Record<string, string> = {};
+  for (const [k, v] of Object.entries(parsed.data)) { if (v.trim()) summaries[k] = v.trim(); }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat menyimpan ringkasan' };
+
+  const { data: ap } = await supabase.from('periods').select('id, has_360').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  const { data: existing } = await supabase.from('final_reports')
+    .select('id, content, status').eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
+
+  if (existing?.status === 'finalized') {
+    return { ok: false, error: 'Laporan sudah final — kembalikan ke draf dulu untuk mengedit ringkasan.' };
+  }
+
+  if (existing) {
+    const content = { ...(existing.content as Record<string, unknown> ?? {}), qualSummaries: summaries };
+    const { data: upd, error } = await supabase.from('final_reports')
+      .update({ content }).eq('id', existing.id).select('id');
+    if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
+    if (!upd || upd.length === 0) return { ok: false, error: 'Gagal menyimpan ringkasan (akses ditolak / laporan tak ditemukan)' };
+  } else {
+    const { final } = await computeFinal(supabase, ap.id, ap.has_360, employeeId);
+    const { error } = await supabase.from('final_reports').insert({
+      employee_id: employeeId, period_id: ap.id, final_score: final, status: 'draft',
+      content: { qualSummaries: summaries },
+    });
+    if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
+  }
+
+  const { data: emp } = await supabase.from('employees').select('name').eq('id', employeeId).maybeSingle();
+  await logHrdAction({
+    action: 'report.save_qual_summary', category: 'laporan',
+    summary: `Menyimpan ringkasan pertanyaan kualitatif 360° untuk ${emp?.name ?? employeeId}`,
+    targetType: 'employee', targetId: employeeId, targetLabel: emp?.name ?? null,
+  });
+  revalidatePath(`/laporan/${employeeId}`);
+  return { ok: true };
+}

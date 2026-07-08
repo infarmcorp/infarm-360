@@ -15,6 +15,7 @@ export type ReportRow = {
   final: number | null;        // Skor Akhir LIVE (dihitung dari KPI/360/punishment terkini)
   storedFinal: number | null;  // Skor Akhir TERSIMPAN (snapshot final_reports) — yang dilihat pegawai
   status: ReportStatus | null; spvAcc: boolean;
+  isSpvSubject: boolean;       // subjek berperan SPV → ACC oleh Direksi (bukan SPV)
   ratedDone: number; ratedTotal: number; // penilai WAJIB yang sudah submit / total
 };
 
@@ -82,7 +83,7 @@ export function ReportTable({ rows, depts, has360 }: { rows: ReportRow[]; depts:
               <th className="py-2 px-3 text-center">Punish.</th>
               <th className="py-2 px-3 text-center">Skor Akhir</th>
               {has360 && <th className="py-2 px-3 text-center">Dinilai oleh</th>}
-              <th className="py-2 px-3 text-center">ACC SPV</th>
+              <th className="py-2 px-3 text-center">ACC</th>
               <th className="py-2 px-3 text-center">Status</th>
               <th className="py-2 pl-3 text-right">Aksi</th>
             </tr>
@@ -158,9 +159,12 @@ export function ReportTable({ rows, depts, has360 }: { rows: ReportRow[]; depts:
                   </td>
                 )}
                 <td className="py-3 px-3 text-center">
-                  {r.spvAcc
-                    ? <span className="text-[10px] font-bold text-emerald-700">✔ ACC</span>
-                    : <span className="text-[10px] text-gray-500">belum</span>}
+                  <div className="flex flex-col items-center gap-0.5">
+                    {r.spvAcc
+                      ? <span className="text-[10px] font-bold text-emerald-700">✔ ACC</span>
+                      : <span className="text-[10px] text-gray-500">belum</span>}
+                    {r.isSpvSubject && <span className="text-[9px] text-gray-400" title="Laporan SPV di-ACC oleh Direksi">oleh Direksi</span>}
+                  </div>
                 </td>
                 <td className="py-3 px-3 text-center">
                   {r.status === 'finalized'

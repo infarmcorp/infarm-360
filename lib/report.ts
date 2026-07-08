@@ -31,6 +31,8 @@ export type ReportData = {
   byAspect: AspectRaw[];          // raw feedback per aspek → indikator (+ akumulasi rating)
   essays: EssayGroup[];           // jawaban esai dikelompokkan per pertanyaan
   aspectSummaries: Record<string, string>; // ringkasan HRD per aspek (tersimpan di content)
+  qualSummaries: Record<string, string>;   // ringkasan HRD per pertanyaan kualitatif (content)
+  qualQuestions: string[];        // teks semua pertanyaan kualitatif periode (urut) — untuk editor
 };
 
 /**
@@ -54,8 +56,12 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
   const penalty = pen?.points ?? 0;
   const { data: fr } = await supabase.from('final_reports').select('status, final_score, content').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
   const finalScore = fr?.final_score ?? finalScoreOf(kpiAvg, s360, period.has_360, penalty);
-  const frContent = (fr?.content ?? {}) as { aspectSummaries?: Record<string, string> };
+  const frContent = (fr?.content ?? {}) as {
+    aspectSummaries?: Record<string, string>;
+    qualSummaries?: Record<string, string>;
+  };
   const aspectSummaries = frContent.aspectSummaries ?? {};
+  const qualSummaries = frContent.qualSummaries ?? {};
 
   // Aspek & indikator periode.
   const { data: aspectRows } = await supabase.from('culture_aspects').select('id, name, order_idx').eq('period_id', period.id).order('order_idx');
@@ -150,6 +156,7 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
     emp, periodLabel: period.label, has360: period.has_360, status: fr?.status ?? null,
     finalScore, kpiAvg, s360, penalty, aspects, assessors,
     byAspect, essays, aspectSummaries,
+    qualSummaries, qualQuestions: (quals ?? []).map((q) => q.text),
   };
 }
 
@@ -221,6 +228,40 @@ export async function loadTeamReportForHrdSpv(
   const status = fr?.status ?? null;
   const visible = status === 'in_review' || status === 'finalized'; // termasuk diri sendiri
   if (!visible) return null;
+
+  const full = await loadReport(admin, employeeId, period);
+  if (!full) return null;
+  return { ...full, assessors: [], byAspect: [], essays: [] };
+}
+
+/**
+ * Laporan untuk DIREKSI meninjau laporan SPV (alur eskalasi: Pegawai→SPV, SPV→Direksi).
+ * Cermin loadTeamReportForSpv, tetapi lingkupnya subjek berperan SPV. Direksi berperan
+ * read-only di level RLS untuk tabel mentah 360°, jadi agregat dihitung server via
+ * service_role lalu lapis 3 (komentar/identitas per penilai) DIBUANG sebelum keluar —
+ * Direksi hanya melihat L1+L2 (skor, radar/aspek, ringkasan HRD) yang anonim.
+ *
+ * Visibilitas: tampak bila HRD sudah merilis ('in_review') atau 'finalized' — sama
+ * seperti SPV meninjau timnya. Target wajib berperan 'spv'; pelaku wajib 'direksi'.
+ */
+export async function loadSpvReportForDireksi(
+  direksiId: string,
+  employeeId: string,
+  period: { id: string; label: string; has_360: boolean },
+): Promise<ReportData | null> {
+  const admin = createAdminClient() as unknown as SB;
+
+  const { data: actor } = await admin.from('employees').select('role').eq('id', direksiId).maybeSingle();
+  if (actor?.role !== 'direksi') return null; // hanya Direksi
+
+  const { data: emp } = await admin.from('employees').select('role').eq('id', employeeId).maybeSingle();
+  if (emp?.role !== 'spv') return null; // hanya subjek SPV
+
+  const { data: fr } = await admin.from('final_reports')
+    .select('status').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
+  const status = fr?.status ?? null;
+  const visible = status === 'in_review' || status === 'finalized';
+  if (!visible) return null; // belum dirilis HRD
 
   const full = await loadReport(admin, employeeId, period);
   if (!full) return null;

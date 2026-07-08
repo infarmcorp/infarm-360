@@ -4,12 +4,17 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
-import { loadReport, loadTeamReportForSpv, loadTeamReportForHrdSpv } from '@/lib/report';
+import { loadReport, loadTeamReportForSpv, loadTeamReportForHrdSpv, loadSpvReportForDireksi } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
 import { ReportActions } from '../report-actions';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
 import { AspectSummaryView } from '../aspect-summary-view';
 import { RawFeedback } from '../raw-feedback';
+import { saveQualSummaries } from '@/app/(app)/admin/laporan/actions';
+
+// Label ringkasan pertanyaan kualitatif (dipakai editor & tampilan read-only).
+const QUAL_TITLE = 'Ringkasan Umpan Balik Kualitatif 360°';
+const QUAL_INTRO = 'Rangkuman kalibrasi HRD atas jawaban pertanyaan kualitatif (esai) 360° — anonim, tanpa menyebut identitas penilai.';
 
 /**
  * Dokumen Laporan rinci satu pegawai. Tiga jalur tampilan:
@@ -42,6 +47,35 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
 
+  // Peran subjek laporan (untuk eskalasi Direksi→SPV & pelabelan tombol HRD).
+  const { data: subject } = await supabase.from('employees').select('role').eq('id', employeeId).maybeSingle();
+  const subjectIsSpv = subject?.role === 'spv';
+
+  // Direksi meninjau laporan SPV → jalur AGREGAT L2 (eskalasi Pegawai→SPV, SPV→Direksi),
+  // sama seperti SPV meninjau timnya: tanpa komentar mentah, tampak setelah HRD rilis.
+  // Target non-SPV → jatuh ke jalur Direksi lama (laporan penuh read-only) di bawah.
+  if (role === 'direksi' && subjectIsSpv) {
+    const data = await loadSpvReportForDireksi(user.id, employeeId, ap);
+    if (!data) {
+      return (
+        <Shell>
+          <Link href="/laporan-tim" className="text-xs text-gray-500 hover:underline no-print">← Laporan Kinerja Tim</Link>
+          <p className="text-sm text-gray-500 mt-3">Laporan belum dirilis HRD untuk ditinjau.</p>
+        </Shell>
+      );
+    }
+    return (
+      <Shell>
+        <Link href="/laporan-tim" className="text-xs text-gray-500 hover:underline no-print">← Laporan Kinerja Tim</Link>
+        <div className="mt-2">
+          <ReportDoc data={data} anonymize hideAssessorComments />
+          {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
+          {data.has360 && <AspectSummaryView summaries={data.qualSummaries} title={QUAL_TITLE} intro={QUAL_INTRO} />}
+        </div>
+      </Shell>
+    );
+  }
+
   // Tautan kembali sadar-peran: jalur SPV ke Laporan Kinerja Tim, HRD-admin/Direksi ke Daftar Laporan.
   const back = asSpv
     ? { href: '/laporan-tim', label: '← Laporan Kinerja Tim' }
@@ -70,6 +104,7 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
         <div className="mt-2">
           <ReportDoc data={data} anonymize hideAssessorComments />
           {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
+          {data.has360 && <AspectSummaryView summaries={data.qualSummaries} title={QUAL_TITLE} intro={QUAL_INTRO} />}
         </div>
       </Shell>
     );
@@ -162,6 +197,7 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
               totalMonths={kpiTotalMonths}
               missingMonths={kpiMissingMonths}
               stale360={score360Stale}
+              subjectIsSpv={subjectIsSpv}
             />
           )}
           {/* HRD: sembunyikan blok komentar-per-penilai (bernama) → diganti raw feedback anonim;
@@ -170,6 +206,18 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
           {isAdmin && data.has360 && (
             <>
               <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} locked={data.status === 'finalized'} />
+              {data.qualQuestions.length > 0 && (
+                <AspectSummaryEditor
+                  employeeId={employeeId}
+                  aspects={data.qualQuestions}
+                  initial={data.qualSummaries}
+                  locked={data.status === 'finalized'}
+                  saveAction={saveQualSummaries}
+                  title={QUAL_TITLE}
+                  intro={QUAL_INTRO}
+                  noun="pertanyaan"
+                />
+              )}
               <RawFeedback byAspect={data.byAspect} essays={data.essays} />
             </>
           )}

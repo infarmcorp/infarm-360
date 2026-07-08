@@ -6,7 +6,15 @@ import { Sparkles } from 'lucide-react';
  * penilai); SPV tidak bisa mengedit (itu wewenang HRD via AspectSummaryEditor).
  * Hanya menampilkan aspek yang sudah diisi HRD.
  */
-export function AspectSummaryView({ summaries }: { summaries: Record<string, string> }) {
+export function AspectSummaryView({
+  summaries,
+  title = 'Evaluasi Aspek Budaya & Perilaku 360°',
+  intro = 'Rangkuman evaluasi 360° dari HRD per aspek (anonim, tanpa identitas penilai).',
+}: {
+  summaries: Record<string, string>;
+  title?: string;
+  intro?: string;
+}) {
   const entries = Object.entries(summaries).filter(([, v]) => v && v.trim());
   if (entries.length === 0) return null;
 
@@ -14,12 +22,12 @@ export function AspectSummaryView({ summaries }: { summaries: Record<string, str
     <section className="mt-6 break-inside-avoid">
       <div className="bg-emerald-700 text-white rounded-t-xl px-4 py-2.5">
         <h2 className="text-sm font-extrabold uppercase tracking-wide flex items-center gap-2">
-          <Sparkles className="w-4 h-4" /> Evaluasi Aspek Budaya &amp; Perilaku 360°
+          <Sparkles className="w-4 h-4" /> {title}
         </h2>
       </div>
       <div className="border border-t-0 border-gray-200 rounded-b-xl p-4 space-y-3">
         <p className="text-[11px] text-gray-500 bg-emerald-50/60 border border-emerald-100 rounded-lg p-2">
-          Rangkuman evaluasi 360° dari HRD per aspek (anonim, tanpa identitas penilai).
+          {intro}
         </p>
         {entries.map(([name, text]) => (
           <div key={name} className="border border-gray-200 rounded-xl overflow-hidden">

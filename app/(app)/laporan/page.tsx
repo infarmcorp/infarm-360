@@ -45,6 +45,13 @@ export default async function LaporanSayaPage() {
     <Shell>
       <ReportDoc data={safe} anonymize hideAssessorComments />
       {safe.has360 && <AspectSummaryView summaries={safe.aspectSummaries} />}
+      {safe.has360 && (
+        <AspectSummaryView
+          summaries={safe.qualSummaries}
+          title="Ringkasan Umpan Balik Kualitatif 360°"
+          intro="Rangkuman kalibrasi HRD atas jawaban pertanyaan kualitatif (esai) 360° — anonim, tanpa identitas penilai."
+        />
+      )}
     </Shell>
   );
 }

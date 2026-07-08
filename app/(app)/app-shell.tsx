@@ -81,6 +81,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewe
       title: 'Eksekutif',
       items: [
         { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
+        { href: '/laporan-tim', label: 'Laporan Kinerja Tim', icon: Users },
         { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText },
         { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award },
       ],

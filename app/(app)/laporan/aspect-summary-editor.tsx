@@ -21,11 +21,19 @@ type SaveFn = (employeeId: string, vals: Record<string, string>) => Promise<Save
 
 export function AspectSummaryEditor({
   employeeId, aspects, initial, locked = false, saveAction = saveAspectSummaries,
+  title = 'Evaluasi Aspek Budaya & Perilaku 360°',
+  intro = 'Rangkuman evaluasi 360° pelaku budaya perusahaan dari seluruh komentar penilai. Pihak manajemen (HRD) melakukan kalibrasi atas aspek ini secara adil & transparan — tanpa menyebut identitas penilai.',
+  noun = 'aspek',
 }: {
   employeeId: string; aspects: string[]; initial: Record<string, string>; locked?: boolean;
   // Jalur HRD memakai saveAspectSummaries (default); jalur Peninjau Lintas Divisi
   // memasukkan saveCrossAspectSummaries (service_role + cek divisi). Signature sama.
   saveAction?: SaveFn;
+  // Label dapat di-override agar editor yang sama dipakai untuk Ringkasan Aspek (default)
+  // maupun Ringkasan Pertanyaan Kualitatif. `aspects` = daftar kunci (nama aspek / teks pertanyaan).
+  title?: string;
+  intro?: string;
+  noun?: string;
 }) {
   const [vals, setVals] = useState<Record<string, string>>(() => {
     const o: Record<string, string> = {};
@@ -69,7 +77,7 @@ export function AspectSummaryEditor({
     <section className="mt-6 break-inside-avoid">
       <div className="bg-emerald-700 text-white rounded-t-xl px-4 py-2.5 flex items-center justify-between gap-2">
         <h2 className="text-sm font-extrabold uppercase tracking-wide flex items-center gap-2">
-          <Sparkles className="w-4 h-4" /> Evaluasi Aspek Budaya &amp; Perilaku 360°
+          <Sparkles className="w-4 h-4" /> {title}
         </h2>
         {locked && (
           <span className="text-[10px] font-bold bg-white/15 px-2 py-0.5 rounded inline-flex items-center gap-1">
@@ -79,9 +87,7 @@ export function AspectSummaryEditor({
       </div>
       <div className="border border-t-0 border-gray-200 rounded-b-xl p-4 space-y-3">
         <p className="text-[11px] text-gray-500 bg-emerald-50/60 border border-emerald-100 rounded-lg p-2">
-          Rangkuman evaluasi 360° pelaku budaya perusahaan dari seluruh komentar penilai.
-          Pihak manajemen (HRD) melakukan kalibrasi atas aspek ini secara adil &amp; transparan —
-          <strong> tanpa menyebut identitas penilai</strong>.
+          {intro}
           {!locked && <> Tersimpan <strong>otomatis</strong> — tak perlu tombol Simpan.</>}
         </p>
         {locked && (
@@ -102,7 +108,7 @@ export function AspectSummaryEditor({
               onChange={(e) => { setVals((v) => ({ ...v, [a]: e.target.value })); }}
               onBlur={() => { if (!locked && changed) void flush(); }} // simpan segera saat pindah fokus
               rows={3}
-              placeholder={`Ringkasan kalibrasi HRD untuk aspek "${a}"…`}
+              placeholder={`Ringkasan kalibrasi HRD untuk ${noun} "${a}"…`}
               className="w-full text-xs p-3 outline-none resize-y text-gray-700 leading-relaxed disabled:bg-gray-50 disabled:text-gray-500"
             />
           </div>

@@ -6,7 +6,7 @@ import { loadCrossDivisionReport } from '@/lib/report';
 import { ReportDoc } from '../../laporan/report-doc';
 import { AspectSummaryEditor } from '../../laporan/aspect-summary-editor';
 import { RawFeedback } from '../../laporan/raw-feedback';
-import { saveCrossAspectSummaries } from '../actions';
+import { saveCrossAspectSummaries, saveCrossQualSummaries } from '../actions';
 
 /**
  * Dokumen Laporan untuk PENINJAU HASIL LINTAS DIVISI (grant is_cross_reviewer).
@@ -70,6 +70,18 @@ export default async function PeninjauDetailPage({ params }: { params: Promise<{
               locked={locked}
               saveAction={saveCrossAspectSummaries}
             />
+            {data.qualQuestions.length > 0 && (
+              <AspectSummaryEditor
+                employeeId={employeeId}
+                aspects={data.qualQuestions}
+                initial={data.qualSummaries}
+                locked={locked}
+                saveAction={saveCrossQualSummaries}
+                title="Ringkasan Umpan Balik Kualitatif 360°"
+                intro="Rangkuman kalibrasi atas jawaban pertanyaan kualitatif (esai) 360° — anonim, tanpa menyebut identitas penilai."
+                noun="pertanyaan"
+              />
+            )}
             <RawFeedback byAspect={data.byAspect} essays={data.essays} />
           </>
         )}

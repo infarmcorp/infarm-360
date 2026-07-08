@@ -115,6 +115,7 @@ export default async function AdminLaporanPage() {
       totalMonths: sortedMonths.length, missingMonths,
       final, storedFinal: rep?.final_score ?? null,
       status: rep?.status ?? null, spvAcc: !!rep?.spv_acc,
+      isSpvSubject: e.role === 'spv',
       ratedDone: ratedDone.get(e.id) ?? 0, ratedTotal: ratedTotal.get(e.id) ?? 0,
     };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));

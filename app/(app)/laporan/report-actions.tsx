@@ -15,6 +15,7 @@ import { saveOrFinalizeReport, releaseToSpv } from '@/app/(app)/admin/laporan/ac
  */
 export function ReportActions({
   employeeId, status, finalScore, liveFinal, canCompute, totalMonths, missingMonths, stale360,
+  subjectIsSpv = false,
 }: {
   employeeId: string;
   status: string | null;
@@ -24,7 +25,10 @@ export function ReportActions({
   totalMonths: number;         // jumlah bulan periode
   missingMonths: string[];     // bulan KPI yang belum terisi
   stale360: boolean;           // Skor 360° perlu dihitung ulang (penilaian/koreksi berubah)
+  subjectIsSpv?: boolean;      // subjek laporan berperan SPV → peninjau/ACC = DIREKSI (bukan SPV)
 }) {
+  // Eskalasi: laporan pegawai ditinjau SPV; laporan SPV ditinjau DIREKSI. Ubah label agar jelas.
+  const reviewer = subjectIsSpv ? 'Direksi' : 'SPV';
   const router = useRouter();
   const [busy, setBusy] = useState<'draft' | 'final' | 'release' | 'revert' | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -68,7 +72,7 @@ export function ReportActions({
     const res = await releaseToSpv(employeeId);
     setBusy(null);
     if (!res.ok) { setMsg({ ok: false, text: res.error }); return; }
-    setMsg({ ok: true, text: `Dirilis ke SPV untuk ditinjau (Skor Akhir ${res.finalScore}).` });
+    setMsg({ ok: true, text: `Dirilis ke ${reviewer} untuk ditinjau (Skor Akhir ${res.finalScore}).` });
     router.refresh();
   }
 
@@ -79,7 +83,7 @@ export function ReportActions({
         {isFinal
           ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">Final</span>
           : status === 'in_review'
-          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-indigo-50 text-indigo-700 border-indigo-200">Ditinjau SPV</span>
+          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-indigo-50 text-indigo-700 border-indigo-200">Ditinjau {reviewer}</span>
           : status === 'draft'
           ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">Draf</span>
           : <span className="text-[10px] text-gray-500">belum disimpan</span>}
@@ -116,7 +120,7 @@ export function ReportActions({
           {status !== 'in_review' && (
             <button type="button" disabled={busy !== null} onClick={release}
               className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg border border-indigo-300 text-indigo-700 hover:bg-indigo-50 disabled:opacity-50">
-              <Send className="w-3.5 h-3.5" /> {busy === 'release' ? 'Merilis…' : 'Rilis ke SPV'}
+              <Send className="w-3.5 h-3.5" /> {busy === 'release' ? 'Merilis…' : `Rilis ke ${reviewer}`}
             </button>
           )}
           <button type="button" disabled={busy !== null} onClick={finalGuard}

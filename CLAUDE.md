@@ -178,6 +178,12 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
     melatih model pada data bisnis. Perlu persetujuan kebijakan internal.
 
 ### Keandalan teknis
+- 🔑⬜ **PASCA-DEPLOY fix 1000-baris (2026-07-08) — WAJIB Hitung Ulang Skor 360°.** Perbaikan
+  `computeResult360` (paginasi) sudah di-deploy, TAPI 51 skor `result_360` yang terlanjur salah **belum**
+  terkoreksi otomatis. Aksi HRD: (1) buka **Review Hasil Akhir / Bobot & Kalkulasi** → klik **"Hitung Ulang
+  Skor 360°"** sekali → menimpa semua skor dgn yang benar; (2) laporan yg sudah **finalized** → kembalikan
+  ke draf lalu finalisasi ulang agar Skor Akhir ikut terkoreksi. Verifikasi cepat: Nashirul harus jadi ~74
+  (bukan 100). Lihat Changelog "Batas 1000-baris PostgREST".
 - ⬜ **Cek pra-finalisasi tertunda (catatan 2026-06-23)** — Prioritas 1 (uji fungsional+keamanan di
   browser) **SUDAH lolos** (laporan pegawai agregat, ACC gating, guard ringkasan, SPV lihat laporan
   diri, wajib-komentar edit KPI, L3 aman). **Sisa yang BELUM dicek:**
@@ -559,6 +565,16 @@ npm run test:watch # vitest mode pantau
 - `final_reports.content` (jsonb lama) dipakai untuk `aspectSummaries` (tanpa migrasi baru).
 
 ### Infra / Testing / CI
+- **⚠️ Batas 1000-baris PostgREST (`db.max_rows`) — bug "salah diam-diam" kelas berbahaya (2026-07-08).**
+  Query `.in()`/tabel besar **tanpa `.range()`** diam-diam terpotong di 1000 baris (tanpa error). Ditemukan
+  di **dua tempat** & diperbaiki dgn paginasi + chunking id (150/req, cegah URL `.in()` >16KB):
+  (1) **Ekspor 360°** (`exportAssessments`/`exportQualAnswers`) — ekspor cuma 1000 dari ~4500 baris.
+  (2) **`computeResult360`** (`admin/360/actions.ts`) — **KRITIS**: rating 360° terbaca cuma 1000 dari 4500
+  → Skor 360° dihitung dari data terpotong → **51 dari 52 pegawai skornya SALAH** (mis. Nashirul tersimpan
+  100, seharusnya 74). Skor 360° = 50% Skor Akhir → merambat ke Review/Dashboard/4-Box/laporan. **Data mentah
+  AMAN** (assessments/rating utuh); hanya `result_360` (turunan) yang salah → sembuh dgn Hitung Ulang.
+  Deteksi "skor basi" hanya cek WAKTU (`submitted_at`>`computed_at`), **bukan kebenaran** skor → bug ini lolos
+  tanpa badge. **Pelajaran:** query enumerasi apa pun yg bisa tumbuh >1000 baris WAJIB paginasi.
 - **Vitest 56 tes** (skor `lib/scoring.ts`/`lib/score360.ts` + parsing impor `lib/import/parse.ts`);
   **CI** (test+typecheck+build tiap push/PR). Rincian di **Pengujian**.
 - **`npm run verify:rls`** — 21 assertion (kpi_scores + L3 tertutup untuk SPV); manual, tak di CI.

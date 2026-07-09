@@ -147,9 +147,14 @@ async function DireksiTeamReport() {
   if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
 
   const admin = createAdminClient();
-  const { data: spvs } = await admin.from('employees')
-    .select('id, name, dept, is_active').eq('role', 'spv').eq('is_external', false);
-  const list = spvs ?? [];
+  // Subjek yang ditinjau Direksi = role='spv' ATAU pemimpin tim (spv_id di spv_team_members),
+  // KECUALI Direksi & eksternal. Mencakup "HRD-posisi yang bertindak sebagai SPV" (mis. Ulfa).
+  const [{ data: cands }, { data: tm }] = await Promise.all([
+    admin.from('employees').select('id, name, dept, is_active, role').eq('is_external', false).neq('role', 'direksi'),
+    admin.from('spv_team_members').select('spv_id'),
+  ]);
+  const leaderIds = new Set((tm ?? []).map((t) => t.spv_id));
+  const list = (cands ?? []).filter((e) => e.role === 'spv' || leaderIds.has(e.id));
   const ids = list.map((e) => e.id);
   const { data: reports } = ids.length
     ? await admin.from('final_reports').select('employee_id, status, spv_acc, final_score')

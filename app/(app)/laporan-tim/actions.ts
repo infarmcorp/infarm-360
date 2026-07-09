@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { isDireksiReviewSubject } from '@/lib/report';
 
 /**
  * ACC Laporan Kinerja Tim. Dua jalur berdasarkan peran pelaku:
@@ -28,8 +29,9 @@ export async function setSpvAcc(employeeId: string, acc: boolean): Promise<AccRe
   // target=SPV & sudah dirilis di server — batas kewenangan nyata, bukan sekadar UI.
   if (me?.role === 'direksi') {
     const admin = createAdminClient();
-    const { data: tgt } = await admin.from('employees').select('role').eq('id', employeeId).maybeSingle();
-    if (tgt?.role !== 'spv') return { ok: false, error: 'Direksi hanya dapat meng-ACC laporan SPV' };
+    if (!(await isDireksiReviewSubject(employeeId))) {
+      return { ok: false, error: 'Direksi hanya dapat meng-ACC laporan SPV / pemimpin tim' };
+    }
     const { data: rep } = await admin.from('final_reports').select('status')
       .eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
     if (!rep) return { ok: false, error: 'Laporan belum tersedia (menunggu HRD membuat draf)' };

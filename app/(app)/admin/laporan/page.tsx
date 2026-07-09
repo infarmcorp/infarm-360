@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
 import { ReportTable, type ReportRow } from './report-table';
@@ -53,6 +53,10 @@ export default async function AdminLaporanPage() {
   const { data: reports } = await supabase
     .from('final_reports').select('employee_id, status, spv_acc, final_score').eq('period_id', ap.id);
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
+
+  // Pemimpin tim (untuk hint "ACC oleh Direksi"): laporan SPV/pemimpin tim di-ACC Direksi, bukan SPV.
+  const { data: teamRows } = await createAdminClient().from('spv_team_members').select('spv_id');
+  const leaderIds = new Set((teamRows ?? []).map((t) => t.spv_id));
 
   // Kelengkapan "dinilai oleh": berapa penilai WAJIB yang sudah submit untuk tiap pegawai
   // (selaras Progress 360 — kelengkapan berbasis penilaian wajib).
@@ -115,7 +119,7 @@ export default async function AdminLaporanPage() {
       totalMonths: sortedMonths.length, missingMonths,
       final, storedFinal: rep?.final_score ?? null,
       status: rep?.status ?? null, spvAcc: !!rep?.spv_acc,
-      isSpvSubject: e.role === 'spv',
+      isSpvSubject: e.role !== 'direksi' && (e.role === 'spv' || leaderIds.has(e.id)),
       ratedDone: ratedDone.get(e.id) ?? 0, ratedTotal: ratedTotal.get(e.id) ?? 0,
     };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));

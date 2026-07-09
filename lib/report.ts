@@ -242,8 +242,23 @@ export async function loadTeamReportForHrdSpv(
  * Direksi hanya melihat L1+L2 (skor, radar/aspek, ringkasan HRD) yang anonim.
  *
  * Visibilitas: tampak bila HRD sudah merilis ('in_review') atau 'finalized' — sama
- * seperti SPV meninjau timnya. Target wajib berperan 'spv'; pelaku wajib 'direksi'.
+ * seperti SPV meninjau timnya. Target wajib subjek-SPV (lihat isDireksiReviewSubject: role='spv'
+ * atau pemimpin tim, non-Direksi); pelaku wajib 'direksi'.
  */
+/**
+ * Subjek yang ditinjau Direksi (eskalasi SPV→Direksi). Definisi: **bukan Direksi**, non-eksternal,
+ * dan **(role='spv' ATAU memimpin tim)** — mencakup SPV literal sekaligus "HRD-posisi yang bertindak
+ * sebagai SPV" (mis. memimpin tim di divisinya). role='spv' tanpa anggota tetap masuk.
+ */
+export async function isDireksiReviewSubject(employeeId: string, adminClient?: SB): Promise<boolean> {
+  const admin = adminClient ?? (createAdminClient() as unknown as SB);
+  const { data: emp } = await admin.from('employees').select('role, is_external').eq('id', employeeId).maybeSingle();
+  if (!emp || emp.role === 'direksi' || emp.is_external) return false;
+  if (emp.role === 'spv') return true;
+  const { count } = await admin.from('spv_team_members').select('*', { count: 'exact', head: true }).eq('spv_id', employeeId);
+  return (count ?? 0) > 0;
+}
+
 export async function loadSpvReportForDireksi(
   direksiId: string,
   employeeId: string,
@@ -254,8 +269,7 @@ export async function loadSpvReportForDireksi(
   const { data: actor } = await admin.from('employees').select('role').eq('id', direksiId).maybeSingle();
   if (actor?.role !== 'direksi') return null; // hanya Direksi
 
-  const { data: emp } = await admin.from('employees').select('role').eq('id', employeeId).maybeSingle();
-  if (emp?.role !== 'spv') return null; // hanya subjek SPV
+  if (!(await isDireksiReviewSubject(employeeId, admin))) return null; // hanya subjek SPV / pemimpin tim
 
   const { data: fr } = await admin.from('final_reports')
     .select('status').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();

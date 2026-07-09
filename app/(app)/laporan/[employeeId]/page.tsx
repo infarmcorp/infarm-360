@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
-import { loadReport, loadTeamReportForSpv, loadTeamReportForHrdSpv, loadSpvReportForDireksi } from '@/lib/report';
+import { loadReport, loadTeamReportForSpv, loadTeamReportForHrdSpv, loadSpvReportForDireksi, isDireksiReviewSubject } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
 import { ReportActions } from '../report-actions';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
@@ -47,9 +47,8 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
 
-  // Peran subjek laporan (untuk eskalasi Direksi→SPV & pelabelan tombol HRD).
-  const { data: subject } = await supabase.from('employees').select('role').eq('id', employeeId).maybeSingle();
-  const subjectIsSpv = subject?.role === 'spv';
+  // Apakah subjek = SPV/pemimpin tim (untuk eskalasi Direksi→SPV & pelabelan tombol HRD).
+  const subjectIsSpv = await isDireksiReviewSubject(employeeId);
 
   // Direksi meninjau laporan SPV → jalur AGREGAT L2 (eskalasi Pegawai→SPV, SPV→Direksi),
   // sama seperti SPV meninjau timnya: tanpa komentar mentah, tampak setelah HRD rilis.

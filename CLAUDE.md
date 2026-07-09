@@ -533,7 +533,9 @@ npm run test:watch # vitest mode pantau
   di ~20 tempat itu **sengaja dipertahankan**). Jadi "Direksi bukan subjek" **tak lagi berlaku mutlak** —
   presisinya: subjek di Review+Ekspor, non-subjek di tempat lain.
 - **Eskalasi laporan SPV→Direksi** (2026-07-09): laporan pegawai ditinjau SPV; laporan **SPV** ditinjau
-  **DIREKSI**. Halaman "Laporan Kinerja Tim" Direksi = daftar subjek **SPV** (`DireksiTeamReport`);
+  **DIREKSI**. Subjek yang ditinjau Direksi = **`isDireksiReviewSubject`** (bukan Direksi, non-eksternal,
+  & **role='spv' ATAU memimpin tim** — mencakup HRD-posisi bertindak-SPV mis. Ulfa; BOD role='direksi'
+  dikecualikan). Halaman "Laporan Kinerja Tim" Direksi = `DireksiTeamReport` (daftar subjek itu);
   detail via `loadSpvReportForDireksi` = **agregat L2** (`service_role`, buang L3). ACC Direksi **pakai
   ulang** kolom `spv_acc` (`setSpvAcc` sadar-peran: Direksi→`service_role`, cek target=SPV + sudah
   dirilis). **Direksi HANYA boleh meninjau laporan SPV** — laporan pegawai **non-SPV DITOLAK** di

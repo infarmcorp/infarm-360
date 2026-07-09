@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-export type AuditEntry = { ym: string; score: number; by: string; at: string; note: string | null };
+export type AuditEntry = { ym: string; score: number; by: string; at: string; note: string | null; action?: string };
 export type EmpAudit = { id: string; name: string; dept: string; entries: AuditEntry[] };
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -80,7 +80,11 @@ export function RiwayatList({ groups }: { groups: EmpAudit[] }) {
               {e.entries.map((r, i) => (
                 <tr key={i}>
                   <td className="py-2 px-3 font-semibold text-gray-700">{labelMonth(r.ym)}</td>
-                  <td className="py-2 px-3 text-center font-mono font-bold text-emerald-700">{r.score.toFixed(1)}</td>
+                  <td className="py-2 px-3 text-center font-mono font-bold">
+                    {r.action === 'delete'
+                      ? <span className="text-rose-600" title="Skor dihapus">dihapus <span className="text-gray-400 font-normal">(dari {r.score.toFixed(1)})</span></span>
+                      : <span className="text-emerald-700">{r.score.toFixed(1)}</span>}
+                  </td>
                   <td className="py-2 px-3 text-gray-600">{r.by}</td>
                   <td className="py-2 px-3 text-gray-500">{r.at}</td>
                   <td className="py-2 px-3 text-gray-500 italic">{r.note ?? '—'}</td>

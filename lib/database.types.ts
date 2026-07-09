@@ -48,8 +48,8 @@ export interface Database {
         Relationships: [];
       };
       kpi_audit: {
-        Row: { id: number; employee_id: string; ym: string; score: number; changed_by: string | null; changed_at: string; note: string | null };
-        Insert: { employee_id: string; ym: string; score: number; changed_by?: string | null; note?: string | null };
+        Row: { id: number; employee_id: string; ym: string; score: number; changed_by: string | null; changed_at: string; note: string | null; action: string };
+        Insert: { employee_id: string; ym: string; score: number; changed_by?: string | null; note?: string | null; action?: string };
         Update: never;
         Relationships: [];
       };

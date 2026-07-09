@@ -8,6 +8,8 @@ export type TeamRow = {
   id: string;
   name: string;
   dept: string | null;
+  kpiAvg: number | null;   // rerata KPI periode aktif (L1)
+  s360: number | null;     // Skor 360° terhitung (result_360, L1)
   finalScore: number | null;
   status: string | null;
   hasReport: boolean;
@@ -49,10 +51,12 @@ export function TeamTable({ rows }: { rows: TeamRow[] }) {
         <p className="text-sm text-gray-500">Tidak ada pegawai cocok dengan "{q}".</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm min-w-[480px]">
+          <table className="w-full text-left text-sm min-w-[620px]">
             <thead>
               <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
                 <th className="py-2 pr-3">Anggota</th>
+                <th className="py-2 px-3 text-center">KPI</th>
+                <th className="py-2 px-3 text-center">360°</th>
                 <th className="py-2 px-3 text-center">Skor Akhir</th>
                 <th className="py-2 px-3 text-center">Status</th>
                 <th className="py-2 pl-3 text-right">ACC</th>
@@ -90,6 +94,12 @@ export function TeamTable({ rows }: { rows: TeamRow[] }) {
                         <span className="ml-1 italic text-gray-400">· detail menunggu rilis HRD</span>
                       )}
                     </span>
+                  </td>
+                  <td className="py-3 px-3 text-center font-mono text-slate-600">
+                    {r.kpiAvg != null ? r.kpiAvg.toFixed(1) : '—'}
+                  </td>
+                  <td className="py-3 px-3 text-center font-mono text-slate-600">
+                    {r.s360 != null ? r.s360.toFixed(1) : '—'}
                   </td>
                   <td className="py-3 px-3 text-center font-mono font-black text-slate-800">
                     {r.finalScore != null ? r.finalScore.toFixed(1) : '—'}

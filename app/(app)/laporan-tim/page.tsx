@@ -4,6 +4,29 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { TeamTable, type TeamRow } from './team-table';
 
 /**
+ * Rerata KPI + Skor 360° (result_360) untuk sekumpulan pegawai pada satu periode.
+ * Nilai L1 (sejajar Skor Akhir yang sudah tampil) — dibaca via service_role, lingkup
+ * sudah dibatasi oleh daftar `ids` yang ditentukan per peran di pemanggil.
+ */
+async function scoreMaps(periodId: string, ids: string[]): Promise<{ kpiBy: Map<string, number>; s360By: Map<string, number> }> {
+  const kpiBy = new Map<string, number>();
+  const s360By = new Map<string, number>();
+  if (!ids.length) return { kpiBy, s360By };
+  const admin = createAdminClient();
+  const { data: months } = await admin.from('period_months').select('ym').eq('period_id', periodId);
+  const yms = (months ?? []).map((m) => m.ym);
+  if (yms.length) {
+    const { data: ks } = await admin.from('kpi_scores').select('employee_id, score').in('ym', yms).in('employee_id', ids);
+    const agg = new Map<string, { s: number; n: number }>();
+    (ks ?? []).forEach((r) => { const a = agg.get(r.employee_id) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; agg.set(r.employee_id, a); });
+    for (const [id, a] of agg) kpiBy.set(id, a.s / a.n);
+  }
+  const { data: rs } = await admin.from('result_360').select('employee_id, score').eq('period_id', periodId).in('employee_id', ids);
+  (rs ?? []).forEach((r) => { if (r.score != null) s360By.set(r.employee_id, r.score); });
+  return { kpiBy, s360By };
+}
+
+/**
  * Laporan Kinerja Tim (SPV / HRD mode-SPV / Direksi): tinjau & ACC laporan.
  * Lingkup anggota mengikuti kebijakan Input KPI (lihat kpi/page.tsx):
  *  - SPV          → anggota tim formal (spv_team_members), TANPA dirinya sendiri.
@@ -56,6 +79,7 @@ export default async function LaporanTimPage() {
         .eq('period_id', ap.id).in('employee_id', reportIds)
     : { data: [] };
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
+  const { kpiBy, s360By } = await scoreMaps(ap.id, reportIds);
 
   // Boleh buka detail (lapis 2)? Halaman ini dipakai SPV & HRD mode-SPV — keduanya
   // dibatasi setara: detail terbuka setelah HRD rilis (in_review) atau final — termasuk
@@ -71,6 +95,8 @@ export default async function LaporanTimPage() {
       id: e.id,
       name: e.name,
       dept: e.dept,
+      kpiAvg: kpiBy.get(e.id) ?? null,
+      s360: s360By.get(e.id) ?? null,
       finalScore: rep?.final_score ?? null,
       status,
       hasReport: !!rep,
@@ -130,6 +156,7 @@ async function DireksiTeamReport() {
         .eq('period_id', ap.id).in('employee_id', ids)
     : { data: [] as { employee_id: string; status: string | null; spv_acc: boolean; final_score: number | null }[] };
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
+  const { kpiBy, s360By } = await scoreMaps(ap.id, ids);
 
   const canOpenDetail = (status: string | null): boolean =>
     status === 'in_review' || status === 'finalized';
@@ -139,6 +166,8 @@ async function DireksiTeamReport() {
     const status = rep?.status ?? null;
     return {
       id: e.id, name: e.name, dept: e.dept,
+      kpiAvg: kpiBy.get(e.id) ?? null,
+      s360: s360By.get(e.id) ?? null,
       finalScore: rep?.final_score ?? null,
       status, hasReport: !!rep, spvAcc: !!rep?.spv_acc, isSelf: false,
       detailOpen: canOpenDetail(status),

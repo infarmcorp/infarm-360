@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useRef, useState, useTransition } from 'react';
-import { saveKpiScores } from './actions';
+import { useRouter } from 'next/navigation';
+import { saveKpiScores, deleteKpiScore } from './actions';
 import { parseKpiRows, isValidKpiRow, type KpiMember, type KpiParsedRow } from '@/lib/import/parse';
 
 type Member = KpiMember;
@@ -23,6 +24,10 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  // Penghapusan skor (manual): pegawai yang sedang dikonfirmasi + alasan wajib.
+  const [delId, setDelId] = useState<string | null>(null);
+  const [delNote, setDelNote] = useState('');
 
   const depts = useMemo(() => [...new Set(members.map((m) => m.dept))].sort(), [members]);
   const shown = useMemo(() => (dept === 'all' ? members : members.filter((m) => m.dept === dept)), [members, dept]);
@@ -36,6 +41,23 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
     startTransition(async () => {
       const res = await saveKpiScores({ ym, rows });
       setMsg(res.ok ? { ok: true, text: `Tersimpan: ${res.saved} skor.` } : { ok: false, text: res.error });
+    });
+  }
+
+  function doDelete() {
+    if (!delId) return;
+    if (!delNote.trim()) { setMsg({ ok: false, text: 'Alasan penghapusan wajib diisi.' }); return; }
+    setMsg(null);
+    const id = delId, note = delNote.trim();
+    startTransition(async () => {
+      const res = await deleteKpiScore({ employeeId: id, ym, note });
+      if (res.ok) {
+        setMsg({ ok: true, text: `Skor KPI bulan ${ym} dihapus (tercatat di audit).` });
+        setDelId(null); setDelNote('');
+        router.refresh(); // segarkan map "existing" dari server
+      } else {
+        setMsg({ ok: false, text: res.error });
+      }
     });
   }
 
@@ -122,10 +144,13 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
                 <th className="py-2">Pegawai</th>
                 <th className="py-2">Skor (0–100)</th>
                 <th className="py-2">Komentar Audit (jika edit)</th>
+                <th className="py-2 text-right whitespace-nowrap pr-1">Tersimpan</th>
               </tr>
             </thead>
             <tbody>
-              {shown.map((m) => (
+              {shown.map((m) => {
+                const saved = existing[`${m.id}|${ym}`];
+                return (
                 <tr key={m.id} className="border-b">
                   <td className="py-2">{m.name} <span className="text-gray-500">· {m.dept}</span></td>
                   <td className="py-2">
@@ -136,11 +161,55 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
                     <input type="text" placeholder="opsional" value={notes[m.id] ?? ''}
                       onChange={(e) => setNotes((n) => ({ ...n, [m.id]: e.target.value }))} className="w-full rounded border px-2 py-1" />
                   </td>
+                  <td className="py-2 text-right whitespace-nowrap pr-1">
+                    {saved === undefined ? (
+                      <span className="text-gray-400 text-xs">—</span>
+                    ) : (
+                      <span className="inline-flex items-center justify-end gap-2">
+                        <span className="font-mono font-bold text-emerald-700">{saved.toFixed(1)}</span>
+                        <button type="button" disabled={pending}
+                          onClick={() => { setDelId(m.id); setDelNote(''); setMsg(null); }}
+                          className="text-[11px] font-bold px-2 py-1 rounded border border-rose-300 text-rose-700 hover:bg-rose-50 disabled:opacity-50">
+                          Hapus
+                        </button>
+                      </span>
+                    )}
+                  </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
           </div>
+
+          {/* Konfirmasi penghapusan skor KPI — alasan WAJIB, tercatat di audit. */}
+          {delId && (() => {
+            const m = shown.find((x) => x.id === delId);
+            const saved = existing[`${delId}|${ym}`];
+            return (
+              <div className="flex flex-col gap-2 bg-rose-50 border border-rose-200 rounded-xl p-3">
+                <p className="text-[12px] text-rose-900">
+                  Hapus skor KPI <strong>{m?.name ?? 'pegawai'}</strong> bulan <strong>{ym}</strong>
+                  {saved !== undefined && <> (nilai <strong>{saved.toFixed(1)}</strong>)</>}? Penghapusan
+                  <strong> tercatat di Riwayat &amp; Audit</strong> dan mengurangi rerata KPI.
+                </p>
+                <input type="text" value={delNote} autoFocus
+                  onChange={(e) => setDelNote(e.target.value)}
+                  placeholder="Alasan penghapusan (wajib)…"
+                  className="w-full rounded border border-rose-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500" />
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={doDelete} disabled={pending || !delNote.trim()}
+                    className="text-xs font-bold px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50">
+                    {pending ? 'Menghapus…' : 'Ya, hapus skor'}
+                  </button>
+                  <button type="button" onClick={() => { setDelId(null); setDelNote(''); }} disabled={pending}
+                    className="text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+                    Batal
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
           <div className="flex items-center gap-3">
             <button onClick={submitManual} disabled={pending} className="rounded bg-emerald-700 px-4 py-2 text-white text-sm font-bold disabled:opacity-50">
               {pending ? 'Menyimpan…' : 'Simpan Semua Skor'}

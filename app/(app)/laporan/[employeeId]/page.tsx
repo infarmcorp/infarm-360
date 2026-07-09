@@ -21,7 +21,7 @@ const QUAL_INTRO = 'Rangkuman kalibrasi HRD atas jawaban pertanyaan kualitatif (
  *  - SPV & HRD mode-SPV → DETAIL AGREGAT saja (L1+L2, anonim, TANPA komentar mentah),
  *    tampak hanya bila HRD sudah merilis ('in_review') / final.
  *  - HRD mode-admin → laporan penuh + panel aksi & raw feedback (anonim).
- *  - Direksi → laporan penuh (read-only, sesuai kebijakan).
+ *  - Direksi → HANYA laporan SPV (agregat L2, via Laporan Kinerja Tim); laporan non-SPV DITOLAK.
  */
 export default async function LaporanDetailPage({ params }: { params: Promise<{ employeeId: string }> }) {
   const { employeeId } = await params;
@@ -76,7 +76,18 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     );
   }
 
-  // Tautan kembali sadar-peran: jalur SPV ke Laporan Kinerja Tim, HRD-admin/Direksi ke Daftar Laporan.
+  // Direksi HANYA boleh meninjau laporan SPV (lewat Laporan Kinerja Tim). Sampai di sini
+  // dengan role 'direksi' berarti subjek BUKAN SPV → tolak akses (laporan pegawai non-SPV).
+  if (role === 'direksi') {
+    return (
+      <Shell>
+        <Link href="/laporan-tim" className="text-xs text-gray-500 hover:underline no-print">← Laporan Kinerja Tim</Link>
+        <p className="text-sm text-gray-500 mt-3">Direksi hanya dapat meninjau laporan Supervisor (SPV).</p>
+      </Shell>
+    );
+  }
+
+  // Tautan kembali sadar-peran: jalur SPV ke Laporan Kinerja Tim, HRD-admin ke Daftar Laporan.
   const back = asSpv
     ? { href: '/laporan-tim', label: '← Laporan Kinerja Tim' }
     : { href: '/admin/laporan', label: '← Daftar Laporan' };
@@ -110,7 +121,8 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     );
   }
 
-  // Jalur HRD / Direksi: laporan penuh (tunduk RLS; raw 360° untuk HRD anonim).
+  // Jalur HRD (mode admin): laporan penuh (tunduk RLS; raw 360° untuk HRD anonim).
+  // Direksi tak sampai di sini (diblok di atas); asSpv sudah ditangani → sisanya = HRD admin.
   const data = await loadReport(supabase, employeeId, ap);
   if (!data) {
     return <Shell><p className="text-sm text-gray-500">Data tidak ditemukan atau di luar lingkup akses Anda.</p>
@@ -164,8 +176,8 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     kpiMissingMonths = allMonths.filter((m) => !have.has(m));
   }
 
-  // isAdmin (pemegang izin HRD, bukan asSpv & bukan direksi) → tampilan admin penuh
-  // (panel aksi + raw feedback anonim). Direksi → read-only penuh.
+  // isAdmin (pemegang izin HRD, bukan asSpv) → tampilan admin penuh (panel aksi + raw
+  // feedback anonim). Direksi tak sampai di sini (hanya laporan SPV L2, diblok di atas).
   return (
     <Shell>
       <Link href={back.href} className="text-xs text-gray-500 hover:underline no-print">{back.label}</Link>

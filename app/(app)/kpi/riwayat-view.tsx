@@ -54,7 +54,7 @@ export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'a
 
   let auditQuery = supabase
     .from('kpi_audit')
-    .select('employee_id, ym, score, changed_by, changed_at, note')
+    .select('employee_id, ym, score, changed_by, changed_at, note, action')
     .in('employee_id', empRows.map((e) => e.id));
   if (ymFilter) auditQuery = auditQuery.in('ym', ymFilter);
   const { data: audit } = await auditQuery.order('changed_at', { ascending: false });
@@ -74,7 +74,7 @@ export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'a
     id: e.id, name: e.name, dept: e.dept,
     entries: byEmp.get(e.id)!.map((r) => ({
       ym: r.ym, score: r.score, by: r.changed_by ? (changerName.get(r.changed_by) ?? '—') : '—',
-      at: fmt(r.changed_at), note: r.note,
+      at: fmt(r.changed_at), note: r.note, action: r.action,
     })),
   }));
 

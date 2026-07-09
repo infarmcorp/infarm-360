@@ -22,7 +22,7 @@ const ITEMS: Item[] = [
   { key: 'rekap', title: 'Rekap Kinerja per Periode', desc: 'KPI rerata, Skor 360°, punishment, Skor Akhir, kategori, A/B/C/D.', file: 'rekap-kinerja', sheet: 'Rekap', scoped: true, load: (p) => exportRekap(p) },
   { key: 'asmt', title: 'Penilaian 360° Detail (anonim penilai)', desc: 'Raw feedback kuantitatif per pegawai dinilai: relasi, aspek budaya, indikator, rating, komentar — tanpa identitas penilai.', file: 'penilaian-360-detail', sheet: 'Penilaian360', scoped: true, load: (p) => exportAssessments(p) },
   { key: 'qual', title: 'Umpan Balik Kualitatif 360° (esai, anonim)', desc: 'Jawaban pertanyaan esai per pegawai dinilai: relasi, pertanyaan, jawaban — tanpa identitas penilai.', file: 'umpan-balik-kualitatif-360', sheet: 'Kualitatif360', scoped: true, load: (p) => exportQualAnswers(p) },
-  { key: 'aspeksummary', title: 'Ringkasan Aspek Naratif (HRD)', desc: 'Teks evaluasi per aspek yang ditulis HRD/Peninjau di Review Hasil Akhir: periode, pegawai, divisi, status laporan, aspek, ringkasan.', file: 'ringkasan-aspek-naratif', sheet: 'RingkasanAspek', scoped: true, load: (p) => exportAspectSummaries(p) },
+  { key: 'aspeksummary', title: 'Ringkasan Naratif HRD (Aspek & Kualitatif)', desc: 'Teks evaluasi naratif HRD/Peninjau di Review Hasil Akhir — ringkasan Aspek 360° DAN Pertanyaan Kualitatif: periode, pegawai, divisi, status, jenis, aspek/pertanyaan, ringkasan.', file: 'ringkasan-naratif-hrd', sheet: 'RingkasanNaratif', scoped: true, load: (p) => exportAspectSummaries(p) },
   { key: 'map', title: 'Pemetaan 360°', desc: 'Pasangan penilai → target, relasi, sifat (Wajib/Opsional).', file: 'pemetaan', sheet: 'Pemetaan', scoped: true, load: (p) => exportMappings(p) },
 ];
 

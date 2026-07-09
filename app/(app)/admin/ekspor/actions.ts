@@ -210,9 +210,10 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
 }
 
 /**
- * Dataset Ringkasan Aspek Naratif (HRD/Peninjau): teks evaluasi per aspek yang ditulis
- * di Review Hasil Akhir, tersimpan di final_reports.content.aspectSummaries. Satu baris
- * per (pegawai × aspek) yang punya ringkasan; entri kosong dilewati.
+ * Dataset Ringkasan Naratif (HRD/Peninjau): teks evaluasi yang ditulis di Review Hasil Akhir,
+ * tersimpan di final_reports.content — baik ringkasan ASPEK 360° (aspectSummaries) maupun
+ * ringkasan PERTANYAAN KUALITATIF (qualSummaries). Satu baris per (pegawai × item) yang punya
+ * ringkasan; entri kosong dilewati. Kolom `jenis` membedakan Aspek vs Pertanyaan Kualitatif.
  */
 export async function exportAspectSummaries(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
@@ -229,23 +230,30 @@ export async function exportAspectSummaries(periodId?: string | null): Promise<E
   const rows: Row[] = [];
   for (const r of reports ?? []) {
     if (periodId && r.period_id !== periodId) continue;
-    const content = (r.content ?? {}) as { aspectSummaries?: Record<string, string> };
-    const summaries = content.aspectSummaries ?? {};
+    const content = (r.content ?? {}) as {
+      aspectSummaries?: Record<string, string>;
+      qualSummaries?: Record<string, string>;
+    };
     const e = empById.get(r.employee_id);
-    for (const [aspek, teks] of Object.entries(summaries)) {
-      if (!teks || !teks.trim()) continue;
-      rows.push({
-        periode: plabel.get(r.period_id) ?? r.period_id,
-        kode: e?.emp_code ?? null, nama: e?.name ?? '—', divisi: e?.dept ?? '—',
-        status_laporan: STATUS[r.status] ?? r.status,
-        aspek, ringkasan: teks.trim(),
-      });
-    }
+    const emit = (jenis: string, obj: Record<string, string>) => {
+      for (const [item, teks] of Object.entries(obj)) {
+        if (!teks || !teks.trim()) continue;
+        rows.push({
+          periode: plabel.get(r.period_id) ?? r.period_id,
+          kode: e?.emp_code ?? null, nama: e?.name ?? '—', divisi: e?.dept ?? '—',
+          status_laporan: STATUS[r.status] ?? r.status,
+          jenis, aspek_atau_pertanyaan: item, ringkasan: teks.trim(),
+        });
+      }
+    };
+    emit('Aspek', content.aspectSummaries ?? {});
+    emit('Pertanyaan Kualitatif', content.qualSummaries ?? {});
   }
   rows.sort((a, b) =>
     String(a.periode).localeCompare(String(b.periode)) ||
     String(a.nama).localeCompare(String(b.nama)) ||
-    String(a.aspek).localeCompare(String(b.aspek)));
+    String(a.jenis).localeCompare(String(b.jenis)) ||
+    String(a.aspek_atau_pertanyaan).localeCompare(String(b.aspek_atau_pertanyaan)));
   return { ok: true, rows };
 }
 

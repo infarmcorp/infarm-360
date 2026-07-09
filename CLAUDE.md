@@ -32,7 +32,8 @@ Empat peran pengguna (kolom `employees.role`; logika kewenangan di `lib/auth/rol
   > sentuh: `app-shell.tsx` (menu base), `kpi/` (`riwayat-view`/`rekap-view`/`InputTab`), `monitor/`,
   > `laporan-tim/`, `laporan/[employeeId]` (jalur `asSpv` + `loadTeamReportForHrdSpv`). Jangan
   > tinggalkan cabang `role==='hrd'` mode-SPV tertinggal saat mengubah perilaku SPV.
-- **Direksi** — dashboard eksekutif, ACC promosi/suksesi.
+- **Direksi** — dashboard eksekutif, ACC promosi/suksesi, **tinjau & ACC laporan SPV** (Laporan Kinerja
+  Tim, agregat L2). **Hanya** laporan SPV — laporan pegawai non-SPV ditolak.
 
 Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`. Panduan pengguna: `CARA-PENGGUNAAN.md`.
 
@@ -531,12 +532,33 @@ npm run test:watch # vitest mode pantau
   dikecualikan** dari Dashboard/4-Box, KPI, kepatuhan, monitor, laporan-tim (`​.neq('role','direksi')`
   di ~20 tempat itu **sengaja dipertahankan**). Jadi "Direksi bukan subjek" **tak lagi berlaku mutlak** —
   presisinya: subjek di Review+Ekspor, non-subjek di tempat lain.
+- **Eskalasi laporan SPV→Direksi** (2026-07-09): laporan pegawai ditinjau SPV; laporan **SPV** ditinjau
+  **DIREKSI**. Halaman "Laporan Kinerja Tim" Direksi = daftar subjek **SPV** (`DireksiTeamReport`);
+  detail via `loadSpvReportForDireksi` = **agregat L2** (`service_role`, buang L3). ACC Direksi **pakai
+  ulang** kolom `spv_acc` (`setSpvAcc` sadar-peran: Direksi→`service_role`, cek target=SPV + sudah
+  dirilis). **Direksi HANYA boleh meninjau laporan SPV** — laporan pegawai **non-SPV DITOLAK** di
+  `laporan/[employeeId]` (app-level; RLS Direksi belum diperketat — hardening terpisah bila perlu).
+  Baris **"Anda"** (laporan diri sendiri) **dihapus** dari Laporan Kinerja Tim SPV & HRD-mode-SPV →
+  SPV lihat laporannya sendiri hanya via **"Laporan Hasil Saya"** saat `finalized`. Laporan Kinerja Tim
+  kini menampilkan kolom **KPI & Skor 360°** (L1, via `scoreMaps` service_role) sebelum Skor Akhir.
+  Finalisasi tetap milik HRD; ACC non-blok. **Tanpa migrasi / tanpa ubah RLS.**
+- **Ringkasan naratif HRD = 2 jenis** (`final_reports.content`): `aspectSummaries` (per aspek 360°, lama)
+  & `qualSummaries` (per **pertanyaan kualitatif**/esai, 2026-07-09). Editor/tampilan dipakai ulang
+  (`AspectSummaryEditor`/`AspectSummaryView` digeneralisasi prop `title`/`intro`/`noun`); simpan lewat
+  `saveQualSummaries` (HRD) / `saveCrossQualSummaries` (Peninjau). Penyimpanan **merge** `{...content,
+  <kunci>}` → dua jenis **tak saling menimpa**. Tampil di jalur HRD/SPV/Direksi/pegawai/peninjau & ikut
+  **Ekspor Ringkasan Naratif** (dibedakan kolom `jenis`).
 - **Pegawai non-aktif**: tak jadi subjek (`.eq('is_active', true)` di jalur flag/siklus) & diblokir dari
   pemetaan + email undangan/pengingat. Halaman **pelaporan** (Opsi B) tetap tampilkan yang **aktif ATAU
   punya data di periode** (anti-hilang data pegawai resign).
 - **Form penilaian**: auto-simpan draf (debounce 5s), **semua esai WAJIB** (kebijakan mutlak),
   konfirmasi kirim + layar sukses, `key={targetId}` cegah kebocoran state antar-target.
 - **Edit KPI bulan sama WAJIB komentar audit** (ditegakkan server, bukan hanya label).
+- **Hapus KPI ber-audit** (`deleteKpiScore`, migrasi 0019, 2026-07-09): SPV & HRD-mode-SPV boleh
+  MENGHAPUS skor KPI tim/diri (RLS `kpi_write for all` sudah cakup DELETE — tak perlu policy baru).
+  **Alasan WAJIB**, guard periode aktif, DICATAT di `kpi_audit` (`action='delete'`, `score`=nilai lama).
+  Riwayat & Audit menandai **"dihapus (dari X)"**. Boleh saat laporan `finalized` (drift badge menangani;
+  paritas dgn perilaku edit KPI).
 - **Standar KPI per kuartal** (`kpi_standard`, migrasi 0010) & semua dashboard/heatmap/trendline =
   **murni pelaporan** — TIDAK menyentuh rumus di `lib/scoring.ts`.
 - **Banner "Skor 360° basi"** (migrasi 0014 `reviewed_at`): deteksi penilaian diubah / koreksi relasi
@@ -547,7 +569,8 @@ npm run test:watch # vitest mode pantau
 - Akun Saya (ganti sandi mandiri, semua peran). Konfirmasi in-app `ConfirmDialog` (~8 titik).
 - Kelola Pertanyaan: aspek + "Pakai Pertanyaan Periode Sebelumnya" (idempoten). Hapus Periode (cascade
   360° + KPI bulan unik; wajib ketik `HAPUS`).
-- Ekspor dataset lengkap (+ **360° gabungan 1 file 2 sheet**, **Ringkasan Aspek Naratif HRD**).
+- Ekspor dataset lengkap (+ **360° gabungan 1 file 2 sheet**, **Ringkasan Naratif HRD** = Aspek +
+  Pertanyaan Kualitatif, dibedakan kolom `jenis`).
 - Palet warna skor terpadu (`lib/score-color.ts`), indikator tenggat periode, empty-state berpandu.
 - Dihapus dari dashboard (atas permintaan): **Matriks 9-Box** & **Papan Suksesi/Promosi** — namun rumus
   `talentBoxOf`/`kpiBandOf`/`s360BandOf` di `lib/scoring.ts` **TETAP ADA & teruji** (jangan dihapus).
@@ -561,8 +584,9 @@ npm run test:watch # vitest mode pantau
 - `0013` `is_hrd_admin` + `is_hrd()` = `role='hrd' OR is_hrd_admin`.
 - `0014` `relation_correction_requests.reviewed_at` (deteksi skor basi).
 - `0015` `mappings.is_adhoc` · `0016` `employees.is_external` · `0017` `periods.form_open` ·
-  `0018` `employees.is_cross_reviewer`.
-- `final_reports.content` (jsonb lama) dipakai untuk `aspectSummaries` (tanpa migrasi baru).
+  `0018` `employees.is_cross_reviewer` · `0019` `kpi_audit.action` (`set`/`delete`, utk Hapus KPI ber-audit).
+- `final_reports.content` (jsonb lama) dipakai untuk `aspectSummaries` **&** `qualSummaries`
+  (ringkasan pertanyaan kualitatif) — tanpa migrasi baru.
 
 ### Infra / Testing / CI
 - **⚠️ Batas 1000-baris PostgREST (`db.max_rows`) — bug "salah diam-diam" kelas berbahaya (2026-07-08).**

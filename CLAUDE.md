@@ -544,6 +544,13 @@ npm run test:watch # vitest mode pantau
   SPV lihat laporannya sendiri hanya via **"Laporan Hasil Saya"** saat `finalized`. Laporan Kinerja Tim
   kini menampilkan kolom **KPI & Skor 360°** (L1, via `scoreMaps` service_role) sebelum Skor Akhir.
   Finalisasi tetap milik HRD; ACC non-blok. **Tanpa migrasi / tanpa ubah RLS.**
+- **Review Hasil Akhir Direksi (read-only)** (`/review-hasil` + `/[employeeId]`, `loadReportForDireksiReview`,
+  2026-07-09): permukaan **kedua** Direksi (terpisah dari Laporan Kinerja Tim). Lingkup **SEMUA pegawai**
+  (termasuk non-SPV & diri sendiri), kedalaman **L2 + raw feedback ANONIM** (byAspect/essays + ringkasan
+  aspek & kualitatif), **semua status termasuk draf**. **TANPA** Hitung Ulang / Rilis / Finalisasi / edit
+  ringkasan / ACC — murni tinjauan; hanya **lihat status ACC**. L3 bernama dibuang (`assessors:[]`). Baca
+  via `service_role` (pola Peninjau). Beda dgn blok Direksi di `/laporan/[employeeId]` (jalur SPV-only ACC)
+  — dua permukaan sengaja terpisah.
 - **Ringkasan naratif HRD = 2 jenis** (`final_reports.content`): `aspectSummaries` (per aspek 360°, lama)
   & `qualSummaries` (per **pertanyaan kualitatif**/esai, 2026-07-09). Editor/tampilan dipakai ulang
   (`AspectSummaryEditor`/`AspectSummaryView` digeneralisasi prop `title`/`intro`/`noun`); simpan lewat

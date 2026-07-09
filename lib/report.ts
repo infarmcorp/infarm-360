@@ -283,6 +283,27 @@ export async function loadSpvReportForDireksi(
 }
 
 /**
+ * Laporan untuk halaman "Review Hasil Akhir" DIREKSI (read-only, oversight eksekutif).
+ * Beda dari loadSpvReportForDireksi: lingkup **SEMUA pegawai** (termasuk non-SPV & Direksi/diri
+ * sendiri), kedalaman lebih (**L2 + raw feedback ANONIM** byAspect/essays + ringkasan aspek &
+ * kualitatif), **TANPA gerbang status** (semua status termasuk draf). Hanya blok per-penilai
+ * BERNAMA (L3 `assessors`) yang dibuang. Baca via service_role; Direksi **tak menulis apa pun**.
+ * Pelaku wajib 'direksi'.
+ */
+export async function loadReportForDireksiReview(
+  direksiId: string,
+  employeeId: string,
+  period: { id: string; label: string; has_360: boolean },
+): Promise<ReportData | null> {
+  const admin = createAdminClient() as unknown as SB;
+  const { data: actor } = await admin.from('employees').select('role').eq('id', direksiId).maybeSingle();
+  if (actor?.role !== 'direksi') return null; // hanya Direksi
+  const full = await loadReport(admin, employeeId, period);
+  if (!full) return null;
+  return { ...full, assessors: [] }; // buang L3 bernama; pertahankan byAspect/essays (raw anonim)
+}
+
+/**
  * Laporan untuk PENINJAU HASIL LINTAS DIVISI (grant is_cross_reviewer, migrasi 0018).
  * Tujuan: membantu HRD meringkas Hasil Akhir 360° pegawai di DIVISI LAIN — sengaja
  * MENGECUALIKAN divisi peninjau sendiri (konflik kepentingan/privasi rekan sedivisi).

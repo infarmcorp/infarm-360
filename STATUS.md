@@ -4,13 +4,27 @@ Potret status & catatan sesi (cepat-basi — perbarui tiap sesi). Panduan tahan-
 **CLAUDE.md**; rincian tiap fitur di **Changelog** (CLAUDE.md); sisa pekerjaan di **TO-DO & Backlog**
 (CLAUDE.md); catatan operasional trial/Q2 di **REKOMENDASI.md**.
 
-## Sedang Dikerjakan (per 2026-07-01)
+## Sedang Dikerjakan (per 2026-07-12)
 
-**Fokus aktif:** persiapan akhir trial + pengerasan operasional HRD. Migrasi fungsional
-**selesai & live**; sisa sebagian besar **aktivasi env** (email/sandi) + **kebersihan akun**.
+**Fokus aktif:** peningkatan dashboard & pelaporan (tanggal aktif, trend, scorecard, 2-desimal).
+Migrasi fungsional **selesai & live**; sisa sebagian besar **aktivasi env** (email/sandi) + **kebersihan akun**.
 
-**Status repo: BERSIH — semua pekerjaan sesi 2026-06-30 & 2026-07-01 sudah PUSHED & live.**
+**Status repo: BERSIH — semua pekerjaan sesi 2026-07-10..12 sudah PUSHED ke `main` & live (commit `9266b34`).**
 Bagian ini hanya potret status; perincian tiap fitur ada di **Changelog** & **TO-DO** di CLAUDE.md.
+
+- **Sesi 2026-07-10 → 2026-07-12 (SEMUA sudah push & live — commit `9266b34`):**
+  - **Tanggal aktif pegawai** (`joined_on`/`left_on`, migrasi **0020**, sudah diterapkan ke DB live) +
+    kolom "Masa Aktif" di Kelola Pegawai; **Dashboard keanggotaan HIBRIDA** sadar-periode.
+  - **Trend KPI seragam** (`lib/trend.ts`) di Laporan Kinerja Tim / Monitor / Dashboard; **"KPI belum
+    terbaca"** (unread) dikecualikan seragam dari rerata/kategorisasi (baris tetap tampil, 360° tetap dihitung).
+  - **Scorecard + metrik tim bersama** (`lib/team-metrics.ts`); **Monitor** dirombak jadi dashboard SPV
+    (scorecard + tabel + filter periode + 3 grafik tren; tanpa tinjau/Status/ACC; sertakan baris SPV sendiri).
+  - **Label Skor Akhir `(live)` vs `(tersimpan)`** (Monitor/Dashboard = live; Laporan Kinerja Tim = finalisasi).
+  - **Skor 360° per-aspek TERBOBOT** (dashboard + laporan per-pegawai) + **presisi 2 desimal**
+    (`round1`→`round2`); dashboard 360 tambah heatmap Divisi×Aspek, donut, scorecard tertinggi/terendah.
+  - ⚠️ **PENDING aksi HRD:** klik **"Hitung Ulang Skor 360°"** agar `result_360` tersimpan jadi 2 desimal.
+  - **Belum diperbarui:** item **#3 `allow360Only`** (Monitor `true` vs Dashboard `false`) sengaja dibiarkan.
+  - Skrip diagnostik read-only baru: `scripts/check-unread.mjs` (daftar pegawai "KPI belum terbaca").
 
 - **Sesi 2026-06-30 → 2026-07-01 (SEMUA sudah push & live):**
   - **Peninjau Hasil Lintas Divisi** (grant `is_cross_reviewer`, migrasi 0018) — commit `0043678`.
@@ -55,6 +69,9 @@ Bagian ini hanya potret status; perincian tiap fitur ada di **Changelog** & **TO
 - Laporan & visibilitas: `lib/report.ts` (`loadReport`/`loadTeamReportForSpv`/`loadTeamReportForHrdSpv`),
   `app/(app)/laporan/`, `app/(app)/laporan-tim/`, `app/(app)/admin/laporan/` · RLS: migrasi 0012
 - Dashboard: `app/(app)/admin/dashboard/` (`page.tsx` + `dashboard-visual.tsx`)
+- Laporan Kinerja Tim & Monitor: `app/(app)/laporan-tim/` (`team-table.tsx`/`scorecards.tsx`),
+  `app/(app)/monitor/` (`page.tsx`/`monitor-trends.tsx`/`period-filter.tsx`), `lib/team-metrics.ts`, `lib/trend.ts`
+- Tanggal aktif pegawai: `app/(app)/admin/pegawai/` (`actions.ts`/`page.tsx`/`pegawai-client.tsx`), migrasi 0020
 - Ekspor: `app/(app)/admin/ekspor/` (`actions.ts` + `ekspor-client.tsx`)
 - Skor & tes: `lib/scoring.ts`, `lib/score360.ts`, `tests/`, `scripts/verify-rls.ts`, `.github/workflows/ci.yml`
 - Izin/sesi: `lib/auth/roles.ts` (`canAdmin`), `app/(app)/layout.tsx`, `app/(app)/app-shell.tsx`, `app/login/`

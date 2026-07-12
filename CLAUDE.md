@@ -214,7 +214,7 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
   - ❌ **#17 Penegasan "Wajib tekan Kirim" — TIDAK DIKERJAKAN** (keputusan 2026-06-25): berhenti di
     draf = **kelalaian pegawai**, bukan tanggung jawab app. Lihat "Keputusan terkunci" di bawah.
   - (Pra-go-live email/sandi/rotasi kredensial/**backup rutin**/branch-protection tetap di bagian Keamanan & item bawah.)
-- 🔄 **Tes unit** — Vitest **55 tes** (logika skor + parsing impor Excel KPI & pemetaan 360°).
+- 🔄 **Tes unit** — Vitest **66 tes** (logika skor + trend KPI + parsing impor Excel KPI & pemetaan 360°).
 - ⬜ **Tes Server Action** (finalisasi laporan, `releaseToSpv`, `setHrdAdmin`, ACC) — belum ada;
   butuh mock Supabase. Nilai sedang. **Task baru (diskusi 2026-06-19).**
 - ⬜ **Branch protection GitHub** — PR ke `main` belum wajib CI hijau (push langsung bisa lolos
@@ -406,13 +406,15 @@ ONBOARDING_GMAIL_ONLY          # server-only — 'false' utk kirim undangan ke S
 > ke pengguna. **Bukan** aktivitas kuartalan — dijalankan saat **kode disentuh**.
 
 - **Jalankan:** `npm test` (sekali) atau `npm run test:watch` (mode pantau).
-- **Cakupan (56 tes):**
+- **Cakupan (66 tes):**
   - `tests/scoring.test.ts` → `lib/scoring.ts`: `finalScoreOf` (blend 50/50, KPI-only, s360
     null, punishment, floor 0), `playerClassOf` (KPI×360° ambang 80 → A / B-Culture / B-KPI / C,
     null bila keduanya kosong, nilai hilang <80; **tanpa D**), `kpiBandOf`/`s360BandOf`, `talentBoxOf` (9 kotak).
   - `tests/score360.test.ts` → `lib/score360.ts`: `weightedScore360` **4class** (semua kelas,
     normalisasi bobot, **kelas Bawahan**, **Self dikecualikan**) & **2class** (Internal = rerata
-    semua skor Peer+Cross+Bawahan, fallback satu sisi).
+    semua skor Peer+Cross+Bawahan, fallback satu sisi); `round2` (2 desimal).
+  - `tests/trend.test.ts` → `lib/trend.ts`: `trendOf` (empty/unread/stable/up/down/volatile — urut
+    prioritas, toleransi ±2, butuh 3 bulan untuk naik/turun/stabil).
   - `tests/import.test.ts` → `lib/import/parse.ts`: parsing impor Excel **KPI** (`parseKpiRows`,
     `isValidKpiRow`: alias kolom, normalisasi kode uppercase, skor kosong→tak valid, batas 0–100)
     & **pemetaan 360°** (`parseMappingRows`, `classifyMappingRows`: ok/invalid/self/dup, alias,
@@ -570,6 +572,33 @@ npm run test:watch # vitest mode pantau
   paritas dgn perilaku edit KPI).
 - **Standar KPI per kuartal** (`kpi_standard`, migrasi 0010) & semua dashboard/heatmap/trendline =
   **murni pelaporan** — TIDAK menyentuh rumus di `lib/scoring.ts`.
+- **Tanggal aktif pegawai + keanggotaan Dashboard HIBRIDA** (`employees.joined_on`/`left_on`, migrasi
+  0020, 2026-07-10). `joined_on` auto-isi (`created_at`/hari ini), `left_on` di-stamp saat dinonaktifkan
+  (dikosongkan saat diaktifkan lagi); keduanya bisa dikoreksi HRD di Kelola Pegawai (kolom "Masa Aktif").
+  Dashboard kini memilih anggota per-periode via **irisan masa kerja × rentang periode** (`joined_on ≤
+  end_date` DAN (`left_on ≥ start_date` bila diisi, else fallback `is_active`)) **ATAU** punya data
+  KPI/360° di kuartal itu (jaring pengaman) → filter kuartal lampau tetap menampilkan pegawai yang kini
+  resign. **Murni pelaporan** — tak menyentuh `lib/scoring.ts`.
+- **Trend KPI seragam + "KPI Belum Terbaca"** (`lib/trend.ts` `trendOf`, 2026-07-10). Satu sumber
+  definisi trend 3-bulan (6 kategori: empty/unread/stable/up/down/volatile) dipakai di **Laporan Kinerja
+  Tim, Monitor, & Dashboard** (kolom Trend KPI + tooltip). **"Belum terbaca"** (`unread` = bln-1=0 &
+  bln-2=0) = data KPI belum masuk, **bukan** kinerja rendah → **dikecualikan seragam** dari rerata &
+  kategorisasi KPI/Skor Akhir di ketiga permukaan (baris tetap tampil; **360° tetap dihitung**); Dashboard
+  4-Box menampilkannya sebagai bucket terpisah "Belum Terbaca". Input `trendOf` **selalu 3 bulan pertama**
+  `period_months` terurut (null = bulan belum diisi). Murni pelaporan.
+- **Metrik tim bersama + Skor Akhir "live vs tersimpan"** (`lib/team-metrics.ts`, 2026-07-10).
+  `scoreMaps`/`companyAverages`/`teamAverages`/`penaltyMap` dipakai bersama **Laporan Kinerja Tim** &
+  **Monitor** (scorecard Total/Avg-KPI/Avg-360° + selisih vs perusahaan). **Laporan Kinerja Tim** tampilkan
+  Skor Akhir **tersimpan** (`final_reports.final_score`); **Monitor & Dashboard-Tabel** tampilkan Skor Akhir
+  **live** (`finalScoreOf`, di Monitor `allow360Only=true`) → header/footnote diberi label `(tersimpan)`/
+  `(live)` agar tak dikira tak konsisten (angka memang bisa beda bila laporan difinalisasi sebelum Hitung
+  Ulang). `team-table` prop `scoreBasis`; Monitor = dashboard SPV (tanpa tinjau/Status/ACC, **sertakan baris
+  SPV sendiri**, filter periode + 3 grafik tren lintas periode/bulan via `monitor-trends.tsx`).
+- **Skor 360° per-aspek TERBOBOT + presisi 2 desimal** (2026-07-10). Skor per-aspek di Dashboard
+  (`admin/dashboard/page.tsx`) & laporan per-pegawai (`lib/report.ts`) kini pakai `weightedScore360`
+  (bobot per kelas penilai, Self dikecualikan) — selaras Skor 360° headline, **bukan** rerata polos lagi.
+  `lib/score360.ts` `round1`→**`round2`** (2 desimal) untuk `result_360` tersimpan; tampilan `.toFixed(2)`
+  menyeluruh. ⚠️ Skor `result_360` lama masih presisi 1-desimal sampai HRD klik **"Hitung Ulang Skor 360°"**.
 - **Banner "Skor 360° basi"** (migrasi 0014 `reviewed_at`): deteksi penilaian diubah / koreksi relasi
   di-ACC setelah `computed_at` → ingatkan Hitung Ulang.
 
@@ -593,7 +622,8 @@ npm run test:watch # vitest mode pantau
 - `0013` `is_hrd_admin` + `is_hrd()` = `role='hrd' OR is_hrd_admin`.
 - `0014` `relation_correction_requests.reviewed_at` (deteksi skor basi).
 - `0015` `mappings.is_adhoc` · `0016` `employees.is_external` · `0017` `periods.form_open` ·
-  `0018` `employees.is_cross_reviewer` · `0019` `kpi_audit.action` (`set`/`delete`, utk Hapus KPI ber-audit).
+  `0018` `employees.is_cross_reviewer` · `0019` `kpi_audit.action` (`set`/`delete`, utk Hapus KPI ber-audit) ·
+  `0020` `employees.joined_on`/`left_on` (tanggal aktif; keanggotaan Dashboard hibrida — pelaporan, non-rumus).
 - `final_reports.content` (jsonb lama) dipakai untuk `aspectSummaries` **&** `qualSummaries`
   (ringkasan pertanyaan kualitatif) — tanpa migrasi baru.
 
@@ -608,8 +638,8 @@ npm run test:watch # vitest mode pantau
   AMAN** (assessments/rating utuh); hanya `result_360` (turunan) yang salah → sembuh dgn Hitung Ulang.
   Deteksi "skor basi" hanya cek WAKTU (`submitted_at`>`computed_at`), **bukan kebenaran** skor → bug ini lolos
   tanpa badge. **Pelajaran:** query enumerasi apa pun yg bisa tumbuh >1000 baris WAJIB paginasi.
-- **Vitest 56 tes** (skor `lib/scoring.ts`/`lib/score360.ts` + parsing impor `lib/import/parse.ts`);
-  **CI** (test+typecheck+build tiap push/PR). Rincian di **Pengujian**.
+- **Vitest 66 tes** (skor `lib/scoring.ts`/`lib/score360.ts` + trend `lib/trend.ts` + parsing impor
+  `lib/import/parse.ts`); **CI** (test+typecheck+build tiap push/PR). Rincian di **Pengujian**.
 - **`npm run verify:rls`** — 21 assertion (kpi_scores + L3 tertutup untuk SPV); manual, tak di CI.
 - Skrip operasional: `backup.mjs`/`restore.mjs` (dump 22 tabel), `reset-*.mjs`, `apply-migration.mjs`
   (pola `npm install --no-save pg`). `xlsx@0.20.3` (CDN, tutup advisory high). Arsip legacy `src/` dihapus.

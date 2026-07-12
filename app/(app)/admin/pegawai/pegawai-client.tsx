@@ -9,6 +9,7 @@ export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type EmpRow = {
   id: string; empCode: string; name: string; dept: string; role: Role;
   isHrdAdmin: boolean; isExternal: boolean; isCrossReviewer: boolean; active: boolean; email: string; spvId: string | null; spvName: string | null;
+  joinedOn: string | null; leftOn: string | null; // tgl masuk/aktif & tgl nonaktif (YYYY-MM-DD)
 };
 export type SpvOpt = { id: string; name: string; dept: string; role: Role };
 
@@ -32,11 +33,19 @@ function nextCode(codes: string[]): string {
 type FormState = {
   id: string | null; name: string; empCode: string; dept: string; role: Role;
   email: string; password: string; spvId: string; isExternal: boolean;
+  joinedOn: string; leftOn: string; // '' = tak diisi
 };
-const EMPTY: FormState = { id: null, name: '', empCode: '', dept: '', role: 'employee', email: '', password: '', spvId: '', isExternal: false };
+const EMPTY: FormState = { id: null, name: '', empCode: '', dept: '', role: 'employee', email: '', password: '', spvId: '', isExternal: false, joinedOn: '', leftOn: '' };
 
 const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, '.');
 const randPass = () => 'Inf' + Math.random().toString(36).slice(2, 8) + Math.floor(10 + Math.random() * 89);
+const todayStr = () => new Date().toISOString().slice(0, 10);
+/** Format 'YYYY-MM-DD' → 'DD/MM/YYYY' tanpa konversi zona waktu (aman utk date-only). */
+function fmtDate(s: string | null): string {
+  if (!s) return '—';
+  const [y, m, d] = s.split('-');
+  return y && m && d ? `${d}/${m}/${y}` : s;
+}
 
 export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: SpvOpt[]; depts: string[] }) {
   const [q, setQ] = useState('');
@@ -89,12 +98,12 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
 
   function openAdd() {
     setToast(null);
-    setForm({ ...EMPTY, empCode: nextCode(allCodes) });
+    setForm({ ...EMPTY, empCode: nextCode(allCodes), joinedOn: todayStr() });
     setOpenTick((n) => n + 1);
   }
   function openEdit(r: EmpRow) {
     setToast(null);
-    setForm({ id: r.id, name: r.name, empCode: r.empCode, dept: r.dept, role: r.role, email: r.email, password: '', spvId: r.spvId ?? '', isExternal: r.isExternal });
+    setForm({ id: r.id, name: r.name, empCode: r.empCode, dept: r.dept, role: r.role, email: r.email, password: '', spvId: r.spvId ?? '', isExternal: r.isExternal, joinedOn: r.joinedOn ?? '', leftOn: r.leftOn ?? '' });
     setOpenTick((n) => n + 1);
   }
 
@@ -127,9 +136,9 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
     if (dupEmail) { setToast({ ok: false, text: `Email ${form.email} sudah dipakai oleh ${dupEmail.name}.` }); return; }
     const spvId = form.spvId || null;
     if (form.id) {
-      act(() => updateEmployee({ id: form.id, name: form.name, empCode: form.empCode, dept: form.dept, role: form.role, email: form.email, spvId, isExternal: form.isExternal }), true);
+      act(() => updateEmployee({ id: form.id, name: form.name, empCode: form.empCode, dept: form.dept, role: form.role, email: form.email, spvId, isExternal: form.isExternal, joinedOn: form.joinedOn, leftOn: form.leftOn }), true);
     } else {
-      act(() => createEmployee({ name: form.name, empCode: form.empCode, dept: form.dept, role: form.role, email: form.email, password: form.password, spvId, isExternal: form.isExternal }), true);
+      act(() => createEmployee({ name: form.name, empCode: form.empCode, dept: form.dept, role: form.role, email: form.email, password: form.password, spvId, isExternal: form.isExternal, joinedOn: form.joinedOn }), true);
     }
   }
 
@@ -212,6 +221,18 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                 {spvs.filter((s) => s.id !== form.id).map((s) => <option key={s.id} value={s.id}>{s.name} · {ROLE_LABEL[s.role]} · {s.dept}</option>)}
               </select>
             </Field>
+            <Field label="Tanggal Masuk / Aktif">
+              <input type="date" value={form.joinedOn} onChange={(e) => set('joinedOn', e.target.value)} className="inp" />
+              <span className="block text-[10px] text-gray-500 mt-0.5">{form.id ? 'Dapat dikoreksi ke tanggal masuk sebenarnya.' : 'Default hari ini; ubah bila tanggal masuk berbeda.'}</span>
+            </Field>
+            {form.id && (
+              <Field label="Tanggal Nonaktif (opsional)">
+                <input type="date" value={form.leftOn} onChange={(e) => set('leftOn', e.target.value)} min={form.joinedOn || undefined} className="inp" />
+                <span className="block text-[10px] text-gray-500 mt-0.5">
+                  Terisi otomatis saat dinonaktifkan; kosongkan bila masih aktif. {form.leftOn ? 'Koreksi ke tanggal keluar sebenarnya.' : ''}
+                </span>
+              </Field>
+            )}
             <label className="sm:col-span-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/60 p-2.5 cursor-pointer">
               <input type="checkbox" checked={form.isExternal} onChange={(e) => set('isExternal', e.target.checked)} className="mt-0.5 accent-amber-600" />
               <span className="text-[11px] text-amber-900 leading-snug">
@@ -253,19 +274,20 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
 
       {/* Tabel */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm min-w-[640px]">
+        <table className="w-full text-left text-sm min-w-[760px]">
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
               <th className="py-2 pr-3">Pegawai</th>
               <th className="py-2 px-3">Divisi</th>
               <th className="py-2 px-3">Peran</th>
               <th className="py-2 px-3">Atasan</th>
+              <th className="py-2 px-3">Masa Aktif</th>
               <th className="py-2 px-3 text-center">Status</th>
               <th className="py-2 pl-3 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {shown.length === 0 && <tr><td colSpan={6} className="py-6 text-center text-sm text-gray-500">Tidak ada pegawai sesuai filter.</td></tr>}
+            {shown.length === 0 && <tr><td colSpan={7} className="py-6 text-center text-sm text-gray-500">Tidak ada pegawai sesuai filter.</td></tr>}
             {shown.map((r) => (
               <tr key={r.id} className={r.active ? '' : 'opacity-55'}>
                 <td className="py-3 pr-3">
@@ -286,6 +308,10 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                   )}
                 </td>
                 <td className="py-3 px-3 text-xs text-gray-500">{r.spvName ?? '—'}</td>
+                <td className="py-3 px-3 text-[11px] text-gray-600 whitespace-nowrap">
+                  <span title="Tanggal masuk / aktif">↳ {fmtDate(r.joinedOn)}</span>
+                  {r.leftOn && <span className="block text-rose-600" title="Tanggal nonaktif">⇥ {fmtDate(r.leftOn)}</span>}
+                </td>
                 <td className="py-3 px-3 text-center">
                   {r.active
                     ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Aktif</span>

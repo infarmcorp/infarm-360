@@ -74,15 +74,15 @@ export function CrossTable({ rows, depts, has360 }: { rows: CrossRow[]; depts: s
                 <td className="py-3 pr-3"><span className="font-bold text-gray-800">{r.name}</span></td>
                 <td className="py-3 px-3 text-xs text-gray-600">{r.dept}</td>
                 <td className="py-3 px-3 text-center font-mono text-slate-600">
-                  {r.kpiAvg == null ? <span className="text-rose-500 text-[10px]">kosong</span> : r.kpiAvg.toFixed(1)}
+                  {r.kpiAvg == null ? <span className="text-rose-500 text-[10px]">kosong</span> : r.kpiAvg.toFixed(2)}
                 </td>
                 <td className="py-3 px-3 text-center font-mono text-slate-600">
                   {!has360 ? <span className="text-[10px] text-gray-400">N/A</span>
                     : r.s360 == null ? <span className="text-[10px] text-amber-600">belum</span>
-                    : r.s360.toFixed(1)}
+                    : r.s360.toFixed(2)}
                 </td>
                 <td className="py-3 px-3 text-center font-mono font-black text-slate-800">
-                  {r.final != null ? r.final.toFixed(1) : '—'}
+                  {r.final != null ? r.final.toFixed(2) : '—'}
                 </td>
                 {has360 && (
                   <td className="py-3 px-3 text-center">

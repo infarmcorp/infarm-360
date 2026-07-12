@@ -102,7 +102,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan' }: { ro
                 <td className="py-3 px-3 text-center font-mono text-slate-600">
                   {r.kpiAvg == null ? <span className="text-rose-500 text-[10px]">kosong</span> : (
                     <div className="flex flex-col items-center gap-0.5">
-                      <span>{r.kpiAvg.toFixed(1)}</span>
+                      <span>{r.kpiAvg.toFixed(2)}</span>
                       {r.totalMonths > 0 && (
                         <span className={r.missingMonths.length ? 'text-[9px] font-bold text-amber-700' : 'text-[9px] text-gray-400'}
                           title={r.missingMonths.length ? `Bulan belum ada KPI: ${r.missingMonths.join(', ')}` : 'Semua bulan terisi'}>
@@ -117,7 +117,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan' }: { ro
                     : r.s360 == null ? <span className="text-[10px] text-amber-600">belum</span>
                     : (
                       <div className="flex flex-col items-center gap-0.5">
-                        <span>{r.s360.toFixed(1)}</span>
+                        <span>{r.s360.toFixed(2)}</span>
                         {r.needsRecompute && (
                           <span title="Penilaian berubah sejak skor 360° terakhir dihitung — klik Hitung Ulang Skor 360°."
                             className="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">⚠ perlu hitung</span>
@@ -137,17 +137,17 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan' }: { ro
                       const drift = r.final != null && stored != null && Math.abs(r.final - stored) >= 0.05;
                       return (
                         <div className="flex flex-col items-center gap-0.5">
-                          <span>{stored != null ? stored.toFixed(1) : '—'}</span>
+                          <span>{stored != null ? stored.toFixed(2) : '—'}</span>
                           {drift && (
-                            <span title={`Skor terkini ${r.final!.toFixed(1)} berbeda dari yang difinalisasi — Kembalikan ke Draf lalu Finalisasi ulang untuk memperbarui.`}
+                            <span title={`Skor terkini ${r.final!.toFixed(2)} berbeda dari yang difinalisasi — Kembalikan ke Draf lalu Finalisasi ulang untuk memperbarui.`}
                               className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                              berubah → {r.final!.toFixed(1)}
+                              berubah → {r.final!.toFixed(2)}
                             </span>
                           )}
                         </div>
                       );
                     }
-                    return r.final != null ? r.final.toFixed(1) : '—';
+                    return r.final != null ? r.final.toFixed(2) : '—';
                   })()}
                 </td>
                 {has360 && (

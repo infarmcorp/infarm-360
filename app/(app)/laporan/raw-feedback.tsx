@@ -46,7 +46,7 @@ export function RawFeedback({ byAspect, essays }: { byAspect: AspectRaw[]; essay
                         : ind.ratings.map((r, i) => (
                             <span key={i} className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${RATING_COLOR(r)}`}>{r}</span>
                           ))}
-                      {m != null && <span className="text-[10px] text-gray-500 ml-1">· rerata <strong>{m.toFixed(1)}</strong> ({ind.ratings.length} penilai)</span>}
+                      {m != null && <span className="text-[10px] text-gray-500 ml-1">· rerata <strong>{m.toFixed(2)}</strong> ({ind.ratings.length} penilai)</span>}
                     </div>
                     {/* Komentar mentah (anonim) */}
                     {ind.comments.length > 0 ? (

@@ -166,7 +166,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
                       <span className="text-gray-400 text-xs">—</span>
                     ) : (
                       <span className="inline-flex items-center justify-end gap-2">
-                        <span className="font-mono font-bold text-emerald-700">{saved.toFixed(1)}</span>
+                        <span className="font-mono font-bold text-emerald-700">{saved.toFixed(2)}</span>
                         <button type="button" disabled={pending}
                           onClick={() => { setDelId(m.id); setDelNote(''); setMsg(null); }}
                           className="text-[11px] font-bold px-2 py-1 rounded border border-rose-300 text-rose-700 hover:bg-rose-50 disabled:opacity-50">
@@ -190,7 +190,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
               <div className="flex flex-col gap-2 bg-rose-50 border border-rose-200 rounded-xl p-3">
                 <p className="text-[12px] text-rose-900">
                   Hapus skor KPI <strong>{m?.name ?? 'pegawai'}</strong> bulan <strong>{ym}</strong>
-                  {saved !== undefined && <> (nilai <strong>{saved.toFixed(1)}</strong>)</>}? Penghapusan
+                  {saved !== undefined && <> (nilai <strong>{saved.toFixed(2)}</strong>)</>}? Penghapusan
                   <strong> tercatat di Riwayat &amp; Audit</strong> dan mengurangi rerata KPI.
                 </p>
                 <input type="text" value={delNote} autoFocus

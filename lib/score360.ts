@@ -20,7 +20,7 @@ export const classOf = (rel: RelationKind): Class360 => {
 };
 
 export const avg = (xs: number[]): number | null => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
-export const round1 = (n: number): number => Math.round(n * 10) / 10;
+export const round2 = (n: number): number => Math.round(n * 100) / 100;
 
 /**
  * Skor 360° terbobot satu pegawai dari grup skor (skala 0–100, sudah ×20) per kelas.

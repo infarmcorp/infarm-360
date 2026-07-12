@@ -93,6 +93,11 @@ const EmpCode = z.string().trim().min(2, 'Kode pegawai minimal 2 karakter').max(
 const Email = z.string().trim().email('Email tidak valid');
 const Password = z.string().min(6, 'Sandi minimal 6 karakter');
 const OptId = z.string().uuid().nullish();
+// Tanggal 'YYYY-MM-DD' dari <input type="date">; string kosong / null → null (tak diisi).
+const OptDate = z.union([z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal tidak valid'), z.literal('')])
+  .nullish().transform((v) => (v ? v : null));
+/** Tanggal hari ini (YYYY-MM-DD) untuk stempel otomatis masuk/nonaktif. */
+const todayStr = () => new Date().toISOString().slice(0, 10);
 
 const CreateInput = z.object({
   name: z.string().trim().min(2, 'Nama minimal 2 karakter'),
@@ -103,13 +108,14 @@ const CreateInput = z.object({
   password: Password,
   spvId: OptId, // atasan/SPV (opsional)
   isExternal: z.boolean().optional().default(false), // penilai eksternal (vendor/freelance)
+  joinedOn: OptDate, // tgl masuk/aktif (opsional; default hari ini)
 });
 
 /** Tambah pegawai baru: buat akun auth → baris employees → (opsional) tautkan ke tim SPV. */
 export async function createEmployee(raw: unknown): Promise<Result> {
   const parsed = CreateInput.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
-  const { name, empCode, dept, role, email, password, spvId, isExternal } = parsed.data;
+  const { name, empCode, dept, role, email, password, spvId, isExternal, joinedOn } = parsed.data;
 
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
@@ -130,7 +136,7 @@ export async function createEmployee(raw: unknown): Promise<Result> {
 
   // 2) Baris employees (RLS emp_manage = HRD). Rollback akun bila gagal.
   const { error: eErr } = await supabase.from('employees')
-    .insert({ id: newId, emp_code: empCode.toUpperCase(), name, dept, role, is_external: isExternal, is_active: true });
+    .insert({ id: newId, emp_code: empCode.toUpperCase(), name, dept, role, is_external: isExternal, is_active: true, joined_on: joinedOn ?? todayStr() });
   if (eErr) {
     await admin.auth.admin.deleteUser(newId); // bersihkan akun yatim
     return { ok: false, error: eErr.code === '23505' ? 'Kode pegawai sudah dipakai' : 'Gagal menyimpan data: ' + eErr.message };
@@ -214,7 +220,7 @@ export async function createEmployeesBulk(rawRows: unknown): Promise<BulkResult>
 
     // 2) Baris employees (rollback akun bila gagal).
     const { error: eErr } = await supabase.from('employees')
-      .insert({ id: newId, emp_code: code, name: r.name, dept: r.dept, role: r.role, is_active: true });
+      .insert({ id: newId, emp_code: code, name: r.name, dept: r.dept, role: r.role, is_active: true, joined_on: todayStr() });
     if (eErr) {
       await admin.auth.admin.deleteUser(newId);
       if (eErr.code === '23505') { skipped++; } else failed.push({ code, reason: 'data gagal: ' + eErr.message });
@@ -248,13 +254,15 @@ const UpdateInput = z.object({
   email: Email,
   spvId: OptId,
   isExternal: z.boolean().optional().default(false),
+  joinedOn: OptDate, // tgl masuk/aktif — koreksi manual
+  leftOn: OptDate,   // tgl nonaktif — koreksi manual (kosong = masih aktif / tak dicatat)
 });
 
-/** Ubah data pegawai: name/dept/role/emp_code + email (akun) + atasan (tim SPV tunggal). */
+/** Ubah data pegawai: name/dept/role/emp_code + email (akun) + atasan + tgl masuk/nonaktif. */
 export async function updateEmployee(raw: unknown): Promise<Result> {
   const parsed = UpdateInput.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
-  const { id, name, empCode, dept, role, email, spvId, isExternal } = parsed.data;
+  const { id, name, empCode, dept, role, email, spvId, isExternal, joinedOn, leftOn } = parsed.data;
 
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
@@ -262,7 +270,7 @@ export async function updateEmployee(raw: unknown): Promise<Result> {
   const admin = createAdminClient();
 
   const { error: eErr } = await supabase.from('employees')
-    .update({ name, emp_code: empCode.toUpperCase(), dept, role, is_external: isExternal }).eq('id', id);
+    .update({ name, emp_code: empCode.toUpperCase(), dept, role, is_external: isExternal, joined_on: joinedOn, left_on: leftOn }).eq('id', id);
   if (eErr) return { ok: false, error: eErr.code === '23505' ? 'Kode pegawai sudah dipakai' : 'Gagal menyimpan: ' + eErr.message };
 
   // Sinkronkan email akun bila berubah.
@@ -296,7 +304,11 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
   if (!auth.ok) return { ok: false, error: auth.error };
   if (id === auth.userId) return { ok: false, error: 'Tidak dapat menonaktifkan akun Anda sendiri' };
 
-  const { error } = await supabase.from('employees').update({ is_active: active }).eq('id', id);
+  // Stempel tanggal otomatis (dapat dikoreksi via "Ubah"): nonaktif → left_on = hari ini;
+  // aktif kembali → left_on dikosongkan (joined_on = tgl masuk dipertahankan sbg histori).
+  const today = todayStr();
+  const datePatch = active ? { left_on: null } : { left_on: today };
+  const { error } = await supabase.from('employees').update({ is_active: active, ...datePatch }).eq('id', id);
   if (error) return { ok: false, error: 'Gagal: ' + error.message };
 
   // Pemetaan ikut dinonaktifkan/diaktifkan → orang keluar/masuk siklus penilaian (tak lagi
@@ -333,8 +345,8 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
   const { data: emp } = await supabase.from('employees').select('name').eq('id', id).maybeSingle();
   await logHrdAction({
     action: active ? 'employee.activate' : 'employee.deactivate', category: 'pegawai',
-    summary: `${active ? 'Mengaktifkan' : 'Menonaktifkan (mengunci akun)'} pegawai ${emp?.name ?? id} + ${active ? 'mengaktifkan' : 'menonaktifkan'} pemetaannya`,
-    targetType: 'employee', targetId: id, targetLabel: emp?.name ?? null,
+    summary: `${active ? 'Mengaktifkan' : `Menonaktifkan (mengunci akun) per ${today}`} pegawai ${emp?.name ?? id} + ${active ? 'mengaktifkan' : 'menonaktifkan'} pemetaannya`,
+    targetType: 'employee', targetId: id, targetLabel: emp?.name ?? null, meta: { effective_date: today, active },
   });
   revalidate();
   return { ok: true, msg: active ? 'Pegawai diaktifkan.' : 'Pegawai dinonaktifkan (akun dikunci).' };

@@ -7,6 +7,7 @@ import {
   PLAYER_BOXES, type PlayerClass, perfLabelOf,
 } from '@/lib/scoring';
 import { heatColor, HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
+import { TREND_META, type Trend } from '@/lib/trend';
 
 /** Baris pegawai (primitif, serializable) yang dihitung di server. */
 export type Row = {
@@ -21,11 +22,18 @@ export type Row = {
   // Skornya TETAP dihitung di agregat (akurat per periode, hindari survivorship bias);
   // penanda ini hanya untuk kejelasan visual di tabel.
   isActive?: boolean;
+  // KPI "belum terbaca" (bln-1 & bln-2 = 0) → dikecualikan dari kategorisasi/rerata KPI & Skor Akhir.
+  kpiUnread?: boolean;
+  // Trend KPI 3 bulan (trendOf) + skor bulanannya (untuk badge & tooltip di Tabel).
+  trend?: Trend;
+  kpiMonths?: (number | null)[];
 };
 
 
 /** Baris heatmap KPI per divisi: satu sel per bulan (null = belum ada data). */
 export type DeptMonthRow = { dept: string; cells: { ym: string; avg: number | null }[] };
+/** Baris heatmap 360° per divisi: satu sel per aspek (skor 0–100 terbobot per kelas penilai; null = belum ada data). */
+export type DeptAspectRow = { dept: string; cells: { aspect: string; avg: number | null }[] };
 
 type Props = {
   rows: Row[];
@@ -34,6 +42,8 @@ type Props = {
   monthly: { ym: string; avg: number }[];
   deptMonthly: DeptMonthRow[];
   months: string[];
+  deptAspect360: DeptAspectRow[];
+  aspect360Names: string[];
   yearLabel: number;
   yearMonthly: { ym: string; avg: number }[];
   year360: { label: string; avg: number }[];
@@ -70,6 +80,19 @@ const ymLabel = (ym: string) => {
   return `${MONTHS[Number(m) - 1] ?? m} '${y.slice(2)}`;
 };
 const firstName = (n: string) => n.split(' ')[0];
+
+/** Badge trend KPI 3 bulan (selaras Laporan Kinerja Tim). */
+function TrendBadge({ t, months }: { t?: Trend; months?: (number | null)[] }) {
+  if (!t || t === 'empty') return <span className="text-[10px] text-gray-400">—</span>;
+  const m = TREND_META[t];
+  const tip = (months ?? []).map((v, i) => `Bln ${i + 1}: ${v == null ? '—' : v.toFixed(2)}`).join(' · ');
+  return (
+    <span title={tip} className="text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-0.5"
+      style={{ color: m.color, backgroundColor: `${m.color}1a` }}>
+      <span aria-hidden>{m.arrow}</span> {m.label}
+    </span>
+  );
+}
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 
 const TABS: { key: SubTab; label: string; icon: React.ElementType }[] = [
@@ -79,7 +102,7 @@ const TABS: { key: SubTab; label: string; icon: React.ElementType }[] = [
   { key: 'table', label: 'Tabel Hasil Seluruh Pegawai', icon: Users },
 ];
 
-export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptMonthly, months, yearLabel, yearMonthly, year360, yearKpiAvg, year360Avg, has360, periodLabel, kpiStandard }: Props) {
+export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptMonthly, months, deptAspect360, aspect360Names, yearLabel, yearMonthly, year360, yearKpiAvg, year360Avg, has360, periodLabel, kpiStandard }: Props) {
   const [tab, setTab] = useState<SubTab>('compilation');
 
   return (
@@ -102,7 +125,7 @@ export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptM
 
       {tab === 'compilation' && <CompilationTab rows={rows} deptScores={deptScores} aspectScores={aspectScores} has360={has360} periodLabel={periodLabel} />}
       {tab === 'kpi' && <KpiTab rows={rows} deptScores={deptScores} monthly={monthly} deptMonthly={deptMonthly} months={months} kpiStandard={kpiStandard} yearLabel={yearLabel} yearMonthly={yearMonthly} yearKpiAvg={yearKpiAvg} />}
-      {tab === 'feedback' && <FeedbackTab rows={rows} aspectScores={aspectScores} has360={has360} periodLabel={periodLabel} yearLabel={yearLabel} year360={year360} year360Avg={year360Avg} />}
+      {tab === 'feedback' && <FeedbackTab rows={rows} aspectScores={aspectScores} deptAspect360={deptAspect360} aspect360Names={aspect360Names} has360={has360} periodLabel={periodLabel} yearLabel={yearLabel} year360={year360} year360Avg={year360Avg} />}
       {tab === 'table' && <TableTab rows={rows} has360={has360} />}
     </div>
   );
@@ -113,7 +136,11 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
   rows: Row[]; deptScores: [string, number][]; aspectScores: { aspek: string; score: number }[];
   has360: boolean; periodLabel: string;
 }) {
-  const scored = rows.filter((r) => r.final != null);
+  // Pegawai "KPI belum terbaca" DIKECUALIKAN dari kategorisasi (data belum masuk, bukan rendah);
+  // ditampilkan terpisah sebagai bucket "Belum Terbaca".
+  const readable = rows.filter((r) => !r.kpiUnread);
+  const unread = rows.filter((r) => r.kpiUnread);
+  const scored = readable.filter((r) => r.final != null);
   const denom = scored.length || 1;
 
   // Distribusi Kategori Kinerja & Rencana Tindak Lanjut — band Skor Akhir (ala legacy).
@@ -133,22 +160,30 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
 
   // Papan Pertimbangan Suksesi & Promosi — pegawai Skor Akhir ≥ 90 + rencana suksesinya.
   const orgAvg = mean(scored.map((r) => r.final ?? 0));
-  const aPlayers = rows.filter((r) => r.player === 'A').length;
+  const aPlayers = readable.filter((r) => r.player === 'A').length;
   const coaching = scored.filter((r) => (r.final ?? 99) < 85).length;
   const dominant = PLAYER_BOXES
-    .map((b) => ({ label: b.label, n: rows.filter((r) => r.player === b.key).length }))
+    .map((b) => ({ label: b.label, n: readable.filter((r) => r.player === b.key).length }))
     .sort((a, b) => b.n - a.n)[0];
 
   const playerGroups = new Map<PlayerClass, Row[]>();
-  rows.forEach((r) => { if (r.player) { const a = playerGroups.get(r.player) ?? []; a.push(r); playerGroups.set(r.player, a); } });
+  readable.forEach((r) => { if (r.player) { const a = playerGroups.get(r.player) ?? []; a.push(r); playerGroups.set(r.player, a); } });
 
-  const top = [...scored].sort((a, b) => (b.final ?? 0) - (a.final ?? 0)).slice(0, 4);
-  const bottom = [...scored].filter((r) => (r.final ?? 99) < 85).sort((a, b) => (a.final ?? 99) - (b.final ?? 99)).slice(0, 4);
+  // 10 pegawai dengan Skor Akhir TERTINGGI / TERENDAH (bukan lagi dibatasi ambang <85).
+  const rankedFinal = [...scored].sort((a, b) => (b.final ?? 0) - (a.final ?? 0));
+  const top = rankedFinal.slice(0, 10);
+  const bottom = [...rankedFinal].reverse().slice(0, 10);
+  const topEmp = rankedFinal[0] ?? null;                                  // Skor Akhir tertinggi (pegawai + skor)
+  const lowEmp = rankedFinal.length ? rankedFinal[rankedFinal.length - 1] : null; // Skor Akhir terendah
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat icon={<Award className="w-6 h-6" />} tint="emerald" value={orgAvg.toFixed(1)} label="Rataan Skor Akhir Organisasi" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Stat icon={<Award className="w-6 h-6" />} tint="emerald" value={orgAvg.toFixed(2)} label="Rataan Skor Akhir Organisasi" />
+        <Stat icon={<Target className="w-6 h-6" />} tint="emerald"
+          value={topEmp?.final != null ? topEmp.final.toFixed(2) : '—'} label="Skor Akhir Tertinggi" sub={topEmp?.name} />
+        <Stat icon={<TrendingDown className="w-6 h-6" />} tint="rose"
+          value={lowEmp?.final != null ? lowEmp.final.toFixed(2) : '—'} label="Skor Akhir Terendah" sub={lowEmp?.name} />
         <Stat icon={<Target className="w-6 h-6" />} tint="blue" value={String(aPlayers)} label="A Player" />
         <Stat icon={<Flame className="w-6 h-6" />} tint="amber" value={String(coaching)} label="Perlu Coaching (<85)" />
         <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={dominant?.n ? dominant.label : '—'} label="Kategori Dominan" />
@@ -156,8 +191,11 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
 
       {/* Distribusi Kategori Kinerja + Rencana Tindak Lanjut */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card title="📊 Distribusi Kategori Kinerja"><CountBars items={categories} denom={denom} /></Card>
-        <Card title="🎯 Rencana Tindak Lanjut Organisasi"><CountBars items={recommendations} denom={denom} /></Card>
+        <Card title="📊 Distribusi Kategori Kinerja — Skor Akhir">
+          <p className="text-[10px] text-gray-500 mb-3 -mt-1">Skor Akhir = blend KPI 50% + 360° 50% − punishment (KPI murni bila 360° nonaktif). Berbeda dari tab <strong>Analisis Hasil KPI</strong> (KPI saja).</p>
+          <CountBars items={categories} denom={denom} />
+        </Card>
+        <Card title="🎯 Rencana Tindak Lanjut Organisasi — Skor Akhir"><CountBars items={recommendations} denom={denom} /></Card>
       </div>
 
       {/* Skor KPI per Divisi + Evaluasi Budaya 360° */}
@@ -171,7 +209,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
                 <div key={dept} className="space-y-1">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-semibold text-gray-700">{dept}</span>
-                    <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{score.toFixed(1)}</span>
+                    <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{score.toFixed(2)}</span>
                   </div>
                   <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
                     <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(score, 100)}%` }}
@@ -182,7 +220,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
             })}
           </div>
         </Card>
-        <Card title="✨ Evaluasi Budaya 360° (Rataan Sub-Aspek)">
+        <Card title="✨ Evaluasi Budaya 360° (Skor Terbobot Sub-Aspek)">
           {!has360 && <p className="text-[11px] text-amber-800 font-semibold mb-3 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2">360° nonaktif di {periodLabel} — aspek dari penilaian terkirim (bila ada).</p>}
           <div className="space-y-4">
             {aspectScores.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada skor 360° terkirim.</p>}
@@ -192,7 +230,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
                 <div key={asp.aspek} className="space-y-1">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-medium text-gray-700">⭐ {asp.aspek}</span>
-                    <span className="text-xs font-semibold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{asp.score.toFixed(1)} / 100</span>
+                    <span className="text-xs font-semibold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{asp.score.toFixed(2)} / 100</span>
                   </div>
                   <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
                     <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(asp.score, 100)}%` }}
@@ -208,7 +246,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
       {/* 4-Box */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
         <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Klasifikasi Pemain — Matriks 4-Box (A / B Culture / B KPI / C)</h3>
-        <p className="text-xs text-gray-500 mt-0.5 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan KPI × 360° (ambang 80).</p>
+        <p className="text-xs text-gray-500 mt-0.5 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan KPI × 360° (ambang 80){unread.length > 0 ? ` · ${unread.length} belum terbaca (dikecualikan)` : ''}.</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {PLAYER_BOXES.map((box) => {
             const emps = playerGroups.get(box.key) ?? [];
@@ -223,13 +261,28 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
                 <div className="mt-2 flex flex-wrap gap-1">
                   {emps.map((e) => (
                     <span key={e.id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
-                      title={`${e.name} · KPI ${e.kpiAvg?.toFixed(1)} · 360 ${e.s360 != null ? e.s360.toFixed(1) : 'N/A'}`}>{firstName(e.name)}</span>
+                      title={`${e.name} · KPI ${e.kpiAvg?.toFixed(2)} · 360 ${e.s360 != null ? e.s360.toFixed(2) : 'N/A'}`}>{firstName(e.name)}</span>
                   ))}
                 </div>
               </div>
             );
           })}
         </div>
+        {unread.length > 0 && (
+          <div className="mt-3 border border-gray-200 border-t-4 border-t-gray-400 rounded-xl p-3 bg-gray-50/60">
+            <div className="flex items-start justify-between gap-1">
+              <span className="text-[13px] font-black text-slate-700 leading-tight">Belum Terbaca (Tak Terkategori)</span>
+              <span className="text-lg font-black font-mono shrink-0 text-gray-500">{unread.length}</span>
+            </div>
+            <span className="text-[10px] text-gray-500 font-semibold mt-0.5 leading-tight block">KPI belum terbaca (bln-1 &amp; bln-2 = 0) → dikecualikan dari kategorisasi &amp; rerata; bukan pekerja rendah.</span>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {unread.map((e) => (
+                <span key={e.id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
+                  title={`${e.name} · KPI belum terbaca · 360 ${e.s360 != null ? e.s360.toFixed(2) : 'N/A'}`}>{firstName(e.name)}</span>
+              ))}
+            </div>
+          </div>
+        )}
         <p className="text-[10px] text-gray-500 italic mt-2">
           Berbasis KPI × 360° (ambang 80): A = KPI≥80 &amp; 360°≥80 · B Culture = KPI&lt;80 &amp; 360°≥80 ·
           B KPI = KPI≥80 &amp; 360°&lt;80 · C = keduanya &lt;80. Tanpa kelas D.
@@ -239,7 +292,8 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
 
       {/* Top / bottom */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card title="🏆 Bintang Performa Utama" tone="emerald">
+        <Card title="🏆 Skor Akhir Tertinggi" tone="emerald">
+          <p className="text-[11px] text-gray-500 mb-2 -mt-1">10 pegawai dengan <strong>Skor Akhir</strong> tertinggi.</p>
           <div className="divide-y divide-gray-100">
             {top.length === 0 && <p className="text-xs text-gray-500 italic py-2">Belum ada Skor Akhir.</p>}
             {top.map((e, idx) => (
@@ -248,21 +302,22 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
                   <span className="font-mono text-xs font-bold text-emerald-800 w-5">#{idx + 1}</span>
                   <div><span className="font-bold text-gray-800 block text-xs">{e.name}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
                 </div>
-                <span className="font-mono font-extrabold text-sm text-emerald-800">{e.final?.toFixed(1)}</span>
+                <span className="font-mono font-extrabold text-sm text-emerald-800">{e.final?.toFixed(2)}</span>
               </div>
             ))}
           </div>
         </Card>
-        <Card title="⚠️ Sasaran Mentoring / Coaching" tone="rose">
+        <Card title="⚠️ Skor Akhir Terendah" tone="rose">
+          <p className="text-[11px] text-gray-500 mb-2 -mt-1">10 pegawai dengan <strong>Skor Akhir</strong> terendah (prioritas mentoring/coaching).</p>
           <div className="divide-y divide-gray-100">
-            {bottom.length === 0 && <p className="text-xs text-gray-500 italic py-2">Tidak ada di bawah 85.</p>}
+            {bottom.length === 0 && <p className="text-xs text-gray-500 italic py-2">Belum ada Skor Akhir.</p>}
             {bottom.map((e) => (
               <div key={e.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-rose-50 text-rose-800 font-bold flex items-center justify-center text-[11px]">{e.name.substring(0, 2)}</div>
                   <div><span className="font-bold text-gray-800 block text-xs">{e.name}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
                 </div>
-                <span className="font-mono font-extrabold text-sm text-rose-700">{e.final?.toFixed(1)}</span>
+                <span className="font-mono font-extrabold text-sm text-rose-700">{e.final?.toFixed(2)}</span>
               </div>
             ))}
           </div>
@@ -274,15 +329,18 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
 
 /* ───────────────────────── TAB 2 — ANALISIS KPI ───────────────────────── */
 function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, yearLabel, yearMonthly, yearKpiAvg }: { rows: Row[]; deptScores: [string, number][]; monthly: { ym: string; avg: number }[]; deptMonthly: DeptMonthRow[]; months: string[]; kpiStandard: number; yearLabel: number; yearMonthly: { ym: string; avg: number }[]; yearKpiAvg: number | null }) {
-  const kpis = rows.map((r) => r.kpiAvg).filter((v): v is number => v != null);
+  // "KPI belum terbaca" dikecualikan dari semua metrik KPI (rerata, distribusi, ranking).
+  const readable = rows.filter((r) => !r.kpiUnread);
+  const unreadCount = rows.filter((r) => r.kpiUnread).length;
+  const kpis = readable.map((r) => r.kpiAvg).filter((v): v is number => v != null);
   const avgKpi = mean(kpis);
   const pctOverStd = kpis.length ? (kpis.filter((s) => s >= kpiStandard).length / kpis.length) * 100 : 0;
 
-  const ranked = rows.filter((r) => r.kpiAvg != null).sort((a, b) => (b.kpiAvg ?? 0) - (a.kpiAvg ?? 0));
+  const ranked = readable.filter((r) => r.kpiAvg != null).sort((a, b) => (b.kpiAvg ?? 0) - (a.kpiAvg ?? 0));
   const topEmp = ranked[0] ?? null;             // KPI tertinggi (pegawai + skor)
   const lowEmp = ranked.length ? ranked[ranked.length - 1] : null; // KPI terendah
-  const top = ranked.slice(0, 6);
-  const low = [...ranked].reverse().slice(0, 6);
+  const top = ranked.slice(0, 10);
+  const low = [...ranked].reverse().slice(0, 10);
   const maxMonthly = Math.max(...monthly.map((m) => m.avg), 1);
 
   return (
@@ -290,19 +348,26 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
       <Banner tone="emerald" tag="Analisis Khusus KPI" title="Analisis Pencapaian KPI Bulanan Organisasi"
         desc="Evaluasi kinerja objektif berdasarkan target kuantitatif bulanan per departemen pada periode aktif." icon={<Award className="w-56 h-56" />} />
 
+      {unreadCount > 0 && (
+        <p className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+          <strong>{unreadCount} pegawai</strong> berstatus <strong>KPI belum terbaca</strong> (bln-1 &amp; bln-2 = 0) — dikecualikan dari rerata, distribusi, &amp; ranking KPI (data belum masuk, bukan berkinerja rendah).
+        </p>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-        <Stat icon={<Award className="w-6 h-6" />} tint="emerald" value={avgKpi.toFixed(1)} label="Rerata KPI Organisasi" />
+        <Stat icon={<Award className="w-6 h-6" />} tint="emerald" value={avgKpi.toFixed(2)} label="Rerata KPI Organisasi" />
         <Stat icon={<Target className="w-6 h-6" />} tint="blue"
-          value={topEmp?.kpiAvg != null ? topEmp.kpiAvg.toFixed(1) : '—'} label="Skor KPI Tertinggi" sub={topEmp?.name} />
+          value={topEmp?.kpiAvg != null ? topEmp.kpiAvg.toFixed(2) : '—'} label="Skor KPI Tertinggi" sub={topEmp?.name} />
         <Stat icon={<TrendingDown className="w-6 h-6" />} tint="rose"
-          value={lowEmp?.kpiAvg != null ? lowEmp.kpiAvg.toFixed(1) : '—'} label="Skor KPI Terendah" sub={lowEmp?.name} />
+          value={lowEmp?.kpiAvg != null ? lowEmp.kpiAvg.toFixed(2) : '—'} label="Skor KPI Terendah" sub={lowEmp?.name} />
         <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={`${pctOverStd.toFixed(0)}%`} label={`KPI Di Atas Standar (≥${kpiStandard})`} />
         <Stat icon={<BarChart3 className="w-6 h-6" />} tint="amber" value={`${monthly.length} Bulan`} label="Siklus Penilaian Terpilih" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2"><KpiHeatmap deptMonthly={deptMonthly} months={months} /></div>
-        <KpiCategoryPie rows={rows} />
+        <CategoryPie title="Distribusi Kategori KPI" subtitle="Komposisi pegawai per kelas capaian KPI"
+          unit="KPI" values={readable.map((r) => r.kpiAvg).filter((v): v is number => v != null)} />
       </div>
 
       <Card title={`📈 Tren KPI Bulanan ${yearLabel} (Jan–Des)`}>
@@ -320,7 +385,7 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
                 <div key={dept} className="space-y-1">
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-bold text-slate-700">{dept}</span>
-                    <span className="font-bold font-mono px-2 py-0.5 rounded" style={{ backgroundColor: hc.bg, color: hc.fg }}>{score.toFixed(1)} / 100</span>
+                    <span className="font-bold font-mono px-2 py-0.5 rounded" style={{ backgroundColor: hc.bg, color: hc.fg }}>{score.toFixed(2)} / 100</span>
                   </div>
                   <div className="h-2.5 bg-gray-100 rounded-md overflow-hidden">
                     <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(score, 100)}%` }}
@@ -341,7 +406,7 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
                   <div key={m.ym} className="space-y-1">
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-bold text-slate-700">{ymLabel(m.ym)}</span>
-                      <span className="font-bold font-mono px-2 py-0.5 rounded" style={{ backgroundColor: hc.bg, color: hc.fg }}>{m.avg.toFixed(1)}</span>
+                      <span className="font-bold font-mono px-2 py-0.5 rounded" style={{ backgroundColor: hc.bg, color: hc.fg }}>{m.avg.toFixed(2)}</span>
                     </div>
                     <div className="h-2.5 bg-gray-100 rounded-md overflow-hidden">
                       <motion.div initial={{ width: 0 }} animate={{ width: `${(m.avg / maxMonthly) * 100}%` }}
@@ -356,20 +421,21 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Leaderboard title="🏆 Bintang KPI Teratas" tone="emerald" items={top} valueOf={(r) => r.kpiAvg} />
-        <Leaderboard title="📈 KPI Terendah / Perlu Bimbingan" tone="rose" items={low} valueOf={(r) => r.kpiAvg} />
+        <Leaderboard title="🏆 Skor KPI Tertinggi" subtitle="10 pegawai dengan rerata KPI tertinggi." tone="emerald" items={top} valueOf={(r) => r.kpiAvg} />
+        <Leaderboard title="⚠️ Skor KPI Terendah" subtitle="10 pegawai dengan rerata KPI terendah." tone="rose" items={low} valueOf={(r) => r.kpiAvg} />
       </div>
     </div>
   );
 }
 
 /* ───────────────────────── TAB 3 — ANALISIS 360 ───────────────────────── */
-function FeedbackTab({ rows, aspectScores, has360, periodLabel, yearLabel, year360, year360Avg }: { rows: Row[]; aspectScores: { aspek: string; score: number }[]; has360: boolean; periodLabel: string; yearLabel: number; year360: { label: string; avg: number }[]; year360Avg: number | null }) {
+function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, has360, periodLabel, yearLabel, year360, year360Avg }: { rows: Row[]; aspectScores: { aspek: string; score: number }[]; deptAspect360: DeptAspectRow[]; aspect360Names: string[]; has360: boolean; periodLabel: string; yearLabel: number; year360: { label: string; avg: number }[]; year360Avg: number | null }) {
   const s360s = rows.map((r) => r.s360).filter((v): v is number => v != null);
   const avg360 = mean(s360s);
-  const max360 = s360s.length ? Math.max(...s360s) : 0;
   const assessed = s360s.length;
   const ranked = rows.filter((r) => r.s360 != null).sort((a, b) => (b.s360 ?? 0) - (a.s360 ?? 0));
+  const top = ranked[0] ?? null;
+  const low = ranked.length ? ranked[ranked.length - 1] : null;
 
   return (
     <div className="space-y-6">
@@ -383,10 +449,17 @@ function FeedbackTab({ rows, aspectScores, has360, periodLabel, yearLabel, year3
           desc="Capaian aspek budaya organisasi dari rata-rata penilaian terkirim (Self dikecualikan) pada periode aktif." icon={<TrendingUp className="w-56 h-56" />} />
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={avg360.toFixed(1)} label="Rerata Skor 360° Organisasi" />
-        <Stat icon={<Target className="w-6 h-6" />} tint="blue" value={max360.toFixed(1)} label="Skor 360° Tertinggi" />
-        <Stat icon={<Users className="w-6 h-6" />} tint="emerald" value={String(assessed)} label="Pegawai Ternilai 360°" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={avg360.toFixed(2)} label="Rerata Skor 360° Organisasi" />
+        <Stat icon={<Target className="w-6 h-6" />} tint="emerald" value={top ? top.s360!.toFixed(2) : '—'} label="Skor 360° Tertinggi" sub={top ? top.name : undefined} />
+        <Stat icon={<TrendingDown className="w-6 h-6" />} tint="rose" value={low ? low.s360!.toFixed(2) : '—'} label="Skor 360° Terendah" sub={low ? low.name : undefined} />
+        <Stat icon={<Users className="w-6 h-6" />} tint="blue" value={String(assessed)} label="Pegawai Ternilai 360°" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2"><Aspect360Heatmap deptAspect={deptAspect360} aspects={aspect360Names} /></div>
+        <CategoryPie title="Distribusi Kategori 360°" subtitle="Komposisi pegawai per kelas skor 360°"
+          unit="360°" values={s360s} />
       </div>
 
       <Card title={`📈 Tren 360° per Kuartal ${yearLabel}`}>
@@ -403,7 +476,7 @@ function FeedbackTab({ rows, aspectScores, has360, periodLabel, yearLabel, year3
               <div key={asp.aspek} className="space-y-1">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-medium text-gray-700">⭐ {asp.aspek}</span>
-                  <span className="text-xs font-semibold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{asp.score.toFixed(1)} / 100</span>
+                  <span className="text-xs font-semibold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{asp.score.toFixed(2)} / 100</span>
                 </div>
                 <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
                   <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(asp.score, 100)}%` }}
@@ -416,8 +489,8 @@ function FeedbackTab({ rows, aspectScores, has360, periodLabel, yearLabel, year3
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Leaderboard title="🌟 360° Teratas" tone="indigo" items={ranked.slice(0, 6)} valueOf={(r) => r.s360} />
-        <Leaderboard title="📉 360° Terendah" tone="rose" items={[...ranked].reverse().slice(0, 6)} valueOf={(r) => r.s360} />
+        <Leaderboard title="🏆 Skor 360° Tertinggi" subtitle="10 pegawai dengan Skor 360° tertinggi." tone="indigo" items={ranked.slice(0, 10)} valueOf={(r) => r.s360} />
+        <Leaderboard title="⚠️ Skor 360° Terendah" subtitle="10 pegawai dengan Skor 360° terendah." tone="rose" items={[...ranked].reverse().slice(0, 10)} valueOf={(r) => r.s360} />
       </div>
     </div>
   );
@@ -447,18 +520,21 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm min-w-[640px]">
+        <table className="w-full text-left text-sm min-w-[720px]">
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
               <th className="py-2 pr-3">Pegawai</th>
               <th className="py-2 px-3 text-center">Rerata KPI</th>
+              <th className="py-2 px-3 text-center">Trend KPI</th>
               <th className="py-2 px-3 text-center">Skor 360°</th>
-              <th className="py-2 px-3 text-center">Skor Akhir</th>
+              <th className="py-2 px-3 text-center" title="Dihitung langsung (live) dari KPI + 360° − punishment periode ini">
+                Skor Akhir <span className="normal-case font-normal text-gray-400">(live)</span>
+              </th>
               <th className="py-2 pl-3 text-center">Player</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {shown.length === 0 && <tr><td colSpan={5} className="py-6 text-center text-sm text-gray-500">Tidak ada pegawai sesuai filter.</td></tr>}
+            {shown.length === 0 && <tr><td colSpan={6} className="py-6 text-center text-sm text-gray-500">Tidak ada pegawai sesuai filter.</td></tr>}
             {shown.map((r) => {
               return (
                 <tr key={r.id}>
@@ -471,9 +547,10 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
                     </span>
                     <span className="text-[11px] text-gray-500">{r.dept}</span>
                   </td>
-                  <td className="py-3 px-3 text-center font-mono text-emerald-700">{r.kpiAvg != null ? r.kpiAvg.toFixed(1) : '—'}</td>
-                  <td className="py-3 px-3 text-center font-mono text-indigo-700">{r.s360 != null ? r.s360.toFixed(1) : '—'}</td>
-                  <td className="py-3 px-3 text-center font-mono font-black text-slate-800">{r.final != null ? r.final.toFixed(1) : '—'}</td>
+                  <td className="py-3 px-3 text-center font-mono text-emerald-700">{r.kpiAvg != null ? r.kpiAvg.toFixed(2) : '—'}</td>
+                  <td className="py-3 px-3 text-center"><TrendBadge t={r.trend} months={r.kpiMonths} /></td>
+                  <td className="py-3 px-3 text-center font-mono text-indigo-700">{r.s360 != null ? r.s360.toFixed(2) : '—'}</td>
+                  <td className="py-3 px-3 text-center font-mono font-black text-slate-800">{r.final != null ? r.final.toFixed(2) : '—'}</td>
                   <td className="py-3 pl-3 text-center">
                     {r.player ? (
                       <span className={`text-[11px] font-black px-2 py-0.5 rounded border ${PLAYER_COLOR[r.player]}`}>{PLAYER_BADGE[r.player]}</span>
@@ -486,7 +563,8 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
         </table>
       </div>
       <p className="text-[10px] text-gray-500 italic mt-3">
-        Skor Akhir = blend KPI+360 (50/50) − punishment, dikunci periode aktif.
+        Skor Akhir <strong>(live)</strong> = blend KPI+360 (50/50) − punishment, dihitung langsung dari data periode aktif —
+        bisa berbeda dari angka <strong>finalisasi tersimpan</strong> di Laporan Kinerja Tim.
         Player (A/B/C) berbasis KPI × 360° (ambang 80).{!has360 && ' Tanpa 360° → A & B-Culture tidak tersedia.'}
       </p>
     </div>
@@ -501,7 +579,7 @@ const ymShort = (ym: string) => MONTHS[Number(ym.split('-')[1]) - 1] ?? ym;
 function YearTrendCaption({ value, label, unit }: { value: number | null; label: string; unit: string }) {
   return (
     <div className="flex items-baseline gap-2 mb-3">
-      <span className="text-2xl font-black text-slate-800 font-mono">{value != null ? value.toFixed(1) : '—'}</span>
+      <span className="text-2xl font-black text-slate-800 font-mono">{value != null ? value.toFixed(2) : '—'}</span>
       <span className="text-xs font-bold text-gray-600">{label}</span>
       <span className="text-[10px] text-gray-500">· {unit}</span>
     </div>
@@ -526,7 +604,7 @@ function TrendLine({ points }: { points: { label: string; value: number }[] }) {
     : padL + (i * (W - padL - padR)) / (points.length - 1);
   const y = (v: number) => padT + (H - padT - padB) * (1 - (v - lo) / (hi - lo));
   const grid = [lo, (lo + hi) / 2, hi];
-  const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(p.value).toFixed(1)}`).join(' ');
+  const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(2)} ${y(p.value).toFixed(2)}`).join(' ');
   return (
     <div className="overflow-x-auto">
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[480px]" style={{ height: H }} preserveAspectRatio="xMidYMid meet">
@@ -542,7 +620,7 @@ function TrendLine({ points }: { points: { label: string; value: number }[] }) {
           return (
             <g key={`${p.label}-${i}`}>
               <circle cx={x(i)} cy={y(p.value)} r={4.5} fill={bg} stroke="#fff" strokeWidth={1.5} />
-              <text x={x(i)} y={y(p.value) - 9} textAnchor="middle" fill="#374151" fontSize={10} fontWeight={700}>{p.value.toFixed(1)}</text>
+              <text x={x(i)} y={y(p.value) - 9} textAnchor="middle" fill="#374151" fontSize={10} fontWeight={700}>{p.value.toFixed(2)}</text>
               <text x={x(i)} y={H - 8} textAnchor="middle" fill="#6b7280" fontSize={10}>{p.label}</text>
             </g>
           );
@@ -558,25 +636,26 @@ function TrendLine({ points }: { points: { label: string; value: number }[] }) {
  *   70–79 Perlu Peningkatan (kuning #ffc107) · <70 Di Bawah (merah #b71c1c).
  * Klasifikasi memakai rerata KPI pegawai (rows.kpiAvg), bukan Skor Akhir — selaras tab KPI.
  */
-const KPI_CATS = [
-  { key: 'exceed', label: 'Melampaui Ekspektasi', hint: 'KPI ≥ 90', color: '#183c6c', test: (v: number) => v >= 90 },
-  { key: 'meet', label: 'Memenuhi Ekspektasi', hint: 'KPI 80–89', color: '#388e3c', test: (v: number) => v >= 80 && v < 90 },
-  { key: 'improve', label: 'Perlu Peningkatan', hint: 'KPI 70–79', color: '#ffc107', test: (v: number) => v >= 70 && v < 80 },
-  { key: 'below', label: 'Di Bawah Ekspektasi', hint: 'KPI < 70', color: '#b71c1c', test: (v: number) => v < 70 },
+// Band skor 0–100 (dipakai donut KPI & 360°) — selaras perfCategoryOf & palet diskrit (CLAUDE.md).
+const SCORE_CATS = [
+  { key: 'exceed', label: 'Melampaui Ekspektasi', range: '≥ 90', color: '#183c6c', test: (v: number) => v >= 90 },
+  { key: 'meet', label: 'Memenuhi Ekspektasi', range: '80–89', color: '#388e3c', test: (v: number) => v >= 80 && v < 90 },
+  { key: 'improve', label: 'Perlu Peningkatan', range: '70–79', color: '#ffc107', test: (v: number) => v >= 70 && v < 80 },
+  { key: 'below', label: 'Di Bawah Ekspektasi', range: '< 70', color: '#b71c1c', test: (v: number) => v < 70 },
 ] as const;
 
-function KpiCategoryPie({ rows }: { rows: Row[] }) {
-  const kpis = rows.map((r) => r.kpiAvg).filter((v): v is number => v != null);
-  const total = kpis.length;
-  const counts = KPI_CATS.map((c) => ({ ...c, n: kpis.filter((v) => c.test(v)).length }));
+/** Donut distribusi pegawai per kelas skor (0–100). Dipakai untuk KPI & 360°. */
+function CategoryPie({ title, subtitle, unit, values }: { title: string; subtitle: string; unit: string; values: number[] }) {
+  const total = values.length;
+  const counts = SCORE_CATS.map((c) => ({ ...c, n: values.filter((v) => c.test(v)).length }));
   const R = 52, SW = 22, C = 2 * Math.PI * R;
   let acc = 0;
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs flex flex-col">
-      <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Distribusi Kategori KPI</h3>
-      <p className="text-xs text-gray-500 mt-0.5 mb-4">Komposisi pegawai per kelas capaian KPI</p>
+      <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">{title}</h3>
+      <p className="text-xs text-gray-500 mt-0.5 mb-4">{subtitle}</p>
       {total === 0 ? (
-        <p className="text-xs text-gray-500 italic">Belum ada data KPI.</p>
+        <p className="text-xs text-gray-500 italic">Belum ada data.</p>
       ) : (
         <div className="flex flex-col items-center gap-4">
           <svg viewBox="0 0 140 140" className="w-40 h-40 shrink-0">
@@ -600,7 +679,7 @@ function KpiCategoryPie({ rows }: { rows: Row[] }) {
               <div key={c.key} className="flex items-center gap-2 text-xs">
                 <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: c.color }} />
                 <span className="font-semibold text-gray-700 flex-1 leading-tight">{c.label}
-                  <span className="text-gray-500 font-normal"> · {c.hint}</span></span>
+                  <span className="text-gray-500 font-normal"> · {unit} {c.range}</span></span>
                 <span className="font-mono font-bold text-gray-800">{c.n}</span>
                 <span className="font-mono text-gray-500 w-9 text-right">{((c.n / total) * 100).toFixed(0)}%</span>
               </div>
@@ -668,6 +747,64 @@ function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; mont
   );
 }
 
+/** Heatmap 360°: Divisi × Aspek budaya. Sel = skor 0–100 (rerata rating ×20) semua penilaian
+ *  (Self dikecualikan) terhadap pegawai divisi itu — skala 100 selaras heatmap KPI. */
+function Aspect360Heatmap({ deptAspect, aspects }: { deptAspect: DeptAspectRow[]; aspects: string[] }) {
+  if (deptAspect.length === 0 || aspects.length === 0) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
+        <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight mb-1">Capaian 360° / Divisi × Aspek</h3>
+        <p className="text-xs text-gray-500 italic mt-2">Belum ada penilaian 360° terkirim untuk lingkup ini.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
+      <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
+        <div>
+          <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Capaian 360° / Divisi × Aspek</h3>
+          <p className="text-xs text-gray-500 mt-0.5">Skor aspek budaya terbobot (skala 100) per divisi</p>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500">
+          <span>Rendah</span>
+          <span className="h-2.5 w-24 rounded-full" style={{ background: HEAT_LEGEND_GRADIENT }} />
+          <span>Tinggi</span>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full border-separate border-spacing-1 text-xs min-w-[560px]">
+          <thead>
+            <tr>
+              <th className="text-left py-2 px-3 text-[10px] font-extrabold uppercase tracking-wider text-gray-500 sticky left-0 bg-white">Divisi</th>
+              {aspects.map((a) => (
+                <th key={a} className="text-center py-2 px-2 text-[10px] font-extrabold uppercase tracking-wider text-gray-500 whitespace-normal max-w-[110px] leading-tight">{a}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {deptAspect.map((row) => (
+              <tr key={row.dept}>
+                <td className="py-2 px-3 font-bold text-slate-700 whitespace-nowrap sticky left-0 bg-white">{row.dept}</td>
+                {row.cells.map((c) => {
+                  const { bg, fg } = heatColor(c.avg);
+                  return (
+                    <td key={c.aspect} className="text-center font-mono font-bold rounded-md py-2.5 px-2"
+                      style={{ backgroundColor: bg, color: fg }}
+                      title={`${row.dept} · ${c.aspect} · ${c.avg != null ? c.avg.toFixed(2) : 'tanpa data'}`}>
+                      {c.avg != null ? c.avg.toFixed(2) : '—'}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-[10px] text-gray-500 italic mt-3">Sel = skor aspek 0–100 <strong>terbobot per kelas penilai</strong> (skema bobot aktif, mis. Atasan/Peer/Cross/Bawahan; Self dikecualikan) — selaras Skor 360° resmi. Lingkup filter divisi aktif. &ldquo;—&rdquo; = belum ada penilaian.</p>
+    </div>
+  );
+}
+
 /* ───────────────────────── Komponen bersama ───────────────────────── */
 const TINT: Record<string, string> = {
   emerald: 'bg-emerald-50 text-emerald-600',
@@ -699,7 +836,7 @@ function CountBars({ items, denom }: { items: { label: string; count: number; co
         <div key={it.label} className="space-y-1">
           <div className="flex justify-between text-xs font-medium text-gray-600">
             <span>{it.label}</span>
-            <span className="text-gray-900 font-mono">{it.count} Pegawai ({((it.count / denom) * 100).toFixed(1)}%)</span>
+            <span className="text-gray-900 font-mono">{it.count} Pegawai ({((it.count / denom) * 100).toFixed(2)}%)</span>
           </div>
           <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
             <motion.div initial={{ width: 0 }} animate={{ width: `${(it.count / max) * 100}%` }}
@@ -745,14 +882,15 @@ function bandBadge(v: number | null) {
   return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cls}`}>{perfLabelOf(v)}</span>;
 }
 
-function Leaderboard({ title, tone, items, valueOf }: { title: string; tone: 'emerald' | 'rose' | 'indigo'; items: Row[]; valueOf: (r: Row) => number | null }) {
+function Leaderboard({ title, subtitle, tone, items, valueOf }: { title: string; subtitle?: string; tone: 'emerald' | 'rose' | 'indigo'; items: Row[]; valueOf: (r: Row) => number | null }) {
   const head = tone === 'emerald' ? 'text-emerald-800' : tone === 'indigo' ? 'text-indigo-800' : 'text-rose-700';
   const chip = tone === 'emerald' ? 'text-emerald-800 bg-emerald-50 border-emerald-150'
     : tone === 'indigo' ? 'text-indigo-800 bg-indigo-50 border-indigo-150' : 'text-rose-800 bg-rose-50 border-rose-150';
   const rowBg = tone === 'rose' ? 'bg-rose-50/10 border-rose-100 border-dashed' : tone === 'indigo' ? 'bg-indigo-50/20 border-indigo-100' : 'bg-emerald-50/20 border-emerald-100';
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
-      <h3 className={`text-xs font-bold tracking-wider uppercase mb-4 border-b border-gray-100 pb-2.5 ${head}`}>{title}</h3>
+      <h3 className={`text-xs font-bold tracking-wider uppercase ${subtitle ? 'mb-1' : 'mb-4 border-b border-gray-100 pb-2.5'} ${head}`}>{title}</h3>
+      {subtitle && <p className="text-[11px] text-gray-500 mb-4 border-b border-gray-100 pb-2.5">{subtitle}</p>}
       <div className="space-y-3">
         {items.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada data.</p>}
         {items.map((e, idx) => {
@@ -764,7 +902,7 @@ function Leaderboard({ title, tone, items, valueOf }: { title: string; tone: 'em
                 <div><span className="font-bold text-gray-800 text-xs block">{e.name}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
               </div>
               <div className="flex items-center gap-2.5">
-                <span className={`font-mono font-black text-xs px-2 py-1 rounded border ${chip}`}>{v != null ? v.toFixed(1) : '—'}</span>
+                <span className={`font-mono font-black text-xs px-2 py-1 rounded border ${chip}`}>{v != null ? v.toFixed(2) : '—'}</span>
                 {bandBadge(v)}
               </div>
             </div>

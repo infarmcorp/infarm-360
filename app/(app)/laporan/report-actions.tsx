@@ -87,11 +87,11 @@ export function ReportActions({
           : status === 'draft'
           ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">Draf</span>
           : <span className="text-[10px] text-gray-500">belum disimpan</span>}
-        {finalScore != null && <span className="text-[11px] font-mono font-bold text-slate-700">Skor Akhir {finalScore.toFixed(1)}</span>}
+        {finalScore != null && <span className="text-[11px] font-mono font-bold text-slate-700">Skor Akhir {finalScore.toFixed(2)}</span>}
         {drift && (
-          <span title={`Skor terkini ${liveFinal!.toFixed(1)} berbeda dari yang difinalisasi (${finalScore!.toFixed(1)}) — KPI/360°/punishment berubah. Kembalikan ke Draf lalu Finalisasi ulang untuk memperbarui.`}
+          <span title={`Skor terkini ${liveFinal!.toFixed(2)} berbeda dari yang difinalisasi (${finalScore!.toFixed(2)}) — KPI/360°/punishment berubah. Kembalikan ke Draf lalu Finalisasi ulang untuk memperbarui.`}
             className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-            berubah → {liveFinal!.toFixed(1)}
+            berubah → {liveFinal!.toFixed(2)}
           </span>
         )}
       </div>

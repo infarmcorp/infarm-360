@@ -3,34 +3,38 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
-import { MonitorChart, type EmpTrend } from './monitor-chart';
+import { finalScoreOf, playerClassOf } from '@/lib/scoring';
+import { trendOf } from '@/lib/trend';
+import { scoreMaps, penaltyMap, companyAverages, teamAverages } from '@/lib/team-metrics';
+import { TeamTable, type TeamRow } from '@/app/(app)/laporan-tim/team-table';
+import { TeamScorecards } from '@/app/(app)/laporan-tim/scorecards';
+import { MonitorTrends, type EmpMonthly, type PeriodTrendPoint } from './monitor-trends';
+import { PeriodFilter } from './period-filter';
 
 /**
- * Monitor Kinerja (SPV/HRD) — tren bulanan KPI / 360° / Skor Akhir per pegawai.
- * SPV dibatasi anggota timnya; HRD admin seluruh pegawai non-direksi. Lintas periode
- * (semua bulan yang punya KPI). Skor Akhir per bulan = blend KPI+360 kuartal terkait − punishment.
+ * Monitor Kinerja (SPV / HRD mode-SPV) — dashboard kinerja tim, bergaya Laporan Kinerja Tim:
+ *  - Filter PERIODE → scorecard (Total · Avg KPI · Avg 360° + selisih vs perusahaan) + tabel
+ *    (KPI/360°/Skor Akhir/4-Box/Trend) untuk periode terpilih.
+ *  - Grafik tren LINTAS periode/bulan (tak terpengaruh filter): Tim per periode, KPI tim per bulan,
+ *    KPI pegawai per bulan (dropdown).
+ * BEDA dari Laporan Kinerja Tim: tanpa tinjau/Status/ACC, MEMASUKKAN baris SPV sendiri, Skor Akhir
+ * LIVE (allow360Only=true, selaras snapshot laporan). Halaman Supervisor (tak untuk Mode HRD Admin).
  */
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-const labelOf = (ym: string) => {
-  const [y, m] = ym.split('-');
-  return `${MONTHS[Number(m) - 1] ?? m}'${y.slice(2)}`;
-};
+const labelOf = (ym: string) => { const [y, m] = ym.split('-'); return `${MONTHS[Number(m) - 1] ?? m}'${y.slice(2)}`; };
+const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
-export default async function MonitorPage() {
+export default async function MonitorPage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
+  const { period: periodParam } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, dept').eq('id', user.id).maybeSingle();
   const role = me?.role;
 
-  // Mode HRD (dual-mode): mode-SPV dibatasi seperti SPV (hanya divisinya sendiri).
-  const jar = await cookies();
   // Cookie absen = base/SPV (konsisten dgn layout.tsx & app/page.tsx; login mereset ke base).
+  const jar = await cookies();
   const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
-
-  // Monitor Kinerja = halaman Supervisor. Sengaja DIHAPUS dari Mode HRD Admin — hanya untuk
-  // tampilan Supervisor (SPV biasa & HRD dalam Mode SPV). Paritas tetap terjaga: HRD mode-SPV
-  // diperlakukan persis seperti SPV (lihat ATURAN PARITAS di CLAUDE.md).
   const adminView = canAdmin(me) && hrdMode === 'admin';
   const supervisorView = !adminView && (role === 'spv' || role === 'hrd');
   if (!supervisorView) {
@@ -38,119 +42,127 @@ export default async function MonitorPage() {
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
-  // Lingkup pegawai. SPV → tim; HRD mode-SPV → hanya DIVISINYA (selaras Input KPI/Rekap).
+  const { data: periodRows } = await supabase
+    .from('periods').select('id, label, has_360, status, start_date').order('start_date', { ascending: true });
+  const periodList = periodRows ?? [];
+  if (periodList.length === 0) return <Shell><Header /><p className="text-sm text-gray-500 mt-4">Belum ada periode.</p></Shell>;
+  const sel = periodList.find((p) => p.id === periodParam)
+    ?? periodList.find((p) => p.status === 'active')
+    ?? periodList[periodList.length - 1];
+
+  // Lingkup pegawai. SPV → tim + DIRINYA sendiri; HRD mode-SPV → DIVISINYA (termasuk dirinya).
   let empRows: { id: string; name: string; dept: string; is_active: boolean }[] = [];
   if (role === 'spv') {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', user.id);
-    // SPV juga memantau dirinya sendiri (selaras Input KPI/Riwayat/Rekap/Laporan-Tim).
     const ids = [...new Set([user.id, ...(team ?? []).map((t) => t.employee_id)])];
     const { data } = await supabase.from('employees').select('id, name, dept, is_active').in('id', ids);
     empRows = data ?? [];
-  } else if (role === 'hrd' && hrdMode === 'spv') {
-    const { data: meDept } = await supabase.from('employees').select('dept').eq('id', user.id).maybeSingle();
-    const { data } = await supabase.from('employees').select('id, name, dept, is_active')
-      .eq('dept', meDept?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false);
-    empRows = data ?? [];
   } else {
-    const { data } = await supabase.from('employees').select('id, name, dept, is_active').neq('role', 'direksi').eq('is_external', false);
+    const { data } = await supabase.from('employees').select('id, name, dept, is_active')
+      .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false);
     empRows = data ?? [];
   }
-
   if (empRows.length === 0) {
-    return <Shell><Header /><p className="text-sm text-gray-500 mt-4">Belum ada pegawai dalam lingkup Anda.</p></Shell>;
+    return <Shell><Header /><Toolbar periods={periodList} current={sel.id} /><p className="text-sm text-gray-500 mt-4">Belum ada pegawai dalam lingkup Anda.</p></Shell>;
   }
-  const empIds = empRows.map((e) => e.id);
+  const ids = empRows.map((e) => e.id);
 
-  // Periode + bulan + skor — semua independen (hanya butuh empIds) → paralel.
-  const [periodsRes, pmonthsRes, kpiRes, r360Res, penRes] = await Promise.all([
-    supabase.from('periods').select('id, label, has_360, start_date').order('start_date', { ascending: true }),
+  // ── Snapshot periode terpilih → scorecard + tabel ──────────────────────────
+  const { kpiBy, s360By, monthlyBy } = await scoreMaps(sel.id, ids);
+  const penBy = await penaltyMap(sel.id, ids);
+  const activeIds = new Set(empRows.filter((e) => e.is_active).map((e) => e.id));
+  const rows: TeamRow[] = empRows.map((e) => {
+    const kpiAvg = kpiBy.get(e.id) ?? null;
+    const s360 = s360By.get(e.id) ?? null;
+    const kpiMonths = (monthlyBy.get(e.id) ?? []).slice(0, 3);
+    const penalty = penBy.get(e.id) ?? 0;
+    return {
+      id: e.id, name: e.name, dept: e.dept,
+      kpiAvg, s360,
+      finalScore: finalScoreOf(kpiAvg, s360, sel.has_360, penalty, true), // LIVE, selaras snapshot laporan
+      player: playerClassOf(kpiAvg, sel.has_360 ? s360 : null),
+      trend: trendOf(kpiMonths),
+      kpiMonths,
+      status: null, hasReport: false, spvAcc: false,
+      isSelf: e.id === user.id, detailOpen: false, canAcc: false,
+    };
+  })
+    .filter((r) => activeIds.has(r.id) || r.kpiAvg != null || r.s360 != null)
+    .sort((a, b) => (b.finalScore ?? -1) - (a.finalScore ?? -1));
+  const tAvg = teamAverages(rows);
+  const cAvg = await companyAverages(sel.id);
+
+  // ── Data tren LINTAS periode/bulan (RLS user-scoped; lingkup tim kecil → aman batas 1000) ──
+  const [kpiAllRes, r360AllRes, pmRes] = await Promise.all([
+    supabase.from('kpi_scores').select('employee_id, ym, score').in('employee_id', ids),
+    supabase.from('result_360').select('employee_id, period_id, score').in('employee_id', ids),
     supabase.from('period_months').select('period_id, ym'),
-    supabase.from('kpi_scores').select('employee_id, ym, score').in('employee_id', empIds),
-    supabase.from('result_360').select('employee_id, period_id, score').in('employee_id', empIds),
-    supabase.from('compliance_penalties').select('employee_id, period_id, points').in('employee_id', empIds),
   ]);
-  const periodInfo = periodsRes.data ?? [];
-  const periodHas360 = new Map(periodInfo.map((p) => [p.id, p.has_360]));
-  const ymToPeriod = new Map((pmonthsRes.data ?? []).map((m) => [m.ym, m.period_id]));
+  const kpiAgg = new Map<string, { s: number; n: number }>(); // `${emp}|${ym}`
+  (kpiAllRes.data ?? []).forEach((r) => { const k = `${r.employee_id}|${r.ym}`; const a = kpiAgg.get(k) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; kpiAgg.set(k, a); });
+  const kpiOf = (id: string, ym: string) => { const a = kpiAgg.get(`${id}|${ym}`); return a ? a.s / a.n : null; };
+  const s360Of = new Map((r360AllRes.data ?? []).map((r) => [`${r.employee_id}|${r.period_id}`, r.score]));
   const monthsByPeriod = new Map<string, string[]>();
-  (pmonthsRes.data ?? []).forEach((m) => { const a = monthsByPeriod.get(m.period_id) ?? []; a.push(m.ym); monthsByPeriod.set(m.period_id, a); });
-  const kpiRows = kpiRes.data;
-  const s360By = new Map((r360Res.data ?? []).map((r) => [`${r.employee_id}|${r.period_id}`, r.score]));
-  const penBy = new Map((penRes.data ?? []).map((p) => [`${p.employee_id}|${p.period_id}`, p.points]));
+  (pmRes.data ?? []).forEach((m) => { const a = monthsByPeriod.get(m.period_id) ?? []; a.push(m.ym); monthsByPeriod.set(m.period_id, a); });
 
-  // KPI per (employee, ym) → rerata bila ada beberapa baris.
-  const kpiAgg = new Map<string, { sum: number; n: number }>();
-  (kpiRows ?? []).forEach((r) => {
-    const k = `${r.employee_id}|${r.ym}`;
-    const a = kpiAgg.get(k) ?? { sum: 0, n: 0 };
-    a.sum += r.score; a.n += 1; kpiAgg.set(k, a);
-  });
+  const allYms = [...new Set((kpiAllRes.data ?? []).map((r) => r.ym))].sort();
+  const monthLabels = allYms.map(labelOf);
+  const nn = (v: number | null): v is number => v != null;
 
-  // Pelaporan: tampilkan yang AKTIF atau yang PUNYA DATA (KPI/360° apa pun) — nonaktif tanpa
-  // data disembunyikan; nonaktif yang sudah dinilai/ber-KPI tetap tampil di tren.
-  const dataIds = new Set<string>([
-    ...(kpiRows ?? []).map((r) => r.employee_id),
-    ...(r360Res.data ?? []).map((r) => r.employee_id),
-  ]);
-  const keepRows = empRows.filter((e) => e.is_active || dataIds.has(e.id));
-  const employees: EmpTrend[] = keepRows.map((e) => {
-    // Tren per bulan.
-    const yms = [...new Set((kpiRows ?? []).filter((r) => r.employee_id === e.id).map((r) => r.ym))].sort();
-    const trend = yms.map((ym) => {
-      const agg = kpiAgg.get(`${e.id}|${ym}`)!;
-      const kpi = agg.sum / agg.n;
-      const pid = ymToPeriod.get(ym);
-      const has360 = pid ? !!periodHas360.get(pid) : false;
-      const s360 = pid && has360 ? (s360By.get(`${e.id}|${pid}`) ?? 0) : 0;
-      const penalty = pid ? (penBy.get(`${e.id}|${pid}`) ?? 0) : 0;
-      const base = has360 && s360 > 0 ? kpi * 0.5 + s360 * 0.5 : kpi;
-      return { ym, label: labelOf(ym), kpi, s360, final: Math.max(0, base - penalty) };
-    });
-    // Ringkasan per periode (untuk mode Perbandingan).
-    const byPeriod = periodInfo.map((p) => {
-      const pYms = monthsByPeriod.get(p.id) ?? [];
-      const kpis = pYms.map((ym) => { const ag = kpiAgg.get(`${e.id}|${ym}`); return ag ? ag.sum / ag.n : null; }).filter((v): v is number => v != null);
-      const kpiAvg = kpis.length ? kpis.reduce((a, b) => a + b, 0) / kpis.length : null;
-      const s360 = p.has_360 ? (s360By.get(`${e.id}|${p.id}`) ?? null) : null;
-      const penalty = penBy.get(`${e.id}|${p.id}`) ?? 0;
-      if (kpiAvg == null && s360 == null) return null;
-      const base = p.has_360 && s360 != null && s360 > 0 ? (kpiAvg ?? 0) * 0.5 + s360 * 0.5 : (kpiAvg ?? 0);
-      const final = kpiAvg == null && s360 == null ? null : Math.max(0, base - penalty);
-      return { periodId: p.id, label: p.label, kpi: kpiAvg, s360, final };
-    }).filter((x): x is NonNullable<typeof x> => x != null);
-    return { id: e.id, name: e.name, dept: e.dept, trend, byPeriod };
-  }).filter((e) => e.trend.length > 0 || e.byPeriod.length > 0);
+  // A. Tren tim per periode (Avg KPI & Avg 360° tim).
+  const anyHas360 = periodList.some((p) => p.has_360);
+  const periodsTrend: PeriodTrendPoint[] = periodList.map((p) => {
+    const pYms = monthsByPeriod.get(p.id) ?? [];
+    const kpis = ids.map((id) => mean(pYms.map((ym) => kpiOf(id, ym)).filter(nn))).filter(nn);
+    const s360s = p.has_360 ? ids.map((id) => s360Of.get(`${id}|${p.id}`) ?? null).filter(nn) : [];
+    return { label: p.label, kpi: mean(kpis), s360: mean(s360s) };
+  }).filter((pt) => pt.kpi != null || pt.s360 != null);
 
-  const periods = periodInfo.map((p) => ({ id: p.id, label: p.label }));
+  // B. Tren KPI tim per bulan.
+  const teamMonthly = allYms.map((ym) => mean(ids.map((id) => kpiOf(id, ym)).filter(nn)));
+
+  // C. Tren KPI per pegawai per bulan (dropdown).
+  const employeesMonthly: EmpMonthly[] = empRows
+    .map((e) => ({ id: e.id, name: e.name, monthly: allYms.map((ym) => kpiOf(e.id, ym)) }))
+    .filter((e) => e.monthly.some((v) => v != null))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <Shell>
       <Header />
-      <div className="mt-5">
-        {employees.length > 0
-          ? <MonitorChart employees={employees} periods={periods} />
-          : <p className="text-sm text-gray-500">Belum ada data kinerja untuk pegawai dalam lingkup Anda.</p>}
-      </div>
+      <Toolbar periods={periodList} current={sel.id} />
+      {rows.length === 0 ? (
+        <p className="text-sm text-gray-500 mt-4">Belum ada data kinerja untuk periode ini.</p>
+      ) : (
+        <div className="mt-4">
+          <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
+            team360={tAvg.s360} company360={cAvg.s360} has360={sel.has_360}
+            kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
+          <TeamTable rows={rows} linkNames={false} showStatus={false} showAcc={false} scoreBasis="live" />
+        </div>
+      )}
+      <MonitorTrends periodsTrend={periodsTrend} monthLabels={monthLabels}
+        teamMonthly={teamMonthly} employees={employeesMonthly} has360={anyHas360} />
     </Shell>
+  );
+}
+
+function Toolbar({ periods, current }: { periods: { id: string; label: string; status: string }[]; current: string }) {
+  return (
+    <div className="mt-3">
+      <PeriodFilter periods={periods} current={current} />
+    </div>
   );
 }
 
 function Header() {
   return (
-    <div className="bg-gradient-to-r from-emerald-800 to-indigo-900 rounded-2xl p-5 sm:p-6 text-white shadow-md relative overflow-hidden">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1.5">
-          <span className="inline-flex py-1 px-2.5 bg-white/10 rounded-full text-[10px] font-bold tracking-wider uppercase border border-white/15">
-            Sistem Intelijen Kinerja Tim
-          </span>
-          <h1 className="text-xl font-bold tracking-tight">Monitor Kinerja &amp; Tren Karyawan</h1>
-          <p className="text-xs text-emerald-100/90 leading-relaxed max-w-2xl">
-            Pemetaan performa berbasis KPI Rerata, Evaluasi 360°, &amp; Skor Akhir — bandingkan antar-pegawai
-            atau telusuri tren bulanan per individu, terfilter divisi &amp; periode.
-          </p>
-        </div>
-        <Link href="/" className="text-[11px] text-emerald-200 hover:text-white shrink-0">← Beranda</Link>
+    <div className="flex items-center justify-between">
+      <div>
+        <h1 className="text-xl font-bold text-gray-800">Monitor Kinerja</h1>
+        <p className="text-sm text-gray-500">Dashboard kinerja tim Anda (termasuk diri Anda) — snapshot per periode &amp; tren lintas waktu.</p>
       </div>
+      <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
     </div>
   );
 }

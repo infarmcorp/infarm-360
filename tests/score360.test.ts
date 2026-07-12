@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classOf, avg, round1, weightedScore360, type Groups360 } from '@/lib/score360';
+import { classOf, avg, round2, weightedScore360, type Groups360 } from '@/lib/score360';
 
 const G = (g: Partial<Groups360>): Groups360 => ({ atasan: [], peer: [], cross: [], bawahan: [], self: [], ...g });
 
@@ -13,15 +13,15 @@ describe('classOf — relasi → kelas bobot', () => {
   });
 });
 
-describe('avg & round1', () => {
+describe('avg & round2', () => {
   it('avg kosong → null, lainnya rerata', () => {
     expect(avg([])).toBeNull();
     expect(avg([2, 4])).toBe(3);
   });
-  it('round1 membulatkan 1 desimal', () => {
-    expect(round1(12.34)).toBe(12.3);
-    expect(round1(12.36)).toBe(12.4);
-    expect(round1(80)).toBe(80);
+  it('round2 membulatkan 2 desimal', () => {
+    expect(round2(12.344)).toBe(12.34);
+    expect(round2(12.345)).toBe(12.35);
+    expect(round2(80)).toBe(80);
   });
 });
 

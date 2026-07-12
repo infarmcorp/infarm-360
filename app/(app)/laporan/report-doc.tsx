@@ -42,7 +42,7 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
         <ScoreCard label="Skor Akhir" value={data.finalScore} color="text-slate-900" big />
       </div>
       {data.penalty > 0 && (
-        <p className="text-[11px] text-rose-600 mt-2">Termasuk pengurangan punishment kepatuhan −{data.penalty.toFixed(1)}.</p>
+        <p className="text-[11px] text-rose-600 mt-2">Termasuk pengurangan punishment kepatuhan −{data.penalty.toFixed(2)}.</p>
       )}
 
       {/* Radar aspek 360 */}
@@ -78,7 +78,7 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
                   <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(a.score ?? 0, 100)}%` }} />
                   </div>
-                  <span className="text-[10px] font-mono font-bold text-indigo-700 w-7 text-right">{a.score != null ? a.score.toFixed(0) : '—'}</span>
+                  <span className="text-[10px] font-mono font-bold text-indigo-700 w-11 text-right">{a.score != null ? a.score.toFixed(2) : '—'}</span>
                 </div>
                 {/* Bar Diri (evaluasi diri) — pembanding */}
                 {a.self != null && (
@@ -87,7 +87,7 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
                     <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div className="h-full bg-amber-400 rounded-full" style={{ width: `${Math.min(a.self, 100)}%` }} />
                     </div>
-                    <span className="text-[10px] font-mono font-bold text-amber-600 w-7 text-right">{a.self.toFixed(0)}</span>
+                    <span className="text-[10px] font-mono font-bold text-amber-600 w-11 text-right">{a.self.toFixed(2)}</span>
                   </div>
                 )}
               </div>
@@ -151,7 +151,7 @@ function ScoreCard({ label, value, color, big }: { label: string; value: number 
   return (
     <div className="border border-gray-200 rounded-xl p-3 text-center break-inside-avoid">
       <p className="text-[10px] text-gray-500 uppercase font-bold">{label}</p>
-      <p className={`font-black font-mono ${color} ${big ? 'text-3xl' : 'text-xl'}`}>{value != null ? value.toFixed(1) : '—'}</p>
+      <p className={`font-black font-mono ${color} ${big ? 'text-3xl' : 'text-xl'}`}>{value != null ? value.toFixed(2) : '—'}</p>
     </div>
   );
 }

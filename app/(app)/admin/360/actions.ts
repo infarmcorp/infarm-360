@@ -5,7 +5,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
-import { classOf, avg, round1, weightedScore360, type Groups360 } from '@/lib/score360';
+import { classOf, avg, round2, weightedScore360, type Groups360 } from '@/lib/score360';
 import { fetchAllPaged, fetchAllByIds } from '@/lib/supabase/paginate';
 
 /**
@@ -99,7 +99,7 @@ export async function computeResult360(): Promise<ComputeResult> {
   const rows: { employee_id: string; period_id: string; score: number; computed_at: string }[] = [];
   for (const [targetId, g] of byTarget) {
     const score = weightedScore360(g, ws.model, weights);
-    if (score != null) rows.push({ employee_id: targetId, period_id: ap.id, score: round1(score), computed_at: computedAt });
+    if (score != null) rows.push({ employee_id: targetId, period_id: ap.id, score: round2(score), computed_at: computedAt });
   }
 
   if (rows.length === 0) return { ok: false, error: 'Tidak ada skor yang dapat dihitung' };

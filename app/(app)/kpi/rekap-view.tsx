@@ -127,11 +127,11 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
                     <span className="text-[10px] text-gray-500">{r.dept}</span>
                   </td>
                   {r.monthly.map((v, i) => (
-                    <td key={i} className="py-3 px-3 text-center font-mono text-gray-500">{v != null ? v.toFixed(1) : '—'}</td>
+                    <td key={i} className="py-3 px-3 text-center font-mono text-gray-500">{v != null ? v.toFixed(2) : '—'}</td>
                   ))}
-                  <td className="py-3 px-3 text-center font-mono font-bold text-emerald-700">{r.kpiAvg != null ? r.kpiAvg.toFixed(1) : '—'}</td>
-                  {sel.has_360 && <td className="py-3 px-3 text-center font-mono font-bold text-indigo-700">{r.s360 != null ? r.s360.toFixed(1) : '—'}</td>}
-                  <td className="py-3 px-3 text-center font-mono font-black text-slate-900 text-sm">{r.final != null ? r.final.toFixed(1) : '—'}</td>
+                  <td className="py-3 px-3 text-center font-mono font-bold text-emerald-700">{r.kpiAvg != null ? r.kpiAvg.toFixed(2) : '—'}</td>
+                  {sel.has_360 && <td className="py-3 px-3 text-center font-mono font-bold text-indigo-700">{r.s360 != null ? r.s360.toFixed(2) : '—'}</td>}
+                  <td className="py-3 px-3 text-center font-mono font-black text-slate-900 text-sm">{r.final != null ? r.final.toFixed(2) : '—'}</td>
                   <td className={`py-3 px-3 text-right font-bold ${kat.c}`}>{kat.t}{r.player ? ` · ${playerLabelOf(r.player)}` : ''}</td>
                 </tr>
               );

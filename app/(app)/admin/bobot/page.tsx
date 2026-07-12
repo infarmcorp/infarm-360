@@ -154,7 +154,7 @@ export default async function BobotPage() {
                 <tr key={it.id}>
                   <td className="py-3 pr-3 font-bold text-gray-800">{it.name}</td>
                   <td className="py-3 px-3 text-gray-500">{it.dept}</td>
-                  <td className="py-3 pl-3 text-right font-mono font-black text-indigo-700">{it.score != null ? it.score.toFixed(1) : '—'}</td>
+                  <td className="py-3 pl-3 text-right font-mono font-black text-indigo-700">{it.score != null ? it.score.toFixed(2) : '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -189,10 +189,10 @@ export default async function BobotPage() {
                   return (
                     <tr key={c.id}>
                       <td className="py-3 pr-3"><span className="font-bold text-gray-800 block">{c.name}</span><span className="text-[11px] text-gray-500">{c.dept}</span></td>
-                      <td className={`py-3 px-3 text-right font-mono ${model === '4class' ? 'font-black text-emerald-800' : 'text-gray-600'}`}>{c.s4 != null ? c.s4.toFixed(1) : '—'}</td>
-                      <td className={`py-3 px-3 text-right font-mono ${model === '2class' ? 'font-black text-emerald-800' : 'text-gray-600'}`}>{c.s2 != null ? c.s2.toFixed(1) : '—'}</td>
+                      <td className={`py-3 px-3 text-right font-mono ${model === '4class' ? 'font-black text-emerald-800' : 'text-gray-600'}`}>{c.s4 != null ? c.s4.toFixed(2) : '—'}</td>
+                      <td className={`py-3 px-3 text-right font-mono ${model === '2class' ? 'font-black text-emerald-800' : 'text-gray-600'}`}>{c.s2 != null ? c.s2.toFixed(2) : '—'}</td>
                       <td className={`py-3 pl-3 text-right font-mono font-bold ${delta == null ? 'text-gray-300' : delta > 0 ? 'text-emerald-700' : delta < 0 ? 'text-rose-600' : 'text-gray-500'}`}>
-                        {delta == null ? '—' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)}`}
+                        {delta == null ? '—' : `${delta > 0 ? '+' : ''}${delta.toFixed(2)}`}
                       </td>
                     </tr>
                   );

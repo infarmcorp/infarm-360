@@ -1,5 +1,7 @@
 import { createAdminClient, type createClient } from '@/lib/supabase/server';
 import { finalScoreOf } from '@/lib/scoring';
+import { classOf, weightedScore360, type Groups360 } from '@/lib/score360';
+import type { RelationKind, WeightValues } from '@/lib/database.types';
 
 type SB = Awaited<ReturnType<typeof createClient>>;
 
@@ -37,8 +39,9 @@ export type ReportData = {
 
 /**
  * Muat data Dokumen Laporan rinci untuk satu pegawai+periode (tunduk RLS pemanggil).
- * Aspek 360° = rerata rating per aspek ×20 (Self dikecualikan dari skor aspek "others",
- * tetapi disimpan terpisah di .self). Komentar mentah dikelompokkan per penilai.
+ * Aspek 360° "others" = skor TERBOBOT per kelas penilai (Atasan/Peer/Cross/Bawahan) via
+ * weightedScore360 + skema bobot aktif — konsisten dgn Skor 360° headline & dashboard; Self
+ * dikecualikan & disimpan terpisah di .self (rata-rata biasa). Komentar mentah per penilai.
  */
 export async function loadReport(supabase: SB, employeeId: string, period: { id: string; label: string; has_360: boolean }): Promise<ReportData | null> {
   const { data: emp } = await supabase.from('employees').select('id, name, dept').eq('id', employeeId).maybeSingle();
@@ -90,23 +93,52 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
   const nameById = new Map((assessorEmps ?? []).map((e) => [e.id, e.name]));
   const { data: maps } = await supabase.from('mappings').select('assessor_id, relation').eq('target_id', employeeId).eq('period_id', period.id);
   const relById = new Map((maps ?? []).map((m) => [m.assessor_id, m.relation]));
+  // Skema bobot aktif (config; dibaca via service_role agar andal untuk semua pemanggil —
+  // pegawai/SPV/Direksi belum tentu punya RLS baca weight_schemes).
+  const { data: ws } = await createAdminClient()
+    .from('weight_schemes').select('model, weights').eq('period_id', period.id).eq('is_active', true).maybeSingle();
+  const wModel = (ws?.model ?? '4class') as '4class' | '2class';
+  const wVals = (ws?.weights ?? {}) as WeightValues;
+  const hasWS = !!ws;
 
-  // Aspek skor (others vs self).
-  const aggOther = new Map<string, { sum: number; n: number }>();
+  // Aspek skor: OTHERS = TERBOBOT per kelas penilai (meniru computeResult360 — konsisten dgn Skor
+  // 360° headline); SELF = rata-rata biasa (satu penilai, tak ada kelas). Kumpulkan rating per
+  // (aspek, penilai) → skor per-penilai per-aspek ×20 → kelompokkan per kelas → weightedScore360.
+  const aaBag = new Map<string, { sum: number; n: number }>(); // `${aspectId}|${assessorId}` (non-self)
   const aggSelf = new Map<string, { sum: number; n: number }>();
   for (const s of scoreRows ?? []) {
     if (s.rating == null) continue;
     const aid = indAspect.get(s.indicator_id); if (!aid) continue;
     const asmt = asmtList.find((a) => a.id === s.assessment_id); if (!asmt) continue;
-    const isSelf = asmt.assessor_id === employeeId;
-    const bag = isSelf ? aggSelf : aggOther;
-    const a = bag.get(aid) ?? { sum: 0, n: 0 }; a.sum += s.rating; a.n += 1; bag.set(aid, a);
+    if (asmt.assessor_id === employeeId) {
+      const a = aggSelf.get(aid) ?? { sum: 0, n: 0 }; a.sum += s.rating; a.n += 1; aggSelf.set(aid, a);
+    } else {
+      const k = `${aid}|${asmt.assessor_id}`;
+      const a = aaBag.get(k) ?? { sum: 0, n: 0 }; a.sum += s.rating; a.n += 1; aaBag.set(k, a);
+    }
   }
-  const aspects: AspectScore[] = aspectList.map((a) => ({
-    name: a.name,
-    score: aggOther.has(a.id) ? (aggOther.get(a.id)!.sum / aggOther.get(a.id)!.n) * 20 : null,
-    self: aggSelf.has(a.id) ? (aggSelf.get(a.id)!.sum / aggSelf.get(a.id)!.n) * 20 : null,
-  }));
+  const emptyG = (): Groups360 => ({ atasan: [], peer: [], cross: [], bawahan: [], self: [] });
+  const aspectG = new Map<string, Groups360>();
+  for (const [k, v] of aaBag) {
+    const sep = k.indexOf('|');
+    const aid = k.slice(0, sep), assessorId = k.slice(sep + 1);
+    const cls = classOf((relById.get(assessorId) ?? 'Peer') as RelationKind);
+    let g = aspectG.get(aid); if (!g) { g = emptyG(); aspectG.set(aid, g); }
+    g[cls].push((v.sum / v.n) * 20);
+  }
+  const scoreOfG = (g: Groups360): number | null => {
+    if (hasWS) return weightedScore360(g, wModel, wVals);
+    const all = [...g.atasan, ...g.peer, ...g.cross, ...g.bawahan];
+    return all.length ? all.reduce((a, b) => a + b, 0) / all.length : null;
+  };
+  const aspects: AspectScore[] = aspectList.map((a) => {
+    const g = aspectG.get(a.id);
+    return {
+      name: a.name,
+      score: g ? scoreOfG(g) : null,
+      self: aggSelf.has(a.id) ? (aggSelf.get(a.id)!.sum / aggSelf.get(a.id)!.n) * 20 : null,
+    };
+  });
 
   // Raw feedback ANONIM per aspek → indikator (untuk HRD). Self dikecualikan agar
   // konsisten dgn skor "Rekan". Akumulasi rating mentah (mis. 4,5,2,3,4,1) + komentar.

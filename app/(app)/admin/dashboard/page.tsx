@@ -1,11 +1,14 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import {
   finalScoreOf, playerClassOf,
 } from '@/lib/scoring';
-import { fetchAllByIds } from '@/lib/supabase/paginate';
+import { classOf, avg as avg360, weightedScore360, type Groups360 } from '@/lib/score360';
+import { trendOf } from '@/lib/trend';
+import type { RelationKind, WeightValues } from '@/lib/database.types';
+import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
 import { DashboardVisual } from './dashboard-visual';
 import { DashboardFilters } from './dashboard-filters';
 import { EmptyState } from '@/components/empty-state';
@@ -33,7 +36,7 @@ export default async function DashboardPage({
 
   // Daftar periode + periode terpilih (param → aktif → terbaru).
   const { data: periodRows } = await supabase
-    .from('periods').select('id, label, has_360, status, kpi_standard, start_date').order('label', { ascending: false });
+    .from('periods').select('id, label, has_360, status, kpi_standard, start_date, end_date').order('label', { ascending: false });
   const periodList = periodRows ?? [];
   if (periodList.length === 0) return (
     <Shell>
@@ -55,9 +58,9 @@ export default async function DashboardPage({
     ?? periodList[0];
 
   // Pegawai non-direksi + daftar divisi; lingkup divisi terpilih (default semua).
-  // Pelaporan: ambil TANPA filter is_active; nonaktif disaring belakangan kecuali punya data
-  // di periode (KPI/360°) → hasil kuartal pegawai yang resign di akhir periode tetap tampil.
-  const { data: allEmpRows } = await supabase.from('employees').select('id, name, dept, is_active').neq('role', 'direksi').eq('is_external', false);
+  // Pelaporan: ambil TANPA filter is_active; keanggotaan kuartal ditentukan belakangan lewat
+  // irisan masa kerja (joined_on/left_on) × rentang periode, ATAU jejak data (hibrida).
+  const { data: allEmpRows } = await supabase.from('employees').select('id, name, dept, is_active, joined_on, left_on').neq('role', 'direksi').eq('is_external', false);
   const allEmps = allEmpRows ?? [];
   const deptList = [...new Set(allEmps.map((e) => e.dept))].sort();
   const dept = deptParam && deptParam !== 'all' && deptList.includes(deptParam) ? deptParam : 'all';
@@ -86,18 +89,36 @@ export default async function DashboardPage({
     ymList.length && empIds.length ? supabase.from('kpi_scores').select('employee_id, ym, score').in('ym', ymList).in('employee_id', empIds) : Promise.resolve({ data: [] as { employee_id: string; ym: string; score: number }[] }),
     aspectList.length ? supabase.from('indicators').select('id, aspect_id').in('aspect_id', aspectList.map((a) => a.id)) : Promise.resolve({ data: [] as { id: string; aspect_id: string }[] }),
     nonSelfIds.length
-      ? fetchAllByIds<{ indicator_id: string; rating: number | null }>(nonSelfIds, (chunk, from, to) =>
-          supabase.from('assessment_indicator_scores').select('indicator_id, rating')
+      ? fetchAllByIds<{ assessment_id: string; indicator_id: string; rating: number | null }>(nonSelfIds, (chunk, from, to) =>
+          supabase.from('assessment_indicator_scores').select('assessment_id, indicator_id, rating')
             .in('assessment_id', chunk).order('assessment_id').order('indicator_id').range(from, to))
-      : Promise.resolve([] as { indicator_id: string; rating: number | null }[]),
+      : Promise.resolve([] as { assessment_id: string; indicator_id: string; rating: number | null }[]),
   ]);
 
+  // "KPI belum terbaca" per pegawai = Trend 'unread' (bln-1=0 & bln-2=0) atas KPI bulanan kuartal.
+  // Dikecualikan dari KATEGORISASI & rerata KPI/Skor Akhir (Kompilasi & KPI) — bukan pekerja rendah,
+  // melainkan data belum masuk. Tetap tampil sebagai bucket "Belum Terbaca" sendiri (dan di 360°/Tabel).
+  const empYm = new Map<string, Map<string, { s: number; n: number }>>();
+  (kpiRes.data ?? []).forEach((r) => {
+    let m = empYm.get(r.employee_id); if (!m) { m = new Map(); empYm.set(r.employee_id, m); }
+    const a = m.get(r.ym) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; m.set(r.ym, a);
+  });
+  const ymFirst3 = [...ymList].sort().slice(0, 3);
+  const unreadIds = new Set<string>();
+  for (const [id, m] of empYm) {
+    const months = ymFirst3.map((ym) => (m.has(ym) ? m.get(ym)!.s / m.get(ym)!.n : null));
+    if (trendOf(months) === 'unread') unreadIds.add(id);
+  }
+
   // Rerata KPI per pegawai + rerata KPI organisasi per bulan (untuk Analisis KPI).
+  // kpiAgg dihitung untuk SEMUA (agar baris tetap punya nilai utk Tabel/bucket); rerata bulanan
+  // organisasi (monthAgg) MENGECUALIKAN yang belum terbaca agar tak bias oleh 0-placeholder.
   const kpiAgg = new Map<string, { sum: number; n: number }>();
   const monthAgg = new Map<string, { sum: number; n: number }>();
   (kpiRes.data ?? []).forEach((r) => {
     const a = kpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 };
     a.sum += r.score; a.n += 1; kpiAgg.set(r.employee_id, a);
+    if (unreadIds.has(r.employee_id)) return;
     const m = monthAgg.get(r.ym) ?? { sum: 0, n: 0 };
     m.sum += r.score; m.n += 1; monthAgg.set(r.ym, m);
   });
@@ -111,6 +132,7 @@ export default async function DashboardPage({
   const empDept = new Map(emps.map((e) => [e.id, e.dept]));
   const dmAgg = new Map<string, { sum: number; n: number }>(); // key `${dept}|${ym}`
   (kpiRes.data ?? []).forEach((r) => {
+    if (unreadIds.has(r.employee_id)) return; // "belum terbaca" tak mewarnai heatmap divisi
     const d = empDept.get(r.employee_id);
     if (!d) return;
     const k = `${d}|${r.ym}`;
@@ -173,15 +195,27 @@ export default async function DashboardPage({
     const final = finalScoreOf(kpiAvg, s360, ap.has_360, penalty);
     // 4-Box: berbasis KPI × 360° langsung (360 nonaktif → tanpa sumbu budaya).
     const player = playerClassOf(kpiAvg, ap.has_360 ? s360 : null);
-    return { id: e.id, name: e.name, dept: e.dept, is_active: e.is_active, kpiAvg, s360, final, player };
+    // Keanggotaan kuartal SADAR-PERIODE via irisan masa kerja × rentang periode:
+    //   masuk sebelum periode berakhir  DAN  belum keluar sebelum periode mulai.
+    // `left_on` diketahui → dipakai presisi; belum diisi → fallback ke is_active (aman sebelum
+    // HRD melengkapi tgl keluar: nonaktif-tanpa-tgl tak keliru dianggap masih bekerja).
+    const overlaps =
+      (e.joined_on == null || e.joined_on <= ap.end_date) &&
+      (e.left_on != null ? e.left_on >= ap.start_date : e.is_active);
+    // Trend KPI 3 bulan pertama kuartal (null = bulan belum diisi, beda dari 0) → trendOf.
+    const em = empYm.get(e.id);
+    const kpiMonths = ymFirst3.map((ym) => (em?.has(ym) ? em.get(ym)!.s / em.get(ym)!.n : null));
+    const trend = trendOf(kpiMonths);
+    return { id: e.id, name: e.name, dept: e.dept, is_active: e.is_active, kpiAvg, s360, final, player, overlaps, kpiUnread: unreadIds.has(e.id), trend, kpiMonths };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1))
-    // Tampilkan yang AKTIF atau PUNYA DATA di periode (KPI/360°); nonaktif tanpa data disembunyikan.
-    .filter((r) => r.is_active || r.kpiAvg != null || r.s360 != null);
+    // HIBRIDA: tampil bila masa kerjanya menyentuh kuartal INI (overlaps) ATAU punya data nyata
+    // (KPI/360°) di kuartal ini — jaring pengaman agar angka nyata tak pernah hilang meski tgl keliru.
+    .filter((r) => r.overlaps || r.kpiAvg != null || r.s360 != null);
 
   // Rerata KPI per departemen (untuk bar chart visual).
   const deptAgg = new Map<string, { sum: number; n: number }>();
   rows.forEach((r) => {
-    if (r.kpiAvg == null) return;
+    if (r.kpiAvg == null || r.kpiUnread) return; // kecualikan "belum terbaca" dari rerata divisi
     const a = deptAgg.get(r.dept) ?? { sum: 0, n: 0 };
     a.sum += r.kpiAvg; a.n += 1; deptAgg.set(r.dept, a);
   });
@@ -189,18 +223,71 @@ export default async function DashboardPage({
     .map(([d, a]) => [d, a.sum / a.n] as [string, number])
     .sort((a, b) => b[1] - a[1]);
 
-  // Rataan sub-aspek 360° (rating ×20), dari penilaian terkirim periode aktif, Self dikecualikan.
+  // ── Skor 360° per ASPEK — TERBOBOT (meniru computeResult360 / weightedScore360) ──────────
+  // Per penilaian: rerata rating aspek ×20 (skor 0–100) → dikelompokkan per kelas penilai
+  // (Atasan/Peer/Cross/Bawahan; Self sudah dikecualikan di scoreRows) → weightedScore360 dgn
+  // skema bobot aktif. Bila tak ada skema aktif → fallback rata-rata skor per-penilai (non-self).
+  // Skema bobot + relasi mapping dibaca via service_role (data konfigurasi/relasi, bukan L3).
   const indToAspect = new Map((indRes.data ?? []).map((i) => [i.id, i.aspect_id]));
-  const aspAgg = new Map<string, { sum: number; n: number }>();
+  const admin = createAdminClient();
+  const [wsRes, mapsData] = await Promise.all([
+    admin.from('weight_schemes').select('model, weights').eq('period_id', ap.id).eq('is_active', true).maybeSingle(),
+    fetchAllPaged<{ assessor_id: string; target_id: string; relation: RelationKind }>((from, to) =>
+      admin.from('mappings').select('assessor_id, target_id, relation').eq('period_id', ap.id)
+        .order('assessor_id').order('target_id').range(from, to)),
+  ]);
+  const wModel = (wsRes.data?.model ?? '4class') as '4class' | '2class';
+  const wVals = (wsRes.data?.weights ?? {}) as WeightValues;
+  const hasWS = !!wsRes.data;
+  const relByPair = new Map<string, RelationKind>();
+  mapsData.forEach((m) => relByPair.set(`${m.assessor_id}:${m.target_id}`, m.relation));
+  const asmtInfo = new Map((asmtRes.data ?? []).map((a) => [a.id, { assessor: a.assessor_id, target: a.target_id }]));
+
+  // Kumpulkan rating per (penilaian, aspek) → skor per-penilai per-aspek (×20).
+  const aaRatings = new Map<string, number[]>(); // `${assessmentId}|${aspectId}`
   scoreRows.forEach((s) => {
+    if (s.rating == null) return;
     const aid = indToAspect.get(s.indicator_id);
-    if (!aid || s.rating == null) return;
-    const a = aspAgg.get(aid) ?? { sum: 0, n: 0 };
-    a.sum += s.rating; a.n += 1; aspAgg.set(aid, a);
+    if (!aid) return;
+    const k = `${s.assessment_id}|${aid}`;
+    const arr = aaRatings.get(k) ?? []; arr.push(s.rating); aaRatings.set(k, arr);
   });
+  const emptyG = (): Groups360 => ({ atasan: [], peer: [], cross: [], bawahan: [], self: [] });
+  const aspectG = new Map<string, Groups360>();          // aspectId → grup kelas (org)
+  const deptAspectG = new Map<string, Groups360>();       // `${dept}|${aspectId}` → grup kelas
+  for (const [key, ratings] of aaRatings) {
+    const sep = key.indexOf('|');
+    const asmtId = key.slice(0, sep), aid = key.slice(sep + 1);
+    const info = asmtInfo.get(asmtId);
+    const m = avg360(ratings);
+    if (!info || m == null) continue;
+    const score100 = m * 20;
+    if (score100 <= 0) continue;
+    const rel: RelationKind = info.assessor === info.target ? 'Self' : (relByPair.get(`${info.assessor}:${info.target}`) ?? 'Peer');
+    const cls = classOf(rel);
+    let g = aspectG.get(aid); if (!g) { g = emptyG(); aspectG.set(aid, g); }
+    g[cls].push(score100);
+    const d = empDept.get(info.target);
+    if (d) { const dk = `${d}|${aid}`; let dg = deptAspectG.get(dk); if (!dg) { dg = emptyG(); deptAspectG.set(dk, dg); } dg[cls].push(score100); }
+  }
+  // Skor grup: terbobot bila ada skema aktif; jika tidak → rata-rata semua skor non-self.
+  const scoreOfG = (g: Groups360): number | null => {
+    if (hasWS) return weightedScore360(g, wModel, wVals);
+    const all = [...g.atasan, ...g.peer, ...g.cross, ...g.bawahan];
+    return all.length ? all.reduce((a, b) => a + b, 0) / all.length : null;
+  };
+
   const aspectScores = aspectList
-    .map((a) => ({ aspek: a.name, score: aspAgg.has(a.id) ? (aspAgg.get(a.id)!.sum / aspAgg.get(a.id)!.n) * 20 : 0 }))
+    .map((a) => { const g = aspectG.get(a.id); const s = g ? scoreOfG(g) : null; return { aspek: a.name, score: s ?? 0 }; })
     .filter((a) => a.score > 0);
+
+  const aspect360Names = aspectList.map((a) => a.name);
+  const deptAspect360 = [...new Set(emps.map((e) => e.dept))].sort()
+    .map((d) => ({
+      dept: d,
+      cells: aspectList.map((a) => { const g = deptAspectG.get(`${d}|${a.id}`); return { aspect: a.name, avg: g ? scoreOfG(g) : null }; }),
+    }))
+    .filter((r) => r.cells.some((c) => c.avg != null));
 
   return (
     <Shell>
@@ -229,13 +316,16 @@ export default async function DashboardPage({
           rows={rows.map((r) => ({
             id: r.id, name: r.name, dept: r.dept,
             kpiAvg: r.kpiAvg, s360: r.s360, final: r.final,
-            player: r.player, isActive: r.is_active,
+            player: r.player, isActive: r.is_active, kpiUnread: r.kpiUnread,
+            trend: r.trend, kpiMonths: r.kpiMonths,
           }))}
           deptScores={deptScores}
           aspectScores={aspectScores}
           monthly={monthly}
           deptMonthly={deptMonthly}
           months={ymSorted}
+          deptAspect360={deptAspect360}
+          aspect360Names={aspect360Names}
           yearLabel={selYear}
           yearMonthly={yearMonthly}
           year360={year360}

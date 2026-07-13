@@ -235,6 +235,35 @@ export async function loadTeamReportForSpv(
 }
 
 /**
+ * Laporan untuk KOORDINATOR (grant `is_coordinator`, migrasi 0021) meninjau anggota tim
+ * yang dinaunginya. Cermin loadTeamReportForSpv, tetapi lingkup = `coordinator_team_members`
+ * (bukan spv_team_members). Koordinator lihat-saja: HANYA detail agregat (L1+L2, anonim),
+ * TANPA umpan balik mentah (L3). Tampak hanya setelah HRD merilis ('in_review'/'finalized').
+ * Karena is_coordinator TIDAK menyalakan RLS, seluruh baca lewat service_role & L3 dibuang.
+ */
+export async function loadTeamReportForCoordinator(
+  coordinatorId: string,
+  employeeId: string,
+  period: { id: string; label: string; has_360: boolean },
+): Promise<ReportData | null> {
+  const admin = createAdminClient() as unknown as SB;
+
+  const { data: mem } = await admin.from('coordinator_team_members')
+    .select('employee_id').eq('coordinator_id', coordinatorId).eq('employee_id', employeeId).maybeSingle();
+  if (!mem) return null; // di luar tim koordinator
+
+  const { data: fr } = await admin.from('final_reports')
+    .select('status').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
+  const status = fr?.status ?? null;
+  const visible = status === 'in_review' || status === 'finalized';
+  if (!visible) return null; // belum dirilis HRD
+
+  const full = await loadReport(admin, employeeId, period);
+  if (!full) return null;
+  return { ...full, assessors: [], byAspect: [], essays: [] }; // buang lapis 3
+}
+
+/**
  * Versi HRD mode-SPV dari loadTeamReportForSpv. HRD secara RLS punya akses penuh,
  * tetapi saat bertindak SEBAGAI SPV (cookie hrd_mode='spv') harus dibatasi setara
  * SPV: HANYA detail agregat (L1+L2), TANPA umpan balik mentah (L3). Lingkup =

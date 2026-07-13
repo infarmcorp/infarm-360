@@ -12,6 +12,12 @@ Migrasi fungsional **selesai & live**; sisa sebagian besar **aktivasi env** (ema
 **Status repo: BERSIH — semua pekerjaan sesi 2026-07-10..12 sudah PUSHED ke `main` & live (commit `9266b34`).**
 Bagian ini hanya potret status; perincian tiap fitur ada di **Changelog** & **TO-DO** di CLAUDE.md.
 
+- **Peran Koordinator (2026-07-12, migrasi 0021 diterapkan ke live + di-push):** pegawai (role=employee)
+  ber-grant `is_coordinator` lihat-saja "Laporan Kinerja Tim" untuk daftar eksplisit `coordinator_team_members`
+  (pola Peninjau: grant non-RLS, akses service_role berlingkup, L3 dibuang; tanpa KPI/ACC/efek 360°). UI grant +
+  dialog "Tim Koordinasi" di Kelola Pegawai. Assignment awal (live): Arif→{Qurrotun,Reni}; Widodo→{Adistya,
+  Fikar,Sitti Aisyatul,Vizcha}. Detail: [[coordinator-access]] / Changelog "Peran Koordinator".
+
 - **Sesi 2026-07-10 → 2026-07-12 (SEMUA sudah push & live — commit `9266b34`):**
   - **Tanggal aktif pegawai** (`joined_on`/`left_on`, migrasi **0020**, sudah diterapkan ke DB live) +
     kolom "Masa Aktif" di Kelola Pegawai; **Dashboard keanggotaan HIBRIDA** sadar-periode.

@@ -238,6 +238,15 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
 ### Pengembangan opsional
 - ⬜ Bulk-finalisasi laporan ber-ACC SPV · ⬜ Ekspor Log Aktivitas HRD ke Excel · ⬜ Ganti email
   mandiri (lanjutan Akun Saya).
+- ✅ **Peran "Koordinator" — lihat Laporan Kinerja Tim anggotanya** (diminta & **SELESAI 2026-07-12**,
+  migrasi 0021 diterapkan ke live). Pegawai yang membawahi beberapa pegawai (sebagian lain tetap langsung ke
+  SPV) diberi akses **lihat-saja** Laporan Kinerja Tim untuk daftar pegawai **eksplisit**-nya (tanpa KPI/ACC),
+  **TIDAK** memengaruhi 360°. Lihat entri Changelog "Peran Koordinator". **Assignment awal (Q2 2026, sudah
+  di-set di live):** Rochmat Arif Maulana → {Qurrotun Ayun, Reni Candra Sari}; Widodo Hadi Kusumo → {Adistya
+  Dwi Nurmayunita, Muhammad Fikar Nazary, Sitti Aisyatul Maufiroh, Vizcha Amalia Susanto Putri}.
+  - **Peluang lanjutan (opsional):** relasi ini SUDAH tersirat sbg **"Atasan"** di `mappings` → bila kelak
+    banyak koordinator, pertimbangkan menurunkan lingkup dari mapping Atasan (tanpa efek skor) agar HRD tak
+    input dua kali. Untuk sekarang pakai daftar eksplisit `coordinator_team_members`.
 - ✅ **"Peninjau Hasil Lintas Divisi" (grant `is_cross_reviewer`, migrasi 0018)** — **SELESAI
   (2026-06-30).** Pegawai (mis. divisi HRD) yang diberi izin dapat **meringkas Hasil Akhir 360°
   pegawai di SEMUA divisi KECUALI divisinya sendiri** (membantu HRD menulis Ringkasan Aspek tanpa
@@ -522,6 +531,16 @@ npm run test:watch # vitest mode pantau
   `is_hrd()` → pemegangnya tetap pegawai biasa di RLS; akses lintas-divisi hanya via `service_role`
   (`loadCrossDivisionReport`, tegakkan "divisi target ≠ divisi peninjau"). Privasi **nyata**, bukan
   app-only — pola acuan untuk grant sensitif (lihat Keputusan terkunci).
+- **Peran Koordinator** (`is_coordinator` + tabel `coordinator_team_members`, migrasi 0021, 2026-07-12).
+  Pegawai (role='employee') yang membawahi beberapa pegawai & diberi akses **LIHAT-SAJA** "Laporan Kinerja
+  Tim" untuk **daftar eksplisit** yang dinaunginya (sebagian pegawai lain tetap langsung ke SPV). **Pola
+  Peninjau:** grant **TIDAK** menyalakan `is_hrd()`/`is_my_member` → koordinator tetap pegawai biasa di RLS;
+  seluruh data laporan dibaca via **`service_role`** berlingkup ke `coordinator_team_members`-nya + **L3
+  selalu dibuang** (`loadTeamReportForCoordinator`, cermin `loadTeamReportForSpv`). **TIDAK** input KPI/ACC/
+  finalisasi & **TIDAK** memengaruhi 360° (bukan "Atasan" untuk skor). Detail L2 (klik nama) tetap gerbang
+  **rilis HRD** (in_review/finalized). Tabel baru ber-RLS (baca: HRD/koordinator ybs; tulis: HRD). UI: grant
+  "Koordinator" + dialog "Tim Koordinasi" (checklist) di Kelola Pegawai; menu base "Laporan Kinerja Tim".
+  Menambah koordinator = **DATA, bukan kode** (HRD mandiri via UI, tanpa deploy).
 - **Toggle 360° (`has_360`) & Tutup/Buka Form (`form_open`, migrasi 0017)** = dua gerbang terpisah.
   Gerbang form pegawai = `has_360 && form_open`; guard tulis (`submitAssessment`/`addAdhocTarget`/
   `requestCorrection`) menolak bila salah satu mati. `form_open` menutup form **tanpa** membuang 360°
@@ -623,7 +642,9 @@ npm run test:watch # vitest mode pantau
 - `0014` `relation_correction_requests.reviewed_at` (deteksi skor basi).
 - `0015` `mappings.is_adhoc` · `0016` `employees.is_external` · `0017` `periods.form_open` ·
   `0018` `employees.is_cross_reviewer` · `0019` `kpi_audit.action` (`set`/`delete`, utk Hapus KPI ber-audit) ·
-  `0020` `employees.joined_on`/`left_on` (tanggal aktif; keanggotaan Dashboard hibrida — pelaporan, non-rumus).
+  `0020` `employees.joined_on`/`left_on` (tanggal aktif; keanggotaan Dashboard hibrida — pelaporan, non-rumus) ·
+  `0021` `employees.is_coordinator` + tabel `coordinator_team_members` (peran Koordinator lihat-saja Laporan
+  Kinerja Tim; pola Peninjau, grant non-RLS + akses service_role berlingkup).
 - `final_reports.content` (jsonb lama) dipakai untuk `aspectSummaries` **&** `qualSummaries`
   (ringkasan pertanyaan kualitatif) — tanpa migrasi baru.
 

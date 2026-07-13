@@ -2,9 +2,9 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { canAdmin } from '@/lib/auth/roles';
+import { canAdmin, canCoordinate } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
-import { loadReport, loadTeamReportForSpv, loadTeamReportForHrdSpv, loadSpvReportForDireksi, isDireksiReviewSubject } from '@/lib/report';
+import { loadReport, loadTeamReportForSpv, loadTeamReportForHrdSpv, loadTeamReportForCoordinator, loadSpvReportForDireksi, isDireksiReviewSubject } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
 import { ReportActions } from '../report-actions';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
@@ -28,10 +28,11 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, is_coordinator').eq('id', user.id).maybeSingle();
   const role = me?.role;
   const isAdmin = canAdmin(me);
-  if (!isAdmin && role !== 'direksi' && role !== 'spv') {
+  const isCoordinator = canCoordinate(me);
+  if (!isAdmin && role !== 'direksi' && role !== 'spv' && !isCoordinator) {
     return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD / Direksi.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
@@ -82,6 +83,33 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
       <Shell>
         <Link href="/laporan-tim" className="text-xs text-gray-500 hover:underline no-print">← Laporan Kinerja Tim</Link>
         <p className="text-sm text-gray-500 mt-3">Direksi hanya dapat meninjau laporan Supervisor (SPV).</p>
+      </Shell>
+    );
+  }
+
+  // Jalur KOORDINATOR (grant is_coordinator, role bukan SPV/HRD/Direksi): detail agregat L2
+  // (radar/aspek + ringkasan), TANPA umpan balik mentah (L3), hanya bila HRD sudah merilis &
+  // pegawai ada di tim koordinasinya. Baca via service_role berlingkup (loadTeamReportForCoordinator).
+  if (isCoordinator && !isAdmin && role !== 'spv') {
+    const data = await loadTeamReportForCoordinator(user.id, employeeId, ap);
+    if (!data) {
+      return (
+        <Shell>
+          <Link href="/laporan-tim" className="text-xs text-gray-500 hover:underline no-print">← Laporan Kinerja Tim</Link>
+          <p className="text-sm text-gray-500 mt-3">
+            Laporan belum dirilis HRD untuk ditinjau, atau di luar lingkup tim koordinasi Anda.
+          </p>
+        </Shell>
+      );
+    }
+    return (
+      <Shell>
+        <Link href="/laporan-tim" className="text-xs text-gray-500 hover:underline no-print">← Laporan Kinerja Tim</Link>
+        <div className="mt-2">
+          <ReportDoc data={data} anonymize hideAssessorComments />
+          {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
+          {data.has360 && <AspectSummaryView summaries={data.qualSummaries} title={QUAL_TITLE} intro={QUAL_INTRO} />}
+        </div>
       </Shell>
     );
   }

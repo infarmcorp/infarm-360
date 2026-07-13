@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { UserPlus, Pencil, KeyRound, Power, X, ShieldCheck, ScanEye } from 'lucide-react';
-import { createEmployee, updateEmployee, setEmployeeActive, resetPassword, setHrdAdmin, setCrossReviewer } from './actions';
+import { UserPlus, Pencil, KeyRound, Power, X, ShieldCheck, ScanEye, Users, ListChecks } from 'lucide-react';
+import { createEmployee, updateEmployee, setEmployeeActive, resetPassword, setHrdAdmin, setCrossReviewer, setCoordinator, setCoordinatorTeam } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type EmpRow = {
   id: string; empCode: string; name: string; dept: string; role: Role;
-  isHrdAdmin: boolean; isExternal: boolean; isCrossReviewer: boolean; active: boolean; email: string; spvId: string | null; spvName: string | null;
+  isHrdAdmin: boolean; isExternal: boolean; isCrossReviewer: boolean; isCoordinator: boolean; active: boolean; email: string; spvId: string | null; spvName: string | null;
   joinedOn: string | null; leftOn: string | null; // tgl masuk/aktif & tgl nonaktif (YYYY-MM-DD)
 };
 export type SpvOpt = { id: string; name: string; dept: string; role: Role };
@@ -47,7 +47,7 @@ function fmtDate(s: string | null): string {
   return y && m && d ? `${d}/${m}/${y}` : s;
 }
 
-export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: SpvOpt[]; depts: string[] }) {
+export function PegawaiClient({ rows, spvs, depts, coordTeams }: { rows: EmpRow[]; spvs: SpvOpt[]; depts: string[]; coordTeams: Record<string, string[]> }) {
   const [q, setQ] = useState('');
   const [fRole, setFRole] = useState<'all' | Role>('all');
   const [fStatus, setFStatus] = useState<'all' | 'active' | 'inactive'>('all');
@@ -55,6 +55,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
   const [form, setForm] = useState<FormState | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [reset, setReset] = useState<{ r: EmpRow; pw: string } | null>(null); // dialog reset sandi
+  const [coordTeam, setCoordTeam] = useState<{ r: EmpRow; selected: Set<string>; q: string } | null>(null); // dialog tim koordinator
   const [pending, start] = useTransition();
   // Gulir ke form saat dibuka (tambah/edit) — form dirender di atas, jadi tanpa ini
   // edit baris bawah membuat form muncul di luar layar. openTick memicu efek tiap buka.
@@ -145,6 +146,24 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
   function doReset(r: EmpRow) {
     setToast(null);
     setReset({ r, pw: randPass() });
+  }
+  function openCoordTeam(r: EmpRow) {
+    setToast(null);
+    setCoordTeam({ r, selected: new Set(coordTeams[r.id] ?? []), q: '' });
+  }
+  function toggleMember(id: string) {
+    setCoordTeam((c) => {
+      if (!c) return c;
+      const s = new Set(c.selected);
+      if (s.has(id)) s.delete(id); else s.add(id);
+      return { ...c, selected: s };
+    });
+  }
+  function submitCoordTeam() {
+    if (!coordTeam) return;
+    const { r, selected } = coordTeam;
+    setCoordTeam(null);
+    act(() => setCoordinatorTeam(r.id, [...selected]));
   }
   function submitReset() {
     if (!reset) return;
@@ -306,6 +325,9 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                   {r.isCrossReviewer && (
                     <span className="ml-1 inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700" title="Peninjau Hasil Lintas Divisi — boleh meringkas hasil divisi LAIN (bukan divisinya sendiri)"><ScanEye className="w-2.5 h-2.5" /> Peninjau</span>
                   )}
+                  {r.isCoordinator && (
+                    <span className="ml-1 inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700" title="Koordinator — lihat Laporan Kinerja Tim untuk pegawai yang dinaunginya"><Users className="w-2.5 h-2.5" /> Koordinator{coordTeams[r.id]?.length ? ` (${coordTeams[r.id].length})` : ''}</span>
+                  )}
                 </td>
                 <td className="py-3 px-3 text-xs text-gray-500">{r.spvName ?? '—'}</td>
                 <td className="py-3 px-3 text-[11px] text-gray-600 whitespace-nowrap">
@@ -334,6 +356,16 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                     <button type="button" onClick={() => act(() => setCrossReviewer(r.id, !r.isCrossReviewer))} disabled={pending}
                       title={r.isCrossReviewer ? 'Cabut izin Peninjau Lintas Divisi' : 'Beri izin Peninjau Hasil Lintas Divisi (meringkas hasil divisi lain)'}
                       className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg disabled:opacity-60 ${r.isCrossReviewer ? 'text-violet-700 bg-violet-50 hover:bg-violet-100' : 'text-gray-500 hover:bg-gray-100'}`}><ScanEye className="w-3.5 h-3.5" /></button>
+                  )}
+                  {r.role === 'employee' && (
+                    <button type="button" onClick={() => act(() => setCoordinator(r.id, !r.isCoordinator))} disabled={pending}
+                      title={r.isCoordinator ? 'Cabut peran Koordinator' : 'Jadikan Koordinator (lihat Laporan Kinerja Tim pegawai yang dinaunginya)'}
+                      className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg disabled:opacity-60 ${r.isCoordinator ? 'text-teal-700 bg-teal-50 hover:bg-teal-100' : 'text-gray-500 hover:bg-gray-100'}`}><Users className="w-3.5 h-3.5" /></button>
+                  )}
+                  {r.isCoordinator && (
+                    <button type="button" onClick={() => openCoordTeam(r)} disabled={pending}
+                      title="Kelola pegawai yang dinaungi koordinator ini"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg text-teal-700 hover:bg-teal-50 disabled:opacity-60"><ListChecks className="w-3.5 h-3.5" /></button>
                   )}
                 </td>
               </tr>
@@ -367,6 +399,45 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
           />
           <button type="button" onClick={() => setReset((s) => (s ? { ...s, pw: randPass() } : s))}
             className="text-[11px] font-bold px-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0">Acak</button>
+        </div>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={!!coordTeam}
+        icon="👥"
+        title={coordTeam ? `Tim Koordinasi — ${coordTeam.r.name}` : ''}
+        tone="primary"
+        confirmLabel={coordTeam ? `Simpan (${coordTeam.selected.size})` : 'Simpan'}
+        busy={pending}
+        onConfirm={submitCoordTeam}
+        onCancel={() => { if (!pending) setCoordTeam(null); }}
+      >
+        <p>Pilih pegawai yang dinaungi koordinator ini. Koordinator hanya dapat <strong>melihat</strong> Laporan Kinerja Tim mereka (tanpa input KPI/ACC).</p>
+        <input
+          value={coordTeam?.q ?? ''}
+          onChange={(e) => setCoordTeam((c) => (c ? { ...c, q: e.target.value } : c))}
+          placeholder="Cari nama / kode / divisi…"
+          className="w-full text-sm px-2.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600"
+        />
+        <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+          {coordTeam && (() => {
+            const term = coordTeam.q.trim().toLowerCase();
+            const cands = rows.filter((r) =>
+              r.id !== coordTeam.r.id && !r.isExternal && r.role !== 'direksi' &&
+              (!term || `${r.name} ${r.empCode} ${r.dept}`.toLowerCase().includes(term)));
+            if (cands.length === 0) return <p className="text-xs text-gray-500 italic p-3">Tidak ada pegawai cocok.</p>;
+            return cands.map((r) => {
+              const checked = coordTeam.selected.has(r.id);
+              return (
+                <label key={r.id} className={`flex items-center gap-2 px-2.5 py-1.5 cursor-pointer hover:bg-gray-50 ${checked ? 'bg-teal-50/60' : ''}`}>
+                  <input type="checkbox" checked={checked} onChange={() => toggleMember(r.id)} className="accent-teal-600" />
+                  <span className="text-xs text-gray-800 font-semibold">{r.name}</span>
+                  <span className="text-[10px] text-gray-500 font-mono">{r.empCode} · {r.dept}</span>
+                  {!r.active && <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600">nonaktif</span>}
+                </label>
+              );
+            });
+          })()}
         </div>
       </ConfirmDialog>
 

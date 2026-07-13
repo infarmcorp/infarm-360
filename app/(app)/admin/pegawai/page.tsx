@@ -18,13 +18,18 @@ export default async function PegawaiPage() {
   }
 
   const { data: emps } = await supabase
-    .from('employees').select('id, emp_code, name, dept, role, is_hrd_admin, is_external, is_cross_reviewer, is_active, joined_on, left_on').order('emp_code');
+    .from('employees').select('id, emp_code, name, dept, role, is_hrd_admin, is_external, is_cross_reviewer, is_coordinator, is_active, joined_on, left_on').order('emp_code');
   const list = emps ?? [];
 
   // Atasan per pegawai (1 SPV utama untuk tampilan; relasi DB tetap many-to-many).
   const { data: teams } = await supabase.from('spv_team_members').select('spv_id, employee_id');
   const spvByEmp = new Map<string, string>();
   (teams ?? []).forEach((t) => { if (!spvByEmp.has(t.employee_id)) spvByEmp.set(t.employee_id, t.spv_id); });
+
+  // Tim koordinator: coordinator_id → daftar employee_id yang dinaunginya (untuk prefill dialog).
+  const { data: coordTeamRows } = await supabase.from('coordinator_team_members').select('coordinator_id, employee_id');
+  const coordTeams: Record<string, string[]> = {};
+  (coordTeamRows ?? []).forEach((t) => { (coordTeams[t.coordinator_id] ??= []).push(t.employee_id); });
 
   // Email dari auth (service_role, tak pernah sampai ke klien selain milik baris pegawai).
   const emailById = new Map<string, string>();
@@ -45,7 +50,7 @@ export default async function PegawaiPage() {
     const spvId = spvByEmp.get(e.id) ?? null;
     return {
       id: e.id, empCode: e.emp_code, name: e.name, dept: e.dept, role: e.role,
-      isHrdAdmin: e.is_hrd_admin, isExternal: e.is_external, isCrossReviewer: e.is_cross_reviewer, active: e.is_active, email: emailById.get(e.id) ?? '',
+      isHrdAdmin: e.is_hrd_admin, isExternal: e.is_external, isCrossReviewer: e.is_cross_reviewer, isCoordinator: e.is_coordinator, active: e.is_active, email: emailById.get(e.id) ?? '',
       joinedOn: e.joined_on, leftOn: e.left_on,
       spvId, spvName: spvId ? nameById.get(spvId) ?? null : null,
     };
@@ -68,7 +73,7 @@ export default async function PegawaiPage() {
         </div>
         <PegawaiImport rows={rows} />
       </div>
-      <PegawaiClient rows={rows} spvs={spvs} depts={depts} />
+      <PegawaiClient rows={rows} spvs={spvs} depts={depts} coordTeams={coordTeams} />
     </Shell>
   );
 }

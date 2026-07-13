@@ -85,6 +85,71 @@ export async function setCrossReviewer(employeeId: string, value: boolean): Prom
   return { ok: true, msg: value ? 'Izin Peninjau Lintas Divisi diberikan.' : 'Izin Peninjau Lintas Divisi dicabut.' };
 }
 
+/**
+ * Beri/cabut peran "Koordinator" (grant `is_coordinator`, migrasi 0021). Kapabilitas SEMPIT
+ * & lihat-saja: membuka "Laporan Kinerja Tim" untuk DAFTAR pegawai eksplisit yang dinaungi.
+ * TIDAK memberi akses HRD & tidak menyentuh is_hrd()/RLS. Saat DICABUT, keanggotaan timnya
+ * (coordinator_team_members) ikut dibersihkan. Hanya HRD; tercatat di Log Aktivitas HRD.
+ */
+export async function setCoordinator(employeeId: string, value: boolean): Promise<Result> {
+  if (!z.string().uuid().safeParse(employeeId).success) return { ok: false, error: 'Input tidak valid' };
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return auth;
+
+  const { data: target } = await supabase.from('employees').select('name').eq('id', employeeId).maybeSingle();
+  const { error } = await supabase.from('employees').update({ is_coordinator: value }).eq('id', employeeId);
+  if (error) return { ok: false, error: 'Gagal mengubah peran: ' + error.message };
+  // Cabut → bersihkan tim koordinasi agar tak ada baris yatim.
+  if (!value) await supabase.from('coordinator_team_members').delete().eq('coordinator_id', employeeId);
+
+  await logHrdAction({
+    action: value ? 'employee.grant_coordinator' : 'employee.revoke_coordinator', category: 'pegawai',
+    summary: `${value ? 'Menjadikan' : 'Mencabut peran'} Koordinator untuk ${target?.name ?? employeeId}`,
+    targetType: 'employee', targetId: employeeId, targetLabel: target?.name ?? null,
+  });
+  revalidate();
+  return { ok: true, msg: value ? 'Peran Koordinator diberikan. Atur anggota tim lewat tombol "Tim".' : 'Peran Koordinator dicabut.' };
+}
+
+/**
+ * Tetapkan DAFTAR pegawai yang dinaungi seorang koordinator (ganti total isi
+ * coordinator_team_members untuk koordinator ini). Koordinator tak boleh menaungi dirinya
+ * sendiri. Hanya HRD; tercatat di Log Aktivitas HRD.
+ */
+export async function setCoordinatorTeam(coordinatorId: string, employeeIds: unknown): Promise<Result> {
+  const parsed = z.object({
+    coordinatorId: z.string().uuid(),
+    ids: z.array(z.string().uuid()),
+  }).safeParse({ coordinatorId, ids: employeeIds });
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  const { coordinatorId: cid, ids } = parsed.data;
+
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return auth;
+
+  // Pastikan target memang koordinator (cegah salah pasang tim ke non-koordinator).
+  const { data: coord } = await supabase.from('employees').select('name, is_coordinator').eq('id', cid).maybeSingle();
+  if (!coord?.is_coordinator) return { ok: false, error: 'Pegawai ini bukan Koordinator.' };
+
+  const clean = [...new Set(ids)].filter((id) => id !== cid); // buang duplikat & diri sendiri
+  await supabase.from('coordinator_team_members').delete().eq('coordinator_id', cid);
+  if (clean.length) {
+    const { error } = await supabase.from('coordinator_team_members')
+      .insert(clean.map((employee_id) => ({ coordinator_id: cid, employee_id })));
+    if (error) return { ok: false, error: 'Gagal menyimpan tim: ' + error.message };
+  }
+
+  await logHrdAction({
+    action: 'employee.set_coordinator_team', category: 'pegawai',
+    summary: `Menetapkan ${clean.length} pegawai di bawah koordinasi ${coord.name ?? cid}`,
+    targetType: 'employee', targetId: cid, targetLabel: coord.name ?? null, meta: { count: clean.length },
+  });
+  revalidate();
+  return { ok: true, msg: `Tim koordinasi disimpan (${clean.length} pegawai).` };
+}
+
 const Role = z.enum(['employee', 'spv', 'hrd', 'direksi']);
 // Kode pegawai bebas mengikuti skema perusahaan (mis. EMP010 atau FT2021-001).
 // Mulai alfanumerik; boleh huruf/angka + pemisah - . _ / ; 2–24 karakter.

@@ -18,8 +18,8 @@ export interface Database {
   public: {
     Tables: {
       employees: {
-        Row: { id: string; emp_code: string; name: string; dept: string; role: UserRole; is_hrd_admin: boolean; is_external: boolean; is_cross_reviewer: boolean; is_active: boolean; joined_on: string | null; left_on: string | null; created_at: string };
-        Insert: { id: string; emp_code: string; name: string; dept: string; role?: UserRole; is_hrd_admin?: boolean; is_external?: boolean; is_cross_reviewer?: boolean; is_active?: boolean; joined_on?: string | null; left_on?: string | null };
+        Row: { id: string; emp_code: string; name: string; dept: string; role: UserRole; is_hrd_admin: boolean; is_external: boolean; is_cross_reviewer: boolean; is_coordinator: boolean; is_active: boolean; joined_on: string | null; left_on: string | null; created_at: string };
+        Insert: { id: string; emp_code: string; name: string; dept: string; role?: UserRole; is_hrd_admin?: boolean; is_external?: boolean; is_cross_reviewer?: boolean; is_coordinator?: boolean; is_active?: boolean; joined_on?: string | null; left_on?: string | null };
         Update: Partial<Database['public']['Tables']['employees']['Insert']>;
         Relationships: [];
       };
@@ -27,6 +27,12 @@ export interface Database {
         Row: { spv_id: string; employee_id: string };
         Insert: { spv_id: string; employee_id: string };
         Update: Partial<{ spv_id: string; employee_id: string }>;
+        Relationships: [];
+      };
+      coordinator_team_members: {
+        Row: { coordinator_id: string; employee_id: string };
+        Insert: { coordinator_id: string; employee_id: string };
+        Update: Partial<{ coordinator_id: string; employee_id: string }>;
         Relationships: [];
       };
       periods: {

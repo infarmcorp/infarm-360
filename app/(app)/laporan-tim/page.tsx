@@ -21,13 +21,16 @@ export default async function LaporanTimPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees')
-    .select('role, name, dept').eq('id', user.id).maybeSingle();
+    .select('role, name, dept, is_coordinator').eq('id', user.id).maybeSingle();
 
   // Direksi: eskalasi laporan SPV (Pegawai→SPV, SPV→Direksi). Halaman "Laporan Kinerja Tim"
   // Direksi = daftar SUBJEK SPV yang bisa ditinjau (agregat L2) & di-ACC setelah HRD rilis.
   if (me?.role === 'direksi') return <DireksiTeamReport />;
 
   if (me?.role !== 'spv' && me?.role !== 'hrd') {
+    // Koordinator (grant is_coordinator): lihat-saja Laporan Kinerja Tim untuk daftar
+    // pegawai eksplisit yang dinaunginya (coordinator_team_members). Tanpa ACC/Status/KPI.
+    if (me?.is_coordinator) return <CoordinatorTeamReport userId={user.id} />;
     return <Shell><p className="text-sm text-gray-600">Halaman ini untuk Supervisor.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
@@ -205,6 +208,87 @@ async function DireksiTeamReport() {
             team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
           <TeamTable rows={rows} />
+        </>
+      )}
+    </Shell>
+  );
+}
+
+/**
+ * Laporan Kinerja Tim untuk KOORDINATOR (grant is_coordinator, migrasi 0021): LIHAT-SAJA
+ * daftar pegawai yang dinaunginya (coordinator_team_members) + scorecard. Tanpa Status/ACC.
+ * Koordinator = pegawai biasa di RLS → SEMUA data dibaca via service_role, berlingkup ketat
+ * ke daftar timnya. Detail L2 (klik nama) tetap gerbang rilis HRD + buang L3 (lihat
+ * loadTeamReportForCoordinator). Angka Skor Akhir = tersimpan (final_reports), sama spt SPV.
+ */
+async function CoordinatorTeamReport({ userId }: { userId: string }) {
+  const supabase = await createClient();
+  const { data: ap } = await supabase
+    .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
+
+  const admin = createAdminClient();
+  const { data: team } = await admin.from('coordinator_team_members')
+    .select('employee_id').eq('coordinator_id', userId);
+  const memberIds = (team ?? []).map((t) => t.employee_id);
+  const { data: members } = memberIds.length
+    ? await admin.from('employees').select('id, name, dept, is_active').in('id', memberIds)
+    : { data: [] as { id: string; name: string; dept: string | null; is_active: boolean }[] };
+  const list = members ?? [];
+  const ids = list.map((e) => e.id);
+
+  const { data: reports } = ids.length
+    ? await admin.from('final_reports').select('employee_id, status, spv_acc, final_score')
+        .eq('period_id', ap.id).in('employee_id', ids)
+    : { data: [] as { employee_id: string; status: string | null; spv_acc: boolean; final_score: number | null }[] };
+  const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
+  const { kpiBy, s360By, monthlyBy } = await scoreMaps(ap.id, ids);
+
+  const canOpenDetail = (status: string | null): boolean => status === 'in_review' || status === 'finalized';
+  const activeIds = new Set(list.filter((e) => e.is_active).map((e) => e.id));
+  const rows: TeamRow[] = list.map((e) => {
+    const rep = repBy.get(e.id);
+    const status = rep?.status ?? null;
+    const kpiAvg = kpiBy.get(e.id) ?? null;
+    const s360 = s360By.get(e.id) ?? null;
+    const kpiMonths = (monthlyBy.get(e.id) ?? []).slice(0, 3);
+    return {
+      id: e.id, name: e.name, dept: e.dept,
+      kpiAvg, s360,
+      finalScore: rep?.final_score ?? null,
+      player: playerClassOf(kpiAvg, ap.has_360 ? s360 : null),
+      trend: trendOf(kpiMonths),
+      kpiMonths,
+      status, hasReport: !!rep, spvAcc: !!rep?.spv_acc, isSelf: false,
+      detailOpen: canOpenDetail(status),
+      canAcc: false, // koordinator TIDAK meng-ACC (lihat-saja)
+    };
+  })
+    .filter((r) => activeIds.has(r.id) || r.hasReport)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const tAvg = teamAverages(rows);
+  const cAvg = await companyAverages(ap.id);
+
+  return (
+    <Shell>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h1 className="text-xl font-bold text-gray-800">Laporan Kinerja Tim</h1>
+          <p className="text-sm text-gray-500">
+            Periode aktif: {ap.label} · kinerja pegawai yang Anda koordinasikan (lihat-saja).
+          </p>
+        </div>
+        <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+      </div>
+      {rows.length === 0 ? (
+        <p className="text-sm text-gray-500">Belum ada pegawai yang ditugaskan di bawah koordinasi Anda.</p>
+      ) : (
+        <>
+          <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
+            team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
+            kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
+          <TeamTable rows={rows} showAcc={false} />
         </>
       )}
     </Shell>

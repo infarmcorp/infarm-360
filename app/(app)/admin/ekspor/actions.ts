@@ -3,6 +3,8 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import { finalScoreOf, playerClassOf, playerLabelOf, perfLabelOf } from '@/lib/scoring';
+import { classOf, avg, weightedScore360, type Groups360 } from '@/lib/score360';
+import type { RelationKind, WeightValues } from '@/lib/database.types';
 
 /**
  * Ekspor dataset untuk olah data lanjutan (HRD). Halaman ini hanya untuk HRD; setelah
@@ -52,7 +54,8 @@ async function requireHrd(): Promise<boolean> {
 }
 
 const KAT = (f: number | null) => perfLabelOf(f);
-const r1 = (n: number) => Math.round(n * 10) / 10;
+// 2 desimal — selaras tampilan app (round2) & perhitungan manual HRD dari ekspor.
+const r2 = (n: number) => Math.round(n * 100) / 100;
 
 /** ym→label periode + himpunan ym yang diizinkan bila difilter ke satu periode. */
 async function periodMaps(admin: Admin, periodId?: string | null) {
@@ -200,8 +203,8 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
       const player = playerClassOf(kpiAvg, s360); // s360 sudah null bila 360 nonaktif
       rows.push({
         periode: p.label, kode: e.emp_code, nama: e.name, divisi: e.dept,
-        kpi_rerata: kpiAvg != null ? r1(kpiAvg) : null, skor_360: s360 != null ? r1(s360) : null,
-        punishment: penalty, skor_akhir: final != null ? r1(final) : null,
+        kpi_rerata: kpiAvg != null ? r2(kpiAvg) : null, skor_360: s360 != null ? r2(s360) : null,
+        punishment: penalty, skor_akhir: final != null ? r2(final) : null,
         kategori: KAT(final), player: playerLabelOf(player),
       });
     }
@@ -358,6 +361,103 @@ export async function exportQualAnswers(periodId?: string | null): Promise<Expor
       });
     }
   }
+  return { ok: true, rows };
+}
+
+/**
+ * Ringkasan 360° per pegawai (ANONIM) — satu baris per (periode × pegawai dinilai):
+ * jumlah penilai DIPETAKAN (Atasan / Internal = Peer+Cross+Bawahan), rata-rata skor per kelas
+ * (skala 1–5), Nilai Self, Nilai 360° terbobot (1–5), Gap Self−Others, & Skala 100.
+ *
+ * Definisi (dikonfirmasi HRD 2026-07-12):
+ *  - Jml Penilai   = penilai NON-Self yang DIPETAKAN (mappings), = Jml Atasan + Jml Internal.
+ *  - Nilai per kelas = rata-rata skor per-penilai (mean rating ×20 → dibagi 20 utk skala 1–5),
+ *    Internal = gabungan Peer+Cross+Bawahan (selaras weightedScore360 2-kelas).
+ *  - Nilai 360° (1–5) = weightedScore360 (model/bobot aktif periode) ÷ 20; Self DIKECUALIKAN.
+ *  - Skala 100 = weightedScore360 (skor resmi, dihitung fresh dari rating saat ini).
+ * Dihitung LIVE dari rating agar sheet konsisten internal (nilai_360×20 = skala_100) & selaras
+ * cara hitung manual HRD — bisa beda dari result_360 tersimpan yang basi sampai "Hitung Ulang".
+ */
+export async function exportSummary360(periodId?: string | null): Promise<ExportResult> {
+  if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
+  const admin = createAdminClient();
+  const [{ data: emps }, { data: periodsAll }, asmtRes, { data: maps }, { data: ws }] = await Promise.all([
+    admin.from('employees').select('id, emp_code, name, dept'),
+    admin.from('periods').select('id, label, start_date').order('start_date'),
+    (periodId
+      ? admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted').eq('period_id', periodId)
+      : admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted')),
+    (periodId
+      ? admin.from('mappings').select('assessor_id, target_id, period_id, relation').eq('period_id', periodId)
+      : admin.from('mappings').select('assessor_id, target_id, period_id, relation')),
+    (periodId
+      ? admin.from('weight_schemes').select('period_id, model, weights').eq('is_active', true).eq('period_id', periodId)
+      : admin.from('weight_schemes').select('period_id, model, weights').eq('is_active', true)),
+  ]);
+  const empById = new Map((emps ?? []).map((e) => [e.id, e]));
+  const periodLabel = new Map((periodsAll ?? []).map((p) => [p.id, p.label]));
+  const wsByPeriod = new Map((ws ?? []).map((w) => [w.period_id, { model: w.model as '4class' | '2class', weights: w.weights as WeightValues }]));
+  const relBy = new Map((maps ?? []).map((m) => [`${m.assessor_id}|${m.target_id}|${m.period_id}`, m.relation as RelationKind]));
+
+  // Hitung penilai DIPETAKAN per (periode|target): Atasan vs Internal (Peer+Cross+Bawahan); Self dilewati.
+  const counts = new Map<string, { atasan: number; internal: number; periodId: string; targetId: string }>();
+  (maps ?? []).forEach((m) => {
+    if ((m.relation as RelationKind) === 'Self' || m.assessor_id === m.target_id) return;
+    const key = `${m.period_id}|${m.target_id}`;
+    const c = counts.get(key) ?? { atasan: 0, internal: 0, periodId: m.period_id, targetId: m.target_id };
+    if ((m.relation as RelationKind) === 'Atasan') c.atasan += 1; else c.internal += 1;
+    counts.set(key, c);
+  });
+
+  // Skor per-penilai (mean rating ×20) → grup per kelas per (periode|target).
+  const asmts = asmtRes.data ?? [];
+  const asmtIds = asmts.map((a) => a.id);
+  const ratingsByAsmt = new Map<string, number[]>();
+  if (asmtIds.length) {
+    const sc = await fetchAllChunked<{ assessment_id: string; rating: number | null }>(asmtIds, (chunk, from, to) =>
+      admin.from('assessment_indicator_scores').select('assessment_id, rating')
+        .in('assessment_id', chunk).order('assessment_id').order('indicator_id').range(from, to));
+    sc.forEach((s) => { if (s.rating == null) return; const a = ratingsByAsmt.get(s.assessment_id) ?? []; a.push(s.rating); ratingsByAsmt.set(s.assessment_id, a); });
+  }
+  const groups = new Map<string, Groups360>();
+  for (const a of asmts) {
+    const rs = ratingsByAsmt.get(a.id);
+    const m = rs && avg(rs);
+    if (m == null) continue;
+    const score100 = m * 20;
+    if (score100 <= 0) continue;
+    const rel: RelationKind = a.assessor_id === a.target_id ? 'Self' : relBy.get(`${a.assessor_id}|${a.target_id}|${a.period_id}`) ?? 'Peer';
+    const key = `${a.period_id}|${a.target_id}`;
+    const g = groups.get(key) ?? { atasan: [], peer: [], cross: [], bawahan: [], self: [] };
+    g[classOf(rel)].push(score100);
+    groups.set(key, g);
+  }
+
+  // Roster = semua (periode|target) yang punya pemetaan non-self, disaring ke periode terpilih.
+  const to5 = (v: number | null) => (v == null ? null : r2(v / 20));
+  const rows: Row[] = [];
+  for (const [key, c] of counts) {
+    if (periodId && c.periodId !== periodId) continue;
+    const emp = empById.get(c.targetId);
+    if (!emp) continue;
+    const g = groups.get(key) ?? { atasan: [], peer: [], cross: [], bawahan: [], self: [] };
+    const wsp = wsByPeriod.get(c.periodId);
+    const s100 = wsp ? weightedScore360(g, wsp.model, wsp.weights) : null;
+    const nilai360 = to5(s100);
+    const nilaiSelf = to5(avg(g.self));
+    rows.push({
+      periode: periodLabel.get(c.periodId) ?? '',
+      kode: emp.emp_code, nama: emp.name, divisi: emp.dept,
+      jml_penilai: c.atasan + c.internal, jml_atasan: c.atasan, jml_internal: c.internal,
+      nilai_atasan: to5(avg(g.atasan)),
+      nilai_internal: to5(avg([...g.peer, ...g.cross, ...g.bawahan])),
+      nilai_self: nilaiSelf,
+      nilai_360: nilai360,
+      gap_self_vs_others: nilaiSelf != null && nilai360 != null ? r2(nilaiSelf - nilai360) : null,
+      skala_100: s100 != null ? r2(s100) : null,
+    });
+  }
+  rows.sort((a, b) => String(a.periode).localeCompare(String(b.periode)) || String(a.nama).localeCompare(String(b.nama)));
   return { ok: true, rows };
 }
 

@@ -626,8 +626,15 @@ npm run test:watch # vitest mode pantau
 - Akun Saya (ganti sandi mandiri, semua peran). Konfirmasi in-app `ConfirmDialog` (~8 titik).
 - Kelola Pertanyaan: aspek + "Pakai Pertanyaan Periode Sebelumnya" (idempoten). Hapus Periode (cascade
   360° + KPI bulan unik; wajib ketik `HAPUS`).
-- Ekspor dataset lengkap (+ **360° gabungan 1 file 2 sheet**, **Ringkasan Naratif HRD** = Aspek +
-  Pertanyaan Kualitatif, dibedakan kolom `jenis`).
+- Ekspor dataset **dikonsolidasi jadi 4 file multi-sheet** (2026-07-12, hilangkan unduhan ganda):
+  **Pegawai (Master)** · **Konfigurasi Periode Lengkap** (Ringkasan/Bobot/Bulan KPI/Aspek/Esai/**Pemetaan**) ·
+  **Kinerja Lengkap** (Rekap/KPI Bulanan/Audit KPI/Punishment) · **Penilaian 360° Lengkap**
+  (**Ringkasan per Pegawai** + Kuantitatif + Kualitatif + Ringkasan Naratif HRD, anonim). Semua `exportX`
+  di `admin/ekspor/actions.ts` tetap; dirangkai jadi multi-sheet di klien. **`exportRekap` & ekspor lain
+  kini 2 desimal (`r2`)** — sebelumnya `r1` (1 desimal) memotong nilai mis. `X,04`→`X,00`. `exportSummary360`
+  = ringkasan 360° per pegawai (jml penilai per kelas dari mappings; Nilai Atasan/Internal/Self skala 1–5;
+  Nilai 360° terbobot; Gap Self−Others; Skala 100) — dihitung LIVE via `weightedScore360` (Jml Penilai =
+  penilai non-Self yang dipetakan; konsisten internal `nilai_360×20=skala_100`).
 - Palet warna skor terpadu (`lib/score-color.ts`), indikator tenggat periode, empty-state berpandu.
 - Dihapus dari dashboard (atas permintaan): **Matriks 9-Box** & **Papan Suksesi/Promosi** — namun rumus
   `talentBoxOf`/`kpiBandOf`/`s360BandOf` di `lib/scoring.ts` **TETAP ADA & teruji** (jangan dihapus).

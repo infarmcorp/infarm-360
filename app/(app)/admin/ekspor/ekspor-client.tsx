@@ -1,33 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, FileSpreadsheet } from 'lucide-react';
+import { Download, Users, Settings, BarChart3, MessageSquareText } from 'lucide-react';
 import {
-  exportEmployees, exportKpi, exportKpiAudit, exportPenalties, exportRekap, exportAssessments, exportQualAnswers, exportMappings,
-  exportAspectSummaries, exportPeriodConfig, type ExportResult,
+  exportEmployees, exportKpi, exportKpiAudit, exportPenalties, exportRekap,
+  exportAssessments, exportQualAnswers, exportMappings, exportAspectSummaries,
+  exportSummary360, exportPeriodConfig, type ExportResult, type Sheet,
 } from './actions';
 
 type PeriodOpt = { id: string; label: string; active: boolean };
-type Item = {
-  key: string; title: string; desc: string; file: string; sheet: string;
-  scoped: boolean; // true → mengikuti filter periode; false → master (lintas periode)
-  load: (periodId: string | null) => Promise<ExportResult>;
-};
-
-const ITEMS: Item[] = [
-  { key: 'pegawai', title: 'Pegawai (Master)', desc: 'Kode, nama, divisi, peran, status, atasan, email. (Lintas periode.)', file: 'pegawai', sheet: 'Pegawai', scoped: false, load: () => exportEmployees() },
-  { key: 'kpi', title: 'KPI Bulanan', desc: 'Skor KPI per pegawai per bulan (format panjang).', file: 'kpi-bulanan', sheet: 'KPI', scoped: true, load: (p) => exportKpi(p) },
-  { key: 'kpiaudit', title: 'Log Audit KPI', desc: 'Jejak perubahan KPI: bulan, skor, pengubah, waktu, catatan.', file: 'log-audit-kpi', sheet: 'AuditKPI', scoped: true, load: (p) => exportKpiAudit(p) },
-  { key: 'penalty', title: 'Kepatuhan / Punishment', desc: 'Poin punishment per pegawai, alasan, penetap.', file: 'kepatuhan-punishment', sheet: 'Punishment', scoped: true, load: (p) => exportPenalties(p) },
-  { key: 'rekap', title: 'Rekap Kinerja per Periode', desc: 'KPI rerata, Skor 360°, punishment, Skor Akhir, kategori, A/B/C/D.', file: 'rekap-kinerja', sheet: 'Rekap', scoped: true, load: (p) => exportRekap(p) },
-  { key: 'asmt', title: 'Penilaian 360° Detail (anonim penilai)', desc: 'Raw feedback kuantitatif per pegawai dinilai: relasi, aspek budaya, indikator, rating, komentar — tanpa identitas penilai.', file: 'penilaian-360-detail', sheet: 'Penilaian360', scoped: true, load: (p) => exportAssessments(p) },
-  { key: 'qual', title: 'Umpan Balik Kualitatif 360° (esai, anonim)', desc: 'Jawaban pertanyaan esai per pegawai dinilai: relasi, pertanyaan, jawaban — tanpa identitas penilai.', file: 'umpan-balik-kualitatif-360', sheet: 'Kualitatif360', scoped: true, load: (p) => exportQualAnswers(p) },
-  { key: 'aspeksummary', title: 'Ringkasan Naratif HRD (Aspek & Kualitatif)', desc: 'Teks evaluasi naratif HRD/Peninjau di Review Hasil Akhir — ringkasan Aspek 360° DAN Pertanyaan Kualitatif: periode, pegawai, divisi, status, jenis, aspek/pertanyaan, ringkasan.', file: 'ringkasan-naratif-hrd', sheet: 'RingkasanNaratif', scoped: true, load: (p) => exportAspectSummaries(p) },
-  { key: 'map', title: 'Pemetaan 360°', desc: 'Pasangan penilai → target, relasi, sifat (Wajib/Opsional).', file: 'pemetaan', sheet: 'Pemetaan', scoped: true, load: (p) => exportMappings(p) },
-];
 
 const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'periode';
 
+/**
+ * Ekspor Dataset (HRD) — DIKONSOLIDASI jadi 4 file multi-sheet (bukan 11 tombol) agar tak ada
+ * unduhan ganda untuk data yang berkaitan. Tiap fungsi `exportX` di actions.ts tetap dipakai;
+ * di sini hanya dirangkai jadi beberapa lembar dalam satu workbook (perakitan di sisi klien).
+ *  1. Pegawai (Master)            — 1 lembar, lintas periode.
+ *  2. Konfigurasi Periode Lengkap — Ringkasan/Bobot/Bulan KPI/Aspek & Indikator/Esai + Pemetaan.
+ *  3. Kinerja Lengkap per Periode — Rekap/KPI Bulanan/Audit KPI/Punishment.
+ *  4. Penilaian 360° Lengkap      — Kuantitatif/Kualitatif/Ringkasan Naratif HRD (anonim penilai).
+ */
 export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
   const [periodId, setPeriodId] = useState<string>(''); // '' = semua periode
   const [busy, setBusy] = useState<string | null>(null);
@@ -35,65 +28,92 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
 
   const selected = periods.find((p) => p.id === periodId) ?? null;
   const suffix = selected ? slug(selected.label) : 'semua-periode';
+  const pid = () => periodId || null;
 
-  // Rekap Konfigurasi: dataset multi-sheet (potret seluruh pengaturan periode).
-  async function downloadConfig() {
-    setBusy('config'); setMsg(null);
+  // ExportResult → rows (lempar error bila gagal, ditangkap di run()).
+  const rowsOf = (res: ExportResult): Sheet['rows'] => {
+    if (!res.ok) throw new Error(res.error);
+    return res.rows;
+  };
+
+  async function writeWorkbook(sheets: Sheet[], filename: string) {
+    const XLSX = await import('xlsx');
+    const wb = XLSX.utils.book_new();
+    for (const s of sheets) {
+      const ws = XLSX.utils.json_to_sheet(s.rows.length ? s.rows : [{ keterangan: 'Belum ada data' }]);
+      XLSX.utils.book_append_sheet(wb, ws, s.name.slice(0, 31));
+    }
+    XLSX.writeFile(wb, filename);
+  }
+
+  /** Bangun & unduh satu workbook multi-sheet; tampilkan pesan sukses/gagal. */
+  async function run(key: string, build: () => Promise<{ sheets: Sheet[]; filename: string }>) {
+    setBusy(key); setMsg(null);
     try {
-      const res = await exportPeriodConfig(periodId || null);
-      if (!res.ok) { setMsg({ key: 'config', ok: false, text: res.error }); return; }
-      const XLSX = await import('xlsx');
-      const wb = XLSX.utils.book_new();
-      for (const s of res.sheets) {
-        const ws = XLSX.utils.json_to_sheet(s.rows.length ? s.rows : [{ keterangan: 'Belum ada data' }]);
-        XLSX.utils.book_append_sheet(wb, ws, s.name.slice(0, 31));
-      }
-      XLSX.writeFile(wb, `konfigurasi-periode-${suffix}.xlsx`);
-      setMsg({ key: 'config', ok: true, text: `${res.sheets.length} lembar diunduh.` });
-    } catch {
-      setMsg({ key: 'config', ok: false, text: 'Gagal menyiapkan file.' });
+      const { sheets, filename } = await build();
+      const total = sheets.reduce((a, s) => a + s.rows.length, 0);
+      if (total === 0) { setMsg({ key, ok: false, text: 'Belum ada data untuk diekspor.' }); return; }
+      await writeWorkbook(sheets, filename);
+      setMsg({ key, ok: true, text: `${total} baris diunduh (${sheets.length} lembar).` });
+    } catch (e) {
+      setMsg({ key, ok: false, text: e instanceof Error ? e.message : 'Gagal menyiapkan file.' });
     } finally { setBusy(null); }
   }
 
-  // Penilaian 360° Lengkap: satu file, dua sheet (Kuantitatif + Kualitatif) — gabungan
-  // exportAssessments + exportQualAnswers agar tak perlu dua kali unduh.
-  async function downloadCombined360() {
-    setBusy('combined360'); setMsg(null);
-    try {
-      const p = periodId || null;
-      const [quant, qual] = await Promise.all([exportAssessments(p), exportQualAnswers(p)]);
-      if (!quant.ok) { setMsg({ key: 'combined360', ok: false, text: quant.error }); return; }
-      if (!qual.ok) { setMsg({ key: 'combined360', ok: false, text: qual.error }); return; }
-      if (quant.rows.length === 0 && qual.rows.length === 0) {
-        setMsg({ key: 'combined360', ok: false, text: 'Belum ada data 360° untuk diekspor.' }); return;
-      }
-      const XLSX = await import('xlsx');
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(quant.rows.length ? quant.rows : [{ keterangan: 'Belum ada data kuantitatif' }]), 'Kuantitatif');
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(qual.rows.length ? qual.rows : [{ keterangan: 'Belum ada data kualitatif' }]), 'Kualitatif');
-      XLSX.writeFile(wb, `penilaian-360-lengkap-${suffix}.xlsx`);
-      setMsg({ key: 'combined360', ok: true, text: `${quant.rows.length} baris kuantitatif + ${qual.rows.length} baris kualitatif diunduh (1 file, 2 lembar).` });
-    } catch {
-      setMsg({ key: 'combined360', ok: false, text: 'Gagal menyiapkan file.' });
-    } finally { setBusy(null); }
-  }
+  type Card = { key: string; title: string; desc: React.ReactNode; icon: React.ElementType; tint: string; scoped: boolean; go: () => Promise<void> };
 
-  async function download(it: Item) {
-    setBusy(it.key); setMsg(null);
-    try {
-      const res = await it.load(it.scoped ? (periodId || null) : null);
-      if (!res.ok) { setMsg({ key: it.key, ok: false, text: res.error }); return; }
-      if (res.rows.length === 0) { setMsg({ key: it.key, ok: false, text: 'Belum ada data untuk diekspor.' }); return; }
-      const XLSX = await import('xlsx');
-      const ws = XLSX.utils.json_to_sheet(res.rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, it.sheet);
-      XLSX.writeFile(wb, `${it.file}-${it.scoped ? suffix : 'master'}.xlsx`);
-      setMsg({ key: it.key, ok: true, text: `${res.rows.length} baris diunduh.` });
-    } catch {
-      setMsg({ key: it.key, ok: false, text: 'Gagal menyiapkan file.' });
-    } finally { setBusy(null); }
-  }
+  const cards: Card[] = [
+    {
+      key: 'pegawai', title: 'Pegawai (Master)', icon: Users, tint: 'slate', scoped: false,
+      desc: 'Direktori pegawai: kode, nama, divisi, peran, status, atasan, email. Lintas periode (mengabaikan filter).',
+      go: () => run('pegawai', async () => {
+        const emp = rowsOf(await exportEmployees());
+        return { sheets: [{ name: 'Pegawai', rows: emp }], filename: 'pegawai-master.xlsx' };
+      }),
+    },
+    {
+      key: 'config', title: 'Konfigurasi Periode Lengkap', icon: Settings, tint: 'emerald', scoped: true,
+      desc: <>Seluruh pengaturan HRD per kuartal — <strong>6 lembar</strong>: Ringkasan · Bobot Penilai · Bulan KPI · Aspek &amp; Indikator · Pertanyaan Esai · <strong>Pemetaan 360°</strong>.</>,
+      go: () => run('config', async () => {
+        const cfg = await exportPeriodConfig(pid());
+        if (!cfg.ok) throw new Error(cfg.error);
+        const map = rowsOf(await exportMappings(pid()));
+        return { sheets: [...cfg.sheets, { name: 'Pemetaan', rows: map }], filename: `konfigurasi-periode-${suffix}.xlsx` };
+      }),
+    },
+    {
+      key: 'kinerja', title: 'Kinerja Lengkap per Periode', icon: BarChart3, tint: 'indigo', scoped: true,
+      desc: <><strong>4 lembar</strong>: Rekap (KPI rerata · Skor 360° · punishment · Skor Akhir · kategori · 4-Box) · KPI Bulanan · Audit KPI · Punishment.</>,
+      go: () => run('kinerja', async () => {
+        const [rekap, kpi, audit, pen] = await Promise.all([exportRekap(pid()), exportKpi(pid()), exportKpiAudit(pid()), exportPenalties(pid())]);
+        const sheets: Sheet[] = [
+          { name: 'Rekap', rows: rowsOf(rekap) },
+          { name: 'KPI Bulanan', rows: rowsOf(kpi) },
+          { name: 'Audit KPI', rows: rowsOf(audit) },
+          { name: 'Punishment', rows: rowsOf(pen) },
+        ];
+        return { sheets, filename: `kinerja-lengkap-${suffix}.xlsx` };
+      }),
+    },
+    {
+      key: 'f360', title: 'Penilaian 360° Lengkap', icon: MessageSquareText, tint: 'violet', scoped: true,
+      desc: <><strong>4 lembar</strong> (semua <strong>anonim penilai</strong>): <strong>Ringkasan per Pegawai</strong> (jml penilai per kelas · Nilai Atasan/Internal/Self · Nilai 360° · Gap · Skala 100) · Kuantitatif (rating per indikator) · Kualitatif (esai) · Ringkasan Naratif HRD.</>,
+      go: () => run('f360', async () => {
+        const [ringkas, quant, qual, naratif] = await Promise.all([exportSummary360(pid()), exportAssessments(pid()), exportQualAnswers(pid()), exportAspectSummaries(pid())]);
+        const sheets: Sheet[] = [
+          { name: 'Ringkasan per Pegawai', rows: rowsOf(ringkas) },
+          { name: 'Kuantitatif', rows: rowsOf(quant) },
+          { name: 'Kualitatif', rows: rowsOf(qual) },
+          { name: 'Ringkasan Naratif', rows: rowsOf(naratif) },
+        ];
+        return { sheets, filename: `penilaian-360-lengkap-${suffix}.xlsx` };
+      }),
+    },
+  ];
+
+  const TINT: Record<string, string> = {
+    slate: 'text-slate-700', emerald: 'text-emerald-700', indigo: 'text-indigo-700', violet: 'text-violet-700',
+  };
 
   return (
     <div className="space-y-4">
@@ -108,72 +128,33 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
         <span className="text-[11px] text-gray-500">Berlaku untuk dataset ber-periode (Pegawai selalu lintas periode).</span>
       </div>
 
-      {/* Rekap Konfigurasi Periode — potret seluruh pengaturan HRD per kuartal (multi-sheet) */}
-      <div className="border-2 border-emerald-200 bg-emerald-50/40 rounded-xl p-4 flex flex-col gap-2">
-        <div className="flex items-start gap-2">
-          <FileSpreadsheet className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
-          <div className="min-w-0">
-            <h3 className="text-sm font-extrabold text-gray-800">Rekap Konfigurasi Periode (semua pengaturan)</h3>
-            <p className="text-[11px] text-gray-500 leading-snug">
-              Potret seluruh pengaturan HRD per kuartal dalam satu file (5 lembar): <strong>Ringkasan</strong> (status,
-              tanggal, pakai 360° atau tidak, bulan KPI, model &amp; bobot, jumlah aspek/indikator/esai/pemetaan/punishment),
-              <strong> Bobot Penilai</strong>, <strong>Bulan KPI</strong>, <strong>Aspek &amp; Indikator</strong>, <strong>Pertanyaan Esai</strong>.
-            </p>
-          </div>
-        </div>
-        <div className="mt-1 flex items-center gap-2">
-          <button type="button" disabled={busy !== null} onClick={downloadConfig}
-            className="inline-flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
-            <Download className="w-4 h-4" /> {busy === 'config' ? 'Menyiapkan…' : 'Unduh Rekap (.xlsx)'}
-          </button>
-          <span className="text-[10px] text-gray-500">{selected ? selected.label : 'Semua periode'}</span>
-        </div>
-        {msg?.key === 'config' && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
-      </div>
-
-      {/* Penilaian 360° Lengkap — gabungan Kuantitatif + Kualitatif dalam satu file (2 lembar) */}
-      <div className="border-2 border-indigo-200 bg-indigo-50/40 rounded-xl p-4 flex flex-col gap-2">
-        <div className="flex items-start gap-2">
-          <FileSpreadsheet className="w-5 h-5 text-indigo-700 shrink-0 mt-0.5" />
-          <div className="min-w-0">
-            <h3 className="text-sm font-extrabold text-gray-800">Penilaian 360° Lengkap (Kuantitatif + Kualitatif)</h3>
-            <p className="text-[11px] text-gray-500 leading-snug">
-              Satu file Excel berisi <strong>2 lembar</strong>: <strong>Kuantitatif</strong> (relasi · aspek · indikator ·
-              rating · komentar) &amp; <strong>Kualitatif</strong> (relasi · pertanyaan esai · jawaban) — keduanya
-              <strong> anonim penilai</strong>. Tak perlu dua kali unduh.
-            </p>
-          </div>
-        </div>
-        <div className="mt-1 flex items-center gap-2">
-          <button type="button" disabled={busy !== null} onClick={downloadCombined360}
-            className="inline-flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white disabled:opacity-50">
-            <Download className="w-4 h-4" /> {busy === 'combined360' ? 'Menyiapkan…' : 'Unduh 360° Lengkap (.xlsx)'}
-          </button>
-          <span className="text-[10px] text-gray-500">{selected ? selected.label : 'Semua periode'}</span>
-        </div>
-        {msg?.key === 'combined360' && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
-      </div>
+      <p className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+        Tiap unduhan = <strong>satu file Excel dengan beberapa lembar (sheet)</strong> yang setema — buka file, pindah antar-lembar di bawah. Tak perlu mengunduh berkali-kali untuk data yang berkaitan.
+      </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {ITEMS.map((it) => (
-          <div key={it.key} className="border border-gray-200 rounded-xl p-4 flex flex-col gap-2">
-            <div className="flex items-start gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
-              <div className="min-w-0">
-                <h3 className="text-sm font-extrabold text-gray-800">{it.title}</h3>
-                <p className="text-[11px] text-gray-500 leading-snug">{it.desc}</p>
+        {cards.map((c) => {
+          const Icon = c.icon;
+          return (
+            <div key={c.key} className="border border-gray-200 rounded-xl p-4 flex flex-col gap-2">
+              <div className="flex items-start gap-2">
+                <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${TINT[c.tint]}`} />
+                <div className="min-w-0">
+                  <h3 className="text-sm font-extrabold text-gray-800">{c.title}</h3>
+                  <p className="text-[11px] text-gray-500 leading-snug">{c.desc}</p>
+                </div>
               </div>
+              <div className="mt-auto flex items-center gap-2">
+                <button type="button" disabled={busy !== null} onClick={c.go}
+                  className="inline-flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
+                  <Download className="w-4 h-4" /> {busy === c.key ? 'Menyiapkan…' : 'Unduh Excel'}
+                </button>
+                <span className="text-[10px] text-gray-500">{c.scoped ? (selected ? selected.label : 'Semua periode') : 'Master'}</span>
+              </div>
+              {msg?.key === c.key && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
             </div>
-            <div className="mt-auto flex items-center gap-2">
-              <button type="button" disabled={busy !== null} onClick={() => download(it)}
-                className="inline-flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
-                <Download className="w-4 h-4" /> {busy === it.key ? 'Menyiapkan…' : 'Unduh Excel'}
-              </button>
-              {it.scoped && <span className="text-[10px] text-gray-500">{selected ? selected.label : 'Semua periode'}</span>}
-            </div>
-            {msg?.key === it.key && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

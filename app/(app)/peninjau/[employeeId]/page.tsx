@@ -82,7 +82,7 @@ export default async function PeninjauDetailPage({ params }: { params: Promise<{
                 noun="pertanyaan"
               />
             )}
-            <RawFeedback byAspect={data.byAspect} essays={data.essays} />
+            <RawFeedback byAspect={data.byAspect} essays={data.essays} badge="PENINJAU" />
           </>
         )}
       </div>

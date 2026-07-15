@@ -193,11 +193,10 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
 }
 
 /**
- * Laporan untuk SPV (Laporan Kinerja Tim) — HANYA detail AGREGAT, tanpa umpan
- * balik mentah lapis 3 (komentar/identitas per penilai). Dipakai menggantikan
- * loadReport pada jalur SPV karena RLS kini mencabut akses SPV ke tabel mentah
- * 360° (migrasi 0012) — agregat dihitung di server via service_role lalu lapis 3
- * DIBUANG sebelum dikembalikan.
+ * Laporan untuk SPV (Laporan Kinerja Tim) — detail AGREGAT (L1+L2) + umpan balik mentah
+ * ANONIM (byAspect/essays). Hanya blok per-penilai BERNAMA (L3 `assessors`, dgn identitas)
+ * yang DIBUANG. Dipakai menggantikan loadReport pada jalur SPV karena RLS mencabut akses SPV
+ * ke tabel mentah 360° (migrasi 0012) — agregat + raw anonim dihitung server via service_role.
  *
  * Visibilitas (sama untuk anggota tim & diri sendiri):
  *  - Tampak bila HRD sudah merilis (status 'in_review') atau sudah 'finalized'.
@@ -205,8 +204,9 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
  *    nonaktif). Halaman pegawai "Laporan Hasil Saya" tetap terpisah & final-only.
  *  - Di luar tim / status lebih awal (draft) → null (ditolak).
  *
- * Mengembalikan ReportData dengan assessors/byAspect/essays DIKOSONGKAN; pemanggil
- * tetap wajib merender anonim (anonymize + hideAssessorComments).
+ * Mengembalikan ReportData dengan `assessors` DIKOSONGKAN (L3 bernama) tetapi byAspect/essays
+ * DIPERTAHANKAN (raw anonim); pemanggil merender anonim (anonymize + hideAssessorComments +
+ * RawFeedback). ⚠️ Umpan balik anonim tetap bisa ter-de-anonimisasi pada kelas penilai kecil.
  */
 export async function loadTeamReportForSpv(
   spvId: string,
@@ -230,16 +230,18 @@ export async function loadTeamReportForSpv(
 
   const full = await loadReport(admin, employeeId, period);
   if (!full) return null;
-  // Buang lapis 3 (komentar mentah + per-penilai) sebelum keluar ke SPV.
-  return { ...full, assessors: [], byAspect: [], essays: [] };
+  // Buang HANYA blok per-penilai BERNAMA (L3 `assessors`); pertahankan byAspect/essays
+  // (umpan balik mentah ANONIM) agar SPV bisa membaca komentar/rating tanpa identitas penilai.
+  return { ...full, assessors: [] };
 }
 
 /**
  * Laporan untuk KOORDINATOR (grant `is_coordinator`, migrasi 0021) meninjau anggota tim
  * yang dinaunginya. Cermin loadTeamReportForSpv, tetapi lingkup = `coordinator_team_members`
- * (bukan spv_team_members). Koordinator lihat-saja: HANYA detail agregat (L1+L2, anonim),
- * TANPA umpan balik mentah (L3). Tampak hanya setelah HRD merilis ('in_review'/'finalized').
- * Karena is_coordinator TIDAK menyalakan RLS, seluruh baca lewat service_role & L3 dibuang.
+ * (bukan spv_team_members). Kedalaman = detail agregat (L1+L2) + umpan balik mentah ANONIM
+ * (byAspect/essays); hanya blok per-penilai BERNAMA (L3 `assessors`) yang dibuang. Tampak
+ * hanya setelah HRD merilis ('in_review'/'finalized'). Karena is_coordinator TIDAK menyalakan
+ * RLS, seluruh baca lewat service_role.
  */
 export async function loadTeamReportForCoordinator(
   coordinatorId: string,
@@ -260,15 +262,15 @@ export async function loadTeamReportForCoordinator(
 
   const full = await loadReport(admin, employeeId, period);
   if (!full) return null;
-  return { ...full, assessors: [], byAspect: [], essays: [] }; // buang lapis 3
+  return { ...full, assessors: [] }; // buang L3 bernama; pertahankan byAspect/essays (raw anonim)
 }
 
 /**
  * Versi HRD mode-SPV dari loadTeamReportForSpv. HRD secara RLS punya akses penuh,
  * tetapi saat bertindak SEBAGAI SPV (cookie hrd_mode='spv') harus dibatasi setara
- * SPV: HANYA detail agregat (L1+L2), TANPA umpan balik mentah (L3). Lingkup =
- * pegawai SEDIVISI HRD (selaras Laporan Kinerja Tim mode-SPV & Input KPI), bukan
- * spv_team_members (HRD umumnya tak punya entri di situ).
+ * SPV: detail agregat (L1+L2) + raw ANONIM (byAspect/essays), TANPA L3 bernama (assessors).
+ * Lingkup = pegawai SEDIVISI HRD (selaras Laporan Kinerja Tim mode-SPV & Input KPI), bukan
+ * spv_team_members (HRD umumnya tak punya entri di situ). Paritas dgn SPV biasa.
  */
 export async function loadTeamReportForHrdSpv(
   hrdId: string,
@@ -292,15 +294,15 @@ export async function loadTeamReportForHrdSpv(
 
   const full = await loadReport(admin, employeeId, period);
   if (!full) return null;
-  return { ...full, assessors: [], byAspect: [], essays: [] };
+  return { ...full, assessors: [] }; // buang L3 bernama; pertahankan byAspect/essays (raw anonim)
 }
 
 /**
  * Laporan untuk DIREKSI meninjau laporan SPV (alur eskalasi: Pegawai→SPV, SPV→Direksi).
  * Cermin loadTeamReportForSpv, tetapi lingkupnya subjek berperan SPV. Direksi berperan
- * read-only di level RLS untuk tabel mentah 360°, jadi agregat dihitung server via
- * service_role lalu lapis 3 (komentar/identitas per penilai) DIBUANG sebelum keluar —
- * Direksi hanya melihat L1+L2 (skor, radar/aspek, ringkasan HRD) yang anonim.
+ * read-only di level RLS untuk tabel mentah 360°, jadi agregat + raw anonim dihitung server
+ * via service_role; hanya blok per-penilai BERNAMA (L3 `assessors`) yang DIBUANG. Direksi
+ * melihat L1+L2 + umpan balik mentah ANONIM (byAspect/essays), tanpa identitas penilai.
  *
  * Visibilitas: tampak bila HRD sudah merilis ('in_review') atau 'finalized' — sama
  * seperti SPV meninjau timnya. Target wajib subjek-SPV (lihat isDireksiReviewSubject: role='spv'
@@ -340,7 +342,7 @@ export async function loadSpvReportForDireksi(
 
   const full = await loadReport(admin, employeeId, period);
   if (!full) return null;
-  return { ...full, assessors: [], byAspect: [], essays: [] };
+  return { ...full, assessors: [] }; // buang L3 bernama; pertahankan byAspect/essays (raw anonim)
 }
 
 /**

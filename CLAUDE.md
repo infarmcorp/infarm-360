@@ -375,10 +375,18 @@ ONBOARDING_GMAIL_ONLY          # server-only — 'false' utk kirim undangan ke S
 - **Otorisasi berbasis peran adalah inti keamanan aplikasi ini.** Tegakkan dengan
   **Supabase Row Level Security (RLS)** di level database, bukan hanya cek di UI:
   - Employee hanya boleh baca/tulis penilaian & laporan miliknya (laporan: hanya saat `finalized`).
-  - SPV hanya boleh akses KPI/laporan bawahannya. **Umpan balik 360° MENTAH (komentar/identitas
-    per penilai, lapis 3) TIDAK PERNAH boleh dibaca SPV** — RLS `asmt_read`/`ais_read`/`aqa_read`
-    sengaja **tanpa** `is_my_member` (migrasi 0012). Detail agregat SPV (radar/aspek + ringkasan HRD)
-    dihitung server via `service_role` (`loadTeamReportForSpv`), hanya saat laporan `in_review`/`finalized`.
+  - SPV hanya boleh akses KPI/laporan bawahannya. **Umpan balik 360° BERNAMA (identitas per penilai,
+    L3 `assessors`) TIDAK PERNAH boleh dibaca SPV** — RLS `asmt_read`/`ais_read`/`aqa_read` sengaja
+    **tanpa** `is_my_member` (migrasi 0012), jadi SPV tak bisa membaca tabel mentah 360° via API.
+    Detail SPV (radar/aspek + ringkasan HRD **+ umpan balik mentah ANONIM byAspect/essays**) dihitung
+    server via `service_role` (`loadTeamReportForSpv`), hanya saat laporan `in_review`/`finalized`.
+    > **DIUBAH 2026-07-15 (permintaan pengguna):** SPV/Koordinator/Direksi kini **boleh** melihat umpan
+    > balik **mentah ANONIM** (`byAspect`/`essays` — komentar & rating verbatim **tanpa identitas
+    > penilai**) untuk pegawai yang ditinjaunya. Yang tetap DILARANG = blok per-penilai **BERNAMA** (L3
+    > `assessors`), tetap dibuang di semua loader tim. RLS **tidak berubah** (raw tetap tertutup via API;
+    > paparan anonim murni app-level via `service_role`). ⚠️ **Risiko de-anonimisasi** pada kelas penilai
+    > kecil (mis. hanya 1–2 Peer/Cross) — komentar "anonim" bisa tertebak; mudah dibalik (app-level,
+    > tanpa migrasi). Pola sama dgn Review Hasil Akhir Direksi & Peninjau yang sudah lebih dulu begini.
   - HRD Admin akses penuh; mode-SPV dibatasi seperti SPV.
   - Direksi read-only + ACC promosi.
 - Logika sensitif (kalibrasi skor akhir, finalisasi Final Report, aktivasi/kunci periode,
@@ -519,11 +527,14 @@ npm run test:watch # vitest mode pantau
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **TO-DO & Backlog** di atas.
 
 ### Invariant & fitur inti (yang wajib dijaga)
-- **Visibilitas laporan bertahap** (`draft → in_review → finalized`, migrasi 0011/0012). Tiga lapis:
-  **L1** Skor Akhir · **L2** agregat (radar/aspek + ringkasan HRD, anonim) · **L3** komentar mentah
-  per penilai. **SPV lihat L1 sejak draft, L2 hanya setelah "Rilis ke SPV", L3 TIDAK PERNAH**; pegawai
-  hanya saat `finalized`. Agregat SPV dihitung server (`loadTeamReportForSpv`, buang L3). Lihat juga
-  **Security Rules**. (Kebocoran L3 ke SPV sudah ditutup — RLS cabut `is_my_member`.)
+- **Visibilitas laporan bertahap** (`draft → in_review → finalized`, migrasi 0011/0012). Lapisannya:
+  **L1** Skor Akhir · **L2** agregat (radar/aspek + ringkasan HRD, anonim) · **raw ANONIM**
+  (`byAspect`/`essays` — komentar/rating verbatim TANPA nama) · **L3 BERNAMA** (`assessors` — identitas
+  per penilai). **SPV lihat L1 sejak draft; L2 + raw ANONIM hanya setelah "Rilis ke SPV"; L3 BERNAMA
+  TIDAK PERNAH** (diperluas 2026-07-15, lihat **Security Rules**); pegawai lihat laporannya saat
+  `finalized`. Detail SPV/Koordinator/Direksi-tim dihitung server (`loadTeamReportForSpv`/
+  `ForCoordinator`/`loadSpvReportForDireksi`, semua buang **hanya** `assessors`). RLS raw 360° tetap
+  tertutup untuk SPV via API (0012 cabut `is_my_member`); paparan raw anonim murni app-level via `service_role`.
 - **Izin HRD = grant, bukan posisi** (`is_hrd_admin`, migrasi 0013). Cek via `canAdmin()`/`is_hrd()`,
   bukan `role==='hrd'`. Dual-mode **Admin ↔ posisi-asli**; **default login = base**. **Paritas
   SPV↔HRD-mode-SPV wajib** (lihat blok PENTING di "Apa Ini").

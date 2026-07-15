@@ -4,12 +4,23 @@ Potret status & catatan sesi (cepat-basi — perbarui tiap sesi). Panduan tahan-
 **CLAUDE.md**; rincian tiap fitur di **Changelog** (CLAUDE.md); sisa pekerjaan di **TO-DO & Backlog**
 (CLAUDE.md); catatan operasional trial/Q2 di **REKOMENDASI.md**.
 
-## Sedang Dikerjakan (per 2026-07-12)
+## Sedang Dikerjakan (per 2026-07-15)
 
-**Fokus aktif:** peningkatan dashboard & pelaporan (tanggal aktif, trend, scorecard, 2-desimal).
+**Fokus aktif:** penyesuaian alur ACC & kedalaman umpan balik laporan (koordinator).
 Migrasi fungsional **selesai & live**; sisa sebagian besar **aktivasi env** (email/sandi) + **kebersihan akun**.
 
-**Status repo: BERSIH — semua pekerjaan sesi 2026-07-10..12 sudah PUSHED ke `main` & live (commit `9266b34`).**
+- **Sesi 2026-07-15 (di-push ke `main`):**
+  - **Koordinator kini BISA meng-ACC** laporan pegawai yang dinaunginya (setelah HRD rilis). **SPV**
+    untuk pegawai berkoordinator **tidak lagi ACC** — hanya lihat status ACC koordinator (read-only);
+    SPV fokus meng-ACC pegawai **tanpa** koordinator. Ditegakkan di server (`setSpvAcc` cabang
+    koordinator via service_role + guard SPV menolak pegawai berkoordinator). Reuse kolom `spv_acc`,
+    **tanpa migrasi**. Data live: 6 pegawai berkoordinator semua di tim SPV Andra Andiara.
+  - **SPV/Koordinator/Direksi kini melihat umpan balik 360° MENTAH ANONIM** (`byAspect`/`essays` —
+    komentar & rating verbatim tanpa nama) untuk pegawai yang ditinjaunya. L3 **BERNAMA** (`assessors`)
+    tetap dibuang. RLS tak berubah (raw tetap tertutup via API; paparan anonim app-level via service_role).
+    ⚠️ risiko de-anonimisasi pada kelas penilai kecil; mudah dibalik. Detail: [[raw-anon-exposure]].
+
+**Sesi 2026-07-10..12 sudah PUSHED ke `main` & live (commit `9266b34`).**
 Bagian ini hanya potret status; perincian tiap fitur ada di **Changelog** & **TO-DO** di CLAUDE.md.
 
 - **Peran Koordinator (2026-07-12, migrasi 0021 diterapkan ke live + di-push):** pegawai (role=employee)

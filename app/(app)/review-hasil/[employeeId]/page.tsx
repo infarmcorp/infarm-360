@@ -47,7 +47,7 @@ export default async function ReviewHasilDetailPage({ params }: { params: Promis
         <ReportDoc data={data} anonymize hideAssessorComments />
         {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
         {data.has360 && <AspectSummaryView summaries={data.qualSummaries} title={QUAL_TITLE} intro={QUAL_INTRO} />}
-        {data.has360 && <RawFeedback byAspect={data.byAspect} essays={data.essays} />}
+        {data.has360 && <RawFeedback byAspect={data.byAspect} essays={data.essays} badge="DIREKSI" />}
       </div>
     </Shell>
   );

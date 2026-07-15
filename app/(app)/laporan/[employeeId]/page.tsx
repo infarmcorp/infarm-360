@@ -71,6 +71,7 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
           <ReportDoc data={data} anonymize hideAssessorComments />
           {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
           {data.has360 && <AspectSummaryView summaries={data.qualSummaries} title={QUAL_TITLE} intro={QUAL_INTRO} />}
+          {data.has360 && <RawFeedback byAspect={data.byAspect} essays={data.essays} badge="DIREKSI" />}
         </div>
       </Shell>
     );
@@ -109,6 +110,7 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
           <ReportDoc data={data} anonymize hideAssessorComments />
           {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
           {data.has360 && <AspectSummaryView summaries={data.qualSummaries} title={QUAL_TITLE} intro={QUAL_INTRO} />}
+          {data.has360 && <RawFeedback byAspect={data.byAspect} essays={data.essays} badge="KOORDINATOR" />}
         </div>
       </Shell>
     );
@@ -143,6 +145,7 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
           <ReportDoc data={data} anonymize hideAssessorComments />
           {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
           {data.has360 && <AspectSummaryView summaries={data.qualSummaries} title={QUAL_TITLE} intro={QUAL_INTRO} />}
+          {data.has360 && <RawFeedback byAspect={data.byAspect} essays={data.essays} badge={role === 'spv' ? 'SPV' : 'HRD (MODE SPV)'} />}
         </div>
       </Shell>
     );

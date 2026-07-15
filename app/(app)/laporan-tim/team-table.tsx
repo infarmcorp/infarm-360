@@ -22,6 +22,7 @@ export type TeamRow = {
   isSelf: boolean;
   detailOpen: boolean; // boleh buka detail laporan (lapis 2)? — SPV hanya bila sudah dirilis HRD
   canAcc: boolean;     // boleh beri ACC? — hanya setelah HRD "Rilis ke SPV" (in_review/finalized)
+  accReadonly?: boolean; // ACC baris ini milik pihak lain (mis. koordinator) → tampil status, bukan tombol
 };
 
 /** Badge "Anda" untuk baris pengguna sendiri. */
@@ -173,6 +174,15 @@ export function TeamTable({
                     <td className="py-3 pl-3 text-right">
                       {r.isSelf ? (
                         <span className="text-[10px] text-gray-500 italic">laporan Anda</span>
+                      ) : r.accReadonly ? (
+                        // Pegawai berkoordinator: ACC dilakukan koordinatornya → SPV lihat status saja.
+                        !r.hasReport ? (
+                          <span className="text-[10px] text-gray-500 italic">menunggu HRD</span>
+                        ) : r.spvAcc ? (
+                          <span className="text-[10px] font-bold text-emerald-700">✔ Di-ACC koordinator</span>
+                        ) : (
+                          <span className="text-[10px] text-gray-500 italic">belum di-ACC koordinator</span>
+                        )
                       ) : (
                         <AccButton employeeId={r.id} acc={r.spvAcc} hasReport={r.hasReport} canAcc={r.canAcc} />
                       )}

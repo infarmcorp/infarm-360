@@ -10,7 +10,7 @@ const RATING_COLOR = (r: number) =>
 
 const avg = (xs: number[]) => (xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length) : null);
 
-export function RawFeedback({ byAspect, essays }: { byAspect: AspectRaw[]; essays: EssayGroup[] }) {
+export function RawFeedback({ byAspect, essays, badge = 'HRD VIEW' }: { byAspect: AspectRaw[]; essays: EssayGroup[]; badge?: string }) {
   const hasAny = byAspect.some((a) => a.indicators.length > 0) || essays.length > 0;
   return (
     <section className="mt-6 break-inside-avoid">
@@ -18,11 +18,11 @@ export function RawFeedback({ byAspect, essays }: { byAspect: AspectRaw[]; essay
         <h2 className="text-sm font-extrabold uppercase tracking-wide flex items-center gap-2">
           📋 Rincian Komentar Murni (Raw Feedback) per Aspek &amp; Indikator
         </h2>
-        <span className="text-[10px] font-black bg-indigo-600 text-white px-2 py-1 rounded">HRD VIEW</span>
+        <span className="text-[10px] font-black bg-indigo-600 text-white px-2 py-1 rounded">{badge}</span>
       </div>
       <div className="border border-t-0 border-gray-200 rounded-b-xl p-4 space-y-4">
         <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
-          Umpan balik murni (raw text &amp; rating) dari penilai — anonim, tanpa identitas penilai.
+          Raw text &amp; rating
         </p>
 
         {byAspect.filter((a) => a.indicators.length > 0).map((a) => (

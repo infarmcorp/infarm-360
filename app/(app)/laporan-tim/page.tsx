@@ -65,6 +65,15 @@ export default async function LaporanTimPage() {
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
   const { kpiBy, s360By, monthlyBy } = await scoreMaps(ap.id, reportIds);
 
+  // Pegawai yang punya KOORDINATOR di-ACC oleh koordinatornya (bukan SPV). SPV/HRD-mode-SPV
+  // hanya melihat status ACC koordinator (read-only) & fokus meng-ACC pegawai TANPA koordinator.
+  // coordinator_team_members tak terbaca SPV (RLS), jadi dibaca via service_role (lookup mapping).
+  const admin = createAdminClient();
+  const { data: coordRows } = reportIds.length
+    ? await admin.from('coordinator_team_members').select('employee_id').in('employee_id', reportIds)
+    : { data: [] as { employee_id: string }[] };
+  const coordinatedIds = new Set((coordRows ?? []).map((r) => r.employee_id));
+
   // Boleh buka detail (lapis 2)? Halaman ini dipakai SPV & HRD mode-SPV — keduanya
   // dibatasi setara: detail terbuka setelah HRD rilis (in_review) atau final — termasuk
   // laporan DIRI SENDIRI (boleh tinjau detail agregat dirinya sejak Ditinjau SPV).
@@ -78,6 +87,7 @@ export default async function LaporanTimPage() {
     const kpiAvg = kpiBy.get(e.id) ?? null;
     const s360 = s360By.get(e.id) ?? null;
     const kpiMonths = (monthlyBy.get(e.id) ?? []).slice(0, 3);
+    const coordinated = coordinatedIds.has(e.id);
     return {
       id: e.id,
       name: e.name,
@@ -94,8 +104,10 @@ export default async function LaporanTimPage() {
       spvAcc: !!rep?.spv_acc,
       isSelf,
       detailOpen: canOpenDetail(status),
-      // ACC hanya setelah HRD merilis (in_review) atau final; bukan diri sendiri.
-      canAcc: !isSelf && (status === 'in_review' || status === 'finalized'),
+      // ACC hanya setelah HRD merilis (in_review) atau final; bukan diri sendiri; dan BUKAN pegawai
+      // berkoordinator (itu di-ACC koordinatornya). Untuk berkoordinator → tampil status read-only.
+      canAcc: !isSelf && !coordinated && (status === 'in_review' || status === 'finalized'),
+      accReadonly: !isSelf && coordinated,
     };
   };
 
@@ -215,11 +227,12 @@ async function DireksiTeamReport() {
 }
 
 /**
- * Laporan Kinerja Tim untuk KOORDINATOR (grant is_coordinator, migrasi 0021): LIHAT-SAJA
- * daftar pegawai yang dinaunginya (coordinator_team_members) + scorecard. Tanpa Status/ACC.
+ * Laporan Kinerja Tim untuk KOORDINATOR (grant is_coordinator, migrasi 0021): daftar pegawai
+ * yang dinaunginya (coordinator_team_members) + scorecard, DAN meng-ACC laporan mereka setelah
+ * HRD rilis (kolom ACC aktif; SPV pegawai tsb hanya melihat status ACC ini, tak ikut ACC).
  * Koordinator = pegawai biasa di RLS → SEMUA data dibaca via service_role, berlingkup ketat
- * ke daftar timnya. Detail L2 (klik nama) tetap gerbang rilis HRD + buang L3 (lihat
- * loadTeamReportForCoordinator). Angka Skor Akhir = tersimpan (final_reports), sama spt SPV.
+ * ke daftar timnya; ACC ditulis via service_role di setSpvAcc. Detail L2 (klik nama) tetap
+ * gerbang rilis HRD + buang L3. Angka Skor Akhir = tersimpan (final_reports), sama spt SPV.
  */
 async function CoordinatorTeamReport({ userId }: { userId: string }) {
   const supabase = await createClient();
@@ -261,7 +274,9 @@ async function CoordinatorTeamReport({ userId }: { userId: string }) {
       kpiMonths,
       status, hasReport: !!rep, spvAcc: !!rep?.spv_acc, isSelf: false,
       detailOpen: canOpenDetail(status),
-      canAcc: false, // koordinator TIDAK meng-ACC (lihat-saja)
+      // Koordinator MENG-ACC laporan pegawai yang dinaunginya (setelah HRD rilis). ACC ditulis
+      // via service_role di setSpvAcc (koordinator = pegawai biasa di RLS), berlingkup ke timnya.
+      canAcc: status === 'in_review' || status === 'finalized',
     };
   })
     .filter((r) => activeIds.has(r.id) || r.hasReport)
@@ -276,7 +291,7 @@ async function CoordinatorTeamReport({ userId }: { userId: string }) {
         <div>
           <h1 className="text-xl font-bold text-gray-800">Laporan Kinerja Tim</h1>
           <p className="text-sm text-gray-500">
-            Periode aktif: {ap.label} · kinerja pegawai yang Anda koordinasikan (lihat-saja).
+            Periode aktif: {ap.label} · tinjau &amp; beri ACC laporan pegawai yang Anda koordinasikan.
           </p>
         </div>
         <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
@@ -288,7 +303,7 @@ async function CoordinatorTeamReport({ userId }: { userId: string }) {
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
-          <TeamTable rows={rows} showAcc={false} />
+          <TeamTable rows={rows} />
         </>
       )}
     </Shell>

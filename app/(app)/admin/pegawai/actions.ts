@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canAdmin } from '@/lib/auth/roles';
+import { canAdmin, isHrdDept } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 
 /**
@@ -48,7 +48,11 @@ export async function setHrdAdmin(employeeId: string, value: boolean): Promise<R
   const auth = await requireHrd(supabase);
   if (!auth.ok) return auth;
 
-  const { data: target } = await supabase.from('employees').select('name').eq('id', employeeId).maybeSingle();
+  const { data: target } = await supabase.from('employees').select('name, dept').eq('id', employeeId).maybeSingle();
+  // Grant HRD Admin HANYA untuk pegawai divisi HRD (kebijakan). Pencabutan selalu boleh.
+  if (value && !isHrdDept(target?.dept)) {
+    return { ok: false, error: 'Izin HRD Admin hanya dapat diberikan kepada pegawai divisi HRD.' };
+  }
   const { error } = await supabase.from('employees').update({ is_hrd_admin: value }).eq('id', employeeId);
   if (error) return { ok: false, error: 'Gagal mengubah izin: ' + error.message };
 
@@ -72,7 +76,11 @@ export async function setCrossReviewer(employeeId: string, value: boolean): Prom
   const auth = await requireHrd(supabase);
   if (!auth.ok) return auth;
 
-  const { data: target } = await supabase.from('employees').select('name').eq('id', employeeId).maybeSingle();
+  const { data: target } = await supabase.from('employees').select('name, dept').eq('id', employeeId).maybeSingle();
+  // Grant Peninjau Lintas Divisi HANYA untuk pegawai divisi HRD (kebijakan). Pencabutan selalu boleh.
+  if (value && !isHrdDept(target?.dept)) {
+    return { ok: false, error: 'Izin Peninjau Lintas Divisi hanya dapat diberikan kepada pegawai divisi HRD.' };
+  }
   const { error } = await supabase.from('employees').update({ is_cross_reviewer: value }).eq('id', employeeId);
   if (error) return { ok: false, error: 'Gagal mengubah izin: ' + error.message };
 

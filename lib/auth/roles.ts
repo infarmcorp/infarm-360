@@ -35,3 +35,13 @@ export function canCrossReview(m: ActorRow | null | undefined): boolean {
 export function canCoordinate(m: ActorRow | null | undefined): boolean {
   return !!m?.is_coordinator;
 }
+
+/**
+ * Apakah `dept` termasuk DIVISI HRD? Grant sensitif "HRD Admin" & "Peninjau Lintas Divisi"
+ * hanya boleh diaktifkan untuk pegawai divisi HRD (kebijakan 2026-07-15) — bukan seluruh
+ * pegawai. Pengenal: `dept` diawali "HRD" (mis. "HRD-GA"); tak ada divisi lain berawalan HRD.
+ * Dipakai di UI (sembunyikan tombol) & server (tolak grant) Kelola Pegawai.
+ */
+export function isHrdDept(dept: string | null | undefined): boolean {
+  return !!dept && dept.trim().toUpperCase().startsWith('HRD');
+}

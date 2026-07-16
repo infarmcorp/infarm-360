@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { UserPlus, Pencil, KeyRound, Power, X, ShieldCheck, ScanEye, Users, ListChecks } from 'lucide-react';
 import { createEmployee, updateEmployee, setEmployeeActive, resetPassword, setHrdAdmin, setCrossReviewer, setCoordinator, setCoordinatorTeam } from './actions';
+import { isHrdDept } from '@/lib/auth/roles';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
@@ -347,12 +348,14 @@ export function PegawaiClient({ rows, spvs, depts, coordTeams }: { rows: EmpRow[
                   <button type="button" onClick={() => act(() => setEmployeeActive(r.id, !r.active))} disabled={pending}
                     title={r.active ? 'Nonaktifkan' : 'Aktifkan'}
                     className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg disabled:opacity-60 ${r.active ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-700 hover:bg-emerald-50'}`}><Power className="w-3.5 h-3.5" /></button>
-                  {r.role !== 'direksi' && r.role !== 'hrd' && (
+                  {/* Grant HRD Admin & Peninjau HANYA untuk pegawai divisi HRD (kebijakan). Tetap
+                      tampil bila terlanjur ter-grant di divisi lain, agar bisa DICABUT. */}
+                  {r.role !== 'direksi' && r.role !== 'hrd' && (isHrdDept(r.dept) || r.isHrdAdmin) && (
                     <button type="button" onClick={() => act(() => setHrdAdmin(r.id, !r.isHrdAdmin))} disabled={pending}
                       title={r.isHrdAdmin ? 'Cabut izin HRD Admin' : 'Beri izin HRD Admin'}
                       className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg disabled:opacity-60 ${r.isHrdAdmin ? 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-500 hover:bg-gray-100'}`}><ShieldCheck className="w-3.5 h-3.5" /></button>
                   )}
-                  {r.role !== 'direksi' && r.role !== 'hrd' && (
+                  {r.role !== 'direksi' && r.role !== 'hrd' && (isHrdDept(r.dept) || r.isCrossReviewer) && (
                     <button type="button" onClick={() => act(() => setCrossReviewer(r.id, !r.isCrossReviewer))} disabled={pending}
                       title={r.isCrossReviewer ? 'Cabut izin Peninjau Lintas Divisi' : 'Beri izin Peninjau Hasil Lintas Divisi (meringkas hasil divisi lain)'}
                       className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg disabled:opacity-60 ${r.isCrossReviewer ? 'text-violet-700 bg-violet-50 hover:bg-violet-100' : 'text-gray-500 hover:bg-gray-100'}`}><ScanEye className="w-3.5 h-3.5" /></button>

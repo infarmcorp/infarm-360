@@ -3,9 +3,9 @@
 Panduan untuk Claude Code saat bekerja di repo ini.
 
 > **Status terkini & catatan sesi** (potret cepat-basi: sedang dikerjakan, riwayat sesi, file
-> paling relevan) → lihat **`STATUS.md`**. Sisa pekerjaan → **[TODO.md](TODO.md)** (aktif) &
-> **[BACKLOG.md](BACKLOG.md)** (opsional). Rincian/riwayat tiap fitur → **[CHANGELOG.md](CHANGELOG.md)**.
-> Catatan operasional trial/Q2 → **REKOMENDASI.md**.
+> paling relevan) → lihat **`docs/perencanaan/STATUS.md`**. Sisa pekerjaan → **[TODO.md](docs/perencanaan/TODO.md)** (aktif) &
+> **[BACKLOG.md](docs/perencanaan/BACKLOG.md)** (opsional). Rincian/riwayat tiap fitur → **[CHANGELOG.md](docs/perencanaan/CHANGELOG.md)**.
+> Catatan operasional trial/Q2 → **docs/perencanaan/REKOMENDASI.md**.
 
 ---
 
@@ -20,7 +20,7 @@ live**; sisa sebagian besar **aktivasi env** (email/sandi) + **kebersihan akun**
   sumbu — nilai kini **15** di **Monitor** (`monitor-trends.tsx` `LineChart`) & **Dashboard**
   (`dashboard-visual.tsx` `TrendLine`). Label titik tepi tetap rata-dalam (pertama=start/terakhir=end).
 - **Dokumentasi dikonsolidasi (SELESAI):** `progress.md` (log migrasi usang) **dihapus**;
-  **`CARA-PENGGUNAAN.md`** & **`RINCIAN-TOMBOL.md`** ditambahi **peran Koordinator** (lihat Laporan
+  **`docs/panduan/CARA-PENGGUNAAN.md`** & **`docs/panduan/RINCIAN-TOMBOL.md`** ditambahi **peran Koordinator** (lihat Laporan
   Kinerja Tim + ACC + Input KPI naungannya), **umpan balik 360° mentah ANONIM** untuk SPV/Koordinator/
   Direksi (model lapisan 3→4: L1/L2/raw-anonim/L3-bernama), **Direksi subjek 360° + tinjau laporan SPV**,
   grant Koordinator/Peninjau + pembatasan grant ke divisi HRD, & penghapusan baris "Anda" dari Laporan Tim.
@@ -62,7 +62,7 @@ Empat peran pengguna (kolom `employees.role`; logika kewenangan di `lib/auth/rol
 - **Direksi** — dashboard eksekutif, ACC promosi/suksesi, **tinjau & ACC laporan SPV** (Laporan Kinerja
   Tim, agregat L2). **Hanya** laporan SPV — laporan pegawai non-SPV ditolak.
 
-Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`. Panduan pengguna: `CARA-PENGGUNAAN.md`.
+Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`. Panduan pengguna: `docs/panduan/CARA-PENGGUNAAN.md`.
 
 ## Status Saat Ini vs Target
 
@@ -87,10 +87,69 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`. Panduan pengguna: `CA
 
 **Sisa pra-produksi:** sebagian besar **aktivasi env** (email pengingat 360° + reset sandi) &
 kebersihan akun (email seed asli, sandi beda per orang, rotasi kredensial). Daftar lengkap +
-status di **[TODO.md](TODO.md)**.
+status di **[TODO.md](docs/perencanaan/TODO.md)**.
 
 Saat mengerjakan fitur, ingat: kerjakan di route Next.js `app/(app)/` (arsip SPA legacy `src/`
 sudah dihapus).
+
+---
+
+## Struktur Proyek
+
+> **TIDAK ada folder `src/`** (arsip SPA legacy sudah dihapus). Kode aplikasi ada di **`app/`**
+> (App Router). Ini **bukan** e-commerce — tak ada keranjang/checkout/produk/OMS.
+
+```
+app/                          # Next.js App Router
+├── layout.tsx · page.tsx     # root layout + gerbang auth (/)
+├── globals.css · icon.png
+├── login/                    # halaman login
+├── auth/                     # alur Supabase auth
+│   ├── callback/route.ts     # OAuth/redirect callback (reset sandi)
+│   ├── lupa-sandi/           # form "Lupa Sandi via email"
+│   ├── perbarui-sandi/       # form set sandi baru
+│   └── signout/route.ts
+└── (app)/                    # shell persisten (sidebar + landing per peran)
+    ├── layout.tsx · app-shell.tsx · mode-actions.ts   # menu base + dual-mode HRD
+    ├── penilaian/            # isi 360° Feedback (Employee)
+    ├── kpi/                  # input/rekap/riwayat KPI bulanan (SPV/Koordinator)
+    ├── monitor/              # monitor tren kinerja tim
+    ├── laporan/             # laporan hasil (pegawai; [employeeId] detail + PDF)
+    ├── laporan-tim/          # Laporan Kinerja Tim + ACC (SPV/Koordinator/Direksi)
+    ├── review-hasil/         # tinjau hasil akhir
+    ├── peninjau/             # Review Lintas Divisi (grant is_cross_reviewer)
+    ├── suksesi/              # suksesi/promosi (Direksi)
+    ├── akun/                 # Akun Saya
+    └── admin/                # area HRD Admin (canAdmin)
+        ├── periode/ pertanyaan/ pemetaan/ bobot/   # konfigurasi siklus
+        ├── progress/ kepatuhan/                     # progress 360° + flag/punishment
+        ├── 360/                                     # aktivasi & hitung skor 360°
+        ├── laporan/ dashboard/ ekspor/             # finalisasi · dashboard talenta · ekspor
+        ├── pegawai/                                 # Kelola Pegawai (CRUD via service_role)
+        └── audit/                                   # Log Aktivitas HRD + Audit KPI
+
+lib/                          # logika bersama (server-first)
+├── scoring.ts · score360.ts # RUMUS SKOR TERKUNCI (diuji; jangan ubah tanpa sinkron tes)
+├── trend.ts · team-metrics.ts · score-color.ts
+├── report.ts                # loader laporan (raw anonim, buang L3 bernama)
+├── database.types.ts        # tipe skema DB
+├── auth/roles.ts            # canAdmin/canCrossReview/canCoordinate/isHrdDept
+├── auth/demo-users.ts       # roster login (= sumber seed)
+├── supabase/                # server.ts (RLS vs service_role) · client · middleware · paginate
+├── import/parse.ts          # parsing impor Excel KPI + pemetaan 360°
+├── email/mailer.ts          # SMTP/Resend (dorman sampai env diset)
+└── audit/log.ts             # tulis hrd_audit_log
+
+supabase/migrations/         # 0001–0022 (skema + RLS + seed idempoten)
+components/                  # UI bersama (confirm-dialog, searchable-select, dll.)
+scripts/                     # seed, backup/restore, verify-rls, reset, diagnostik
+tests/                       # Vitest — logika skor & otorisasi Server Action (mock Supabase)
+docs/                        # panduan/ · perencanaan/ · pengujian/ · pengembangan/
+```
+
+> Logika sensitif WAJIB di Server Action / Route Handler + Zod (bukan client). RLS ditegakkan di DB.
+> Detail per-fitur → **[CHANGELOG.md](docs/perencanaan/CHANGELOG.md)**; tombol per-halaman →
+> **`docs/panduan/RINCIAN-TOMBOL.md`**.
 
 ---
 
@@ -99,11 +158,11 @@ sudah dihapus).
 Tiga daftar besar dulu di sini kini **dipisah** ke file sendiri agar CLAUDE.md tetap ramping
 (panduan durable). Perbarui di file masing-masing:
 
-- **[TODO.md](TODO.md)** — pekerjaan yang **masih harus dikerjakan** & dilacak sampai tuntas
+- **[TODO.md](docs/perencanaan/TODO.md)** — pekerjaan yang **masih harus dikerjakan** & dilacak sampai tuntas
   (⬜ belum · 🔄 sebagian · ✅ selesai; 🔑 = butuh aksi pengguna). Sumber tunggal "apa yang belum beres".
-- **[BACKLOG.md](BACKLOG.md)** — ide/pengembangan **opsional** & masa depan yang belum jadi
+- **[BACKLOG.md](docs/perencanaan/BACKLOG.md)** — ide/pengembangan **opsional** & masa depan yang belum jadi
   komitmen; dipromosikan ke TODO bila diputuskan dikerjakan.
-- **[CHANGELOG.md](CHANGELOG.md)** — catatan **historis** apa yang sudah berubah/dibangun
+- **[CHANGELOG.md](docs/perencanaan/CHANGELOG.md)** — catatan **historis** apa yang sudah berubah/dibangun
   (invariant lintas-fitur, alasan keputusan, daftar migrasi).
 
 ---
@@ -350,5 +409,5 @@ npm run test:watch # vitest mode pantau
 
 ## Changelog
 
-Changelog dipindah ke **[CHANGELOG.md](CHANGELOG.md)** — catatan historis perubahan (invariant
-lintas-fitur, alasan keputusan, daftar migrasi). Status/sesi terkini → `STATUS.md`.
+Changelog dipindah ke **[CHANGELOG.md](docs/perencanaan/CHANGELOG.md)** — catatan historis perubahan (invariant
+lintas-fitur, alasan keputusan, daftar migrasi). Status/sesi terkini → `docs/perencanaan/STATUS.md`.

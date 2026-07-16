@@ -462,31 +462,34 @@ function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, has360
           unit="360°" values={s360s} />
       </div>
 
-      <Card title={`📈 Tren 360° per Kuartal ${yearLabel}`}>
-        <YearTrendCaption value={year360Avg} label={`Rerata 360° ${yearLabel}`} unit="org-level, ikut filter divisi · hanya kuartal ber-360°" />
-        <TrendLine points={year360.map((q) => ({ label: q.label, value: q.avg }))} />
-      </Card>
+      {/* Tren 360° & Evaluasi Sub-Aspek — sejajar (berdampingan) di layar lebar. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <Card title={`📈 Tren 360° per Kuartal ${yearLabel}`}>
+          <YearTrendCaption value={year360Avg} label={`Rerata 360° ${yearLabel}`} unit="org-level, ikut filter divisi · hanya kuartal ber-360°" />
+          <TrendLine points={year360.map((q) => ({ label: q.label, value: q.avg }))} />
+        </Card>
 
-      <Card title="✨ Evaluasi Budaya 360° (Rataan Sub-Aspek)">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          {aspectScores.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada skor 360° terkirim.</p>}
-          {aspectScores.map((asp, idx) => {
-            const hc = heatColor(asp.score);
-            return (
-              <div key={asp.aspek} className="space-y-1">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-medium text-gray-700">⭐ {asp.aspek}</span>
-                  <span className="text-xs font-semibold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{asp.score.toFixed(2)} / 100</span>
+        <Card title="✨ Evaluasi Budaya 360° (Rataan Sub-Aspek)">
+          <div className="grid grid-cols-1 gap-y-4">
+            {aspectScores.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada skor 360° terkirim.</p>}
+            {aspectScores.map((asp, idx) => {
+              const hc = heatColor(asp.score);
+              return (
+                <div key={asp.aspek} className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-gray-700">⭐ {asp.aspek}</span>
+                    <span className="text-xs font-semibold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{asp.score.toFixed(2)} / 100</span>
+                  </div>
+                  <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(asp.score, 100)}%` }}
+                      transition={{ duration: 1, delay: idx * 0.08 }} className="h-full rounded-md" style={{ backgroundColor: hc.bg }} />
+                  </div>
                 </div>
-                <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(asp.score, 100)}%` }}
-                    transition={{ duration: 1, delay: idx * 0.08 }} className="h-full rounded-md" style={{ backgroundColor: hc.bg }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Leaderboard title="🏆 Skor 360° Tertinggi" subtitle="10 pegawai dengan Skor 360° tertinggi." tone="indigo" items={ranked.slice(0, 10)} valueOf={(r) => r.s360} />

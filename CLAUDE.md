@@ -662,7 +662,10 @@ npm run test:watch # vitest mode pantau
   `0018` `employees.is_cross_reviewer` · `0019` `kpi_audit.action` (`set`/`delete`, utk Hapus KPI ber-audit) ·
   `0020` `employees.joined_on`/`left_on` (tanggal aktif; keanggotaan Dashboard hibrida — pelaporan, non-rumus) ·
   `0021` `employees.is_coordinator` + tabel `coordinator_team_members` (peran Koordinator lihat-saja Laporan
-  Kinerja Tim; pola Peninjau, grant non-RLS + akses service_role berlingkup).
+  Kinerja Tim; pola Peninjau, grant non-RLS + akses service_role berlingkup) ·
+  `0022` `assessment_indicator_scores.rating` smallint → **numeric(3,2)** (pelebaran aman/aditif; rating
+  bulat lama tetap valid, CHECK 1–5 rentang tetap; mendukung backfill nilai aspek 360° DESIMAL mis. hasil
+  eksternal Q1 2026).
 - `final_reports.content` (jsonb lama) dipakai untuk `aspectSummaries` **&** `qualSummaries`
   (ringkasan pertanyaan kualitatif) — tanpa migrasi baru.
 

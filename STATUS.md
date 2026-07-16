@@ -19,6 +19,18 @@ Migrasi fungsional **selesai & live**; sisa sebagian besar **aktivasi env** (ema
     komentar & rating verbatim tanpa nama) untuk pegawai yang ditinjaunya. L3 **BERNAMA** (`assessors`)
     tetap dibuang. RLS tak berubah (raw tetap tertutup via API; paparan anonim app-level via service_role).
     ⚠️ risiko de-anonimisasi pada kelas penilai kecil; mudah dibalik. Detail: [[raw-anon-exposure]].
+  - **Koordinator kini INPUT KPI** (tab Input saja) pegawai naungannya; **SPV input KPI hanya pegawai
+    TANPA koordinator** (dikeluarkan dari daftar SPV/HRD-mode-SPV; server tolak role='spv'). Via
+    service_role berlingkup + audit (`changed_by`=koordinator) + edit-wajib-komentar. Tanpa migrasi.
+  - **Log Aktivitas HRD** → paginasi **10 baris di server** (hemat egress) + filter kategori/cari server.
+    **Audit KPI** → daftar rata **terbaru di atas** (bukan dikelompokkan per nama) + kolom Pegawai.
+  - **Grant HRD Admin & Peninjau hanya untuk divisi HRD** (`isHrdDept` = dept diawali "HRD"): tombol UI
+    disembunyikan + server menolak grant utk non-HRD (pencabutan tetap boleh).
+  - **Backfill 360° Q1 2026** (dinilai eksternal) ke Dashboard: **migrasi 0022** (`rating`→numeric(3,2))
+    + `has_360=true` Q1 + `result_360` (headline eksak) + penilaian sintetis (anchor=Direksi) utk 5
+    aspek. 50 pegawai. ⚠️ **JANGAN "Hitung Ulang Skor 360°" Q1** (menimpa backfill). Backup pra-aksi di
+    `backups/backup-2026-07-15T09-45-48-694Z`. Data via skrip (tak di-commit); `BACKFILL-360-Q1.csv` lokal.
+  - **Dashboard Analisis 360°**: "Tren 360°" & "Evaluasi Sub-Aspek" ditata **sejajar** (2 kolom).
 
 **Sesi 2026-07-10..12 sudah PUSHED ke `main` & live (commit `9266b34`).**
 Bagian ini hanya potret status; perincian tiap fitur ada di **Changelog** & **TO-DO** di CLAUDE.md.

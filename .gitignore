@@ -15,3 +15,9 @@ supabase/.temp/
 
 # Backup dump dari scripts/reset-data.mjs (berisi data sensitif — jangan commit)
 backups/
+
+# Data mentah 360° / impor (rating pegawai asli — sensitif, jangan commit)
+BACKFILL-*.csv
+
+# Folder unduhan/kerja lokal (bukan bagian aplikasi)
+files (1)/

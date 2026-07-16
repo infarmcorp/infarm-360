@@ -66,14 +66,21 @@ variables diatur di dashboard Vercel.
 | Berkas | Isi |
 |---|---|
 | [CLAUDE.md](CLAUDE.md) | Panduan teknis internal (durable): arsitektur, keputusan terkunci, skema DB/migrasi, aturan keamanan, klasifikasi talenta. |
-| [TODO.md](TODO.md) | Pekerjaan yang masih harus dikerjakan & dilacak sampai tuntas (🔑 = butuh aksi pengguna). |
-| [BACKLOG.md](BACKLOG.md) | Ide/pengembangan opsional & masa depan yang belum jadi komitmen. |
-| [CHANGELOG.md](CHANGELOG.md) | Catatan historis perubahan: invariant lintas-fitur, alasan keputusan, daftar migrasi. |
-| [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md) | Panduan pengguna akhir per peran + alur lengkap penilaian. |
-| [RINCIAN-TOMBOL.md](RINCIAN-TOMBOL.md) | Kamus tiap tombol di tiap halaman (fungsi · peran · kondisi · konfirmasi). |
-| [TESTING-CHECKLIST.md](TESTING-CHECKLIST.md) | Checklist uji manual menyeluruh per peran. |
-| [SMOKE-TEST.md](SMOKE-TEST.md) | Uji kilat ~5–10 menit pasca-deploy. |
-| [REKOMENDASI.md](REKOMENDASI.md) | Catatan operasional & perencanaan peluncuran. |
+| **[docs/perencanaan/](docs/perencanaan/)** | **Perencanaan & pelacakan kerja:** |
+| [TODO.md](docs/perencanaan/TODO.md) | Pekerjaan yang masih harus dikerjakan & dilacak sampai tuntas (🔑 = butuh aksi pengguna). |
+| [BACKLOG.md](docs/perencanaan/BACKLOG.md) | Ide/pengembangan opsional & masa depan yang belum jadi komitmen. |
+| [CHANGELOG.md](docs/perencanaan/CHANGELOG.md) | Catatan historis perubahan: invariant lintas-fitur, alasan keputusan, daftar migrasi. |
+| [STATUS.md](docs/perencanaan/STATUS.md) | Potret status & catatan sesi terkini (cepat-basi). |
+| [REKOMENDASI.md](docs/perencanaan/REKOMENDASI.md) | Catatan operasional & perencanaan peluncuran. |
+| **[docs/panduan/](docs/panduan/)** | **Panduan pengguna:** |
+| [CARA-PENGGUNAAN.md](docs/panduan/CARA-PENGGUNAAN.md) | Panduan pengguna akhir per peran + alur lengkap penilaian. |
+| [RINCIAN-TOMBOL.md](docs/panduan/RINCIAN-TOMBOL.md) | Kamus tiap tombol di tiap halaman (fungsi · peran · kondisi · konfirmasi). |
+| [CARA-BACKUP.md](docs/panduan/CARA-BACKUP.md) | Cara backup & restore data (Supabase free tier). |
+| **[docs/pengujian/](docs/pengujian/)** | **Pengujian:** |
+| [TESTING-CHECKLIST.md](docs/pengujian/TESTING-CHECKLIST.md) | Checklist uji manual menyeluruh per peran. |
+| [SMOKE-TEST.md](docs/pengujian/SMOKE-TEST.md) | Uji kilat ~5–10 menit pasca-deploy. |
+| **[docs/pengembangan/](docs/pengembangan/)** | **Pengembangan:** |
+| [DEVELOPMENT.md](docs/pengembangan/DEVELOPMENT.md) | Alur dev/staging agar pengembangan tak menyentuh production. |
 
 ## Keamanan (inti)
 

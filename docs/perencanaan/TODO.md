@@ -3,7 +3,7 @@
 Pekerjaan yang **masih harus dikerjakan & dilacak statusnya** sampai tuntas — sumber tunggal
 "apa yang belum beres". Status: ✅ selesai · 🔄 sebagian · ⬜ belum. Item **butuh-aksi-pengguna**
 ditandai 🔑. Ide opsional/masa depan ada di **[BACKLOG.md](BACKLOG.md)**; catatan historis di
-**[CHANGELOG.md](CHANGELOG.md)**; panduan durable & keputusan terkunci di **[CLAUDE.md](CLAUDE.md)**;
+**[CHANGELOG.md](CHANGELOG.md)**; panduan durable & keputusan terkunci di **[CLAUDE.md](../../CLAUDE.md)**;
 status/sesi terkini di **[STATUS.md](STATUS.md)**.
 
 ### Keamanan pra-go-live

@@ -2,7 +2,7 @@
 
 Ide & **pengembangan opsional / masa depan** yang belum jadi komitmen ("nice-to-have", belum
 dijadwalkan). Dipromosikan ke **[TODO.md](TODO.md)** bila diputuskan dikerjakan. Catatan historis
-di **[CHANGELOG.md](CHANGELOG.md)**; panduan durable di **[CLAUDE.md](CLAUDE.md)**.
+di **[CHANGELOG.md](CHANGELOG.md)**; panduan durable di **[CLAUDE.md](../../CLAUDE.md)**.
 
 ### Pengembangan opsional
 - ⬜ Ganti email mandiri (lanjutan Akun Saya).

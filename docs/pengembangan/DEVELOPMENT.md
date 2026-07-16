@@ -2,7 +2,7 @@
 
 Panduan ringkas supaya pengembangan fitur baru **tidak pernah menyentuh** aplikasi
 production yang sedang dipakai user nyata. Untuk konteks fitur/arsitektur lengkap, lihat
-`CLAUDE.md`. Untuk status kerja saat ini, lihat `STATUS.md`.
+`../../CLAUDE.md`. Untuk status kerja saat ini, lihat `../perencanaan/STATUS.md`.
 
 ## 1. Kenapa perlu dipisah
 
@@ -162,5 +162,5 @@ Vercel mendukung nilai berbeda untuk variabel nama sama, dibedakan per scope
       (`.gitignore` sudah mengecualikan `.env*` kecuali `.env.example`, tapi tetap cek).
 - [ ] Setelah merge & deploy ke production: terapkan migrasi baru (jika ada) ke project
       **production** secara manual (lihat §4), lalu verifikasi cepat di production.
-- [ ] Update `STATUS.md` + `TODO.md`/`BACKLOG.md`/`CHANGELOG.md` bila perubahan ini menggeser
-      status fitur (dan `CLAUDE.md` bila menyentuh arsitektur/keputusan terkunci).
+- [ ] Update `../perencanaan/STATUS.md` + `../perencanaan/TODO.md`/`BACKLOG.md`/`CHANGELOG.md` bila
+      perubahan ini menggeser status fitur (dan `../../CLAUDE.md` bila menyentuh arsitektur/keputusan terkunci).

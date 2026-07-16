@@ -24,6 +24,9 @@ export type Row = {
   isActive?: boolean;
   // KPI "belum terbaca" (bln-1 & bln-2 = 0) → dikecualikan dari kategorisasi/rerata KPI & Skor Akhir.
   kpiUnread?: boolean;
+  // Single-axis: saat 360° aktif, pegawai hanya punya 1 sumbu (KPI saja / 360° saja) → belum bisa
+  // diklasifikasi 4-Box (nilai bisa melompat begitu sumbu kedua masuk) → bucket "Data Belum Lengkap".
+  axisIncomplete?: boolean;
   // Trend KPI 3 bulan (trendOf) + skor bulanannya (untuk badge & tooltip di Tabel).
   trend?: Trend;
   kpiMonths?: (number | null)[];
@@ -140,6 +143,9 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
   // ditampilkan terpisah sebagai bucket "Belum Terbaca".
   const readable = rows.filter((r) => !r.kpiUnread);
   const unread = rows.filter((r) => r.kpiUnread);
+  // Single-axis (saat 360° aktif, hanya 1 sumbu terisi) → dikeluarkan dari 4-Box (player=null di
+  // page.tsx) & ditampilkan di bucket "Data Belum Lengkap" terpisah, seperti pola "Belum Terbaca".
+  const incomplete = readable.filter((r) => r.axisIncomplete);
   const scored = readable.filter((r) => r.final != null);
   const denom = scored.length || 1;
 
@@ -246,7 +252,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
       {/* 4-Box */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
         <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Klasifikasi Pemain — Matriks 4-Box (A / B Culture / B KPI / C)</h3>
-        <p className="text-xs text-gray-500 mt-0.5 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan KPI × 360° (ambang 80){unread.length > 0 ? ` · ${unread.length} belum terbaca (dikecualikan)` : ''}.</p>
+        <p className="text-xs text-gray-500 mt-0.5 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan KPI × 360° (ambang 80){incomplete.length > 0 ? ` · ${incomplete.length} data belum lengkap (dikecualikan)` : ''}{unread.length > 0 ? ` · ${unread.length} belum terbaca (dikecualikan)` : ''}.</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {PLAYER_BOXES.map((box) => {
             const emps = playerGroups.get(box.key) ?? [];
@@ -268,6 +274,21 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel }:
             );
           })}
         </div>
+        {incomplete.length > 0 && (
+          <div className="mt-3 border border-gray-200 border-t-4 border-t-amber-400 rounded-xl p-3 bg-amber-50/50">
+            <div className="flex items-start justify-between gap-1">
+              <span className="text-[13px] font-black text-slate-700 leading-tight">Data Belum Lengkap (1 Sumbu)</span>
+              <span className="text-lg font-black font-mono shrink-0 text-amber-600">{incomplete.length}</span>
+            </div>
+            <span className="text-[10px] text-gray-500 font-semibold mt-0.5 leading-tight block">Baru punya SATU sumbu (KPI saja atau 360° saja) saat 360° aktif → belum diklasifikasi agar tak "melompat" begitu sumbu kedua masuk. Lengkapi KPI/360°-nya lalu Hitung Ulang.</span>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {incomplete.map((e) => (
+                <span key={e.id} className="text-[10px] bg-white/70 text-gray-600 px-1.5 py-0.5 rounded font-semibold border border-amber-200"
+                  title={`${e.name} · KPI ${e.kpiAvg != null ? e.kpiAvg.toFixed(2) : 'N/A'} · 360 ${e.s360 != null ? e.s360.toFixed(2) : 'N/A'}`}>{firstName(e.name)}</span>
+              ))}
+            </div>
+          </div>
+        )}
         {unread.length > 0 && (
           <div className="mt-3 border border-gray-200 border-t-4 border-t-gray-400 rounded-xl p-3 bg-gray-50/60">
             <div className="flex items-start justify-between gap-1">
@@ -557,7 +578,12 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
                   <td className="py-3 pl-3 text-center">
                     {r.player ? (
                       <span className={`text-[11px] font-black px-2 py-0.5 rounded border ${PLAYER_COLOR[r.player]}`}>{PLAYER_BADGE[r.player]}</span>
-                    ) : <span className="text-gray-500 text-xs">—</span>}
+                    ) : (
+                      <span className="text-gray-500 text-xs"
+                        title={r.axisIncomplete ? 'Data belum lengkap — baru 1 sumbu (KPI saja atau 360° saja); belum diklasifikasi 4-Box' : undefined}>
+                        —{r.axisIncomplete ? '*' : ''}
+                      </span>
+                    )}
                   </td>
                 </tr>
               );
@@ -568,7 +594,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
       <p className="text-[10px] text-gray-500 italic mt-3">
         Skor Akhir <strong>(live)</strong> = blend KPI+360 (50/50) − punishment, dihitung langsung dari data periode aktif —
         bisa berbeda dari angka <strong>finalisasi tersimpan</strong> di Laporan Kinerja Tim.
-        Player (A/B/C) berbasis KPI × 360° (ambang 80).{!has360 && ' Tanpa 360° → A & B-Culture tidak tersedia.'}
+        Player (A/B/C) berbasis KPI × 360° (ambang 80); <strong>—*</strong> = data belum lengkap (baru 1 sumbu saat 360° aktif) → belum diklasifikasi.{!has360 && ' Tanpa 360° → A & B-Culture tidak tersedia.'}
       </p>
     </div>
   );

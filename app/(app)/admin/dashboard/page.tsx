@@ -193,8 +193,14 @@ export default async function DashboardPage({
     const s360 = s360By.get(e.id) ?? null;
     const penalty = penBy.get(e.id) ?? 0;
     const final = finalScoreOf(kpiAvg, s360, ap.has_360, penalty);
-    // 4-Box: berbasis KPI × 360° langsung (360 nonaktif → tanpa sumbu budaya).
-    const player = playerClassOf(kpiAvg, ap.has_360 ? s360 : null);
+    // Single-axis: saat 360° AKTIF, pegawai yang cuma punya SATU sumbu (KPI saja ATAU 360° saja)
+    // belum bisa diklasifikasi 4-Box andal — nilainya bisa "melompat" begitu sumbu kedua masuk
+    // (mis. terplot B-KPI/C lalu jadi A saat 360° dihitung). Tandai agar dashboard mengeluarkannya
+    // dari A/B/C & menaruhnya di bucket "Data Belum Lengkap". Saat 360° NONAKTIF tak berlaku
+    // (periode itu memang tanpa sumbu budaya → tetap KPI-only, perilaku lama).
+    const axisIncomplete = ap.has_360 && ((kpiAvg != null) !== (s360 != null)); // tepat satu sumbu (XOR)
+    // 4-Box: butuh KEDUA sumbu saat 360° aktif; single-axis → tak diklasifikasi (null).
+    const player = axisIncomplete ? null : playerClassOf(kpiAvg, ap.has_360 ? s360 : null);
     // Keanggotaan kuartal SADAR-PERIODE via irisan masa kerja × rentang periode:
     //   masuk sebelum periode berakhir  DAN  belum keluar sebelum periode mulai.
     // `left_on` diketahui → dipakai presisi; belum diisi → fallback ke is_active (aman sebelum
@@ -206,7 +212,7 @@ export default async function DashboardPage({
     const em = empYm.get(e.id);
     const kpiMonths = ymFirst3.map((ym) => (em?.has(ym) ? em.get(ym)!.s / em.get(ym)!.n : null));
     const trend = trendOf(kpiMonths);
-    return { id: e.id, name: e.name, dept: e.dept, is_active: e.is_active, kpiAvg, s360, final, player, overlaps, kpiUnread: unreadIds.has(e.id), trend, kpiMonths };
+    return { id: e.id, name: e.name, dept: e.dept, is_active: e.is_active, kpiAvg, s360, final, player, axisIncomplete, overlaps, kpiUnread: unreadIds.has(e.id), trend, kpiMonths };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1))
     // HIBRIDA: tampil bila masa kerjanya menyentuh kuartal INI (overlaps) ATAU punya data nyata
     // (KPI/360°) di kuartal ini — jaring pengaman agar angka nyata tak pernah hilang meski tgl keliru.
@@ -316,7 +322,7 @@ export default async function DashboardPage({
           rows={rows.map((r) => ({
             id: r.id, name: r.name, dept: r.dept,
             kpiAvg: r.kpiAvg, s360: r.s360, final: r.final,
-            player: r.player, isActive: r.is_active, kpiUnread: r.kpiUnread,
+            player: r.player, axisIncomplete: r.axisIncomplete, isActive: r.is_active, kpiUnread: r.kpiUnread,
             trend: r.trend, kpiMonths: r.kpiMonths,
           }))}
           deptScores={deptScores}

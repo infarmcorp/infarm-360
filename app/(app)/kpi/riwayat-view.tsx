@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { RiwayatList, type EmpAudit } from './riwayat-list';
+import { RiwayatList, type FlatAudit } from './riwayat-list';
 
 /**
  * Riwayat & Audit Perubahan KPI. Menampilkan jejak `kpi_audit` (append-only) per
@@ -61,22 +61,24 @@ export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'a
   const rows = audit ?? [];
   if (rows.length === 0) return <p className="text-sm text-gray-500">{byPeriod ? 'Belum ada jejak audit KPI untuk periode ini.' : 'Belum ada jejak audit KPI. Riwayat tercatat otomatis setiap input skor.'}</p>;
 
-  // Nama pengubah.
+  // Nama pengubah (termasuk KOORDINATOR — kpi_audit.changed_by memuat id koordinator saat ia
+  // input KPI via service_role, sehingga input koordinator tetap terlacak atas namanya).
   const changerIds = [...new Set(rows.map((r) => r.changed_by).filter(Boolean) as string[])];
   const { data: changers } = changerIds.length
     ? await supabase.from('employees').select('id, name').in('id', changerIds) : { data: [] };
   const changerName = new Map((changers ?? []).map((c) => [c.id, c.name]));
+  const empById = new Map(empRows.map((e) => [e.id, e]));
 
-  // Kelompokkan per pegawai (serializable untuk komponen klien).
-  const byEmp = new Map<string, typeof rows>();
-  rows.forEach((r) => { const a = byEmp.get(r.employee_id) ?? []; a.push(r); byEmp.set(r.employee_id, a); });
-  const groups: EmpAudit[] = empRows.filter((e) => byEmp.has(e.id)).map((e) => ({
-    id: e.id, name: e.name, dept: e.dept,
-    entries: byEmp.get(e.id)!.map((r) => ({
-      ym: r.ym, score: r.score, by: r.changed_by ? (changerName.get(r.changed_by) ?? '—') : '—',
-      at: fmt(r.changed_at), note: r.note, action: r.action,
-    })),
+  // RATA (flat) + urut TERBARU DI ATAS. `rows` sudah diurut changed_at desc dari query →
+  // pertahankan urutannya (siapa paling baru mengubah muncul teratas), bukan dikelompokkan per nama.
+  const entries: FlatAudit[] = rows.map((r) => ({
+    empId: r.employee_id,
+    name: empById.get(r.employee_id)?.name ?? '—',
+    dept: empById.get(r.employee_id)?.dept ?? '',
+    ym: r.ym, score: r.score,
+    by: r.changed_by ? (changerName.get(r.changed_by) ?? '—') : '—',
+    at: fmt(r.changed_at), note: r.note, action: r.action,
   }));
 
-  return <RiwayatList groups={groups} />;
+  return <RiwayatList entries={entries} />;
 }

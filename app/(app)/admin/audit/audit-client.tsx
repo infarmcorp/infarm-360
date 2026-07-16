@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export type AuditRow = {
   id: number;
@@ -39,57 +40,75 @@ function fmt(iso: string): string {
   } catch { return iso; }
 }
 
-export function AuditClient({ rows, maxRows }: { rows: AuditRow[]; maxRows: number }) {
-  const [cat, setCat] = useState('all');
-  const [actor, setActor] = useState('all');
-  const [q, setQ] = useState('');
+/**
+ * Tabel Log Aktivitas HRD — paginasi & filter DI SERVER (hemat egress: hanya 10 baris/halaman
+ * yang diunduh). Komponen ini hanya menyusun URL (?page/?cat/?q) lalu router.push → server
+ * mengambil data baru. Tak ada penyaringan sisi-klien atas 500 baris seperti sebelumnya.
+ */
+export function AuditClient({
+  rows, page, pageSize, total, cat, q,
+}: {
+  rows: AuditRow[]; page: number; pageSize: number; total: number; cat: string; q: string;
+}) {
+  const router = useRouter();
+  const [term, setTerm] = useState(q);
 
-  const cats = useMemo(() => [...new Set(rows.map((r) => r.category))].sort(), [rows]);
-  const actors = useMemo(() => [...new Set(rows.map((r) => r.actor))].sort(), [rows]);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const hasPrev = page > 0;
+  const hasNext = page < totalPages - 1;
+  const from = total === 0 ? 0 : page * pageSize + 1;
+  const to = Math.min(total, page * pageSize + rows.length);
 
-  const shown = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return rows.filter((r) =>
-      (cat === 'all' || r.category === cat) &&
-      (actor === 'all' || r.actor === actor) &&
-      (!needle || r.summary.toLowerCase().includes(needle) || (r.targetLabel ?? '').toLowerCase().includes(needle) || r.action.toLowerCase().includes(needle)),
-    );
-  }, [rows, cat, actor, q]);
+  const go = (next: { page?: number; cat?: string; q?: string }) => {
+    const p = new URLSearchParams();
+    const nc = next.cat ?? cat;
+    const nq = next.q ?? term;
+    const np = next.page ?? 0;
+    if (nc && nc !== 'all') p.set('cat', nc);
+    if (nq.trim()) p.set('q', nq.trim());
+    if (np > 0) p.set('page', String(np));
+    const qs = p.toString();
+    router.push(qs ? `/admin/audit?${qs}` : '/admin/audit');
+  };
 
-  const active = cat !== 'all' || actor !== 'all' || q.trim() !== '';
+  const active = cat !== 'all' || q.trim() !== '';
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl shadow-sm">
-      {/* Filter bar */}
+      {/* Filter bar — perubahan memicu fetch server (reset ke halaman 1). */}
       <div className="p-4 border-b border-gray-100 flex flex-wrap items-center gap-2">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Cari ringkasan / nama / aksi…"
-          className="flex-1 min-w-[180px] text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
-        />
-        <select value={cat} onChange={(e) => setCat(e.target.value)}
+        <form
+          onSubmit={(e) => { e.preventDefault(); go({ q: term, page: 0 }); }}
+          className="flex-1 min-w-[180px] flex gap-2"
+        >
+          <input
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+            placeholder="Cari ringkasan / nama / aksi… (Enter)"
+            className="flex-1 min-w-[140px] text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
+          />
+          <button type="submit"
+            className="text-[11px] font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white whitespace-nowrap">
+            Cari
+          </button>
+        </form>
+        <select value={cat} onChange={(e) => go({ cat: e.target.value, page: 0 })}
           className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
           <option value="all">🏷️ Semua Kategori</option>
-          {cats.map((c) => <option key={c} value={c}>{CAT_LABEL[c] ?? c}</option>)}
-        </select>
-        <select value={actor} onChange={(e) => setActor(e.target.value)}
-          className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
-          <option value="all">👤 Semua Pelaku</option>
-          {actors.map((a) => <option key={a} value={a}>{a}</option>)}
+          {Object.entries(CAT_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
         {active && (
-          <button type="button" onClick={() => { setCat('all'); setActor('all'); setQ(''); }}
+          <button type="button" onClick={() => { setTerm(''); go({ cat: 'all', q: '', page: 0 }); }}
             className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
         )}
         <span className="text-[11px] text-gray-500 ml-auto">
-          {shown.length} dari {rows.length} entri{rows.length >= maxRows && ` (maks. ${maxRows} terbaru)`}
+          {total === 0 ? '0 entri' : `${from}–${to} dari ${total} entri`}
         </span>
       </div>
 
-      {shown.length === 0 ? (
+      {rows.length === 0 ? (
         <p className="p-6 text-sm text-gray-500">
-          {rows.length === 0 ? 'Belum ada aktivitas tercatat.' : 'Tidak ada entri sesuai filter.'}
+          {total === 0 && !active ? 'Belum ada aktivitas tercatat.' : 'Tidak ada entri sesuai filter.'}
         </p>
       ) : (
         <div className="overflow-x-auto">
@@ -103,7 +122,7 @@ export function AuditClient({ rows, maxRows }: { rows: AuditRow[]; maxRows: numb
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {shown.map((r) => (
+              {rows.map((r) => (
                 <tr key={r.id} className="align-top">
                   <td className="py-3 px-4 text-xs text-gray-500 whitespace-nowrap">{fmt(r.createdAt)}</td>
                   <td className="py-3 px-3 font-bold text-gray-800 whitespace-nowrap">{r.actor}</td>
@@ -119,6 +138,19 @@ export function AuditClient({ rows, maxRows }: { rows: AuditRow[]; maxRows: numb
           </table>
         </div>
       )}
+
+      {/* Pager: geser 10 sebelumnya / berikutnya (fetch server per klik). */}
+      <div className="p-4 border-t border-gray-100 flex items-center justify-between gap-2">
+        <button type="button" disabled={!hasPrev} onClick={() => go({ page: page - 1 })}
+          className="text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+          ← 10 sebelumnya
+        </button>
+        <span className="text-[11px] text-gray-500">Halaman {page + 1} dari {totalPages}</span>
+        <button type="button" disabled={!hasNext} onClick={() => go({ page: page + 1 })}
+          className="text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+          10 berikutnya →
+        </button>
+      </div>
     </div>
   );
 }

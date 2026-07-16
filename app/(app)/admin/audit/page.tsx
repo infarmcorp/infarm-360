@@ -7,10 +7,20 @@ import { AuditClient, type AuditRow } from './audit-client';
  * Log Aktivitas HRD — jejak audit aksi sensitif (kunci periode, bobot, finalisasi,
  * punishment, kelola akun, dll). Read-only untuk HRD & Direksi (RLS hrd_audit_read).
  * Tabel append-only; tak ada cara mengubah/menghapus baris dari aplikasi.
+ *
+ * OPTIMASI EGRESS (2026-07-15): paginasi di SISI SERVER — hanya 10 baris per halaman
+ * diambil via `.range()` (bukan 500 sekaligus). Filter kategori & pencarian juga
+ * ditegakkan di server (`.eq`/`.or ilike`) agar tetap lintas-seluruh-data tanpa
+ * mengunduh semuanya. Navigasi "10 berikutnya" lewat ?page= (server fetch baru).
  */
-const MAX_ROWS = 500;
+const PAGE_SIZE = 10;
 
-export default async function AuditPage() {
+export default async function AuditPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string; cat?: string; q?: string }>;
+}) {
+  const { page: pageParam, cat, q } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -26,11 +36,23 @@ export default async function AuditPage() {
     );
   }
 
-  const { data } = await supabase
+  const page = Math.max(0, Number.parseInt(pageParam ?? '0', 10) || 0);
+  const category = cat ?? 'all';
+  // Sanitasi kata kunci: buang karakter khusus grammar PostgREST (.or) agar aman disisipkan.
+  const needle = (q ?? '').trim().replace(/[,()*:%\\]/g, ' ').trim();
+
+  let query = supabase
     .from('hrd_audit_log')
-    .select('id, actor_name, action, category, summary, target_label, created_at')
+    .select('id, actor_name, action, category, summary, target_label, created_at', { count: 'exact' });
+  if (category !== 'all') query = query.eq('category', category);
+  if (needle) {
+    query = query.or(
+      `summary.ilike.*${needle}*,actor_name.ilike.*${needle}*,target_label.ilike.*${needle}*,action.ilike.*${needle}*`,
+    );
+  }
+  const { data, count } = await query
     .order('created_at', { ascending: false })
-    .limit(MAX_ROWS);
+    .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
 
   const rows: AuditRow[] = (data ?? []).map((r) => ({
     id: r.id,
@@ -51,7 +73,14 @@ export default async function AuditPage() {
           kelola akun, pemetaan, pertanyaan). Hanya-baca &amp; tak dapat diubah.
         </p>
       </div>
-      <AuditClient rows={rows} maxRows={MAX_ROWS} />
+      <AuditClient
+        rows={rows}
+        page={page}
+        pageSize={PAGE_SIZE}
+        total={count ?? 0}
+        cat={category}
+        q={q ?? ''}
+      />
     </main>
   );
 }

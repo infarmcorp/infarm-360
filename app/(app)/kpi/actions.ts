@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 /**
  * Input KPI bulanan (peran SPV). PANDUAN: "Pengisian Manual Apps".
@@ -37,6 +37,25 @@ export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  const { data: me } = await supabase.from('employees').select('role, is_coordinator').eq('id', auth.user.id).maybeSingle();
+  const empIds = rows.map((r) => r.employeeId);
+
+  // KOORDINATOR "murni" (grant is_coordinator, bukan SPV/HRD/Direksi): input KPI HANYA pegawai
+  // naungannya. RLS kpi_write menolak koordinator → tulis lewat service_role dgn scoping server.
+  if (me?.is_coordinator && me.role !== 'spv' && me.role !== 'hrd' && me.role !== 'direksi') {
+    return saveKpiAsCoordinator(auth.user.id, ym, rows, empIds);
+  }
+
+  // SPV: pegawai yang PUNYA koordinator diinput koordinatornya, bukan SPV → tolak di server.
+  // (HRD dibiarkan sebagai fallback/override tepercaya; daftar UI-nya sudah mengecualikan.)
+  if (me?.role === 'spv') {
+    const { data: ct } = await createAdminClient()
+      .from('coordinator_team_members').select('employee_id').in('employee_id', empIds);
+    const coordinated = new Set((ct ?? []).map((r) => r.employee_id));
+    if (empIds.some((id) => coordinated.has(id))) {
+      return { ok: false, error: 'Sebagian pegawai dikoordinasikan oleh Koordinator — KPI mereka diinput koordinatornya, bukan SPV.' };
+    }
+  }
 
   // Tolak input ke periode yang sudah dikunci (server-side; RLS tidak mengecek ini).
   const { data: openMonth } = await supabase
@@ -52,7 +71,6 @@ export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
   // Aturan paritas legacy: input KPI PERTAMA (belum ada baris bulan ini) boleh tanpa
   // komentar; input KEDUA pada bulan SAMA = EDIT capaian → WAJIB Komentar Audit.
   // Cek per pegawai: bila skor bulan ini sudah ada tapi komentar kosong → tolak.
-  const empIds = rows.map((r) => r.employeeId);
   const { data: existingRows } = await supabase
     .from('kpi_scores').select('employee_id').eq('ym', ym).in('employee_id', empIds);
   const existing = new Set((existingRows ?? []).map((r) => r.employee_id));
@@ -101,6 +119,61 @@ export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
 }
 
 /**
+ * Jalur KOORDINATOR untuk saveKpiScores. Koordinator = pegawai biasa di RLS (grant tak menyalakan
+ * kpi_write) → tulis via service_role dengan penegakan di SERVER: setiap pegawai WAJIB ada di
+ * coordinator_team_members milik koordinator ini. Guard lain (periode aktif, edit-wajib-komentar,
+ * jejak audit) IDENTIK dgn jalur SPV — cuma clientnya service_role & lingkupnya tim koordinasi.
+ */
+async function saveKpiAsCoordinator(
+  coordId: string,
+  ym: string,
+  rows: z.infer<typeof ScoreRow>[],
+  empIds: string[],
+): Promise<SaveKpiResult> {
+  const svc = createAdminClient();
+
+  // Scoping NYATA: semua pegawai target wajib di bawah koordinasi pelaku.
+  const { data: team } = await svc.from('coordinator_team_members')
+    .select('employee_id').eq('coordinator_id', coordId).in('employee_id', empIds);
+  const allowed = new Set((team ?? []).map((t) => t.employee_id));
+  if (empIds.some((id) => !allowed.has(id))) {
+    return { ok: false, error: 'Sebagian pegawai berada di luar tim koordinasi Anda.' };
+  }
+
+  // Tolak periode terkunci.
+  const { data: openMonth } = await svc
+    .from('period_months').select('ym, periods!inner(status)')
+    .eq('ym', ym).eq('periods.status', 'active').maybeSingle();
+  if (!openMonth) return { ok: false, error: `Bulan ${ym} tidak berada dalam periode aktif` };
+
+  // Edit bulan sama = wajib Komentar Audit (paritas legacy).
+  const { data: existingRows } = await svc
+    .from('kpi_scores').select('employee_id').eq('ym', ym).in('employee_id', empIds);
+  const existing = new Set((existingRows ?? []).map((r) => r.employee_id));
+  const missingNote = rows.filter((r) => existing.has(r.employeeId) && !(r.note && r.note.trim()));
+  if (missingNote.length > 0) {
+    const { data: emps } = await svc.from('employees').select('id, name').in('id', missingNote.map((r) => r.employeeId));
+    const names = (emps ?? []).map((e) => e.name);
+    const label = names.length ? names.join(', ') : `${missingNote.length} pegawai`;
+    return { ok: false, error: `Perubahan capaian KPI bulan ${ym} wajib disertai Komentar Audit (input kedua = edit): ${label}.` };
+  }
+
+  const { error: upsertErr } = await svc.from('kpi_scores').upsert(
+    rows.map((r) => ({ employee_id: r.employeeId, ym, score: r.score, updated_by: coordId })),
+    { onConflict: 'employee_id,ym' },
+  );
+  if (upsertErr) return { ok: false, error: 'Gagal menyimpan: ' + upsertErr.message };
+
+  const { error: auditErr } = await svc.from('kpi_audit').insert(
+    rows.map((r) => ({ employee_id: r.employeeId, ym, score: r.score, changed_by: coordId, note: r.note ?? 'Input bulanan' })),
+  );
+  if (auditErr) return { ok: false, error: 'Skor tersimpan tapi audit gagal: ' + auditErr.message };
+
+  revalidatePath('/kpi');
+  return { ok: true, saved: rows.length };
+}
+
+/**
  * Hapus satu skor KPI (pegawai+bulan) — peran SPV (tim/diri) & HRD mode-SPV (divisi).
  *
  * Keamanan & jejak (jangan dilemahkan):
@@ -125,26 +198,45 @@ export async function deleteKpiScore(raw: unknown): Promise<DeleteKpiResult> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  const { data: me } = await supabase.from('employees').select('role, is_coordinator').eq('id', auth.user.id).maybeSingle();
+
+  // KOORDINATOR "murni": hapus KPI HANYA pegawai naungannya, via service_role (RLS menolaknya).
+  const isCoord = me?.is_coordinator && me.role !== 'spv' && me.role !== 'hrd' && me.role !== 'direksi';
+  const svc = createAdminClient();
+  if (isCoord) {
+    const { data: link } = await svc.from('coordinator_team_members')
+      .select('employee_id').eq('coordinator_id', auth.user.id).eq('employee_id', employeeId).maybeSingle();
+    if (!link) return { ok: false, error: 'Pegawai ini di luar tim koordinasi Anda.' };
+  } else if (me?.role === 'spv') {
+    // SPV tak boleh menghapus KPI pegawai berkoordinator (itu wewenang koordinatornya).
+    const { data: coordLink } = await svc.from('coordinator_team_members')
+      .select('employee_id').eq('employee_id', employeeId).maybeSingle();
+    if (coordLink) return { ok: false, error: 'Pegawai ini dikoordinasikan oleh Koordinator — KPI-nya dikelola koordinatornya.' };
+  }
+
+  // Client untuk baca/tulis: koordinator via service_role; SPV/HRD via RLS.
+  const db = isCoord ? svc : supabase;
 
   // Tolak penghapusan di bulan luar periode aktif (konsisten dgn saveKpiScores).
-  const { data: openMonth } = await supabase
+  const { data: openMonth } = await db
     .from('period_months').select('ym, periods!inner(status)')
     .eq('ym', ym).eq('periods.status', 'active').maybeSingle();
   if (!openMonth) return { ok: false, error: `Bulan ${ym} tidak berada dalam periode aktif` };
 
   // Skor lama (dicatat di audit + pastikan memang ada).
-  const { data: cur } = await supabase
+  const { data: cur } = await db
     .from('kpi_scores').select('score').eq('employee_id', employeeId).eq('ym', ym).maybeSingle();
   if (!cur) return { ok: false, error: `Tidak ada skor KPI bulan ${ym} untuk dihapus` };
 
-  // Hapus (RLS membatasi ke tim/diri → 0 baris bila di luar lingkup).
-  const { data: del, error: delErr } = await supabase
+  // Hapus (RLS membatasi ke tim/diri untuk SPV/HRD → 0 baris bila di luar lingkup;
+  // koordinator sudah discoping ke timnya di atas via service_role).
+  const { data: del, error: delErr } = await db
     .from('kpi_scores').delete().eq('employee_id', employeeId).eq('ym', ym).select('employee_id');
   if (delErr) return { ok: false, error: 'Gagal menghapus: ' + delErr.message };
   if (!del || del.length === 0) return { ok: false, error: 'Skor tak ditemukan atau di luar lingkup Anda' };
 
   // Jejak audit append-only: action='delete', simpan skor lama sebagai catatan nilai.
-  const { error: auditErr } = await supabase.from('kpi_audit').insert({
+  const { error: auditErr } = await db.from('kpi_audit').insert({
     employee_id: employeeId, ym, score: cur.score,
     changed_by: auth.user.id, note, action: 'delete',
   });

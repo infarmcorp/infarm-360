@@ -33,9 +33,10 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewe
   if (!adminView) main.push({ href: '/laporan', label: 'Laporan Hasil Saya', icon: FileText });
   // Peninjau Hasil Lintas Divisi (grant is_cross_reviewer) — hanya di mode base.
   if (!adminView && isCrossReviewer) main.push({ href: '/peninjau', label: 'Review Lintas Divisi', icon: ScanEye });
-  // Koordinator (grant is_coordinator) — Laporan Kinerja Tim lihat-saja anggotanya. Hanya di
-  // mode base & bila BUKAN SPV/HRD (mereka sudah punya Laporan Kinerja Tim di Menu Supervisor).
+  // Koordinator (grant is_coordinator) — Input KPI + Laporan Kinerja Tim (tinjau & ACC) untuk
+  // anggota naungannya. Hanya di mode base & bila BUKAN SPV/HRD (mereka sudah punya menu Supervisor).
   if (!adminView && isCoordinator && role !== 'spv' && role !== 'hrd') {
+    main.push({ href: '/kpi', label: 'Input KPI', icon: Target });
     main.push({ href: '/laporan-tim', label: 'Laporan Kinerja Tim', icon: Users });
   }
 

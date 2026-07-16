@@ -597,6 +597,34 @@ export async function exportPeriodConfig(periodId?: string | null): Promise<Conf
   };
 }
 
+/**
+ * Dataset Log Aktivitas HRD (append-only, LINTAS PERIODE → mengabaikan filter periode).
+ * Jejak aksi sensitif HRD dari `hrd_audit_log`: waktu, pelaku, kategori, aksi, ringkasan, target,
+ * + detail meta (JSON). Terbaru di atas. Paginasi `.range()` karena log tumbuh > 1000 baris.
+ */
+export async function exportHrdAuditLog(): Promise<ExportResult> {
+  if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
+  const admin = createAdminClient();
+  const PAGE = 1000;
+  const list: { created_at: string; actor_name: string | null; category: string; action: string;
+    summary: string; target_type: string | null; target_label: string | null; meta: Record<string, unknown> | null }[] = [];
+  for (let from = 0; ; from += PAGE) {
+    // Urut created_at + id (deterministik antar-halaman agar paginasi tak bocor/dobel).
+    const { data } = await admin.from('hrd_audit_log')
+      .select('created_at, actor_name, category, action, summary, target_type, target_label, meta')
+      .order('created_at', { ascending: false }).order('id', { ascending: false })
+      .range(from, from + PAGE - 1);
+    if (data?.length) list.push(...data);
+    if (!data || data.length < PAGE) break;
+  }
+  const rows: Row[] = list.map((a) => ({
+    waktu: a.created_at, pelaku: a.actor_name ?? '—', kategori: a.category, aksi: a.action,
+    ringkasan: a.summary, tipe_target: a.target_type ?? '', target: a.target_label ?? '',
+    detail: a.meta && Object.keys(a.meta).length ? JSON.stringify(a.meta) : '',
+  }));
+  return { ok: true, rows };
+}
+
 /** Dataset Pemetaan: periode, penilai, target, relasi, sifat. */
 export async function exportMappings(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };

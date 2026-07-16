@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Users, Settings, BarChart3, MessageSquareText } from 'lucide-react';
+import { Download, Users, Settings, BarChart3, MessageSquareText, ScrollText } from 'lucide-react';
 import {
   exportEmployees, exportKpi, exportKpiAudit, exportPenalties, exportRekap,
   exportAssessments, exportQualAnswers, exportMappings, exportAspectSummaries,
-  exportSummary360, exportPeriodConfig, type ExportResult, type Sheet,
+  exportSummary360, exportPeriodConfig, exportHrdAuditLog, type ExportResult, type Sheet,
 } from './actions';
 
 type PeriodOpt = { id: string; label: string; active: boolean };
@@ -109,10 +109,18 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
         return { sheets, filename: `penilaian-360-lengkap-${suffix}.xlsx` };
       }),
     },
+    {
+      key: 'log', title: 'Log Aktivitas HRD', icon: ScrollText, tint: 'amber', scoped: false,
+      desc: <>Jejak audit aksi sensitif HRD (append-only, <strong>lintas periode</strong>): waktu · pelaku · kategori · aksi · ringkasan · target · detail. Terbaru di atas.</>,
+      go: () => run('log', async () => {
+        const log = rowsOf(await exportHrdAuditLog());
+        return { sheets: [{ name: 'Log Aktivitas HRD', rows: log }], filename: 'log-aktivitas-hrd.xlsx' };
+      }),
+    },
   ];
 
   const TINT: Record<string, string> = {
-    slate: 'text-slate-700', emerald: 'text-emerald-700', indigo: 'text-indigo-700', violet: 'text-violet-700',
+    slate: 'text-slate-700', emerald: 'text-emerald-700', indigo: 'text-indigo-700', violet: 'text-violet-700', amber: 'text-amber-700',
   };
 
   return (

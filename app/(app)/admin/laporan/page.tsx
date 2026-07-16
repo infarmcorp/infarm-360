@@ -5,6 +5,7 @@ import { canAdmin } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
 import { ReportTable, type ReportRow } from './report-table';
 import { Recompute360Button } from './recompute-360-button';
+import { BulkFinalizeButton } from './bulk-finalize-button';
 
 /**
  * Review Hasil Akhir (HRD): hitung Skor Akhir tiap pegawai, lihat ACC SPV & status,
@@ -136,6 +137,11 @@ export default async function AdminLaporanPage() {
   const neverCount = shownRows.filter((r) => ap.has_360 && r.s360 == null && maxSubByTarget.has(r.id)).length;
   const changedCount = Math.max(0, staleCount - neverCount);
   const depts = [...new Set(shownRows.map((r) => r.dept))].sort();
+  // Kandidat finalisasi massal: sudah di-ACC (spv_acc) & masih Ditinjau (in_review). staleAcc =
+  // di antaranya yang Skor 360°-nya perlu dihitung ulang (untuk peringatan di dialog konfirmasi).
+  const accReady = shownRows.filter((r) => r.spvAcc && r.status === 'in_review');
+  const accReadyCount = accReady.length;
+  const accStaleCount = accReady.filter((r) => r.needsRecompute).length;
 
   return (
     <Shell>
@@ -179,9 +185,13 @@ export default async function AdminLaporanPage() {
           {ap.has_360 && staleCount === 0 && (
             <span className="text-[11px] font-semibold text-emerald-700">✓ Skor 360° mutakhir</span>
           )}
-          <div className="flex items-center gap-2 ml-auto">
-            <Link href="/admin/bobot" className="text-[11px] font-bold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-white">⚖ Atur Bobot</Link>
-            <Link href="/admin/kepatuhan" className="text-[11px] font-bold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-white">⚑ Flag Kepatuhan</Link>
+          {/* Bulk-finalisasi ditumpuk DI ATAS tombol Bobot/Flag (kolom rata-kanan). */}
+          <div className="flex flex-col items-end gap-2 ml-auto">
+            <BulkFinalizeButton count={accReadyCount} staleCount={accStaleCount} />
+            <div className="flex items-center gap-2">
+              <Link href="/admin/bobot" className="text-[11px] font-bold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-white">⚖ Atur Bobot</Link>
+              <Link href="/admin/kepatuhan" className="text-[11px] font-bold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-white">⚑ Flag Kepatuhan</Link>
+            </div>
           </div>
         </div>
       </div>

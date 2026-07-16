@@ -138,6 +138,58 @@ export async function releaseToSpv(employeeId: string): Promise<FinalizeResult> 
   return { ok: true, finalScore: final, finalized: false };
 }
 
+export type BulkFinalizeResult =
+  | { ok: true; finalized: number; skipped: { name: string; reason: string }[] }
+  | { ok: false; error: string };
+
+/**
+ * Finalisasi MASSAL laporan yang SUDAH di-ACC (SPV/Koordinator/Direksi) & masih `in_review`.
+ * Konvensi kolom: ACC = `spv_acc=true`; hanya status `in_review` yang difinalisasi (draf belum
+ * boleh di-ACC; `finalized` sudah selesai). Tiap laporan Skor Akhir-nya dihitung ulang (computeFinal,
+ * memakai result_360 tersimpan — HRD diharapkan sudah "Hitung Ulang Skor 360°"). Yang skornya belum
+ * bisa dihitung (KPI & 360° kosong) DILEWATI dengan alasan. HRD-only; tercatat di Log Aktivitas HRD.
+ */
+export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat memfinalisasi laporan' };
+
+  const { data: ap } = await supabase
+    .from('periods').select('id, has_360, status').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  const { data: candidates } = await supabase.from('final_reports')
+    .select('id, employee_id').eq('period_id', ap.id).eq('spv_acc', true).eq('status', 'in_review');
+  const list = candidates ?? [];
+  if (!list.length) return { ok: true, finalized: 0, skipped: [] };
+
+  const { data: emps } = await supabase.from('employees').select('id, name').in('id', list.map((r) => r.employee_id));
+  const nameById = new Map((emps ?? []).map((e) => [e.id, e.name]));
+
+  let finalized = 0;
+  const skipped: { name: string; reason: string }[] = [];
+  for (const r of list) {
+    const label = nameById.get(r.employee_id) ?? r.employee_id;
+    const { final } = await computeFinal(supabase, ap.id, ap.has_360, r.employee_id);
+    if (final == null) { skipped.push({ name: label, reason: 'Skor Akhir belum bisa dihitung (KPI & 360° kosong)' }); continue; }
+    const { error } = await supabase.from('final_reports')
+      .update({ final_score: final, status: 'finalized', finalized_by: user.id }).eq('id', r.id);
+    if (error) { skipped.push({ name: label, reason: error.message }); continue; }
+    finalized++;
+  }
+
+  await logHrdAction({
+    action: 'report.bulk_finalize', category: 'laporan',
+    summary: `Finalisasi massal ${finalized} laporan ber-ACC${skipped.length ? ` (${skipped.length} dilewati)` : ''}`,
+    meta: { finalized, skipped: skipped.length, period_id: ap.id },
+  });
+  revalidatePath('/admin/laporan');
+  revalidatePath('/laporan');
+  return { ok: true, finalized, skipped };
+}
+
 /**
  * Simpan ringkasan HRD per aspek (kalibrasi naratif) ke final_reports.content.aspectSummaries.
  * Tidak mengubah status/skor — hanya menulis narasi. Membuat baris draft bila belum ada.

@@ -12,7 +12,7 @@ lihat **CARA-PENGGUNAAN.md**.
 > **Update 2026-07-01:** app **sudah LIVE & berjalan** — Undangan Massal sudah terkirim (tiap akun
 > punya sandi unik per orang). Fase "persiapan demo/trial" di bawah sudah **terlewati**; bagian ini
 > dipertahankan sebagai konteks. Fokus kini = pengerasan operasional (backup rutin, rotasi kredensial,
-> email asli) — lihat **TO-DO** di CLAUDE.md.
+> email asli) — lihat **[TODO.md](TODO.md)**.
 
 - **Aplikasi inti: siap & live.** Alur penilaian (login → isi → auto-simpan → validasi wajib →
   Kirim → konfirmasi → layar sukses → pengingat sisa) sudah teruji di **localhost & URL produksi**.
@@ -160,6 +160,6 @@ update relasi → verifikasi). Periode trial ini **akan dibuang** setelah demo (
 - 🔑 Stagger gelombang + pengingat harian.
 - 🔑 Prosedur backup rutin (dump penuh `scripts/backup.mjs` + **salin ke luar laptop**) selama
   periode aktif; ekspor Excel sebagai cadangan parsial.
-- 🔑 Rotasi `SUPABASE_SERVICE_ROLE_KEY` bila pernah ter-share saat dev (lihat TO-DO CLAUDE.md).
+- 🔑 Rotasi `SUPABASE_SERVICE_ROLE_KEY` bila pernah ter-share saat dev (lihat [TODO.md](TODO.md)).
 - 🔑 Ganti email placeholder (`@infarm.test`/non-gmail) → email asli lalu kirim undangan lagi.
 - 🔑 Pertimbangan Supabase Pro / cron backup terjadwal untuk Q2 asli (backup otomatis) — opsional.

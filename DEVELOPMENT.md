@@ -162,5 +162,5 @@ Vercel mendukung nilai berbeda untuk variabel nama sama, dibedakan per scope
       (`.gitignore` sudah mengecualikan `.env*` kecuali `.env.example`, tapi tetap cek).
 - [ ] Setelah merge & deploy ke production: terapkan migrasi baru (jika ada) ke project
       **production** secara manual (lihat §4), lalu verifikasi cepat di production.
-- [ ] Update `CLAUDE.md`/`STATUS.md` bila perubahan ini menggeser status fitur di
-      TO-DO & Backlog atau Changelog.
+- [ ] Update `STATUS.md` + `TODO.md`/`BACKLOG.md`/`CHANGELOG.md` bila perubahan ini menggeser
+      status fitur (dan `CLAUDE.md` bila menyentuh arsitektur/keputusan terkunci).

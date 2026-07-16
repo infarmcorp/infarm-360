@@ -1,7 +1,7 @@
 # STATUS — Infarm 360° Performance Appraisal System
 
 Potret status & catatan sesi (cepat-basi — perbarui tiap sesi). Panduan tahan-lama ada di
-**CLAUDE.md**; rincian tiap fitur di **Changelog** (CLAUDE.md); sisa pekerjaan di **TO-DO & Backlog**
+**CLAUDE.md**; rincian tiap fitur di **[CHANGELOG.md](CHANGELOG.md)**; sisa pekerjaan di **[TODO.md](TODO.md)** / **[BACKLOG.md](BACKLOG.md)**
 (CLAUDE.md); catatan operasional trial/Q2 di **REKOMENDASI.md**.
 
 ## Sedang Dikerjakan (per 2026-07-15)
@@ -33,7 +33,7 @@ Migrasi fungsional **selesai & live**; sisa sebagian besar **aktivasi env** (ema
   - **Dashboard Analisis 360°**: "Tren 360°" & "Evaluasi Sub-Aspek" ditata **sejajar** (2 kolom).
 
 **Sesi 2026-07-10..12 sudah PUSHED ke `main` & live (commit `9266b34`).**
-Bagian ini hanya potret status; perincian tiap fitur ada di **Changelog** & **TO-DO** di CLAUDE.md.
+Bagian ini hanya potret status; perincian tiap fitur ada di **[CHANGELOG.md](CHANGELOG.md)** & **[TODO.md](TODO.md)**.
 
 - **Peran Koordinator (2026-07-12, migrasi 0021 diterapkan ke live + di-push):** pegawai (role=employee)
   ber-grant `is_coordinator` lihat-saja "Laporan Kinerja Tim" untuk daftar eksplisit `coordinator_team_members`
@@ -91,7 +91,7 @@ Bagian ini hanya potret status; perincian tiap fitur ada di **Changelog** & **TO
   ter-share saat dev); **backup rutin ke luar laptop**; (opsional) aktifkan Lupa Sandi via email untuk
   akun beremail asli. **Komunikasikan ke HRD** langkah "Rilis ke SPV".
 - **Berikutnya (bisa digarap langsung):** branch protection GitHub (PR butuh CI hijau); tes Server
-  Action (finalisasi/`releaseToSpv`/`setHrdAdmin`/ACC). Lihat **TO-DO & Backlog** di CLAUDE.md.
+  Action (finalisasi/`releaseToSpv`/`setHrdAdmin`/ACC). Lihat **[TODO.md](TODO.md)** / **[BACKLOG.md](BACKLOG.md)**.
 
 **File paling relevan:**
 - Peninjau lintas divisi: `app/(app)/peninjau/`, `lib/report.ts` (`loadCrossDivisionReport`), `lib/auth/roles.ts` (`canCrossReview`)

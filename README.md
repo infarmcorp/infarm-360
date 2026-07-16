@@ -65,7 +65,10 @@ variables diatur di dashboard Vercel.
 
 | Berkas | Isi |
 |---|---|
-| [CLAUDE.md](CLAUDE.md) | Panduan teknis internal: arsitektur, changelog, skema DB/migrasi, TO-DO, aturan keamanan. |
+| [CLAUDE.md](CLAUDE.md) | Panduan teknis internal (durable): arsitektur, keputusan terkunci, skema DB/migrasi, aturan keamanan, klasifikasi talenta. |
+| [TODO.md](TODO.md) | Pekerjaan yang masih harus dikerjakan & dilacak sampai tuntas (🔑 = butuh aksi pengguna). |
+| [BACKLOG.md](BACKLOG.md) | Ide/pengembangan opsional & masa depan yang belum jadi komitmen. |
+| [CHANGELOG.md](CHANGELOG.md) | Catatan historis perubahan: invariant lintas-fitur, alasan keputusan, daftar migrasi. |
 | [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md) | Panduan pengguna akhir per peran + alur lengkap penilaian. |
 | [RINCIAN-TOMBOL.md](RINCIAN-TOMBOL.md) | Kamus tiap tombol di tiap halaman (fungsi · peran · kondisi · konfirmasi). |
 | [TESTING-CHECKLIST.md](TESTING-CHECKLIST.md) | Checklist uji manual menyeluruh per peran. |

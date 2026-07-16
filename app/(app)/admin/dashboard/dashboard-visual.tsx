@@ -597,14 +597,18 @@ function YearTrendCaption({ value, label, unit }: { value: number | null; label:
  */
 function TrendLine({ points }: { points: { label: string; value: number }[] }) {
   if (points.length === 0) return <p className="text-xs text-gray-500 italic">Belum ada data untuk tahun ini.</p>;
-  const W = 640, H = 200, padL = 30, padR = 14, padT = 20, padB = 26;
+  const W = 640, H = 200, padL = 40, padR = 18, padT = 20, padB = 26;
+  // Inset horizontal titik plot: jarak dari sumbu-Y (kiri) & tepi kanan agar titik data
+  // pertama/terakhir + label nilainya tak menempel garis sumbu.
+  const padInX = 15;
+  const plotL = padL + padInX, plotR = W - padR - padInX;
   const vals = points.map((p) => p.value);
   let lo = Math.max(0, Math.floor((Math.min(...vals) - 4) / 5) * 5);
   let hi = Math.min(100, Math.ceil((Math.max(...vals) + 4) / 5) * 5);
   if (hi - lo < 10) { hi = Math.min(100, lo + 10); lo = Math.max(0, hi - 10); }
   const x = (i: number) => points.length === 1
-    ? (padL + W - padR) / 2
-    : padL + (i * (W - padL - padR)) / (points.length - 1);
+    ? (plotL + plotR) / 2
+    : plotL + (i * (plotR - plotL)) / (points.length - 1);
   const y = (v: number) => padT + (H - padT - padB) * (1 - (v - lo) / (hi - lo));
   const grid = [lo, (lo + hi) / 2, hi];
   const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(2)} ${y(p.value).toFixed(2)}`).join(' ');
@@ -623,8 +627,17 @@ function TrendLine({ points }: { points: { label: string; value: number }[] }) {
           return (
             <g key={`${p.label}-${i}`}>
               <circle cx={x(i)} cy={y(p.value)} r={4.5} fill={bg} stroke="#fff" strokeWidth={1.5} />
-              <text x={x(i)} y={y(p.value) - 9} textAnchor="middle" fill="#374151" fontSize={10} fontWeight={700}>{p.value.toFixed(2)}</text>
-              <text x={x(i)} y={H - 8} textAnchor="middle" fill="#6b7280" fontSize={10}>{p.label}</text>
+              {/* Label titik TEPI dirata-kan ke dalam (pertama=start, terakhir=end) agar tak
+                  menembus sumbu-Y kiri / tepi kanan. */}
+              <text
+                x={x(i) + (points.length > 1 && i === 0 ? 3 : points.length > 1 && i === points.length - 1 ? -3 : 0)}
+                y={y(p.value) - 9}
+                textAnchor={points.length > 1 && i === 0 ? 'start' : points.length > 1 && i === points.length - 1 ? 'end' : 'middle'}
+                fill="#374151" fontSize={10} fontWeight={700}>{p.value.toFixed(2)}</text>
+              <text
+                x={x(i)} y={H - 8}
+                textAnchor={points.length > 1 && i === 0 ? 'start' : points.length > 1 && i === points.length - 1 ? 'end' : 'middle'}
+                fill="#6b7280" fontSize={10}>{p.label}</text>
             </g>
           );
         })}

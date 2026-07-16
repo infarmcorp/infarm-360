@@ -11,10 +11,14 @@ const C_360 = '#4f46e5';   // indigo
 
 /** Line chart SVG ringkas, responsif; garis putus pada nilai null (data bulan kosong). */
 function LineChart({ xLabels, series, yMax = 100 }: { xLabels: string[]; series: Series[]; yMax?: number }) {
-  const W = 600, H = 240, padL = 34, padR = 12, padT = 12, padB = 34;
-  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const W = 600, H = 240, padL = 40, padR = 16, padT = 12, padB = 34;
+  // Inset horizontal titik plot: beri jarak dari sumbu-Y (kiri) & tepi kanan agar titik data
+  // pertama/terakhir + label nilainya tak menempel garis sumbu.
+  const padInX = 15;
+  const plotL = padL + padInX, plotR = W - padR - padInX, plotW = plotR - plotL;
+  const innerH = H - padT - padB;
   const n = xLabels.length;
-  const x = (i: number) => (n <= 1 ? padL + innerW / 2 : padL + (i * innerW) / (n - 1));
+  const x = (i: number) => (n <= 1 ? (plotL + plotR) / 2 : plotL + (i * plotW) / (n - 1));
   const y = (v: number) => padT + innerH - (Math.max(0, Math.min(v, yMax)) / yMax) * innerH;
   const grid = [0, 25, 50, 75, 100];
   // Segmen garis: pisahkan pada titik null agar tak menyambung melintasi lubang data.
@@ -51,9 +55,13 @@ function LineChart({ xLabels, series, yMax = 100 }: { xLabels: string[]; series:
             <g key={i}>
               <circle cx={x(i)} cy={y(v)} r={2.5} fill={s.color} />
               {/* Nilai di tiap titik. Seri ganda (per-periode): seri ke-2 di BAWAH titik agar tak
-                  bertumpuk dgn seri ke-1 yang di atas. */}
-              <text x={x(i)} y={y(v) + (series.length > 1 && sIdx > 0 ? 13 : -6)}
-                textAnchor="middle" style={{ fontSize: 9, fontWeight: 700 }} fill={s.color}>
+                  bertumpuk dgn seri ke-1 yang di atas. Label titik TEPI dirata-kan ke dalam
+                  (pertama=start, terakhir=end) agar tak menembus sumbu-Y kiri / tepi kanan. */}
+              <text
+                x={x(i) + (n > 1 && i === 0 ? 2 : n > 1 && i === n - 1 ? -2 : 0)}
+                y={y(v) + (series.length > 1 && sIdx > 0 ? 13 : -6)}
+                textAnchor={n > 1 && i === 0 ? 'start' : n > 1 && i === n - 1 ? 'end' : 'middle'}
+                style={{ fontSize: 9, fontWeight: 700 }} fill={s.color}>
                 {v.toFixed(2)}
               </text>
             </g>

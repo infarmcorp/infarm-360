@@ -115,6 +115,11 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 ## 3. SPV / HRD mode-SPV
 
 > Berlaku **sama** untuk SPV biasa & HRD dalam Mode SPV (aturan paritas).
+>
+> **Koordinator** (grant `is_coordinator`, posisi Employee) juga memakai **Input KPI (tab Input)** &
+> **Laporan Kinerja Tim** — tetapi **hanya** untuk daftar pegawai naungannya (`coordinator_team_members`),
+> via `service_role` berlingkup. Untuk pegawai yang **punya** koordinator, **SPV tidak** meng-ACC/input
+> KPI (itu tugas koordinator; SPV lihat status read-only).
 
 ### Input KPI (`/kpi?tab=input`)
 
@@ -123,7 +128,7 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **Tab Input KPI / Riwayat & Audit / Rekapitulasi Kuartal** | Ganti sub-tab | SPV / HRD mode-SPV | Mode input | — |
 | **Toggle Input Manual / Impor Excel** | Ganti cara input | SPV / HRD mode-SPV | — | — |
 | **Dropdown Bulan & Tahun / Divisi** | Pilih bulan target & filter divisi | SPV / HRD mode-SPV | Divisi hanya bila >1 | — |
-| **Simpan Semua Skor** | `saveKpiScores` (manual). **Edit skor bulan yang sudah ada WAJIB komentar audit** | SPV / HRD mode-SPV | Mode manual; nonaktif saat pending; tolak bila 0 skor | — (error inline) |
+| **Simpan Semua Skor** | `saveKpiScores` (manual) — untuk **Koordinator** otomatis lewat `saveKpiAsCoordinator` (berlingkup naungan). **Edit skor bulan yang sudah ada WAJIB komentar audit** | SPV / HRD mode-SPV / **Koordinator** | Mode manual; nonaktif saat pending; tolak bila 0 skor. **SPV: pegawai berkoordinator dikeluarkan** dari daftar (di-input koordinatornya) | — (error inline) |
 | **Unduh template** | Buat `.xlsx` template KPI | SPV / HRD mode-SPV | Mode Excel | — |
 | **Terapkan & Simpan (N baris)** | `saveKpiScores` dari Excel (note default "Impor Excel") | SPV / HRD mode-SPV | Mode Excel; setelah parse; tolak 0 baris | — |
 | **Batal** (Excel) | Buang hasil parse | SPV / HRD mode-SPV | Setelah parse | — |
@@ -143,11 +148,11 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 
 | Tombol | Fungsi | Peran | Kondisi | Konfirmasi |
 |--------|--------|-------|---------|------------|
-| **Cari nama pegawai** | Filter baris (klien) | SPV / HRD mode-SPV | Selalu | — |
-| **Nama pegawai (link detail)** | Buka detail agregat `/laporan/{id}` | SPV / HRD mode-SPV | Hanya bila status `in_review`/`finalized` (selain itu "menunggu rilis HRD") | — |
-| **Beri ACC / ✔ ACC (batalkan)** | `setSpvAcc` set/cabut ACC laporan | SPV / HRD mode-SPV | Hanya bila report `in_review`/`finalized` & **bukan diri sendiri**; nonaktif saat busy | — (error inline) |
+| **Cari nama pegawai** | Filter baris (klien) | SPV / HRD mode-SPV / Koordinator | Selalu | — |
+| **Nama pegawai (link detail)** | Buka detail agregat `/laporan/{id}` (radar/aspek + ringkasan HRD **+ raw anonim**; **tanpa L3 bernama**) | SPV / HRD mode-SPV / Koordinator | Hanya bila status `in_review`/`finalized` (selain itu "menunggu rilis HRD") | — |
+| **Beri ACC / ✔ ACC (batalkan)** | `setSpvAcc` set/cabut ACC laporan (cabang **Koordinator** via `service_role`) | SPV / HRD mode-SPV / **Koordinator** | Hanya bila report `in_review`/`finalized`. **Pegawai berkoordinator → di-ACC koordinatornya** (SPV lihat status read-only); SPV meng-ACC pegawai **tanpa** koordinator | — (error inline) |
 
-> Baris diri sendiri: badge "Anda", ACC dinonaktifkan (integritas).
+> Laporan **diri sendiri** tak lagi tampil di sini — SPV/Koordinator melihatnya lewat **"Laporan Hasil Saya"** (saat Final). Koordinator = daftar **naungannya** saja; **finalisasi tetap milik HRD**.
 
 ### Monitor Kinerja (`/monitor`)
 
@@ -184,7 +189,10 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **Ubah** (per baris) | Buka form terisi | HRD Admin | Nonaktif saat pending | — |
 | **Reset sandi** (per baris) | `resetPassword` (set sandi baru) | HRD Admin | Nonaktif saat pending | **Ya** — ConfirmDialog "Reset sandi — {nama}" (+ tombol Acak) |
 | **Nonaktifkan / Aktifkan** | `setEmployeeActive` (kunci/buka login) | HRD Admin | Nonaktif saat pending | — (langsung) |
-| **Beri / Cabut izin HRD Admin** | `setHrdAdmin` (grant/revoke) | HRD Admin | Hanya bila role bukan direksi/hrd | — (langsung) |
+| **Beri / Cabut izin HRD Admin** (🛡️) | `setHrdAdmin` (grant/revoke) | HRD Admin | **Grant hanya utk pegawai divisi HRD** & role bukan direksi/hrd; **cabut selalu boleh** | — (langsung) |
+| **Beri / Cabut Peninjau Lintas Divisi** (👁️) | `setCrossReviewer` (grant/revoke) | HRD Admin | **Grant hanya utk pegawai divisi HRD**; **cabut selalu boleh** | — (langsung) |
+| **Beri / Cabut Koordinator** (👥) | `setCoordinator` (grant/revoke; cabut ikut hapus `coordinator_team_members`) | HRD Admin | Grant utk pegawai (Employee) yang membawahi beberapa pegawai | — (langsung) |
+| **Tim Koordinasi** (dialog) | `setCoordinatorTeam` — pilih daftar pegawai naungan koordinator | HRD Admin | Hanya bila pegawai sudah ber-grant Koordinator; tak boleh menaungi diri sendiri | — |
 | **Cari + Dropdown Peran/Divisi/Status** | Filter tabel | HRD Admin | Selalu | — |
 
 ### Kelola Siklus Periode (`/admin/periode`)
@@ -308,7 +316,19 @@ tombol edit muncul; saat **Final** panel jadi read-only (hanya Unduh PDF + Kemba
 
 ## 5. DIREKSI
 
-Direksi **read-only** untuk Dashboard, Log Aktivitas, dan Promosi & Suksesi (lihat detail). Satu-satunya aksi tulis:
+Direksi **sebagian besar read-only** (Dashboard, Log Aktivitas, Review Hasil Akhir). Aksi tulis:
+**ACC rencana suksesi** & **ACC laporan SPV**.
+
+### Laporan Kinerja Tim & Review Hasil Akhir (Direksi)
+
+| Tombol | Fungsi | Peran | Kondisi | Konfirmasi |
+|--------|--------|-------|---------|------------|
+| **Tinjau / Nama (link detail)** | Buka detail agregat laporan **SPV** (radar/aspek + ringkasan HRD **+ raw anonim**; **tanpa L3 bernama**) | Direksi | Hanya laporan **SPV** (atau pemimpin tim) yang sudah dirilis; laporan pegawai non-SPV **ditolak** | — |
+| **Beri ACC / ✔ ACC** | `setSpvAcc` (cabang **Direksi** via `service_role`) — pakai ulang kolom `spv_acc` | Direksi | Hanya bila target = SPV & report `in_review`/`finalized`; **non-blok** (tak menghambat finalisasi HRD) | — (error inline) |
+
+> **Review Hasil Akhir** (`/review-hasil`) = **read-only** untuk Direksi: lihat Hasil Akhir **semua**
+> pegawai (agregat + raw anonim, termasuk draf), **tanpa** Hitung Ulang / Rilis / Finalisasi / ACC / edit
+> ringkasan. Direksi juga **boleh dinilai 360°** → hasilnya tampil di Review Hasil Akhir & Ekspor Rekap HRD.
 
 ### Promosi & Suksesi (`/suksesi`)
 

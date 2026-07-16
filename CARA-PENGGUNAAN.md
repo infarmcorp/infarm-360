@@ -171,6 +171,9 @@ Selain semua fitur Employee di atas, SPV punya:
 - Daftar berisi **anggota tim** SPV (dari Pemetaan atasan di Kelola Pegawai) **+ SPV sendiri**
   — SPV juga mencatat **capaian KPI pribadinya**. (SPV hanya boleh menulis KPI anggota timnya
   & dirinya sendiri; tidak bisa mengubah KPI rekan SPV lain — ditegakkan via RLS.)
+- **Pegawai yang punya Koordinator dikeluarkan dari daftar ini** — KPI mereka diinput oleh
+  **Koordinatornya** (lihat *Akses Khusus: Koordinator Tim*). SPV menginput KPI **hanya** pegawai
+  **tanpa** koordinator (+ dirinya sendiri).
 - **Pengisian Manual Apps**: pilih **Bulan & Tahun**, isi **Skor Baru (0–100)**,
   klik **Simpan Semua Skor**.
   - **Input pertama** suatu pegawai **boleh tanpa komentar**.
@@ -193,22 +196,55 @@ Selain semua fitur Employee di atas, SPV punya:
   - **Draf** → Anda hanya melihat **angka Skor Akhir**; tautan detail **terkunci**
     ("detail menunggu rilis HRD").
   - **Ditinjau** (HRD sudah menekan *Rilis ke SPV*) atau **Final** → tautan **terbuka**: Anda bisa
-    membuka **detail agregat** — radar/skor per aspek + **ringkasan aspek dari HRD** (anonim).
-    **Komentar mentah per penilai tidak pernah ditampilkan ke SPV** (menjaga anonimitas 360°).
+    membuka **detail agregat** — radar/skor per aspek + **ringkasan aspek dari HRD** (anonim)
+    **+ umpan balik mentah ANONIM** (komentar & rating verbatim per aspek/esai, **tanpa nama
+    penilai**). **Identitas penilai (siapa memberi komentar apa) TIDAK PERNAH ditampilkan ke SPV** —
+    hanya versi anonim (menjaga anonimitas 360°). ⚠️ Pada kelas penilai sangat kecil (mis. hanya
+    1–2 Peer/Cross), komentar "anonim" bisa **tertebak** asalnya — gunakan dengan bijak.
 - **Tombol ACC hanya muncul setelah HRD "Rilis ke SPV"** (status Ditinjau/Final). Saat masih
   **Draf**, kolom ACC menampilkan "**menunggu rilis HRD**" — Anda belum bisa meng-ACC (ditegakkan
   di klien & server).
 - Saat status **Ditinjau**, koordinasikan/diskusikan dengan HRD **di luar aplikasi** bila ada
   ketidaksesuaian, lalu klik **Beri ACC** bila sudah setuju. **ACC tidak menghambat finalisasi** — HRD
   tetap bisa finalisasi tanpa menunggu ACC Anda (mis. bila Anda sedang cuti).
-- **Baris diri sendiri** ikut tampil (badge "Anda"); **ACC sendiri dinonaktifkan**. Detail laporan
-  pribadi kini **bisa Anda buka sejak status Ditinjau** (in_review) — sama seperti detail anggota tim
-  (agregat anonim, tanpa komentar mentah). **Kotak pencarian** nama/divisi tersedia.
+- **Pegawai yang punya Koordinator di-ACC oleh Koordinatornya, bukan SPV.** Untuk pegawai tersebut,
+  SPV **hanya melihat status ACC** koordinator (read-only) & **tombol ACC tidak muncul**; SPV meng-ACC
+  **hanya** pegawai **tanpa** koordinator. (Lihat *Akses Khusus: Koordinator Tim* di bawah.)
+- **Laporan diri sendiri tidak lagi tampil sebagai baris di sini** — SPV melihat laporan pribadinya
+  lewat menu **"Laporan Hasil Saya"** (saat status Final). **Kotak pencarian** nama/divisi tersedia.
 
 ### Monitor Kinerja
 - Memantau kinerja bawahan. **SPV hanya melihat pegawai sedivisi** dengannya.
 - Filter periode/pegawai; pilih satu pegawai untuk lihat **tren bulanan**
   (KPI, Evaluasi 360°, Skor Akhir).
+
+---
+
+## Akses Khusus: Koordinator Tim (grant "Koordinator")
+
+Muncul **hanya** bila HRD memberi izin **Koordinator** (Kelola Pegawai → tombol grant + dialog
+**"Tim Koordinasi"** untuk memilih anggota naungan). Ditujukan untuk pegawai (posisi **Employee**)
+yang **membawahi beberapa pegawai** secara langsung, sementara pegawai lain tetap langsung ke SPV.
+Koordinator **tetap pegawai biasa** — izin ini **tidak** menjadikannya HRD/SPV dan **tidak
+memengaruhi 360°** (Koordinator bukan "Atasan" dalam perhitungan skor).
+
+Yang bisa dilakukan Koordinator — **khusus daftar naungannya** (bukan seluruh tim SPV):
+
+- **Laporan Kinerja Tim** — muncul di menu, berisi **hanya pegawai yang dinaunginya**. Kolom KPI ·
+  Skor 360° · Skor Akhir · Status. Detail agregat (radar/aspek + ringkasan HRD **+ umpan balik
+  mentah ANONIM**) terbuka **setelah HRD "Rilis ke SPV"** (Ditinjau/Final) — sama seperti SPV.
+  **Identitas penilai tidak pernah ditampilkan.**
+- **ACC laporan** pegawai naungannya (setelah HRD rilis) — mengisi kolom ACC yang sama dengan SPV.
+- **Input KPI** (tab **Input** di Input KPI) pegawai naungannya — pilih Bulan & Tahun, isi skor;
+  **edit skor wajib komentar audit** (sama seperti SPV), tercatat di audit atas nama Koordinator.
+
+Yang **TIDAK** bisa: **finalisasi laporan** (tetap milik HRD), akses pegawai di luar naungannya,
+serta hal-hal 360° (bobot/kalkulasi/pemetaan). Menambah/mengubah daftar naungan = wewenang **HRD**
+(Kelola Pegawai → Tim Koordinasi), cukup ubah data tanpa perlu deploy.
+
+> **Konsekuensi untuk SPV (& HRD Mode-SPV):** untuk pegawai yang **punya** koordinator, SPV **tidak
+> lagi meng-ACC maupun meng-input KPI** — itu tugas koordinator; SPV hanya melihat status ACC
+> koordinator (read-only). SPV tetap menangani penuh pegawai **tanpa** koordinator.
 
 ---
 
@@ -245,12 +281,19 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
    karena duplikat / ✗ tidak valid + alasan) sebelum impor. Duplikat **dilewati** (tak menimpa).
    Tip: impor pegawai ber-peran **SPV/atasan dulu** agar kolom `atasan` bawahan langsung tertaut.
 6. **Filter & cari** — kotak pencarian + filter **Peran**, **Divisi**, dan **Status**.
-7. **Beri izin (grant) — dua tombol kecil di kolom Aksi:**
+7. **Beri izin (grant) — tombol kecil di kolom Aksi:**
    - 🛡️ **Izin HRD Admin** — menjadikan pegawai (employee/SPV) mampu mengoperasikan **seluruh** fitur
      HRD (mode ganda). Ditandai badge **"HRD"**.
    - 👁️ **Peninjau Lintas Divisi** — izin **sempit**: pegawai (mis. divisi HRD) boleh **membantu
      meringkas Hasil Akhir 360°** pegawai di **divisi LAIN** (lihat **Review Lintas Divisi** di bawah).
      Ditandai badge **"Peninjau"**. **Bukan** akses HRD penuh.
+   - 👥 **Koordinator** — memberi pegawai (Employee) akses **Laporan Kinerja Tim + ACC + Input KPI**
+     untuk **daftar pegawai naungannya** (dipilih lewat dialog **"Tim Koordinasi"**). Ditandai badge
+     **"Koordinator"**. **Tidak** memengaruhi 360°; **bukan** akses HRD penuh. (Lihat **Akses Khusus:
+     Koordinator Tim** di atas.)
+   > **Pembatasan (per 2026-07-15):** tombol **Izin HRD Admin** & **Peninjau** hanya muncul/boleh
+   > diberikan untuk pegawai **divisi HRD** (nama divisi diawali "HRD") — server menolak grant untuk
+   > non-HRD. **Pencabutan** izin tetap boleh untuk siapa pun.
 
 > Tips data asli: sandi **berbeda per orang** kini otomatis terpenuhi lewat **Progress 360 →
 > Kirim Undangan** (men-set sandi acak unik per orang). Tak perlu menyetel sandi manual satu-satu.
@@ -431,9 +474,10 @@ di kolom Aksi — **nama pegawai tidak bisa diklik lagi**.
      Rilis ke SPV · Finalisasi Hasil**. ("Rilis ke SPV" **hilang** setelah status sudah **Ditinjau SPV**.)
      - **Unduh PDF** — cetak/simpan laporan sebagai PDF.
      - **Simpan Draf** — simpan tanpa merilis (status `draft`); SPV hanya lihat angka Skor Akhir.
-     - **Rilis ke SPV** — status `in_review`: SPV terkait kini bisa membuka **detail agregat**
-       (radar/aspek + ringkasan aspek HRD, **tanpa** komentar mentah) untuk ditinjau & diskusi
-       **di luar aplikasi**. Langkah **opsional** — tujuannya alignment sebelum finalisasi.
+     - **Rilis ke SPV** — status `in_review`: SPV/Koordinator terkait kini bisa membuka **detail
+       agregat** (radar/aspek + ringkasan aspek HRD **+ umpan balik mentah ANONIM tanpa nama
+       penilai**) untuk ditinjau & diskusi **di luar aplikasi**. Langkah **opsional** — tujuannya
+       alignment sebelum finalisasi. (Identitas penilai/L3 bernama **tetap tak pernah** tampil ke mereka.)
      - **Finalisasi Hasil** — rilis ke **pegawai** (status `finalized`). Bisa dari `draft` **atau**
        `in_review`; **tidak wajib menunggu ACC SPV** (anti-macet bila SPV lambat/cuti). Tombol ini kini
        memunculkan **konfirmasi LUNAK** (Batal / Ya, finalisasi — **tidak memblokir keras**) bila:
@@ -602,6 +646,15 @@ divisi). Skor Akhir mengikuti flag **360° aktif/nonaktif** periode terpilih (KP
   dilihat HRD; lihat bagian HRD Admin).
 - **Promosi & Penyesuaian** — respon **Kewenangan Diskusi / ACC Direksi** terhadap
   Rencana Suksesi yang diajukan HRD.
+- **Laporan Kinerja Tim** — meninjau & **meng-ACC laporan SPV** (agregat L2 anonim). Direksi
+  **hanya** meninjau laporan **SPV** (atau pegawai yang memimpin tim) — laporan pegawai biasa
+  non-SPV **ditolak**. ACC Direksi non-blok (tak menghambat finalisasi HRD).
+- **Review Hasil Akhir** — *read-only*: melihat Hasil Akhir **semua pegawai** (agregat + umpan balik
+  **anonim**, termasuk status draf), **tanpa** Hitung Ulang / Rilis / Finalisasi / edit ringkasan / ACC.
+
+> **Direksi sebagai subjek 360°:** Direksi **boleh dinilai** 360°. Bila dinilai, hasilnya muncul di
+> **Review Hasil Akhir** & **Ekspor Rekap** HRD dengan Skor Akhir dihitung **murni dari 360°** (Direksi
+> tak punya KPI). Namun Direksi **tetap dikecualikan** dari Dashboard/4-Box, KPI, kepatuhan, & monitor.
 
 > Catatan: Direksi **tidak** punya "Monitor Kinerja" maupun "Rekapitulasi Kuartal" (sengaja
 > dihapus — keduanya milik SPV/HRD). Pemantauan agregat Direksi lewat **Dashboard Eksekutif**.
@@ -755,10 +808,11 @@ tanpa komentar; **edit (input kedua di bulan sama) WAJIB Komentar Audit** — bi
   membantu menulis **Ringkasan Aspek** untuk pegawai **divisi lain** (lewat menu Review Lintas
   Divisi), tanpa bisa Rilis/Finalisasi. Lihat *Akses Khusus: Review Lintas Divisi*.
 
-**Tahap 5 — SPV meninjau & ACC** (status `in_review`). SPV buka **detail agregat** anggota
-(radar/aspek + ringkasan HRD, anonim, **tanpa lapis 3**) → **Beri ACC** (tombol muncul **hanya
-setelah Rilis**). Diskusi HRD–SPV **di luar aplikasi**; **ACC non-blok**. Laporan **diri SPV
-sendiri** kini juga bisa dibuka detailnya sejak `in_review` (ACC sendiri tetap nonaktif).
+**Tahap 5 — SPV/Koordinator meninjau & ACC** (status `in_review`). Buka **detail agregat** anggota
+(radar/aspek + ringkasan HRD **+ raw anonim**, **tanpa L3 bernama**) → **Beri ACC** (tombol muncul
+**hanya setelah Rilis**). Diskusi HRD–SPV **di luar aplikasi**; **ACC non-blok**. **Pegawai yang
+punya Koordinator di-ACC koordinatornya**, bukan SPV. Laporan **diri SPV sendiri** kini dilihat lewat
+menu **"Laporan Hasil Saya"** (saat Final) — **bukan** lagi sebagai baris di Laporan Kinerja Tim.
 
 **Tahap 6 — Finalisasi & rilis ke pegawai.** HRD klik **Finalisasi** (status `finalized`) →
 pegawai melihat **Laporan Hasil Saya** berupa **agregat** (skor + radar/aspek + ringkasan HRD),
@@ -813,16 +867,21 @@ draft ───────────→ in_review ─────────
 (Simpan Draf)      (Rilis ke SPV)        (Finalisasi)
 ```
 
-| Status | HRD (admin) | SPV — anggota tim | SPV — laporan sendiri | Pegawai |
-|--------|-------------|-------------------|------------------------|---------|
-| **draft** | Penuh + raw anonim | Skor saja (detail terkunci, ACC "menunggu rilis") | Skor saja (detail terkunci) | — (belum tampil) |
-| **in_review** | Penuh + raw anonim | **Detail agregat + Beri ACC** | **Detail agregat** (ACC off) | — (belum tampil) |
-| **finalized** | Penuh + raw anonim | Detail agregat | Detail agregat | **Laporan Hasil Saya (agregat)** |
+| Status | HRD (admin) | SPV/Koordinator — pegawai ditinjau | SPV — laporan sendiri | Pegawai |
+|--------|-------------|------------------------------------|------------------------|---------|
+| **draft** | Penuh (raw anonim + L3 bernama) | Skor saja (detail terkunci, ACC "menunggu rilis") | — (via "Laporan Hasil Saya" saat Final) | — (belum tampil) |
+| **in_review** | Penuh | **Detail agregat + raw anonim + Beri ACC\*** | — | — (belum tampil) |
+| **finalized** | Penuh | Detail agregat + raw anonim | **Laporan Hasil Saya (agregat)** | **Laporan Hasil Saya (agregat)** |
 
-**Tiga lapis informasi:**
-- **L1** Skor Akhir (angka) — SPV lihat sejak `draft`.
-- **L2** Detail agregat (radar/aspek + ringkasan HRD, anonim) — SPV/diri sejak `in_review`; pegawai saat `finalized`.
-- **L3** Komentar mentah per penilai — **HANYA HRD** (anonim); **tidak pernah** ke SPV maupun pegawai.
+> **\*ACC:** untuk pegawai yang punya **Koordinator**, yang meng-ACC & input KPI adalah
+> **koordinatornya** (SPV hanya lihat status, read-only); SPV meng-ACC pegawai **tanpa** koordinator.
+> **Direksi** melihat raw anonim di **Laporan Kinerja Tim** (khusus laporan SPV) & **Review Hasil Akhir**.
+
+**Empat lapis informasi:**
+- **L1** Skor Akhir (angka) — SPV/Koordinator lihat sejak `draft`.
+- **L2** Detail agregat (radar/aspek + ringkasan HRD, anonim) — SPV/Koordinator sejak `in_review`; pegawai saat `finalized`.
+- **Raw ANONIM** (komentar & rating verbatim per aspek/esai, **tanpa nama penilai**) — SPV/Koordinator/Direksi sejak `in_review`; **pegawai tidak** (pegawai hanya L2 agregat).
+- **L3 BERNAMA** (identitas per penilai — siapa memberi komentar/rating apa) — **HANYA HRD**; **tidak pernah** ke SPV/Koordinator/Direksi/pegawai.
 
 ---
 
@@ -889,16 +948,17 @@ Badge **Status** & **Skor Akhir** + badge **"berubah → N"** bila skor terkini 
 **Alur tiga tahap: `draft → in_review → finalized`.**
 **Berdampak ke:**
 - **Simpan Draf** (`draft`) → tersimpan; SPV hanya melihat **angka Skor Akhir** (detail terkunci).
-- **Rilis ke SPV** (`in_review`) → SPV terkait bisa membuka **detail agregat** (radar/aspek +
-  ringkasan aspek HRD, **anonim, tanpa komentar mentah**) untuk ditinjau; diskusi **di luar aplikasi**.
-  Langkah **opsional**. ACC SPV bersifat **non-blok** (tak menghambat finalisasi).
+- **Rilis ke SPV** (`in_review`) → SPV/Koordinator terkait bisa membuka **detail agregat** (radar/aspek +
+  ringkasan aspek HRD **+ umpan balik mentah ANONIM tanpa nama penilai**) untuk ditinjau; diskusi **di
+  luar aplikasi**. Langkah **opsional**. ACC bersifat **non-blok** (tak menghambat finalisasi).
 - **Finalisasi Hasil** (`finalized`) → laporan **muncul untuk pegawai** di **Laporan Hasil Saya**
   & bisa **Unduh PDF**. Bisa dari `draft` atau `in_review`. Memunculkan **konfirmasi lunak** bila
   Skor 360° perlu dihitung ulang atau KPI belum lengkap semua bulan (tidak memblokir keras). Sebelum
   final, pegawai tidak melihat apa pun. Untuk mengedit laporan yang sudah Final, **Kembalikan ke Draf** dulu.
 - **Ringkasan Aspek** (naratif HRD per aspek) **tersimpan otomatis** (auto-simpan, tanpa tombol manual);
-  **Rincian Komentar Murni** (HRD-only, anonim) menampilkan akumulasi rating + komentar per indikator
-  & esai per pertanyaan (Self dikecualikan). **Komentar mentah/per-penilai tidak pernah ditampilkan ke SPV.**
+  **Rincian Komentar Murni** (anonim) menampilkan akumulasi rating + komentar per indikator
+  & esai per pertanyaan (Self dikecualikan). **Yang tidak pernah ditampilkan ke SPV/Koordinator/Direksi
+  = identitas penilai (L3 bernama)**; versi **anonim** (komentar tanpa nama) kini **boleh** mereka lihat.
 
 ### 6. Promosi & Penyesuaian — *usulan ke Direksi*
 **Fungsi:** input Rencana Suksesi + Catatan Justifikasi per pegawai.
@@ -954,10 +1014,10 @@ muncul). Hanya HRD Admin yang boleh memberi/mencabut; tercatat di **Log Aktivita
 **Berdampak ke:** HRD bisa **Input KPI** & **ACC Laporan Kinerja Tim** layaknya SPV. Di mode ini
 batasannya mengikuti aturan SPV — **Input KPI, Riwayat & Audit, Rekapitulasi, dan Laporan Kinerja
 Tim** semuanya hanya menampilkan pegawai **divisi HRD-nya sendiri** (termasuk dirinya).
-- **Visibilitas laporan setara SPV:** saat membuka detail laporan dalam mode-SPV, HRD **hanya**
-  melihat **detail agregat** (radar/aspek + ringkasan aspek HRD), **tanpa komentar mentah per
-  penilai** — sama seperti SPV biasa, dan detail terkunci sampai laporan **Ditinjau/Final**. Untuk
-  melihat raw 360° (anonim) & finalisasi, HRD kembali ke **mode admin** (Review Hasil Akhir).
+- **Visibilitas laporan setara SPV:** saat membuka detail laporan dalam mode-SPV, HRD melihat
+  **detail agregat** (radar/aspek + ringkasan aspek HRD **+ raw anonim tanpa nama penilai**), **tanpa
+  L3 bernama** — sama seperti SPV biasa, dan detail terkunci sampai laporan **Ditinjau/Final**. Untuk
+  melihat **identitas penilai (L3 bernama)** & finalisasi, HRD kembali ke **mode admin** (Review Hasil Akhir).
 
 **Izin lain — "Peninjau Lintas Divisi" (terpisah dari Izin HRD Admin):** izin **sempit** agar pegawai
 (mis. divisi HRD) membantu **meringkas Hasil Akhir 360° divisi LAIN** (kecuali divisinya sendiri).

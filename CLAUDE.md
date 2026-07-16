@@ -8,6 +8,32 @@ Panduan untuk Claude Code saat bekerja di repo ini.
 
 ---
 
+## Sedang Dikerjakan (per 2026-07-16)
+
+**Fokus aktif:** finishing UI polish grafik & konsolidasi dokumentasi. Migrasi fungsional **selesai &
+live**; sisa sebagian besar **aktivasi env** (email/sandi) + **kebersihan akun** + backup rutin.
+
+- **Grafik garis — jarak sumbu-Y ke titik/nilai (SELESAI & di-commit):** akar masalah bukan `padL`
+  (itu hanya menggeser border→sumbu), melainkan **posisi titik plot tepat di sumbu**. Solusi: `padL`
+  kembali ke 40 + **inset horizontal `padInX`** untuk menggeser titik data pertama/terakhir masuk dari
+  sumbu — nilai kini **15** di **Monitor** (`monitor-trends.tsx` `LineChart`) & **Dashboard**
+  (`dashboard-visual.tsx` `TrendLine`). Label titik tepi tetap rata-dalam (pertama=start/terakhir=end).
+- **Dokumentasi dikonsolidasi (SELESAI):** `progress.md` (log migrasi usang) **dihapus**;
+  **`CARA-PENGGUNAAN.md`** & **`RINCIAN-TOMBOL.md`** ditambahi **peran Koordinator** (lihat Laporan
+  Kinerja Tim + ACC + Input KPI naungannya), **umpan balik 360° mentah ANONIM** untuk SPV/Koordinator/
+  Direksi (model lapisan 3→4: L1/L2/raw-anonim/L3-bernama), **Direksi subjek 360° + tinjau laporan SPV**,
+  grant Koordinator/Peninjau + pembatasan grant ke divisi HRD, & penghapusan baris "Anda" dari Laporan Tim.
+- **Terbuka (butuh keputusan pengguna):** **pencocokan eksak Looker** untuk heatmap 360° Q1 — selisih
+  ~0.04 akibat pembulatan CSV ke `numeric(3,2)`. Opsi: migrasi 0023 (`rating`→`numeric(6,4)`) + impor
+  ulang presisi penuh, **menunggu** konfirmasi metode agregasi Looker (per-pegawai vs pooled-raw).
+
+**File paling relevan sesi ini:** `app/(app)/monitor/monitor-trends.tsx`,
+`app/(app)/admin/dashboard/dashboard-visual.tsx`, `app/(app)/laporan-tim/` (ACC koordinator),
+`app/(app)/kpi/` (input KPI koordinator), `app/(app)/admin/audit/` (paginasi), `lib/report.ts`
+(raw anonim), `lib/auth/roles.ts` (`isHrdDept`), `supabase/migrations/0022_ais_rating_numeric.sql`.
+
+---
+
 ## Apa Ini
 
 Aplikasi web **penilaian kinerja (Performance Appraisal) 360° internal** untuk Infarm.
@@ -238,12 +264,18 @@ Daftar hidup & **sumber tunggal TO-DO** (perbarui saat ada perubahan). Status: �
 ### Pengembangan opsional
 - ⬜ Bulk-finalisasi laporan ber-ACC SPV · ⬜ Ekspor Log Aktivitas HRD ke Excel · ⬜ Ganti email
   mandiri (lanjutan Akun Saya).
-- ✅ **Peran "Koordinator" — lihat Laporan Kinerja Tim anggotanya** (diminta & **SELESAI 2026-07-12**,
-  migrasi 0021 diterapkan ke live). Pegawai yang membawahi beberapa pegawai (sebagian lain tetap langsung ke
-  SPV) diberi akses **lihat-saja** Laporan Kinerja Tim untuk daftar pegawai **eksplisit**-nya (tanpa KPI/ACC),
-  **TIDAK** memengaruhi 360°. Lihat entri Changelog "Peran Koordinator". **Assignment awal (Q2 2026, sudah
-  di-set di live):** Rochmat Arif Maulana → {Qurrotun Ayun, Reni Candra Sari}; Widodo Hadi Kusumo → {Adistya
-  Dwi Nurmayunita, Muhammad Fikar Nazary, Sitti Aisyatul Maufiroh, Vizcha Amalia Susanto Putri}.
+- ✅ **Log Aktivitas HRD — paginasi 10 baris di server** (2026-07-15, hemat egress) + filter kategori/
+  cari di server; **Audit KPI** → daftar **rata terbaru-di-atas** (+ kolom Pegawai), bukan dikelompok nama.
+- ✅ **Grant HRD Admin & Peninjau dibatasi ke divisi HRD** (2026-07-15, `isHrdDept` = dept diawali
+  "HRD"): tombol grant disembunyikan + server menolak grant utk non-HRD; **pencabutan tetap boleh**.
+- ✅ **Peran "Koordinator"** (diminta & **SELESAI 2026-07-12**, migrasi 0021 di live; **diperluas
+  2026-07-15**). Pegawai yang membawahi beberapa pegawai (sebagian lain tetap langsung ke SPV) diberi
+  akses ke Laporan Kinerja Tim untuk daftar pegawai **eksplisit**-nya. **Sejak 2026-07-15 koordinator
+  BISA meng-ACC laporan** & **input KPI** (tab Input) pegawai naungannya; **SPV** hanya ACC/input KPI
+  pegawai **tanpa** koordinator. **TIDAK** memengaruhi 360°. Lihat Changelog "Peran Koordinator".
+  **Assignment awal (Q2 2026, di live):** Rochmat Arif Maulana → {Qurrotun Ayun, Reni Candra Sari};
+  Widodo Hadi Kusumo → {Adistya Dwi Nurmayunita, Muhammad Fikar Nazary, Sitti Aisyatul Maufiroh,
+  Vizcha Amalia Susanto Putri}.
   - **Peluang lanjutan (opsional):** relasi ini SUDAH tersirat sbg **"Atasan"** di `mappings` → bila kelak
     banyak koordinator, pertimbangkan menurunkan lingkup dari mapping Atasan (tanpa efek skor) agar HRD tak
     input dua kali. Untuk sekarang pakai daftar eksplisit `coordinator_team_members`.
@@ -542,16 +574,24 @@ npm run test:watch # vitest mode pantau
   `is_hrd()` → pemegangnya tetap pegawai biasa di RLS; akses lintas-divisi hanya via `service_role`
   (`loadCrossDivisionReport`, tegakkan "divisi target ≠ divisi peninjau"). Privasi **nyata**, bukan
   app-only — pola acuan untuk grant sensitif (lihat Keputusan terkunci).
-- **Peran Koordinator** (`is_coordinator` + tabel `coordinator_team_members`, migrasi 0021, 2026-07-12).
-  Pegawai (role='employee') yang membawahi beberapa pegawai & diberi akses **LIHAT-SAJA** "Laporan Kinerja
-  Tim" untuk **daftar eksplisit** yang dinaunginya (sebagian pegawai lain tetap langsung ke SPV). **Pola
-  Peninjau:** grant **TIDAK** menyalakan `is_hrd()`/`is_my_member` → koordinator tetap pegawai biasa di RLS;
-  seluruh data laporan dibaca via **`service_role`** berlingkup ke `coordinator_team_members`-nya + **L3
-  selalu dibuang** (`loadTeamReportForCoordinator`, cermin `loadTeamReportForSpv`). **TIDAK** input KPI/ACC/
-  finalisasi & **TIDAK** memengaruhi 360° (bukan "Atasan" untuk skor). Detail L2 (klik nama) tetap gerbang
-  **rilis HRD** (in_review/finalized). Tabel baru ber-RLS (baca: HRD/koordinator ybs; tulis: HRD). UI: grant
-  "Koordinator" + dialog "Tim Koordinasi" (checklist) di Kelola Pegawai; menu base "Laporan Kinerja Tim".
-  Menambah koordinator = **DATA, bukan kode** (HRD mandiri via UI, tanpa deploy).
+- **Peran Koordinator** (`is_coordinator` + tabel `coordinator_team_members`, migrasi 0021, 2026-07-12;
+  **diperluas 2026-07-15**). Pegawai (role='employee') yang membawahi beberapa pegawai & diberi akses ke
+  "Laporan Kinerja Tim" untuk **daftar eksplisit** yang dinaunginya (sebagian pegawai lain tetap langsung
+  ke SPV). **Pola Peninjau:** grant **TIDAK** menyalakan `is_hrd()`/`is_my_member` → koordinator tetap
+  pegawai biasa di RLS; seluruh data laporan dibaca via **`service_role`** berlingkup ke
+  `coordinator_team_members`-nya + **L3 (bernama) selalu dibuang** (`loadTeamReportForCoordinator`, cermin
+  `loadTeamReportForSpv`; sejak 2026-07-15 keduanya **menyisakan raw ANONIM** byAspect/essays).
+  - **BISA (sejak 2026-07-15):** **meng-ACC** laporan pegawai naungannya (setelah rilis HRD; `setSpvAcc`
+    cabang koordinator, reuse kolom `spv_acc`, guard laporan sudah dirilis) & **input KPI** (tab Input;
+    `saveKpiAsCoordinator` via service_role, guard periode aktif + edit-wajib-komentar, audit
+    `changed_by`=koordinator, upsert `onConflict 'employee_id,ym'` → **tak menumpuk**). **Konsekuensi
+    paritas:** **SPV/HRD-mode-SPV** kini **hanya** ACC & input KPI pegawai **TANPA** koordinator (server
+    tolak `role='spv'` utk pegawai berkoordinator; pegawai berkoordinator dikeluarkan dari daftar input
+    SPV). SPV tetap **lihat status ACC** koordinator (read-only).
+  - **TIDAK:** finalisasi (tetap HRD) & **TIDAK** memengaruhi 360° (bukan "Atasan" untuk skor). Detail L2
+    (klik nama) tetap gerbang **rilis HRD** (in_review/finalized). Tabel ber-RLS (baca: HRD/koordinator
+    ybs; tulis: HRD). UI: grant "Koordinator" + dialog "Tim Koordinasi" di Kelola Pegawai; menu base
+    "Laporan Kinerja Tim" + "Input KPI". Menambah koordinator = **DATA, bukan kode** (HRD mandiri, tanpa deploy).
 - **Toggle 360° (`has_360`) & Tutup/Buka Form (`form_open`, migrasi 0017)** = dua gerbang terpisah.
   Gerbang form pegawai = `has_360 && form_open`; guard tulis (`submitAssessment`/`addAdhocTarget`/
   `requestCorrection`) menolak bila salah satu mati. `form_open` menutup form **tanpa** membuang 360°
@@ -647,6 +687,14 @@ npm run test:watch # vitest mode pantau
   Nilai 360° terbobot; Gap Self−Others; Skala 100) — dihitung LIVE via `weightedScore360` (Jml Penilai =
   penilai non-Self yang dipetakan; konsisten internal `nilai_360×20=skala_100`).
 - Palet warna skor terpadu (`lib/score-color.ts`), indikator tenggat periode, empty-state berpandu.
+- **Log Aktivitas HRD — paginasi server 10 baris/hal** (`admin/audit/`, 2026-07-15): baca `searchParams
+  {page,cat,q}`, `.or()` ilike (needle disanitasi `[,()*:%\\]`→spasi), `.range()` + `count:'exact'`; pager
+  prev/next. Hemat egress (tak lagi tarik seluruh log ke klien). **Audit KPI** dirombak jadi `FlatAudit[]`
+  **terbaru-di-atas** (`changed_at` desc) + kolom Pegawai — bukan dikelompokkan per pegawai.
+- **Layout Dashboard Analisis 360°** (2026-07-15): "Tren 360° per Kuartal" & "Evaluasi Budaya Sub-Aspek"
+  ditata **sejajar** (`grid lg:grid-cols-2`). Grafik garis (`TrendLine` dashboard & `LineChart` Monitor)
+  diberi **padding kiri lebih lebar + label titik tepi rata-dalam** (pertama=start/terakhir=end) agar label
+  nilai/sumbu tak menembus sumbu-Y (2026-07-16).
 - Dihapus dari dashboard (atas permintaan): **Matriks 9-Box** & **Papan Suksesi/Promosi** — namun rumus
   `talentBoxOf`/`kpiBandOf`/`s360BandOf` di `lib/scoring.ts` **TETAP ADA & teruji** (jangan dihapus).
 
@@ -661,8 +709,8 @@ npm run test:watch # vitest mode pantau
 - `0015` `mappings.is_adhoc` · `0016` `employees.is_external` · `0017` `periods.form_open` ·
   `0018` `employees.is_cross_reviewer` · `0019` `kpi_audit.action` (`set`/`delete`, utk Hapus KPI ber-audit) ·
   `0020` `employees.joined_on`/`left_on` (tanggal aktif; keanggotaan Dashboard hibrida — pelaporan, non-rumus) ·
-  `0021` `employees.is_coordinator` + tabel `coordinator_team_members` (peran Koordinator lihat-saja Laporan
-  Kinerja Tim; pola Peninjau, grant non-RLS + akses service_role berlingkup) ·
+  `0021` `employees.is_coordinator` + tabel `coordinator_team_members` (peran Koordinator: Laporan Kinerja
+  Tim + sejak 2026-07-15 ACC & input KPI naungannya; pola Peninjau, grant non-RLS + service_role berlingkup) ·
   `0022` `assessment_indicator_scores.rating` smallint → **numeric(3,2)** (pelebaran aman/aditif; rating
   bulat lama tetap valid, CHECK 1–5 rentang tetap; mendukung backfill nilai aspek 360° DESIMAL mis. hasil
   eksternal Q1 2026).
@@ -685,3 +733,11 @@ npm run test:watch # vitest mode pantau
 - **`npm run verify:rls`** — 21 assertion (kpi_scores + L3 tertutup untuk SPV); manual, tak di CI.
 - Skrip operasional: `backup.mjs`/`restore.mjs` (dump 22 tabel), `reset-*.mjs`, `apply-migration.mjs`
   (pola `npm install --no-save pg`). `xlsx@0.20.3` (CDN, tutup advisory high). Arsip legacy `src/` dihapus.
+- **⚠️ Backfill 360° Q1 2026 (dinilai eksternal, di LIVE 2026-07-15) — data, bukan kode.** Migrasi **0022**
+  (`rating`→numeric(3,2)) → set `has_360=true` Q1 + `result_360` headline eksak + **penilaian sintetis**
+  (anchor=Direksi sbg assessor) utk 5 aspek budaya → tampil di Dashboard organisasi (headline + per-aspek).
+  50 pegawai. **Q1 tak punya skema bobot → dashboard pakai rerata polos** (bukan `weightedScore360`).
+  **JANGAN klik "Hitung Ulang Skor 360°" utk Q1** (menimpa backfill). Backup pra-aksi di
+  `backups/backup-2026-07-15T09-45-48-694Z`. Sumber lokal `BACKFILL-360-Q1.csv` & skrip `_backfill-q1.mjs`
+  **tidak di-commit**. ⚠️ Nilai per-aspek dibulatkan ke 2 desimal (batas numeric(3,2)) → selisih ~0.04 vs
+  Looker; pencocokan eksak = migrasi 0023 (numeric(6,4)) bila diminta.

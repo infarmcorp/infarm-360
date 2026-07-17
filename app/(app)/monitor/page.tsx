@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-import { canAdmin } from '@/lib/auth/roles';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { canAdmin, canCoordinate } from '@/lib/auth/roles';
 import { finalScoreOf, playerClassOf } from '@/lib/scoring';
 import { trendOf } from '@/lib/trend';
 import { scoreMaps, penaltyMap, companyAverages, teamAverages } from '@/lib/team-metrics';
@@ -19,6 +19,10 @@ import { PeriodFilter } from './period-filter';
  *    KPI pegawai per bulan (dropdown).
  * BEDA dari Laporan Kinerja Tim: tanpa tinjau/Status/ACC, MEMASUKKAN baris SPV sendiri, Skor Akhir
  * LIVE (allow360Only=true, selaras snapshot laporan). Halaman Supervisor (tak untuk Mode HRD Admin).
+ *
+ * KOORDINATOR (grant is_coordinator): lihat Monitor Kinerja untuk daftar pegawai eksplisit yang
+ * dinaunginya (coordinator_team_members) SAJA — TANPA dirinya sendiri. Koordinator = pegawai biasa
+ * di RLS → seluruh data (lingkup + tren) dibaca via service_role, dibatasi ketat ke daftar timnya.
  */
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const labelOf = (ym: string) => { const [y, m] = ym.split('-'); return `${MONTHS[Number(m) - 1] ?? m}'${y.slice(2)}`; };
@@ -29,7 +33,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, dept').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, is_coordinator, dept').eq('id', user.id).maybeSingle();
   const role = me?.role;
 
   // Cookie absen = base/SPV (konsisten dgn layout.tsx & app/page.tsx; login mereset ke base).
@@ -37,22 +41,35 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   const adminView = canAdmin(me) && hrdMode === 'admin';
   const supervisorView = !adminView && (role === 'spv' || role === 'hrd');
-  if (!supervisorView) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV (atau HRD dalam Mode SPV).</p>
+  // Koordinator: bukan SPV/HRD tapi punya grant is_coordinator → Monitor untuk naungannya saja.
+  const coordinatorView = !adminView && !supervisorView && canCoordinate(me);
+  if (!supervisorView && !coordinatorView) {
+    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV, Koordinator, atau HRD dalam Mode SPV.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
   const { data: periodRows } = await supabase
     .from('periods').select('id, label, has_360, status, start_date').order('start_date', { ascending: true });
   const periodList = periodRows ?? [];
-  if (periodList.length === 0) return <Shell><Header /><p className="text-sm text-gray-500 mt-4">Belum ada periode.</p></Shell>;
+  if (periodList.length === 0) return <Shell><Header coordinator={coordinatorView} /><p className="text-sm text-gray-500 mt-4">Belum ada periode.</p></Shell>;
   const sel = periodList.find((p) => p.id === periodParam)
     ?? periodList.find((p) => p.status === 'active')
     ?? periodList[periodList.length - 1];
 
-  // Lingkup pegawai. SPV → tim + DIRINYA sendiri; HRD mode-SPV → DIVISINYA (termasuk dirinya).
+  // Lingkup pegawai. SPV → tim + DIRINYA sendiri; HRD mode-SPV → DIVISINYA (termasuk dirinya);
+  // Koordinator → HANYA pegawai naungannya (coordinator_team_members), TANPA dirinya.
+  // Koordinator = pegawai biasa di RLS → semua data (lingkup + tren) dibaca via service_role.
   let empRows: { id: string; name: string; dept: string; is_active: boolean }[] = [];
-  if (role === 'spv') {
+  const dataClient = coordinatorView ? createAdminClient() : supabase;
+  if (coordinatorView) {
+    const admin = dataClient;
+    const { data: team } = await admin.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id);
+    const memberIds = (team ?? []).map((t) => t.employee_id);
+    const { data } = memberIds.length
+      ? await admin.from('employees').select('id, name, dept, is_active').in('id', memberIds)
+      : { data: [] as { id: string; name: string; dept: string; is_active: boolean }[] };
+    empRows = data ?? [];
+  } else if (role === 'spv') {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', user.id);
     const ids = [...new Set([user.id, ...(team ?? []).map((t) => t.employee_id)])];
     const { data } = await supabase.from('employees').select('id, name, dept, is_active').in('id', ids);
@@ -63,7 +80,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
     empRows = data ?? [];
   }
   if (empRows.length === 0) {
-    return <Shell><Header /><Toolbar periods={periodList} current={sel.id} /><p className="text-sm text-gray-500 mt-4">Belum ada pegawai dalam lingkup Anda.</p></Shell>;
+    return <Shell><Header coordinator={coordinatorView} /><Toolbar periods={periodList} current={sel.id} /><p className="text-sm text-gray-500 mt-4">Belum ada pegawai dalam lingkup Anda.</p></Shell>;
   }
   const ids = empRows.map((e) => e.id);
 
@@ -94,9 +111,9 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
 
   // ── Data tren LINTAS periode/bulan (RLS user-scoped; lingkup tim kecil → aman batas 1000) ──
   const [kpiAllRes, r360AllRes, pmRes] = await Promise.all([
-    supabase.from('kpi_scores').select('employee_id, ym, score').in('employee_id', ids),
-    supabase.from('result_360').select('employee_id, period_id, score').in('employee_id', ids),
-    supabase.from('period_months').select('period_id, ym'),
+    dataClient.from('kpi_scores').select('employee_id, ym, score').in('employee_id', ids),
+    dataClient.from('result_360').select('employee_id, period_id, score').in('employee_id', ids),
+    dataClient.from('period_months').select('period_id, ym'),
   ]);
   const kpiAgg = new Map<string, { s: number; n: number }>(); // `${emp}|${ym}`
   (kpiAllRes.data ?? []).forEach((r) => { const k = `${r.employee_id}|${r.ym}`; const a = kpiAgg.get(k) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; kpiAgg.set(k, a); });
@@ -129,7 +146,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
 
   return (
     <Shell>
-      <Header />
+      <Header coordinator={coordinatorView} />
       <Toolbar periods={periodList} current={sel.id} />
       {rows.length === 0 ? (
         <p className="text-sm text-gray-500 mt-4">Belum ada data kinerja untuk periode ini.</p>
@@ -155,12 +172,16 @@ function Toolbar({ periods, current }: { periods: { id: string; label: string; s
   );
 }
 
-function Header() {
+function Header({ coordinator = false }: { coordinator?: boolean }) {
   return (
     <div className="flex items-center justify-between">
       <div>
         <h1 className="text-xl font-bold text-gray-800">Monitor Kinerja</h1>
-        <p className="text-sm text-gray-500">Dashboard kinerja tim Anda (termasuk diri Anda) — snapshot per periode &amp; tren lintas waktu.</p>
+        <p className="text-sm text-gray-500">
+          {coordinator
+            ? 'Dashboard kinerja pegawai yang Anda koordinasikan — snapshot per periode & tren lintas waktu.'
+            : 'Dashboard kinerja tim Anda (termasuk diri Anda) — snapshot per periode & tren lintas waktu.'}
+        </p>
       </div>
       <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
     </div>

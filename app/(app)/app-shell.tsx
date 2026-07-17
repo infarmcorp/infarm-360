@@ -44,6 +44,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewe
   if (!adminView && isCoordinator && role !== 'spv' && role !== 'hrd') {
     main.push({ href: '/kpi', label: 'Input KPI', icon: Target });
     main.push({ href: '/laporan-tim', label: 'Laporan Kinerja Tim', icon: Users });
+    main.push({ href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp });
   }
 
   const sections: Section[] = main.length ? [{ title: 'Navigasi Utama', items: main }] : [];

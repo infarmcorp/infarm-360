@@ -3,13 +3,13 @@ import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin, canSection } from '@/lib/auth/roles';
 import {
-  finalScoreOf, playerClassOf,
+  finalScoreOf, playerClassOf, type PlayerClass,
 } from '@/lib/scoring';
 import { classOf, avg as avg360, weightedScore360, type Groups360 } from '@/lib/score360';
 import { trendOf } from '@/lib/trend';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
-import { DashboardVisual } from './dashboard-visual';
+import { DashboardVisual, type MoveBreakdown } from './dashboard-visual';
 import { DashboardFilters } from './dashboard-filters';
 import { EmptyState } from '@/components/empty-state';
 
@@ -157,13 +157,16 @@ export default async function DashboardPage({
     .filter((p) => Number(String(p.start_date).slice(0, 4)) === selYear)
     .sort((a, b) => String(a.start_date).localeCompare(String(b.start_date)));
   const periodsInYearIds = periodsInYear.map((p) => p.id);
-  const [yearKpiRes, year360Res] = await Promise.all([
+  const [yearKpiRes, year360Res, pmYearRes] = await Promise.all([
     empIds.length
-      ? supabase.from('kpi_scores').select('ym, score').in('employee_id', empIds).gte('ym', `${selYear}-01`).lte('ym', `${selYear}-12`)
-      : Promise.resolve({ data: [] as { ym: string; score: number }[] }),
+      ? supabase.from('kpi_scores').select('employee_id, ym, score').in('employee_id', empIds).gte('ym', `${selYear}-01`).lte('ym', `${selYear}-12`)
+      : Promise.resolve({ data: [] as { employee_id: string; ym: string; score: number }[] }),
     empIds.length && periodsInYearIds.length
-      ? supabase.from('result_360').select('period_id, score').in('employee_id', empIds).in('period_id', periodsInYearIds)
-      : Promise.resolve({ data: [] as { period_id: string; score: number }[] }),
+      ? supabase.from('result_360').select('employee_id, period_id, score').in('employee_id', empIds).in('period_id', periodsInYearIds)
+      : Promise.resolve({ data: [] as { employee_id: string; period_id: string; score: number }[] }),
+    periodsInYearIds.length
+      ? supabase.from('period_months').select('period_id, ym').in('period_id', periodsInYearIds)
+      : Promise.resolve({ data: [] as { period_id: string; ym: string }[] }),
   ]);
   const ymAgg = new Map<string, { sum: number; n: number }>();
   (yearKpiRes.data ?? []).forEach((r) => {
@@ -172,11 +175,77 @@ export default async function DashboardPage({
   const yearMonthly = [...ymAgg.entries()]
     .map(([ym, a]) => ({ ym, avg: a.sum / a.n }))
     .sort((x, y) => x.ym.localeCompare(y.ym));
+
+  // Heatmap KPI per divisi × bulan — versi SETAHUN (Jan–Des tahun terpilih), untuk toggle "Setahun"
+  // di heatmap. Beda dari `deptMonthly` (hanya bulan kuartal terpilih & mengecualikan "belum terbaca").
+  // Versi setahun = rerata KPI mentah per (divisi, bulan) sepanjang tahun (lintas kuartal).
+  const dmYearAgg = new Map<string, { sum: number; n: number }>(); // `${dept}|${ym}`
+  (yearKpiRes.data ?? []).forEach((r) => {
+    const d = empDept.get(r.employee_id);
+    if (!d) return;
+    const k = `${d}|${r.ym}`;
+    const a = dmYearAgg.get(k) ?? { sum: 0, n: 0 };
+    a.sum += r.score; a.n += 1; dmYearAgg.set(k, a);
+  });
+  const ymYearSorted = [...new Set((yearKpiRes.data ?? []).map((r) => r.ym))].sort();
+  const deptMonthlyYear = [...new Set(emps.map((e) => e.dept))].sort()
+    .map((d) => ({
+      dept: d,
+      cells: ymYearSorted.map((ym) => {
+        const a = dmYearAgg.get(`${d}|${ym}`);
+        return { ym, avg: a ? a.sum / a.n : null };
+      }),
+    }))
+    .filter((r) => r.cells.some((c) => c.avg != null));
   const p360Agg = new Map<string, { sum: number; n: number }>();
   (year360Res.data ?? []).forEach((r) => {
     if (r.score == null) return;
     const a = p360Agg.get(r.period_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n += 1; p360Agg.set(r.period_id, a);
   });
+
+  // ── Rekap Talenta Tahunan (rata-rata antar-kuartal → klasifikasi 4-Box) ────────────────
+  // Tiap pegawai: KPI tahunan = rata-rata KPI antar-kuartal (rata bulan tiap kuartal dulu),
+  // 360° tahunan = rata-rata skor 360° antar-kuartal ber-360°. Lalu playerClassOf (RUMUS TAK
+  // BERUBAH, ambang 80/80). Beda dari 4-Box per-kuartal → diberi label jelas agar tak tertukar.
+  const yearHas360 = periodsInYear.some((p) => p.has_360);
+  const ymToPeriod = new Map((pmYearRes.data ?? []).map((m) => [m.ym, m.period_id]));
+  const empPerKpi = new Map<string, Map<string, { sum: number; n: number }>>(); // emp → period → agg KPI bulanan
+  (yearKpiRes.data ?? []).forEach((r) => {
+    const pid = ymToPeriod.get(r.ym); if (!pid) return;
+    let m = empPerKpi.get(r.employee_id); if (!m) { m = new Map(); empPerKpi.set(r.employee_id, m); }
+    const a = m.get(pid) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n += 1; m.set(pid, a);
+  });
+  const empPer360 = new Map<string, Map<string, number>>(); // emp → period → skor 360°
+  (year360Res.data ?? []).forEach((r) => {
+    if (r.score == null) return;
+    let m = empPer360.get(r.employee_id); if (!m) { m = new Map(); empPer360.set(r.employee_id, m); }
+    m.set(r.period_id, r.score);
+  });
+  const avgArr = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+  const yearTalentAll = emps.map((e) => {
+    const km = empPerKpi.get(e.id);
+    const yKpi = km ? avgArr([...km.values()].map((a) => a.sum / a.n)) : null;    // rata KPI antar-kuartal
+    const sm = empPer360.get(e.id);
+    const y360 = sm ? avgArr([...sm.values()]) : null;                            // rata 360° antar-kuartal
+    const axisIncomplete = yearHas360 && ((yKpi != null) !== (y360 != null));     // tahun ber-360° tapi 1 sumbu
+    const player: PlayerClass | null = axisIncomplete ? null : playerClassOf(yKpi, yearHas360 ? y360 : null);
+    const final = finalScoreOf(yKpi, y360, yearHas360, 0);                        // tanpa punishment (per-kuartal, tak diagregasi)
+    return { id: e.id, name: e.name, dept: e.dept, kpi: yKpi, s360: y360, player, axisIncomplete, final };
+  }).filter((r) => r.kpi != null || r.s360 != null);
+  // Baris agregat TAHUNAN berbentuk sama seperti `rows` (per-kuartal) → bisa memberi makan komponen
+  // tab yang sama (skor, distribusi, ranking, rata divisi) dalam mode "Setahun". KPI/360° = rata-rata
+  // antar-kuartal; Skor Akhir tahunan TANPA punishment (per-kuartal, tak diagregasi).
+  const yearRows = yearTalentAll.map((r) => ({
+    id: r.id, name: r.name, dept: r.dept,
+    kpiAvg: r.kpi, s360: r.s360, final: r.final,
+    player: r.player, axisIncomplete: r.axisIncomplete,
+    isActive: true, kpiUnread: false, trend: 'empty' as const, kpiMonths: [] as (number | null)[],
+  }));
+  const yearDeptAgg = new Map<string, { sum: number; n: number }>();
+  yearRows.forEach((r) => { if (r.kpiAvg == null) return; const a = yearDeptAgg.get(r.dept) ?? { sum: 0, n: 0 }; a.sum += r.kpiAvg; a.n += 1; yearDeptAgg.set(r.dept, a); });
+  const yearDeptScores: [string, number][] = [...yearDeptAgg.entries()]
+    .map(([d, a]) => [d, a.sum / a.n] as [string, number])
+    .sort((a, b) => b[1] - a[1]);
   const year360 = periodsInYear
     .filter((p) => p360Agg.has(p.id))
     .map((p) => ({ label: p.label, avg: p360Agg.get(p.id)!.sum / p360Agg.get(p.id)!.n }));
@@ -295,6 +364,85 @@ export default async function DashboardPage({
     }))
     .filter((r) => r.cells.some((c) => c.avg != null));
 
+  // ── Pembanding periode SEBELUMNYA (delta naik/turun scorecard) ─────────────────
+  // Periode sebelumnya = start_date terbesar yang < periode terpilih (lintas tahun boleh).
+  // Rata-rata dihitung dengan logika SAMA (kecuali "belum terbaca", finalScoreOf, populasi
+  // ber-Skor-Akhir) dalam lingkup divisi yang sama → delta apel-ke-apel. Bila tak ada periode
+  // sebelumnya / tak ada data → null (kartu tak menampilkan delta).
+  const meanN = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+  const prevPeriod = [...periodList]
+    .filter((p) => String(p.start_date) < String(ap.start_date))
+    .sort((a, b) => String(b.start_date).localeCompare(String(a.start_date)))[0] ?? null;
+  const prevFinalById = new Map<string, number>();
+  const prevKpiById = new Map<string, number>();
+  const prev360ById = new Map<string, number>();
+  if (prevPeriod && empIds.length) {
+    const { data: pMonths } = await supabase.from('period_months').select('ym').eq('period_id', prevPeriod.id);
+    const pYms = (pMonths ?? []).map((m) => m.ym);
+    const [pKpiRes, pr360Res, pPenRes] = await Promise.all([
+      pYms.length ? supabase.from('kpi_scores').select('employee_id, ym, score').in('ym', pYms).in('employee_id', empIds) : Promise.resolve({ data: [] as { employee_id: string; ym: string; score: number }[] }),
+      supabase.from('result_360').select('employee_id, score').eq('period_id', prevPeriod.id).in('employee_id', empIds),
+      supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', prevPeriod.id).in('employee_id', empIds),
+    ]);
+    // Rerata KPI per pegawai + deteksi "belum terbaca" (trend unread 3 bulan pertama).
+    const pEmpYm = new Map<string, Map<string, { s: number; n: number }>>();
+    const pKpiAgg = new Map<string, { sum: number; n: number }>();
+    (pKpiRes.data ?? []).forEach((r) => {
+      let m = pEmpYm.get(r.employee_id); if (!m) { m = new Map(); pEmpYm.set(r.employee_id, m); }
+      const a = m.get(r.ym) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; m.set(r.ym, a);
+      const g = pKpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 }; g.sum += r.score; g.n += 1; pKpiAgg.set(r.employee_id, g);
+    });
+    const pYmFirst3 = [...pYms].sort().slice(0, 3);
+    const pUnread = new Set<string>();
+    for (const [id, m] of pEmpYm) {
+      const months = pYmFirst3.map((ym) => (m.has(ym) ? m.get(ym)!.s / m.get(ym)!.n : null));
+      if (trendOf(months) === 'unread') pUnread.add(id);
+    }
+    const p360By = new Map((pr360Res.data ?? []).map((r) => [r.employee_id, r.score]));
+    const pPenBy = new Map((pPenRes.data ?? []).map((p) => [p.employee_id, p.points]));
+    // Tiap rata-rata memakai POPULASI yang sama dgn kartunya masing-masing agar delta apel-ke-apel:
+    //  - Skor Akhir (Kompilasi): readable (bukan unread) & final != null.
+    //  - KPI (tab Analisis KPI): readable (bukan unread) & kpiAvg != null.
+    //  - 360° (tab 360 Feedback): SEMUA yang punya skor 360° (tak kecualikan unread — selaras FeedbackTab).
+    for (const id of empIds) {
+      const agg = pKpiAgg.get(id);
+      const kpiAvg = agg ? agg.sum / agg.n : null;
+      const s360 = p360By.get(id) ?? null;
+      const unread = pUnread.has(id);
+      if (s360 != null) prev360ById.set(id, s360);
+      if (!unread && kpiAvg != null) prevKpiById.set(id, kpiAvg);
+      if (!unread) {
+        const final = finalScoreOf(kpiAvg, s360, prevPeriod.has_360, pPenBy.get(id) ?? 0);
+        if (final != null) prevFinalById.set(id, final);
+      }
+    }
+  }
+  const prevFinalAvg = prevFinalById.size ? meanN([...prevFinalById.values()]) : null;
+  const prevKpiAvg = prevKpiById.size ? meanN([...prevKpiById.values()]) : null;
+  const prev360Avg = prev360ById.size ? meanN([...prev360ById.values()]) : null;
+
+  // Rincian pergerakan (efek NILAI vs KOMPOSISI): kohort = pegawai berdata di KEDUA periode
+  // (perubahan nilai murni); "masuk" = baru berdata periode ini; "keluar" = tak lagi berdata.
+  // Populasi tiap metrik = populasi kartunya (Skor Akhir/KPI kecualikan unread; 360° semua berdata).
+  const currFinalById = new Map<string, number>();
+  const currKpiById = new Map<string, number>();
+  const curr360ById = new Map<string, number>();
+  for (const r of rows) {
+    if (!r.kpiUnread && r.final != null) currFinalById.set(r.id, r.final);
+    if (!r.kpiUnread && r.kpiAvg != null) currKpiById.set(r.id, r.kpiAvg);
+    if (r.s360 != null) curr360ById.set(r.id, r.s360);
+  }
+  const moveOf = (curr: Map<string, number>, prev: Map<string, number>): MoveBreakdown => {
+    let cSum = 0, pSum = 0, n = 0;
+    const join: number[] = [], leave: number[] = [];
+    for (const [id, v] of curr) { const pv = prev.get(id); if (pv != null) { cSum += v; pSum += pv; n += 1; } else join.push(v); }
+    for (const [id, v] of prev) { if (!curr.has(id)) leave.push(v); }
+    return { cohortN: n, cohortDelta: n ? (cSum - pSum) / n : null, joinerN: join.length, joinerAvg: meanN(join), leaverN: leave.length, leaverAvg: meanN(leave) };
+  };
+  const finalMove = prevPeriod ? moveOf(currFinalById, prevFinalById) : null;
+  const kpiMove = prevPeriod ? moveOf(currKpiById, prevKpiById) : null;
+  const s360Move = prevPeriod ? moveOf(curr360ById, prev360ById) : null;
+
   return (
     <Shell>
       <div className="flex items-center justify-between mb-3">
@@ -330,6 +478,8 @@ export default async function DashboardPage({
           monthly={monthly}
           deptMonthly={deptMonthly}
           months={ymSorted}
+          deptMonthlyYear={deptMonthlyYear}
+          monthsYear={ymYearSorted}
           deptAspect360={deptAspect360}
           aspect360Names={aspect360Names}
           yearLabel={selYear}
@@ -340,6 +490,16 @@ export default async function DashboardPage({
           has360={ap.has_360}
           periodLabel={ap.label}
           kpiStandard={ap.kpi_standard}
+          prevLabel={prevPeriod?.label ?? null}
+          prevFinalAvg={prevFinalAvg}
+          prevKpiAvg={prevKpiAvg}
+          prev360Avg={prev360Avg}
+          finalMove={finalMove}
+          kpiMove={kpiMove}
+          s360Move={s360Move}
+          yearRows={yearRows}
+          yearDeptScores={yearDeptScores}
+          yearHas360={yearHas360}
         />
       </div>
     </Shell>

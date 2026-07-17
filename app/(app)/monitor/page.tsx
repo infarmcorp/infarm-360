@@ -8,8 +8,9 @@ import { trendOf } from '@/lib/trend';
 import { scoreMaps, penaltyMap, companyAverages, teamAverages } from '@/lib/team-metrics';
 import { TeamTable, type TeamRow } from '@/app/(app)/laporan-tim/team-table';
 import { TeamScorecards } from '@/app/(app)/laporan-tim/scorecards';
-import { MonitorTrends, type EmpMonthly, type PeriodTrendPoint } from './monitor-trends';
+import { MonitorTrends, type EmpMonthly, type PeriodTrendPoint, type MoverRow } from './monitor-trends';
 import { PeriodFilter } from './period-filter';
+import { DistBars } from './dist-bars';
 
 /**
  * Monitor Kinerja (SPV / HRD mode-SPV) — dashboard kinerja tim, bergaya Laporan Kinerja Tim:
@@ -144,6 +145,27 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
     .filter((e) => e.monthly.some((v) => v != null))
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  // D. Top Movers — selisih KPI per pegawai antara DUA periode berdata terakhir (rerata KPI
+  //    bulan-bulan tiap periode). Hanya pegawai yang bernilai di KEDUA periode (bisa dibandingkan).
+  const perPeriodKpi = (id: string, pid: string): number | null => {
+    const vals = (monthsByPeriod.get(pid) ?? []).map((ym) => kpiOf(id, ym)).filter(nn);
+    return vals.length ? mean(vals) : null;
+  };
+  const kpiPeriods = periodList.filter((p) => ids.some((id) => perPeriodKpi(id, p.id) != null));
+  const currP = kpiPeriods[kpiPeriods.length - 1] ?? null;
+  const prevP = kpiPeriods[kpiPeriods.length - 2] ?? null;
+  const moverLabels = currP && prevP ? { prev: prevP.label, curr: currP.label } : null;
+  const movers: MoverRow[] = (currP && prevP)
+    ? empRows
+        .map((e) => {
+          const c = perPeriodKpi(e.id, currP.id);
+          const pv = perPeriodKpi(e.id, prevP.id);
+          return c != null && pv != null ? { name: e.name, delta: c - pv, curr: c } : null;
+        })
+        .filter((m): m is MoverRow => m != null)
+        .sort((a, b) => b.delta - a.delta)
+    : [];
+
   return (
     <Shell>
       <Header coordinator={coordinatorView} />
@@ -155,11 +177,15 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={sel.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
+          <DistBars
+            kpiPeople={rows.filter((r) => r.trend !== 'unread' && r.kpiAvg != null).map((r) => ({ name: r.name, value: r.kpiAvg as number }))}
+            s360People={sel.has_360 ? rows.filter((r) => r.s360 != null).map((r) => ({ name: r.name, value: r.s360 as number })) : null} />
           <TeamTable rows={rows} linkNames={false} showStatus={false} showAcc={false} scoreBasis="live" />
         </div>
       )}
       <MonitorTrends periodsTrend={periodsTrend} monthLabels={monthLabels}
-        teamMonthly={teamMonthly} employees={employeesMonthly} has360={anyHas360} />
+        teamMonthly={teamMonthly} employees={employeesMonthly} has360={anyHas360}
+        movers={movers} moverLabels={moverLabels} />
     </Shell>
   );
 }

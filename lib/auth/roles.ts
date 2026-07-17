@@ -19,7 +19,7 @@ export function canAdmin(m: ActorRow | null | undefined): boolean {
  * daftar baku yang dicentang HRD Admin. Setiap kunci memetakan ke satu halaman/menu admin.
  */
 export const HRD_SECTIONS = [
-  'pegawai', 'periode', 'pemetaan', 'pertanyaan', 'bobot',
+  'pegawai', 'struktur', 'periode', 'pemetaan', 'pertanyaan', 'bobot',
   'progress', 'kepatuhan', 'laporan', 'dashboard', 'ekspor', 'audit',
 ] as const;
 export type HrdSection = (typeof HRD_SECTIONS)[number];
@@ -27,6 +27,7 @@ export type HrdSection = (typeof HRD_SECTIONS)[number];
 /** Label Indonesia tiap bagian — dipakai di dialog "Atur Akses" Kelola Pegawai. */
 export const HRD_SECTION_LABELS: Record<HrdSection, string> = {
   pegawai: 'Kelola Pegawai',
+  struktur: 'Struktur Organisasi',
   periode: 'Kelola Periode',
   pemetaan: 'Pemetaan 360°',
   pertanyaan: 'Kelola Pertanyaan',

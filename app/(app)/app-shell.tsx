@@ -77,6 +77,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewe
     if (adminItems.length) sections.push({ title: 'Menu Administrator', items: adminItems });
 
     const monitorItems = filterAdmin([
+      { href: '/admin/struktur', label: 'Struktur Organisasi', icon: Building2, section: 'struktur' },
       { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard, section: 'dashboard' },
       { href: '/kpi?tab=riwayat', label: 'Monitoring & Audit KPI', icon: Clock, section: 'audit' },
       { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText, section: 'audit' },

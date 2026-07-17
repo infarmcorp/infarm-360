@@ -36,6 +36,8 @@ function revalidate() {
   // penilaian rekan (target nonaktif hilang, reaktivasi muncul lagi) tanpa tunggu cache.
   revalidatePath('/admin/progress');
   revalidatePath('/penilaian');
+  // Perubahan peran/grant/koordinator/atasan/aktif langsung tercermin di Struktur Organisasi.
+  revalidatePath('/admin/struktur');
 }
 
 /**

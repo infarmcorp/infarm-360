@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canAdmin } from '@/lib/auth/roles';
+import { canSection } from '@/lib/auth/roles';
 import { PegawaiClient, type EmpRow, type SpvOpt } from './pegawai-client';
 import { PegawaiImport } from './pegawai-import';
 
@@ -12,13 +12,13 @@ export default async function PegawaiPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
-  if (!canAdmin(me)) {
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
+  if (!canSection(me, 'pegawai')) {
     return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin.</p></Shell>;
   }
 
   const { data: emps } = await supabase
-    .from('employees').select('id, emp_code, name, dept, role, is_hrd_admin, is_external, is_cross_reviewer, is_coordinator, is_active, joined_on, left_on').order('emp_code');
+    .from('employees').select('id, emp_code, name, dept, role, is_hrd_admin, is_external, is_cross_reviewer, is_coordinator, hrd_sections, is_active, joined_on, left_on').order('emp_code');
   const list = emps ?? [];
 
   // Atasan per pegawai (1 SPV utama untuk tampilan; relasi DB tetap many-to-many).
@@ -50,7 +50,7 @@ export default async function PegawaiPage() {
     const spvId = spvByEmp.get(e.id) ?? null;
     return {
       id: e.id, empCode: e.emp_code, name: e.name, dept: e.dept, role: e.role,
-      isHrdAdmin: e.is_hrd_admin, isExternal: e.is_external, isCrossReviewer: e.is_cross_reviewer, isCoordinator: e.is_coordinator, active: e.is_active, email: emailById.get(e.id) ?? '',
+      isHrdAdmin: e.is_hrd_admin, isExternal: e.is_external, isCrossReviewer: e.is_cross_reviewer, isCoordinator: e.is_coordinator, hrdSections: e.hrd_sections, active: e.is_active, email: emailById.get(e.id) ?? '',
       joinedOn: e.joined_on, leftOn: e.left_on,
       spvId, spvName: spvId ? nameById.get(spvId) ?? null : null,
     };
@@ -73,7 +73,7 @@ export default async function PegawaiPage() {
         </div>
         <PegawaiImport rows={rows} />
       </div>
-      <PegawaiClient rows={rows} spvs={spvs} depts={depts} coordTeams={coordTeams} />
+      <PegawaiClient rows={rows} spvs={spvs} depts={depts} coordTeams={coordTeams} meId={user.id} />
     </Shell>
   );
 }

@@ -18,8 +18,8 @@ export interface Database {
   public: {
     Tables: {
       employees: {
-        Row: { id: string; emp_code: string; name: string; dept: string; role: UserRole; is_hrd_admin: boolean; is_external: boolean; is_cross_reviewer: boolean; is_coordinator: boolean; is_active: boolean; joined_on: string | null; left_on: string | null; created_at: string };
-        Insert: { id: string; emp_code: string; name: string; dept: string; role?: UserRole; is_hrd_admin?: boolean; is_external?: boolean; is_cross_reviewer?: boolean; is_coordinator?: boolean; is_active?: boolean; joined_on?: string | null; left_on?: string | null };
+        Row: { id: string; emp_code: string; name: string; dept: string; role: UserRole; is_hrd_admin: boolean; is_external: boolean; is_cross_reviewer: boolean; is_coordinator: boolean; hrd_sections: string[] | null; is_active: boolean; joined_on: string | null; left_on: string | null; created_at: string };
+        Insert: { id: string; emp_code: string; name: string; dept: string; role?: UserRole; is_hrd_admin?: boolean; is_external?: boolean; is_cross_reviewer?: boolean; is_coordinator?: boolean; hrd_sections?: string[] | null; is_active?: boolean; joined_on?: string | null; left_on?: string | null };
         Update: Partial<Database['public']['Tables']['employees']['Insert']>;
         Relationships: [];
       };

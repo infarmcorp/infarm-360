@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canAdmin, isHrdDept } from '@/lib/auth/roles';
+import { canAdmin, isHrdDept, HRD_SECTIONS } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 
 /**
@@ -156,6 +156,49 @@ export async function setCoordinatorTeam(coordinatorId: string, employeeIds: unk
   });
   revalidate();
   return { ok: true, msg: `Tim koordinasi disimpan (${clean.length} pegawai).` };
+}
+
+/**
+ * Atur AKSES HRD GRANULAR (Jalur A, migrasi 0023): batasi rekan HRD ke sebagian halaman admin.
+ *   sections = null / []  → AKSES PENUH (semua bagian).
+ *   sections = [..]        → hanya bagian tercantum (subset katalog HRD_SECTIONS).
+ * Hanya berlaku untuk pemegang izin HRD Admin (sections tak berarti bagi non-admin).
+ * ⚠️ Pembatasan tingkat MENU/UI — pemegang grant tetap is_hrd() penuh di RLS (rekan tepercaya).
+ * Hanya HRD yang boleh; tercatat di Log Aktivitas HRD.
+ */
+export async function setHrdSections(employeeId: string, sections: unknown): Promise<Result> {
+  const parsed = z.object({
+    employeeId: z.string().uuid(),
+    // null = akses penuh; array = subset katalog (nilai di luar katalog ditolak).
+    sections: z.array(z.enum(HRD_SECTIONS)).nullable(),
+  }).safeParse({ employeeId, sections });
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  const { employeeId: id, sections: secs } = parsed.data;
+
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return auth;
+  // Cegah kunci-diri: HRD tak boleh membatasi akun sendiri (bisa hilang akses Kelola Pegawai).
+  if (auth.userId === id) return { ok: false, error: 'Tidak dapat mengubah akses Anda sendiri.' };
+
+  const { data: target } = await supabase.from('employees').select('name, is_hrd_admin').eq('id', id).maybeSingle();
+  if (!target?.is_hrd_admin) return { ok: false, error: 'Akses per-halaman hanya untuk pemegang izin HRD Admin.' };
+
+  // null / kosong disimpan sebagai NULL (akses penuh) — konsisten dgn canSection.
+  const value = secs && secs.length ? [...new Set(secs)] : null;
+  const { error } = await supabase.from('employees').update({ hrd_sections: value }).eq('id', id);
+  if (error) return { ok: false, error: 'Gagal menyimpan akses: ' + error.message };
+
+  await logHrdAction({
+    action: 'employee.set_hrd_sections', category: 'pegawai',
+    summary: value
+      ? `Membatasi akses HRD ${target.name ?? id} ke ${value.length} bagian`
+      : `Memberi akses HRD penuh (semua bagian) untuk ${target.name ?? id}`,
+    targetType: 'employee', targetId: id, targetLabel: target.name ?? null,
+    meta: { sections: value },
+  });
+  revalidate();
+  return { ok: true, msg: value ? `Akses dibatasi ke ${value.length} bagian.` : 'Akses penuh (semua bagian) diberikan.' };
 }
 
 const Role = z.enum(['employee', 'spv', 'hrd', 'direksi']);

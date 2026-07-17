@@ -22,7 +22,13 @@ const ROLE_LABEL: Record<Role, string> = {
   employee: 'Pegawai Operasional', spv: 'Supervisor (SPV)', hrd: 'HRD Admin', direksi: 'Direktur',
 };
 
-function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewer: boolean, isCoordinator: boolean): Section[] {
+type AdminItem = Item & { section?: string };
+
+function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewer: boolean, isCoordinator: boolean, hrdSections: string[] | null): Section[] {
+  // Akses HRD granular (Jalur A, migrasi 0023): hrd_sections NULL/kosong = akses penuh;
+  // berisi daftar = hanya bagian tercantum. Item tanpa `section` (mis. Suksesi) selalu tampil.
+  const allowSec = (s?: string) => !s || !hrdSections || hrdSections.length === 0 || hrdSections.includes(s);
+  const filterAdmin = (items: AdminItem[]) => items.filter((it) => allowSec(it.section));
   // Tampilan admin hanya bila punya izin HRD (canAdmin) DAN sedang di mode admin.
   // Mode "posisi-asli" (base) = bukan adminView; HRD-posisi base = perlakuan SPV (legacy).
   const adminView = canAdmin && hrdMode === 'admin';
@@ -57,29 +63,26 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewe
 
   // Dual-mode: 'admin' → alat administrator (butuh izin HRD); 'base' → tugas posisi asli.
   if (adminView) {
-    sections.push({
-      title: 'Menu Administrator',
-      items: [
-        { href: '/admin/pegawai', label: 'Kelola Pegawai', icon: UserCog },
-        { href: '/admin/periode', label: 'Kelola Periode', icon: CalendarRange },
-        { href: '/admin/pemetaan', label: 'Pemetaan 360°', icon: Network },
-        { href: '/admin/pertanyaan', label: 'Kelola Pertanyaan', icon: HelpCircle },
-        { href: '/admin/bobot', label: 'Bobot & Kalkulasi 360°', icon: Scale },
-        { href: '/admin/progress', label: 'Progress 360 Feedback', icon: CircleCheckBig },
-        { href: '/admin/kepatuhan', label: 'Flag Kepatuhan', icon: ShieldAlert },
-        { href: '/admin/laporan', label: 'Review Hasil Akhir', icon: ClipboardCheck },
-        { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award },
-      ],
-    });
-    sections.push({
-      title: 'Pemantauan',
-      items: [
-        { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
-        { href: '/kpi?tab=riwayat', label: 'Monitoring & Audit KPI', icon: Clock },
-        { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText },
-        { href: '/admin/ekspor', label: 'Ekspor Dataset', icon: Download },
-      ],
-    });
+    const adminItems = filterAdmin([
+      { href: '/admin/pegawai', label: 'Kelola Pegawai', icon: UserCog, section: 'pegawai' },
+      { href: '/admin/periode', label: 'Kelola Periode', icon: CalendarRange, section: 'periode' },
+      { href: '/admin/pemetaan', label: 'Pemetaan 360°', icon: Network, section: 'pemetaan' },
+      { href: '/admin/pertanyaan', label: 'Kelola Pertanyaan', icon: HelpCircle, section: 'pertanyaan' },
+      { href: '/admin/bobot', label: 'Bobot & Kalkulasi 360°', icon: Scale, section: 'bobot' },
+      { href: '/admin/progress', label: 'Progress 360 Feedback', icon: CircleCheckBig, section: 'progress' },
+      { href: '/admin/kepatuhan', label: 'Flag Kepatuhan', icon: ShieldAlert, section: 'kepatuhan' },
+      { href: '/admin/laporan', label: 'Review Hasil Akhir', icon: ClipboardCheck, section: 'laporan' },
+      { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award },
+    ]);
+    if (adminItems.length) sections.push({ title: 'Menu Administrator', items: adminItems });
+
+    const monitorItems = filterAdmin([
+      { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard, section: 'dashboard' },
+      { href: '/kpi?tab=riwayat', label: 'Monitoring & Audit KPI', icon: Clock, section: 'audit' },
+      { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText, section: 'audit' },
+      { href: '/admin/ekspor', label: 'Ekspor Dataset', icon: Download, section: 'ekspor' },
+    ]);
+    if (monitorItems.length) sections.push({ title: 'Pemantauan', items: monitorItems });
   }
 
   if (role === 'direksi') {
@@ -103,15 +106,15 @@ const TODO_DOT: Record<TodoTone, string> = {
 };
 
 export function AppShell({
-  role, canAdmin, isCrossReviewer = false, isCoordinator = false, hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, children,
+  role, canAdmin, isCrossReviewer = false, isCoordinator = false, hrdSections = null, hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, children,
 }: {
-  role: Role; canAdmin: boolean; isCrossReviewer?: boolean; isCoordinator?: boolean; hrdMode: HrdMode; name: string; dept: string; empCode: string;
+  role: Role; canAdmin: boolean; isCrossReviewer?: boolean; isCoordinator?: boolean; hrdSections?: string[] | null; hrdMode: HrdMode; name: string; dept: string; empCode: string;
   periodLabel: string | null; periodActive: boolean; periodDaysLeft?: number | null;
   todos: TodoItem[]; children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const sections = menuFor(role, canAdmin, hrdMode, isCrossReviewer, isCoordinator);
+  const sections = menuFor(role, canAdmin, hrdMode, isCrossReviewer, isCoordinator, hrdSections);
 
   const isActive = (href: string) => {
     const path = href.split('?')[0];

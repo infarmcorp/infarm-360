@@ -1,0 +1,18 @@
+-- 0023_employee_hrd_sections
+-- Akses HRD granular per-halaman (Jalur A — pembatasan tingkat MENU/UI).
+-- HRD Admin dapat membatasi rekan HRD lain ke SEBAGIAN halaman admin saja.
+--
+-- Semantik `hrd_sections`:
+--   NULL / array kosong  → AKSES PENUH (semua bagian) — perilaku lama, backward-compatible.
+--   berisi daftar bagian → HANYA bagian yang tercantum yang boleh dibuka.
+-- Katalog bagian (dikunci di lib/auth/roles.ts HRD_SECTIONS): pegawai, periode, pemetaan,
+-- pertanyaan, bobot, progress, kepatuhan, s360, laporan, dashboard, ekspor, audit.
+--
+-- ⚠️ CATATAN KEAMANAN (Jalur A): ini pembatasan tingkat MENU + guard halaman, BUKAN batas
+-- keamanan di database. Pemegang grant tetap `is_hrd_admin` → `is_hrd()` tetap TRUE di RLS,
+-- sehingga secara teknis masih bisa membaca data sensitif lewat API langsung. Cocok untuk
+-- pembagian tugas antar rekan HRD TEPERCAYA. Batas NYATA (RLS per-bagian/divisi) = Jalur B,
+-- ditunda. Jangan menyiratkan ke pengguna bahwa ini gembok data.
+--
+-- Aditif & backward-compatible (default NULL → semua HRD lama tetap akses penuh).
+alter table employees add column if not exists hrd_sections text[];

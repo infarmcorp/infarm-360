@@ -7,11 +7,51 @@
  * agar pemegang grant berposisi non-HRD tetap lolos. Selaras dengan RLS `is_hrd()`
  * yang juga = `role='hrd' OR is_hrd_admin`.
  */
-export type ActorRow = { role?: string | null; is_hrd_admin?: boolean | null; is_cross_reviewer?: boolean | null; is_coordinator?: boolean | null };
+export type ActorRow = { role?: string | null; is_hrd_admin?: boolean | null; is_cross_reviewer?: boolean | null; is_coordinator?: boolean | null; hrd_sections?: string[] | null };
 
 /** Boleh mengoperasikan fitur HRD Admin? = posisi HRD ATAU diberi grant is_hrd_admin. */
 export function canAdmin(m: ActorRow | null | undefined): boolean {
   return m?.role === 'hrd' || !!m?.is_hrd_admin;
+}
+
+/**
+ * Katalog TETAP bagian HRD (untuk akses granular per-halaman, migrasi 0023). Bukan URL bebas —
+ * daftar baku yang dicentang HRD Admin. Setiap kunci memetakan ke satu halaman/menu admin.
+ */
+export const HRD_SECTIONS = [
+  'pegawai', 'periode', 'pemetaan', 'pertanyaan', 'bobot',
+  'progress', 'kepatuhan', 'laporan', 'dashboard', 'ekspor', 'audit',
+] as const;
+export type HrdSection = (typeof HRD_SECTIONS)[number];
+
+/** Label Indonesia tiap bagian — dipakai di dialog "Atur Akses" Kelola Pegawai. */
+export const HRD_SECTION_LABELS: Record<HrdSection, string> = {
+  pegawai: 'Kelola Pegawai',
+  periode: 'Kelola Periode',
+  pemetaan: 'Pemetaan 360°',
+  pertanyaan: 'Kelola Pertanyaan',
+  bobot: 'Bobot & Kalkulasi 360°',
+  progress: 'Progress 360°',
+  kepatuhan: 'Flag Kepatuhan',
+  laporan: 'Review Hasil Akhir',
+  dashboard: 'Dashboard Organisasi',
+  ekspor: 'Ekspor Dataset',
+  audit: 'Log Aktivitas & Audit KPI',
+};
+
+/**
+ * Boleh membuka bagian admin `section`? (akses HRD granular, Jalur A / migrasi 0023).
+ *   - Bukan HRD (canAdmin false) → selalu false.
+ *   - `hrd_sections` NULL / kosong → AKSES PENUH (semua bagian) — perilaku lama.
+ *   - berisi daftar → hanya bagian yang tercantum.
+ * ⚠️ Ini pembatasan tingkat MENU + guard halaman (rekan HRD tepercaya), BUKAN batas RLS:
+ * pemegang grant tetap is_hrd() penuh di database. Batas data nyata = Jalur B (ditunda).
+ */
+export function canSection(m: ActorRow | null | undefined, section: HrdSection): boolean {
+  if (!canAdmin(m)) return false;
+  const secs = m?.hrd_sections;
+  if (!secs || secs.length === 0) return true; // penuh (default)
+  return secs.includes(section);
 }
 
 /**

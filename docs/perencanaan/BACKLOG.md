@@ -45,8 +45,14 @@ di **[CHANGELOG.md](CHANGELOG.md)**; panduan durable di **[CLAUDE.md](../../CLAU
     (`setCrossReviewer` + badge/tombol "Peninjau"); menu base `app-shell.tsx` ("Review Lintas Divisi");
     `AspectSummaryEditor` dapat prop `saveAction`. Audit `employee.grant/revoke_cross_reviewer` &
     `crossreview.save_summary` (lewat `logAuditAsService`, pelaku non-HRD).
-- ⬜ **Akses HRD granular penuh (per-bagian)** (diminta 2026-06-30, DITUNDA): grant HRD saat ini
-  **semua-atau-tidak** (`is_hrd_admin` → `canAdmin()` penuh; lihat `lib/auth/roles.ts`). Permintaan
+- 🔄 **Akses HRD granular per-bagian** (diminta 2026-06-30). **Jalur A (pembatasan menu) SELESAI
+  2026-07-17:** kolom `employees.hrd_sections text[]` (migrasi 0023; NULL=penuh) + helper `canSection`
+  (`lib/auth/roles.ts`, katalog 11 bagian) + filter menu (`app-shell.tsx`) + guard 11 halaman admin +
+  dialog "Atur Akses" di Kelola Pegawai (`setHrdSections`, grid centang, anti kunci-diri). ⚠️ **Batas
+  MENU saja** — pemegang grant tetap `is_hrd()` penuh di RLS (rekan HRD tepercaya), BUKAN gembok data.
+  **Jalur B (batas nyata: refactor action→service_role + RLS per-bagian/divisi + lingkup "divisi
+  sendiri saja") MASIH DITUNDA.** Konteks awal ↓:
+  - grant HRD saat ini **semua-atau-tidak** (`is_hrd_admin` → `canAdmin()` penuh; lihat `lib/auth/roles.ts`). Permintaan
   (diskusi 2026-06-30): HRD ingin **memberi akses per-halaman berbeda per pegawai** (mis. A→{1,2,3},
   B→{4,5,6}), **bisa berubah sewaktu-waktu & tak harus runut**. **Kesimpulan diskusi: ini LAYAK & tak
   membuat app "terlalu dinamis"** — yang berubah adalah **data**, bukan kode (pola RBAC standar).

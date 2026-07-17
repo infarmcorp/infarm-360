@@ -5,7 +5,7 @@ import { Download, Users, Settings, BarChart3, MessageSquareText, ScrollText } f
 import {
   exportEmployees, exportKpi, exportKpiAudit, exportPenalties, exportRekap,
   exportAssessments, exportQualAnswers, exportMappings, exportAspectSummaries,
-  exportSummary360, exportPeriodConfig, exportHrdAuditLog, type ExportResult, type Sheet,
+  exportSummary360, exportAspectScores, exportPeriodConfig, exportHrdAuditLog, type ExportResult, type Sheet,
 } from './actions';
 
 type PeriodOpt = { id: string; label: string; active: boolean };
@@ -97,11 +97,12 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
     },
     {
       key: 'f360', title: 'Penilaian 360° Lengkap', icon: MessageSquareText, tint: 'violet', scoped: true,
-      desc: <><strong>4 lembar</strong> (semua <strong>anonim penilai</strong>): <strong>Ringkasan per Pegawai</strong> (jml penilai per kelas · Nilai Atasan/Internal/Self · Nilai 360° · Gap · Skala 100) · Kuantitatif (rating per indikator) · Kualitatif (esai) · Ringkasan Naratif HRD.</>,
+      desc: <><strong>5 lembar</strong> (semua <strong>anonim penilai</strong>): <strong>Ringkasan per Pegawai</strong> (jml penilai per kelas · Nilai Atasan/Internal/Self · Nilai 360° · Gap · Skala 100) · <strong>Rekap Aspek</strong> (Skor 360° terbobot &amp; Nilai Diri per aspek budaya) · Kuantitatif (rating per indikator) · Kualitatif (esai) · Ringkasan Naratif HRD.</>,
       go: () => run('f360', async () => {
-        const [ringkas, quant, qual, naratif] = await Promise.all([exportSummary360(pid()), exportAssessments(pid()), exportQualAnswers(pid()), exportAspectSummaries(pid())]);
+        const [ringkas, aspek, quant, qual, naratif] = await Promise.all([exportSummary360(pid()), exportAspectScores(pid()), exportAssessments(pid()), exportQualAnswers(pid()), exportAspectSummaries(pid())]);
         const sheets: Sheet[] = [
           { name: 'Ringkasan per Pegawai', rows: rowsOf(ringkas) },
+          { name: 'Rekap Aspek', rows: rowsOf(aspek) },
           { name: 'Kuantitatif', rows: rowsOf(quant) },
           { name: 'Kualitatif', rows: rowsOf(qual) },
           { name: 'Ringkasan Naratif', rows: rowsOf(naratif) },

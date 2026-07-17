@@ -461,6 +461,92 @@ export async function exportSummary360(periodId?: string | null): Promise<Export
   return { ok: true, rows };
 }
 
+/**
+ * Rekap Nilai per ASPEK BUDAYA (ANONIM penilai) — per pegawai × aspek: Skor 360° TERBOBOT
+ * (others per kelas via weightedScore360, konsisten dgn radar/laporan) + Nilai Diri (self) +
+ * Gap. Bulk memakai primitif TERKUNCI lib/score360 (bukan 52× loadReport). Skala 0–100.
+ */
+export async function exportAspectScores(periodId?: string | null): Promise<ExportResult> {
+  if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
+  const admin = createAdminClient();
+  const [{ data: emps }, { data: periodsAll }, asmtRes, { data: maps }, { data: ws }, { data: inds }, { data: aspects }] = await Promise.all([
+    admin.from('employees').select('id, emp_code, name, dept'),
+    admin.from('periods').select('id, label, start_date').order('start_date'),
+    (periodId
+      ? admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted').eq('period_id', periodId)
+      : admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted')),
+    (periodId
+      ? admin.from('mappings').select('assessor_id, target_id, period_id, relation').eq('period_id', periodId)
+      : admin.from('mappings').select('assessor_id, target_id, period_id, relation')),
+    (periodId
+      ? admin.from('weight_schemes').select('period_id, model, weights').eq('is_active', true).eq('period_id', periodId)
+      : admin.from('weight_schemes').select('period_id, model, weights').eq('is_active', true)),
+    admin.from('indicators').select('id, aspect_id'),
+    admin.from('culture_aspects').select('id, period_id, name, order_idx'),
+  ]);
+  const empById = new Map((emps ?? []).map((e) => [e.id, e]));
+  const periodLabel = new Map((periodsAll ?? []).map((p) => [p.id, p.label]));
+  const wsByPeriod = new Map((ws ?? []).map((w) => [w.period_id, { model: w.model as '4class' | '2class', weights: w.weights as WeightValues }]));
+  const relBy = new Map((maps ?? []).map((m) => [`${m.assessor_id}|${m.target_id}|${m.period_id}`, m.relation as RelationKind]));
+  const aspectOf = new Map((inds ?? []).map((i) => [i.id, i.aspect_id])); // indikator → aspek
+  const aspectMeta = new Map((aspects ?? []).map((a) => [a.id, { name: a.name, ord: a.order_idx ?? 0 }]));
+
+  const asmts = asmtRes.data ?? [];
+  const asmtIds = asmts.map((a) => a.id);
+  // rating per (assessment|aspek) → mean ×20 = skor penilai utk aspek itu (meniru loadReport).
+  const ratByAsmtAspect = new Map<string, number[]>();
+  if (asmtIds.length) {
+    const sc = await fetchAllChunked<{ assessment_id: string; indicator_id: string; rating: number | null }>(asmtIds, (chunk, from, to) =>
+      admin.from('assessment_indicator_scores').select('assessment_id, indicator_id, rating')
+        .in('assessment_id', chunk).order('assessment_id').order('indicator_id').range(from, to));
+    sc.forEach((s) => {
+      if (s.rating == null) return;
+      const aid = aspectOf.get(s.indicator_id); if (!aid) return;
+      const k = `${s.assessment_id}|${aid}`;
+      const arr = ratByAsmtAspect.get(k) ?? []; arr.push(s.rating); ratByAsmtAspect.set(k, arr);
+    });
+  }
+
+  // Grup skor per-penilai ke kelas, per (periode|target|aspek). Self dikelompokkan terpisah.
+  const asmtById = new Map(asmts.map((a) => [a.id, a]));
+  const groups = new Map<string, Groups360>();
+  for (const [k, ratings] of ratByAsmtAspect) {
+    const sep = k.indexOf('|');
+    const asmtId = k.slice(0, sep), aid = k.slice(sep + 1);
+    const a = asmtById.get(asmtId); if (!a) continue;
+    const m = avg(ratings); if (m == null) continue;
+    const score100 = m * 20; if (score100 <= 0) continue;
+    const rel: RelationKind = a.assessor_id === a.target_id ? 'Self' : relBy.get(`${a.assessor_id}|${a.target_id}|${a.period_id}`) ?? 'Peer';
+    const gk = `${a.period_id}|${a.target_id}|${aid}`;
+    const g = groups.get(gk) ?? { atasan: [], peer: [], cross: [], bawahan: [], self: [] };
+    g[classOf(rel)].push(score100);
+    groups.set(gk, g);
+  }
+
+  const out: { periode: string; nama: string; ord: number; row: Row }[] = [];
+  for (const [gk, g] of groups) {
+    const p1 = gk.indexOf('|'), p2 = gk.indexOf('|', p1 + 1);
+    const pid = gk.slice(0, p1), tid = gk.slice(p1 + 1, p2), aid = gk.slice(p2 + 1);
+    const emp = empById.get(tid); const asp = aspectMeta.get(aid);
+    if (!emp || !asp) continue;
+    const wsp = wsByPeriod.get(pid);
+    const s100 = wsp ? weightedScore360(g, wsp.model, wsp.weights) : null; // 360° terbobot (self dikecualikan)
+    const self100 = avg(g.self);
+    const skor360 = s100 != null ? r2(s100) : null;
+    const skorDiri = self100 != null ? r2(self100) : null;
+    out.push({
+      periode: periodLabel.get(pid) ?? '', nama: emp.name, ord: asp.ord,
+      row: {
+        periode: periodLabel.get(pid) ?? '', kode: emp.emp_code, nama: emp.name, divisi: emp.dept,
+        aspek: asp.name, skor_360: skor360, skor_diri: skorDiri,
+        gap_diri_vs_360: skorDiri != null && skor360 != null ? r2(skorDiri - skor360) : null,
+      },
+    });
+  }
+  out.sort((a, b) => a.periode.localeCompare(b.periode) || a.nama.localeCompare(b.nama) || a.ord - b.ord);
+  return { ok: true, rows: out.map((o) => o.row) };
+}
+
 /** Ringkas nilai bobot jadi string "Atasan 40% · Peer 25% · …" sesuai model. */
 function weightsSummary(model: string | null, w: Record<string, number> | null): string {
   if (!model || !w) return '—';

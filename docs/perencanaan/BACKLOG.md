@@ -51,7 +51,9 @@ di **[CHANGELOG.md](CHANGELOG.md)**; panduan durable di **[CLAUDE.md](../../CLAU
   dialog "Atur Akses" di Kelola Pegawai (`setHrdSections`, grid centang, anti kunci-diri). ⚠️ **Batas
   MENU saja** — pemegang grant tetap `is_hrd()` penuh di RLS (rekan HRD tepercaya), BUKAN gembok data.
   **Jalur B (batas nyata: refactor action→service_role + RLS per-bagian/divisi + lingkup "divisi
-  sendiri saja") MASIH DITUNDA.** Konteks awal ↓:
+  sendiri saja") MASIH DITUNDA.** Visi lanjutan (halaman Manajemen Akses: toggle akses SPV/Koordinator
+  ke kinerja tim + Dashboard berlingkup + sub-tab Audit Akses status/riwayat) → spec di
+  **[docs/pengembangan/DESAIN-MANAJEMEN-AKSES.md](../pengembangan/DESAIN-MANAJEMEN-AKSES.md)**. Konteks awal ↓:
   - grant HRD saat ini **semua-atau-tidak** (`is_hrd_admin` → `canAdmin()` penuh; lihat `lib/auth/roles.ts`). Permintaan
   (diskusi 2026-06-30): HRD ingin **memberi akses per-halaman berbeda per pegawai** (mis. A→{1,2,3},
   B→{4,5,6}), **bisa berubah sewaktu-waktu & tak harus runut**. **Kesimpulan diskusi: ini LAYAK & tak

@@ -150,8 +150,9 @@ Ditujukan untuk pegawai (mis. divisi HRD) yang **membantu HRD meringkas** Hasil 
 **tanpa** boleh melihat hasil rekan **sedivisinya sendiri** (jaga konflik kepentingan/privasi).
 
 Menu **"Review Lintas Divisi"** muncul di Navigasi Utama. Di dalamnya:
-- **Daftar pegawai divisi LAIN** (divisi Anda sendiri sengaja **tidak ditampilkan**) + skor, status,
-  & kelengkapan "dinilai oleh X/Y". Cari/filter divisi. Klik **Tinjau**.
+- **Daftar pegawai divisi LAIN** (divisi Anda sendiri sengaja **tidak ditampilkan**) + skor, **status**,
+  **keterangan ACC** (badge "✓ ACC" bila laporan sudah di-ACC atasannya — membantu memprioritaskan
+  penulisan ringkasan), & kelengkapan "dinilai oleh X/Y". Cari/filter divisi. Klik **Tinjau**.
 - **Detail pegawai:** Skor Akhir, **radar/aspek**, & **komentar anonim** (tanpa nama penilai), lalu
   Anda bisa **menulis Ringkasan Aspek** (tersimpan otomatis).
 - **Yang TIDAK bisa Anda lakukan:** merilis ke SPV, memfinalisasi, mengubah skor/bobot, atau melihat
@@ -291,6 +292,13 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
      untuk **daftar pegawai naungannya** (dipilih lewat dialog **"Tim Koordinasi"**). Ditandai badge
      **"Koordinator"**. **Tidak** memengaruhi 360°; **bukan** akses HRD penuh. (Lihat **Akses Khusus:
      Koordinator Tim** di atas.)
+   - 🎛️ **Atur Akses** (hanya untuk pemegang **Izin HRD Admin**) — batasi **rekan HRD** ke **sebagian
+     halaman admin** saja. Dialog **Akses penuh** ↔ **Akses terbatas** (grid centang bagian: Kelola
+     Pegawai, Struktur Organisasi, Periode, Pemetaan, Pertanyaan, Bobot, Progress, Kepatuhan, Review
+     Hasil Akhir, Dashboard, Ekspor, Log). Badge berubah jadi **"HRD (N)"** saat dibatasi. **Anda tak
+     bisa membatasi akun sendiri** (cegah terkunci). ⚠️ Ini pembatasan **tampilan menu** untuk
+     pembagian tugas antar rekan HRD **tepercaya** — **bukan** gembok data (pemegang izin secara teknis
+     masih bisa mengakses data; batas data sungguhan menyusul terpisah).
    > **Pembatasan (per 2026-07-15):** tombol **Izin HRD Admin** & **Peninjau** hanya muncul/boleh
    > diberikan untuk pegawai **divisi HRD** (nama divisi diawali "HRD") — server menolak grant untuk
    > non-HRD. **Pencabutan** izin tetap boleh untuk siapa pun.
@@ -378,18 +386,18 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
 Unduh data mentah **Excel (.xlsx)** untuk olah data lanjutan (pivot/statistik/BI). Pilih
 **Periode** lewat dropdown (atau **Semua Periode**) — berlaku untuk dataset ber-periode;
 **Pegawai** selalu lintas periode. Dataset tersedia:
-- **Pegawai (Master)** — kode, nama, divisi, peran, status, atasan, email.
-- **KPI Bulanan** — skor KPI per pegawai per bulan (format panjang).
-- **Log Audit KPI** — jejak perubahan KPI: bulan, skor, pengubah, waktu, catatan.
-- **Kepatuhan / Punishment** — poin punishment per pegawai, alasan, penetap.
-- **Rekap Kinerja per Periode** — KPI rerata, Skor 360°, punishment, Skor Akhir, kategori, A/B/C/D.
-- **Penilaian 360° Detail (anonim penilai)** — per pegawai dinilai: relasi, **aspek budaya**
-  (mis. "Jujur & Tanggung Jawab"), indikator, rating, komentar (**identitas penilai sengaja
-  tidak disertakan**).
-- **Umpan Balik Kualitatif 360° (esai, anonim)** — jawaban pertanyaan esai per pegawai dinilai:
-  relasi, pertanyaan, jawaban (**tanpa identitas penilai**; beda dari komentar per-indikator di
-  dataset di atas — ini jawaban esai terpisah).
-- **Pemetaan 360°** — pasangan penilai→target, relasi, sifat.
+Dataset dirangkai jadi beberapa **file multi-lembar** (bukan banyak unduhan terpisah):
+- **Pegawai (Master)** — 1 lembar, lintas periode: kode, nama, divisi, peran, status, atasan, email.
+- **Konfigurasi Periode Lengkap** — 6 lembar: Ringkasan · Bobot Penilai · Bulan KPI · Aspek & Indikator ·
+  Pertanyaan Esai · **Pemetaan 360°** (pasangan penilai→target, relasi, sifat).
+- **Kinerja Lengkap per Periode** — 4 lembar: **Rekap** (KPI rerata · Skor 360° · punishment · Skor Akhir ·
+  kategori · 4-Box) · KPI Bulanan · Audit KPI · Punishment.
+- **Penilaian 360° Lengkap** — 5 lembar (semua **anonim penilai**): **Ringkasan per Pegawai** (per kelas
+  penilai + Nilai 360°/Gap) · **Rekap Aspek** (Skor 360° **terbobot** & Nilai Diri **per aspek budaya** +
+  gap diri-vs-360°, cocok dengan radar laporan) · **Kuantitatif** (rating per indikator) · **Kualitatif**
+  (jawaban esai) · **Ringkasan Naratif** HRD. Identitas penilai **tidak** disertakan.
+- **Log Aktivitas HRD** — 1 lembar, lintas periode: jejak audit aksi HRD (waktu · pelaku · kategori · aksi ·
+  ringkasan · target · detail), terbaru di atas.
 
 > Data sensitif (nama, skor, komentar) — simpan & bagikan file dengan bertanggung jawab.
 > Nama file menyertakan periode terpilih untuk memudahkan arsip.
@@ -448,6 +456,10 @@ di kolom Aksi — **nama pegawai tidak bisa diklik lagi**.
 - Di atas tabel ada **tombol "Hitung Ulang Skor 360° (semua)"** (tak perlu pindah ke halaman Bobot),
   **chip ringkasan** "⚠ N pegawai: penilaian berubah — perlu hitung ulang", + pintasan **"⚖ Atur Bobot"**
   & **"⚑ Flag Kepatuhan"**.
+- **Tombol "Finalisasi Semua Ber-ACC (N)"** (di atas Atur Bobot/Flag) — memfinalisasi **sekaligus** semua
+  laporan yang **sudah di-ACC** (SPV/Koordinator/Direksi) & masih **Ditinjau**, tanpa membuka satu per satu.
+  Ada **konfirmasi** + peringatan bila ada yang Skor 360°-nya **perlu Hitung Ulang** dulu; laporan yang
+  skornya belum bisa dihitung (KPI & 360° kosong) **dilewati**. Tombol muncul hanya bila ada kandidat.
 - **Kolom KPI** = rerata KPI + indikator **"X/Y bulan"** (**amber** bila belum semua bulan terisi;
   hover menampilkan bulan yang masih kosong).
 - **Kolom 360°** = skor 360° terhitung; **"belum"** bila belum dihitung; **"N/A"** bila periode tanpa
@@ -628,12 +640,28 @@ divisi). Skor Akhir mengikuti flag **360° aktif/nonaktif** periode terpilih (KP
   (default periode aktif) agar klasifikasi adil. Semua pegawai ditampilkan di tiap kotak.
 - **Periode tanpa 360°:** pada 4-Box hanya **B (High KPI)** atau **C** yang mungkin —
   **A & B (High Culture) tidak tersedia** (butuh sumbu 360°).
+- **Data 1 sumbu (saat 360° aktif):** pegawai yang baru punya **salah satu** sumbu (KPI saja **atau**
+  360° saja) **belum diklasifikasi** A/B/C — ditaruh di kelompok **"Data Belum Lengkap (1 Sumbu)"** di
+  tab Kompilasi & badge **"—\*"** di Tabel, agar tak "melompat" kategori begitu sumbu kedua masuk.
 - **Catatan:** Matriks **9-Box** **tidak lagi ditampilkan** di dashboard (dihapus atas permintaan).
   Rumus 9-Box tetap ada di kode (`lib/scoring.ts`, terkunci & teruji) bila kelak diperlukan.
 
 #### Tabel Hasil Seluruh Pegawai
 - Kolom **A/B/C Player** per pegawai (selaras Matriks 4-Box). Pegawai **nonaktif** yang masih
   tampil (punya data periode) diberi penanda **"nonaktif"** di sebelah nama.
+
+### Struktur Organisasi (Pemantauan)
+Pandangan **read-only** struktur perusahaan saat ini — dihitung dari data pegawai (**tak mengubah
+apa pun**) dan **otomatis mengikuti** perubahan di Kelola Pegawai (jadikan koordinator, ganti atasan,
+aktif/nonaktif, grant → langsung tercermin). Toggle **Bagan / Daftar**:
+- **Bagan** — pohon **menurun** (atasan → bawahan menjorok ke bawah; lebar tetap ringkas berapa pun
+  jumlah staf). Kotak berwarna per peran (Direksi/Supervisor/Staf) + badge grant (HRD/KOOR/PJU).
+  **Pegawai berkoordinator tampil di bawah koordinatornya** (cabang teal), **bukan** langsung SPV.
+  Klik kotak yang punya bawahan untuk **lipat/buka**.
+- **Daftar** — pencarian + bagian **Direksi**, **Lini Pelaporan** (SPV → tim langsung), **Koordinasi**
+  (koordinator → binaan), **pegawai tanpa atasan** (peringatan bila ada), & **ringkasan per divisi**.
+
+> Masuk **katalog Atur Akses** (bagian "Struktur Organisasi") → bisa dibuka/dibatasi per rekan HRD.
 
 ---
 
@@ -955,6 +983,9 @@ Badge **Status** & **Skor Akhir** + badge **"berubah → N"** bila skor terkini 
   & bisa **Unduh PDF**. Bisa dari `draft` atau `in_review`. Memunculkan **konfirmasi lunak** bila
   Skor 360° perlu dihitung ulang atau KPI belum lengkap semua bulan (tidak memblokir keras). Sebelum
   final, pegawai tidak melihat apa pun. Untuk mengedit laporan yang sudah Final, **Kembalikan ke Draf** dulu.
+- **Finalisasi massal** (tombol **"Finalisasi Semua Ber-ACC (N)"** di daftar) → memfinalisasi sekaligus
+  semua laporan yang **sudah di-ACC** & masih **Ditinjau**; skor dihitung ulang per pegawai, yang
+  belum bisa dihitung dilewati, dengan konfirmasi + peringatan bila 360° perlu dihitung ulang dulu.
 - **Ringkasan Aspek** (naratif HRD per aspek) **tersimpan otomatis** (auto-simpan, tanpa tombol manual);
   **Rincian Komentar Murni** (anonim) menampilkan akumulasi rating + komentar per indikator
   & esai per pertanyaan (Self dikecualikan). **Yang tidak pernah ditampilkan ke SPV/Koordinator/Direksi
@@ -996,6 +1027,10 @@ langsung, ambang 80, tanpa D). *(Matriks 9-Box sudah dihapus dari tampilan dashb
 **Berdampak ke:** tidak mengubah data — dasar **pengambilan keputusan** (promosi, pembinaan).
 - Klasifikasi **sefase periode** lewat Panel Filter (KPI, 360°, Skor Akhir dari **periode
   yang dipilih**; default periode aktif).
+- Pegawai **1 sumbu** (KPI saja / 360° saja, saat 360° aktif) masuk kelompok **"Data Belum Lengkap
+  (1 Sumbu)"**, belum diklasifikasi A/B/C sampai kedua sumbu terisi.
+- **Struktur Organisasi** (Pemantauan, read-only): bagan menurun & daftar struktur saat ini —
+  otomatis mengikuti Kelola Pegawai; pegawai berkoordinator tampil di bawah koordinatornya.
 - Mengikuti flag **360°** periode (dari Kelola Periode, #1): periode tanpa 360° → pada 4-Box
   kategori **A & B-Culture** tidak tersedia (Skor Akhir = 100% KPI).
 
@@ -1004,6 +1039,9 @@ langsung, ambang 80, tanpa D). *(Matriks 9-Box sudah dihapus dari tampilan dashb
 **Pegawai** atau **SPV** bisa **diberi izin HRD Admin** tanpa kehilangan posisi/tim aslinya.
 **Pemberian izin:** di **Kelola Pegawai**, tekan tombol **perisai** pada baris pegawai (badge "HRD"
 muncul). Hanya HRD Admin yang boleh memberi/mencabut; tercatat di **Log Aktivitas HRD**.
+**Akses terbatas (opsional):** tombol **Atur Akses** (🎛️) pada pemegang izin HRD membatasi rekan ke
+**sebagian halaman admin** saja (badge jadi "HRD (N)"). Ini pembatasan **tampilan menu** untuk pembagian
+tugas rekan HRD **tepercaya** — **bukan** gembok data; dan **tak bisa** diterapkan ke akun sendiri.
 **Cara berganti topi:** pemegang izin melihat tombol **Mode Admin ↔ Mode Pegawai/SPV** di sidebar.
 - **Saat login** mendarat di **Mode posisi-asli** (aman); masuk **Mode Admin** disengaja via tombol.
 - **Mode posisi-asli:** Pegawai → isi 360° & Laporan Hasil Saya; SPV → Menu Supervisor (tim).

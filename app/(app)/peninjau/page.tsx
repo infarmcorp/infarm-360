@@ -53,8 +53,9 @@ export default async function PeninjauPage() {
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
   const { data: pen } = await admin.from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id).in('employee_id', empIds);
   const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
-  const { data: reports } = await admin.from('final_reports').select('employee_id, status').eq('period_id', ap.id).in('employee_id', empIds);
+  const { data: reports } = await admin.from('final_reports').select('employee_id, status, spv_acc').eq('period_id', ap.id).in('employee_id', empIds);
   const statusBy = new Map((reports ?? []).map((r) => [r.employee_id, r.status]));
+  const accBy = new Map((reports ?? []).map((r) => [r.employee_id, !!r.spv_acc]));
 
   // Kelengkapan "dinilai oleh" berbasis penilai WAJIB (selaras Review Hasil Akhir).
   // TANPA filter is_active (lihat catatan di Review Hasil Akhir): pegawai nonaktif tetap akurat.
@@ -80,6 +81,7 @@ export default async function PeninjauPage() {
     return {
       id: e.id, name: e.name, dept: e.dept, kpiAvg, s360, final,
       status: statusBy.get(e.id) ?? null,
+      spvAcc: accBy.get(e.id) ?? false,
       ratedDone: ratedDone.get(e.id) ?? 0, ratedTotal: ratedTotal.get(e.id) ?? 0,
     };
   })

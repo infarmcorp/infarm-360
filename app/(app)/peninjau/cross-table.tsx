@@ -10,6 +10,7 @@ export type CrossRow = {
   s360: number | null;
   final: number | null;
   status: ReportStatus | null;
+  spvAcc: boolean;
   ratedDone: number; ratedTotal: number;
 };
 
@@ -52,7 +53,7 @@ export function CrossTable({ rows, depts, has360 }: { rows: CrossRow[]; depts: s
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm min-w-[720px]">
+        <table className="w-full text-left text-sm min-w-[780px]">
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
               <th className="py-2 pr-3">Pegawai</th>
@@ -62,12 +63,13 @@ export function CrossTable({ rows, depts, has360 }: { rows: CrossRow[]; depts: s
               <th className="py-2 px-3 text-center">Skor Akhir</th>
               {has360 && <th className="py-2 px-3 text-center">Dinilai oleh</th>}
               <th className="py-2 px-3 text-center">Status</th>
+              <th className="py-2 px-3 text-center">ACC</th>
               <th className="py-2 pl-3 text-right">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {shown.length === 0 && (
-              <tr><td colSpan={has360 ? 8 : 7} className="py-6 text-center text-gray-500 italic">Tidak ada pegawai sesuai filter.</td></tr>
+              <tr><td colSpan={has360 ? 9 : 8} className="py-6 text-center text-gray-500 italic">Tidak ada pegawai sesuai filter.</td></tr>
             )}
             {shown.map((r) => (
               <tr key={r.id}>
@@ -101,6 +103,11 @@ export function CrossTable({ rows, depts, has360 }: { rows: CrossRow[]; depts: s
                     : r.status === 'draft'
                     ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">Draf</span>
                     : <span className="text-[10px] text-gray-500">—</span>}
+                </td>
+                <td className="py-3 px-3 text-center">
+                  {r.spvAcc
+                    ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200" title="Laporan sudah di-ACC atasan (SPV/Koordinator/Direksi)">✓ ACC</span>
+                    : <span className="text-[10px] text-gray-500" title="Belum di-ACC atasan">—</span>}
                 </td>
                 <td className="py-3 pl-3 text-right">
                   <Link href={`/peninjau/${r.id}`}

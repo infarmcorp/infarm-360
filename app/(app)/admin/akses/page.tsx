@@ -30,14 +30,15 @@ export default async function AdminAksesPage() {
 
   const admin = createAdminClient();
   const [{ data: empData }, { data: grantData }, { data: coordData }] = await Promise.all([
-    admin.from('employees').select('id, name, dept, role, is_hrd_admin, is_cross_reviewer, is_coordinator, hrd_sections').eq('is_external', false).order('dept').order('name'),
+    admin.from('employees').select('id, name, dept, role, is_external, is_hrd_admin, is_cross_reviewer, is_coordinator, hrd_sections').eq('is_external', false).order('dept').order('name'),
     admin.from('page_grants').select('employee_id, section, scope'),
-    admin.from('coordinator_team_members').select('coordinator_id'),
+    admin.from('coordinator_team_members').select('coordinator_id, employee_id'),
   ]);
 
-  // Jumlah anggota per koordinator (untuk rincian audit).
-  const coordCount = new Map<string, number>();
-  (coordData ?? []).forEach((c) => coordCount.set(c.coordinator_id, (coordCount.get(c.coordinator_id) ?? 0) + 1));
+  // Tim per koordinator (untuk dialog + audit): coordinator_id → daftar employee_id + jumlah.
+  const coordTeams: Record<string, string[]> = {};
+  (coordData ?? []).forEach((c) => { (coordTeams[c.coordinator_id] ??= []).push(c.employee_id); });
+  const coordCount = new Map<string, number>(Object.entries(coordTeams).map(([k, v]) => [k, v.length]));
 
   // Peta grant per pegawai: employee_id → { section → scope }.
   const grantsByEmp = new Map<string, Record<string, string>>();
@@ -52,7 +53,11 @@ export default async function AdminAksesPage() {
     name: e.name,
     dept: e.dept ?? '—',
     role: e.role,
+    isExternal: !!e.is_external,
     isHrdAdmin: !!e.is_hrd_admin,
+    isCrossReviewer: !!e.is_cross_reviewer,
+    isCoordinator: !!e.is_coordinator,
+    hrdSections: e.hrd_sections ?? null,
     grants: grantsByEmp.get(e.id) ?? {},
   }));
 
@@ -86,7 +91,7 @@ export default async function AdminAksesPage() {
   return (
     <Shell>
       <Header />
-      <AksesClient employees={employees} pages={pages} scopes={scopes} />
+      <AksesClient employees={employees} pages={pages} scopes={scopes} coordTeams={coordTeams} meId={user.id} />
       <AksesAudit rows={auditRows} />
     </Shell>
   );

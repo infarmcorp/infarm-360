@@ -26,11 +26,6 @@ export default async function PegawaiPage() {
   const spvByEmp = new Map<string, string>();
   (teams ?? []).forEach((t) => { if (!spvByEmp.has(t.employee_id)) spvByEmp.set(t.employee_id, t.spv_id); });
 
-  // Tim koordinator: coordinator_id → daftar employee_id yang dinaunginya (untuk prefill dialog).
-  const { data: coordTeamRows } = await supabase.from('coordinator_team_members').select('coordinator_id, employee_id');
-  const coordTeams: Record<string, string[]> = {};
-  (coordTeamRows ?? []).forEach((t) => { (coordTeams[t.coordinator_id] ??= []).push(t.employee_id); });
-
   // Email dari auth (service_role, tak pernah sampai ke klien selain milik baris pegawai).
   const emailById = new Map<string, string>();
   try {
@@ -73,7 +68,7 @@ export default async function PegawaiPage() {
         </div>
         <PegawaiImport rows={rows} />
       </div>
-      <PegawaiClient rows={rows} spvs={spvs} depts={depts} coordTeams={coordTeams} meId={user.id} />
+      <PegawaiClient rows={rows} spvs={spvs} depts={depts} />
     </Shell>
   );
 }

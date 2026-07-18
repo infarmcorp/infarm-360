@@ -1,9 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { UserPlus, Pencil, KeyRound, Power, X, ShieldCheck, ScanEye, Users, ListChecks, SlidersHorizontal } from 'lucide-react';
-import { createEmployee, updateEmployee, setEmployeeActive, resetPassword, setHrdAdmin, setCrossReviewer, setCoordinator, setCoordinatorTeam, setHrdSections } from './actions';
-import { isHrdDept, HRD_SECTIONS, HRD_SECTION_LABELS, type HrdSection } from '@/lib/auth/roles';
+import { UserPlus, Pencil, KeyRound, Power, X } from 'lucide-react';
+import { createEmployee, updateEmployee, setEmployeeActive, resetPassword } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
@@ -48,7 +47,7 @@ function fmtDate(s: string | null): string {
   return y && m && d ? `${d}/${m}/${y}` : s;
 }
 
-export function PegawaiClient({ rows, spvs, depts, coordTeams, meId }: { rows: EmpRow[]; spvs: SpvOpt[]; depts: string[]; coordTeams: Record<string, string[]>; meId: string }) {
+export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: SpvOpt[]; depts: string[] }) {
   const [q, setQ] = useState('');
   const [fRole, setFRole] = useState<'all' | Role>('all');
   const [fStatus, setFStatus] = useState<'all' | 'active' | 'inactive'>('all');
@@ -56,8 +55,6 @@ export function PegawaiClient({ rows, spvs, depts, coordTeams, meId }: { rows: E
   const [form, setForm] = useState<FormState | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [reset, setReset] = useState<{ r: EmpRow; pw: string } | null>(null); // dialog reset sandi
-  const [coordTeam, setCoordTeam] = useState<{ r: EmpRow; selected: Set<string>; q: string } | null>(null); // dialog tim koordinator
-  const [sectionsDlg, setSectionsDlg] = useState<{ r: EmpRow; full: boolean; selected: Set<string> } | null>(null); // dialog akses HRD granular
   const [pending, start] = useTransition();
   // Gulir ke form saat dibuka (tambah/edit) — form dirender di atas, jadi tanpa ini
   // edit baris bawah membuat form muncul di luar layar. openTick memicu efek tiap buka.
@@ -148,45 +145,6 @@ export function PegawaiClient({ rows, spvs, depts, coordTeams, meId }: { rows: E
   function doReset(r: EmpRow) {
     setToast(null);
     setReset({ r, pw: randPass() });
-  }
-  function openCoordTeam(r: EmpRow) {
-    setToast(null);
-    setCoordTeam({ r, selected: new Set(coordTeams[r.id] ?? []), q: '' });
-  }
-  function toggleMember(id: string) {
-    setCoordTeam((c) => {
-      if (!c) return c;
-      const s = new Set(c.selected);
-      if (s.has(id)) s.delete(id); else s.add(id);
-      return { ...c, selected: s };
-    });
-  }
-  function submitCoordTeam() {
-    if (!coordTeam) return;
-    const { r, selected } = coordTeam;
-    setCoordTeam(null);
-    act(() => setCoordinatorTeam(r.id, [...selected]));
-  }
-  function openSections(r: EmpRow) {
-    setToast(null);
-    const restricted = !!r.hrdSections && r.hrdSections.length > 0;
-    setSectionsDlg({ r, full: !restricted, selected: new Set(r.hrdSections ?? []) });
-  }
-  function toggleSection(s: string) {
-    setSectionsDlg((d) => {
-      if (!d) return d;
-      const sel = new Set(d.selected);
-      if (sel.has(s)) sel.delete(s); else sel.add(s);
-      return { ...d, selected: sel };
-    });
-  }
-  function submitSections() {
-    if (!sectionsDlg) return;
-    const { r, full, selected } = sectionsDlg;
-    // Akses penuh → null; terbatas → array (kosong pun disimpan null = penuh, dijaga server).
-    const payload = full || selected.size === 0 ? null : [...selected];
-    setSectionsDlg(null);
-    act(() => setHrdSections(r.id, payload));
   }
   function submitReset() {
     if (!reset) return;
@@ -339,19 +297,8 @@ export function PegawaiClient({ rows, spvs, depts, coordTeams, meId }: { rows: E
                 <td className="py-3 px-3 text-xs text-gray-600">{r.dept}</td>
                 <td className="py-3 px-3">
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{ROLE_LABEL[r.role]}</span>
-                  {r.isHrdAdmin && r.role !== 'hrd' && (
-                    <span className="ml-1 inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700"
-                      title={r.hrdSections && r.hrdSections.length > 0 ? `Izin HRD Admin — akses terbatas ke ${r.hrdSections.length} bagian` : 'Punya izin HRD Admin (grant) — akses penuh'}>
-                      <ShieldCheck className="w-2.5 h-2.5" /> HRD{r.hrdSections && r.hrdSections.length > 0 ? ` (${r.hrdSections.length})` : ''}</span>
-                  )}
                   {r.isExternal && (
                     <span className="ml-1 inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800" title="Penilai eksternal (vendor/freelance) — hanya menilai, bukan dinilai">Eksternal</span>
-                  )}
-                  {r.isCrossReviewer && (
-                    <span className="ml-1 inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700" title="Peninjau Hasil Lintas Divisi — boleh meringkas hasil divisi LAIN (bukan divisinya sendiri)"><ScanEye className="w-2.5 h-2.5" /> Peninjau</span>
-                  )}
-                  {r.isCoordinator && (
-                    <span className="ml-1 inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700" title="Koordinator — lihat Laporan Kinerja Tim untuk pegawai yang dinaunginya"><Users className="w-2.5 h-2.5" /> Koordinator{coordTeams[r.id]?.length ? ` (${coordTeams[r.id].length})` : ''}</span>
                   )}
                 </td>
                 <td className="py-3 px-3 text-xs text-gray-500">{r.spvName ?? '—'}</td>
@@ -372,35 +319,6 @@ export function PegawaiClient({ rows, spvs, depts, coordTeams, meId }: { rows: E
                   <button type="button" onClick={() => act(() => setEmployeeActive(r.id, !r.active))} disabled={pending}
                     title={r.active ? 'Nonaktifkan' : 'Aktifkan'}
                     className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg disabled:opacity-60 ${r.active ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-700 hover:bg-emerald-50'}`}><Power className="w-3.5 h-3.5" /></button>
-                  {/* Grant HRD Admin & Peninjau HANYA untuk pegawai divisi HRD (kebijakan). Tetap
-                      tampil bila terlanjur ter-grant di divisi lain, agar bisa DICABUT. */}
-                  {r.role !== 'direksi' && r.role !== 'hrd' && (isHrdDept(r.dept) || r.isHrdAdmin) && (
-                    <button type="button" onClick={() => act(() => setHrdAdmin(r.id, !r.isHrdAdmin))} disabled={pending}
-                      title={r.isHrdAdmin ? 'Cabut izin HRD Admin' : 'Beri izin HRD Admin'}
-                      className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg disabled:opacity-60 ${r.isHrdAdmin ? 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-500 hover:bg-gray-100'}`}><ShieldCheck className="w-3.5 h-3.5" /></button>
-                  )}
-                  {/* Atur Akses per-halaman (Jalur A) — hanya untuk pemegang izin HRD Admin, & bukan
-                      akun sendiri (cegah kunci-diri). Badge menampilkan jumlah bagian bila dibatasi. */}
-                  {r.isHrdAdmin && r.id !== meId && (
-                    <button type="button" onClick={() => openSections(r)} disabled={pending}
-                      title="Atur akses halaman untuk rekan HRD ini"
-                      className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg disabled:opacity-60 ${r.hrdSections && r.hrdSections.length > 0 ? 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100' : 'text-gray-500 hover:bg-gray-100'}`}><SlidersHorizontal className="w-3.5 h-3.5" /></button>
-                  )}
-                  {r.role !== 'direksi' && r.role !== 'hrd' && (isHrdDept(r.dept) || r.isCrossReviewer) && (
-                    <button type="button" onClick={() => act(() => setCrossReviewer(r.id, !r.isCrossReviewer))} disabled={pending}
-                      title={r.isCrossReviewer ? 'Cabut izin Peninjau Lintas Divisi' : 'Beri izin Peninjau Hasil Lintas Divisi (meringkas hasil divisi lain)'}
-                      className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg disabled:opacity-60 ${r.isCrossReviewer ? 'text-violet-700 bg-violet-50 hover:bg-violet-100' : 'text-gray-500 hover:bg-gray-100'}`}><ScanEye className="w-3.5 h-3.5" /></button>
-                  )}
-                  {r.role === 'employee' && (
-                    <button type="button" onClick={() => act(() => setCoordinator(r.id, !r.isCoordinator))} disabled={pending}
-                      title={r.isCoordinator ? 'Cabut peran Koordinator' : 'Jadikan Koordinator (lihat Laporan Kinerja Tim pegawai yang dinaunginya)'}
-                      className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg disabled:opacity-60 ${r.isCoordinator ? 'text-teal-700 bg-teal-50 hover:bg-teal-100' : 'text-gray-500 hover:bg-gray-100'}`}><Users className="w-3.5 h-3.5" /></button>
-                  )}
-                  {r.isCoordinator && (
-                    <button type="button" onClick={() => openCoordTeam(r)} disabled={pending}
-                      title="Kelola pegawai yang dinaungi koordinator ini"
-                      className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg text-teal-700 hover:bg-teal-50 disabled:opacity-60"><ListChecks className="w-3.5 h-3.5" /></button>
-                  )}
                 </td>
               </tr>
             ))}
@@ -434,90 +352,6 @@ export function PegawaiClient({ rows, spvs, depts, coordTeams, meId }: { rows: E
           <button type="button" onClick={() => setReset((s) => (s ? { ...s, pw: randPass() } : s))}
             className="text-[11px] font-bold px-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 shrink-0">Acak</button>
         </div>
-      </ConfirmDialog>
-
-      <ConfirmDialog
-        open={!!coordTeam}
-        icon="👥"
-        title={coordTeam ? `Tim Koordinasi — ${coordTeam.r.name}` : ''}
-        tone="primary"
-        confirmLabel={coordTeam ? `Simpan (${coordTeam.selected.size})` : 'Simpan'}
-        busy={pending}
-        onConfirm={submitCoordTeam}
-        onCancel={() => { if (!pending) setCoordTeam(null); }}
-      >
-        <p>Pilih pegawai yang dinaungi koordinator ini. Koordinator hanya dapat <strong>melihat</strong> Laporan Kinerja Tim mereka (tanpa input KPI/ACC).</p>
-        <input
-          value={coordTeam?.q ?? ''}
-          onChange={(e) => setCoordTeam((c) => (c ? { ...c, q: e.target.value } : c))}
-          placeholder="Cari nama / kode / divisi…"
-          className="w-full text-sm px-2.5 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-600"
-        />
-        <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
-          {coordTeam && (() => {
-            const term = coordTeam.q.trim().toLowerCase();
-            const cands = rows.filter((r) =>
-              r.id !== coordTeam.r.id && !r.isExternal && r.role !== 'direksi' &&
-              (!term || `${r.name} ${r.empCode} ${r.dept}`.toLowerCase().includes(term)));
-            if (cands.length === 0) return <p className="text-xs text-gray-500 italic p-3">Tidak ada pegawai cocok.</p>;
-            return cands.map((r) => {
-              const checked = coordTeam.selected.has(r.id);
-              return (
-                <label key={r.id} className={`flex items-center gap-2 px-2.5 py-1.5 cursor-pointer hover:bg-gray-50 ${checked ? 'bg-teal-50/60' : ''}`}>
-                  <input type="checkbox" checked={checked} onChange={() => toggleMember(r.id)} className="accent-teal-600" />
-                  <span className="text-xs text-gray-800 font-semibold">{r.name}</span>
-                  <span className="text-[10px] text-gray-500 font-mono">{r.empCode} · {r.dept}</span>
-                  {!r.active && <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600">nonaktif</span>}
-                </label>
-              );
-            });
-          })()}
-        </div>
-      </ConfirmDialog>
-
-      <ConfirmDialog
-        open={!!sectionsDlg}
-        icon="🧩"
-        title={sectionsDlg ? `Atur Akses HRD — ${sectionsDlg.r.name}` : ''}
-        tone="primary"
-        confirmLabel={sectionsDlg ? (sectionsDlg.full ? 'Simpan (Akses penuh)' : `Simpan (${sectionsDlg.selected.size})`) : 'Simpan'}
-        busy={pending}
-        onConfirm={submitSections}
-        onCancel={() => { if (!pending) setSectionsDlg(null); }}
-      >
-        <p>Batasi halaman admin yang boleh dibuka rekan HRD ini. <strong>Akses penuh</strong> = semua bagian (perilaku lama).</p>
-        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
-          ⚠️ Ini pembatasan <strong>tampilan menu</strong>, bukan gembok data: pemegang izin HRD tetap
-          bisa membaca data lewat cara teknis. Cocok untuk pembagian tugas antar rekan HRD tepercaya.
-        </p>
-        <div className="space-y-1.5">
-          <label className="flex items-center gap-2 cursor-pointer text-sm">
-            <input type="radio" name="hrd-scope" checked={!!sectionsDlg?.full}
-              onChange={() => setSectionsDlg((d) => (d ? { ...d, full: true } : d))} className="accent-emerald-600" />
-            <span className="font-semibold text-gray-800">Akses penuh (semua bagian)</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer text-sm">
-            <input type="radio" name="hrd-scope" checked={!sectionsDlg?.full}
-              onChange={() => setSectionsDlg((d) => (d ? { ...d, full: false } : d))} className="accent-emerald-600" />
-            <span className="font-semibold text-gray-800">Akses terbatas — centang bagian yang diizinkan:</span>
-          </label>
-        </div>
-        {sectionsDlg && !sectionsDlg.full && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 border border-gray-200 rounded-lg p-2 max-h-64 overflow-y-auto">
-            {HRD_SECTIONS.map((s) => {
-              const checked = sectionsDlg.selected.has(s);
-              return (
-                <label key={s} className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-gray-50 ${checked ? 'bg-indigo-50/70' : ''}`}>
-                  <input type="checkbox" checked={checked} onChange={() => toggleSection(s)} className="accent-indigo-600" />
-                  <span className="text-xs text-gray-800">{HRD_SECTION_LABELS[s as HrdSection]}</span>
-                </label>
-              );
-            })}
-          </div>
-        )}
-        {sectionsDlg && !sectionsDlg.full && sectionsDlg.selected.size === 0 && (
-          <p className="text-[11px] text-gray-500 italic">Tak ada bagian dicentang → disimpan sebagai akses penuh.</p>
-        )}
       </ConfirmDialog>
 
       <style>{`.inp{width:100%;font-size:.8rem;padding:.5rem .65rem;border:1px solid #d1d5db;border-radius:.5rem;outline:none}.inp:focus{box-shadow:0 0 0 2px #047857}`}</style>

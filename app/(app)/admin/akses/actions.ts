@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { isFullHrd, GRANTABLE_PAGES, PAGE_SCOPES, GRANTABLE_PAGE_LABELS, PAGE_SCOPE_LABELS, type GrantablePage, type PageScope } from '@/lib/auth/roles';
+import { isFullHrd, GRANTABLE_PAGES, PAGE_SCOPES, GRANTABLE_PAGE_LABELS, GRANTABLE_PAGE_KIND, PAGE_SCOPE_LABELS, type GrantablePage, type PageScope } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 
 /**
@@ -32,16 +32,20 @@ const GrantInput = z.object({
   employeeId: z.string().uuid(),
   section: z.enum(GRANTABLE_PAGES),
   scope: z.enum(PAGE_SCOPES),
+  canEdit: z.boolean(),
 });
 
 /**
  * Beri/ubah akses halaman ber-lingkup untuk seorang pegawai (upsert per (orang, halaman)).
- * Ubah scope = panggil lagi dengan scope berbeda. Ditulis via service_role.
+ * Ubah scope/edit = panggil lagi dengan nilai berbeda. Ditulis via service_role. `canEdit` hanya
+ * bermakna untuk halaman jenis 'administrator' (dinormalkan false untuk 'pemantauan').
  */
-export async function setPageGrant(employeeId: string, section: unknown, scope: unknown): Promise<Result> {
-  const parsed = GrantInput.safeParse({ employeeId, section, scope });
+export async function setPageGrant(employeeId: string, section: unknown, scope: unknown, canEdit: unknown = false): Promise<Result> {
+  const parsed = GrantInput.safeParse({ employeeId, section, scope, canEdit: !!canEdit });
   if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
   const { employeeId: id, section: sec, scope: scp } = parsed.data;
+  // Halaman pemantauan selalu lihat-saja → paksa can_edit=false apa pun yang dikirim.
+  const edit = GRANTABLE_PAGE_KIND[sec as GrantablePage] === 'administrator' ? parsed.data.canEdit : false;
 
   const supabase = await createClient();
   const auth = await requireFullHrd(supabase);
@@ -53,16 +57,17 @@ export async function setPageGrant(employeeId: string, section: unknown, scope: 
   // Upsert lewat service_role (page_grants tanpa policy tulis untuk pengguna biasa).
   const admin = createAdminClient();
   const { error } = await admin.from('page_grants')
-    .upsert({ employee_id: id, section: sec, scope: scp, created_by: auth.userId }, { onConflict: 'employee_id,section' });
+    .upsert({ employee_id: id, section: sec, scope: scp, can_edit: edit, created_by: auth.userId }, { onConflict: 'employee_id,section' });
   if (error) return { ok: false, error: 'Gagal menyimpan akses: ' + error.message };
 
+  const editNote = GRANTABLE_PAGE_KIND[sec as GrantablePage] === 'administrator' ? (edit ? ', boleh edit' : ', hanya lihat') : '';
   await logHrdAction({
     action: 'access.set_page_grant', category: 'pegawai',
-    summary: `Memberi akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" (${PAGE_SCOPE_LABELS[scp as PageScope]}) untuk ${target.name ?? id}`,
-    targetType: 'employee', targetId: id, targetLabel: target.name ?? null, meta: { section: sec, scope: scp },
+    summary: `Memberi akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" (${PAGE_SCOPE_LABELS[scp as PageScope]}${editNote}) untuk ${target.name ?? id}`,
+    targetType: 'employee', targetId: id, targetLabel: target.name ?? null, meta: { section: sec, scope: scp, can_edit: edit },
   });
   revalidate();
-  return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" diberikan (${PAGE_SCOPE_LABELS[scp as PageScope]}).` };
+  return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" diberikan (${PAGE_SCOPE_LABELS[scp as PageScope]}${editNote}).` };
 }
 
 /** Cabut akses halaman untuk seorang pegawai. Ditulis via service_role. */

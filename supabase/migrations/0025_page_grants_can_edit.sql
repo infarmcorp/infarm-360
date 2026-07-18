@@ -1,0 +1,14 @@
+-- 0025_page_grants_can_edit
+-- Dimensi EDIT untuk grant halaman (RBAC, lanjutan 0024). Untuk halaman "Menu Administrator"
+-- (dapat-edit, mis. Review Hasil Akhir), grant menyatakan apakah pemegang boleh MENGUBAH (finalisasi/
+-- simpan) atau HANYA MELIHAT. Halaman "Pemantauan" selalu lihat-saja → mengabaikan flag ini.
+--
+--   can_edit = false (default) → HANYA LIHAT (read-only)
+--   can_edit = true            → BOLEH EDIT (aksi tulis diizinkan, dicek server)
+--
+-- ⚠️ Penegakan edit ADA DI SERVER: aksi tulis mengecek grant (can_edit) + lingkup, lewat jalur yang
+-- benar (service_role bila pemegang bukan is_hrd(); pola Peninjau/Koordinator). Untuk pemegang yang
+-- is_hrd() (rekan HRD tepercaya), read-only bersifat app-level (sembunyi tombol + tolak aksi) —
+-- bukan gembok RLS. Aditif & backward-compatible: kolom baru default false; grant lama (mis. Monitor)
+-- tak terpengaruh karena halaman Pemantauan mengabaikan flag ini.
+alter table page_grants add column if not exists can_edit boolean not null default false;

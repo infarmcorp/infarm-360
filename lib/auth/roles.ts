@@ -86,6 +86,16 @@ export const GRANTABLE_PAGE_LABELS: Record<GrantablePage, string> = {
   monitor: 'Monitor Kinerja Pegawai',
 };
 
+/**
+ * Jenis halaman (menentukan apakah opsi EDIT relevan):
+ *   'pemantauan'    → selalu LIHAT-saja (mengabaikan can_edit).
+ *   'administrator' → dapat-edit: grant punya flag boleh-edit / hanya-lihat.
+ */
+export type PageKind = 'pemantauan' | 'administrator';
+export const GRANTABLE_PAGE_KIND: Record<GrantablePage, PageKind> = {
+  monitor: 'pemantauan',
+};
+
 /** Lingkup data sebuah grant halaman (ditegakkan server via service_role berfilter). */
 export const PAGE_SCOPES = ['all', 'own_division', 'other_divisions'] as const;
 export type PageScope = (typeof PAGE_SCOPES)[number];
@@ -98,7 +108,7 @@ export const PAGE_SCOPE_LABELS: Record<PageScope, string> = {
 };
 
 /** Satu baris grant halaman (subset kolom page_grants yang dibutuhkan untuk otorisasi). */
-export type PageGrantRow = { section: string; scope: string };
+export type PageGrantRow = { section: string; scope: string; can_edit?: boolean };
 
 /**
  * Lingkup yang diberikan kepada pemegang grant untuk halaman `page`, atau `null` bila tak diberi.
@@ -109,6 +119,17 @@ export function grantedScope(grants: PageGrantRow[] | null | undefined, page: Gr
   const g = grants?.find((x) => x.section === page);
   if (!g) return null;
   return (PAGE_SCOPES as readonly string[]).includes(g.scope) ? (g.scope as PageScope) : null;
+}
+
+/**
+ * Akses lengkap (lingkup + boleh-edit) untuk halaman `page`, atau `null` bila tak diberi. Dipakai
+ * halaman "administrator" (mis. Review Hasil Akhir) yang perlu tahu boleh mengubah atau hanya lihat.
+ * `canEdit` hanya bermakna untuk halaman jenis 'administrator'; 'pemantauan' selalu lihat-saja.
+ */
+export function grantedAccess(grants: PageGrantRow[] | null | undefined, page: GrantablePage): { scope: PageScope; canEdit: boolean } | null {
+  const g = grants?.find((x) => x.section === page);
+  if (!g || !(PAGE_SCOPES as readonly string[]).includes(g.scope)) return null;
+  return { scope: g.scope as PageScope, canEdit: !!g.can_edit };
 }
 
 /**

@@ -56,6 +56,62 @@ export function canSection(m: ActorRow | null | undefined, section: HrdSection):
 }
 
 /**
+ * HRD "PENUH" — pemegang izin HRD Admin yang TIDAK dibatasi `hrd_sections`. Hanya mereka yang boleh
+ * membuka halaman Manajemen Akses (`/admin/akses`) & mengubah grant halaman orang lain — agar rekan
+ * HRD yang aksesnya sudah dibatasi tak bisa menaikkan aksesnya sendiri. (Halaman Manajemen Akses
+ * SENGAJA di luar katalog HRD_SECTIONS; gerbangnya helper ini, bukan canSection.)
+ */
+export function isFullHrd(m: ActorRow | null | undefined): boolean {
+  if (!canAdmin(m)) return false;
+  const secs = m?.hrd_sections;
+  return !secs || secs.length === 0;
+}
+
+/**
+ * ── AKSES HALAMAN BER-LINGKUP (RBAC data-driven, migrasi 0024) ────────────────────────────────
+ * HRD Admin dapat MEMBERIKAN akses halaman tertentu ke pegawai non-HRD (SPV/Koordinator/Direksi/
+ * Employee) dengan LINGKUP data (seluruh pegawai / hanya divisinya / selain divisinya). Berbeda dari
+ * `hrd_sections` (yang membatasi rekan HRD ke SUBSET halaman admin) — ini MENAMBAH akses ke satu
+ * halaman untuk non-HRD, lengkap dengan lingkup yang ditegakkan server (service_role berfilter).
+ *
+ * KATALOG SENGAJA SEMPIT: HANYA halaman yang enforcement lingkupnya SUDAH ditegakkan di server boleh
+ * masuk sini. Jangan pernah menambah halaman ke katalog sebelum server benar-benar menyaring datanya
+ * per lingkup — menawarkan akses yang tak tersaring = rasa aman palsu (lawan prinsip app ini).
+ */
+export const GRANTABLE_PAGES = ['monitor'] as const;
+export type GrantablePage = (typeof GRANTABLE_PAGES)[number];
+
+/** Label Indonesia tiap halaman yang bisa diberikan — dipakai di halaman Manajemen Akses. */
+export const GRANTABLE_PAGE_LABELS: Record<GrantablePage, string> = {
+  monitor: 'Monitor Kinerja Pegawai',
+};
+
+/** Lingkup data sebuah grant halaman (ditegakkan server via service_role berfilter). */
+export const PAGE_SCOPES = ['all', 'own_division', 'other_divisions'] as const;
+export type PageScope = (typeof PAGE_SCOPES)[number];
+
+/** Label Indonesia tiap lingkup — dipakai di dialog pemberian akses. */
+export const PAGE_SCOPE_LABELS: Record<PageScope, string> = {
+  all: 'Seluruh pegawai',
+  own_division: 'Hanya divisinya',
+  other_divisions: 'Selain divisinya',
+};
+
+/** Satu baris grant halaman (subset kolom page_grants yang dibutuhkan untuk otorisasi). */
+export type PageGrantRow = { section: string; scope: string };
+
+/**
+ * Lingkup yang diberikan kepada pemegang grant untuk halaman `page`, atau `null` bila tak diberi.
+ * Dipakai di guard halaman & filter menu. Nilai scope tak dikenal diperlakukan sbagai tak-diberi
+ * (aman default-tutup). HRD penuh TIDAK lewat jalur ini — mereka pakai canSection.
+ */
+export function grantedScope(grants: PageGrantRow[] | null | undefined, page: GrantablePage): PageScope | null {
+  const g = grants?.find((x) => x.section === page);
+  if (!g) return null;
+  return (PAGE_SCOPES as readonly string[]).includes(g.scope) ? (g.scope as PageScope) : null;
+}
+
+/**
  * Boleh meninjau Hasil Akhir LINTAS DIVISI (selain divisinya sendiri)? = grant
  * `is_cross_reviewer` (migrasi 0018). Kapabilitas SEMPIT & terpisah dari HRD Admin:
  * hanya membuka jalur /peninjau (lihat + tulis Ringkasan Aspek untuk divisi lain),

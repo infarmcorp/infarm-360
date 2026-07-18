@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canSection } from '@/lib/auth/roles';
+import { canSection, grantedScope, type PageScope } from '@/lib/auth/roles';
 import { finalScoreOf, playerClassOf } from '@/lib/scoring';
 import { trendOf } from '@/lib/trend';
 import { scoreMaps, penaltyMap, teamAverages, companyAverages } from '@/lib/team-metrics';
@@ -38,11 +38,21 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
-  if (!canSection(me, 'dashboard')) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin (akses Dashboard Organisasi).</p>
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections, dept').eq('id', user.id).maybeSingle();
+  // Akses: HRD penuh (canSection dashboard) → lingkup 'all' (perilaku lama, tak berubah). Selain itu,
+  // pemegang grant halaman 'monitor' (SPV/Koordinator/Direksi/Employee) masuk dengan lingkup grant-nya.
+  const isHrdFull = canSection(me, 'dashboard');
+  let grantScope: PageScope | null = null;
+  if (!isHrdFull) {
+    // Dibaca lewat client user-scoped: RLS page_grants_self_read hanya memberi baris miliknya.
+    const { data: myGrants } = await supabase.from('page_grants').select('section, scope').eq('employee_id', user.id);
+    grantScope = grantedScope(myGrants, 'monitor');
+  }
+  if (!isHrdFull && !grantScope) {
+    return <Shell><p className="text-sm text-gray-600">Anda tidak memiliki akses ke halaman ini.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
+  const ownDept = (me?.dept ?? '').trim();
 
   const { data: periodRows } = await supabase
     .from('periods').select('id, label, has_360, status, start_date').order('start_date', { ascending: true });
@@ -55,16 +65,36 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   // Daftar divisi (untuk filter) + lingkup pegawai. Dibaca via service_role.
   const admin = createAdminClient();
   const { data: deptData } = await admin.from('employees').select('dept').eq('is_external', false);
-  const depts = [...new Set((deptData ?? []).map((d) => d.dept).filter((d): d is string => !!d))].sort();
-  const dept = deptParam && depts.includes(deptParam) ? deptParam : 'all';
-  const scopeLabel = dept === 'all' ? 'Semua divisi' : dept;
+  let depts = [...new Set((deptData ?? []).map((d) => d.dept).filter((d): d is string => !!d))].sort();
+  // Batasi daftar divisi yang boleh dipilih sesuai lingkup grant (HRD penuh = semua divisi).
+  if (grantScope === 'own_division') depts = depts.filter((d) => d === ownDept);
+  else if (grantScope === 'other_divisions') depts = depts.filter((d) => d !== ownDept);
 
-  // Lingkup: SELURUH pegawai internal, atau SATU divisi bila difilter.
+  // Divisi terpilih: hanya sah bila ada di daftar yang diizinkan. Untuk lingkup 'own_division',
+  // default = divisi sendiri (bukan 'all').
+  const dept = deptParam && depts.includes(deptParam)
+    ? deptParam
+    : (grantScope === 'own_division' ? (ownDept || 'all') : 'all');
+  const scopeLabel = dept === 'all'
+    ? (grantScope === 'other_divisions' ? 'Semua divisi lain' : 'Semua divisi')
+    : dept;
+
+  // Lingkup pegawai — ditegakkan di SERVER secara OTORITATIF (tak bergantung default `dept`, tak
+  // bisa dilewati lewat ?dept=):
+  //   own_division    → SELALU divisi pemegang grant (dept kosong → tak cocok siapa pun = aman);
+  //   other_divisions → divisi lain terpilih, atau semua SELAIN divisi pemegang grant bila 'all';
+  //   'all' (HRD penuh / grant 'all') → satu divisi bila difilter, atau seluruh pegawai internal.
   let empQuery = admin.from('employees').select('id, name, dept, is_active').eq('is_external', false);
-  if (dept !== 'all') empQuery = empQuery.eq('dept', dept);
+  if (grantScope === 'own_division') {
+    empQuery = empQuery.eq('dept', ownDept);
+  } else if (grantScope === 'other_divisions') {
+    empQuery = dept !== 'all' ? empQuery.eq('dept', dept) : empQuery.neq('dept', ownDept);
+  } else if (dept !== 'all') {
+    empQuery = empQuery.eq('dept', dept);
+  }
   const { data: empData } = await empQuery;
   const empRows = empData ?? [];
-  if (empRows.length === 0) return <Shell><Header /><Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} /><p className="text-sm text-gray-500 mt-4">Belum ada pegawai dalam lingkup ini.</p></Shell>;
+  if (empRows.length === 0) return <Shell><Header isHrdFull={isHrdFull} scopeLabel={scopeLabel} /><Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} /><p className="text-sm text-gray-500 mt-4">Belum ada pegawai dalam lingkup ini.</p></Shell>;
   const ids = empRows.map((e) => e.id);
 
   // ── Snapshot periode terpilih → scorecard + tabel ──────────────────────────
@@ -209,7 +239,7 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   const selAsp = sel.has_360 ? await aspOf(sel.id) : null;
   // Pembanding "vs organisasi" per aspek — hanya bermakna saat difilter divisi (dept≠all); saat
   // 'all' lingkup SUDAH = organisasi (delta akan selalu ±0), jadi tak ditampilkan.
-  const orgAspect = selAsp && dept !== 'all' ? await orgAspectAverages(sel.id) : null;
+  const orgAspect = selAsp && isHrdFull && dept !== 'all' ? await orgAspectAverages(sel.id) : null;
   const teamAspect = selAsp
     ? selAsp.names.map((nm) => {
         const vals = ids.map((id) => selAsp.byEmp.get(id)?.get(nm)).filter((v): v is number => v != null);
@@ -220,11 +250,11 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
 
   // #5 Pembanding divisi-vs-organisasi: saat filter divisi aktif, hitung rata-rata ORGANISASI
   // (seluruh internal non-direksi) untuk periode ini → delta "vs rata-rata organisasi" di scorecard.
-  const orgAvg = dept !== 'all' ? await companyAverages(sel.id) : null;
+  const orgAvg = isHrdFull && dept !== 'all' ? await companyAverages(sel.id) : null;
 
   return (
     <Shell>
-      <Header />
+      <Header isHrdFull={isHrdFull} scopeLabel={scopeLabel} />
       <Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} />
 
       {rows.length === 0 && (
@@ -333,19 +363,21 @@ function Toolbar({ periods, current, depts, dept }: { periods: { id: string; lab
   return <MonitorFilters periods={periods} currentPeriod={current} depts={depts} currentDept={dept} />;
 }
 
-function Header() {
+function Header({ isHrdFull = true, scopeLabel }: { isHrdFull?: boolean; scopeLabel?: string }) {
   return (
     <div className="flex items-center justify-between">
       <div>
         <h1 className="text-xl font-bold text-gray-800">Monitor Kinerja Pegawai</h1>
         <p className="text-sm text-gray-500">
-          Pemantauan kinerja seluruh pegawai — snapshot per periode &amp; tren lintas waktu.
+          Pemantauan kinerja {scopeLabel ? <span className="font-semibold text-gray-600">{scopeLabel}</span> : 'seluruh pegawai'} — snapshot per periode &amp; tren lintas waktu.
           Skor Akhir dihitung langsung (live).
         </p>
         <p className="text-[11px] text-gray-400 mt-1">
           <span className="font-semibold text-gray-500">Fokus halaman ini:</span> pergerakan &amp; pelacakan per-pegawai lintas waktu.
-          {' '}· Butuh <span className="text-gray-500">klasifikasi talenta &amp; snapshot (4-Box, scatter, kategori)</span>?{' '}
-          <Link href="/admin/dashboard" className="text-emerald-700 hover:underline font-semibold">Dashboard Organisasi →</Link>
+          {isHrdFull && <>
+            {' '}· Butuh <span className="text-gray-500">klasifikasi talenta &amp; snapshot (4-Box, scatter, kategori)</span>?{' '}
+            <Link href="/admin/dashboard" className="text-emerald-700 hover:underline font-semibold">Dashboard Organisasi →</Link>
+          </>}
         </p>
       </div>
       <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>

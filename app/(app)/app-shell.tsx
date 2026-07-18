@@ -24,7 +24,7 @@ const ROLE_LABEL: Record<Role, string> = {
 
 type AdminItem = Item & { section?: string };
 
-function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewer: boolean, isCoordinator: boolean, hrdSections: string[] | null): Section[] {
+function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewer: boolean, isCoordinator: boolean, hrdSections: string[] | null, pageGrants: { section: string; scope: string }[] = []): Section[] {
   // Akses HRD granular (Jalur A, migrasi 0023): hrd_sections NULL/kosong = akses penuh;
   // berisi daftar = hanya bagian tercantum. Item tanpa `section` (mis. Suksesi) selalu tampil.
   const allowSec = (s?: string) => !s || !hrdSections || hrdSections.length === 0 || hrdSections.includes(s);
@@ -45,6 +45,12 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewe
     main.push({ href: '/kpi', label: 'Input KPI', icon: Target });
     main.push({ href: '/laporan-tim', label: 'Laporan Kinerja Tim', icon: Users });
     main.push({ href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp });
+  }
+  // Akses halaman ber-lingkup (RBAC, migrasi 0024): pemegang grant 'monitor' dapat membuka
+  // Monitor Kinerja Pegawai (lingkup ditegakkan server). Hanya di mode base; label dibedakan dari
+  // "Monitor Kinerja" tim SPV/Koordinator agar tak rancu.
+  if (!adminView && pageGrants.some((g) => g.section === 'monitor')) {
+    main.push({ href: '/admin/monitor', label: 'Monitor Kinerja Pegawai', icon: TrendingUp });
   }
 
   const sections: Section[] = main.length ? [{ title: 'Navigasi Utama', items: main }] : [];
@@ -75,6 +81,11 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewe
       { href: '/admin/laporan', label: 'Review Hasil Akhir', icon: ClipboardCheck, section: 'laporan' },
       { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award },
     ]);
+    // Manajemen Akses (RBAC halaman ber-lingkup, migrasi 0024): HANYA HRD PENUH (tak dibatasi
+    // hrd_sections) — rekan HRD terbatas tak boleh mengatur akses (cegah naikkan akses sendiri).
+    // Sengaja di luar katalog hrd_sections; gate = isFullHrd, bukan filterAdmin.
+    const isFullHrd = !hrdSections || hrdSections.length === 0;
+    if (isFullHrd) adminItems.push({ href: '/admin/akses', label: 'Manajemen Akses', icon: KeyRound });
     if (adminItems.length) sections.push({ title: 'Menu Administrator', items: adminItems });
 
     const monitorItems = filterAdmin([
@@ -109,15 +120,15 @@ const TODO_DOT: Record<TodoTone, string> = {
 };
 
 export function AppShell({
-  role, canAdmin, isCrossReviewer = false, isCoordinator = false, hrdSections = null, hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, children,
+  role, canAdmin, isCrossReviewer = false, isCoordinator = false, hrdSections = null, pageGrants = [], hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, children,
 }: {
-  role: Role; canAdmin: boolean; isCrossReviewer?: boolean; isCoordinator?: boolean; hrdSections?: string[] | null; hrdMode: HrdMode; name: string; dept: string; empCode: string;
+  role: Role; canAdmin: boolean; isCrossReviewer?: boolean; isCoordinator?: boolean; hrdSections?: string[] | null; pageGrants?: { section: string; scope: string }[]; hrdMode: HrdMode; name: string; dept: string; empCode: string;
   periodLabel: string | null; periodActive: boolean; periodDaysLeft?: number | null;
   todos: TodoItem[]; children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const sections = menuFor(role, canAdmin, hrdMode, isCrossReviewer, isCoordinator, hrdSections);
+  const sections = menuFor(role, canAdmin, hrdMode, isCrossReviewer, isCoordinator, hrdSections, pageGrants);
 
   const isActive = (href: string) => {
     const path = href.split('?')[0];

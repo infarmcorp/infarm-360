@@ -22,6 +22,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isCrossReviewer = !!emp?.is_cross_reviewer;
   const isCoordinator = !!emp?.is_coordinator;
 
+  // Akses halaman ber-lingkup (RBAC, migrasi 0024) — untuk menyalakan menu grant di sidebar.
+  // RLS page_grants_self_read hanya mengembalikan baris milik pengguna ini.
+  const { data: grantRows } = await supabase.from('page_grants').select('section, scope').eq('employee_id', user.id);
+
   const { data: ap } = await supabase
     .from('periods').select('label, status, end_date').eq('status', 'active').limit(1).maybeSingle();
 
@@ -43,6 +47,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       isCrossReviewer={isCrossReviewer}
       isCoordinator={isCoordinator}
       hrdSections={emp?.hrd_sections ?? null}
+      pageGrants={grantRows ?? []}
       hrdMode={hrdMode}
       name={emp?.name ?? user.email ?? 'Pengguna'}
       dept={emp?.dept ?? '—'}

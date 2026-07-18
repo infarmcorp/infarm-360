@@ -35,6 +35,12 @@ export interface Database {
         Update: Partial<{ coordinator_id: string; employee_id: string }>;
         Relationships: [];
       };
+      page_grants: {
+        Row: { id: string; employee_id: string; section: string; scope: 'all' | 'own_division' | 'other_divisions'; created_at: string; created_by: string | null };
+        Insert: { id?: string; employee_id: string; section: string; scope?: 'all' | 'own_division' | 'other_divisions'; created_by?: string | null };
+        Update: Partial<{ section: string; scope: 'all' | 'own_division' | 'other_divisions'; created_by: string | null }>;
+        Relationships: [];
+      };
       periods: {
         Row: { id: string; code: string; label: string; start_date: string; end_date: string; status: 'active' | 'ended'; has_360: boolean; form_open: boolean; kpi_standard: number; created_at: string };
         Insert: { code: string; label: string; start_date: string; end_date: string; status?: 'active' | 'ended'; has_360?: boolean; form_open?: boolean; kpi_standard?: number };

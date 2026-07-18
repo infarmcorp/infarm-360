@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AccButton } from './acc-button';
 import { PLAYER_BOXES, playerLabelOf, type PlayerClass } from '@/lib/scoring';
@@ -74,11 +74,17 @@ function TrendBadge({ t, months }: { t: Trend; months: (number | null)[] }) {
  * `scoreBasis` (default 'stored') — sumber angka Skor Akhir: 'stored' = nilai finalisasi tersimpan
  *   (Laporan Kinerja Tim, dari final_reports); 'live' = dihitung langsung dari KPI+360°−punishment
  *   (Monitor Kinerja) → bisa berbeda dari angka tersimpan. Hanya memengaruhi keterangan, bukan angka.
+ * `showSearch` (default true) — tampilkan kotak cari nama sisi-klien.
+ * `pageSize` (opsional) — bila diisi, tabel dipaginasi SISI-KLIEN (mis. 10/halaman) dengan pager
+ *   "10 sebelumnya / berikutnya". Cocok untuk daftar besar (Monitor Kinerja Pegawai HRD, seluruh
+ *   pegawai) yang datanya sudah dimuat penuh untuk grafik → tak perlu fetch server per halaman.
+ *   Paginasi bekerja SETELAH pencarian (cari dulu → hasil dipaginasi); ganti kata kunci reset ke hal-1.
  */
 export function TeamTable({
-  rows, linkNames = true, showStatus = true, showAcc = true, scoreBasis = 'stored',
-}: { rows: TeamRow[]; linkNames?: boolean; showStatus?: boolean; showAcc?: boolean; scoreBasis?: 'stored' | 'live' }) {
+  rows, linkNames = true, showStatus = true, showAcc = true, scoreBasis = 'stored', showSearch = true, pageSize,
+}: { rows: TeamRow[]; linkNames?: boolean; showStatus?: boolean; showAcc?: boolean; scoreBasis?: 'stored' | 'live'; showSearch?: boolean; pageSize?: number }) {
   const [q, setQ] = useState('');
+  const [page, setPage] = useState(0);
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return rows;
@@ -86,19 +92,29 @@ export function TeamTable({
       (r) => r.name.toLowerCase().includes(term) || (r.dept ?? '').toLowerCase().includes(term),
     );
   }, [q, rows]);
+  useEffect(() => { setPage(0); }, [q]);
+
+  // Paginasi sisi-klien (opsional): potong hasil terfilter ke halaman aktif.
+  const pageCount = pageSize ? Math.max(1, Math.ceil(filtered.length / pageSize)) : 1;
+  const safePage = Math.min(page, pageCount - 1);
+  const paged = pageSize ? filtered.slice(safePage * pageSize, safePage * pageSize + pageSize) : filtered;
+  const from = filtered.length === 0 ? 0 : safePage * pageSize! + 1;
+  const to = pageSize ? Math.min(filtered.length, safePage * pageSize + paged.length) : filtered.length;
 
   return (
     <div>
-      <div className="mb-3">
-        <input
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Cari nama pegawai…"
-          aria-label="Cari nama pegawai"
-          className="w-full sm:max-w-xs rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-        />
-      </div>
+      {showSearch && (
+        <div className="mb-3">
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Cari nama pegawai…"
+            aria-label="Cari nama pegawai"
+            className="w-full sm:max-w-xs rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <p className="text-sm text-gray-500">Tidak ada pegawai cocok dengan "{q}".</p>
@@ -122,7 +138,7 @@ export function TeamTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((r) => (
+              {paged.map((r) => (
                 <tr key={r.id}>
                   <td className="py-3 pr-3">
                     {linkNames && r.detailOpen ? (
@@ -194,6 +210,24 @@ export function TeamTable({
           </table>
         </div>
       )}
+
+      {/* Pager sisi-klien (hanya bila pageSize diisi & hasil melebihi 1 halaman). */}
+      {pageSize && filtered.length > pageSize && (
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <button type="button" disabled={safePage <= 0} onClick={() => setPage(safePage - 1)}
+            className="text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+            ← {pageSize} sebelumnya
+          </button>
+          <span className="text-[11px] text-gray-500">
+            {from}–{to} dari {filtered.length} · Halaman {safePage + 1}/{pageCount}
+          </span>
+          <button type="button" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}
+            className="text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+            {pageSize} berikutnya →
+          </button>
+        </div>
+      )}
+
       <p className="text-[10px] text-gray-500 italic mt-3">
         {scoreBasis === 'live' ? (
           <>Kolom <strong>Skor Akhir (live)</strong> dihitung langsung dari KPI + 360° − punishment periode ini —

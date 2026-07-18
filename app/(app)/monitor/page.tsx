@@ -8,9 +8,13 @@ import { trendOf } from '@/lib/trend';
 import { scoreMaps, penaltyMap, companyAverages, teamAverages } from '@/lib/team-metrics';
 import { TeamTable, type TeamRow } from '@/app/(app)/laporan-tim/team-table';
 import { TeamScorecards } from '@/app/(app)/laporan-tim/scorecards';
-import { MonitorTrends, type EmpMonthly, type PeriodTrendPoint, type MoverRow } from './monitor-trends';
+import { MonitorTrends, type EmpMonthly, type PeriodTrendPoint, type MoverRow, type MoverRow360, type DeltaCause } from './monitor-trends';
+import { aspectScoresByEmployee, heatDataFromAspect, orgAspectAverages } from '@/lib/aspect360';
+import { ExtremesHeatmap } from './extremes-heatmap';
 import { PeriodFilter } from './period-filter';
 import { DistBars } from './dist-bars';
+import { TeamAspectProfile } from './team-aspect';
+import { SectionHeader } from './section-header';
 
 /**
  * Monitor Kinerja (SPV / HRD mode-SPV) — dashboard kinerja tim, bergaya Laporan Kinerja Tim:
@@ -127,14 +131,16 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   const monthLabels = allYms.map(labelOf);
   const nn = (v: number | null): v is number => v != null;
 
-  // A. Tren tim per periode (Avg KPI & Avg 360° tim).
+  // A. Tren tim per periode (Avg KPI & Avg 360° tim). Simpan `id` internal agar bisa mengurai
+  //    penyebab perubahan (Sorotan) pada dua periode berdata terakhir.
   const anyHas360 = periodList.some((p) => p.has_360);
-  const periodsTrend: PeriodTrendPoint[] = periodList.map((p) => {
+  const periodsTrendFull = periodList.map((p) => {
     const pYms = monthsByPeriod.get(p.id) ?? [];
     const kpis = ids.map((id) => mean(pYms.map((ym) => kpiOf(id, ym)).filter(nn))).filter(nn);
     const s360s = p.has_360 ? ids.map((id) => s360Of.get(`${id}|${p.id}`) ?? null).filter(nn) : [];
-    return { label: p.label, kpi: mean(kpis), s360: mean(s360s) };
+    return { id: p.id, label: p.label, kpi: mean(kpis), s360: mean(s360s) };
   }).filter((pt) => pt.kpi != null || pt.s360 != null);
+  const periodsTrend: PeriodTrendPoint[] = periodsTrendFull.map(({ label, kpi, s360 }) => ({ label, kpi, s360 }));
 
   // B. Tren KPI tim per bulan.
   const teamMonthly = allYms.map((ym) => mean(ids.map((id) => kpiOf(id, ym)).filter(nn)));
@@ -166,26 +172,136 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
         .sort((a, b) => b.delta - a.delta)
     : [];
 
+  // D2. Pergerakan 360° — selisih Skor 360° per pegawai antara DUA periode ber-360° terakhir,
+  //     + rincian PER-ASPEK (di aspek mana naik/turun). Aspek per pegawai dihitung via pipeline
+  //     resmi (aspectScoresByEmployee); di-memo per periode → hemat (dipakai lagi utk profil aspek).
+  const aspCache = new Map<string, ReturnType<typeof aspectScoresByEmployee>>();
+  const aspOf = (pid: string) => { let p = aspCache.get(pid); if (!p) { p = aspectScoresByEmployee(pid, ids); aspCache.set(pid, p); } return p; };
+  const p360WithData = periodList.filter((p) => p.has_360 && ids.some((id) => s360Of.has(`${id}|${p.id}`)));
+  const curr360P = p360WithData[p360WithData.length - 1] ?? null;
+  const prev360P = p360WithData[p360WithData.length - 2] ?? null;
+  const moverLabels360 = curr360P && prev360P ? { prev: prev360P.label, curr: curr360P.label } : null;
+  let movers360: MoverRow360[] = [];
+  if (curr360P && prev360P) {
+    const [prevAsp, currAsp] = await Promise.all([aspOf(prev360P.id), aspOf(curr360P.id)]);
+    movers360 = empRows
+      .map((e) => {
+        const c = s360Of.get(`${e.id}|${curr360P.id}`) ?? null;
+        const pv = s360Of.get(`${e.id}|${prev360P.id}`) ?? null;
+        if (c == null || pv == null) return null;
+        const cm = currAsp.byEmp.get(e.id);
+        const pm = prevAsp.byEmp.get(e.id);
+        const aspNames = [...new Set([...(cm?.keys() ?? []), ...(pm?.keys() ?? [])])];
+        const aspects = aspNames
+          .map((nm) => {
+            const cv = cm?.get(nm), pval = pm?.get(nm);
+            return cv != null && pval != null ? { aspect: nm, delta: cv - pval } : null;
+          })
+          .filter((a): a is { aspect: string; delta: number } => a != null && Math.abs(a.delta) >= 1);
+        return { name: e.name, delta: c - pv, curr: c, aspects };
+      })
+      .filter((m): m is MoverRow360 => m != null)
+      .sort((a, b) => b.delta - a.delta);
+  }
+
+  // E. Uraian PENYEBAB perubahan Δ (Sorotan) untuk dua periode berdata terakhir: pisah selisih
+  //    total jadi (a) perubahan skor pegawai konsisten & (b) perubahan komposisi (masuk/keluar).
+  //    Identitas eksak: total(currAvg−prevAvg) = real(konsisten) + cohort(sisanya).
+  const causeBetween = (get: (id: string, pid: string) => number | null, prevId: string, currId: string): DeltaCause => {
+    const prevById = new Map<string, number>(), currById = new Map<string, number>();
+    ids.forEach((id) => {
+      const pv = get(id, prevId); if (pv != null) prevById.set(id, pv);
+      const cv = get(id, currId); if (cv != null) currById.set(id, cv);
+    });
+    const prevAvg = mean([...prevById.values()]);
+    const currAvg = mean([...currById.values()]);
+    const total = prevAvg != null && currAvg != null ? currAvg - prevAvg : null;
+    const common = [...currById.keys()].filter((id) => prevById.has(id));
+    const real = common.length
+      ? (mean(common.map((id) => currById.get(id)!)) ?? 0) - (mean(common.map((id) => prevById.get(id)!)) ?? 0)
+      : null;
+    const cohort = total != null && real != null ? total - real : null;
+    const enteredN = [...currById.keys()].filter((id) => !prevById.has(id)).length;
+    const leftN = [...prevById.keys()].filter((id) => !currById.has(id)).length;
+    return { total, real, cohort, commonN: common.length, enteredN, leftN };
+  };
+  // Dua periode berdata terakhir (selaras dua titik terakhir di grafik tren / kartu Δ).
+  const cN = periodsTrendFull.length;
+  const causeCurr = cN >= 1 ? periodsTrendFull[cN - 1] : null;
+  const causePrev = cN >= 2 ? periodsTrendFull[cN - 2] : null;
+  const get360 = (id: string, pid: string) => s360Of.get(`${id}|${pid}`) ?? null;
+  const kpiCause: DeltaCause | null = causeCurr && causePrev ? causeBetween(perPeriodKpi, causePrev.id, causeCurr.id) : null;
+  const s360Cause: DeltaCause | null = causeCurr && causePrev && anyHas360 ? causeBetween(get360, causePrev.id, causeCurr.id) : null;
+
+  // D3. Profil aspek budaya tim (statik) + heatmap aspek/indikator per pegawai (periode terpilih).
+  const selAsp = sel.has_360 ? await aspOf(sel.id) : null;
+  // Pembanding "vs organisasi" per aspek (rata-rata seluruh pegawai internal, periode terpilih).
+  const orgAspect = selAsp ? await orgAspectAverages(sel.id) : null;
+  const teamAspect = selAsp
+    ? selAsp.names.map((nm) => {
+        const vals = ids.map((id) => selAsp.byEmp.get(id)?.get(nm)).filter((v): v is number => v != null);
+        return { aspek: nm, score: vals.length ? (mean(vals) ?? 0) : 0, orgScore: orgAspect?.get(nm) };
+      }).filter((a) => a.score > 0)
+    : [];
+  const heat = selAsp ? heatDataFromAspect(selAsp, empRows) : null;
+
   return (
     <Shell>
       <Header coordinator={coordinatorView} />
       <Toolbar periods={periodList} current={sel.id} />
-      {rows.length === 0 ? (
-        <p className="text-sm text-gray-500 mt-4">Belum ada data kinerja untuk periode ini.</p>
-      ) : (
-        <div className="mt-4">
+
+      {rows.length === 0 && (
+        <p className="text-sm text-gray-500 mt-4">Belum ada data kinerja untuk periode ini — grafik tren lintas periode tetap tampil di bawah.</p>
+      )}
+
+      {rows.length > 0 && (
+        <>
+          {/* A. RINGKASAN — keadaan periode terpilih */}
+          <SectionHeader label="Ringkasan" hint="keadaan periode terpilih" tone="emerald" />
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={sel.has_360}
-            kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
+            kpiUnread={rows.filter((r) => r.trend === 'unread').length}
+            fillTotal={ids.length} kpiFilled={kpiBy.size} s360Filled={s360By.size} />
+
+          {/* B. KOMPOSISI — sebaran & profil aspek */}
+          <SectionHeader label="Komposisi" hint="sebaran kategori & profil aspek" tone="indigo" />
           <DistBars
             kpiPeople={rows.filter((r) => r.trend !== 'unread' && r.kpiAvg != null).map((r) => ({ name: r.name, value: r.kpiAvg as number }))}
             s360People={sel.has_360 ? rows.filter((r) => r.s360 != null).map((r) => ({ name: r.name, value: r.s360 as number })) : null} />
-          <TeamTable rows={rows} linkNames={false} showStatus={false} showAcc={false} scoreBasis="live" />
-        </div>
+          {teamAspect.length > 0 && <TeamAspectProfile aspects={teamAspect} scopeLabel={sel.label} />}
+        </>
       )}
+
+      {/* C. ARAH — tren & pergerakan lintas periode/bulan */}
+      <SectionHeader label="Arah — Tren & Pergerakan" hint="lintas periode/bulan" tone="amber" />
       <MonitorTrends periodsTrend={periodsTrend} monthLabels={monthLabels}
         teamMonthly={teamMonthly} employees={employeesMonthly} has360={anyHas360}
-        movers={movers} moverLabels={moverLabels} />
+        movers={movers} moverLabels={moverLabels} kpiCause={kpiCause} s360Cause={s360Cause}
+        movers360={movers360} moverLabels360={moverLabels360} />
+
+      {rows.length > 0 && (
+        <>
+          {/* D. RINCIAN PER PEGAWAI — tabel & heatmap (paling rinci) */}
+          <SectionHeader label="Rincian per Pegawai" hint="tabel & heatmap" tone="slate" />
+          <TeamTable rows={rows} linkNames={false} showStatus={false} showAcc={false} scoreBasis="live" pageSize={5} />
+          {heat && heat.aspectRows.length > 0 && (
+            <ExtremesHeatmap
+              pieTitle="Aspek Terlemah & Terkuat Tim (Frekuensi)"
+              pieSubtitle="Aspek budaya yang paling sering jadi titik terlemah/terkuat tiap pegawai — klik irisan untuk menyaring heatmap."
+              heatTitle="Heatmap Aspek per Pegawai"
+              heatSubtitle="Skor 360° per aspek budaya tiap pegawai (0–100). Kolom Terlemah/Terkuat menyebut aspek terendah & tertinggi tiap orang."
+              columns={heat.aspectCols} rows={heat.aspectRows} />
+          )}
+          {heat && heat.indRows.length > 0 && (
+            <ExtremesHeatmap
+              pieTitle="Indikator Terlemah & Terkuat Tim (Frekuensi)"
+              pieSubtitle="Indikator yang paling sering jadi titik terlemah/terkuat tiap pegawai — klik irisan untuk menyaring heatmap."
+              heatTitle="Heatmap Indikator per Pegawai"
+              heatSubtitle="Skor 360° per indikator penilaian tiap pegawai (0–100), dikelompokkan per aspek."
+              columns={heat.indCols} rows={heat.indRows} />
+          )}
+        </>
+      )}
     </Shell>
   );
 }

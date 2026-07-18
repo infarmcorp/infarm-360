@@ -3,10 +3,12 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTransition } from 'react';
 
-/** Dropdown pilih periode untuk Monitor Kinerja → mengatur scorecard + tabel (snapshot periode). */
-export function PeriodFilter({ periods, current }: {
+/** Dropdown pilih periode untuk Monitor Kinerja → mengatur scorecard + tabel (snapshot periode).
+ *  `basePath` (default `/monitor`) — jalur navigasi; `/admin/monitor` untuk versi HRD Admin. */
+export function PeriodFilter({ periods, current, basePath = '/monitor' }: {
   periods: { id: string; label: string; status?: string }[];
   current: string;
+  basePath?: string;
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -20,7 +22,7 @@ export function PeriodFilter({ periods, current }: {
         onChange={(e) => {
           const p = new URLSearchParams(sp.toString());
           p.set('period', e.target.value);
-          start(() => router.push(`/monitor?${p.toString()}`));
+          start(() => router.push(`${basePath}?${p.toString()}`));
         }}
         className="px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-60"
       >

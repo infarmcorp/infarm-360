@@ -4,6 +4,8 @@
  * di bawah). Rata-rata = mean dari rerata per-pegawai (bukan mean baris mentah) agar selaras
  * dengan kolom tabel. Komponen presentasional murni (dihitung di server).
  */
+import { FilledNote } from '@/app/(app)/monitor/completeness';
+
 function Delta({ team, company }: { team: number | null; company: number | null }) {
   if (team == null || company == null) return <span className="text-[11px] text-gray-400">— vs rata-rata perusahaan</span>;
   const d = team - company;
@@ -27,12 +29,15 @@ function Card({ label, value, sub }: { label: string; value: React.ReactNode; su
 
 export function TeamScorecards({
   total, teamKpi, companyKpi, team360, company360, has360, kpiUnread = 0,
+  fillTotal, kpiFilled, s360Filled,
 }: {
   total: number;
   teamKpi: number | null; companyKpi: number | null;
   team360: number | null; company360: number | null;
   has360: boolean;
   kpiUnread?: number; // jumlah pegawai KPI "belum terbaca" — dikecualikan dari Avg KPI Tim
+  // Kelengkapan data (opsional) — ditampilkan sebagai baris ringkas di bawah kartu KPI & 360°.
+  fillTotal?: number; kpiFilled?: number; s360Filled?: number;
 }) {
   return (
     <div className="flex flex-wrap gap-3 mb-4">
@@ -43,13 +48,17 @@ export function TeamScorecards({
         sub={<>
           <Delta team={teamKpi} company={companyKpi} />
           {kpiUnread > 0 && <div className="text-[10px] text-gray-500">· {kpiUnread} belum terbaca (dikecualikan)</div>}
+          {fillTotal != null && kpiFilled != null && <FilledNote n={kpiFilled} total={fillTotal} />}
         </>}
       />
       {has360 && (
         <Card
           label="Avg 360° Tim"
           value={team360 != null ? team360.toFixed(2) : '—'}
-          sub={<Delta team={team360} company={company360} />}
+          sub={<>
+            <Delta team={team360} company={company360} />
+            {fillTotal != null && s360Filled != null && <FilledNote n={s360Filled} total={fillTotal} />}
+          </>}
         />
       )}
     </div>

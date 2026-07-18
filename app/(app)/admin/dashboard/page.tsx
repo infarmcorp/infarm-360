@@ -3,8 +3,9 @@ import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin, canSection } from '@/lib/auth/roles';
 import {
-  finalScoreOf, playerClassOf, type PlayerClass,
+  finalScoreOf, playerClassOf,
 } from '@/lib/scoring';
+import { computeDashboardAggregate } from '@/lib/dashboard/aggregate';
 import { classOf, avg as avg360, weightedScore360, type Groups360 } from '@/lib/score360';
 import { trendOf } from '@/lib/trend';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
@@ -29,7 +30,10 @@ export default async function DashboardPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
-  if (!canSection(me, 'dashboard') && me?.role !== 'direksi') {
+  // canMonitor = boleh membuka Monitor Kinerja Pegawai (gate `dashboard` yang butuh canAdmin) →
+  // hanya HRD; Direksi (yang boleh Dashboard tapi bukan admin) tak melihat tautan silang ini.
+  const canMonitor = canSection(me, 'dashboard');
+  if (!canMonitor && me?.role !== 'direksi') {
     return <Shell><p className="text-sm text-gray-600">Halaman ini untuk HRD / Direksi.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
@@ -67,6 +71,75 @@ export default async function DashboardPage({
   const emps = dept === 'all' ? allEmps : allEmps.filter((e) => e.dept === dept);
   const empIds = emps.map((e) => e.id);
   const inScope = (id: string) => empIds.includes(id);
+
+  // ── Mode AGREGAT (on-demand via filter): "Semua Kuartal" (1 tahun) / "Semua Tahun" (all-time) ──
+  // Scope = sentinel di param `period`: `year:<YYYY>` (agregat 1 tahun) · `all` (agregat lintas tahun).
+  // Query berat aspek dijalankan HANYA di sini (saat mode agregat dipilih) → muat per-kuartal nol beban.
+  const aggScope: 'year' | 'all' | null =
+    periodParam === 'all' ? 'all' : periodParam?.startsWith('year:') ? 'year' : null;
+  if (aggScope) {
+    const selY = aggScope === 'year' ? Number(periodParam!.slice(5)) || 0 : 0;
+    const aggPeriods = (aggScope === 'all'
+      ? periodList
+      : periodList.filter((p) => Number(String(p.start_date).slice(0, 4)) === selY)
+    ).map((p) => ({ id: p.id, label: p.label, has_360: p.has_360, start_date: String(p.start_date), kpi_standard: p.kpi_standard }));
+    const bundle = await computeDashboardAggregate(
+      aggPeriods.map((p) => ({ id: p.id, label: p.label, has_360: p.has_360, start_date: p.start_date })),
+      emps.map((e) => ({ id: e.id, name: e.name, dept: e.dept })),
+      empIds,
+    );
+    const scopeLabel = aggScope === 'all' ? 'Semua Tahun (all-time)' : `Tahun ${selY} · Semua Kuartal`;
+    const kpiStd = aggPeriods[aggPeriods.length - 1]?.kpi_standard ?? ap.kpi_standard ?? 80;
+    return (
+      <Shell>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h1 className="text-xl font-bold text-gray-800">Dashboard Organisasi</h1>
+            <p className="text-sm text-gray-500">
+              {scopeLabel} · {dept === 'all' ? 'semua divisi' : `divisi ${dept}`} · agregat rata-rata antar-kuartal
+            </p>
+            <PagePurpose canMonitor={canMonitor} />
+          </div>
+          <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+        </div>
+        <DashboardFilters
+          periods={periodList.map((p) => ({ id: p.id, label: p.label, status: p.status, year: Number(String(p.start_date).slice(0, 4)) || 0 }))}
+          depts={deptList}
+          currentPeriod={periodParam ?? ''}
+          currentDept={dept}
+        />
+        <div className="my-5">
+          <DashboardVisual
+            rows={bundle.rows}
+            deptScores={bundle.deptScores}
+            aspectScores={bundle.aspectScores}
+            monthly={bundle.monthly}
+            deptMonthly={bundle.deptMonthly}
+            months={bundle.months}
+            deptAspect360={bundle.deptAspect360}
+            aspect360Names={bundle.aspect360Names}
+            yearLabel={selY}
+            yearMonthly={bundle.yearMonthly}
+            year360={bundle.year360}
+            yearKpiAvg={bundle.yearKpiAvg}
+            year360Avg={bundle.year360Avg}
+            has360={bundle.has360}
+            periodLabel={scopeLabel}
+            kpiStandard={kpiStd}
+            prevLabel={null}
+            prevFinalAvg={null}
+            prevKpiAvg={null}
+            prev360Avg={null}
+            finalMove={null}
+            kpiMove={null}
+            s360Move={null}
+            aggregate={true}
+            quarterlyDist={[]}
+          />
+        </div>
+      </Shell>
+    );
+  }
 
   // Gelombang 1 — query periode terpilih, di-scope ke pegawai dalam lingkup divisi.
   const [monthsRes, r360Res, penRes, aspectRes, asmtRes] = await Promise.all([
@@ -157,100 +230,69 @@ export default async function DashboardPage({
     .filter((p) => Number(String(p.start_date).slice(0, 4)) === selYear)
     .sort((a, b) => String(a.start_date).localeCompare(String(b.start_date)));
   const periodsInYearIds = periodsInYear.map((p) => p.id);
-  const [yearKpiRes, year360Res, pmYearRes] = await Promise.all([
+  // Paginasi (fetchAllByIds): org × 12 bulan bisa >1000 baris → tanpa ini yearMonthly & distribusi
+  // per-kuartal terpotong diam-diam. employee_id disertakan agar bisa klasifikasi per-pegawai per-kuartal.
+  const [yearKpiRows, year360Rows, yearPmRes] = await Promise.all([
     empIds.length
-      ? supabase.from('kpi_scores').select('employee_id, ym, score').in('employee_id', empIds).gte('ym', `${selYear}-01`).lte('ym', `${selYear}-12`)
-      : Promise.resolve({ data: [] as { employee_id: string; ym: string; score: number }[] }),
+      ? fetchAllByIds<{ employee_id: string; ym: string; score: number }>(empIds, (chunk, from, to) =>
+          supabase.from('kpi_scores').select('employee_id, ym, score').in('employee_id', chunk)
+            .gte('ym', `${selYear}-01`).lte('ym', `${selYear}-12`).order('employee_id').order('ym').range(from, to))
+      : Promise.resolve([] as { employee_id: string; ym: string; score: number }[]),
     empIds.length && periodsInYearIds.length
-      ? supabase.from('result_360').select('employee_id, period_id, score').in('employee_id', empIds).in('period_id', periodsInYearIds)
-      : Promise.resolve({ data: [] as { employee_id: string; period_id: string; score: number }[] }),
+      ? fetchAllByIds<{ employee_id: string; period_id: string; score: number | null }>(empIds, (chunk, from, to) =>
+          supabase.from('result_360').select('employee_id, period_id, score').in('employee_id', chunk)
+            .in('period_id', periodsInYearIds).order('employee_id').order('period_id').range(from, to))
+      : Promise.resolve([] as { employee_id: string; period_id: string; score: number | null }[]),
     periodsInYearIds.length
       ? supabase.from('period_months').select('period_id, ym').in('period_id', periodsInYearIds)
       : Promise.resolve({ data: [] as { period_id: string; ym: string }[] }),
   ]);
   const ymAgg = new Map<string, { sum: number; n: number }>();
-  (yearKpiRes.data ?? []).forEach((r) => {
+  yearKpiRows.forEach((r) => {
     const a = ymAgg.get(r.ym) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n += 1; ymAgg.set(r.ym, a);
   });
   const yearMonthly = [...ymAgg.entries()]
     .map(([ym, a]) => ({ ym, avg: a.sum / a.n }))
     .sort((x, y) => x.ym.localeCompare(y.ym));
-
-  // Heatmap KPI per divisi × bulan — versi SETAHUN (Jan–Des tahun terpilih), untuk toggle "Setahun"
-  // di heatmap. Beda dari `deptMonthly` (hanya bulan kuartal terpilih & mengecualikan "belum terbaca").
-  // Versi setahun = rerata KPI mentah per (divisi, bulan) sepanjang tahun (lintas kuartal).
-  const dmYearAgg = new Map<string, { sum: number; n: number }>(); // `${dept}|${ym}`
-  (yearKpiRes.data ?? []).forEach((r) => {
-    const d = empDept.get(r.employee_id);
-    if (!d) return;
-    const k = `${d}|${r.ym}`;
-    const a = dmYearAgg.get(k) ?? { sum: 0, n: 0 };
-    a.sum += r.score; a.n += 1; dmYearAgg.set(k, a);
-  });
-  const ymYearSorted = [...new Set((yearKpiRes.data ?? []).map((r) => r.ym))].sort();
-  const deptMonthlyYear = [...new Set(emps.map((e) => e.dept))].sort()
-    .map((d) => ({
-      dept: d,
-      cells: ymYearSorted.map((ym) => {
-        const a = dmYearAgg.get(`${d}|${ym}`);
-        return { ym, avg: a ? a.sum / a.n : null };
-      }),
-    }))
-    .filter((r) => r.cells.some((c) => c.avg != null));
   const p360Agg = new Map<string, { sum: number; n: number }>();
-  (year360Res.data ?? []).forEach((r) => {
+  year360Rows.forEach((r) => {
     if (r.score == null) return;
     const a = p360Agg.get(r.period_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n += 1; p360Agg.set(r.period_id, a);
   });
-
-  // ── Rekap Talenta Tahunan (rata-rata antar-kuartal → klasifikasi 4-Box) ────────────────
-  // Tiap pegawai: KPI tahunan = rata-rata KPI antar-kuartal (rata bulan tiap kuartal dulu),
-  // 360° tahunan = rata-rata skor 360° antar-kuartal ber-360°. Lalu playerClassOf (RUMUS TAK
-  // BERUBAH, ambang 80/80). Beda dari 4-Box per-kuartal → diberi label jelas agar tak tertukar.
-  const yearHas360 = periodsInYear.some((p) => p.has_360);
-  const ymToPeriod = new Map((pmYearRes.data ?? []).map((m) => [m.ym, m.period_id]));
-  const empPerKpi = new Map<string, Map<string, { sum: number; n: number }>>(); // emp → period → agg KPI bulanan
-  (yearKpiRes.data ?? []).forEach((r) => {
-    const pid = ymToPeriod.get(r.ym); if (!pid) return;
-    let m = empPerKpi.get(r.employee_id); if (!m) { m = new Map(); empPerKpi.set(r.employee_id, m); }
-    const a = m.get(pid) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n += 1; m.set(pid, a);
-  });
-  const empPer360 = new Map<string, Map<string, number>>(); // emp → period → skor 360°
-  (year360Res.data ?? []).forEach((r) => {
-    if (r.score == null) return;
-    let m = empPer360.get(r.employee_id); if (!m) { m = new Map(); empPer360.set(r.employee_id, m); }
-    m.set(r.period_id, r.score);
-  });
-  const avgArr = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
-  const yearTalentAll = emps.map((e) => {
-    const km = empPerKpi.get(e.id);
-    const yKpi = km ? avgArr([...km.values()].map((a) => a.sum / a.n)) : null;    // rata KPI antar-kuartal
-    const sm = empPer360.get(e.id);
-    const y360 = sm ? avgArr([...sm.values()]) : null;                            // rata 360° antar-kuartal
-    const axisIncomplete = yearHas360 && ((yKpi != null) !== (y360 != null));     // tahun ber-360° tapi 1 sumbu
-    const player: PlayerClass | null = axisIncomplete ? null : playerClassOf(yKpi, yearHas360 ? y360 : null);
-    const final = finalScoreOf(yKpi, y360, yearHas360, 0);                        // tanpa punishment (per-kuartal, tak diagregasi)
-    return { id: e.id, name: e.name, dept: e.dept, kpi: yKpi, s360: y360, player, axisIncomplete, final };
-  }).filter((r) => r.kpi != null || r.s360 != null);
-  // Baris agregat TAHUNAN berbentuk sama seperti `rows` (per-kuartal) → bisa memberi makan komponen
-  // tab yang sama (skor, distribusi, ranking, rata divisi) dalam mode "Setahun". KPI/360° = rata-rata
-  // antar-kuartal; Skor Akhir tahunan TANPA punishment (per-kuartal, tak diagregasi).
-  const yearRows = yearTalentAll.map((r) => ({
-    id: r.id, name: r.name, dept: r.dept,
-    kpiAvg: r.kpi, s360: r.s360, final: r.final,
-    player: r.player, axisIncomplete: r.axisIncomplete,
-    isActive: true, kpiUnread: false, trend: 'empty' as const, kpiMonths: [] as (number | null)[],
-  }));
-  const yearDeptAgg = new Map<string, { sum: number; n: number }>();
-  yearRows.forEach((r) => { if (r.kpiAvg == null) return; const a = yearDeptAgg.get(r.dept) ?? { sum: 0, n: 0 }; a.sum += r.kpiAvg; a.n += 1; yearDeptAgg.set(r.dept, a); });
-  const yearDeptScores: [string, number][] = [...yearDeptAgg.entries()]
-    .map(([d, a]) => [d, a.sum / a.n] as [string, number])
-    .sort((a, b) => b[1] - a[1]);
   const year360 = periodsInYear
     .filter((p) => p360Agg.has(p.id))
     .map((p) => ({ label: p.label, avg: p360Agg.get(p.id)!.sum / p360Agg.get(p.id)!.n }));
   const yearKpiAvg = yearMonthly.length ? yearMonthly.reduce((s, m) => s + m.avg, 0) / yearMonthly.length : null;
   const year360Avg = year360.length ? year360.reduce((s, m) => s + m.avg, 0) / year360.length : null;
+
+  // Distribusi kategori kinerja PER KUARTAL (band Skor Akhir) — untuk grafik tren komposisi.
+  // Skor Akhir per pegawai per kuartal = finalScoreOf(KPI kuartal, 360° kuartal, has_360, TANPA punishment).
+  const ymToPeriodY = new Map<string, string>();
+  (yearPmRes.data ?? []).forEach((m) => ymToPeriodY.set(m.ym, m.period_id));
+  const empPerKpiY = new Map<string, Map<string, { s: number; n: number }>>();
+  yearKpiRows.forEach((r) => {
+    const pid = ymToPeriodY.get(r.ym); if (!pid) return;
+    let m = empPerKpiY.get(r.employee_id); if (!m) { m = new Map(); empPerKpiY.set(r.employee_id, m); }
+    const a = m.get(pid) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; m.set(pid, a);
+  });
+  const empPer360Y = new Map<string, Map<string, number>>();
+  year360Rows.forEach((r) => {
+    if (r.score == null) return;
+    let m = empPer360Y.get(r.employee_id); if (!m) { m = new Map(); empPer360Y.set(r.employee_id, m); }
+    m.set(r.period_id, r.score);
+  });
+  const quarterlyDist = periodsInYear.map((p) => {
+    let exceed = 0, meet = 0, improve = 0, below = 0;
+    for (const e of emps) {
+      const km = empPerKpiY.get(e.id)?.get(p.id);
+      const kpiAvg = km ? km.s / km.n : null;
+      const s360 = empPer360Y.get(e.id)?.get(p.id) ?? null;
+      const final = finalScoreOf(kpiAvg, s360, p.has_360, 0);
+      if (final == null) continue;
+      if (final >= 90) exceed += 1; else if (final >= 80) meet += 1; else if (final >= 70) improve += 1; else below += 1;
+    }
+    return { label: p.label, exceed, meet, improve, below, total: exceed + meet + improve + below };
+  }).filter((q) => q.total > 0);
 
   // Skor 360 (hasil komputasi) + punishment.
   const s360By = new Map((r360Res.data ?? []).map((r) => [r.employee_id, r.score]));
@@ -451,6 +493,7 @@ export default async function DashboardPage({
           <p className="text-sm text-gray-500">
             {ap.label}{ap.status === 'active' ? ' (aktif)' : ''} · {dept === 'all' ? 'semua divisi' : `divisi ${dept}`} · {ap.has_360 ? '360° aktif (blend 50/50)' : '360° nonaktif (KPI murni)'}
           </p>
+          <PagePurpose canMonitor={canMonitor} />
         </div>
         <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
       </div>
@@ -478,8 +521,6 @@ export default async function DashboardPage({
           monthly={monthly}
           deptMonthly={deptMonthly}
           months={ymSorted}
-          deptMonthlyYear={deptMonthlyYear}
-          monthsYear={ymYearSorted}
           deptAspect360={deptAspect360}
           aspect360Names={aspect360Names}
           yearLabel={selYear}
@@ -497,12 +538,27 @@ export default async function DashboardPage({
           finalMove={finalMove}
           kpiMove={kpiMove}
           s360Move={s360Move}
-          yearRows={yearRows}
-          yearDeptScores={yearDeptScores}
-          yearHas360={yearHas360}
+          aggregate={false}
+          quarterlyDist={quarterlyDist}
         />
       </div>
     </Shell>
+  );
+}
+
+/**
+ * Pembeda tujuan + tautan silang Dashboard ↔ Monitor (mengatasi tumpang-tindih peran HRD):
+ * Dashboard = klasifikasi talenta & snapshot; Monitor = pergerakan & pelacakan per-pegawai.
+ */
+function PagePurpose({ canMonitor }: { canMonitor: boolean }) {
+  return (
+    <p className="text-[11px] text-gray-400 mt-1">
+      <span className="font-semibold text-gray-500">Fokus halaman ini:</span> klasifikasi talenta &amp; snapshot analitik organisasi.
+      {canMonitor && (
+        <> · Butuh <span className="text-gray-500">pergerakan &amp; pelacakan per-pegawai lintas waktu</span>?{' '}
+          <Link href="/admin/monitor" className="text-emerald-700 hover:underline font-semibold">Monitor Kinerja Pegawai →</Link></>
+      )}
+    </p>
   );
 }
 

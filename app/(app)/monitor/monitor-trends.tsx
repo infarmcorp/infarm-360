@@ -5,6 +5,24 @@ import { useMemo, useState } from 'react';
 export type PeriodTrendPoint = { label: string; kpi: number | null; s360: number | null };
 export type EmpMonthly = { id: string; name: string; monthly: (number | null)[] };
 export type MoverRow = { name: string; delta: number; curr: number };
+/** Pergerakan 360° per pegawai + rincian per-aspek (di aspek mana naik/turun). */
+export type AspectDelta = { aspect: string; delta: number };
+export type MoverRow360 = { name: string; delta: number; curr: number; aspects: AspectDelta[] };
+/**
+ * Dekomposisi penyebab perubahan Δ antar dua periode berdata terakhir (untuk Sorotan):
+ * memisah selisih total menjadi (a) perubahan SKOR pegawai yang dinilai di KEDUA periode
+ * ("konsisten") dan (b) perubahan KOMPOSISI (pegawai masuk/keluar dari populasi yang dinilai).
+ * `total = real + cohort` (identitas eksak): total = currAvg−prevAvg; real = selisih rerata pada
+ * pegawai konsisten; cohort = sisanya (efek pegawai baru/keluar & pergeseran populasi).
+ */
+export type DeltaCause = {
+  total: number | null;   // selisih rerata keseluruhan (currAvg − prevAvg)
+  real: number | null;    // kontribusi perubahan skor pegawai konsisten
+  cohort: number | null;  // kontribusi perubahan komposisi (masuk/keluar)
+  commonN: number;        // jumlah pegawai konsisten (berdata di kedua periode)
+  enteredN: number;       // pegawai baru berdata (curr saja)
+  leftN: number;          // pegawai tak lagi berdata (prev saja)
+};
 type Series = { label: string; color: string; points: (number | null)[] };
 
 const C_KPI = '#059669';   // emerald
@@ -109,30 +127,79 @@ function DeltaMetric({ label, curr, prev }: { label: string; curr: number | null
   );
 }
 
-/** Interpretasi 1-baris dari selisih: <1.5 stabil · <5 naik/turun · ≥5 naik/turun tajam. */
-function insightOf(label: string, d: number | null): { text: string; tone: 'up' | 'down' | 'flat' } | null {
-  if (d == null) return null;
-  const mag = Math.abs(d);
-  const val = `(${d >= 0 ? '+' : '−'}${mag.toFixed(2)})`;
-  if (mag < 1.5) return { text: `${label} relatif stabil ${val}`, tone: 'flat' };
-  const dir = d > 0 ? 'naik' : 'turun';
-  return { text: `${label} ${dir}${mag >= 5 ? ' tajam' : ''} ${val}`, tone: d > 0 ? 'up' : 'down' };
-}
-
 const INSIGHT_DOT: Record<'up' | 'down' | 'flat', string> = {
   up: 'bg-emerald-500', down: 'bg-rose-500', flat: 'bg-gray-400',
 };
 
-function DeltaSummary({ periodsTrend, has360 }: { periodsTrend: PeriodTrendPoint[]; has360: boolean }) {
+/** Format selisih bertanda 2-desimal: +5.30 / −1.82. */
+const sgn = (x: number) => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(2)}`;
+const toneOf = (d: number): 'up' | 'down' | 'flat' => (Math.abs(d) < 1.5 ? 'flat' : d > 0 ? 'up' : 'down');
+const CAUSE_NUM: Record<'up' | 'down' | 'flat', string> = {
+  up: 'text-emerald-700', down: 'text-rose-600', flat: 'text-gray-500',
+};
+
+/**
+ * Sorotan penyebab: satu metrik (KPI / 360°) → baris utama arah & besar perubahan, lalu URAIAN
+ * PENYEBAB — berapa dari perubahan skor pegawai konsisten vs berapa dari perubahan komposisi
+ * (pegawai masuk/keluar penilaian). Menjawab "naik/turunnya karena apa". Uraian ditampilkan saat
+ * ada komponen bermakna (≥1.5) — termasuk kasus saling meniadakan (total kecil tapi penyebabnya besar).
+ */
+function CauseBlock({ label, cause }: { label: string; cause: DeltaCause | null }) {
+  if (!cause || cause.total == null) return null;
+  const { total, real, cohort, commonN, enteredN, leftN } = cause;
+  const tone = toneOf(total);
+  const dir = tone === 'flat' ? 'relatif stabil' : total > 0 ? `naik${total >= 5 ? ' tajam' : ''}` : `turun${total <= -5 ? ' tajam' : ''}`;
+  const composChanged = enteredN > 0 || leftN > 0;
+  // Tampilkan uraian bila ada komponen penyebab yang bermakna (≥1.5) — juga saat saling meniadakan.
+  const showBreak = real == null
+    ? composChanged
+    : (Math.abs(total) >= 1.5 || Math.abs(real) >= 1.5 || (cohort != null && Math.abs(cohort) >= 1.5));
+  const composNote = composChanged
+    ? `${enteredN > 0 ? `+${enteredN} masuk` : ''}${enteredN > 0 && leftN > 0 ? ', ' : ''}${leftN > 0 ? `−${leftN} keluar` : ''}`
+    : 'populasi tetap';
+  return (
+    <div className="space-y-1">
+      <div className="flex items-start gap-1.5 text-[11px] leading-snug text-gray-700">
+        <span className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${INSIGHT_DOT[tone]}`} />
+        <span><span className="font-semibold">{label}</span> {dir} <span className={`font-mono font-bold ${CAUSE_NUM[tone]}`}>({sgn(total)})</span></span>
+      </div>
+      {showBreak && (
+        <div className="ml-3 pl-1.5 border-l border-gray-200 space-y-0.5 text-[10px] text-gray-500">
+          {real == null ? (
+            <div>Seluruhnya dari perubahan komposisi — tak ada pegawai yang dinilai di kedua periode.</div>
+          ) : (
+            <>
+              <div>
+                Perubahan skor pegawai:{' '}
+                <span className={`font-mono font-bold ${CAUSE_NUM[toneOf(real)]}`}>{sgn(real)}</span>
+                <span className="text-gray-400"> ({commonN} pegawai konsisten)</span>
+              </div>
+              {cohort != null && (
+                <div>
+                  Perubahan komposisi:{' '}
+                  <span className={`font-mono font-bold ${CAUSE_NUM[toneOf(cohort)]}`}>{sgn(cohort)}</span>
+                  <span className="text-gray-400"> ({composNote})</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DeltaSummary({
+  periodsTrend, has360, kpiCause, s360Cause,
+}: {
+  periodsTrend: PeriodTrendPoint[]; has360: boolean;
+  kpiCause: DeltaCause | null; s360Cause: DeltaCause | null;
+}) {
   const n = periodsTrend.length;
   const curr = n >= 1 ? periodsTrend[n - 1] : null;
   const prev = n >= 2 ? periodsTrend[n - 2] : null;
   if (!curr) return null;
-  const insights = prev
-    ? [insightOf('KPI tim', curr.kpi != null && prev.kpi != null ? curr.kpi - prev.kpi : null),
-       ...(has360 ? [insightOf('360° tim', curr.s360 != null && prev.s360 != null ? curr.s360 - prev.s360 : null)] : [])]
-      .filter((x): x is { text: string; tone: 'up' | 'down' | 'flat' } => x != null)
-    : [];
+  const hasCause = !!prev && ((kpiCause?.total != null) || (has360 && s360Cause?.total != null));
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-3 h-full flex flex-col">
       <div className="text-[11px] font-bold text-gray-600 mb-2">
@@ -142,16 +209,12 @@ function DeltaSummary({ periodsTrend, has360 }: { periodsTrend: PeriodTrendPoint
         <DeltaMetric label="Avg KPI" curr={curr.kpi} prev={prev?.kpi ?? null} />
         {has360 && <DeltaMetric label="Avg 360°" curr={curr.s360} prev={prev?.s360 ?? null} />}
       </div>
-      {insights.length > 0 && (
+      {hasCause && (
         <div className="mt-3 pt-3 border-t border-gray-100">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">Sorotan</div>
-          <div className="space-y-1">
-            {insights.map((it) => (
-              <div key={it.text} className="flex items-start gap-1.5 text-[11px] leading-snug text-gray-600">
-                <span className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${INSIGHT_DOT[it.tone]}`} />
-                <span>{it.text}</span>
-              </div>
-            ))}
+          <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">Penyebab perubahan</div>
+          <div className="space-y-2">
+            <CauseBlock label="KPI tim" cause={kpiCause} />
+            {has360 && <CauseBlock label="360° tim" cause={s360Cause} />}
           </div>
         </div>
       )}
@@ -178,26 +241,119 @@ function MoverLine({ m, up }: { m: MoverRow; up: boolean }) {
   );
 }
 
+/** Tombol toggle "Lihat semua (N) / Tampilkan lebih sedikit" — tampil hanya bila ada yang tersembunyi. */
+function ShowAllToggle({ expanded, total, onToggle }: { expanded: boolean; total: number; onToggle: () => void }) {
+  return (
+    <button type="button" onClick={onToggle}
+      className="mt-3 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline">
+      {expanded ? 'Tampilkan lebih sedikit' : `Lihat semua (${total})`}
+    </button>
+  );
+}
+
+const TOP_N = 3; // default tampil per kolom (Naik/Turun) sebelum "Lihat semua"
+
 function TopMovers({ movers, labels }: { movers: MoverRow[]; labels: { prev: string; curr: string } | null }) {
-  const risers = movers.filter((m) => m.delta > 0).slice(0, 3);
-  const fallers = movers.filter((m) => m.delta < 0).sort((a, b) => a.delta - b.delta).slice(0, 3);
+  const [expanded, setExpanded] = useState(false);
+  const allRisers = movers.filter((m) => m.delta > 0);
+  const allFallers = movers.filter((m) => m.delta < 0).sort((a, b) => a.delta - b.delta);
+  const risers = expanded ? allRisers : allRisers.slice(0, TOP_N);
+  const fallers = expanded ? allFallers : allFallers.slice(0, TOP_N);
+  const hasMore = allRisers.length > TOP_N || allFallers.length > TOP_N;
   return (
     <ChartCard title="Pergerakan KPI" hint={labels && <span className="text-[11px] text-gray-400">{labels.prev} → {labels.curr}</span>}>
       {!labels || movers.length === 0 ? (
         <p className="text-xs text-gray-500 italic py-6 text-center">Perlu ≥2 periode berdata (pegawai bernilai di keduanya) untuk pergerakan.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-700 mb-1.5">Naik</div>
-            {risers.length ? <div className="space-y-1.5">{risers.map((m) => <MoverLine key={m.name} m={m} up />)}</div>
-              : <p className="text-[11px] text-gray-400 italic">Tak ada kenaikan.</p>}
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-700 mb-1.5">Naik {allRisers.length > 0 && <span className="text-gray-400 font-normal">({allRisers.length})</span>}</div>
+              {risers.length ? <div className="space-y-1.5">{risers.map((m) => <MoverLine key={m.name} m={m} up />)}</div>
+                : <p className="text-[11px] text-gray-400 italic">Tak ada kenaikan.</p>}
+            </div>
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wide text-rose-600 mb-1.5">Turun {allFallers.length > 0 && <span className="text-gray-400 font-normal">({allFallers.length})</span>}</div>
+              {fallers.length ? <div className="space-y-1.5">{fallers.map((m) => <MoverLine key={m.name} m={m} up={false} />)}</div>
+                : <p className="text-[11px] text-gray-400 italic">Tak ada penurunan.</p>}
+            </div>
           </div>
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wide text-rose-600 mb-1.5">Turun</div>
-            {fallers.length ? <div className="space-y-1.5">{fallers.map((m) => <MoverLine key={m.name} m={m} up={false} />)}</div>
-              : <p className="text-[11px] text-gray-400 italic">Tak ada penurunan.</p>}
+          {hasMore && <ShowAllToggle expanded={expanded} total={allRisers.length + allFallers.length} onToggle={() => setExpanded((v) => !v)} />}
+        </>
+      )}
+    </ChartCard>
+  );
+}
+
+/**
+ * Pergerakan 360° — selisih Skor 360° per pegawai antara dua periode berdata terakhir, DENGAN
+ * rincian PER-ASPEK: di aspek mana tiap pegawai naik/turun. Aspek diurut penurunan-dulu (paling
+ * merah di depan) agar "di aspek mana turun" langsung terbaca. Melengkapi Pergerakan KPI.
+ */
+function AspectChips({ aspects }: { aspects: AspectDelta[] }) {
+  // Penurunan dulu (delta menaik: paling negatif di depan), maksimal 4 aspek bermakna.
+  const shown = [...aspects].sort((a, b) => a.delta - b.delta).slice(0, 4);
+  if (shown.length === 0) return <span className="text-[10px] text-gray-400 italic">tak ada perubahan aspek berarti</span>;
+  return (
+    <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+      {shown.map((a) => {
+        const down = a.delta < 0;
+        return (
+          <span key={a.aspect} className="text-[10px] whitespace-nowrap">
+            <span className={down ? 'text-rose-600' : 'text-emerald-700'} aria-hidden>{down ? '▼' : '▲'}</span>{' '}
+            <span className="text-gray-600">{a.aspect}</span>{' '}
+            <span className={`font-mono font-bold ${down ? 'text-rose-600' : 'text-emerald-700'}`}>{sgn(a.delta)}</span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+function Mover360Line({ m, up }: { m: MoverRow360; up: boolean }) {
+  return (
+    <div className="border-b border-gray-100 last:border-0 pb-1.5 last:pb-0">
+      <div className="flex items-center gap-2 text-[12px]">
+        <span className={`font-bold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>{up ? '▲' : '▼'}</span>
+        <span className="flex-1 min-w-0 truncate text-gray-700">{m.name}</span>
+        <span className={`font-mono font-bold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>
+          {m.delta >= 0 ? '+' : '−'}{Math.abs(m.delta).toFixed(2)}
+        </span>
+        <span className="font-mono text-[10px] text-gray-400 w-10 text-right">{m.curr.toFixed(1)}</span>
+      </div>
+      <div className="ml-5 mt-0.5"><AspectChips aspects={m.aspects} /></div>
+    </div>
+  );
+}
+
+function TopMovers360({ movers, labels }: { movers: MoverRow360[]; labels: { prev: string; curr: string } | null }) {
+  const [expanded, setExpanded] = useState(false);
+  const allRisers = movers.filter((m) => m.delta > 0);
+  const allFallers = movers.filter((m) => m.delta < 0).sort((a, b) => a.delta - b.delta);
+  const risers = expanded ? allRisers : allRisers.slice(0, TOP_N);
+  const fallers = expanded ? allFallers : allFallers.slice(0, TOP_N);
+  const hasMore = allRisers.length > TOP_N || allFallers.length > TOP_N;
+  return (
+    <ChartCard title="Pergerakan 360°" hint={labels && <span className="text-[11px] text-gray-400">{labels.prev} → {labels.curr}</span>}>
+      {!labels || movers.length === 0 ? (
+        <p className="text-xs text-gray-500 italic py-6 text-center">Perlu ≥2 periode ber-360° (pegawai bernilai di keduanya) untuk pergerakan.</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-3">
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-700 mb-1.5">Naik {allRisers.length > 0 && <span className="text-gray-400 font-normal">({allRisers.length})</span>}</div>
+              {risers.length ? <div className="space-y-1.5">{risers.map((m) => <Mover360Line key={m.name} m={m} up />)}</div>
+                : <p className="text-[11px] text-gray-400 italic">Tak ada kenaikan.</p>}
+            </div>
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wide text-rose-600 mb-1.5">Turun {allFallers.length > 0 && <span className="text-gray-400 font-normal">({allFallers.length})</span>}</div>
+              {fallers.length ? <div className="space-y-1.5">{fallers.map((m) => <Mover360Line key={m.name} m={m} up={false} />)}</div>
+                : <p className="text-[11px] text-gray-400 italic">Tak ada penurunan.</p>}
+            </div>
           </div>
-        </div>
+          {hasMore && <ShowAllToggle expanded={expanded} total={allRisers.length + allFallers.length} onToggle={() => setExpanded((v) => !v)} />}
+          <p className="text-[10px] text-gray-400 mt-3">Rincian per-aspek: <span className="text-rose-600 font-bold">▼</span> aspek turun · <span className="text-emerald-700 font-bold">▲</span> aspek naik (relatif periode sebelumnya).</p>
+        </>
       )}
     </ChartCard>
   );
@@ -222,7 +378,8 @@ function ChartCard({ title, hint, children }: { title: string; hint?: React.Reac
  *  C. Tren KPI Pegawai per Bulan (dropdown: rata-rata tim / satu pegawai)
  */
 export function MonitorTrends({
-  periodsTrend, monthLabels, teamMonthly, employees, has360, movers, moverLabels,
+  periodsTrend, monthLabels, teamMonthly, employees, has360, movers, moverLabels, kpiCause, s360Cause,
+  movers360, moverLabels360,
 }: {
   periodsTrend: PeriodTrendPoint[];
   monthLabels: string[];
@@ -231,6 +388,10 @@ export function MonitorTrends({
   has360: boolean;
   movers: MoverRow[];
   moverLabels: { prev: string; curr: string } | null;
+  kpiCause: DeltaCause | null;
+  s360Cause: DeltaCause | null;
+  movers360: MoverRow360[];
+  moverLabels360: { prev: string; curr: string } | null;
 }) {
   const [sel, setSel] = useState('team'); // 'team' = rata-rata tim; selain itu = employee id
   const empC = useMemo(() => employees.find((e) => e.id === sel) ?? null, [employees, sel]);
@@ -244,9 +405,7 @@ export function MonitorTrends({
   ];
 
   return (
-    <div className="mt-5 space-y-4">
-      <h2 className="text-sm font-bold text-gray-700">Tren Kinerja</h2>
-
+    <div className="mt-3 space-y-4">
       <ChartCard title="Tren Tim per Periode">
         {periodsTrend.length === 0 ? <Empty /> : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
@@ -254,12 +413,14 @@ export function MonitorTrends({
               <LineChart xLabels={periodLabels} series={periodSeries} />
               <Legend items={has360 ? [{ label: 'Avg KPI', color: C_KPI }, { label: 'Avg 360°', color: C_360 }] : [{ label: 'Avg KPI', color: C_KPI }]} />
             </div>
-            <DeltaSummary periodsTrend={periodsTrend} has360={has360} />
+            <DeltaSummary periodsTrend={periodsTrend} has360={has360} kpiCause={kpiCause} s360Cause={s360Cause} />
           </div>
         )}
       </ChartCard>
 
       <TopMovers movers={movers} labels={moverLabels} />
+
+      {has360 && <TopMovers360 movers={movers360} labels={moverLabels360} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ChartCard title="Tren KPI Tim per Bulan">

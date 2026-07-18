@@ -46,13 +46,6 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewe
     main.push({ href: '/laporan-tim', label: 'Laporan Kinerja Tim', icon: Users });
     main.push({ href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp });
   }
-  // Akses halaman ber-lingkup (RBAC, migrasi 0024): pemegang grant 'monitor' dapat membuka
-  // Monitor Kinerja Pegawai (lingkup ditegakkan server). Hanya di mode base; label dibedakan dari
-  // "Monitor Kinerja" tim SPV/Koordinator agar tak rancu.
-  if (!adminView && pageGrants.some((g) => g.section === 'monitor')) {
-    main.push({ href: '/admin/monitor', label: 'Monitor Kinerja Pegawai', icon: TrendingUp });
-  }
-
   const sections: Section[] = main.length ? [{ title: 'Navigasi Utama', items: main }] : [];
 
   // SPV biasa & HRD dalam mode SPV memakai menu Supervisor yang sama (paritas SPV).
@@ -110,6 +103,17 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewe
         { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award },
       ],
     });
+  }
+
+  // "Akses dari HRD" — halaman yang DIBERIKAN HRD lewat Manajemen Akses (grant page_grants), dalam
+  // section TERPISAH agar jelas ini pemberian & dapat DICABUT sewaktu-waktu (bukan menu bawaan peran).
+  // Hanya di mode base; lingkup ditegakkan server. Selalu di paling bawah sebagai "tambahan".
+  if (!adminView) {
+    const grantItems: Item[] = [];
+    if (pageGrants.some((g) => g.section === 'monitor')) {
+      grantItems.push({ href: '/admin/monitor', label: 'Monitor Kinerja Pegawai', icon: TrendingUp });
+    }
+    if (grantItems.length) sections.push({ title: 'Akses dari HRD', items: grantItems });
   }
 
   return sections;

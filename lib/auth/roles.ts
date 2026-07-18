@@ -112,6 +112,49 @@ export function grantedScope(grants: PageGrantRow[] | null | undefined, page: Gr
 }
 
 /**
+ * ── PENYARINGAN LINGKUP DIVISI (dipakai halaman Monitor + diuji) ───────────────────────────────
+ * Logika murni yang menerjemahkan lingkup grant → daftar divisi boleh-pilih, divisi terpilih yang
+ * sah, dan rencana filter (cerminan query server eq/neq). Diekstrak agar bisa DIUJI unit tanpa DB —
+ * mencegah regresi seperti "own_division/other_divisions bocor ke semua pegawai".
+ */
+
+/** Divisi yang boleh DIPILIH pemegang lingkup (untuk dropdown filter). */
+export function allowedDeptsFor(depts: string[], scope: PageScope, ownDept: string): string[] {
+  if (scope === 'own_division') return depts.filter((d) => d === ownDept);
+  if (scope === 'other_divisions') return depts.filter((d) => d !== ownDept);
+  return depts; // 'all'
+}
+
+/**
+ * Divisi terpilih yang SAH. `deptParam` (dari ?dept=) HANYA diterima bila ada di daftar `allowed` —
+ * jadi tak bisa dipakai menembus lingkup. `own_division` default ke divisi sendiri; selain itu 'all'.
+ */
+export function resolveDept(deptParam: string | null | undefined, allowed: string[], scope: PageScope, ownDept: string): string {
+  if (deptParam && allowed.includes(deptParam)) return deptParam;
+  return scope === 'own_division' ? (ownDept || 'all') : 'all';
+}
+
+/** Rencana filter divisi OTORITATIF — cerminan langsung query server (Supabase eq/neq/none). */
+export type DeptScopeFilter = { op: 'all' } | { op: 'eq' | 'neq'; dept: string };
+
+export function deptScopeFilter(scope: PageScope, ownDept: string, dept: string): DeptScopeFilter {
+  if (scope === 'own_division') return { op: 'eq', dept: ownDept };
+  if (scope === 'other_divisions') return dept !== 'all' ? { op: 'eq', dept } : { op: 'neq', dept: ownDept };
+  return dept !== 'all' ? { op: 'eq', dept } : { op: 'all' };
+}
+
+/**
+ * Terapkan rencana filter ke daftar pegawai (mirror semantik SQL: `eq` cocok persis; `neq`
+ * MENGECUALIKAN dept null — sama seperti Postgres `<>`). Dipakai untuk pengujian; halaman memakai
+ * rencana yang sama untuk membangun query DB.
+ */
+export function applyDeptScope<T extends { dept: string | null }>(employees: T[], f: DeptScopeFilter): T[] {
+  if (f.op === 'all') return employees.slice();
+  if (f.op === 'eq') return employees.filter((e) => e.dept === f.dept);
+  return employees.filter((e) => e.dept != null && e.dept !== f.dept); // neq
+}
+
+/**
  * Boleh meninjau Hasil Akhir LINTAS DIVISI (selain divisinya sendiri)? = grant
  * `is_cross_reviewer` (migrasi 0018). Kapabilitas SEMPIT & terpisah dari HRD Admin:
  * hanya membuka jalur /peninjau (lihat + tulis Ringkasan Aspek untuk divisi lain),

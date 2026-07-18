@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canSection, grantedScope, type PageScope } from '@/lib/auth/roles';
+import { canSection, grantedScope, allowedDeptsFor, resolveDept, deptScopeFilter, type PageScope } from '@/lib/auth/roles';
 import { finalScoreOf, playerClassOf } from '@/lib/scoring';
 import { trendOf } from '@/lib/trend';
 import { scoreMaps, penaltyMap, teamAverages, companyAverages } from '@/lib/team-metrics';
@@ -68,36 +68,27 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
     ?? periodList.find((p) => p.status === 'active')
     ?? periodList[periodList.length - 1];
 
+  // Lingkup efektif: HRD penuh = 'all' (perilaku lama); pemegang grant = lingkup grant-nya.
+  const scope: PageScope = grantScope ?? 'all';
+
   // Daftar divisi (untuk filter) + lingkup pegawai. Dibaca via service_role.
   const admin = createAdminClient();
   const { data: deptData } = await admin.from('employees').select('dept').eq('is_external', false);
-  let depts = [...new Set((deptData ?? []).map((d) => d.dept).filter((d): d is string => !!d))].sort();
-  // Batasi daftar divisi yang boleh dipilih sesuai lingkup grant (HRD penuh = semua divisi).
-  if (grantScope === 'own_division') depts = depts.filter((d) => d === ownDept);
-  else if (grantScope === 'other_divisions') depts = depts.filter((d) => d !== ownDept);
-
-  // Divisi terpilih: hanya sah bila ada di daftar yang diizinkan. Untuk lingkup 'own_division',
-  // default = divisi sendiri (bukan 'all').
-  const dept = deptParam && depts.includes(deptParam)
-    ? deptParam
-    : (grantScope === 'own_division' ? (ownDept || 'all') : 'all');
+  const allDepts = [...new Set((deptData ?? []).map((d) => d.dept).filter((d): d is string => !!d))].sort();
+  // Batasi daftar divisi yang boleh dipilih + divisi terpilih yang sah (helper diuji di
+  // tests/page-scope.test.ts; ?dept= di luar daftar diizinkan diabaikan).
+  const depts = allowedDeptsFor(allDepts, scope, ownDept);
+  const dept = resolveDept(deptParam, depts, scope, ownDept);
   const scopeLabel = dept === 'all'
-    ? (grantScope === 'other_divisions' ? 'Semua divisi lain' : 'Semua divisi')
+    ? (scope === 'other_divisions' ? 'Semua divisi lain' : 'Semua divisi')
     : dept;
 
-  // Lingkup pegawai — ditegakkan di SERVER secara OTORITATIF (tak bergantung default `dept`, tak
-  // bisa dilewati lewat ?dept=):
-  //   own_division    → SELALU divisi pemegang grant (dept kosong → tak cocok siapa pun = aman);
-  //   other_divisions → divisi lain terpilih, atau semua SELAIN divisi pemegang grant bila 'all';
-  //   'all' (HRD penuh / grant 'all') → satu divisi bila difilter, atau seluruh pegawai internal.
+  // Lingkup pegawai — ditegakkan di SERVER secara OTORITATIF lewat rencana filter yang sama dengan
+  // yang diuji unit (tak bergantung default `dept`, tak bisa dilewati lewat ?dept=).
+  const scopeFilter = deptScopeFilter(scope, ownDept, dept);
   let empQuery = admin.from('employees').select('id, name, dept, is_active').eq('is_external', false);
-  if (grantScope === 'own_division') {
-    empQuery = empQuery.eq('dept', ownDept);
-  } else if (grantScope === 'other_divisions') {
-    empQuery = dept !== 'all' ? empQuery.eq('dept', dept) : empQuery.neq('dept', ownDept);
-  } else if (dept !== 'all') {
-    empQuery = empQuery.eq('dept', dept);
-  }
+  if (scopeFilter.op === 'eq') empQuery = empQuery.eq('dept', scopeFilter.dept);
+  else if (scopeFilter.op === 'neq') empQuery = empQuery.neq('dept', scopeFilter.dept);
   const { data: empData } = await empQuery;
   const empRows = empData ?? [];
   if (empRows.length === 0) return <Shell><Header isHrdFull={isHrdFull} scopeLabel={scopeLabel} /><Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} /><p className="text-sm text-gray-500 mt-4">Belum ada pegawai dalam lingkup ini.</p></Shell>;

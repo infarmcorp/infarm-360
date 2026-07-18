@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection, grantedScope, type PageScope } from '@/lib/auth/roles';
@@ -39,9 +40,14 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections, dept').eq('id', user.id).maybeSingle();
-  // Akses: HRD penuh (canSection dashboard) → lingkup 'all' (perilaku lama, tak berubah). Selain itu,
-  // pemegang grant halaman 'monitor' (SPV/Koordinator/Direksi/Employee) masuk dengan lingkup grant-nya.
-  const isHrdFull = canSection(me, 'dashboard');
+  // Akses SADAR-MODE (dual-mode HRD): akses penuh lingkup 'all' HANYA di Mode Admin. Di Mode SPV
+  // (base) pemegang izin HRD diperlakukan sesuai POSISI DASAR-nya → tunduk pada lingkup grant, sama
+  // seperti SPV/Koordinator/Direksi/Employee (paritas SPV↔HRD-mode-SPV). Cookie hrd_mode default 'spv'.
+  // ⚠️ Ini pembatasan TAMPILAN (kenyamanan mode), BUKAN pagar keamanan: pemegang is_hrd() tetap bisa
+  // membaca seluruh data lewat API / Mode Admin. Batas nyata hanya berlaku untuk non-HRD.
+  const jar = await cookies();
+  const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
+  const isHrdFull = canSection(me, 'dashboard') && hrdMode === 'admin';
   let grantScope: PageScope | null = null;
   if (!isHrdFull) {
     // Dibaca lewat client user-scoped: RLS page_grants_self_read hanya memberi baris miliknya.

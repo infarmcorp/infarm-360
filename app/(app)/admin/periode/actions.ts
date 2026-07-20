@@ -137,7 +137,9 @@ export async function activePeriodReadiness(): Promise<
     supabase.from('mappings').select('*', { count: 'exact', head: true }).eq('period_id', ap.id),
     supabase.from('assessments').select('*', { count: 'exact', head: true }).eq('period_id', ap.id).eq('status', 'submitted'),
     supabase.from('assessments').select('*', { count: 'exact', head: true }).eq('period_id', ap.id).eq('status', 'draft'),
-    supabase.from('employees').select('*', { count: 'exact', head: true }).eq('is_active', true).neq('role', 'direksi'),
+    // Selaras dgn sidebar Tugas (lib/todos/compute.ts): pegawai eksternal TAK dibuatkan
+    // laporan final → dikecualikan agar hitungan "belum difinalisasi" konsisten (bukan overcount).
+    supabase.from('employees').select('*', { count: 'exact', head: true }).eq('is_active', true).neq('role', 'direksi').eq('is_external', false),
     supabase.from('final_reports').select('*', { count: 'exact', head: true }).eq('period_id', ap.id).eq('status', 'finalized'),
   ]);
   const pending360 = ap.has_360 ? Math.max(0, (maps.count ?? 0) - (subs.count ?? 0)) : 0;

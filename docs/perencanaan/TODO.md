@@ -106,6 +106,18 @@ status/sesi terkini di **[STATUS.md](STATUS.md)**.
   tes) — pengecualian dihitung di **dashboard saja** (`page.tsx` `axisIncomplete` XOR + `player=null`;
   `dashboard-visual.tsx` bucket + badge). Keputusan desain via 3 pertanyaan pengguna (semua rekomendasi
   dipilih). Build+typecheck hijau. **Verifikasi visual di browser (data live) disarankan.**
+- ✅ **Audit UX Monitor & Dashboard — DITUTUP SEMUA (2026-07-16..18, commit `2b01e93`).** Empat kategori
+  audit (kesan per peran, janggal, kurang informatif, usulan chart 1–5) beres: Scatter KPI×360°,
+  distribusi per kuartal, Profil Aspek tim + **pembanding vs organisasi**, kartu kelengkapan (→ baris),
+  delta divisi-vs-org, legenda ambang, sub-judul tujuan + tautan silang, penyeragaman distribusi 4-kategori
+  & istilah "penyebab perubahan". **Plus:** Monitor Kinerja Pegawai HRD, heatmap+donut aspek/indikator
+  per-pegawai (klik→saring), penataan section, tabel Dashboard 10/hal. **Tanpa migrasi**; rumus terkunci
+  tak disentuh. Detail → [CHANGELOG.md](CHANGELOG.md).
+  - 🔄 **SISA (aksi pengguna):** **verifikasi visual di browser** (data live) untuk Monitor Kinerja
+    (SPV/Koordinator/HRD) & Dashboard Organisasi — cek donut/heatmap/scatter/section tampil benar
+    (fix hydration donut sudah diterapkan).
+  - ⏸️ **Ditunda:** **akses Direksi ke Monitor Kinerja Pegawai** — sengaja belum di-hardcode; menunggu
+    fitur **atur-akses halaman oleh HRD** dibangun lebih dulu (keputusan pengguna 2026-07-17), lalu grant ke Direksi.
 - ⬜ **Ringkasan Aspek 360° otomatis (Claude API)** — REKOMENDASI, belum dibangun. Editor
   per-aspek sudah ada; tambah tombol "✨ Buat Ringkasan Otomatis" → Server Action kirim rating +
   komentar **anonim** (`data.byAspect`, tanpa nama) ke Claude → isi textarea (HRD edit & Simpan).
@@ -118,10 +130,44 @@ status/sesi terkini di **[STATUS.md](STATUS.md)**.
     melatih model pada data bisnis. Perlu persetujuan kebijakan internal.
 
 ### Keandalan teknis
+- ⬜ **Seragamkan skor 360° di Ekspor Dataset — sheet "Rekap Kinerja" hitung LIVE (diminta 2026-07-20).**
+  Saat ini `exportRekap` (`app/(app)/admin/ekspor/actions.ts`) membaca **`result_360` tersimpan** (hanya
+  sesegar "Hitung Ulang" terakhir), sedangkan `exportSummary360` & `exportAspectScores` **menghitung fresh**
+  dari rating mentah + bobot aktif. Akibat: bila ada penilaian 360° diubah **setelah** hitung-ulang terakhir,
+  satu file Excel bisa menampilkan **skor 360° berbeda antar-sheet** untuk pegawai yang sama (membingungkan).
+  - **Rencana:** ubah `exportRekap` agar 360° dihitung LIVE dengan primitif terkunci `lib/score360.ts`
+    (`weightedScore360`, Self dikecualikan) — **pola sama** seperti `exportSummary360` (grup rating→kelas per
+    (periode|target) → bobot aktif periode). Fallback bila belum ada skema bobot: samakan kebijakan (null,
+    seperti `exportSummary360`/`exportAspectScores`, bukan rata-rata polos).
+  - **Hati-hati:** jaga paritas angka dgn Ringkasan 360° (skala 100); pastikan `finalScoreOf` tetap pakai
+    `allow360Only=true` (Direksi ber-360°-tanpa-KPI) & KPI live seperti sekarang; jangan sentuh `result_360`
+    tersimpan (dipakai Dashboard/Monitor/Rekap SPV). Tambah/selaraskan tes bila relevan.
+  - **Catatan:** dalam praktik normal HRD menekan "Hitung Ulang Skor 360°" sebelum ekspor → selisih jarang
+    muncul; ini penyeragaman agar aman dari lupa, bukan bug.
 - ✅ **PASCA-DEPLOY fix 1000-baris (2026-07-08) — Hitung Ulang Skor 360° SUDAH DIJALANKAN**
   (konfirmasi pengguna **2026-07-16**). Fix `computeResult360` (paginasi) live + 51 skor `result_360`
   yang terlanjur salah kini ditimpa dengan yang benar. (⚠️ Tetap **JANGAN** Hitung Ulang untuk **Q1** —
   itu backfill eksternal.) Lihat Changelog "Batas 1000-baris PostgREST".
+- ✅ **Pencocokan Looker — heatmap 360° Q1 2026 presisi tinggi — SELESAI & DITERAPKAN KE LIVE (2026-07-20).**
+  Nilai per-aspek Q1 diperbarui dari export Looker baru presisi tinggi (≤6 desimal) → heatmap aspek
+  Dashboard/Monitor kini eksak (aspek = `rating×20`). **Yang dijalankan:** backup penuh
+  (`backups/backup-2026-07-20T03-38-29-707Z`) → migrasi **0026** (`rating` `numeric(3,2)`→**`numeric(8,6)`**,
+  aditif/aman, sudah di-apply ke DB) → impor `scripts/import-360-backfill.mjs --create-missing --apply`:
+  **250 rating aspek + 50 headline diperbarui** + **1 penilaian baru dibuat (Rosyid FT2026-068)**. Verifikasi
+  lolos: 51 assessments / 51 result_360 / 255 rating; presisi tersimpan penuh. Audit di `hrd_audit_log`
+  (`score360.backfill`). **JANGAN Hitung Ulang Q1** (headline dari `skor_360_100`).
+  - **Struktur Q1:** SINTETIS (1 anchor=Direksi, 1 assessment/pegawai, **1 indikator/aspek**), **tanpa skema
+    bobot** → aspek = rerata polos = `rating×20` persis. "Agregasi Looker (per-pegawai vs pooled)" tak relevan
+    (1 penilai/pegawai → org: pooled = mean-of-means).
+  - **Rosyid FT2026-068 DITAMBAHKAN** ke 360° Q1 (dulu dikecualikan; punya nilai Looker, tanpa KPI). **FT2026-069/
+    070/071 sengaja TETAP di luar** (belum masuk saat Q1 — konfirmasi pengguna).
+  - **Pola B terpakai:** `scripts/import-360-backfill.mjs` **reusable & disimpan** (dry-run default, `--apply`,
+    `--create-missing`, `--period=`); **CSV data pegawai TIDAK di-commit** (gitignore `BACKFILL-*.csv`).
+  - 🔑 **SISA (aksi pengguna):** (a) **verifikasi visual** heatmap Q1 di browser (data live); (b) **commit ke
+    `main`**: `supabase/migrations/0026_ais_rating_precision.sql` + `scripts/import-360-backfill.mjs` (agar skema
+    repo & skrip tersimpan) — belum di-commit.
+  - **CATATAN presisi headline:** `result_360.score` = `numeric(5,2)` → headline tetap 2 desimal (dashboard
+    memang tampil 2 desimal; presisi tinggi hanya di rating aspek = penggerak heatmap).
 - ⬜ **Cek pra-finalisasi tertunda (catatan 2026-06-23)** — Prioritas 1 (uji fungsional+keamanan di
   browser) **SUDAH lolos** (laporan pegawai agregat, ACC gating, guard ringkasan, SPV lihat laporan
   diri, wajib-komentar edit KPI, L3 aman). **Sisa yang BELUM dicek:**

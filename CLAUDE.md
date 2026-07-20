@@ -9,29 +9,37 @@ Panduan untuk Claude Code saat bekerja di repo ini.
 
 ---
 
-## Sedang Dikerjakan (per 2026-07-16)
+## Sedang Dikerjakan (per 2026-07-18)
 
-**Fokus aktif:** finishing UI polish grafik & konsolidasi dokumentasi. Migrasi fungsional **selesai &
-live**; sisa sebagian besar **aktivasi env** (email/sandi) + **kebersihan akun** + backup rutin.
+**Fokus aktif:** pendalaman **analitik Monitor Kinerja & Dashboard Organisasi** (semua sudah di-push
+ke `main`, commit `2b01e93`). Migrasi fungsional **selesai & live**; **tanpa migrasi DB sesi ini** —
+seluruhnya lapisan penyajian dari data yang sudah dihitung. Sisa pra-produksi = **aktivasi env**
+(email/sandi) + **kebersihan akun** + **backup rutin** (lihat [TODO.md](docs/perencanaan/TODO.md)).
 
-- **Grafik garis — jarak sumbu-Y ke titik/nilai (SELESAI & di-commit):** akar masalah bukan `padL`
-  (itu hanya menggeser border→sumbu), melainkan **posisi titik plot tepat di sumbu**. Solusi: `padL`
-  kembali ke 40 + **inset horizontal `padInX`** untuk menggeser titik data pertama/terakhir masuk dari
-  sumbu — nilai kini **15** di **Monitor** (`monitor-trends.tsx` `LineChart`) & **Dashboard**
-  (`dashboard-visual.tsx` `TrendLine`). Label titik tepi tetap rata-dalam (pertama=start/terakhir=end).
-- **Dokumentasi dikonsolidasi (SELESAI):** `progress.md` (log migrasi usang) **dihapus**;
-  **`docs/panduan/CARA-PENGGUNAAN.md`** & **`docs/panduan/RINCIAN-TOMBOL.md`** ditambahi **peran Koordinator** (lihat Laporan
-  Kinerja Tim + ACC + Input KPI naungannya), **umpan balik 360° mentah ANONIM** untuk SPV/Koordinator/
-  Direksi (model lapisan 3→4: L1/L2/raw-anonim/L3-bernama), **Direksi subjek 360° + tinjau laporan SPV**,
-  grant Koordinator/Peninjau + pembatasan grant ke divisi HRD, & penghapusan baris "Anda" dari Laporan Tim.
-- **Terbuka (butuh keputusan pengguna):** **pencocokan eksak Looker** untuk heatmap 360° Q1 — selisih
-  ~0.04 akibat pembulatan CSV ke `numeric(3,2)`. Opsi: migrasi 0023 (`rating`→`numeric(6,4)`) + impor
-  ulang presisi penuh, **menunggu** konfirmasi metode agregasi Looker (per-pegawai vs pooled-raw).
+- **Monitor Kinerja Pegawai untuk HRD (BARU):** halaman `app/(app)/admin/monitor/` (gate `canSection
+  'dashboard'`) — cermin Monitor SPV untuk seluruh pegawai internal, filter periode+divisi, scorecard/
+  tren/movers ikut filter, tabel 5/hal, delta divisi-vs-org. Menu di `app-shell.tsx`.
+- **"Penyebab Perubahan" (Monitor) + tooltip Δ (Dashboard):** urai Δ rata-rata jadi **skor pegawai
+  konsisten** vs **perubahan komposisi** (masuk/keluar) — identitas eksak. Istilah diseragamkan lintas
+  halaman. Pergerakan 360° kini beserta **rincian per-aspek**.
+- **Heatmap + Donut aspek/indikator per pegawai** (`extremes-heatmap.tsx`, `per-employee-heatmap.tsx`,
+  `lib/aspect360.ts`): donut frekuensi **terlemah/terkuat** (4 teratas + Lainnya) **di atas** heatmap;
+  **klik irisan → heatmap tersaring**. Semua peran. Palet selaras Dashboard.
+- **Profil Aspek tim + pembanding "vs organisasi"** (`team-aspect.tsx`, `orgAspectAverages`): garis +
+  chip Δ tim-vs-perusahaan per aspek.
+- **Penataan section berhierarki** (`section-header.tsx`) di Monitor & tiap sub-tab Dashboard
+  (Ringkasan → Komposisi/Distribusi → Arah → Rincian). Dashboard: **Scatter KPI×360°** + **distribusi
+  per kuartal** + legenda ambang; hapus banner judul tab KPI/360; tabel 10/hal + pager.
+- **Menutup seluruh audit** (kesan per peran, janggal, kurang informatif, usulan chart 1–5). Rincian →
+  [CHANGELOG.md](docs/perencanaan/CHANGELOG.md); status → [STATUS.md](docs/perencanaan/STATUS.md).
+- **Tersisa (butuh aksi pengguna):** **verifikasi visual di browser** (data live) untuk kedua halaman;
+  **pencocokan eksak Looker** heatmap 360° Q1 (selisih ~0.04 akibat pembulatan CSV `numeric(3,2)`) —
+  menunggu konfirmasi metode agregasi Looker.
 
-**File paling relevan sesi ini:** `app/(app)/monitor/monitor-trends.tsx`,
-`app/(app)/admin/dashboard/dashboard-visual.tsx`, `app/(app)/laporan-tim/` (ACC koordinator),
-`app/(app)/kpi/` (input KPI koordinator), `app/(app)/admin/audit/` (paginasi), `lib/report.ts`
-(raw anonim), `lib/auth/roles.ts` (`isHrdDept`), `supabase/migrations/0022_ais_rating_numeric.sql`.
+**File paling relevan sesi ini:** `app/(app)/monitor/` (`page.tsx`, `monitor-trends.tsx`,
+`extremes-heatmap.tsx`, `per-employee-heatmap.tsx`, `team-aspect.tsx`, `dist-bars.tsx`,
+`section-header.tsx`, `completeness.tsx`), `app/(app)/admin/monitor/` (`page.tsx`, `monitor-filters.tsx`),
+`app/(app)/admin/dashboard/` (`page.tsx`, `dashboard-visual.tsx`), `lib/aspect360.ts`, `lib/dashboard/aggregate.ts`.
 
 ---
 

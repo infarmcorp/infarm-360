@@ -119,6 +119,35 @@
   di-ACC setelah `computed_at` → ingatkan Hitung Ulang.
 
 ### Fitur pendukung (ringkas)
+- **Analitik Monitor Kinerja & Dashboard — pendalaman** (2026-07-16..18, commit `2b01e93`; **TANPA
+  migrasi** — seluruhnya penyajian dari data terkomputasi, rumus terkunci tak disentuh). Menutup audit
+  UX (kesan per peran / janggal / kurang informatif / usulan chart 1–5).
+  - **Monitor Kinerja Pegawai HRD (BARU):** `app/(app)/admin/monitor/` (gate `canSection 'dashboard'` →
+    hanya HRD; Direksi ditunda sampai fitur atur-akses) = cermin Monitor SPV utk seluruh internal, baca
+    via `createAdminClient` + `fetchAllByIds`/`fetchAllPaged`. Filter **periode+divisi** (`monitor-filters.tsx`);
+    scorecard/tren/**movers ikut filter** (bukan halaman tabel); tabel 5/hal; **delta divisi-vs-org**
+    (`companyAverages`). Menu "Monitor Kinerja Pegawai" di `app-shell.tsx` (section `dashboard`).
+  - **"Penyebab Perubahan":** Δ rata-rata antar-periode diurai jadi **skor pegawai konsisten** (kohort)
+    vs **perubahan komposisi** (masuk/keluar) — **identitas eksak** `total = real + cohort`. Kartu di
+    Monitor (`monitor-trends.tsx` `CauseBlock`), **tooltip Δ selaras** di Dashboard (`moveTooltip`, istilah
+    disamakan). **Pergerakan 360° per-aspek** (di aspek mana naik/turun) + toggle "Lihat semua" (default 3).
+  - **Heatmap aspek & indikator per-pegawai** (`per-employee-heatmap.tsx`) + **donut frekuensi
+    terlemah/terkuat** (`extremes-heatmap.tsx`, 4 teratas + "Lainnya", maks 5 irisan) **di atas** heatmap;
+    **klik irisan → heatmap tersaring** (baris yg ekstremnya di kolom itu). Skor per-aspek & per-indikator
+    per pegawai dihitung 1-pass di `lib/aspect360.ts` (`aspectScoresByEmployee`, metodologi 360° resmi
+    terbobot/Self-dikecualikan). Palet selaras Dashboard (`heatColor`); 5/hal + cari. ⚠️ **fix hydration:**
+    koordinat `donutArc` dibulatkan 3 desimal (Math.cos/sin beda ~1e-14 Node↔browser).
+  - **Profil Aspek tim + pembanding "vs organisasi"** (`team-aspect.tsx`; `orgAspectAverages`/
+    `aspectAveragesFrom` di `lib/aspect360.ts`): garis rata-rata org + chip Δ per aspek. HRD `Semua divisi`
+    → tanpa pembanding (lingkup = org; hindari query ganda & Δ ±0).
+  - **Penataan section berhierarki** (`section-header.tsx`, aksen emerald/indigo/amber/slate) di Monitor &
+    tiap sub-tab Dashboard (Ringkasan → Komposisi/Distribusi → Arah → Rincian). **DistBars** (`dist-bars.tsx`)
+    diseragamkan ke **4 kategori** Dashboard; **kelengkapan data** jadi baris di bawah scorecard (`completeness.tsx`
+    `FilledNote`, gantikan kartu penuh).
+  - **Dashboard Organisasi:** **Scatter KPI×360°** (kuadran ambang 80) + **distribusi kategori per kuartal**
+    (`QuarterlyDist`, arah talenta) + **legenda ambang**; coaching `<85`→`<80`; **hapus banner judul** tab
+    KPI/360 (komponen `Banner` dibuang); **tabel 10/hal + pager**; sub-judul tujuan + tautan silang ke Monitor.
+    `page.tsx` query tahunan dipaginasi (`fetchAllByIds`) + `quarterlyDist` per-kuartal (via `finalScoreOf` tanpa punishment).
 - **Ekspor Log Aktivitas HRD → Excel** (2026-07-16). Kartu baru di Ekspor Dataset (`exportHrdAuditLog`
   di `admin/ekspor/actions.ts` + `ekspor-client.tsx`): dataset **lintas-periode** dari `hrd_audit_log`
   (waktu/pelaku/kategori/aksi/ringkasan/target/detail-meta, terbaru di atas), **paginasi `.range()`**

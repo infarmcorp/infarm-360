@@ -4,10 +4,30 @@ Potret status & catatan sesi (cepat-basi — perbarui tiap sesi). Panduan tahan-
 **CLAUDE.md**; rincian tiap fitur di **[CHANGELOG.md](CHANGELOG.md)**; sisa pekerjaan di **[TODO.md](TODO.md)** / **[BACKLOG.md](BACKLOG.md)**
 (CLAUDE.md); catatan operasional trial/Q2 di **REKOMENDASI.md**.
 
-## Sedang Dikerjakan (per 2026-07-15)
+## Sedang Dikerjakan (per 2026-07-18)
 
-**Fokus aktif:** penyesuaian alur ACC & kedalaman umpan balik laporan (koordinator).
-Migrasi fungsional **selesai & live**; sisa sebagian besar **aktivasi env** (email/sandi) + **kebersihan akun**.
+**Fokus aktif:** pendalaman **analitik Monitor Kinerja & Dashboard Organisasi**.
+Migrasi fungsional **selesai & live**; sisa sebagian besar **aktivasi env** (email/sandi) + **kebersihan akun** + **backup rutin**.
+
+- **Sesi 2026-07-16..18 (di-push ke `main`, commit `2b01e93`) — TANPA migrasi DB (murni penyajian):**
+  - **Monitor Kinerja Pegawai untuk HRD (BARU):** `app/(app)/admin/monitor/` (gate `canSection
+    'dashboard'`) = cermin Monitor SPV utk seluruh internal; filter **periode+divisi**, scorecard/tren/
+    movers ikut filter, tabel 5/hal, **delta divisi-vs-org**. Menu di `app-shell.tsx`.
+  - **"Penyebab Perubahan":** urai Δ rata-rata jadi **skor pegawai konsisten** vs **perubahan komposisi**
+    (identitas eksak). Kartu di Monitor; tooltip Δ selaras di Dashboard. **Pergerakan 360° per-aspek** +
+    toggle "Lihat semua".
+  - **Heatmap + Donut aspek/indikator per pegawai** (`extremes-heatmap.tsx`/`per-employee-heatmap.tsx`/
+    `lib/aspect360.ts`): donut frekuensi **terlemah/terkuat** (4 teratas + Lainnya) **di atas** heatmap;
+    **klik irisan → heatmap tersaring**. Semua peran; palet selaras Dashboard; 5/hal + cari.
+  - **Profil Aspek tim + pembanding "vs organisasi"** (`team-aspect.tsx`/`orgAspectAverages`): garis +
+    chip Δ per aspek (SPV/Koordinator = vs perusahaan; HRD divisi = divisi vs org; `Semua divisi` = tanpa pembanding).
+  - **Penataan section berhierarki** (`section-header.tsx`) di Monitor & tiap sub-tab Dashboard;
+    **DistBars** diseragamkan ke 4 kategori; **kelengkapan** jadi baris di bawah scorecard (`completeness.tsx`).
+  - **Dashboard:** **Scatter KPI×360°** + **distribusi kategori per kuartal** + legenda ambang; coaching
+    `<85`→`<80`; hapus banner judul tab KPI/360; **tabel 10/hal + pager**; sub-judul tujuan + tautan silang.
+  - **Menutup seluruh audit** (kesan per peran, janggal, kurang informatif, usulan chart 1–5).
+  - ⚠️ **Sisa:** **verifikasi visual di browser** (data live) kedua halaman (fix hydration donut sudah
+    diterapkan — koordinat `donutArc` dibulatkan 3 desimal).
 
 - **Sesi 2026-07-15 (di-push ke `main`):**
   - **Koordinator kini BISA meng-ACC** laporan pegawai yang dinaunginya (setelah HRD rilis). **SPV**
@@ -98,8 +118,11 @@ Bagian ini hanya potret status; perincian tiap fitur ada di **[CHANGELOG.md](CHA
 - Laporan & visibilitas: `lib/report.ts` (`loadReport`/`loadTeamReportForSpv`/`loadTeamReportForHrdSpv`),
   `app/(app)/laporan/`, `app/(app)/laporan-tim/`, `app/(app)/admin/laporan/` · RLS: migrasi 0012
 - Dashboard: `app/(app)/admin/dashboard/` (`page.tsx` + `dashboard-visual.tsx`)
+- Monitor Kinerja HRD: `app/(app)/admin/monitor/` (`page.tsx`/`monitor-filters.tsx`) · aspek per-pegawai: `lib/aspect360.ts`
 - Laporan Kinerja Tim & Monitor: `app/(app)/laporan-tim/` (`team-table.tsx`/`scorecards.tsx`),
-  `app/(app)/monitor/` (`page.tsx`/`monitor-trends.tsx`/`period-filter.tsx`), `lib/team-metrics.ts`, `lib/trend.ts`
+  `app/(app)/monitor/` (`page.tsx`/`monitor-trends.tsx`/`period-filter.tsx`/`extremes-heatmap.tsx`/
+  `per-employee-heatmap.tsx`/`team-aspect.tsx`/`dist-bars.tsx`/`section-header.tsx`/`completeness.tsx`),
+  `lib/team-metrics.ts`, `lib/trend.ts`
 - Tanggal aktif pegawai: `app/(app)/admin/pegawai/` (`actions.ts`/`page.tsx`/`pegawai-client.tsx`), migrasi 0020
 - Ekspor: `app/(app)/admin/ekspor/` (`actions.ts` + `ekspor-client.tsx`)
 - Skor & tes: `lib/scoring.ts`, `lib/score360.ts`, `tests/`, `scripts/verify-rls.ts`, `.github/workflows/ci.yml`

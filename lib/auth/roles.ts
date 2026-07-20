@@ -78,22 +78,29 @@ export function isFullHrd(m: ActorRow | null | undefined): boolean {
  * masuk sini. Jangan pernah menambah halaman ke katalog sebelum server benar-benar menyaring datanya
  * per lingkup — menawarkan akses yang tak tersaring = rasa aman palsu (lawan prinsip app ini).
  */
-export const GRANTABLE_PAGES = ['monitor'] as const;
+export const GRANTABLE_PAGES = ['monitor', 'review'] as const;
 export type GrantablePage = (typeof GRANTABLE_PAGES)[number];
 
 /** Label Indonesia tiap halaman yang bisa diberikan — dipakai di halaman Manajemen Akses. */
 export const GRANTABLE_PAGE_LABELS: Record<GrantablePage, string> = {
   monitor: 'Monitor Kinerja Pegawai',
+  review: 'Review Hasil Akhir',
 };
 
 /**
  * Jenis halaman (menentukan apakah opsi EDIT relevan):
  *   'pemantauan'    → selalu LIHAT-saja (mengabaikan can_edit).
  *   'administrator' → dapat-edit: grant punya flag boleh-edit / hanya-lihat.
+ *
+ * ⚠️ 'review' (Review Hasil Akhir) TAHAP 1 = LIHAT-SAJA berlingkup (finalisasi tetap HRD).
+ * Kemampuan EDIT/finalisasi untuk non-HRD = TAHAP 2 (guard tulis service_role per-aksi) — belum
+ * diaktifkan. Konsol belum menampilkan toggle edit & setPageGrant menyetel can_edit=false secara
+ * efektif, jadi tak ada rasa aman palsu meski jenisnya 'administrator'.
  */
 export type PageKind = 'pemantauan' | 'administrator';
 export const GRANTABLE_PAGE_KIND: Record<GrantablePage, PageKind> = {
   monitor: 'pemantauan',
+  review: 'administrator',
 };
 
 /** Lingkup data sebuah grant halaman (ditegakkan server via service_role berfilter). */

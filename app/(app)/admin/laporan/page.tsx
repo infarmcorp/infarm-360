@@ -1,7 +1,8 @@
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canSection } from '@/lib/auth/roles';
+import { canSection, grantedScope, deptScopeFilter, type PageScope } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
 import { ReportTable, type ReportRow } from './report-table';
 import { Recompute360Button } from './recompute-360-button';
@@ -15,11 +16,28 @@ export default async function AdminLaporanPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
-  if (!canSection(me, 'laporan')) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin.</p>
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections, dept').eq('id', user.id).maybeSingle();
+
+  // SADAR-MODE: HRD "penuh" HANYA di Mode Admin (paritas — HRD Mode-SPV dibatasi seperti non-HRD).
+  const jar = await cookies();
+  const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
+  const isHrdFull = canSection(me, 'laporan') && hrdMode === 'admin';
+
+  // Jalur GRANT (non-HRD-penuh): akses Review Hasil Akhir ber-LINGKUP & READ-ONLY (Tahap 1) —
+  // hanya MELIHAT daftar tersaring lingkup. Finalisasi/tulis tetap HRD (aksi HRD-only tak diubah).
+  let reviewScope: PageScope | null = null;
+  if (!isHrdFull) {
+    const { data: grantRows } = await supabase.from('page_grants').select('section, scope').eq('employee_id', user.id);
+    reviewScope = grantedScope(grantRows, 'review');
+  }
+  if (!isHrdFull && !reviewScope) {
+    return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin atau pemegang akses Review Hasil Akhir.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
+
+  const readOnly = !isHrdFull; // pemegang grant → hanya lihat (tanpa tombol tulis / Tinjau)
+  // Pemegang grant bukan is_hrd() → RLS memblokir baca lintas-pegawai → baca via service_role.
+  const db = (isHrdFull ? supabase : createAdminClient()) as typeof supabase;
 
   const { data: ap } = await supabase
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
@@ -30,14 +48,21 @@ export default async function AdminLaporanPage() {
   // Direksi SENGAJA IKUT di sini (subjek 360° — keputusan 2026-07-08): mereka tak punya KPI,
   // jadi hanya tampil bila punya skor 360° (disaring `shownRows` di bawah). Ini KHUSUS halaman
   // Review Hasil Akhir — Dashboard/KPI/kepatuhan tetap mengecualikan Direksi.
-  const { data: emps } = await supabase.from('employees').select('id, name, dept, is_active, role').eq('is_external', false);
+  // Pemegang grant: daftar disaring per LINGKUP (deptScopeFilter — cerminan query Monitor).
+  let empQ = db.from('employees').select('id, name, dept, is_active, role').eq('is_external', false);
+  if (reviewScope) {
+    const f = deptScopeFilter(reviewScope, me?.dept ?? '', 'all');
+    if (f.op === 'eq') empQ = empQ.eq('dept', f.dept);
+    else if (f.op === 'neq') empQ = empQ.neq('dept', f.dept);
+  }
+  const { data: emps } = await empQ;
   const employees = emps ?? [];
 
-  const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', ap.id);
+  const { data: months } = await db.from('period_months').select('ym').eq('period_id', ap.id);
   const yms = (months ?? []).map((m) => m.ym);
   const sortedMonths = [...yms].sort();
   const { data: kpiRows } = yms.length
-    ? await supabase.from('kpi_scores').select('employee_id, score, ym').in('ym', yms) : { data: [] };
+    ? await db.from('kpi_scores').select('employee_id, score, ym').in('ym', yms) : { data: [] };
   const kpiAgg = new Map<string, { sum: number; n: number }>();
   const kpiMonthsByEmp = new Map<string, Set<string>>(); // bulan yang sudah ada KPI per pegawai
   (kpiRows ?? []).forEach((r) => {
@@ -45,13 +70,13 @@ export default async function AdminLaporanPage() {
     const s = kpiMonthsByEmp.get(r.employee_id) ?? new Set<string>(); s.add(r.ym); kpiMonthsByEmp.set(r.employee_id, s);
   });
 
-  const { data: r360 } = await supabase.from('result_360').select('employee_id, score, computed_at').eq('period_id', ap.id);
+  const { data: r360 } = await db.from('result_360').select('employee_id, score, computed_at').eq('period_id', ap.id);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
   // computed_at per pegawai → deteksi "perlu hitung ulang" (penilaian berubah setelah hitung).
   const computedAtBy = new Map((r360 ?? []).map((r) => [r.employee_id, r.computed_at]));
-  const { data: pen } = await supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id);
+  const { data: pen } = await db.from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id);
   const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
-  const { data: reports } = await supabase
+  const { data: reports } = await db
     .from('final_reports').select('employee_id, status, spv_acc, final_score').eq('period_id', ap.id);
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
 
@@ -63,9 +88,9 @@ export default async function AdminLaporanPage() {
   // (selaras Progress 360 — kelengkapan berbasis penilaian wajib).
   // CATATAN: TANPA filter is_active — pegawai nonaktif (resign) pemetaannya dimatikan, tapi
   // penilaian terhadapnya tetap sah; tanpa ini kolom "Dinilai oleh" jadi "—" yang menyesatkan.
-  const { data: maps } = await supabase
+  const { data: maps } = await db
     .from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', ap.id);
-  const { data: subs } = await supabase
+  const { data: subs } = await db
     .from('assessments').select('assessor_id, target_id, submitted_at').eq('period_id', ap.id).eq('status', 'submitted');
   const doneSet = new Set((subs ?? []).map((s) => `${s.assessor_id}|${s.target_id}`));
   // submitted_at TERBARU per pegawai (sebagai target) → dibandingkan dgn computed_at result_360.
@@ -85,7 +110,7 @@ export default async function AdminLaporanPage() {
 
   // Koreksi Garis Hubungan yang DI-ACC (mengubah kelas bobot) → juga memicu "perlu hitung".
   // reviewed_at TERBARU per pegawai (target) dibandingkan dgn computed_at result_360.
-  const { data: corrs } = await supabase
+  const { data: corrs } = await db
     .from('relation_correction_requests').select('target_id, reviewed_at')
     .eq('period_id', ap.id).eq('status', 'approved').not('reviewed_at', 'is', null);
   const maxReviewedByTarget = new Map<string, string>();
@@ -148,12 +173,13 @@ export default async function AdminLaporanPage() {
       <div className="flex items-center justify-between mb-3">
         <div>
           <h1 className="text-xl font-bold text-gray-800">Review Hasil Akhir</h1>
-          <p className="text-sm text-gray-500">Periode aktif: {ap.label} · finalisasi Skor Akhir kalibrasi.</p>
+          <p className="text-sm text-gray-500">Periode aktif: {ap.label} · {isHrdFull ? 'finalisasi Skor Akhir kalibrasi.' : 'lihat-saja (akses dari HRD, lingkup terbatas).'}</p>
         </div>
         <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
       </div>
 
-      {/* Penanda langkah + kokpit hitung 360°, agar HRD tahu urutan & tak bolak-balik halaman. */}
+      {/* Penanda langkah + kokpit hitung 360° — HANYA HRD penuh (pemegang grant = read-only). */}
+      {isHrdFull && (
       <div className="mb-4 space-y-2">
         {/* Strip alur bernomor — selalu tampil saat 360° aktif. */}
         {ap.has_360 && (
@@ -195,14 +221,22 @@ export default async function AdminLaporanPage() {
           </div>
         </div>
       </div>
+      )}
 
-      <ReportTable rows={shownRows} depts={depts} has360={ap.has_360} />
-      <p className="text-[10px] text-gray-500 italic mt-3">
-        Klik <strong>Tinjau</strong> untuk membuka & mengelola laporan pegawai (Simpan Draf → Rilis ke SPV →
-        Finalisasi) di panel detail. Setelah <strong>Final</strong>, kolom Skor Akhir menampilkan angka
-        tersimpan yang dilihat pegawai; badge <strong>berubah</strong> muncul bila data terkini berbeda
-        (kembalikan ke draf lalu finalisasi ulang untuk memperbarui).
-      </p>
+      <ReportTable rows={shownRows} depts={depts} has360={ap.has_360} readOnly={readOnly} />
+      {isHrdFull ? (
+        <p className="text-[10px] text-gray-500 italic mt-3">
+          Klik <strong>Tinjau</strong> untuk membuka & mengelola laporan pegawai (Simpan Draf → Rilis ke SPV →
+          Finalisasi) di panel detail. Setelah <strong>Final</strong>, kolom Skor Akhir menampilkan angka
+          tersimpan yang dilihat pegawai; badge <strong>berubah</strong> muncul bila data terkini berbeda
+          (kembalikan ke draf lalu finalisasi ulang untuk memperbarui).
+        </p>
+      ) : (
+        <p className="text-[10px] text-gray-500 italic mt-3">
+          Tampilan <strong>lihat-saja</strong> sesuai akses yang diberikan HRD (lingkup terbatas).
+          Finalisasi & perubahan laporan hanya oleh HRD.
+        </p>
+      )}
     </Shell>
   );
 }

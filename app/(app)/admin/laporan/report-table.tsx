@@ -23,8 +23,9 @@ export type ReportRow = {
 const isRatedComplete = (r: ReportRow) => r.ratedTotal > 0 && r.ratedDone >= r.ratedTotal;
 
 /** Tabel Review Hasil Akhir + pencarian, filter Divisi & Kelengkapan 360° (client).
- * `hrefBase` = basis tautan "Tinjau" (default '/laporan' untuk HRD; '/review-hasil' utk Direksi read-only). */
-export function ReportTable({ rows, depts, has360, hrefBase = '/laporan' }: { rows: ReportRow[]; depts: string[]; has360: boolean; hrefBase?: string }) {
+ * `hrefBase` = basis tautan "Tinjau" (default '/laporan' untuk HRD; '/review-hasil' utk Direksi read-only).
+ * `readOnly` = pemegang grant lihat-saja: sembunyikan tautan "Tinjau" (tanpa akses detail; Tahap 1). */
+export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOnly = false }: { rows: ReportRow[]; depts: string[]; has360: boolean; hrefBase?: string; readOnly?: boolean }) {
   const [q, setQ] = useState('');
   const [fDept, setFDept] = useState('all');
   const [fRated, setFRated] = useState<'all' | 'complete' | 'incomplete'>('all');
@@ -177,7 +178,9 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan' }: { ro
                     : <span className="text-[10px] text-gray-500">—</span>}
                 </td>
                 <td className="py-3 pl-3 text-right">
-                  {r.final == null
+                  {readOnly
+                    ? <span className="text-[10px] text-gray-400">—</span>
+                    : r.final == null
                     ? <span className="text-[10px] text-gray-500 italic">KPI &amp; 360° kosong</span>
                     : <span className="inline-flex items-center gap-1.5 justify-end">
                         {/* Skor Akhir dari 360° saja (mis. Direksi) — beri konteks di samping tombol. */}

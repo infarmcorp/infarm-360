@@ -6,6 +6,7 @@ import { setPageGrant, removePageGrant } from './actions';
 import { setHrdAdmin, setCrossReviewer, setCoordinator, setCoordinatorTeam, setHrdSections } from '../pegawai/actions';
 import { isHrdDept, HRD_SECTIONS, HRD_SECTION_LABELS, type HrdSection } from '@/lib/auth/roles';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { SearchableSelect } from '@/components/searchable-select';
 
 export type AksesEmployee = {
   id: string;
@@ -17,9 +18,9 @@ export type AksesEmployee = {
   isCrossReviewer: boolean;
   isCoordinator: boolean;
   hrdSections: string[] | null;
-  grants: Record<string, string>; // section halaman → scope
+  grants: Record<string, { scope: string; canEdit: boolean }>; // section halaman → { lingkup, boleh-edit }
 };
-type PageOpt = { key: string; label: string };
+type PageOpt = { key: string; label: string; kind: string }; // kind: 'pemantauan' | 'administrator'
 type ScopeOpt = { key: string; label: string };
 
 const ROLE_LABEL: Record<string, string> = { employee: 'Pegawai', spv: 'SPV', hrd: 'HRD', direksi: 'Direksi' };
@@ -44,6 +45,13 @@ export function AksesClient({
   const [msg, setMsg] = useState<{ id: string; text: string; ok: boolean } | null>(null);
   const [coordDlg, setCoordDlg] = useState<{ r: AksesEmployee; selected: Set<string>; q: string } | null>(null);
   const [sectionsDlg, setSectionsDlg] = useState<{ r: AksesEmployee; full: boolean; selected: Set<string> } | null>(null);
+  // ── Card "Tambah akses baru" + panel kanan ──
+  const [addEmp, setAddEmp] = useState('');   // employee_id terpilih di card
+  const [addPage, setAddPage] = useState(''); // section halaman terpilih di card
+  // Panel: lingkup = PILIH SATU nilai (Diri sendiri / Divisi sendiri / Divisi lain / Semua pegawai),
+  // dari daftar `scopes`. Checkbox berperilaku pilih-satu (mencentang satu melepas yang lain).
+  const [panel, setPanel] = useState<{ empId: string; section: string; scope: string; canEdit: boolean } | null>(null);
+  const [panelMsg, setPanelMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -66,12 +74,56 @@ export function AksesClient({
   const patchRow = (id: string, upd: Partial<AksesEmployee>) =>
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...upd } : r)));
 
-  // ── Grant HALAMAN ber-lingkup ──────────────────────────────────────────────
-  function changeGrant(emp: AksesEmployee, section: string, scope: string) {
-    run(emp.id, () => (scope ? setPageGrant(emp.id, section, scope) : removePageGrant(emp.id, section)), () => {
+  // ── Grant HALAMAN ber-lingkup (+ dimensi boleh-edit untuk halaman administrator) ─────────────
+  function changeGrant(emp: AksesEmployee, section: string, scope: string, canEdit: boolean) {
+    run(emp.id, () => (scope ? setPageGrant(emp.id, section, scope, canEdit) : removePageGrant(emp.id, section)), () => {
       const grants = { ...emp.grants };
-      if (scope) grants[section] = scope; else delete grants[section];
+      if (scope) grants[section] = { scope, canEdit }; else delete grants[section];
       patchRow(emp.id, { grants });
+    });
+  }
+  /** Toggle boleh-edit/hanya-lihat untuk halaman administrator (pertahankan lingkup saat ini). */
+  function toggleEdit(emp: AksesEmployee, section: string) {
+    const cur = emp.grants[section];
+    if (!cur) return;
+    changeGrant(emp, section, cur.scope, !cur.canEdit);
+  }
+
+  // ── Card "Tambah akses baru" + panel kanan ──────────────────────────────────
+  const empOptions = useMemo(
+    () => rows.map((r) => ({ value: r.id, label: `${r.name} — ${r.dept}` })),
+    [rows],
+  );
+  const addPageKind = pages.find((p) => p.key === addPage)?.kind;
+  const panelEmp = panel ? rows.find((r) => r.id === panel.empId) ?? null : null;
+  const panelPage = panel ? pages.find((p) => p.key === panel.section) ?? null : null;
+
+  /** Buka panel untuk (pegawai, halaman) terpilih — prefill dari grant existing bila ada. */
+  function openPanel() {
+    const emp = rows.find((r) => r.id === addEmp);
+    if (!emp || !addPage) return;
+    const g = emp.grants[addPage];
+    setPanel({ empId: addEmp, section: addPage, scope: g?.scope ?? '', canEdit: !!g?.canEdit });
+    setPanelMsg(null);
+  }
+
+  /** Simpan kombinasi panel via setPageGrant (pola yang sama) + patch rows agar tabel ter-update. */
+  function savePanel() {
+    if (!panel) return;
+    const scope = panel.scope;
+    if (!scope) { setPanelMsg({ ok: false, text: 'Pilih satu lingkup data.' }); return; }
+    const emp = rows.find((r) => r.id === panel.empId);
+    if (!emp) return;
+    const section = panel.section;
+    // Halaman pemantauan selalu lihat-saja → paksa canEdit=false (server juga menormalkan).
+    const kind = pages.find((p) => p.key === section)?.kind;
+    const canEdit = kind === 'administrator' ? panel.canEdit : false;
+    startTransition(async () => {
+      const res = await setPageGrant(emp.id, section, scope, canEdit);
+      if (res.ok) {
+        patchRow(emp.id, { grants: { ...emp.grants, [section]: { scope, canEdit } } });
+        setPanelMsg({ ok: true, text: res.msg ?? 'Akses tersimpan.' });
+      } else setPanelMsg({ ok: false, text: res.error ?? 'Gagal menyimpan.' });
     });
   }
 
@@ -106,6 +158,112 @@ export function AksesClient({
 
   return (
     <div className="mt-4">
+      {/* ── Tambah akses baru: card (kiri) + panel pengaturan (kanan) ───────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-5">
+        {/* Kiri: pilih pegawai + halaman */}
+        <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-4">
+          <h3 className="text-sm font-bold text-gray-800 mb-0.5">Tambah akses baru</h3>
+          <p className="text-[11px] text-gray-500 mb-3">Pilih pegawai dan halaman, lalu atur lingkup & izinnya di panel kanan.</p>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-600 mb-1">Pegawai</label>
+              <SearchableSelect
+                value={addEmp}
+                onChange={setAddEmp}
+                options={empOptions}
+                placeholder="— pilih pegawai —"
+                ariaLabel="Pilih pegawai"
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-gray-600 mb-1">Halaman/fitur</label>
+              <select
+                value={addPage}
+                onChange={(e) => setAddPage(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:border-emerald-500 focus:outline-none"
+              >
+                <option value="">— pilih halaman —</option>
+                {pages.map((p) => (
+                  <option key={p.key} value={p.key}>{p.label}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              onClick={openPanel}
+              disabled={!addEmp || !addPage || pending}
+              className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <SlidersHorizontal className="w-4 h-4" /> Atur akses →
+            </button>
+          </div>
+        </div>
+
+        {/* Kanan: panel pengaturan lingkup + izin */}
+        <div className="rounded-2xl border border-gray-200 p-4">
+          {!panel || !panelEmp || !panelPage ? (
+            <div className="h-full flex items-center justify-center text-center text-[12px] text-gray-400 italic py-8">
+              Pilih pegawai &amp; halaman, lalu klik <span className="font-semibold text-gray-500">&nbsp;Atur akses&nbsp;</span> untuk menampilkan pengaturan lingkup &amp; izin di sini.
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800">{panelPage.label}</h3>
+                  <p className="text-[11px] text-gray-500">{panelEmp.name} · {panelEmp.dept}</p>
+                </div>
+                <button type="button" onClick={() => { setPanel(null); setPanelMsg(null); }} className="text-[11px] text-gray-400 hover:text-gray-600">Tutup</button>
+              </div>
+
+              {/* Lingkup data — PILIH SATU (mencentang satu melepas yang lain). */}
+              <div className="mb-3">
+                <p className="text-[11px] font-semibold text-gray-600 mb-1.5">Lingkup data</p>
+                <div className="space-y-1.5">
+                  {scopes.map((s) => (
+                    <label key={s.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={panel.scope === s.key} disabled={pending}
+                        onChange={() => setPanel((p) => (p ? { ...p, scope: p.scope === s.key ? '' : s.key } : p))}
+                        className="accent-emerald-600" />
+                      <span className="text-gray-800">{s.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Izin — dua checkbox saling eksklusif → dipetakan ke can_edit. */}
+              <div className="mb-4">
+                <p className="text-[11px] font-semibold text-gray-600 mb-1.5">Izin</p>
+                {panelPage.kind === 'administrator' ? (
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={panel.canEdit} disabled={pending}
+                        onChange={() => setPanel((p) => (p ? { ...p, canEdit: true } : p))} className="accent-amber-600" />
+                      <span className="text-gray-800">Edit</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={!panel.canEdit} disabled={pending}
+                        onChange={() => setPanel((p) => (p ? { ...p, canEdit: false } : p))} className="accent-gray-500" />
+                      <span className="text-gray-800">Lihat saja</span>
+                    </label>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-gray-500 italic">Halaman pemantauan selalu <strong>lihat-saja</strong>.</p>
+                )}
+              </div>
+
+              {panelMsg && (
+                <p className={`text-[11px] mb-2 ${panelMsg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{panelMsg.text}</p>
+              )}
+              <button type="button" onClick={savePanel} disabled={pending}
+                className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
+                Simpan akses
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="flex items-center gap-2 mb-3">
         <input
           value={q}
@@ -140,21 +298,35 @@ export function AksesClient({
                 </td>
                 <td className="px-3 py-2 text-gray-600">{emp.dept}</td>
                 <td className="px-3 py-2 text-gray-600">{ROLE_LABEL[emp.role] ?? emp.role}</td>
-                {pages.map((p) => (
+                {pages.map((p) => {
+                  const grant = emp.grants[p.key];
+                  return (
                   <td key={p.key} className="px-3 py-2">
-                    <select
-                      value={emp.grants[p.key] ?? ''}
-                      disabled={pending}
-                      onChange={(e) => changeGrant(emp, p.key, e.target.value)}
-                      className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm bg-white focus:border-emerald-500 focus:outline-none disabled:opacity-50"
-                    >
-                      <option value="">— Tanpa akses</option>
-                      {scopes.map((s) => (
-                        <option key={s.key} value={s.key}>{s.label}</option>
-                      ))}
-                    </select>
+                    <div className="flex flex-col gap-1">
+                      <select
+                        value={grant?.scope ?? ''}
+                        disabled={pending}
+                        onChange={(e) => changeGrant(emp, p.key, e.target.value, grant?.canEdit ?? false)}
+                        className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm bg-white focus:border-emerald-500 focus:outline-none disabled:opacity-50"
+                      >
+                        <option value="">— Tanpa akses</option>
+                        {scopes.map((s) => (
+                          <option key={s.key} value={s.key}>{s.label}</option>
+                        ))}
+                      </select>
+                      {/* Halaman administrator (mis. Review Hasil Akhir): toggle boleh-edit/hanya-lihat.
+                          Halaman pemantauan selalu lihat-saja → tak ada toggle. */}
+                      {p.kind === 'administrator' && grant && (
+                        <button type="button" onClick={() => toggleEdit(emp, p.key)} disabled={pending}
+                          title={grant.canEdit ? 'Sedang: boleh edit — klik untuk jadikan hanya-lihat' : 'Sedang: hanya-lihat — klik untuk izinkan edit/finalisasi'}
+                          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border disabled:opacity-50 ${grant.canEdit ? 'bg-amber-50 text-amber-800 border-amber-300' : 'bg-gray-50 text-gray-600 border-gray-300'}`}>
+                          {grant.canEdit ? '✎ Boleh edit' : '👁 Hanya lihat'}
+                        </button>
+                      )}
+                    </div>
                   </td>
-                ))}
+                  );
+                })}
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap gap-1">
                     {/* HRD Admin — hanya pegawai divisi HRD (kebijakan), bukan direksi/hrd-posisi. */}

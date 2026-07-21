@@ -118,6 +118,31 @@ status/sesi terkini di **[STATUS.md](STATUS.md)**.
     (fix hydration donut sudah diterapkan).
   - ⏸️ **Ditunda:** **akses Direksi ke Monitor Kinerja Pegawai** — sengaja belum di-hardcode; menunggu
     fitur **atur-akses halaman oleh HRD** dibangun lebih dulu (keputusan pengguna 2026-07-17), lalu grant ke Direksi.
+- 🔄 **Manajemen Akses — grant halaman berlingkup (RBAC `page_grants`).** Konsol `/admin/akses` + migrasi
+  0024/0025 **sudah LIVE** (lihat [BACKLOG.md](BACKLOG.md) "Akses HRD granular"). Progres halaman yang di-grant:
+  - ✅ **Monitor Kinerja Pegawai** (pemantauan, lihat-saja berlingkup) — LIVE di `main`.
+  - 🔄 **Review Hasil Akhir — Tahap 1 (lihat-saja berlingkup) SELESAI di `dev` (`a42d6ee`), BELUM PUSH.**
+    Halaman **administrator pertama** yang di-grant. `'review'` di `GRANTABLE_PAGES` (kind administrator,
+    Tahap 1 read-only; `can_edit` default false); `admin/laporan/page.tsx` SADAR-MODE + jalur grant
+    (service_role scoped read, `deptScopeFilter`, tombol tulis+"Tinjau" disembunyikan, detail diblok);
+    aksi tulis TAK diubah = HRD-only. +4 tes (120 hijau, build hijau). Terverifikasi localhost (tak bisa
+    edit/Tinjau via grant). Detail: [[page-access-rbac]].
+    - ⬜ **Tahap 2 (ditunda — besar/sensitif):** finalisasi/edit oleh non-HRD (guard tulis service_role
+      per-aksi cek grant+`can_edit`+lingkup di `saveOrFinalizeReport`/`releaseToSpv`/`bulkFinalizeAccepted`/
+      `saveAspectSummaries`/`saveQualSummaries`) + detail page branch read-only utk grant holder + konsol
+      toggle boleh-edit/hanya-lihat + precedence `hrd_sections`. Sulit diuji penuh (user hanya bisa login Ulfa).
+- ✅ **"Laporan Hasil Saya" lintas periode — SELESAI & DI LIVE (2026-07-20, `b89e98a`).** Laporan
+  **finalized** tetap dapat diakses setelah periode ditutup: halaman memuat semua laporan final + **pemilih
+  periode** (pil), default periode final terbaru. RLS `fr_read` memang tak bergantung periode aktif — hanya
+  logika halaman yang tadinya membatasi. File: `app/(app)/laporan/page.tsx`.
+- ✅ **Fix hitung "laporan belum difinalisasi" (dialog Kunci & Akhiri) — SELESAI & DI LIVE (2026-07-20,
+  `451d90e`).** Dialog menghitung beda dari sidebar (mis. 6 vs 10) → `activePeriodReadiness`
+  (`admin/periode/actions.ts`) diberi `.eq('is_external', false)` agar konsisten dgn hitung TODO sidebar
+  (`lib/todos/compute.ts`).
+- ✅ **Koreksi KPI darurat langsung-DB (2026-07-20, "Cara 1", data bukan kode).** Ubah nilai bulan tunggal
+  atas permintaan: **Q1** Ikana Feb→69.8, Ulfa Mar→94.51, Christo Jan→84; **Juni (Q2)** Qurrotun→97.87,
+  Aiga→95.92, Rosyid→98.00. Ditulis `kpi_scores` + audit `kpi_audit` (action=`set` — constraint 0019 hanya
+  izinkan `set`/`delete`, bukan `edit`).
 - ⬜ **Ringkasan Aspek 360° otomatis (Claude API)** — REKOMENDASI, belum dibangun. Editor
   per-aspek sudah ada; tambah tombol "✨ Buat Ringkasan Otomatis" → Server Action kirim rating +
   komentar **anonim** (`data.byAspect`, tanpa nama) ke Claude → isi textarea (HRD edit & Simpan).
@@ -163,9 +188,9 @@ status/sesi terkini di **[STATUS.md](STATUS.md)**.
     070/071 sengaja TETAP di luar** (belum masuk saat Q1 — konfirmasi pengguna).
   - **Pola B terpakai:** `scripts/import-360-backfill.mjs` **reusable & disimpan** (dry-run default, `--apply`,
     `--create-missing`, `--period=`); **CSV data pegawai TIDAK di-commit** (gitignore `BACKFILL-*.csv`).
-  - 🔑 **SISA (aksi pengguna):** (a) **verifikasi visual** heatmap Q1 di browser (data live); (b) **commit ke
-    `main`**: `supabase/migrations/0026_ais_rating_precision.sql` + `scripts/import-360-backfill.mjs` (agar skema
-    repo & skrip tersimpan) — belum di-commit.
+  - ✅ **Commit & push ke `main` (2026-07-20, `383b745`):** `supabase/migrations/0026_ais_rating_precision.sql`
+    + `scripts/import-360-backfill.mjs` sudah di-commit & push (skema repo & skrip tersimpan).
+  - 🔑 **SISA (aksi pengguna):** **verifikasi visual** heatmap Q1 di browser (data live).
   - **CATATAN presisi headline:** `result_360.score` = `numeric(5,2)` → headline tetap 2 desimal (dashboard
     memang tampil 2 desimal; presisi tinggi hanya di rating aspek = penggerak heatmap).
 - ⬜ **Cek pra-finalisasi tertunda (catatan 2026-06-23)** — Prioritas 1 (uji fungsional+keamanan di

@@ -218,6 +218,20 @@ di Supabase → Authentication → URL Configuration; set `NEXT_PUBLIC_ENABLE_PW
 > permintaan jadi "halaman existing yang mana + lingkup apa". Permintaan yang benar-benar butuh tampilan
 > baru = **feature request ke developer** (antre, dengan RLS), bukan kapabilitas HRD.
 
+> **INVARIANT terkunci — Manajemen Akses / grant halaman berlingkup (`page_grants`, 2026-07-20):**
+> mekanisme "SCOPE/parameter pada halaman existing" di atas diwujudkan lewat tabel **`page_grants`**
+> (migrasi 0024/0025). Model **beku**: **1 grant = orang + halaman + lingkup + (boleh-edit?)**. Katalog
+> halaman **TETAP** (`GRANTABLE_PAGES` di `lib/auth/roles.ts`) — bukan URL bebas. **Tiap halaman yang
+> di-grant WAJIB mengikuti pola enforcement ini** (mudah salah = rasa aman palsu): (1) gate **SADAR-MODE**
+> `isHrdFull = canSection(page) && hrdMode==='admin'`; (2) jalur grant baca via **`service_role`**
+> berlingkup (helper `grantedScope`/`grantedAccess`/`deptScopeFilter`/`applyDeptScope`, diuji
+> `tests/page-scope.test.ts`) karena pemegang grant non-HRD ditolak RLS; (3) `?dept=` **TAK BOLEH**
+> menembus lingkup (`resolveDept` fallback aman); (4) selama grant **lihat-saja**, aksi tulis TAK diubah =
+> **HRD-only** (sembunyikan tombol tulis + blok halaman detail). ⚠️ Untuk pemegang **`is_hrd()`** ini
+> **pembatasan TAMPILAN**, bukan gembok RLS; **gembok NYATA** (edit oleh non-HRD) = grant **tanpa**
+> `is_hrd()` + tulis via `service_role` yang mengecek `can_edit`+lingkup (Tahap 2). Rincian → CHANGELOG
+> "Manajemen Akses". **Paritas:** perubahan pada perilaku SPV/halaman existing wajib ikut ke jalur grant.
+
 > **Keputusan terkunci — app tegakkan kebijakan, bukan tambal kelalaian (2026-06-25):** aplikasi
 > menegakkan **integritas & kebijakan** (RLS, wajib-komentar/esai, gate periode/360°), **bukan**
 > mengakomodasi tiap kelalaian individu. Konsekuensi: **#17 penegasan "wajib tekan Kirim"** &

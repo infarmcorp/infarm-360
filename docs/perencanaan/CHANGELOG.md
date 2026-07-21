@@ -20,6 +20,20 @@
   `is_hrd()` → pemegangnya tetap pegawai biasa di RLS; akses lintas-divisi hanya via `service_role`
   (`loadCrossDivisionReport`, tegakkan "divisi target ≠ divisi peninjau"). Privasi **nyata**, bukan
   app-only — pola acuan untuk grant sensitif (lihat Keputusan terkunci).
+- **Manajemen Akses — RBAC grant halaman berlingkup** (`page_grants`, migrasi 0024/0025, 2026-07-18..20).
+  Model **beku** (disepakati pengguna): **1 grant = orang + halaman + lingkup + (boleh-edit?)**. Konsol
+  `/admin/akses` (gate `isFullHrd`) memberi **akses ke halaman existing dari katalog TETAP**
+  (`GRANTABLE_PAGES`) — **bukan** page-builder (lihat Keputusan terkunci). Katalog LIVE: `monitor`
+  (pemantauan, lihat-saja) + `review` (administrator, Tahap 1 lihat-saja). Halaman `pemantauan` selalu
+  lihat-saja (`can_edit` dinormalkan false); `administrator` punya dimensi edit (`can_edit`).
+  - **INVARIANT ENFORCEMENT (wajib diikuti tiap halaman baru yang di-grant):** (1) gate **SADAR-MODE**
+    `isHrdFull = canSection(page) && hrdMode==='admin'`; (2) jalur grant baca via **`service_role`**
+    berlingkup (helper `grantedScope`/`grantedAccess`/`deptScopeFilter`/`applyDeptScope` di `roles.ts`,
+    diuji `tests/page-scope.test.ts`) karena pemegang grant non-HRD ditolak RLS; (3) `?dept=` **TAK BISA**
+    menembus lingkup (`resolveDept` fallback aman); (4) **aksi tulis TAK diubah** = HRD-only sampai Tahap 2
+    (grant lihat-saja → sembunyikan tombol tulis + blok halaman detail). ⚠️ Untuk pemegang **`is_hrd()`**
+    (rekan HRD) ini **pembatasan TAMPILAN**, bukan gembok RLS; gembok nyata (grant tanpa `is_hrd()` +
+    tulis via service_role cek `can_edit`) = Tahap 2/Fase lanjut. Detail memori: [[page-access-rbac]].
 - **Peran Koordinator** (`is_coordinator` + tabel `coordinator_team_members`, migrasi 0021, 2026-07-12;
   **diperluas 2026-07-15**). Pegawai (role='employee') yang membawahi beberapa pegawai & diberi akses ke
   "Laporan Kinerja Tim" untuk **daftar eksplisit** yang dinaunginya (sebagian pegawai lain tetap langsung
@@ -162,6 +176,11 @@
   → bucket "Data Belum Lengkap (1 Sumbu)" + badge Tabel "—*". Saat 360° nonaktif tak berubah. **`playerClassOf`
   (terkunci) TIDAK disentuh** — pengecualian app-level di dashboard saja (`page.tsx` `axisIncomplete`,
   `dashboard-visual.tsx`). Murni pelaporan; rumus/tes tak berubah.
+- **"Laporan Hasil Saya" lintas periode** (2026-07-20, `b89e98a`). Laporan `finalized` tetap dapat diakses
+  **setelah periode ditutup**: halaman (`app/(app)/laporan/page.tsx`) memuat semua laporan final + **pemilih
+  periode** (pil, default periode final terbaru). RLS `fr_read` (0002) memang tak bergantung periode aktif —
+  hanya logika halaman yang tadinya membatasi ke periode aktif. Fix hitung sinkron "laporan belum
+  difinalisasi" dialog Kunci&Akhiri (`activePeriodReadiness` + `.eq('is_external', false)`, `451d90e`).
 - Onboarding email + **sandi unik per orang**; pengingat 360° (Gmail SMTP / Resend, dorman bila env kosong).
 - Akun Saya (ganti sandi mandiri, semua peran). Konfirmasi in-app `ConfirmDialog` (~8 titik).
 - Kelola Pertanyaan: aspek + "Pakai Pertanyaan Periode Sebelumnya" (idempoten). Hapus Periode (cascade
@@ -203,6 +222,12 @@
   `0022` `assessment_indicator_scores.rating` smallint → **numeric(3,2)** (pelebaran aman/aditif; rating
   bulat lama tetap valid, CHECK 1–5 rentang tetap; mendukung backfill nilai aspek 360° DESIMAL mis. hasil
   eksternal Q1 2026).
+- `0023` `employees.hrd_sections text[]` (akses HRD granular per-bagian, NULL=penuh — Jalur A batas MENU;
+  helper `canSection`, katalog 11 bagian) · `0024` tabel `page_grants` (employee_id, section, scope,
+  unique(employee_id,section)) + RLS self-read — RBAC grant halaman berlingkup (Manajemen Akses) ·
+  `0025` `page_grants.can_edit boolean default false` (dimensi EDIT utk halaman administrator; pemantauan
+  selalu false) · `0026` `assessment_indicator_scores.rating` numeric(3,2) → **numeric(8,6)** (aditif/aman;
+  presisi tinggi backfill Looker Q1 — mendukung desimal berulang mis. `4.727273`). Semua diterapkan ke DB live.
 - `final_reports.content` (jsonb lama) dipakai untuk `aspectSummaries` **&** `qualSummaries`
   (ringkasan pertanyaan kualitatif) — tanpa migrasi baru.
 
@@ -229,5 +254,13 @@
   50 pegawai. **Q1 tak punya skema bobot → dashboard pakai rerata polos** (bukan `weightedScore360`).
   **JANGAN klik "Hitung Ulang Skor 360°" utk Q1** (menimpa backfill). Backup pra-aksi di
   `backups/backup-2026-07-15T09-45-48-694Z`. Sumber lokal `BACKFILL-360-Q1.csv` & skrip `_backfill-q1.mjs`
-  **tidak di-commit**. ⚠️ Nilai per-aspek dibulatkan ke 2 desimal (batas numeric(3,2)) → selisih ~0.04 vs
-  Looker; pencocokan eksak = migrasi 0023 (numeric(6,4)) bila diminta.
+  **tidak di-commit**.
+- **⚠️ Backfill 360° Q1 presisi tinggi (Looker) — di LIVE 2026-07-20, `383b745`.** Menuntaskan selisih
+  ~0.04 vs Looker dari backfill 0022: migrasi **0026** (`rating` numeric(3,2)→**numeric(8,6)**, aditif/aman)
+  → skrip **reusable** `scripts/import-360-backfill.mjs` (`--apply`/`--create-missing`/`--period=`, dry-run
+  default, laporan "PERUBAHAN NYATA vs DB", audit `score360.backfill`). Diimpor **250 rating aspek + 50
+  headline** + **1 penilaian baru (Rosyid FT2026-068)** (FT2026-069/070/071 sengaja di luar). Heatmap aspek
+  Q1 kini eksak (`aspek = rating×20`). Struktur Q1 tetap SINTETIS (1 anchor=Direksi, 1 indikator/aspek, tanpa
+  skema bobot). ⚠️ **`result_360.score` = numeric(5,2)** → headline tetap 2 desimal (presisi tinggi hanya di
+  rating aspek, penggerak heatmap). **JANGAN Hitung Ulang Q1**. Migrasi + skrip **di-commit**; CSV **tidak**
+  di-commit (gitignore `BACKFILL-*.csv`). Backup pra-aksi `backups/backup-2026-07-20T03-38-29-707Z`.

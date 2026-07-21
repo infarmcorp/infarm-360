@@ -79,15 +79,17 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   // tests/page-scope.test.ts; ?dept= di luar daftar diizinkan diabaikan).
   const depts = allowedDeptsFor(allDepts, scope, ownDept);
   const dept = resolveDept(deptParam, depts, scope, ownDept);
-  const scopeLabel = dept === 'all'
-    ? (scope === 'other_divisions' ? 'Semua divisi lain' : 'Semua divisi')
+  const scopeLabel = scope === 'self' ? 'Diri sendiri'
+    : dept === 'all' ? (scope === 'other_divisions' ? 'Semua divisi lain' : 'Semua divisi')
     : dept;
 
   // Lingkup pegawai — ditegakkan di SERVER secara OTORITATIF lewat rencana filter yang sama dengan
-  // yang diuji unit (tak bergantung default `dept`, tak bisa dilewati lewat ?dept=).
+  // yang diuji unit (tak bergantung default `dept`, tak bisa dilewati lewat ?dept=). Lingkup 'self'
+  // disaring per-ID (bukan divisi) → hanya baris pemegang grant sendiri.
   const scopeFilter = deptScopeFilter(scope, ownDept, dept);
   let empQuery = admin.from('employees').select('id, name, dept, is_active').eq('is_external', false);
-  if (scopeFilter.op === 'eq') empQuery = empQuery.eq('dept', scopeFilter.dept);
+  if (scope === 'self') empQuery = empQuery.eq('id', user.id);
+  else if (scopeFilter.op === 'eq') empQuery = empQuery.eq('dept', scopeFilter.dept);
   else if (scopeFilter.op === 'neq') empQuery = empQuery.neq('dept', scopeFilter.dept);
   const { data: empData } = await empQuery;
   const empRows = empData ?? [];

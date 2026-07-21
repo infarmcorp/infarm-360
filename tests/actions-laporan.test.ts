@@ -3,20 +3,28 @@ import { makeClient, type MockClient, type QResult } from './helpers/mock-supaba
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn(), createAdminClient: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
-vi.mock('@/lib/audit/log', () => ({ logHrdAction: vi.fn(async () => {}) }));
+vi.mock('@/lib/audit/log', () => ({ logHrdAction: vi.fn(async () => {}), logAuditAsService: vi.fn(async () => {}) }));
+// SADAR-MODE: aksi membaca cookie hrd_mode. Default 'admin' agar jalur HRD-penuh aktif; tes jalur
+// grant memakai aktor NON-canAdmin sehingga mode tak relevan (isHrdFull tetap false).
+vi.mock('next/headers', () => ({ cookies: vi.fn(async () => ({ get: () => ({ value: 'admin' }) })) }));
 // finalScoreOf (lib/scoring) SENGAJA tidak di-mock — pakai rumus asli agar tes juga menjaga integrasi.
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { saveOrFinalizeReport, releaseToSpv } from '@/app/(app)/admin/laporan/actions';
 
 const mockCreate = vi.mocked(createClient);
+const mockCreateAdmin = vi.mocked(createAdminClient);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function use(c: MockClient) { mockCreate.mockResolvedValue(c as any); }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function useAdmin(c: MockClient) { mockCreateAdmin.mockReturnValue(c as any); }
 
 const HRD = { role: 'hrd', is_hrd_admin: false };
 const UID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const EMP = '11111111-1111-1111-1111-111111111111';
 const ACTIVE = { data: { id: 'p1', has_360: true, status: 'active' } };
+/** Pemegang grant non-HRD (mis. Ulfa Mode-SPV) berdivisi Marketing. */
+const GRANT_HOLDER = { role: 'employee', is_hrd_admin: false, hrd_sections: null, dept: 'Marketing', name: 'Ulfa' };
 
 /** Antrean computeFinal untuk skor non-null: KPI 90 & 360 70 → finalScoreOf = 80. */
 function computeTablesNonNull(): Record<string, QResult[]> {
@@ -38,8 +46,11 @@ describe('saveOrFinalizeReport — otorisasi & prasyarat skor', () => {
     if (!r.ok) expect(r.error).toMatch(/Sesi berakhir/i);
   });
 
-  it('tolak bila bukan HRD', async () => {
-    use(makeClient({ user: { id: UID }, tables: { employees: [{ data: { role: 'spv' } }] } }));
+  it('tolak bila bukan HRD & tanpa grant review', async () => {
+    use(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: { role: 'spv' } }],
+      page_grants: [{ data: [] }], // tak ada grant → grantedAccess null
+    } }));
     const r = await saveOrFinalizeReport(EMP, true);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toMatch(/Hanya HRD/i);
@@ -113,5 +124,74 @@ describe('releaseToSpv — tolak menurunkan laporan yang sudah final', () => {
     const r = await releaseToSpv(EMP);
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.finalized).toBe(false);
+  });
+});
+
+describe('saveOrFinalizeReport — jalur GRANT "Review Hasil Akhir" (Tahap 2)', () => {
+  it('tolak pemegang grant HANYA-LIHAT (can_edit=false)', async () => {
+    use(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: GRANT_HOLDER }],
+      page_grants: [{ data: [{ section: 'review', scope: 'all', can_edit: false }] }],
+    } }));
+    const r = await saveOrFinalizeReport(EMP, true);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/hanya-lihat/i);
+  });
+
+  it('tolak bila target di LUAR LINGKUP (own_division, divisi target beda)', async () => {
+    use(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: GRANT_HOLDER }], // dept Marketing
+      page_grants: [{ data: [{ section: 'review', scope: 'own_division', can_edit: true }] }],
+    } }));
+    useAdmin(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: { dept: 'Sales' } }], // target di Sales → di luar own_division Marketing
+    } }));
+    const r = await saveOrFinalizeReport(EMP, true);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/di luar lingkup/i);
+  });
+
+  it("lingkup 'self' — TOLAK bila target bukan diri sendiri", async () => {
+    use(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: GRANT_HOLDER }],
+      page_grants: [{ data: [{ section: 'review', scope: 'self', can_edit: true }] }],
+    } }));
+    const r = await saveOrFinalizeReport(EMP, true); // EMP ≠ UID
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/laporan Anda sendiri/i);
+  });
+
+  it("lingkup 'self' — SUKSES bila target = diri sendiri (via service_role)", async () => {
+    use(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: GRANT_HOLDER }],
+      page_grants: [{ data: [{ section: 'review', scope: 'self', can_edit: true }] }],
+    } }));
+    useAdmin(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: { name: 'Ulfa' } }], // self branch tak baca dept target; hanya nama di akhir
+      periods: [ACTIVE],
+      ...computeTablesNonNull(),
+      final_reports: [{ data: null }, { error: null }],
+    } }));
+    const r = await saveOrFinalizeReport(UID, true); // employeeId === user.id
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.finalized).toBe(true);
+  });
+
+  it('finalisasi SUKSES bila boleh-edit + target DALAM lingkup (tulis via service_role)', async () => {
+    use(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: GRANT_HOLDER }], // dept Marketing
+      page_grants: [{ data: [{ section: 'review', scope: 'own_division', can_edit: true }] }],
+    } }));
+    // Semua baca/tulis laporan lewat service_role (admin): target dept, periode, computeFinal, final_reports, nama.
+    useAdmin(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: { dept: 'Marketing' } }, { data: { name: 'Andi' } }],
+      periods: [ACTIVE],
+      ...computeTablesNonNull(),
+      final_reports: [{ data: null }, { error: null }],
+    } }));
+    const r = await saveOrFinalizeReport(EMP, true);
+    expect(r.ok).toBe(true);
+    if (r.ok) { expect(r.finalized).toBe(true); expect(r.finalScore).toBe(80); }
+    expect(mockCreateAdmin).toHaveBeenCalled();
   });
 });

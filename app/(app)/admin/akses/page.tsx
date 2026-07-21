@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { isFullHrd, GRANTABLE_PAGES, GRANTABLE_PAGE_LABELS, PAGE_SCOPES, PAGE_SCOPE_LABELS, HRD_SECTION_LABELS, type HrdSection } from '@/lib/auth/roles';
+import { isFullHrd, GRANTABLE_PAGES, GRANTABLE_PAGE_LABELS, GRANTABLE_PAGE_KIND, PAGE_SCOPES, PAGE_SCOPE_LABELS, HRD_SECTION_LABELS, type HrdSection } from '@/lib/auth/roles';
 import { AksesClient, type AksesEmployee } from './akses-client';
 import { AksesAudit, type AuditRow } from './akses-audit';
 
@@ -31,7 +31,7 @@ export default async function AdminAksesPage() {
   const admin = createAdminClient();
   const [{ data: empData }, { data: grantData }, { data: coordData }] = await Promise.all([
     admin.from('employees').select('id, name, dept, role, is_external, is_hrd_admin, is_cross_reviewer, is_coordinator, hrd_sections').eq('is_external', false).order('dept').order('name'),
-    admin.from('page_grants').select('employee_id, section, scope'),
+    admin.from('page_grants').select('employee_id, section, scope, can_edit'),
     admin.from('coordinator_team_members').select('coordinator_id, employee_id'),
   ]);
 
@@ -40,11 +40,11 @@ export default async function AdminAksesPage() {
   (coordData ?? []).forEach((c) => { (coordTeams[c.coordinator_id] ??= []).push(c.employee_id); });
   const coordCount = new Map<string, number>(Object.entries(coordTeams).map(([k, v]) => [k, v.length]));
 
-  // Peta grant per pegawai: employee_id → { section → scope }.
-  const grantsByEmp = new Map<string, Record<string, string>>();
+  // Peta grant per pegawai: employee_id → { section → { scope, canEdit } }.
+  const grantsByEmp = new Map<string, Record<string, { scope: string; canEdit: boolean }>>();
   (grantData ?? []).forEach((g) => {
     const m = grantsByEmp.get(g.employee_id) ?? {};
-    m[g.section] = g.scope;
+    m[g.section] = { scope: g.scope, canEdit: !!g.can_edit };
     grantsByEmp.set(g.employee_id, m);
   });
 
@@ -61,7 +61,7 @@ export default async function AdminAksesPage() {
     grants: grantsByEmp.get(e.id) ?? {},
   }));
 
-  const pages = GRANTABLE_PAGES.map((key) => ({ key, label: GRANTABLE_PAGE_LABELS[key] }));
+  const pages = GRANTABLE_PAGES.map((key) => ({ key, label: GRANTABLE_PAGE_LABELS[key], kind: GRANTABLE_PAGE_KIND[key] }));
   const scopes = PAGE_SCOPES.map((key) => ({ key, label: PAGE_SCOPE_LABELS[key] }));
 
   // ── Audit Akses: rincian tiap pegawai yang memegang akses/grant apa pun (di luar default peran) ──
@@ -81,8 +81,12 @@ export default async function AdminAksesPage() {
       if (e.is_coordinator) access.push({ label: `Koordinator${coordCount.get(e.id) ? ` — ${coordCount.get(e.id)} anggota` : ''}`, tone: 'amber' });
       const g = grantsByEmp.get(e.id) ?? {};
       for (const sec of GRANTABLE_PAGES) {
-        const scope = g[sec];
-        if (scope) access.push({ label: `${GRANTABLE_PAGE_LABELS[sec]} — ${PAGE_SCOPE_LABELS[scope as keyof typeof PAGE_SCOPE_LABELS] ?? scope}`, tone: 'emerald' });
+        const grant = g[sec];
+        if (grant) {
+          // Halaman administrator (mis. Review Hasil Akhir) tampilkan status boleh-edit/lihat-saja.
+          const editNote = GRANTABLE_PAGE_KIND[sec] === 'administrator' ? (grant.canEdit ? ' · boleh edit' : ' · lihat-saja') : '';
+          access.push({ label: `${GRANTABLE_PAGE_LABELS[sec]} — ${PAGE_SCOPE_LABELS[grant.scope as keyof typeof PAGE_SCOPE_LABELS] ?? grant.scope}${editNote}`, tone: 'emerald' });
+        }
       }
       return { id: e.id, name: e.name, dept: e.dept ?? '—', role: e.role, access };
     })

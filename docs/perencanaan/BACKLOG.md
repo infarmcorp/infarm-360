@@ -50,9 +50,16 @@ di **[CHANGELOG.md](CHANGELOG.md)**; panduan durable di **[CLAUDE.md](../../CLAU
   (`lib/auth/roles.ts`, katalog 11 bagian) + filter menu (`app-shell.tsx`) + guard 11 halaman admin +
   dialog "Atur Akses" di Kelola Pegawai (`setHrdSections`, grid centang, anti kunci-diri). ⚠️ **Batas
   MENU saja** — pemegang grant tetap `is_hrd()` penuh di RLS (rekan HRD tepercaya), BUKAN gembok data.
-  **Jalur B (batas nyata: refactor action→service_role + RLS per-bagian/divisi + lingkup "divisi
-  sendiri saja") MASIH DITUNDA.** Visi lanjutan (halaman Manajemen Akses: toggle akses SPV/Koordinator
-  ke kinerja tim + Dashboard berlingkup + sub-tab Audit Akses status/riwayat) → spec di
+  - **✅ Konsol Manajemen Akses `/admin/akses` + RBAC `page_grants` LIVE (2026-07-18..20, migrasi
+    0024/0025):** grant halaman **berlingkup** (all/own_division/other_divisions) + dimensi **edit**
+    (`can_edit`, halaman administrator) + Tabel Audit Akses; kontrol akses SPV/Koordinator/Peninjau/HRD
+    dipindah dari Kelola Pegawai. Halaman yang sudah di-grant: **Monitor** (pemantauan, LIVE) + **Review
+    Hasil Akhir** (administrator, **Tahap 1 lihat-saja** di `dev` `a42d6ee`). Enforcement invariant &
+    detail state → CHANGELOG "Manajemen Akses" + memori [[page-access-rbac]] / [[akses-target-spec]].
+  - **Jalur B (batas nyata: refactor action→service_role + RLS per-bagian/divisi + lingkup "divisi
+    sendiri saja") MASIH DITUNDA** = **Tahap 2** grant administrator (finalisasi/edit oleh non-HRD via
+    guard service_role cek `can_edit`+lingkup = gembok NYATA tanpa is_hrd). Visi lengkap (matriks per-role,
+    Dashboard berlingkup, audit terpisah) → spec di
   **[docs/pengembangan/DESAIN-MANAJEMEN-AKSES.md](../pengembangan/DESAIN-MANAJEMEN-AKSES.md)**. Konteks awal ↓:
   - grant HRD saat ini **semua-atau-tidak** (`is_hrd_admin` → `canAdmin()` penuh; lihat `lib/auth/roles.ts`). Permintaan
   (diskusi 2026-06-30): HRD ingin **memberi akses per-halaman berbeda per pegawai** (mis. A→{1,2,3},

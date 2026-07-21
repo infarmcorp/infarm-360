@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canSection, grantedScope, deptScopeFilter, type PageScope } from '@/lib/auth/roles';
+import { canSection, grantedAccess, deptScopeFilter, type PageScope } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
 import { ReportTable, type ReportRow } from './report-table';
 import { Recompute360Button } from './recompute-360-button';
@@ -23,19 +23,25 @@ export default async function AdminLaporanPage() {
   const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   const isHrdFull = canSection(me, 'laporan') && hrdMode === 'admin';
 
-  // Jalur GRANT (non-HRD-penuh): akses Review Hasil Akhir ber-LINGKUP & READ-ONLY (Tahap 1) —
-  // hanya MELIHAT daftar tersaring lingkup. Finalisasi/tulis tetap HRD (aksi HRD-only tak diubah).
+  // Jalur GRANT (non-HRD-penuh): akses Review Hasil Akhir ber-LINGKUP. Tahap 2 — grant boleh
+  // menyertakan dimensi EDIT: `can_edit=true` → pemegang boleh membuka detail & finalisasi (dalam
+  // lingkup, ditegakkan server via service_role); `can_edit=false` → tetap LIHAT-SAJA (Tahap 1).
   let reviewScope: PageScope | null = null;
+  let grantCanEdit = false;
   if (!isHrdFull) {
-    const { data: grantRows } = await supabase.from('page_grants').select('section, scope').eq('employee_id', user.id);
-    reviewScope = grantedScope(grantRows, 'review');
+    const { data: grantRows } = await supabase.from('page_grants').select('section, scope, can_edit').eq('employee_id', user.id);
+    const access = grantedAccess(grantRows, 'review');
+    reviewScope = access?.scope ?? null;
+    grantCanEdit = !!access?.canEdit;
   }
   if (!isHrdFull && !reviewScope) {
     return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin atau pemegang akses Review Hasil Akhir.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
-  const readOnly = !isHrdFull; // pemegang grant → hanya lihat (tanpa tombol tulis / Tinjau)
+  // "Tinjau" (buka detail) tampil bila HRD penuh ATAU pemegang grant (baik lihat-saja maupun edit —
+  // detail sendiri read-only bila tak boleh-edit). Grant lihat-saja lama tetap bisa melihat daftar.
+  const readOnly = !isHrdFull && !reviewScope; // (selalu false di titik ini; ambang jelas)
   // Pemegang grant bukan is_hrd() → RLS memblokir baca lintas-pegawai → baca via service_role.
   const db = (isHrdFull ? supabase : createAdminClient()) as typeof supabase;
 
@@ -50,7 +56,9 @@ export default async function AdminLaporanPage() {
   // Review Hasil Akhir — Dashboard/KPI/kepatuhan tetap mengecualikan Direksi.
   // Pemegang grant: daftar disaring per LINGKUP (deptScopeFilter — cerminan query Monitor).
   let empQ = db.from('employees').select('id, name, dept, is_active, role').eq('is_external', false);
-  if (reviewScope) {
+  if (reviewScope === 'self') {
+    empQ = empQ.eq('id', user.id); // lingkup 'self' → hanya laporan pemegang grant sendiri
+  } else if (reviewScope) {
     const f = deptScopeFilter(reviewScope, me?.dept ?? '', 'all');
     if (f.op === 'eq') empQ = empQ.eq('dept', f.dept);
     else if (f.op === 'neq') empQ = empQ.neq('dept', f.dept);
@@ -173,7 +181,7 @@ export default async function AdminLaporanPage() {
       <div className="flex items-center justify-between mb-3">
         <div>
           <h1 className="text-xl font-bold text-gray-800">Review Hasil Akhir</h1>
-          <p className="text-sm text-gray-500">Periode aktif: {ap.label} · {isHrdFull ? 'finalisasi Skor Akhir kalibrasi.' : 'lihat-saja (akses dari HRD, lingkup terbatas).'}</p>
+          <p className="text-sm text-gray-500">Periode aktif: {ap.label} · {isHrdFull ? 'finalisasi Skor Akhir kalibrasi.' : grantCanEdit ? 'akses dari HRD — boleh tinjau & finalisasi (lingkup terbatas).' : 'lihat-saja (akses dari HRD, lingkup terbatas).'}</p>
         </div>
         <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
       </div>
@@ -231,10 +239,15 @@ export default async function AdminLaporanPage() {
           tersimpan yang dilihat pegawai; badge <strong>berubah</strong> muncul bila data terkini berbeda
           (kembalikan ke draf lalu finalisasi ulang untuk memperbarui).
         </p>
+      ) : grantCanEdit ? (
+        <p className="text-[10px] text-gray-500 italic mt-3">
+          Klik <strong>Tinjau</strong> untuk membuka laporan pegawai dalam lingkup akses Anda dan
+          mengelolanya (Simpan Draf → Rilis → Finalisasi). Akses ini diberikan HRD dan dibatasi lingkup.
+        </p>
       ) : (
         <p className="text-[10px] text-gray-500 italic mt-3">
-          Tampilan <strong>lihat-saja</strong> sesuai akses yang diberikan HRD (lingkup terbatas).
-          Finalisasi & perubahan laporan hanya oleh HRD.
+          Klik <strong>Tinjau</strong> untuk membuka laporan (tampilan <strong>lihat-saja</strong>) sesuai
+          akses yang diberikan HRD (lingkup terbatas). Finalisasi & perubahan laporan hanya oleh HRD.
         </p>
       )}
     </Shell>

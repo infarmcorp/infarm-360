@@ -4,10 +4,46 @@ Potret status & catatan sesi (cepat-basi — perbarui tiap sesi). Panduan tahan-
 **CLAUDE.md**; rincian tiap fitur di **[CHANGELOG.md](CHANGELOG.md)**; sisa pekerjaan di **[TODO.md](TODO.md)** / **[BACKLOG.md](BACKLOG.md)**
 (CLAUDE.md); catatan operasional trial/Q2 di **REKOMENDASI.md**.
 
-## Sedang Dikerjakan (per 2026-07-18)
+## Sedang Dikerjakan (per 2026-07-20)
 
-**Fokus aktif:** pendalaman **analitik Monitor Kinerja & Dashboard Organisasi**.
+**Fokus aktif:** **akurasi data Q1** (backfill Looker presisi tinggi + koreksi KPI darurat) &
+**Manajemen Akses** (halaman administrator pertama yang di-grant: Review Hasil Akhir, Tahap 1).
 Migrasi fungsional **selesai & live**; sisa sebagian besar **aktivasi env** (email/sandi) + **kebersihan akun** + **backup rutin**.
+
+- **Sesi 2026-07-20:**
+  - **Backfill Looker Q1 presisi tinggi — SELESAI & DI LIVE** (push `383b745`): migrasi **0026**
+    (`assessment_indicator_scores.rating` `numeric(3,2)`→**`numeric(8,6)`**, aditif/aman) + skrip
+    **reusable** `scripts/import-360-backfill.mjs` (dry-run default; `--apply`/`--create-missing`/
+    `--period=`). Diimpor: **250 rating aspek + 50 headline** diperbarui + **1 penilaian baru
+    (Rosyid FT2026-068)** ditambahkan ke Q1 (FT2026-069/070/071 sengaja tetap di luar). Backup pra-aksi
+    `backups/backup-2026-07-20T03-38-29-707Z`; audit `hrd_audit_log` (`score360.backfill`). Heatmap aspek
+    Q1 kini eksak (aspek = `rating×20`). ⚠️ **JANGAN Hitung Ulang Q1** (headline dari `skor_360_100`).
+    Migrasi + skrip **sudah di-commit & push**; **CSV data pegawai TIDAK di-commit** (gitignore `BACKFILL-*.csv`).
+  - **Koreksi KPI darurat langsung-DB ("Cara 1")** — permintaan pengguna, ubah nilai bulan tunggal:
+    **Q1** Ikana Feb→69.8, Ulfa Mar→94.51, Christo Jan→84; **Juni (Q2)** Qurrotun→97.87, Aiga→95.92,
+    Rosyid→98.00. Ditulis ke `kpi_scores` + audit `kpi_audit` (action=`set`, bukan `edit` — constraint
+    0019 hanya izinkan `set`/`delete`). Data, bukan kode.
+  - **"Laporan Hasil Saya" lintas periode — SELESAI & DI LIVE** (push `b89e98a`): laporan **finalized**
+    tetap dapat diakses setelah periode ditutup (memuat semua laporan final + **pemilih periode** pil;
+    default periode final terbaru). RLS `fr_read` memang tak bergantung periode aktif — hanya logika
+    halaman yang tadinya membatasi. File: `app/(app)/laporan/page.tsx`.
+  - **Fix hitung "laporan belum difinalisasi" — SELESAI & DI LIVE** (push `451d90e`): dialog "Kunci &
+    Akhiri Periode" menghitung beda dari sidebar (6 vs 10) → `activePeriodReadiness` diberi
+    `.eq('is_external', false)` agar konsisten dgn hitung TODO sidebar. File: `app/(app)/admin/periode/actions.ts`.
+  - **Manajemen Akses — Review Hasil Akhir grant LIHAT-SAJA (Tahap 1) — SELESAI di `dev`, BELUM PUSH**
+    (commit `a42d6ee`, terverifikasi di localhost: tak bisa edit/Tinjau). Halaman **administrator pertama**
+    yang bisa di-grant ke non-HRD: `'review'` masuk `GRANTABLE_PAGES` (kind administrator, **tapi Tahap 1
+    read-only**; `can_edit` default false). `admin/laporan/page.tsx` jadi **SADAR-MODE**
+    (`isHrdFull = canSection('laporan') && hrdMode==='admin'`) + jalur grant: baca via `service_role`,
+    `employees` disaring `deptScopeFilter`, tombol tulis & "Tinjau" disembunyikan; aksi tulis TAK diubah =
+    HRD-only; detail `/laporan/[employeeId]` **tetap diblok** untuk grant holder. +4 tes (120 hijau).
+    **Tahap 2 (ditunda):** finalisasi/edit oleh non-HRD + detail read-only. Detail: [[page-access-rbac]].
+  - **Verifikasi weighting (Q&A, tanpa kode):** dikonfirmasi Dashboard/Monitor/heatmap per-pegawai **sudah
+    menerapkan** `weightedScore360`; aspek per-pegawai cocok dgn Review Hasil Akhir; org-agregat beda
+    (pooled vs mean-of-means) — moot utk Q1 sintetis (1 penilai/pegawai).
+  - **TODO baru (belum digarap):** seragamkan skor 360° di **Ekspor Rekap** (`exportRekap` baca
+    `result_360` tersimpan; `exportSummary360`/`exportAspectScores` hitung LIVE → bisa beda antar-sheet).
+    Lihat [TODO.md](TODO.md) "Keandalan teknis".
 
 - **Sesi 2026-07-16..18 (di-push ke `main`, commit `2b01e93`) — TANPA migrasi DB (murni penyajian):**
   - **Monitor Kinerja Pegawai untuk HRD (BARU):** `app/(app)/admin/monitor/` (gate `canSection
@@ -114,6 +150,12 @@ Bagian ini hanya potret status; perincian tiap fitur ada di **[CHANGELOG.md](CHA
   Action (finalisasi/`releaseToSpv`/`setHrdAdmin`/ACC). Lihat **[TODO.md](TODO.md)** / **[BACKLOG.md](BACKLOG.md)**.
 
 **File paling relevan:**
+- Manajemen Akses (RBAC page_grants): `app/(app)/admin/akses/`, `lib/auth/roles.ts` (`grantedScope`/`grantedAccess`/
+  `deptScopeFilter`/`GRANTABLE_PAGES`/`GRANTABLE_PAGE_KIND`), `app/(app)/admin/laporan/page.tsx` (SADAR-MODE +
+  jalur grant review), `report-table.tsx` (prop `readOnly`), `app/(app)/app-shell.tsx` ("Akses dari HRD"),
+  migrasi 0024/0025, `tests/page-scope.test.ts`
+- Backfill 360° presisi tinggi: `scripts/import-360-backfill.mjs`, migrasi `0026_ais_rating_precision.sql`
+- Laporan Hasil Saya lintas periode: `app/(app)/laporan/page.tsx`
 - Peninjau lintas divisi: `app/(app)/peninjau/`, `lib/report.ts` (`loadCrossDivisionReport`), `lib/auth/roles.ts` (`canCrossReview`)
 - Laporan & visibilitas: `lib/report.ts` (`loadReport`/`loadTeamReportForSpv`/`loadTeamReportForHrdSpv`),
   `app/(app)/laporan/`, `app/(app)/laporan-tim/`, `app/(app)/admin/laporan/` · RLS: migrasi 0012

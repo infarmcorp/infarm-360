@@ -1,8 +1,8 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-import { canAdmin, canCoordinate } from '@/lib/auth/roles';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { canAdmin, canCoordinate, canSection, grantedAccess, isDeptInScope } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
 import { loadReport, loadTeamReportForSpv, loadTeamReportForHrdSpv, loadTeamReportForCoordinator, loadSpvReportForDireksi, isDireksiReviewSubject } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
@@ -28,11 +28,22 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, is_coordinator').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, is_coordinator, hrd_sections, dept').eq('id', user.id).maybeSingle();
   const role = me?.role;
   const isAdmin = canAdmin(me);
   const isCoordinator = canCoordinate(me);
-  if (!isAdmin && role !== 'direksi' && role !== 'spv' && !isCoordinator) {
+  // Pemegang grant "Review Hasil Akhir" (Manajemen Akses) juga boleh membuka detail dalam lingkupnya
+  // (dicek di cabang grant di bawah). Tanpa itu, gate kasar tetap: SPV / HRD / Direksi / Koordinator.
+  // SADAR-MODE: HRD "penuh" HANYA di Mode Admin; di Mode-SPV, akses detail lewat grant (bila ada).
+  const jarEarly = await cookies();
+  const hrdModeEarly = jarEarly.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
+  const isHrdFull = canSection(me, 'laporan') && hrdModeEarly === 'admin';
+  let reviewGrant: { scope: import('@/lib/auth/roles').PageScope; canEdit: boolean } | null = null;
+  if (!isHrdFull) {
+    const { data: grantRows } = await supabase.from('page_grants').select('section, scope, can_edit').eq('employee_id', user.id);
+    reviewGrant = grantedAccess(grantRows, 'review');
+  }
+  if (!isAdmin && role !== 'direksi' && role !== 'spv' && !isCoordinator && !reviewGrant) {
     return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD / Direksi.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
@@ -50,6 +61,112 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
 
   // Apakah subjek = SPV/pemimpin tim (untuk eskalasi Direksi→SPV & pelabelan tombol HRD).
   const subjectIsSpv = await isDireksiReviewSubject(employeeId);
+
+  // ── Jalur GRANT "Review Hasil Akhir" (Manajemen Akses, Tahap 2) ─────────────────────────────
+  // Pemegang grant 'review' (non-HRD-penuh) membuka detail pegawai DALAM LINGKUP-nya. Diprioritaskan
+  // di atas cabang peran (Direksi/Koordinator/SPV) — grant eksplisit & berlingkup. Baca via
+  // service_role (pemegang bukan is_hrd() → RLS memblokir). Umpan balik tetap ANONIM (L3 bernama
+  // sudah dibuang loadReport). READ-ONLY bila can_edit=false; panel aksi & editor hanya bila boleh-edit.
+  if (!isHrdFull && reviewGrant) {
+    const admin = createAdminClient();
+    const { data: tgt } = await admin.from('employees').select('dept').eq('id', employeeId).maybeSingle();
+    // 'self' disaring per-ID (hanya laporan diri sendiri); lainnya per-divisi (isDeptInScope).
+    const inScope = reviewGrant.scope === 'self'
+      ? employeeId === user.id
+      : !!tgt && isDeptInScope(reviewGrant.scope, me?.dept ?? '', tgt.dept ?? null);
+    if (!inScope) {
+      return <Shell>
+        <Link href="/admin/laporan" className="text-xs text-gray-500 hover:underline no-print">← Review Hasil Akhir</Link>
+        <p className="text-sm text-gray-500 mt-3">Pegawai ini di luar lingkup akses yang diberikan kepada Anda.</p>
+      </Shell>;
+    }
+    const data = await loadReport(admin, employeeId, ap);
+    if (!data) {
+      return <Shell>
+        <Link href="/admin/laporan" className="text-xs text-gray-500 hover:underline no-print">← Review Hasil Akhir</Link>
+        <p className="text-sm text-gray-500 mt-3">Data tidak ditemukan.</p>
+      </Shell>;
+    }
+    const canEditReport = reviewGrant.canEdit;
+    const locked = data.status === 'finalized' || !canEditReport;
+
+    // Untuk panel aksi (hanya saat boleh-edit): deteksi Skor 360° basi + bulan KPI belum terisi.
+    let gStale = false;
+    let gTotalMonths = 0;
+    let gMissingMonths: string[] = [];
+    if (canEditReport) {
+      const [r360meta, lastAsmt, lastCorr, pmonthsRes] = await Promise.all([
+        admin.from('result_360').select('computed_at').eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle(),
+        admin.from('assessments').select('submitted_at').eq('target_id', employeeId).eq('period_id', ap.id)
+          .eq('status', 'submitted').order('submitted_at', { ascending: false }).limit(1).maybeSingle(),
+        admin.from('relation_correction_requests').select('reviewed_at').eq('target_id', employeeId).eq('period_id', ap.id)
+          .eq('status', 'approved').not('reviewed_at', 'is', null).order('reviewed_at', { ascending: false }).limit(1).maybeSingle(),
+        admin.from('period_months').select('ym').eq('period_id', ap.id),
+      ]);
+      if (data.has360) {
+        const computedAt = r360meta.data?.computed_at ?? null;
+        const newer = (ts: string | null) => !!ts && (!computedAt || new Date(ts).getTime() > new Date(computedAt).getTime());
+        gStale = (!computedAt && !!lastAsmt.data?.submitted_at) || newer(lastAsmt.data?.submitted_at ?? null) || newer(lastCorr.data?.reviewed_at ?? null);
+      }
+      const allMonths = (pmonthsRes.data ?? []).map((m) => m.ym).sort();
+      const { data: empKpi } = allMonths.length
+        ? await admin.from('kpi_scores').select('ym').eq('employee_id', employeeId).in('ym', allMonths)
+        : { data: [] as { ym: string }[] };
+      const have = new Set((empKpi ?? []).map((k) => k.ym));
+      gTotalMonths = allMonths.length;
+      gMissingMonths = allMonths.filter((m) => !have.has(m));
+    }
+
+    return (
+      <Shell>
+        <Link href="/admin/laporan" className="text-xs text-gray-500 hover:underline no-print">← Review Hasil Akhir</Link>
+        <div className="mt-2">
+          {!canEditReport && (
+            <div className="mb-3 text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 no-print">
+              Tampilan <strong>lihat-saja</strong> — akses dari HRD (lingkup terbatas). Perubahan laporan hanya oleh yang berwenang.
+            </div>
+          )}
+          {canEditReport && (
+            <ReportActions
+              employeeId={employeeId}
+              status={data.status}
+              finalScore={data.finalScore}
+              liveFinal={finalScoreOf(data.kpiAvg, data.s360, data.has360, data.penalty, true)}
+              canCompute={data.kpiAvg != null || (data.has360 && data.s360 != null)}
+              totalMonths={gTotalMonths}
+              missingMonths={gMissingMonths}
+              stale360={gStale}
+              subjectIsSpv={subjectIsSpv}
+            />
+          )}
+          <ReportDoc data={data} anonymize hideAssessorComments />
+          {data.has360 && (canEditReport ? (
+            <>
+              <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} locked={locked} />
+              {data.qualQuestions.length > 0 && (
+                <AspectSummaryEditor
+                  employeeId={employeeId}
+                  aspects={data.qualQuestions}
+                  initial={data.qualSummaries}
+                  locked={locked}
+                  saveAction={saveQualSummaries}
+                  title={QUAL_TITLE}
+                  intro={QUAL_INTRO}
+                  noun="pertanyaan"
+                />
+              )}
+            </>
+          ) : (
+            <>
+              <AspectSummaryView summaries={data.aspectSummaries} />
+              <AspectSummaryView summaries={data.qualSummaries} title={QUAL_TITLE} intro={QUAL_INTRO} />
+            </>
+          ))}
+          {data.has360 && <RawFeedback byAspect={data.byAspect} essays={data.essays} badge="AKSES HRD" />}
+        </div>
+      </Shell>
+    );
+  }
 
   // Direksi meninjau laporan SPV → jalur AGREGAT L2 (eskalasi Pegawai→SPV, SPV→Direksi),
   // sama seperti SPV meninjau timnya: tanpa komentar mentah, tampak setelah HRD rilis.

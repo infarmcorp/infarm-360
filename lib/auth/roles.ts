@@ -103,8 +103,13 @@ export const GRANTABLE_PAGE_KIND: Record<GrantablePage, PageKind> = {
   review: 'administrator',
 };
 
-/** Lingkup data sebuah grant halaman (ditegakkan server via service_role berfilter). */
-export const PAGE_SCOPES = ['all', 'own_division', 'other_divisions'] as const;
+/**
+ * Lingkup data sebuah grant halaman (ditegakkan server via service_role berfilter).
+ *   'all' / 'own_division' / 'other_divisions' → berbasis DIVISI (deptScopeFilter).
+ *   'self' → berbasis ID: HANYA catatan pemegang grant sendiri (disaring `eq('id', <pemegang>)` di
+ *            tiap halaman target; helper dept FAIL-CLOSED untuk 'self' agar tak bocor bila lupa cabang).
+ */
+export const PAGE_SCOPES = ['all', 'own_division', 'other_divisions', 'self'] as const;
 export type PageScope = (typeof PAGE_SCOPES)[number];
 
 /** Label Indonesia tiap lingkup — dipakai di dialog pemberian akses. */
@@ -112,6 +117,7 @@ export const PAGE_SCOPE_LABELS: Record<PageScope, string> = {
   all: 'Seluruh pegawai',
   own_division: 'Hanya divisinya',
   other_divisions: 'Selain divisinya',
+  self: 'Diri sendiri',
 };
 
 /** Satu baris grant halaman (subset kolom page_grants yang dibutuhkan untuk otorisasi). */
@@ -148,6 +154,7 @@ export function grantedAccess(grants: PageGrantRow[] | null | undefined, page: G
 
 /** Divisi yang boleh DIPILIH pemegang lingkup (untuk dropdown filter). */
 export function allowedDeptsFor(depts: string[], scope: PageScope, ownDept: string): string[] {
+  if (scope === 'self') return []; // 'self' tak berbasis divisi → tak ada pilihan divisi
   if (scope === 'own_division') return depts.filter((d) => d === ownDept);
   if (scope === 'other_divisions') return depts.filter((d) => d !== ownDept);
   return depts; // 'all'
@@ -162,10 +169,16 @@ export function resolveDept(deptParam: string | null | undefined, allowed: strin
   return scope === 'own_division' ? (ownDept || 'all') : 'all';
 }
 
-/** Rencana filter divisi OTORITATIF — cerminan langsung query server (Supabase eq/neq/none). */
-export type DeptScopeFilter = { op: 'all' } | { op: 'eq' | 'neq'; dept: string };
+/**
+ * Rencana filter divisi OTORITATIF — cerminan langsung query server (Supabase eq/neq/none).
+ * `op:'none'` = FAIL-CLOSED (tak cocok siapa pun): dipakai untuk lingkup 'self' yang TIDAK berbasis
+ * divisi — halaman target WAJIB menyaring sendiri per-ID (`eq('id', <pemegang>)`). Bila sebuah halaman
+ * lupa cabang self dan tetap memakai rencana ini, hasilnya kosong (aman), bukan bocor ke semua.
+ */
+export type DeptScopeFilter = { op: 'all' } | { op: 'none' } | { op: 'eq' | 'neq'; dept: string };
 
 export function deptScopeFilter(scope: PageScope, ownDept: string, dept: string): DeptScopeFilter {
+  if (scope === 'self') return { op: 'none' }; // berbasis ID, bukan divisi → fail-closed di sini
   if (scope === 'own_division') return { op: 'eq', dept: ownDept };
   if (scope === 'other_divisions') return dept !== 'all' ? { op: 'eq', dept } : { op: 'neq', dept: ownDept };
   return dept !== 'all' ? { op: 'eq', dept } : { op: 'all' };
@@ -173,13 +186,25 @@ export function deptScopeFilter(scope: PageScope, ownDept: string, dept: string)
 
 /**
  * Terapkan rencana filter ke daftar pegawai (mirror semantik SQL: `eq` cocok persis; `neq`
- * MENGECUALIKAN dept null — sama seperti Postgres `<>`). Dipakai untuk pengujian; halaman memakai
- * rencana yang sama untuk membangun query DB.
+ * MENGECUALIKAN dept null — sama seperti Postgres `<>`; `none` → kosong). Dipakai untuk pengujian;
+ * halaman memakai rencana yang sama untuk membangun query DB.
  */
 export function applyDeptScope<T extends { dept: string | null }>(employees: T[], f: DeptScopeFilter): T[] {
   if (f.op === 'all') return employees.slice();
+  if (f.op === 'none') return [];
   if (f.op === 'eq') return employees.filter((e) => e.dept === f.dept);
   return employees.filter((e) => e.dept != null && e.dept !== f.dept); // neq
+}
+
+/**
+ * Apakah SATU pegawai (dept `targetDept`) berada di dalam LINGKUP grant `scope` milik pemegang
+ * berdivisi `ownDept`? Dipakai guard TULIS per-aksi (mis. finalisasi Review Hasil Akhir oleh
+ * pemegang grant) untuk menolak target di luar lingkup. Memakai primitif yang SAMA & teruji
+ * (`deptScopeFilter`+`applyDeptScope`) agar tak pernah menyimpang dari filter daftar di halaman.
+ * `dept` null diperlakukan seperti SQL: cocok 'eq' hanya bila keduanya null; DIKECUALIKAN oleh 'neq'.
+ */
+export function isDeptInScope(scope: PageScope, ownDept: string, targetDept: string | null): boolean {
+  return applyDeptScope([{ dept: targetDept }], deptScopeFilter(scope, ownDept, 'all')).length > 0;
 }
 
 /**

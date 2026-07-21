@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  grantedScope, grantedAccess, allowedDeptsFor, resolveDept, deptScopeFilter, applyDeptScope,
+  grantedScope, grantedAccess, allowedDeptsFor, resolveDept, deptScopeFilter, applyDeptScope, isDeptInScope,
   GRANTABLE_PAGES, GRANTABLE_PAGE_KIND,
   type PageScope, type DeptScopeFilter,
 } from '@/lib/auth/roles';
@@ -115,6 +115,50 @@ describe('END-TO-END lingkup — siapa yang tampil (mirror kasus Ulfa)', () => {
     const f = deptScopeFilter('own_division', '', dept);
     // dept kosong → eq('') → tak cocok siapa pun di roster (semua dept non-'' atau null).
     expect(applyDeptScope(ROSTER, f)).toEqual([]);
+  });
+});
+
+describe('isDeptInScope — guard TULIS satu pegawai (Review Hasil Akhir Tahap 2)', () => {
+  it('own_division → hanya target sedivisi pemegang', () => {
+    expect(isDeptInScope('own_division', 'HRD-GA', 'HRD-GA')).toBe(true);
+    expect(isDeptInScope('own_division', 'HRD-GA', 'Marketing')).toBe(false);
+    expect(isDeptInScope('own_division', 'HRD-GA', null)).toBe(false);
+  });
+  it('other_divisions → semua SELAIN divisi pemegang (dept null dikecualikan spt SQL neq)', () => {
+    expect(isDeptInScope('other_divisions', 'HRD-GA', 'Marketing')).toBe(true);
+    expect(isDeptInScope('other_divisions', 'HRD-GA', 'HRD-GA')).toBe(false);
+    expect(isDeptInScope('other_divisions', 'HRD-GA', null)).toBe(false);
+  });
+  it('all → target mana pun dalam lingkup (termasuk dept null)', () => {
+    expect(isDeptInScope('all', 'HRD-GA', 'Sales')).toBe(true);
+    expect(isDeptInScope('all', 'HRD-GA', null)).toBe(true);
+  });
+  it('own_division dgn dept pemegang kosong → tak ada target yang lolos (aman)', () => {
+    expect(isDeptInScope('own_division', '', 'Marketing')).toBe(false);
+    expect(isDeptInScope('own_division', '', '')).toBe(true); // eq('') hanya cocok target '' persis
+  });
+});
+
+describe("lingkup 'self' (Diri sendiri) — berbasis ID, FAIL-CLOSED di helper divisi", () => {
+  it('deptScopeFilter self → op none (tak cocok siapa pun via divisi)', () => {
+    expect(deptScopeFilter('self', 'HRD-GA', 'all')).toEqual<DeptScopeFilter>({ op: 'none' });
+    expect(deptScopeFilter('self', 'HRD-GA', 'Marketing')).toEqual<DeptScopeFilter>({ op: 'none' });
+  });
+  it('applyDeptScope op none → daftar kosong (aman, tak bocor)', () => {
+    expect(applyDeptScope(ROSTER, { op: 'none' })).toEqual([]);
+  });
+  it('allowedDeptsFor self → tak ada pilihan divisi', () => {
+    expect(allowedDeptsFor(ALL_DEPTS, 'self', OWN)).toEqual([]);
+  });
+  it('isDeptInScope self → SELALU false (guard tulis harus cek per-ID, bukan divisi)', () => {
+    // Penegakan self yang benar = employeeId === pemegang, dilakukan di resolver/halaman;
+    // helper divisi ini sengaja fail-closed agar lupa-cabang tak membocorkan data.
+    expect(isDeptInScope('self', 'HRD-GA', 'HRD-GA')).toBe(false);
+    expect(isDeptInScope('self', 'HRD-GA', null)).toBe(false);
+  });
+  it('grantedScope/grantedAccess mengenali self sebagai scope sah', () => {
+    expect(grantedScope([{ section: 'monitor', scope: 'self' }], 'monitor')).toBe('self');
+    expect(grantedAccess([{ section: 'review', scope: 'self', can_edit: true }], 'review')).toEqual({ scope: 'self', canEdit: true });
   });
 });
 

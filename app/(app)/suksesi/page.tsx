@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { canAdmin } from '@/lib/auth/roles';
+import { canSection } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
 import { PlanForm } from './plan-form';
 import { RespondForm } from './respond-form';
@@ -20,9 +20,10 @@ export default async function SuksesiPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   const role = me?.role;
-  const admin = canAdmin(me);
+  // HRD: butuh bagian 'suksesi' (akses granular Jalur A). Direksi selalu boleh (merespons).
+  const admin = canSection(me, 'suksesi');
   if (!admin && role !== 'direksi') {
     return <Shell><p className="text-sm text-gray-600">Halaman ini untuk HRD / Direksi.</p></Shell>;
   }

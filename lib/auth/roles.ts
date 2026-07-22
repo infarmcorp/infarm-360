@@ -89,6 +89,17 @@ export const GRANTABLE_PAGE_LABELS: Record<GrantablePage, string> = {
 };
 
 /**
+ * Target PERAN untuk pemberian akses MASSAL (Fase 2). Bukan role DB murni: 'koordinator' = pemegang
+ * grant `is_coordinator`; 'pegawai' = role 'employee'. Pemberian ke peran = MATERIALISASI ke anggota
+ * SAAT INI (Pendekatan B; pegawai baru TIDAK otomatis ikut). Dipakai server (validasi) & klien (UI).
+ */
+export const GRANT_ROLE_TARGETS = ['spv', 'koordinator', 'pegawai', 'direksi'] as const;
+export type GrantRoleTarget = (typeof GRANT_ROLE_TARGETS)[number];
+export const GRANT_ROLE_TARGET_LABELS: Record<GrantRoleTarget, string> = {
+  spv: 'SPV', koordinator: 'Koordinator', pegawai: 'Pegawai', direksi: 'Direksi',
+};
+
+/**
  * Jenis halaman (menentukan apakah opsi EDIT relevan):
  *   'pemantauan'    → selalu LIHAT-saja (mengabaikan can_edit).
  *   'administrator' → dapat-edit: grant punya flag boleh-edit / hanya-lihat.
@@ -109,8 +120,12 @@ export const GRANTABLE_PAGE_KIND: Record<GrantablePage, PageKind> = {
  *   'all' / 'own_division' / 'other_divisions' → berbasis DIVISI (deptScopeFilter).
  *   'self' → berbasis ID: HANYA catatan pemegang grant sendiri (disaring `eq('id', <pemegang>)` di
  *            tiap halaman target; helper dept FAIL-CLOSED untuk 'self' agar tak bocor bila lupa cabang).
+ *   'coordinator_team' → berbasis ID: HANYA anggota `coordinator_team_members` milik pemegang (relatif
+ *            per-pemegang). Dipakai saat memberi akses ke PERAN Koordinator (Fase 2): tiap koordinator
+ *            melihat TIM NAUNGANNYA sendiri, bukan seluruh divisi. Helper dept juga FAIL-CLOSED (bukan
+ *            berbasis divisi) → penegakan nyata lewat `employeeInScopes(..., teamIds)`.
  */
-export const PAGE_SCOPES = ['all', 'own_division', 'other_divisions', 'self'] as const;
+export const PAGE_SCOPES = ['all', 'own_division', 'other_divisions', 'self', 'coordinator_team'] as const;
 export type PageScope = (typeof PAGE_SCOPES)[number];
 
 /** Label Indonesia tiap lingkup — dipakai di dialog pemberian akses. */
@@ -119,6 +134,7 @@ export const PAGE_SCOPE_LABELS: Record<PageScope, string> = {
   own_division: 'Hanya divisinya',
   other_divisions: 'Selain divisinya',
   self: 'Diri sendiri',
+  coordinator_team: 'Tim naungannya',
 };
 
 /**
@@ -161,7 +177,7 @@ export function grantedScope(grants: PageGrantRow[] | null | undefined, page: Gr
 
 /** Divisi yang boleh DIPILIH pemegang lingkup (untuk dropdown filter). */
 export function allowedDeptsFor(depts: string[], scope: PageScope, ownDept: string): string[] {
-  if (scope === 'self') return []; // 'self' tak berbasis divisi → tak ada pilihan divisi
+  if (scope === 'self' || scope === 'coordinator_team') return []; // berbasis ID, bukan divisi → tak ada pilihan divisi
   if (scope === 'own_division') return depts.filter((d) => d === ownDept);
   if (scope === 'other_divisions') return depts.filter((d) => d !== ownDept);
   return depts; // 'all'
@@ -185,7 +201,7 @@ export function resolveDept(deptParam: string | null | undefined, allowed: strin
 export type DeptScopeFilter = { op: 'all' } | { op: 'none' } | { op: 'eq' | 'neq'; dept: string };
 
 export function deptScopeFilter(scope: PageScope, ownDept: string, dept: string): DeptScopeFilter {
-  if (scope === 'self') return { op: 'none' }; // berbasis ID, bukan divisi → fail-closed di sini
+  if (scope === 'self' || scope === 'coordinator_team') return { op: 'none' }; // berbasis ID, bukan divisi → fail-closed di sini
   if (scope === 'own_division') return { op: 'eq', dept: ownDept };
   if (scope === 'other_divisions') return dept !== 'all' ? { op: 'eq', dept } : { op: 'neq', dept: ownDept };
   return dept !== 'all' ? { op: 'eq', dept } : { op: 'all' };
@@ -219,18 +235,23 @@ export function isDeptInScope(scope: PageScope, ownDept: string, targetDept: str
  * Apakah `emp` termasuk dalam SALAH SATU lingkup yang diberikan (OR)? Ini sumber kebenaran tunggal
  * untuk menyaring pegawai di halaman ter-grant (halaman "ambil semua → saring di JS") DAN untuk guard
  * tulis target-tunggal. Semantik tiap lingkup:
- *   all             → semua
- *   self            → hanya pemegang grant sendiri (per-ID)
- *   own_division    → sedivisi dengan pemegang
- *   other_divisions → divisi ≠ pemegang (dept null DIKECUALIKAN, seperti SQL `<>`)
+ *   all              → semua
+ *   self             → hanya pemegang grant sendiri (per-ID)
+ *   own_division     → sedivisi dengan pemegang
+ *   other_divisions  → divisi ≠ pemegang (dept null DIKECUALIKAN, seperti SQL `<>`)
+ *   coordinator_team → hanya anggota tim naungan pemegang (per-ID; `teamIds` = daftar
+ *                      coordinator_team_members milik pemegang, WAJIB diberikan pemanggil).
+ * `teamIds` opsional: hanya perlu bila `scopes` memuat 'coordinator_team' (tanpa itu → tak cocok).
  */
 export function employeeInScopes(
   scopes: PageScope[], ownDept: string, ownId: string, emp: { id: string; dept: string | null },
+  teamIds?: ReadonlySet<string> | null,
 ): boolean {
   return scopes.some((s) => {
     if (s === 'all') return true;
     if (s === 'self') return emp.id === ownId;
     if (s === 'own_division') return emp.dept === ownDept;
+    if (s === 'coordinator_team') return !!teamIds && teamIds.has(emp.id);
     return emp.dept != null && emp.dept !== ownDept; // other_divisions
   });
 }
@@ -238,13 +259,15 @@ export function employeeInScopes(
 /**
  * Divisi yang boleh DIPILIH di dropdown filter untuk gabungan lingkup (union). 'all' → semua divisi;
  * own_division menambah divisi sendiri; other_divisions menambah semua divisi lain; 'self' tak menambah
- * divisi apa pun. (Dipakai halaman Monitor untuk membatasi pilihan dropdown sesuai lingkup grant.)
+ * divisi apa pun. `coordinator_team` menambah divisi-divisi anggota tim naungan (`teamDepts`) — tim bisa
+ * lintas divisi. (Dipakai halaman Monitor untuk membatasi pilihan dropdown sesuai lingkup grant.)
  */
-export function allowedDeptsForMulti(depts: string[], scopes: PageScope[], ownDept: string): string[] {
+export function allowedDeptsForMulti(depts: string[], scopes: PageScope[], ownDept: string, teamDepts: string[] = []): string[] {
   if (scopes.includes('all')) return depts;
   const set = new Set<string>();
   if (scopes.includes('own_division')) depts.filter((d) => d === ownDept).forEach((d) => set.add(d));
   if (scopes.includes('other_divisions')) depts.filter((d) => d !== ownDept).forEach((d) => set.add(d));
+  if (scopes.includes('coordinator_team')) teamDepts.filter((d) => depts.includes(d)).forEach((d) => set.add(d));
   return depts.filter((d) => set.has(d)); // pertahankan urutan asli
 }
 

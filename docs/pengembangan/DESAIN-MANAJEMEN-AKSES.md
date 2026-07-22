@@ -107,9 +107,11 @@ Konsol Manajemen Akses ditata jadi 3 kolom, satu pemberian akses = **1 halaman �
 ### 9.2 Keputusan diskusi (mengikat)
 1. **"Supervisor" = "SPV"** — satu peran (`role='spv'`). Mockup menuliskannya dua kali; anggap duplikat.
 2. **Koordinator ADALAH target sah** (walau teknisnya grant `is_coordinator`, bukan role DB) — alasan:
-   halaman pemantauan bisa dipakai koordinator memantau kinerja bawahannya. ⚠️ **Terbuka:** semantik
-   lingkup Koordinator = per-divisi (pakai lingkup di kolom 3) ATAU per-daftar-tim (`coordinator_team_members`)?
-   Perlu diputuskan di Fase 2.
+   halaman pemantauan bisa dipakai koordinator memantau kinerja bawahannya. ✅ **DIPUTUSKAN (2026-07-22):**
+   lingkup Koordinator = **per-daftar-tim** (`coordinator_team_members`), BUKAN per-divisi. Diwujudkan
+   sebagai scope baru **`'coordinator_team'`** (migrasi 0029) — tiap koordinator melihat TIM NAUNGANNYA
+   sendiri. Penegakan: `employeeInScopes(..., teamIds)` (fail-closed tanpa teamIds); helper divisi
+   (`deptScopeFilter`/`allowedDeptsFor`/`isDeptInScope`) fail-closed `op:'none'` seperti 'self'.
 3. **Lingkup = MULTI-pilih** (membalik keputusan 2026-07-21 sebelumnya yang "pilih-satu"). Kombinasi
    bermakna terutama **"Selain divisi + Diri sendiri"**. → butuh skema multi (`scopes[]`).
 4. **Izin Edit pada halaman Administrator ke peran luas DIIZINKAN**, TAPI wajib **peringatan/konfirmasi**
@@ -144,6 +146,12 @@ Konsol Manajemen Akses ditata jadi 3 kolom, satu pemberian akses = **1 halaman �
 - **Fase 2 — Target PERAN + terapkan massal** (Direksi/SPV/Pegawai/Koordinator): saat peran dicentang,
   upsert `page_grants` untuk semua anggota peran SAAT INI. **Peringatan/konfirmasi** untuk Edit pada
   halaman Administrator ke peran luas. Putuskan semantik lingkup Koordinator (poin 9.2#2).
+  ✅ **SELESAI di `dev` (2026-07-22):** scope baru `coordinator_team` (migrasi 0029) + `employeeInScopes`
+  menerima `teamIds` + `allowedDeptsForMulti` menerima `teamDepts`; ditegakkan di Monitor / Review list /
+  Review detail / guard tulis `admin/laporan/actions.ts`. Server action `setPageGrantForRole` (materialisasi
+  ke anggota peran saat ini via service_role). Konsol: pemilih Penerima (pegawai tertentu ATAU peran),
+  opsi scope "Tim naungannya" (hanya untuk Koordinator/pegawai koordinator), ConfirmDialog peringatan saat
+  Edit halaman administrator ke peran luas. 145 tes hijau. **PRASYARAT deploy: apply 0029 ke DB.**
 - **Fase 3 — Section "Pegawai Baru"** (dari `joined_on` + "tandai ditinjau").
 - **Fase 4 — Tata letak 3 kolom** (mempercantik; paling murah, terakhir).
 

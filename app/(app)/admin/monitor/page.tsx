@@ -71,23 +71,32 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   // Lingkup efektif (MULTI): HRD penuh = ['all'] (perilaku lama); pemegang grant = daftar lingkupnya.
   const scopes: PageScope[] = grantScopes ?? ['all'];
 
-  // Daftar divisi (untuk filter dropdown) — gabungan divisi yang tercakup lingkup. Dibaca via service_role.
   const admin = createAdminClient();
-  const { data: deptData } = await admin.from('employees').select('dept').eq('is_external', false);
-  const allDepts = [...new Set((deptData ?? []).map((d) => d.dept).filter((d): d is string => !!d))].sort();
-  const depts = allowedDeptsForMulti(allDepts, scopes, ownDept);
+  // Tim naungan (hanya bila lingkup 'coordinator_team'): id anggota coordinator_team_members pemegang.
+  let teamIds: Set<string> | undefined;
+  if (scopes.includes('coordinator_team')) {
+    const { data: tm } = await admin.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id);
+    teamIds = new Set((tm ?? []).map((r) => r.employee_id));
+  }
+  // Ambil SEMUA pegawai internal sekali; dipakai untuk daftar divisi + penyaringan lingkup.
+  const { data: allEmpData } = await admin.from('employees').select('id, name, dept, is_active').eq('is_external', false);
+  const allDepts = [...new Set((allEmpData ?? []).map((d) => d.dept).filter((d): d is string => !!d))].sort();
+  // Divisi anggota tim naungan (tim bisa lintas divisi) → menambah pilihan dropdown utk lingkup tim.
+  const teamDepts = teamIds
+    ? [...new Set((allEmpData ?? []).filter((e) => teamIds!.has(e.id)).map((e) => e.dept).filter((d): d is string => !!d))]
+    : [];
+  const depts = allowedDeptsForMulti(allDepts, scopes, ownDept, teamDepts);
   // Divisi terpilih (dropdown) hanya narrowing sekunder; ?dept= di luar daftar diizinkan diabaikan.
   const dept = deptParam && depts.includes(deptParam) ? deptParam : 'all';
   const scopeLabel = dept !== 'all' ? dept
     : scopes.includes('all') ? 'Semua divisi'
     : scopes.map((s) => PAGE_SCOPE_LABELS[s]).join(' + ');
 
-  // Lingkup pegawai — OTORITATIF: ambil SEMUA pegawai internal lalu SARING di server (JS) dengan
-  // `employeeInScopes` (gabungan OR antar-lingkup; 'self'=per-ID) + narrowing divisi dropdown.
+  // Lingkup pegawai — OTORITATIF: SARING di server (JS) dengan `employeeInScopes` (gabungan OR
+  // antar-lingkup; 'self'=per-ID; 'coordinator_team'=per-ID via teamIds) + narrowing divisi dropdown.
   // Query berat (kpi/360 lintas periode di bawah) hanya untuk id yang lolos saring.
-  const { data: allEmpData } = await admin.from('employees').select('id, name, dept, is_active').eq('is_external', false);
   const empRows = (allEmpData ?? []).filter((e) =>
-    employeeInScopes(scopes, ownDept, user.id, e) && (dept === 'all' || e.dept === dept));
+    employeeInScopes(scopes, ownDept, user.id, e, teamIds) && (dept === 'all' || e.dept === dept));
   if (empRows.length === 0) return <Shell><Header isHrdFull={isHrdFull} scopeLabel={scopeLabel} /><Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} /><p className="text-sm text-gray-500 mt-4">Belum ada pegawai dalam lingkup ini.</p></Shell>;
   const ids = empRows.map((e) => e.id);
 

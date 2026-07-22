@@ -54,8 +54,12 @@ async function resolveReportWriteActor(
   const admin = createAdminClient();
   const { data: target } = await admin.from('employees').select('dept').eq('id', employeeId).maybeSingle();
   if (!target) return { ok: false, error: 'Pegawai tidak ditemukan.' };
-  // Target harus masuk SALAH SATU lingkup grant (employeeInScopes; 'self' = hanya laporan diri sendiri).
-  if (!employeeInScopes(access.scopes, me?.dept ?? '', user.id, { id: employeeId, dept: target.dept ?? null })) {
+  // Tim naungan (hanya bila lingkup 'coordinator_team'): id anggota tim pemegang grant.
+  const teamIds = access.scopes.includes('coordinator_team')
+    ? new Set(((await admin.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id)).data ?? []).map((r) => r.employee_id))
+    : undefined;
+  // Target harus masuk SALAH SATU lingkup grant (employeeInScopes; 'self'/'coordinator_team' = per-ID).
+  if (!employeeInScopes(access.scopes, me?.dept ?? '', user.id, { id: employeeId, dept: target.dept ?? null }, teamIds)) {
     return { ok: false, error: 'Pegawai ini di luar lingkup akses yang diberikan kepada Anda.' };
   }
   // Tulis via service_role: pemegang grant non-HRD ditolak RLS fr_hrd, jadi HANYA jalur ini (yang

@@ -187,6 +187,20 @@ describe('employeeInScopes — penegakan MULTI-lingkup (OR) di halaman ter-grant
     expect(employeeInScopes(scopes, 'HRD-GA', OWN_ID, mk(OWN_ID, 'HRD-GA'))).toBe(true);    // diri sendiri
     expect(employeeInScopes(scopes, 'HRD-GA', OWN_ID, mk('teman', 'HRD-GA'))).toBe(false);  // teman sedivisi TIDAK
   });
+  it('coordinator_team → hanya anggota tim naungan (via teamIds); tanpa teamIds → FAIL-CLOSED', () => {
+    const team = new Set(['t1', 't2']);
+    expect(employeeInScopes(['coordinator_team'], 'HRD-GA', OWN_ID, mk('t1', 'Sales'), team)).toBe(true);
+    expect(employeeInScopes(['coordinator_team'], 'HRD-GA', OWN_ID, mk('x', 'HRD-GA'), team)).toBe(false);
+    // pemanggil lupa memuat teamIds → tak cocok siapa pun (aman), bukan bocor ke divisi lain.
+    expect(employeeInScopes(['coordinator_team'], 'HRD-GA', OWN_ID, mk('t1', 'Sales'))).toBe(false);
+  });
+  it('coordinator_team lintas divisi + kombinasi dengan diri sendiri', () => {
+    const team = new Set(['t1']);
+    const scopes: PageScope[] = ['coordinator_team', 'self'];
+    expect(employeeInScopes(scopes, 'HRD-GA', OWN_ID, mk('t1', 'Sales'), team)).toBe(true);    // anggota tim (divisi lain)
+    expect(employeeInScopes(scopes, 'HRD-GA', OWN_ID, mk(OWN_ID, 'HRD-GA'), team)).toBe(true);  // diri sendiri
+    expect(employeeInScopes(scopes, 'HRD-GA', OWN_ID, mk('z', 'Sales'), team)).toBe(false);     // bukan tim, bukan diri
+  });
 });
 
 describe('allowedDeptsForMulti — dropdown divisi untuk gabungan lingkup', () => {
@@ -197,6 +211,22 @@ describe('allowedDeptsForMulti — dropdown divisi untuk gabungan lingkup', () =
     expect(allowedDeptsForMulti(ALL_DEPTS, ['own_division', 'other_divisions'], OWN)).toEqual(ALL_DEPTS);
     expect(allowedDeptsForMulti(ALL_DEPTS, ['other_divisions', 'self'], OWN)).toEqual(['Marketing', 'Sales']);
     expect(allowedDeptsForMulti(ALL_DEPTS, ['self'], OWN)).toEqual([]);
+  });
+  it('coordinator_team → menambah divisi anggota tim (teamDepts), tetap dibatasi daftar divisi sah', () => {
+    expect(allowedDeptsForMulti(ALL_DEPTS, ['coordinator_team'], OWN, ['Sales', 'Marketing'])).toEqual(['Marketing', 'Sales']);
+    expect(allowedDeptsForMulti(ALL_DEPTS, ['coordinator_team'], OWN, [])).toEqual([]);
+  });
+});
+
+describe("lingkup 'coordinator_team' — berbasis daftar tim, FAIL-CLOSED di helper divisi", () => {
+  it('deptScopeFilter / allowedDeptsFor / isDeptInScope fail-closed (bukan berbasis divisi)', () => {
+    expect(deptScopeFilter('coordinator_team', OWN, 'all')).toEqual<DeptScopeFilter>({ op: 'none' });
+    expect(allowedDeptsFor(ALL_DEPTS, 'coordinator_team', OWN)).toEqual([]);
+    expect(isDeptInScope('coordinator_team', 'HRD-GA', 'Sales')).toBe(false);
+  });
+  it('grantedAccess mengenali coordinator_team sebagai scope sah', () => {
+    expect(grantedAccess([{ section: 'monitor', scope: 'coordinator_team', scopes: ['coordinator_team'] }], 'monitor'))
+      .toEqual({ scopes: ['coordinator_team'], canEdit: false });
   });
 });
 

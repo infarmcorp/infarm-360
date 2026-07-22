@@ -57,9 +57,13 @@ export default async function AdminLaporanPage() {
   // Pemegang grant: daftar disaring per LINGKUP (deptScopeFilter — cerminan query Monitor).
   // Ambil semua pegawai internal; pemegang grant disaring per gabungan lingkup (employeeInScopes,
   // termasuk 'self' per-ID). HRD penuh (reviewScopes null) → tanpa saring (semua).
+  // Tim naungan (hanya bila lingkup 'coordinator_team'): id anggota tim pemegang grant.
+  const teamIds = reviewScopes?.includes('coordinator_team')
+    ? new Set(((await db.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id)).data ?? []).map((r) => r.employee_id))
+    : undefined;
   const { data: emps } = await db.from('employees').select('id, name, dept, is_active, role').eq('is_external', false);
   const employees = (emps ?? []).filter((e) =>
-    !reviewScopes || employeeInScopes(reviewScopes, me?.dept ?? '', user.id, e));
+    !reviewScopes || employeeInScopes(reviewScopes, me?.dept ?? '', user.id, e, teamIds));
 
   const { data: months } = await db.from('period_months').select('ym').eq('period_id', ap.id);
   const yms = (months ?? []).map((m) => m.ym);

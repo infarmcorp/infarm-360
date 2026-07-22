@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { isFullHrd, GRANTABLE_PAGES, PAGE_SCOPES, GRANTABLE_PAGE_LABELS, GRANTABLE_PAGE_KIND, PAGE_SCOPE_LABELS, type GrantablePage, type PageScope } from '@/lib/auth/roles';
+import { isFullHrd, GRANTABLE_PAGES, PAGE_SCOPES, GRANTABLE_PAGE_LABELS, GRANTABLE_PAGE_KIND, PAGE_SCOPE_LABELS, GRANT_ROLE_TARGETS, GRANT_ROLE_TARGET_LABELS, type GrantablePage, type PageScope } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 
 /**
@@ -74,6 +74,59 @@ export async function setPageGrant(employeeId: string, section: unknown, scopes:
   });
   revalidate();
   return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" diberikan (${scopeLabel}${editNote}).` };
+}
+
+const RoleGrantInput = z.object({
+  roleTarget: z.enum(GRANT_ROLE_TARGETS),
+  section: z.enum(GRANTABLE_PAGES),
+  scopes: z.array(z.enum(PAGE_SCOPES)).min(1),
+  canEdit: z.boolean(),
+});
+
+/**
+ * Beri akses halaman ber-lingkup ke SEMUA anggota sebuah PERAN saat ini (upsert per orang, via
+ * service_role). Lingkup/izin sama untuk tiap anggota; penegakan tetap per-pemegang saat runtime
+ * (mis. 'coordinator_team' → tim masing-masing; 'own_division' → divisi masing-masing). Peringatan
+ * untuk Edit-ke-peran-luas ditangani di klien (konfirmasi) — di server tetap dibolehkan.
+ */
+export async function setPageGrantForRole(roleTarget: unknown, section: unknown, scopes: unknown, canEdit: unknown = false): Promise<Result> {
+  const parsed = RoleGrantInput.safeParse({ roleTarget, section, scopes, canEdit: !!canEdit });
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid (pilih peran, halaman, & minimal satu lingkup).' };
+  const { roleTarget: rt, section: sec } = parsed.data;
+  let scps: PageScope[] = [...new Set(parsed.data.scopes)];
+  if (scps.includes('all')) scps = ['all'];
+  const edit = GRANTABLE_PAGE_KIND[sec as GrantablePage] === 'administrator' ? parsed.data.canEdit : false;
+
+  const supabase = await createClient();
+  const auth = await requireFullHrd(supabase);
+  if (!auth.ok) return auth;
+
+  // Anggota peran SAAT INI (via service_role; internal saja).
+  const admin = createAdminClient();
+  let q = admin.from('employees').select('id').eq('is_external', false);
+  if (rt === 'koordinator') q = q.eq('is_coordinator', true);
+  else if (rt === 'pegawai') q = q.eq('role', 'employee');
+  else if (rt === 'spv') q = q.eq('role', 'spv');
+  else q = q.eq('role', 'direksi');
+  const { data: members, error: mErr } = await q;
+  if (mErr) return { ok: false, error: 'Gagal membaca anggota peran: ' + mErr.message };
+  if (!members || members.length === 0) return { ok: false, error: `Tak ada anggota ${GRANT_ROLE_TARGET_LABELS[rt]} saat ini.` };
+
+  const rows = members.map((m) => ({
+    employee_id: m.id, section: sec, scope: scps[0], scopes: scps, can_edit: edit, created_by: auth.userId,
+  }));
+  const { error } = await admin.from('page_grants').upsert(rows, { onConflict: 'employee_id,section' });
+  if (error) return { ok: false, error: 'Gagal menyimpan akses massal: ' + error.message };
+
+  const scopeLabel = scps.map((s) => PAGE_SCOPE_LABELS[s]).join(' + ');
+  const editNote = GRANTABLE_PAGE_KIND[sec as GrantablePage] === 'administrator' ? (edit ? ', boleh edit' : ', hanya lihat') : '';
+  await logHrdAction({
+    action: 'access.set_page_grant_role', category: 'pegawai',
+    summary: `Memberi akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" (${scopeLabel}${editNote}) ke SEMUA ${GRANT_ROLE_TARGET_LABELS[rt]} (${rows.length} orang)`,
+    targetType: 'role', targetId: rt, targetLabel: GRANT_ROLE_TARGET_LABELS[rt], meta: { section: sec, scopes: scps, can_edit: edit, count: rows.length },
+  });
+  revalidate();
+  return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" diberikan ke ${rows.length} ${GRANT_ROLE_TARGET_LABELS[rt]} (${scopeLabel}${editNote}).` };
 }
 
 /** Cabut akses halaman untuk seorang pegawai. Ditulis via service_role. */

@@ -36,9 +36,9 @@ export interface Database {
         Relationships: [];
       };
       page_grants: {
-        Row: { id: string; employee_id: string; section: string; scope: 'all' | 'own_division' | 'other_divisions' | 'self'; scopes: string[]; can_edit: boolean; created_at: string; created_by: string | null };
-        Insert: { id?: string; employee_id: string; section: string; scope?: 'all' | 'own_division' | 'other_divisions' | 'self'; scopes?: string[]; can_edit?: boolean; created_by?: string | null };
-        Update: Partial<{ section: string; scope: 'all' | 'own_division' | 'other_divisions' | 'self'; scopes: string[]; can_edit: boolean; created_by: string | null }>;
+        Row: { id: string; employee_id: string; section: string; scope: 'all' | 'own_division' | 'other_divisions' | 'self' | 'coordinator_team'; scopes: string[]; can_edit: boolean; created_at: string; created_by: string | null };
+        Insert: { id?: string; employee_id: string; section: string; scope?: 'all' | 'own_division' | 'other_divisions' | 'self' | 'coordinator_team'; scopes?: string[]; can_edit?: boolean; created_by?: string | null };
+        Update: Partial<{ section: string; scope: 'all' | 'own_division' | 'other_divisions' | 'self' | 'coordinator_team'; scopes: string[]; can_edit: boolean; created_by: string | null }>;
         Relationships: [];
       };
       periods: {

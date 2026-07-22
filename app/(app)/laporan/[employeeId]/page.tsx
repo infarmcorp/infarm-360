@@ -70,8 +70,12 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   if (!isHrdFull && reviewGrant) {
     const admin = createAdminClient();
     const { data: tgt } = await admin.from('employees').select('dept').eq('id', employeeId).maybeSingle();
-    // Target harus masuk SALAH SATU lingkup grant (employeeInScopes; 'self' = per-ID diri sendiri).
-    const inScope = !!tgt && employeeInScopes(reviewGrant.scopes, me?.dept ?? '', user.id, { id: employeeId, dept: tgt.dept ?? null });
+    // Tim naungan (hanya bila lingkup 'coordinator_team'): id anggota tim pemegang grant.
+    const teamIds = reviewGrant.scopes.includes('coordinator_team')
+      ? new Set(((await admin.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id)).data ?? []).map((r) => r.employee_id))
+      : undefined;
+    // Target harus masuk SALAH SATU lingkup grant (employeeInScopes; 'self'/'coordinator_team' = per-ID).
+    const inScope = !!tgt && employeeInScopes(reviewGrant.scopes, me?.dept ?? '', user.id, { id: employeeId, dept: tgt.dept ?? null }, teamIds);
     if (!inScope) {
       return <Shell>
         <Link href="/admin/laporan" className="text-xs text-gray-500 hover:underline no-print">← Review Hasil Akhir</Link>

@@ -2,9 +2,9 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { ShieldCheck, ScanEye, Users, ListChecks, SlidersHorizontal } from 'lucide-react';
-import { setPageGrant, removePageGrant } from './actions';
+import { setPageGrant, setPageGrantForRole, removePageGrant } from './actions';
 import { setHrdAdmin, setCrossReviewer, setCoordinator, setCoordinatorTeam, setHrdSections } from '../pegawai/actions';
-import { isHrdDept, HRD_SECTIONS, HRD_SECTION_LABELS, type HrdSection } from '@/lib/auth/roles';
+import { isHrdDept, HRD_SECTIONS, HRD_SECTION_LABELS, GRANT_ROLE_TARGETS, GRANT_ROLE_TARGET_LABELS, type HrdSection, type GrantRoleTarget } from '@/lib/auth/roles';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { SearchableSelect } from '@/components/searchable-select';
 
@@ -46,12 +46,17 @@ export function AksesClient({
   const [coordDlg, setCoordDlg] = useState<{ r: AksesEmployee; selected: Set<string>; q: string } | null>(null);
   const [sectionsDlg, setSectionsDlg] = useState<{ r: AksesEmployee; full: boolean; selected: Set<string> } | null>(null);
   // ── Card "Tambah akses baru" + panel kanan ──
-  const [addEmp, setAddEmp] = useState('');   // employee_id terpilih di card
+  // Penerima: 'employee' (pegawai tertentu, pakai SearchableSelect) ATAU salah satu PERAN (Fase 2).
+  const [addTarget, setAddTarget] = useState<string>('employee');
+  const [addEmp, setAddEmp] = useState('');   // employee_id terpilih di card (mode 'employee')
   const [addPage, setAddPage] = useState(''); // section halaman terpilih di card
-  // Panel: lingkup = MULTI (Diri sendiri / Divisi sendiri / Divisi lain / Semua pegawai), dari daftar
-  // `scopes`. Checkbox boleh >1; "Semua pegawai" menyerap → mengosongkan lingkup lain.
-  const [panel, setPanel] = useState<{ empId: string; section: string; scopes: string[]; canEdit: boolean } | null>(null);
+  // Panel: lingkup = MULTI (Diri sendiri / Divisi sendiri / Divisi lain / Semua pegawai / Tim naungan),
+  // dari daftar `scopes`. Checkbox boleh >1; "Semua pegawai" menyerap → mengosongkan lingkup lain.
+  // `roleTarget` != null → panel dalam mode PERAN (materialisasi ke semua anggota peran saat ini).
+  const [panel, setPanel] = useState<{ empId: string; section: string; scopes: string[]; canEdit: boolean; roleTarget?: string | null } | null>(null);
   const [panelMsg, setPanelMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // Konfirmasi peringatan: memberi izin EDIT halaman administrator ke PERAN luas (banyak orang).
+  const [roleConfirm, setRoleConfirm] = useState<{ roleTarget: string; section: string; scopes: string[]; canEdit: boolean; count: number } | null>(null);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -97,14 +102,54 @@ export function AksesClient({
   const scopeLabelByKey = useMemo(() => Object.fromEntries(scopes.map((s) => [s.key, s.label])), [scopes]);
   const panelEmp = panel ? rows.find((r) => r.id === panel.empId) ?? null : null;
   const panelPage = panel ? pages.find((p) => p.key === panel.section) ?? null : null;
+  const panelRoleLabel = panel?.roleTarget ? GRANT_ROLE_TARGET_LABELS[panel.roleTarget as GrantRoleTarget] : null;
+  const panelRoleCount = panel?.roleTarget ? roleMemberRows(panel.roleTarget).length : 0;
+  // Lingkup 'Tim naungannya' hanya relevan untuk Koordinator (peran atau pegawai koordinator) → sembunyikan selain itu.
+  const showTeamScope = panel?.roleTarget === 'koordinator' || (!!panelEmp && panelEmp.isCoordinator);
+  const visibleScopes = scopes.filter((s) => s.key !== 'coordinator_team' || showTeamScope);
 
   /** Buka panel untuk (pegawai, halaman) — dari card (default) atau dari sel tabel. Prefill grant existing. */
   function openPanel(empId: string = addEmp, section: string = addPage) {
     const emp = rows.find((r) => r.id === empId);
     if (!emp || !section) return;
     const g = emp.grants[section];
-    setPanel({ empId, section, scopes: g?.scopes ?? [], canEdit: !!g?.canEdit });
+    setPanel({ empId, section, scopes: g?.scopes ?? [], canEdit: !!g?.canEdit, roleTarget: null });
     setPanelMsg(null);
+  }
+
+  /** Anggota peran SAAT INI (mirror predikat server) — untuk hitung jumlah + patch state lokal. */
+  function roleMemberRows(roleTarget: string) {
+    return rows.filter((r) => !r.isExternal && (
+      roleTarget === 'koordinator' ? r.isCoordinator :
+      roleTarget === 'pegawai' ? r.role === 'employee' :
+      roleTarget === 'spv' ? r.role === 'spv' :
+      roleTarget === 'direksi' ? r.role === 'direksi' : false));
+  }
+
+  /** Buka panel dalam mode PERAN (tanpa prefill — grant per-peran = pemberian baru ke semua anggota). */
+  function openRolePanel(roleTarget: string, section: string) {
+    setPanel({ empId: '', section, scopes: [], canEdit: false, roleTarget });
+    setPanelMsg(null);
+  }
+
+  /** Tombol "Atur akses" di card: buka panel sesuai penerima terpilih (pegawai tertentu vs peran). */
+  function openPanelFromCard() {
+    if (!addPage) return;
+    if (addTarget === 'employee') openPanel(addEmp, addPage);
+    else openRolePanel(addTarget, addPage);
+  }
+
+  /** Terapkan grant ke SEMUA anggota peran (setelah konfirmasi bila perlu) + patch state lokal. */
+  function doRoleSave(roleTarget: string, section: string, scps: string[], canEdit: boolean) {
+    setRoleConfirm(null);
+    startTransition(async () => {
+      const res = await setPageGrantForRole(roleTarget, section, scps, canEdit);
+      if (res.ok) {
+        const memberIds = new Set(roleMemberRows(roleTarget).map((r) => r.id));
+        setRows((prev) => prev.map((r) => (memberIds.has(r.id) ? { ...r, grants: { ...r.grants, [section]: { scopes: scps, canEdit } } } : r)));
+        setPanelMsg({ ok: true, text: res.msg ?? 'Akses massal tersimpan.' });
+      } else setPanelMsg({ ok: false, text: res.error ?? 'Gagal menyimpan.' });
+    });
   }
 
   /** Toggle satu lingkup di panel (multi). "Semua pegawai" menyerap → mengosongkan lingkup lain;
@@ -123,12 +168,21 @@ export function AksesClient({
     if (!panel) return;
     const scps = panel.scopes;
     if (!scps.length) { setPanelMsg({ ok: false, text: 'Pilih minimal satu lingkup data.' }); return; }
-    const emp = rows.find((r) => r.id === panel.empId);
-    if (!emp) return;
     const section = panel.section;
     // Halaman pemantauan selalu lihat-saja → paksa canEdit=false (server juga menormalkan).
     const kind = pages.find((p) => p.key === section)?.kind;
     const canEdit = kind === 'administrator' ? panel.canEdit : false;
+    // Mode PERAN: materialisasi ke semua anggota. Peringatan bila EDIT halaman administrator ke peran luas.
+    if (panel.roleTarget) {
+      const rt = panel.roleTarget;
+      const count = roleMemberRows(rt).length;
+      if (count === 0) { setPanelMsg({ ok: false, text: `Tak ada anggota ${GRANT_ROLE_TARGET_LABELS[rt as GrantRoleTarget]} saat ini.` }); return; }
+      if (kind === 'administrator' && canEdit) { setRoleConfirm({ roleTarget: rt, section, scopes: scps, canEdit, count }); return; }
+      doRoleSave(rt, section, scps, canEdit);
+      return;
+    }
+    const emp = rows.find((r) => r.id === panel.empId);
+    if (!emp) return;
     startTransition(async () => {
       const res = await setPageGrant(emp.id, section, scps, canEdit);
       if (res.ok) {
@@ -191,19 +245,39 @@ export function AksesClient({
         {/* Kiri: pilih pegawai + halaman */}
         <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-4">
           <h3 className="text-sm font-bold text-gray-800 mb-0.5">Tambah akses baru</h3>
-          <p className="text-[11px] text-gray-500 mb-3">Pilih pegawai dan halaman, lalu atur lingkup & izinnya di panel kanan.</p>
+          <p className="text-[11px] text-gray-500 mb-3">Pilih penerima (pegawai tertentu atau seluruh peran) dan halaman, lalu atur lingkup &amp; izinnya di panel kanan.</p>
           <div className="space-y-3">
             <div>
-              <label className="block text-[11px] font-semibold text-gray-600 mb-1">Pegawai</label>
-              <SearchableSelect
-                value={addEmp}
-                onChange={setAddEmp}
-                options={empOptions}
-                placeholder="— pilih pegawai —"
-                ariaLabel="Pilih pegawai"
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
-              />
+              <label className="block text-[11px] font-semibold text-gray-600 mb-1">Penerima</label>
+              <select
+                value={addTarget}
+                onChange={(e) => setAddTarget(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:border-emerald-500 focus:outline-none"
+              >
+                <option value="employee">Pegawai tertentu…</option>
+                {GRANT_ROLE_TARGETS.map((rt) => (
+                  <option key={rt} value={rt}>Semua {GRANT_ROLE_TARGET_LABELS[rt]}</option>
+                ))}
+              </select>
+              {addTarget !== 'employee' && (
+                <p className="text-[10px] text-gray-500 mt-1">
+                  Diterapkan ke <strong>{roleMemberRows(addTarget).length}</strong> {GRANT_ROLE_TARGET_LABELS[addTarget as GrantRoleTarget]} saat ini. Pegawai baru tak otomatis ikut.
+                </p>
+              )}
             </div>
+            {addTarget === 'employee' && (
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-600 mb-1">Pegawai</label>
+                <SearchableSelect
+                  value={addEmp}
+                  onChange={setAddEmp}
+                  options={empOptions}
+                  placeholder="— pilih pegawai —"
+                  ariaLabel="Pilih pegawai"
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+                />
+              </div>
+            )}
             <div>
               <label className="block text-[11px] font-semibold text-gray-600 mb-1">Halaman/fitur</label>
               <select
@@ -219,8 +293,8 @@ export function AksesClient({
             </div>
             <button
               type="button"
-              onClick={() => openPanel()}
-              disabled={!addEmp || !addPage || pending}
+              onClick={openPanelFromCard}
+              disabled={!addPage || (addTarget === 'employee' && !addEmp) || pending}
               className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
             >
               <SlidersHorizontal className="w-4 h-4" /> Atur akses →
@@ -230,16 +304,20 @@ export function AksesClient({
 
         {/* Kanan: panel pengaturan lingkup + izin */}
         <div className="rounded-2xl border border-gray-200 p-4">
-          {!panel || !panelEmp || !panelPage ? (
+          {!panel || !panelPage || (!panel.roleTarget && !panelEmp) ? (
             <div className="h-full flex items-center justify-center text-center text-[12px] text-gray-400 italic py-8">
-              Pilih pegawai &amp; halaman, lalu klik <span className="font-semibold text-gray-500">&nbsp;Atur akses&nbsp;</span> untuk menampilkan pengaturan lingkup &amp; izin di sini.
+              Pilih penerima &amp; halaman, lalu klik <span className="font-semibold text-gray-500">&nbsp;Atur akses&nbsp;</span> untuk menampilkan pengaturan lingkup &amp; izin di sini.
             </div>
           ) : (
             <div>
               <div className="flex items-start justify-between gap-2 mb-3">
                 <div>
                   <h3 className="text-sm font-bold text-gray-800">{panelPage.label}</h3>
-                  <p className="text-[11px] text-gray-500">{panelEmp.name} · {panelEmp.dept}</p>
+                  {panel.roleTarget ? (
+                    <p className="text-[11px] text-teal-700 font-semibold">Semua {panelRoleLabel} · {panelRoleCount} orang</p>
+                  ) : (
+                    <p className="text-[11px] text-gray-500">{panelEmp!.name} · {panelEmp!.dept}</p>
+                  )}
                 </div>
                 <button type="button" onClick={() => { setPanel(null); setPanelMsg(null); }} className="text-[11px] text-gray-400 hover:text-gray-600">Tutup</button>
               </div>
@@ -248,7 +326,7 @@ export function AksesClient({
               <div className="mb-3">
                 <p className="text-[11px] font-semibold text-gray-600 mb-1.5">Lingkup data <span className="font-normal text-gray-400">(boleh lebih dari satu)</span></p>
                 <div className="space-y-1.5">
-                  {scopes.map((s) => {
+                  {visibleScopes.map((s) => {
                     const checked = panel.scopes.includes(s.key);
                     const disabled = pending || (s.key !== 'all' && panel.scopes.includes('all'));
                     return (
@@ -291,7 +369,7 @@ export function AksesClient({
                   className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
                   Simpan akses
                 </button>
-                {panelEmp.grants[panel.section] && (
+                {!panel.roleTarget && panelEmp && panelEmp.grants[panel.section] && (
                   <button type="button" onClick={removePanel} disabled={pending}
                     className="text-[11px] font-bold px-3 py-2 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50">
                     Cabut akses
@@ -508,6 +586,23 @@ export function AksesClient({
               );
             })}
           </div>
+        )}
+      </ConfirmDialog>
+
+      {/* Peringatan: memberi izin EDIT halaman administrator ke PERAN luas (banyak orang sekaligus). */}
+      <ConfirmDialog
+        open={!!roleConfirm}
+        icon="⚠️"
+        title="Beri izin edit ke banyak orang?"
+        tone="danger"
+        confirmLabel={roleConfirm ? `Ya, berikan ke ${roleConfirm.count} orang` : 'Ya, berikan'}
+        busy={pending}
+        onConfirm={() => roleConfirm && doRoleSave(roleConfirm.roleTarget, roleConfirm.section, roleConfirm.scopes, roleConfirm.canEdit)}
+        onCancel={() => { if (!pending) setRoleConfirm(null); }}
+      >
+        {roleConfirm && (
+          <p>Anda akan mengizinkan <strong>SEMUA {GRANT_ROLE_TARGET_LABELS[roleConfirm.roleTarget as GrantRoleTarget]} ({roleConfirm.count} orang)</strong> untuk{' '}
+          <strong>meng-edit/finalisasi</strong> halaman <strong>{pages.find((p) => p.key === roleConfirm.section)?.label}</strong>. Ini memberi kemampuan menulis ke banyak orang sekaligus — pastikan memang diinginkan. Lanjutkan?</p>
         )}
       </ConfirmDialog>
     </div>

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canSection, grantedScope, allowedDeptsFor, resolveDept, deptScopeFilter, type PageScope } from '@/lib/auth/roles';
+import { canSection, grantedAccess, employeeInScopes, allowedDeptsForMulti, PAGE_SCOPE_LABELS, type PageScope } from '@/lib/auth/roles';
 import { finalScoreOf, playerClassOf } from '@/lib/scoring';
 import { trendOf } from '@/lib/trend';
 import { scoreMaps, penaltyMap, teamAverages, companyAverages } from '@/lib/team-metrics';
@@ -48,13 +48,13 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   const jar = await cookies();
   const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   const isHrdFull = canSection(me, 'dashboard') && hrdMode === 'admin';
-  let grantScope: PageScope | null = null;
+  let grantScopes: PageScope[] | null = null;
   if (!isHrdFull) {
     // Dibaca lewat client user-scoped: RLS page_grants_self_read hanya memberi baris miliknya.
-    const { data: myGrants } = await supabase.from('page_grants').select('section, scope').eq('employee_id', user.id);
-    grantScope = grantedScope(myGrants, 'monitor');
+    const { data: myGrants } = await supabase.from('page_grants').select('section, scope, scopes').eq('employee_id', user.id);
+    grantScopes = grantedAccess(myGrants, 'monitor')?.scopes ?? null;
   }
-  if (!isHrdFull && !grantScope) {
+  if (!isHrdFull && !grantScopes) {
     return <Shell><p className="text-sm text-gray-600">Anda tidak memiliki akses ke halaman ini.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
@@ -68,31 +68,26 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
     ?? periodList.find((p) => p.status === 'active')
     ?? periodList[periodList.length - 1];
 
-  // Lingkup efektif: HRD penuh = 'all' (perilaku lama); pemegang grant = lingkup grant-nya.
-  const scope: PageScope = grantScope ?? 'all';
+  // Lingkup efektif (MULTI): HRD penuh = ['all'] (perilaku lama); pemegang grant = daftar lingkupnya.
+  const scopes: PageScope[] = grantScopes ?? ['all'];
 
-  // Daftar divisi (untuk filter) + lingkup pegawai. Dibaca via service_role.
+  // Daftar divisi (untuk filter dropdown) — gabungan divisi yang tercakup lingkup. Dibaca via service_role.
   const admin = createAdminClient();
   const { data: deptData } = await admin.from('employees').select('dept').eq('is_external', false);
   const allDepts = [...new Set((deptData ?? []).map((d) => d.dept).filter((d): d is string => !!d))].sort();
-  // Batasi daftar divisi yang boleh dipilih + divisi terpilih yang sah (helper diuji di
-  // tests/page-scope.test.ts; ?dept= di luar daftar diizinkan diabaikan).
-  const depts = allowedDeptsFor(allDepts, scope, ownDept);
-  const dept = resolveDept(deptParam, depts, scope, ownDept);
-  const scopeLabel = scope === 'self' ? 'Diri sendiri'
-    : dept === 'all' ? (scope === 'other_divisions' ? 'Semua divisi lain' : 'Semua divisi')
-    : dept;
+  const depts = allowedDeptsForMulti(allDepts, scopes, ownDept);
+  // Divisi terpilih (dropdown) hanya narrowing sekunder; ?dept= di luar daftar diizinkan diabaikan.
+  const dept = deptParam && depts.includes(deptParam) ? deptParam : 'all';
+  const scopeLabel = dept !== 'all' ? dept
+    : scopes.includes('all') ? 'Semua divisi'
+    : scopes.map((s) => PAGE_SCOPE_LABELS[s]).join(' + ');
 
-  // Lingkup pegawai — ditegakkan di SERVER secara OTORITATIF lewat rencana filter yang sama dengan
-  // yang diuji unit (tak bergantung default `dept`, tak bisa dilewati lewat ?dept=). Lingkup 'self'
-  // disaring per-ID (bukan divisi) → hanya baris pemegang grant sendiri.
-  const scopeFilter = deptScopeFilter(scope, ownDept, dept);
-  let empQuery = admin.from('employees').select('id, name, dept, is_active').eq('is_external', false);
-  if (scope === 'self') empQuery = empQuery.eq('id', user.id);
-  else if (scopeFilter.op === 'eq') empQuery = empQuery.eq('dept', scopeFilter.dept);
-  else if (scopeFilter.op === 'neq') empQuery = empQuery.neq('dept', scopeFilter.dept);
-  const { data: empData } = await empQuery;
-  const empRows = empData ?? [];
+  // Lingkup pegawai — OTORITATIF: ambil SEMUA pegawai internal lalu SARING di server (JS) dengan
+  // `employeeInScopes` (gabungan OR antar-lingkup; 'self'=per-ID) + narrowing divisi dropdown.
+  // Query berat (kpi/360 lintas periode di bawah) hanya untuk id yang lolos saring.
+  const { data: allEmpData } = await admin.from('employees').select('id, name, dept, is_active').eq('is_external', false);
+  const empRows = (allEmpData ?? []).filter((e) =>
+    employeeInScopes(scopes, ownDept, user.id, e) && (dept === 'all' || e.dept === dept));
   if (empRows.length === 0) return <Shell><Header isHrdFull={isHrdFull} scopeLabel={scopeLabel} /><Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} /><p className="text-sm text-gray-500 mt-4">Belum ada pegawai dalam lingkup ini.</p></Shell>;
   const ids = empRows.map((e) => e.id);
 

@@ -31,7 +31,7 @@ export default async function AdminAksesPage() {
   const admin = createAdminClient();
   const [{ data: empData }, { data: grantData }, { data: coordData }] = await Promise.all([
     admin.from('employees').select('id, name, dept, role, is_external, is_hrd_admin, is_cross_reviewer, is_coordinator, hrd_sections').eq('is_external', false).order('dept').order('name'),
-    admin.from('page_grants').select('employee_id, section, scope, can_edit'),
+    admin.from('page_grants').select('employee_id, section, scope, scopes, can_edit'),
     admin.from('coordinator_team_members').select('coordinator_id, employee_id'),
   ]);
 
@@ -40,11 +40,13 @@ export default async function AdminAksesPage() {
   (coordData ?? []).forEach((c) => { (coordTeams[c.coordinator_id] ??= []).push(c.employee_id); });
   const coordCount = new Map<string, number>(Object.entries(coordTeams).map(([k, v]) => [k, v.length]));
 
-  // Peta grant per pegawai: employee_id → { section → { scope, canEdit } }.
-  const grantsByEmp = new Map<string, Record<string, { scope: string; canEdit: boolean }>>();
+  // Peta grant per pegawai: employee_id → { section → { scopes[], canEdit } }.
+  // Utamakan kolom `scopes[]` (0028); fallback ke `scope` tunggal lama bila kosong.
+  const grantsByEmp = new Map<string, Record<string, { scopes: string[]; canEdit: boolean }>>();
   (grantData ?? []).forEach((g) => {
     const m = grantsByEmp.get(g.employee_id) ?? {};
-    m[g.section] = { scope: g.scope, canEdit: !!g.can_edit };
+    const scopes = g.scopes && g.scopes.length ? g.scopes : (g.scope ? [g.scope] : []);
+    m[g.section] = { scopes, canEdit: !!g.can_edit };
     grantsByEmp.set(g.employee_id, m);
   });
 
@@ -82,10 +84,11 @@ export default async function AdminAksesPage() {
       const g = grantsByEmp.get(e.id) ?? {};
       for (const sec of GRANTABLE_PAGES) {
         const grant = g[sec];
-        if (grant) {
+        if (grant && grant.scopes.length) {
           // Halaman administrator (mis. Review Hasil Akhir) tampilkan status boleh-edit/lihat-saja.
           const editNote = GRANTABLE_PAGE_KIND[sec] === 'administrator' ? (grant.canEdit ? ' · boleh edit' : ' · lihat-saja') : '';
-          access.push({ label: `${GRANTABLE_PAGE_LABELS[sec]} — ${PAGE_SCOPE_LABELS[grant.scope as keyof typeof PAGE_SCOPE_LABELS] ?? grant.scope}${editNote}`, tone: 'emerald' });
+          const scopeLabel = grant.scopes.map((s) => PAGE_SCOPE_LABELS[s as keyof typeof PAGE_SCOPE_LABELS] ?? s).join(' + ');
+          access.push({ label: `${GRANTABLE_PAGE_LABELS[sec]} — ${scopeLabel}${editNote}`, tone: 'emerald' });
         }
       }
       return { id: e.id, name: e.name, dept: e.dept ?? '—', role: e.role, access };

@@ -120,29 +120,35 @@ export const PAGE_SCOPE_LABELS: Record<PageScope, string> = {
   self: 'Diri sendiri',
 };
 
-/** Satu baris grant halaman (subset kolom page_grants yang dibutuhkan untuk otorisasi). */
-export type PageGrantRow = { section: string; scope: string; can_edit?: boolean };
-
 /**
- * Lingkup yang diberikan kepada pemegang grant untuk halaman `page`, atau `null` bila tak diberi.
- * Dipakai di guard halaman & filter menu. Nilai scope tak dikenal diperlakukan sbagai tak-diberi
- * (aman default-tutup). HRD penuh TIDAK lewat jalur ini — mereka pakai canSection.
+ * Satu baris grant halaman (subset kolom page_grants untuk otorisasi). `scopes` = lingkup MULTI
+ * (migrasi 0028); `scope` = kolom tunggal LAMA (fallback backward-compat bila `scopes` kosong).
  */
-export function grantedScope(grants: PageGrantRow[] | null | undefined, page: GrantablePage): PageScope | null {
-  const g = grants?.find((x) => x.section === page);
-  if (!g) return null;
-  return (PAGE_SCOPES as readonly string[]).includes(g.scope) ? (g.scope as PageScope) : null;
+export type PageGrantRow = { section: string; scope?: string | null; scopes?: string[] | null; can_edit?: boolean };
+
+/** Daftar lingkup SAH sebuah baris grant (utamakan `scopes[]`; fallback ke `scope` tunggal lama). */
+function scopesOf(g: PageGrantRow): PageScope[] {
+  const raw = (g.scopes && g.scopes.length ? g.scopes : (g.scope ? [g.scope] : []));
+  return raw.filter((s): s is PageScope => (PAGE_SCOPES as readonly string[]).includes(s));
 }
 
 /**
- * Akses lengkap (lingkup + boleh-edit) untuk halaman `page`, atau `null` bila tak diberi. Dipakai
- * halaman "administrator" (mis. Review Hasil Akhir) yang perlu tahu boleh mengubah atau hanya lihat.
- * `canEdit` hanya bermakna untuk halaman jenis 'administrator'; 'pemantauan' selalu lihat-saja.
+ * Akses lengkap (DAFTAR lingkup + boleh-edit) untuk halaman `page`, atau `null` bila tak diberi /
+ * tak ada lingkup sah. Sumber kebenaran grant halaman. `canEdit` hanya bermakna untuk halaman jenis
+ * 'administrator'; 'pemantauan' selalu lihat-saja. HRD penuh TIDAK lewat jalur ini (pakai canSection).
  */
-export function grantedAccess(grants: PageGrantRow[] | null | undefined, page: GrantablePage): { scope: PageScope; canEdit: boolean } | null {
+export function grantedAccess(grants: PageGrantRow[] | null | undefined, page: GrantablePage): { scopes: PageScope[]; canEdit: boolean } | null {
   const g = grants?.find((x) => x.section === page);
-  if (!g || !(PAGE_SCOPES as readonly string[]).includes(g.scope)) return null;
-  return { scope: g.scope as PageScope, canEdit: !!g.can_edit };
+  if (!g) return null;
+  const scopes = scopesOf(g);
+  if (!scopes.length) return null;
+  return { scopes, canEdit: !!g.can_edit };
+}
+
+/** Konvenien: lingkup PERTAMA yang diberikan untuk `page` (null bila tak ada). Untuk pemakai yang
+ *  hanya butuh satu nilai indikatif; penegakan sebenarnya pakai `grantedAccess().scopes` (multi). */
+export function grantedScope(grants: PageGrantRow[] | null | undefined, page: GrantablePage): PageScope | null {
+  return grantedAccess(grants, page)?.scopes[0] ?? null;
 }
 
 /**
@@ -205,6 +211,40 @@ export function applyDeptScope<T extends { dept: string | null }>(employees: T[]
  */
 export function isDeptInScope(scope: PageScope, ownDept: string, targetDept: string | null): boolean {
   return applyDeptScope([{ dept: targetDept }], deptScopeFilter(scope, ownDept, 'all')).length > 0;
+}
+
+/**
+ * ── PENEGAKAN MULTI-LINGKUP (migrasi 0028) ─────────────────────────────────────────────────────
+ * Apakah `emp` termasuk dalam SALAH SATU lingkup yang diberikan (OR)? Ini sumber kebenaran tunggal
+ * untuk menyaring pegawai di halaman ter-grant (halaman "ambil semua → saring di JS") DAN untuk guard
+ * tulis target-tunggal. Semantik tiap lingkup:
+ *   all             → semua
+ *   self            → hanya pemegang grant sendiri (per-ID)
+ *   own_division    → sedivisi dengan pemegang
+ *   other_divisions → divisi ≠ pemegang (dept null DIKECUALIKAN, seperti SQL `<>`)
+ */
+export function employeeInScopes(
+  scopes: PageScope[], ownDept: string, ownId: string, emp: { id: string; dept: string | null },
+): boolean {
+  return scopes.some((s) => {
+    if (s === 'all') return true;
+    if (s === 'self') return emp.id === ownId;
+    if (s === 'own_division') return emp.dept === ownDept;
+    return emp.dept != null && emp.dept !== ownDept; // other_divisions
+  });
+}
+
+/**
+ * Divisi yang boleh DIPILIH di dropdown filter untuk gabungan lingkup (union). 'all' → semua divisi;
+ * own_division menambah divisi sendiri; other_divisions menambah semua divisi lain; 'self' tak menambah
+ * divisi apa pun. (Dipakai halaman Monitor untuk membatasi pilihan dropdown sesuai lingkup grant.)
+ */
+export function allowedDeptsForMulti(depts: string[], scopes: PageScope[], ownDept: string): string[] {
+  if (scopes.includes('all')) return depts;
+  const set = new Set<string>();
+  if (scopes.includes('own_division')) depts.filter((d) => d === ownDept).forEach((d) => set.add(d));
+  if (scopes.includes('other_divisions')) depts.filter((d) => d !== ownDept).forEach((d) => set.add(d));
+  return depts.filter((d) => set.has(d)); // pertahankan urutan asli
 }
 
 /**

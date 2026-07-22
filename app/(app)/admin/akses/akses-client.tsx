@@ -18,7 +18,7 @@ export type AksesEmployee = {
   isCrossReviewer: boolean;
   isCoordinator: boolean;
   hrdSections: string[] | null;
-  grants: Record<string, { scope: string; canEdit: boolean }>; // section halaman → { lingkup, boleh-edit }
+  grants: Record<string, { scopes: string[]; canEdit: boolean }>; // section halaman → { daftar lingkup, boleh-edit }
 };
 type PageOpt = { key: string; label: string; kind: string }; // kind: 'pemantauan' | 'administrator'
 type ScopeOpt = { key: string; label: string };
@@ -48,9 +48,9 @@ export function AksesClient({
   // ── Card "Tambah akses baru" + panel kanan ──
   const [addEmp, setAddEmp] = useState('');   // employee_id terpilih di card
   const [addPage, setAddPage] = useState(''); // section halaman terpilih di card
-  // Panel: lingkup = PILIH SATU nilai (Diri sendiri / Divisi sendiri / Divisi lain / Semua pegawai),
-  // dari daftar `scopes`. Checkbox berperilaku pilih-satu (mencentang satu melepas yang lain).
-  const [panel, setPanel] = useState<{ empId: string; section: string; scope: string; canEdit: boolean } | null>(null);
+  // Panel: lingkup = MULTI (Diri sendiri / Divisi sendiri / Divisi lain / Semua pegawai), dari daftar
+  // `scopes`. Checkbox boleh >1; "Semua pegawai" menyerap → mengosongkan lingkup lain.
+  const [panel, setPanel] = useState<{ empId: string; section: string; scopes: string[]; canEdit: boolean } | null>(null);
   const [panelMsg, setPanelMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const filtered = useMemo(() => {
@@ -74,11 +74,11 @@ export function AksesClient({
   const patchRow = (id: string, upd: Partial<AksesEmployee>) =>
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...upd } : r)));
 
-  // ── Grant HALAMAN ber-lingkup (+ dimensi boleh-edit untuk halaman administrator) ─────────────
-  function changeGrant(emp: AksesEmployee, section: string, scope: string, canEdit: boolean) {
-    run(emp.id, () => (scope ? setPageGrant(emp.id, section, scope, canEdit) : removePageGrant(emp.id, section)), () => {
+  // ── Grant HALAMAN ber-lingkup MULTI (+ dimensi boleh-edit untuk halaman administrator) ────────
+  function changeGrant(emp: AksesEmployee, section: string, scopes: string[], canEdit: boolean) {
+    run(emp.id, () => (scopes.length ? setPageGrant(emp.id, section, scopes, canEdit) : removePageGrant(emp.id, section)), () => {
       const grants = { ...emp.grants };
-      if (scope) grants[section] = { scope, canEdit }; else delete grants[section];
+      if (scopes.length) grants[section] = { scopes, canEdit }; else delete grants[section];
       patchRow(emp.id, { grants });
     });
   }
@@ -86,7 +86,7 @@ export function AksesClient({
   function toggleEdit(emp: AksesEmployee, section: string) {
     const cur = emp.grants[section];
     if (!cur) return;
-    changeGrant(emp, section, cur.scope, !cur.canEdit);
+    changeGrant(emp, section, cur.scopes, !cur.canEdit);
   }
 
   // ── Card "Tambah akses baru" + panel kanan ──────────────────────────────────
@@ -94,24 +94,35 @@ export function AksesClient({
     () => rows.map((r) => ({ value: r.id, label: `${r.name} — ${r.dept}` })),
     [rows],
   );
-  const addPageKind = pages.find((p) => p.key === addPage)?.kind;
+  const scopeLabelByKey = useMemo(() => Object.fromEntries(scopes.map((s) => [s.key, s.label])), [scopes]);
   const panelEmp = panel ? rows.find((r) => r.id === panel.empId) ?? null : null;
   const panelPage = panel ? pages.find((p) => p.key === panel.section) ?? null : null;
 
-  /** Buka panel untuk (pegawai, halaman) terpilih — prefill dari grant existing bila ada. */
-  function openPanel() {
-    const emp = rows.find((r) => r.id === addEmp);
-    if (!emp || !addPage) return;
-    const g = emp.grants[addPage];
-    setPanel({ empId: addEmp, section: addPage, scope: g?.scope ?? '', canEdit: !!g?.canEdit });
+  /** Buka panel untuk (pegawai, halaman) — dari card (default) atau dari sel tabel. Prefill grant existing. */
+  function openPanel(empId: string = addEmp, section: string = addPage) {
+    const emp = rows.find((r) => r.id === empId);
+    if (!emp || !section) return;
+    const g = emp.grants[section];
+    setPanel({ empId, section, scopes: g?.scopes ?? [], canEdit: !!g?.canEdit });
     setPanelMsg(null);
+  }
+
+  /** Toggle satu lingkup di panel (multi). "Semua pegawai" menyerap → mengosongkan lingkup lain;
+   *  memilih lingkup lain melepas "Semua". */
+  function togglePanelScope(key: string) {
+    setPanel((p) => {
+      if (!p) return p;
+      if (p.scopes.includes(key)) return { ...p, scopes: p.scopes.filter((s) => s !== key) };
+      if (key === 'all') return { ...p, scopes: ['all'] };
+      return { ...p, scopes: [...p.scopes.filter((s) => s !== 'all'), key] };
+    });
   }
 
   /** Simpan kombinasi panel via setPageGrant (pola yang sama) + patch rows agar tabel ter-update. */
   function savePanel() {
     if (!panel) return;
-    const scope = panel.scope;
-    if (!scope) { setPanelMsg({ ok: false, text: 'Pilih satu lingkup data.' }); return; }
+    const scps = panel.scopes;
+    if (!scps.length) { setPanelMsg({ ok: false, text: 'Pilih minimal satu lingkup data.' }); return; }
     const emp = rows.find((r) => r.id === panel.empId);
     if (!emp) return;
     const section = panel.section;
@@ -119,11 +130,28 @@ export function AksesClient({
     const kind = pages.find((p) => p.key === section)?.kind;
     const canEdit = kind === 'administrator' ? panel.canEdit : false;
     startTransition(async () => {
-      const res = await setPageGrant(emp.id, section, scope, canEdit);
+      const res = await setPageGrant(emp.id, section, scps, canEdit);
       if (res.ok) {
-        patchRow(emp.id, { grants: { ...emp.grants, [section]: { scope, canEdit } } });
+        patchRow(emp.id, { grants: { ...emp.grants, [section]: { scopes: scps, canEdit } } });
         setPanelMsg({ ok: true, text: res.msg ?? 'Akses tersimpan.' });
       } else setPanelMsg({ ok: false, text: res.error ?? 'Gagal menyimpan.' });
+    });
+  }
+
+  /** Cabut akses (dari panel) untuk (pegawai, halaman) saat ini. */
+  function removePanel() {
+    if (!panel) return;
+    const emp = rows.find((r) => r.id === panel.empId);
+    if (!emp) return;
+    const section = panel.section;
+    startTransition(async () => {
+      const res = await removePageGrant(emp.id, section);
+      if (res.ok) {
+        const grants = { ...emp.grants }; delete grants[section];
+        patchRow(emp.id, { grants });
+        setPanel((p) => (p ? { ...p, scopes: [], canEdit: false } : p));
+        setPanelMsg({ ok: true, text: res.msg ?? 'Akses dicabut.' });
+      } else setPanelMsg({ ok: false, text: res.error ?? 'Gagal mencabut.' });
     });
   }
 
@@ -191,7 +219,7 @@ export function AksesClient({
             </div>
             <button
               type="button"
-              onClick={openPanel}
+              onClick={() => openPanel()}
               disabled={!addEmp || !addPage || pending}
               className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
             >
@@ -216,18 +244,21 @@ export function AksesClient({
                 <button type="button" onClick={() => { setPanel(null); setPanelMsg(null); }} className="text-[11px] text-gray-400 hover:text-gray-600">Tutup</button>
               </div>
 
-              {/* Lingkup data — PILIH SATU (mencentang satu melepas yang lain). */}
+              {/* Lingkup data — MULTI (boleh >1). "Semua pegawai" menyerap → mematikan lingkup lain. */}
               <div className="mb-3">
-                <p className="text-[11px] font-semibold text-gray-600 mb-1.5">Lingkup data</p>
+                <p className="text-[11px] font-semibold text-gray-600 mb-1.5">Lingkup data <span className="font-normal text-gray-400">(boleh lebih dari satu)</span></p>
                 <div className="space-y-1.5">
-                  {scopes.map((s) => (
-                    <label key={s.key} className="flex items-center gap-2 text-sm cursor-pointer">
-                      <input type="checkbox" checked={panel.scope === s.key} disabled={pending}
-                        onChange={() => setPanel((p) => (p ? { ...p, scope: p.scope === s.key ? '' : s.key } : p))}
-                        className="accent-emerald-600" />
-                      <span className="text-gray-800">{s.label}</span>
-                    </label>
-                  ))}
+                  {scopes.map((s) => {
+                    const checked = panel.scopes.includes(s.key);
+                    const disabled = pending || (s.key !== 'all' && panel.scopes.includes('all'));
+                    return (
+                      <label key={s.key} className={`flex items-center gap-2 text-sm ${disabled ? 'opacity-40' : 'cursor-pointer'}`}>
+                        <input type="checkbox" checked={checked} disabled={disabled}
+                          onChange={() => togglePanelScope(s.key)} className="accent-emerald-600" />
+                        <span className="text-gray-800">{s.label}</span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -255,10 +286,18 @@ export function AksesClient({
               {panelMsg && (
                 <p className={`text-[11px] mb-2 ${panelMsg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{panelMsg.text}</p>
               )}
-              <button type="button" onClick={savePanel} disabled={pending}
-                className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
-                Simpan akses
-              </button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={savePanel} disabled={pending}
+                  className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
+                  Simpan akses
+                </button>
+                {panelEmp.grants[panel.section] && (
+                  <button type="button" onClick={removePanel} disabled={pending}
+                    className="text-[11px] font-bold px-3 py-2 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50">
+                    Cabut akses
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -300,27 +339,22 @@ export function AksesClient({
                 <td className="px-3 py-2 text-gray-600">{ROLE_LABEL[emp.role] ?? emp.role}</td>
                 {pages.map((p) => {
                   const grant = emp.grants[p.key];
+                  const hasGrant = !!grant && grant.scopes.length > 0;
+                  const summary = hasGrant ? grant!.scopes.map((s) => scopeLabelByKey[s] ?? s).join(' + ') : null;
                   return (
                   <td key={p.key} className="px-3 py-2">
-                    <div className="flex flex-col gap-1">
-                      <select
-                        value={grant?.scope ?? ''}
-                        disabled={pending}
-                        onChange={(e) => changeGrant(emp, p.key, e.target.value, grant?.canEdit ?? false)}
-                        className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm bg-white focus:border-emerald-500 focus:outline-none disabled:opacity-50"
-                      >
-                        <option value="">— Tanpa akses</option>
-                        {scopes.map((s) => (
-                          <option key={s.key} value={s.key}>{s.label}</option>
-                        ))}
-                      </select>
-                      {/* Halaman administrator (mis. Review Hasil Akhir): toggle boleh-edit/hanya-lihat.
-                          Halaman pemantauan selalu lihat-saja → tak ada toggle. */}
-                      {p.kind === 'administrator' && grant && (
+                    <div className="flex flex-col items-start gap-1">
+                      <button type="button" onClick={() => openPanel(emp.id, p.key)} disabled={pending}
+                        title={hasGrant ? 'Ubah akses' : 'Beri akses'}
+                        className={`text-left text-[11px] rounded-lg border px-2 py-1 disabled:opacity-50 ${hasGrant ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100' : 'border-gray-200 text-gray-400 hover:bg-gray-50'}`}>
+                        {hasGrant ? <>{summary} <span aria-hidden>✎</span></> : '— beri akses'}
+                      </button>
+                      {/* Halaman administrator (mis. Review Hasil Akhir): status + toggle boleh-edit/hanya-lihat. */}
+                      {p.kind === 'administrator' && hasGrant && (
                         <button type="button" onClick={() => toggleEdit(emp, p.key)} disabled={pending}
-                          title={grant.canEdit ? 'Sedang: boleh edit — klik untuk jadikan hanya-lihat' : 'Sedang: hanya-lihat — klik untuk izinkan edit/finalisasi'}
-                          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border disabled:opacity-50 ${grant.canEdit ? 'bg-amber-50 text-amber-800 border-amber-300' : 'bg-gray-50 text-gray-600 border-gray-300'}`}>
-                          {grant.canEdit ? '✎ Boleh edit' : '👁 Hanya lihat'}
+                          title={grant!.canEdit ? 'Sedang: boleh edit — klik untuk jadikan hanya-lihat' : 'Sedang: hanya-lihat — klik untuk izinkan edit/finalisasi'}
+                          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border disabled:opacity-50 ${grant!.canEdit ? 'bg-amber-50 text-amber-800 border-amber-300' : 'bg-gray-50 text-gray-600 border-gray-300'}`}>
+                          {grant!.canEdit ? '✎ Boleh edit' : '👁 Hanya lihat'}
                         </button>
                       )}
                     </div>

@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canSection, grantedAccess, deptScopeFilter, type PageScope } from '@/lib/auth/roles';
+import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
 import { ReportTable, type ReportRow } from './report-table';
 import { Recompute360Button } from './recompute-360-button';
@@ -26,22 +26,22 @@ export default async function AdminLaporanPage() {
   // Jalur GRANT (non-HRD-penuh): akses Review Hasil Akhir ber-LINGKUP. Tahap 2 — grant boleh
   // menyertakan dimensi EDIT: `can_edit=true` → pemegang boleh membuka detail & finalisasi (dalam
   // lingkup, ditegakkan server via service_role); `can_edit=false` → tetap LIHAT-SAJA (Tahap 1).
-  let reviewScope: PageScope | null = null;
+  let reviewScopes: PageScope[] | null = null;
   let grantCanEdit = false;
   if (!isHrdFull) {
-    const { data: grantRows } = await supabase.from('page_grants').select('section, scope, can_edit').eq('employee_id', user.id);
+    const { data: grantRows } = await supabase.from('page_grants').select('section, scope, scopes, can_edit').eq('employee_id', user.id);
     const access = grantedAccess(grantRows, 'review');
-    reviewScope = access?.scope ?? null;
+    reviewScopes = access?.scopes ?? null;
     grantCanEdit = !!access?.canEdit;
   }
-  if (!isHrdFull && !reviewScope) {
+  if (!isHrdFull && !reviewScopes) {
     return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin atau pemegang akses Review Hasil Akhir.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
   // "Tinjau" (buka detail) tampil bila HRD penuh ATAU pemegang grant (baik lihat-saja maupun edit —
   // detail sendiri read-only bila tak boleh-edit). Grant lihat-saja lama tetap bisa melihat daftar.
-  const readOnly = !isHrdFull && !reviewScope; // (selalu false di titik ini; ambang jelas)
+  const readOnly = !isHrdFull && !reviewScopes; // (selalu false di titik ini; ambang jelas)
   // Pemegang grant bukan is_hrd() → RLS memblokir baca lintas-pegawai → baca via service_role.
   const db = (isHrdFull ? supabase : createAdminClient()) as typeof supabase;
 
@@ -55,16 +55,11 @@ export default async function AdminLaporanPage() {
   // jadi hanya tampil bila punya skor 360° (disaring `shownRows` di bawah). Ini KHUSUS halaman
   // Review Hasil Akhir — Dashboard/KPI/kepatuhan tetap mengecualikan Direksi.
   // Pemegang grant: daftar disaring per LINGKUP (deptScopeFilter — cerminan query Monitor).
-  let empQ = db.from('employees').select('id, name, dept, is_active, role').eq('is_external', false);
-  if (reviewScope === 'self') {
-    empQ = empQ.eq('id', user.id); // lingkup 'self' → hanya laporan pemegang grant sendiri
-  } else if (reviewScope) {
-    const f = deptScopeFilter(reviewScope, me?.dept ?? '', 'all');
-    if (f.op === 'eq') empQ = empQ.eq('dept', f.dept);
-    else if (f.op === 'neq') empQ = empQ.neq('dept', f.dept);
-  }
-  const { data: emps } = await empQ;
-  const employees = emps ?? [];
+  // Ambil semua pegawai internal; pemegang grant disaring per gabungan lingkup (employeeInScopes,
+  // termasuk 'self' per-ID). HRD penuh (reviewScopes null) → tanpa saring (semua).
+  const { data: emps } = await db.from('employees').select('id, name, dept, is_active, role').eq('is_external', false);
+  const employees = (emps ?? []).filter((e) =>
+    !reviewScopes || employeeInScopes(reviewScopes, me?.dept ?? '', user.id, e));
 
   const { data: months } = await db.from('period_months').select('ym').eq('period_id', ap.id);
   const yms = (months ?? []).map((m) => m.ym);

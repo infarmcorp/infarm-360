@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canAdmin, canCoordinate, canSection, grantedAccess, isDeptInScope } from '@/lib/auth/roles';
+import { canAdmin, canCoordinate, canSection, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
 import { loadReport, loadTeamReportForSpv, loadTeamReportForHrdSpv, loadTeamReportForCoordinator, loadSpvReportForDireksi, isDireksiReviewSubject } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
@@ -38,9 +38,9 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   const jarEarly = await cookies();
   const hrdModeEarly = jarEarly.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   const isHrdFull = canSection(me, 'laporan') && hrdModeEarly === 'admin';
-  let reviewGrant: { scope: import('@/lib/auth/roles').PageScope; canEdit: boolean } | null = null;
+  let reviewGrant: { scopes: import('@/lib/auth/roles').PageScope[]; canEdit: boolean } | null = null;
   if (!isHrdFull) {
-    const { data: grantRows } = await supabase.from('page_grants').select('section, scope, can_edit').eq('employee_id', user.id);
+    const { data: grantRows } = await supabase.from('page_grants').select('section, scope, scopes, can_edit').eq('employee_id', user.id);
     reviewGrant = grantedAccess(grantRows, 'review');
   }
   if (!isAdmin && role !== 'direksi' && role !== 'spv' && !isCoordinator && !reviewGrant) {
@@ -70,10 +70,8 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   if (!isHrdFull && reviewGrant) {
     const admin = createAdminClient();
     const { data: tgt } = await admin.from('employees').select('dept').eq('id', employeeId).maybeSingle();
-    // 'self' disaring per-ID (hanya laporan diri sendiri); lainnya per-divisi (isDeptInScope).
-    const inScope = reviewGrant.scope === 'self'
-      ? employeeId === user.id
-      : !!tgt && isDeptInScope(reviewGrant.scope, me?.dept ?? '', tgt.dept ?? null);
+    // Target harus masuk SALAH SATU lingkup grant (employeeInScopes; 'self' = per-ID diri sendiri).
+    const inScope = !!tgt && employeeInScopes(reviewGrant.scopes, me?.dept ?? '', user.id, { id: employeeId, dept: tgt.dept ?? null });
     if (!inScope) {
       return <Shell>
         <Link href="/admin/laporan" className="text-xs text-gray-500 hover:underline no-print">← Review Hasil Akhir</Link>

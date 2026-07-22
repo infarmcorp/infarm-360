@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  grantedScope, grantedAccess, allowedDeptsFor, resolveDept, deptScopeFilter, applyDeptScope, isDeptInScope,
+  grantedScope, grantedAccess, allowedDeptsFor, allowedDeptsForMulti, resolveDept, deptScopeFilter,
+  applyDeptScope, isDeptInScope, employeeInScopes,
   GRANTABLE_PAGES, GRANTABLE_PAGE_KIND,
   type PageScope, type DeptScopeFilter,
 } from '@/lib/auth/roles';
@@ -158,7 +159,44 @@ describe("lingkup 'self' (Diri sendiri) — berbasis ID, FAIL-CLOSED di helper d
   });
   it('grantedScope/grantedAccess mengenali self sebagai scope sah', () => {
     expect(grantedScope([{ section: 'monitor', scope: 'self' }], 'monitor')).toBe('self');
-    expect(grantedAccess([{ section: 'review', scope: 'self', can_edit: true }], 'review')).toEqual({ scope: 'self', canEdit: true });
+    expect(grantedAccess([{ section: 'review', scope: 'self', can_edit: true }], 'review')).toEqual({ scopes: ['self'], canEdit: true });
+  });
+});
+
+describe('employeeInScopes — penegakan MULTI-lingkup (OR) di halaman ter-grant', () => {
+  const OWN_ID = 'me-1';
+  const mk = (id: string, dept: string | null) => ({ id, dept });
+  it('all → semua pegawai', () => {
+    expect(employeeInScopes(['all'], 'HRD-GA', OWN_ID, mk('x', 'Sales'))).toBe(true);
+    expect(employeeInScopes(['all'], 'HRD-GA', OWN_ID, mk('x', null))).toBe(true);
+  });
+  it('self → hanya pemegang grant sendiri (per-ID)', () => {
+    expect(employeeInScopes(['self'], 'HRD-GA', OWN_ID, mk(OWN_ID, 'Sales'))).toBe(true);
+    expect(employeeInScopes(['self'], 'HRD-GA', OWN_ID, mk('other', 'HRD-GA'))).toBe(false);
+  });
+  it('own_division / other_divisions (dept null dikecualikan seperti SQL <>)', () => {
+    expect(employeeInScopes(['own_division'], 'HRD-GA', OWN_ID, mk('x', 'HRD-GA'))).toBe(true);
+    expect(employeeInScopes(['own_division'], 'HRD-GA', OWN_ID, mk('x', 'Sales'))).toBe(false);
+    expect(employeeInScopes(['other_divisions'], 'HRD-GA', OWN_ID, mk('x', 'Sales'))).toBe(true);
+    expect(employeeInScopes(['other_divisions'], 'HRD-GA', OWN_ID, mk('x', 'HRD-GA'))).toBe(false);
+    expect(employeeInScopes(['other_divisions'], 'HRD-GA', OWN_ID, mk('x', null))).toBe(false);
+  });
+  it('KOMBINASI "selain divisi + diri sendiri" = divisi lain OR catatan sendiri (bukan sedivisi)', () => {
+    const scopes: PageScope[] = ['other_divisions', 'self'];
+    expect(employeeInScopes(scopes, 'HRD-GA', OWN_ID, mk('x', 'Sales'))).toBe(true);       // divisi lain
+    expect(employeeInScopes(scopes, 'HRD-GA', OWN_ID, mk(OWN_ID, 'HRD-GA'))).toBe(true);    // diri sendiri
+    expect(employeeInScopes(scopes, 'HRD-GA', OWN_ID, mk('teman', 'HRD-GA'))).toBe(false);  // teman sedivisi TIDAK
+  });
+});
+
+describe('allowedDeptsForMulti — dropdown divisi untuk gabungan lingkup', () => {
+  it('all → semua divisi', () => {
+    expect(allowedDeptsForMulti(ALL_DEPTS, ['all'], OWN)).toEqual(ALL_DEPTS);
+  });
+  it('own + other → semua (union), self tak menambah divisi', () => {
+    expect(allowedDeptsForMulti(ALL_DEPTS, ['own_division', 'other_divisions'], OWN)).toEqual(ALL_DEPTS);
+    expect(allowedDeptsForMulti(ALL_DEPTS, ['other_divisions', 'self'], OWN)).toEqual(['Marketing', 'Sales']);
+    expect(allowedDeptsForMulti(ALL_DEPTS, ['self'], OWN)).toEqual([]);
   });
 });
 
@@ -171,10 +209,12 @@ describe('Review Hasil Akhir — grant halaman (Tahap 1: lihat-saja berlingkup)'
     expect(grantedScope([{ section: 'review', scope: 'own_division' }], 'review')).toBe('own_division');
     expect(grantedScope([{ section: 'monitor', scope: 'all' }], 'review')).toBeNull();
   });
-  it('Tahap 1 = hanya-lihat: grantedAccess canEdit=false meski grant ada', () => {
-    // Konsol belum menyetel can_edit → default false; halaman review Tahap 1 memang read-only.
-    expect(grantedAccess([{ section: 'review', scope: 'all' }], 'review')).toEqual({ scope: 'all', canEdit: false });
-    expect(grantedAccess([{ section: 'review', scope: 'other_divisions', can_edit: true }], 'review')).toEqual({ scope: 'other_divisions', canEdit: true });
+  it('grantedAccess mengembalikan DAFTAR lingkup + canEdit (fallback scope tunggal lama → [scope])', () => {
+    expect(grantedAccess([{ section: 'review', scope: 'all' }], 'review')).toEqual({ scopes: ['all'], canEdit: false });
+    expect(grantedAccess([{ section: 'review', scope: 'other_divisions', can_edit: true }], 'review')).toEqual({ scopes: ['other_divisions'], canEdit: true });
+    // kolom `scopes[]` baru diutamakan bila ada
+    expect(grantedAccess([{ section: 'review', scope: 'other_divisions', scopes: ['other_divisions', 'self'], can_edit: true }], 'review'))
+      .toEqual({ scopes: ['other_divisions', 'self'], canEdit: true });
   });
   it('lingkup review memakai deptScopeFilter yang SAMA (other_divisions kecualikan divisi sendiri + dept null)', () => {
     const f = deptScopeFilter('other_divisions', OWN, 'all');

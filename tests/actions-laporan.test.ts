@@ -154,20 +154,23 @@ describe('saveOrFinalizeReport — jalur GRANT "Review Hasil Akhir" (Tahap 2)', 
   it("lingkup 'self' — TOLAK bila target bukan diri sendiri", async () => {
     use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: GRANT_HOLDER }],
-      page_grants: [{ data: [{ section: 'review', scope: 'self', can_edit: true }] }],
+      page_grants: [{ data: [{ section: 'review', scope: 'self', scopes: ['self'], can_edit: true }] }],
+    } }));
+    useAdmin(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: { dept: 'Sales' } }], // dept target dibaca; employeeInScopes(['self']) → EMP≠UID → false
     } }));
     const r = await saveOrFinalizeReport(EMP, true); // EMP ≠ UID
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toMatch(/laporan Anda sendiri/i);
+    if (!r.ok) expect(r.error).toMatch(/di luar lingkup/i);
   });
 
   it("lingkup 'self' — SUKSES bila target = diri sendiri (via service_role)", async () => {
     use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: GRANT_HOLDER }],
-      page_grants: [{ data: [{ section: 'review', scope: 'self', can_edit: true }] }],
+      page_grants: [{ data: [{ section: 'review', scope: 'self', scopes: ['self'], can_edit: true }] }],
     } }));
     useAdmin(makeClient({ user: { id: UID }, tables: {
-      employees: [{ data: { name: 'Ulfa' } }], // self branch tak baca dept target; hanya nama di akhir
+      employees: [{ data: { dept: 'Marketing' } }, { data: { name: 'Ulfa' } }], // dept target (resolver) lalu nama (akhir)
       periods: [ACTIVE],
       ...computeTablesNonNull(),
       final_reports: [{ data: null }, { error: null }],

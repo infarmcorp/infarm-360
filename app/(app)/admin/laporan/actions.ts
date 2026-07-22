@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canSection, grantedAccess, isDeptInScope } from '@/lib/auth/roles';
+import { canSection, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
 import { logHrdAction, logAuditAsService, type AuditEntry } from '@/lib/audit/log';
 import { finalScoreOf } from '@/lib/scoring';
 
@@ -44,22 +44,18 @@ async function resolveReportWriteActor(
     return { ok: true, userId: user.id, userName: me?.name ?? null, db: supabase, viaGrant: false };
   }
 
-  // Jalur GRANT: pemegang akses "Review Hasil Akhir" boleh-edit dgn target di dalam lingkup.
-  const { data: grantRows } = await supabase.from('page_grants').select('section, scope, can_edit').eq('employee_id', user.id);
+  // Jalur GRANT: pemegang akses "Review Hasil Akhir" boleh-edit dgn target di dalam SALAH SATU lingkup.
+  const { data: grantRows } = await supabase.from('page_grants').select('section, scope, scopes, can_edit').eq('employee_id', user.id);
   const access = grantedAccess(grantRows, 'review');
   if (!access) return { ok: false, error: 'Hanya HRD atau pemegang akses Review Hasil Akhir yang dapat mengubah laporan.' };
   if (!access.canEdit) return { ok: false, error: 'Akses Anda ke Review Hasil Akhir bersifat hanya-lihat.' };
 
-  // Lingkup 'self' → hanya laporan pemegang grant sendiri (per-ID, tanpa perlu baca dept).
-  if (access.scope === 'self') {
-    if (employeeId !== user.id) return { ok: false, error: 'Akses Anda hanya untuk laporan Anda sendiri.' };
-    return { ok: true, userId: user.id, userName: me?.name ?? null, db: createAdminClient() as typeof supabase, viaGrant: true };
-  }
   // dept target dibaca via service_role (pemegang grant bukan is_hrd() → RLS memblokir baca lintas-pegawai).
   const admin = createAdminClient();
   const { data: target } = await admin.from('employees').select('dept').eq('id', employeeId).maybeSingle();
   if (!target) return { ok: false, error: 'Pegawai tidak ditemukan.' };
-  if (!isDeptInScope(access.scope, me?.dept ?? '', target.dept ?? null)) {
+  // Target harus masuk SALAH SATU lingkup grant (employeeInScopes; 'self' = hanya laporan diri sendiri).
+  if (!employeeInScopes(access.scopes, me?.dept ?? '', user.id, { id: employeeId, dept: target.dept ?? null })) {
     return { ok: false, error: 'Pegawai ini di luar lingkup akses yang diberikan kepada Anda.' };
   }
   // Tulis via service_role: pemegang grant non-HRD ditolak RLS fr_hrd, jadi HANYA jalur ini (yang

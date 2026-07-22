@@ -153,6 +153,34 @@ export async function removePageGrant(employeeId: string, section: unknown): Pro
   return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" dicabut.` };
 }
 
+/**
+ * Tandai bahwa akses pegawai (baru) SUDAH ditinjau HRD → kartu hilang dari section "Pegawai Baru"
+ * meski masih dalam jendela waktu. Hanya menyetel penanda `access_reviewed_at` (tak mengubah akses).
+ * Ditulis via service_role (HRD penuh; konsisten dgn grant). Idempoten.
+ */
+export async function markAccessReviewed(employeeId: unknown): Promise<Result> {
+  const parsed = z.string().uuid().safeParse(employeeId);
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  const id = parsed.data;
+
+  const supabase = await createClient();
+  const auth = await requireFullHrd(supabase);
+  if (!auth.ok) return auth;
+
+  const admin = createAdminClient();
+  const { data: target } = await admin.from('employees').select('name').eq('id', id).maybeSingle();
+  const { error } = await admin.from('employees').update({ access_reviewed_at: new Date().toISOString() }).eq('id', id);
+  if (error) return { ok: false, error: 'Gagal menandai: ' + error.message };
+
+  await logHrdAction({
+    action: 'access.mark_reviewed', category: 'pegawai',
+    summary: `Menandai akses pegawai baru "${target?.name ?? id}" sudah ditinjau`,
+    targetType: 'employee', targetId: id, targetLabel: target?.name ?? null,
+  });
+  revalidate();
+  return { ok: true, msg: 'Ditandai sudah ditinjau.' };
+}
+
 function revalidate() {
   revalidatePath('/admin/akses');
   // Perubahan grant langsung tercermin di menu (layout) & halaman target.

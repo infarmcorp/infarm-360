@@ -153,6 +153,10 @@ Konsol Manajemen Akses ditata jadi 3 kolom, satu pemberian akses = **1 halaman �
   opsi scope "Tim naungannya" (hanya untuk Koordinator/pegawai koordinator), ConfirmDialog peringatan saat
   Edit halaman administrator ke peran luas. 145 tes hijau. **PRASYARAT deploy: apply 0029 ke DB.**
 - **Fase 3 — Section "Pegawai Baru"** (dari `joined_on` + "tandai ditinjau").
+  ✅ **SELESAI di `dev` (2026-07-22):** migrasi 0030 (`employees.access_reviewed_at timestamptz`). Konsol
+  menampilkan section "Pegawai Baru" (joined_on ≤ 30 hari & `access_reviewed_at` null): kartu per pegawai
+  dgn "Tinjau akses" (prefill card Tambah akses) + "Tandai sudah ditinjau" (`markAccessReviewed` → set
+  penanda → kartu hilang). Akses bawaan peran tetap; ini hanya soal grant TAMBAHAN. **PRASYARAT: apply 0030.**
 - **Fase 4 — Tata letak 3 kolom** (mempercantik; paling murah, terakhir).
 
 ### 9.4 Yang MENIMPA pekerjaan sebelumnya (perlu diingat saat lanjut)

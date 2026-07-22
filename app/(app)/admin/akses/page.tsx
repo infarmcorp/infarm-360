@@ -30,7 +30,7 @@ export default async function AdminAksesPage() {
 
   const admin = createAdminClient();
   const [{ data: empData }, { data: grantData }, { data: coordData }] = await Promise.all([
-    admin.from('employees').select('id, name, dept, role, is_external, is_hrd_admin, is_cross_reviewer, is_coordinator, hrd_sections').eq('is_external', false).order('dept').order('name'),
+    admin.from('employees').select('id, name, dept, role, is_external, is_hrd_admin, is_cross_reviewer, is_coordinator, hrd_sections, joined_on, access_reviewed_at').eq('is_external', false).order('dept').order('name'),
     admin.from('page_grants').select('employee_id, section, scope, scopes, can_edit'),
     admin.from('coordinator_team_members').select('coordinator_id, employee_id'),
   ]);
@@ -60,6 +60,8 @@ export default async function AdminAksesPage() {
     isCrossReviewer: !!e.is_cross_reviewer,
     isCoordinator: !!e.is_coordinator,
     hrdSections: e.hrd_sections ?? null,
+    joinedOn: e.joined_on ?? null,
+    accessReviewedAt: e.access_reviewed_at ?? null,
     grants: grantsByEmp.get(e.id) ?? {},
   }));
 

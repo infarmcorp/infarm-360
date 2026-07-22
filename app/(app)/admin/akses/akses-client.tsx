@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { ShieldCheck, ScanEye, Users, ListChecks, SlidersHorizontal } from 'lucide-react';
-import { setPageGrant, setPageGrantForRole, removePageGrant } from './actions';
+import { setPageGrant, setPageGrantForRole, removePageGrant, markAccessReviewed } from './actions';
 import { setHrdAdmin, setCrossReviewer, setCoordinator, setCoordinatorTeam, setHrdSections } from '../pegawai/actions';
 import { isHrdDept, HRD_SECTIONS, HRD_SECTION_LABELS, GRANT_ROLE_TARGETS, GRANT_ROLE_TARGET_LABELS, type HrdSection, type GrantRoleTarget } from '@/lib/auth/roles';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -18,6 +18,8 @@ export type AksesEmployee = {
   isCrossReviewer: boolean;
   isCoordinator: boolean;
   hrdSections: string[] | null;
+  joinedOn: string | null;           // tgl masuk (untuk section "Pegawai Baru")
+  accessReviewedAt: string | null;   // penanda HRD sudah meninjau akses pegawai baru (null = belum)
   grants: Record<string, { scopes: string[]; canEdit: boolean }>; // section halaman → { daftar lingkup, boleh-edit }
 };
 type PageOpt = { key: string; label: string; kind: string }; // kind: 'pemantauan' | 'administrator'
@@ -25,6 +27,7 @@ type ScopeOpt = { key: string; label: string };
 
 const ROLE_LABEL: Record<string, string> = { employee: 'Pegawai', spv: 'SPV', hrd: 'HRD', direksi: 'Direksi' };
 const PAGE_SIZE = 12;
+const NEW_WINDOW_DAYS = 30; // jendela "Pegawai Baru": joined_on ≤ N hari terakhir & belum ditinjau
 
 /**
  * Konsol Manajemen Akses — SATU tempat mengatur seluruh akses/izin pegawai (dipindah dari Kelola
@@ -100,6 +103,21 @@ export function AksesClient({
     [rows],
   );
   const scopeLabelByKey = useMemo(() => Object.fromEntries(scopes.map((s) => [s.key, s.label])), [scopes]);
+
+  // ── Pegawai Baru (Fase 3): joined_on dalam jendela & belum ditinjau HRD. Akses BAWAAN peran tetap
+  //    jalan; section ini hanya mengingatkan HRD memutuskan akses TAMBAHAN lalu menandainya selesai. ──
+  const newEmployees = useMemo(() => {
+    const cutoff = new Date(Date.now() - NEW_WINDOW_DAYS * 86400000).toISOString().slice(0, 10);
+    return rows.filter((r) => !r.isExternal && r.accessReviewedAt == null && r.joinedOn != null && r.joinedOn >= cutoff);
+  }, [rows]);
+  /** Tandai akses pegawai baru sudah ditinjau → kartu hilang (patch state lokal). */
+  function markReviewed(r: AksesEmployee) {
+    run(r.id, () => markAccessReviewed(r.id), () => patchRow(r.id, { accessReviewedAt: new Date().toISOString() }));
+  }
+  /** "Tinjau akses": prefill card "Tambah akses baru" dengan pegawai ini (mode pegawai tertentu). */
+  function reviewAccessFor(r: AksesEmployee) {
+    setAddTarget('employee'); setAddEmp(r.id); setPanel(null); setPanelMsg(null);
+  }
   const panelEmp = panel ? rows.find((r) => r.id === panel.empId) ?? null : null;
   const panelPage = panel ? pages.find((p) => p.key === panel.section) ?? null : null;
   const panelRoleLabel = panel?.roleTarget ? GRANT_ROLE_TARGET_LABELS[panel.roleTarget as GrantRoleTarget] : null;
@@ -380,6 +398,43 @@ export function AksesClient({
           )}
         </div>
       </div>
+
+      {/* ── Section "Pegawai Baru": tinjau akses tambahan lalu tandai selesai ─────────────────── */}
+      {newEmployees.length > 0 && (
+        <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
+          <h3 className="text-sm font-bold text-amber-900 mb-0.5">Pegawai Baru <span className="font-normal text-amber-700">({newEmployees.length})</span></h3>
+          <p className="text-[11px] text-amber-800/80 mb-3 max-w-3xl">
+            Bergabung ≤ {NEW_WINDOW_DAYS} hari terakhir &amp; belum ditinjau. Akses <strong>bawaan peran</strong> mereka
+            sudah aktif — pegawai baru <strong>tidak</strong> otomatis mendapat akses tambahan. Putuskan apakah perlu
+            grant tambahan (klik <span className="font-semibold">Tinjau akses</span>), lalu <span className="font-semibold">Tandai sudah ditinjau</span>.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {newEmployees.map((r) => {
+              const grantCount = Object.values(r.grants).filter((g) => g.scopes.length > 0).length;
+              return (
+                <div key={r.id} className="rounded-xl border border-amber-200 bg-white p-3">
+                  <div className="font-medium text-gray-800 text-sm">{r.name}</div>
+                  <div className="text-[11px] text-gray-500">{r.dept} · {ROLE_LABEL[r.role] ?? r.role} · masuk {r.joinedOn}</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">{grantCount ? `${grantCount} akses tambahan` : 'belum ada akses tambahan'}</div>
+                  {msg && msg.id === r.id && (
+                    <div className={`text-[11px] mt-1 ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</div>
+                  )}
+                  <div className="flex items-center gap-2 mt-2">
+                    <button type="button" onClick={() => reviewAccessFor(r)} disabled={pending}
+                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50">
+                      Tinjau akses
+                    </button>
+                    <button type="button" onClick={() => markReviewed(r)} disabled={pending}
+                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+                      Tandai sudah ditinjau
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-2 mb-3">
         <input

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { canAdmin } from '@/lib/auth/roles';
+import { canSection } from '@/lib/auth/roles';
 import { logHrdAction, logAuditAsService } from '@/lib/audit/log';
 
 /**
@@ -19,9 +19,10 @@ async function ctx(): Promise<
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   const role = me?.role ?? '';
-  const isAdmin = canAdmin(me);
+  // HRD path butuh bagian 'suksesi' (akses granular); Direksi (merespons) lewat cek role.
+  const isAdmin = canSection(me, 'suksesi');
   if (!isAdmin && role !== 'direksi') return { ok: false, error: 'Tidak berwenang' };
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };

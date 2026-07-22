@@ -72,7 +72,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewe
       { href: '/admin/progress', label: 'Progress 360 Feedback', icon: CircleCheckBig, section: 'progress' },
       { href: '/admin/kepatuhan', label: 'Flag Kepatuhan', icon: ShieldAlert, section: 'kepatuhan' },
       { href: '/admin/laporan', label: 'Review Hasil Akhir', icon: ClipboardCheck, section: 'laporan' },
-      { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award },
+      { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award, section: 'suksesi' },
     ]);
     // Manajemen Akses (RBAC halaman ber-lingkup, migrasi 0024): HANYA HRD PENUH (tak dibatasi
     // hrd_sections) — rekan HRD terbatas tak boleh mengatur akses (cegah naikkan akses sendiri).

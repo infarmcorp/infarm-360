@@ -20,7 +20,7 @@ export function canAdmin(m: ActorRow | null | undefined): boolean {
  */
 export const HRD_SECTIONS = [
   'pegawai', 'struktur', 'periode', 'pemetaan', 'pertanyaan', 'bobot',
-  'progress', 'kepatuhan', 'laporan', 'dashboard', 'ekspor', 'audit',
+  'progress', 'kepatuhan', 'laporan', 'suksesi', 'dashboard', 'ekspor', 'audit',
 ] as const;
 export type HrdSection = (typeof HRD_SECTIONS)[number];
 
@@ -35,6 +35,7 @@ export const HRD_SECTION_LABELS: Record<HrdSection, string> = {
   progress: 'Progress 360°',
   kepatuhan: 'Flag Kepatuhan',
   laporan: 'Review Hasil Akhir',
+  suksesi: 'Promosi & Suksesi',
   dashboard: 'Dashboard Organisasi',
   ekspor: 'Ekspor Dataset',
   audit: 'Log Aktivitas & Audit KPI',

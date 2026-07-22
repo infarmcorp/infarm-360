@@ -158,6 +158,9 @@ Konsol Manajemen Akses ditata jadi 3 kolom, satu pemberian akses = **1 halaman �
   dgn "Tinjau akses" (prefill card Tambah akses) + "Tandai sudah ditinjau" (`markAccessReviewed` → set
   penanda → kartu hilang). Akses bawaan peran tetap; ini hanya soal grant TAMBAHAN. **PRASYARAT: apply 0030.**
 - **Fase 4 — Tata letak 3 kolom** (mempercantik; paling murah, terakhir).
+  ✅ **SELESAI di `dev` (2026-07-22):** area "Tambah akses baru" ditata 3 kolom — (1) Pilih halaman (radio
+  dikelompokkan Pemantauan / Menu Administrator), (2) Pilih penerima (peran ATAU pegawai tertentu + "Atur
+  akses"), (3) Lingkup & izin (panel). Murni presentasi; logika panel/simpan tak berubah. ✅ **SEMUA FASE 1–4 SELESAI.**
 
 ### 9.4 Yang MENIMPA pekerjaan sebelumnya (perlu diingat saat lanjut)
 - Migrasi **0027** (self *single-value*) & **panel pilih-satu** (dibuat 2026-07-21) **DISUPERSEDE** oleh

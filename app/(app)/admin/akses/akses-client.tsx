@@ -258,12 +258,35 @@ export function AksesClient({
 
   return (
     <div className="mt-4">
-      {/* ── Tambah akses baru: card (kiri) + panel pengaturan (kanan) ───────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-5">
-        {/* Kiri: pilih pegawai + halaman */}
+      {/* ── Tambah akses baru: 3 kolom (halaman · penerima · lingkup&izin) ─────────────────── */}
+      <h3 className="text-sm font-bold text-gray-800 mb-0.5">Tambah akses baru</h3>
+      <p className="text-[11px] text-gray-500 mb-3">Pilih <strong>halaman</strong>, <strong>penerima</strong>, lalu atur <strong>lingkup &amp; izin</strong>.</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-5">
+        {/* Kolom 1: Pilih halaman (dikelompokkan Pemantauan / Menu Administrator) */}
         <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-4">
-          <h3 className="text-sm font-bold text-gray-800 mb-0.5">Tambah akses baru</h3>
-          <p className="text-[11px] text-gray-500 mb-3">Pilih penerima (pegawai tertentu atau seluruh peran) dan halaman, lalu atur lingkup &amp; izinnya di panel kanan.</p>
+          <h4 className="text-[11px] font-bold text-gray-700 uppercase tracking-wide mb-2">1 · Pilih halaman</h4>
+          {(['pemantauan', 'administrator'] as const).map((kind) => {
+            const group = pages.filter((p) => p.kind === kind);
+            if (!group.length) return null;
+            return (
+              <div key={kind} className="mb-3 last:mb-0">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase mb-1">{kind === 'pemantauan' ? 'Pemantauan' : 'Menu Administrator'}</p>
+                <div className="space-y-1">
+                  {group.map((p) => (
+                    <label key={p.key} className={`flex items-center gap-2 text-sm px-2 py-1.5 rounded-lg cursor-pointer border ${addPage === p.key ? 'bg-emerald-50 border-emerald-300' : 'border-transparent hover:bg-gray-100'}`}>
+                      <input type="radio" name="add-page" checked={addPage === p.key} onChange={() => setAddPage(p.key)} className="accent-emerald-600" />
+                      <span className="text-gray-800">{p.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Kolom 2: Pilih penerima */}
+        <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-4">
+          <h4 className="text-[11px] font-bold text-gray-700 uppercase tracking-wide mb-2">2 · Pilih penerima</h4>
           <div className="space-y-3">
             <div>
               <label className="block text-[11px] font-semibold text-gray-600 mb-1">Penerima</label>
@@ -296,19 +319,6 @@ export function AksesClient({
                 />
               </div>
             )}
-            <div>
-              <label className="block text-[11px] font-semibold text-gray-600 mb-1">Halaman/fitur</label>
-              <select
-                value={addPage}
-                onChange={(e) => setAddPage(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:border-emerald-500 focus:outline-none"
-              >
-                <option value="">— pilih halaman —</option>
-                {pages.map((p) => (
-                  <option key={p.key} value={p.key}>{p.label}</option>
-                ))}
-              </select>
-            </div>
             <button
               type="button"
               onClick={openPanelFromCard}
@@ -317,14 +327,16 @@ export function AksesClient({
             >
               <SlidersHorizontal className="w-4 h-4" /> Atur akses →
             </button>
+            {!addPage && <p className="text-[10px] text-gray-400">Pilih halaman di kolom 1 dulu.</p>}
           </div>
         </div>
 
-        {/* Kanan: panel pengaturan lingkup + izin */}
+        {/* Kolom 3: Lingkup & izin (panel pengaturan) */}
         <div className="rounded-2xl border border-gray-200 p-4">
+          <h4 className="text-[11px] font-bold text-gray-700 uppercase tracking-wide mb-2">3 · Lingkup &amp; izin</h4>
           {!panel || !panelPage || (!panel.roleTarget && !panelEmp) ? (
-            <div className="h-full flex items-center justify-center text-center text-[12px] text-gray-400 italic py-8">
-              Pilih penerima &amp; halaman, lalu klik <span className="font-semibold text-gray-500">&nbsp;Atur akses&nbsp;</span> untuk menampilkan pengaturan lingkup &amp; izin di sini.
+            <div className="flex items-center justify-center text-center text-[12px] text-gray-400 italic py-8">
+              Pilih halaman &amp; penerima, lalu klik <span className="font-semibold text-gray-500">&nbsp;Atur akses&nbsp;</span> untuk menampilkan pengaturan di sini.
             </div>
           ) : (
             <div>

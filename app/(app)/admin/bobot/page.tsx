@@ -64,13 +64,14 @@ export default async function BobotPage() {
     supabase.from('result_360').select('employee_id, score').eq('period_id', ap.id),
     supabase.from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted'),
     supabase.from('mappings').select('assessor_id, target_id, relation').eq('period_id', ap.id),
-    supabase.from('employees').select('id, name, dept').neq('role', 'direksi'),
+    supabase.from('employees').select('id, name, dept, role'),
     supabase.from('employee_weight_overrides').select('employee_id, model, weights').eq('period_id', ap.id),
   ]);
+  // Pencarian nama mencakup SEMUA pegawai (termasuk Direksi) agar tak ada baris "—" di tabel.
   const empById = new Map((empRes.data ?? []).map((e) => [e.id, e]));
 
-  // Bobot khusus per pegawai (override) — untuk section "Bobot Khusus per Pegawai".
-  const empList = (empRes.data ?? []).map((e) => ({ id: e.id, name: e.name, dept: e.dept ?? '—' }));
+  // Dropdown "Bobot Khusus per Pegawai" — pegawai non-Direksi (cakupan penilaian normal).
+  const empList = (empRes.data ?? []).filter((e) => e.role !== 'direksi').map((e) => ({ id: e.id, name: e.name, dept: e.dept ?? '—' }));
   const overrides: Override[] = (ovrRes.data ?? [])
     .map((o) => ({
       employeeId: o.employee_id,
@@ -123,8 +124,8 @@ export default async function BobotPage() {
   // Satu baris per pegawai (union: punya data penilaian ATAU skor resmi ATAU bobot khusus).
   // Kolom "bobot fokus": Skor Resmi (result_360) + Δ dampak bobot khusus (simulasi khusus−default).
   // Kolom "perbandingan model": simulasi 4-Kelas & 2-Kelas memakai bobot GLOBAL periode.
-  // Hanya pegawai yang ADA di daftar halaman ini (empById sudah mengecualikan Direksi) — cegah baris
-  // "—" dari target Direksi yang punya result_360/penilaian tapi memang di luar cakupan penilaian.
+  // empById kini memuat SEMUA pegawai (termasuk Direksi) → nama selalu ter-resolve. Filter hanya
+  // membuang id yatim (mis. pegawai terhapus) agar tak ada baris "—".
   const unionIds = new Set<string>([...byTarget.keys(), ...scoreById.keys(), ...overrideByEmp.keys()]);
   const merged: MergedRow[] = [...unionIds].filter((id) => empById.has(id)).map((id) => {
     const g = byTarget.get(id);

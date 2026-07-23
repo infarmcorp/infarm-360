@@ -1,12 +1,13 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import { ShieldCheck, ScanEye, Users, ListChecks, SlidersHorizontal, X } from 'lucide-react';
+import { ShieldCheck, ScanEye, Users, ListChecks, SlidersHorizontal, X, UserPlus, ScrollText } from 'lucide-react';
 import { setPageGrant, setPageGrantForRole, removePageGrant, markAccessReviewed } from './actions';
 import { setHrdAdmin, setCrossReviewer, setCoordinator, setCoordinatorTeam, setHrdSections } from '../pegawai/actions';
 import { isHrdDept, HRD_SECTIONS, HRD_SECTION_LABELS, GRANT_ROLE_TARGETS, GRANT_ROLE_TARGET_LABELS, type HrdSection, type GrantRoleTarget } from '@/lib/auth/roles';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { SearchableSelect } from '@/components/searchable-select';
+import { AksesLog, type AksesLogRow } from './akses-log';
 
 export type AksesEmployee = {
   id: string;
@@ -29,6 +30,14 @@ const ROLE_LABEL: Record<string, string> = { employee: 'Pegawai', spv: 'SPV', hr
 const PAGE_SIZE = 12;
 const NEW_WINDOW_DAYS = 30; // jendela "Pegawai Baru": joined_on ≤ N hari terakhir & belum ditinjau
 
+// Sub-tab halaman (pola seperti Dashboard Organisasi): beri akses · cabut akses · log aktivitas.
+type AksesTab = 'beri' | 'cabut' | 'log';
+const AKSES_TABS: { key: AksesTab; label: string; icon: React.ElementType }[] = [
+  { key: 'beri', label: 'Memberikan akses', icon: UserPlus },
+  { key: 'cabut', label: 'Mencabut akses', icon: X },
+  { key: 'log', label: 'Log aktivitas', icon: ScrollText },
+];
+
 /**
  * Konsol Manajemen Akses — SATU tempat mengatur seluruh akses/izin pegawai (dipindah dari Kelola
  * Pegawai): (1) grant HALAMAN ber-lingkup (mis. Monitor: semua/satu/selain divisi); (2) izin peran —
@@ -36,12 +45,14 @@ const NEW_WINDOW_DAYS = 30; // jendela "Pegawai Baru": joined_on ≤ N hari tera
  * optimistis di state lokal + pesan status per baris; pencarian & paginasi sisi-klien.
  */
 export function AksesClient({
-  employees, pages, scopes, coordTeams: initialTeams, meId,
+  employees, pages, scopes, coordTeams: initialTeams, meId, initialTab = 'beri', logRows, logPage, logPageSize, logTotal,
 }: {
   employees: AksesEmployee[]; pages: PageOpt[]; scopes: ScopeOpt[]; coordTeams: Record<string, string[]>; meId: string;
+  initialTab?: AksesTab; logRows: AksesLogRow[]; logPage: number; logPageSize: number; logTotal: number;
 }) {
   const [rows, setRows] = useState(employees);
   const [teams, setTeams] = useState<Record<string, string[]>>(initialTeams);
+  const [tab, setTab] = useState<AksesTab>(initialTab);
   const [q, setQ] = useState('');      // pencarian daftar "Akses Halaman Aktif"
   const [q3, setQ3] = useState('');    // pencarian blok "Izin Peran & Akses HRD" (kosong = hanya pemegang)
   const [page, setPage] = useState(0);
@@ -165,6 +176,7 @@ export function AksesClient({
     const emp = rows.find((r) => r.id === empId);
     if (!emp || !section) return;
     const g = emp.grants[section];
+    setTab('beri'); // panel pengaturan lingkup ada di tab "Memberikan akses" → pindah ke sana bila dipicu dari chip.
     setPanel({ empId, section, scopes: g?.scopes ?? [], canEdit: !!g?.canEdit, roleTarget: null });
     setPanelMsg(null);
   }
@@ -292,6 +304,23 @@ export function AksesClient({
 
   return (
     <div className="mt-4">
+      {/* Sub-tab: Memberikan · Mencabut · Log aktivitas (pola seperti Dashboard Organisasi) */}
+      <div className="flex border-b border-gray-200 gap-1.5 overflow-x-auto scrollbar-none mb-5">
+        {AKSES_TABS.map((t) => {
+          const Icon = t.icon;
+          const active = tab === t.key;
+          return (
+            <button key={t.key} type="button" onClick={() => setTab(t.key)}
+              className={`flex items-center gap-2 py-2 px-4 text-xs font-bold border-b-2 transition-all shrink-0 ${
+                active ? 'border-emerald-700 text-emerald-950' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
+              <Icon className="w-4 h-4 text-emerald-700" />
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === 'beri' && (<>
       {/* ── Tambah akses baru: 3 kolom (halaman · penerima · lingkup&izin) ─────────────────── */}
       <h3 className="text-sm font-bold text-gray-800 mb-0.5">Tambah akses baru</h3>
       <p className="text-[11px] text-gray-500 mb-3">Pilih <strong>halaman</strong>, <strong>penerima</strong>, lalu atur <strong>lingkup &amp; izin</strong>.</p>
@@ -481,13 +510,16 @@ export function AksesClient({
           </div>
         </div>
       )}
+      </>)}
 
-      {/* ── Akses Halaman Aktif: pengganti matriks — kartu per-pegawai + chip per-akses (cabut/ubah) ── */}
-      <div className="mb-6 border-t border-gray-200 pt-5">
+      {/* ── TAB "Mencabut akses": daftar akses halaman aktif per-pegawai + tombol cabut ── */}
+      {tab === 'cabut' && (
+      <div className="mb-2">
         <h3 className="text-sm font-bold text-gray-800 mb-0.5">Akses Halaman Aktif</h3>
         <p className="text-[11px] text-gray-500 mb-3 max-w-3xl">
-          Pegawai yang <strong>diberi akses halaman</strong> berlingkup. Klik chip untuk <strong>ubah lingkup</strong>,
-          tombol <span className="font-semibold">✕</span> untuk <strong>mencabut</strong>. Pegawai tanpa grant tak ditampilkan.
+          Pegawai yang <strong>diberi akses halaman</strong> berlingkup. Tombol <span className="font-semibold">✕</span> untuk{' '}
+          <strong>mencabut</strong>; klik chip untuk <strong>ubah lingkup</strong> (pindah ke tab <span className="font-semibold">Memberikan akses</span>).
+          Pegawai tanpa grant tak ditampilkan.
         </p>
         <div className="flex items-center gap-2 mb-3">
           <input
@@ -568,11 +600,13 @@ export function AksesClient({
         )}
         <p className="text-[11px] text-gray-400 mt-3 max-w-3xl">
           Lingkup halaman ditegakkan di server (data disaring sesuai pilihan). Semua perubahan tercatat di{' '}
-          <span className="font-semibold text-gray-500">Log Aktivitas HRD</span>.
+          <span className="font-semibold text-gray-500">Log Aktivitas HRD</span> &amp; tab <span className="font-semibold text-gray-500">Log aktivitas</span>.
         </p>
       </div>
+      )}
 
-      {/* ── Izin Peran & Akses HRD: kapabilitas peran (BUKAN grant halaman) — blok terpisah ─────────── */}
+      {/* ── TAB "Memberikan akses" (lanjutan): Izin Peran & Akses HRD — kapabilitas peran ── */}
+      {tab === 'beri' && (
       <div className="border-t border-gray-200 pt-5">
         <h3 className="text-sm font-bold text-gray-800 mb-0.5">Izin Peran &amp; Akses HRD</h3>
         <p className="text-[11px] text-gray-500 mb-3 max-w-3xl">
@@ -662,9 +696,15 @@ export function AksesClient({
         )}
         <p className="text-[11px] text-gray-400 mt-3 max-w-3xl">
           ⚠️ &ldquo;Atur Akses&rdquo; membatasi <strong>tampilan menu</strong> rekan HRD, bukan gembok data. Semua perubahan tercatat di{' '}
-          <span className="font-semibold text-gray-500">Log Aktivitas HRD</span>.
+          <span className="font-semibold text-gray-500">Log Aktivitas HRD</span> &amp; tab <span className="font-semibold text-gray-500">Log aktivitas</span>.
         </p>
       </div>
+      )}
+
+      {/* ── TAB "Log aktivitas": jejak perubahan akses (server-paginated via ?tab=log&logPage=) ── */}
+      {tab === 'log' && (
+        <AksesLog rows={logRows} page={logPage} pageSize={logPageSize} total={logTotal} />
+      )}
 
       {/* Dialog: Tim Koordinasi */}
       <ConfirmDialog

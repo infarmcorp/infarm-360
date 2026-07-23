@@ -4,7 +4,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { isFullHrd, GRANTABLE_PAGES, GRANTABLE_PAGE_LABELS, GRANTABLE_PAGE_KIND, PAGE_SCOPES, PAGE_SCOPE_LABELS } from '@/lib/auth/roles';
 import { ACCESS_AUDIT_ACTIONS } from '@/lib/audit/log';
 import { AksesClient, type AksesEmployee } from './akses-client';
-import { AksesLog, type AksesLogRow } from './akses-log';
+import { type AksesLogRow } from './akses-log';
 
 const LOG_PAGE_SIZE = 8;
 
@@ -19,9 +19,9 @@ const LOG_PAGE_SIZE = 8;
 export default async function AdminAksesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ logPage?: string }>;
+  searchParams: Promise<{ tab?: string; logPage?: string }>;
 }) {
-  const { logPage: logPageParam } = await searchParams;
+  const { tab: tabParam, logPage: logPageParam } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -92,11 +92,16 @@ export default async function AdminAksesPage({
     createdAt: r.created_at,
   }));
 
+  const initialTab = tabParam === 'cabut' || tabParam === 'log' ? tabParam : 'beri';
+
   return (
     <Shell>
       <Header />
-      <AksesClient employees={employees} pages={pages} scopes={scopes} coordTeams={coordTeams} meId={user.id} />
-      <AksesLog rows={logRows} page={logPage} pageSize={LOG_PAGE_SIZE} total={logCount ?? 0} />
+      <AksesClient
+        employees={employees} pages={pages} scopes={scopes} coordTeams={coordTeams} meId={user.id}
+        initialTab={initialTab}
+        logRows={logRows} logPage={logPage} logPageSize={LOG_PAGE_SIZE} logTotal={logCount ?? 0}
+      />
     </Shell>
   );
 }

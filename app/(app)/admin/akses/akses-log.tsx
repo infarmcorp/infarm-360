@@ -24,7 +24,7 @@ export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[];
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const from = total === 0 ? 0 : page * pageSize + 1;
   const to = Math.min(total, page * pageSize + rows.length);
-  const link = (p: number) => `/admin/akses?logPage=${p}#log-akses`;
+  const link = (p: number) => `/admin/akses?tab=log&logPage=${p}#log-akses`;
 
   return (
     <section id="log-akses" className="mt-8 border-t border-gray-200 pt-5">

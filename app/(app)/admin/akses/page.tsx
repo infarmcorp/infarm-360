@@ -2,7 +2,11 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { isFullHrd, GRANTABLE_PAGES, GRANTABLE_PAGE_LABELS, GRANTABLE_PAGE_KIND, PAGE_SCOPES, PAGE_SCOPE_LABELS } from '@/lib/auth/roles';
+import { ACCESS_AUDIT_ACTIONS } from '@/lib/audit/log';
 import { AksesClient, type AksesEmployee } from './akses-client';
+import { AksesLog, type AksesLogRow } from './akses-log';
+
+const LOG_PAGE_SIZE = 8;
 
 /**
  * Manajemen Akses (HRD) — halaman TUNGGAL untuk memberi akses HALAMAN ber-lingkup kepada pegawai
@@ -12,7 +16,12 @@ import { AksesClient, type AksesEmployee } from './akses-client';
  * GERBANG: HANYA HRD PENUH (isFullHrd) — rekan HRD yang aksesnya dibatasi tak boleh membuka halaman
  * ini (cegah menaikkan aksesnya sendiri). Data dibaca via service_role (daftar pegawai + grant).
  */
-export default async function AdminAksesPage() {
+export default async function AdminAksesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ logPage?: string }>;
+}) {
+  const { logPage: logPageParam } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -66,10 +75,28 @@ export default async function AdminAksesPage() {
   const pages = GRANTABLE_PAGES.map((key) => ({ key, label: GRANTABLE_PAGE_LABELS[key], kind: GRANTABLE_PAGE_KIND[key] }));
   const scopes = PAGE_SCOPES.map((key) => ({ key, label: PAGE_SCOPE_LABELS[key] }));
 
+  // ── Log Akses: jejak perubahan akses (grant halaman + izin peran) dari hrd_audit_log, disaring ke
+  //    kode aksi akses saja (ACCESS_AUDIT_ACTIONS). Paginasi server-side (?logPage=), 8/hal. ──
+  const logPage = Math.max(0, Number.parseInt(logPageParam ?? '0', 10) || 0);
+  const { data: logData, count: logCount } = await admin
+    .from('hrd_audit_log')
+    .select('id, actor_name, summary, target_label, created_at', { count: 'exact' })
+    .in('action', ACCESS_AUDIT_ACTIONS as unknown as string[])
+    .order('created_at', { ascending: false })
+    .range(logPage * LOG_PAGE_SIZE, logPage * LOG_PAGE_SIZE + LOG_PAGE_SIZE - 1);
+  const logRows: AksesLogRow[] = (logData ?? []).map((r) => ({
+    id: r.id,
+    actor: r.actor_name ?? '—',
+    summary: r.summary,
+    targetLabel: r.target_label,
+    createdAt: r.created_at,
+  }));
+
   return (
     <Shell>
       <Header />
       <AksesClient employees={employees} pages={pages} scopes={scopes} coordTeams={coordTeams} meId={user.id} />
+      <AksesLog rows={logRows} page={logPage} pageSize={LOG_PAGE_SIZE} total={logCount ?? 0} />
     </Shell>
   );
 }

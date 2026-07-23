@@ -11,6 +11,21 @@ export type AuditCategory =
   | 'periode' | 'bobot' | 'skor' | 'laporan' | 'kepatuhan'
   | 'pegawai' | 'pemetaan' | 'pertanyaan' | 'progress' | 'suksesi';
 
+/**
+ * Kode aksi yang tergolong "perubahan AKSES" (grant halaman ber-lingkup + izin peran/HRD). Dipakai
+ * halaman Manajemen Akses untuk menyaring `hrd_audit_log` → panel "Log Akses" TERPISAH dari Log
+ * Aktivitas HRD umum (yang mencampur semua kategori). Menambah aksi akses baru? Daftarkan di sini.
+ */
+export const ACCESS_AUDIT_ACTIONS = [
+  // Grant HALAMAN ber-lingkup (app/(app)/admin/akses/actions.ts)
+  'access.set_page_grant', 'access.set_page_grant_role', 'access.remove_page_grant', 'access.mark_reviewed',
+  // Izin PERAN / kapabilitas (app/(app)/admin/pegawai/actions.ts)
+  'employee.grant_hrd', 'employee.revoke_hrd',
+  'employee.grant_cross_reviewer', 'employee.revoke_cross_reviewer',
+  'employee.grant_coordinator', 'employee.revoke_coordinator',
+  'employee.set_coordinator_team', 'employee.set_hrd_sections',
+] as const;
+
 export type AuditEntry = {
   action: string;                 // kode mesin, mis. 'period.lock', 'weights.save'
   category: AuditCategory;

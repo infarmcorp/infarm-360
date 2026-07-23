@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canAdmin, canSection } from '@/lib/auth/roles';
+import { canAdmin, canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import {
   finalScoreOf, playerClassOf,
 } from '@/lib/scoring';
@@ -29,17 +30,36 @@ export default async function DashboardPage({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
-  // canMonitor = boleh membuka Monitor Kinerja Pegawai (gate `dashboard` yang butuh canAdmin) →
-  // hanya HRD; Direksi (yang boleh Dashboard tapi bukan admin) tak melihat tautan silang ini.
-  const canMonitor = canSection(me, 'dashboard');
-  if (!canMonitor && me?.role !== 'direksi') {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk HRD / Direksi.</p>
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections, dept').eq('id', user.id).maybeSingle();
+  // Akses SADAR-MODE: PENUH (semua pegawai) hanya untuk HRD di Mode Admin & Direksi (read-only).
+  // Selain itu → jalur GRANT 'dashboard' berlingkup (baca via service_role, disaring per lingkup).
+  // ⚠️ Untuk pemegang is_hrd() ini pembatasan TAMPILAN; batas nyata hanya berlaku untuk non-HRD.
+  const jar = await cookies();
+  const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
+  const isHrdFull = canSection(me, 'dashboard') && hrdMode === 'admin';
+  const isDireksi = me?.role === 'direksi';
+  let grantScopes: PageScope[] | null = null;
+  if (!isHrdFull && !isDireksi) {
+    const { data: g } = await supabase.from('page_grants').select('section, scope, scopes').eq('employee_id', user.id);
+    grantScopes = grantedAccess(g, 'dashboard')?.scopes ?? null;
+  }
+  if (!isHrdFull && !isDireksi && !grantScopes) {
+    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk HRD / Direksi atau pemegang akses Dashboard.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
+  // canMonitor = tautan silang ke Monitor Kinerja Pegawai (hanya HRD penuh).
+  const canMonitor = isHrdFull;
+  const viaGrant = !isHrdFull && !isDireksi;
+  const ownDept = (me?.dept ?? '').trim();
+  // Pemegang grant bukan is_hrd() → RLS memblokir baca lintas-pegawai → SELURUH data via service_role.
+  const db = viaGrant ? createAdminClient() : supabase;
+  // Tim naungan (hanya bila lingkup 'coordinator_team'): id anggota tim pemegang.
+  const teamIds = viaGrant && grantScopes!.includes('coordinator_team')
+    ? new Set(((await db.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id)).data ?? []).map((r) => r.employee_id))
+    : undefined;
 
   // Daftar periode + periode terpilih (param → aktif → terbaru).
-  const { data: periodRows } = await supabase
+  const { data: periodRows } = await db
     .from('periods').select('id, label, has_360, status, kpi_standard, start_date, end_date').order('label', { ascending: false });
   const periodList = periodRows ?? [];
   if (periodList.length === 0) return (
@@ -64,8 +84,9 @@ export default async function DashboardPage({
   // Pegawai non-direksi + daftar divisi; lingkup divisi terpilih (default semua).
   // Pelaporan: ambil TANPA filter is_active; keanggotaan kuartal ditentukan belakangan lewat
   // irisan masa kerja (joined_on/left_on) × rentang periode, ATAU jejak data (hibrida).
-  const { data: allEmpRows } = await supabase.from('employees').select('id, name, dept, is_active, joined_on, left_on').neq('role', 'direksi').eq('is_external', false);
-  const allEmps = allEmpRows ?? [];
+  const { data: allEmpRows } = await db.from('employees').select('id, name, dept, is_active, joined_on, left_on').neq('role', 'direksi').eq('is_external', false);
+  // Pemegang grant: batasi ke lingkupnya (employeeInScopes; 'coordinator_team' via teamIds). HRD/Direksi → semua.
+  const allEmps = (allEmpRows ?? []).filter((e) => !viaGrant || employeeInScopes(grantScopes!, ownDept, user.id, e, teamIds));
   const deptList = [...new Set(allEmps.map((e) => e.dept))].sort();
   const dept = deptParam && deptParam !== 'all' && deptList.includes(deptParam) ? deptParam : 'all';
   const emps = dept === 'all' ? allEmps : allEmps.filter((e) => e.dept === dept);
@@ -143,11 +164,11 @@ export default async function DashboardPage({
 
   // Gelombang 1 — query periode terpilih, di-scope ke pegawai dalam lingkup divisi.
   const [monthsRes, r360Res, penRes, aspectRes, asmtRes] = await Promise.all([
-    supabase.from('period_months').select('ym').eq('period_id', ap.id),
-    supabase.from('result_360').select('employee_id, score').eq('period_id', ap.id),
-    supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id),
-    supabase.from('culture_aspects').select('id, name, order_idx').eq('period_id', ap.id).order('order_idx'),
-    supabase.from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted'),
+    db.from('period_months').select('ym').eq('period_id', ap.id),
+    db.from('result_360').select('employee_id, score').eq('period_id', ap.id),
+    db.from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id),
+    db.from('culture_aspects').select('id, name, order_idx').eq('period_id', ap.id).order('order_idx'),
+    db.from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted'),
   ]);
   const ymList = (monthsRes.data ?? []).map((m) => m.ym);
   const aspectList = aspectRes.data ?? [];
@@ -159,11 +180,11 @@ export default async function DashboardPage({
   // scoreRows DIPAGINASI + di-chunk: assessment_indicator_scores bisa >4000 baris (semua divisi)
   // → tanpa ini rating aspek 360° terpotong di 1000 → radar "Evaluasi Budaya 360°" SALAH diam-diam.
   const [kpiRes, indRes, scoreRows] = await Promise.all([
-    ymList.length && empIds.length ? supabase.from('kpi_scores').select('employee_id, ym, score').in('ym', ymList).in('employee_id', empIds) : Promise.resolve({ data: [] as { employee_id: string; ym: string; score: number }[] }),
-    aspectList.length ? supabase.from('indicators').select('id, aspect_id').in('aspect_id', aspectList.map((a) => a.id)) : Promise.resolve({ data: [] as { id: string; aspect_id: string }[] }),
+    ymList.length && empIds.length ? db.from('kpi_scores').select('employee_id, ym, score').in('ym', ymList).in('employee_id', empIds) : Promise.resolve({ data: [] as { employee_id: string; ym: string; score: number }[] }),
+    aspectList.length ? db.from('indicators').select('id, aspect_id').in('aspect_id', aspectList.map((a) => a.id)) : Promise.resolve({ data: [] as { id: string; aspect_id: string }[] }),
     nonSelfIds.length
       ? fetchAllByIds<{ assessment_id: string; indicator_id: string; rating: number | null }>(nonSelfIds, (chunk, from, to) =>
-          supabase.from('assessment_indicator_scores').select('assessment_id, indicator_id, rating')
+          db.from('assessment_indicator_scores').select('assessment_id, indicator_id, rating')
             .in('assessment_id', chunk).order('assessment_id').order('indicator_id').range(from, to))
       : Promise.resolve([] as { assessment_id: string; indicator_id: string; rating: number | null }[]),
   ]);
@@ -235,16 +256,16 @@ export default async function DashboardPage({
   const [yearKpiRows, year360Rows, yearPmRes] = await Promise.all([
     empIds.length
       ? fetchAllByIds<{ employee_id: string; ym: string; score: number }>(empIds, (chunk, from, to) =>
-          supabase.from('kpi_scores').select('employee_id, ym, score').in('employee_id', chunk)
+          db.from('kpi_scores').select('employee_id, ym, score').in('employee_id', chunk)
             .gte('ym', `${selYear}-01`).lte('ym', `${selYear}-12`).order('employee_id').order('ym').range(from, to))
       : Promise.resolve([] as { employee_id: string; ym: string; score: number }[]),
     empIds.length && periodsInYearIds.length
       ? fetchAllByIds<{ employee_id: string; period_id: string; score: number | null }>(empIds, (chunk, from, to) =>
-          supabase.from('result_360').select('employee_id, period_id, score').in('employee_id', chunk)
+          db.from('result_360').select('employee_id, period_id, score').in('employee_id', chunk)
             .in('period_id', periodsInYearIds).order('employee_id').order('period_id').range(from, to))
       : Promise.resolve([] as { employee_id: string; period_id: string; score: number | null }[]),
     periodsInYearIds.length
-      ? supabase.from('period_months').select('period_id, ym').in('period_id', periodsInYearIds)
+      ? db.from('period_months').select('period_id, ym').in('period_id', periodsInYearIds)
       : Promise.resolve({ data: [] as { period_id: string; ym: string }[] }),
   ]);
   const ymAgg = new Map<string, { sum: number; n: number }>();
@@ -419,12 +440,12 @@ export default async function DashboardPage({
   const prevKpiById = new Map<string, number>();
   const prev360ById = new Map<string, number>();
   if (prevPeriod && empIds.length) {
-    const { data: pMonths } = await supabase.from('period_months').select('ym').eq('period_id', prevPeriod.id);
+    const { data: pMonths } = await db.from('period_months').select('ym').eq('period_id', prevPeriod.id);
     const pYms = (pMonths ?? []).map((m) => m.ym);
     const [pKpiRes, pr360Res, pPenRes] = await Promise.all([
-      pYms.length ? supabase.from('kpi_scores').select('employee_id, ym, score').in('ym', pYms).in('employee_id', empIds) : Promise.resolve({ data: [] as { employee_id: string; ym: string; score: number }[] }),
-      supabase.from('result_360').select('employee_id, score').eq('period_id', prevPeriod.id).in('employee_id', empIds),
-      supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', prevPeriod.id).in('employee_id', empIds),
+      pYms.length ? db.from('kpi_scores').select('employee_id, ym, score').in('ym', pYms).in('employee_id', empIds) : Promise.resolve({ data: [] as { employee_id: string; ym: string; score: number }[] }),
+      db.from('result_360').select('employee_id, score').eq('period_id', prevPeriod.id).in('employee_id', empIds),
+      db.from('compliance_penalties').select('employee_id, points').eq('period_id', prevPeriod.id).in('employee_id', empIds),
     ]);
     // Rerata KPI per pegawai + deteksi "belum terbaca" (trend unread 3 bulan pertama).
     const pEmpYm = new Map<string, Map<string, { s: number; n: number }>>();

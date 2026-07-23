@@ -251,3 +251,15 @@ describe('Review Hasil Akhir — grant halaman (Tahap 1: lihat-saja berlingkup)'
     expect(applyDeptScope(ROSTER, f).map((e) => e.id).sort()).toEqual(['b1', 'b2', 'c1']);
   });
 });
+
+describe('Dashboard Organisasi — grant halaman (pemantauan, lihat-saja berlingkup)', () => {
+  it("'dashboard' ada di katalog grant, berjenis pemantauan (selalu lihat-saja)", () => {
+    expect(GRANTABLE_PAGES).toContain('dashboard');
+    expect(GRANTABLE_PAGE_KIND.dashboard).toBe('pemantauan');
+  });
+  it('grantedAccess membaca lingkup dashboard (mis. coordinator_team); halaman lain → null', () => {
+    expect(grantedAccess([{ section: 'dashboard', scope: 'own_division' }], 'dashboard')).toEqual({ scopes: ['own_division'], canEdit: false });
+    expect(grantedAccess([{ section: 'dashboard', scope: 'coordinator_team', scopes: ['coordinator_team'] }], 'dashboard')).toEqual({ scopes: ['coordinator_team'], canEdit: false });
+    expect(grantedAccess([{ section: 'monitor', scope: 'all' }], 'dashboard')).toBeNull();
+  });
+});

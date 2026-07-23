@@ -116,6 +116,9 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewe
     if (pageGrants.some((g) => g.section === 'review')) {
       grantItems.push({ href: '/admin/laporan', label: 'Review Hasil Akhir', icon: ClipboardCheck });
     }
+    if (pageGrants.some((g) => g.section === 'dashboard')) {
+      grantItems.push({ href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard });
+    }
     if (grantItems.length) sections.push({ title: 'Akses dari HRD', items: grantItems });
   }
 

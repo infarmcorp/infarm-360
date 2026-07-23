@@ -79,13 +79,14 @@ export function isFullHrd(m: ActorRow | null | undefined): boolean {
  * masuk sini. Jangan pernah menambah halaman ke katalog sebelum server benar-benar menyaring datanya
  * per lingkup — menawarkan akses yang tak tersaring = rasa aman palsu (lawan prinsip app ini).
  */
-export const GRANTABLE_PAGES = ['monitor', 'review'] as const;
+export const GRANTABLE_PAGES = ['monitor', 'review', 'dashboard'] as const;
 export type GrantablePage = (typeof GRANTABLE_PAGES)[number];
 
 /** Label Indonesia tiap halaman yang bisa diberikan — dipakai di halaman Manajemen Akses. */
 export const GRANTABLE_PAGE_LABELS: Record<GrantablePage, string> = {
   monitor: 'Monitor Kinerja Pegawai',
   review: 'Review Hasil Akhir',
+  dashboard: 'Dashboard Organisasi',
 };
 
 /**
@@ -113,6 +114,7 @@ export type PageKind = 'pemantauan' | 'administrator';
 export const GRANTABLE_PAGE_KIND: Record<GrantablePage, PageKind> = {
   monitor: 'pemantauan',
   review: 'administrator',
+  dashboard: 'pemantauan',
 };
 
 /**

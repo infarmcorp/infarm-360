@@ -123,8 +123,10 @@ export default async function BobotPage() {
   // Satu baris per pegawai (union: punya data penilaian ATAU skor resmi ATAU bobot khusus).
   // Kolom "bobot fokus": Skor Resmi (result_360) + Δ dampak bobot khusus (simulasi khusus−default).
   // Kolom "perbandingan model": simulasi 4-Kelas & 2-Kelas memakai bobot GLOBAL periode.
+  // Hanya pegawai yang ADA di daftar halaman ini (empById sudah mengecualikan Direksi) — cegah baris
+  // "—" dari target Direksi yang punya result_360/penilaian tapi memang di luar cakupan penilaian.
   const unionIds = new Set<string>([...byTarget.keys(), ...scoreById.keys(), ...overrideByEmp.keys()]);
-  const merged: MergedRow[] = [...unionIds].map((id) => {
+  const merged: MergedRow[] = [...unionIds].filter((id) => empById.has(id)).map((id) => {
     const g = byTarget.get(id);
     const gFull: Groups360 | null = g ? { ...g, self: [] } : null;
     const s4 = gFull ? weightedScore360(gFull, '4class', gw4) : null;

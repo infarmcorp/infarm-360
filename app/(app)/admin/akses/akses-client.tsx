@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import { ShieldCheck, ScanEye, Users, ListChecks, SlidersHorizontal } from 'lucide-react';
+import { ShieldCheck, ScanEye, Users, ListChecks, SlidersHorizontal, X } from 'lucide-react';
 import { setPageGrant, setPageGrantForRole, removePageGrant, markAccessReviewed } from './actions';
 import { setHrdAdmin, setCrossReviewer, setCoordinator, setCoordinatorTeam, setHrdSections } from '../pegawai/actions';
 import { isHrdDept, HRD_SECTIONS, HRD_SECTION_LABELS, GRANT_ROLE_TARGETS, GRANT_ROLE_TARGET_LABELS, type HrdSection, type GrantRoleTarget } from '@/lib/auth/roles';
@@ -42,7 +42,8 @@ export function AksesClient({
 }) {
   const [rows, setRows] = useState(employees);
   const [teams, setTeams] = useState<Record<string, string[]>>(initialTeams);
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState('');      // pencarian daftar "Akses Halaman Aktif"
+  const [q3, setQ3] = useState('');    // pencarian blok "Izin Peran & Akses HRD" (kosong = hanya pemegang)
   const [page, setPage] = useState(0);
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<{ id: string; text: string; ok: boolean } | null>(null);
@@ -61,15 +62,39 @@ export function AksesClient({
   // Konfirmasi peringatan: memberi izin EDIT halaman administrator ke PERAN luas (banyak orang).
   const [roleConfirm, setRoleConfirm] = useState<{ roleTarget: string; section: string; scopes: string[]; canEdit: boolean; count: number } | null>(null);
 
+  const pageLabelByKey = useMemo(() => Object.fromEntries(pages.map((p) => [p.key, p.label])), [pages]);
+  const grantedSections = (e: AksesEmployee) => Object.keys(e.grants).filter((k) => e.grants[k].scopes.length > 0);
+
+  // ── Daftar "Akses Halaman Aktif": HANYA pegawai yang punya grant halaman (matriks dibuang). ──
   const filtered = useMemo(() => {
+    const withGrants = rows.filter((e) => grantedSections(e).length > 0);
     const s = q.trim().toLowerCase();
-    if (!s) return rows;
-    return rows.filter((e) => e.name.toLowerCase().includes(s) || e.dept.toLowerCase().includes(s) || (ROLE_LABEL[e.role] ?? e.role).toLowerCase().includes(s));
-  }, [rows, q]);
+    if (!s) return withGrants;
+    return withGrants.filter((e) =>
+      e.name.toLowerCase().includes(s) ||
+      e.dept.toLowerCase().includes(s) ||
+      (ROLE_LABEL[e.role] ?? e.role).toLowerCase().includes(s) ||
+      grantedSections(e).some((k) => (pageLabelByKey[k] ?? k).toLowerCase().includes(s)));
+  }, [rows, q, pageLabelByKey]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const cur = Math.min(page, pageCount - 1);
   const shown = filtered.slice(cur * PAGE_SIZE, cur * PAGE_SIZE + PAGE_SIZE);
+
+  // ── Blok "Izin Peran & Akses HRD": kelola HRD Admin / Atur Akses / Peninjau / Koordinator. ──
+  // Kelayakan (mirror gate tombol lama di matriks): HRD/Peninjau hanya divisi HRD; Koordinator hanya
+  // pegawai (role employee). Default tampilkan PEMEGANG saja; cari → tampilkan yang LAYAK diberi izin.
+  const holdsRolePerm = (e: AksesEmployee) => e.isHrdAdmin || e.isCrossReviewer || e.isCoordinator;
+  const eligibleHrd = (e: AksesEmployee) => e.role !== 'direksi' && e.role !== 'hrd' && (isHrdDept(e.dept) || e.isHrdAdmin);
+  const eligibleCross = (e: AksesEmployee) => e.role !== 'direksi' && e.role !== 'hrd' && (isHrdDept(e.dept) || e.isCrossReviewer);
+  const eligibleCoord = (e: AksesEmployee) => e.role === 'employee';
+  const eligibleRolePerm = (e: AksesEmployee) => holdsRolePerm(e) || eligibleHrd(e) || eligibleCross(e) || eligibleCoord(e);
+  const roleRows = useMemo(() => {
+    const s = q3.trim().toLowerCase();
+    if (!s) return rows.filter(holdsRolePerm);
+    return rows.filter((e) => eligibleRolePerm(e) &&
+      (e.name.toLowerCase().includes(s) || e.dept.toLowerCase().includes(s) || (ROLE_LABEL[e.role] ?? e.role).toLowerCase().includes(s)));
+  }, [rows, q3]);
 
   /** Jalankan aksi server + tampilkan status pada baris; patch state lokal bila sukses. */
   function run(id: string, fn: () => Promise<{ ok: boolean; msg?: string; error?: string }>, patch?: () => void) {
@@ -95,6 +120,15 @@ export function AksesClient({
     const cur = emp.grants[section];
     if (!cur) return;
     changeGrant(emp, section, cur.scopes, !cur.canEdit);
+  }
+  /** Cabut satu grant halaman langsung dari daftar "Akses Halaman Aktif" (reversibel → tanpa konfirmasi). */
+  function revokeGrant(emp: AksesEmployee, section: string) {
+    run(emp.id, () => removePageGrant(emp.id, section), () => {
+      const grants = { ...emp.grants }; delete grants[section];
+      patchRow(emp.id, { grants });
+      // Bila panel sedang membuka grant ini, kosongkan lingkupnya agar konsisten.
+      setPanel((p) => (p && p.empId === emp.id && p.section === section ? { ...p, scopes: [], canEdit: false } : p));
+    });
   }
 
   // ── Card "Tambah akses baru" + panel kanan ──────────────────────────────────
@@ -448,127 +482,189 @@ export function AksesClient({
         </div>
       )}
 
-      <div className="flex items-center gap-2 mb-3">
-        <input
-          value={q}
-          onChange={(e) => { setQ(e.target.value); setPage(0); }}
-          placeholder="Cari nama, divisi, atau peran…"
-          className="w-full sm:w-80 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
-        />
-        <span className="text-xs text-gray-500 whitespace-nowrap">{filtered.length} pegawai</span>
-      </div>
-
-      <div className="overflow-x-auto rounded-xl border border-gray-200">
-        <table className="w-full text-sm min-w-[860px]">
-          <thead>
-            <tr className="bg-gray-50 text-left text-[11px] uppercase tracking-wide text-gray-500">
-              <th className="px-3 py-2 font-semibold">Pegawai</th>
-              <th className="px-3 py-2 font-semibold">Divisi</th>
-              <th className="px-3 py-2 font-semibold">Peran</th>
-              {pages.map((p) => (
-                <th key={p.key} className="px-3 py-2 font-semibold">{p.label}</th>
-              ))}
-              <th className="px-3 py-2 font-semibold">Izin Peran</th>
-            </tr>
-          </thead>
-          <tbody>
-            {shown.map((emp) => (
-              <tr key={emp.id} className="border-t border-gray-100 align-top">
-                <td className="px-3 py-2">
-                  <div className="font-medium text-gray-800">{emp.name}</div>
-                  {msg && msg.id === emp.id && (
-                    <div className={`text-[11px] mt-0.5 ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</div>
-                  )}
-                </td>
-                <td className="px-3 py-2 text-gray-600">{emp.dept}</td>
-                <td className="px-3 py-2 text-gray-600">{ROLE_LABEL[emp.role] ?? emp.role}</td>
-                {pages.map((p) => {
-                  const grant = emp.grants[p.key];
-                  const hasGrant = !!grant && grant.scopes.length > 0;
-                  const summary = hasGrant ? grant!.scopes.map((s) => scopeLabelByKey[s] ?? s).join(' + ') : null;
-                  return (
-                  <td key={p.key} className="px-3 py-2">
-                    <div className="flex flex-col items-start gap-1">
-                      <button type="button" onClick={() => openPanel(emp.id, p.key)} disabled={pending}
-                        title={hasGrant ? 'Ubah akses' : 'Beri akses'}
-                        className={`text-left text-[11px] rounded-lg border px-2 py-1 disabled:opacity-50 ${hasGrant ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100' : 'border-gray-200 text-gray-400 hover:bg-gray-50'}`}>
-                        {hasGrant ? <>{summary} <span aria-hidden>✎</span></> : '— beri akses'}
-                      </button>
-                      {/* Halaman administrator (mis. Review Hasil Akhir): status + toggle boleh-edit/hanya-lihat. */}
-                      {p.kind === 'administrator' && hasGrant && (
-                        <button type="button" onClick={() => toggleEdit(emp, p.key)} disabled={pending}
-                          title={grant!.canEdit ? 'Sedang: boleh edit — klik untuk jadikan hanya-lihat' : 'Sedang: hanya-lihat — klik untuk izinkan edit/finalisasi'}
-                          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border disabled:opacity-50 ${grant!.canEdit ? 'bg-amber-50 text-amber-800 border-amber-300' : 'bg-gray-50 text-gray-600 border-gray-300'}`}>
-                          {grant!.canEdit ? '✎ Boleh edit' : '👁 Hanya lihat'}
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                  );
-                })}
-                <td className="px-3 py-2">
-                  <div className="flex flex-wrap gap-1">
-                    {/* HRD Admin — hanya pegawai divisi HRD (kebijakan), bukan direksi/hrd-posisi. */}
-                    {emp.role !== 'direksi' && emp.role !== 'hrd' && (isHrdDept(emp.dept) || emp.isHrdAdmin) && (
-                      <button type="button" onClick={() => toggleHrd(emp)} disabled={pending}
-                        title={emp.isHrdAdmin ? 'Cabut izin HRD Admin' : 'Beri izin HRD Admin'}
-                        className={btn(emp.isHrdAdmin, 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100')}>
-                        <ShieldCheck className="w-3.5 h-3.5" /> HRD</button>
-                    )}
-                    {/* Atur Akses per-bagian — hanya pemegang HRD Admin & bukan akun sendiri. */}
-                    {emp.isHrdAdmin && emp.id !== meId && (
-                      <button type="button" onClick={() => setSectionsDlg({ r: emp, full: !(emp.hrdSections && emp.hrdSections.length > 0), selected: new Set(emp.hrdSections ?? []) })} disabled={pending}
-                        title="Atur akses halaman untuk rekan HRD ini"
-                        className={btn(!!(emp.hrdSections && emp.hrdSections.length > 0), 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100')}>
-                        <SlidersHorizontal className="w-3.5 h-3.5" />{emp.hrdSections && emp.hrdSections.length > 0 ? ` ${emp.hrdSections.length}` : ''}</button>
-                    )}
-                    {/* Peninjau Lintas Divisi — hanya pegawai divisi HRD. */}
-                    {emp.role !== 'direksi' && emp.role !== 'hrd' && (isHrdDept(emp.dept) || emp.isCrossReviewer) && (
-                      <button type="button" onClick={() => toggleCross(emp)} disabled={pending}
-                        title={emp.isCrossReviewer ? 'Cabut izin Peninjau Lintas Divisi' : 'Beri izin Peninjau Hasil Lintas Divisi'}
-                        className={btn(emp.isCrossReviewer, 'text-violet-700 bg-violet-50 hover:bg-violet-100')}>
-                        <ScanEye className="w-3.5 h-3.5" /> Peninjau</button>
-                    )}
-                    {/* Koordinator — hanya pegawai (role employee). */}
-                    {emp.role === 'employee' && (
-                      <button type="button" onClick={() => toggleCoord(emp)} disabled={pending}
-                        title={emp.isCoordinator ? 'Cabut peran Koordinator' : 'Jadikan Koordinator'}
-                        className={btn(emp.isCoordinator, 'text-teal-700 bg-teal-50 hover:bg-teal-100')}>
-                        <Users className="w-3.5 h-3.5" /> Koord</button>
-                    )}
-                    {emp.isCoordinator && (
-                      <button type="button" onClick={() => setCoordDlg({ r: emp, selected: new Set(teams[emp.id] ?? []), q: '' })} disabled={pending}
-                        title="Kelola pegawai yang dinaungi koordinator ini"
-                        className={btn(!!teams[emp.id]?.length, 'text-teal-700 bg-teal-50 hover:bg-teal-100')}>
-                        <ListChecks className="w-3.5 h-3.5" />{teams[emp.id]?.length ? ` ${teams[emp.id].length}` : ''}</button>
-                    )}
-                    {/* Tak ada izin yang berlaku untuk baris ini. */}
-                    {emp.role === 'hrd' && <span className="text-[11px] text-gray-400 italic">HRD (posisi)</span>}
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {shown.length === 0 && (
-              <tr><td colSpan={4 + pages.length} className="px-3 py-6 text-center text-gray-500">Tak ada pegawai cocok.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {pageCount > 1 && (
-        <div className="flex items-center justify-between mt-3 text-xs text-gray-600">
-          <button onClick={() => setPage(Math.max(0, cur - 1))} disabled={cur === 0}
-            className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50">← Sebelumnya</button>
-          <span>Halaman {cur + 1} / {pageCount}</span>
-          <button onClick={() => setPage(Math.min(pageCount - 1, cur + 1))} disabled={cur >= pageCount - 1}
-            className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50">Berikutnya →</button>
+      {/* ── Akses Halaman Aktif: pengganti matriks — kartu per-pegawai + chip per-akses (cabut/ubah) ── */}
+      <div className="mb-6 border-t border-gray-200 pt-5">
+        <h3 className="text-sm font-bold text-gray-800 mb-0.5">Akses Halaman Aktif</h3>
+        <p className="text-[11px] text-gray-500 mb-3 max-w-3xl">
+          Pegawai yang <strong>diberi akses halaman</strong> berlingkup. Klik chip untuk <strong>ubah lingkup</strong>,
+          tombol <span className="font-semibold">✕</span> untuk <strong>mencabut</strong>. Pegawai tanpa grant tak ditampilkan.
+        </p>
+        <div className="flex items-center gap-2 mb-3">
+          <input
+            value={q}
+            onChange={(e) => { setQ(e.target.value); setPage(0); }}
+            placeholder="Cari nama, divisi, peran, atau halaman…"
+            className="w-full sm:w-80 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          />
+          <span className="text-xs text-gray-500 whitespace-nowrap">{filtered.length} pegawai</span>
         </div>
-      )}
 
-      <p className="text-[11px] text-gray-400 mt-3 max-w-3xl">
-        Lingkup halaman ditegakkan di server (data disaring sesuai pilihan). Semua perubahan tercatat di{' '}
-        <span className="font-semibold text-gray-500">Log Aktivitas HRD</span> & terangkum di tabel Audit Akses di bawah.
-      </p>
+        {shown.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-gray-200 py-8 text-center text-sm text-gray-400">
+            {rows.some((e) => grantedSections(e).length > 0)
+              ? 'Tak ada yang cocok dengan pencarian.'
+              : 'Belum ada akses halaman yang diberikan. Gunakan “Tambah akses baru” di atas.'}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {shown.map((emp) => {
+              const secs = grantedSections(emp);
+              return (
+                <div key={emp.id} className="rounded-2xl border border-gray-200 p-4">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div>
+                      <div className="font-bold text-gray-800 text-sm">{emp.name}</div>
+                      <div className="text-[11px] text-gray-500">{emp.dept} · {ROLE_LABEL[emp.role] ?? emp.role}</div>
+                    </div>
+                    <span className="text-[10px] text-gray-400 whitespace-nowrap">{secs.length} akses</span>
+                  </div>
+                  {msg && msg.id === emp.id && (
+                    <div className={`text-[11px] mt-1 ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</div>
+                  )}
+                  <div className="mt-2 space-y-1.5">
+                    {secs.map((section) => {
+                      const grant = emp.grants[section];
+                      const pg = pages.find((p) => p.key === section);
+                      const summary = grant.scopes.map((s) => scopeLabelByKey[s] ?? s).join(' + ');
+                      const isAdmin = pg?.kind === 'administrator';
+                      return (
+                        <div key={section} className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/60 px-2 py-1.5">
+                          <button type="button" onClick={() => openPanel(emp.id, section)} disabled={pending}
+                            title="Ubah lingkup akses ini" className="flex-1 min-w-0 text-left text-[12px] disabled:opacity-50">
+                            <span className="font-semibold text-emerald-900">{pageLabelByKey[section] ?? section}</span>
+                            <span className="text-emerald-700"> · {summary}</span>
+                            <span aria-hidden className="text-emerald-400"> ✎</span>
+                          </button>
+                          {isAdmin && (
+                            <button type="button" onClick={() => toggleEdit(emp, section)} disabled={pending}
+                              title={grant.canEdit ? 'Boleh edit — klik untuk jadikan hanya-lihat' : 'Hanya-lihat — klik untuk izinkan edit/finalisasi'}
+                              className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border disabled:opacity-50 ${grant.canEdit ? 'bg-amber-50 text-amber-800 border-amber-300' : 'bg-white text-gray-600 border-gray-300'}`}>
+                              {grant.canEdit ? '✎ edit' : '👁 lihat'}
+                            </button>
+                          )}
+                          <button type="button" onClick={() => revokeGrant(emp, section)} disabled={pending}
+                            title="Cabut akses ini" aria-label={`Cabut akses ${pageLabelByKey[section] ?? section}`}
+                            className="shrink-0 text-rose-500 hover:bg-rose-100 rounded-md p-1 disabled:opacity-50">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {pageCount > 1 && (
+          <div className="flex items-center justify-between mt-3 text-xs text-gray-600">
+            <button onClick={() => setPage(Math.max(0, cur - 1))} disabled={cur === 0}
+              className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50">← Sebelumnya</button>
+            <span>Halaman {cur + 1} / {pageCount}</span>
+            <button onClick={() => setPage(Math.min(pageCount - 1, cur + 1))} disabled={cur >= pageCount - 1}
+              className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50">Berikutnya →</button>
+          </div>
+        )}
+        <p className="text-[11px] text-gray-400 mt-3 max-w-3xl">
+          Lingkup halaman ditegakkan di server (data disaring sesuai pilihan). Semua perubahan tercatat di{' '}
+          <span className="font-semibold text-gray-500">Log Aktivitas HRD</span>.
+        </p>
+      </div>
+
+      {/* ── Izin Peran & Akses HRD: kapabilitas peran (BUKAN grant halaman) — blok terpisah ─────────── */}
+      <div className="border-t border-gray-200 pt-5">
+        <h3 className="text-sm font-bold text-gray-800 mb-0.5">Izin Peran &amp; Akses HRD</h3>
+        <p className="text-[11px] text-gray-500 mb-3 max-w-3xl">
+          Kapabilitas peran (bukan grant halaman berlingkup): <strong>HRD Admin</strong> (+ pembatasan bagian lewat
+          Atur Akses), <strong>Peninjau Lintas Divisi</strong>, <strong>Koordinator</strong> (+ tim naungan). Default
+          menampilkan <strong>pemegang izin</strong>; cari nama untuk memberi/mengubah izin pegawai lain yang memenuhi syarat.
+        </p>
+        <div className="flex items-center gap-2 mb-3">
+          <input
+            value={q3}
+            onChange={(e) => setQ3(e.target.value)}
+            placeholder="Cari pegawai untuk beri / ubah izin peran…"
+            className="w-full sm:w-80 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+          />
+          <span className="text-xs text-gray-500 whitespace-nowrap">{roleRows.length} pegawai</span>
+        </div>
+
+        {roleRows.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-gray-200 py-8 text-center text-sm text-gray-400">
+            {q3.trim() ? 'Tak ada pegawai memenuhi syarat yang cocok.' : 'Belum ada pemegang izin peran. Cari nama untuk memberikan izin.'}
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <table className="w-full text-sm min-w-[520px]">
+              <thead>
+                <tr className="bg-gray-50 text-left text-[11px] uppercase tracking-wide text-gray-500">
+                  <th className="px-3 py-2 font-semibold">Pegawai</th>
+                  <th className="px-3 py-2 font-semibold">Divisi</th>
+                  <th className="px-3 py-2 font-semibold">Peran</th>
+                  <th className="px-3 py-2 font-semibold">Izin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {roleRows.map((emp) => (
+                  <tr key={emp.id} className="border-t border-gray-100 align-top">
+                    <td className="px-3 py-2">
+                      <div className="font-medium text-gray-800">{emp.name}</div>
+                      {msg && msg.id === emp.id && (
+                        <div className={`text-[11px] mt-0.5 ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-gray-600">{emp.dept}</td>
+                    <td className="px-3 py-2 text-gray-600">{ROLE_LABEL[emp.role] ?? emp.role}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {/* HRD Admin — hanya pegawai divisi HRD (kebijakan), bukan direksi/hrd-posisi. */}
+                        {emp.role !== 'direksi' && emp.role !== 'hrd' && (isHrdDept(emp.dept) || emp.isHrdAdmin) && (
+                          <button type="button" onClick={() => toggleHrd(emp)} disabled={pending}
+                            title={emp.isHrdAdmin ? 'Cabut izin HRD Admin' : 'Beri izin HRD Admin'}
+                            className={btn(emp.isHrdAdmin, 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100')}>
+                            <ShieldCheck className="w-3.5 h-3.5" /> HRD</button>
+                        )}
+                        {/* Atur Akses per-bagian — hanya pemegang HRD Admin & bukan akun sendiri. */}
+                        {emp.isHrdAdmin && emp.id !== meId && (
+                          <button type="button" onClick={() => setSectionsDlg({ r: emp, full: !(emp.hrdSections && emp.hrdSections.length > 0), selected: new Set(emp.hrdSections ?? []) })} disabled={pending}
+                            title="Atur akses halaman untuk rekan HRD ini"
+                            className={btn(!!(emp.hrdSections && emp.hrdSections.length > 0), 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100')}>
+                            <SlidersHorizontal className="w-3.5 h-3.5" />{emp.hrdSections && emp.hrdSections.length > 0 ? ` ${emp.hrdSections.length}` : ''}</button>
+                        )}
+                        {/* Peninjau Lintas Divisi — hanya pegawai divisi HRD. */}
+                        {emp.role !== 'direksi' && emp.role !== 'hrd' && (isHrdDept(emp.dept) || emp.isCrossReviewer) && (
+                          <button type="button" onClick={() => toggleCross(emp)} disabled={pending}
+                            title={emp.isCrossReviewer ? 'Cabut izin Peninjau Lintas Divisi' : 'Beri izin Peninjau Hasil Lintas Divisi'}
+                            className={btn(emp.isCrossReviewer, 'text-violet-700 bg-violet-50 hover:bg-violet-100')}>
+                            <ScanEye className="w-3.5 h-3.5" /> Peninjau</button>
+                        )}
+                        {/* Koordinator — hanya pegawai (role employee). */}
+                        {emp.role === 'employee' && (
+                          <button type="button" onClick={() => toggleCoord(emp)} disabled={pending}
+                            title={emp.isCoordinator ? 'Cabut peran Koordinator' : 'Jadikan Koordinator'}
+                            className={btn(emp.isCoordinator, 'text-teal-700 bg-teal-50 hover:bg-teal-100')}>
+                            <Users className="w-3.5 h-3.5" /> Koord</button>
+                        )}
+                        {emp.isCoordinator && (
+                          <button type="button" onClick={() => setCoordDlg({ r: emp, selected: new Set(teams[emp.id] ?? []), q: '' })} disabled={pending}
+                            title="Kelola pegawai yang dinaungi koordinator ini"
+                            className={btn(!!teams[emp.id]?.length, 'text-teal-700 bg-teal-50 hover:bg-teal-100')}>
+                            <ListChecks className="w-3.5 h-3.5" />{teams[emp.id]?.length ? ` ${teams[emp.id].length}` : ''}</button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-[11px] text-gray-400 mt-3 max-w-3xl">
+          ⚠️ &ldquo;Atur Akses&rdquo; membatasi <strong>tampilan menu</strong> rekan HRD, bukan gembok data. Semua perubahan tercatat di{' '}
+          <span className="font-semibold text-gray-500">Log Aktivitas HRD</span>.
+        </p>
+      </div>
 
       {/* Dialog: Tim Koordinasi */}
       <ConfirmDialog

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection } from '@/lib/auth/roles';
 import { MappingForm } from './mapping-form';
 import { ReviewButton } from './review-button';
@@ -83,8 +84,11 @@ async function PemetaanTab({ supabase, periodId }: { supabase: Awaited<ReturnTyp
   // Periode lain (untuk fitur "Salin Pemetaan"), terbaru dulu.
   const { data: otherPeriods } = await supabase
     .from('periods').select('id, label').neq('id', periodId).order('start_date', { ascending: false });
-  const { data: maps } = await supabase
-    .from('mappings').select('id, assessor_id, target_id, relation, mandatory').eq('period_id', periodId).eq('is_active', true);
+  // mappings = pegawai × penilai → bisa >1000 (mis. 100×8=800, tumbuh); ambil PENUH agar daftar
+  // pemetaan tak terpotong diam-diam (cap PostgREST 1000).
+  const maps = await fetchAllPaged<{ id: string; assessor_id: string; target_id: string; relation: string; mandatory: boolean }>((from, to) =>
+    supabase.from('mappings').select('id, assessor_id, target_id, relation, mandatory').eq('period_id', periodId).eq('is_active', true)
+      .order('assessor_id').order('target_id').range(from, to));
   const rows = (maps ?? [])
     .map((m) => ({
       id: m.id, assessorId: m.assessor_id, assessor: empById.get(m.assessor_id)?.name ?? '—',

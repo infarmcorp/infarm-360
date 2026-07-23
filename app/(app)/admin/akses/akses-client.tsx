@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { ShieldCheck, ScanEye, Users, ListChecks, SlidersHorizontal, X, UserPlus, ScrollText } from 'lucide-react';
-import { setPageGrant, setPageGrantForRole, removePageGrant, markAccessReviewed } from './actions';
+import { setPageGrant, setPageGrantForRole, removePageGrant, removePageGrantForAll, removeAllPageGrantsForEmployee, markAccessReviewed } from './actions';
 import { setHrdAdmin, setCrossReviewer, setCoordinator, setCoordinatorTeam, setHrdSections } from '../pegawai/actions';
 import { isHrdDept, HRD_SECTIONS, HRD_SECTION_LABELS, GRANT_ROLE_TARGETS, GRANT_ROLE_TARGET_LABELS, type HrdSection, type GrantRoleTarget } from '@/lib/auth/roles';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -72,6 +72,12 @@ export function AksesClient({
   const [panelMsg, setPanelMsg] = useState<{ ok: boolean; text: string } | null>(null);
   // Konfirmasi peringatan: memberi izin EDIT halaman administrator ke PERAN luas (banyak orang).
   const [roleConfirm, setRoleConfirm] = useState<{ roleTarget: string; section: string; scopes: string[]; canEdit: boolean; count: number } | null>(null);
+  // Konfirmasi cabut-massal: satu halaman dari SEMUA pemegang, atau SEMUA akses satu pegawai.
+  const [bulkRevoke, setBulkRevoke] = useState<
+    | { kind: 'page'; section: string; count: number }
+    | { kind: 'employee'; empId: string; name: string; count: number }
+    | null
+  >(null);
 
   const pageLabelByKey = useMemo(() => Object.fromEntries(pages.map((p) => [p.key, p.label])), [pages]);
   const grantedSections = (e: AksesEmployee) => Object.keys(e.grants).filter((k) => e.grants[k].scopes.length > 0);
@@ -140,6 +146,37 @@ export function AksesClient({
       // Bila panel sedang membuka grant ini, kosongkan lingkupnya agar konsisten.
       setPanel((p) => (p && p.empId === emp.id && p.section === section ? { ...p, scopes: [], canEdit: false } : p));
     });
+  }
+
+  // ── Ringkasan per-halaman (tab Mencabut): berapa pegawai memegang tiap halaman + cabut-massal. ──
+  const pageSummary = useMemo(() => {
+    const count = new Map<string, number>();
+    for (const e of rows) for (const sec of grantedSections(e)) count.set(sec, (count.get(sec) ?? 0) + 1);
+    return pages
+      .filter((p) => (count.get(p.key) ?? 0) > 0)
+      .map((p) => ({ key: p.key, label: p.label, kind: p.kind, count: count.get(p.key) ?? 0 }));
+  }, [rows, pages]);
+
+  /** Cabut satu halaman dari SEMUA pemegang (setelah konfirmasi) + patch state lokal. */
+  function doRevokePageAll(section: string) {
+    setBulkRevoke(null);
+    startTransition(async () => {
+      const res = await removePageGrantForAll(section);
+      if (res.ok) {
+        setRows((prev) => prev.map((r) => {
+          if (!r.grants[section]) return r;
+          const grants = { ...r.grants }; delete grants[section]; return { ...r, grants };
+        }));
+        setMsg({ id: `page:${section}`, text: res.msg ?? 'Akses dicabut.', ok: true });
+        setPanel((p) => (p && p.section === section ? null : p));
+      } else setMsg({ id: `page:${section}`, text: res.error ?? 'Gagal.', ok: false });
+    });
+  }
+  /** Cabut SEMUA akses halaman milik satu pegawai (setelah konfirmasi) + patch state lokal. */
+  function doRevokeEmployeeAll(empId: string) {
+    setBulkRevoke(null);
+    run(empId, () => removeAllPageGrantsForEmployee(empId), () => patchRow(empId, { grants: {} }));
+    setPanel((p) => (p && p.empId === empId ? null : p));
   }
 
   // ── Card "Tambah akses baru" + panel kanan ──────────────────────────────────
@@ -531,6 +568,31 @@ export function AksesClient({
           <span className="text-xs text-gray-500 whitespace-nowrap">{filtered.length} pegawai</span>
         </div>
 
+        {/* Ringkasan per-halaman: siapa memegang halaman apa + cabut dari SEMUA pemegang sekaligus. */}
+        {pageSummary.length > 0 && (
+          <div className="mb-4 rounded-2xl border border-gray-200 bg-gray-50/60 p-4">
+            <h4 className="text-[11px] font-bold text-gray-700 uppercase tracking-wide mb-2">Ringkasan per-halaman</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {pageSummary.map((p) => (
+                <div key={p.key} className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2">
+                  <div className="min-w-0">
+                    <div className="text-[12px] font-semibold text-gray-800 truncate">{p.label}</div>
+                    <div className="text-[10px] text-gray-500">{p.count} pemegang · {p.kind === 'administrator' ? 'Administrator' : 'Pemantauan'}</div>
+                    {msg && msg.id === `page:${p.key}` && (
+                      <div className={`text-[10px] mt-0.5 ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</div>
+                    )}
+                  </div>
+                  <button type="button" onClick={() => setBulkRevoke({ kind: 'page', section: p.key, count: p.count })} disabled={pending}
+                    title={`Cabut "${p.label}" dari semua ${p.count} pemegang`}
+                    className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50">
+                    <X className="w-3 h-3" /> Cabut semua
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {shown.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-200 py-8 text-center text-sm text-gray-400">
             {rows.some((e) => grantedSections(e).length > 0)
@@ -548,7 +610,16 @@ export function AksesClient({
                       <div className="font-bold text-gray-800 text-sm">{emp.name}</div>
                       <div className="text-[11px] text-gray-500">{emp.dept} · {ROLE_LABEL[emp.role] ?? emp.role}</div>
                     </div>
-                    <span className="text-[10px] text-gray-400 whitespace-nowrap">{secs.length} akses</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] text-gray-400 whitespace-nowrap">{secs.length} akses</span>
+                      {secs.length > 1 && (
+                        <button type="button" onClick={() => setBulkRevoke({ kind: 'employee', empId: emp.id, name: emp.name, count: secs.length })} disabled={pending}
+                          title="Cabut semua akses halaman pegawai ini"
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50">
+                          Cabut semua
+                        </button>
+                      )}
+                    </div>
                   </div>
                   {msg && msg.id === emp.id && (
                     <div className={`text-[11px] mt-1 ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</div>
@@ -789,6 +860,31 @@ export function AksesClient({
               );
             })}
           </div>
+        )}
+      </ConfirmDialog>
+
+      {/* Konfirmasi cabut-massal: satu halaman dari semua pemegang, atau semua akses satu pegawai. */}
+      <ConfirmDialog
+        open={!!bulkRevoke}
+        icon="🗑️"
+        title="Cabut akses secara massal?"
+        tone="danger"
+        confirmLabel={bulkRevoke ? `Ya, cabut (${bulkRevoke.count})` : 'Ya, cabut'}
+        busy={pending}
+        onConfirm={() => {
+          if (!bulkRevoke) return;
+          if (bulkRevoke.kind === 'page') doRevokePageAll(bulkRevoke.section);
+          else doRevokeEmployeeAll(bulkRevoke.empId);
+        }}
+        onCancel={() => { if (!pending) setBulkRevoke(null); }}
+      >
+        {bulkRevoke?.kind === 'page' && (
+          <p>Mencabut akses halaman <strong>{pageLabelByKey[bulkRevoke.section] ?? bulkRevoke.section}</strong> dari{' '}
+          <strong>{bulkRevoke.count} pegawai</strong> sekaligus. Akses bawaan peran mereka tak terpengaruh. Lanjutkan?</p>
+        )}
+        {bulkRevoke?.kind === 'employee' && (
+          <p>Mencabut <strong>semua {bulkRevoke.count} akses halaman</strong> milik <strong>{bulkRevoke.name}</strong>.
+          Akses bawaan perannya tak terpengaruh. Lanjutkan?</p>
         )}
       </ConfirmDialog>
 

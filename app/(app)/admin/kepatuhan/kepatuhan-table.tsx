@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { PenaltyInput } from './penalty-input';
+import { usePager, Pager, CheckboxFilter } from '@/components/table-controls';
 
 export type KepatuhanRow = {
   id: string; name: string; dept: string;
@@ -18,8 +19,10 @@ const needsAttention = (r: KepatuhanRow) => r.lateCount > 0 || r.selfMissing || 
 export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[]; readOnly?: boolean }) {
   const [showAll, setShowAll] = useState(false);
   const flagged = useMemo(() => rows.filter(needsAttention), [rows]);
-  const shown = showAll ? rows : flagged;
+  const list = showAll ? rows : flagged;
   const hiddenCount = rows.length - flagged.length;
+  // Paginasi 5-baris (komponen bersama) → "Tampilkan semua" bisa >100 baris.
+  const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(list);
 
   return (
     <div className="space-y-3">
@@ -27,13 +30,10 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
         <span className="text-[11px] text-gray-500">
           {flagged.length} perlu perhatian{showAll ? ` · ${rows.length} total pegawai` : ''}
         </span>
-        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 cursor-pointer select-none">
-          <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} className="accent-emerald-600" />
-          Tampilkan semua pegawai
-        </label>
+        <CheckboxFilter checked={showAll} onChange={(v) => { setShowAll(v); setPage(0); }} label="Tampilkan semua pegawai" />
       </div>
 
-      {shown.length === 0 ? (
+      {list.length === 0 ? (
         <div className="text-center py-10 text-sm text-gray-500">
           ✅ Semua pegawai patuh &amp; tanpa punishment — tak ada yang perlu ditindak.
           {rows.length > 0 && (
@@ -83,6 +83,7 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
               </tbody>
             </table>
           </div>
+          <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
           {!showAll && hiddenCount > 0 && (
             <p className="text-[11px] text-gray-500 italic">
               {hiddenCount} pegawai patuh disembunyikan — centang &quot;Tampilkan semua pegawai&quot; untuk melihat.

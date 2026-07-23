@@ -154,6 +154,69 @@ export async function removePageGrant(employeeId: string, section: unknown): Pro
 }
 
 /**
+ * Cabut-massal: hapus akses SATU halaman dari SEMUA pemegangnya sekaligus (via service_role).
+ * Dipakai saat sebuah halaman di-grant ke banyak orang (mis. per-peran) dan ingin ditarik total.
+ * Mengembalikan jumlah pegawai yang aksesnya dicabut agar klien bisa patch state lokal.
+ */
+export async function removePageGrantForAll(section: unknown): Promise<Result & { removedIds?: string[] }> {
+  const parsed = z.enum(GRANTABLE_PAGES).safeParse(section);
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  const sec = parsed.data;
+
+  const supabase = await createClient();
+  const auth = await requireFullHrd(supabase);
+  if (!auth.ok) return auth;
+
+  const admin = createAdminClient();
+  // Ambil pemegang dulu (untuk patch klien + hitung), lalu hapus.
+  const { data: holders } = await admin.from('page_grants').select('employee_id').eq('section', sec);
+  const removedIds = [...new Set((holders ?? []).map((h) => h.employee_id))];
+  if (removedIds.length === 0) return { ok: true, msg: 'Tidak ada pemegang akses halaman ini.', removedIds: [] };
+
+  const { error } = await admin.from('page_grants').delete().eq('section', sec);
+  if (error) return { ok: false, error: 'Gagal mencabut akses massal: ' + error.message };
+
+  await logHrdAction({
+    action: 'access.remove_page_grant_all', category: 'pegawai',
+    summary: `Mencabut akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" dari SEMUA pemegang (${removedIds.length} orang)`,
+    targetType: 'page', targetId: sec, targetLabel: GRANTABLE_PAGE_LABELS[sec as GrantablePage], meta: { section: sec, count: removedIds.length },
+  });
+  revalidate();
+  return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" dicabut dari ${removedIds.length} pegawai.`, removedIds };
+}
+
+/**
+ * Cabut-massal: hapus SEMUA grant halaman milik seorang pegawai sekaligus (via service_role).
+ * Mengembalikan daftar section yang dicabut agar klien bisa patch state lokal.
+ */
+export async function removeAllPageGrantsForEmployee(employeeId: unknown): Promise<Result & { removedSections?: string[] }> {
+  const parsed = z.string().uuid().safeParse(employeeId);
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  const id = parsed.data;
+
+  const supabase = await createClient();
+  const auth = await requireFullHrd(supabase);
+  if (!auth.ok) return auth;
+
+  const admin = createAdminClient();
+  const { data: target } = await admin.from('employees').select('name').eq('id', id).maybeSingle();
+  const { data: existing } = await admin.from('page_grants').select('section').eq('employee_id', id);
+  const removedSections = (existing ?? []).map((r) => r.section as string);
+  if (removedSections.length === 0) return { ok: true, msg: 'Pegawai ini tak punya akses halaman.', removedSections: [] };
+
+  const { error } = await admin.from('page_grants').delete().eq('employee_id', id);
+  if (error) return { ok: false, error: 'Gagal mencabut akses: ' + error.message };
+
+  await logHrdAction({
+    action: 'access.remove_all_page_grants', category: 'pegawai',
+    summary: `Mencabut SEMUA akses halaman (${removedSections.length}) untuk ${target?.name ?? id}`,
+    targetType: 'employee', targetId: id, targetLabel: target?.name ?? null, meta: { count: removedSections.length, sections: removedSections },
+  });
+  revalidate();
+  return { ok: true, msg: `Semua akses halaman (${removedSections.length}) untuk ${target?.name ?? id} dicabut.`, removedSections };
+}
+
+/**
  * Tandai bahwa akses pegawai (baru) SUDAH ditinjau HRD → kartu hilang dari section "Pegawai Baru"
  * meski masih dalam jendela waktu. Hanya menyetel penanda `access_reviewed_at` (tak mengubah akses).
  * Ditulis via service_role (HRD penuh; konsisten dgn grant). Idempoten.

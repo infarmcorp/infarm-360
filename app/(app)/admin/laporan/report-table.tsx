@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { ReportStatus } from '@/lib/database.types';
+import { usePager, Pager } from '@/components/table-controls';
 
 export type ReportRow = {
   id: string; name: string; dept: string;
@@ -41,23 +42,26 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
 
   const active = q.trim() !== '' || fDept !== 'all' || fRated !== 'all';
   const readyCount = useMemo(() => rows.filter(isRatedComplete).length, [rows]);
+  // Paginasi 5-baris (komponen bersama) → daftar bisa 100+; dipakai HRD finalisasi & Direksi review.
+  const { page, setPage, pageCount, shown: paged, total, rangeFrom, rangeTo } = usePager(shown);
+  const resetPage = () => setPage(0);
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2 items-center">
         <input
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => { setQ(e.target.value); resetPage(); }}
           placeholder="Cari nama atau divisi…"
           className="text-xs px-3 py-2 border border-gray-200 rounded-lg flex-1 min-w-[180px] focus:outline-none focus:ring-1 focus:ring-emerald-600"
         />
-        <select value={fDept} onChange={(e) => setFDept(e.target.value)}
+        <select value={fDept} onChange={(e) => { setFDept(e.target.value); resetPage(); }}
           className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
           <option value="all">Semua Divisi</option>
           {depts.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
         {has360 && (
-          <select value={fRated} onChange={(e) => setFRated(e.target.value as typeof fRated)}
+          <select value={fRated} onChange={(e) => { setFRated(e.target.value as typeof fRated); resetPage(); }}
             title="Saring berdasarkan kelengkapan penilaian 360° (penilai wajib yang sudah submit)"
             className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
             <option value="all">Semua Kelengkapan 360°</option>
@@ -66,7 +70,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
           </select>
         )}
         {active && (
-          <button type="button" onClick={() => { setQ(''); setFDept('all'); setFRated('all'); }}
+          <button type="button" onClick={() => { setQ(''); setFDept('all'); setFRated('all'); resetPage(); }}
             className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
         )}
         <span className="text-[11px] text-gray-500 ml-auto">
@@ -94,7 +98,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
             {shown.length === 0 && (
               <tr><td colSpan={has360 ? 10 : 9} className="py-6 text-center text-gray-500 italic">Tidak ada pegawai sesuai filter.</td></tr>
             )}
-            {shown.map((r) => (
+            {paged.map((r) => (
               <tr key={r.id}>
                 <td className="py-3 pr-3">
                   <span className="font-bold text-gray-800">{r.name}</span>
@@ -198,6 +202,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
           </tbody>
         </table>
       </div>
+      <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
     </div>
   );
 }

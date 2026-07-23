@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { UserPlus, Pencil, KeyRound, Power, X } from 'lucide-react';
 import { createEmployee, updateEmployee, setEmployeeActive, resetPassword } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { usePager, Pager } from '@/components/table-controls';
 
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type EmpRow = {
@@ -95,6 +96,8 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
     if (fStatus === 'inactive' && r.active) return false;
     return true;
   });
+  // Paginasi 5-baris (komponen bersama) → daftar pegawai bisa 100+.
+  const { page, setPage, pageCount, shown: paged, total, rangeFrom, rangeTo } = usePager(shown);
 
   function openAdd() {
     setToast(null);
@@ -255,17 +258,17 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
 
       {/* Filter */}
       <div className="flex flex-wrap gap-2 items-center">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama, kode, email…"
+        <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama, kode, email…"
           className="text-xs px-3 py-2 border border-gray-200 rounded-lg flex-1 min-w-[160px] focus:outline-none focus:ring-1 focus:ring-emerald-600" />
-        <select value={fRole} onChange={(e) => setFRole(e.target.value as typeof fRole)} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
+        <select value={fRole} onChange={(e) => { setFRole(e.target.value as typeof fRole); setPage(0); }} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
           <option value="all">Semua Peran</option>
           {ROLE_OPTS.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
         </select>
-        <select value={fDept} onChange={(e) => setFDept(e.target.value)} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
+        <select value={fDept} onChange={(e) => { setFDept(e.target.value); setPage(0); }} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
           <option value="all">Semua Divisi</option>
           {depts.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
-        <select value={fStatus} onChange={(e) => setFStatus(e.target.value as typeof fStatus)} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
+        <select value={fStatus} onChange={(e) => { setFStatus(e.target.value as typeof fStatus); setPage(0); }} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
           <option value="all">Semua Status</option>
           <option value="active">Aktif</option>
           <option value="inactive">Nonaktif</option>
@@ -288,7 +291,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
           </thead>
           <tbody className="divide-y divide-gray-100">
             {shown.length === 0 && <tr><td colSpan={7} className="py-6 text-center text-sm text-gray-500">Tidak ada pegawai sesuai filter.</td></tr>}
-            {shown.map((r) => (
+            {paged.map((r) => (
               <tr key={r.id} className={r.active ? '' : 'opacity-55'}>
                 <td className="py-3 pr-3">
                   <span className="font-bold text-gray-800 block">{r.name}</span>
@@ -325,6 +328,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
           </tbody>
         </table>
       </div>
+      <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
 
       <p className="text-[10px] text-gray-500 italic">
         Nonaktif mengunci akun (tak bisa login) tanpa menghapus riwayat penilaian/KPI. Email boleh placeholder dan diganti kapan saja lewat “Ubah”.

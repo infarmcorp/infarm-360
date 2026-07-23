@@ -1,15 +1,15 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { usePager, Pager, CheckboxFilter } from '@/components/table-controls';
 
 /**
  * Tabel Kalkulasi Skor 360° — SATU tabel fokus bobot, dengan grup kolom "Perbandingan Model"
  * (4/2-Kelas) DIPISAH di kanan. Menyatukan bekas tabel Kalkulasi + Perbandingan Model:
  *  - Grup "Bobot & Skor": Pegawai · Bobot dipakai (Default/Khusus) · Skor Resmi · Δ vs Default.
  *  - Grup "Perbandingan Model" (bobot global): 4-Kelas · 2-Kelas · Δ.
- * Filter "hanya bobot khusus" + paginasi 5/hal. Data dihitung server (bobot/page.tsx).
+ * Filter "hanya bobot khusus" + paginasi 5/hal (komponen bersama). Data dihitung server (bobot/page.tsx).
  */
-const PAGE_SIZE = 5;
 
 export type MergedRow = {
   id: string; name: string; dept: string;
@@ -27,13 +27,10 @@ const deltaTxt = (d: number | null) => (d == null ? '—' : d === 0 ? '0' : `${d
 export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
   rows: MergedRow[]; model: '4class' | '2class'; overrideCount: number; globalLabel: string;
 }) {
-  const [page, setPage] = useState(0);
   const [onlyOverride, setOnlyOverride] = useState(false);
 
   const filtered = useMemo(() => (onlyOverride ? rows.filter((r) => r.hasOverride) : rows), [rows, onlyOverride]);
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const cur = Math.min(page, pageCount - 1);
-  const shown = filtered.slice(cur * PAGE_SIZE, cur * PAGE_SIZE + PAGE_SIZE);
+  const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(filtered);
 
   if (rows.length === 0) {
     return <p className="text-sm text-gray-500">Belum ada data. Klik <strong>Hitung Ulang Skor 360°</strong> setelah ada penilaian terkirim.</p>;
@@ -48,10 +45,11 @@ export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
             : <>Semua pegawai memakai bobot global ({globalLabel})</>}
         </span>
         {overrideCount > 0 && (
-          <label className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 cursor-pointer select-none">
-            <input type="checkbox" checked={onlyOverride} onChange={(e) => { setOnlyOverride(e.target.checked); setPage(0); }} className="accent-indigo-600" />
-            Hanya bobot khusus
-          </label>
+          <CheckboxFilter
+            checked={onlyOverride}
+            onChange={(v) => { setOnlyOverride(v); setPage(0); }}
+            label="Hanya bobot khusus"
+          />
         )}
       </div>
 
@@ -108,15 +106,7 @@ export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
         </table>
       </div>
 
-      {pageCount > 1 && (
-        <div className="flex items-center justify-between text-xs text-gray-600">
-          <button onClick={() => setPage(Math.max(0, cur - 1))} disabled={cur === 0}
-            className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50">← Sebelumnya</button>
-          <span>Halaman {cur + 1} / {pageCount}</span>
-          <button onClick={() => setPage(Math.min(pageCount - 1, cur + 1))} disabled={cur >= pageCount - 1}
-            className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50">Berikutnya →</button>
-        </div>
-      )}
+      <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
 
       <p className="text-[10px] text-gray-500 italic">
         <strong>Skor Resmi</strong> = hasil tersimpan (result_360) dari Hitung Ulang terakhir — dipakai dashboard/laporan.

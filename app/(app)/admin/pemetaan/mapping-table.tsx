@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { DeleteButton } from './delete-button';
 import { SearchableSelect } from '@/components/searchable-select';
+import { usePager, Pager } from '@/components/table-controls';
 
 export type MapRow = {
   id: string; assessorId: string; assessor: string; targetId: string; target: string;
@@ -27,6 +28,8 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
 
   const shown = rows.filter((r) => (fAssessor === 'all' || r.assessorId === fAssessor) && (fTarget === 'all' || r.targetId === fTarget));
   const active = fAssessor !== 'all' || fTarget !== 'all';
+  // Paginasi 5-baris (komponen bersama) → pemetaan bisa ratusan pasangan.
+  const { page, setPage, pageCount, shown: paged, total, rangeFrom, rangeTo } = usePager(shown);
 
   if (rows.length === 0) return (
     <div className="border-2 border-dashed border-gray-200 rounded-xl p-5 text-center">
@@ -60,7 +63,7 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
         <div className="w-full sm:w-56">
           <SearchableSelect
             value={fAssessor}
-            onChange={setFAssessor}
+            onChange={(v) => { setFAssessor(v); setPage(0); }}
             options={[{ value: 'all', label: '👤 Semua Penilai' }, ...assessors.map((a) => ({ value: a.id, label: a.name }))]}
             searchPlaceholder="Cari penilai…"
             className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
@@ -69,14 +72,14 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
         <div className="w-full sm:w-56">
           <SearchableSelect
             value={fTarget}
-            onChange={setFTarget}
+            onChange={(v) => { setFTarget(v); setPage(0); }}
             options={[{ value: 'all', label: '🎯 Semua Target' }, ...targets.map((t) => ({ value: t.id, label: t.name }))]}
             searchPlaceholder="Cari target…"
             className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-600"
           />
         </div>
         {active && (
-          <button type="button" onClick={() => { setFAssessor('all'); setFTarget('all'); }}
+          <button type="button" onClick={() => { setFAssessor('all'); setFTarget('all'); setPage(0); }}
             className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
         )}
       </div>
@@ -93,7 +96,7 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {shown.map((r) => (
+            {paged.map((r) => (
               <tr key={r.id}>
                 <td className="py-3 pr-3 font-bold text-gray-800">{r.assessor}</td>
                 <td className="py-3 px-3 text-gray-700">{r.target}</td>
@@ -110,6 +113,7 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
         </table>
         </div>
       )}
+      <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pasangan" />
       <p className="text-[10px] text-gray-500 italic">
         Relasi menentukan kelas bobot 360 (Atasan/Peer/Cross/Self). Sifat Wajib jadi dasar Flag Kepatuhan.
       </p>

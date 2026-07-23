@@ -18,7 +18,8 @@ export type AuditCategory =
  */
 export const ACCESS_AUDIT_ACTIONS = [
   // Grant HALAMAN ber-lingkup (app/(app)/admin/akses/actions.ts)
-  'access.set_page_grant', 'access.set_page_grant_role', 'access.remove_page_grant', 'access.mark_reviewed',
+  'access.set_page_grant', 'access.set_page_grant_role', 'access.remove_page_grant',
+  'access.remove_page_grant_all', 'access.remove_all_page_grants', 'access.mark_reviewed',
   // Izin PERAN / kapabilitas (app/(app)/admin/pegawai/actions.ts)
   'employee.grant_hrd', 'employee.revoke_hrd',
   'employee.grant_cross_reviewer', 'employee.revoke_cross_reviewer',

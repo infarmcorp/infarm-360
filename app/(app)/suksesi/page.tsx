@@ -3,8 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
-import { PlanForm } from './plan-form';
 import { RespondForm } from './respond-form';
+import { SuksesiList, type SuksesiRow } from './suksesi-list';
 
 /**
  * Promosi & Suksesi. HRD: ajukan rencana per pegawai (berbasis Skor Akhir periode aktif).
@@ -68,11 +68,11 @@ async function HrdView({
   const { data: pen } = await supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', period.id);
   const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
 
-  const rows = employees.map((e) => {
+  const rows: SuksesiRow[] = employees.map((e) => {
     const agg = kpiAgg.get(e.id);
     const kpiAvg = agg ? agg.sum / agg.n : null;
     const final = finalScoreOf(kpiAvg, s360By.get(e.id) ?? null, period.has_360, penBy.get(e.id) ?? 0);
-    return { ...e, final, plan: planBy.get(e.id) ?? null };
+    return { id: e.id, name: e.name, dept: e.dept, final, plan: planBy.get(e.id) ?? null };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));
 
   return (
@@ -81,32 +81,7 @@ async function HrdView({
       <p className="text-[11px] text-gray-500 mt-1 mb-4">
         Periode aktif: {period.label}. Pertimbangkan kandidat (umumnya Skor Akhir ≥ 90), ajukan rencana ke Direksi.
       </p>
-      <div className="space-y-3">
-        {rows.map((r) => {
-          const badge = r.plan ? STATUS_BADGE[r.plan.status] : null;
-          return (
-            <div key={r.id} className="border border-gray-200 rounded-xl p-3 grid md:grid-cols-[1fr_1.6fr] gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-gray-800 text-sm">{r.name}</span>
-                  {r.final != null && r.final >= 90 && <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full">Kandidat</span>}
-                </div>
-                <div className="text-[11px] text-gray-500">{r.dept}</div>
-                <div className="mt-1 text-xs">Skor Akhir: <span className="font-mono font-black text-slate-800">{r.final != null ? r.final.toFixed(2) : '—'}</span></div>
-                {badge && <span className={`inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.c}`}>{badge.t}</span>}
-                {r.plan?.direksi_comment && <p className="mt-1 text-[10px] text-gray-500 italic">Direksi: “{r.plan.direksi_comment}”</p>}
-              </div>
-              <PlanForm
-                employeeId={r.id}
-                planId={r.plan?.id ?? null}
-                currentPlan={r.plan?.plan ?? ''}
-                currentJust={r.plan?.justification ?? ''}
-                status={r.plan?.status ?? null}
-              />
-            </div>
-          );
-        })}
-      </div>
+      <SuksesiList rows={rows} />
     </Shell>
   );
 }

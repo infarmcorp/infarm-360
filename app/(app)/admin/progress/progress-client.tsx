@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { forceComplete, sendReminder, massReminder, sendOnboarding, massOnboarding } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { usePager, Pager } from '@/components/table-controls';
 
 export type Pending = { targetId: string; targetName: string; relation: string; mandatory: boolean };
 export type AssessorRow = {
@@ -49,6 +50,8 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
     if (status === 'belum' && complete) return false;
     return true;
   });
+  // Paginasi 5-baris (komponen bersama) → daftar penilai bisa 100+; batasi DOM per halaman.
+  const { page, setPage, pageCount, shown: paged, total, rangeFrom, rangeTo } = usePager(shown);
 
   function act(fn: () => Promise<{ ok: boolean; msg?: string; error?: string }>) {
     setToast(null);
@@ -70,13 +73,13 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-center">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama penilai…"
+        <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama penilai…"
           className="text-xs px-3 py-2 border border-gray-200 rounded-lg flex-1 min-w-[160px] focus:outline-none focus:ring-1 focus:ring-emerald-600" />
-        <select value={dept} onChange={(e) => setDept(e.target.value)} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
+        <select value={dept} onChange={(e) => { setDept(e.target.value); setPage(0); }} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
           <option value="all">Semua Divisi</option>
           {depts.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
-        <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
+        <select value={status} onChange={(e) => { setStatus(e.target.value as typeof status); setPage(0); }} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
           <option value="all">Semua Status</option>
           <option value="lengkap">Lengkap</option>
           <option value="belum">Belum Lengkap</option>
@@ -110,7 +113,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
       {/* Rows (per penilai) */}
       <div className="space-y-2">
         {shown.length === 0 && <p className="text-sm text-gray-500">Tidak ada penilai sesuai filter.</p>}
-        {shown.map((r) => {
+        {paged.map((r) => {
           const complete = isComplete(r);
           const pct = r.mandatoryTotal ? Math.round((r.mandatoryDone / r.mandatoryTotal) * 100) : 100;
           const optionalPending = r.pending.filter((p) => !p.mandatory).length;
@@ -206,6 +209,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
           );
         })}
       </div>
+      <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="penilai" />
       <p className="text-[10px] text-gray-500 italic">
         <strong>Status "Lengkap"</strong> dihitung dari penilaian <strong>WAJIB</strong> saja — penilaian
         opsional tak memengaruhi status/kartu (tetap ditampilkan di Rincian untuk dipantau). Tiap baris:

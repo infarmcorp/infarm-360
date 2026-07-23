@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import type { WeightValues, RelationKind } from '@/lib/database.types';
 import { WeightForm } from './weight-form';
+import { EmployeeWeights, type Override } from './employee-weights';
 import { RecomputeButton } from '../360/recompute-button';
 import { EmptyState } from '@/components/empty-state';
 import { fetchAllByIds } from '@/lib/supabase/paginate';
@@ -56,13 +57,26 @@ export default async function BobotPage() {
   };
 
   // Data untuk rekap result_360 + perbandingan model (paralel).
-  const [resRes, asmtRes, mapRes, empRes] = await Promise.all([
+  const [resRes, asmtRes, mapRes, empRes, ovrRes] = await Promise.all([
     supabase.from('result_360').select('employee_id, score').eq('period_id', ap.id),
     supabase.from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted'),
     supabase.from('mappings').select('assessor_id, target_id, relation').eq('period_id', ap.id),
     supabase.from('employees').select('id, name, dept').neq('role', 'direksi'),
+    supabase.from('employee_weight_overrides').select('employee_id, model, weights').eq('period_id', ap.id),
   ]);
   const empById = new Map((empRes.data ?? []).map((e) => [e.id, e]));
+
+  // Bobot khusus per pegawai (override) — untuk section "Bobot Khusus per Pegawai".
+  const empList = (empRes.data ?? []).map((e) => ({ id: e.id, name: e.name, dept: e.dept ?? '—' }));
+  const overrides: Override[] = (ovrRes.data ?? [])
+    .map((o) => ({
+      employeeId: o.employee_id,
+      name: empById.get(o.employee_id)?.name ?? '—',
+      dept: empById.get(o.employee_id)?.dept ?? '—',
+      model: o.model as '4class' | '2class',
+      weights: (o.weights ?? {}) as WeightValues,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   // Rekap skor resmi (result_360).
   const stored = (resRes.data ?? [])
@@ -128,6 +142,16 @@ export default async function BobotPage() {
           Skor 360 = rata-rata rating tiap kelas penilai ×20, dibobot di sini (Self dikecualikan dari total).
           Perubahan berlaku setelah <strong>Hitung Ulang Skor 360°</strong> di bawah.
         </p>
+      </Section>
+
+      {/* 1b. Bobot Khusus per Pegawai (override skema di atas) */}
+      <Section title="Bobot Khusus per Pegawai">
+        <p className="text-[11px] text-gray-500 mb-3 max-w-3xl">
+          Sebagian pegawai bisa memakai bobot berbeda dari skema periode di atas. Pegawai dengan bobot khusus
+          memakai model &amp; nilai di sini; sisanya tetap skema periode. Berlaku setelah <strong>Hitung Ulang Skor 360°</strong>.
+          <span className="block mt-1 text-gray-400">Catatan: kelas tanpa data (mis. pegawai tanpa bawahan) sudah otomatis diabaikan &amp; bobotnya dinormalisasi — bobot khusus hanya perlu bila kebijakan bobotnya memang berbeda.</span>
+        </p>
+        <EmployeeWeights employees={empList} overrides={overrides} />
       </Section>
 
       {/* 2. Kalkulasi (Hitung Ulang + hasil resmi) */}

@@ -65,3 +65,74 @@ export async function saveWeights(raw: unknown): Promise<SaveResult> {
   revalidatePath('/admin/bobot');
   return { ok: true };
 }
+
+// ── Bobot KHUSUS per pegawai (override skema periode, migrasi 0031) ─────────────────────────────
+const OverrideInput = Input.extend({ employeeId: z.string().uuid() });
+
+/**
+ * Simpan bobot KHUSUS untuk seorang pegawai pada periode aktif (upsert per (periode, pegawai)).
+ * Berlaku setelah Hitung Ulang Skor 360°. Model bebas (bisa beda dari skema periode). HRD-only.
+ */
+export async function saveEmployeeWeightOverride(raw: unknown): Promise<SaveResult> {
+  const parsed = OverrideInput.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  const v = parsed.data;
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
+
+  const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  const { data: target } = await supabase.from('employees').select('name').eq('id', v.employeeId).maybeSingle();
+  if (!target) return { ok: false, error: 'Pegawai tidak ditemukan' };
+
+  const weights: WeightValues = v.model === '4class'
+    ? { atasan: v.atasan, peer: v.peer, cross: v.cross, bawahan: v.bawahan, self: v.self }
+    : { atasan: v.atasan, internal: v.internal };
+
+  const { error } = await supabase.from('employee_weight_overrides').upsert(
+    { period_id: ap.id, employee_id: v.employeeId, model: v.model, weights, updated_by: user.id, updated_at: new Date().toISOString() },
+    { onConflict: 'period_id,employee_id' },
+  );
+  if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
+
+  await logHrdAction({
+    action: 'weights.override_set', category: 'bobot',
+    summary: `Menetapkan bobot 360° khusus (Model ${v.model === '4class' ? '4-Kelas' : '2-Kelas'}) untuk ${target.name ?? v.employeeId}`,
+    targetType: 'employee', targetId: v.employeeId, targetLabel: target.name ?? null, meta: { model: v.model, weights },
+  });
+  revalidatePath('/admin/bobot');
+  return { ok: true };
+}
+
+/** Hapus bobot khusus seorang pegawai → kembali ke skema default periode. HRD-only. */
+export async function removeEmployeeWeightOverride(employeeId: unknown): Promise<SaveResult> {
+  const parsed = z.string().uuid().safeParse(employeeId);
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  const id = parsed.data;
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
+
+  const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  const { data: target } = await supabase.from('employees').select('name').eq('id', id).maybeSingle();
+  const { error } = await supabase.from('employee_weight_overrides').delete().eq('period_id', ap.id).eq('employee_id', id);
+  if (error) return { ok: false, error: 'Gagal menghapus: ' + error.message };
+
+  await logHrdAction({
+    action: 'weights.override_remove', category: 'bobot',
+    summary: `Menghapus bobot 360° khusus untuk ${target?.name ?? id} (kembali ke skema periode)`,
+    targetType: 'employee', targetId: id, targetLabel: target?.name ?? null,
+  });
+  revalidatePath('/admin/bobot');
+  return { ok: true };
+}

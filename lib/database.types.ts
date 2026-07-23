@@ -113,6 +113,12 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['weight_schemes']['Insert']>;
         Relationships: [];
       };
+      employee_weight_overrides: {
+        Row: { id: string; period_id: string; employee_id: string; model: '4class' | '2class'; weights: WeightValues; updated_by: string | null; updated_at: string };
+        Insert: { period_id: string; employee_id: string; model: '4class' | '2class'; weights: WeightValues; updated_by?: string | null; updated_at?: string };
+        Update: Partial<Database['public']['Tables']['employee_weight_overrides']['Insert']>;
+        Relationships: [];
+      };
       result_360: {
         Row: { employee_id: string; period_id: string; score: number | null; computed_at: string };
         Insert: { employee_id: string; period_id: string; score?: number | null; computed_at?: string };

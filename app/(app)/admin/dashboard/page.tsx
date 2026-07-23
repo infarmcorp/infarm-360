@@ -163,24 +163,30 @@ export default async function DashboardPage({
   }
 
   // Gelombang 1 — query periode terpilih, di-scope ke pegawai dalam lingkup divisi.
-  const [monthsRes, r360Res, penRes, aspectRes, asmtRes] = await Promise.all([
+  // assessments SELURUH pegawai → bisa >1000; ambil penuh (tanpa ini nonSelfIds terpotong →
+  // rating aspek 360° & asmtInfo tak lengkap → radar/aspek SALAH diam-diam).
+  const [monthsRes, r360Res, penRes, aspectRes, asmtAll] = await Promise.all([
     db.from('period_months').select('ym').eq('period_id', ap.id),
     db.from('result_360').select('employee_id, score').eq('period_id', ap.id),
     db.from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id),
     db.from('culture_aspects').select('id, name, order_idx').eq('period_id', ap.id).order('order_idx'),
-    db.from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted'),
+    fetchAllPaged<{ id: string; assessor_id: string; target_id: string }>((from, to) =>
+      db.from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted').order('id').range(from, to)),
   ]);
   const ymList = (monthsRes.data ?? []).map((m) => m.ym);
   const aspectList = aspectRes.data ?? [];
   // Aspek 360° hanya dari penilaian terhadap target dalam lingkup (non-Self).
-  const nonSelfIds = (asmtRes.data ?? [])
+  const nonSelfIds = asmtAll
     .filter((a) => a.assessor_id !== a.target_id && inScope(a.target_id)).map((a) => a.id);
 
   // Gelombang 2 — query turunan (butuh hasil gelombang 1), saling independen → paralel.
   // scoreRows DIPAGINASI + di-chunk: assessment_indicator_scores bisa >4000 baris (semua divisi)
   // → tanpa ini rating aspek 360° terpotong di 1000 → radar "Evaluasi Budaya 360°" SALAH diam-diam.
-  const [kpiRes, indRes, scoreRows] = await Promise.all([
-    ymList.length && empIds.length ? db.from('kpi_scores').select('employee_id, ym, score').in('ym', ymList).in('employee_id', empIds) : Promise.resolve({ data: [] as { employee_id: string; ym: string; score: number }[] }),
+  const [kpiAll, indRes, scoreRows] = await Promise.all([
+    ymList.length && empIds.length
+      ? fetchAllByIds<{ employee_id: string; ym: string; score: number }>(empIds, (chunk, from, to) =>
+          db.from('kpi_scores').select('employee_id, ym, score').in('ym', ymList).in('employee_id', chunk).order('employee_id').order('ym').range(from, to))
+      : Promise.resolve([] as { employee_id: string; ym: string; score: number }[]),
     aspectList.length ? db.from('indicators').select('id, aspect_id').in('aspect_id', aspectList.map((a) => a.id)) : Promise.resolve({ data: [] as { id: string; aspect_id: string }[] }),
     nonSelfIds.length
       ? fetchAllByIds<{ assessment_id: string; indicator_id: string; rating: number | null }>(nonSelfIds, (chunk, from, to) =>
@@ -193,7 +199,7 @@ export default async function DashboardPage({
   // Dikecualikan dari KATEGORISASI & rerata KPI/Skor Akhir (Kompilasi & KPI) — bukan pekerja rendah,
   // melainkan data belum masuk. Tetap tampil sebagai bucket "Belum Terbaca" sendiri (dan di 360°/Tabel).
   const empYm = new Map<string, Map<string, { s: number; n: number }>>();
-  (kpiRes.data ?? []).forEach((r) => {
+  kpiAll.forEach((r) => {
     let m = empYm.get(r.employee_id); if (!m) { m = new Map(); empYm.set(r.employee_id, m); }
     const a = m.get(r.ym) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; m.set(r.ym, a);
   });
@@ -209,7 +215,7 @@ export default async function DashboardPage({
   // organisasi (monthAgg) MENGECUALIKAN yang belum terbaca agar tak bias oleh 0-placeholder.
   const kpiAgg = new Map<string, { sum: number; n: number }>();
   const monthAgg = new Map<string, { sum: number; n: number }>();
-  (kpiRes.data ?? []).forEach((r) => {
+  kpiAll.forEach((r) => {
     const a = kpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 };
     a.sum += r.score; a.n += 1; kpiAgg.set(r.employee_id, a);
     if (unreadIds.has(r.employee_id)) return;
@@ -225,7 +231,7 @@ export default async function DashboardPage({
   const ymSorted = [...ymList].sort();
   const empDept = new Map(emps.map((e) => [e.id, e.dept]));
   const dmAgg = new Map<string, { sum: number; n: number }>(); // key `${dept}|${ym}`
-  (kpiRes.data ?? []).forEach((r) => {
+  kpiAll.forEach((r) => {
     if (unreadIds.has(r.employee_id)) return; // "belum terbaca" tak mewarnai heatmap divisi
     const d = empDept.get(r.employee_id);
     if (!d) return;
@@ -379,7 +385,7 @@ export default async function DashboardPage({
   const hasWS = !!wsRes.data;
   const relByPair = new Map<string, RelationKind>();
   mapsData.forEach((m) => relByPair.set(`${m.assessor_id}:${m.target_id}`, m.relation));
-  const asmtInfo = new Map((asmtRes.data ?? []).map((a) => [a.id, { assessor: a.assessor_id, target: a.target_id }]));
+  const asmtInfo = new Map(asmtAll.map((a) => [a.id, { assessor: a.assessor_id, target: a.target_id }]));
 
   // Kumpulkan rating per (penilaian, aspek) → skor per-penilai per-aspek (×20).
   const aaRatings = new Map<string, number[]>(); // `${assessmentId}|${aspectId}`
@@ -442,15 +448,18 @@ export default async function DashboardPage({
   if (prevPeriod && empIds.length) {
     const { data: pMonths } = await db.from('period_months').select('ym').eq('period_id', prevPeriod.id);
     const pYms = (pMonths ?? []).map((m) => m.ym);
-    const [pKpiRes, pr360Res, pPenRes] = await Promise.all([
-      pYms.length ? db.from('kpi_scores').select('employee_id, ym, score').in('ym', pYms).in('employee_id', empIds) : Promise.resolve({ data: [] as { employee_id: string; ym: string; score: number }[] }),
+    const [pKpiAll, pr360Res, pPenRes] = await Promise.all([
+      pYms.length
+        ? fetchAllByIds<{ employee_id: string; ym: string; score: number }>(empIds, (chunk, from, to) =>
+            db.from('kpi_scores').select('employee_id, ym, score').in('ym', pYms).in('employee_id', chunk).order('employee_id').order('ym').range(from, to))
+        : Promise.resolve([] as { employee_id: string; ym: string; score: number }[]),
       db.from('result_360').select('employee_id, score').eq('period_id', prevPeriod.id).in('employee_id', empIds),
       db.from('compliance_penalties').select('employee_id, points').eq('period_id', prevPeriod.id).in('employee_id', empIds),
     ]);
     // Rerata KPI per pegawai + deteksi "belum terbaca" (trend unread 3 bulan pertama).
     const pEmpYm = new Map<string, Map<string, { s: number; n: number }>>();
     const pKpiAgg = new Map<string, { sum: number; n: number }>();
-    (pKpiRes.data ?? []).forEach((r) => {
+    pKpiAll.forEach((r) => {
       let m = pEmpYm.get(r.employee_id); if (!m) { m = new Map(); pEmpYm.set(r.employee_id, m); }
       const a = m.get(r.ym) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; m.set(r.ym, a);
       const g = pKpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 }; g.sum += r.score; g.n += 1; pKpiAgg.set(r.employee_id, g);

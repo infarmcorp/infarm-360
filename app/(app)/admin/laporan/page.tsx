@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
 import { ReportTable, type ReportRow } from './report-table';
@@ -68,11 +69,14 @@ export default async function AdminLaporanPage() {
   const { data: months } = await db.from('period_months').select('ym').eq('period_id', ap.id);
   const yms = (months ?? []).map((m) => m.ym);
   const sortedMonths = [...yms].sort();
-  const { data: kpiRows } = yms.length
-    ? await db.from('kpi_scores').select('employee_id, score, ym').in('ym', yms) : { data: [] };
+  // kpi_scores semua pegawai (bulan periode) → bisa >1000; ambil penuh.
+  const kpiRows = yms.length
+    ? await fetchAllPaged<{ employee_id: string; score: number; ym: string }>((from, to) =>
+        db.from('kpi_scores').select('employee_id, score, ym').in('ym', yms).order('employee_id').order('ym').range(from, to))
+    : [];
   const kpiAgg = new Map<string, { sum: number; n: number }>();
   const kpiMonthsByEmp = new Map<string, Set<string>>(); // bulan yang sudah ada KPI per pegawai
-  (kpiRows ?? []).forEach((r) => {
+  kpiRows.forEach((r) => {
     const a = kpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n++; kpiAgg.set(r.employee_id, a);
     const s = kpiMonthsByEmp.get(r.employee_id) ?? new Set<string>(); s.add(r.ym); kpiMonthsByEmp.set(r.employee_id, s);
   });
@@ -95,21 +99,23 @@ export default async function AdminLaporanPage() {
   // (selaras Progress 360 — kelengkapan berbasis penilaian wajib).
   // CATATAN: TANPA filter is_active — pegawai nonaktif (resign) pemetaannya dimatikan, tapi
   // penilaian terhadapnya tetap sah; tanpa ini kolom "Dinilai oleh" jadi "—" yang menyesatkan.
-  const { data: maps } = await db
-    .from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', ap.id);
-  const { data: subs } = await db
-    .from('assessments').select('assessor_id, target_id, submitted_at').eq('period_id', ap.id).eq('status', 'submitted');
-  const doneSet = new Set((subs ?? []).map((s) => `${s.assessor_id}|${s.target_id}`));
+  // mappings & assessments SELURUH pegawai → bisa >1000; ambil penuh (kelengkapan & deteksi
+  // "perlu hitung ulang" harus lengkap, kalau terpotong bisa gagal memicu peringatan).
+  const maps = await fetchAllPaged<{ assessor_id: string; target_id: string; mandatory: boolean }>((from, to) =>
+    db.from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', ap.id).order('assessor_id').order('target_id').range(from, to));
+  const subs = await fetchAllPaged<{ assessor_id: string; target_id: string; submitted_at: string | null }>((from, to) =>
+    db.from('assessments').select('assessor_id, target_id, submitted_at').eq('period_id', ap.id).eq('status', 'submitted').order('assessor_id').order('target_id').range(from, to));
+  const doneSet = new Set(subs.map((s) => `${s.assessor_id}|${s.target_id}`));
   // submitted_at TERBARU per pegawai (sebagai target) → dibandingkan dgn computed_at result_360.
   const maxSubByTarget = new Map<string, string>();
-  (subs ?? []).forEach((s) => {
+  subs.forEach((s) => {
     if (!s.submitted_at) return;
     const cur = maxSubByTarget.get(s.target_id);
     if (!cur || s.submitted_at > cur) maxSubByTarget.set(s.target_id, s.submitted_at);
   });
   const ratedTotal = new Map<string, number>();
   const ratedDone = new Map<string, number>();
-  (maps ?? []).forEach((m) => {
+  maps.forEach((m) => {
     if (!m.mandatory) return; // kelengkapan berbasis WAJIB
     ratedTotal.set(m.target_id, (ratedTotal.get(m.target_id) ?? 0) + 1);
     if (doneSet.has(`${m.assessor_id}|${m.target_id}`)) ratedDone.set(m.target_id, (ratedDone.get(m.target_id) ?? 0) + 1);

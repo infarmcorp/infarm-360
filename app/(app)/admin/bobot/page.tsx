@@ -9,7 +9,7 @@ import { EmployeeWeights, type Override } from './employee-weights';
 import { Kalkulasi360Table, type MergedRow } from './bobot-tables';
 import { RecomputeButton } from '../360/recompute-button';
 import { EmptyState } from '@/components/empty-state';
-import { fetchAllByIds } from '@/lib/supabase/paginate';
+import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
 
 /**
  * Kelola Bobot Penilai (HRD) — SATU halaman: skema bobot 360 + Hitung Ulang Skor 360°
@@ -60,10 +60,13 @@ export default async function BobotPage() {
   };
 
   // Data untuk rekap result_360 + perbandingan model (paralel).
-  const [resRes, asmtRes, mapRes, empRes, ovrRes] = await Promise.all([
+  // assessments & mappings SELURUH pegawai → bisa >1000; ambil penuh via fetchAllPaged.
+  const [resRes, asmtsAll, mapsAll, empRes, ovrRes] = await Promise.all([
     supabase.from('result_360').select('employee_id, score').eq('period_id', ap.id),
-    supabase.from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted'),
-    supabase.from('mappings').select('assessor_id, target_id, relation').eq('period_id', ap.id),
+    fetchAllPaged<{ id: string; assessor_id: string; target_id: string }>((from, to) =>
+      supabase.from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted').order('id').range(from, to)),
+    fetchAllPaged<{ assessor_id: string; target_id: string; relation: RelationKind }>((from, to) =>
+      supabase.from('mappings').select('assessor_id, target_id, relation').eq('period_id', ap.id).order('assessor_id').order('target_id').range(from, to)),
     supabase.from('employees').select('id, name, dept, role'),
     supabase.from('employee_weight_overrides').select('employee_id, model, weights').eq('period_id', ap.id),
   ]);
@@ -86,7 +89,7 @@ export default async function BobotPage() {
   // Perbandingan model: kelompokkan rating (×20) per target per kelas dari penilaian terkirim.
   // DIPAGINASI + di-chunk: assessment_indicator_scores bisa >4000 baris → tanpa ini pratinjau
   // perbandingan model terpotong di 1000 → angka simulasi SALAH & menyesatkan pilihan bobot HRD.
-  const asmts = asmtRes.data ?? [];
+  const asmts = asmtsAll;
   const scoreRows = asmts.length
     ? await fetchAllByIds<{ assessment_id: string; rating: number | null }>(asmts.map((a) => a.id), (chunk, from, to) =>
         supabase.from('assessment_indicator_scores').select('assessment_id, rating')
@@ -98,7 +101,7 @@ export default async function BobotPage() {
     const arr = ratingsByAsmt.get(s.assessment_id) ?? []; arr.push(s.rating); ratingsByAsmt.set(s.assessment_id, arr);
   });
   const relByPair = new Map<string, RelationKind>();
-  (mapRes.data ?? []).forEach((m) => relByPair.set(`${m.assessor_id}:${m.target_id}`, m.relation));
+  mapsAll.forEach((m) => relByPair.set(`${m.assessor_id}:${m.target_id}`, m.relation));
 
   type Groups = { atasan: number[]; peer: number[]; cross: number[]; bawahan: number[] };
   const byTarget = new Map<string, Groups>();

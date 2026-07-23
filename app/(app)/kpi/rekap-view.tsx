@@ -1,4 +1,5 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { fetchAllByIds } from '@/lib/supabase/paginate';
 import { finalScoreOf, playerClassOf, playerLabelOf, perfCategoryOf, perfLabelOf } from '@/lib/scoring';
 import { PeriodSelect } from './period-select';
 
@@ -63,11 +64,14 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', 
   const ymList = (months ?? []).map((m) => m.ym);
   const empIds = empRows.map((e) => e.id);
 
-  const { data: kpiRows } = empIds.length && ymList.length
-    ? await supabase.from('kpi_scores').select('employee_id, ym, score').in('employee_id', empIds).in('ym', ymList)
-    : { data: [] };
+  // kpi_scores lintas semua pegawai × bulan → bisa >1000; ambil penuh (chunk id + paginasi).
+  const kpiRows = empIds.length && ymList.length
+    ? await fetchAllByIds<{ employee_id: string; ym: string; score: number }>(empIds, (chunk, from, to) =>
+        supabase.from('kpi_scores').select('employee_id, ym, score').in('employee_id', chunk).in('ym', ymList)
+          .order('employee_id').order('ym').range(from, to))
+    : [];
   const kpiByCell = new Map<string, { sum: number; n: number }>();
-  (kpiRows ?? []).forEach((r) => {
+  kpiRows.forEach((r) => {
     const k = `${r.employee_id}|${r.ym}`;
     const a = kpiByCell.get(k) ?? { sum: 0, n: 0 };
     a.sum += r.score; a.n += 1; kpiByCell.set(k, a);

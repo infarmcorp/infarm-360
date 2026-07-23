@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import { ProgressClient, type AssessorRow, type TargetRow } from './progress-client';
 
@@ -37,23 +38,24 @@ export default async function ProgressPage() {
   const { data: ap } = await db.from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
 
-  // Independen → paralel. (Pemegang grant baca via service_role.)
-  const [empsRes, mapsRes, asmtsRes] = await Promise.all([
+  // Independen → paralel. mappings & assessments SELURUH pegawai → bisa >1000; ambil penuh.
+  const [empsRes, maps, asmtsAll] = await Promise.all([
     db.from('employees').select('id, name, dept'),
-    db.from('mappings').select('assessor_id, target_id, relation, mandatory').eq('period_id', ap.id).eq('is_active', true),
-    db.from('assessments').select('assessor_id, target_id, status').eq('period_id', ap.id),
+    fetchAllPaged<{ assessor_id: string; target_id: string; relation: string; mandatory: boolean }>((from, to) =>
+      db.from('mappings').select('assessor_id, target_id, relation, mandatory').eq('period_id', ap.id).eq('is_active', true).order('assessor_id').order('target_id').range(from, to)),
+    fetchAllPaged<{ assessor_id: string; target_id: string; status: string }>((from, to) =>
+      db.from('assessments').select('assessor_id, target_id, status').eq('period_id', ap.id).order('assessor_id').order('target_id').range(from, to)),
   ]);
   // Pemegang grant: himpunan id pegawai DALAM lingkup → menyaring baris penilai & yang-dinilai.
   const scopedIds = viaGrant
     ? new Set((empsRes.data ?? []).filter((e) => employeeInScopes(grantScopes!, ownDept, user.id, { id: e.id, dept: e.dept }, teamIds)).map((e) => e.id))
     : null;
   const empById = new Map((empsRes.data ?? []).map((e) => [e.id, e]));
-  const maps = mapsRes.data;
-  const submitted = new Set((asmtsRes.data ?? []).filter((a) => a.status === 'submitted').map((a) => `${a.assessor_id}|${a.target_id}`));
+  const submitted = new Set(asmtsAll.filter((a) => a.status === 'submitted').map((a) => `${a.assessor_id}|${a.target_id}`));
 
   // Kelompokkan tugas per penilai (bawa relasi & sifat wajib/opsional).
   const byAssessor = new Map<string, { targetId: string; relation: string; mandatory: boolean }[]>();
-  (maps ?? []).forEach((m) => {
+  maps.forEach((m) => {
     const a = byAssessor.get(m.assessor_id) ?? [];
     a.push({ targetId: m.target_id, relation: m.relation as string, mandatory: m.mandatory });
     byAssessor.set(m.assessor_id, a);
@@ -86,7 +88,7 @@ export default async function ProgressPage() {
 
   // Info per yang DINILAI (target): total penilai yang ditugaskan & berapa yang sudah menilai dia.
   const byTarget = new Map<string, string[]>();
-  (maps ?? []).forEach((m) => {
+  maps.forEach((m) => {
     const a = byTarget.get(m.target_id) ?? [];
     a.push(m.assessor_id);
     byTarget.set(m.target_id, a);

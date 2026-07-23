@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import { KepatuhanTable } from './kepatuhan-table';
 
@@ -46,23 +47,22 @@ export default async function KepatuhanPage() {
   const employees = (emps ?? []).filter((e) => !viaGrant || employeeInScopes(grantScopes!, ownDept, user.id, { id: e.id, dept: e.dept }, teamIds));
   const nameById = new Map(employees.map((e) => [e.id, e.name]));
 
-  // Mapping wajib per penilai.
-  const { data: maps } = await db
-    .from('mappings').select('assessor_id, target_id, mandatory')
-    .eq('period_id', ap.id).eq('is_active', true);
+  // Mapping wajib per penilai. SELURUH pegawai → bisa >1000; ambil penuh (hitung telat/self
+  // harus lengkap agar keputusan punishment tak keliru).
+  const maps = await fetchAllPaged<{ assessor_id: string; target_id: string; mandatory: boolean }>((from, to) =>
+    db.from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', ap.id).eq('is_active', true).order('assessor_id').order('target_id').range(from, to));
   // Assessment terkirim → set "assessor:target".
-  const { data: asmts } = await db
-    .from('assessments').select('assessor_id, target_id')
-    .eq('period_id', ap.id).eq('status', 'submitted');
-  const submitted = new Set((asmts ?? []).map((a) => `${a.assessor_id}:${a.target_id}`));
-  const selfDone = new Set((asmts ?? []).filter((a) => a.assessor_id === a.target_id).map((a) => a.assessor_id));
+  const asmts = await fetchAllPaged<{ assessor_id: string; target_id: string }>((from, to) =>
+    db.from('assessments').select('assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted').order('assessor_id').order('target_id').range(from, to));
+  const submitted = new Set(asmts.map((a) => `${a.assessor_id}:${a.target_id}`));
+  const selfDone = new Set(asmts.filter((a) => a.assessor_id === a.target_id).map((a) => a.assessor_id));
 
   const { data: pen } = await db
     .from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id);
   const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
 
   const rows = employees.map((e) => {
-    const lateTargets = (maps ?? [])
+    const lateTargets = maps
       .filter((m) => m.assessor_id === e.id && m.mandatory && !submitted.has(`${e.id}:${m.target_id}`))
       .map((m) => nameById.get(m.target_id) ?? '—');
     return {

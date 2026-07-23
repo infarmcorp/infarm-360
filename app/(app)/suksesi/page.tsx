@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
 import { PlanForm } from './plan-form';
@@ -55,10 +56,13 @@ async function HrdView({
 
   const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', period.id);
   const ymList = (months ?? []).map((m) => m.ym);
-  const { data: kpiRows } = ymList.length
-    ? await supabase.from('kpi_scores').select('employee_id, score').in('ym', ymList) : { data: [] };
+  // kpi_scores semua pegawai (bulan periode) → bisa >1000; ambil penuh.
+  const kpiRows = ymList.length
+    ? await fetchAllPaged<{ employee_id: string; score: number }>((from, to) =>
+        supabase.from('kpi_scores').select('employee_id, score').in('ym', ymList).order('employee_id').order('ym').range(from, to))
+    : [];
   const kpiAgg = new Map<string, { sum: number; n: number }>();
-  (kpiRows ?? []).forEach((r) => { const a = kpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n += 1; kpiAgg.set(r.employee_id, a); });
+  kpiRows.forEach((r) => { const a = kpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n += 1; kpiAgg.set(r.employee_id, a); });
   const { data: r360 } = await supabase.from('result_360').select('employee_id, score').eq('period_id', period.id);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
   const { data: pen } = await supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', period.id);

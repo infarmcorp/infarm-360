@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canAdmin } from '@/lib/auth/roles';
 import { finalScoreOf, playerClassOf, playerLabelOf, perfLabelOf } from '@/lib/scoring';
 import { classOf, avg, weightedScore360, type Groups360 } from '@/lib/score360';
@@ -105,8 +106,9 @@ export async function exportKpi(periodId?: string | null): Promise<ExportResult>
   const { plabel, ymToPid, allowYm } = await periodMaps(admin, periodId);
   const { data: emps } = await admin.from('employees').select('id, emp_code, name, dept');
   const byId = new Map((emps ?? []).map((e) => [e.id, e]));
-  const { data: kpi } = await admin.from('kpi_scores').select('employee_id, ym, score').order('ym');
-  const rows: Row[] = (kpi ?? []).filter((k) => !allowYm || allowYm.has(k.ym)).map((k) => {
+  const kpi = await fetchAllPaged<{ employee_id: string; ym: string; score: number }>((from, to) =>
+    admin.from('kpi_scores').select('employee_id, ym, score').order('ym').order('employee_id').range(from, to));
+  const rows: Row[] = kpi.filter((k) => !allowYm || allowYm.has(k.ym)).map((k) => {
     const e = byId.get(k.employee_id);
     return { periode: plabel.get(ymToPid.get(k.ym) ?? '') ?? '', kode: e?.emp_code ?? '', nama: e?.name ?? '', divisi: e?.dept ?? '', bulan: k.ym, skor_kpi: k.score };
   });
@@ -120,9 +122,10 @@ export async function exportKpiAudit(periodId?: string | null): Promise<ExportRe
   const { plabel, ymToPid, allowYm } = await periodMaps(admin, periodId);
   const { data: emps } = await admin.from('employees').select('id, emp_code, name, dept');
   const byId = new Map((emps ?? []).map((e) => [e.id, e]));
-  const { data: audit } = await admin.from('kpi_audit')
-    .select('employee_id, ym, score, changed_by, changed_at, note').order('changed_at', { ascending: false });
-  const list = (audit ?? []).filter((a) => !allowYm || allowYm.has(a.ym));
+  const audit = await fetchAllPaged<{ employee_id: string; ym: string; score: number; changed_by: string | null; changed_at: string; note: string | null }>((from, to) =>
+    admin.from('kpi_audit').select('employee_id, ym, score, changed_by, changed_at, note')
+      .order('changed_at', { ascending: false }).order('employee_id').range(from, to));
+  const list = audit.filter((a) => !allowYm || allowYm.has(a.ym));
   const changerIds = [...new Set(list.map((a) => a.changed_by).filter(Boolean) as string[])];
   const changerName = new Map<string, string>();
   if (changerIds.length) {
@@ -148,16 +151,18 @@ export async function exportPenalties(periodId?: string | null): Promise<ExportR
   const byId = new Map((emps ?? []).map((e) => [e.id, e]));
   const { data: periods } = await admin.from('periods').select('id, label');
   const plabel = new Map((periods ?? []).map((p) => [p.id, p.label]));
-  let q = admin.from('compliance_penalties').select('employee_id, period_id, points, reason, set_by');
-  if (periodId) q = q.eq('period_id', periodId);
-  const { data: pen } = await q;
-  const setterIds = [...new Set((pen ?? []).map((p) => p.set_by).filter(Boolean) as string[])];
+  const pen = await fetchAllPaged<{ employee_id: string; period_id: string; points: number; reason: string | null; set_by: string | null }>((from, to) => {
+    let q = admin.from('compliance_penalties').select('employee_id, period_id, points, reason, set_by');
+    if (periodId) q = q.eq('period_id', periodId);
+    return q.order('period_id').order('employee_id').range(from, to);
+  });
+  const setterIds = [...new Set(pen.map((p) => p.set_by).filter(Boolean) as string[])];
   const setterName = new Map<string, string>();
   if (setterIds.length) {
     const { data: s } = await admin.from('employees').select('id, name').in('id', setterIds);
     (s ?? []).forEach((c) => setterName.set(c.id, c.name));
   }
-  const rows: Row[] = (pen ?? []).map((p) => {
+  const rows: Row[] = pen.map((p) => {
     const e = byId.get(p.employee_id);
     return {
       periode: plabel.get(p.period_id) ?? '', kode: e?.emp_code ?? '', nama: e?.name ?? '', divisi: e?.dept ?? '',
@@ -171,23 +176,27 @@ export async function exportPenalties(periodId?: string | null): Promise<ExportR
 export async function exportRekap(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
-  const [{ data: emps }, { data: periodsAll }, { data: pmonths }, { data: kpi }, { data: r360 }, { data: pen }] = await Promise.all([
+  // kpi_scores/result_360/penalties LINTAS periode → bisa >1000; ambil penuh.
+  const [{ data: emps }, { data: periodsAll }, { data: pmonths }, kpi, r360, pen] = await Promise.all([
     // Direksi SENGAJA IKUT (subjek 360° — keputusan 2026-07-08): guard `kpiAvg==null && s360==null`
     // di bawah memastikan hanya yang PUNYA data (mis. Direksi ber-360°) yang muncul.
     admin.from('employees').select('id, emp_code, name, dept'),
     admin.from('periods').select('id, label, has_360, start_date').order('start_date'),
     admin.from('period_months').select('period_id, ym'),
-    admin.from('kpi_scores').select('employee_id, ym, score'),
-    admin.from('result_360').select('employee_id, period_id, score'),
-    admin.from('compliance_penalties').select('employee_id, period_id, points'),
+    fetchAllPaged<{ employee_id: string; ym: string; score: number }>((from, to) =>
+      admin.from('kpi_scores').select('employee_id, ym, score').order('employee_id').order('ym').range(from, to)),
+    fetchAllPaged<{ employee_id: string; period_id: string; score: number | null }>((from, to) =>
+      admin.from('result_360').select('employee_id, period_id, score').order('employee_id').order('period_id').range(from, to)),
+    fetchAllPaged<{ employee_id: string; period_id: string; points: number }>((from, to) =>
+      admin.from('compliance_penalties').select('employee_id, period_id, points').order('employee_id').order('period_id').range(from, to)),
   ]);
   const periods = (periodsAll ?? []).filter((p) => !periodId || p.id === periodId);
   const monthsByPeriod = new Map<string, string[]>();
   (pmonths ?? []).forEach((m) => { const a = monthsByPeriod.get(m.period_id) ?? []; a.push(m.ym); monthsByPeriod.set(m.period_id, a); });
   const kpiByCell = new Map<string, { s: number; n: number }>();
-  (kpi ?? []).forEach((k) => { const key = `${k.employee_id}|${k.ym}`; const a = kpiByCell.get(key) ?? { s: 0, n: 0 }; a.s += k.score; a.n++; kpiByCell.set(key, a); });
-  const s360By = new Map((r360 ?? []).map((r) => [`${r.employee_id}|${r.period_id}`, r.score]));
-  const penBy = new Map((pen ?? []).map((p) => [`${p.employee_id}|${p.period_id}`, p.points]));
+  kpi.forEach((k) => { const key = `${k.employee_id}|${k.ym}`; const a = kpiByCell.get(key) ?? { s: 0, n: 0 }; a.s += k.score; a.n++; kpiByCell.set(key, a); });
+  const s360By = new Map(r360.map((r) => [`${r.employee_id}|${r.period_id}`, r.score]));
+  const penBy = new Map(pen.map((p) => [`${p.employee_id}|${p.period_id}`, p.points]));
 
   const rows: Row[] = [];
   for (const p of periods) {
@@ -221,17 +230,19 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
 export async function exportAspectSummaries(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
-  const [{ data: emps }, { data: periods }, { data: reports }] = await Promise.all([
+  const [{ data: emps }, { data: periods }, reports] = await Promise.all([
     admin.from('employees').select('id, emp_code, name, dept'),
     admin.from('periods').select('id, label, start_date').order('start_date'),
-    admin.from('final_reports').select('employee_id, period_id, status, content'),
+    // final_reports lintas periode (employee × period) → bisa >1000; ambil penuh.
+    fetchAllPaged<{ employee_id: string; period_id: string; status: string; content: Record<string, unknown> | null }>((from, to) =>
+      admin.from('final_reports').select('employee_id, period_id, status, content').order('period_id').order('employee_id').range(from, to)),
   ]);
   const empById = new Map((emps ?? []).map((e) => [e.id, e]));
   const plabel = new Map((periods ?? []).map((p) => [p.id, p.label]));
   const STATUS: Record<string, string> = { draft: 'Draf', in_review: 'Ditinjau SPV', finalized: 'Final' };
 
   const rows: Row[] = [];
-  for (const r of reports ?? []) {
+  for (const r of reports) {
     if (periodId && r.period_id !== periodId) continue;
     const content = (r.content ?? {}) as {
       aspectSummaries?: Record<string, string>;
@@ -264,22 +275,25 @@ export async function exportAspectSummaries(periodId?: string | null): Promise<E
 export async function exportAssessments(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
-  const [{ data: emps }, { data: periods }, asmtRes, { data: inds }, { data: aspects }, { data: maps }] = await Promise.all([
+  // assessments & mappings lintas periode → bisa >1000; ambil penuh.
+  const [{ data: emps }, { data: periods }, asmts, { data: inds }, { data: aspects }, mapsAll] = await Promise.all([
     admin.from('employees').select('id, emp_code, name, dept'),
     admin.from('periods').select('id, label'),
-    (periodId
-      ? admin.from('assessments').select('id, period_id, assessor_id, target_id, status').eq('status', 'submitted').eq('period_id', periodId)
-      : admin.from('assessments').select('id, period_id, assessor_id, target_id, status').eq('status', 'submitted')),
+    fetchAllPaged<{ id: string; period_id: string; assessor_id: string; target_id: string; status: string }>((from, to) => {
+      let q = admin.from('assessments').select('id, period_id, assessor_id, target_id, status').eq('status', 'submitted');
+      if (periodId) q = q.eq('period_id', periodId);
+      return q.order('id').range(from, to);
+    }),
     admin.from('indicators').select('id, text, aspect_id'),
     admin.from('culture_aspects').select('id, name'),
-    admin.from('mappings').select('assessor_id, target_id, period_id, relation'),
+    fetchAllPaged<{ assessor_id: string; target_id: string; period_id: string; relation: RelationKind }>((from, to) =>
+      admin.from('mappings').select('assessor_id, target_id, period_id, relation').order('assessor_id').order('target_id').range(from, to)),
   ]);
-  const asmts = asmtRes.data ?? [];
   const byId = new Map((emps ?? []).map((e) => [e.id, e]));
   const periodLabel = new Map((periods ?? []).map((p) => [p.id, p.label]));
   const aspectName = new Map((aspects ?? []).map((a) => [a.id, a.name]));
   const indMeta = new Map((inds ?? []).map((i) => [i.id, { text: i.text, aspek: aspectName.get(i.aspect_id) ?? '' }]));
-  const relBy = new Map((maps ?? []).map((m) => [`${m.assessor_id}|${m.target_id}|${m.period_id}`, m.relation]));
+  const relBy = new Map(mapsAll.map((m) => [`${m.assessor_id}|${m.target_id}|${m.period_id}`, m.relation]));
   const asmtIds = asmts.map((a) => a.id);
   const scoresByAsmt = new Map<string, { indicator_id: string; rating: number | null; comment: string | null }[]>();
   if (asmtIds.length) {
@@ -319,21 +333,24 @@ export async function exportAssessments(periodId?: string | null): Promise<Expor
 export async function exportQualAnswers(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
-  const [{ data: emps }, { data: periods }, asmtRes, { data: quals }, { data: maps }] = await Promise.all([
+  // assessments & mappings lintas periode → bisa >1000; ambil penuh.
+  const [{ data: emps }, { data: periods }, asmts, { data: quals }, mapsAll] = await Promise.all([
     admin.from('employees').select('id, name, dept'),
     admin.from('periods').select('id, label'),
-    (periodId
-      ? admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted').eq('period_id', periodId)
-      : admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted')),
+    fetchAllPaged<{ id: string; period_id: string; assessor_id: string; target_id: string }>((from, to) => {
+      let q = admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted');
+      if (periodId) q = q.eq('period_id', periodId);
+      return q.order('id').range(from, to);
+    }),
     admin.from('qualitative_questions').select('id, text, order_idx').order('order_idx'),
-    admin.from('mappings').select('assessor_id, target_id, period_id, relation'),
+    fetchAllPaged<{ assessor_id: string; target_id: string; period_id: string; relation: RelationKind }>((from, to) =>
+      admin.from('mappings').select('assessor_id, target_id, period_id, relation').order('assessor_id').order('target_id').range(from, to)),
   ]);
-  const asmts = asmtRes.data ?? [];
   const byId = new Map((emps ?? []).map((e) => [e.id, e]));
   const periodLabel = new Map((periods ?? []).map((p) => [p.id, p.label]));
   const qOrder = new Map((quals ?? []).map((q, i) => [q.id, i]));
   const qText = new Map((quals ?? []).map((q) => [q.id, q.text]));
-  const relBy = new Map((maps ?? []).map((m) => [`${m.assessor_id}|${m.target_id}|${m.period_id}`, m.relation]));
+  const relBy = new Map(mapsAll.map((m) => [`${m.assessor_id}|${m.target_id}|${m.period_id}`, m.relation]));
   const asmtIds = asmts.map((a) => a.id);
   const ansByAsmt = new Map<string, { question_id: string; answer: string | null }[]>();
   if (asmtIds.length) {
@@ -381,15 +398,20 @@ export async function exportQualAnswers(periodId?: string | null): Promise<Expor
 export async function exportSummary360(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
-  const [{ data: emps }, { data: periodsAll }, asmtRes, { data: maps }, { data: ws }] = await Promise.all([
+  // assessments & mappings lintas periode → bisa >1000; ambil penuh. weight_schemes 1/periode (kecil).
+  const [{ data: emps }, { data: periodsAll }, asmts, mapsAll, { data: ws }] = await Promise.all([
     admin.from('employees').select('id, emp_code, name, dept'),
     admin.from('periods').select('id, label, start_date').order('start_date'),
-    (periodId
-      ? admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted').eq('period_id', periodId)
-      : admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted')),
-    (periodId
-      ? admin.from('mappings').select('assessor_id, target_id, period_id, relation').eq('period_id', periodId)
-      : admin.from('mappings').select('assessor_id, target_id, period_id, relation')),
+    fetchAllPaged<{ id: string; period_id: string; assessor_id: string; target_id: string }>((from, to) => {
+      let q = admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted');
+      if (periodId) q = q.eq('period_id', periodId);
+      return q.order('id').range(from, to);
+    }),
+    fetchAllPaged<{ assessor_id: string; target_id: string; period_id: string; relation: RelationKind }>((from, to) => {
+      let q = admin.from('mappings').select('assessor_id, target_id, period_id, relation');
+      if (periodId) q = q.eq('period_id', periodId);
+      return q.order('assessor_id').order('target_id').range(from, to);
+    }),
     (periodId
       ? admin.from('weight_schemes').select('period_id, model, weights').eq('is_active', true).eq('period_id', periodId)
       : admin.from('weight_schemes').select('period_id, model, weights').eq('is_active', true)),
@@ -397,11 +419,11 @@ export async function exportSummary360(periodId?: string | null): Promise<Export
   const empById = new Map((emps ?? []).map((e) => [e.id, e]));
   const periodLabel = new Map((periodsAll ?? []).map((p) => [p.id, p.label]));
   const wsByPeriod = new Map((ws ?? []).map((w) => [w.period_id, { model: w.model as '4class' | '2class', weights: w.weights as WeightValues }]));
-  const relBy = new Map((maps ?? []).map((m) => [`${m.assessor_id}|${m.target_id}|${m.period_id}`, m.relation as RelationKind]));
+  const relBy = new Map(mapsAll.map((m) => [`${m.assessor_id}|${m.target_id}|${m.period_id}`, m.relation as RelationKind]));
 
   // Hitung penilai DIPETAKAN per (periode|target): Atasan vs Internal (Peer+Cross+Bawahan); Self dilewati.
   const counts = new Map<string, { atasan: number; internal: number; periodId: string; targetId: string }>();
-  (maps ?? []).forEach((m) => {
+  mapsAll.forEach((m) => {
     if ((m.relation as RelationKind) === 'Self' || m.assessor_id === m.target_id) return;
     const key = `${m.period_id}|${m.target_id}`;
     const c = counts.get(key) ?? { atasan: 0, internal: 0, periodId: m.period_id, targetId: m.target_id };
@@ -410,7 +432,6 @@ export async function exportSummary360(periodId?: string | null): Promise<Export
   });
 
   // Skor per-penilai (mean rating ×20) → grup per kelas per (periode|target).
-  const asmts = asmtRes.data ?? [];
   const asmtIds = asmts.map((a) => a.id);
   const ratingsByAsmt = new Map<string, number[]>();
   if (asmtIds.length) {
@@ -469,15 +490,20 @@ export async function exportSummary360(periodId?: string | null): Promise<Export
 export async function exportAspectScores(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
-  const [{ data: emps }, { data: periodsAll }, asmtRes, { data: maps }, { data: ws }, { data: inds }, { data: aspects }] = await Promise.all([
+  // assessments & mappings lintas periode → bisa >1000; ambil penuh.
+  const [{ data: emps }, { data: periodsAll }, asmts, mapsAll, { data: ws }, { data: inds }, { data: aspects }] = await Promise.all([
     admin.from('employees').select('id, emp_code, name, dept'),
     admin.from('periods').select('id, label, start_date').order('start_date'),
-    (periodId
-      ? admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted').eq('period_id', periodId)
-      : admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted')),
-    (periodId
-      ? admin.from('mappings').select('assessor_id, target_id, period_id, relation').eq('period_id', periodId)
-      : admin.from('mappings').select('assessor_id, target_id, period_id, relation')),
+    fetchAllPaged<{ id: string; period_id: string; assessor_id: string; target_id: string }>((from, to) => {
+      let q = admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted');
+      if (periodId) q = q.eq('period_id', periodId);
+      return q.order('id').range(from, to);
+    }),
+    fetchAllPaged<{ assessor_id: string; target_id: string; period_id: string; relation: RelationKind }>((from, to) => {
+      let q = admin.from('mappings').select('assessor_id, target_id, period_id, relation');
+      if (periodId) q = q.eq('period_id', periodId);
+      return q.order('assessor_id').order('target_id').range(from, to);
+    }),
     (periodId
       ? admin.from('weight_schemes').select('period_id, model, weights').eq('is_active', true).eq('period_id', periodId)
       : admin.from('weight_schemes').select('period_id, model, weights').eq('is_active', true)),
@@ -487,11 +513,10 @@ export async function exportAspectScores(periodId?: string | null): Promise<Expo
   const empById = new Map((emps ?? []).map((e) => [e.id, e]));
   const periodLabel = new Map((periodsAll ?? []).map((p) => [p.id, p.label]));
   const wsByPeriod = new Map((ws ?? []).map((w) => [w.period_id, { model: w.model as '4class' | '2class', weights: w.weights as WeightValues }]));
-  const relBy = new Map((maps ?? []).map((m) => [`${m.assessor_id}|${m.target_id}|${m.period_id}`, m.relation as RelationKind]));
+  const relBy = new Map(mapsAll.map((m) => [`${m.assessor_id}|${m.target_id}|${m.period_id}`, m.relation as RelationKind]));
   const aspectOf = new Map((inds ?? []).map((i) => [i.id, i.aspect_id])); // indikator → aspek
   const aspectMeta = new Map((aspects ?? []).map((a) => [a.id, { name: a.name, ord: a.order_idx ?? 0 }]));
 
-  const asmts = asmtRes.data ?? [];
   const asmtIds = asmts.map((a) => a.id);
   // rating per (assessment|aspek) → mean ×20 = skor penilai utk aspek itu (meniru loadReport).
   const ratByAsmtAspect = new Map<string, number[]>();
@@ -565,18 +590,23 @@ function weightsSummary(model: string | null, w: Record<string, number> | null):
 export async function exportPeriodConfig(periodId?: string | null): Promise<ConfigResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
+  // mappings/penalties/result_360 lintas periode → bisa >1000; ambil penuh (dipakai untuk hitung
+  // jumlah per periode — kalau terpotong, angka "jumlah pemetaan/punishment/skor 360" jadi salah).
   const [
     { data: periodsAll }, { data: pmonths }, { data: weights },
-    { data: aspectsAll }, { data: qualsAll }, { data: mapsAll }, { data: penAll }, { data: r360 },
+    { data: aspectsAll }, { data: qualsAll }, mapsAll, penAll, r360,
   ] = await Promise.all([
     admin.from('periods').select('id, code, label, status, start_date, end_date, has_360').order('start_date'),
     admin.from('period_months').select('period_id, ym'),
     admin.from('weight_schemes').select('period_id, model, weights, is_active').eq('is_active', true),
     admin.from('culture_aspects').select('id, period_id, name, order_idx').order('order_idx'),
     admin.from('qualitative_questions').select('id, period_id, text, order_idx').order('order_idx'),
-    admin.from('mappings').select('period_id, is_active'),
-    admin.from('compliance_penalties').select('period_id'),
-    admin.from('result_360').select('period_id, score'),
+    fetchAllPaged<{ period_id: string; is_active: boolean }>((from, to) =>
+      admin.from('mappings').select('period_id, is_active').order('period_id').range(from, to)),
+    fetchAllPaged<{ period_id: string }>((from, to) =>
+      admin.from('compliance_penalties').select('period_id').order('period_id').range(from, to)),
+    fetchAllPaged<{ period_id: string; score: number | null }>((from, to) =>
+      admin.from('result_360').select('period_id, score').order('period_id').range(from, to)),
   ]);
   const periods = (periodsAll ?? []).filter((p) => !periodId || p.id === periodId);
   if (periods.length === 0) return { ok: false, error: 'Periode tidak ditemukan.' };
@@ -607,11 +637,11 @@ export async function exportPeriodConfig(periodId?: string | null): Promise<Conf
   const qualCountByP = new Map<string, number>();
   (qualsAll ?? []).forEach((q) => { if (pids.has(q.period_id)) qualCountByP.set(q.period_id, (qualCountByP.get(q.period_id) ?? 0) + 1); });
   const mapCountByP = new Map<string, number>();
-  (mapsAll ?? []).forEach((m) => { if (pids.has(m.period_id) && m.is_active) mapCountByP.set(m.period_id, (mapCountByP.get(m.period_id) ?? 0) + 1); });
+  mapsAll.forEach((m) => { if (pids.has(m.period_id) && m.is_active) mapCountByP.set(m.period_id, (mapCountByP.get(m.period_id) ?? 0) + 1); });
   const penCountByP = new Map<string, number>();
-  (penAll ?? []).forEach((p) => { if (pids.has(p.period_id)) penCountByP.set(p.period_id, (penCountByP.get(p.period_id) ?? 0) + 1); });
+  penAll.forEach((p) => { if (pids.has(p.period_id)) penCountByP.set(p.period_id, (penCountByP.get(p.period_id) ?? 0) + 1); });
   const r360CountByP = new Map<string, number>();
-  (r360 ?? []).forEach((r) => { if (pids.has(r.period_id) && r.score != null) r360CountByP.set(r.period_id, (r360CountByP.get(r.period_id) ?? 0) + 1); });
+  r360.forEach((r) => { if (pids.has(r.period_id) && r.score != null) r360CountByP.set(r.period_id, (r360CountByP.get(r.period_id) ?? 0) + 1); });
 
   const STATUS = (s: string) => (s === 'active' ? 'Aktif' : 'Terkunci/Selesai');
 
@@ -719,12 +749,14 @@ export async function exportMappings(periodId?: string | null): Promise<ExportRe
     admin.from('employees').select('id, name, dept'),
     admin.from('periods').select('id, label'),
   ]);
-  let q = admin.from('mappings').select('assessor_id, target_id, period_id, relation, mandatory, is_active').eq('is_active', true);
-  if (periodId) q = q.eq('period_id', periodId);
-  const { data: maps } = await q;
+  const maps = await fetchAllPaged<{ assessor_id: string; target_id: string; period_id: string; relation: RelationKind; mandatory: boolean; is_active: boolean }>((from, to) => {
+    let q = admin.from('mappings').select('assessor_id, target_id, period_id, relation, mandatory, is_active').eq('is_active', true);
+    if (periodId) q = q.eq('period_id', periodId);
+    return q.order('assessor_id').order('target_id').range(from, to);
+  });
   const byId = new Map((emps ?? []).map((e) => [e.id, e]));
   const periodLabel = new Map((periods ?? []).map((p) => [p.id, p.label]));
-  const rows: Row[] = (maps ?? []).map((m) => ({
+  const rows: Row[] = maps.map((m) => ({
     periode: periodLabel.get(m.period_id) ?? '',
     penilai: byId.get(m.assessor_id)?.name ?? '', target: byId.get(m.target_id)?.name ?? '',
     relasi: m.relation, sifat: m.mandatory ? 'Wajib' : 'Opsional',

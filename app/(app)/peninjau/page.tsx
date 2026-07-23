@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { fetchAllByIds } from '@/lib/supabase/paginate';
 import { canCrossReview } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
 import { CrossTable, type CrossRow } from './cross-table';
@@ -44,10 +45,13 @@ export default async function PeninjauPage() {
 
   const { data: months } = await admin.from('period_months').select('ym').eq('period_id', ap.id);
   const yms = (months ?? []).map((m) => m.ym);
-  const { data: kpiRows } = yms.length
-    ? await admin.from('kpi_scores').select('employee_id, score').in('ym', yms).in('employee_id', empIds) : { data: [] };
+  // kpi_scores lintas-divisi × bulan → bisa >1000; ambil penuh (chunk id + paginasi).
+  const kpiRows = yms.length
+    ? await fetchAllByIds<{ employee_id: string; score: number }>(empIds, (chunk, from, to) =>
+        admin.from('kpi_scores').select('employee_id, score').in('ym', yms).in('employee_id', chunk).order('employee_id').order('ym').range(from, to))
+    : [];
   const kpiAgg = new Map<string, { sum: number; n: number }>();
-  (kpiRows ?? []).forEach((r) => { const a = kpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n++; kpiAgg.set(r.employee_id, a); });
+  kpiRows.forEach((r) => { const a = kpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n++; kpiAgg.set(r.employee_id, a); });
 
   const { data: r360 } = await admin.from('result_360').select('employee_id, score').eq('period_id', ap.id).in('employee_id', empIds);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
@@ -59,14 +63,15 @@ export default async function PeninjauPage() {
 
   // Kelengkapan "dinilai oleh" berbasis penilai WAJIB (selaras Review Hasil Akhir).
   // TANPA filter is_active (lihat catatan di Review Hasil Akhir): pegawai nonaktif tetap akurat.
-  const { data: maps } = await admin.from('mappings')
-    .select('assessor_id, target_id, mandatory').eq('period_id', ap.id).in('target_id', empIds);
-  const { data: subs } = await admin.from('assessments')
-    .select('assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted').in('target_id', empIds);
-  const doneSet = new Set((subs ?? []).map((s) => `${s.assessor_id}|${s.target_id}`));
+  // mappings & assessments lintas-divisi → bisa >1000; ambil penuh (chunk target_id + paginasi).
+  const maps = await fetchAllByIds<{ assessor_id: string; target_id: string; mandatory: boolean }>(empIds, (chunk, from, to) =>
+    admin.from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', ap.id).in('target_id', chunk).order('target_id').order('assessor_id').range(from, to));
+  const subs = await fetchAllByIds<{ assessor_id: string; target_id: string }>(empIds, (chunk, from, to) =>
+    admin.from('assessments').select('assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted').in('target_id', chunk).order('target_id').order('assessor_id').range(from, to));
+  const doneSet = new Set(subs.map((s) => `${s.assessor_id}|${s.target_id}`));
   const ratedTotal = new Map<string, number>();
   const ratedDone = new Map<string, number>();
-  (maps ?? []).forEach((m) => {
+  maps.forEach((m) => {
     if (!m.mandatory) return;
     ratedTotal.set(m.target_id, (ratedTotal.get(m.target_id) ?? 0) + 1);
     if (doneSet.has(`${m.assessor_id}|${m.target_id}`)) ratedDone.set(m.target_id, (ratedDone.get(m.target_id) ?? 0) + 1);

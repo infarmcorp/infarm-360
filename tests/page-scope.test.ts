@@ -296,3 +296,15 @@ describe('Flag Kepatuhan — grant halaman (pemantauan/lihat-saja; punishment te
     expect(grantedAccess([{ section: 'progress', scope: 'all' }], 'kepatuhan')).toBeNull();
   });
 });
+
+describe('Monitoring & Audit KPI — grant halaman (pemantauan/lihat-saja; input KPI tetap SPV/HRD)', () => {
+  it("'kpi' ada di katalog grant, berjenis pemantauan (lihat-saja)", () => {
+    expect(GRANTABLE_PAGES).toContain('kpi');
+    expect(GRANTABLE_PAGE_KIND.kpi).toBe('pemantauan');
+  });
+  it('grantedAccess membaca lingkup kpi (mono & multi); halaman lain → null', () => {
+    expect(grantedAccess([{ section: 'kpi', scope: 'coordinator_team' }], 'kpi')).toEqual({ scopes: ['coordinator_team'], canEdit: false });
+    expect(grantedAccess([{ section: 'kpi', scopes: ['own_division', 'other_divisions'] }], 'kpi')).toEqual({ scopes: ['own_division', 'other_divisions'], canEdit: false });
+    expect(grantedAccess([{ section: 'monitor', scope: 'all' }], 'kpi')).toBeNull();
+  });
+});

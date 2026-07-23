@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { finalScoreOf, playerClassOf, playerLabelOf, perfCategoryOf, perfLabelOf } from '@/lib/scoring';
 import { PeriodSelect } from './period-select';
 
@@ -18,8 +18,10 @@ const KAT = (f: number | null) => {
   return { t: perfLabelOf(f), c: c ? KAT_COLOR[c] : 'text-gray-500' };
 };
 
-export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }: { role: string; userId: string; periodParam?: string; hrdMode?: 'admin' | 'spv' }) {
-  const supabase = await createClient();
+export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', scopedIds }: { role: string; userId: string; periodParam?: string; hrdMode?: 'admin' | 'spv'; scopedIds?: string[] | null }) {
+  // Jalur GRANT non-HRD (Manajemen Akses): pemegang grant diblokir RLS → baca via service_role,
+  // dibatasi ke daftar id yang SUDAH disaring per-lingkup di page.tsx (employeeInScopes).
+  const supabase = scopedIds ? createAdminClient() : await createClient();
 
   const { data: periods } = await supabase.from('periods').select('id, label, has_360, status').order('label');
   const periodList = periods ?? [];
@@ -34,7 +36,13 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
   // bila tak punya data di periode (lihat filter `shown`). Jadi nonaktif yang sudah punya
   // KPI/360° di kuartal ini tetap muncul (mis. resign di akhir periode) & bisa difinalisasi.
   let empRows: { id: string; name: string; dept: string; is_active: boolean }[] = [];
-  if (role === 'spv') {
+  if (scopedIds) {
+    // Grant berlingkup: hanya pegawai dalam daftar tersaring (id sudah dibatasi lingkup di server).
+    const { data } = scopedIds.length
+      ? await supabase.from('employees').select('id, name, dept, is_active').in('id', scopedIds)
+      : { data: [] };
+    empRows = data ?? [];
+  } else if (role === 'spv') {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);
     // SPV juga mencatat KPI dirinya sendiri (migrasi 0008) → sertakan dalam rekap.
     const ids = [...new Set([userId, ...(team ?? []).map((t) => t.employee_id)])];

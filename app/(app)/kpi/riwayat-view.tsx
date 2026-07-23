@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { RiwayatList, type FlatAudit } from './riwayat-list';
 
 /**
@@ -12,8 +12,10 @@ const fmt = (iso: string) => {
     d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 };
 
-export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'admin', byPeriod = false, periodParam }: { role: string; canAdmin?: boolean; userId: string; hrdMode?: 'admin' | 'spv'; byPeriod?: boolean; periodParam?: string }) {
-  const supabase = await createClient();
+export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'admin', byPeriod = false, periodParam, scopedIds }: { role: string; canAdmin?: boolean; userId: string; hrdMode?: 'admin' | 'spv'; byPeriod?: boolean; periodParam?: string; scopedIds?: string[] | null }) {
+  // Jalur GRANT non-HRD (Manajemen Akses): pemegang grant diblokir RLS → baca via service_role,
+  // dibatasi ke daftar id yang SUDAH disaring per-lingkup di page.tsx (employeeInScopes).
+  const supabase = scopedIds ? createAdminClient() : await createClient();
 
   // Penyaringan per periode (untuk halaman Monitoring berdampingan): batasi audit ke
   // bulan periode terpilih — resolusi SAMA dgn RekapView agar satu dropdown ?period=
@@ -34,7 +36,13 @@ export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'a
   // Lingkup pegawai. Izin HRD (canAdmin) di mode admin → semua; HRD-posisi mode-SPV → DIVISINYA
   // (selaras Input KPI); SPV → anggota timnya. Pemegang grant non-HRD pakai cabang admin (semua).
   let empRows: { id: string; name: string; dept: string }[] = [];
-  if (canAdmin && hrdMode === 'admin') {
+  if (scopedIds) {
+    // Grant berlingkup: hanya pegawai dalam daftar tersaring (id sudah dibatasi lingkup di server).
+    const { data } = scopedIds.length
+      ? await supabase.from('employees').select('id, name, dept').in('id', scopedIds)
+      : { data: [] };
+    empRows = data ?? [];
+  } else if (canAdmin && hrdMode === 'admin') {
     const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false);
     empRows = data ?? [];
   } else if (role === 'hrd') {

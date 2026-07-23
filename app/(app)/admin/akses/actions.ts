@@ -185,5 +185,6 @@ function revalidate() {
   revalidatePath('/admin/akses');
   // Perubahan grant langsung tercermin di menu (layout) & halaman target.
   revalidatePath('/admin/monitor');
+  revalidatePath('/kpi');
   revalidatePath('/', 'layout');
 }

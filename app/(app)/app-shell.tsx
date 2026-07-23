@@ -128,6 +128,9 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewe
     if (pageGrants.some((g) => g.section === 'kepatuhan')) {
       grantItems.push({ href: '/admin/kepatuhan', label: 'Flag Kepatuhan', icon: ShieldAlert });
     }
+    if (pageGrants.some((g) => g.section === 'kpi')) {
+      grantItems.push({ href: '/kpi?tab=riwayat', label: 'Monitoring & Audit KPI', icon: Clock });
+    }
     if (grantItems.length) sections.push({ title: 'Akses dari HRD', items: grantItems });
   }
 

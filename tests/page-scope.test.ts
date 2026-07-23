@@ -263,3 +263,36 @@ describe('Dashboard Organisasi — grant halaman (pemantauan, lihat-saja berling
     expect(grantedAccess([{ section: 'monitor', scope: 'all' }], 'dashboard')).toBeNull();
   });
 });
+
+describe('Struktur Organisasi — grant halaman (pemantauan, lihat-saja berlingkup)', () => {
+  it("'struktur' ada di katalog grant, berjenis pemantauan", () => {
+    expect(GRANTABLE_PAGES).toContain('struktur');
+    expect(GRANTABLE_PAGE_KIND.struktur).toBe('pemantauan');
+  });
+  it('grantedAccess membaca lingkup struktur; halaman lain → null', () => {
+    expect(grantedAccess([{ section: 'struktur', scope: 'own_division' }], 'struktur')).toEqual({ scopes: ['own_division'], canEdit: false });
+    expect(grantedAccess([{ section: 'dashboard', scope: 'all' }], 'struktur')).toBeNull();
+  });
+});
+
+describe('Progress 360 Feedback — grant halaman (pemantauan, lihat-saja berlingkup)', () => {
+  it("'progress' ada di katalog grant, berjenis pemantauan", () => {
+    expect(GRANTABLE_PAGES).toContain('progress');
+    expect(GRANTABLE_PAGE_KIND.progress).toBe('pemantauan');
+  });
+  it('grantedAccess membaca lingkup progress; halaman lain → null', () => {
+    expect(grantedAccess([{ section: 'progress', scope: 'coordinator_team', scopes: ['coordinator_team'] }], 'progress')).toEqual({ scopes: ['coordinator_team'], canEdit: false });
+    expect(grantedAccess([{ section: 'struktur', scope: 'all' }], 'progress')).toBeNull();
+  });
+});
+
+describe('Flag Kepatuhan — grant halaman (pemantauan/lihat-saja; punishment tetap HRD-only)', () => {
+  it("'kepatuhan' ada di katalog grant, berjenis pemantauan (lihat-saja)", () => {
+    expect(GRANTABLE_PAGES).toContain('kepatuhan');
+    expect(GRANTABLE_PAGE_KIND.kepatuhan).toBe('pemantauan');
+  });
+  it('grantedAccess membaca lingkup kepatuhan; halaman lain → null', () => {
+    expect(grantedAccess([{ section: 'kepatuhan', scope: 'own_division' }], 'kepatuhan')).toEqual({ scopes: ['own_division'], canEdit: false });
+    expect(grantedAccess([{ section: 'progress', scope: 'all' }], 'kepatuhan')).toBeNull();
+  });
+});

@@ -14,7 +14,7 @@ export type AssessorRow = {
 /** Info read-only "per yang dinilai": berapa penilai ditugaskan & berapa sudah menilai dia. */
 export type TargetRow = { id: string; name: string; dept: string; total: number; done: number };
 
-export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targetRows: TargetRow[] }) {
+export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: AssessorRow[]; targetRows: TargetRow[]; readOnly?: boolean }) {
   const [q, setQ] = useState('');
   const [dept, setDept] = useState('all');
   const [status, setStatus] = useState<'all' | 'lengkap' | 'belum'>('all');
@@ -81,25 +81,29 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
           <option value="lengkap">Lengkap</option>
           <option value="belum">Belum Lengkap</option>
         </select>
-        <button type="button" onClick={() => act(massReminder)} disabled={pending}
-          className="text-xs font-bold px-3 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white disabled:opacity-60">
-          🔔 Kirim Pengingat Massal
-        </button>
-        <button type="button" disabled={pending}
-          onClick={() => setConfirm({
-            title: 'Kirim Undangan Massal?',
-            onYes: () => act(massOnboarding),
-            body: (
-              <>
-                <p>Kirim <strong>Undangan &amp; Info Akun</strong> ke semua pegawai.</p>
-                <p>Sandi mereka akan <strong>DISETEL ULANG</strong> (acak unik) lalu dikirim via email.</p>
-                <p className="font-semibold text-rose-700">Lakukan sekali di awal periode, sebelum mereka mengganti sandi sendiri.</p>
-              </>
-            ),
-          })}
-          className="text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-60">
-          📨 Kirim Undangan Massal
-        </button>
+        {!readOnly && (
+          <>
+            <button type="button" onClick={() => act(massReminder)} disabled={pending}
+              className="text-xs font-bold px-3 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white disabled:opacity-60">
+              🔔 Kirim Pengingat Massal
+            </button>
+            <button type="button" disabled={pending}
+              onClick={() => setConfirm({
+                title: 'Kirim Undangan Massal?',
+                onYes: () => act(massOnboarding),
+                body: (
+                  <>
+                    <p>Kirim <strong>Undangan &amp; Info Akun</strong> ke semua pegawai.</p>
+                    <p>Sandi mereka akan <strong>DISETEL ULANG</strong> (acak unik) lalu dikirim via email.</p>
+                    <p className="font-semibold text-rose-700">Lakukan sekali di awal periode, sebelum mereka mengganti sandi sendiri.</p>
+                  </>
+                ),
+              })}
+              className="text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-60">
+              📨 Kirim Undangan Massal
+            </button>
+          </>
+        )}
       </div>
       {toast && <p className={`text-xs font-semibold ${toast.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{toast.text}</p>}
 
@@ -124,19 +128,21 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${complete ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
                     {r.mandatoryDone}/{r.mandatoryTotal} wajib · {complete ? 'Lengkap' : 'Belum'}
                   </span>
-                  <button type="button" disabled={pending}
-                    onClick={() => setConfirm({
-                      title: `Kirim Undangan ke ${r.name}?`,
-                      onYes: () => act(() => sendOnboarding(r.id)),
-                      body: (
-                        <p>Sandi <strong>{r.name}</strong> akan <strong>disetel ulang</strong> (acak) lalu dikirim via email berisi info akun &amp; panduan.</p>
-                      ),
-                    })}
-                    title="Kirim undangan + info akun (peran, email, sandi baru, panduan)"
-                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">
-                    Undangan
-                  </button>
-                  {!complete && (
+                  {!readOnly && (
+                    <button type="button" disabled={pending}
+                      onClick={() => setConfirm({
+                        title: `Kirim Undangan ke ${r.name}?`,
+                        onYes: () => act(() => sendOnboarding(r.id)),
+                        body: (
+                          <p>Sandi <strong>{r.name}</strong> akan <strong>disetel ulang</strong> (acak) lalu dikirim via email berisi info akun &amp; panduan.</p>
+                        ),
+                      })}
+                      title="Kirim undangan + info akun (peran, email, sandi baru, panduan)"
+                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">
+                      Undangan
+                    </button>
+                  )}
+                  {!readOnly && !complete && (
                     <button type="button" onClick={() => act(() => sendReminder(r.id))} disabled={pending}
                       className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 disabled:opacity-60">
                       Kirim Pengingat
@@ -186,10 +192,12 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
                           {p.mandatory ? 'Wajib' : 'Opsional'}
                         </span>
                       </div>
-                      <button type="button" onClick={() => act(() => forceComplete(r.id, p.targetId))} disabled={pending}
-                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-60 shrink-0">
-                        Paksa Selesai
-                      </button>
+                      {!readOnly && (
+                        <button type="button" onClick={() => act(() => forceComplete(r.id, p.targetId))} disabled={pending}
+                          className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-60 shrink-0">
+                          Paksa Selesai
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

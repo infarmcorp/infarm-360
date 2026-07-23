@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { canSection } from '@/lib/auth/roles';
+import { cookies } from 'next/headers';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import { ProgressClient, type AssessorRow, type TargetRow } from './progress-client';
 
 /**
@@ -12,20 +13,40 @@ export default async function ProgressPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
-  if (!canSection(me, 'progress')) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin.</p></Shell>;
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections, dept').eq('id', user.id).maybeSingle();
+  // Akses SADAR-MODE: PENUH hanya HRD di Mode Admin; selain itu → jalur GRANT 'progress' berlingkup
+  // (LIHAT-SAJA; aksi tulis tetap HRD-only). Baca via service_role, disaring per lingkup.
+  const jar = await cookies();
+  const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
+  const isHrdFull = canSection(me, 'progress') && hrdMode === 'admin';
+  let grantScopes: PageScope[] | null = null;
+  if (!isHrdFull) {
+    const { data: g } = await supabase.from('page_grants').select('section, scope, scopes').eq('employee_id', user.id);
+    grantScopes = grantedAccess(g, 'progress')?.scopes ?? null;
   }
+  if (!isHrdFull && !grantScopes) {
+    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk HRD Admin atau pemegang akses Progress 360°.</p></Shell>;
+  }
+  const viaGrant = !isHrdFull;
+  const ownDept = (me?.dept ?? '').trim();
+  const db = viaGrant ? createAdminClient() : supabase;
+  const teamIds = viaGrant && grantScopes!.includes('coordinator_team')
+    ? new Set(((await db.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id)).data ?? []).map((r) => r.employee_id))
+    : undefined;
 
-  const { data: ap } = await supabase.from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
+  const { data: ap } = await db.from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
 
-  // Independen (hanya butuh ap.id / tak butuh apa pun) → paralel.
+  // Independen → paralel. (Pemegang grant baca via service_role.)
   const [empsRes, mapsRes, asmtsRes] = await Promise.all([
-    supabase.from('employees').select('id, name, dept'),
-    supabase.from('mappings').select('assessor_id, target_id, relation, mandatory').eq('period_id', ap.id).eq('is_active', true),
-    supabase.from('assessments').select('assessor_id, target_id, status').eq('period_id', ap.id),
+    db.from('employees').select('id, name, dept'),
+    db.from('mappings').select('assessor_id, target_id, relation, mandatory').eq('period_id', ap.id).eq('is_active', true),
+    db.from('assessments').select('assessor_id, target_id, status').eq('period_id', ap.id),
   ]);
+  // Pemegang grant: himpunan id pegawai DALAM lingkup → menyaring baris penilai & yang-dinilai.
+  const scopedIds = viaGrant
+    ? new Set((empsRes.data ?? []).filter((e) => employeeInScopes(grantScopes!, ownDept, user.id, { id: e.id, dept: e.dept }, teamIds)).map((e) => e.id))
+    : null;
   const empById = new Map((empsRes.data ?? []).map((e) => [e.id, e]));
   const maps = mapsRes.data;
   const submitted = new Set((asmtsRes.data ?? []).filter((a) => a.status === 'submitted').map((a) => `${a.assessor_id}|${a.target_id}`));
@@ -77,13 +98,17 @@ export default async function ProgressPage() {
     return { id: targetId, name: e?.name ?? '—', dept: e?.dept ?? '—', total: assessorIds.length, done };
   }).sort((a, b) => (a.done / Math.max(a.total, 1)) - (b.done / Math.max(b.total, 1)) || a.name.localeCompare(b.name));
 
+  // Pemegang grant: saring baris ke lingkup (penilai & yang-dinilai dalam lingkup).
+  const rowsOut = scopedIds ? rows.filter((r) => scopedIds.has(r.id)) : rows;
+  const targetRowsOut = scopedIds ? targetRows.filter((t) => scopedIds.has(t.id)) : targetRows;
+
   return (
     <Shell>
       <div className="mb-4">
         <h1 className="text-xl font-bold text-gray-800">Progress 360 Feedback</h1>
-        <p className="text-sm text-gray-500">Periode aktif: {ap.label} · kelengkapan pengisian 360°.</p>
+        <p className="text-sm text-gray-500">Periode aktif: {ap.label} · kelengkapan pengisian 360°.{viaGrant ? ' (lihat-saja)' : ''}</p>
       </div>
-      <ProgressClient rows={rows} targetRows={targetRows} />
+      <ProgressClient rows={rowsOut} targetRows={targetRowsOut} readOnly={viaGrant} />
     </Shell>
   );
 }

@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-import { canSection } from '@/lib/auth/roles';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import { StrukturView, type Person, type SpvNode, type CoordNode, type DeptStat } from './struktur-view';
 import type { OrgNode } from './org-chart';
 
@@ -15,24 +16,42 @@ export default async function StrukturPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
-  if (!canSection(me, 'struktur')) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin.</p>
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections, dept').eq('id', user.id).maybeSingle();
+  // Akses SADAR-MODE: PENUH (semua pegawai) hanya HRD di Mode Admin; selain itu → jalur GRANT 'struktur'
+  // berlingkup (baca via service_role, disaring per lingkup → bagan menyusut ke lingkup pemegang).
+  const jar = await cookies();
+  const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
+  const isHrdFull = canSection(me, 'struktur') && hrdMode === 'admin';
+  let grantScopes: PageScope[] | null = null;
+  if (!isHrdFull) {
+    const { data: g } = await supabase.from('page_grants').select('section, scope, scopes').eq('employee_id', user.id);
+    grantScopes = grantedAccess(g, 'struktur')?.scopes ?? null;
+  }
+  if (!isHrdFull && !grantScopes) {
+    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk HRD Admin atau pemegang akses Struktur Organisasi.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
+  const viaGrant = !isHrdFull;
+  const ownDept = (me?.dept ?? '').trim();
+  const db = viaGrant ? createAdminClient() : supabase;
+  const teamIds = viaGrant && grantScopes!.includes('coordinator_team')
+    ? new Set(((await db.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id)).data ?? []).map((r) => r.employee_id))
+    : undefined;
 
-  const { data: emps } = await supabase.from('employees')
+  const { data: emps } = await db.from('employees')
     .select('id, emp_code, name, dept, role, is_active, is_hrd_admin, is_cross_reviewer, is_coordinator')
     .eq('is_external', false).order('emp_code');
-  const employees = emps ?? [];
+  // Pemegang grant: batasi daftar ke lingkupnya → seluruh turunan bagan (SPV/koordinator/pohon/orphan/
+  // ringkasan) otomatis menyusut karena semuanya diturunkan dari `employees`/`byId`.
+  const employees = (emps ?? []).filter((e) => !viaGrant || employeeInScopes(grantScopes!, ownDept, user.id, e, teamIds));
   const toPerson = (e: (typeof employees)[number]): Person => ({
     id: e.id, empCode: e.emp_code, name: e.name, dept: e.dept, role: e.role,
     active: e.is_active, isHrdAdmin: e.is_hrd_admin, isCrossReviewer: e.is_cross_reviewer, isCoordinator: e.is_coordinator,
   });
   const byId = new Map(employees.map((e) => [e.id, toPerson(e)]));
 
-  const { data: spvRows } = await supabase.from('spv_team_members').select('spv_id, employee_id');
-  const { data: coordRows } = await supabase.from('coordinator_team_members').select('coordinator_id, employee_id');
+  const { data: spvRows } = await db.from('spv_team_members').select('spv_id, employee_id');
+  const { data: coordRows } = await db.from('coordinator_team_members').select('coordinator_id, employee_id');
 
   // Pegawai yang DIKOORDINASI (punya koordinator) → bernaung di bawah koordinatornya, BUKAN
   // langsung SPV. Jadi dikeluarkan dari kartu/anak SPV (tampil di bawah koordinator).

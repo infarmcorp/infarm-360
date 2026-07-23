@@ -119,6 +119,15 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewe
     if (pageGrants.some((g) => g.section === 'dashboard')) {
       grantItems.push({ href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard });
     }
+    if (pageGrants.some((g) => g.section === 'struktur')) {
+      grantItems.push({ href: '/admin/struktur', label: 'Struktur Organisasi', icon: Building2 });
+    }
+    if (pageGrants.some((g) => g.section === 'progress')) {
+      grantItems.push({ href: '/admin/progress', label: 'Progress 360 Feedback', icon: CircleCheckBig });
+    }
+    if (pageGrants.some((g) => g.section === 'kepatuhan')) {
+      grantItems.push({ href: '/admin/kepatuhan', label: 'Flag Kepatuhan', icon: ShieldAlert });
+    }
     if (grantItems.length) sections.push({ title: 'Akses dari HRD', items: grantItems });
   }
 

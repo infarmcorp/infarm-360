@@ -15,7 +15,7 @@ export type KepatuhanRow = {
  */
 const needsAttention = (r: KepatuhanRow) => r.lateCount > 0 || r.selfMissing || r.points > 0;
 
-export function KepatuhanTable({ rows }: { rows: KepatuhanRow[] }) {
+export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[]; readOnly?: boolean }) {
   const [showAll, setShowAll] = useState(false);
   const flagged = useMemo(() => rows.filter(needsAttention), [rows]);
   const shown = showAll ? rows : flagged;
@@ -74,7 +74,9 @@ export function KepatuhanTable({ rows }: { rows: KepatuhanRow[] }) {
                         : <span className="text-[10px] text-emerald-600">✔</span>}
                     </td>
                     <td className="py-3 pl-3 text-right">
-                      <PenaltyInput employeeId={r.id} initial={r.points} />
+                      {readOnly
+                        ? <span className={`text-sm font-bold ${r.points > 0 ? 'text-rose-700' : 'text-gray-400'}`}>{r.points > 0 ? `${r.points} poin` : '—'}</span>
+                        : <PenaltyInput employeeId={r.id} initial={r.points} />}
                     </td>
                   </tr>
                 ))}

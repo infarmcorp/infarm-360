@@ -5,6 +5,7 @@ import { canSection } from '@/lib/auth/roles';
 import type { WeightValues, RelationKind } from '@/lib/database.types';
 import { WeightForm } from './weight-form';
 import { EmployeeWeights, type Override } from './employee-weights';
+import { KalkulasiTable, CompareTable } from './bobot-tables';
 import { RecomputeButton } from '../360/recompute-button';
 import { EmptyState } from '@/components/empty-state';
 import { fetchAllByIds } from '@/lib/supabase/paginate';
@@ -163,28 +164,7 @@ export default async function BobotPage() {
             <strong> {model === '4class' ? '4-Kelas' : '2-Kelas'}</strong>. Self dikecualikan dari total.
           </p>
         </div>
-        {stored.length === 0 ? (
-          <p className="text-sm text-gray-500">Belum ada hasil resmi. Klik <strong>Hitung Ulang Skor 360°</strong> setelah ada penilaian terkirim.</p>
-        ) : (
-          <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm min-w-[420px]">
-            <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
-                <th className="py-2 pr-3">Pegawai</th><th className="py-2 px-3">Divisi</th><th className="py-2 pl-3 text-right">Skor 360° Resmi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {stored.map((it) => (
-                <tr key={it.id}>
-                  <td className="py-3 pr-3 font-bold text-gray-800">{it.name}</td>
-                  <td className="py-3 px-3 text-gray-500">{it.dept}</td>
-                  <td className="py-3 pl-3 text-right font-mono font-black text-indigo-700">{it.score != null ? it.score.toFixed(2) : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        )}
+        <KalkulasiTable rows={stored} />
       </Section>
 
       {/* 3. Perbandingan Model 4-Kelas vs 2-Kelas */}
@@ -194,37 +174,7 @@ export default async function BobotPage() {
           (4-Kelas: Atasan {wa}/Peer {wp}/Cross {wc}/Bawahan {wb} · 2-Kelas: Atasan {wa}/Internal {wi}). Membantu memilih
           model sebelum <strong>Hitung Ulang</strong>. Kolom <strong>{model === '4class' ? '4-Kelas' : '2-Kelas'}</strong> adalah model aktif.
         </p>
-        {compare.length === 0 ? (
-          <p className="text-sm text-gray-500">Belum ada penilaian terkirim untuk dibandingkan.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[480px]">
-              <thead>
-                <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
-                  <th className="py-2 pr-3">Pegawai</th>
-                  <th className={`py-2 px-3 text-right ${model === '4class' ? 'text-emerald-700' : ''}`}>4-Kelas{model === '4class' ? ' ●' : ''}</th>
-                  <th className={`py-2 px-3 text-right ${model === '2class' ? 'text-emerald-700' : ''}`}>2-Kelas{model === '2class' ? ' ●' : ''}</th>
-                  <th className="py-2 pl-3 text-right">Selisih</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {compare.map((c) => {
-                  const delta = c.s4 != null && c.s2 != null ? round1(c.s4 - c.s2) : null;
-                  return (
-                    <tr key={c.id}>
-                      <td className="py-3 pr-3"><span className="font-bold text-gray-800 block">{c.name}</span><span className="text-[11px] text-gray-500">{c.dept}</span></td>
-                      <td className={`py-3 px-3 text-right font-mono ${model === '4class' ? 'font-black text-emerald-800' : 'text-gray-600'}`}>{c.s4 != null ? c.s4.toFixed(2) : '—'}</td>
-                      <td className={`py-3 px-3 text-right font-mono ${model === '2class' ? 'font-black text-emerald-800' : 'text-gray-600'}`}>{c.s2 != null ? c.s2.toFixed(2) : '—'}</td>
-                      <td className={`py-3 pl-3 text-right font-mono font-bold ${delta == null ? 'text-gray-300' : delta > 0 ? 'text-emerald-700' : delta < 0 ? 'text-rose-600' : 'text-gray-500'}`}>
-                        {delta == null ? '—' : `${delta > 0 ? '+' : ''}${delta.toFixed(2)}`}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <CompareTable rows={compare} model={model} />
         <p className="text-[10px] text-gray-500 italic mt-3">
           Selisih = 4-Kelas − 2-Kelas. Pratinjau ini tidak mengubah data; skor resmi hanya berubah saat <strong>Hitung Ulang</strong>.
         </p>

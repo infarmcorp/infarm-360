@@ -368,6 +368,37 @@ flowchart TD
 
 ### 10.6 ✅ TERBANGUN (2026-07-24) — alur penerima-dulu live di `akses-client.tsx`
 
+**Diagram alur terbangun** (ringkas):
+
+```mermaid
+flowchart TD
+  START["Manajemen Akses"] --> TAB{"Pilih tab"}
+  TAB -->|"Kelola Akses"| S1{"Pilih SIAPA<br/>penerimanya"}
+  TAB -->|"Log aktivitas"| LOG["Riwayat perubahan"]
+
+  S1 -->|"Seorang pegawai"| EMP["Profil akses 1 layar"]
+  S1 -->|"Sebuah peran"| ROLE["Beri akses halaman<br/>ke semua anggota peran"]
+  S1 -->|"Sebuah halaman"| PAGE["Daftar pemegang halaman"]
+
+  EMP --> A["A. Bawaan peran<br/>(otomatis, lihat saja)"]
+  EMP --> B["B. Akses halaman tambahan<br/>beri / ubah izin / cabut"]
+  EMP --> C["C. Izin khusus<br/>HRD Admin / Koordinator"]
+
+  B --> SCOPE["Atur LINGKUP:<br/>semua / divisinya /<br/>luar divisi / tim naungan"]
+  SCOPE --> IZIN["Atur IZIN:<br/>1 Lihat · 2 Meringkas · 3 Finalisasi"]
+
+  PAGE --> REV["Cabut per-orang<br/>atau cabut dari semua"]
+
+  classDef hot fill:#fef9c3,stroke:#ca8a04,color:#713f12;
+  classDef good fill:#dcfce7,stroke:#16a34a,color:#14532d;
+  class EMP good;
+  class SCOPE,IZIN hot;
+```
+
+**Baca diagram:** pilih **siapa** dulu → kalau *pegawai*, satu layar menampilkan tiga lapis akses
+(bawaan / halaman tambahan / izin khusus); **lingkup** dan **izin 3-tingkat** diatur saat memberi akses
+halaman (kotak kuning). Mode *peran* = beri halaman massal; mode *halaman* = cabut massal.
+
 UI dirombak penuh sesuai §10.2: tab utama **Kelola Akses** (satu alur) + **Log aktivitas** (terpisah).
 - **Langkah 1** — segmented penerima: **Seorang pegawai** / **Sebuah peran** / **Sebuah halaman**.
 - **Langkah 2 (pegawai)** — profil 1 layar: (A) akses bawaan peran (read-only, `inheritedAccess`),

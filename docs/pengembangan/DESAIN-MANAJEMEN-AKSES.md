@@ -366,6 +366,18 @@ flowchart TD
 > 160 tes hijau · typecheck · build. **PRASYARAT DEPLOY: apply 0032 & 0033 ke DB sebelum merge.** Kolom
 > `is_cross_reviewer` dibiarkan vestigial (tak di-drop) — tak dibaca kode lagi.
 
+### 10.6 ✅ TERBANGUN (2026-07-24) — alur penerima-dulu live di `akses-client.tsx`
+
+UI dirombak penuh sesuai §10.2: tab utama **Kelola Akses** (satu alur) + **Log aktivitas** (terpisah).
+- **Langkah 1** — segmented penerima: **Seorang pegawai** / **Sebuah peran** / **Sebuah halaman**.
+- **Langkah 2 (pegawai)** — profil 1 layar: (A) akses bawaan peran (read-only, `inheritedAccess`),
+  (B) akses halaman tambahan (chip + putar izin + cabut + "＋ beri akses" → panel Lingkup&Izin inline),
+  (C) izin khusus (HRD Admin/Atur Akses/Koordinator/Kelola Tim — hanya bila memenuhi syarat).
+- **Mode Peran** — beri akses halaman ke semua anggota peran (materialisasi; izin khusus tetap per-orang).
+- **Mode Halaman** — daftar pemegang (paginasi 5) + cabut per-orang + **cabut dari semua** (sumbu ke-3).
+- Bekas "Tambah akses baru" + "Izin Peran & Akses HRD" + tab "Mencabut" **dilebur**. Semua handler server
+  (setPageGrant/ForRole, removePageGrant/All, toggleHrd/Coord, dialog) dipertahankan. 160 tes · build hijau.
+
 ### 10.4 Rekomendasiku
 Setuju **penerima-dulu** — itu menyederhanakan model mental & otomatis menyatukan dua pintu jadi satu.
 Kunci suksesnya: **profil akses 3-lapis** (bawaan / halaman / kapabilitas) dalam satu layar, dengan

@@ -183,103 +183,80 @@ Konsol Manajemen Akses ditata jadi 3 kolom, satu pemberian akses = **1 halaman �
 
 ### 10.1 Diagram — struktur SAAT INI (as-is)
 
-Akar kebingungan: **dua "pintu masuk" pemberian akses** dengan model mental berbeda, dan **dua target
-tulis** (`page_grants` vs flag di `employees`). "Peran" muncul di dua tempat berbeda.
+Inti kebingungan: ada **DUA cara berbeda** memberi akses di halaman yang sama. Keduanya sama-sama
+"memberi sesuatu ke seseorang", tapi tampil sebagai dua tempat terpisah — dan kata "peran" muncul di
+keduanya dengan arti berbeda.
 
 ```mermaid
 flowchart TD
-  A["Manajemen Akses /admin/akses"] --> T1["Tab: Memberikan akses"]
-  A --> T2["Tab: Mencabut akses"]
-  A --> T3["Tab: Log aktivitas"]
+  A["Halaman Manajemen Akses"] --> T1["Tab 1 — Memberikan akses"]
+  A --> T2["Tab 2 — Mencabut akses"]
+  A --> T3["Tab 3 — Riwayat perubahan"]
 
-  %% --- Tab Memberikan ---
-  T1 --> B1["Tambah akses baru — 3 kolom"]
-  B1 --> B1a["1 · Pilih halaman<br/>Pemantauan / Administrator"]
-  B1 --> B1b["2 · Pilih penerima<br/>Pegawai tertentu ATAU Semua peran"]
-  B1 --> B1c["3 · Lingkup & izin<br/>scopes[] + edit/lihat"]
-  B1c --> W1[("TULIS: page_grants")]
+  %% --- Dua cara memberi (sumber kebingungan) ---
+  T1 --> B1["Cara A: Tambah akses baru"]
+  B1 --> B1a["Pilih halaman"]
+  B1a --> B1b["Pilih penerima:<br/>satu pegawai ATAU satu peran"]
+  B1b --> B1c["Atur seberapa luas datanya<br/>+ boleh edit atau lihat saja"]
+  B1c --> W1["Hasil: memberi akses ke sebuah HALAMAN"]
 
-  T1 --> B2["Pegawai Baru<br/>tinjau akses tambahan"]
-  B2 --> B2a["Tinjau akses → prefill kolom 1-3"]
-  B2 --> B2b["Tandai sudah ditinjau"]
-
-  T1 --> B3["Izin Peran & Akses HRD<br/>tabel cari-pegawai (PINTU KE-2)"]
-  B3 --> B3a["HRD Admin (toggle)"]
-  B3a --> B3a1["Atur Akses / hrd_sections"]
-  B3 --> B3b["Peninjau Lintas Divisi (toggle)"]
-  B3 --> B3c["Koordinator (toggle)"]
-  B3c --> B3c1["Kelola Tim naungan"]
-  B3a --> W2[("TULIS: flag di employees")]
+  T1 --> B3["Cara B: Izin Peran & HRD<br/>(tempat lain, bentuk beda)"]
+  B3 --> B3a["Jadikan HRD Admin"]
+  B3 --> B3b["Jadikan Peninjau antar-divisi"]
+  B3 --> B3c["Jadikan Koordinator + pilih timnya"]
+  B3a --> W2["Hasil: mengubah PERAN / kewenangan orang"]
   B3b --> W2
   B3c --> W2
 
-  %% --- Tab Mencabut ---
-  T2 --> C1["Ringkasan per-halaman<br/>+ Cabut semua pemegang"]
-  T2 --> C2["Akses Halaman Aktif<br/>kartu per-pegawai + cabut/ubah"]
-  C1 --> D1[("HAPUS: page_grants")]
-  C2 --> D1
+  T1 --> B2["Daftar Pegawai Baru<br/>(pengingat agar HRD meninjau)"]
 
-  %% --- Tab Log ---
-  T3 --> L1["Log Akses<br/>hrd_audit_log tersaring"]
+  %% --- Mencabut & Riwayat ---
+  T2 --> C1["Lihat siapa memegang halaman apa,<br/>lalu cabut"]
+  T3 --> L1["Catatan: siapa mengubah apa & kapan"]
 
   classDef warn fill:#fee2e2,stroke:#ef4444,color:#7f1d1d;
-  class B1b,B3 warn;
+  class B1,B3 warn;
 ```
 
-**Masalah yang terlihat di diagram:**
-1. **Dua pintu pemberian** (B1 "Tambah akses baru" & B3 "Izin Peran & Akses HRD") — keduanya soal
-   "memberi sesuatu ke seseorang", tapi tampil sebagai dua UI berbeda (kartu 3-kolom vs tabel cari).
-2. **"Peran" bermakna dua hal**: di B1b = *penerima* grant halaman; di B3 = *kapabilitas* (mis. jadikan
-   Koordinator). Pengguna harus tahu bedanya untuk memilih tempat yang benar.
-3. **Penerima dipilih di TENGAH** alur B1 (kolom 2), dan **tidak eksplisit** di B3 (dicari lewat tabel).
-   Tak ada satu tempat yang menjawab "orang ini punya akses apa saja?".
+**Yang bikin bingung (kotak merah):**
+1. **Dua cara memberi akses** (Cara A dan Cara B) padahal tujuannya sama — memberi sesuatu ke seseorang.
+2. **"Peran" punya dua arti**: di Cara A = *siapa yang menerima*; di Cara B = *jabatan/kewenangan yang diubah*.
+3. **Tidak ada satu tempat** yang langsung menjawab: *"orang ini sebenarnya punya akses apa saja?"*
 
 ### 10.2 Diagram — usulan ALUR BESAR (penerima-dulu)
 
-Satu alur: **pilih penerima → lihat profil aksesnya (semua jenis) → tambah/ubah/cabut di tempat.**
-Grant halaman & kapabilitas peran **disatukan** di bawah satu penerima; kelayakan menyaring apa yang
-ditawarkan. Log tetap terpisah (jejak, bukan alur pemberian).
+Satu alur, tiga langkah: **pilih SIAPA → lihat semua aksesnya dalam satu layar → beri/ubah/cabut di
+situ juga.** Tidak ada lagi "Cara A vs Cara B" — semuanya jadi satu.
 
 ```mermaid
 flowchart TD
-  START["Manajemen Akses"] --> S1{"1 · Pilih PENERIMA"}
-  S1 -->|"Pegawai tertentu"| P["Seorang pegawai<br/>(searchable)"]
-  S1 -->|"Semua anggota peran"| R["Peran: Pegawai / SPV / Koordinator / Direksi"]
+  START["Halaman Manajemen Akses"] --> S1{"Langkah 1 — Pilih SIAPA"}
+  S1 -->|"Satu pegawai"| P["Nama pegawai"]
+  S1 -->|"Satu peran"| R["Semua SPV / Koordinator / Pegawai / Direksi"]
 
-  P --> PROF["2 · PROFIL AKSES PENERIMA<br/>(satu layar, semua jenis)"]
+  P --> PROF["Langkah 2 — Lihat akses orang ini<br/>dalam SATU layar"]
   R --> PROF
 
-  PROF --> PA["A · Akses bawaan peran<br/>otomatis · read-only · tak bisa dicabut"]
-  PROF --> PB["B · Akses halaman tambahan<br/>daftar page_grants + lingkup"]
-  PROF --> PC["C · Izin/kapabilitas<br/>bila MEMENUHI SYARAT"]
+  PROF --> PA["Yang sudah otomatis dimiliki<br/>(karena perannya) — tak bisa diubah"]
+  PROF --> PB["Akses halaman tambahan<br/>— bisa diberi atau dicabut"]
+  PROF --> PC["Izin khusus: HRD / Peninjau / Koordinator<br/>(muncul hanya bila cocok)"]
 
-  PROF --> S3["3 · Tambah / ubah / cabut"]
+  PROF --> S3["Langkah 3 — Beri / ubah / cabut di sini juga"]
+  S3 --> DONE["Selesai — otomatis tercatat di Riwayat"]
 
-  S3 --> G1["Beri akses HALAMAN<br/>pilih halaman → lingkup + izin"]
-  G1 --> WG[("page_grants")]
-  PB --> WG
-
-  S3 --> G2["Beri KAPABILITAS<br/>HRD Admin · Peninjau · Koordinator"]
-  G2 --> G2a["Atur bagian HRD / Kelola tim koordinator"]
-  G2 --> WC[("flag employees")]
-  PC --> WC
-
-  WG --> LOG["(otomatis) Log aktivitas"]
-  WC --> LOG
-  START --> TLOG["Tab Log aktivitas (jejak, terpisah)"]
+  START --> TLOG["Riwayat perubahan<br/>(tetap tab sendiri)"]
 
   classDef good fill:#dcfce7,stroke:#16a34a,color:#14532d;
   class PROF good;
 ```
 
-**Prinsip usulan:**
-- **Penerima dulu** (sesuai harapan pengguna): model mental "saya ingin memberi si A akses X".
-- **Profil akses = satu layar** menyatukan 3 lapis yang selama ini berserak: (A) **bawaan peran**
-  (info, tak bisa diubah — menghilangkan salah paham "kenapa SPV sudah bisa lihat timnya?"),
-  (B) **grant halaman**, (C) **kapabilitas**. Cabut dilakukan **di tempat** (tak perlu tab terpisah).
-- **Kelayakan menyaring pilihan**: kalau penerima = Pegawai non-HRD, opsi "HRD Admin" tak muncul; kalau
-  penerima = Peran, hanya kapabilitas yang masuk akal untuk massal yang ditawarkan.
-- **Katalog halaman tetap** (keputusan terkunci) — tak berubah.
+**Inti usulan (bahasa sederhana):**
+- **Pilih orangnya dulu** — sesuai caramu berpikir: "saya mau kasih si A akses ini".
+- **Satu layar menampilkan semua** akses orang itu, dibagi 3: (1) yang *otomatis dari perannya* (cuma
+  info, tak bisa diubah — menjawab "kenapa SPV sudah bisa lihat timnya?"), (2) *akses halaman tambahan*,
+  (3) *izin khusus*. Mencabut pun di layar yang sama — tak perlu pindah tab.
+- **Pilihan menyesuaikan orangnya**: mis. kalau dia bukan orang HRD, opsi "HRD Admin" tak akan muncul.
+- Daftar halaman yang bisa diberikan **tidak berubah** (tetap dari katalog yang sudah ada).
 
 ### 10.3 Pokok diskusi (perlu keputusan sebelum bangun)
 

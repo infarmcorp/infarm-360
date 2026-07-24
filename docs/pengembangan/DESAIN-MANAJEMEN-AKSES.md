@@ -234,27 +234,47 @@ flowchart TD
   S1 -->|"Satu pegawai"| P["Nama pegawai"]
   S1 -->|"Satu peran"| R["Semua SPV / Koordinator / Pegawai / Direksi"]
 
-  P --> PROF["Langkah 2 — Lihat akses orang ini<br/>dalam SATU layar"]
+  P --> PROF["Langkah 2 — Lihat akses orang ini (satu layar)"]
   R --> PROF
 
-  PROF --> PA["Yang sudah otomatis dimiliki<br/>(karena perannya) — tak bisa diubah"]
-  PROF --> PB["Akses halaman tambahan<br/>— bisa diberi atau dicabut"]
-  PROF --> PC["Izin khusus: HRD / Peninjau / Koordinator<br/>(muncul hanya bila cocok)"]
+  PROF --> S3{"Langkah 3 — Mau memberi apa?"}
 
-  PROF --> S3["Langkah 3 — Beri / ubah / cabut di sini juga"]
-  S3 --> DONE["Selesai — otomatis tercatat di Riwayat"]
+  %% Cabang 1: akses ke sebuah halaman (di sinilah LINGKUP & EDIT diatur)
+  S3 -->|"Akses ke sebuah halaman"| G1["Pilih halaman<br/>(mis. Dashboard, Monitor Kinerja)"]
+  G1 --> G1a["Atur LINGKUP data:<br/>semua orang / hanya divisinya /<br/>selain divisinya / tim naungannya"]
+  G1a --> G1b["Atur IZIN:<br/>boleh edit  ATAU  lihat saja<br/>(edit hanya utk halaman tertentu)"]
+  G1b --> DONE["Simpan — tercatat di Riwayat"]
 
-  START --> TLOG["Riwayat perubahan<br/>(tetap tab sendiri)"]
+  %% Cabang 2: izin khusus / jabatan (di sinilah KOORDINATOR diberikan)
+  S3 -->|"Izin khusus / jabatan"| G2["Pilih izin"]
+  G2 --> G2a["Jadikan KOORDINATOR<br/>→ pilih pegawai yang dinaungi"]
+  G2 --> G2b["Jadikan HRD Admin"]
+  G2 --> G2c["Jadikan Peninjau antar-divisi"]
+  G2a --> DONE
+  G2b --> DONE
+  G2c --> DONE
+
+  START --> TLOG["Riwayat perubahan (tetap tab sendiri)"]
 
   classDef good fill:#dcfce7,stroke:#16a34a,color:#14532d;
+  classDef hot fill:#fef9c3,stroke:#ca8a04,color:#713f12;
   class PROF good;
+  class G1a,G1b,G2a hot;
 ```
+
+**Di mana tiap kontrol berada (kotak kuning):**
+- **Seberapa luas datanya (lingkup)** → `G1a`, saat memberi **akses ke sebuah halaman**: semua orang /
+  hanya divisinya / selain divisinya / tim naungannya.
+- **Boleh edit atau lihat saja** → `G1b`, tepat setelah lingkup. Catatan: kebanyakan halaman
+  *pemantauan* memang **selalu "lihat saja"**, jadi pilihan "boleh edit" hanya muncul untuk halaman yang
+  mendukungnya (mis. Review Hasil Akhir).
+- **Memberi akses sebagai Koordinator** → `G2a`, di cabang **izin khusus/jabatan** — sekaligus memilih
+  pegawai mana saja yang dinaungi. (HRD Admin & Peninjau juga di cabang ini.)
 
 **Inti usulan (bahasa sederhana):**
 - **Pilih orangnya dulu** — sesuai caramu berpikir: "saya mau kasih si A akses ini".
-- **Satu layar menampilkan semua** akses orang itu, dibagi 3: (1) yang *otomatis dari perannya* (cuma
-  info, tak bisa diubah — menjawab "kenapa SPV sudah bisa lihat timnya?"), (2) *akses halaman tambahan*,
-  (3) *izin khusus*. Mencabut pun di layar yang sama — tak perlu pindah tab.
+- **Satu layar menampilkan semua** akses orang itu, lalu di Langkah 3 kamu pilih **mau memberi apa**:
+  *akses ke sebuah halaman* (lingkup + edit/lihat) atau *izin khusus* (Koordinator / HRD / Peninjau).
 - **Pilihan menyesuaikan orangnya**: mis. kalau dia bukan orang HRD, opsi "HRD Admin" tak akan muncul.
 - Daftar halaman yang bisa diberikan **tidak berubah** (tetap dari katalog yang sudah ada).
 

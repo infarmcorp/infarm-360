@@ -171,3 +171,135 @@ Konsol Manajemen Akses ditata jadi 3 kolom, satu pemberian akses = **1 halaman �
 - Tahap 2 (edit/finalisasi non-HRD) + lingkup 'self' single + tata letak card/panel v1 = **selesai di `dev`,
   134 tes hijau, belum commit/push, migrasi 0027 belum di-apply ke live.**
 - Fase 1 multi = **belum dimulai** (hanya daftar tugas).
+
+---
+
+## 10. Redesain "satu alur besar" — PENERIMA-DULU (diskusi 2026-07-24)
+
+> **STATUS: DISKUSI, BELUM DIBANGUN.** Keluhan pengguna: fitur **tumpang tindih** — ada tempat
+> memberi akses per-PERAN (di "Tambah akses baru") dan ada tempat terpisah untuk **izin peran & HRD**
+> (blok "Izin Peran & Akses HRD"). Dua model data (grant halaman vs kapabilitas peran) tinggal di dua
+> UI berbeda → membingungkan. Target: **satu alur** yang dimulai dari **memilih penerima dulu**.
+
+### 10.1 Diagram — struktur SAAT INI (as-is)
+
+Akar kebingungan: **dua "pintu masuk" pemberian akses** dengan model mental berbeda, dan **dua target
+tulis** (`page_grants` vs flag di `employees`). "Peran" muncul di dua tempat berbeda.
+
+```mermaid
+flowchart TD
+  A["Manajemen Akses /admin/akses"] --> T1["Tab: Memberikan akses"]
+  A --> T2["Tab: Mencabut akses"]
+  A --> T3["Tab: Log aktivitas"]
+
+  %% --- Tab Memberikan ---
+  T1 --> B1["Tambah akses baru — 3 kolom"]
+  B1 --> B1a["1 · Pilih halaman<br/>Pemantauan / Administrator"]
+  B1 --> B1b["2 · Pilih penerima<br/>Pegawai tertentu ATAU Semua peran"]
+  B1 --> B1c["3 · Lingkup & izin<br/>scopes[] + edit/lihat"]
+  B1c --> W1[("TULIS: page_grants")]
+
+  T1 --> B2["Pegawai Baru<br/>tinjau akses tambahan"]
+  B2 --> B2a["Tinjau akses → prefill kolom 1-3"]
+  B2 --> B2b["Tandai sudah ditinjau"]
+
+  T1 --> B3["Izin Peran & Akses HRD<br/>tabel cari-pegawai (PINTU KE-2)"]
+  B3 --> B3a["HRD Admin (toggle)"]
+  B3a --> B3a1["Atur Akses / hrd_sections"]
+  B3 --> B3b["Peninjau Lintas Divisi (toggle)"]
+  B3 --> B3c["Koordinator (toggle)"]
+  B3c --> B3c1["Kelola Tim naungan"]
+  B3a --> W2[("TULIS: flag di employees")]
+  B3b --> W2
+  B3c --> W2
+
+  %% --- Tab Mencabut ---
+  T2 --> C1["Ringkasan per-halaman<br/>+ Cabut semua pemegang"]
+  T2 --> C2["Akses Halaman Aktif<br/>kartu per-pegawai + cabut/ubah"]
+  C1 --> D1[("HAPUS: page_grants")]
+  C2 --> D1
+
+  %% --- Tab Log ---
+  T3 --> L1["Log Akses<br/>hrd_audit_log tersaring"]
+
+  classDef warn fill:#fee2e2,stroke:#ef4444,color:#7f1d1d;
+  class B1b,B3 warn;
+```
+
+**Masalah yang terlihat di diagram:**
+1. **Dua pintu pemberian** (B1 "Tambah akses baru" & B3 "Izin Peran & Akses HRD") — keduanya soal
+   "memberi sesuatu ke seseorang", tapi tampil sebagai dua UI berbeda (kartu 3-kolom vs tabel cari).
+2. **"Peran" bermakna dua hal**: di B1b = *penerima* grant halaman; di B3 = *kapabilitas* (mis. jadikan
+   Koordinator). Pengguna harus tahu bedanya untuk memilih tempat yang benar.
+3. **Penerima dipilih di TENGAH** alur B1 (kolom 2), dan **tidak eksplisit** di B3 (dicari lewat tabel).
+   Tak ada satu tempat yang menjawab "orang ini punya akses apa saja?".
+
+### 10.2 Diagram — usulan ALUR BESAR (penerima-dulu)
+
+Satu alur: **pilih penerima → lihat profil aksesnya (semua jenis) → tambah/ubah/cabut di tempat.**
+Grant halaman & kapabilitas peran **disatukan** di bawah satu penerima; kelayakan menyaring apa yang
+ditawarkan. Log tetap terpisah (jejak, bukan alur pemberian).
+
+```mermaid
+flowchart TD
+  START["Manajemen Akses"] --> S1{"1 · Pilih PENERIMA"}
+  S1 -->|"Pegawai tertentu"| P["Seorang pegawai<br/>(searchable)"]
+  S1 -->|"Semua anggota peran"| R["Peran: Pegawai / SPV / Koordinator / Direksi"]
+
+  P --> PROF["2 · PROFIL AKSES PENERIMA<br/>(satu layar, semua jenis)"]
+  R --> PROF
+
+  PROF --> PA["A · Akses bawaan peran<br/>otomatis · read-only · tak bisa dicabut"]
+  PROF --> PB["B · Akses halaman tambahan<br/>daftar page_grants + lingkup"]
+  PROF --> PC["C · Izin/kapabilitas<br/>bila MEMENUHI SYARAT"]
+
+  PROF --> S3["3 · Tambah / ubah / cabut"]
+
+  S3 --> G1["Beri akses HALAMAN<br/>pilih halaman → lingkup + izin"]
+  G1 --> WG[("page_grants")]
+  PB --> WG
+
+  S3 --> G2["Beri KAPABILITAS<br/>HRD Admin · Peninjau · Koordinator"]
+  G2 --> G2a["Atur bagian HRD / Kelola tim koordinator"]
+  G2 --> WC[("flag employees")]
+  PC --> WC
+
+  WG --> LOG["(otomatis) Log aktivitas"]
+  WC --> LOG
+  START --> TLOG["Tab Log aktivitas (jejak, terpisah)"]
+
+  classDef good fill:#dcfce7,stroke:#16a34a,color:#14532d;
+  class PROF good;
+```
+
+**Prinsip usulan:**
+- **Penerima dulu** (sesuai harapan pengguna): model mental "saya ingin memberi si A akses X".
+- **Profil akses = satu layar** menyatukan 3 lapis yang selama ini berserak: (A) **bawaan peran**
+  (info, tak bisa diubah — menghilangkan salah paham "kenapa SPV sudah bisa lihat timnya?"),
+  (B) **grant halaman**, (C) **kapabilitas**. Cabut dilakukan **di tempat** (tak perlu tab terpisah).
+- **Kelayakan menyaring pilihan**: kalau penerima = Pegawai non-HRD, opsi "HRD Admin" tak muncul; kalau
+  penerima = Peran, hanya kapabilitas yang masuk akal untuk massal yang ditawarkan.
+- **Katalog halaman tetap** (keputusan terkunci) — tak berubah.
+
+### 10.3 Pokok diskusi (perlu keputusan sebelum bangun)
+
+1. **Penerima = PERAN untuk kapabilitas?** Grant halaman per-peran sudah ada & masuk akal. Tapi
+   *kapabilitas* (HRD Admin/Peninjau/Koordinator) hampir selalu **per-orang**. Usul: saat penerima =
+   Peran, **sembunyikan** kapabilitas yang tak masuk akal massal (mis. "jadikan semua Pegawai
+   Koordinator" → tak ditawarkan) — hanya grant halaman + kapabilitas yang benar-benar bermakna massal.
+2. **Cabut-massal per-halaman** (cabut 1 halaman dari SEMUA pemegang) = operasi **halaman-dulu**, tak
+   pas di alur penerima-dulu. Opsi: (a) sediakan mode kedua "Kelola per-halaman" kecil, atau (b) tambah
+   pilihan penerima ke-3 = **"Halaman"** (lihat semua pemegang halaman itu → cabut). Aku condong (b):
+   tetap satu alur, cuma sumbu penerimanya "halaman".
+3. **Lapis "bawaan peran"** perlu **sumber data**: dihitung dari peran + tabel scope (spv_team_members/
+   coordinator_team_members). Ini read-only, murni informasional — mengurangi kebingungan terbesar.
+4. **"Pegawai Baru"** jadi **pintu masuk cepat** ke alur (daftar orang → klik → profil aksesnya),
+   bukan section terpisah dengan tombol prefill.
+5. **Nasib 3 tab lama**: "Memberikan" + "Mencabut" **melebur** ke alur penerima-dulu (beri & cabut di
+   profil yang sama). "Log aktivitas" **tetap** tab sendiri.
+
+### 10.4 Rekomendasiku
+Setuju **penerima-dulu** — itu menyederhanakan model mental & otomatis menyatukan dua pintu jadi satu.
+Kunci suksesnya: **profil akses 3-lapis** (bawaan / halaman / kapabilitas) dalam satu layar, dengan
+**kelayakan** yang menyaring pilihan. Untuk cabut-massal per-halaman, tambahkan penerima "Halaman"
+sebagai sumbu ke-3 (opsi 10.3#2b) supaya benar-benar **satu alur** tanpa tab cabut terpisah.

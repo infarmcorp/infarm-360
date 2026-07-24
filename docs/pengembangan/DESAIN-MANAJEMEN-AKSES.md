@@ -240,26 +240,29 @@ flowchart TD
   PROF --> S3{"Langkah 3 — Mau memberi apa?"}
 
   %% Cabang 1: akses ke sebuah halaman (di sinilah LINGKUP & EDIT diatur)
-  S3 -->|"Akses ke sebuah halaman"| G1["Pilih halaman<br/>(mis. Dashboard, Monitor Kinerja)"]
+  S3 -->|"Akses ke sebuah halaman"| G1["Pilih halaman<br/>(mis. Dashboard, Monitor, Review Hasil Akhir)"]
   G1 --> G1a["Atur LINGKUP data:<br/>semua orang / hanya divisinya /<br/>selain divisinya / tim naungannya"]
   G1a --> G1b["Atur IZIN:<br/>boleh edit  ATAU  lihat saja<br/>(edit hanya utk halaman tertentu)"]
   G1b --> DONE["Simpan — tercatat di Riwayat"]
 
-  %% Cabang 2: izin khusus / jabatan (di sinilah KOORDINATOR diberikan)
+  %% Peninjau Lintas Divisi = KOMBINASI di cabang halaman, bukan fitur khusus lagi
+  G1b -.->|"contoh kombinasi"| EX["Peninjau Lintas Divisi =<br/>halaman 'Review Hasil Akhir'<br/>+ lingkup 'selain divisinya'<br/>+ izin tulis Ringkasan Aspek<br/>(perlu Tahap 2)"]
+
+  %% Cabang 2: izin khusus / jabatan — tinggal DUA
   S3 -->|"Izin khusus / jabatan"| G2["Pilih izin"]
   G2 --> G2a["Jadikan KOORDINATOR<br/>→ pilih pegawai yang dinaungi"]
   G2 --> G2b["Jadikan HRD Admin"]
-  G2 --> G2c["Jadikan Peninjau antar-divisi"]
   G2a --> DONE
   G2b --> DONE
-  G2c --> DONE
 
   START --> TLOG["Riwayat perubahan (tetap tab sendiri)"]
 
   classDef good fill:#dcfce7,stroke:#16a34a,color:#14532d;
   classDef hot fill:#fef9c3,stroke:#ca8a04,color:#713f12;
+  classDef note fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e;
   class PROF good;
   class G1a,G1b,G2a hot;
+  class EX note;
 ```
 
 **Di mana tiap kontrol berada (kotak kuning):**
@@ -269,12 +272,19 @@ flowchart TD
   *pemantauan* memang **selalu "lihat saja"**, jadi pilihan "boleh edit" hanya muncul untuk halaman yang
   mendukungnya (mis. Review Hasil Akhir).
 - **Memberi akses sebagai Koordinator** → `G2a`, di cabang **izin khusus/jabatan** — sekaligus memilih
-  pegawai mana saja yang dinaungi. (HRD Admin & Peninjau juga di cabang ini.)
+  pegawai mana saja yang dinaungi. (HRD Admin juga di cabang ini.)
+
+**Peninjau Lintas Divisi bukan lagi "fitur khusus" (kotak biru `EX`):**
+- Cukup **kombinasi di cabang halaman**: halaman *Review Hasil Akhir* + lingkup *"selain divisinya"* +
+  izin *tulis Ringkasan Aspek*. Fitur/toggle terpisah `is_cross_reviewer` bisa dipensiunkan.
+- **Syarat**: butuh **Tahap 2** (izin tulis berlingkup untuk non-HRD yang ditegakkan server), dengan
+  pembeda **"tulis Ringkasan Aspek" ≠ "finalisasi"** — finalisasi tetap HRD. Sampai Tahap 2 ada, grant
+  Review untuk non-HRD masih *lihat-saja*.
 
 **Inti usulan (bahasa sederhana):**
 - **Pilih orangnya dulu** — sesuai caramu berpikir: "saya mau kasih si A akses ini".
 - **Satu layar menampilkan semua** akses orang itu, lalu di Langkah 3 kamu pilih **mau memberi apa**:
-  *akses ke sebuah halaman* (lingkup + edit/lihat) atau *izin khusus* (Koordinator / HRD / Peninjau).
+  *akses ke sebuah halaman* (lingkup + edit/lihat) atau *izin khusus* (tinggal **Koordinator** & **HRD Admin**).
 - **Pilihan menyesuaikan orangnya**: mis. kalau dia bukan orang HRD, opsi "HRD Admin" tak akan muncul.
 - Daftar halaman yang bisa diberikan **tidak berubah** (tetap dari katalog yang sudah ada).
 
@@ -294,6 +304,12 @@ flowchart TD
    bukan section terpisah dengan tombol prefill.
 5. **Nasib 3 tab lama**: "Memberikan" + "Mencabut" **melebur** ke alur penerima-dulu (beri & cabut di
    profil yang sama). "Log aktivitas" **tetap** tab sendiri.
+6. **✅ DISEPAKATI (2026-07-24) — Peninjau Lintas Divisi jadi kombinasi akses halaman, bukan fitur khusus.**
+   = halaman *Review Hasil Akhir* + lingkup *"selain divisinya"* + izin *tulis Ringkasan Aspek*. Toggle
+   `is_cross_reviewer` dipensiunkan. **Prasyarat: Tahap 2** (izin tulis berlingkup non-HRD ditegakkan
+   server; "tulis Ringkasan Aspek" ≠ "finalisasi" — finalisasi tetap HRD). Sampai Tahap 2 ada, grant
+   Review non-HRD masih lihat-saja → pemindahan penuh menunggu Tahap 2. Sisa "izin khusus" = **Koordinator**
+   (hubungan supervisi + daftar tim) & **HRD Admin** (kapabilitas seluruh aplikasi).
 
 ### 10.4 Rekomendasiku
 Setuju **penerima-dulu** — itu menyederhanakan model mental & otomatis menyatukan dua pintu jadi satu.

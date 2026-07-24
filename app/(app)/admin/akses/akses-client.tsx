@@ -21,7 +21,7 @@ export type AksesEmployee = {
   hrdSections: string[] | null;
   joinedOn: string | null;           // tgl masuk (untuk section "Pegawai Baru")
   accessReviewedAt: string | null;   // penanda HRD sudah meninjau akses pegawai baru (null = belum)
-  grants: Record<string, { scopes: string[]; canEdit: boolean }>; // section halaman → { daftar lingkup, boleh-edit }
+  grants: Record<string, { scopes: string[]; canEdit: boolean; canFinalize: boolean }>; // section halaman → { lingkup, boleh-meringkas, boleh-finalisasi }
 };
 type PageOpt = { key: string; label: string; kind: string }; // kind: 'pemantauan' | 'administrator'
 type ScopeOpt = { key: string; label: string };
@@ -68,10 +68,10 @@ export function AksesClient({
   // Panel: lingkup = MULTI (Diri sendiri / Divisi sendiri / Divisi lain / Semua pegawai / Tim naungan),
   // dari daftar `scopes`. Checkbox boleh >1; "Semua pegawai" menyerap → mengosongkan lingkup lain.
   // `roleTarget` != null → panel dalam mode PERAN (materialisasi ke semua anggota peran saat ini).
-  const [panel, setPanel] = useState<{ empId: string; section: string; scopes: string[]; canEdit: boolean; roleTarget?: string | null } | null>(null);
+  const [panel, setPanel] = useState<{ empId: string; section: string; scopes: string[]; canEdit: boolean; canFinalize: boolean; roleTarget?: string | null } | null>(null);
   const [panelMsg, setPanelMsg] = useState<{ ok: boolean; text: string } | null>(null);
   // Konfirmasi peringatan: memberi izin EDIT halaman administrator ke PERAN luas (banyak orang).
-  const [roleConfirm, setRoleConfirm] = useState<{ roleTarget: string; section: string; scopes: string[]; canEdit: boolean; count: number } | null>(null);
+  const [roleConfirm, setRoleConfirm] = useState<{ roleTarget: string; section: string; scopes: string[]; canEdit: boolean; canFinalize: boolean; count: number } | null>(null);
   // Konfirmasi cabut-massal: satu halaman dari SEMUA pemegang, atau SEMUA akses satu pegawai.
   const [bulkRevoke, setBulkRevoke] = useState<
     | { kind: 'page'; section: string; count: number }
@@ -124,19 +124,21 @@ export function AksesClient({
   const patchRow = (id: string, upd: Partial<AksesEmployee>) =>
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...upd } : r)));
 
-  // ── Grant HALAMAN ber-lingkup MULTI (+ dimensi boleh-edit untuk halaman administrator) ────────
-  function changeGrant(emp: AksesEmployee, section: string, scopes: string[], canEdit: boolean) {
-    run(emp.id, () => (scopes.length ? setPageGrant(emp.id, section, scopes, canEdit) : removePageGrant(emp.id, section)), () => {
+  // ── Grant HALAMAN ber-lingkup MULTI (+ izin 3-tingkat untuk halaman administrator) ────────
+  function changeGrant(emp: AksesEmployee, section: string, scopes: string[], canEdit: boolean, canFinalize: boolean) {
+    run(emp.id, () => (scopes.length ? setPageGrant(emp.id, section, scopes, canEdit, canFinalize) : removePageGrant(emp.id, section)), () => {
       const grants = { ...emp.grants };
-      if (scopes.length) grants[section] = { scopes, canEdit }; else delete grants[section];
+      if (scopes.length) grants[section] = { scopes, canEdit, canFinalize: canEdit && canFinalize }; else delete grants[section];
       patchRow(emp.id, { grants });
     });
   }
-  /** Toggle boleh-edit/hanya-lihat untuk halaman administrator (pertahankan lingkup saat ini). */
-  function toggleEdit(emp: AksesEmployee, section: string) {
+  /** Putar izin 3-tingkat untuk halaman administrator (Lihat → Meringkas → Finalisasi → Lihat), lingkup tetap. */
+  function cycleIzin(emp: AksesEmployee, section: string) {
     const cur = emp.grants[section];
     if (!cur) return;
-    changeGrant(emp, section, cur.scopes, !cur.canEdit);
+    // Lihat (edit=F): next Meringkas (edit=T,fin=F). Meringkas: next Finalisasi (edit=T,fin=T). Finalisasi: next Lihat.
+    const [nextEdit, nextFin] = !cur.canEdit ? [true, false] : !cur.canFinalize ? [true, true] : [false, false];
+    changeGrant(emp, section, cur.scopes, nextEdit, nextFin);
   }
   /** Cabut satu grant halaman langsung dari daftar "Akses Halaman Aktif" (reversibel → tanpa konfirmasi). */
   function revokeGrant(emp: AksesEmployee, section: string) {
@@ -144,7 +146,7 @@ export function AksesClient({
       const grants = { ...emp.grants }; delete grants[section];
       patchRow(emp.id, { grants });
       // Bila panel sedang membuka grant ini, kosongkan lingkupnya agar konsisten.
-      setPanel((p) => (p && p.empId === emp.id && p.section === section ? { ...p, scopes: [], canEdit: false } : p));
+      setPanel((p) => (p && p.empId === emp.id && p.section === section ? { ...p, scopes: [], canEdit: false, canFinalize: false } : p));
     });
   }
 
@@ -214,7 +216,7 @@ export function AksesClient({
     if (!emp || !section) return;
     const g = emp.grants[section];
     setTab('beri'); // panel pengaturan lingkup ada di tab "Memberikan akses" → pindah ke sana bila dipicu dari chip.
-    setPanel({ empId, section, scopes: g?.scopes ?? [], canEdit: !!g?.canEdit, roleTarget: null });
+    setPanel({ empId, section, scopes: g?.scopes ?? [], canEdit: !!g?.canEdit, canFinalize: !!g?.canFinalize, roleTarget: null });
     setPanelMsg(null);
   }
 
@@ -229,7 +231,7 @@ export function AksesClient({
 
   /** Buka panel dalam mode PERAN (tanpa prefill — grant per-peran = pemberian baru ke semua anggota). */
   function openRolePanel(roleTarget: string, section: string) {
-    setPanel({ empId: '', section, scopes: [], canEdit: false, roleTarget });
+    setPanel({ empId: '', section, scopes: [], canEdit: false, canFinalize: false, roleTarget });
     setPanelMsg(null);
   }
 
@@ -241,13 +243,13 @@ export function AksesClient({
   }
 
   /** Terapkan grant ke SEMUA anggota peran (setelah konfirmasi bila perlu) + patch state lokal. */
-  function doRoleSave(roleTarget: string, section: string, scps: string[], canEdit: boolean) {
+  function doRoleSave(roleTarget: string, section: string, scps: string[], canEdit: boolean, canFinalize: boolean) {
     setRoleConfirm(null);
     startTransition(async () => {
-      const res = await setPageGrantForRole(roleTarget, section, scps, canEdit);
+      const res = await setPageGrantForRole(roleTarget, section, scps, canEdit, canFinalize);
       if (res.ok) {
         const memberIds = new Set(roleMemberRows(roleTarget).map((r) => r.id));
-        setRows((prev) => prev.map((r) => (memberIds.has(r.id) ? { ...r, grants: { ...r.grants, [section]: { scopes: scps, canEdit } } } : r)));
+        setRows((prev) => prev.map((r) => (memberIds.has(r.id) ? { ...r, grants: { ...r.grants, [section]: { scopes: scps, canEdit, canFinalize: canEdit && canFinalize } } } : r)));
         setPanelMsg({ ok: true, text: res.msg ?? 'Akses massal tersimpan.' });
       } else setPanelMsg({ ok: false, text: res.error ?? 'Gagal menyimpan.' });
     });
@@ -270,24 +272,26 @@ export function AksesClient({
     const scps = panel.scopes;
     if (!scps.length) { setPanelMsg({ ok: false, text: 'Pilih minimal satu lingkup data.' }); return; }
     const section = panel.section;
-    // Halaman pemantauan selalu lihat-saja → paksa canEdit=false (server juga menormalkan).
+    // Halaman pemantauan selalu lihat-saja → paksa canEdit/canFinalize=false (server juga menormalkan).
     const kind = pages.find((p) => p.key === section)?.kind;
     const canEdit = kind === 'administrator' ? panel.canEdit : false;
-    // Mode PERAN: materialisasi ke semua anggota. Peringatan bila EDIT halaman administrator ke peran luas.
+    const canFinalize = kind === 'administrator' ? (panel.canEdit && panel.canFinalize) : false;
+    // Mode PERAN: materialisasi ke semua anggota. Peringatan bila FINALISASI halaman administrator ke peran luas.
     if (panel.roleTarget) {
       const rt = panel.roleTarget;
       const count = roleMemberRows(rt).length;
       if (count === 0) { setPanelMsg({ ok: false, text: `Tak ada anggota ${GRANT_ROLE_TARGET_LABELS[rt as GrantRoleTarget]} saat ini.` }); return; }
-      if (kind === 'administrator' && canEdit) { setRoleConfirm({ roleTarget: rt, section, scopes: scps, canEdit, count }); return; }
-      doRoleSave(rt, section, scps, canEdit);
+      // Konfirmasi hanya untuk tingkat FINALISASI (kemampuan menulis paling berdampak) ke peran luas.
+      if (canFinalize) { setRoleConfirm({ roleTarget: rt, section, scopes: scps, canEdit, canFinalize, count }); return; }
+      doRoleSave(rt, section, scps, canEdit, canFinalize);
       return;
     }
     const emp = rows.find((r) => r.id === panel.empId);
     if (!emp) return;
     startTransition(async () => {
-      const res = await setPageGrant(emp.id, section, scps, canEdit);
+      const res = await setPageGrant(emp.id, section, scps, canEdit, canFinalize);
       if (res.ok) {
-        patchRow(emp.id, { grants: { ...emp.grants, [section]: { scopes: scps, canEdit } } });
+        patchRow(emp.id, { grants: { ...emp.grants, [section]: { scopes: scps, canEdit, canFinalize } } });
         setPanelMsg({ ok: true, text: res.msg ?? 'Akses tersimpan.' });
       } else setPanelMsg({ ok: false, text: res.error ?? 'Gagal menyimpan.' });
     });
@@ -304,7 +308,7 @@ export function AksesClient({
       if (res.ok) {
         const grants = { ...emp.grants }; delete grants[section];
         patchRow(emp.id, { grants });
-        setPanel((p) => (p ? { ...p, scopes: [], canEdit: false } : p));
+        setPanel((p) => (p ? { ...p, scopes: [], canEdit: false, canFinalize: false } : p));
         setPanelMsg({ ok: true, text: res.msg ?? 'Akses dicabut.' });
       } else setPanelMsg({ ok: false, text: res.error ?? 'Gagal mencabut.' });
     });
@@ -470,20 +474,26 @@ export function AksesClient({
                 </div>
               </div>
 
-              {/* Izin — dua checkbox saling eksklusif → dipetakan ke can_edit. */}
+              {/* Izin 3-tingkat (halaman administrator): Lihat → Meringkas → Finalisasi. Dipetakan ke
+                  (can_edit, can_finalize): Lihat (F,F) · Meringkas (T,F) · Finalisasi (T,T). */}
               <div className="mb-4">
                 <p className="text-[11px] font-semibold text-gray-600 mb-1.5">Izin</p>
                 {panelPage.kind === 'administrator' ? (
-                  <div className="flex items-center gap-4">
+                  <div className="space-y-1">
                     <label className="flex items-center gap-2 text-sm cursor-pointer">
-                      <input type="checkbox" checked={panel.canEdit} disabled={pending}
-                        onChange={() => setPanel((p) => (p ? { ...p, canEdit: true } : p))} className="accent-amber-600" />
-                      <span className="text-gray-800">Edit</span>
+                      <input type="radio" name="panel-izin" checked={!panel.canEdit} disabled={pending}
+                        onChange={() => setPanel((p) => (p ? { ...p, canEdit: false, canFinalize: false } : p))} className="accent-gray-500" />
+                      <span className="text-gray-800">Lihat saja</span>
                     </label>
                     <label className="flex items-center gap-2 text-sm cursor-pointer">
-                      <input type="checkbox" checked={!panel.canEdit} disabled={pending}
-                        onChange={() => setPanel((p) => (p ? { ...p, canEdit: false } : p))} className="accent-gray-500" />
-                      <span className="text-gray-800">Lihat saja</span>
+                      <input type="radio" name="panel-izin" checked={panel.canEdit && !panel.canFinalize} disabled={pending}
+                        onChange={() => setPanel((p) => (p ? { ...p, canEdit: true, canFinalize: false } : p))} className="accent-emerald-600" />
+                      <span className="text-gray-800">Boleh meringkas <span className="text-[10px] text-gray-500">(tulis Ringkasan Aspek, tanpa finalisasi)</span></span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="radio" name="panel-izin" checked={panel.canEdit && panel.canFinalize} disabled={pending}
+                        onChange={() => setPanel((p) => (p ? { ...p, canEdit: true, canFinalize: true } : p))} className="accent-amber-600" />
+                      <span className="text-gray-800">Boleh finalisasi <span className="text-[10px] text-gray-500">(termasuk finalisasi &amp; rilis)</span></span>
                     </label>
                   </div>
                 ) : (
@@ -639,10 +649,13 @@ export function AksesClient({
                             <span aria-hidden className="text-emerald-400"> ✎</span>
                           </button>
                           {isAdmin && (
-                            <button type="button" onClick={() => toggleEdit(emp, section)} disabled={pending}
-                              title={grant.canEdit ? 'Boleh edit — klik untuk jadikan hanya-lihat' : 'Hanya-lihat — klik untuk izinkan edit/finalisasi'}
-                              className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border disabled:opacity-50 ${grant.canEdit ? 'bg-amber-50 text-amber-800 border-amber-300' : 'bg-white text-gray-600 border-gray-300'}`}>
-                              {grant.canEdit ? '✎ edit' : '👁 lihat'}
+                            <button type="button" onClick={() => cycleIzin(emp, section)} disabled={pending}
+                              title="Klik untuk memutar izin: Lihat → Meringkas → Finalisasi"
+                              className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border disabled:opacity-50 ${
+                                grant.canFinalize ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                : grant.canEdit ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                                : 'bg-white text-gray-600 border-gray-300'}`}>
+                              {grant.canFinalize ? '✎ finalisasi' : grant.canEdit ? '✎ meringkas' : '👁 lihat'}
                             </button>
                           )}
                           <button type="button" onClick={() => revokeGrant(emp, section)} disabled={pending}
@@ -888,20 +901,20 @@ export function AksesClient({
         )}
       </ConfirmDialog>
 
-      {/* Peringatan: memberi izin EDIT halaman administrator ke PERAN luas (banyak orang sekaligus). */}
+      {/* Peringatan: memberi izin FINALISASI halaman administrator ke PERAN luas (banyak orang sekaligus). */}
       <ConfirmDialog
         open={!!roleConfirm}
         icon="⚠️"
-        title="Beri izin edit ke banyak orang?"
+        title="Beri izin finalisasi ke banyak orang?"
         tone="danger"
         confirmLabel={roleConfirm ? `Ya, berikan ke ${roleConfirm.count} orang` : 'Ya, berikan'}
         busy={pending}
-        onConfirm={() => roleConfirm && doRoleSave(roleConfirm.roleTarget, roleConfirm.section, roleConfirm.scopes, roleConfirm.canEdit)}
+        onConfirm={() => roleConfirm && doRoleSave(roleConfirm.roleTarget, roleConfirm.section, roleConfirm.scopes, roleConfirm.canEdit, roleConfirm.canFinalize)}
         onCancel={() => { if (!pending) setRoleConfirm(null); }}
       >
         {roleConfirm && (
           <p>Anda akan mengizinkan <strong>SEMUA {GRANT_ROLE_TARGET_LABELS[roleConfirm.roleTarget as GrantRoleTarget]} ({roleConfirm.count} orang)</strong> untuk{' '}
-          <strong>meng-edit/finalisasi</strong> halaman <strong>{pages.find((p) => p.key === roleConfirm.section)?.label}</strong>. Ini memberi kemampuan menulis ke banyak orang sekaligus — pastikan memang diinginkan. Lanjutkan?</p>
+          <strong>memfinalisasi &amp; merilis</strong> halaman <strong>{pages.find((p) => p.key === roleConfirm.section)?.label}</strong> (dalam lingkupnya masing-masing). Ini kemampuan menulis paling berdampak — pastikan memang diinginkan. Lanjutkan?</p>
         )}
       </ConfirmDialog>
     </div>

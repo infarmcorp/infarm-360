@@ -33,6 +33,7 @@ const GrantInput = z.object({
   section: z.enum(GRANTABLE_PAGES),
   scopes: z.array(z.enum(PAGE_SCOPES)).min(1),
   canEdit: z.boolean(),
+  canFinalize: z.boolean(),
 });
 
 /**
@@ -41,15 +42,15 @@ const GrantInput = z.object({
  * halaman jenis 'administrator' (dinormalkan false untuk 'pemantauan'). Kolom tunggal LAMA `scope`
  * tetap diisi (`scopes[0]`) demi kompatibilitas app yang belum di-deploy ulang.
  */
-export async function setPageGrant(employeeId: string, section: unknown, scopes: unknown, canEdit: unknown = false): Promise<Result> {
-  const parsed = GrantInput.safeParse({ employeeId, section, scopes, canEdit: !!canEdit });
+export async function setPageGrant(employeeId: string, section: unknown, scopes: unknown, canEdit: unknown = false, canFinalize: unknown = false): Promise<Result> {
+  const parsed = GrantInput.safeParse({ employeeId, section, scopes, canEdit: !!canEdit, canFinalize: !!canFinalize });
   if (!parsed.success) return { ok: false, error: 'Input tidak valid (pilih minimal satu lingkup).' };
   const { employeeId: id, section: sec } = parsed.data;
   // Normalisasi: buang duplikat; 'all' menyerap semua → simpan ['all'] saja (paling ringkas).
   let scps: PageScope[] = [...new Set(parsed.data.scopes)];
   if (scps.includes('all')) scps = ['all'];
-  // Halaman pemantauan selalu lihat-saja → paksa can_edit=false apa pun yang dikirim.
-  const edit = GRANTABLE_PAGE_KIND[sec as GrantablePage] === 'administrator' ? parsed.data.canEdit : false;
+  // Halaman pemantauan selalu lihat-saja → paksa can_edit/can_finalize=false. can_finalize menyiratkan can_edit.
+  const [edit, finalize] = normalizeIzin(sec as GrantablePage, parsed.data.canEdit, parsed.data.canFinalize);
 
   const supabase = await createClient();
   const auth = await requireFullHrd(supabase);
@@ -62,18 +63,34 @@ export async function setPageGrant(employeeId: string, section: unknown, scopes:
   // (legacy) + `scopes` (baru) sekaligus agar sinkron.
   const admin = createAdminClient();
   const { error } = await admin.from('page_grants')
-    .upsert({ employee_id: id, section: sec, scope: scps[0], scopes: scps, can_edit: edit, created_by: auth.userId }, { onConflict: 'employee_id,section' });
+    .upsert({ employee_id: id, section: sec, scope: scps[0], scopes: scps, can_edit: edit, can_finalize: finalize, created_by: auth.userId }, { onConflict: 'employee_id,section' });
   if (error) return { ok: false, error: 'Gagal menyimpan akses: ' + error.message };
 
   const scopeLabel = scps.map((s) => PAGE_SCOPE_LABELS[s]).join(' + ');
-  const editNote = GRANTABLE_PAGE_KIND[sec as GrantablePage] === 'administrator' ? (edit ? ', boleh edit' : ', hanya lihat') : '';
+  const izinNote = izinLabel(sec as GrantablePage, edit, finalize);
   await logHrdAction({
     action: 'access.set_page_grant', category: 'pegawai',
-    summary: `Memberi akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" (${scopeLabel}${editNote}) untuk ${target.name ?? id}`,
-    targetType: 'employee', targetId: id, targetLabel: target.name ?? null, meta: { section: sec, scopes: scps, can_edit: edit },
+    summary: `Memberi akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" (${scopeLabel}${izinNote}) untuk ${target.name ?? id}`,
+    targetType: 'employee', targetId: id, targetLabel: target.name ?? null, meta: { section: sec, scopes: scps, can_edit: edit, can_finalize: finalize },
   });
   revalidate();
-  return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" diberikan (${scopeLabel}${editNote}).` };
+  return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" diberikan (${scopeLabel}${izinNote}).` };
+}
+
+/** Normalisasi izin 3-tingkat: pemantauan → selalu lihat-saja; can_finalize menyiratkan can_edit. */
+function normalizeIzin(sec: GrantablePage, canEdit: boolean, canFinalize: boolean): [boolean, boolean] {
+  if (GRANTABLE_PAGE_KIND[sec] !== 'administrator') return [false, false];
+  const finalize = canFinalize;
+  const edit = canEdit || finalize; // finalisasi menyiratkan boleh edit/meringkas
+  return [edit, finalize];
+}
+
+/** Label izin untuk pesan & audit: lihat / meringkas / finalisasi (halaman administrator saja). */
+function izinLabel(sec: GrantablePage, edit: boolean, finalize: boolean): string {
+  if (GRANTABLE_PAGE_KIND[sec] !== 'administrator') return '';
+  if (finalize) return ', boleh finalisasi';
+  if (edit) return ', boleh meringkas';
+  return ', hanya lihat';
 }
 
 const RoleGrantInput = z.object({
@@ -81,6 +98,7 @@ const RoleGrantInput = z.object({
   section: z.enum(GRANTABLE_PAGES),
   scopes: z.array(z.enum(PAGE_SCOPES)).min(1),
   canEdit: z.boolean(),
+  canFinalize: z.boolean(),
 });
 
 /**
@@ -89,13 +107,13 @@ const RoleGrantInput = z.object({
  * (mis. 'coordinator_team' → tim masing-masing; 'own_division' → divisi masing-masing). Peringatan
  * untuk Edit-ke-peran-luas ditangani di klien (konfirmasi) — di server tetap dibolehkan.
  */
-export async function setPageGrantForRole(roleTarget: unknown, section: unknown, scopes: unknown, canEdit: unknown = false): Promise<Result> {
-  const parsed = RoleGrantInput.safeParse({ roleTarget, section, scopes, canEdit: !!canEdit });
+export async function setPageGrantForRole(roleTarget: unknown, section: unknown, scopes: unknown, canEdit: unknown = false, canFinalize: unknown = false): Promise<Result> {
+  const parsed = RoleGrantInput.safeParse({ roleTarget, section, scopes, canEdit: !!canEdit, canFinalize: !!canFinalize });
   if (!parsed.success) return { ok: false, error: 'Input tidak valid (pilih peran, halaman, & minimal satu lingkup).' };
   const { roleTarget: rt, section: sec } = parsed.data;
   let scps: PageScope[] = [...new Set(parsed.data.scopes)];
   if (scps.includes('all')) scps = ['all'];
-  const edit = GRANTABLE_PAGE_KIND[sec as GrantablePage] === 'administrator' ? parsed.data.canEdit : false;
+  const [edit, finalize] = normalizeIzin(sec as GrantablePage, parsed.data.canEdit, parsed.data.canFinalize);
 
   const supabase = await createClient();
   const auth = await requireFullHrd(supabase);
@@ -113,20 +131,20 @@ export async function setPageGrantForRole(roleTarget: unknown, section: unknown,
   if (!members || members.length === 0) return { ok: false, error: `Tak ada anggota ${GRANT_ROLE_TARGET_LABELS[rt]} saat ini.` };
 
   const rows = members.map((m) => ({
-    employee_id: m.id, section: sec, scope: scps[0], scopes: scps, can_edit: edit, created_by: auth.userId,
+    employee_id: m.id, section: sec, scope: scps[0], scopes: scps, can_edit: edit, can_finalize: finalize, created_by: auth.userId,
   }));
   const { error } = await admin.from('page_grants').upsert(rows, { onConflict: 'employee_id,section' });
   if (error) return { ok: false, error: 'Gagal menyimpan akses massal: ' + error.message };
 
   const scopeLabel = scps.map((s) => PAGE_SCOPE_LABELS[s]).join(' + ');
-  const editNote = GRANTABLE_PAGE_KIND[sec as GrantablePage] === 'administrator' ? (edit ? ', boleh edit' : ', hanya lihat') : '';
+  const izinNote = izinLabel(sec as GrantablePage, edit, finalize);
   await logHrdAction({
     action: 'access.set_page_grant_role', category: 'pegawai',
-    summary: `Memberi akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" (${scopeLabel}${editNote}) ke SEMUA ${GRANT_ROLE_TARGET_LABELS[rt]} (${rows.length} orang)`,
-    targetType: 'role', targetId: rt, targetLabel: GRANT_ROLE_TARGET_LABELS[rt], meta: { section: sec, scopes: scps, can_edit: edit, count: rows.length },
+    summary: `Memberi akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" (${scopeLabel}${izinNote}) ke SEMUA ${GRANT_ROLE_TARGET_LABELS[rt]} (${rows.length} orang)`,
+    targetType: 'role', targetId: rt, targetLabel: GRANT_ROLE_TARGET_LABELS[rt], meta: { section: sec, scopes: scps, can_edit: edit, can_finalize: finalize, count: rows.length },
   });
   revalidate();
-  return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" diberikan ke ${rows.length} ${GRANT_ROLE_TARGET_LABELS[rt]} (${scopeLabel}${editNote}).` };
+  return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" diberikan ke ${rows.length} ${GRANT_ROLE_TARGET_LABELS[rt]} (${scopeLabel}${izinNote}).` };
 }
 
 /** Cabut akses halaman untuk seorang pegawai. Ditulis via service_role. */

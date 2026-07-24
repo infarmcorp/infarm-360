@@ -29,11 +29,13 @@ export default async function AdminLaporanPage() {
   // lingkup, ditegakkan server via service_role); `can_edit=false` → tetap LIHAT-SAJA (Tahap 1).
   let reviewScopes: PageScope[] | null = null;
   let grantCanEdit = false;
+  let grantCanFinalize = false;
   if (!isHrdFull) {
-    const { data: grantRows } = await supabase.from('page_grants').select('section, scope, scopes, can_edit').eq('employee_id', user.id);
+    const { data: grantRows } = await supabase.from('page_grants').select('section, scope, scopes, can_edit, can_finalize').eq('employee_id', user.id);
     const access = grantedAccess(grantRows, 'review');
     reviewScopes = access?.scopes ?? null;
     grantCanEdit = !!access?.canEdit;
+    grantCanFinalize = !!access?.canFinalize;
   }
   if (!isHrdFull && !reviewScopes) {
     return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin atau pemegang akses Review Hasil Akhir.</p>
@@ -186,7 +188,7 @@ export default async function AdminLaporanPage() {
       <div className="flex items-center justify-between mb-3">
         <div>
           <h1 className="text-xl font-bold text-gray-800">Review Hasil Akhir</h1>
-          <p className="text-sm text-gray-500">Periode aktif: {ap.label} · {isHrdFull ? 'finalisasi Skor Akhir kalibrasi.' : grantCanEdit ? 'akses dari HRD — boleh tinjau & finalisasi (lingkup terbatas).' : 'lihat-saja (akses dari HRD, lingkup terbatas).'}</p>
+          <p className="text-sm text-gray-500">Periode aktif: {ap.label} · {isHrdFull ? 'finalisasi Skor Akhir kalibrasi.' : grantCanFinalize ? 'akses dari HRD — boleh tinjau & finalisasi (lingkup terbatas).' : grantCanEdit ? 'akses dari HRD — boleh tinjau & meringkas, tanpa finalisasi (lingkup terbatas).' : 'lihat-saja (akses dari HRD, lingkup terbatas).'}</p>
         </div>
         <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
       </div>
@@ -244,10 +246,15 @@ export default async function AdminLaporanPage() {
           tersimpan yang dilihat pegawai; badge <strong>berubah</strong> muncul bila data terkini berbeda
           (kembalikan ke draf lalu finalisasi ulang untuk memperbarui).
         </p>
-      ) : grantCanEdit ? (
+      ) : grantCanFinalize ? (
         <p className="text-[10px] text-gray-500 italic mt-3">
           Klik <strong>Tinjau</strong> untuk membuka laporan pegawai dalam lingkup akses Anda dan
           mengelolanya (Simpan Draf → Rilis → Finalisasi). Akses ini diberikan HRD dan dibatasi lingkup.
+        </p>
+      ) : grantCanEdit ? (
+        <p className="text-[10px] text-gray-500 italic mt-3">
+          Klik <strong>Tinjau</strong> untuk membuka laporan pegawai dalam lingkup akses Anda dan menulis
+          <strong> Ringkasan Aspek</strong>. Finalisasi &amp; kalibrasi skor tetap wewenang HRD.
         </p>
       ) : (
         <p className="text-[10px] text-gray-500 italic mt-3">

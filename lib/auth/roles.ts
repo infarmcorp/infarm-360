@@ -151,7 +151,7 @@ export const PAGE_SCOPE_LABELS: Record<PageScope, string> = {
  * Satu baris grant halaman (subset kolom page_grants untuk otorisasi). `scopes` = lingkup MULTI
  * (migrasi 0028); `scope` = kolom tunggal LAMA (fallback backward-compat bila `scopes` kosong).
  */
-export type PageGrantRow = { section: string; scope?: string | null; scopes?: string[] | null; can_edit?: boolean };
+export type PageGrantRow = { section: string; scope?: string | null; scopes?: string[] | null; can_edit?: boolean; can_finalize?: boolean };
 
 /** Daftar lingkup SAH sebuah baris grant (utamakan `scopes[]`; fallback ke `scope` tunggal lama). */
 function scopesOf(g: PageGrantRow): PageScope[] {
@@ -161,15 +161,19 @@ function scopesOf(g: PageGrantRow): PageScope[] {
 
 /**
  * Akses lengkap (DAFTAR lingkup + boleh-edit) untuk halaman `page`, atau `null` bila tak diberi /
- * tak ada lingkup sah. Sumber kebenaran grant halaman. `canEdit` hanya bermakna untuk halaman jenis
- * 'administrator'; 'pemantauan' selalu lihat-saja. HRD penuh TIDAK lewat jalur ini (pakai canSection).
+ * tak ada lingkup sah. Sumber kebenaran grant halaman. `canEdit`/`canFinalize` hanya bermakna untuk
+ * halaman jenis 'administrator'; 'pemantauan' selalu lihat-saja. HRD penuh TIDAK lewat jalur ini
+ * (pakai canSection). Tiga tingkat: Lihat (edit false) · Meringkas (edit true, finalize false) ·
+ * Finalisasi (edit true, finalize true). `canFinalize` selalu menyiratkan `canEdit`.
  */
-export function grantedAccess(grants: PageGrantRow[] | null | undefined, page: GrantablePage): { scopes: PageScope[]; canEdit: boolean } | null {
+export function grantedAccess(grants: PageGrantRow[] | null | undefined, page: GrantablePage): { scopes: PageScope[]; canEdit: boolean; canFinalize: boolean } | null {
   const g = grants?.find((x) => x.section === page);
   if (!g) return null;
   const scopes = scopesOf(g);
   if (!scopes.length) return null;
-  return { scopes, canEdit: !!g.can_edit };
+  const canEdit = !!g.can_edit;
+  // canFinalize menyiratkan canEdit (pertahanan bila data tak konsisten).
+  return { scopes, canEdit, canFinalize: canEdit && !!g.can_finalize };
 }
 
 /** Konvenien: lingkup PERTAMA yang diberikan untuk `page` (null bila tak ada). Untuk pemakai yang

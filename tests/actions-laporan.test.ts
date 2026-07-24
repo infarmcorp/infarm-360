@@ -167,7 +167,7 @@ describe('saveOrFinalizeReport — jalur GRANT "Review Hasil Akhir" (Tahap 2)', 
   it("lingkup 'self' — SUKSES bila target = diri sendiri (via service_role)", async () => {
     use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: GRANT_HOLDER }],
-      page_grants: [{ data: [{ section: 'review', scope: 'self', scopes: ['self'], can_edit: true }] }],
+      page_grants: [{ data: [{ section: 'review', scope: 'self', scopes: ['self'], can_edit: true, can_finalize: true }] }],
     } }));
     useAdmin(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: { dept: 'Marketing' } }, { data: { name: 'Ulfa' } }], // dept target (resolver) lalu nama (akhir)
@@ -180,10 +180,10 @@ describe('saveOrFinalizeReport — jalur GRANT "Review Hasil Akhir" (Tahap 2)', 
     if (r.ok) expect(r.finalized).toBe(true);
   });
 
-  it('finalisasi SUKSES bila boleh-edit + target DALAM lingkup (tulis via service_role)', async () => {
+  it('finalisasi SUKSES bila boleh-finalisasi + target DALAM lingkup (tulis via service_role)', async () => {
     use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: GRANT_HOLDER }], // dept Marketing
-      page_grants: [{ data: [{ section: 'review', scope: 'own_division', can_edit: true }] }],
+      page_grants: [{ data: [{ section: 'review', scope: 'own_division', can_edit: true, can_finalize: true }] }],
     } }));
     // Semua baca/tulis laporan lewat service_role (admin): target dept, periode, computeFinal, final_reports, nama.
     useAdmin(makeClient({ user: { id: UID }, tables: {
@@ -196,5 +196,18 @@ describe('saveOrFinalizeReport — jalur GRANT "Review Hasil Akhir" (Tahap 2)', 
     expect(r.ok).toBe(true);
     if (r.ok) { expect(r.finalized).toBe(true); expect(r.finalScore).toBe(80); }
     expect(mockCreateAdmin).toHaveBeenCalled();
+  });
+
+  it('tolak FINALISASI bila tingkat hanya MERINGKAS (can_edit=true, can_finalize=false)', async () => {
+    use(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: GRANT_HOLDER }], // dept Marketing
+      page_grants: [{ data: [{ section: 'review', scope: 'own_division', can_edit: true, can_finalize: false }] }],
+    } }));
+    useAdmin(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: { dept: 'Marketing' } }],
+    } }));
+    const r = await saveOrFinalizeReport(EMP, true);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/meringkas|finalisasi/i);
   });
 });

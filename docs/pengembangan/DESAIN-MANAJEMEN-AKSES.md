@@ -242,11 +242,11 @@ flowchart TD
   %% Cabang 1: akses ke sebuah halaman (di sinilah LINGKUP & EDIT diatur)
   S3 -->|"Akses ke sebuah halaman"| G1["Pilih halaman<br/>(mis. Dashboard, Monitor, Review Hasil Akhir)"]
   G1 --> G1a["Atur LINGKUP data:<br/>semua orang / hanya divisinya /<br/>selain divisinya / tim naungannya"]
-  G1a --> G1b["Atur IZIN:<br/>boleh edit  ATAU  lihat saja<br/>(edit hanya utk halaman tertentu)"]
+  G1a --> G1b["Atur IZIN (3 tingkat):<br/>1) Lihat saja<br/>2) Boleh meringkas (tanpa finalisasi)<br/>3) Boleh finalisasi<br/>(tingkat 2-3 hanya utk halaman tertentu)"]
   G1b --> DONE["Simpan — tercatat di Riwayat"]
 
   %% Peninjau Lintas Divisi = KOMBINASI di cabang halaman, bukan fitur khusus lagi
-  G1b -.->|"contoh kombinasi"| EX["Peninjau Lintas Divisi =<br/>halaman 'Review Hasil Akhir'<br/>+ lingkup 'selain divisinya'<br/>+ izin tulis Ringkasan Aspek<br/>(perlu Tahap 2)"]
+  G1b -.->|"contoh kombinasi"| EX["Peninjau Lintas Divisi =<br/>halaman 'Review Hasil Akhir'<br/>+ lingkup 'selain divisinya'<br/>+ izin 'Boleh meringkas' (tanpa finalisasi)"]
 
   %% Cabang 2: izin khusus / jabatan — tinggal DUA
   S3 -->|"Izin khusus / jabatan"| G2["Pilih izin"]
@@ -274,12 +274,16 @@ flowchart TD
 - **Memberi akses sebagai Koordinator** → `G2a`, di cabang **izin khusus/jabatan** — sekaligus memilih
   pegawai mana saja yang dinaungi. (HRD Admin juga di cabang ini.)
 
-**Peninjau Lintas Divisi bukan lagi "fitur khusus" (kotak biru `EX`):**
+**Peninjau Lintas Divisi bukan lagi "fitur khusus" (kotak biru `EX`) — SUDAH terakomodasi hari ini:**
 - Cukup **kombinasi di cabang halaman**: halaman *Review Hasil Akhir* + lingkup *"selain divisinya"* +
-  izin *tulis Ringkasan Aspek*. Fitur/toggle terpisah `is_cross_reviewer` bisa dipensiunkan.
-- **Syarat**: butuh **Tahap 2** (izin tulis berlingkup untuk non-HRD yang ditegakkan server), dengan
-  pembeda **"tulis Ringkasan Aspek" ≠ "finalisasi"** — finalisasi tetap HRD. Sampai Tahap 2 ada, grant
-  Review untuk non-HRD masih *lihat-saja*.
+  izin *edit*. **Tahap 2 sudah AKTIF & ditegakkan server** (`resolveReportWriteActor` di
+  `admin/laporan/actions.ts` cek `can_edit` + lingkup, tulis via `service_role`) — bukan sekadar UI.
+  Fitur/toggle `is_cross_reviewer` + route `/peninjau` kini **redundan** & bisa dipensiunkan.
+- **⚠️ Nuansa penting (bukan blocker, tapi perlu diputuskan):** izin grant **biner** — *lihat-saja*
+  (tak bisa tulis ringkasan) vs *edit* (tulis ringkasan **DAN boleh finalisasi** dalam lingkup). Peninjau
+  lama = **ringkas-saja, tanpa finalisasi**. Grant Review+edit memberi **lebih** (termasuk finalisasi),
+  jadi melonggarkan invarian lama "finalisasi tetap HRD". Bila peran "ringkas-saja tanpa finalisasi"
+  masih diinginkan → perlu **level izin ke-3** sebelum `is_cross_reviewer` dipensiunkan total.
 
 **Inti usulan (bahasa sederhana):**
 - **Pilih orangnya dulu** — sesuai caramu berpikir: "saya mau kasih si A akses ini".
@@ -304,12 +308,56 @@ flowchart TD
    bukan section terpisah dengan tombol prefill.
 5. **Nasib 3 tab lama**: "Memberikan" + "Mencabut" **melebur** ke alur penerima-dulu (beri & cabut di
    profil yang sama). "Log aktivitas" **tetap** tab sendiri.
-6. **✅ DISEPAKATI (2026-07-24) — Peninjau Lintas Divisi jadi kombinasi akses halaman, bukan fitur khusus.**
-   = halaman *Review Hasil Akhir* + lingkup *"selain divisinya"* + izin *tulis Ringkasan Aspek*. Toggle
-   `is_cross_reviewer` dipensiunkan. **Prasyarat: Tahap 2** (izin tulis berlingkup non-HRD ditegakkan
-   server; "tulis Ringkasan Aspek" ≠ "finalisasi" — finalisasi tetap HRD). Sampai Tahap 2 ada, grant
-   Review non-HRD masih lihat-saja → pemindahan penuh menunggu Tahap 2. Sisa "izin khusus" = **Koordinator**
-   (hubungan supervisi + daftar tim) & **HRD Admin** (kapabilitas seluruh aplikasi).
+6. **✅ DISEPAKATI (2026-07-24) — Peninjau Lintas Divisi = kombinasi akses halaman, bukan fitur khusus.**
+   = halaman *Review Hasil Akhir* + lingkup *"selain divisinya"* + izin *edit*. **KOREKSI:** Tahap 2
+   ternyata **SUDAH DIBANGUN & ditegakkan server** (`resolveReportWriteActor`) — jadi ini **sudah bisa
+   dipakai hari ini**, bukan "prasyarat". `is_cross_reviewer` + `/peninjau` **redundan** → bisa dipensiunkan.
+   **⚠️ Nuansa terbuka:** izin biner (lihat-saja / edit-termasuk-finalisasi). Peninjau lama = ringkas-saja
+   TANPA finalisasi; grant edit memberi lebih (bisa finalisasi berlingkup → melonggarkan invarian
+   "finalisasi tetap HRD"). Bila peran ringkas-saja-tanpa-finalisasi masih diinginkan → butuh **level izin
+   ke-3** dulu. Sisa "izin khusus" = **Koordinator** (hubungan supervisi + daftar tim) & **HRD Admin**.
+
+### 10.5 Keputusan B (2026-07-24) — level izin ke-3 "Boleh meringkas"
+
+> Pilihan pengguna: **pertahankan peran "meringkas saja, tanpa finalisasi"** (seperti Peninjau lama).
+> Karena itu izin grant halaman diperluas dari **biner** → **3 tingkat**. Baru setelah ini
+> `is_cross_reviewer` + `/peninjau` boleh dipensiunkan (butuh migrasi data + pembersihan route).
+
+**Tiga tingkat izin (halaman jenis 'administrator'; halaman 'pemantauan' tetap Lihat-saja):**
+| Tingkat | Boleh | Contoh peran |
+|---|---|---|
+| 1 · **Lihat saja** | baca daftar + detail (berlingkup) | penonton read-only |
+| 2 · **Boleh meringkas** | + tulis Ringkasan Aspek / Ringkasan Kualitatif; **TIDAK** finalisasi/rilis/kembalikan-draf | **Peninjau Lintas Divisi** |
+| 3 · **Boleh finalisasi** | + finalisasi, rilis ke SPV, kembalikan ke draf | wakil HRD penuh berlingkup |
+
+**Model data (usul — additif, aman ke data lama):**
+- `page_grants` sudah punya `can_edit boolean`. Tambah **`can_finalize boolean default false`**.
+  Pemetaan: Lihat=`(edit false)` · Meringkas=`(edit true, finalize false)` · Finalisasi=`(edit true, finalize true)`.
+- **Backfill migrasi:** set `can_finalize = can_edit` untuk baris LAMA → grant edit yang sudah ada
+  **tetap** bisa finalisasi (tak ada yang diam-diam kehilangan kemampuan). HRD lalu bisa menurunkan
+  grant tertentu ke "Meringkas".
+- (Alternatif ditolak: mengubah `can_edit` jadi enum 3-nilai — lebih bersih konseptual tapi menyentuh
+  semua pengecekan `can_edit` yang ada + migrasi lebih berisiko. `can_finalize` additif lebih murah.)
+
+**Titik penegakan (server — `admin/laporan/actions.ts`):**
+- `resolveReportWriteActor` sudah cek `can_edit` + lingkup + tulis via `service_role`. Tambahkan: kembalikan
+  juga `canFinalize`.
+- `saveAspectSummaries` / `saveQualSummaries` → butuh **≥ Meringkas** (`can_edit`). (sudah begini)
+- `saveOrFinalizeReport(finalize=true)`, `releaseToSpv`, kembalikan-ke-draf → butuh **Finalisasi** (`can_finalize`).
+  Ini yang **berubah**: saat ini `finalize=true` hanya cek `can_edit`.
+
+**UI:** kolom izin di panel akses jadi **3 radio** (Lihat / Meringkas / Finalisasi), hanya untuk halaman
+'administrator'. Peringatan "beri finalisasi ke banyak orang" tetap berlaku untuk tingkat 3 per-peran.
+
+**Pensiun `is_cross_reviewer` + `/peninjau` (setelah level 3 ada):**
+1. Migrasi data: tiap `is_cross_reviewer=true` → buat `page_grants` (review, scope `other_divisions`,
+   `can_edit=true, can_finalize=false`).
+2. Hapus route `/peninjau` + `/peninjau/[id]` + toggle di konsol akses + helper `canCrossReview` (atau
+   tandai deprecated). Perbarui tes/`verify:rls`.
+3. Perbarui CLAUDE.md (invarian "finalisasi tetap HRD" → "finalisasi = HRD atau grant Finalisasi berlingkup").
+
+**Pentahapan aman:** (F1) migrasi `can_finalize` + backfill → (F2) penegakan server + UI 3-radio →
+(F3) migrasi cross-reviewer + pensiun `/peninjau`. Tiap fase diuji & bisa berhenti.
 
 ### 10.4 Rekomendasiku
 Setuju **penerima-dulu** — itu menyederhanakan model mental & otomatis menyatukan dua pintu jadi satu.

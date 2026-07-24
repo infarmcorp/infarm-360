@@ -159,7 +159,7 @@ describe("lingkup 'self' (Diri sendiri) — berbasis ID, FAIL-CLOSED di helper d
   });
   it('grantedScope/grantedAccess mengenali self sebagai scope sah', () => {
     expect(grantedScope([{ section: 'monitor', scope: 'self' }], 'monitor')).toBe('self');
-    expect(grantedAccess([{ section: 'review', scope: 'self', can_edit: true }], 'review')).toEqual({ scopes: ['self'], canEdit: true });
+    expect(grantedAccess([{ section: 'review', scope: 'self', can_edit: true }], 'review')).toEqual({ scopes: ['self'], canEdit: true, canFinalize: false });
   });
 });
 
@@ -226,7 +226,7 @@ describe("lingkup 'coordinator_team' — berbasis daftar tim, FAIL-CLOSED di hel
   });
   it('grantedAccess mengenali coordinator_team sebagai scope sah', () => {
     expect(grantedAccess([{ section: 'monitor', scope: 'coordinator_team', scopes: ['coordinator_team'] }], 'monitor'))
-      .toEqual({ scopes: ['coordinator_team'], canEdit: false });
+      .toEqual({ scopes: ['coordinator_team'], canEdit: false, canFinalize: false });
   });
 });
 
@@ -240,11 +240,22 @@ describe('Review Hasil Akhir — grant halaman (Tahap 1: lihat-saja berlingkup)'
     expect(grantedScope([{ section: 'monitor', scope: 'all' }], 'review')).toBeNull();
   });
   it('grantedAccess mengembalikan DAFTAR lingkup + canEdit (fallback scope tunggal lama → [scope])', () => {
-    expect(grantedAccess([{ section: 'review', scope: 'all' }], 'review')).toEqual({ scopes: ['all'], canEdit: false });
-    expect(grantedAccess([{ section: 'review', scope: 'other_divisions', can_edit: true }], 'review')).toEqual({ scopes: ['other_divisions'], canEdit: true });
+    expect(grantedAccess([{ section: 'review', scope: 'all' }], 'review')).toEqual({ scopes: ['all'], canEdit: false, canFinalize: false });
+    expect(grantedAccess([{ section: 'review', scope: 'other_divisions', can_edit: true }], 'review')).toEqual({ scopes: ['other_divisions'], canEdit: true, canFinalize: false });
     // kolom `scopes[]` baru diutamakan bila ada
     expect(grantedAccess([{ section: 'review', scope: 'other_divisions', scopes: ['other_divisions', 'self'], can_edit: true }], 'review'))
-      .toEqual({ scopes: ['other_divisions', 'self'], canEdit: true });
+      .toEqual({ scopes: ['other_divisions', 'self'], canEdit: true, canFinalize: false });
+  });
+  it('grantedAccess izin 3-tingkat: canFinalize hanya bila can_finalize, & selalu menyiratkan canEdit', () => {
+    // Meringkas: edit true, finalize false
+    expect(grantedAccess([{ section: 'review', scope: 'all', can_edit: true, can_finalize: false }], 'review'))
+      .toEqual({ scopes: ['all'], canEdit: true, canFinalize: false });
+    // Finalisasi: edit true, finalize true
+    expect(grantedAccess([{ section: 'review', scope: 'all', can_edit: true, can_finalize: true }], 'review'))
+      .toEqual({ scopes: ['all'], canEdit: true, canFinalize: true });
+    // Data tak konsisten (finalize true tanpa edit) → canFinalize dipaksa false (menyiratkan canEdit).
+    expect(grantedAccess([{ section: 'review', scope: 'all', can_edit: false, can_finalize: true }], 'review'))
+      .toEqual({ scopes: ['all'], canEdit: false, canFinalize: false });
   });
   it('lingkup review memakai deptScopeFilter yang SAMA (other_divisions kecualikan divisi sendiri + dept null)', () => {
     const f = deptScopeFilter('other_divisions', OWN, 'all');
@@ -258,8 +269,8 @@ describe('Dashboard Organisasi — grant halaman (pemantauan, lihat-saja berling
     expect(GRANTABLE_PAGE_KIND.dashboard).toBe('pemantauan');
   });
   it('grantedAccess membaca lingkup dashboard (mis. coordinator_team); halaman lain → null', () => {
-    expect(grantedAccess([{ section: 'dashboard', scope: 'own_division' }], 'dashboard')).toEqual({ scopes: ['own_division'], canEdit: false });
-    expect(grantedAccess([{ section: 'dashboard', scope: 'coordinator_team', scopes: ['coordinator_team'] }], 'dashboard')).toEqual({ scopes: ['coordinator_team'], canEdit: false });
+    expect(grantedAccess([{ section: 'dashboard', scope: 'own_division' }], 'dashboard')).toEqual({ scopes: ['own_division'], canEdit: false, canFinalize: false });
+    expect(grantedAccess([{ section: 'dashboard', scope: 'coordinator_team', scopes: ['coordinator_team'] }], 'dashboard')).toEqual({ scopes: ['coordinator_team'], canEdit: false, canFinalize: false });
     expect(grantedAccess([{ section: 'monitor', scope: 'all' }], 'dashboard')).toBeNull();
   });
 });
@@ -270,7 +281,7 @@ describe('Struktur Organisasi — grant halaman (pemantauan, lihat-saja berlingk
     expect(GRANTABLE_PAGE_KIND.struktur).toBe('pemantauan');
   });
   it('grantedAccess membaca lingkup struktur; halaman lain → null', () => {
-    expect(grantedAccess([{ section: 'struktur', scope: 'own_division' }], 'struktur')).toEqual({ scopes: ['own_division'], canEdit: false });
+    expect(grantedAccess([{ section: 'struktur', scope: 'own_division' }], 'struktur')).toEqual({ scopes: ['own_division'], canEdit: false, canFinalize: false });
     expect(grantedAccess([{ section: 'dashboard', scope: 'all' }], 'struktur')).toBeNull();
   });
 });
@@ -281,7 +292,7 @@ describe('Progress 360 Feedback — grant halaman (pemantauan, lihat-saja berlin
     expect(GRANTABLE_PAGE_KIND.progress).toBe('pemantauan');
   });
   it('grantedAccess membaca lingkup progress; halaman lain → null', () => {
-    expect(grantedAccess([{ section: 'progress', scope: 'coordinator_team', scopes: ['coordinator_team'] }], 'progress')).toEqual({ scopes: ['coordinator_team'], canEdit: false });
+    expect(grantedAccess([{ section: 'progress', scope: 'coordinator_team', scopes: ['coordinator_team'] }], 'progress')).toEqual({ scopes: ['coordinator_team'], canEdit: false, canFinalize: false });
     expect(grantedAccess([{ section: 'struktur', scope: 'all' }], 'progress')).toBeNull();
   });
 });
@@ -292,7 +303,7 @@ describe('Flag Kepatuhan — grant halaman (pemantauan/lihat-saja; punishment te
     expect(GRANTABLE_PAGE_KIND.kepatuhan).toBe('pemantauan');
   });
   it('grantedAccess membaca lingkup kepatuhan; halaman lain → null', () => {
-    expect(grantedAccess([{ section: 'kepatuhan', scope: 'own_division' }], 'kepatuhan')).toEqual({ scopes: ['own_division'], canEdit: false });
+    expect(grantedAccess([{ section: 'kepatuhan', scope: 'own_division' }], 'kepatuhan')).toEqual({ scopes: ['own_division'], canEdit: false, canFinalize: false });
     expect(grantedAccess([{ section: 'progress', scope: 'all' }], 'kepatuhan')).toBeNull();
   });
 });
@@ -303,8 +314,8 @@ describe('Monitoring & Audit KPI — grant halaman (pemantauan/lihat-saja; input
     expect(GRANTABLE_PAGE_KIND.kpi).toBe('pemantauan');
   });
   it('grantedAccess membaca lingkup kpi (mono & multi); halaman lain → null', () => {
-    expect(grantedAccess([{ section: 'kpi', scope: 'coordinator_team' }], 'kpi')).toEqual({ scopes: ['coordinator_team'], canEdit: false });
-    expect(grantedAccess([{ section: 'kpi', scopes: ['own_division', 'other_divisions'] }], 'kpi')).toEqual({ scopes: ['own_division', 'other_divisions'], canEdit: false });
+    expect(grantedAccess([{ section: 'kpi', scope: 'coordinator_team' }], 'kpi')).toEqual({ scopes: ['coordinator_team'], canEdit: false, canFinalize: false });
+    expect(grantedAccess([{ section: 'kpi', scopes: ['own_division', 'other_divisions'] }], 'kpi')).toEqual({ scopes: ['own_division', 'other_divisions'], canEdit: false, canFinalize: false });
     expect(grantedAccess([{ section: 'monitor', scope: 'all' }], 'kpi')).toBeNull();
   });
 });

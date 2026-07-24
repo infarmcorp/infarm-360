@@ -39,7 +39,7 @@ export default async function AdminAksesPage({
   const admin = createAdminClient();
   const [{ data: empData }, { data: grantData }, { data: coordData }] = await Promise.all([
     admin.from('employees').select('id, name, dept, role, is_external, is_hrd_admin, is_cross_reviewer, is_coordinator, hrd_sections, joined_on, access_reviewed_at').eq('is_external', false).order('dept').order('name'),
-    admin.from('page_grants').select('employee_id, section, scope, scopes, can_edit'),
+    admin.from('page_grants').select('employee_id, section, scope, scopes, can_edit, can_finalize'),
     admin.from('coordinator_team_members').select('coordinator_id, employee_id'),
   ]);
 
@@ -47,13 +47,14 @@ export default async function AdminAksesPage({
   const coordTeams: Record<string, string[]> = {};
   (coordData ?? []).forEach((c) => { (coordTeams[c.coordinator_id] ??= []).push(c.employee_id); });
 
-  // Peta grant per pegawai: employee_id → { section → { scopes[], canEdit } }.
+  // Peta grant per pegawai: employee_id → { section → { scopes[], canEdit, canFinalize } }.
   // Utamakan kolom `scopes[]` (0028); fallback ke `scope` tunggal lama bila kosong.
-  const grantsByEmp = new Map<string, Record<string, { scopes: string[]; canEdit: boolean }>>();
+  const grantsByEmp = new Map<string, Record<string, { scopes: string[]; canEdit: boolean; canFinalize: boolean }>>();
   (grantData ?? []).forEach((g) => {
     const m = grantsByEmp.get(g.employee_id) ?? {};
     const scopes = g.scopes && g.scopes.length ? g.scopes : (g.scope ? [g.scope] : []);
-    m[g.section] = { scopes, canEdit: !!g.can_edit };
+    const canEdit = !!g.can_edit;
+    m[g.section] = { scopes, canEdit, canFinalize: canEdit && !!g.can_finalize };
     grantsByEmp.set(g.employee_id, m);
   });
 

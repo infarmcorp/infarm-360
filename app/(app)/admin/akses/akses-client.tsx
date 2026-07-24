@@ -549,6 +549,28 @@ export function AksesClient({
               Diterapkan ke <strong>{roleMemberRows(selRole).length}</strong> {GRANT_ROLE_TARGET_LABELS[selRole as GrantRoleTarget]} saat ini.
               Pegawai baru tak otomatis ikut. <span className="text-gray-400">Izin khusus (HRD/Koordinator) diberikan per-orang, bukan per-peran.</span>
             </p>
+
+            {/* Daftar koordinator saat ini (siapa saja yang sedang menjabat + tim naungannya). */}
+            {selRole === 'koordinator' && (
+              <div className="mb-3 rounded-xl border border-teal-200 bg-teal-50/40 p-3">
+                <p className="text-[11px] font-bold text-teal-800 uppercase tracking-wide mb-2">Koordinator saat ini ({roleMemberRows('koordinator').length})</p>
+                {roleMemberRows('koordinator').length === 0 ? (
+                  <p className="text-[12px] text-gray-500 italic">Belum ada koordinator. Angkat lewat penerima <strong>Seorang pegawai</strong> → izin khusus <strong>Koordinator</strong>.</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {roleMemberRows('koordinator').map((c) => (
+                      <li key={c.id} className="flex flex-wrap items-center gap-x-2 text-[12px]">
+                        <span className="font-semibold text-gray-800">{c.name}</span>
+                        <span className="text-gray-500">· {c.dept}</span>
+                        <span className="text-teal-700">· menaungi {teams[c.id]?.length ?? 0} pegawai</span>
+                        <button type="button" onClick={() => pickEmployee(c.id)}
+                          className="ml-auto text-[11px] font-bold text-teal-700 hover:underline">Kelola →</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <select value={addPageSel} onChange={(e) => setAddPageSel(e.target.value)}
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:border-emerald-500 focus:outline-none">

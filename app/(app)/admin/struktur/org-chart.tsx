@@ -43,7 +43,6 @@ export function OrgChart({ roots }: { roots: OrgNode[] }) {
           {n.dept && <span className={`vt-dept ${light ? 'text-slate-400' : 'text-white/70'}`}>{n.dept}</span>}
           {n.isHrdAdmin && <span className={`vt-g ${light ? 'bg-indigo-100 text-indigo-700' : 'bg-white/25'}`} title="Izin HRD">HRD</span>}
           {n.isCoordinator && <span className={`vt-g ${light ? 'bg-teal-100 text-teal-700' : 'bg-white/25'}`} title="Koordinator">KOOR</span>}
-          {n.isCrossReviewer && <span className={`vt-g ${light ? 'bg-violet-100 text-violet-700' : 'bg-white/25'}`} title="Peninjau">PJU</span>}
           {kids.length > 0 && <span className={`vt-count ${light ? 'text-slate-400' : 'text-white/70'}`}>{kids.length}{n.isCoordinator ? ' binaan' : ''}</span>}
         </button>
         {kids.length > 0 && !isC && (

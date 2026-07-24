@@ -9,7 +9,7 @@ import { usePager, Pager } from '@/components/table-controls';
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type EmpRow = {
   id: string; empCode: string; name: string; dept: string; role: Role;
-  isHrdAdmin: boolean; isExternal: boolean; isCrossReviewer: boolean; isCoordinator: boolean; hrdSections: string[] | null; active: boolean; email: string; spvId: string | null; spvName: string | null;
+  isHrdAdmin: boolean; isExternal: boolean; isCoordinator: boolean; hrdSections: string[] | null; active: boolean; email: string; spvId: string | null; spvName: string | null;
   joinedOn: string | null; leftOn: string | null; // tgl masuk/aktif & tgl nonaktif (YYYY-MM-DD)
 };
 export type SpvOpt = { id: string; name: string; dept: string; role: Role };

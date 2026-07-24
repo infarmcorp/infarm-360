@@ -285,16 +285,9 @@ export function allowedDeptsForMulti(depts: string[], scopes: PageScope[], ownDe
   return depts.filter((d) => set.has(d)); // pertahankan urutan asli
 }
 
-/**
- * Boleh meninjau Hasil Akhir LINTAS DIVISI (selain divisinya sendiri)? = grant
- * `is_cross_reviewer` (migrasi 0018). Kapabilitas SEMPIT & terpisah dari HRD Admin:
- * hanya membuka jalur /peninjau (lihat + tulis Ringkasan Aspek untuk divisi lain),
- * BUKAN akses HRD penuh. Penegakan lingkup "divisi ≠ divisi sendiri" ada di server
- * (lib/report.ts loadCrossDivisionReport). Tidak memengaruhi is_hrd()/RLS.
- */
-export function canCrossReview(m: ActorRow | null | undefined): boolean {
-  return !!m?.is_cross_reviewer;
-}
+// canCrossReview() DIHAPUS (2026-07-24): "Peninjau Hasil Lintas Divisi" dipensiunkan (migrasi 0033) —
+// kini diwujudkan sebagai GRANT halaman "Review Hasil Akhir" berlingkup ("selain divisinya") + izin
+// "Boleh meringkas". Kolom is_cross_reviewer dipertahankan (vestigial) tapi tak lagi dibaca kode.
 
 /**
  * Boleh MELIHAT "Laporan Kinerja Tim" sebagai Koordinator? = grant `is_coordinator`

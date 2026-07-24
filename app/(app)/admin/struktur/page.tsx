@@ -39,14 +39,14 @@ export default async function StrukturPage() {
     : undefined;
 
   const { data: emps } = await db.from('employees')
-    .select('id, emp_code, name, dept, role, is_active, is_hrd_admin, is_cross_reviewer, is_coordinator')
+    .select('id, emp_code, name, dept, role, is_active, is_hrd_admin, is_coordinator')
     .eq('is_external', false).order('emp_code');
   // Pemegang grant: batasi daftar ke lingkupnya → seluruh turunan bagan (SPV/koordinator/pohon/orphan/
   // ringkasan) otomatis menyusut karena semuanya diturunkan dari `employees`/`byId`.
   const employees = (emps ?? []).filter((e) => !viaGrant || employeeInScopes(grantScopes!, ownDept, user.id, e, teamIds));
   const toPerson = (e: (typeof employees)[number]): Person => ({
     id: e.id, empCode: e.emp_code, name: e.name, dept: e.dept, role: e.role,
-    active: e.is_active, isHrdAdmin: e.is_hrd_admin, isCrossReviewer: e.is_cross_reviewer, isCoordinator: e.is_coordinator,
+    active: e.is_active, isHrdAdmin: e.is_hrd_admin, isCoordinator: e.is_coordinator,
   });
   const byId = new Map(employees.map((e) => [e.id, toPerson(e)]));
 
@@ -146,7 +146,6 @@ export default async function StrukturPage() {
     spv: spvNodes.length,
     coord: coordNodes.length,
     hrd: employees.filter((e) => e.is_hrd_admin).length,
-    reviewer: employees.filter((e) => e.is_cross_reviewer).length,
   };
 
   return (

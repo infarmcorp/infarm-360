@@ -125,7 +125,8 @@ app/                          # Next.js App Router
     ├── laporan/             # laporan hasil (pegawai; [employeeId] detail + PDF)
     ├── laporan-tim/          # Laporan Kinerja Tim + ACC (SPV/Koordinator/Direksi)
     ├── review-hasil/         # tinjau hasil akhir
-    ├── peninjau/             # Review Lintas Divisi (grant is_cross_reviewer)
+    │                         # (route /peninjau DIHAPUS 2026-07-24 — Peninjau Lintas Divisi kini =
+    │                         #  grant halaman "Review Hasil Akhir" berlingkup, migrasi 0033)
     ├── suksesi/              # suksesi/promosi (Direksi)
     ├── akun/                 # Akun Saya
     └── admin/                # area HRD Admin (canAdmin)
@@ -141,7 +142,7 @@ lib/                          # logika bersama (server-first)
 ├── trend.ts · team-metrics.ts · score-color.ts
 ├── report.ts                # loader laporan (raw anonim, buang L3 bernama)
 ├── database.types.ts        # tipe skema DB
-├── auth/roles.ts            # canAdmin/canCrossReview/canCoordinate/isHrdDept
+├── auth/roles.ts            # canAdmin/canCoordinate/isHrdDept · grantedAccess (izin 3-tingkat)
 ├── auth/demo-users.ts       # roster login (= sumber seed)
 ├── supabase/                # server.ts (RLS vs service_role) · client · middleware · paginate
 ├── import/parse.ts          # parsing impor Excel KPI + pemetaan 360°
@@ -220,17 +221,21 @@ di Supabase → Authentication → URL Configuration; set `NEXT_PUBLIC_ENABLE_PW
 
 > **INVARIANT terkunci — Manajemen Akses / grant halaman berlingkup (`page_grants`, 2026-07-20):**
 > mekanisme "SCOPE/parameter pada halaman existing" di atas diwujudkan lewat tabel **`page_grants`**
-> (migrasi 0024/0025). Model **beku**: **1 grant = orang + halaman + lingkup + (boleh-edit?)**. Katalog
+> (migrasi 0024/0025). Model **beku**: **1 grant = orang + halaman + lingkup + izin 3-tingkat**
+> (Lihat / Meringkas=`can_edit` / Finalisasi=`can_finalize`, migrasi 0032; halaman 'pemantauan' selalu Lihat). Katalog
 > halaman **TETAP** (`GRANTABLE_PAGES` di `lib/auth/roles.ts`) — bukan URL bebas. **Tiap halaman yang
 > di-grant WAJIB mengikuti pola enforcement ini** (mudah salah = rasa aman palsu): (1) gate **SADAR-MODE**
 > `isHrdFull = canSection(page) && hrdMode==='admin'`; (2) jalur grant baca via **`service_role`**
 > berlingkup (helper `grantedScope`/`grantedAccess`/`deptScopeFilter`/`applyDeptScope`, diuji
 > `tests/page-scope.test.ts`) karena pemegang grant non-HRD ditolak RLS; (3) `?dept=` **TAK BOLEH**
-> menembus lingkup (`resolveDept` fallback aman); (4) selama grant **lihat-saja**, aksi tulis TAK diubah =
-> **HRD-only** (sembunyikan tombol tulis + blok halaman detail). ⚠️ Untuk pemegang **`is_hrd()`** ini
-> **pembatasan TAMPILAN**, bukan gembok RLS; **gembok NYATA** (edit oleh non-HRD) = grant **tanpa**
-> `is_hrd()` + tulis via `service_role` yang mengecek `can_edit`+lingkup (Tahap 2). Rincian → CHANGELOG
-> "Manajemen Akses". **Paritas:** perubahan pada perilaku SPV/halaman existing wajib ikut ke jalur grant.
+> menembus lingkup (`resolveDept` fallback aman); (4) izin tulis untuk non-HRD **DITEGAKKAN SERVER**
+> (Tahap 2 AKTIF, halaman Review): `resolveReportWriteActor` cek `can_edit`/`can_finalize`+lingkup, tulis
+> via `service_role` = **gembok NYATA** (Meringkas → tulis Ringkasan Aspek; Finalisasi → +finalisasi/rilis).
+> ⚠️ Untuk pemegang **`is_hrd()`** pembatasan izin bersifat **TAMPILAN**, bukan RLS; gembok nyata hanya untuk
+> pemegang grant **non-HRD** (bukan `is_hrd()`). **Finalisasi** kini = HRD **atau** pemegang grant tingkat
+> Finalisasi berlingkup (bukan lagi HRD-only mutlak). **Peninjau Lintas Divisi** = grant Review + lingkup
+> "selain divisinya" + izin Meringkas (fitur `is_cross_reviewer`/`/peninjau` dipensiunkan, migrasi 0033).
+> Rincian → CHANGELOG "Manajemen Akses". **Paritas:** perubahan perilaku SPV/halaman existing wajib ikut ke jalur grant.
 
 > **Keputusan terkunci — app tegakkan kebijakan, bukan tambal kelalaian (2026-06-25):** aplikasi
 > menegakkan **integritas & kebijakan** (RLS, wajib-komentar/esai, gate periode/360°), **bukan**
@@ -344,7 +349,7 @@ ONBOARDING_GMAIL_ONLY          # server-only — 'false' utk kirim undangan ke S
     `tests/actions-laporan.test.ts` (`saveOrFinalizeReport`/`releaseToSpv` — tolak non-HRD/periode
     nonaktif/skor null, tolak turunkan laporan final; `finalScoreOf` asli), `tests/actions-acc.test.ts`
     (`setSpvAcc` 3 jalur SPV/Koordinator/Direksi — carve-out koordinator, gating rilis, batas kewenangan),
-    `tests/roles.test.ts` (`canAdmin`/`canCrossReview`/`canCoordinate`/`isHrdDept`).
+    `tests/roles.test.ts` (`canAdmin`/`canCoordinate`/`isHrdDept`).
 - **Rumus inti ada di KODE, bukan UI.** Yang bisa diubah HRD lewat aplikasi = *input* (bobot %,
   360° aktif/nonaktif, KPI, punishment). Cara blend & ambang terkunci di kode.
 - **Kalau sengaja mengubah rumus:** perbarui tes terkait. `lib/score360.ts` diekstrak dari

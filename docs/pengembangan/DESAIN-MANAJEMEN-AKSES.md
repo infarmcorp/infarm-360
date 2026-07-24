@@ -359,6 +359,13 @@ flowchart TD
 **Pentahapan aman:** (F1) migrasi `can_finalize` + backfill → (F2) penegakan server + UI 3-radio →
 (F3) migrasi cross-reviewer + pensiun `/peninjau`. Tiap fase diuji & bisa berhenti.
 
+> **✅ SELESAI di `dev` (2026-07-24).** F1 (migrasi 0032) + F2 (grantedAccess canFinalize, penegakan
+> `resolveReportWriteActor`, UI 3-radio + chip putar, detail page) + F3 (migrasi **0033** cross-reviewer→grant
+> Meringkas + set flag false; route `/peninjau` DIHAPUS; toggle & `canCrossReview`/`setCrossReviewer`/
+> `loadCrossDivisionReport` dicabut; badge/stat Peninjau di Struktur dihapus; CLAUDE.md diperbarui).
+> 160 tes hijau · typecheck · build. **PRASYARAT DEPLOY: apply 0032 & 0033 ke DB sebelum merge.** Kolom
+> `is_cross_reviewer` dibiarkan vestigial (tak di-drop) — tak dibaca kode lagi.
+
 ### 10.4 Rekomendasiku
 Setuju **penerima-dulu** — itu menyederhanakan model mental & otomatis menyatukan dua pintu jadi satu.
 Kunci suksesnya: **profil akses 3-lapis** (bawaan / halaman / kapabilitas) dalam satu layar, dengan

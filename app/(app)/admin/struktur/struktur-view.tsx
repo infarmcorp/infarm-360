@@ -1,12 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ShieldCheck, ScanEye, Users, Search, ChevronDown, ChevronRight, Building2, Crown, Network, List } from 'lucide-react';
+import { ShieldCheck, Users, Search, ChevronDown, ChevronRight, Building2, Crown, Network, List } from 'lucide-react';
 import { OrgChart, type OrgNode } from './org-chart';
 
 export type Person = {
   id: string; empCode: string; name: string; dept: string; role: 'employee' | 'spv' | 'hrd' | 'direksi';
-  active: boolean; isHrdAdmin: boolean; isCrossReviewer: boolean; isCoordinator: boolean;
+  active: boolean; isHrdAdmin: boolean; isCoordinator: boolean;
 };
 export type SpvNode = { spv: Person; members: Person[] };
 export type CoordNode = { coord: Person; members: Person[] };
@@ -26,9 +26,6 @@ function PersonChip({ p, sub }: { p: Person; sub?: string }) {
       {p.isHrdAdmin && p.role !== 'hrd' && (
         <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700" title="Izin HRD Admin"><ShieldCheck className="w-2.5 h-2.5" /> HRD</span>
       )}
-      {p.isCrossReviewer && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700" title="Peninjau Lintas Divisi"><ScanEye className="w-2.5 h-2.5" /> Peninjau</span>
-      )}
       {p.isCoordinator && (
         <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-teal-100 text-teal-700" title="Koordinator"><Users className="w-2.5 h-2.5" /> Koordinator</span>
       )}
@@ -41,7 +38,7 @@ export function StrukturView({
   direksi, spvNodes, coordNodes, orphans, deptStats, stats, treeRoots,
 }: {
   direksi: Person[]; spvNodes: SpvNode[]; coordNodes: CoordNode[]; orphans: Person[];
-  deptStats: DeptStat[]; stats: { active: number; depts: number; spv: number; coord: number; hrd: number; reviewer: number };
+  deptStats: DeptStat[]; stats: { active: number; depts: number; spv: number; coord: number; hrd: number };
   treeRoots: OrgNode[];
 }) {
   const [view, setView] = useState<'bagan' | 'daftar'>('bagan');
@@ -73,7 +70,6 @@ export function StrukturView({
         <Stat label="Supervisor" value={stats.spv} />
         <Stat label="Koordinator" value={stats.coord} />
         <Stat label="Izin HRD" value={stats.hrd} />
-        <Stat label="Peninjau" value={stats.reviewer} />
       </div>
 
       {/* Toggle Bagan / Daftar */}

@@ -1,9 +1,9 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import { ShieldCheck, ScanEye, Users, ListChecks, SlidersHorizontal, X, UserPlus, ScrollText } from 'lucide-react';
+import { ShieldCheck, Users, ListChecks, SlidersHorizontal, X, UserPlus, ScrollText } from 'lucide-react';
 import { setPageGrant, setPageGrantForRole, removePageGrant, removePageGrantForAll, removeAllPageGrantsForEmployee, markAccessReviewed } from './actions';
-import { setHrdAdmin, setCrossReviewer, setCoordinator, setCoordinatorTeam, setHrdSections } from '../pegawai/actions';
+import { setHrdAdmin, setCoordinator, setCoordinatorTeam, setHrdSections } from '../pegawai/actions';
 import { isHrdDept, HRD_SECTIONS, HRD_SECTION_LABELS, GRANT_ROLE_TARGETS, GRANT_ROLE_TARGET_LABELS, type HrdSection, type GrantRoleTarget } from '@/lib/auth/roles';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { SearchableSelect } from '@/components/searchable-select';
@@ -16,7 +16,6 @@ export type AksesEmployee = {
   role: string;
   isExternal: boolean;
   isHrdAdmin: boolean;
-  isCrossReviewer: boolean;
   isCoordinator: boolean;
   hrdSections: string[] | null;
   joinedOn: string | null;           // tgl masuk (untuk section "Pegawai Baru")
@@ -101,11 +100,10 @@ export function AksesClient({
   // ── Blok "Izin Peran & Akses HRD": kelola HRD Admin / Atur Akses / Peninjau / Koordinator. ──
   // Kelayakan (mirror gate tombol lama di matriks): HRD/Peninjau hanya divisi HRD; Koordinator hanya
   // pegawai (role employee). Default tampilkan PEMEGANG saja; cari → tampilkan yang LAYAK diberi izin.
-  const holdsRolePerm = (e: AksesEmployee) => e.isHrdAdmin || e.isCrossReviewer || e.isCoordinator;
+  const holdsRolePerm = (e: AksesEmployee) => e.isHrdAdmin || e.isCoordinator;
   const eligibleHrd = (e: AksesEmployee) => e.role !== 'direksi' && e.role !== 'hrd' && (isHrdDept(e.dept) || e.isHrdAdmin);
-  const eligibleCross = (e: AksesEmployee) => e.role !== 'direksi' && e.role !== 'hrd' && (isHrdDept(e.dept) || e.isCrossReviewer);
   const eligibleCoord = (e: AksesEmployee) => e.role === 'employee';
-  const eligibleRolePerm = (e: AksesEmployee) => holdsRolePerm(e) || eligibleHrd(e) || eligibleCross(e) || eligibleCoord(e);
+  const eligibleRolePerm = (e: AksesEmployee) => holdsRolePerm(e) || eligibleHrd(e) || eligibleCoord(e);
   const roleRows = useMemo(() => {
     const s = q3.trim().toLowerCase();
     if (!s) return rows.filter(holdsRolePerm);
@@ -316,7 +314,6 @@ export function AksesClient({
 
   // ── Izin peran ──────────────────────────────────────────────────────────────
   const toggleHrd = (r: AksesEmployee) => run(r.id, () => setHrdAdmin(r.id, !r.isHrdAdmin), () => patchRow(r.id, { isHrdAdmin: !r.isHrdAdmin, ...(r.isHrdAdmin ? { hrdSections: null } : {}) }));
-  const toggleCross = (r: AksesEmployee) => run(r.id, () => setCrossReviewer(r.id, !r.isCrossReviewer), () => patchRow(r.id, { isCrossReviewer: !r.isCrossReviewer }));
   const toggleCoord = (r: AksesEmployee) => run(r.id, () => setCoordinator(r.id, !r.isCoordinator), () => {
     const next = !r.isCoordinator;
     patchRow(r.id, { isCoordinator: next });
@@ -695,8 +692,9 @@ export function AksesClient({
         <h3 className="text-sm font-bold text-gray-800 mb-0.5">Izin Peran &amp; Akses HRD</h3>
         <p className="text-[11px] text-gray-500 mb-3 max-w-3xl">
           Kapabilitas peran (bukan grant halaman berlingkup): <strong>HRD Admin</strong> (+ pembatasan bagian lewat
-          Atur Akses), <strong>Peninjau Lintas Divisi</strong>, <strong>Koordinator</strong> (+ tim naungan). Default
-          menampilkan <strong>pemegang izin</strong>; cari nama untuk memberi/mengubah izin pegawai lain yang memenuhi syarat.
+          Atur Akses) &amp; <strong>Koordinator</strong> (+ tim naungan). Default menampilkan <strong>pemegang izin</strong>;
+          cari nama untuk memberi/mengubah izin pegawai lain yang memenuhi syarat.
+          <span className="block mt-1 text-gray-400">Peninjau Lintas Divisi kini diberikan lewat <strong>akses halaman</strong> “Review Hasil Akhir” (lingkup “selain divisinya”, izin “Boleh meringkas”).</span>
         </p>
         <div className="flex items-center gap-2 mb-3">
           <input
@@ -750,13 +748,8 @@ export function AksesClient({
                             className={btn(!!(emp.hrdSections && emp.hrdSections.length > 0), 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100')}>
                             <SlidersHorizontal className="w-3.5 h-3.5" />{emp.hrdSections && emp.hrdSections.length > 0 ? ` ${emp.hrdSections.length}` : ''}</button>
                         )}
-                        {/* Peninjau Lintas Divisi — hanya pegawai divisi HRD. */}
-                        {emp.role !== 'direksi' && emp.role !== 'hrd' && (isHrdDept(emp.dept) || emp.isCrossReviewer) && (
-                          <button type="button" onClick={() => toggleCross(emp)} disabled={pending}
-                            title={emp.isCrossReviewer ? 'Cabut izin Peninjau Lintas Divisi' : 'Beri izin Peninjau Hasil Lintas Divisi'}
-                            className={btn(emp.isCrossReviewer, 'text-violet-700 bg-violet-50 hover:bg-violet-100')}>
-                            <ScanEye className="w-3.5 h-3.5" /> Peninjau</button>
-                        )}
+                        {/* Peninjau Lintas Divisi DIHAPUS (migrasi 0033) — kini diberikan lewat grant halaman
+                            "Review Hasil Akhir" (lingkup "selain divisinya", izin "Boleh meringkas") di tab Memberikan akses. */}
                         {/* Koordinator — hanya pegawai (role employee). */}
                         {emp.role === 'employee' && (
                           <button type="button" onClick={() => toggleCoord(emp)} disabled={pending}

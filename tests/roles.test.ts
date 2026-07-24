@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canAdmin, canCrossReview, canCoordinate, isHrdDept } from '@/lib/auth/roles';
+import { canAdmin, canCoordinate, isHrdDept } from '@/lib/auth/roles';
 
 describe('canAdmin — gerbang fitur HRD (role hrd ATAU grant is_hrd_admin)', () => {
   it('true untuk posisi hrd', () => {
@@ -21,13 +21,10 @@ describe('canAdmin — gerbang fitur HRD (role hrd ATAU grant is_hrd_admin)', ()
   });
 });
 
-describe('canCrossReview / canCoordinate — grant sempit (tak menyalakan is_hrd)', () => {
+describe('canCoordinate — grant sempit (tak menyalakan is_hrd)', () => {
   it('bergantung murni pada flag grant-nya', () => {
-    expect(canCrossReview({ is_cross_reviewer: true })).toBe(true);
-    expect(canCrossReview({ role: 'hrd' })).toBe(false); // hrd penuh ≠ cross-reviewer otomatis
     expect(canCoordinate({ is_coordinator: true })).toBe(true);
     expect(canCoordinate({ role: 'spv' })).toBe(false);
-    expect(canCrossReview(null)).toBe(false);
     expect(canCoordinate(undefined)).toBe(false);
   });
 });

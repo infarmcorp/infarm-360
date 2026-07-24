@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, ScanEye,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 import { BrandLogo } from '@/components/brand-logo';
@@ -24,7 +24,7 @@ const ROLE_LABEL: Record<Role, string> = {
 
 type AdminItem = Item & { section?: string };
 
-function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewer: boolean, isCoordinator: boolean, hrdSections: string[] | null, pageGrants: { section: string; scope: string }[] = []): Section[] {
+function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator: boolean, hrdSections: string[] | null, pageGrants: { section: string; scope: string }[] = []): Section[] {
   // Akses HRD granular (Jalur A, migrasi 0023): hrd_sections NULL/kosong = akses penuh;
   // berisi daftar = hanya bagian tercantum. Item tanpa `section` (mis. Suksesi) selalu tampil.
   const allowSec = (s?: string) => !s || !hrdSections || hrdSections.length === 0 || hrdSections.includes(s);
@@ -37,8 +37,8 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCrossReviewe
   // Tampil untuk semua peran di mode base (termasuk Direksi); hanya disembunyikan di Mode Admin.
   if (!adminView) main.push({ href: '/penilaian', label: 'Daftar Penilaian Saya', icon: Star });
   if (!adminView) main.push({ href: '/laporan', label: 'Laporan Hasil Saya', icon: FileText });
-  // Peninjau Hasil Lintas Divisi (grant is_cross_reviewer) — hanya di mode base.
-  if (!adminView && isCrossReviewer) main.push({ href: '/peninjau', label: 'Review Lintas Divisi', icon: ScanEye });
+  // Peninjau Hasil Lintas Divisi kini = GRANT halaman "Review Hasil Akhir" (lingkup selain divisinya) —
+  // tampil di section "Akses dari HRD" di bawah, bukan menu khusus. (is_cross_reviewer dipensiunkan, migrasi 0033.)
   // Koordinator (grant is_coordinator) — Input KPI + Laporan Kinerja Tim (tinjau & ACC) untuk
   // anggota naungannya. Hanya di mode base & bila BUKAN SPV/HRD (mereka sudah punya menu Supervisor).
   if (!adminView && isCoordinator && role !== 'spv' && role !== 'hrd') {
@@ -142,15 +142,15 @@ const TODO_DOT: Record<TodoTone, string> = {
 };
 
 export function AppShell({
-  role, canAdmin, isCrossReviewer = false, isCoordinator = false, hrdSections = null, pageGrants = [], hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, children,
+  role, canAdmin, isCoordinator = false, hrdSections = null, pageGrants = [], hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, children,
 }: {
-  role: Role; canAdmin: boolean; isCrossReviewer?: boolean; isCoordinator?: boolean; hrdSections?: string[] | null; pageGrants?: { section: string; scope: string }[]; hrdMode: HrdMode; name: string; dept: string; empCode: string;
+  role: Role; canAdmin: boolean; isCoordinator?: boolean; hrdSections?: string[] | null; pageGrants?: { section: string; scope: string }[]; hrdMode: HrdMode; name: string; dept: string; empCode: string;
   periodLabel: string | null; periodActive: boolean; periodDaysLeft?: number | null;
   todos: TodoItem[]; children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const sections = menuFor(role, canAdmin, hrdMode, isCrossReviewer, isCoordinator, hrdSections, pageGrants);
+  const sections = menuFor(role, canAdmin, hrdMode, isCoordinator, hrdSections, pageGrants);
 
   const isActive = (href: string) => {
     const path = href.split('?')[0];

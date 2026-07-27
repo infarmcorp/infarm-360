@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { forceComplete, sendReminder, massReminder, sendOnboarding, massOnboarding } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { usePager, Pager } from '@/components/table-controls';
 
 export type Pending = { targetId: string; targetName: string; relation: string; mandatory: boolean };
 export type AssessorRow = {
@@ -14,7 +15,7 @@ export type AssessorRow = {
 /** Info read-only "per yang dinilai": berapa penilai ditugaskan & berapa sudah menilai dia. */
 export type TargetRow = { id: string; name: string; dept: string; total: number; done: number };
 
-export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targetRows: TargetRow[] }) {
+export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: AssessorRow[]; targetRows: TargetRow[]; readOnly?: boolean }) {
   const [q, setQ] = useState('');
   const [dept, setDept] = useState('all');
   const [status, setStatus] = useState<'all' | 'lengkap' | 'belum'>('all');
@@ -49,6 +50,8 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
     if (status === 'belum' && complete) return false;
     return true;
   });
+  // Paginasi 5-baris (komponen bersama) → daftar penilai bisa 100+; batasi DOM per halaman.
+  const { page, setPage, pageCount, shown: paged, total, rangeFrom, rangeTo } = usePager(shown);
 
   function act(fn: () => Promise<{ ok: boolean; msg?: string; error?: string }>) {
     setToast(null);
@@ -70,43 +73,47 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-center">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama penilai…"
+        <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama penilai…"
           className="text-xs px-3 py-2 border border-gray-200 rounded-lg flex-1 min-w-[160px] focus:outline-none focus:ring-1 focus:ring-emerald-600" />
-        <select value={dept} onChange={(e) => setDept(e.target.value)} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
+        <select value={dept} onChange={(e) => { setDept(e.target.value); setPage(0); }} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
           <option value="all">Semua Divisi</option>
           {depts.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
-        <select value={status} onChange={(e) => setStatus(e.target.value as typeof status)} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
+        <select value={status} onChange={(e) => { setStatus(e.target.value as typeof status); setPage(0); }} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
           <option value="all">Semua Status</option>
           <option value="lengkap">Lengkap</option>
           <option value="belum">Belum Lengkap</option>
         </select>
-        <button type="button" onClick={() => act(massReminder)} disabled={pending}
-          className="text-xs font-bold px-3 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white disabled:opacity-60">
-          🔔 Kirim Pengingat Massal
-        </button>
-        <button type="button" disabled={pending}
-          onClick={() => setConfirm({
-            title: 'Kirim Undangan Massal?',
-            onYes: () => act(massOnboarding),
-            body: (
-              <>
-                <p>Kirim <strong>Undangan &amp; Info Akun</strong> ke semua pegawai.</p>
-                <p>Sandi mereka akan <strong>DISETEL ULANG</strong> (acak unik) lalu dikirim via email.</p>
-                <p className="font-semibold text-rose-700">Lakukan sekali di awal periode, sebelum mereka mengganti sandi sendiri.</p>
-              </>
-            ),
-          })}
-          className="text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-60">
-          📨 Kirim Undangan Massal
-        </button>
+        {!readOnly && (
+          <>
+            <button type="button" onClick={() => act(massReminder)} disabled={pending}
+              className="text-xs font-bold px-3 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white disabled:opacity-60">
+              🔔 Kirim Pengingat Massal
+            </button>
+            <button type="button" disabled={pending}
+              onClick={() => setConfirm({
+                title: 'Kirim Undangan Massal?',
+                onYes: () => act(massOnboarding),
+                body: (
+                  <>
+                    <p>Kirim <strong>Undangan &amp; Info Akun</strong> ke semua pegawai.</p>
+                    <p>Sandi mereka akan <strong>DISETEL ULANG</strong> (acak unik) lalu dikirim via email.</p>
+                    <p className="font-semibold text-rose-700">Lakukan sekali di awal periode, sebelum mereka mengganti sandi sendiri.</p>
+                  </>
+                ),
+              })}
+              className="text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-60">
+              📨 Kirim Undangan Massal
+            </button>
+          </>
+        )}
       </div>
       {toast && <p className={`text-xs font-semibold ${toast.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{toast.text}</p>}
 
       {/* Rows (per penilai) */}
       <div className="space-y-2">
         {shown.length === 0 && <p className="text-sm text-gray-500">Tidak ada penilai sesuai filter.</p>}
-        {shown.map((r) => {
+        {paged.map((r) => {
           const complete = isComplete(r);
           const pct = r.mandatoryTotal ? Math.round((r.mandatoryDone / r.mandatoryTotal) * 100) : 100;
           const optionalPending = r.pending.filter((p) => !p.mandatory).length;
@@ -124,19 +131,21 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${complete ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
                     {r.mandatoryDone}/{r.mandatoryTotal} wajib · {complete ? 'Lengkap' : 'Belum'}
                   </span>
-                  <button type="button" disabled={pending}
-                    onClick={() => setConfirm({
-                      title: `Kirim Undangan ke ${r.name}?`,
-                      onYes: () => act(() => sendOnboarding(r.id)),
-                      body: (
-                        <p>Sandi <strong>{r.name}</strong> akan <strong>disetel ulang</strong> (acak) lalu dikirim via email berisi info akun &amp; panduan.</p>
-                      ),
-                    })}
-                    title="Kirim undangan + info akun (peran, email, sandi baru, panduan)"
-                    className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">
-                    Undangan
-                  </button>
-                  {!complete && (
+                  {!readOnly && (
+                    <button type="button" disabled={pending}
+                      onClick={() => setConfirm({
+                        title: `Kirim Undangan ke ${r.name}?`,
+                        onYes: () => act(() => sendOnboarding(r.id)),
+                        body: (
+                          <p>Sandi <strong>{r.name}</strong> akan <strong>disetel ulang</strong> (acak) lalu dikirim via email berisi info akun &amp; panduan.</p>
+                        ),
+                      })}
+                      title="Kirim undangan + info akun (peran, email, sandi baru, panduan)"
+                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">
+                      Undangan
+                    </button>
+                  )}
+                  {!readOnly && !complete && (
                     <button type="button" onClick={() => act(() => sendReminder(r.id))} disabled={pending}
                       className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 disabled:opacity-60">
                       Kirim Pengingat
@@ -186,10 +195,12 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
                           {p.mandatory ? 'Wajib' : 'Opsional'}
                         </span>
                       </div>
-                      <button type="button" onClick={() => act(() => forceComplete(r.id, p.targetId))} disabled={pending}
-                        className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-60 shrink-0">
-                        Paksa Selesai
-                      </button>
+                      {!readOnly && (
+                        <button type="button" onClick={() => act(() => forceComplete(r.id, p.targetId))} disabled={pending}
+                          className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-60 shrink-0">
+                          Paksa Selesai
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -198,6 +209,7 @@ export function ProgressClient({ rows, targetRows }: { rows: AssessorRow[]; targ
           );
         })}
       </div>
+      <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="penilai" />
       <p className="text-[10px] text-gray-500 italic">
         <strong>Status "Lengkap"</strong> dihitung dari penilaian <strong>WAJIB</strong> saja — penilaian
         opsional tak memengaruhi status/kartu (tetap ditampilkan di Rincian untuk dipantau). Tiap baris:

@@ -3,10 +3,13 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import type { WeightValues, RelationKind } from '@/lib/database.types';
+import { weightedScore360, round2, type Groups360 } from '@/lib/score360';
 import { WeightForm } from './weight-form';
+import { EmployeeWeights, type Override } from './employee-weights';
+import { Kalkulasi360Table, type MergedRow } from './bobot-tables';
 import { RecomputeButton } from '../360/recompute-button';
 import { EmptyState } from '@/components/empty-state';
-import { fetchAllByIds } from '@/lib/supabase/paginate';
+import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
 
 /**
  * Kelola Bobot Penilai (HRD) — SATU halaman: skema bobot 360 + Hitung Ulang Skor 360°
@@ -21,7 +24,8 @@ const classOf = (rel: RelationKind): 'atasan' | 'peer' | 'cross' | 'bawahan' | '
   return 'peer';
 };
 const avg = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
-const round1 = (n: number) => Math.round(n * 10) / 10;
+const summarizeW = (m: '4class' | '2class', w: WeightValues) =>
+  m === '4class' ? `A${w.atasan ?? 0}/P${w.peer ?? 0}/C${w.cross ?? 0}/B${w.bawahan ?? 0}` : `A${w.atasan ?? 0}/Int${w.internal ?? 0}`;
 
 export default async function BobotPage() {
   const supabase = await createClient();
@@ -56,23 +60,36 @@ export default async function BobotPage() {
   };
 
   // Data untuk rekap result_360 + perbandingan model (paralel).
-  const [resRes, asmtRes, mapRes, empRes] = await Promise.all([
+  // assessments & mappings SELURUH pegawai → bisa >1000; ambil penuh via fetchAllPaged.
+  const [resRes, asmtsAll, mapsAll, empRes, ovrRes] = await Promise.all([
     supabase.from('result_360').select('employee_id, score').eq('period_id', ap.id),
-    supabase.from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted'),
-    supabase.from('mappings').select('assessor_id, target_id, relation').eq('period_id', ap.id),
-    supabase.from('employees').select('id, name, dept').neq('role', 'direksi'),
+    fetchAllPaged<{ id: string; assessor_id: string; target_id: string }>((from, to) =>
+      supabase.from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted').order('id').range(from, to)),
+    fetchAllPaged<{ assessor_id: string; target_id: string; relation: RelationKind }>((from, to) =>
+      supabase.from('mappings').select('assessor_id, target_id, relation').eq('period_id', ap.id).order('assessor_id').order('target_id').range(from, to)),
+    supabase.from('employees').select('id, name, dept, role'),
+    supabase.from('employee_weight_overrides').select('employee_id, model, weights').eq('period_id', ap.id),
   ]);
+  // Pencarian nama mencakup SEMUA pegawai (termasuk Direksi) agar tak ada baris "—" di tabel.
   const empById = new Map((empRes.data ?? []).map((e) => [e.id, e]));
 
-  // Rekap skor resmi (result_360).
-  const stored = (resRes.data ?? [])
-    .map((r) => ({ id: r.employee_id, name: empById.get(r.employee_id)?.name ?? '—', dept: empById.get(r.employee_id)?.dept ?? '—', score: r.score }))
-    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  // Dropdown "Bobot Khusus per Pegawai" — pegawai non-Direksi (cakupan penilaian normal).
+  const empList = (empRes.data ?? []).filter((e) => e.role !== 'direksi').map((e) => ({ id: e.id, name: e.name, dept: e.dept ?? '—' }));
+  const overrides: Override[] = (ovrRes.data ?? [])
+    .map((o) => ({
+      employeeId: o.employee_id,
+      name: empById.get(o.employee_id)?.name ?? '—',
+      dept: empById.get(o.employee_id)?.dept ?? '—',
+      model: o.model as '4class' | '2class',
+      weights: (o.weights ?? {}) as WeightValues,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
+  // Rekap skor resmi (result_360).
   // Perbandingan model: kelompokkan rating (×20) per target per kelas dari penilaian terkirim.
   // DIPAGINASI + di-chunk: assessment_indicator_scores bisa >4000 baris → tanpa ini pratinjau
   // perbandingan model terpotong di 1000 → angka simulasi SALAH & menyesatkan pilihan bobot HRD.
-  const asmts = asmtRes.data ?? [];
+  const asmts = asmtsAll;
   const scoreRows = asmts.length
     ? await fetchAllByIds<{ assessment_id: string; rating: number | null }>(asmts.map((a) => a.id), (chunk, from, to) =>
         supabase.from('assessment_indicator_scores').select('assessment_id, rating')
@@ -84,7 +101,7 @@ export default async function BobotPage() {
     const arr = ratingsByAsmt.get(s.assessment_id) ?? []; arr.push(s.rating); ratingsByAsmt.set(s.assessment_id, arr);
   });
   const relByPair = new Map<string, RelationKind>();
-  (mapRes.data ?? []).forEach((m) => relByPair.set(`${m.assessor_id}:${m.target_id}`, m.relation));
+  mapsAll.forEach((m) => relByPair.set(`${m.assessor_id}:${m.target_id}`, m.relation));
 
   type Groups = { atasan: number[]; peer: number[]; cross: number[]; bawahan: number[] };
   const byTarget = new Map<string, Groups>();
@@ -99,17 +116,43 @@ export default async function BobotPage() {
     g[cls].push(s100); byTarget.set(a.target_id, g);
   }
 
-  const wa = initial.atasan, wp = initial.peer, wc = initial.cross, wb = initial.bawahan, wi = initial.internal;
-  const compare = [...byTarget.entries()].map(([id, g]) => {
-    const aA = avg(g.atasan), pA = avg(g.peer), cA = avg(g.cross), bA = avg(g.bawahan);
-    // 4-Kelas: Atasan/Peer/Cross/Bawahan (Self dikecualikan).
-    let s4: number | null = null;
-    { let sum = 0, tw = 0; for (const [v, wt] of [[aA, wa], [pA, wp], [cA, wc], [bA, wb]] as [number | null, number][]) if (v != null) { sum += v * wt; tw += wt; } if (tw > 0) s4 = round1(sum / tw); }
-    // 2-Kelas: Atasan vs Internal (Peer+Cross+Bawahan).
-    let s2: number | null = null;
-    { const internal = avg([...g.peer, ...g.cross, ...g.bawahan]); if (aA != null && internal != null && wa + wi > 0) s2 = round1((aA * wa + internal * wi) / (wa + wi)); else if (aA != null) s2 = round1(aA); else if (internal != null) s2 = round1(internal); }
-    return { id, name: empById.get(id)?.name ?? '—', dept: empById.get(id)?.dept ?? '—', s4, s2 };
-  }).sort((a, b) => (b.s4 ?? 0) - (a.s4 ?? 0));
+  // Bobot GLOBAL periode per model (dipakai simulasi 4/2-Kelas & sebagai "bobot default").
+  const gw4: WeightValues = { atasan: initial.atasan, peer: initial.peer, cross: initial.cross, bawahan: initial.bawahan };
+  const gw2: WeightValues = { atasan: initial.atasan, internal: initial.internal };
+  const globalLabel = summarizeW(model, model === '4class' ? gw4 : gw2);
+
+  const overrideByEmp = new Map(overrides.map((o) => [o.employeeId, o]));
+  const scoreById = new Map((resRes.data ?? []).map((r) => [r.employee_id, r.score]));
+
+  // Satu baris per pegawai (union: punya data penilaian ATAU skor resmi ATAU bobot khusus).
+  // Kolom "bobot fokus": Skor Resmi (result_360) + Δ dampak bobot khusus (simulasi khusus−default).
+  // Kolom "perbandingan model": simulasi 4-Kelas & 2-Kelas memakai bobot GLOBAL periode.
+  // empById kini memuat SEMUA pegawai (termasuk Direksi) → nama selalu ter-resolve. Filter hanya
+  // membuang id yatim (mis. pegawai terhapus) agar tak ada baris "—".
+  const unionIds = new Set<string>([...byTarget.keys(), ...scoreById.keys(), ...overrideByEmp.keys()]);
+  const merged: MergedRow[] = [...unionIds].filter((id) => empById.has(id)).map((id) => {
+    const g = byTarget.get(id);
+    const gFull: Groups360 | null = g ? { ...g, self: [] } : null;
+    const s4 = gFull ? weightedScore360(gFull, '4class', gw4) : null;
+    const s2 = gFull ? weightedScore360(gFull, '2class', gw2) : null;
+    const ov = overrideByEmp.get(id);
+    const base = model === '4class' ? s4 : s2;                                   // skor bila pakai bobot default
+    const applied = gFull && ov ? weightedScore360(gFull, ov.model, ov.weights) : base; // skor bila pakai bobot khusus
+    const deltaWeight = ov && applied != null && base != null ? round2(applied - base) : null;
+    return {
+      id,
+      name: empById.get(id)?.name ?? '—',
+      dept: empById.get(id)?.dept ?? '—',
+      scoreResmi: scoreById.get(id) ?? null,
+      hasOverride: !!ov,
+      overrideLabel: ov ? `${ov.model === '4class' ? '4-Kelas' : '2-Kelas'} · ${summarizeW(ov.model, ov.weights)}` : null,
+      deltaWeight,
+      s4: s4 != null ? round2(s4) : null,
+      s2: s2 != null ? round2(s2) : null,
+    };
+  }).sort((a, b) =>
+    (Number(b.hasOverride) - Number(a.hasOverride)) || ((b.scoreResmi ?? b.s4 ?? 0) - (a.scoreResmi ?? a.s4 ?? 0)));
+  const overrideCount = merged.filter((m) => m.hasOverride).length;
 
   return (
     <Shell>
@@ -130,80 +173,27 @@ export default async function BobotPage() {
         </p>
       </Section>
 
-      {/* 2. Kalkulasi (Hitung Ulang + hasil resmi) */}
+      {/* 1b. Bobot Khusus per Pegawai (override skema di atas) */}
+      <Section title="Bobot Khusus per Pegawai">
+        <p className="text-[11px] text-gray-500 mb-3 max-w-3xl">
+          Sebagian pegawai bisa memakai bobot berbeda dari skema periode di atas. Pegawai dengan bobot khusus
+          memakai model &amp; nilai di sini; sisanya tetap skema periode. Berlaku setelah <strong>Hitung Ulang Skor 360°</strong>.
+          <span className="block mt-1 text-gray-400">Catatan: kelas tanpa data (mis. pegawai tanpa bawahan) sudah otomatis diabaikan &amp; bobotnya dinormalisasi — bobot khusus hanya perlu bila kebijakan bobotnya memang berbeda.</span>
+        </p>
+        <EmployeeWeights employees={empList} overrides={overrides} />
+      </Section>
+
+      {/* 2. Kalkulasi & Perbandingan (Hitung Ulang + hasil resmi + dampak bobot khusus + banding model) */}
       <Section title="Kalkulasi Skor 360°">
         <div className="mb-4">
           <RecomputeButton />
           <p className="text-[11px] text-gray-500 mt-1.5">
             Menulis hasil resmi ke <code>result_360</code> memakai model aktif:
-            <strong> {model === '4class' ? '4-Kelas' : '2-Kelas'}</strong>. Self dikecualikan dari total.
+            <strong> {model === '4class' ? '4-Kelas' : '2-Kelas'}</strong> (bobot global {globalLabel}). Pegawai dengan
+            <strong> bobot khusus</strong> memakai bobotnya sendiri. Self dikecualikan dari total.
           </p>
         </div>
-        {stored.length === 0 ? (
-          <p className="text-sm text-gray-500">Belum ada hasil resmi. Klik <strong>Hitung Ulang Skor 360°</strong> setelah ada penilaian terkirim.</p>
-        ) : (
-          <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm min-w-[420px]">
-            <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
-                <th className="py-2 pr-3">Pegawai</th><th className="py-2 px-3">Divisi</th><th className="py-2 pl-3 text-right">Skor 360° Resmi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {stored.map((it) => (
-                <tr key={it.id}>
-                  <td className="py-3 pr-3 font-bold text-gray-800">{it.name}</td>
-                  <td className="py-3 px-3 text-gray-500">{it.dept}</td>
-                  <td className="py-3 pl-3 text-right font-mono font-black text-indigo-700">{it.score != null ? it.score.toFixed(2) : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        )}
-      </Section>
-
-      {/* 3. Perbandingan Model 4-Kelas vs 2-Kelas */}
-      <Section title="Perbandingan Model: 4-Kelas vs 2-Kelas">
-        <p className="text-[11px] text-gray-500 mb-3">
-          Pratinjau skor 360° tiap pegawai bila dihitung dengan kedua model, memakai bobot yang tersimpan
-          (4-Kelas: Atasan {wa}/Peer {wp}/Cross {wc}/Bawahan {wb} · 2-Kelas: Atasan {wa}/Internal {wi}). Membantu memilih
-          model sebelum <strong>Hitung Ulang</strong>. Kolom <strong>{model === '4class' ? '4-Kelas' : '2-Kelas'}</strong> adalah model aktif.
-        </p>
-        {compare.length === 0 ? (
-          <p className="text-sm text-gray-500">Belum ada penilaian terkirim untuk dibandingkan.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[480px]">
-              <thead>
-                <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
-                  <th className="py-2 pr-3">Pegawai</th>
-                  <th className={`py-2 px-3 text-right ${model === '4class' ? 'text-emerald-700' : ''}`}>4-Kelas{model === '4class' ? ' ●' : ''}</th>
-                  <th className={`py-2 px-3 text-right ${model === '2class' ? 'text-emerald-700' : ''}`}>2-Kelas{model === '2class' ? ' ●' : ''}</th>
-                  <th className="py-2 pl-3 text-right">Selisih</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {compare.map((c) => {
-                  const delta = c.s4 != null && c.s2 != null ? round1(c.s4 - c.s2) : null;
-                  return (
-                    <tr key={c.id}>
-                      <td className="py-3 pr-3"><span className="font-bold text-gray-800 block">{c.name}</span><span className="text-[11px] text-gray-500">{c.dept}</span></td>
-                      <td className={`py-3 px-3 text-right font-mono ${model === '4class' ? 'font-black text-emerald-800' : 'text-gray-600'}`}>{c.s4 != null ? c.s4.toFixed(2) : '—'}</td>
-                      <td className={`py-3 px-3 text-right font-mono ${model === '2class' ? 'font-black text-emerald-800' : 'text-gray-600'}`}>{c.s2 != null ? c.s2.toFixed(2) : '—'}</td>
-                      <td className={`py-3 pl-3 text-right font-mono font-bold ${delta == null ? 'text-gray-300' : delta > 0 ? 'text-emerald-700' : delta < 0 ? 'text-rose-600' : 'text-gray-500'}`}>
-                        {delta == null ? '—' : `${delta > 0 ? '+' : ''}${delta.toFixed(2)}`}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <p className="text-[10px] text-gray-500 italic mt-3">
-          Selisih = 4-Kelas − 2-Kelas. Pratinjau ini tidak mengubah data; skor resmi hanya berubah saat <strong>Hitung Ulang</strong>.
-        </p>
+        <Kalkulasi360Table rows={merged} model={model} overrideCount={overrideCount} globalLabel={globalLabel} />
       </Section>
     </Shell>
   );

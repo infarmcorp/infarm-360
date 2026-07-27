@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classOf, avg, round2, weightedScore360, type Groups360 } from '@/lib/score360';
+import { classOf, avg, round2, weightedScore360, resolveWeightScheme, type Groups360, type WeightScheme } from '@/lib/score360';
 
 const G = (g: Partial<Groups360>): Groups360 => ({ atasan: [], peer: [], cross: [], bawahan: [], self: [], ...g });
 
@@ -88,5 +88,24 @@ describe('weightedScore360 — model 2class (Atasan vs Internal = Peer+Cross+Baw
 
   it('tanpa data → null', () => {
     expect(weightedScore360(G({}), '2class', W)).toBeNull();
+  });
+});
+
+describe('resolveWeightScheme — pilih bobot per pegawai (override khusus vs default periode)', () => {
+  const def: WeightScheme = { model: '4class', weights: { atasan: 40, peer: 25, cross: 15, bawahan: 20 } };
+  const ovr: WeightScheme = { model: '2class', weights: { atasan: 70, internal: 30 } };
+
+  it('override ADA → pakai override (model & weights)', () => {
+    expect(resolveWeightScheme(def, ovr)).toBe(ovr);
+  });
+  it('override null/undefined → pakai default periode', () => {
+    expect(resolveWeightScheme(def, null)).toBe(def);
+    expect(resolveWeightScheme(def, undefined)).toBe(def);
+  });
+  it('skor akhir ikut skema terpilih (override 2class vs default 4class) untuk grup sama', () => {
+    const g = G({ atasan: [90], peer: [80, 80], cross: [20], bawahan: [50] });
+    const chosen = resolveWeightScheme(def, ovr);
+    // 2class: internal = avg(80,80,20,50)=57.5 → (90*70 + 57.5*30)/100 = 80.25
+    expect(weightedScore360(g, chosen.model, chosen.weights)).toBeCloseTo(80.25, 10);
   });
 });

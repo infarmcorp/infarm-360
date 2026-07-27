@@ -30,6 +30,18 @@ export const round2 = (n: number): number => Math.round(n * 100) / 100;
  *   skornya, bukan rerata-dari-rerata). Bila salah satu sisi kosong → pakai sisi lain.
  * Mengembalikan skor mentah (belum dibulatkan) atau null bila tak ada data terbobot.
  */
+/** Satu skema bobot (model + nilai). Dipakai untuk memilih bobot per pegawai. */
+export type WeightScheme = { model: '4class' | '2class'; weights: WeightValues };
+
+/**
+ * Pilih skema bobot untuk seorang pegawai: pakai OVERRIDE khusus bila ada (migrasi 0031
+ * employee_weight_overrides), else skema DEFAULT periode (weight_schemes). Rumus tak berubah —
+ * hanya memilih model+weights mana yang disuapkan ke `weightedScore360`. Diuji tanpa DB.
+ */
+export function resolveWeightScheme(def: WeightScheme, override: WeightScheme | null | undefined): WeightScheme {
+  return override ?? def;
+}
+
 export function weightedScore360(g: Groups360, model: '4class' | '2class', w: WeightValues): number | null {
   const aAvg = avg(g.atasan), pAvg = avg(g.peer), cAvg = avg(g.cross), bAvg = avg(g.bawahan);
 

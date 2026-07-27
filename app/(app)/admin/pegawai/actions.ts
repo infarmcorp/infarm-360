@@ -67,33 +67,9 @@ export async function setHrdAdmin(employeeId: string, value: boolean): Promise<R
   return { ok: true, msg: value ? 'Izin HRD Admin diberikan.' : 'Izin HRD Admin dicabut.' };
 }
 
-/**
- * Beri/cabut izin "Peninjau Hasil Lintas Divisi" (grant `is_cross_reviewer`, migrasi 0018).
- * Kapabilitas SEMPIT: membuka jalur /peninjau (lihat + tulis Ringkasan Aspek untuk pegawai
- * di DIVISI LAIN, bukan divisi sendiri). TIDAK memberi akses HRD penuh & tidak menyentuh
- * is_hrd()/RLS. Hanya HRD Admin yang boleh memberi; tercatat di Log Aktivitas HRD.
- */
-export async function setCrossReviewer(employeeId: string, value: boolean): Promise<Result> {
-  const supabase = await createClient();
-  const auth = await requireHrd(supabase);
-  if (!auth.ok) return auth;
-
-  const { data: target } = await supabase.from('employees').select('name, dept').eq('id', employeeId).maybeSingle();
-  // Grant Peninjau Lintas Divisi HANYA untuk pegawai divisi HRD (kebijakan). Pencabutan selalu boleh.
-  if (value && !isHrdDept(target?.dept)) {
-    return { ok: false, error: 'Izin Peninjau Lintas Divisi hanya dapat diberikan kepada pegawai divisi HRD.' };
-  }
-  const { error } = await supabase.from('employees').update({ is_cross_reviewer: value }).eq('id', employeeId);
-  if (error) return { ok: false, error: 'Gagal mengubah izin: ' + error.message };
-
-  await logHrdAction({
-    action: value ? 'employee.grant_cross_reviewer' : 'employee.revoke_cross_reviewer', category: 'pegawai',
-    summary: `${value ? 'Memberi' : 'Mencabut'} izin Peninjau Hasil Lintas Divisi untuk ${target?.name ?? employeeId}`,
-    targetType: 'employee', targetId: employeeId, targetLabel: target?.name ?? null,
-  });
-  revalidate();
-  return { ok: true, msg: value ? 'Izin Peninjau Lintas Divisi diberikan.' : 'Izin Peninjau Lintas Divisi dicabut.' };
-}
+// setCrossReviewer() DIHAPUS (migrasi 0033): "Peninjau Hasil Lintas Divisi" dipensiunkan → kini
+// diberikan lewat grant halaman "Review Hasil Akhir" (lingkup "selain divisinya", izin "Boleh meringkas")
+// di Manajemen Akses. Log lama employee.grant/revoke_cross_reviewer tetap ada di riwayat.
 
 /**
  * Beri/cabut peran "Koordinator" (grant `is_coordinator`, migrasi 0021). Kapabilitas SEMPIT

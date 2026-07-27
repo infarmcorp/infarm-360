@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canAdmin, canCoordinate } from '@/lib/auth/roles';
+import { canAdmin, canCoordinate, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
 import { KpiForm } from './kpi-form';
 import { RekapView } from './rekap-view';
 import { RiwayatView } from './riwayat-view';
@@ -23,7 +23,7 @@ export default async function KpiPage({
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, is_coordinator').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, is_coordinator, dept').eq('id', user.id).maybeSingle();
   const role = me?.role ?? 'employee';
   const admin = canAdmin(me);
   // Koordinator "murni" (grant is_coordinator, bukan SPV/HRD): input KPI HANYA pegawai naungannya.
@@ -39,7 +39,44 @@ export default async function KpiPage({
   const canAudit = role === 'spv' || admin;
   const canView = canAudit;
   if (!canView && !canInput) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD / Koordinator.</p></Shell>;
+    // Jalur GRANT (Manajemen Akses): non-HRD/non-SPV yang DIBERI akses "Monitoring & Audit KPI"
+    // berlingkup. Data disaring server (service_role) ke pegawai dalam lingkup grant — pemegang
+    // grant diblokir RLS, jadi paparan ini murni app-level & LIHAT-SAJA (tanpa Input KPI).
+    const { data: grants } = await supabase.from('page_grants').select('section, scope, scopes, can_edit').eq('employee_id', user.id);
+    const kpiGrant = grantedAccess(grants ?? [], 'kpi');
+    if (!kpiGrant) {
+      return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD / Koordinator.</p></Shell>;
+    }
+
+    // Saring pegawai per-lingkup (mirror pola halaman grant lain: ambil semua → filter di JS).
+    const svc = createAdminClient();
+    const ownDept = me?.dept ?? '';
+    let teamIds: Set<string> | null = null;
+    if (kpiGrant.scopes.includes('coordinator_team')) {
+      const { data: team } = await svc.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id);
+      teamIds = new Set((team ?? []).map((r) => r.employee_id));
+    }
+    const { data: allEmps } = await svc.from('employees').select('id, dept').neq('role', 'direksi').eq('is_external', false);
+    const scopedIds = (allEmps ?? [])
+      .filter((e) => employeeInScopes(kpiGrant.scopes, ownDept, user.id, e, teamIds))
+      .map((e) => e.id);
+
+    return (
+      <main className="w-full p-4 sm:p-5 lg:p-6">
+        <div className="mb-4">
+          <h1 className="text-xl font-bold text-gray-800">Monitoring &amp; Audit KPI</h1>
+          <p className="mt-1 text-sm text-gray-500">Rekapitulasi kuartal &amp; jejak audit perubahan KPI dalam lingkup akses Anda (lihat-saja).</p>
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
+          <Panel title="Rekapitulasi Kuartal">
+            <RekapView role={role} userId={user.id} periodParam={period} scopedIds={scopedIds} />
+          </Panel>
+          <Panel title="Riwayat &amp; Audit Perubahan KPI">
+            <RiwayatView role={role} userId={user.id} byPeriod periodParam={period} scopedIds={scopedIds} />
+          </Panel>
+        </div>
+      </main>
+    );
   }
 
   // Mode INPUT (SPV / HRD-SPV): berfitur tab. Mode MONITORING (HRD admin):

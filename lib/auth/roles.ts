@@ -79,13 +79,29 @@ export function isFullHrd(m: ActorRow | null | undefined): boolean {
  * masuk sini. Jangan pernah menambah halaman ke katalog sebelum server benar-benar menyaring datanya
  * per lingkup — menawarkan akses yang tak tersaring = rasa aman palsu (lawan prinsip app ini).
  */
-export const GRANTABLE_PAGES = ['monitor', 'review'] as const;
+export const GRANTABLE_PAGES = ['monitor', 'review', 'dashboard', 'struktur', 'progress', 'kepatuhan', 'kpi'] as const;
 export type GrantablePage = (typeof GRANTABLE_PAGES)[number];
 
 /** Label Indonesia tiap halaman yang bisa diberikan — dipakai di halaman Manajemen Akses. */
 export const GRANTABLE_PAGE_LABELS: Record<GrantablePage, string> = {
   monitor: 'Monitor Kinerja Pegawai',
   review: 'Review Hasil Akhir',
+  dashboard: 'Dashboard Organisasi',
+  struktur: 'Struktur Organisasi',
+  progress: 'Progress 360 Feedback',
+  kepatuhan: 'Flag Kepatuhan',
+  kpi: 'Monitoring & Audit KPI',
+};
+
+/**
+ * Target PERAN untuk pemberian akses MASSAL (Fase 2). Bukan role DB murni: 'koordinator' = pemegang
+ * grant `is_coordinator`; 'pegawai' = role 'employee'. Pemberian ke peran = MATERIALISASI ke anggota
+ * SAAT INI (Pendekatan B; pegawai baru TIDAK otomatis ikut). Dipakai server (validasi) & klien (UI).
+ */
+export const GRANT_ROLE_TARGETS = ['spv', 'koordinator', 'pegawai', 'direksi'] as const;
+export type GrantRoleTarget = (typeof GRANT_ROLE_TARGETS)[number];
+export const GRANT_ROLE_TARGET_LABELS: Record<GrantRoleTarget, string> = {
+  spv: 'SPV', koordinator: 'Koordinator', pegawai: 'Pegawai', direksi: 'Direksi',
 };
 
 /**
@@ -102,6 +118,11 @@ export type PageKind = 'pemantauan' | 'administrator';
 export const GRANTABLE_PAGE_KIND: Record<GrantablePage, PageKind> = {
   monitor: 'pemantauan',
   review: 'administrator',
+  dashboard: 'pemantauan',
+  struktur: 'pemantauan',
+  progress: 'pemantauan',
+  kepatuhan: 'pemantauan',
+  kpi: 'pemantauan',
 };
 
 /**
@@ -109,8 +130,12 @@ export const GRANTABLE_PAGE_KIND: Record<GrantablePage, PageKind> = {
  *   'all' / 'own_division' / 'other_divisions' → berbasis DIVISI (deptScopeFilter).
  *   'self' → berbasis ID: HANYA catatan pemegang grant sendiri (disaring `eq('id', <pemegang>)` di
  *            tiap halaman target; helper dept FAIL-CLOSED untuk 'self' agar tak bocor bila lupa cabang).
+ *   'coordinator_team' → berbasis ID: HANYA anggota `coordinator_team_members` milik pemegang (relatif
+ *            per-pemegang). Dipakai saat memberi akses ke PERAN Koordinator (Fase 2): tiap koordinator
+ *            melihat TIM NAUNGANNYA sendiri, bukan seluruh divisi. Helper dept juga FAIL-CLOSED (bukan
+ *            berbasis divisi) → penegakan nyata lewat `employeeInScopes(..., teamIds)`.
  */
-export const PAGE_SCOPES = ['all', 'own_division', 'other_divisions', 'self'] as const;
+export const PAGE_SCOPES = ['all', 'own_division', 'other_divisions', 'self', 'coordinator_team'] as const;
 export type PageScope = (typeof PAGE_SCOPES)[number];
 
 /** Label Indonesia tiap lingkup — dipakai di dialog pemberian akses. */
@@ -119,31 +144,42 @@ export const PAGE_SCOPE_LABELS: Record<PageScope, string> = {
   own_division: 'Hanya divisinya',
   other_divisions: 'Selain divisinya',
   self: 'Diri sendiri',
+  coordinator_team: 'Tim naungannya',
 };
 
-/** Satu baris grant halaman (subset kolom page_grants yang dibutuhkan untuk otorisasi). */
-export type PageGrantRow = { section: string; scope: string; can_edit?: boolean };
-
 /**
- * Lingkup yang diberikan kepada pemegang grant untuk halaman `page`, atau `null` bila tak diberi.
- * Dipakai di guard halaman & filter menu. Nilai scope tak dikenal diperlakukan sbagai tak-diberi
- * (aman default-tutup). HRD penuh TIDAK lewat jalur ini — mereka pakai canSection.
+ * Satu baris grant halaman (subset kolom page_grants untuk otorisasi). `scopes` = lingkup MULTI
+ * (migrasi 0028); `scope` = kolom tunggal LAMA (fallback backward-compat bila `scopes` kosong).
  */
-export function grantedScope(grants: PageGrantRow[] | null | undefined, page: GrantablePage): PageScope | null {
-  const g = grants?.find((x) => x.section === page);
-  if (!g) return null;
-  return (PAGE_SCOPES as readonly string[]).includes(g.scope) ? (g.scope as PageScope) : null;
+export type PageGrantRow = { section: string; scope?: string | null; scopes?: string[] | null; can_edit?: boolean; can_finalize?: boolean };
+
+/** Daftar lingkup SAH sebuah baris grant (utamakan `scopes[]`; fallback ke `scope` tunggal lama). */
+function scopesOf(g: PageGrantRow): PageScope[] {
+  const raw = (g.scopes && g.scopes.length ? g.scopes : (g.scope ? [g.scope] : []));
+  return raw.filter((s): s is PageScope => (PAGE_SCOPES as readonly string[]).includes(s));
 }
 
 /**
- * Akses lengkap (lingkup + boleh-edit) untuk halaman `page`, atau `null` bila tak diberi. Dipakai
- * halaman "administrator" (mis. Review Hasil Akhir) yang perlu tahu boleh mengubah atau hanya lihat.
- * `canEdit` hanya bermakna untuk halaman jenis 'administrator'; 'pemantauan' selalu lihat-saja.
+ * Akses lengkap (DAFTAR lingkup + boleh-edit) untuk halaman `page`, atau `null` bila tak diberi /
+ * tak ada lingkup sah. Sumber kebenaran grant halaman. `canEdit`/`canFinalize` hanya bermakna untuk
+ * halaman jenis 'administrator'; 'pemantauan' selalu lihat-saja. HRD penuh TIDAK lewat jalur ini
+ * (pakai canSection). Tiga tingkat: Lihat (edit false) · Meringkas (edit true, finalize false) ·
+ * Finalisasi (edit true, finalize true). `canFinalize` selalu menyiratkan `canEdit`.
  */
-export function grantedAccess(grants: PageGrantRow[] | null | undefined, page: GrantablePage): { scope: PageScope; canEdit: boolean } | null {
+export function grantedAccess(grants: PageGrantRow[] | null | undefined, page: GrantablePage): { scopes: PageScope[]; canEdit: boolean; canFinalize: boolean } | null {
   const g = grants?.find((x) => x.section === page);
-  if (!g || !(PAGE_SCOPES as readonly string[]).includes(g.scope)) return null;
-  return { scope: g.scope as PageScope, canEdit: !!g.can_edit };
+  if (!g) return null;
+  const scopes = scopesOf(g);
+  if (!scopes.length) return null;
+  const canEdit = !!g.can_edit;
+  // canFinalize menyiratkan canEdit (pertahanan bila data tak konsisten).
+  return { scopes, canEdit, canFinalize: canEdit && !!g.can_finalize };
+}
+
+/** Konvenien: lingkup PERTAMA yang diberikan untuk `page` (null bila tak ada). Untuk pemakai yang
+ *  hanya butuh satu nilai indikatif; penegakan sebenarnya pakai `grantedAccess().scopes` (multi). */
+export function grantedScope(grants: PageGrantRow[] | null | undefined, page: GrantablePage): PageScope | null {
+  return grantedAccess(grants, page)?.scopes[0] ?? null;
 }
 
 /**
@@ -155,7 +191,7 @@ export function grantedAccess(grants: PageGrantRow[] | null | undefined, page: G
 
 /** Divisi yang boleh DIPILIH pemegang lingkup (untuk dropdown filter). */
 export function allowedDeptsFor(depts: string[], scope: PageScope, ownDept: string): string[] {
-  if (scope === 'self') return []; // 'self' tak berbasis divisi → tak ada pilihan divisi
+  if (scope === 'self' || scope === 'coordinator_team') return []; // berbasis ID, bukan divisi → tak ada pilihan divisi
   if (scope === 'own_division') return depts.filter((d) => d === ownDept);
   if (scope === 'other_divisions') return depts.filter((d) => d !== ownDept);
   return depts; // 'all'
@@ -179,7 +215,7 @@ export function resolveDept(deptParam: string | null | undefined, allowed: strin
 export type DeptScopeFilter = { op: 'all' } | { op: 'none' } | { op: 'eq' | 'neq'; dept: string };
 
 export function deptScopeFilter(scope: PageScope, ownDept: string, dept: string): DeptScopeFilter {
-  if (scope === 'self') return { op: 'none' }; // berbasis ID, bukan divisi → fail-closed di sini
+  if (scope === 'self' || scope === 'coordinator_team') return { op: 'none' }; // berbasis ID, bukan divisi → fail-closed di sini
   if (scope === 'own_division') return { op: 'eq', dept: ownDept };
   if (scope === 'other_divisions') return dept !== 'all' ? { op: 'eq', dept } : { op: 'neq', dept: ownDept };
   return dept !== 'all' ? { op: 'eq', dept } : { op: 'all' };
@@ -209,15 +245,49 @@ export function isDeptInScope(scope: PageScope, ownDept: string, targetDept: str
 }
 
 /**
- * Boleh meninjau Hasil Akhir LINTAS DIVISI (selain divisinya sendiri)? = grant
- * `is_cross_reviewer` (migrasi 0018). Kapabilitas SEMPIT & terpisah dari HRD Admin:
- * hanya membuka jalur /peninjau (lihat + tulis Ringkasan Aspek untuk divisi lain),
- * BUKAN akses HRD penuh. Penegakan lingkup "divisi ≠ divisi sendiri" ada di server
- * (lib/report.ts loadCrossDivisionReport). Tidak memengaruhi is_hrd()/RLS.
+ * ── PENEGAKAN MULTI-LINGKUP (migrasi 0028) ─────────────────────────────────────────────────────
+ * Apakah `emp` termasuk dalam SALAH SATU lingkup yang diberikan (OR)? Ini sumber kebenaran tunggal
+ * untuk menyaring pegawai di halaman ter-grant (halaman "ambil semua → saring di JS") DAN untuk guard
+ * tulis target-tunggal. Semantik tiap lingkup:
+ *   all              → semua
+ *   self             → hanya pemegang grant sendiri (per-ID)
+ *   own_division     → sedivisi dengan pemegang
+ *   other_divisions  → divisi ≠ pemegang (dept null DIKECUALIKAN, seperti SQL `<>`)
+ *   coordinator_team → hanya anggota tim naungan pemegang (per-ID; `teamIds` = daftar
+ *                      coordinator_team_members milik pemegang, WAJIB diberikan pemanggil).
+ * `teamIds` opsional: hanya perlu bila `scopes` memuat 'coordinator_team' (tanpa itu → tak cocok).
  */
-export function canCrossReview(m: ActorRow | null | undefined): boolean {
-  return !!m?.is_cross_reviewer;
+export function employeeInScopes(
+  scopes: PageScope[], ownDept: string, ownId: string, emp: { id: string; dept: string | null },
+  teamIds?: ReadonlySet<string> | null,
+): boolean {
+  return scopes.some((s) => {
+    if (s === 'all') return true;
+    if (s === 'self') return emp.id === ownId;
+    if (s === 'own_division') return emp.dept === ownDept;
+    if (s === 'coordinator_team') return !!teamIds && teamIds.has(emp.id);
+    return emp.dept != null && emp.dept !== ownDept; // other_divisions
+  });
 }
+
+/**
+ * Divisi yang boleh DIPILIH di dropdown filter untuk gabungan lingkup (union). 'all' → semua divisi;
+ * own_division menambah divisi sendiri; other_divisions menambah semua divisi lain; 'self' tak menambah
+ * divisi apa pun. `coordinator_team` menambah divisi-divisi anggota tim naungan (`teamDepts`) — tim bisa
+ * lintas divisi. (Dipakai halaman Monitor untuk membatasi pilihan dropdown sesuai lingkup grant.)
+ */
+export function allowedDeptsForMulti(depts: string[], scopes: PageScope[], ownDept: string, teamDepts: string[] = []): string[] {
+  if (scopes.includes('all')) return depts;
+  const set = new Set<string>();
+  if (scopes.includes('own_division')) depts.filter((d) => d === ownDept).forEach((d) => set.add(d));
+  if (scopes.includes('other_divisions')) depts.filter((d) => d !== ownDept).forEach((d) => set.add(d));
+  if (scopes.includes('coordinator_team')) teamDepts.filter((d) => depts.includes(d)).forEach((d) => set.add(d));
+  return depts.filter((d) => set.has(d)); // pertahankan urutan asli
+}
+
+// canCrossReview() DIHAPUS (2026-07-24): "Peninjau Hasil Lintas Divisi" dipensiunkan (migrasi 0033) —
+// kini diwujudkan sebagai GRANT halaman "Review Hasil Akhir" berlingkup ("selain divisinya") + izin
+// "Boleh meringkas". Kolom is_cross_reviewer dipertahankan (vestigial) tapi tak lagi dibaca kode.
 
 /**
  * Boleh MELIHAT "Laporan Kinerja Tim" sebagai Koordinator? = grant `is_coordinator`

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { isFullHrd, GRANTABLE_PAGES, PAGE_SCOPES, GRANTABLE_PAGE_LABELS, GRANTABLE_PAGE_KIND, PAGE_SCOPE_LABELS, type GrantablePage, type PageScope } from '@/lib/auth/roles';
+import { isFullHrd, GRANTABLE_PAGES, PAGE_SCOPES, GRANTABLE_PAGE_LABELS, GRANTABLE_PAGE_KIND, PAGE_SCOPE_LABELS, GRANT_ROLE_TARGETS, GRANT_ROLE_TARGET_LABELS, type GrantablePage, type PageScope } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 
 /**
@@ -31,21 +31,26 @@ async function requireFullHrd(supabase: Awaited<ReturnType<typeof createClient>>
 const GrantInput = z.object({
   employeeId: z.string().uuid(),
   section: z.enum(GRANTABLE_PAGES),
-  scope: z.enum(PAGE_SCOPES),
+  scopes: z.array(z.enum(PAGE_SCOPES)).min(1),
   canEdit: z.boolean(),
+  canFinalize: z.boolean(),
 });
 
 /**
- * Beri/ubah akses halaman ber-lingkup untuk seorang pegawai (upsert per (orang, halaman)).
- * Ubah scope/edit = panggil lagi dengan nilai berbeda. Ditulis via service_role. `canEdit` hanya
- * bermakna untuk halaman jenis 'administrator' (dinormalkan false untuk 'pemantauan').
+ * Beri/ubah akses halaman ber-lingkup untuk seorang pegawai (upsert per (orang, halaman)). Lingkup
+ * kini MULTI (`scopes[]`, migrasi 0028). Ditulis via service_role. `canEdit` hanya bermakna untuk
+ * halaman jenis 'administrator' (dinormalkan false untuk 'pemantauan'). Kolom tunggal LAMA `scope`
+ * tetap diisi (`scopes[0]`) demi kompatibilitas app yang belum di-deploy ulang.
  */
-export async function setPageGrant(employeeId: string, section: unknown, scope: unknown, canEdit: unknown = false): Promise<Result> {
-  const parsed = GrantInput.safeParse({ employeeId, section, scope, canEdit: !!canEdit });
-  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
-  const { employeeId: id, section: sec, scope: scp } = parsed.data;
-  // Halaman pemantauan selalu lihat-saja → paksa can_edit=false apa pun yang dikirim.
-  const edit = GRANTABLE_PAGE_KIND[sec as GrantablePage] === 'administrator' ? parsed.data.canEdit : false;
+export async function setPageGrant(employeeId: string, section: unknown, scopes: unknown, canEdit: unknown = false, canFinalize: unknown = false): Promise<Result> {
+  const parsed = GrantInput.safeParse({ employeeId, section, scopes, canEdit: !!canEdit, canFinalize: !!canFinalize });
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid (pilih minimal satu lingkup).' };
+  const { employeeId: id, section: sec } = parsed.data;
+  // Normalisasi: buang duplikat; 'all' menyerap semua → simpan ['all'] saja (paling ringkas).
+  let scps: PageScope[] = [...new Set(parsed.data.scopes)];
+  if (scps.includes('all')) scps = ['all'];
+  // Halaman pemantauan selalu lihat-saja → paksa can_edit/can_finalize=false. can_finalize menyiratkan can_edit.
+  const [edit, finalize] = normalizeIzin(sec as GrantablePage, parsed.data.canEdit, parsed.data.canFinalize);
 
   const supabase = await createClient();
   const auth = await requireFullHrd(supabase);
@@ -54,20 +59,92 @@ export async function setPageGrant(employeeId: string, section: unknown, scope: 
   const { data: target } = await supabase.from('employees').select('name').eq('id', id).maybeSingle();
   if (!target) return { ok: false, error: 'Pegawai tidak ditemukan.' };
 
-  // Upsert lewat service_role (page_grants tanpa policy tulis untuk pengguna biasa).
+  // Upsert lewat service_role (page_grants tanpa policy tulis untuk pengguna biasa). Isi `scope`
+  // (legacy) + `scopes` (baru) sekaligus agar sinkron.
   const admin = createAdminClient();
   const { error } = await admin.from('page_grants')
-    .upsert({ employee_id: id, section: sec, scope: scp, can_edit: edit, created_by: auth.userId }, { onConflict: 'employee_id,section' });
+    .upsert({ employee_id: id, section: sec, scope: scps[0], scopes: scps, can_edit: edit, can_finalize: finalize, created_by: auth.userId }, { onConflict: 'employee_id,section' });
   if (error) return { ok: false, error: 'Gagal menyimpan akses: ' + error.message };
 
-  const editNote = GRANTABLE_PAGE_KIND[sec as GrantablePage] === 'administrator' ? (edit ? ', boleh edit' : ', hanya lihat') : '';
+  const scopeLabel = scps.map((s) => PAGE_SCOPE_LABELS[s]).join(' + ');
+  const izinNote = izinLabel(sec as GrantablePage, edit, finalize);
   await logHrdAction({
     action: 'access.set_page_grant', category: 'pegawai',
-    summary: `Memberi akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" (${PAGE_SCOPE_LABELS[scp as PageScope]}${editNote}) untuk ${target.name ?? id}`,
-    targetType: 'employee', targetId: id, targetLabel: target.name ?? null, meta: { section: sec, scope: scp, can_edit: edit },
+    summary: `Memberi akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" (${scopeLabel}${izinNote}) untuk ${target.name ?? id}`,
+    targetType: 'employee', targetId: id, targetLabel: target.name ?? null, meta: { section: sec, scopes: scps, can_edit: edit, can_finalize: finalize },
   });
   revalidate();
-  return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" diberikan (${PAGE_SCOPE_LABELS[scp as PageScope]}${editNote}).` };
+  return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" diberikan (${scopeLabel}${izinNote}).` };
+}
+
+/** Normalisasi izin 3-tingkat: pemantauan → selalu lihat-saja; can_finalize menyiratkan can_edit. */
+function normalizeIzin(sec: GrantablePage, canEdit: boolean, canFinalize: boolean): [boolean, boolean] {
+  if (GRANTABLE_PAGE_KIND[sec] !== 'administrator') return [false, false];
+  const finalize = canFinalize;
+  const edit = canEdit || finalize; // finalisasi menyiratkan boleh edit/meringkas
+  return [edit, finalize];
+}
+
+/** Label izin untuk pesan & audit: lihat / meringkas / finalisasi (halaman administrator saja). */
+function izinLabel(sec: GrantablePage, edit: boolean, finalize: boolean): string {
+  if (GRANTABLE_PAGE_KIND[sec] !== 'administrator') return '';
+  if (finalize) return ', boleh finalisasi';
+  if (edit) return ', boleh meringkas';
+  return ', hanya lihat';
+}
+
+const RoleGrantInput = z.object({
+  roleTarget: z.enum(GRANT_ROLE_TARGETS),
+  section: z.enum(GRANTABLE_PAGES),
+  scopes: z.array(z.enum(PAGE_SCOPES)).min(1),
+  canEdit: z.boolean(),
+  canFinalize: z.boolean(),
+});
+
+/**
+ * Beri akses halaman ber-lingkup ke SEMUA anggota sebuah PERAN saat ini (upsert per orang, via
+ * service_role). Lingkup/izin sama untuk tiap anggota; penegakan tetap per-pemegang saat runtime
+ * (mis. 'coordinator_team' → tim masing-masing; 'own_division' → divisi masing-masing). Peringatan
+ * untuk Edit-ke-peran-luas ditangani di klien (konfirmasi) — di server tetap dibolehkan.
+ */
+export async function setPageGrantForRole(roleTarget: unknown, section: unknown, scopes: unknown, canEdit: unknown = false, canFinalize: unknown = false): Promise<Result> {
+  const parsed = RoleGrantInput.safeParse({ roleTarget, section, scopes, canEdit: !!canEdit, canFinalize: !!canFinalize });
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid (pilih peran, halaman, & minimal satu lingkup).' };
+  const { roleTarget: rt, section: sec } = parsed.data;
+  let scps: PageScope[] = [...new Set(parsed.data.scopes)];
+  if (scps.includes('all')) scps = ['all'];
+  const [edit, finalize] = normalizeIzin(sec as GrantablePage, parsed.data.canEdit, parsed.data.canFinalize);
+
+  const supabase = await createClient();
+  const auth = await requireFullHrd(supabase);
+  if (!auth.ok) return auth;
+
+  // Anggota peran SAAT INI (via service_role; internal saja).
+  const admin = createAdminClient();
+  let q = admin.from('employees').select('id').eq('is_external', false);
+  if (rt === 'koordinator') q = q.eq('is_coordinator', true);
+  else if (rt === 'pegawai') q = q.eq('role', 'employee');
+  else if (rt === 'spv') q = q.eq('role', 'spv');
+  else q = q.eq('role', 'direksi');
+  const { data: members, error: mErr } = await q;
+  if (mErr) return { ok: false, error: 'Gagal membaca anggota peran: ' + mErr.message };
+  if (!members || members.length === 0) return { ok: false, error: `Tak ada anggota ${GRANT_ROLE_TARGET_LABELS[rt]} saat ini.` };
+
+  const rows = members.map((m) => ({
+    employee_id: m.id, section: sec, scope: scps[0], scopes: scps, can_edit: edit, can_finalize: finalize, created_by: auth.userId,
+  }));
+  const { error } = await admin.from('page_grants').upsert(rows, { onConflict: 'employee_id,section' });
+  if (error) return { ok: false, error: 'Gagal menyimpan akses massal: ' + error.message };
+
+  const scopeLabel = scps.map((s) => PAGE_SCOPE_LABELS[s]).join(' + ');
+  const izinNote = izinLabel(sec as GrantablePage, edit, finalize);
+  await logHrdAction({
+    action: 'access.set_page_grant_role', category: 'pegawai',
+    summary: `Memberi akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" (${scopeLabel}${izinNote}) ke SEMUA ${GRANT_ROLE_TARGET_LABELS[rt]} (${rows.length} orang)`,
+    targetType: 'role', targetId: rt, targetLabel: GRANT_ROLE_TARGET_LABELS[rt], meta: { section: sec, scopes: scps, can_edit: edit, can_finalize: finalize, count: rows.length },
+  });
+  revalidate();
+  return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" diberikan ke ${rows.length} ${GRANT_ROLE_TARGET_LABELS[rt]} (${scopeLabel}${izinNote}).` };
 }
 
 /** Cabut akses halaman untuk seorang pegawai. Ditulis via service_role. */
@@ -94,9 +171,101 @@ export async function removePageGrant(employeeId: string, section: unknown): Pro
   return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" dicabut.` };
 }
 
+/**
+ * Cabut-massal: hapus akses SATU halaman dari SEMUA pemegangnya sekaligus (via service_role).
+ * Dipakai saat sebuah halaman di-grant ke banyak orang (mis. per-peran) dan ingin ditarik total.
+ * Mengembalikan jumlah pegawai yang aksesnya dicabut agar klien bisa patch state lokal.
+ */
+export async function removePageGrantForAll(section: unknown): Promise<Result & { removedIds?: string[] }> {
+  const parsed = z.enum(GRANTABLE_PAGES).safeParse(section);
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  const sec = parsed.data;
+
+  const supabase = await createClient();
+  const auth = await requireFullHrd(supabase);
+  if (!auth.ok) return auth;
+
+  const admin = createAdminClient();
+  // Ambil pemegang dulu (untuk patch klien + hitung), lalu hapus.
+  const { data: holders } = await admin.from('page_grants').select('employee_id').eq('section', sec);
+  const removedIds = [...new Set((holders ?? []).map((h) => h.employee_id))];
+  if (removedIds.length === 0) return { ok: true, msg: 'Tidak ada pemegang akses halaman ini.', removedIds: [] };
+
+  const { error } = await admin.from('page_grants').delete().eq('section', sec);
+  if (error) return { ok: false, error: 'Gagal mencabut akses massal: ' + error.message };
+
+  await logHrdAction({
+    action: 'access.remove_page_grant_all', category: 'pegawai',
+    summary: `Mencabut akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" dari SEMUA pemegang (${removedIds.length} orang)`,
+    targetType: 'page', targetId: sec, targetLabel: GRANTABLE_PAGE_LABELS[sec as GrantablePage], meta: { section: sec, count: removedIds.length },
+  });
+  revalidate();
+  return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" dicabut dari ${removedIds.length} pegawai.`, removedIds };
+}
+
+/**
+ * Cabut-massal: hapus SEMUA grant halaman milik seorang pegawai sekaligus (via service_role).
+ * Mengembalikan daftar section yang dicabut agar klien bisa patch state lokal.
+ */
+export async function removeAllPageGrantsForEmployee(employeeId: unknown): Promise<Result & { removedSections?: string[] }> {
+  const parsed = z.string().uuid().safeParse(employeeId);
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  const id = parsed.data;
+
+  const supabase = await createClient();
+  const auth = await requireFullHrd(supabase);
+  if (!auth.ok) return auth;
+
+  const admin = createAdminClient();
+  const { data: target } = await admin.from('employees').select('name').eq('id', id).maybeSingle();
+  const { data: existing } = await admin.from('page_grants').select('section').eq('employee_id', id);
+  const removedSections = (existing ?? []).map((r) => r.section as string);
+  if (removedSections.length === 0) return { ok: true, msg: 'Pegawai ini tak punya akses halaman.', removedSections: [] };
+
+  const { error } = await admin.from('page_grants').delete().eq('employee_id', id);
+  if (error) return { ok: false, error: 'Gagal mencabut akses: ' + error.message };
+
+  await logHrdAction({
+    action: 'access.remove_all_page_grants', category: 'pegawai',
+    summary: `Mencabut SEMUA akses halaman (${removedSections.length}) untuk ${target?.name ?? id}`,
+    targetType: 'employee', targetId: id, targetLabel: target?.name ?? null, meta: { count: removedSections.length, sections: removedSections },
+  });
+  revalidate();
+  return { ok: true, msg: `Semua akses halaman (${removedSections.length}) untuk ${target?.name ?? id} dicabut.`, removedSections };
+}
+
+/**
+ * Tandai bahwa akses pegawai (baru) SUDAH ditinjau HRD → kartu hilang dari section "Pegawai Baru"
+ * meski masih dalam jendela waktu. Hanya menyetel penanda `access_reviewed_at` (tak mengubah akses).
+ * Ditulis via service_role (HRD penuh; konsisten dgn grant). Idempoten.
+ */
+export async function markAccessReviewed(employeeId: unknown): Promise<Result> {
+  const parsed = z.string().uuid().safeParse(employeeId);
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  const id = parsed.data;
+
+  const supabase = await createClient();
+  const auth = await requireFullHrd(supabase);
+  if (!auth.ok) return auth;
+
+  const admin = createAdminClient();
+  const { data: target } = await admin.from('employees').select('name').eq('id', id).maybeSingle();
+  const { error } = await admin.from('employees').update({ access_reviewed_at: new Date().toISOString() }).eq('id', id);
+  if (error) return { ok: false, error: 'Gagal menandai: ' + error.message };
+
+  await logHrdAction({
+    action: 'access.mark_reviewed', category: 'pegawai',
+    summary: `Menandai akses pegawai baru "${target?.name ?? id}" sudah ditinjau`,
+    targetType: 'employee', targetId: id, targetLabel: target?.name ?? null,
+  });
+  revalidate();
+  return { ok: true, msg: 'Ditandai sudah ditinjau.' };
+}
+
 function revalidate() {
   revalidatePath('/admin/akses');
   // Perubahan grant langsung tercermin di menu (layout) & halaman target.
   revalidatePath('/admin/monitor');
+  revalidatePath('/kpi');
   revalidatePath('/', 'layout');
 }

@@ -18,8 +18,8 @@ export interface Database {
   public: {
     Tables: {
       employees: {
-        Row: { id: string; emp_code: string; name: string; dept: string; role: UserRole; is_hrd_admin: boolean; is_external: boolean; is_cross_reviewer: boolean; is_coordinator: boolean; hrd_sections: string[] | null; is_active: boolean; joined_on: string | null; left_on: string | null; created_at: string };
-        Insert: { id: string; emp_code: string; name: string; dept: string; role?: UserRole; is_hrd_admin?: boolean; is_external?: boolean; is_cross_reviewer?: boolean; is_coordinator?: boolean; hrd_sections?: string[] | null; is_active?: boolean; joined_on?: string | null; left_on?: string | null };
+        Row: { id: string; emp_code: string; name: string; dept: string; role: UserRole; is_hrd_admin: boolean; is_external: boolean; is_cross_reviewer: boolean; is_coordinator: boolean; hrd_sections: string[] | null; is_active: boolean; joined_on: string | null; left_on: string | null; access_reviewed_at: string | null; created_at: string };
+        Insert: { id: string; emp_code: string; name: string; dept: string; role?: UserRole; is_hrd_admin?: boolean; is_external?: boolean; is_cross_reviewer?: boolean; is_coordinator?: boolean; hrd_sections?: string[] | null; is_active?: boolean; joined_on?: string | null; left_on?: string | null; access_reviewed_at?: string | null };
         Update: Partial<Database['public']['Tables']['employees']['Insert']>;
         Relationships: [];
       };
@@ -36,9 +36,9 @@ export interface Database {
         Relationships: [];
       };
       page_grants: {
-        Row: { id: string; employee_id: string; section: string; scope: 'all' | 'own_division' | 'other_divisions' | 'self'; can_edit: boolean; created_at: string; created_by: string | null };
-        Insert: { id?: string; employee_id: string; section: string; scope?: 'all' | 'own_division' | 'other_divisions' | 'self'; can_edit?: boolean; created_by?: string | null };
-        Update: Partial<{ section: string; scope: 'all' | 'own_division' | 'other_divisions' | 'self'; can_edit: boolean; created_by: string | null }>;
+        Row: { id: string; employee_id: string; section: string; scope: 'all' | 'own_division' | 'other_divisions' | 'self' | 'coordinator_team'; scopes: string[]; can_edit: boolean; can_finalize: boolean; created_at: string; created_by: string | null };
+        Insert: { id?: string; employee_id: string; section: string; scope?: 'all' | 'own_division' | 'other_divisions' | 'self' | 'coordinator_team'; scopes?: string[]; can_edit?: boolean; can_finalize?: boolean; created_by?: string | null };
+        Update: Partial<{ section: string; scope: 'all' | 'own_division' | 'other_divisions' | 'self' | 'coordinator_team'; scopes: string[]; can_edit: boolean; can_finalize: boolean; created_by: string | null }>;
         Relationships: [];
       };
       periods: {
@@ -111,6 +111,12 @@ export interface Database {
         Row: { id: string; period_id: string; model: '4class' | '2class'; weights: WeightValues; is_active: boolean; updated_by: string | null; updated_at: string };
         Insert: { period_id: string; model: '4class' | '2class'; weights: WeightValues; is_active?: boolean; updated_by?: string | null };
         Update: Partial<Database['public']['Tables']['weight_schemes']['Insert']>;
+        Relationships: [];
+      };
+      employee_weight_overrides: {
+        Row: { id: string; period_id: string; employee_id: string; model: '4class' | '2class'; weights: WeightValues; updated_by: string | null; updated_at: string };
+        Insert: { period_id: string; employee_id: string; model: '4class' | '2class'; weights: WeightValues; updated_by?: string | null; updated_at?: string };
+        Update: Partial<Database['public']['Tables']['employee_weight_overrides']['Insert']>;
         Relationships: [];
       };
       result_360: {

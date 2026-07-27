@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canSection, grantedAccess, isDeptInScope } from '@/lib/auth/roles';
+import { canSection, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
 import { logHrdAction, logAuditAsService, type AuditEntry } from '@/lib/audit/log';
 import { finalScoreOf } from '@/lib/scoring';
 
@@ -25,7 +25,7 @@ import { finalScoreOf } from '@/lib/scoring';
  * (user-scoped untuk HRD penuh; service_role untuk pemegang grant berlingkup) atau error.
  */
 type ReportWriteActor =
-  | { ok: true; userId: string; userName: string | null; db: Awaited<ReturnType<typeof createClient>>; viaGrant: boolean }
+  | { ok: true; userId: string; userName: string | null; db: Awaited<ReturnType<typeof createClient>>; viaGrant: boolean; canFinalize: boolean }
   | { ok: false; error: string };
 
 async function resolveReportWriteActor(
@@ -41,30 +41,32 @@ async function resolveReportWriteActor(
   const jar = await cookies();
   const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   if (canSection(me, 'laporan') && hrdMode === 'admin') {
-    return { ok: true, userId: user.id, userName: me?.name ?? null, db: supabase, viaGrant: false };
+    return { ok: true, userId: user.id, userName: me?.name ?? null, db: supabase, viaGrant: false, canFinalize: true };
   }
 
-  // Jalur GRANT: pemegang akses "Review Hasil Akhir" boleh-edit dgn target di dalam lingkup.
-  const { data: grantRows } = await supabase.from('page_grants').select('section, scope, can_edit').eq('employee_id', user.id);
+  // Jalur GRANT: pemegang akses "Review Hasil Akhir" boleh-edit dgn target di dalam SALAH SATU lingkup.
+  // Tiga tingkat: Lihat (tolak tulis) · Meringkas (canEdit, tulis ringkasan) · Finalisasi (canFinalize).
+  const { data: grantRows } = await supabase.from('page_grants').select('section, scope, scopes, can_edit, can_finalize').eq('employee_id', user.id);
   const access = grantedAccess(grantRows, 'review');
   if (!access) return { ok: false, error: 'Hanya HRD atau pemegang akses Review Hasil Akhir yang dapat mengubah laporan.' };
   if (!access.canEdit) return { ok: false, error: 'Akses Anda ke Review Hasil Akhir bersifat hanya-lihat.' };
 
-  // Lingkup 'self' → hanya laporan pemegang grant sendiri (per-ID, tanpa perlu baca dept).
-  if (access.scope === 'self') {
-    if (employeeId !== user.id) return { ok: false, error: 'Akses Anda hanya untuk laporan Anda sendiri.' };
-    return { ok: true, userId: user.id, userName: me?.name ?? null, db: createAdminClient() as typeof supabase, viaGrant: true };
-  }
   // dept target dibaca via service_role (pemegang grant bukan is_hrd() → RLS memblokir baca lintas-pegawai).
   const admin = createAdminClient();
   const { data: target } = await admin.from('employees').select('dept').eq('id', employeeId).maybeSingle();
   if (!target) return { ok: false, error: 'Pegawai tidak ditemukan.' };
-  if (!isDeptInScope(access.scope, me?.dept ?? '', target.dept ?? null)) {
+  // Tim naungan (hanya bila lingkup 'coordinator_team'): id anggota tim pemegang grant.
+  const teamIds = access.scopes.includes('coordinator_team')
+    ? new Set(((await admin.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id)).data ?? []).map((r) => r.employee_id))
+    : undefined;
+  // Target harus masuk SALAH SATU lingkup grant (employeeInScopes; 'self'/'coordinator_team' = per-ID).
+  if (!employeeInScopes(access.scopes, me?.dept ?? '', user.id, { id: employeeId, dept: target.dept ?? null }, teamIds)) {
     return { ok: false, error: 'Pegawai ini di luar lingkup akses yang diberikan kepada Anda.' };
   }
   // Tulis via service_role: pemegang grant non-HRD ditolak RLS fr_hrd, jadi HANYA jalur ini (yang
   // sudah mengecek can_edit + lingkup) yang bisa menulis = gembok nyata untuk penulis non-HRD.
-  return { ok: true, userId: user.id, userName: me?.name ?? null, db: admin as typeof supabase, viaGrant: true };
+  // canFinalize dari grant → aksi finalisasi/rilis/kembalikan-draf digerbang terpisah di pemanggil.
+  return { ok: true, userId: user.id, userName: me?.name ?? null, db: admin as typeof supabase, viaGrant: true, canFinalize: access.canFinalize };
 }
 
 /** Catat aksi laporan: HRD penuh → logHrdAction (RLS is_hrd); pemegang grant → service_role. */
@@ -99,6 +101,9 @@ export async function saveOrFinalizeReport(employeeId: string, finalize: boolean
   const supabase = await createClient();
   const actor = await resolveReportWriteActor(supabase, employeeId);
   if (!actor.ok) return { ok: false, error: actor.error };
+  // Menyimpan/mengubah status & Skor Akhir = tingkat FINALISASI (bukan "Meringkas"). Pemegang grant
+  // tingkat Meringkas hanya boleh menulis Ringkasan Aspek/Kualitatif, tak menyentuh status/skor.
+  if (!actor.canFinalize) return { ok: false, error: 'Akses Anda hanya mencakup meringkas (menulis Ringkasan Aspek), bukan finalisasi/kalibrasi skor.' };
   const db = actor.db;
 
   const { data: ap } = await db
@@ -152,6 +157,8 @@ export async function releaseToSpv(employeeId: string): Promise<FinalizeResult> 
   const supabase = await createClient();
   const actor = await resolveReportWriteActor(supabase, employeeId);
   if (!actor.ok) return { ok: false, error: actor.error };
+  // Rilis ke SPV mengubah status = tingkat FINALISASI (bukan "Meringkas").
+  if (!actor.canFinalize) return { ok: false, error: 'Akses Anda hanya mencakup meringkas, bukan merilis laporan ke SPV.' };
   const db = actor.db;
 
   const { data: ap } = await db

@@ -1,9 +1,12 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { isFullHrd, GRANTABLE_PAGES, GRANTABLE_PAGE_LABELS, GRANTABLE_PAGE_KIND, PAGE_SCOPES, PAGE_SCOPE_LABELS, HRD_SECTION_LABELS, type HrdSection } from '@/lib/auth/roles';
+import { isFullHrd, GRANTABLE_PAGES, GRANTABLE_PAGE_LABELS, GRANTABLE_PAGE_KIND, PAGE_SCOPES, PAGE_SCOPE_LABELS } from '@/lib/auth/roles';
+import { ACCESS_AUDIT_ACTIONS } from '@/lib/audit/log';
 import { AksesClient, type AksesEmployee } from './akses-client';
-import { AksesAudit, type AuditRow } from './akses-audit';
+import { type AksesLogRow } from './akses-log';
+
+const LOG_PAGE_SIZE = 8;
 
 /**
  * Manajemen Akses (HRD) — halaman TUNGGAL untuk memberi akses HALAMAN ber-lingkup kepada pegawai
@@ -13,7 +16,12 @@ import { AksesAudit, type AuditRow } from './akses-audit';
  * GERBANG: HANYA HRD PENUH (isFullHrd) — rekan HRD yang aksesnya dibatasi tak boleh membuka halaman
  * ini (cegah menaikkan aksesnya sendiri). Data dibaca via service_role (daftar pegawai + grant).
  */
-export default async function AdminAksesPage() {
+export default async function AdminAksesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string; logPage?: string }>;
+}) {
+  const { tab: tabParam, logPage: logPageParam } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -30,21 +38,23 @@ export default async function AdminAksesPage() {
 
   const admin = createAdminClient();
   const [{ data: empData }, { data: grantData }, { data: coordData }] = await Promise.all([
-    admin.from('employees').select('id, name, dept, role, is_external, is_hrd_admin, is_cross_reviewer, is_coordinator, hrd_sections').eq('is_external', false).order('dept').order('name'),
-    admin.from('page_grants').select('employee_id, section, scope, can_edit'),
+    admin.from('employees').select('id, name, dept, role, is_external, is_hrd_admin, is_coordinator, hrd_sections, joined_on, access_reviewed_at').eq('is_external', false).order('dept').order('name'),
+    admin.from('page_grants').select('employee_id, section, scope, scopes, can_edit, can_finalize'),
     admin.from('coordinator_team_members').select('coordinator_id, employee_id'),
   ]);
 
-  // Tim per koordinator (untuk dialog + audit): coordinator_id → daftar employee_id + jumlah.
+  // Tim per koordinator (untuk dialog): coordinator_id → daftar employee_id.
   const coordTeams: Record<string, string[]> = {};
   (coordData ?? []).forEach((c) => { (coordTeams[c.coordinator_id] ??= []).push(c.employee_id); });
-  const coordCount = new Map<string, number>(Object.entries(coordTeams).map(([k, v]) => [k, v.length]));
 
-  // Peta grant per pegawai: employee_id → { section → { scope, canEdit } }.
-  const grantsByEmp = new Map<string, Record<string, { scope: string; canEdit: boolean }>>();
+  // Peta grant per pegawai: employee_id → { section → { scopes[], canEdit, canFinalize } }.
+  // Utamakan kolom `scopes[]` (0028); fallback ke `scope` tunggal lama bila kosong.
+  const grantsByEmp = new Map<string, Record<string, { scopes: string[]; canEdit: boolean; canFinalize: boolean }>>();
   (grantData ?? []).forEach((g) => {
     const m = grantsByEmp.get(g.employee_id) ?? {};
-    m[g.section] = { scope: g.scope, canEdit: !!g.can_edit };
+    const scopes = g.scopes && g.scopes.length ? g.scopes : (g.scope ? [g.scope] : []);
+    const canEdit = !!g.can_edit;
+    m[g.section] = { scopes, canEdit, canFinalize: canEdit && !!g.can_finalize };
     grantsByEmp.set(g.employee_id, m);
   });
 
@@ -55,48 +65,43 @@ export default async function AdminAksesPage() {
     role: e.role,
     isExternal: !!e.is_external,
     isHrdAdmin: !!e.is_hrd_admin,
-    isCrossReviewer: !!e.is_cross_reviewer,
     isCoordinator: !!e.is_coordinator,
     hrdSections: e.hrd_sections ?? null,
+    joinedOn: e.joined_on ?? null,
+    accessReviewedAt: e.access_reviewed_at ?? null,
     grants: grantsByEmp.get(e.id) ?? {},
   }));
 
   const pages = GRANTABLE_PAGES.map((key) => ({ key, label: GRANTABLE_PAGE_LABELS[key], kind: GRANTABLE_PAGE_KIND[key] }));
   const scopes = PAGE_SCOPES.map((key) => ({ key, label: PAGE_SCOPE_LABELS[key] }));
 
-  // ── Audit Akses: rincian tiap pegawai yang memegang akses/grant apa pun (di luar default peran) ──
-  const auditRows: AuditRow[] = (empData ?? [])
-    .map((e) => {
-      const access: { label: string; tone: 'indigo' | 'sky' | 'amber' | 'emerald' }[] = [];
-      if (e.is_hrd_admin) {
-        const secs = (e.hrd_sections ?? []) as HrdSection[];
-        access.push({
-          label: secs.length
-            ? `HRD Admin — ${secs.length} bagian (${secs.map((s) => HRD_SECTION_LABELS[s] ?? s).join(', ')})`
-            : 'HRD Admin — akses penuh',
-          tone: 'indigo',
-        });
-      }
-      if (e.is_cross_reviewer) access.push({ label: 'Peninjau Lintas Divisi', tone: 'sky' });
-      if (e.is_coordinator) access.push({ label: `Koordinator${coordCount.get(e.id) ? ` — ${coordCount.get(e.id)} anggota` : ''}`, tone: 'amber' });
-      const g = grantsByEmp.get(e.id) ?? {};
-      for (const sec of GRANTABLE_PAGES) {
-        const grant = g[sec];
-        if (grant) {
-          // Halaman administrator (mis. Review Hasil Akhir) tampilkan status boleh-edit/lihat-saja.
-          const editNote = GRANTABLE_PAGE_KIND[sec] === 'administrator' ? (grant.canEdit ? ' · boleh edit' : ' · lihat-saja') : '';
-          access.push({ label: `${GRANTABLE_PAGE_LABELS[sec]} — ${PAGE_SCOPE_LABELS[grant.scope as keyof typeof PAGE_SCOPE_LABELS] ?? grant.scope}${editNote}`, tone: 'emerald' });
-        }
-      }
-      return { id: e.id, name: e.name, dept: e.dept ?? '—', role: e.role, access };
-    })
-    .filter((r) => r.access.length > 0);
+  // ── Log Akses: jejak perubahan akses (grant halaman + izin peran) dari hrd_audit_log, disaring ke
+  //    kode aksi akses saja (ACCESS_AUDIT_ACTIONS). Paginasi server-side (?logPage=), 8/hal. ──
+  const logPage = Math.max(0, Number.parseInt(logPageParam ?? '0', 10) || 0);
+  const { data: logData, count: logCount } = await admin
+    .from('hrd_audit_log')
+    .select('id, actor_name, summary, target_label, created_at', { count: 'exact' })
+    .in('action', ACCESS_AUDIT_ACTIONS as unknown as string[])
+    .order('created_at', { ascending: false })
+    .range(logPage * LOG_PAGE_SIZE, logPage * LOG_PAGE_SIZE + LOG_PAGE_SIZE - 1);
+  const logRows: AksesLogRow[] = (logData ?? []).map((r) => ({
+    id: r.id,
+    actor: r.actor_name ?? '—',
+    summary: r.summary,
+    targetLabel: r.target_label,
+    createdAt: r.created_at,
+  }));
+
+  const initialTab = tabParam === 'cabut' || tabParam === 'log' ? tabParam : 'beri';
 
   return (
     <Shell>
       <Header />
-      <AksesClient employees={employees} pages={pages} scopes={scopes} coordTeams={coordTeams} meId={user.id} />
-      <AksesAudit rows={auditRows} />
+      <AksesClient
+        employees={employees} pages={pages} scopes={scopes} coordTeams={coordTeams} meId={user.id}
+        initialTab={initialTab}
+        logRows={logRows} logPage={logPage} logPageSize={LOG_PAGE_SIZE} logTotal={logCount ?? 0}
+      />
     </Shell>
   );
 }

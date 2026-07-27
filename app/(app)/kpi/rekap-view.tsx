@@ -1,6 +1,8 @@
-import { createClient } from '@/lib/supabase/server';
-import { finalScoreOf, playerClassOf, playerLabelOf, perfCategoryOf, perfLabelOf } from '@/lib/scoring';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { fetchAllByIds } from '@/lib/supabase/paginate';
+import { finalScoreOf, playerClassOf, perfCategoryOf, perfLabelOf } from '@/lib/scoring';
 import { PeriodSelect } from './period-select';
+import { RekapTable, type RekapRow } from './rekap-table';
 
 /**
  * Rekapitulasi Kuartal — tab di dalam Input KPI. Tabel per periode: KPI tiap bulan,
@@ -18,8 +20,10 @@ const KAT = (f: number | null) => {
   return { t: perfLabelOf(f), c: c ? KAT_COLOR[c] : 'text-gray-500' };
 };
 
-export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }: { role: string; userId: string; periodParam?: string; hrdMode?: 'admin' | 'spv' }) {
-  const supabase = await createClient();
+export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', scopedIds }: { role: string; userId: string; periodParam?: string; hrdMode?: 'admin' | 'spv'; scopedIds?: string[] | null }) {
+  // Jalur GRANT non-HRD (Manajemen Akses): pemegang grant diblokir RLS → baca via service_role,
+  // dibatasi ke daftar id yang SUDAH disaring per-lingkup di page.tsx (employeeInScopes).
+  const supabase = scopedIds ? createAdminClient() : await createClient();
 
   const { data: periods } = await supabase.from('periods').select('id, label, has_360, status').order('label');
   const periodList = periods ?? [];
@@ -34,7 +38,13 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
   // bila tak punya data di periode (lihat filter `shown`). Jadi nonaktif yang sudah punya
   // KPI/360° di kuartal ini tetap muncul (mis. resign di akhir periode) & bisa difinalisasi.
   let empRows: { id: string; name: string; dept: string; is_active: boolean }[] = [];
-  if (role === 'spv') {
+  if (scopedIds) {
+    // Grant berlingkup: hanya pegawai dalam daftar tersaring (id sudah dibatasi lingkup di server).
+    const { data } = scopedIds.length
+      ? await supabase.from('employees').select('id, name, dept, is_active').in('id', scopedIds)
+      : { data: [] };
+    empRows = data ?? [];
+  } else if (role === 'spv') {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);
     // SPV juga mencatat KPI dirinya sendiri (migrasi 0008) → sertakan dalam rekap.
     const ids = [...new Set([userId, ...(team ?? []).map((t) => t.employee_id)])];
@@ -55,11 +65,14 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
   const ymList = (months ?? []).map((m) => m.ym);
   const empIds = empRows.map((e) => e.id);
 
-  const { data: kpiRows } = empIds.length && ymList.length
-    ? await supabase.from('kpi_scores').select('employee_id, ym, score').in('employee_id', empIds).in('ym', ymList)
-    : { data: [] };
+  // kpi_scores lintas semua pegawai × bulan → bisa >1000; ambil penuh (chunk id + paginasi).
+  const kpiRows = empIds.length && ymList.length
+    ? await fetchAllByIds<{ employee_id: string; ym: string; score: number }>(empIds, (chunk, from, to) =>
+        supabase.from('kpi_scores').select('employee_id, ym, score').in('employee_id', chunk).in('ym', ymList)
+          .order('employee_id').order('ym').range(from, to))
+    : [];
   const kpiByCell = new Map<string, { sum: number; n: number }>();
-  (kpiRows ?? []).forEach((r) => {
+  kpiRows.forEach((r) => {
     const k = `${r.employee_id}|${r.ym}`;
     const a = kpiByCell.get(k) ?? { sum: 0, n: 0 };
     a.sum += r.score; a.n += 1; kpiByCell.set(k, a);
@@ -74,7 +87,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
     : { data: [] };
   const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
 
-  const rows = empRows.map((e) => {
+  const rows: RekapRow[] = empRows.map((e) => {
     const monthly = ymList.map((ym) => {
       const a = kpiByCell.get(`${e.id}|${ym}`);
       return a ? a.sum / a.n : null;
@@ -85,11 +98,12 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
     const penalty = penBy.get(e.id) ?? 0;
     const final = finalScoreOf(kpiAvg, s360, sel.has_360, penalty);
     const player = playerClassOf(kpiAvg, sel.has_360 ? s360 : null);
-    return { ...e, monthly, kpiAvg, s360, final, player };
-  });
-  // Pelaporan: tampilkan yang AKTIF atau yang PUNYA DATA di periode (KPI/360°) — nonaktif
-  // tanpa data disembunyikan; nonaktif yang sudah dinilai/ber-KPI di kuartal ini tetap tampil.
-  const shown = rows.filter((r) => r.is_active || r.kpiAvg != null || r.s360 != null);
+    const kat = KAT(final);
+    return { id: e.id, name: e.name, dept: e.dept, is_active: e.is_active, monthly, kpiAvg, s360, final, player, katText: kat.t, katClass: kat.c };
+  })
+    // Pelaporan: tampilkan yang AKTIF atau yang PUNYA DATA di periode (KPI/360°) — nonaktif
+    // tanpa data disembunyikan; nonaktif yang sudah dinilai/ber-KPI di kuartal ini tetap tampil.
+    .filter((r) => r.is_active || r.kpiAvg != null || r.s360 != null);
 
   return (
     <div>
@@ -102,43 +116,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin' }
           Kuartal ini bertipe <strong>KPI Saja</strong> — 360° diabaikan; Skor Akhir = 100% KPI.
         </div>
       )}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs min-w-[640px]">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-200 text-[10px] uppercase tracking-wider text-gray-500 font-bold">
-              <th className="py-2.5 px-3">Pegawai</th>
-              {ymList.map((ym) => <th key={ym} className="py-2.5 px-3 text-center">{labelOf(ym)}</th>)}
-              <th className="py-2.5 px-3 text-center">Rataan KPI</th>
-              {sel.has_360 && <th className="py-2.5 px-3 text-center">Hasil 360°</th>}
-              <th className="py-2.5 px-3 text-center">Skor Akhir</th>
-              <th className="py-2.5 px-3 text-right">Kategori</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {shown.length === 0 && (
-              <tr><td colSpan={ymList.length + 4} className="py-6 text-center text-gray-500 italic">Tidak ada pegawai dalam lingkup Anda.</td></tr>
-            )}
-            {shown.map((r) => {
-              const kat = KAT(r.final);
-              return (
-                <tr key={r.id} className="hover:bg-gray-50/40">
-                  <td className="py-3 px-3">
-                    <span className="font-bold text-gray-800 block">{r.name}</span>
-                    <span className="text-[10px] text-gray-500">{r.dept}</span>
-                  </td>
-                  {r.monthly.map((v, i) => (
-                    <td key={i} className="py-3 px-3 text-center font-mono text-gray-500">{v != null ? v.toFixed(2) : '—'}</td>
-                  ))}
-                  <td className="py-3 px-3 text-center font-mono font-bold text-emerald-700">{r.kpiAvg != null ? r.kpiAvg.toFixed(2) : '—'}</td>
-                  {sel.has_360 && <td className="py-3 px-3 text-center font-mono font-bold text-indigo-700">{r.s360 != null ? r.s360.toFixed(2) : '—'}</td>}
-                  <td className="py-3 px-3 text-center font-mono font-black text-slate-900 text-sm">{r.final != null ? r.final.toFixed(2) : '—'}</td>
-                  <td className={`py-3 px-3 text-right font-bold ${kat.c}`}>{kat.t}{r.player ? ` · ${playerLabelOf(r.player)}` : ''}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <RekapTable rows={rows} monthLabels={ymList.map(labelOf)} has360={sel.has_360} />
       <p className="text-[10px] text-gray-500 italic mt-3">
         Rataan KPI = rerata bulan ber-skor di kuartal ini. Skor Akhir = blend KPI+360 (50/50) − punishment
         {sel.has_360 ? '' : ' (kuartal KPI saja → 100% KPI)'}. Kategori: ≥90 Melampaui · ≥80 Memenuhi · ≥70 Perlu Peningkatan · &lt;70 Di Bawah Ekspektasi.

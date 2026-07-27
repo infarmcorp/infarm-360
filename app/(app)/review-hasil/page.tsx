@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { fetchAllByIds } from '@/lib/supabase/paginate';
 import { finalScoreOf } from '@/lib/scoring';
 import { ReportTable, type ReportRow } from '@/app/(app)/admin/laporan/report-table';
 
@@ -32,11 +33,13 @@ export default async function ReviewHasilDireksiPage() {
 
   const { data: months } = await admin.from('period_months').select('ym').eq('period_id', ap.id);
   const yms = (months ?? []).map((m) => m.ym);
-  const { data: kpiRows } = yms.length && empIds.length
-    ? await admin.from('kpi_scores').select('employee_id, score').in('ym', yms).in('employee_id', empIds)
-    : { data: [] as { employee_id: string; score: number }[] };
+  // kpi_scores semua pegawai × bulan → bisa >1000; ambil penuh (chunk id + paginasi).
+  const kpiRows = yms.length && empIds.length
+    ? await fetchAllByIds<{ employee_id: string; score: number }>(empIds, (chunk, from, to) =>
+        admin.from('kpi_scores').select('employee_id, score').in('ym', yms).in('employee_id', chunk).order('employee_id').order('ym').range(from, to))
+    : [];
   const kpiAgg = new Map<string, { s: number; n: number }>();
-  (kpiRows ?? []).forEach((r) => { const a = kpiAgg.get(r.employee_id) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; kpiAgg.set(r.employee_id, a); });
+  kpiRows.forEach((r) => { const a = kpiAgg.get(r.employee_id) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; kpiAgg.set(r.employee_id, a); });
 
   const { data: r360 } = await admin.from('result_360').select('employee_id, score').eq('period_id', ap.id);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));

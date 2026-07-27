@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { fetchAllByIds } from '@/lib/supabase/paginate';
 import { RiwayatList, type FlatAudit } from './riwayat-list';
 
 /**
@@ -12,8 +13,10 @@ const fmt = (iso: string) => {
     d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 };
 
-export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'admin', byPeriod = false, periodParam }: { role: string; canAdmin?: boolean; userId: string; hrdMode?: 'admin' | 'spv'; byPeriod?: boolean; periodParam?: string }) {
-  const supabase = await createClient();
+export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'admin', byPeriod = false, periodParam, scopedIds }: { role: string; canAdmin?: boolean; userId: string; hrdMode?: 'admin' | 'spv'; byPeriod?: boolean; periodParam?: string; scopedIds?: string[] | null }) {
+  // Jalur GRANT non-HRD (Manajemen Akses): pemegang grant diblokir RLS → baca via service_role,
+  // dibatasi ke daftar id yang SUDAH disaring per-lingkup di page.tsx (employeeInScopes).
+  const supabase = scopedIds ? createAdminClient() : await createClient();
 
   // Penyaringan per periode (untuk halaman Monitoring berdampingan): batasi audit ke
   // bulan periode terpilih — resolusi SAMA dgn RekapView agar satu dropdown ?period=
@@ -34,7 +37,13 @@ export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'a
   // Lingkup pegawai. Izin HRD (canAdmin) di mode admin → semua; HRD-posisi mode-SPV → DIVISINYA
   // (selaras Input KPI); SPV → anggota timnya. Pemegang grant non-HRD pakai cabang admin (semua).
   let empRows: { id: string; name: string; dept: string }[] = [];
-  if (canAdmin && hrdMode === 'admin') {
+  if (scopedIds) {
+    // Grant berlingkup: hanya pegawai dalam daftar tersaring (id sudah dibatasi lingkup di server).
+    const { data } = scopedIds.length
+      ? await supabase.from('employees').select('id, name, dept').in('id', scopedIds)
+      : { data: [] };
+    empRows = data ?? [];
+  } else if (canAdmin && hrdMode === 'admin') {
     const { data } = await supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false);
     empRows = data ?? [];
   } else if (role === 'hrd') {
@@ -52,13 +61,16 @@ export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'a
   if (empRows.length === 0) return <p className="text-sm text-gray-500">Belum ada anggota tim dalam lingkup Anda.</p>;
   empRows.sort((a, b) => a.name.localeCompare(b.name));
 
-  let auditQuery = supabase
-    .from('kpi_audit')
-    .select('employee_id, ym, score, changed_by, changed_at, note, action')
-    .in('employee_id', empRows.map((e) => e.id));
-  if (ymFilter) auditQuery = auditQuery.in('ym', ymFilter);
-  const { data: audit } = await auditQuery.order('changed_at', { ascending: false });
-  const rows = audit ?? [];
+  // kpi_audit = tabel APPEND-ONLY yang menumpuk tiap input/edit KPI → cepat >1000 baris.
+  // Ambil PENUH (chunk id pegawai + paginasi baris), lalu urutkan ulang terbaru-di-atas di memori
+  // (fetchAllByIds menggabung per-chunk sehingga urutan global harus disusun ulang).
+  type AuditT = { employee_id: string; ym: string; score: number; changed_by: string | null; changed_at: string; note: string | null; action: string | null };
+  const audit = await fetchAllByIds<AuditT>(empRows.map((e) => e.id), (chunk, from, to) => {
+    let q = supabase.from('kpi_audit').select('employee_id, ym, score, changed_by, changed_at, note, action').in('employee_id', chunk);
+    if (ymFilter) q = q.in('ym', ymFilter);
+    return q.order('changed_at', { ascending: false }).order('employee_id').range(from, to);
+  });
+  const rows = audit.sort((a, b) => (a.changed_at < b.changed_at ? 1 : a.changed_at > b.changed_at ? -1 : 0));
   if (rows.length === 0) return <p className="text-sm text-gray-500">{byPeriod ? 'Belum ada jejak audit KPI untuk periode ini.' : 'Belum ada jejak audit KPI. Riwayat tercatat otomatis setiap input skor.'}</p>;
 
   // Nama pengubah (termasuk KOORDINATOR — kpi_audit.changed_by memuat id koordinator saat ia
@@ -77,7 +89,7 @@ export async function RiwayatView({ role, canAdmin = false, userId, hrdMode = 'a
     dept: empById.get(r.employee_id)?.dept ?? '',
     ym: r.ym, score: r.score,
     by: r.changed_by ? (changerName.get(r.changed_by) ?? '—') : '—',
-    at: fmt(r.changed_at), note: r.note, action: r.action,
+    at: fmt(r.changed_at), note: r.note, action: r.action ?? undefined,
   }));
 
   return <RiwayatList entries={entries} />;

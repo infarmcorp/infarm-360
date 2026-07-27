@@ -16,10 +16,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect('/login');
 
   const { data: emp } = await supabase
-    .from('employees').select('emp_code, name, dept, role, is_hrd_admin, is_cross_reviewer, is_coordinator, hrd_sections').eq('id', user.id).maybeSingle();
+    .from('employees').select('emp_code, name, dept, role, is_hrd_admin, is_coordinator, hrd_sections').eq('id', user.id).maybeSingle();
   const role = (emp?.role ?? 'employee') as Role;
   const isAdmin = canAdmin(emp);
-  const isCrossReviewer = !!emp?.is_cross_reviewer;
   const isCoordinator = !!emp?.is_coordinator;
 
   // Akses halaman ber-lingkup (RBAC, migrasi 0024) — untuk menyalakan menu grant di sidebar.
@@ -44,7 +43,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <AppShell
       role={role}
       canAdmin={isAdmin}
-      isCrossReviewer={isCrossReviewer}
       isCoordinator={isCoordinator}
       hrdSections={emp?.hrd_sections ?? null}
       pageGrants={grantRows ?? []}

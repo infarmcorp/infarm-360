@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { usePager, Pager } from '@/components/table-controls';
 
 /** Satu baris audit KPI (rata/flat) — terbaru lebih dulu (urut server by changed_at desc). */
 export type FlatAudit = {
@@ -18,11 +19,13 @@ const labelMonth = (ym: string) => { const [y, m] = ym.split('-'); return `${MON
  */
 export function RiwayatList({ entries }: { entries: FlatAudit[] }) {
   const [q, setQ] = useState('');
-  const shown = useMemo(() => {
+  const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     if (!t) return entries;
     return entries.filter((e) => `${e.name} ${e.dept} ${e.by}`.toLowerCase().includes(t));
   }, [entries, q]);
+  // Paginasi 5-baris (komponen bersama) → audit append-only bisa ratusan/ribuan baris; batasi DOM.
+  const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(filtered);
 
   return (
     <div className="space-y-3">
@@ -30,11 +33,11 @@ export function RiwayatList({ entries }: { entries: FlatAudit[] }) {
         <p className="text-[11px] text-gray-500">
           Jejak perubahan KPI bersifat <strong>append-only</strong> — tidak dapat diubah/dihapus. Urut <strong>terbaru di atas</strong>.
         </p>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama / divisi / pengubah…"
+        <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama / divisi / pengubah…"
           className="text-xs px-3 py-2 border border-gray-200 rounded-lg w-56 focus:outline-none focus:ring-1 focus:ring-emerald-600" />
       </div>
 
-      {shown.length === 0 ? (
+      {filtered.length === 0 ? (
         <p className="text-sm text-gray-500">Tidak ada jejak audit yang cocok.</p>
       ) : (
         <div className="overflow-x-auto">
@@ -71,6 +74,8 @@ export function RiwayatList({ entries }: { entries: FlatAudit[] }) {
           </table>
         </div>
       )}
+
+      <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="perubahan" />
     </div>
   );
 }

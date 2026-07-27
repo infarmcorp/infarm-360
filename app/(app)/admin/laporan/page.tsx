@@ -2,7 +2,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canSection, grantedAccess, deptScopeFilter, type PageScope } from '@/lib/auth/roles';
+import { fetchAllPaged } from '@/lib/supabase/paginate';
+import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
 import { ReportTable, type ReportRow } from './report-table';
 import { Recompute360Button } from './recompute-360-button';
@@ -26,22 +27,24 @@ export default async function AdminLaporanPage() {
   // Jalur GRANT (non-HRD-penuh): akses Review Hasil Akhir ber-LINGKUP. Tahap 2 — grant boleh
   // menyertakan dimensi EDIT: `can_edit=true` → pemegang boleh membuka detail & finalisasi (dalam
   // lingkup, ditegakkan server via service_role); `can_edit=false` → tetap LIHAT-SAJA (Tahap 1).
-  let reviewScope: PageScope | null = null;
+  let reviewScopes: PageScope[] | null = null;
   let grantCanEdit = false;
+  let grantCanFinalize = false;
   if (!isHrdFull) {
-    const { data: grantRows } = await supabase.from('page_grants').select('section, scope, can_edit').eq('employee_id', user.id);
+    const { data: grantRows } = await supabase.from('page_grants').select('section, scope, scopes, can_edit, can_finalize').eq('employee_id', user.id);
     const access = grantedAccess(grantRows, 'review');
-    reviewScope = access?.scope ?? null;
+    reviewScopes = access?.scopes ?? null;
     grantCanEdit = !!access?.canEdit;
+    grantCanFinalize = !!access?.canFinalize;
   }
-  if (!isHrdFull && !reviewScope) {
+  if (!isHrdFull && !reviewScopes) {
     return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin atau pemegang akses Review Hasil Akhir.</p>
       <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
   // "Tinjau" (buka detail) tampil bila HRD penuh ATAU pemegang grant (baik lihat-saja maupun edit —
   // detail sendiri read-only bila tak boleh-edit). Grant lihat-saja lama tetap bisa melihat daftar.
-  const readOnly = !isHrdFull && !reviewScope; // (selalu false di titik ini; ambang jelas)
+  const readOnly = !isHrdFull && !reviewScopes; // (selalu false di titik ini; ambang jelas)
   // Pemegang grant bukan is_hrd() → RLS memblokir baca lintas-pegawai → baca via service_role.
   const db = (isHrdFull ? supabase : createAdminClient()) as typeof supabase;
 
@@ -55,25 +58,27 @@ export default async function AdminLaporanPage() {
   // jadi hanya tampil bila punya skor 360° (disaring `shownRows` di bawah). Ini KHUSUS halaman
   // Review Hasil Akhir — Dashboard/KPI/kepatuhan tetap mengecualikan Direksi.
   // Pemegang grant: daftar disaring per LINGKUP (deptScopeFilter — cerminan query Monitor).
-  let empQ = db.from('employees').select('id, name, dept, is_active, role').eq('is_external', false);
-  if (reviewScope === 'self') {
-    empQ = empQ.eq('id', user.id); // lingkup 'self' → hanya laporan pemegang grant sendiri
-  } else if (reviewScope) {
-    const f = deptScopeFilter(reviewScope, me?.dept ?? '', 'all');
-    if (f.op === 'eq') empQ = empQ.eq('dept', f.dept);
-    else if (f.op === 'neq') empQ = empQ.neq('dept', f.dept);
-  }
-  const { data: emps } = await empQ;
-  const employees = emps ?? [];
+  // Ambil semua pegawai internal; pemegang grant disaring per gabungan lingkup (employeeInScopes,
+  // termasuk 'self' per-ID). HRD penuh (reviewScopes null) → tanpa saring (semua).
+  // Tim naungan (hanya bila lingkup 'coordinator_team'): id anggota tim pemegang grant.
+  const teamIds = reviewScopes?.includes('coordinator_team')
+    ? new Set(((await db.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id)).data ?? []).map((r) => r.employee_id))
+    : undefined;
+  const { data: emps } = await db.from('employees').select('id, name, dept, is_active, role').eq('is_external', false);
+  const employees = (emps ?? []).filter((e) =>
+    !reviewScopes || employeeInScopes(reviewScopes, me?.dept ?? '', user.id, e, teamIds));
 
   const { data: months } = await db.from('period_months').select('ym').eq('period_id', ap.id);
   const yms = (months ?? []).map((m) => m.ym);
   const sortedMonths = [...yms].sort();
-  const { data: kpiRows } = yms.length
-    ? await db.from('kpi_scores').select('employee_id, score, ym').in('ym', yms) : { data: [] };
+  // kpi_scores semua pegawai (bulan periode) → bisa >1000; ambil penuh.
+  const kpiRows = yms.length
+    ? await fetchAllPaged<{ employee_id: string; score: number; ym: string }>((from, to) =>
+        db.from('kpi_scores').select('employee_id, score, ym').in('ym', yms).order('employee_id').order('ym').range(from, to))
+    : [];
   const kpiAgg = new Map<string, { sum: number; n: number }>();
   const kpiMonthsByEmp = new Map<string, Set<string>>(); // bulan yang sudah ada KPI per pegawai
-  (kpiRows ?? []).forEach((r) => {
+  kpiRows.forEach((r) => {
     const a = kpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n++; kpiAgg.set(r.employee_id, a);
     const s = kpiMonthsByEmp.get(r.employee_id) ?? new Set<string>(); s.add(r.ym); kpiMonthsByEmp.set(r.employee_id, s);
   });
@@ -96,21 +101,23 @@ export default async function AdminLaporanPage() {
   // (selaras Progress 360 — kelengkapan berbasis penilaian wajib).
   // CATATAN: TANPA filter is_active — pegawai nonaktif (resign) pemetaannya dimatikan, tapi
   // penilaian terhadapnya tetap sah; tanpa ini kolom "Dinilai oleh" jadi "—" yang menyesatkan.
-  const { data: maps } = await db
-    .from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', ap.id);
-  const { data: subs } = await db
-    .from('assessments').select('assessor_id, target_id, submitted_at').eq('period_id', ap.id).eq('status', 'submitted');
-  const doneSet = new Set((subs ?? []).map((s) => `${s.assessor_id}|${s.target_id}`));
+  // mappings & assessments SELURUH pegawai → bisa >1000; ambil penuh (kelengkapan & deteksi
+  // "perlu hitung ulang" harus lengkap, kalau terpotong bisa gagal memicu peringatan).
+  const maps = await fetchAllPaged<{ assessor_id: string; target_id: string; mandatory: boolean }>((from, to) =>
+    db.from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', ap.id).order('assessor_id').order('target_id').range(from, to));
+  const subs = await fetchAllPaged<{ assessor_id: string; target_id: string; submitted_at: string | null }>((from, to) =>
+    db.from('assessments').select('assessor_id, target_id, submitted_at').eq('period_id', ap.id).eq('status', 'submitted').order('assessor_id').order('target_id').range(from, to));
+  const doneSet = new Set(subs.map((s) => `${s.assessor_id}|${s.target_id}`));
   // submitted_at TERBARU per pegawai (sebagai target) → dibandingkan dgn computed_at result_360.
   const maxSubByTarget = new Map<string, string>();
-  (subs ?? []).forEach((s) => {
+  subs.forEach((s) => {
     if (!s.submitted_at) return;
     const cur = maxSubByTarget.get(s.target_id);
     if (!cur || s.submitted_at > cur) maxSubByTarget.set(s.target_id, s.submitted_at);
   });
   const ratedTotal = new Map<string, number>();
   const ratedDone = new Map<string, number>();
-  (maps ?? []).forEach((m) => {
+  maps.forEach((m) => {
     if (!m.mandatory) return; // kelengkapan berbasis WAJIB
     ratedTotal.set(m.target_id, (ratedTotal.get(m.target_id) ?? 0) + 1);
     if (doneSet.has(`${m.assessor_id}|${m.target_id}`)) ratedDone.set(m.target_id, (ratedDone.get(m.target_id) ?? 0) + 1);
@@ -181,7 +188,7 @@ export default async function AdminLaporanPage() {
       <div className="flex items-center justify-between mb-3">
         <div>
           <h1 className="text-xl font-bold text-gray-800">Review Hasil Akhir</h1>
-          <p className="text-sm text-gray-500">Periode aktif: {ap.label} · {isHrdFull ? 'finalisasi Skor Akhir kalibrasi.' : grantCanEdit ? 'akses dari HRD — boleh tinjau & finalisasi (lingkup terbatas).' : 'lihat-saja (akses dari HRD, lingkup terbatas).'}</p>
+          <p className="text-sm text-gray-500">Periode aktif: {ap.label} · {isHrdFull ? 'finalisasi Skor Akhir kalibrasi.' : grantCanFinalize ? 'akses dari HRD — boleh tinjau & finalisasi (lingkup terbatas).' : grantCanEdit ? 'akses dari HRD — boleh tinjau & meringkas, tanpa finalisasi (lingkup terbatas).' : 'lihat-saja (akses dari HRD, lingkup terbatas).'}</p>
         </div>
         <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
       </div>
@@ -239,10 +246,15 @@ export default async function AdminLaporanPage() {
           tersimpan yang dilihat pegawai; badge <strong>berubah</strong> muncul bila data terkini berbeda
           (kembalikan ke draf lalu finalisasi ulang untuk memperbarui).
         </p>
-      ) : grantCanEdit ? (
+      ) : grantCanFinalize ? (
         <p className="text-[10px] text-gray-500 italic mt-3">
           Klik <strong>Tinjau</strong> untuk membuka laporan pegawai dalam lingkup akses Anda dan
           mengelolanya (Simpan Draf → Rilis → Finalisasi). Akses ini diberikan HRD dan dibatasi lingkup.
+        </p>
+      ) : grantCanEdit ? (
+        <p className="text-[10px] text-gray-500 italic mt-3">
+          Klik <strong>Tinjau</strong> untuk membuka laporan pegawai dalam lingkup akses Anda dan menulis
+          <strong> Ringkasan Aspek</strong>. Finalisasi &amp; kalibrasi skor tetap wewenang HRD.
         </p>
       ) : (
         <p className="text-[10px] text-gray-500 italic mt-3">

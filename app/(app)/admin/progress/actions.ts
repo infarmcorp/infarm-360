@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canAdmin } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { randomBytes } from 'crypto';
@@ -65,13 +66,16 @@ const NOT_ACTIVE = 'Fitur email pengingat belum aktif (set SMTP_USER+SMTP_PASS [
 async function pendingByAssessor(
   supabase: Awaited<ReturnType<typeof createClient>>, periodId: string,
 ): Promise<Map<string, string[]>> {
-  const [{ data: maps }, { data: subs }] = await Promise.all([
-    supabase.from('mappings').select('assessor_id, target_id').eq('period_id', periodId).eq('is_active', true),
-    supabase.from('assessments').select('assessor_id, target_id').eq('period_id', periodId).eq('status', 'submitted'),
+  // SELURUH pegawai → bisa >1000; ambil penuh agar pengingat massal tak melewatkan siapa pun.
+  const [maps, subs] = await Promise.all([
+    fetchAllPaged<{ assessor_id: string; target_id: string }>((from, to) =>
+      supabase.from('mappings').select('assessor_id, target_id').eq('period_id', periodId).eq('is_active', true).order('assessor_id').order('target_id').range(from, to)),
+    fetchAllPaged<{ assessor_id: string; target_id: string }>((from, to) =>
+      supabase.from('assessments').select('assessor_id, target_id').eq('period_id', periodId).eq('status', 'submitted').order('assessor_id').order('target_id').range(from, to)),
   ]);
-  const done = new Set((subs ?? []).map((s) => `${s.assessor_id}|${s.target_id}`));
+  const done = new Set(subs.map((s) => `${s.assessor_id}|${s.target_id}`));
   const byAssessor = new Map<string, string[]>();
-  (maps ?? []).forEach((m) => {
+  maps.forEach((m) => {
     if (done.has(`${m.assessor_id}|${m.target_id}`)) return;
     const arr = byAssessor.get(m.assessor_id) ?? [];
     arr.push(m.target_id);

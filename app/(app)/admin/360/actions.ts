@@ -5,7 +5,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
-import { classOf, avg, round2, weightedScore360, type Groups360 } from '@/lib/score360';
+import { classOf, avg, round2, weightedScore360, resolveWeightScheme, type Groups360, type WeightScheme } from '@/lib/score360';
 import { fetchAllPaged, fetchAllByIds } from '@/lib/supabase/paginate';
 
 /**
@@ -40,7 +40,14 @@ export async function computeResult360(): Promise<ComputeResult> {
     .from('weight_schemes').select('model, weights')
     .eq('period_id', ap.id).eq('is_active', true).maybeSingle();
   if (!ws) return { ok: false, error: 'Belum ada skema bobot aktif untuk periode ini' };
-  const weights = ws.weights as WeightValues;
+  const defScheme: WeightScheme = { model: ws.model, weights: ws.weights as WeightValues };
+
+  // Bobot KHUSUS per pegawai (migrasi 0031): baris ada → pakai model+weights ini untuk pegawai itu.
+  const { data: ovr } = await admin
+    .from('employee_weight_overrides').select('employee_id, model, weights').eq('period_id', ap.id);
+  const overrideBy = new Map<string, WeightScheme>(
+    (ovr ?? []).map((o) => [o.employee_id, { model: o.model, weights: o.weights as WeightValues }]),
+  );
 
   // Assessment terkirim + skornya + relasi mapping. SEMUA query DIPAGINASI: batas default
   // PostgREST 1000 baris/request; tanpa ini data rating terpotong → skor 360° SALAH diam-diam.
@@ -98,7 +105,9 @@ export async function computeResult360(): Promise<ComputeResult> {
   const computedAt = new Date().toISOString();
   const rows: { employee_id: string; period_id: string; score: number; computed_at: string }[] = [];
   for (const [targetId, g] of byTarget) {
-    const score = weightedScore360(g, ws.model, weights);
+    // Skema per pegawai: override khusus bila ada, else default periode.
+    const { model, weights } = resolveWeightScheme(defScheme, overrideBy.get(targetId));
+    const score = weightedScore360(g, model, weights);
     if (score != null) rows.push({ employee_id: targetId, period_id: ap.id, score: round2(score), computed_at: computedAt });
   }
 

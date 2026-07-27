@@ -21,15 +21,15 @@ export type EmpAspect = {
 };
 
 /** Bentuk data heatmap per-pegawai (aspek & indikator) dari hasil aspectScoresByEmployee. Murni. */
-export function heatDataFromAspect(selAsp: EmpAspect, emps: { id: string; name: string; dept: string }[]) {
+export function heatDataFromAspect(selAsp: EmpAspect, emps: { id: string; name: string; nickname?: string | null; dept: string }[]) {
   const aspectCols = selAsp.names.map((nm) => ({ key: nm, label: nm, full: nm }));
   const aspectRows = emps.filter((e) => selAsp.byEmp.has(e.id)).map((e) => ({
-    id: e.id, name: e.name, dept: e.dept,
+    id: e.id, name: e.name, nickname: e.nickname ?? null, dept: e.dept,
     cells: Object.fromEntries(selAsp.names.map((nm) => [nm, selAsp.byEmp.get(e.id)?.get(nm) ?? null])) as Record<string, number | null>,
   }));
   const indCols = selAsp.indicators.map((ind) => ({ key: ind.id, label: ind.text, full: ind.text, group: ind.aspect }));
   const indRows = emps.filter((e) => selAsp.indByEmp.has(e.id)).map((e) => ({
-    id: e.id, name: e.name, dept: e.dept,
+    id: e.id, name: e.name, nickname: e.nickname ?? null, dept: e.dept,
     cells: Object.fromEntries(selAsp.indicators.map((ind) => [ind.id, selAsp.indByEmp.get(e.id)?.get(ind.id) ?? null])) as Record<string, number | null>,
   }));
   return { aspectCols, aspectRows, indCols, indRows };

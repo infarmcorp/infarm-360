@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { AccButton } from './acc-button';
 import { PLAYER_BOXES, playerLabelOf, type PlayerClass } from '@/lib/scoring';
 import { TREND_META, type Trend } from '@/lib/trend';
+import { displayName } from '@/lib/employee-name';
 
 export type TeamRow = {
   id: string;
   name: string;
+  nickname?: string | null; // nama panggilan (opsional) — tampilan ringkas; kosong → nama lengkap
   dept: string | null;
   kpiAvg: number | null;   // rerata KPI periode aktif (L1)
   s360: number | null;     // Skor 360° terhitung (result_360, L1)
@@ -89,7 +91,7 @@ export function TeamTable({
     const term = q.trim().toLowerCase();
     if (!term) return rows;
     return rows.filter(
-      (r) => r.name.toLowerCase().includes(term) || (r.dept ?? '').toLowerCase().includes(term),
+      (r) => r.name.toLowerCase().includes(term) || (r.nickname ?? '').toLowerCase().includes(term) || (r.dept ?? '').toLowerCase().includes(term),
     );
   }, [q, rows]);
   useEffect(() => { setPage(0); }, [q]);
@@ -144,14 +146,15 @@ export function TeamTable({
                     {linkNames && r.detailOpen ? (
                       <Link
                         href={`/laporan/${r.id}`}
+                        title={r.name}
                         className="font-bold text-gray-800 inline-flex items-center gap-1.5 hover:text-emerald-700 hover:underline"
                       >
-                        {r.name}
+                        {displayName(r.nickname, r.name)}
                         <SelfBadge show={r.isSelf} />
                       </Link>
                     ) : (
-                      <span className="font-bold text-gray-800 inline-flex items-center gap-1.5">
-                        {r.name}
+                      <span className="font-bold text-gray-800 inline-flex items-center gap-1.5" title={r.name}>
+                        {displayName(r.nickname, r.name)}
                         <SelfBadge show={r.isSelf} />
                       </span>
                     )}

@@ -8,7 +8,7 @@ import { usePager, Pager } from '@/components/table-controls';
 
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type EmpRow = {
-  id: string; empCode: string; name: string; dept: string; role: Role;
+  id: string; empCode: string; name: string; nickname: string | null; dept: string; role: Role;
   isHrdAdmin: boolean; isExternal: boolean; isCoordinator: boolean; hrdSections: string[] | null; active: boolean; email: string; spvId: string | null; spvName: string | null;
   joinedOn: string | null; leftOn: string | null; // tgl masuk/aktif & tgl nonaktif (YYYY-MM-DD)
 };
@@ -32,11 +32,11 @@ function nextCode(codes: string[]): string {
 }
 
 type FormState = {
-  id: string | null; name: string; empCode: string; dept: string; role: Role;
+  id: string | null; name: string; nickname: string; empCode: string; dept: string; role: Role;
   email: string; password: string; spvId: string; isExternal: boolean;
   joinedOn: string; leftOn: string; // '' = tak diisi
 };
-const EMPTY: FormState = { id: null, name: '', empCode: '', dept: '', role: 'employee', email: '', password: '', spvId: '', isExternal: false, joinedOn: '', leftOn: '' };
+const EMPTY: FormState = { id: null, name: '', nickname: '', empCode: '', dept: '', role: 'employee', email: '', password: '', spvId: '', isExternal: false, joinedOn: '', leftOn: '' };
 
 const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z\s]/g, '').replace(/\s+/g, '.');
 const randPass = () => 'Inf' + Math.random().toString(36).slice(2, 8) + Math.floor(10 + Math.random() * 89);
@@ -106,7 +106,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
   }
   function openEdit(r: EmpRow) {
     setToast(null);
-    setForm({ id: r.id, name: r.name, empCode: r.empCode, dept: r.dept, role: r.role, email: r.email, password: '', spvId: r.spvId ?? '', isExternal: r.isExternal, joinedOn: r.joinedOn ?? '', leftOn: r.leftOn ?? '' });
+    setForm({ id: r.id, name: r.name, nickname: r.nickname ?? '', empCode: r.empCode, dept: r.dept, role: r.role, email: r.email, password: '', spvId: r.spvId ?? '', isExternal: r.isExternal, joinedOn: r.joinedOn ?? '', leftOn: r.leftOn ?? '' });
     setOpenTick((n) => n + 1);
   }
 
@@ -139,9 +139,9 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
     if (dupEmail) { setToast({ ok: false, text: `Email ${form.email} sudah dipakai oleh ${dupEmail.name}.` }); return; }
     const spvId = form.spvId || null;
     if (form.id) {
-      act(() => updateEmployee({ id: form.id, name: form.name, empCode: form.empCode, dept: form.dept, role: form.role, email: form.email, spvId, isExternal: form.isExternal, joinedOn: form.joinedOn, leftOn: form.leftOn }), true);
+      act(() => updateEmployee({ id: form.id, name: form.name, nickname: form.nickname, empCode: form.empCode, dept: form.dept, role: form.role, email: form.email, spvId, isExternal: form.isExternal, joinedOn: form.joinedOn, leftOn: form.leftOn }), true);
     } else {
-      act(() => createEmployee({ name: form.name, empCode: form.empCode, dept: form.dept, role: form.role, email: form.email, password: form.password, spvId, isExternal: form.isExternal, joinedOn: form.joinedOn }), true);
+      act(() => createEmployee({ name: form.name, nickname: form.nickname, empCode: form.empCode, dept: form.dept, role: form.role, email: form.email, password: form.password, spvId, isExternal: form.isExternal, joinedOn: form.joinedOn }), true);
     }
   }
 
@@ -185,6 +185,10 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
             <Field label="Nama Lengkap">
               <input value={form.name} onChange={(e) => set('name', e.target.value)} required
                 className="inp" placeholder="mis. Andi Pratama" />
+            </Field>
+            <Field label="Nama Panggilan (opsional)">
+              <input value={form.nickname} onChange={(e) => set('nickname', e.target.value)} maxLength={30}
+                className="inp" placeholder="mis. Andi — untuk tampilan ringkas" />
             </Field>
             <Field label="Peran">
               <select value={form.role} onChange={(e) => set('role', e.target.value as Role)} className="inp bg-white">

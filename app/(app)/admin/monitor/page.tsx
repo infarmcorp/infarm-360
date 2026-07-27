@@ -79,7 +79,7 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
     teamIds = new Set((tm ?? []).map((r) => r.employee_id));
   }
   // Ambil SEMUA pegawai internal sekali; dipakai untuk daftar divisi + penyaringan lingkup.
-  const { data: allEmpData } = await admin.from('employees').select('id, name, dept, is_active').eq('is_external', false);
+  const { data: allEmpData } = await admin.from('employees').select('id, name, nickname, dept, is_active').eq('is_external', false);
   const allDepts = [...new Set((allEmpData ?? []).map((d) => d.dept).filter((d): d is string => !!d))].sort();
   // Divisi anggota tim naungan (tim bisa lintas divisi) → menambah pilihan dropdown utk lingkup tim.
   const teamDepts = teamIds
@@ -110,7 +110,7 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
     const kpiMonths = (monthlyBy.get(e.id) ?? []).slice(0, 3);
     const penalty = penBy.get(e.id) ?? 0;
     return {
-      id: e.id, name: e.name, dept: e.dept,
+      id: e.id, name: e.name, nickname: e.nickname, dept: e.dept,
       kpiAvg, s360,
       finalScore: finalScoreOf(kpiAvg, s360, sel.has_360, penalty, true),
       player: playerClassOf(kpiAvg, sel.has_360 ? s360 : null),
@@ -157,7 +157,7 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   const teamMonthly = allYms.map((ym) => mean(ids.map((id) => kpiOf(id, ym)).filter(nn)));
 
   const employeesMonthly: EmpMonthly[] = empRows
-    .map((e) => ({ id: e.id, name: e.name, monthly: allYms.map((ym) => kpiOf(e.id, ym)) }))
+    .map((e) => ({ id: e.id, name: e.name, nickname: e.nickname, monthly: allYms.map((ym) => kpiOf(e.id, ym)) }))
     .filter((e) => e.monthly.some((v) => v != null))
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -175,9 +175,9 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
         .map((e) => {
           const c = perPeriodKpi(e.id, currP.id);
           const pv = perPeriodKpi(e.id, prevP.id);
-          return c != null && pv != null ? { name: e.name, delta: c - pv, curr: c } : null;
+          return c != null && pv != null ? { name: e.name, nickname: e.nickname, delta: c - pv, curr: c } : null;
         })
-        .filter((m): m is MoverRow => m != null)
+        .filter((m): m is NonNullable<typeof m> => m != null)
         .sort((a, b) => b.delta - a.delta)
     : [];
 
@@ -206,9 +206,9 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
             return cv != null && pval != null ? { aspect: nm, delta: cv - pval } : null;
           })
           .filter((a): a is { aspect: string; delta: number } => a != null && Math.abs(a.delta) >= 1);
-        return { name: e.name, delta: c - pv, curr: c, aspects };
+        return { name: e.name, nickname: e.nickname, delta: c - pv, curr: c, aspects };
       })
-      .filter((m): m is MoverRow360 => m != null)
+      .filter((m): m is NonNullable<typeof m> => m != null)
       .sort((a, b) => b.delta - a.delta);
   }
 
@@ -277,8 +277,8 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
           {/* B. KOMPOSISI */}
           <SectionHeader label="Komposisi" hint="sebaran kategori & profil aspek" tone="indigo" />
           <DistBars
-            kpiPeople={rows.filter((r) => r.trend !== 'unread' && r.kpiAvg != null).map((r) => ({ name: r.name, value: r.kpiAvg as number }))}
-            s360People={sel.has_360 ? rows.filter((r) => r.s360 != null).map((r) => ({ name: r.name, value: r.s360 as number })) : null} />
+            kpiPeople={rows.filter((r) => r.trend !== 'unread' && r.kpiAvg != null).map((r) => ({ name: r.name, nickname: r.nickname, value: r.kpiAvg as number }))}
+            s360People={sel.has_360 ? rows.filter((r) => r.s360 != null).map((r) => ({ name: r.name, nickname: r.nickname, value: r.s360 as number })) : null} />
           {teamAspect.length > 0 && <TeamAspectProfile aspects={teamAspect} scopeLabel={scopeLabel} />}
         </>
       )}

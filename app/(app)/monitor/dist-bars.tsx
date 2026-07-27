@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { displayName } from '@/lib/employee-name';
 
 /**
  * Distribusi kinerja tim (periode terpilih) sebagai BATANG BERSEGMEN — melengkapi rata-rata
@@ -16,7 +17,7 @@ import { useState } from 'react';
  * di kategori itu (diurut nilai menurun). Klik lagi untuk menutup. Nama sudah berlingkup per peran
  * di pemanggil (SPV/HRD/Koordinator) — komponen presentasional, tak mengambil data sendiri.
  */
-export type Person = { name: string; value: number };
+export type Person = { name: string; nickname?: string | null; value: number };
 
 // Selaras SCORE_CATS di dashboard-visual.tsx (palet & ambang sama).
 const CATS = [
@@ -98,7 +99,7 @@ function SegBar({ title, people }: { title: string; people: Person[] }) {
                 <div className="space-y-0.5">
                   {selPeople.map((p) => (
                     <div key={p.name} className="flex items-center justify-between gap-2 text-[12px]">
-                      <span className="min-w-0 truncate text-gray-700">{p.name}</span>
+                      <span className="min-w-0 truncate text-gray-700" title={p.name}>{displayName(p.nickname, p.name)}</span>
                       <span className="font-mono font-bold text-slate-700">{p.value.toFixed(2)}</span>
                     </div>
                   ))}

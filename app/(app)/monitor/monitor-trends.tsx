@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { displayName } from '@/lib/employee-name';
 
 export type PeriodTrendPoint = { label: string; kpi: number | null; s360: number | null };
-export type EmpMonthly = { id: string; name: string; monthly: (number | null)[] };
-export type MoverRow = { name: string; delta: number; curr: number };
+export type EmpMonthly = { id: string; name: string; nickname?: string | null; monthly: (number | null)[] };
+export type MoverRow = { name: string; nickname?: string | null; delta: number; curr: number };
 /** Pergerakan 360° per pegawai + rincian per-aspek (di aspek mana naik/turun). */
 export type AspectDelta = { aspect: string; delta: number };
-export type MoverRow360 = { name: string; delta: number; curr: number; aspects: AspectDelta[] };
+export type MoverRow360 = { name: string; nickname?: string | null; delta: number; curr: number; aspects: AspectDelta[] };
 /**
  * Dekomposisi penyebab perubahan Δ antar dua periode berdata terakhir (untuk Sorotan):
  * memisah selisih total menjadi (a) perubahan SKOR pegawai yang dinilai di KEDUA periode
@@ -232,7 +233,7 @@ function MoverLine({ m, up }: { m: MoverRow; up: boolean }) {
   return (
     <div className="flex items-center gap-2 text-[12px]">
       <span className={`font-bold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>{up ? '▲' : '▼'}</span>
-      <span className="flex-1 min-w-0 truncate text-gray-700">{m.name}</span>
+      <span className="flex-1 min-w-0 truncate text-gray-700" title={m.name}>{displayName(m.nickname, m.name)}</span>
       <span className={`font-mono font-bold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>
         {m.delta >= 0 ? '+' : '−'}{Math.abs(m.delta).toFixed(2)}
       </span>
@@ -315,7 +316,7 @@ function Mover360Line({ m, up }: { m: MoverRow360; up: boolean }) {
     <div className="border-b border-gray-100 last:border-0 pb-1.5 last:pb-0">
       <div className="flex items-center gap-2 text-[12px]">
         <span className={`font-bold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>{up ? '▲' : '▼'}</span>
-        <span className="flex-1 min-w-0 truncate text-gray-700">{m.name}</span>
+        <span className="flex-1 min-w-0 truncate text-gray-700" title={m.name}>{displayName(m.nickname, m.name)}</span>
         <span className={`font-mono font-bold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>
           {m.delta >= 0 ? '+' : '−'}{Math.abs(m.delta).toFixed(2)}
         </span>
@@ -396,7 +397,7 @@ export function MonitorTrends({
   const [sel, setSel] = useState('team'); // 'team' = rata-rata tim; selain itu = employee id
   const empC = useMemo(() => employees.find((e) => e.id === sel) ?? null, [employees, sel]);
   const cPoints = sel === 'team' ? teamMonthly : (empC?.monthly ?? []);
-  const cLabel = sel === 'team' ? 'Rata-rata Tim' : (empC?.name ?? '');
+  const cLabel = sel === 'team' ? 'Rata-rata Tim' : (empC ? displayName(empC.nickname, empC.name) : '');
 
   const periodLabels = periodsTrend.map((p) => p.label);
   const periodSeries: Series[] = [
@@ -435,7 +436,7 @@ export function MonitorTrends({
             <select value={sel} onChange={(e) => setSel(e.target.value)}
               className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
               <option value="team">Rata-rata Tim</option>
-              {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+              {employees.map((e) => <option key={e.id} value={e.id}>{displayName(e.nickname, e.name)}</option>)}
             </select>
           }
         >

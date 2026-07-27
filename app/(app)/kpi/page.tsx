@@ -76,7 +76,7 @@ export default async function KpiPage({
         <div className="mt-4">
           {view === 'riwayat' ? (
             <Panel title="Riwayat &amp; Audit Perubahan KPI">
-              <RiwayatView role={role} userId={user.id} byPeriod periodParam={period} scopedIds={scopedIds} page={auditPage} query={auditQ} />
+              <RiwayatView role={role} userId={user.id} scopedIds={scopedIds} page={auditPage} query={auditQ} />
             </Panel>
           ) : (
             <Panel title="Rekapitulasi Kuartal">
@@ -101,7 +101,7 @@ export default async function KpiPage({
         <div className="mt-4">
           {view === 'riwayat' ? (
             <Panel title="Riwayat &amp; Audit Perubahan KPI">
-              <RiwayatView role={role} canAdmin={admin} userId={user.id} byPeriod periodParam={period} page={auditPage} query={auditQ} />
+              <RiwayatView role={role} canAdmin={admin} userId={user.id} page={auditPage} query={auditQ} />
             </Panel>
           ) : (
             <Panel title="Rekapitulasi Kuartal">

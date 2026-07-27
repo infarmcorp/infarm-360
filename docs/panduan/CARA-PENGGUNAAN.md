@@ -1209,14 +1209,41 @@ Berguna saat audit/sengketa. Sandi tak pernah dicatat.
 
 ### Ringkasan rantai dampak
 
+> Dirender otomatis di GitHub. Di VS Code, pasang ekstensi **"Markdown Preview Mermaid Support"**.
+
+```mermaid
+flowchart TD
+    PERIODE["Kelola Periode"] --> DAFTAR["Daftar Penilaian<br/>(semua pegawai)"]
+    PEMETAAN["Pemetaan 360°"] --> DAFTAR
+    PERTANYAAN["Kelola Pertanyaan"] --> DAFTAR
+    DAFTAR --> ISI["Pengisian 360°<br/>(rating + esai)"]
+
+    BOBOT["Kelola Bobot"] --> HITUNG["Hitung Ulang Skor 360°"]
+    ISI --> HITUNG
+    HITUNG --> S360["Skor 360°<br/>(result_360, foto beku)"]
+
+    KPI["KPI bulanan<br/>(SPV / Koordinator)"] --> AKHIR["Skor Akhir"]
+    S360 --> AKHIR
+    KEPATUHAN["Flag Kepatuhan"] --> PUNISH["Punishment<br/>(−poin/kuartal)"]
+    PUNISH -- "mengurangi (lantai 0)" --> AKHIR
+
+    AKHIR --> ANALITIK["Monitor · Rekap · Dashboard"]
+    AKHIR --> REVIEW["Review Hasil Akhir"]
+
+    subgraph SM["Alur laporan (state-machine)"]
+        direction LR
+        DR["draft<br/>SPV lihat skor saja"] -->|"Rilis ke SPV"| IR["in_review<br/>SPV/Koord lihat agregat + ACC"]
+        DR -->|"Finalisasi"| FIN["finalized"]
+        IR -->|"Finalisasi"| FIN
+    end
+    REVIEW --> DR
+    FIN --> LAPOR["Laporan Hasil Saya<br/>(pegawai) + Unduh PDF"]
+
+    AKHIR -.-> SUKSESI["Promosi & Penyesuaian"]
+    SUKSESI --> ACC["ACC Direksi"]
 ```
-Kelola Periode ─┐
-Pemetaan ───────┤→ Daftar Penilaian (semua pegawai) → pengisian 360
-Kelola Pertanyaan┘                                         │
-Kelola Bobot ───────────────────→ Skor 360 ──┐            │
-                                   KPI (SPV) ─┴→ Skor Akhir → Monitor/Rekap/Dashboard
-Flag Kepatuhan → Punishment (−poin/kuartal) ──┘  │
-                                                  │
-Review Hasil Akhir (draft → Rilis ke SPV/in_review → Finalisasi) → Laporan Hasil Saya (pegawai) + PDF
-Promosi & Penyesuaian → ACC Direksi
-```
+
+> **Catatan kondisi terkini:** KPI diinput **SPV atau Koordinator** (pegawai berkoordinator di-input
+> koordinatornya). Skor 360° hanya "jadi" setelah HRD menekan **Hitung Ulang** (sebelum itu Skor Akhir
+> = 100% KPI). **Finalisasi** kini bisa dilakukan HRD **atau** pemegang grant Review tingkat
+> *Finalisasi* berlingkup (lihat *Manajemen Akses*). ACC SPV/Direksi **non-blok**.

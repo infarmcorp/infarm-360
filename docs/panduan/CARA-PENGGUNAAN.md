@@ -3,6 +3,11 @@
 Panduan pengguna aplikasi penilaian kinerja (Performance Appraisal) 360°.
 Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saat ini.
 
+> **Diperbarui 2026-07-27** — mencerminkan kondisi aplikasi terbaru (branch `dev` = `main`): konsol
+> **Manajemen Akses** (grant halaman berlingkup + izin 3-tingkat, menggantikan "Peninjau Lintas
+> Divisi"), **Nama Panggilan** pegawai di tampilan padat, **Bobot Khusus per Pegawai**, tab
+> **Monitoring & Audit KPI** hemat-egress, & filter **centang multi-pilih**.
+
 > 📌 **Rincian tiap tombol per halaman** (fungsi · peran · kondisi · konfirmasi): lihat
 > [RINCIAN-TOMBOL.md](RINCIAN-TOMBOL.md) — kamus lengkap semua aksi di aplikasi.
 
@@ -143,24 +148,34 @@ Panel hanya aktif saat ada **periode aktif**.
 
 ---
 
-## Akses Khusus: Review Lintas Divisi (grant "Peninjau")
+## Akses Khusus: Review Hasil Akhir berlingkup (grant halaman)
 
-Muncul **hanya** bila HRD memberi izin **Peninjau Lintas Divisi** (Kelola Pegawai → tombol 👁️).
-Ditujukan untuk pegawai (mis. divisi HRD) yang **membantu HRD meringkas** Hasil Akhir 360° —
-**tanpa** boleh melihat hasil rekan **sedivisinya sendiri** (jaga konflik kepentingan/privasi).
+> **Perubahan penting (per 2026-07-24):** izin lama **"Peninjau Lintas Divisi"** (tombol 👁️ di
+> Kelola Pegawai + menu "Review Lintas Divisi") **sudah dipensiunkan**. Fungsinya kini diwujudkan
+> lewat mekanisme umum **grant halaman berlingkup** di **Manajemen Akses** (lihat bagian HRD Admin):
+> HRD memberi seseorang akses ke halaman **"Review Hasil Akhir"** dengan **lingkup "Selain
+> divisinya"** dan **izin "Meringkas"**. Hasilnya **identik** dengan Peninjau lama — satu halaman yang
+> menyesuaikan lingkup, bukan halaman/menu khusus.
 
-Menu **"Review Lintas Divisi"** muncul di Navigasi Utama. Di dalamnya:
-- **Daftar pegawai divisi LAIN** (divisi Anda sendiri sengaja **tidak ditampilkan**) + skor, **status**,
-  **keterangan ACC** (badge "✓ ACC" bila laporan sudah di-ACC atasannya — membantu memprioritaskan
-  penulisan ringkasan), & kelengkapan "dinilai oleh X/Y". Cari/filter divisi. Klik **Tinjau**.
-- **Detail pegawai:** Skor Akhir, **radar/aspek**, & **komentar anonim** (tanpa nama penilai), lalu
-  Anda bisa **menulis Ringkasan Aspek** (tersimpan otomatis).
-- **Yang TIDAK bisa Anda lakukan:** merilis ke SPV, memfinalisasi, mengubah skor/bobot, atau melihat
-  **nama penilai** — itu tetap kewenangan HRD. Laporan yang sudah **final** → ringkasan terkunci.
+Bila Anda diberi akses ini, muncul menu **"Review Hasil Akhir"** di section sidebar **"Akses dari
+HRD"**. Yang Anda lihat & bisa lakukan **ditentukan oleh lingkup + izin** yang HRD berikan:
 
-> Keamanan: pemegang izin ini **tetap pegawai biasa** di mata sistem — tak bisa mengintip data 360°
-> mentah siapa pun (termasuk divisinya) lewat cara lain. Akses lintas-divisi hanya tersedia di
-> halaman ini dan otomatis menyaring divisinya sendiri.
+- **Lingkup data** membatasi **pegawai mana** yang tampil — mis. *Selain divisinya* (semua divisi
+  kecuali divisi Anda sendiri, untuk hindari konflik kepentingan), *Hanya divisinya*, *Seluruh
+  pegawai*, atau *Diri sendiri*. `?dept=` di URL **tak bisa** menembus lingkup ini (ditegakkan server).
+- **Izin 3-tingkat** menentukan **apa yang boleh Anda lakukan**:
+  - **Lihat** — hanya membaca Skor Akhir, radar/aspek, & **komentar anonim** (tanpa nama penilai).
+  - **Meringkas** — di atas "Lihat", boleh **menulis Ringkasan Aspek** (tersimpan otomatis). *(Ini
+    setara peran "Peninjau" lama.)*
+  - **Finalisasi** — di atas "Meringkas", boleh **memfinalisasi** laporan dalam lingkupnya.
+- **Yang tetap TIDAK bisa** (kecuali diberi izin lebih tinggi): melihat **nama penilai** (L3
+  bernama — **tak pernah** untuk non-HRD), mengubah skor/bobot, atau finalisasi bila izin Anda hanya
+  "Lihat"/"Meringkas". Laporan yang sudah **Final** → ringkasan terkunci.
+
+> **Gembok NYATA, bukan sekadar tampilan.** Untuk pemegang grant **non-HRD**, batas lingkup & izin
+> ditegakkan di **server** (jalur baca/tulis via `service_role` berfilter) — bukan hanya
+> menyembunyikan tombol. Pemegangnya **tetap pegawai biasa** di mata database (RLS menolaknya); akses
+> hanya tersedia lewat halaman yang di-grant, tersaring persis pada lingkupnya.
 
 ---
 
@@ -223,8 +238,9 @@ Selain semua fitur Employee di atas, SPV punya:
 
 ## Akses Khusus: Koordinator Tim (grant "Koordinator")
 
-Muncul **hanya** bila HRD memberi izin **Koordinator** (Kelola Pegawai → tombol grant + dialog
-**"Tim Koordinasi"** untuk memilih anggota naungan). Ditujukan untuk pegawai (posisi **Employee**)
+Muncul **hanya** bila HRD memberi izin **Koordinator** (di **Manajemen Akses** → mode "Sebuah
+peran" → Koordinator, atau lewat kapabilitas di profil pegawai + dialog **"Tim Koordinasi"** untuk
+memilih anggota naungan). Ditujukan untuk pegawai (posisi **Employee**)
 yang **membawahi beberapa pegawai** secara langsung, sementara pegawai lain tetap langsung ke SPV.
 Koordinator **tetap pegawai biasa** — izin ini **tidak** menjadikannya HRD/SPV dan **tidak
 memengaruhi 360°** (Koordinator bukan "Atasan" dalam perhitungan skor).
@@ -241,7 +257,7 @@ Yang bisa dilakukan Koordinator — **khusus daftar naungannya** (bukan seluruh 
 
 Yang **TIDAK** bisa: **finalisasi laporan** (tetap milik HRD), akses pegawai di luar naungannya,
 serta hal-hal 360° (bobot/kalkulasi/pemetaan). Menambah/mengubah daftar naungan = wewenang **HRD**
-(Kelola Pegawai → Tim Koordinasi), cukup ubah data tanpa perlu deploy.
+(**Manajemen Akses → Tim Koordinasi**), cukup ubah data tanpa perlu deploy.
 
 > **Konsekuensi untuk SPV (& HRD Mode-SPV):** untuk pegawai yang **punya** koordinator, SPV **tidak
 > lagi meng-ACC maupun meng-input KPI** — itu tugas koordinator; SPV hanya melihat status ACC
@@ -253,8 +269,11 @@ serta hal-hal 360° (bobot/kalkulasi/pemetaan). Menambah/mengubah daftar naungan
 
 ### Kelola Pegawai
 Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
-1. **Tambah Pegawai** → isi Nama, Peran, Divisi, **Kode Pegawai**, Email, **Sandi Awal**,
-   dan (opsional) **Atasan/SPV**. Klik **Buat Pegawai**.
+1. **Tambah Pegawai** → isi Nama, **Nama Panggilan (opsional)**, Peran, Divisi, **Kode Pegawai**,
+   Email, **Sandi Awal**, dan (opsional) **Atasan/SPV**. Klik **Buat Pegawai**.
+   - **Nama Panggilan (opsional, maks. 30 karakter)** — dipakai di **tampilan padat** (Dashboard
+     Organisasi, Monitor, tabel movers/scatter, kartu top/bottom) agar nama panjang tak terpotong.
+     Kosong → aplikasi otomatis memakai **nama lengkap**. Nama lengkap tetap tampil sebagai tooltip.
    - **Email boleh placeholder** (mis. `nama@infarm.test`) — login pakai email+sandi tanpa
      verifikasi inbox; ganti ke email asli kapan saja lewat **Ubah**.
    - **Kode Pegawai bebas** mengikuti skema perusahaan (mis. `FT2021-001`); saran otomatis
@@ -282,26 +301,12 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
    karena duplikat / ✗ tidak valid + alasan) sebelum impor. Duplikat **dilewati** (tak menimpa).
    Tip: impor pegawai ber-peran **SPV/atasan dulu** agar kolom `atasan` bawahan langsung tertaut.
 6. **Filter & cari** — kotak pencarian + filter **Peran**, **Divisi**, dan **Status**.
-7. **Beri izin (grant) — tombol kecil di kolom Aksi:**
-   - 🛡️ **Izin HRD Admin** — menjadikan pegawai (employee/SPV) mampu mengoperasikan **seluruh** fitur
-     HRD (mode ganda). Ditandai badge **"HRD"**.
-   - 👁️ **Peninjau Lintas Divisi** — izin **sempit**: pegawai (mis. divisi HRD) boleh **membantu
-     meringkas Hasil Akhir 360°** pegawai di **divisi LAIN** (lihat **Review Lintas Divisi** di bawah).
-     Ditandai badge **"Peninjau"**. **Bukan** akses HRD penuh.
-   - 👥 **Koordinator** — memberi pegawai (Employee) akses **Laporan Kinerja Tim + ACC + Input KPI**
-     untuk **daftar pegawai naungannya** (dipilih lewat dialog **"Tim Koordinasi"**). Ditandai badge
-     **"Koordinator"**. **Tidak** memengaruhi 360°; **bukan** akses HRD penuh. (Lihat **Akses Khusus:
-     Koordinator Tim** di atas.)
-   - 🎛️ **Atur Akses** (hanya untuk pemegang **Izin HRD Admin**) — batasi **rekan HRD** ke **sebagian
-     halaman admin** saja. Dialog **Akses penuh** ↔ **Akses terbatas** (grid centang bagian: Kelola
-     Pegawai, Struktur Organisasi, Periode, Pemetaan, Pertanyaan, Bobot, Progress, Kepatuhan, Review
-     Hasil Akhir, Dashboard, Ekspor, Log). Badge berubah jadi **"HRD (N)"** saat dibatasi. **Anda tak
-     bisa membatasi akun sendiri** (cegah terkunci). ⚠️ Ini pembatasan **tampilan menu** untuk
-     pembagian tugas antar rekan HRD **tepercaya** — **bukan** gembok data (pemegang izin secara teknis
-     masih bisa mengakses data; batas data sungguhan menyusul terpisah).
-   > **Pembatasan (per 2026-07-15):** tombol **Izin HRD Admin** & **Peninjau** hanya muncul/boleh
-   > diberikan untuk pegawai **divisi HRD** (nama divisi diawali "HRD") — server menolak grant untuk
-   > non-HRD. **Pencabutan** izin tetap boleh untuk siapa pun.
+
+> **Pemberian izin/akses PINDAH ke halaman "Manajemen Akses".** Sejak perombakan 2026-07-20, semua
+> tombol grant (Izin HRD Admin, Koordinator, batas akses rekan HRD, akses halaman berlingkup)
+> **tidak lagi** di Kelola Pegawai — semuanya di **satu konsol "Manajemen Akses"** (menu Administrator,
+> hanya untuk HRD penuh). Kelola Pegawai kini fokus pada **data & akun** saja. Lihat **Manajemen
+> Akses** di bawah.
 
 > Tips data asli: sandi **berbeda per orang** kini otomatis terpenuhi lewat **Progress 360 →
 > Kirim Undangan** (men-set sandi acak unik per orang). Tak perlu menyetel sandi manual satu-satu.
@@ -312,6 +317,109 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
 > di Supabase → *Authentication → Emails*; (3) daftarkan **Redirect URL**
 > `https://<domain>/auth/callback` di *Authentication → URL Configuration*; (4) set env Vercel
 > `NEXT_PUBLIC_ENABLE_PW_RESET=true` lalu redeploy. Sebelum itu, sandi diatur HRD lewat **Reset Sandi**.
+
+### Manajemen Akses — *satu konsol pemberian akses (alur "penerima-dulu")*
+
+Menu **"Manajemen Akses"** (ikon kunci, hanya untuk **HRD penuh** — rekan HRD yang aksesnya sudah
+dibatasi tak bisa membukanya, agar tak menaikkan aksesnya sendiri) adalah **satu tempat** untuk semua
+pemberian akses: izin HRD Admin, Koordinator, batas akses rekan HRD, dan **akses halaman berlingkup**
+(mekanisme yang menggantikan "Peninjau Lintas Divisi" lama). Dua tab:
+
+1. **Kelola Akses** — alur utama (di bawah).
+2. **Log** — jejak aktivitas pemberian/pencabutan akses (append-only, paginasi 10/hal).
+
+#### Alur "penerima-dulu" — pilih SIAPA lebih dulu
+
+Prinsipnya: **tentukan penerima dulu**, baru atur aksesnya di satu layar. **Langkah 1** pilih salah
+satu dari **tiga sumbu penerima**:
+
+- **Seorang pegawai** — cari & pilih satu orang → tampil **profil akses**-nya utuh (lihat 3 lapis
+  di bawah); beri/ubah/cabut di tempat.
+- **Sebuah peran** — pilih **SPV / Koordinator / Pegawai / Direksi** → beri akses halaman **massal**
+  ke **semua anggota peran itu SAAT INI**. (Materialisasi ke anggota sekarang; pegawai baru **tidak**
+  otomatis ikut — beri ulang bila perlu.) Mode Koordinator juga menampilkan **daftar koordinator
+  saat ini** + jumlah naungan tiap orang, dengan pintasan **"Kelola →"**.
+- **Sebuah halaman** — pilih satu halaman → lihat **daftar pemegangnya** (paginasi 5-baris) &
+  **cabut massal** dari semua pemegang sekaligus.
+
+```mermaid
+flowchart TD
+    START["Manajemen Akses → tab Kelola Akses"] --> WHO{"Langkah 1: pilih PENERIMA"}
+    WHO -- "Seorang pegawai" --> EMP["Profil akses 1 orang"]
+    WHO -- "Sebuah peran" --> ROLE["Beri akses MASSAL ke semua<br/>anggota peran saat ini"]
+    WHO -- "Sebuah halaman" --> PAGE["Daftar pemegang +<br/>cabut massal"]
+    EMP --> L["Langkah 2: atur 3 lapis akses"]
+    ROLE --> PANEL
+    L --> LA["Lapis A — Akses halaman berlingkup<br/>(pilih halaman → lingkup + izin 3-tingkat)"]
+    L --> LB["Lapis B — Kapabilitas peran<br/>(Izin HRD Admin · Koordinator + Tim · batas rekan HRD)"]
+    L --> LC["Lapis C — Bawaan peran (read-only, info)"]
+    LA --> PANEL["Panel Lingkup & Izin"]
+    PANEL --> SCOPE["Lingkup: Seluruh / Hanya divisinya /<br/>Selain divisinya / Diri sendiri / Tim naungannya"]
+    PANEL --> IZIN["Izin: Lihat → Meringkas → Finalisasi<br/>(halaman 'administrator' saja)"]
+    SCOPE --> SAVE["Simpan → grant ditegakkan server"]
+    IZIN --> SAVE
+```
+
+#### Tiga lapis akses (di profil seorang pegawai)
+
+- **Lapis A — Akses halaman berlingkup.** Beri seseorang akses ke satu **halaman dari katalog tetap**:
+  **Monitor Kinerja Pegawai · Review Hasil Akhir · Dashboard Organisasi · Struktur Organisasi ·
+  Progress 360 · Flag Kepatuhan · Monitoring & Audit KPI**. Tiap grant = **halaman + lingkup + izin**:
+  - **Lingkup data** (boleh lebih dari satu, digabung OR):
+
+    | Lingkup | Arti |
+    |---|---|
+    | **Seluruh pegawai** | tanpa batas divisi |
+    | **Hanya divisinya** | sedivisi dengan penerima |
+    | **Selain divisinya** | semua divisi kecuali divisi penerima (untuk peninjau lintas divisi) |
+    | **Diri sendiri** | hanya catatan penerima sendiri |
+    | **Tim naungannya** | hanya anggota tim koordinasi penerima (khusus Koordinator) |
+
+  - **Izin 3-tingkat** (hanya untuk halaman jenis **"administrator"**, saat ini **Review Hasil Akhir**;
+    halaman **"pemantauan"** lain selalu **Lihat-saja**):
+    **👁 Lihat** → **✎ Meringkas** (boleh tulis Ringkasan Aspek) → **✎ Finalisasi** (boleh finalisasi).
+    Klik badge izin untuk **memutar** tingkatnya. "Finalisasi" selalu menyiratkan "Meringkas".
+  - `?dept=` di URL **tak bisa** menembus lingkup; batas ditegakkan **server** (baca/tulis via
+    `service_role` berfilter). Untuk pemegang **non-HRD** ini **gembok NYATA**, bukan sekadar
+    sembunyi menu.
+
+- **Lapis B — Kapabilitas peran** (grant tingkat peran, bukan per-halaman):
+  - **🛡️ Izin HRD Admin** — pegawai (employee/SPV) mampu mengoperasikan **seluruh** fitur HRD (mode
+    ganda). Badge **"HRD"**. **Batas akses rekan HRD**: tombol **Atur Akses** membatasi pemegang izin
+    ke **sebagian halaman admin** (grid centang katalog HRD); badge jadi **"HRD (N)"**. ⚠️ Ini
+    pembatasan **tampilan menu** untuk pembagian tugas rekan HRD **tepercaya** — **bukan** gembok data
+    (pemegang izin HRD secara teknis masih is_hrd penuh di DB). **Tak bisa** membatasi akun sendiri.
+  - **👥 Koordinator** — pegawai (Employee) mendapat **Laporan Kinerja Tim + ACC + Input KPI** untuk
+    **daftar naungannya** (dialog **"Tim Koordinasi"**). Badge **"Koordinator"**. **Tidak** memengaruhi
+    360°; **bukan** akses HRD penuh. (Lihat *Akses Khusus: Koordinator Tim*.)
+  > **Pembatasan (per 2026-07-15):** **Izin HRD Admin** hanya boleh diberikan untuk pegawai **divisi
+  > HRD** (nama divisi diawali "HRD") — server menolak grant untuk non-HRD. **Pencabutan** boleh untuk
+  > siapa pun.
+
+- **Lapis C — Bawaan peran** (read-only, informasi): merangkum akses yang **otomatis** melekat pada
+  posisi/grant seseorang (mis. SPV → Input KPI/Laporan Tim/Monitor timnya; Direksi → dashboard
+  eksekutif + ACC suksesi) — **tak bisa** dicabut lewat halaman ini karena bukan grant, melainkan
+  konsekuensi peran.
+
+#### Yang dilihat penerima grant
+
+Pemegang grant halaman melihat section sidebar **"Akses dari HRD"** berisi menu halaman yang
+diberikan (mis. "Review Hasil Akhir", "Dashboard Organisasi"). Isinya tersaring **persis** pada
+lingkup grant — bukan tampilan HRD penuh.
+
+#### Pencabutan & peninjauan
+
+- **Cabut satu grant** (reversibel) → langsung tanpa konfirmasi.
+- **Cabut massal** → semua grant satu **halaman** dari seluruh pemegang, atau semua grant satu
+  **pegawai** (dengan konfirmasi).
+- **Pegawai Baru** — kartu menyoroti pegawai yang **baru masuk (≤30 hari) & belum ditinjau
+  aksesnya**; klik untuk langsung membuka profilnya, lalu **Tandai sudah ditinjau** agar hilang dari
+  daftar. Membantu HRD memastikan tiap pegawai baru punya akses yang tepat.
+
+> **Keputusan terkunci — tak ada "page-builder".** Manajemen Akses hanya membuka **halaman yang SUDAH
+> ADA** dari katalog tetap dengan lingkup/izin — HRD **tidak** bisa merakit halaman/tampilan baru
+> sendiri. Kebutuhan tampilan baru = **permintaan fitur ke pengembang** (dengan RLS yang sesuai),
+> bukan saklar runtime. Ini menjaga tiap halaman punya penegakan keamanan yang benar.
 
 ### Kelola Siklus Periode
 1. **Kontrol Aktivasi Siklus**: beri **Label Periode**, set **Tanggal Mulai/Selesai**,
@@ -413,6 +521,11 @@ Dataset dirangkai jadi beberapa **file multi-lembar** (bukan banyak unduhan terp
 - **Perbandingan Model 4-Kelas vs 2-Kelas**: pratinjau skor tiap pegawai bila dihitung
   dengan kedua model sekaligus + **Selisih**, membantu memilih model sebelum Hitung Ulang.
   (Pratinjau tak mengubah data.)
+- **Bobot Khusus per Pegawai (override)**: untuk kasus khusus, HRD dapat menyetel **bobot 360°
+  berbeda untuk satu pegawai tertentu** — menimpa skema default di atas **hanya** untuk orang itu di
+  **periode aktif**. Pilih pegawai dari dropdown, atur model + angka bobotnya, simpan. Tabel menandai
+  siapa yang punya override + **Δ dampak** (selisih skor khusus vs default). Pegawai tanpa override
+  tetap memakai skema umum. Setelah mengubah, jalankan **Hitung Ulang Skor 360°** agar berlaku.
 
 > **Kapan kedua model menghasilkan angka BERBEDA?** Hanya bila seorang pegawai dinilai oleh
 > **beberapa kelas relasi sekaligus** — khususnya **Atasan + internal (Peer/Cross/Bawahan)**,
@@ -423,14 +536,21 @@ Dataset dirangkai jadi beberapa **file multi-lembar** (bukan banyak unduhan terp
 > Progress 360) — beda baru muncul saat data multi-relasi tersedia.
 
 ### Monitoring & Audit KPI (HRD Admin)
-- **Satu halaman** berisi **Rekapitulasi Kuartal** + **Riwayat & Audit Perubahan KPI**
-  berdampingan (split view; tab "Input KPI" tidak muncul di mode admin — input adalah tugas SPV).
-- **Riwayat & Audit** punya **pencarian nama/divisi** pegawai serta tombol **Buka semua / Tutup semua**.
-- **Filter periode** (dropdown di Rekapitulasi Kuartal) kini **berlaku untuk kedua panel** — mengubah
-  periode menyaring Rekapitulasi **dan** Riwayat & Audit sekaligus.
-- Memantau input & perubahan KPI yang dilakukan SPV (jejak audit append-only).
-- Saat HRD beralih ke **mode SPV**, ketiga bagian (Input, Riwayat, Rekapitulasi) **hanya
-  menampilkan pegawai di divisi HRD-nya sendiri**, konsisten dengan kebijakan SPV.
+- **Dua tab** (bukan lagi split-view berdampingan): **Rekapitulasi Kuartal** & **Riwayat & Audit
+  Perubahan KPI**. Saat halaman dibuka, **hanya tab aktif yang menarik data** — audit tak ditarik
+  sama sekali sampai tabnya dibuka (penghematan **egress**; tab "Input KPI" tak muncul di mode admin —
+  input adalah tugas SPV).
+- **Riwayat & Audit dipaginasi & dicari DI SERVER** — hanya **10 baris/halaman** yang ditarik per
+  render (bukan seluruh riwayat lalu dipotong di klien). **Pencarian nama/divisi** dijalankan saat
+  **Enter** (bukan tiap ketikan); navigasi halaman & pencarian lewat URL. Jejak **append-only** —
+  tak bisa diubah/dihapus, urut **terbaru di atas**.
+- **Filter periode** (dropdown di Rekapitulasi Kuartal) menyaring Rekapitulasi; tab Riwayat & Audit
+  menampilkan seluruh periode.
+- Memantau input & perubahan KPI yang dilakukan SPV/Koordinator.
+- Saat HRD beralih ke **mode SPV**, semua bagian **hanya menampilkan pegawai di divisi HRD-nya
+  sendiri**, konsisten dengan kebijakan SPV.
+- Kini juga bisa **diberikan ke non-HRD** sebagai halaman berlingkup lewat **Manajemen Akses**
+  (lihat di atas) — pemegang grant hanya melihat audit dalam lingkupnya.
 
 ### Log Aktivitas HRD (Pemantauan)
 - **Jejak audit aksi sensitif HRD** — *read-only* & **tak bisa diubah/dihapus** (append-only).
@@ -450,7 +570,8 @@ Dataset dirangkai jadi beberapa **file multi-lembar** (bukan banyak unduhan terp
 ### Review Hasil Akhir
 **Daftar pegawai** (tabel "kokpit") berisi kolom **Pegawai · Divisi · KPI · 360° · Punish. ·
 Skor Akhir · Dinilai oleh · ACC SPV · Status · Aksi**. Ada **pencarian nama/divisi**, **filter
-Divisi**, dan **filter Kelengkapan 360°**. **Detail laporan rinci** dibuka lewat tombol **"Tinjau →"**
+Divisi** & **filter Kelengkapan 360°** — keduanya berupa **centang multi-pilih** (panel daftar
+centang; kosong = semua). **Detail laporan rinci** dibuka lewat tombol **"Tinjau →"**
 di kolom Aksi — **nama pegawai tidak bisa diklik lagi**.
 
 - Di atas tabel ada **tombol "Hitung Ulang Skor 360° (semua)"** (tak perlu pindah ke halaman Bobot),
@@ -541,7 +662,9 @@ di kolom Aksi — **nama pegawai tidak bisa diklik lagi**.
   seluruh penilaian **Wajib**-nya selesai; penilaian **Opsional tidak memengaruhi** status maupun kartu
   ringkasan (**Lengkap (wajib) · Belum (wajib) · Progres Wajib**). Opsional yang belum diisi tetap
   ditampilkan ("+N opsional belum") + bisa di-Paksa Selesai dari Rincian.
-- Filter Divisi/Status/Nama; lihat status "Belum / Sudah Lengkap".
+- Filter **Divisi** & **Status** kini berupa **centang multi-pilih** (klik tombol → panel daftar
+  centang, "Pilih semua"/"Bersihkan"; kosong = semua) + pencarian **Nama**; lihat status
+  "Belum / Sudah Lengkap".
 - Tiap baris menampilkan **dua progres berdampingan** (paritas legacy):
   - **Menilai (wajib)** — tugas **wajib** penilai terhadap orang lain (mis. `5/8 · 63%`).
   - **Dinilai oleh** — **berapa penilai yang sudah menilai pegawai ini** dari total yang
@@ -598,7 +721,8 @@ flowchart TD
   **Wajib** telat, ATAU belum **self-assessment**, ATAU sudah punya **punishment**. Pegawai patuh
   penuh & tanpa punishment **disembunyikan** agar halaman lebih bersih. Toggle **"Tampilkan semua
   pegawai"** menampilkan seluruhnya (untuk memberi punishment manual ke pegawai patuh). Bila semua
-  patuh & tanpa punishment → **empty-state "Semua pegawai patuh"**.
+  patuh & tanpa punishment → **empty-state "Semua pegawai patuh"**. Tersedia juga **filter Divisi**
+  berupa **centang multi-pilih** (kosong = semua divisi).
 - **Kartu ringkasan kini 3**: **telat** · **belum self** · **Dengan punishment** (baru).
 - **Flag keterlambatan**: pegawai dengan penilaian **Wajib** yang belum selesai, lengkap
   dengan **jumlah** penilaian terlambat + daftar targetnya.
@@ -610,6 +734,10 @@ flowchart TD
 
 ### Monitor Kinerja & Dashboard Organisasi
 *(Keduanya ada di section sidebar **Pemantauan**.)*
+
+> **Nama panggilan di tampilan padat.** Chart & tabel padat (scatter, movers, kartu top/bottom,
+> leaderboard) memakai **Nama Panggilan** pegawai bila diisi (di Kelola Pegawai) agar nama panjang
+> tak terpotong; **nama lengkap** tampil sebagai tooltip & di tabel rinci. Kosong → pakai nama lengkap.
 
 **Monitor Kinerja** — banner "Sistem Intelijen Kinerja Tim" + 3 filter (**Divisi**,
 **Pegawai**, **Periode/Kuartal**). SPV → tim, HRD/Direksi → semua. Dua mode:
@@ -796,7 +924,7 @@ flowchart TD
     FZ --> T3
     T3 --> T4["Tahap 4 — HRD susun laporan<br/>ringkasan aspek (auto-simpan)"]
     T2 --> T4
-    PR["Peninjau Lintas Divisi (grant)<br/>bantu ringkas aspek divisi LAIN"] -.-> T4
+    PR["Grant Review berlingkup 'Selain divisinya'<br/>+ izin Meringkas → bantu ringkas divisi LAIN"] -.-> T4
     T4 --> S1{"Status laporan?"}
     S1 -- "Simpan Draf" --> DR["draft — SPV lihat skor saja"]
     S1 -- "Rilis ke SPV (opsional)" --> IR["in_review — SPV lihat detail agregat"]
@@ -832,9 +960,10 @@ tanpa komentar; **edit (input kedua di bulan sama) WAJIB Komentar Audit** — bi
 - **(a) Ringkasan kualitatif** — tulis narasi per aspek; **tersimpan otomatis** (auto-simpan, tanpa
   tombol Simpan manual) dengan indikator status.
 - **(b) Status laporan** — **Simpan Draf** / **Rilis ke SPV** / **Finalisasi**.
-- **(c) Bantuan Peninjau Lintas Divisi** *(opsional)* — pegawai ber-grant **Peninjau** dapat
-  membantu menulis **Ringkasan Aspek** untuk pegawai **divisi lain** (lewat menu Review Lintas
-  Divisi), tanpa bisa Rilis/Finalisasi. Lihat *Akses Khusus: Review Lintas Divisi*.
+- **(c) Bantuan peninjau lintas divisi** *(opsional)* — pegawai yang diberi **grant halaman "Review
+  Hasil Akhir"** (lingkup *Selain divisinya* + izin *Meringkas*) dapat membantu menulis **Ringkasan
+  Aspek** untuk pegawai **divisi lain**, tanpa bisa Rilis/Finalisasi (kecuali diberi izin
+  *Finalisasi*). Lihat *Akses Khusus: Review Hasil Akhir berlingkup* & **Manajemen Akses**.
 
 **Tahap 5 — SPV/Koordinator meninjau & ACC** (status `in_review`). Buka **detail agregat** anggota
 (radar/aspek + ringkasan HRD **+ raw anonim**, **tanpa L3 bernama**) → **Beri ACC** (tombol muncul
@@ -1037,9 +1166,10 @@ langsung, ambang 80, tanpa D). *(Matriks 9-Box sudah dihapus dari tampilan dashb
 ### 11. Mode Ganda (berganti "topi") & Izin HRD Admin
 **Inti:** "HRD Admin" adalah **izin mengoperasikan aplikasi**, bukan jabatan. Seseorang berposisi
 **Pegawai** atau **SPV** bisa **diberi izin HRD Admin** tanpa kehilangan posisi/tim aslinya.
-**Pemberian izin:** di **Kelola Pegawai**, tekan tombol **perisai** pada baris pegawai (badge "HRD"
-muncul). Hanya HRD Admin yang boleh memberi/mencabut; tercatat di **Log Aktivitas HRD**.
-**Akses terbatas (opsional):** tombol **Atur Akses** (🎛️) pada pemegang izin HRD membatasi rekan ke
+**Pemberian izin:** di **Manajemen Akses** (menu Administrator, HRD penuh saja) → profil pegawai →
+kapabilitas **Izin HRD Admin** (badge "HRD" muncul). Hanya HRD penuh yang boleh memberi/mencabut;
+tercatat di **Log Aktivitas HRD** & tab **Log** Manajemen Akses.
+**Akses terbatas (opsional):** tombol **Atur Akses** pada pemegang izin HRD membatasi rekan ke
 **sebagian halaman admin** saja (badge jadi "HRD (N)"). Ini pembatasan **tampilan menu** untuk pembagian
 tugas rekan HRD **tepercaya** — **bukan** gembok data; dan **tak bisa** diterapkan ke akun sendiri.
 **Cara berganti topi:** pemegang izin melihat tombol **Mode Admin ↔ Mode Pegawai/SPV** di sidebar.
@@ -1057,11 +1187,11 @@ Tim** semuanya hanya menampilkan pegawai **divisi HRD-nya sendiri** (termasuk di
   L3 bernama** — sama seperti SPV biasa, dan detail terkunci sampai laporan **Ditinjau/Final**. Untuk
   melihat **identitas penilai (L3 bernama)** & finalisasi, HRD kembali ke **mode admin** (Review Hasil Akhir).
 
-**Izin lain — "Peninjau Lintas Divisi" (terpisah dari Izin HRD Admin):** izin **sempit** agar pegawai
-(mis. divisi HRD) membantu **meringkas Hasil Akhir 360° divisi LAIN** (kecuali divisinya sendiri).
-Beri lewat tombol 👁️ di Kelola Pegawai (badge "Peninjau"); pemegangnya dapat menu **Review Lintas
-Divisi** (lihat bagian *Akses Khusus*). **Bukan** akses HRD penuh — tak bisa rilis/finalisasi & tak
-melihat nama penilai.
+**Peninjau Lintas Divisi (dipensiunkan → grant halaman berlingkup):** izin lama "Peninjau" **sudah
+tidak ada** sebagai tombol/menu tersendiri. Kini HRD memberi akses halaman **"Review Hasil Akhir"**
+di **Manajemen Akses** dengan **lingkup "Selain divisinya" + izin "Meringkas"** — hasilnya identik
+(pegawai membantu meringkas Hasil Akhir 360° divisi lain, tanpa rilis/finalisasi & tanpa nama
+penilai). Lihat *Akses Khusus: Review Hasil Akhir berlingkup* & bagian **Manajemen Akses**.
 
 > **Catatan kebijakan — tak ada "halaman custom" buatan HRD.** Pemberian izin hanya **membuka akses
 > ke halaman yang sudah ada**; HRD **tidak** bisa merakit halaman/tampilan baru sendiri. Kebutuhan

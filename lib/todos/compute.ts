@@ -46,7 +46,8 @@ export async function getTodos(
 /** Penilaian 360° yang ditugaskan ke user tapi belum 'submitted' (periode aktif). */
 async function countAssessPending(supabase: SB, periodId: string, userId: string): Promise<number> {
   const [{ data: maps }, { data: subs }] = await Promise.all([
-    supabase.from('mappings').select('target_id').eq('period_id', periodId).eq('assessor_id', userId),
+    // Hanya pemetaan AKTIF (selaras halaman /penilaian) — pemetaan terhapus/nonaktif tak dihitung.
+    supabase.from('mappings').select('target_id').eq('period_id', periodId).eq('assessor_id', userId).eq('is_active', true),
     supabase.from('assessments').select('target_id').eq('period_id', periodId).eq('assessor_id', userId).eq('status', 'submitted'),
   ]);
   if (!maps?.length) return 0;
@@ -79,7 +80,7 @@ async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): P
   const out: TodoItem[] = [];
   if (has360) {
     const [{ count: mapCount }, { count: subCount }] = await Promise.all([
-      supabase.from('mappings').select('*', { count: 'exact', head: true }).eq('period_id', periodId),
+      supabase.from('mappings').select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('is_active', true),
       supabase.from('assessments').select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('status', 'submitted'),
     ]);
     const pending = (mapCount ?? 0) - (subCount ?? 0);

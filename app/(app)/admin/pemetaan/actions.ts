@@ -67,6 +67,7 @@ export async function createMapping(raw: unknown): Promise<Result> {
   });
   revalidatePath('/admin/pemetaan');
   revalidatePath('/penilaian');
+  revalidatePath('/', 'layout'); // segarkan notifikasi sidebar (getTodos)
   return { ok: true };
 }
 
@@ -111,6 +112,7 @@ export async function createMappingsBulk(rawRows: unknown): Promise<{ ok: true; 
   });
   revalidatePath('/admin/pemetaan');
   revalidatePath('/penilaian');
+  revalidatePath('/', 'layout'); // segarkan notifikasi sidebar (getTodos)
   return { ok: true, saved: count ?? rows.length, skipped: parsed.data.length - rows.length };
 }
 
@@ -158,6 +160,7 @@ export async function copyMappingsFromPeriod(sourcePeriodId: string): Promise<{ 
   });
   revalidatePath('/admin/pemetaan');
   revalidatePath('/penilaian');
+  revalidatePath('/', 'layout'); // segarkan notifikasi sidebar (getTodos)
   return { ok: true, saved, skipped: src.length - saved };
 }
 
@@ -241,6 +244,7 @@ export async function deleteMapping(mappingId: string): Promise<Result> {
   revalidatePath('/admin/pemetaan');
   revalidatePath('/penilaian');
   revalidatePath('/admin/laporan');
+  revalidatePath('/', 'layout'); // segarkan notifikasi sidebar (getTodos) — jumlah penilaian berubah
   return { ok: true };
 }
 

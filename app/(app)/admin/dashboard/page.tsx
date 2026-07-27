@@ -84,7 +84,7 @@ export default async function DashboardPage({
   // Pegawai non-direksi + daftar divisi; lingkup divisi terpilih (default semua).
   // Pelaporan: ambil TANPA filter is_active; keanggotaan kuartal ditentukan belakangan lewat
   // irisan masa kerja (joined_on/left_on) × rentang periode, ATAU jejak data (hibrida).
-  const { data: allEmpRows } = await db.from('employees').select('id, name, dept, is_active, joined_on, left_on').neq('role', 'direksi').eq('is_external', false);
+  const { data: allEmpRows } = await db.from('employees').select('id, name, nickname, dept, is_active, joined_on, left_on').neq('role', 'direksi').eq('is_external', false);
   // Pemegang grant: batasi ke lingkupnya (employeeInScopes; 'coordinator_team' via teamIds). HRD/Direksi → semua.
   const allEmps = (allEmpRows ?? []).filter((e) => !viaGrant || employeeInScopes(grantScopes!, ownDept, user.id, e, teamIds));
   const deptList = [...new Set(allEmps.map((e) => e.dept))].sort();
@@ -106,7 +106,7 @@ export default async function DashboardPage({
     ).map((p) => ({ id: p.id, label: p.label, has_360: p.has_360, start_date: String(p.start_date), kpi_standard: p.kpi_standard }));
     const bundle = await computeDashboardAggregate(
       aggPeriods.map((p) => ({ id: p.id, label: p.label, has_360: p.has_360, start_date: p.start_date })),
-      emps.map((e) => ({ id: e.id, name: e.name, dept: e.dept })),
+      emps.map((e) => ({ id: e.id, name: e.name, nickname: e.nickname, dept: e.dept })),
       empIds,
     );
     const scopeLabel = aggScope === 'all' ? 'Semua Tahun (all-time)' : `Tahun ${selY} · Semua Kuartal`;
@@ -350,7 +350,7 @@ export default async function DashboardPage({
     const em = empYm.get(e.id);
     const kpiMonths = ymFirst3.map((ym) => (em?.has(ym) ? em.get(ym)!.s / em.get(ym)!.n : null));
     const trend = trendOf(kpiMonths);
-    return { id: e.id, name: e.name, dept: e.dept, is_active: e.is_active, kpiAvg, s360, final, player, axisIncomplete, overlaps, kpiUnread: unreadIds.has(e.id), trend, kpiMonths };
+    return { id: e.id, name: e.name, nickname: e.nickname, dept: e.dept, is_active: e.is_active, kpiAvg, s360, final, player, axisIncomplete, overlaps, kpiUnread: unreadIds.has(e.id), trend, kpiMonths };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1))
     // HIBRIDA: tampil bila masa kerjanya menyentuh kuartal INI (overlaps) ATAU punya data nyata
     // (KPI/360°) di kuartal ini — jaring pengaman agar angka nyata tak pernah hilang meski tgl keliru.
@@ -541,7 +541,7 @@ export default async function DashboardPage({
       <div className="my-5">
         <DashboardVisual
           rows={rows.map((r) => ({
-            id: r.id, name: r.name, dept: r.dept,
+            id: r.id, name: r.name, nickname: r.nickname, dept: r.dept,
             kpiAvg: r.kpiAvg, s360: r.s360, final: r.final,
             player: r.player, axisIncomplete: r.axisIncomplete, isActive: r.is_active, kpiUnread: r.kpiUnread,
             trend: r.trend, kpiMonths: r.kpiMonths,

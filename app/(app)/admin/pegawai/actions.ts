@@ -187,6 +187,9 @@ const EmpCode = z.string().trim().min(2, 'Kode pegawai minimal 2 karakter').max(
 const Email = z.string().trim().email('Email tidak valid');
 const Password = z.string().min(6, 'Sandi minimal 6 karakter');
 const OptId = z.string().uuid().nullish();
+// Nama panggilan (opsional): dipangkas; kosong → null; maks 30 karakter (label ringkas).
+const OptNickname = z.union([z.string().trim().max(30, 'Nama panggilan maksimal 30 karakter'), z.literal('')])
+  .nullish().transform((v) => (v ? v : null));
 // Tanggal 'YYYY-MM-DD' dari <input type="date">; string kosong / null → null (tak diisi).
 const OptDate = z.union([z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal tidak valid'), z.literal('')])
   .nullish().transform((v) => (v ? v : null));
@@ -195,6 +198,7 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
 
 const CreateInput = z.object({
   name: z.string().trim().min(2, 'Nama minimal 2 karakter'),
+  nickname: OptNickname, // nama panggilan (opsional) — label ringkas di tampilan padat
   empCode: EmpCode,
   dept: z.string().trim().min(1, 'Divisi wajib diisi'),
   role: Role,
@@ -209,7 +213,7 @@ const CreateInput = z.object({
 export async function createEmployee(raw: unknown): Promise<Result> {
   const parsed = CreateInput.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
-  const { name, empCode, dept, role, email, password, spvId, isExternal, joinedOn } = parsed.data;
+  const { name, nickname, empCode, dept, role, email, password, spvId, isExternal, joinedOn } = parsed.data;
 
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
@@ -230,7 +234,7 @@ export async function createEmployee(raw: unknown): Promise<Result> {
 
   // 2) Baris employees (RLS emp_manage = HRD). Rollback akun bila gagal.
   const { error: eErr } = await supabase.from('employees')
-    .insert({ id: newId, emp_code: empCode.toUpperCase(), name, dept, role, is_external: isExternal, is_active: true, joined_on: joinedOn ?? todayStr() });
+    .insert({ id: newId, emp_code: empCode.toUpperCase(), name, nickname, dept, role, is_external: isExternal, is_active: true, joined_on: joinedOn ?? todayStr() });
   if (eErr) {
     await admin.auth.admin.deleteUser(newId); // bersihkan akun yatim
     return { ok: false, error: eErr.code === '23505' ? 'Kode pegawai sudah dipakai' : 'Gagal menyimpan data: ' + eErr.message };
@@ -342,6 +346,7 @@ export async function createEmployeesBulk(rawRows: unknown): Promise<BulkResult>
 const UpdateInput = z.object({
   id: z.string().uuid(),
   name: z.string().trim().min(2, 'Nama minimal 2 karakter'),
+  nickname: OptNickname,
   empCode: EmpCode,
   dept: z.string().trim().min(1, 'Divisi wajib diisi'),
   role: Role,
@@ -356,7 +361,7 @@ const UpdateInput = z.object({
 export async function updateEmployee(raw: unknown): Promise<Result> {
   const parsed = UpdateInput.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
-  const { id, name, empCode, dept, role, email, spvId, isExternal, joinedOn, leftOn } = parsed.data;
+  const { id, name, nickname, empCode, dept, role, email, spvId, isExternal, joinedOn, leftOn } = parsed.data;
 
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
@@ -364,7 +369,7 @@ export async function updateEmployee(raw: unknown): Promise<Result> {
   const admin = createAdminClient();
 
   const { error: eErr } = await supabase.from('employees')
-    .update({ name, emp_code: empCode.toUpperCase(), dept, role, is_external: isExternal, joined_on: joinedOn, left_on: leftOn }).eq('id', id);
+    .update({ name, nickname, emp_code: empCode.toUpperCase(), dept, role, is_external: isExternal, joined_on: joinedOn, left_on: leftOn }).eq('id', id);
   if (eErr) return { ok: false, error: eErr.code === '23505' ? 'Kode pegawai sudah dipakai' : 'Gagal menyimpan: ' + eErr.message };
 
   // Sinkronkan email akun bila berubah.

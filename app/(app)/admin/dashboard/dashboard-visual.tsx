@@ -8,12 +8,14 @@ import {
 } from '@/lib/scoring';
 import { heatColor, HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
 import { TREND_META, type Trend } from '@/lib/trend';
+import { displayName } from '@/lib/employee-name';
 import { SectionHeader } from '../../monitor/section-header';
 
 /** Baris pegawai (primitif, serializable) yang dihitung di server. */
 export type Row = {
   id: string;
   name: string;
+  nickname?: string | null;
   dept: string;
   kpiAvg: number | null;
   s360: number | null;
@@ -103,6 +105,8 @@ const ymLabel = (ym: string) => {
   return `${MONTHS[Number(m) - 1] ?? m} '${y.slice(2)}`;
 };
 const firstName = (n: string) => n.split(' ')[0];
+/** Label super-ringkas untuk plot padat (scatter): nama panggilan bila ada, jika tidak → nama depan. */
+const shortName = (r: { nickname?: string | null; name: string }) => r.nickname?.trim() || firstName(r.name);
 
 /** Badge trend KPI 3 bulan (selaras Laporan Kinerja Tim). */
 function TrendBadge({ t, months }: { t?: Trend; months?: (number | null)[] }) {
@@ -253,9 +257,9 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
             ? <span className="text-[11px] text-gray-500"><Delta curr={orgAvg} prev={prevFinalAvg} prevLabel={prevLabel} move={finalMove} /> <span className="text-gray-400">vs {prevLabel}</span></span>
             : undefined} />
         <Stat icon={<Target className="w-6 h-6" />} tint="emerald"
-          value={topEmp?.final != null ? topEmp.final.toFixed(2) : '—'} label="Skor Akhir Tertinggi" sub={topEmp?.name} />
+          value={topEmp?.final != null ? topEmp.final.toFixed(2) : '—'} label="Skor Akhir Tertinggi" sub={topEmp ? displayName(topEmp.nickname, topEmp.name) : undefined} />
         <Stat icon={<TrendingDown className="w-6 h-6" />} tint="rose"
-          value={lowEmp?.final != null ? lowEmp.final.toFixed(2) : '—'} label="Skor Akhir Terendah" sub={lowEmp?.name} />
+          value={lowEmp?.final != null ? lowEmp.final.toFixed(2) : '—'} label="Skor Akhir Terendah" sub={lowEmp ? displayName(lowEmp.nickname, lowEmp.name) : undefined} />
         <Stat icon={<Target className="w-6 h-6" />} tint="blue" value={String(aPlayers)} label="A Player" />
         <Stat icon={<Flame className="w-6 h-6" />} tint="amber" value={String(coaching)} label="Perlu Coaching (<80)" />
         <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={dominant?.n ? dominant.label : '—'} label="Kategori Dominan" />
@@ -349,7 +353,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
                 <div className="mt-2 flex flex-wrap gap-1">
                   {emps.map((e) => (
                     <span key={e.id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
-                      title={`${e.name} · KPI ${e.kpiAvg?.toFixed(2)} · 360 ${e.s360 != null ? e.s360.toFixed(2) : 'N/A'}`}>{firstName(e.name)}</span>
+                      title={`${e.name} · KPI ${e.kpiAvg?.toFixed(2)} · 360 ${e.s360 != null ? e.s360.toFixed(2) : 'N/A'}`}>{shortName(e)}</span>
                   ))}
                 </div>
               </div>
@@ -366,7 +370,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
             <div className="mt-2 flex flex-wrap gap-1">
               {incomplete.map((e) => (
                 <span key={e.id} className="text-[10px] bg-white/70 text-gray-600 px-1.5 py-0.5 rounded font-semibold border border-amber-200"
-                  title={`${e.name} · KPI ${e.kpiAvg != null ? e.kpiAvg.toFixed(2) : 'N/A'} · 360 ${e.s360 != null ? e.s360.toFixed(2) : 'N/A'}`}>{firstName(e.name)}</span>
+                  title={`${e.name} · KPI ${e.kpiAvg != null ? e.kpiAvg.toFixed(2) : 'N/A'} · 360 ${e.s360 != null ? e.s360.toFixed(2) : 'N/A'}`}>{shortName(e)}</span>
               ))}
             </div>
           </div>
@@ -381,7 +385,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
             <div className="mt-2 flex flex-wrap gap-1">
               {unread.map((e) => (
                 <span key={e.id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
-                  title={`${e.name} · KPI belum terbaca · 360 ${e.s360 != null ? e.s360.toFixed(2) : 'N/A'}`}>{firstName(e.name)}</span>
+                  title={`${e.name} · KPI belum terbaca · 360 ${e.s360 != null ? e.s360.toFixed(2) : 'N/A'}`}>{shortName(e)}</span>
               ))}
             </div>
           </div>
@@ -406,7 +410,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
               <div key={e.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-xs font-bold text-emerald-800 w-5">#{idx + 1}</span>
-                  <div><span className="font-bold text-gray-800 block text-xs">{e.name}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
+                  <div><span className="font-bold text-gray-800 block text-xs" title={e.name}>{displayName(e.nickname, e.name)}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
                 </div>
                 <span className="font-mono font-extrabold text-sm text-emerald-800">{e.final?.toFixed(2)}</span>
               </div>
@@ -420,8 +424,8 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
             {bottom.map((e) => (
               <div key={e.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-rose-50 text-rose-800 font-bold flex items-center justify-center text-[11px]">{e.name.substring(0, 2)}</div>
-                  <div><span className="font-bold text-gray-800 block text-xs">{e.name}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
+                  <div className="w-8 h-8 rounded-full bg-rose-50 text-rose-800 font-bold flex items-center justify-center text-[11px]">{displayName(e.nickname, e.name).substring(0, 2)}</div>
+                  <div><span className="font-bold text-gray-800 block text-xs" title={e.name}>{displayName(e.nickname, e.name)}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
                 </div>
                 <span className="font-mono font-extrabold text-sm text-rose-700">{e.final?.toFixed(2)}</span>
               </div>
@@ -580,9 +584,9 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
             ? <span className="text-[11px] text-gray-500"><Delta curr={avgKpi} prev={prevKpiAvg} prevLabel={prevLabel} move={kpiMove} /> <span className="text-gray-400">vs {prevLabel}</span></span>
             : undefined} />
         <Stat icon={<Target className="w-6 h-6" />} tint="blue"
-          value={topEmp?.kpiAvg != null ? topEmp.kpiAvg.toFixed(2) : '—'} label="Skor KPI Tertinggi" sub={topEmp?.name} />
+          value={topEmp?.kpiAvg != null ? topEmp.kpiAvg.toFixed(2) : '—'} label="Skor KPI Tertinggi" sub={topEmp ? displayName(topEmp.nickname, topEmp.name) : undefined} />
         <Stat icon={<TrendingDown className="w-6 h-6" />} tint="rose"
-          value={lowEmp?.kpiAvg != null ? lowEmp.kpiAvg.toFixed(2) : '—'} label="Skor KPI Terendah" sub={lowEmp?.name} />
+          value={lowEmp?.kpiAvg != null ? lowEmp.kpiAvg.toFixed(2) : '—'} label="Skor KPI Terendah" sub={lowEmp ? displayName(lowEmp.nickname, lowEmp.name) : undefined} />
         <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={`${pctOverStd.toFixed(0)}%`} label={`KPI Di Atas Standar (≥${kpiStandard})`} />
         <Stat icon={<BarChart3 className="w-6 h-6" />} tint="amber" value={`${monthly.length} Bulan`} label="Siklus Penilaian Terpilih" />
       </div>
@@ -681,8 +685,8 @@ function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, has360
           sub={prevLabel && prev360Avg != null
             ? <span className="text-[11px] text-gray-500"><Delta curr={avg360} prev={prev360Avg} prevLabel={prevLabel} move={s360Move} /> <span className="text-gray-400">vs {prevLabel}</span></span>
             : undefined} />
-        <Stat icon={<Target className="w-6 h-6" />} tint="emerald" value={top ? top.s360!.toFixed(2) : '—'} label="Skor 360° Tertinggi" sub={top ? top.name : undefined} />
-        <Stat icon={<TrendingDown className="w-6 h-6" />} tint="rose" value={low ? low.s360!.toFixed(2) : '—'} label="Skor 360° Terendah" sub={low ? low.name : undefined} />
+        <Stat icon={<Target className="w-6 h-6" />} tint="emerald" value={top ? top.s360!.toFixed(2) : '—'} label="Skor 360° Tertinggi" sub={top ? displayName(top.nickname, top.name) : undefined} />
+        <Stat icon={<TrendingDown className="w-6 h-6" />} tint="rose" value={low ? low.s360!.toFixed(2) : '—'} label="Skor 360° Terendah" sub={low ? displayName(low.nickname, low.name) : undefined} />
         <Stat icon={<Users className="w-6 h-6" />} tint="blue" value={String(assessed)} label="Pegawai Ternilai 360°" />
       </div>
 
@@ -740,7 +744,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
   const [player, setPlayer] = useState<'all' | PlayerClass>('all');
   const [page, setPage] = useState(0);
   const shown = rows.filter((r) => {
-    if (q.trim() && !`${r.name} ${r.dept}`.toLowerCase().includes(q.toLowerCase())) return false;
+    if (q.trim() && !`${r.name} ${r.nickname ?? ''} ${r.dept}`.toLowerCase().includes(q.toLowerCase())) return false;
     if (player !== 'all' && r.player !== player) return false;
     return true;
   });
@@ -783,8 +787,8 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
               return (
                 <tr key={r.id}>
                   <td className="py-3 pr-3">
-                    <span className="font-bold text-gray-800 block">
-                      {r.name}
+                    <span className="font-bold text-gray-800 block" title={r.name}>
+                      {displayName(r.nickname, r.name)}
                       {r.isActive === false && (
                         <span className="ml-1.5 align-middle text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600" title="Pegawai nonaktif (resign) — data periode ini tetap dihitung">nonaktif</span>
                       )}
@@ -1161,7 +1165,7 @@ function Leaderboard({ title, subtitle, tone, items, valueOf }: { title: string;
             <div key={e.id} className={`p-3 rounded-xl border flex items-center justify-between gap-4 ${rowBg}`}>
               <div className="flex items-center gap-3">
                 <span className={`font-mono text-xs font-black w-5 ${head}`}>#{idx + 1}</span>
-                <div><span className="font-bold text-gray-800 text-xs block">{e.name}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
+                <div><span className="font-bold text-gray-800 text-xs block" title={e.name}>{displayName(e.nickname, e.name)}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
               </div>
               <div className="flex items-center gap-2.5">
                 <span className={`font-mono font-black text-xs px-2 py-1 rounded border ${chip}`}>{v != null ? v.toFixed(2) : '—'}</span>

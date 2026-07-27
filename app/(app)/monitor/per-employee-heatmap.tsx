@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import { heatColor, HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
+import { displayName } from '@/lib/employee-name';
 
 export type HeatCol = { key: string; label: string; full?: string; group?: string };
-export type HeatRow = { id: string; name: string; dept: string; cells: Record<string, number | null> };
+export type HeatRow = { id: string; name: string; nickname?: string | null; dept: string; cells: Record<string, number | null> };
 
 // Lebar seragam tiap kolom heatmap (px) — header & sel dipatok sama agar semua kolom sejajar.
 const CELL_W = 92;
@@ -24,7 +25,7 @@ export function PerEmployeeHeatmap({
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     if (!t) return rows;
-    return rows.filter((r) => `${r.name} ${r.dept}`.toLowerCase().includes(t));
+    return rows.filter((r) => `${r.name} ${r.nickname ?? ''} ${r.dept}`.toLowerCase().includes(t));
   }, [q, rows]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, pageCount - 1);
@@ -99,7 +100,7 @@ export function PerEmployeeHeatmap({
               return (
                 <tr key={r.id}>
                   <td className="sticky left-0 bg-white z-10 py-2 px-3 align-top">
-                    <div className="text-xs font-bold text-slate-700 break-words leading-tight max-w-[160px]">{r.name}</div>
+                    <div className="text-xs font-bold text-slate-700 break-words leading-tight max-w-[160px]" title={r.name}>{displayName(r.nickname, r.name)}</div>
                     <div className="text-[10px] text-gray-400 break-words leading-tight max-w-[160px]">{r.dept}</div>
                   </td>
                   {columns.map((c) => {

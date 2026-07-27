@@ -15,7 +15,7 @@ import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
  * Baca via service_role (halaman sudah menjaga akses HRD/Direksi; data org-wide yang berwenang dilihat).
  */
 export type AggRow = {
-  id: string; name: string; dept: string;
+  id: string; name: string; nickname: string | null; dept: string;
   kpiAvg: number | null; s360: number | null; final: number | null;
   player: PlayerClass | null; axisIncomplete: boolean;
   isActive: boolean; kpiUnread: boolean; trend: 'empty'; kpiMonths: (number | null)[];
@@ -40,7 +40,7 @@ export type AggregateBundle = {
 };
 
 type PeriodMeta = { id: string; label: string; has_360: boolean; start_date: string };
-type Emp = { id: string; name: string; dept: string };
+type Emp = { id: string; name: string; nickname: string | null; dept: string };
 
 const mean = (xs: number[]): number | null => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
@@ -177,7 +177,7 @@ export async function computeDashboardAggregate(
     const axisIncomplete = has360 && ((kpiAvg != null) !== (s360 != null));
     const player = axisIncomplete ? null : playerClassOf(kpiAvg, has360 ? s360 : null);
     const final = finalScoreOf(kpiAvg, s360, has360, 0);
-    return { id: e.id, name: e.name, dept: e.dept, kpiAvg, s360, final, player, axisIncomplete, isActive: true, kpiUnread: false, trend: 'empty' as const, kpiMonths: [] };
+    return { id: e.id, name: e.name, nickname: e.nickname, dept: e.dept, kpiAvg, s360, final, player, axisIncomplete, isActive: true, kpiUnread: false, trend: 'empty' as const, kpiMonths: [] };
   })
     .filter((r) => r.kpiAvg != null || r.s360 != null)
     .sort((a, b) => (b.final ?? -1) - (a.final ?? -1));

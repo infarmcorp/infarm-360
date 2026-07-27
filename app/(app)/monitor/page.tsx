@@ -64,23 +64,23 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   // Lingkup pegawai. SPV → tim + DIRINYA sendiri; HRD mode-SPV → DIVISINYA (termasuk dirinya);
   // Koordinator → HANYA pegawai naungannya (coordinator_team_members), TANPA dirinya.
   // Koordinator = pegawai biasa di RLS → semua data (lingkup + tren) dibaca via service_role.
-  let empRows: { id: string; name: string; dept: string; is_active: boolean }[] = [];
+  let empRows: { id: string; name: string; nickname: string | null; dept: string; is_active: boolean }[] = [];
   const dataClient = coordinatorView ? createAdminClient() : supabase;
   if (coordinatorView) {
     const admin = dataClient;
     const { data: team } = await admin.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id);
     const memberIds = (team ?? []).map((t) => t.employee_id);
     const { data } = memberIds.length
-      ? await admin.from('employees').select('id, name, dept, is_active').in('id', memberIds)
-      : { data: [] as { id: string; name: string; dept: string; is_active: boolean }[] };
+      ? await admin.from('employees').select('id, name, nickname, dept, is_active').in('id', memberIds)
+      : { data: [] as { id: string; name: string; nickname: string | null; dept: string; is_active: boolean }[] };
     empRows = data ?? [];
   } else if (role === 'spv') {
     const { data: team } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', user.id);
     const ids = [...new Set([user.id, ...(team ?? []).map((t) => t.employee_id)])];
-    const { data } = await supabase.from('employees').select('id, name, dept, is_active').in('id', ids);
+    const { data } = await supabase.from('employees').select('id, name, nickname, dept, is_active').in('id', ids);
     empRows = data ?? [];
   } else {
-    const { data } = await supabase.from('employees').select('id, name, dept, is_active')
+    const { data } = await supabase.from('employees').select('id, name, nickname, dept, is_active')
       .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false);
     empRows = data ?? [];
   }
@@ -99,7 +99,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
     const kpiMonths = (monthlyBy.get(e.id) ?? []).slice(0, 3);
     const penalty = penBy.get(e.id) ?? 0;
     return {
-      id: e.id, name: e.name, dept: e.dept,
+      id: e.id, name: e.name, nickname: e.nickname, dept: e.dept,
       kpiAvg, s360,
       finalScore: finalScoreOf(kpiAvg, s360, sel.has_360, penalty, true), // LIVE, selaras snapshot laporan
       player: playerClassOf(kpiAvg, sel.has_360 ? s360 : null),
@@ -147,7 +147,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
 
   // C. Tren KPI per pegawai per bulan (dropdown).
   const employeesMonthly: EmpMonthly[] = empRows
-    .map((e) => ({ id: e.id, name: e.name, monthly: allYms.map((ym) => kpiOf(e.id, ym)) }))
+    .map((e) => ({ id: e.id, name: e.name, nickname: e.nickname, monthly: allYms.map((ym) => kpiOf(e.id, ym)) }))
     .filter((e) => e.monthly.some((v) => v != null))
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -166,9 +166,9 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
         .map((e) => {
           const c = perPeriodKpi(e.id, currP.id);
           const pv = perPeriodKpi(e.id, prevP.id);
-          return c != null && pv != null ? { name: e.name, delta: c - pv, curr: c } : null;
+          return c != null && pv != null ? { name: e.name, nickname: e.nickname, delta: c - pv, curr: c } : null;
         })
-        .filter((m): m is MoverRow => m != null)
+        .filter((m): m is NonNullable<typeof m> => m != null)
         .sort((a, b) => b.delta - a.delta)
     : [];
 
@@ -198,9 +198,9 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
             return cv != null && pval != null ? { aspect: nm, delta: cv - pval } : null;
           })
           .filter((a): a is { aspect: string; delta: number } => a != null && Math.abs(a.delta) >= 1);
-        return { name: e.name, delta: c - pv, curr: c, aspects };
+        return { name: e.name, nickname: e.nickname, delta: c - pv, curr: c, aspects };
       })
-      .filter((m): m is MoverRow360 => m != null)
+      .filter((m): m is NonNullable<typeof m> => m != null)
       .sort((a, b) => b.delta - a.delta);
   }
 
@@ -266,8 +266,8 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
           {/* B. KOMPOSISI — sebaran & profil aspek */}
           <SectionHeader label="Komposisi" hint="sebaran kategori & profil aspek" tone="indigo" />
           <DistBars
-            kpiPeople={rows.filter((r) => r.trend !== 'unread' && r.kpiAvg != null).map((r) => ({ name: r.name, value: r.kpiAvg as number }))}
-            s360People={sel.has_360 ? rows.filter((r) => r.s360 != null).map((r) => ({ name: r.name, value: r.s360 as number })) : null} />
+            kpiPeople={rows.filter((r) => r.trend !== 'unread' && r.kpiAvg != null).map((r) => ({ name: r.name, nickname: r.nickname, value: r.kpiAvg as number }))}
+            s360People={sel.has_360 ? rows.filter((r) => r.s360 != null).map((r) => ({ name: r.name, nickname: r.nickname, value: r.s360 as number })) : null} />
           {teamAspect.length > 0 && <TeamAspectProfile aspects={teamAspect} scopeLabel={sel.label} />}
         </>
       )}

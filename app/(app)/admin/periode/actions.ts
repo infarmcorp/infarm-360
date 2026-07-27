@@ -134,7 +134,10 @@ export async function activePeriodReadiness(): Promise<
   if (!ap) return { ok: true, active: null };
 
   const [maps, subs, drafts, emps, finals] = await Promise.all([
-    supabase.from('mappings').select('*', { count: 'exact', head: true }).eq('period_id', ap.id),
+    // Selaras dgn sidebar Tugas (lib/todos/compute.ts hrdAdminTodos): HANYA pemetaan AKTIF dihitung
+    // sebagai penilaian tertunda — pemetaan non-aktif (mis. dari pegawai dinonaktifkan) bukan
+    // pekerjaan tersisa, agar warning dialog & notifikasi sidebar SINKRON.
+    supabase.from('mappings').select('*', { count: 'exact', head: true }).eq('period_id', ap.id).eq('is_active', true),
     supabase.from('assessments').select('*', { count: 'exact', head: true }).eq('period_id', ap.id).eq('status', 'submitted'),
     supabase.from('assessments').select('*', { count: 'exact', head: true }).eq('period_id', ap.id).eq('status', 'draft'),
     // Selaras dgn sidebar Tugas (lib/todos/compute.ts): pegawai eksternal TAK dibuatkan

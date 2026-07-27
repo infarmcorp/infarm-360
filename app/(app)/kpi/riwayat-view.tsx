@@ -1,5 +1,10 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { RiwayatList, type FlatAudit, AUDIT_PAGE_SIZE } from './riwayat-list';
+import { RiwayatList, type FlatAudit } from './riwayat-list';
+
+// Ukuran halaman audit (server-paginated). Log → 10/hal (selaras Log Aktivitas HRD).
+// DIDEFINISIKAN DI SERVER: konstanta dari modul 'use client' yang di-impor server component
+// menjadi referensi client (bukan angka) → range() jadi NaN. Jadi definisikan di sini.
+const AUDIT_PAGE_SIZE = 10;
 
 /**
  * Riwayat & Audit Perubahan KPI. Menampilkan jejak `kpi_audit` (append-only) per pegawai.
@@ -109,5 +114,5 @@ export async function RiwayatView({
     at: fmt(r.changed_at), note: r.note, action: r.action ?? undefined,
   }));
 
-  return <RiwayatList entries={entries} page={page} total={total} query={query} />;
+  return <RiwayatList entries={entries} page={page} total={total} pageSize={AUDIT_PAGE_SIZE} query={query} />;
 }

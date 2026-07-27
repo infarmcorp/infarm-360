@@ -9,9 +9,6 @@ export type FlatAudit = {
   ym: string; score: number; by: string; at: string; note: string | null; action?: string;
 };
 
-/** Ukuran halaman audit (server-paginated). Log → 10/hal (selaras Log Aktivitas HRD). */
-export const AUDIT_PAGE_SIZE = 10;
-
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const labelMonth = (ym: string) => { const [y, m] = ym.split('-'); return `${MONTHS[Number(m) - 1] ?? m} ${y}`; };
 
@@ -21,15 +18,15 @@ const labelMonth = (ym: string) => { const [y, m] = ym.split('-'); return `${MON
  * (?auditPage=&auditQ=), mempertahankan parameter lain (tab/view/period). Pencarian dieksekusi
  * saat Enter (bukan tiap ketikan) agar tak membanjiri server. Append-only (tak bisa diubah).
  */
-export function RiwayatList({ entries, page, total, query }: { entries: FlatAudit[]; page: number; total: number; query: string }) {
+export function RiwayatList({ entries, page, total, pageSize, query }: { entries: FlatAudit[]; page: number; total: number; pageSize: number; query: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const [q, setQ] = useState(query);
 
-  const pageCount = Math.max(1, Math.ceil(total / AUDIT_PAGE_SIZE));
-  const from = total === 0 ? 0 : page * AUDIT_PAGE_SIZE + 1;
-  const to = Math.min(total, page * AUDIT_PAGE_SIZE + entries.length);
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const from = total === 0 ? 0 : page * pageSize + 1;
+  const to = Math.min(total, page * pageSize + entries.length);
 
   /** Bangun URL dgn param audit diubah, pertahankan sisanya (tab/view/period). */
   const nav = (patch: Record<string, string | null>) => {
@@ -94,7 +91,7 @@ export function RiwayatList({ entries, page, total, query }: { entries: FlatAudi
         </div>
       )}
 
-      {(total > AUDIT_PAGE_SIZE || page > 0) && (
+      {(total > pageSize || page > 0) && (
         <div className="flex items-center justify-between text-xs text-gray-600">
           <button type="button" disabled={page === 0} onClick={() => nav({ auditPage: String(page - 1) })}
             className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50">← Sebelumnya</button>

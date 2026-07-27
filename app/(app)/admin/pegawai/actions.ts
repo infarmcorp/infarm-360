@@ -38,6 +38,8 @@ function revalidate() {
   revalidatePath('/penilaian');
   // Perubahan peran/grant/koordinator/atasan/aktif langsung tercermin di Struktur Organisasi.
   revalidatePath('/admin/struktur');
+  // Segarkan notifikasi sidebar (getTodos): aktif/nonaktif mengubah pemetaan aktif & anggota tim.
+  revalidatePath('/', 'layout');
 }
 
 /**

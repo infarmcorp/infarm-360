@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { usePager, Pager } from '@/components/table-controls';
+import { useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 /** Satu baris audit KPI (rata/flat) — terbaru lebih dulu (urut server by changed_at desc). */
 export type FlatAudit = {
@@ -9,23 +9,35 @@ export type FlatAudit = {
   ym: string; score: number; by: string; at: string; note: string | null; action?: string;
 };
 
+/** Ukuran halaman audit (server-paginated). Log → 10/hal (selaras Log Aktivitas HRD). */
+export const AUDIT_PAGE_SIZE = 10;
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const labelMonth = (ym: string) => { const [y, m] = ym.split('-'); return `${MONTHS[Number(m) - 1] ?? m} ${y}`; };
 
 /**
- * Daftar audit KPI RATA (flat) — diurut TERBARU DI ATAS (bukan dikelompokkan per nama).
- * Siapa pun yang paling baru mengubah KPI muncul di baris teratas. Pencarian menyaring
- * nama/divisi/pengubah tanpa mengubah urutan kronologis. Append-only (tak bisa diubah).
+ * Daftar audit KPI RATA (flat), TERBARU DI ATAS. Paginasi & pencarian DI SERVER (egress:
+ * kpi_audit append-only bisa ribuan baris) — komponen ini presentational + navigasi via URL
+ * (?auditPage=&auditQ=), mempertahankan parameter lain (tab/view/period). Pencarian dieksekusi
+ * saat Enter (bukan tiap ketikan) agar tak membanjiri server. Append-only (tak bisa diubah).
  */
-export function RiwayatList({ entries }: { entries: FlatAudit[] }) {
-  const [q, setQ] = useState('');
-  const filtered = useMemo(() => {
-    const t = q.trim().toLowerCase();
-    if (!t) return entries;
-    return entries.filter((e) => `${e.name} ${e.dept} ${e.by}`.toLowerCase().includes(t));
-  }, [entries, q]);
-  // Paginasi 5-baris (komponen bersama) → audit append-only bisa ratusan/ribuan baris; batasi DOM.
-  const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(filtered);
+export function RiwayatList({ entries, page, total, query }: { entries: FlatAudit[]; page: number; total: number; query: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const [q, setQ] = useState(query);
+
+  const pageCount = Math.max(1, Math.ceil(total / AUDIT_PAGE_SIZE));
+  const from = total === 0 ? 0 : page * AUDIT_PAGE_SIZE + 1;
+  const to = Math.min(total, page * AUDIT_PAGE_SIZE + entries.length);
+
+  /** Bangun URL dgn param audit diubah, pertahankan sisanya (tab/view/period). */
+  const nav = (patch: Record<string, string | null>) => {
+    const sp = new URLSearchParams(params.toString());
+    for (const [k, v] of Object.entries(patch)) { if (v === null || v === '') sp.delete(k); else sp.set(k, v); }
+    router.replace(`${pathname}?${sp.toString()}`);
+  };
+  const submitSearch = (e: React.FormEvent) => { e.preventDefault(); nav({ auditQ: q.trim() || null, auditPage: null }); };
 
   return (
     <div className="space-y-3">
@@ -33,12 +45,19 @@ export function RiwayatList({ entries }: { entries: FlatAudit[] }) {
         <p className="text-[11px] text-gray-500">
           Jejak perubahan KPI bersifat <strong>append-only</strong> — tidak dapat diubah/dihapus. Urut <strong>terbaru di atas</strong>.
         </p>
-        <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama / divisi / pengubah…"
-          className="text-xs px-3 py-2 border border-gray-200 rounded-lg w-56 focus:outline-none focus:ring-1 focus:ring-emerald-600" />
+        <form onSubmit={submitSearch} className="flex items-center gap-1.5">
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama / divisi… (Enter)"
+            className="text-xs px-3 py-2 border border-gray-200 rounded-lg w-52 focus:outline-none focus:ring-1 focus:ring-emerald-600" />
+          <button type="submit" className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50">Cari</button>
+          {query && (
+            <button type="button" onClick={() => { setQ(''); nav({ auditQ: null, auditPage: null }); }}
+              className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
+          )}
+        </form>
       </div>
 
-      {filtered.length === 0 ? (
-        <p className="text-sm text-gray-500">Tidak ada jejak audit yang cocok.</p>
+      {entries.length === 0 ? (
+        <p className="text-sm text-gray-500">{query ? 'Tidak ada jejak audit yang cocok dengan pencarian.' : 'Belum ada jejak audit KPI. Riwayat tercatat otomatis setiap input skor.'}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs min-w-[680px]">
@@ -53,7 +72,7 @@ export function RiwayatList({ entries }: { entries: FlatAudit[] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {shown.map((r, i) => (
+              {entries.map((r, i) => (
                 <tr key={`${r.empId}-${r.ym}-${i}`}>
                   <td className="py-2 px-3">
                     <span className="font-bold text-gray-800">{r.name}</span>
@@ -75,7 +94,18 @@ export function RiwayatList({ entries }: { entries: FlatAudit[] }) {
         </div>
       )}
 
-      <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="perubahan" />
+      {(total > AUDIT_PAGE_SIZE || page > 0) && (
+        <div className="flex items-center justify-between text-xs text-gray-600">
+          <button type="button" disabled={page === 0} onClick={() => nav({ auditPage: String(page - 1) })}
+            className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50">← Sebelumnya</button>
+          <span className="text-center">
+            Halaman {page + 1} / {pageCount}
+            <span className="block text-[10px] text-gray-400">{from}–{to} dari {total} perubahan</span>
+          </span>
+          <button type="button" disabled={page >= pageCount - 1} onClick={() => nav({ auditPage: String(page + 1) })}
+            className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50">Berikutnya →</button>
+        </div>
+      )}
     </div>
   );
 }

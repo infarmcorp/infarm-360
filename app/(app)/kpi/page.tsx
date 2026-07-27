@@ -17,9 +17,14 @@ import { RiwayatView } from './riwayat-view';
 export default async function KpiPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; period?: string }>;
+  searchParams: Promise<{ tab?: string; period?: string; view?: string; auditPage?: string; auditQ?: string }>;
 }) {
-  const { tab: tabParam, period } = await searchParams;
+  const { tab: tabParam, period, view: viewParam, auditPage: auditPageParam, auditQ: auditQParam } = await searchParams;
+  // Monitoring: tab Rekap|Riwayat (default rekap) → HANYA tab aktif yang query (hemat egress:
+  // audit kpi_audit yang append-only tak ditarik saat landing). Paginasi/pencarian audit di server.
+  const view = viewParam === 'riwayat' ? 'riwayat' : 'rekap';
+  const auditPage = Math.max(0, Number(auditPageParam) || 0);
+  const auditQ = auditQParam ?? '';
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -67,13 +72,17 @@ export default async function KpiPage({
           <h1 className="text-xl font-bold text-gray-800">Monitoring &amp; Audit KPI</h1>
           <p className="mt-1 text-sm text-gray-500">Rekapitulasi kuartal &amp; jejak audit perubahan KPI dalam lingkup akses Anda (lihat-saja).</p>
         </div>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
-          <Panel title="Rekapitulasi Kuartal">
-            <RekapView role={role} userId={user.id} periodParam={period} scopedIds={scopedIds} />
-          </Panel>
-          <Panel title="Riwayat &amp; Audit Perubahan KPI">
-            <RiwayatView role={role} userId={user.id} byPeriod periodParam={period} scopedIds={scopedIds} />
-          </Panel>
+        <MonitoringTabs view={view} period={period} />
+        <div className="mt-4">
+          {view === 'riwayat' ? (
+            <Panel title="Riwayat &amp; Audit Perubahan KPI">
+              <RiwayatView role={role} userId={user.id} byPeriod periodParam={period} scopedIds={scopedIds} page={auditPage} query={auditQ} />
+            </Panel>
+          ) : (
+            <Panel title="Rekapitulasi Kuartal">
+              <RekapView role={role} userId={user.id} periodParam={period} scopedIds={scopedIds} />
+            </Panel>
+          )}
         </div>
       </main>
     );
@@ -86,15 +95,19 @@ export default async function KpiPage({
       <main className="w-full p-4 sm:p-5 lg:p-6">
         <div className="mb-4">
           <h1 className="text-xl font-bold text-gray-800">Monitoring &amp; Audit KPI</h1>
-          <p className="mt-1 text-sm text-gray-500">Rekapitulasi kuartal &amp; jejak audit perubahan KPI seluruh pegawai — tampilan berdampingan.</p>
+          <p className="mt-1 text-sm text-gray-500">Rekapitulasi kuartal &amp; jejak audit perubahan KPI seluruh pegawai.</p>
         </div>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
-          <Panel title="Rekapitulasi Kuartal">
-            <RekapView role={role} userId={user.id} periodParam={period} />
-          </Panel>
-          <Panel title="Riwayat & Audit Perubahan KPI">
-            <RiwayatView role={role} canAdmin={admin} userId={user.id} byPeriod periodParam={period} />
-          </Panel>
+        <MonitoringTabs view={view} period={period} />
+        <div className="mt-4">
+          {view === 'riwayat' ? (
+            <Panel title="Riwayat &amp; Audit Perubahan KPI">
+              <RiwayatView role={role} canAdmin={admin} userId={user.id} byPeriod periodParam={period} page={auditPage} query={auditQ} />
+            </Panel>
+          ) : (
+            <Panel title="Rekapitulasi Kuartal">
+              <RekapView role={role} userId={user.id} periodParam={period} />
+            </Panel>
+          )}
         </div>
       </main>
     );
@@ -127,7 +140,7 @@ export default async function KpiPage({
       {tab === 'input' ? (
         <InputTab supabase={supabase} userId={user.id} role={role} isCoord={isCoord} />
       ) : tab === 'riwayat' ? (
-        <RiwayatView role={role} canAdmin={admin} userId={user.id} hrdMode={hrdMode} />
+        <RiwayatView role={role} canAdmin={admin} userId={user.id} hrdMode={hrdMode} page={auditPage} query={auditQ} />
       ) : (
         <RekapView role={role} userId={user.id} periodParam={period} hrdMode={hrdMode} />
       )}
@@ -135,7 +148,18 @@ export default async function KpiPage({
   );
 }
 
-/** Kartu panel split-view dengan header lengket & scroll vertikal independen. */
+/** Tab Monitoring: Rekap | Riwayat & Audit. Hanya tab aktif yang query (hemat egress). */
+function MonitoringTabs({ view, period }: { view: 'rekap' | 'riwayat'; period?: string }) {
+  const suffix = period ? `&period=${period}` : '';
+  return (
+    <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+      <Tab href={`/kpi?view=rekap${suffix}`} active={view === 'rekap'}>Rekapitulasi Kuartal</Tab>
+      <Tab href={`/kpi?view=riwayat${suffix}`} active={view === 'riwayat'}>Riwayat &amp; Audit</Tab>
+    </div>
+  );
+}
+
+/** Kartu panel dengan header lengket & scroll vertikal independen. */
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col max-h-[78vh]">

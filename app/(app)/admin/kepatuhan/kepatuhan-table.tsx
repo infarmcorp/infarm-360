@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { PenaltyInput } from './penalty-input';
-import { usePager, Pager, CheckboxFilter } from '@/components/table-controls';
+import { usePager, Pager, CheckboxFilter, MultiCheckFilter } from '@/components/table-controls';
 
 export type KepatuhanRow = {
   id: string; name: string; dept: string;
@@ -18,19 +18,30 @@ const needsAttention = (r: KepatuhanRow) => r.lateCount > 0 || r.selfMissing || 
 
 export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[]; readOnly?: boolean }) {
   const [showAll, setShowAll] = useState(false);
+  const [deptSel, setDeptSel] = useState<Set<string>>(new Set()); // kosong = semua divisi
+  const depts = useMemo(() => [...new Set(rows.map((r) => r.dept))].sort(), [rows]);
   const flagged = useMemo(() => rows.filter(needsAttention), [rows]);
-  const list = showAll ? rows : flagged;
+  const base = showAll ? rows : flagged;
+  const list = useMemo(
+    () => (deptSel.size === 0 ? base : base.filter((r) => deptSel.has(r.dept))),
+    [base, deptSel],
+  );
   const hiddenCount = rows.length - flagged.length;
   // Paginasi 5-baris (komponen bersama) → "Tampilkan semua" bisa >100 baris.
   const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(list);
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-[11px] text-gray-500">
           {flagged.length} perlu perhatian{showAll ? ` · ${rows.length} total pegawai` : ''}
         </span>
-        <CheckboxFilter checked={showAll} onChange={(v) => { setShowAll(v); setPage(0); }} label="Tampilkan semua pegawai" />
+        <div className="flex items-center gap-3">
+          <MultiCheckFilter label="Divisi"
+            options={depts.map((d) => ({ value: d, label: d }))}
+            selected={deptSel} onChange={(s) => { setDeptSel(s); setPage(0); }} />
+          <CheckboxFilter checked={showAll} onChange={(v) => { setShowAll(v); setPage(0); }} label="Tampilkan semua pegawai" />
+        </div>
       </div>
 
       {list.length === 0 ? (

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { ReportStatus } from '@/lib/database.types';
-import { usePager, Pager } from '@/components/table-controls';
+import { usePager, Pager, MultiCheckFilter } from '@/components/table-controls';
 
 export type ReportRow = {
   id: string; name: string; dept: string;
@@ -28,19 +28,20 @@ const isRatedComplete = (r: ReportRow) => r.ratedTotal > 0 && r.ratedDone >= r.r
  * `readOnly` = pemegang grant lihat-saja: sembunyikan tautan "Tinjau" (tanpa akses detail; Tahap 1). */
 export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOnly = false }: { rows: ReportRow[]; depts: string[]; has360: boolean; hrefBase?: string; readOnly?: boolean }) {
   const [q, setQ] = useState('');
-  const [fDept, setFDept] = useState('all');
-  const [fRated, setFRated] = useState<'all' | 'complete' | 'incomplete'>('all');
+  const [deptSel, setDeptSel] = useState<Set<string>>(new Set());   // kosong = semua divisi
+  const [ratedSel, setRatedSel] = useState<Set<string>>(new Set()); // kosong = semua kelengkapan
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return rows.filter((r) =>
-      (fDept === 'all' || r.dept === fDept) &&
-      (fRated === 'all' || (fRated === 'complete' ? isRatedComplete(r) : !isRatedComplete(r))) &&
-      (!needle || `${r.name} ${r.dept}`.toLowerCase().includes(needle)),
-    );
-  }, [rows, q, fDept, fRated]);
+    return rows.filter((r) => {
+      const ratedKey = isRatedComplete(r) ? 'complete' : 'incomplete';
+      return (deptSel.size === 0 || deptSel.has(r.dept)) &&
+        (ratedSel.size === 0 || ratedSel.has(ratedKey)) &&
+        (!needle || `${r.name} ${r.dept}`.toLowerCase().includes(needle));
+    });
+  }, [rows, q, deptSel, ratedSel]);
 
-  const active = q.trim() !== '' || fDept !== 'all' || fRated !== 'all';
+  const active = q.trim() !== '' || deptSel.size > 0 || ratedSel.size > 0;
   const readyCount = useMemo(() => rows.filter(isRatedComplete).length, [rows]);
   // Paginasi 5-baris (komponen bersama) → daftar bisa 100+; dipakai HRD finalisasi & Direksi review.
   const { page, setPage, pageCount, shown: paged, total, rangeFrom, rangeTo } = usePager(shown);
@@ -55,22 +56,16 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
           placeholder="Cari nama atau divisi…"
           className="text-xs px-3 py-2 border border-gray-200 rounded-lg flex-1 min-w-[180px] focus:outline-none focus:ring-1 focus:ring-emerald-600"
         />
-        <select value={fDept} onChange={(e) => { setFDept(e.target.value); resetPage(); }}
-          className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
-          <option value="all">Semua Divisi</option>
-          {depts.map((d) => <option key={d} value={d}>{d}</option>)}
-        </select>
+        <MultiCheckFilter label="Divisi"
+          options={depts.map((d) => ({ value: d, label: d }))}
+          selected={deptSel} onChange={(s) => { setDeptSel(s); resetPage(); }} />
         {has360 && (
-          <select value={fRated} onChange={(e) => { setFRated(e.target.value as typeof fRated); resetPage(); }}
-            title="Saring berdasarkan kelengkapan penilaian 360° (penilai wajib yang sudah submit)"
-            className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
-            <option value="all">Semua Kelengkapan 360°</option>
-            <option value="complete">Lengkap dinilai (siap review)</option>
-            <option value="incomplete">Belum lengkap</option>
-          </select>
+          <MultiCheckFilter label="Kelengkapan 360°"
+            options={[{ value: 'complete', label: 'Lengkap dinilai (siap review)' }, { value: 'incomplete', label: 'Belum lengkap' }]}
+            selected={ratedSel} onChange={(s) => { setRatedSel(s); resetPage(); }} />
         )}
         {active && (
-          <button type="button" onClick={() => { setQ(''); setFDept('all'); setFRated('all'); resetPage(); }}
+          <button type="button" onClick={() => { setQ(''); setDeptSel(new Set()); setRatedSel(new Set()); resetPage(); }}
             className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
         )}
         <span className="text-[11px] text-gray-500 ml-auto">

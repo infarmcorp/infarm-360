@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { forceComplete, sendReminder, massReminder, sendOnboarding, massOnboarding } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { usePager, Pager } from '@/components/table-controls';
+import { usePager, Pager, MultiCheckFilter } from '@/components/table-controls';
 
 export type Pending = { targetId: string; targetName: string; relation: string; mandatory: boolean };
 export type AssessorRow = {
@@ -17,8 +17,8 @@ export type TargetRow = { id: string; name: string; dept: string; total: number;
 
 export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: AssessorRow[]; targetRows: TargetRow[]; readOnly?: boolean }) {
   const [q, setQ] = useState('');
-  const [dept, setDept] = useState('all');
-  const [status, setStatus] = useState<'all' | 'lengkap' | 'belum'>('all');
+  const [deptSel, setDeptSel] = useState<Set<string>>(new Set());     // kosong = semua divisi
+  const [statusSel, setStatusSel] = useState<Set<string>>(new Set()); // kosong = semua status
   const [expanded, setExpanded] = useState<string | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [confirm, setConfirm] = useState<{ title: string; body: React.ReactNode; onYes: () => void } | null>(null);
@@ -44,10 +44,10 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
 
   const shown = rows.filter((r) => {
     const complete = isComplete(r);
+    const statusKey = complete ? 'lengkap' : 'belum';
     if (q.trim() && !r.name.toLowerCase().includes(q.toLowerCase())) return false;
-    if (dept !== 'all' && r.dept !== dept) return false;
-    if (status === 'lengkap' && !complete) return false;
-    if (status === 'belum' && complete) return false;
+    if (deptSel.size > 0 && !deptSel.has(r.dept)) return false;
+    if (statusSel.size > 0 && !statusSel.has(statusKey)) return false;
     return true;
   });
   // Paginasi 5-baris (komponen bersama) → daftar penilai bisa 100+; batasi DOM per halaman.
@@ -75,15 +75,12 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
       <div className="flex flex-wrap gap-2 items-center">
         <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama penilai…"
           className="text-xs px-3 py-2 border border-gray-200 rounded-lg flex-1 min-w-[160px] focus:outline-none focus:ring-1 focus:ring-emerald-600" />
-        <select value={dept} onChange={(e) => { setDept(e.target.value); setPage(0); }} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
-          <option value="all">Semua Divisi</option>
-          {depts.map((d) => <option key={d} value={d}>{d}</option>)}
-        </select>
-        <select value={status} onChange={(e) => { setStatus(e.target.value as typeof status); setPage(0); }} className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
-          <option value="all">Semua Status</option>
-          <option value="lengkap">Lengkap</option>
-          <option value="belum">Belum Lengkap</option>
-        </select>
+        <MultiCheckFilter label="Divisi"
+          options={depts.map((d) => ({ value: d, label: d }))}
+          selected={deptSel} onChange={(s) => { setDeptSel(s); setPage(0); }} />
+        <MultiCheckFilter label="Status"
+          options={[{ value: 'lengkap', label: 'Lengkap' }, { value: 'belum', label: 'Belum Lengkap' }]}
+          selected={statusSel} onChange={(s) => { setStatusSel(s); setPage(0); }} />
         {!readOnly && (
           <>
             <button type="button" onClick={() => act(massReminder)} disabled={pending}

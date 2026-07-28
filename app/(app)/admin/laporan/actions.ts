@@ -260,6 +260,61 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
   return { ok: true, finalized, skipped };
 }
 
+export type ResyncResult =
+  | { ok: true; resynced: number; skipped: number }
+  | { ok: false; error: string };
+
+/**
+ * "Finalisasi Ulang Laporan Berubah" — sinkronkan `final_score` TERSIMPAN pada laporan yang sudah
+ * `finalized` tetapi skornya ketinggalan (badge "berubah → N": KPI/360°/punishment berubah setelah
+ * finalisasi). Laporan TETAP `finalized` (tak disembunyikan dari pegawai) — hanya angkanya diperbarui
+ * ke Skor Akhir terkini. Ini menyederhanakan alur lama "Kembalikan ke Draf → Finalisasi ulang" jadi
+ * satu klik; ringkasan naratif TIDAK tersentuh (drift murni perubahan angka, bukan narasi).
+ *
+ * Ambang drift = 0.05 (selaras badge "berubah" di tabel). HRD-penuh (Mode Admin) SAJA — sama seperti
+ * finalisasi massal. Idealnya dijalankan SETELAH "Hitung Ulang Skor 360°" agar result_360 mutakhir.
+ */
+export async function resyncDriftedFinals(): Promise<ResyncResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
+  const jar = await cookies();
+  const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
+  if (!(canSection(me, 'laporan') && hrdMode === 'admin')) return { ok: false, error: 'Hanya HRD (Mode Admin) yang dapat finalisasi ulang massal' };
+
+  const { data: ap } = await supabase
+    .from('periods').select('id, has_360, status').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  const { data: finals } = await supabase.from('final_reports')
+    .select('id, employee_id, final_score').eq('period_id', ap.id).eq('status', 'finalized');
+  const list = finals ?? [];
+
+  let resynced = 0, skipped = 0;
+  for (const r of list) {
+    const { final } = await computeFinal(supabase, ap.id, ap.has_360, r.employee_id);
+    if (final == null) { skipped++; continue; }                       // tak bisa dihitung → lewati
+    const stored = r.final_score;
+    if (stored != null && Math.abs(final - stored) < 0.05) continue;   // tak berubah → lewati diam
+    const { error } = await supabase.from('final_reports')
+      .update({ final_score: final, finalized_by: user.id }).eq('id', r.id); // tetap 'finalized'
+    if (error) { skipped++; continue; }
+    resynced++;
+  }
+
+  if (resynced > 0) {
+    await logHrdAction({
+      action: 'report.resync_drift', category: 'laporan',
+      summary: `Finalisasi ulang ${resynced} laporan yang skornya berubah${skipped ? ` (${skipped} dilewati)` : ''}`,
+      meta: { resynced, skipped, period_id: ap.id },
+    });
+  }
+  revalidatePath('/admin/laporan');
+  revalidatePath('/laporan');
+  return { ok: true, resynced, skipped };
+}
+
 /**
  * Simpan ringkasan HRD per aspek (kalibrasi naratif) ke final_reports.content.aspectSummaries.
  * Tidak mengubah status/skor — hanya menulis narasi. Membuat baris draft bila belum ada.

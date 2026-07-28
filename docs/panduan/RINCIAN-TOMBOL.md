@@ -280,9 +280,10 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 
 | Tombol | Fungsi | Peran | Kondisi | Konfirmasi |
 |--------|--------|-------|---------|------------|
-| **Cari + Dropdown Divisi / Kelengkapan 360° / Bersihkan** | Filter baris (klien); filter kelengkapan = penilai WAJIB lengkap | HRD Admin | Filter kelengkapan hanya saat `has_360` | — |
-| **Hitung Ulang Skor 360° (semua)** | `computeResult360` semua pegawai (tanpa pindah ke halaman Bobot) | HRD Admin | Di atas tabel; nonaktif saat busy | — |
-| **⚖ Atur Bobot / ⚑ Flag Kepatuhan** | Pintasan ke `/admin/bobot` & `/admin/kepatuhan` | HRD Admin | Di atas tabel | — |
+| **Cari + Dropdown Divisi / Kelengkapan 360° / Hanya perlu tindakan / Bersihkan** | Filter baris (klien); filter kelengkapan = penilai WAJIB lengkap; "perlu tindakan" sembunyikan laporan Final yang skornya tak berubah | HRD Admin | Filter kelengkapan hanya saat `has_360` | — |
+| **① Hitung Ulang Skor 360°** | `computeResult360` semua pegawai (kokpit "Sinkronkan Skor"; tanpa pindah ke halaman Bobot) | HRD Admin | Di kokpit; nonaktif saat busy | — |
+| **② Finalisasi Ulang Berubah (N)** | `resyncDriftedFinals` — sinkronkan `final_score` tersimpan pada laporan Final yang skornya ketinggalan ("berubah → N"); laporan tetap Final, ringkasan tak berubah | HRD Admin (Mode Admin) | Muncul bila ada laporan berubah (N>0) | **Ya** — ConfirmDialog |
+| **⚖ Atur Bobot / ⚑ Flag Kepatuhan** | Pintasan ke `/admin/bobot` & `/admin/kepatuhan` | HRD Admin | Di kokpit | — |
 | **Tinjau →** (kolom Aksi) | Buka detail `/laporan/{id}` (state-machine ada di detail) | HRD Admin | "KPI kosong" bila KPI belum ada (nama **tidak** bisa diklik lagi) | — |
 
 > Tabel = **kokpit** read-only: kolom KPI ("X/Y bln" amber bila kurang) · 360° ("belum"/"N/A"/

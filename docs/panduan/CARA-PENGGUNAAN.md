@@ -574,9 +574,12 @@ Divisi** & **filter Kelengkapan 360°** — keduanya berupa **centang multi-pili
 centang; kosong = semua). **Detail laporan rinci** dibuka lewat tombol **"Tinjau →"**
 di kolom Aksi — **nama pegawai tidak bisa diklik lagi**.
 
-- Di atas tabel ada **tombol "Hitung Ulang Skor 360° (semua)"** (tak perlu pindah ke halaman Bobot),
-  **chip ringkasan** "⚠ N pegawai: penilaian berubah — perlu hitung ulang", + pintasan **"⚖ Atur Bobot"**
-  & **"⚑ Flag Kepatuhan"**.
+- Di atas tabel ada **kokpit "Sinkronkan Skor"** dengan penjelasan singkat dua keadaan + dua aksi
+  bernomor: **① Hitung Ulang Skor 360°** (tak perlu pindah ke halaman Bobot) dan **② Finalisasi Ulang
+  Berubah (N)** — satu klik menyegarkan **semua** laporan Final yang skornya ketinggalan (badge
+  "berubah → N") tanpa perlu "Kembalikan ke Draf → Finalisasi ulang" satu per satu. Laporan tetap
+  Final & ringkasannya tak berubah — hanya angkanya disegarkan. Plus pintasan **"⚖ Atur Bobot"** &
+  **"⚑ Flag Kepatuhan"**.
 - **Tombol "Finalisasi Semua Ber-ACC (N)"** (di atas Atur Bobot/Flag) — memfinalisasi **sekaligus** semua
   laporan yang **sudah di-ACC** (SPV/Koordinator/Direksi) & masih **Ditinjau**, tanpa membuka satu per satu.
   Ada **konfirmasi** + peringatan bila ada yang Skor 360°-nya **perlu Hitung Ulang** dulu; laporan yang
@@ -594,11 +597,12 @@ di kolom Aksi — **nama pegawai tidak bisa diklik lagi**.
   ringkasan **"N siap review"** — memudahkan HRD memilih siapa yang **datanya sudah cukup** untuk
   difinalisasi. (Pakai sebagai panduan #8: jangan finalisasi sebelum pengisian memadai.)
 
-> **Beda dua istilah penanda skor:**
+> **Beda dua istilah penanda skor (kini masing-masing punya tombol di kokpit "Sinkronkan Skor"):**
 > - **"perlu dihitung ulang"** (badge/chip) = Skor 360° **usang** (penilaian atau koreksi relasi
->   berubah sejak hitung terakhir) → klik **Hitung Ulang Skor 360°**.
+>   berubah sejak hitung terakhir) → klik **① Hitung Ulang Skor 360°**.
 > - **"berubah → N"** = laporan **sudah Final** tetapi skor terkini berbeda dari yang **tersimpan** →
->   **Kembalikan ke Draf lalu Finalisasi ulang** agar pegawai melihat angka terbaru.
+>   klik **② Finalisasi Ulang Berubah** (menyegarkan semua sekaligus; laporan tetap Final). Alternatif
+>   manual per laporan: **Kembalikan ke Draf lalu Finalisasi ulang**.
 
 **Di halaman detail pegawai** (HRD):
 1. **Panel Aksi** (di atas dokumen) — perilakunya **berbasis status** (state-machine) + badge
@@ -861,10 +865,10 @@ keduanya           :  lalu DIKURANGI punishment (Flag Kepatuhan), minimal 0
 | **Pemetaan dihapus** (pasangan sudah dinilai) | Penilaiannya di periode itu ikut terhapus → skor 360° **otomatis dihitung ulang** | (tak perlu aksi) |
 | **KPI diedit** (bulan yang sudah ada) | Wajib isi **Komentar Audit**; bila kosong → ditolak | Simpan Draf laporan → Skor Akhir dihitung ulang dari data terkini |
 | **Punishment diubah** | Skor Akhir **live** berubah | (terbawa otomatis saat simpan/finalisasi) |
-| Data berubah **setelah laporan Final** | `final_score` tersimpan ≠ skor terkini → badge **"berubah → N"** | **Kembalikan ke Draf → Finalisasi ulang** agar pegawai melihat angka terbaru |
+| Data berubah **setelah laporan Final** | `final_score` tersimpan ≠ skor terkini → badge **"berubah → N"** | Klik **② Finalisasi Ulang Berubah** (kokpit Sinkronkan Skor — menyegarkan semua sekaligus) · atau manual **Kembalikan ke Draf → Finalisasi ulang** |
 
 > **Ringkas:** badge **"perlu dihitung ulang"** = Skor 360° (foto) usang → *Hitung Ulang*. Badge
-> **"berubah → N"** = laporan **Final** (foto) usang → *Kembalikan ke Draf lalu Finalisasi ulang*.
+> **"berubah → N"** = laporan **Final** (foto) usang → *② Finalisasi Ulang Berubah* (satu klik) atau *Kembalikan ke Draf lalu Finalisasi ulang*.
 > Selama belum ditekan, pegawai tetap melihat foto lama — itulah sebabnya kedua badge penting
 > diperhatikan sebelum menutup periode.
 

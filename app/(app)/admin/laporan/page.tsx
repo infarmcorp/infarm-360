@@ -7,6 +7,7 @@ import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/l
 import { finalScoreOf } from '@/lib/scoring';
 import { ReportTable, type ReportRow } from './report-table';
 import { Recompute360Button } from './recompute-360-button';
+import { ResyncDriftButton } from './resync-drift-button';
 import { BulkFinalizeButton } from './bulk-finalize-button';
 
 /**
@@ -182,6 +183,12 @@ export default async function AdminLaporanPage() {
   const accReady = shownRows.filter((r) => r.spvAcc && r.status === 'in_review');
   const accReadyCount = accReady.length;
   const accStaleCount = accReady.filter((r) => r.needsRecompute).length;
+  // "berubah → N": laporan sudah Final tapi Skor Akhir tersimpan ≠ Skor Akhir live (KPI/360°/
+  // punishment berubah setelah finalisasi) → perlu finalisasi ulang (langkah ②). Ambang 0.05
+  // selaras badge di tabel. Ini state BERBEDA dari staleCount (Skor 360° usang, langkah ①).
+  const driftCount = shownRows.filter((r) =>
+    r.status === 'finalized' && r.final != null && r.storedFinal != null && Math.abs(r.final - r.storedFinal) >= 0.05,
+  ).length;
 
   return (
     <Shell>
@@ -193,46 +200,43 @@ export default async function AdminLaporanPage() {
         <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
       </div>
 
-      {/* Penanda langkah + kokpit hitung 360° — HANYA HRD penuh (pemegang grant = read-only). */}
+      {/* Kokpit "Sinkronkan Skor" — HANYA HRD penuh (pemegang grant = read-only). Menyatukan dua
+          aksi yang dulu terpisah/membingungkan: ① Hitung Ulang Skor 360° (result_360 usang) dan
+          ② Finalisasi Ulang laporan yang skornya berubah (final_score tersimpan ketinggalan). */}
       {isHrdFull && (
-      <div className="mb-4 space-y-2">
-        {/* Strip alur bernomor — selalu tampil saat 360° aktif. */}
-        {ap.has_360 && (
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-600">
-            <span className="font-bold text-slate-700">Alur Review:</span>
-            <span className="font-semibold px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200">① Hitung Ulang Skor 360°</span>
-            <span aria-hidden className="text-gray-400">→</span>
-            <span className="font-semibold px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200">② Tinjau &amp; susun ringkasan</span>
-            <span aria-hidden className="text-gray-400">→</span>
-            <span className="font-semibold px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200">③ Finalisasi</span>
-          </div>
-        )}
-
-        {/* Banner langkah wajib: 360° aktif tapi ada yang belum/perlu dihitung. */}
-        {ap.has_360 && staleCount > 0 && (
-          <div className="flex items-start gap-2 bg-amber-50 border border-amber-300 rounded-xl p-3 text-[12px] text-amber-900">
-            <span aria-hidden>⚠️</span>
-            <div>
-              <strong>Langkah ①: Hitung Ulang Skor 360° dulu.</strong> Skor 360° hanya diperbarui saat tombol ini ditekan —
-              {neverCount > 0 && <> <strong>{neverCount} pegawai belum pernah dihitung</strong> (Skor Akhir mereka masih 100% KPI).</>}
-              {changedCount > 0 && <> <strong>{changedCount} pegawai perlu dihitung ulang</strong> (penilaian/koreksi berubah sejak hitung terakhir).</>}
-              {' '}Tekan tombol di bawah <strong>sebelum</strong> Tinjau &amp; Finalisasi agar Skor Akhir benar.
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
-          {ap.has_360 && <Recompute360Button />}
-          {ap.has_360 && staleCount === 0 && (
-            <span className="text-[11px] font-semibold text-emerald-700">✓ Skor 360° mutakhir</span>
+      <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2.5">
+        <div className="flex items-center gap-2">
+          <h2 className="text-xs font-extrabold text-slate-700 uppercase tracking-tight">Sinkronkan Skor</h2>
+          {ap.has_360 && staleCount === 0 && driftCount === 0 && (
+            <span className="text-[11px] font-semibold text-emerald-700">✓ semua skor mutakhir</span>
           )}
-          {/* Bulk-finalisasi ditumpuk DI ATAS tombol Bobot/Flag (kolom rata-kanan). */}
-          <div className="flex flex-col items-end gap-2 ml-auto">
-            <BulkFinalizeButton count={accReadyCount} staleCount={accStaleCount} />
-            <div className="flex items-center gap-2">
-              <Link href="/admin/bobot" className="text-[11px] font-bold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-white">⚖ Atur Bobot</Link>
-              <Link href="/admin/kepatuhan" className="text-[11px] font-bold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-white">⚑ Flag Kepatuhan</Link>
-            </div>
+        </div>
+
+        {/* Penjelasan singkat 2 keadaan — mengganti dua badge yang dulu perlu dijelaskan panjang. */}
+        <p className="text-[11px] text-slate-500 leading-relaxed max-w-3xl">
+          Skor hanya diperbarui saat Anda menekannya di sini.
+          {ap.has_360 && <> <strong className="text-amber-700">Perlu hitung</strong> = penilaian 360° berubah sejak terakhir dihitung → tekan <strong>①</strong>.</>}
+          {' '}<strong className="text-amber-700">Berubah → N</strong> = laporan sudah Final tapi angkanya ketinggalan → tekan <strong>②</strong> agar pegawai melihat Skor Akhir terbaru.
+        </p>
+
+        {/* Baris aksi utama: ① Hitung Ulang · ② Finalisasi Ulang Berubah. */}
+        <div className="flex flex-wrap items-center gap-2">
+          {ap.has_360 && <Recompute360Button />}
+          {ap.has_360 && staleCount > 0 && (
+            <span className="text-[11px] text-amber-800 font-semibold">
+              {neverCount > 0 && <>{neverCount} belum pernah dihitung{changedCount > 0 ? ' · ' : ''}</>}
+              {changedCount > 0 && <>{changedCount} perlu dihitung ulang</>}
+            </span>
+          )}
+          <ResyncDriftButton count={driftCount} />
+        </div>
+
+        {/* Baris sekunder: finalisasi massal ber-ACC + pintasan Bobot/Flag. */}
+        <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-slate-200">
+          <BulkFinalizeButton count={accReadyCount} staleCount={accStaleCount} />
+          <div className="flex items-center gap-2 ml-auto">
+            <Link href="/admin/bobot" className="text-[11px] font-bold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-white">⚖ Atur Bobot</Link>
+            <Link href="/admin/kepatuhan" className="text-[11px] font-bold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-white">⚑ Flag Kepatuhan</Link>
           </div>
         </div>
       </div>
@@ -243,8 +247,9 @@ export default async function AdminLaporanPage() {
         <p className="text-[10px] text-gray-500 italic mt-3">
           Klik <strong>Tinjau</strong> untuk membuka & mengelola laporan pegawai (Simpan Draf → Rilis ke SPV →
           Finalisasi) di panel detail. Setelah <strong>Final</strong>, kolom Skor Akhir menampilkan angka
-          tersimpan yang dilihat pegawai; badge <strong>berubah</strong> muncul bila data terkini berbeda
-          (kembalikan ke draf lalu finalisasi ulang untuk memperbarui).
+          tersimpan yang dilihat pegawai; badge <strong>berubah</strong> muncul bila data terkini berbeda —
+          tekan <strong>② Finalisasi Ulang Berubah</strong> di atas untuk menyegarkan semuanya sekaligus
+          (atau kembalikan satu laporan ke draf lalu finalisasi ulang manual).
         </p>
       ) : grantCanFinalize ? (
         <p className="text-[10px] text-gray-500 italic mt-3">

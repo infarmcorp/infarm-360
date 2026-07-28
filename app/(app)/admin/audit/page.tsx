@@ -13,7 +13,7 @@ import { AuditClient, type AuditRow } from './audit-client';
  * ditegakkan di server (`.eq`/`.or ilike`) agar tetap lintas-seluruh-data tanpa
  * mengunduh semuanya. Navigasi "10 berikutnya" lewat ?page= (server fetch baru).
  */
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
 
 /** Tanggal (YYYY-MM-DD) + 1 hari → batas EKSKLUSIF agar seluruh hari `end_date` ikut terhitung. */
 function nextDay(dateStr: string): string {

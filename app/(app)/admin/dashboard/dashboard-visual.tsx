@@ -10,6 +10,7 @@ import { heatColor, HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
 import { TREND_META, type Trend } from '@/lib/trend';
 import { displayName } from '@/lib/employee-name';
 import { SectionHeader } from '../../monitor/section-header';
+import { usePager, Pager } from '@/components/table-controls';
 
 /** Baris pegawai (primitif, serializable) yang dihitung di server. */
 export type Row = {
@@ -701,7 +702,7 @@ function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, has360
 }
 
 /* ───────────────────────── TAB 4 — TABEL ───────────────────────── */
-const TABLE_PAGE = 10;
+const TABLE_PAGE = 5;
 function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
   const [q, setQ] = useState('');
   const [player, setPlayer] = useState<'all' | PlayerClass>('all');
@@ -1114,8 +1115,9 @@ function bandBadge(v: number | null) {
 type LbTone = 'emerald' | 'rose' | 'indigo';
 const lbHead = (tone: LbTone) => tone === 'emerald' ? 'text-emerald-800' : tone === 'indigo' ? 'text-indigo-800' : 'text-rose-700';
 
-/** Baris-baris peringkat (dipakai Leaderboard & LeaderboardToggle) — tanpa kartu pembungkus. */
-function LeaderboardRows({ items, valueOf, tone }: { items: Row[]; valueOf: (r: Row) => number | null; tone: LbTone }) {
+/** Baris-baris peringkat (tanpa kartu pembungkus). `startIndex` = offset peringkat absolut
+ *  (agar #6–#10 tetap benar saat paginasi 5/halaman, bukan reset ke #1 tiap halaman). */
+function LeaderboardRows({ items, valueOf, tone, startIndex = 0 }: { items: Row[]; valueOf: (r: Row) => number | null; tone: LbTone; startIndex?: number }) {
   const head = lbHead(tone);
   const chip = tone === 'emerald' ? 'text-emerald-800 bg-emerald-50 border-emerald-150'
     : tone === 'indigo' ? 'text-indigo-800 bg-indigo-50 border-indigo-150' : 'text-rose-800 bg-rose-50 border-rose-150';
@@ -1128,7 +1130,7 @@ function LeaderboardRows({ items, valueOf, tone }: { items: Row[]; valueOf: (r: 
         return (
           <div key={e.id} className={`p-3 rounded-xl border flex items-center justify-between gap-4 ${rowBg}`}>
             <div className="flex items-center gap-3">
-              <span className={`font-mono text-xs font-black w-5 ${head}`}>#{idx + 1}</span>
+              <span className={`font-mono text-xs font-black w-5 ${head}`}>#{startIndex + idx + 1}</span>
               <div><span className="font-bold text-gray-800 text-xs block" title={e.name}>{displayName(e.nickname, e.name)}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
             </div>
             <div className="flex items-center gap-2.5">
@@ -1153,22 +1155,27 @@ function LeaderboardToggle({ metric, top, bottom, valueOf, topTone = 'emerald' }
   const [side, setSide] = useState<'top' | 'bottom'>('top');
   const isTop = side === 'top';
   const tone: LbTone = isTop ? topTone : 'rose';
+  // Tampil 5/halaman + tombol Sebelumnya/Berikutnya (klik "selanjutnya" utk peringkat #6–#10).
+  const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(isTop ? top : bottom);
   const seg = (active: boolean) => `px-2.5 py-1 text-[10px] font-bold transition-colors ${active ? 'bg-slate-800 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`;
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
-      <div className="flex items-center justify-between gap-2 mb-1">
-        <h3 className={`text-xs font-bold tracking-wider uppercase ${lbHead(tone)}`}>
-          {isTop ? '🏆' : '⚠️'} {metric} {isTop ? 'Tertinggi' : 'Terendah'}
-        </h3>
-        <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden shrink-0" role="tablist" aria-label={`Pilih tampilan ${metric}`}>
-          <button type="button" role="tab" aria-selected={isTop} onClick={() => setSide('top')} className={seg(isTop)}>🏆 Teratas</button>
-          <button type="button" role="tab" aria-selected={!isTop} onClick={() => setSide('bottom')} className={seg(!isTop)}>⚠️ Terbawah</button>
+    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs space-y-4">
+      <div>
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <h3 className={`text-xs font-bold tracking-wider uppercase ${lbHead(tone)}`}>
+            {isTop ? '🏆' : '⚠️'} {metric} {isTop ? 'Tertinggi' : 'Terendah'}
+          </h3>
+          <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden shrink-0" role="tablist" aria-label={`Pilih tampilan ${metric}`}>
+            <button type="button" role="tab" aria-selected={isTop} onClick={() => { setSide('top'); setPage(0); }} className={seg(isTop)}>🏆 Teratas</button>
+            <button type="button" role="tab" aria-selected={!isTop} onClick={() => { setSide('bottom'); setPage(0); }} className={seg(!isTop)}>⚠️ Terbawah</button>
+          </div>
         </div>
+        <p className="text-[11px] text-gray-500 border-b border-gray-100 pb-2.5">
+          Pegawai dengan {metric} {isTop ? 'tertinggi.' : 'terendah (prioritas mentoring/coaching).'}
+        </p>
       </div>
-      <p className="text-[11px] text-gray-500 mb-4 border-b border-gray-100 pb-2.5">
-        10 pegawai dengan {metric} {isTop ? 'tertinggi.' : 'terendah (prioritas mentoring/coaching).'}
-      </p>
-      <LeaderboardRows items={isTop ? top : bottom} valueOf={valueOf} tone={tone} />
+      <LeaderboardRows items={shown} valueOf={valueOf} tone={tone} startIndex={rangeFrom > 0 ? rangeFrom - 1 : 0} />
+      <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
     </div>
   );
 }

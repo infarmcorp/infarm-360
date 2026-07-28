@@ -152,12 +152,12 @@ export function AuditClient({
       <div className="p-4 border-t border-gray-100 flex items-center justify-between gap-2">
         <button type="button" disabled={!hasPrev} onClick={() => go({ page: page - 1 })}
           className="text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
-          ← 10 sebelumnya
+          ← {pageSize} sebelumnya
         </button>
         <span className="text-[11px] text-gray-500">Halaman {page + 1} dari {totalPages}</span>
         <button type="button" disabled={!hasNext} onClick={() => go({ page: page + 1 })}
           className="text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
-          10 berikutnya →
+          {pageSize} berikutnya →
         </button>
       </div>
     </div>

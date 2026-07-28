@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { ReportStatus } from '@/lib/database.types';
-import { usePager, Pager, MultiCheckFilter } from '@/components/table-controls';
+import { usePager, Pager, MultiCheckFilter, CheckboxFilter } from '@/components/table-controls';
 
 export type ReportRow = {
   id: string; name: string; dept: string;
@@ -23,6 +23,11 @@ export type ReportRow = {
 /** Lengkap dinilai = semua penilai WAJIB sudah submit (≥1 penilai ditugaskan). */
 const isRatedComplete = (r: ReportRow) => r.ratedTotal > 0 && r.ratedDone >= r.ratedTotal;
 
+/** Skor tersimpan (Final) berbeda dari skor live → "berubah → N", perlu finalisasi ulang. */
+const hasDrift = (r: ReportRow) => r.status === 'finalized' && r.final != null && r.storedFinal != null && Math.abs(r.final - r.storedFinal) >= 0.05;
+/** "Selesai" (tak perlu tindakan) = sudah Final, skor tak berubah, & 360° tak perlu dihitung ulang. */
+const isDone = (r: ReportRow) => r.status === 'finalized' && !r.needsRecompute && !hasDrift(r);
+
 /** Tabel Review Hasil Akhir + pencarian, filter Divisi & Kelengkapan 360° (client).
  * `hrefBase` = basis tautan "Tinjau" (default '/laporan' untuk HRD; '/review-hasil' utk Direksi read-only).
  * `readOnly` = pemegang grant lihat-saja: sembunyikan tautan "Tinjau" (tanpa akses detail; Tahap 1). */
@@ -30,6 +35,9 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
   const [q, setQ] = useState('');
   const [deptSel, setDeptSel] = useState<Set<string>>(new Set());   // kosong = semua divisi
   const [ratedSel, setRatedSel] = useState<Set<string>>(new Set()); // kosong = semua kelengkapan
+  // Default (HRD): fokus ke yang PERLU TINDAKAN — sembunyikan laporan yang sudah selesai (Final &
+  // skor tak berubah). Read-only (Direksi) → tampilkan semua (tak ada yang perlu ditindak).
+  const [onlyActionable, setOnlyActionable] = useState(!readOnly);
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -37,18 +45,40 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
       const ratedKey = isRatedComplete(r) ? 'complete' : 'incomplete';
       return (deptSel.size === 0 || deptSel.has(r.dept)) &&
         (ratedSel.size === 0 || ratedSel.has(ratedKey)) &&
+        (!onlyActionable || !isDone(r)) &&
         (!needle || `${r.name} ${r.dept}`.toLowerCase().includes(needle));
     });
-  }, [rows, q, deptSel, ratedSel]);
+  }, [rows, q, deptSel, ratedSel, onlyActionable]);
 
   const active = q.trim() !== '' || deptSel.size > 0 || ratedSel.size > 0;
   const readyCount = useMemo(() => rows.filter(isRatedComplete).length, [rows]);
+  // Ringkasan status (ringkasan-dulu) + jumlah "perlu tindakan" untuk toggle fokus.
+  const sum = useMemo(() => {
+    let draft = 0, review = 0, final = 0, done = 0;
+    for (const r of rows) {
+      if (r.status === 'finalized') final++;
+      else if (r.status === 'in_review') review++;
+      else if (r.status === 'draft') draft++;
+      if (isDone(r)) done++;
+    }
+    return { draft, review, final, actionable: rows.length - done };
+  }, [rows]);
   // Paginasi 5-baris (komponen bersama) → daftar bisa 100+; dipakai HRD finalisasi & Direksi review.
   const { page, setPage, pageCount, shown: paged, total, rangeFrom, rangeTo } = usePager(shown);
   const resetPage = () => setPage(0);
 
   return (
     <div className="space-y-3">
+      {/* Ringkasan-dulu: sebaran status sebelum tabel. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
+        <span><strong className="text-slate-800 font-mono">{rows.length}</strong> pegawai</span>
+        {!readOnly && <span className="text-amber-700"><strong className="font-mono">{sum.actionable}</strong> perlu tindakan</span>}
+        <span className="text-emerald-700"><strong className="font-mono">{sum.final}</strong> final</span>
+        {sum.review > 0 && <span className="text-indigo-700"><strong className="font-mono">{sum.review}</strong> ditinjau</span>}
+        {sum.draft > 0 && <span><strong className="font-mono">{sum.draft}</strong> draf</span>}
+        {has360 && <span><strong className="font-mono">{readyCount}</strong> siap review</span>}
+      </div>
+
       <div className="flex flex-wrap gap-2 items-center">
         <input
           value={q}
@@ -64,14 +94,20 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
             options={[{ value: 'complete', label: 'Lengkap dinilai (siap review)' }, { value: 'incomplete', label: 'Belum lengkap' }]}
             selected={ratedSel} onChange={(s) => { setRatedSel(s); resetPage(); }} />
         )}
+        {!readOnly && (
+          <CheckboxFilter checked={onlyActionable} onChange={(v) => { setOnlyActionable(v); resetPage(); }} label="Hanya perlu tindakan" count={sum.actionable} />
+        )}
         {active && (
           <button type="button" onClick={() => { setQ(''); setDeptSel(new Set()); setRatedSel(new Set()); resetPage(); }}
             className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
         )}
         <span className="text-[11px] text-gray-500 ml-auto">
-          {shown.length} dari {rows.length} pegawai{has360 ? ` · ${readyCount} siap review` : ''}
+          {shown.length} dari {rows.length} pegawai
         </span>
       </div>
+      {!readOnly && onlyActionable && rows.length - sum.actionable > 0 && (
+        <p className="text-[11px] text-gray-500 italic">{rows.length - sum.actionable} laporan selesai (Final) disembunyikan — hilangkan centang <strong>“Hanya perlu tindakan”</strong> untuk melihat semua.</p>
+      )}
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm min-w-[820px]">

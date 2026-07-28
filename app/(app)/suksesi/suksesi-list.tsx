@@ -21,26 +21,50 @@ const STATUS_BADGE: Record<string, { t: string; c: string }> = {
   rejected: { t: 'Ditolak', c: 'bg-rose-100 text-rose-700' },
 };
 
+/** "Perlu perhatian" = kandidat (Skor Akhir ≥ 90) ATAU sudah punya rencana berjalan (agar rencana
+ *  yang sedang diproses tak ikut tersembunyi saat fokus). */
+const isActionable = (r: SuksesiRow) => (r.final != null && r.final >= 90) || r.plan != null;
+
 export function SuksesiList({ rows }: { rows: SuksesiRow[] }) {
   const [q, setQ] = useState('');
-  const [onlyCandidate, setOnlyCandidate] = useState(false);
+  const [onlyActionable, setOnlyActionable] = useState(true); // default fokus ke yang perlu perhatian
 
   const candidateCount = useMemo(() => rows.filter((r) => r.final != null && r.final >= 90).length, [rows]);
+  const actionableCount = useMemo(() => rows.filter(isActionable).length, [rows]);
+  // Ringkasan status rencana (ACC Direksi) untuk baris ringkasan-dulu.
+  const stat = useMemo(() => {
+    let submitted = 0, approved = 0;
+    for (const r of rows) { if (r.plan?.status === 'submitted') submitted++; else if (r.plan?.status === 'approved') approved++; }
+    return { submitted, approved };
+  }, [rows]);
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase();
     return rows.filter((r) =>
-      (!onlyCandidate || (r.final != null && r.final >= 90)) &&
+      (!onlyActionable || isActionable(r)) &&
       (!t || `${r.name} ${r.dept}`.toLowerCase().includes(t)));
-  }, [rows, q, onlyCandidate]);
+  }, [rows, q, onlyActionable]);
   const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(filtered);
+  const hiddenCount = rows.length - actionableCount;
 
   return (
     <div className="space-y-3">
+      {/* Ringkasan-dulu: gambaran cepat sebelum daftar. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
+        <span><strong className="text-slate-800 font-mono">{rows.length}</strong> pegawai</span>
+        <span><strong className="text-emerald-700 font-mono">{candidateCount}</strong> kandidat (≥90)</span>
+        {stat.submitted > 0 && <span><strong className="text-amber-700 font-mono">{stat.submitted}</strong> menunggu ACC Direksi</span>}
+        <span><strong className="text-emerald-700 font-mono">{stat.approved}</strong> disetujui</span>
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama atau divisi…"
           className="text-xs px-3 py-2 border border-gray-200 rounded-lg flex-1 min-w-[180px] focus:outline-none focus:ring-1 focus:ring-emerald-600" />
-        <CheckboxFilter checked={onlyCandidate} onChange={(v) => { setOnlyCandidate(v); setPage(0); }} label="Hanya kandidat (≥ 90)" count={candidateCount} />
+        <CheckboxFilter checked={onlyActionable} onChange={(v) => { setOnlyActionable(v); setPage(0); }} label="Fokus (kandidat & rencana berjalan)" count={actionableCount} />
       </div>
+
+      {onlyActionable && hiddenCount > 0 && (
+        <p className="text-[11px] text-gray-500 italic">{hiddenCount} pegawai lain disembunyikan — hilangkan centang <strong>“Fokus”</strong> untuk melihat semua.</p>
+      )}
 
       {filtered.length === 0 ? (
         <p className="text-sm text-gray-500">Tidak ada pegawai sesuai filter.</p>

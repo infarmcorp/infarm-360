@@ -18,7 +18,9 @@ export type TargetRow = { id: string; name: string; dept: string; total: number;
 export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: AssessorRow[]; targetRows: TargetRow[]; readOnly?: boolean }) {
   const [q, setQ] = useState('');
   const [deptSel, setDeptSel] = useState<Set<string>>(new Set());     // kosong = semua divisi
-  const [statusSel, setStatusSel] = useState<Set<string>>(new Set()); // kosong = semua status
+  // Default: hanya penilai BELUM lengkap (perlu tindakan) → halaman fokus. Ubah/hapus filter Status
+  // untuk melihat yang sudah lengkap. (kosong = semua status)
+  const [statusSel, setStatusSel] = useState<Set<string>>(new Set(['belum']));
   const [expanded, setExpanded] = useState<string | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [confirm, setConfirm] = useState<{ title: string; body: React.ReactNode; onYes: () => void } | null>(null);
@@ -107,9 +109,21 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
       </div>
       {toast && <p className={`text-xs font-semibold ${toast.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{toast.text}</p>}
 
+      {/* Catatan tampilan bawaan: fokus ke yang perlu tindakan. */}
+      {statusSel.size === 1 && statusSel.has('belum') && (
+        <p className="text-[11px] text-gray-500 italic">
+          Menampilkan penilai yang <strong>belum lengkap</strong> (perlu tindakan). Ubah filter <strong>Status</strong> untuk melihat semua.
+        </p>
+      )}
+
       {/* Rows (per penilai) */}
       <div className="space-y-2">
-        {shown.length === 0 && <p className="text-sm text-gray-500">Tidak ada penilai sesuai filter.</p>}
+        {shown.length === 0 && (
+          <p className="text-sm text-gray-500">
+            {stats.pending === 0 ? '✅ Semua penilai sudah lengkap (wajib).' : 'Tidak ada penilai sesuai filter.'}
+            <span className="block text-[11px] mt-0.5">Ubah filter <strong>Status</strong> (mis. tambahkan “Lengkap”) untuk melihat penilai lain.</span>
+          </p>
+        )}
         {paged.map((r) => {
           const complete = isComplete(r);
           const pct = r.mandatoryTotal ? Math.round((r.mandatoryDone / r.mandatoryTotal) * 100) : 100;

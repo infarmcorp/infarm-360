@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+/*
+ * Dropdown <select> native SERAGAM — samakan panah dengan komponen SearchableSelect
+ * ("Nama Pegawai"): ganti panah bawaan browser (hitam pekat, beda tiap OS) dengan chevron
+ * abu-abu (lucide ChevronDown, #6b7280) di kanan. Berlaku ke SELURUH <select> aplikasi agar
+ * simetris. Box (border/padding/rounded) tetap dari className masing-masing; hanya panah +
+ * jarak kanan yang diseragamkan. `select:not([multiple])` agar multi-select (bila ada) tak
+ * terpengaruh. Specificity `select.__` cukup untuk menang atas padding-right utilitas Tailwind.
+ */
+select:not([multiple]) {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 1rem;
+  padding-right: 2.25rem;
+}
+select:not([multiple])::-ms-expand { display: none; }
+
 /* Cetak / Unduh PDF: sembunyikan kerangka aplikasi, tampilkan hanya dokumen. */
 @media print {
   .app-sidebar,

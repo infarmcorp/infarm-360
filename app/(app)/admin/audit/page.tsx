@@ -13,14 +13,21 @@ import { AuditClient, type AuditRow } from './audit-client';
  * ditegakkan di server (`.eq`/`.or ilike`) agar tetap lintas-seluruh-data tanpa
  * mengunduh semuanya. Navigasi "10 berikutnya" lewat ?page= (server fetch baru).
  */
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 5;
+
+/** Tanggal (YYYY-MM-DD) + 1 hari → batas EKSKLUSIF agar seluruh hari `end_date` ikut terhitung. */
+function nextDay(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
 
 export default async function AuditPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; cat?: string; q?: string }>;
+  searchParams: Promise<{ page?: string; cat?: string; q?: string; period?: string }>;
 }) {
-  const { page: pageParam, cat, q } = await searchParams;
+  const { page: pageParam, cat, q, period } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -41,10 +48,21 @@ export default async function AuditPage({
   // Sanitasi kata kunci: buang karakter khusus grammar PostgREST (.or) agar aman disisipkan.
   const needle = (q ?? '').trim().replace(/[,()*:%\\]/g, ' ').trim();
 
+  // Daftar periode untuk dropdown filter (terbaru dulu). Filter periode = penyaringan TAMPILAN
+  // by rentang tanggal periode (created_at ∈ [start_date, end_date]) — log tetap lengkap lintas
+  // waktu (tak dihapus); ini hanya membatasi yang ditampilkan agar "periode baru = log terlihat fresh".
+  const { data: periods } = await supabase
+    .from('periods').select('id, label, start_date, end_date').order('start_date', { ascending: false });
+  const periodParam = period ?? 'all';
+  const selPeriod = periodParam !== 'all' ? (periods ?? []).find((p) => p.id === periodParam) ?? null : null;
+
   let query = supabase
     .from('hrd_audit_log')
     .select('id, actor_name, action, category, summary, target_label, created_at', { count: 'exact' });
   if (category !== 'all') query = query.eq('category', category);
+  if (selPeriod?.start_date && selPeriod?.end_date) {
+    query = query.gte('created_at', selPeriod.start_date).lt('created_at', nextDay(selPeriod.end_date));
+  }
   if (needle) {
     query = query.or(
       `summary.ilike.*${needle}*,actor_name.ilike.*${needle}*,target_label.ilike.*${needle}*,action.ilike.*${needle}*`,
@@ -80,6 +98,8 @@ export default async function AuditPage({
         total={count ?? 0}
         cat={category}
         q={q ?? ''}
+        period={periodParam}
+        periods={(periods ?? []).map((p) => ({ id: p.id, label: p.label }))}
       />
     </main>
   );

@@ -10,6 +10,7 @@ import { heatColor, HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
 import { TREND_META, type Trend } from '@/lib/trend';
 import { displayName } from '@/lib/employee-name';
 import { SectionHeader } from '../../monitor/section-header';
+import { usePager, Pager } from '@/components/table-controls';
 
 /** Baris pegawai (primitif, serializable) yang dihitung di server. */
 export type Row = {
@@ -400,39 +401,8 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
       {/* Sebaran KPI × 360° (scatter kuadran) — lengkapi 4-Box: lihat spread & outlier. */}
       {has360 && <ScatterKpi360 rows={scored} />}
 
-      {/* Top / bottom */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card title="🏆 Skor Akhir Tertinggi" tone="emerald">
-          <p className="text-[11px] text-gray-500 mb-2 -mt-1">10 pegawai dengan <strong>Skor Akhir</strong> tertinggi.</p>
-          <div className="divide-y divide-gray-100">
-            {top.length === 0 && <p className="text-xs text-gray-500 italic py-2">Belum ada Skor Akhir.</p>}
-            {top.map((e, idx) => (
-              <div key={e.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-xs font-bold text-emerald-800 w-5">#{idx + 1}</span>
-                  <div><span className="font-bold text-gray-800 block text-xs" title={e.name}>{displayName(e.nickname, e.name)}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
-                </div>
-                <span className="font-mono font-extrabold text-sm text-emerald-800">{e.final?.toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-        <Card title="⚠️ Skor Akhir Terendah" tone="rose">
-          <p className="text-[11px] text-gray-500 mb-2 -mt-1">10 pegawai dengan <strong>Skor Akhir</strong> terendah (prioritas mentoring/coaching).</p>
-          <div className="divide-y divide-gray-100">
-            {bottom.length === 0 && <p className="text-xs text-gray-500 italic py-2">Belum ada Skor Akhir.</p>}
-            {bottom.map((e) => (
-              <div key={e.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-rose-50 text-rose-800 font-bold flex items-center justify-center text-[11px]">{displayName(e.nickname, e.name).substring(0, 2)}</div>
-                  <div><span className="font-bold text-gray-800 block text-xs" title={e.name}>{displayName(e.nickname, e.name)}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
-                </div>
-                <span className="font-mono font-extrabold text-sm text-rose-700">{e.final?.toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
+      {/* Top / bottom — satu kartu, toggle Teratas ↔ Terbawah */}
+      <LeaderboardToggle metric="Skor Akhir" top={top} bottom={bottom} valueOf={(r) => r.final} />
     </div>
   );
 }
@@ -653,10 +623,7 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
 
       <SectionHeader label="Individu" hint="peringkat pegawai" tone="slate" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Leaderboard title="🏆 Skor KPI Tertinggi" subtitle="10 pegawai dengan rerata KPI tertinggi." tone="emerald" items={top} valueOf={(r) => r.kpiAvg} />
-        <Leaderboard title="⚠️ Skor KPI Terendah" subtitle="10 pegawai dengan rerata KPI terendah." tone="rose" items={low} valueOf={(r) => r.kpiAvg} />
-      </div>
+      <LeaderboardToggle metric="Skor KPI" top={top} bottom={low} valueOf={(r) => r.kpiAvg} />
     </div>
   );
 }
@@ -729,16 +696,13 @@ function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, has360
 
       <SectionHeader label="Individu" hint="peringkat pegawai" tone="slate" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Leaderboard title="🏆 Skor 360° Tertinggi" subtitle="10 pegawai dengan Skor 360° tertinggi." tone="indigo" items={ranked.slice(0, 10)} valueOf={(r) => r.s360} />
-        <Leaderboard title="⚠️ Skor 360° Terendah" subtitle="10 pegawai dengan Skor 360° terendah." tone="rose" items={[...ranked].reverse().slice(0, 10)} valueOf={(r) => r.s360} />
-      </div>
+      <LeaderboardToggle metric="Skor 360°" top={ranked.slice(0, 10)} bottom={[...ranked].reverse().slice(0, 10)} valueOf={(r) => r.s360} topTone="indigo" />
     </div>
   );
 }
 
 /* ───────────────────────── TAB 4 — TABEL ───────────────────────── */
-const TABLE_PAGE = 10;
+const TABLE_PAGE = 5;
 function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
   const [q, setQ] = useState('');
   const [player, setPlayer] = useState<'all' | PlayerClass>('all');
@@ -1148,33 +1112,70 @@ function bandBadge(v: number | null) {
   return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cls}`}>{perfLabelOf(v)}</span>;
 }
 
-function Leaderboard({ title, subtitle, tone, items, valueOf }: { title: string; subtitle?: string; tone: 'emerald' | 'rose' | 'indigo'; items: Row[]; valueOf: (r: Row) => number | null }) {
-  const head = tone === 'emerald' ? 'text-emerald-800' : tone === 'indigo' ? 'text-indigo-800' : 'text-rose-700';
+type LbTone = 'emerald' | 'rose' | 'indigo';
+const lbHead = (tone: LbTone) => tone === 'emerald' ? 'text-emerald-800' : tone === 'indigo' ? 'text-indigo-800' : 'text-rose-700';
+
+/** Baris-baris peringkat (tanpa kartu pembungkus). `startIndex` = offset peringkat absolut
+ *  (agar #6–#10 tetap benar saat paginasi 5/halaman, bukan reset ke #1 tiap halaman). */
+function LeaderboardRows({ items, valueOf, tone, startIndex = 0 }: { items: Row[]; valueOf: (r: Row) => number | null; tone: LbTone; startIndex?: number }) {
+  const head = lbHead(tone);
   const chip = tone === 'emerald' ? 'text-emerald-800 bg-emerald-50 border-emerald-150'
     : tone === 'indigo' ? 'text-indigo-800 bg-indigo-50 border-indigo-150' : 'text-rose-800 bg-rose-50 border-rose-150';
   const rowBg = tone === 'rose' ? 'bg-rose-50/10 border-rose-100 border-dashed' : tone === 'indigo' ? 'bg-indigo-50/20 border-indigo-100' : 'bg-emerald-50/20 border-emerald-100';
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
-      <h3 className={`text-xs font-bold tracking-wider uppercase ${subtitle ? 'mb-1' : 'mb-4 border-b border-gray-100 pb-2.5'} ${head}`}>{title}</h3>
-      {subtitle && <p className="text-[11px] text-gray-500 mb-4 border-b border-gray-100 pb-2.5">{subtitle}</p>}
-      <div className="space-y-3">
-        {items.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada data.</p>}
-        {items.map((e, idx) => {
-          const v = valueOf(e);
-          return (
-            <div key={e.id} className={`p-3 rounded-xl border flex items-center justify-between gap-4 ${rowBg}`}>
-              <div className="flex items-center gap-3">
-                <span className={`font-mono text-xs font-black w-5 ${head}`}>#{idx + 1}</span>
-                <div><span className="font-bold text-gray-800 text-xs block" title={e.name}>{displayName(e.nickname, e.name)}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <span className={`font-mono font-black text-xs px-2 py-1 rounded border ${chip}`}>{v != null ? v.toFixed(2) : '—'}</span>
-                {bandBadge(v)}
-              </div>
+    <div className="space-y-3">
+      {items.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada data.</p>}
+      {items.map((e, idx) => {
+        const v = valueOf(e);
+        return (
+          <div key={e.id} className={`p-3 rounded-xl border flex items-center justify-between gap-4 ${rowBg}`}>
+            <div className="flex items-center gap-3">
+              <span className={`font-mono text-xs font-black w-5 ${head}`}>#{startIndex + idx + 1}</span>
+              <div><span className="font-bold text-gray-800 text-xs block" title={e.name}>{displayName(e.nickname, e.name)}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
             </div>
-          );
-        })}
+            <div className="flex items-center gap-2.5">
+              <span className={`font-mono font-black text-xs px-2 py-1 rounded border ${chip}`}>{v != null ? v.toFixed(2) : '—'}</span>
+              {bandBadge(v)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Peringkat SATU kartu dengan toggle Teratas ↔ Terbawah (menggantikan pasangan berdampingan).
+ * Default "Teratas". `topTone` = warna sisi teratas (emerald KPI/Skor Akhir · indigo 360°);
+ * sisi terbawah selalu rose.
+ */
+function LeaderboardToggle({ metric, top, bottom, valueOf, topTone = 'emerald' }: {
+  metric: string; top: Row[]; bottom: Row[]; valueOf: (r: Row) => number | null; topTone?: 'emerald' | 'indigo';
+}) {
+  const [side, setSide] = useState<'top' | 'bottom'>('top');
+  const isTop = side === 'top';
+  const tone: LbTone = isTop ? topTone : 'rose';
+  // Tampil 5/halaman + tombol Sebelumnya/Berikutnya (klik "selanjutnya" utk peringkat #6–#10).
+  const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(isTop ? top : bottom);
+  const seg = (active: boolean) => `px-2.5 py-1 text-[10px] font-bold transition-colors ${active ? 'bg-slate-800 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`;
+  return (
+    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs space-y-4">
+      <div>
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <h3 className={`text-xs font-bold tracking-wider uppercase ${lbHead(tone)}`}>
+            {isTop ? '🏆' : '⚠️'} {metric} {isTop ? 'Tertinggi' : 'Terendah'}
+          </h3>
+          <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden shrink-0" role="tablist" aria-label={`Pilih tampilan ${metric}`}>
+            <button type="button" role="tab" aria-selected={isTop} onClick={() => { setSide('top'); setPage(0); }} className={seg(isTop)}>🏆 Teratas</button>
+            <button type="button" role="tab" aria-selected={!isTop} onClick={() => { setSide('bottom'); setPage(0); }} className={seg(!isTop)}>⚠️ Terbawah</button>
+          </div>
+        </div>
+        <p className="text-[11px] text-gray-500 border-b border-gray-100 pb-2.5">
+          Pegawai dengan {metric} {isTop ? 'tertinggi.' : 'terendah (prioritas mentoring/coaching).'}
+        </p>
       </div>
+      <LeaderboardRows items={shown} valueOf={valueOf} tone={tone} startIndex={rangeFrom > 0 ? rangeFrom - 1 : 0} />
+      <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
     </div>
   );
 }

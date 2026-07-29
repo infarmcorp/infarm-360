@@ -186,14 +186,31 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **Buat Pegawai** | `createEmployee` | HRD Admin | Mode tambah; nonaktif saat pending/duplikat | — |
 | **Simpan Perubahan** | `updateEmployee` | HRD Admin | Mode edit; nonaktif saat pending/duplikat | — |
 | **Checkbox Penilai eksternal** | Tandai eksternal (hanya menilai) | HRD Admin | Form tambah/edit | — |
+| **Nama Panggilan (opsional)** | Set `nickname` (maks. 30 char) — dipakai di tampilan padat | HRD Admin | Form tambah/edit | — |
 | **Ubah** (per baris) | Buka form terisi | HRD Admin | Nonaktif saat pending | — |
 | **Reset sandi** (per baris) | `resetPassword` (set sandi baru) | HRD Admin | Nonaktif saat pending | **Ya** — ConfirmDialog "Reset sandi — {nama}" (+ tombol Acak) |
 | **Nonaktifkan / Aktifkan** | `setEmployeeActive` (kunci/buka login) | HRD Admin | Nonaktif saat pending | — (langsung) |
-| **Beri / Cabut izin HRD Admin** (🛡️) | `setHrdAdmin` (grant/revoke) | HRD Admin | **Grant hanya utk pegawai divisi HRD** & role bukan direksi/hrd; **cabut selalu boleh** | — (langsung) |
-| **Beri / Cabut Peninjau Lintas Divisi** (👁️) | `setCrossReviewer` (grant/revoke) | HRD Admin | **Grant hanya utk pegawai divisi HRD**; **cabut selalu boleh** | — (langsung) |
-| **Beri / Cabut Koordinator** (👥) | `setCoordinator` (grant/revoke; cabut ikut hapus `coordinator_team_members`) | HRD Admin | Grant utk pegawai (Employee) yang membawahi beberapa pegawai | — (langsung) |
-| **Tim Koordinasi** (dialog) | `setCoordinatorTeam` — pilih daftar pegawai naungan koordinator | HRD Admin | Hanya bila pegawai sudah ber-grant Koordinator; tak boleh menaungi diri sendiri | — |
 | **Cari + Dropdown Peran/Divisi/Status** | Filter tabel | HRD Admin | Selalu | — |
+
+> **Tombol grant PINDAH ke Manajemen Akses (2026-07-20).** Izin HRD Admin, Koordinator, Tim
+> Koordinasi, batas akses rekan HRD, & akses halaman berlingkup **tidak lagi** di Kelola Pegawai —
+> lihat tabel **Manajemen Akses** di bawah.
+
+### Manajemen Akses (`/admin/akses`) — HRD penuh saja
+
+| Tombol | Fungsi | Peran | Kondisi | Konfirmasi |
+|--------|--------|-------|---------|------------|
+| **Pilih penerima** (pegawai / peran / halaman) | Langkah 1 alur "penerima-dulu" | HRD penuh | Selalu | — |
+| **Simpan grant halaman** (Panel Lingkup & Izin) | `setPageGrant` — halaman + lingkup(multi) + izin 3-tingkat | HRD penuh | Minimal 1 lingkup dipilih | — (inline) |
+| **Beri akses ke PERAN** | `setPageGrantForRole` — materialisasi ke anggota peran saat ini | HRD penuh | Ada anggota peran | **Kondisional** — konfirmasi bila izin Finalisasi |
+| **Badge izin (👁 Lihat / ✎ Meringkas / ✎ Finalisasi)** | `setPageGrant` — putar tingkat izin | HRD penuh | Halaman jenis 'administrator' (Review) | — |
+| **Beri / Cabut Izin HRD Admin** | `setHrdAdmin` | HRD penuh | **Grant hanya divisi HRD**; cabut selalu boleh | — (langsung) |
+| **Atur Akses** (batas rekan HRD) | `setHrdSections` — subset katalog halaman admin | HRD penuh | Pemegang izin HRD; tak bisa akun sendiri | — |
+| **Beri / Cabut Koordinator** | `setCoordinator` (cabut ikut hapus `coordinator_team_members`) | HRD penuh | Pegawai (Employee) | — (langsung) |
+| **Tim Koordinasi** (dialog) | `setCoordinatorTeam` | HRD penuh | Sudah ber-grant Koordinator; tak boleh menaungi diri sendiri | — |
+| **Cabut satu grant** | `removePageGrant` | HRD penuh | Reversibel | — (langsung) |
+| **Cabut massal (halaman / pegawai)** | `removePageGrantForAll` / `removeAllPageGrantsForEmployee` | HRD penuh | Ada pemegang | **Ya** — ConfirmDialog |
+| **Tandai sudah ditinjau** (Pegawai Baru) | `markAccessReviewed` | HRD penuh | Pegawai baru ≤30 hari belum ditinjau | — (langsung) |
 
 ### Kelola Siklus Periode (`/admin/periode`)
 
@@ -263,9 +280,10 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 
 | Tombol | Fungsi | Peran | Kondisi | Konfirmasi |
 |--------|--------|-------|---------|------------|
-| **Cari + Dropdown Divisi / Kelengkapan 360° / Bersihkan** | Filter baris (klien); filter kelengkapan = penilai WAJIB lengkap | HRD Admin | Filter kelengkapan hanya saat `has_360` | — |
-| **Hitung Ulang Skor 360° (semua)** | `computeResult360` semua pegawai (tanpa pindah ke halaman Bobot) | HRD Admin | Di atas tabel; nonaktif saat busy | — |
-| **⚖ Atur Bobot / ⚑ Flag Kepatuhan** | Pintasan ke `/admin/bobot` & `/admin/kepatuhan` | HRD Admin | Di atas tabel | — |
+| **Cari + Dropdown Divisi / Kelengkapan 360° / Hanya perlu tindakan / Bersihkan** | Filter baris (klien); filter kelengkapan = penilai WAJIB lengkap; "perlu tindakan" sembunyikan laporan Final yang skornya tak berubah | HRD Admin | Filter kelengkapan hanya saat `has_360` | — |
+| **① Hitung Ulang Skor 360°** | `computeResult360` semua pegawai (kokpit "Sinkronkan Skor"; tanpa pindah ke halaman Bobot) | HRD Admin | Di kokpit; nonaktif saat busy | — |
+| **② Finalisasi Ulang Berubah (N)** | `resyncDriftedFinals` — sinkronkan `final_score` tersimpan pada laporan Final yang skornya ketinggalan ("berubah → N"); laporan tetap Final, ringkasan tak berubah | HRD Admin (Mode Admin) | Muncul bila ada laporan berubah (N>0) | **Ya** — ConfirmDialog |
+| **⚖ Atur Bobot / ⚑ Flag Kepatuhan** | Pintasan ke `/admin/bobot` & `/admin/kepatuhan` | HRD Admin | Di kokpit | — |
 | **Tinjau →** (kolom Aksi) | Buka detail `/laporan/{id}` (state-machine ada di detail) | HRD Admin | "KPI kosong" bila KPI belum ada (nama **tidak** bisa diklik lagi) | — |
 
 > Tabel = **kokpit** read-only: kolom KPI ("X/Y bln" amber bila kurang) · 360° ("belum"/"N/A"/

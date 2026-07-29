@@ -46,9 +46,10 @@ function fmt(iso: string): string {
  * mengambil data baru. Tak ada penyaringan sisi-klien atas 500 baris seperti sebelumnya.
  */
 export function AuditClient({
-  rows, page, pageSize, total, cat, q,
+  rows, page, pageSize, total, cat, q, period, periods,
 }: {
   rows: AuditRow[]; page: number; pageSize: number; total: number; cat: string; q: string;
+  period: string; periods: { id: string; label: string }[];
 }) {
   const router = useRouter();
   const [term, setTerm] = useState(q);
@@ -59,19 +60,21 @@ export function AuditClient({
   const from = total === 0 ? 0 : page * pageSize + 1;
   const to = Math.min(total, page * pageSize + rows.length);
 
-  const go = (next: { page?: number; cat?: string; q?: string }) => {
+  const go = (next: { page?: number; cat?: string; q?: string; period?: string }) => {
     const p = new URLSearchParams();
     const nc = next.cat ?? cat;
     const nq = next.q ?? term;
+    const nper = next.period ?? period;
     const np = next.page ?? 0;
     if (nc && nc !== 'all') p.set('cat', nc);
+    if (nper && nper !== 'all') p.set('period', nper);
     if (nq.trim()) p.set('q', nq.trim());
     if (np > 0) p.set('page', String(np));
     const qs = p.toString();
     router.push(qs ? `/admin/audit?${qs}` : '/admin/audit');
   };
 
-  const active = cat !== 'all' || q.trim() !== '';
+  const active = cat !== 'all' || period !== 'all' || q.trim() !== '';
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl shadow-sm">
@@ -92,13 +95,19 @@ export function AuditClient({
             Cari
           </button>
         </form>
+        <select value={period} onChange={(e) => go({ period: e.target.value, page: 0 })}
+          title="Saring berdasarkan rentang tanggal periode"
+          className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
+          <option value="all">📅 Semua Periode</option>
+          {periods.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+        </select>
         <select value={cat} onChange={(e) => go({ cat: e.target.value, page: 0 })}
           className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
           <option value="all">🏷️ Semua Kategori</option>
           {Object.entries(CAT_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
         {active && (
-          <button type="button" onClick={() => { setTerm(''); go({ cat: 'all', q: '', page: 0 }); }}
+          <button type="button" onClick={() => { setTerm(''); go({ cat: 'all', q: '', period: 'all', page: 0 }); }}
             className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
         )}
         <span className="text-[11px] text-gray-500 ml-auto">
@@ -143,12 +152,12 @@ export function AuditClient({
       <div className="p-4 border-t border-gray-100 flex items-center justify-between gap-2">
         <button type="button" disabled={!hasPrev} onClick={() => go({ page: page - 1 })}
           className="text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
-          ← 10 sebelumnya
+          ← {pageSize} sebelumnya
         </button>
         <span className="text-[11px] text-gray-500">Halaman {page + 1} dari {totalPages}</span>
         <button type="button" disabled={!hasNext} onClick={() => go({ page: page + 1 })}
           className="text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
-          10 berikutnya →
+          {pageSize} berikutnya →
         </button>
       </div>
     </div>

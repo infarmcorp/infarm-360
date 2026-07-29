@@ -138,7 +138,7 @@ export default async function LaporanTimPage() {
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
-          <TeamTable rows={rows} />
+          <TeamTable rows={rows} pageSize={5} />
         </>
       )}
     </Shell>
@@ -219,7 +219,7 @@ async function DireksiTeamReport() {
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
-          <TeamTable rows={rows} />
+          <TeamTable rows={rows} pageSize={5} />
         </>
       )}
     </Shell>
@@ -303,7 +303,7 @@ async function CoordinatorTeamReport({ userId }: { userId: string }) {
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
-          <TeamTable rows={rows} />
+          <TeamTable rows={rows} pageSize={5} />
         </>
       )}
     </Shell>

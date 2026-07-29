@@ -60,21 +60,25 @@ export default async function BobotPage() {
   };
 
   // Data untuk rekap result_360 + perbandingan model (paralel).
-  // assessments & mappings SELURUH pegawai → bisa >1000; ambil penuh via fetchAllPaged.
-  const [resRes, asmtsAll, mapsAll, empRes, ovrRes] = await Promise.all([
-    supabase.from('result_360').select('employee_id, score').eq('period_id', ap.id),
+  // SEMUA di bawah dipaginasi via fetchAllPaged — assessments/mappings bisa >1000, dan result_360 +
+  // employees = 1 baris/pegawai (aman <1000 pegawai, TAPI dipaginasi agar tetap benar bila kelak
+  // perusahaan >1000 orang → tabel & peta nama tak terpotong diam-diam).
+  const [resAll, asmtsAll, mapsAll, empAll, ovrRes] = await Promise.all([
+    fetchAllPaged<{ employee_id: string; score: number | null }>((from, to) =>
+      supabase.from('result_360').select('employee_id, score').eq('period_id', ap.id).order('employee_id').range(from, to)),
     fetchAllPaged<{ id: string; assessor_id: string; target_id: string }>((from, to) =>
       supabase.from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted').order('id').range(from, to)),
     fetchAllPaged<{ assessor_id: string; target_id: string; relation: RelationKind }>((from, to) =>
       supabase.from('mappings').select('assessor_id, target_id, relation').eq('period_id', ap.id).order('assessor_id').order('target_id').range(from, to)),
-    supabase.from('employees').select('id, name, dept, role'),
+    fetchAllPaged<{ id: string; name: string; dept: string | null; role: string }>((from, to) =>
+      supabase.from('employees').select('id, name, dept, role').order('id').range(from, to)),
     supabase.from('employee_weight_overrides').select('employee_id, model, weights').eq('period_id', ap.id),
   ]);
   // Pencarian nama mencakup SEMUA pegawai (termasuk Direksi) agar tak ada baris "—" di tabel.
-  const empById = new Map((empRes.data ?? []).map((e) => [e.id, e]));
+  const empById = new Map(empAll.map((e) => [e.id, e]));
 
   // Dropdown "Bobot Khusus per Pegawai" — pegawai non-Direksi (cakupan penilaian normal).
-  const empList = (empRes.data ?? []).filter((e) => e.role !== 'direksi').map((e) => ({ id: e.id, name: e.name, dept: e.dept ?? '—' }));
+  const empList = empAll.filter((e) => e.role !== 'direksi').map((e) => ({ id: e.id, name: e.name, dept: e.dept ?? '—' }));
   const overrides: Override[] = (ovrRes.data ?? [])
     .map((o) => ({
       employeeId: o.employee_id,
@@ -122,7 +126,7 @@ export default async function BobotPage() {
   const globalLabel = summarizeW(model, model === '4class' ? gw4 : gw2);
 
   const overrideByEmp = new Map(overrides.map((o) => [o.employeeId, o]));
-  const scoreById = new Map((resRes.data ?? []).map((r) => [r.employee_id, r.score]));
+  const scoreById = new Map(resAll.map((r) => [r.employee_id, r.score]));
 
   // Satu baris per pegawai (union: punya data penilaian ATAU skor resmi ATAU bobot khusus).
   // Kolom "bobot fokus": Skor Resmi (result_360) + Δ dampak bobot khusus (simulasi khusus−default).

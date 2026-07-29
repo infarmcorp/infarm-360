@@ -6,7 +6,7 @@ import { ACCESS_AUDIT_ACTIONS } from '@/lib/audit/log';
 import { AksesClient, type AksesEmployee } from './akses-client';
 import { type AksesLogRow } from './akses-log';
 
-const LOG_PAGE_SIZE = 8;
+const LOG_PAGE_SIZE = 5;
 
 /**
  * Manajemen Akses (HRD) — halaman TUNGGAL untuk memberi akses HALAMAN ber-lingkup kepada pegawai

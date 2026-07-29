@@ -7,7 +7,7 @@ import { setHrdAdmin, setCoordinator, setCoordinatorTeam, setHrdSections } from 
 import { isHrdDept, HRD_SECTIONS, HRD_SECTION_LABELS, GRANT_ROLE_TARGETS, GRANT_ROLE_TARGET_LABELS, type HrdSection, type GrantRoleTarget } from '@/lib/auth/roles';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { SearchableSelect } from '@/components/searchable-select';
-import { usePager, Pager } from '@/components/table-controls';
+import { usePager, Pager, MultiCheckFilter } from '@/components/table-controls';
 import { AksesLog, type AksesLogRow } from './akses-log';
 
 export type AksesEmployee = {
@@ -33,6 +33,20 @@ const NEW_WINDOW_DAYS = 30; // jendela "Pegawai Baru": joined_on ≤ N hari & be
 type MainTab = 'kelola' | 'log';
 /** Sumbu penerima di Langkah 1: seorang pegawai · sebuah peran · sebuah halaman (untuk cabut-massal). */
 type Recipient = 'employee' | 'role' | 'page';
+
+/**
+ * Klasifikasi peran seorang pemegang untuk FILTER daftar pemegang (mode Halaman). Bisa lebih dari
+ * satu — koordinator juga berposisi employee → muncul di 'koordinator' DAN 'pegawai' (selaras
+ * roleMemberRows agar cakupan "se-peran" konsisten).
+ */
+function holderRoleTags(e: AksesEmployee): string[] {
+  const t: string[] = [];
+  if (e.role === 'spv') t.push('spv');
+  else if (e.role === 'direksi') t.push('direksi');
+  else if (e.role === 'employee') t.push('pegawai');
+  if (e.isCoordinator) t.push('koordinator');
+  return t;
+}
 
 /** Akses BAWAAN peran (read-only, tak bisa dicabut lewat halaman ini) — untuk lapis info di profil. */
 function inheritedAccess(e: AksesEmployee): string[] {
@@ -247,12 +261,30 @@ export function AksesClient({
     setRecipient('employee'); setSelEmp(id); setPanel(null); setPanelMsg(null); setAddPageSel('');
   }
 
-  // ── Mode Halaman: pemegang halaman terpilih (paginasi 5-baris). ──
+  // ── Mode Halaman: pemegang halaman terpilih + filter (peran/divisi) + cakupan per-peran. ──
+  const [holderRoleSel, setHolderRoleSel] = useState<Set<string>>(new Set()); // kosong = semua peran
+  const [holderDeptSel, setHolderDeptSel] = useState<Set<string>>(new Set()); // kosong = semua divisi
   const holders = useMemo(
     () => (recipient === 'page' && selPage ? rows.filter((e) => (e.grants[selPage]?.scopes.length ?? 0) > 0) : []),
     [rows, recipient, selPage],
   );
-  const holdersPager = usePager(holders);
+  const holderDepts = useMemo(() => [...new Set(holders.map((h) => h.dept))].sort(), [holders]);
+  const filteredHolders = useMemo(() => holders.filter((h) =>
+    (holderDeptSel.size === 0 || holderDeptSel.has(h.dept)) &&
+    (holderRoleSel.size === 0 || holderRoleTags(h).some((t) => holderRoleSel.has(t))),
+  ), [holders, holderRoleSel, holderDeptSel]);
+  const holdersPager = usePager(filteredHolders);
+  // Cakupan per-peran: berapa anggota tiap peran yang MEMEGANG halaman ini → chip "se-peran"
+  // (hijau bila SELURUH anggota peran memegangnya). Klik chip = saring daftar ke peran itu.
+  const roleCoverage = useMemo(() => {
+    if (recipient !== 'page' || !selPage) return [];
+    return GRANT_ROLE_TARGETS.map((rt) => {
+      const members = roleMemberRows(rt);
+      const held = members.filter((m) => (m.grants[selPage]?.scopes.length ?? 0) > 0).length;
+      return { rt, total: members.length, held };
+    }).filter((c) => c.total > 0 && c.held > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, recipient, selPage]);
 
   const panelPage = panel ? pages.find((p) => p.key === panel.section) ?? null : null;
   const panelEmp = panel && panel.empId ? rows.find((r) => r.id === panel.empId) ?? null : null;
@@ -418,7 +450,7 @@ export function AksesClient({
             </select>
           )}
           {recipient === 'page' && (
-            <select value={selPage} onChange={(e) => { setSelPage(e.target.value); setPanel(null); }}
+            <select value={selPage} onChange={(e) => { setSelPage(e.target.value); setPanel(null); setHolderRoleSel(new Set()); setHolderDeptSel(new Set()); }}
               className="w-full max-w-md rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:border-emerald-500 focus:outline-none">
               <option value="">— pilih halaman —</option>
               {pages.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
@@ -604,10 +636,49 @@ export function AksesClient({
                   <X className="w-3.5 h-3.5" /> Cabut dari semua ({holders.length})</button>
               )}
             </div>
+
+            {/* Cakupan per-peran (chip "se-peran"): hijau = SELURUH anggota peran memegang; klik = saring. */}
+            {roleCoverage.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                <span className="text-[11px] text-gray-500">Cakupan peran:</span>
+                {roleCoverage.map((c) => {
+                  const full = c.held === c.total;
+                  const label = GRANT_ROLE_TARGET_LABELS[c.rt];
+                  const activeFilter = holderRoleSel.has(c.rt);
+                  return (
+                    <button key={c.rt} type="button"
+                      onClick={() => { setHolderRoleSel((s) => { const n = new Set(s); if (n.has(c.rt)) n.delete(c.rt); else n.add(c.rt); return n; }); holdersPager.setPage(0); }}
+                      title={full ? `Semua ${label} (${c.total}) memegang halaman ini — klik untuk menyaring daftar` : `${c.held} dari ${c.total} ${label} memegang — klik untuk menyaring`}
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition-shadow ${activeFilter ? 'ring-2 ring-offset-1 ring-emerald-400 ' : ''}${full ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-gray-50 text-gray-600 border-gray-300'}`}>
+                      {full ? `✓ Semua ${label} (${c.total})` : `${c.held}/${c.total} ${label}`}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {holders.length === 0 ? (
               <p className="text-[12px] text-gray-400 italic">Belum ada pemegang. Beri lewat penerima <strong>Pegawai</strong> atau <strong>Peran</strong>.</p>
             ) : (
               <div className="space-y-3">
+                {/* Filter pemegang: per peran & per divisi (kosong = semua). */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <MultiCheckFilter label="Peran"
+                    options={GRANT_ROLE_TARGETS.map((rt) => ({ value: rt, label: GRANT_ROLE_TARGET_LABELS[rt] }))}
+                    selected={holderRoleSel} onChange={(s) => { setHolderRoleSel(s); holdersPager.setPage(0); }} />
+                  <MultiCheckFilter label="Divisi"
+                    options={holderDepts.map((d) => ({ value: d, label: d }))}
+                    selected={holderDeptSel} onChange={(s) => { setHolderDeptSel(s); holdersPager.setPage(0); }} />
+                  {(holderRoleSel.size > 0 || holderDeptSel.size > 0) && (
+                    <button type="button" onClick={() => { setHolderRoleSel(new Set()); setHolderDeptSel(new Set()); holdersPager.setPage(0); }}
+                      className="text-[11px] font-bold px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
+                  )}
+                  <span className="text-[11px] text-gray-500 ml-auto">{filteredHolders.length} dari {holders.length} pemegang</span>
+                </div>
+
+                {filteredHolders.length === 0 ? (
+                  <p className="text-[12px] text-gray-400 italic py-4 text-center">Tak ada pemegang cocok dengan filter.</p>
+                ) : (<>
                 <div className="space-y-1.5">
                   {holdersPager.shown.map((emp) => {
                     const g = emp.grants[selPage];
@@ -632,6 +703,7 @@ export function AksesClient({
                 </div>
                 <Pager page={holdersPager.page} pageCount={holdersPager.pageCount} setPage={holdersPager.setPage}
                   total={holdersPager.total} rangeFrom={holdersPager.rangeFrom} rangeTo={holdersPager.rangeTo} unit="pemegang" />
+                </>)}
               </div>
             )}
           </div>

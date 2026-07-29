@@ -10,6 +10,21 @@ nonaktifkan — akun terkunci, pemetaannya otomatis nonaktif, data lama aman.
 
 ---
 
+## Alur singkat
+
+```mermaid
+flowchart TD
+    A["Pegawai keluar / resign"] --> B{"Masih di tengah periode<br/>dan sudah punya nilai?"}
+    B -- "Ya" --> C["Lengkapi KPI +<br/>finalisasi laporannya dulu"]
+    B -- "Tidak" --> D["Cabut semua akses & izin"]
+    C --> D
+    D --> E{"Dia membawahi /<br/>menaungi orang lain?"}
+    E -- "Ya" --> F["Pindahkan anak buahnya<br/>ke atasan pengganti"]
+    E -- "Tidak" --> G["Nonaktifkan akun<br/>(JANGAN dihapus)"]
+    F --> G
+    G --> H["Isi tanggal keluar → Selesai"]
+```
+
 ## A. Selesaikan kewajiban periode berjalan *(bila resign di tengah kuartal)*
 1. Bila periode aktif & orang ini **sudah punya data** (KPI/360°): pertimbangkan **selesaikan dulu**
    sebelum menonaktifkan —

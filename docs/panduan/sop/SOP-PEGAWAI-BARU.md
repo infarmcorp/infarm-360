@@ -9,6 +9,20 @@ masuk siklus penilaian (dinilai 360° + KPI), dan tercermin di laporan — tanpa
 
 ---
 
+## Alur singkat
+
+```mermaid
+flowchart TD
+    A["Buat akun pegawai"] --> B["Kirim undangan<br/>(sandi + info akun)"]
+    B --> C["Atur atasan / koordinatornya"]
+    C --> D{"Sedang ada<br/>periode berjalan?"}
+    D -- "Ya" --> E["Masukkan ke daftar penilaian 360<br/>+ mulai isi KPI bulanan"]
+    D -- "Belum" --> F["Tunggu periode berikutnya dibuka"]
+    E --> G["Tinjau di kartu Pegawai Baru<br/>lalu tandai selesai"]
+    F --> G
+    G --> H["Selesai"]
+```
+
 ## A. Buat akun — *Kelola Pegawai*
 1. **HRD → Kelola Pegawai → Tambah Pegawai.** Isi: Nama · **Nama Panggilan** (opsional, untuk tampilan
    padat) · **Peran** (Pegawai/SPV/HRD/Direksi) · **Divisi** · **Kode Pegawai** · Email · **Sandi Awal**

@@ -13,6 +13,18 @@ tinjauan akses berkala.
 
 ---
 
+## Alur singkat
+
+```mermaid
+flowchart TD
+    A["Ada kebutuhan akses"] --> B["Tentukan: halaman apa,<br/>sejauh mana (lingkup),<br/>boleh apa (lihat / ringkas / finalisasi)"]
+    B --> C["Beri seperlunya saja<br/>lewat orang atau peran"]
+    C --> D["Dipakai + ditinjau berkala"]
+    D --> E{"Pegawai keluar /<br/>pindah tugas?"}
+    E -- "Belum" --> D
+    E -- "Ya" --> F["Cabut aksesnya segera"]
+```
+
 ## Jenis akses yang bisa diberikan
 | Jenis | Untuk siapa | Catatan |
 |-------|-------------|---------|

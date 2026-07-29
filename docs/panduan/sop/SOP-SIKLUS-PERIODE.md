@@ -12,6 +12,22 @@ periode hingga menguncinya, agar Skor Akhir setiap pegawai valid dan hasilnya te
 
 ---
 
+## Alur singkat
+
+```mermaid
+flowchart TD
+    A["Buat periode baru"] --> B["Sembunyikan dulu form 360"]
+    B --> C["Siapkan pertanyaan,<br/>bobot, & daftar penilai"]
+    C --> D["Buka form 360 (luncurkan)"]
+    D --> E["Undang semua pegawai"]
+    E --> F["Pantau pengisian +<br/>kejar yang belum"]
+    F --> G["① Hitung skor 360"]
+    G --> H["Tinjau & susun ringkasan"]
+    H --> I["Finalisasi laporan<br/>(② segarkan bila skor berubah)"]
+    I --> J["Kunci & akhiri periode"]
+    J --> K["Ekspor data + backup → arsip"]
+```
+
 ## Urutan baku
 ```
 Buat → Aktivasi → Set Tanpa 360° → Pertanyaan → Bobot → Pemetaan

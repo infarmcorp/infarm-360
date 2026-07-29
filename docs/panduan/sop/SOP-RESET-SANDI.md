@@ -11,6 +11,21 @@ dan menjaga integritas 360° (mencegah orang login atas nama orang lain).
 
 ---
 
+## Alur singkat
+
+```mermaid
+flowchart TD
+    A{"Situasinya apa?"}
+    A -- "1 orang lupa sandi" --> B["Reset Sandi<br/>(di Kelola Pegawai)"]
+    A -- "1 orang baru belum bisa masuk" --> C["Undangan (per-orang)"]
+    A -- "Awal periode, semua orang" --> D["Undangan Massal<br/>(sekali saja)"]
+    A -- "Menagih yang belum mengisi" --> E["Kirim Pengingat<br/>(sandi TIDAK berubah)"]
+    A -- "Mau ganti sandi sendiri" --> F["Pakai menu Akun Saya"]
+    B --> G["Minta pegawai ganti<br/>sandi sendiri setelahnya"]
+    C --> G
+    D --> G
+```
+
 ## Tabel keputusan cepat
 | Situasi | Tindakan | Mengubah sandi? |
 |---------|----------|-----------------|

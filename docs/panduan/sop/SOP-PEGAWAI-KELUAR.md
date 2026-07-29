@@ -71,4 +71,4 @@ nonaktifkan — akun terkunci, pemetaannya otomatis nonaktif, data lama aman.
 
 ## Rujukan
 [CARA-PENGGUNAAN.md](../CARA-PENGGUNAAN.md) (Kelola Pegawai · Manajemen Akses · Pemetaan · Flag Kepatuhan) ·
-[SOP-PEGAWAI-BARU.md](SOP-PEGAWAI-BARU.md) · SOP-AKSES.md *(menyusul)* · SOP-SIKLUS-PERIODE.md *(menyusul)*
+[SOP-PEGAWAI-BARU.md](SOP-PEGAWAI-BARU.md) · [SOP-AKSES.md](SOP-AKSES.md) · [SOP-SIKLUS-PERIODE.md](SOP-SIKLUS-PERIODE.md)

@@ -15,9 +15,9 @@ panduan pengguna **[../CARA-PENGGUNAAN.md](../CARA-PENGGUNAAN.md)**.
 |-----|-----|--------|
 | [SOP-PEGAWAI-BARU.md](SOP-PEGAWAI-BARU.md) | Menambahkan & mengaktifkan pegawai baru ke sistem | ✅ |
 | [SOP-PEGAWAI-KELUAR.md](SOP-PEGAWAI-KELUAR.md) | Menonaktifkan pegawai resign/keluar (jaga data historis) | ✅ |
-| SOP-SIKLUS-PERIODE.md | Menjalankan satu periode penilaian: mulai → kunci → arsip | ⏳ menyusul |
-| SOP-AKSES.md | Pemberian & pencabutan akses (Manajemen Akses) | ⏳ menyusul |
-| SOP-RESET-SANDI.md | Reset sandi & masalah login (Reset Sandi vs Undangan) | ⏳ menyusul |
+| [SOP-SIKLUS-PERIODE.md](SOP-SIKLUS-PERIODE.md) | Menjalankan satu periode penilaian: mulai → kunci → arsip | ✅ |
+| [SOP-AKSES.md](SOP-AKSES.md) | Pemberian & pencabutan akses (Manajemen Akses) | ✅ |
+| [SOP-RESET-SANDI.md](SOP-RESET-SANDI.md) | Reset sandi & masalah login (Reset Sandi vs Undangan) | ✅ |
 
 ## Cara memakai
 - Tiap SOP punya: **Kapan dipakai · Siapa · Langkah (checklist) · Cabang keputusan · Catatan/jebakan · Rujukan.**

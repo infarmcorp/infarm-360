@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { PANDUAN_VERSION } from '@/lib/panduan';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck,
@@ -152,6 +153,16 @@ export function AppShell({
   const [open, setOpen] = useState(false);
   const sections = menuFor(role, canAdmin, hrdMode, isCoordinator, hrdSections, pageGrants);
 
+  // Titik "BARU" pada Akun Saya bila panduan versi terkini belum pernah dibuka (localStorage,
+  // tanpa DB). Ditandai sudah dibaca saat pengguna mengunduh dari kartu Panduan di Akun Saya.
+  const [panduanNew, setPanduanNew] = useState(false);
+  useEffect(() => {
+    const check = () => { try { setPanduanNew(localStorage.getItem('panduan_seen_version') !== PANDUAN_VERSION); } catch { /* abaikan */ } };
+    check();
+    window.addEventListener('storage', check);
+    return () => window.removeEventListener('storage', check);
+  }, [pathname]);
+
   const isActive = (href: string) => {
     const path = href.split('?')[0];
     if (path === '/penilaian') return pathname === '/penilaian' || pathname.startsWith('/penilaian/');
@@ -279,6 +290,11 @@ export function AppShell({
           }`}
         >
           <KeyRound className={`w-3.5 h-3.5 ${isActive('/akun') ? 'text-emerald-700' : 'text-emerald-300'}`} /> Akun Saya
+          {panduanNew && (
+            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-rose-500/90 px-1.5 py-0.5 text-[9px] font-extrabold uppercase text-white" title="Ada panduan terbaru">
+              <span className="w-1.5 h-1.5 rounded-full bg-white" /> Panduan
+            </span>
+          )}
         </Link>
         <form action="/auth/signout" method="post">
           <button type="submit" className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/15 hover:text-rose-200 rounded-lg py-2 transition-colors">

@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { AkunForm } from './akun-form';
+import { PanduanCard } from './panduan-card';
+import { panduanFor, panduanHref, PANDUAN_VERSION, PANDUAN_UPDATED_LABEL, PANDUAN_WHATS_NEW } from '@/lib/panduan';
 
 const ROLE_LABEL: Record<string, string> = {
   employee: 'Pegawai Operasional', spv: 'Supervisor (SPV)', hrd: 'HRD Admin', direksi: 'Direktur',
@@ -13,7 +15,8 @@ export default async function AkunPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees')
-    .select('name, dept, role, emp_code').eq('id', user.id).maybeSingle();
+    .select('name, dept, role, emp_code, is_hrd_admin').eq('id', user.id).maybeSingle();
+  const panduan = panduanFor(me?.role, me?.is_hrd_admin ?? false);
 
   return (
     <main className="w-full p-4 sm:p-5 lg:p-6">
@@ -40,6 +43,10 @@ export default async function AkunPage() {
           </p>
           <AkunForm />
         </div>
+
+        <PanduanCard
+          href={panduanHref(panduan)} label={panduan.label} filename={panduan.filename}
+          version={PANDUAN_VERSION} updatedLabel={PANDUAN_UPDATED_LABEL} whatsNew={PANDUAN_WHATS_NEW} />
       </div>
     </main>
   );

@@ -10,6 +10,7 @@
  * SMTP_FROM (mis. "Infarm 360 <infarmcorp@gmail.com>"), SMTP_HOST, SMTP_PORT.
  */
 import nodemailer from 'nodemailer';
+import { panduanFor } from '@/lib/panduan';
 
 export type SendResult = { ok: true } | { ok: false; reason: 'not_configured' | 'error'; detail?: string };
 
@@ -145,26 +146,13 @@ const ROLE_LABEL_ID: Record<string, string> = {
 };
 
 /**
- * Panduan PDF per peran — disimpan di public/panduan/. File mengikuti peran EFEKTIF:
- * HRD (atau pemegang grant is_hrd_admin) → panduan HRD; selain itu sesuai role. Bila
- * file/peran tak dikenal → null (email tetap terkirim tanpa lampiran). `filename` =
- * nama yang tampil di klien email penerima.
- */
-const PANDUAN_PDF: Record<string, { file: string; filename: string }> = {
-  hrd:      { file: 'panduan-hrd.pdf',      filename: 'Panduan HRD Admin - Infarm 360.pdf' },
-  spv:      { file: 'panduan-spv.pdf',      filename: 'Panduan Supervisor - Infarm 360.pdf' },
-  direksi:  { file: 'panduan-direksi.pdf',  filename: 'Panduan Direksi - Infarm 360.pdf' },
-  employee: { file: 'panduan-pegawai.pdf',  filename: 'Panduan Pegawai - Infarm 360.pdf' },
-};
-
-/**
- * Lampiran panduan PDF sesuai peran penerima. Mengembalikan null bila base URL kosong
- * (tak bisa membentuk tautan) — pemanggil cukup mengirim tanpa lampiran.
+ * Lampiran panduan PDF sesuai peran penerima (mapping terpusat di lib/panduan.ts, dipakai bersama
+ * section "Panduan Pengguna" di aplikasi). Mengembalikan null bila base URL kosong (tak bisa
+ * membentuk tautan) — pemanggil cukup mengirim tanpa lampiran.
  */
 export function panduanAttachment(role: string, isHrdAdmin: boolean, base: string): EmailAttachment | null {
-  const key = (role === 'hrd' || isHrdAdmin) ? 'hrd' : role;
-  const def = PANDUAN_PDF[key];
-  if (!def || !base) return null;
+  if (!base) return null;
+  const def = panduanFor(role, isHrdAdmin);
   return { filename: def.filename, path: `${base.replace(/\/+$/, '')}/panduan/${def.file}` };
 }
 

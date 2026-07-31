@@ -24,12 +24,27 @@ export type DeltaCause = {
   enteredN: number;       // pegawai baru berdata (curr saja)
   leftN: number;          // pegawai tak lagi berdata (prev saja)
 };
-type Series = { label: string; color: string; points: (number | null)[]; showValues?: boolean };
+type Series = {
+  label: string; color: string; points: (number | null)[];
+  showValues?: boolean;   // false → tak menggambar label nilai (mis. garis pembanding/anggota)
+  width?: number;         // tebal garis (default 2)
+  dots?: boolean;         // false → tanpa titik bulat (garis anggota tipis)
+  labelDy?: number;       // offset-Y label nilai (default -6 = di atas titik)
+};
 
 const C_KPI = '#059669';   // emerald
 const C_360 = '#4f46e5';   // indigo
 const C_FINAL = '#d97706';  // amber — Skor Akhir
 const C_CMP = '#94a3b8';   // slate — garis pembanding (rerata KPI tim)
+const C_HI = '#0ea5e9';    // sky — anggota Teratas (overview)
+const C_LO = '#e11d48';    // rose — anggota Terbawah (overview)
+const C_FAINT = '#d1d5db'; // gray — garis tiap anggota (overview)
+
+const isNum = (v: number | null): v is number => v != null;
+const avgOf = (xs: (number | null)[]): number | null => {
+  const v = xs.filter(isNum);
+  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+};
 
 /** Line chart SVG ringkas, responsif; garis putus pada nilai null (data bulan kosong). */
 function LineChart({ xLabels, series, yMax = 100 }: { xLabels: string[]; series: Series[]; yMax?: number }) {
@@ -67,22 +82,22 @@ function LineChart({ xLabels, series, yMax = 100 }: { xLabels: string[]; series:
       {xLabels.map((lb, i) => (i % step === 0 ? (
         <text key={i} x={x(i)} y={H - padB + 14} textAnchor="middle" className="fill-gray-500" style={{ fontSize: 9 }}>{lb}</text>
       ) : null))}
-      {series.map((s, sIdx) => (
+      {series.map((s) => (
         <g key={s.label}>
           {segments(s.points).map((seg, si) => (
-            <polyline key={si} fill="none" stroke={s.color} strokeWidth={2}
+            <polyline key={si} fill="none" stroke={s.color} strokeWidth={s.width ?? 2}
               points={seg.map((p) => `${x(p.i)},${y(p.v)}`).join(' ')} />
           ))}
           {s.points.map((v, i) => (v == null ? null : (
             <g key={i}>
-              <circle cx={x(i)} cy={y(v)} r={2.5} fill={s.color} />
-              {/* Nilai di tiap titik — dilewati bila showValues=false (mis. garis pembanding).
-                  Seri pertama di ATAS titik; seri berikutnya ditumpuk ke BAWAH bertahap agar 3
-                  seri (Avg KPI/360°/Skor Akhir) tak saling menimpa. Label TEPI dirata-kan ke dalam. */}
+              {s.dots !== false && <circle cx={x(i)} cy={y(v)} r={2.5} fill={s.color} />}
+              {/* Nilai di tiap titik — dilewati bila showValues=false (garis pembanding/anggota).
+                  Offset-Y via labelDy (default -6 = di atas titik); seri per-periode memberi labelDy
+                  bertingkat agar 3 seri tak saling menimpa. Label TEPI dirata-kan ke dalam. */}
               {s.showValues !== false && (
                 <text
                   x={x(i) + (n > 1 && i === 0 ? 2 : n > 1 && i === n - 1 ? -2 : 0)}
-                  y={y(v) + (sIdx === 0 ? -6 : 2 + sIdx * 11)}
+                  y={y(v) + (s.labelDy ?? -6)}
                   textAnchor={n > 1 && i === 0 ? 'start' : n > 1 && i === n - 1 ? 'end' : 'middle'}
                   style={{ fontSize: 9, fontWeight: 700 }} fill={s.color}>
                   {v.toFixed(2)}
@@ -407,9 +422,36 @@ export function MonitorTrends({
 
   const periodLabels = periodsTrend.map((p) => p.label);
   const periodSeries: Series[] = [
-    { label: 'Avg KPI', color: C_KPI, points: periodsTrend.map((p) => p.kpi) },
-    ...(has360 ? [{ label: 'Avg 360°', color: C_360, points: periodsTrend.map((p) => p.s360) }] : []),
-    { label: 'Avg Skor Akhir', color: C_FINAL, points: periodsTrend.map((p) => p.final) },
+    { label: 'Avg KPI', color: C_KPI, points: periodsTrend.map((p) => p.kpi), labelDy: -6 },
+    ...(has360 ? [{ label: 'Avg 360°', color: C_360, points: periodsTrend.map((p) => p.s360), labelDy: 13 }] : []),
+    { label: 'Avg Skor Akhir', color: C_FINAL, points: periodsTrend.map((p) => p.final), labelDy: has360 ? 24 : 13 },
+  ];
+
+  // Overview "Semua Anggota" (grafik kiri): rata tim (tebal) + garis tiap anggota (tipis),
+  // menyorot Teratas & Terbawah (rerata KPI lintas bulan) beserta namanya. Mengungkap SEBARAN
+  // yang disembunyikan rata-rata: apakah tim menyatu atau timpang, & siapa yang tertinggal.
+  const memberStats = employees
+    .map((e) => ({ e, a: avgOf(e.monthly) }))
+    .filter((x): x is { e: EmpMonthly; a: number } => x.a != null)
+    .sort((x, y) => y.a - x.a);
+  let topM: EmpMonthly | null = null, botM: EmpMonthly | null = null;
+  if (memberStats.length >= 2 && memberStats[0].e.id !== memberStats[memberStats.length - 1].e.id) {
+    topM = memberStats[0].e;
+    botM = memberStats[memberStats.length - 1].e;
+  }
+  const nm = (m: EmpMonthly) => displayName(m.nickname, m.name);
+  const overviewSeries: Series[] = [
+    ...employees
+      .filter((e) => e.id !== topM?.id && e.id !== botM?.id)
+      .map((e) => ({ label: `m-${e.id}`, color: C_FAINT, points: e.monthly, width: 1, dots: false, showValues: false })),
+    ...(botM ? [{ label: `▼ ${nm(botM)}`, color: C_LO, points: botM.monthly, width: 1.75, dots: false, showValues: false }] : []),
+    ...(topM ? [{ label: `▲ ${nm(topM)}`, color: C_HI, points: topM.monthly, width: 1.75, dots: false, showValues: false }] : []),
+    { label: 'Rata-rata Tim', color: C_KPI, points: teamMonthly, width: 2.75, dots: true, showValues: true },
+  ];
+  const overviewLegend = [
+    { label: 'Rata-rata Tim', color: C_KPI },
+    ...(topM ? [{ label: `▲ Teratas: ${nm(topM)}`, color: C_HI }] : []),
+    ...(botM ? [{ label: `▼ Terbawah: ${nm(botM)}`, color: C_LO }] : []),
   ];
 
   return (
@@ -431,9 +473,15 @@ export function MonitorTrends({
       {has360 && <TopMovers360 movers={movers360} labels={moverLabels360} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ChartCard title="Tren KPI Tim per Bulan">
+        <ChartCard title="Tren KPI Tim — Semua Anggota">
           {monthLabels.length === 0 ? <Empty /> : (
-            <LineChart xLabels={monthLabels} series={[{ label: 'KPI Tim', color: C_KPI, points: teamMonthly }]} />
+            <>
+              <LineChart xLabels={monthLabels} series={overviewSeries} />
+              <Legend items={overviewLegend} />
+              <p className="mt-1.5 text-[10px] leading-snug text-gray-400">
+                Garis tebal = rata-rata tim · garis tipis = tiap anggota. Semakin lebar sebaran garis = tim makin timpang. Sorotan menandai anggota dengan rerata KPI tertinggi &amp; terendah.
+              </p>
+            </>
           )}
         </ChartCard>
 

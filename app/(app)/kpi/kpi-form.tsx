@@ -31,16 +31,33 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
 
   const depts = useMemo(() => [...new Set(members.map((m) => m.dept))].sort(), [members]);
   const shown = useMemo(() => (dept === 'all' ? members : members.filter((m) => m.dept === dept)), [members, dept]);
+  const filledCount = useMemo(() => shown.filter((m) => existing[`${m.id}|${ym}`] !== undefined).length, [shown, existing, ym]);
 
   function submitManual() {
     setMsg(null);
     const rows = shown
-      .filter((m) => scores[m.id]?.trim())
-      .map((m) => ({ employeeId: m.id, score: scores[m.id], note: notes[m.id] }));
+      .filter((m) => scores[`${m.id}|${ym}`]?.trim())
+      .map((m) => ({ employeeId: m.id, score: scores[`${m.id}|${ym}`], note: notes[`${m.id}|${ym}`] }));
     if (rows.length === 0) { setMsg({ ok: false, text: 'Isi minimal satu skor sebelum menyimpan.' }); return; }
+    // Cermin aturan server: edit (skor bulan ini SUDAH ada) wajib disertai Komentar Audit.
+    // Dicegat di klien agar SPV tahu SEBELUM gagal simpan (bukan setelah error server).
+    const missingNote = rows.filter((r) => existing[`${r.employeeId}|${ym}`] !== undefined && !(r.note && r.note.trim()));
+    if (missingNote.length > 0) {
+      const names = missingNote.map((r) => shown.find((m) => m.id === r.employeeId)?.name ?? r.employeeId);
+      setMsg({ ok: false, text: `Perubahan capaian (edit) bulan ${ym} wajib disertai Komentar Audit: ${names.join(', ')}.` });
+      return;
+    }
     startTransition(async () => {
       const res = await saveKpiScores({ ym, rows });
-      setMsg(res.ok ? { ok: true, text: `Tersimpan: ${res.saved} skor.` } : { ok: false, text: res.error });
+      if (res.ok) {
+        setMsg({ ok: true, text: `Tersimpan: ${res.saved} skor.` });
+        // Bersihkan draf bulan ini + segarkan "existing" (kolom Tersimpan langsung memperbarui).
+        setScores((s) => { const c = { ...s }; for (const m of shown) delete c[`${m.id}|${ym}`]; return c; });
+        setNotes((n) => { const c = { ...n }; for (const m of shown) delete c[`${m.id}|${ym}`]; return c; });
+        router.refresh();
+      } else {
+        setMsg({ ok: false, text: res.error });
+      }
     });
   }
 
@@ -137,6 +154,15 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
 
       {mode === 'manual' ? (
         <>
+          {/* Ringkasan cakupan (#5): berapa anggota yang sudah punya skor bulan ini. */}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 font-semibold text-gray-700">
+              Terisi <strong className="text-emerald-700">{filledCount}</strong> / {shown.length} anggota untuk <strong>{ym}</strong>
+            </span>
+            {filledCount < shown.length && (
+              <span className="text-amber-700 font-semibold">{shown.length - filledCount} belum diisi</span>
+            )}
+          </div>
           <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm min-w-[520px]">
             <thead>
@@ -149,17 +175,33 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
             </thead>
             <tbody>
               {shown.map((m) => {
-                const saved = existing[`${m.id}|${ym}`];
+                const key = `${m.id}|${ym}`;
+                const saved = existing[key];
+                const typed = scores[key]?.trim() ?? '';
+                const isEditing = saved !== undefined && typed !== '';   // menimpa nilai lama → wajib komentar
+                const noteMissing = isEditing && !(notes[key]?.trim());
                 return (
-                <tr key={m.id} className="border-b">
-                  <td className="py-2">{m.name} <span className="text-gray-500">· {m.dept}</span></td>
+                <tr key={m.id} className={`border-b ${noteMissing ? 'bg-amber-50/60' : ''}`}>
                   <td className="py-2">
-                    <input type="number" min={0} max={100} inputMode="decimal" value={scores[m.id] ?? ''}
-                      onChange={(e) => setScores((s) => ({ ...s, [m.id]: e.target.value }))} className="w-24 rounded border px-2 py-1" />
+                    {m.name} <span className="text-gray-500">· {m.dept}</span>
+                    {saved === undefined && (
+                      <span className="ml-2 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-500 align-middle">belum diisi</span>
+                    )}
                   </td>
                   <td className="py-2">
-                    <input type="text" placeholder="opsional" value={notes[m.id] ?? ''}
-                      onChange={(e) => setNotes((n) => ({ ...n, [m.id]: e.target.value }))} className="w-full rounded border px-2 py-1" />
+                    <input type="number" min={0} max={100} inputMode="decimal" value={scores[key] ?? ''}
+                      placeholder={saved !== undefined ? saved.toFixed(2) : ''}
+                      onChange={(e) => setScores((s) => ({ ...s, [key]: e.target.value }))}
+                      className={`w-24 rounded border px-2 py-1 ${isEditing ? 'border-amber-400 bg-amber-50/40' : ''}`} />
+                    {isEditing && (
+                      <div className="mt-0.5 text-[10px] font-bold text-amber-700">↻ ubah dari {saved.toFixed(2)}</div>
+                    )}
+                  </td>
+                  <td className="py-2">
+                    <input type="text" value={notes[key] ?? ''}
+                      placeholder={isEditing ? 'Wajib: alasan perubahan' : 'opsional'}
+                      onChange={(e) => setNotes((n) => ({ ...n, [key]: e.target.value }))}
+                      className={`w-full rounded border px-2 py-1 ${noteMissing ? 'border-amber-400 bg-amber-50/40 placeholder:text-amber-700' : ''}`} />
                   </td>
                   <td className="py-2 text-right whitespace-nowrap pr-1">
                     {saved === undefined ? (

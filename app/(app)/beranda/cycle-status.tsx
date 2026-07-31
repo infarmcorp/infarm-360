@@ -55,8 +55,18 @@ export async function CycleStatus() {
   const nEmp = totalEmp ?? 0, nMap = mappingActive ?? 0, nSub = submitted ?? 0;
   const nFinal = finalized ?? 0, nReview = inReview ?? 0, nCorr = corrPending ?? 0;
 
+  // Cakupan KPI (dibutuhkan finalisasi di SEMUA mode, termasuk Tanpa 360°): berapa pegawai
+  // sudah punya minimal satu nilai KPI di bulan-bulan periode ini.
+  const { data: pm } = await supabase.from('period_months').select('ym').eq('period_id', ap.id);
+  const yms = (pm ?? []).map((m) => m.ym);
+  const { data: krows } = yms.length
+    ? await supabase.from('kpi_scores').select('employee_id').in('ym', yms)
+    : { data: [] as { employee_id: string }[] };
+  const kpiFilled = new Set((krows ?? []).map((r) => r.employee_id)).size;
+
   const raw: Omit<Stage, 'status'>[] = [
     { label: 'Periode dibuat & diaktifkan', detail: ap.label, href: '/admin/periode' },
+    { label: 'Input KPI bulanan (SPV)', detail: `${kpiFilled}/${nEmp} pegawai ada KPI`, href: '/kpi?tab=riwayat' },
     ...(has360 ? [
       { label: 'Pertanyaan, bobot & pemetaan disiapkan', detail: `${nMap} pemetaan aktif`, href: '/admin/pemetaan' },
       { label: '360° diluncurkan (form dibuka)', detail: ap.form_open ? 'form terbuka' : 'form ditutup', href: '/admin/pemetaan' },
@@ -69,6 +79,7 @@ export async function CycleStatus() {
   ];
   const doneOf = (label: string): boolean => {
     if (label.startsWith('Periode dibuat')) return true;
+    if (label.startsWith('Input KPI')) return nEmp > 0 && kpiFilled >= nEmp;
     if (label.startsWith('Pertanyaan')) return nMap > 0;
     if (label.startsWith('360° diluncurkan')) return has360;
     if (label.startsWith('Pengisian')) return nMap > 0 && nSub >= nMap;
@@ -87,6 +98,7 @@ export async function CycleStatus() {
 
   const blockers: { label: string; href: string }[] = [];
   if (nCorr > 0) blockers.push({ label: `${nCorr} permohonan koreksi relasi belum diproses`, href: '/admin/pemetaan' });
+  if (nEmp - kpiFilled > 0) blockers.push({ label: `${nEmp - kpiFilled} pegawai belum ada nilai KPI`, href: '/kpi?tab=riwayat' });
   if (has360 && missing360 > 0) blockers.push({ label: `${missing360} target 360° belum berskor — jalankan ① Hitung Ulang (atau belum ada penilaian masuk)`, href: '/admin/laporan' });
   if (nEmp - nFinal > 0) blockers.push({ label: `${nEmp - nFinal} laporan belum difinalisasi`, href: '/admin/laporan' });
 
@@ -94,10 +106,21 @@ export async function CycleStatus() {
 
   return (
     <Card>
-      <div className="flex items-center justify-between gap-2 mb-3">
+      <div className="flex items-center justify-between gap-2 mb-1">
         <h2 className="text-sm font-bold text-gray-700">Status Siklus — {ap.label}</h2>
         <span className="text-[11px] text-gray-500">Tahap: <strong className="text-emerald-700">{current?.label ?? 'Siap dikunci'}</strong></span>
       </div>
+      <p className="text-[11px] text-gray-500 mb-3">
+        Mode 360°:{' '}
+        {has360 ? (
+          <span className="font-semibold text-emerald-700">Aktif</span>
+        ) : (
+          <>
+            <span className="font-semibold text-gray-600">Tanpa 360°</span> — Skor Akhir = 100% KPI (langkah 360° dilewati).{' '}
+            <Link href="/admin/periode" className="font-semibold text-emerald-700 underline">Aktifkan 360°</Link> bila kuartal ini memakai umpan balik 360°.
+          </>
+        )}
+      </p>
 
       <ol className="space-y-1">
         {stages.map((s, i) => (

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import {
-  Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange, ClipboardCheck, Award, KeyRound,
+  Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange, ClipboardCheck, Award, KeyRound, ListChecks,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { canAdmin, canCoordinate } from '@/lib/auth/roles';
@@ -102,6 +102,7 @@ export default async function BerandaPage() {
 /** Pintasan sesuai peran & mode (subset menu paling sering dipakai). */
 function shortcutsFor(role: string, adminView: boolean, isCoordinator: boolean): Shortcut[] {
   if (adminView) return [
+    { href: '/admin/siklus', label: 'Panduan Siklus', icon: ListChecks },
     { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/admin/periode', label: 'Kelola Periode', icon: CalendarRange },
     { href: '/admin/laporan', label: 'Finalisasi', icon: Award },

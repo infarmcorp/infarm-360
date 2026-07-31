@@ -7,7 +7,7 @@ import { PANDUAN_VERSION } from '@/lib/panduan';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, Home,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, Home, ListChecks,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 import { BrandLogo } from '@/components/brand-logo';
@@ -80,6 +80,8 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
     // Sengaja di luar katalog hrd_sections; gate = isFullHrd, bukan filterAdmin.
     const isFullHrd = !hrdSections || hrdSections.length === 0;
     if (isFullHrd) adminItems.push({ href: '/admin/akses', label: 'Manajemen Akses', icon: KeyRound });
+    // Panduan Siklus — ikhtisar tahap periode + blokir finalisasi (selalu tampil utk admin view).
+    if (adminItems.length) adminItems.unshift({ href: '/admin/siklus', label: 'Panduan Siklus', icon: ListChecks });
     if (adminItems.length) sections.push({ title: 'Menu Administrator', items: adminItems });
 
     const monitorItems = filterAdmin([

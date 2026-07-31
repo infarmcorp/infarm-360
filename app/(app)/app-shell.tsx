@@ -7,7 +7,7 @@ import { PANDUAN_VERSION } from '@/lib/panduan';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, Home,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 import { BrandLogo } from '@/components/brand-logo';
@@ -252,6 +252,16 @@ export function AppShell({
 
       {/* Nav */}
       <nav className="p-2 space-y-1 flex-1 overflow-y-auto">
+        <Link
+          href="/beranda"
+          onClick={() => setOpen(false)}
+          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+            isActive('/beranda') ? 'bg-white text-emerald-900 shadow-2xs' : 'text-white/80 hover:bg-white/10 hover:text-white'
+          }`}
+        >
+          <Home className={`w-4 h-4 shrink-0 ${isActive('/beranda') ? 'text-emerald-700' : 'text-emerald-300'}`} />
+          <span>Beranda</span>
+        </Link>
         {sections.map((sec) => (
           <div key={sec.title ?? 'main'}>
             {sec.title && <div className="text-[10px] font-bold text-white/45 tracking-wider px-3 pt-3 pb-1 uppercase">{sec.title}</div>}

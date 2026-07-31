@@ -37,6 +37,5 @@ export function panduanHref(def: PanduanDef): string {
  */
 export const PANDUAN_VERSION = '2026-07-30';
 
-/** Tanggal tampil (ID) + ringkas "apa yang baru" untuk section Panduan. */
+/** Tanggal tampil (ID) untuk section Panduan. */
 export const PANDUAN_UPDATED_LABEL = '30 Juli 2026';
-export const PANDUAN_WHATS_NEW = 'Panduan diperbarui menyeluruh mengikuti kondisi aplikasi terbaru (teks berwarna + screenshot langkah demi langkah).';

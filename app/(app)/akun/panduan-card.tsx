@@ -11,10 +11,10 @@ const SEEN_KEY = 'panduan_seen_version';
  * (dilacak di localStorage — tak menyentuh database). Menandai sudah dibaca saat pengguna mengunduh.
  */
 export function PanduanCard({
-  href, label, filename, version, updatedLabel, whatsNew,
+  href, label, filename, version, updatedLabel,
 }: {
   href: string; label: string; filename: string;
-  version: string; updatedLabel: string; whatsNew: string;
+  version: string; updatedLabel: string;
 }) {
   // Default: anggap SUDAH dilihat (hindari kedip "BARU" saat hydrate); dikoreksi di efek.
   const [isNew, setIsNew] = useState(false);
@@ -44,7 +44,6 @@ export function PanduanCard({
           <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold text-gray-800">{label}</div>
             <div className="text-[11px] text-gray-500">Diperbarui {updatedLabel}</div>
-            <p className="text-[11px] text-gray-500 mt-1 leading-snug">{whatsNew}</p>
           </div>
         </div>
         <a

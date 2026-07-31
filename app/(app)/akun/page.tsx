@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { AkunForm } from './akun-form';
 import { PanduanCard } from './panduan-card';
-import { panduanFor, panduanHref, PANDUAN_VERSION, PANDUAN_UPDATED_LABEL, PANDUAN_WHATS_NEW } from '@/lib/panduan';
+import { panduanFor, panduanHref, PANDUAN_VERSION, PANDUAN_UPDATED_LABEL } from '@/lib/panduan';
 
 const ROLE_LABEL: Record<string, string> = {
   employee: 'Pegawai Operasional', spv: 'Supervisor (SPV)', hrd: 'HRD Admin', direksi: 'Direktur',
@@ -46,7 +46,7 @@ export default async function AkunPage() {
 
         <PanduanCard
           href={panduanHref(panduan)} label={panduan.label} filename={panduan.filename}
-          version={PANDUAN_VERSION} updatedLabel={PANDUAN_UPDATED_LABEL} whatsNew={PANDUAN_WHATS_NEW} />
+          version={PANDUAN_VERSION} updatedLabel={PANDUAN_UPDATED_LABEL} />
       </div>
     </main>
   );

@@ -33,6 +33,19 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
   const shown = useMemo(() => (dept === 'all' ? members : members.filter((m) => m.dept === dept)), [members, dept]);
   const filledCount = useMemo(() => shown.filter((m) => existing[`${m.id}|${ym}`] !== undefined).length, [shown, existing, ym]);
 
+  // Nilai turunan per baris (dipakai tabel desktop & kartu mobile) — hindari duplikasi logika.
+  const fieldsFor = (m: Member) => {
+    const key = `${m.id}|${ym}`;
+    const saved = existing[key];
+    const typed = scores[key]?.trim() ?? '';
+    const isEditing = saved !== undefined && typed !== '';   // menimpa nilai lama → wajib komentar
+    const noteMissing = isEditing && !(notes[key]?.trim());
+    return { key, saved, typed, isEditing, noteMissing };
+  };
+  // Enter di kolom skor → fokus ke skor baris berikutnya (input cepat).
+  const scoreRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const focusNextScore = (i: number) => scoreRefs.current[i + 1]?.focus();
+
   function submitManual() {
     setMsg(null);
     const rows = shown
@@ -163,7 +176,8 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
               <span className="text-amber-700 font-semibold">{shown.length - filledCount} belum diisi</span>
             )}
           </div>
-          <div className="overflow-x-auto">
+          {/* Desktop: tabel */}
+          <div className="hidden md:block overflow-x-auto">
           <table className="w-full border-collapse text-sm min-w-[520px]">
             <thead>
               <tr className="border-b text-left">
@@ -174,12 +188,8 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
               </tr>
             </thead>
             <tbody>
-              {shown.map((m) => {
-                const key = `${m.id}|${ym}`;
-                const saved = existing[key];
-                const typed = scores[key]?.trim() ?? '';
-                const isEditing = saved !== undefined && typed !== '';   // menimpa nilai lama → wajib komentar
-                const noteMissing = isEditing && !(notes[key]?.trim());
+              {shown.map((m, i) => {
+                const { key, saved, isEditing, noteMissing } = fieldsFor(m);
                 return (
                 <tr key={m.id} className={`border-b ${noteMissing ? 'bg-amber-50/60' : ''}`}>
                   <td className="py-2">
@@ -190,6 +200,8 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
                   </td>
                   <td className="py-2">
                     <input type="number" min={0} max={100} inputMode="decimal" value={scores[key] ?? ''}
+                      ref={(el) => { scoreRefs.current[i] = el; }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); focusNextScore(i); } }}
                       placeholder={saved !== undefined ? saved.toFixed(2) : ''}
                       onChange={(e) => setScores((s) => ({ ...s, [key]: e.target.value }))}
                       className={`w-24 rounded border px-2 py-1 ${isEditing ? 'border-amber-400 bg-amber-50/40' : ''}`} />
@@ -222,6 +234,45 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
               })}
             </tbody>
           </table>
+          </div>
+
+          {/* Mobile: kartu (1 per pegawai) — #7 */}
+          <div className="md:hidden space-y-3">
+            {shown.map((m) => {
+              const { key, saved, isEditing, noteMissing } = fieldsFor(m);
+              return (
+                <div key={m.id} className={`rounded-xl border p-3 space-y-2 ${noteMissing ? 'border-amber-400 bg-amber-50/40' : 'border-gray-200'}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-sm font-semibold">
+                      {m.name} <span className="text-gray-500 font-normal">· {m.dept}</span>
+                    </div>
+                    {saved === undefined ? (
+                      <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-500">belum diisi</span>
+                    ) : (
+                      <span className="shrink-0 font-mono text-sm font-bold text-emerald-700">{saved.toFixed(2)}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="number" min={0} max={100} inputMode="decimal" value={scores[key] ?? ''}
+                      placeholder={saved !== undefined ? saved.toFixed(2) : 'Skor 0–100'}
+                      onChange={(e) => setScores((s) => ({ ...s, [key]: e.target.value }))}
+                      className={`w-28 rounded border px-2 py-1.5 text-sm ${isEditing ? 'border-amber-400 bg-amber-50/40' : ''}`} />
+                    {isEditing && <span className="text-[10px] font-bold text-amber-700">↻ dari {saved.toFixed(2)}</span>}
+                    {saved !== undefined && (
+                      <button type="button" disabled={pending}
+                        onClick={() => { setDelId(m.id); setDelNote(''); setMsg(null); }}
+                        className="ml-auto shrink-0 text-[11px] font-bold px-2 py-1 rounded border border-rose-300 text-rose-700 hover:bg-rose-50 disabled:opacity-50">
+                        Hapus
+                      </button>
+                    )}
+                  </div>
+                  <input type="text" value={notes[key] ?? ''}
+                    placeholder={isEditing ? 'Wajib: alasan perubahan' : 'Komentar audit (opsional)'}
+                    onChange={(e) => setNotes((n) => ({ ...n, [key]: e.target.value }))}
+                    className={`w-full rounded border px-2 py-1.5 text-sm ${noteMissing ? 'border-amber-400 bg-amber-50/40 placeholder:text-amber-700' : ''}`} />
+                </div>
+              );
+            })}
           </div>
 
           {/* Konfirmasi penghapusan skor KPI — alasan WAJIB, tercatat di audit. */}

@@ -7,7 +7,7 @@ import { PANDUAN_VERSION } from '@/lib/panduan';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, Home, ListChecks,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, Home, ListChecks, ChevronDown,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 import { BrandLogo } from '@/components/brand-logo';
@@ -63,36 +63,50 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
   }
 
   // Dual-mode: 'admin' → alat administrator (butuh izin HRD); 'base' → tugas posisi asli.
+  // Menu ditata per FASE siklus (bukan satu daftar panjang) + dilipat accordion di render →
+  // mengurangi kekusutan. Tiap grup difilter hrd_sections (rekan HRD terbatas lihat subsetnya).
   if (adminView) {
-    const adminItems = filterAdmin([
-      { href: '/admin/pegawai', label: 'Kelola Pegawai', icon: UserCog, section: 'pegawai' },
+    // ⭐ Mulai di sini — ikhtisar tahap periode + blokir finalisasi (selalu tampil utk admin view).
+    sections.push({ title: 'Mulai di Sini', items: [{ href: '/admin/siklus', label: 'Panduan Siklus', icon: ListChecks }] });
+
+    const konfig = filterAdmin([
       { href: '/admin/periode', label: 'Kelola Periode', icon: CalendarRange, section: 'periode' },
-      { href: '/admin/pemetaan', label: 'Pemetaan 360°', icon: Network, section: 'pemetaan' },
       { href: '/admin/pertanyaan', label: 'Kelola Pertanyaan', icon: HelpCircle, section: 'pertanyaan' },
       { href: '/admin/bobot', label: 'Bobot & Kalkulasi 360°', icon: Scale, section: 'bobot' },
+      { href: '/admin/pemetaan', label: 'Pemetaan 360°', icon: Network, section: 'pemetaan' },
+    ]);
+    if (konfig.length) sections.push({ title: 'Konfigurasi Siklus', items: konfig });
+
+    const pelaksanaan = filterAdmin([
       { href: '/admin/progress', label: 'Progress 360 Feedback', icon: CircleCheckBig, section: 'progress' },
       { href: '/admin/kepatuhan', label: 'Flag Kepatuhan', icon: ShieldAlert, section: 'kepatuhan' },
+    ]);
+    if (pelaksanaan.length) sections.push({ title: 'Pelaksanaan', items: pelaksanaan });
+
+    const hasil = filterAdmin([
       { href: '/admin/laporan', label: 'Review Hasil Akhir', icon: ClipboardCheck, section: 'laporan' },
       { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award, section: 'suksesi' },
     ]);
-    // Manajemen Akses (RBAC halaman ber-lingkup, migrasi 0024): HANYA HRD PENUH (tak dibatasi
-    // hrd_sections) — rekan HRD terbatas tak boleh mengatur akses (cegah naikkan akses sendiri).
-    // Sengaja di luar katalog hrd_sections; gate = isFullHrd, bukan filterAdmin.
-    const isFullHrd = !hrdSections || hrdSections.length === 0;
-    if (isFullHrd) adminItems.push({ href: '/admin/akses', label: 'Manajemen Akses', icon: KeyRound });
-    // Panduan Siklus — ikhtisar tahap periode + blokir finalisasi (selalu tampil utk admin view).
-    if (adminItems.length) adminItems.unshift({ href: '/admin/siklus', label: 'Panduan Siklus', icon: ListChecks });
-    if (adminItems.length) sections.push({ title: 'Menu Administrator', items: adminItems });
+    if (hasil.length) sections.push({ title: 'Hasil & Keputusan', items: hasil });
 
-    const monitorItems = filterAdmin([
-      { href: '/admin/struktur', label: 'Struktur Organisasi', icon: Building2, section: 'struktur' },
+    const pemantauan = filterAdmin([
       { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard, section: 'dashboard' },
       { href: '/admin/monitor', label: 'Monitor Kinerja Pegawai', icon: TrendingUp, section: 'dashboard' },
+      { href: '/admin/struktur', label: 'Struktur Organisasi', icon: Building2, section: 'struktur' },
       { href: '/kpi?tab=riwayat', label: 'Monitoring & Audit KPI', icon: Clock, section: 'audit' },
       { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText, section: 'audit' },
       { href: '/admin/ekspor', label: 'Ekspor Dataset', icon: Download, section: 'ekspor' },
     ]);
-    if (monitorItems.length) sections.push({ title: 'Pemantauan', items: monitorItems });
+    if (pemantauan.length) sections.push({ title: 'Pemantauan & Data', items: pemantauan });
+
+    // 🔧 Pengaturan — Kelola Pegawai + Manajemen Akses. Akses (RBAC ber-lingkup, migrasi 0024):
+    // HANYA HRD PENUH (tak dibatasi hrd_sections) — cegah rekan HRD terbatas menaikkan aksesnya sendiri.
+    const pengaturan = filterAdmin([
+      { href: '/admin/pegawai', label: 'Kelola Pegawai', icon: UserCog, section: 'pegawai' },
+    ]);
+    const isFullHrd = !hrdSections || hrdSections.length === 0;
+    if (isFullHrd) pengaturan.push({ href: '/admin/akses', label: 'Manajemen Akses', icon: KeyRound });
+    if (pengaturan.length) sections.push({ title: 'Pengaturan', items: pengaturan });
   }
 
   if (role === 'direksi') {
@@ -170,6 +184,16 @@ export function AppShell({
     if (path === '/penilaian') return pathname === '/penilaian' || pathname.startsWith('/penilaian/');
     return pathname === path;
   };
+
+  // Accordion sidebar — HANYA view HRD Admin (menu terbanyak). Hanya section yang memuat halaman
+  // aktif yang terbuka; sisanya terlipat → mengurangi kekusutan. Peran lain: semua terbuka (tetap).
+  const accordion = canAdmin && hrdMode === 'admin';
+  const activeSectionTitle = sections.find((s) => s.items.some((it) => isActive(it.href)))?.title ?? null;
+  const firstTitle = sections.find((s) => s.title)?.title ?? null;
+  const [openTitle, setOpenTitle] = useState<string | null>(activeSectionTitle ?? firstTitle);
+  useEffect(() => {
+    if (accordion) setOpenTitle(activeSectionTitle ?? firstTitle);
+  }, [accordion, activeSectionTitle, firstTitle]);
 
   const Sidebar = (
     <aside className="app-sidebar w-64 shrink-0 bg-[#0f2e20] text-emerald-100 border-r border-black/20 flex flex-col h-full">
@@ -264,28 +288,42 @@ export function AppShell({
           <Home className={`w-4 h-4 shrink-0 ${isActive('/beranda') ? 'text-emerald-700' : 'text-emerald-300'}`} />
           <span>Beranda</span>
         </Link>
-        {sections.map((sec) => (
-          <div key={sec.title ?? 'main'}>
-            {sec.title && <div className="text-[10px] font-bold text-white/45 tracking-wider px-3 pt-3 pb-1 uppercase">{sec.title}</div>}
-            {sec.items.map((it) => {
-              const Icon = it.icon;
-              const active = isActive(it.href);
-              return (
-                <Link
-                  key={it.href}
-                  href={it.href}
-                  onClick={() => setOpen(false)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
-                    active ? 'bg-white text-emerald-900 shadow-2xs' : 'text-white/80 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-emerald-700' : 'text-emerald-300'}`} />
-                  <span>{it.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        ))}
+        {sections.map((sec) => {
+          const collapsible = accordion && !!sec.title;
+          const containsActive = sec.items.some((it) => isActive(it.href));
+          const isOpen = !collapsible || openTitle === sec.title;
+          return (
+            <div key={sec.title ?? 'main'}>
+              {sec.title && (collapsible ? (
+                <button type="button" onClick={() => setOpenTitle(isOpen ? null : sec.title!)}
+                  className="w-full flex items-center gap-1.5 px-3 pt-3 pb-1 text-[10px] font-bold text-white/45 tracking-wider uppercase hover:text-white/75">
+                  <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
+                  <span className="flex-1 text-left">{sec.title}</span>
+                  {!isOpen && containsActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" aria-label="halaman aktif di grup ini" />}
+                </button>
+              ) : (
+                <div className="text-[10px] font-bold text-white/45 tracking-wider px-3 pt-3 pb-1 uppercase">{sec.title}</div>
+              ))}
+              {isOpen && sec.items.map((it) => {
+                const Icon = it.icon;
+                const active = isActive(it.href);
+                return (
+                  <Link
+                    key={it.href}
+                    href={it.href}
+                    onClick={() => setOpen(false)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                      active ? 'bg-white text-emerald-900 shadow-2xs' : 'text-white/80 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-emerald-700' : 'text-emerald-300'}`} />
+                    <span>{it.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })}
       </nav>
 
       {/* User + akun + logout */}

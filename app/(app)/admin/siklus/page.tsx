@@ -37,23 +37,38 @@ export default async function SiklusPage() {
     );
   }
 
+  const has360 = ap.has_360;
+
   // Sinyal-sinyal (paralel, count head bila bisa). RLS is_hrd → HRD baca penuh.
   const [
     { count: totalEmp }, { count: mappingActive }, { count: submitted },
-    { count: result360 }, { count: finalized }, { count: inReview }, { count: corrPending },
+    { count: finalized }, { count: inReview }, { count: corrPending },
   ] = await Promise.all([
     supabase.from('employees').select('*', { count: 'exact', head: true }).eq('is_active', true).neq('role', 'direksi').eq('is_external', false),
     supabase.from('mappings').select('*', { count: 'exact', head: true }).eq('period_id', ap.id).eq('is_active', true),
     supabase.from('assessments').select('*', { count: 'exact', head: true }).eq('period_id', ap.id).eq('status', 'submitted'),
-    supabase.from('result_360').select('*', { count: 'exact', head: true }).eq('period_id', ap.id).not('score', 'is', null),
     supabase.from('final_reports').select('*', { count: 'exact', head: true }).eq('period_id', ap.id).eq('status', 'finalized'),
     supabase.from('final_reports').select('*', { count: 'exact', head: true }).eq('period_id', ap.id).eq('status', 'in_review'),
     supabase.from('relation_correction_requests').select('*', { count: 'exact', head: true }).eq('period_id', ap.id).eq('status', 'pending'),
   ]);
 
+  // Cakupan 360° berbasis TARGET yang benar-benar dipetakan (bukan seluruh pegawai) → cegah
+  // alarm palsu untuk pegawai yang memang tak dinilai 360° kuartal ini. targetsN = orang yang
+  // seharusnya punya Skor 360°; scoredN = yang sudah terhitung (result_360 berscore).
+  const [{ data: mapT }, { data: resE }] = await Promise.all([
+    has360 ? supabase.from('mappings').select('target_id').eq('period_id', ap.id).eq('is_active', true)
+           : Promise.resolve({ data: [] as { target_id: string }[] }),
+    has360 ? supabase.from('result_360').select('employee_id').eq('period_id', ap.id).not('score', 'is', null)
+           : Promise.resolve({ data: [] as { employee_id: string }[] }),
+  ]);
+  const targets = new Set((mapT ?? []).map((m) => m.target_id));
+  const computed = new Set((resE ?? []).map((r) => r.employee_id));
+  const targetsN = targets.size;
+  const scoredN = [...targets].filter((id) => computed.has(id)).length;
+  const missing360 = targetsN - scoredN;
+
   const nEmp = totalEmp ?? 0, nMap = mappingActive ?? 0, nSub = submitted ?? 0;
-  const nRes = result360 ?? 0, nFinal = finalized ?? 0, nReview = inReview ?? 0, nCorr = corrPending ?? 0;
-  const has360 = ap.has_360;
+  const nFinal = finalized ?? 0, nReview = inReview ?? 0, nCorr = corrPending ?? 0;
 
   // Susun tahap sesuai SOP. Status diturunkan dari sinyal; "current" = tahap belum-selesai pertama.
   const raw: Omit<Stage, 'status'>[] = [
@@ -62,7 +77,7 @@ export default async function SiklusPage() {
       { label: 'Pertanyaan, bobot & pemetaan disiapkan', detail: `${nMap} pemetaan aktif`, href: '/admin/pemetaan' },
       { label: '360° diluncurkan (form dibuka)', detail: ap.form_open ? 'form terbuka' : 'form ditutup', href: '/admin/360' },
       { label: 'Pengisian 360° oleh pegawai', detail: `${nSub}/${nMap} penilaian terkirim`, href: '/admin/progress' },
-      { label: '① Hitung Ulang Skor 360°', detail: `${nRes} pegawai berskor 360°`, href: '/admin/laporan' },
+      { label: '① Hitung Ulang Skor 360°', detail: `${scoredN}/${targetsN} target berskor 360°`, href: '/admin/laporan' },
       { label: 'Review & susun ringkasan (opsional rilis ke SPV)', detail: nReview > 0 ? `${nReview} sedang ditinjau` : undefined, href: '/admin/laporan' },
     ] : []),
     { label: 'Finalisasi laporan', detail: `${nFinal}/${nEmp} pegawai difinalkan`, href: '/admin/laporan' },
@@ -75,7 +90,7 @@ export default async function SiklusPage() {
     if (label.startsWith('Pertanyaan')) return nMap > 0;
     if (label.startsWith('360° diluncurkan')) return has360; // has_360 = sudah diaktifkan
     if (label.startsWith('Pengisian')) return nMap > 0 && nSub >= nMap;
-    if (label.startsWith('① Hitung')) return nRes > 0;
+    if (label.startsWith('① Hitung')) return targetsN > 0 && scoredN >= targetsN;
     if (label.startsWith('Review')) return nFinal > 0 || nReview > 0; // sudah mulai review/final
     if (label.startsWith('Finalisasi')) return nEmp > 0 && nFinal >= nEmp;
     if (label.startsWith('Kunci')) return false; // periode masih aktif
@@ -92,7 +107,7 @@ export default async function SiklusPage() {
   // Blokir finalisasi — hal yang harus beres sebelum "Finalisasi" bisa tuntas.
   const blockers: { label: string; href: string }[] = [];
   if (nCorr > 0) blockers.push({ label: `${nCorr} permohonan koreksi relasi belum diproses`, href: '/admin/pemetaan' });
-  if (has360 && nEmp - nRes > 0) blockers.push({ label: `${nEmp - nRes} pegawai belum punya Skor 360° (jalankan ① Hitung Ulang)`, href: '/admin/laporan' });
+  if (has360 && missing360 > 0) blockers.push({ label: `${missing360} target 360° belum berskor — jalankan ① Hitung Ulang (atau belum ada penilaian masuk)`, href: '/admin/laporan' });
   if (nEmp - nFinal > 0) blockers.push({ label: `${nEmp - nFinal} laporan belum difinalisasi`, href: '/admin/laporan' });
 
   return (

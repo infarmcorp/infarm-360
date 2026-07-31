@@ -4,7 +4,12 @@ import { useMemo, useState } from 'react';
 import { displayName } from '@/lib/employee-name';
 
 export type PeriodTrendPoint = { label: string; kpi: number | null; s360: number | null };
-export type EmpMonthly = { id: string; name: string; nickname?: string | null; monthly: (number | null)[] };
+export type EmpMonthly = {
+  id: string; name: string; nickname?: string | null;
+  monthly: (number | null)[];        // KPI bulanan
+  monthly360: (number | null)[];     // Skor 360° per-kuartal, dipetakan datar ke bulan
+  monthlyFinal: (number | null)[];   // Skor Akhir per-kuartal, dipetakan datar ke bulan
+};
 export type MoverRow = { name: string; nickname?: string | null; delta: number; curr: number };
 /** Pergerakan 360° per pegawai + rincian per-aspek (di aspek mana naik/turun). */
 export type AspectDelta = { aspect: string; delta: number };
@@ -24,10 +29,11 @@ export type DeltaCause = {
   enteredN: number;       // pegawai baru berdata (curr saja)
   leftN: number;          // pegawai tak lagi berdata (prev saja)
 };
-type Series = { label: string; color: string; points: (number | null)[] };
+type Series = { label: string; color: string; points: (number | null)[]; showValues?: boolean };
 
 const C_KPI = '#059669';   // emerald
 const C_360 = '#4f46e5';   // indigo
+const C_FINAL = '#d97706';  // amber — Skor Akhir
 
 /** Line chart SVG ringkas, responsif; garis putus pada nilai null (data bulan kosong). */
 function LineChart({ xLabels, series, yMax = 100 }: { xLabels: string[]; series: Series[]; yMax?: number }) {
@@ -74,16 +80,18 @@ function LineChart({ xLabels, series, yMax = 100 }: { xLabels: string[]; series:
           {s.points.map((v, i) => (v == null ? null : (
             <g key={i}>
               <circle cx={x(i)} cy={y(v)} r={2.5} fill={s.color} />
-              {/* Nilai di tiap titik. Seri ganda (per-periode): seri ke-2 di BAWAH titik agar tak
-                  bertumpuk dgn seri ke-1 yang di atas. Label titik TEPI dirata-kan ke dalam
-                  (pertama=start, terakhir=end) agar tak menembus sumbu-Y kiri / tepi kanan. */}
-              <text
-                x={x(i) + (n > 1 && i === 0 ? 2 : n > 1 && i === n - 1 ? -2 : 0)}
-                y={y(v) + (series.length > 1 && sIdx > 0 ? 13 : -6)}
-                textAnchor={n > 1 && i === 0 ? 'start' : n > 1 && i === n - 1 ? 'end' : 'middle'}
-                style={{ fontSize: 9, fontWeight: 700 }} fill={s.color}>
-                {v.toFixed(2)}
-              </text>
+              {/* Nilai di tiap titik — dilewati untuk seri per-kuartal (showValues=false) agar
+                  garis datar 360°/Skor Akhir tak menumpuk label di grafik bulanan. Seri ganda
+                  (per-periode): seri ke-2 di BAWAH titik. Label titik TEPI dirata-kan ke dalam. */}
+              {s.showValues !== false && (
+                <text
+                  x={x(i) + (n > 1 && i === 0 ? 2 : n > 1 && i === n - 1 ? -2 : 0)}
+                  y={y(v) + (series.length > 1 && sIdx > 0 ? 13 : -6)}
+                  textAnchor={n > 1 && i === 0 ? 'start' : n > 1 && i === n - 1 ? 'end' : 'middle'}
+                  style={{ fontSize: 9, fontWeight: 700 }} fill={s.color}>
+                  {v.toFixed(2)}
+                </text>
+              )}
             </g>
           )))}
         </g>
@@ -379,12 +387,14 @@ function ChartCard({ title, hint, children }: { title: string; hint?: React.Reac
  *  C. Tren KPI Pegawai per Bulan (dropdown: rata-rata tim / satu pegawai)
  */
 export function MonitorTrends({
-  periodsTrend, monthLabels, teamMonthly, employees, has360, movers, moverLabels, kpiCause, s360Cause,
-  movers360, moverLabels360,
+  periodsTrend, monthLabels, teamMonthly, team360Monthly, teamFinalMonthly, employees, has360,
+  movers, moverLabels, kpiCause, s360Cause, movers360, moverLabels360,
 }: {
   periodsTrend: PeriodTrendPoint[];
   monthLabels: string[];
   teamMonthly: (number | null)[];
+  team360Monthly: (number | null)[];
+  teamFinalMonthly: (number | null)[];
   employees: EmpMonthly[];
   has360: boolean;
   movers: MoverRow[];
@@ -397,7 +407,21 @@ export function MonitorTrends({
   const [sel, setSel] = useState('team'); // 'team' = rata-rata tim; selain itu = employee id
   const empC = useMemo(() => employees.find((e) => e.id === sel) ?? null, [employees, sel]);
   const cPoints = sel === 'team' ? teamMonthly : (empC?.monthly ?? []);
+  const c360 = sel === 'team' ? team360Monthly : (empC?.monthly360 ?? []);
+  const cFinal = sel === 'team' ? teamFinalMonthly : (empC?.monthlyFinal ?? []);
   const cLabel = sel === 'team' ? 'Rata-rata Tim' : (empC ? displayName(empC.nickname, empC.name) : '');
+
+  // Seri grafik bulanan: KPI (bulanan, berlabel) + 360° & Skor Akhir (per-kuartal, garis datar tanpa label).
+  const monthlySeries = (kpi: (number | null)[], s360: (number | null)[], fin: (number | null)[], kpiLabel: string): Series[] => [
+    { label: kpiLabel, color: C_KPI, points: kpi },
+    ...(has360 ? [{ label: 'Skor 360° (per kuartal)', color: C_360, points: s360, showValues: false }] : []),
+    { label: 'Skor Akhir (per kuartal)', color: C_FINAL, points: fin, showValues: false },
+  ];
+  const monthlyLegend = (kpiLabel: string) => [
+    { label: kpiLabel, color: C_KPI },
+    ...(has360 ? [{ label: 'Skor 360° (per kuartal)', color: C_360 }] : []),
+    { label: 'Skor Akhir (per kuartal)', color: C_FINAL },
+  ];
 
   const periodLabels = periodsTrend.map((p) => p.label);
   const periodSeries: Series[] = [
@@ -424,14 +448,18 @@ export function MonitorTrends({
       {has360 && <TopMovers360 movers={movers360} labels={moverLabels360} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ChartCard title="Tren KPI Tim per Bulan">
+        <ChartCard title="Tren Kinerja Tim per Bulan">
           {monthLabels.length === 0 ? <Empty /> : (
-            <LineChart xLabels={monthLabels} series={[{ label: 'KPI Tim', color: C_KPI, points: teamMonthly }]} />
+            <>
+              <LineChart xLabels={monthLabels} series={monthlySeries(teamMonthly, team360Monthly, teamFinalMonthly, 'KPI Tim')} />
+              <Legend items={monthlyLegend('KPI Tim')} />
+              <PeriodMetricNote />
+            </>
           )}
         </ChartCard>
 
         <ChartCard
-          title="Tren KPI Pegawai per Bulan"
+          title="Tren Kinerja Pegawai per Bulan"
           hint={
             <select value={sel} onChange={(e) => setSel(e.target.value)}
               className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
@@ -442,8 +470,9 @@ export function MonitorTrends({
         >
           {monthLabels.length === 0 ? <Empty /> : (
             <>
-              <LineChart xLabels={monthLabels} series={[{ label: cLabel, color: C_KPI, points: cPoints }]} />
-              <Legend items={[{ label: cLabel, color: C_KPI }]} />
+              <LineChart xLabels={monthLabels} series={monthlySeries(cPoints, c360, cFinal, `${cLabel} · KPI`)} />
+              <Legend items={monthlyLegend(`${cLabel} · KPI`)} />
+              <PeriodMetricNote />
             </>
           )}
         </ChartCard>
@@ -454,4 +483,14 @@ export function MonitorTrends({
 
 function Empty() {
   return <p className="text-xs text-gray-500 italic py-8 text-center">Belum ada data untuk ditampilkan.</p>;
+}
+
+/** Catatan granularitas: KPI bulanan, sedangkan 360° & Skor Akhir dihitung sekali per kuartal. */
+function PeriodMetricNote() {
+  return (
+    <p className="mt-1.5 text-[10px] leading-snug text-gray-400">
+      KPI bersifat bulanan. <span className="font-semibold text-gray-500">Skor 360°</span> &amp; <span className="font-semibold text-gray-500">Skor Akhir</span> dihitung
+      per kuartal → ditampilkan sebagai garis datar sepanjang bulan-bulan kuartalnya (nilai per titik lihat "Tren Tim per Periode" &amp; tabel).
+    </p>
+  );
 }

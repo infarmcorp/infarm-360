@@ -115,10 +115,11 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   const cAvg = await companyAverages(sel.id);
 
   // ── Data tren LINTAS periode/bulan (RLS user-scoped; lingkup tim kecil → aman batas 1000) ──
-  const [kpiAllRes, r360AllRes, pmRes] = await Promise.all([
+  const [kpiAllRes, r360AllRes, pmRes, penAllRes] = await Promise.all([
     dataClient.from('kpi_scores').select('employee_id, ym, score').in('employee_id', ids),
     dataClient.from('result_360').select('employee_id, period_id, score').in('employee_id', ids),
     dataClient.from('period_months').select('period_id, ym'),
+    dataClient.from('compliance_penalties').select('employee_id, period_id, points').in('employee_id', ids),
   ]);
   const kpiAgg = new Map<string, { s: number; n: number }>(); // `${emp}|${ym}`
   (kpiAllRes.data ?? []).forEach((r) => { const k = `${r.employee_id}|${r.ym}`; const a = kpiAgg.get(k) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; kpiAgg.set(k, a); });
@@ -131,6 +132,30 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   const monthLabels = allYms.map(labelOf);
   const nn = (v: number | null): v is number => v != null;
 
+  // Peta bantu untuk overlay per-KUARTAL pada grafik "per Bulan": 360° & Skor Akhir bersifat
+  // per-periode (satu nilai/kuartal) → dipetakan ke sumbu bulanan sebagai garis DATAR sepanjang
+  // bulan-bulan kuartalnya (bukan nilai bulanan semu). bulan→periode, penalti & Skor Akhir per (pegawai,periode).
+  const periodById = new Map(periodList.map((p) => [p.id, p]));
+  const periodOfYm = new Map<string, string>();
+  for (const [pid, yms] of monthsByPeriod) for (const ym of yms) periodOfYm.set(ym, pid);
+  const penOf = new Map((penAllRes.data ?? []).map((p) => [`${p.employee_id}|${p.period_id}`, p.points]));
+  const perPeriodKpi = (id: string, pid: string): number | null => {
+    const vals = (monthsByPeriod.get(pid) ?? []).map((ym) => kpiOf(id, ym)).filter(nn);
+    return vals.length ? mean(vals) : null;
+  };
+  const finalOf = (id: string, pid: string): number | null => {
+    const p = periodById.get(pid); if (!p) return null;
+    return finalScoreOf(perPeriodKpi(id, pid), s360Of.get(`${id}|${pid}`) ?? null, p.has_360, penOf.get(`${id}|${pid}`) ?? 0, true);
+  };
+  const emp360Ym = (id: string, ym: string): number | null => {
+    const pid = periodOfYm.get(ym); const p = pid ? periodById.get(pid) : null;
+    if (!pid || !p?.has_360) return null;
+    return s360Of.get(`${id}|${pid}`) ?? null;
+  };
+  const empFinalYm = (id: string, ym: string): number | null => {
+    const pid = periodOfYm.get(ym); return pid ? finalOf(id, pid) : null;
+  };
+
   // A. Tren tim per periode (Avg KPI & Avg 360° tim). Simpan `id` internal agar bisa mengurai
   //    penyebab perubahan (Sorotan) pada dua periode berdata terakhir.
   const anyHas360 = periodList.some((p) => p.has_360);
@@ -142,21 +167,32 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   }).filter((pt) => pt.kpi != null || pt.s360 != null);
   const periodsTrend: PeriodTrendPoint[] = periodsTrendFull.map(({ label, kpi, s360 }) => ({ label, kpi, s360 }));
 
-  // B. Tren KPI tim per bulan.
+  // B. Tren kinerja tim per bulan — KPI (bulanan) + overlay 360° & Skor Akhir (per-kuartal, garis datar).
   const teamMonthly = allYms.map((ym) => mean(ids.map((id) => kpiOf(id, ym)).filter(nn)));
+  const team360Monthly = allYms.map((ym) => {
+    const pid = periodOfYm.get(ym); const p = pid ? periodById.get(pid) : null;
+    if (!pid || !p?.has_360) return null;
+    return mean(ids.map((id) => s360Of.get(`${id}|${pid}`) ?? null).filter(nn));
+  });
+  const teamFinalMonthly = allYms.map((ym) => {
+    const pid = periodOfYm.get(ym); if (!pid) return null;
+    return mean(ids.map((id) => finalOf(id, pid)).filter(nn));
+  });
 
-  // C. Tren KPI per pegawai per bulan (dropdown).
+  // C. Tren kinerja per pegawai per bulan (dropdown) — KPI bulanan + 360°/Skor Akhir per-kuartal.
   const employeesMonthly: EmpMonthly[] = empRows
-    .map((e) => ({ id: e.id, name: e.name, nickname: e.nickname, monthly: allYms.map((ym) => kpiOf(e.id, ym)) }))
-    .filter((e) => e.monthly.some((v) => v != null))
+    .map((e) => ({
+      id: e.id, name: e.name, nickname: e.nickname,
+      monthly: allYms.map((ym) => kpiOf(e.id, ym)),
+      monthly360: allYms.map((ym) => emp360Ym(e.id, ym)),
+      monthlyFinal: allYms.map((ym) => empFinalYm(e.id, ym)),
+    }))
+    .filter((e) => e.monthly.some((v) => v != null) || e.monthlyFinal.some((v) => v != null))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   // D. Top Movers — selisih KPI per pegawai antara DUA periode berdata terakhir (rerata KPI
   //    bulan-bulan tiap periode). Hanya pegawai yang bernilai di KEDUA periode (bisa dibandingkan).
-  const perPeriodKpi = (id: string, pid: string): number | null => {
-    const vals = (monthsByPeriod.get(pid) ?? []).map((ym) => kpiOf(id, ym)).filter(nn);
-    return vals.length ? mean(vals) : null;
-  };
+  //    (perPeriodKpi didefinisikan di atas — dipakai bersama overlay Skor Akhir per-kuartal.)
   const kpiPeriods = periodList.filter((p) => ids.some((id) => perPeriodKpi(id, p.id) != null));
   const currP = kpiPeriods[kpiPeriods.length - 1] ?? null;
   const prevP = kpiPeriods[kpiPeriods.length - 2] ?? null;
@@ -275,7 +311,8 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
       {/* C. ARAH — tren & pergerakan lintas periode/bulan */}
       <SectionHeader label="Arah — Tren & Pergerakan" hint="lintas periode/bulan" tone="amber" />
       <MonitorTrends periodsTrend={periodsTrend} monthLabels={monthLabels}
-        teamMonthly={teamMonthly} employees={employeesMonthly} has360={anyHas360}
+        teamMonthly={teamMonthly} team360Monthly={team360Monthly} teamFinalMonthly={teamFinalMonthly}
+        employees={employeesMonthly} has360={anyHas360}
         movers={movers} moverLabels={moverLabels} kpiCause={kpiCause} s360Cause={s360Cause}
         movers360={movers360} moverLabels360={moverLabels360} />
 

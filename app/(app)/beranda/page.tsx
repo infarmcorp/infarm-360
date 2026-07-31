@@ -2,11 +2,12 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import {
-  Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange, ClipboardCheck, Award, KeyRound, ListChecks,
+  Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange, ClipboardCheck, Award, KeyRound,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { canAdmin, canCoordinate } from '@/lib/auth/roles';
 import { getTodos, type TodoItem, type TodoTone } from '@/lib/todos/compute';
+import { CycleStatus } from './cycle-status';
 
 /**
  * Beranda — "Pusat Tindakan" per peran. Landing setelah login (menggantikan lempar-langsung ke
@@ -61,6 +62,9 @@ export default async function BerandaPage() {
           </p>
         </div>
 
+        {/* Status siklus — HANYA HRD Mode Admin (menggantikan halaman /admin/siklus) */}
+        {adminView && <CycleStatus />}
+
         {/* Yang perlu dilakukan */}
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
           <h2 className="text-sm font-bold text-gray-700 mb-3">Yang Perlu Anda Lakukan</h2>
@@ -102,7 +106,6 @@ export default async function BerandaPage() {
 /** Pintasan sesuai peran & mode (subset menu paling sering dipakai). */
 function shortcutsFor(role: string, adminView: boolean, isCoordinator: boolean): Shortcut[] {
   if (adminView) return [
-    { href: '/admin/siklus', label: 'Panduan Siklus', icon: ListChecks },
     { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/admin/periode', label: 'Kelola Periode', icon: CalendarRange },
     { href: '/admin/laporan', label: 'Finalisasi', icon: Award },

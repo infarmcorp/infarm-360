@@ -7,7 +7,7 @@ import { PANDUAN_VERSION } from '@/lib/panduan';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, Home, ListChecks, ChevronDown,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, Home, ChevronDown,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 import { BrandLogo } from '@/components/brand-logo';
@@ -66,9 +66,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
   // Menu ditata per FASE siklus (bukan satu daftar panjang) + dilipat accordion di render →
   // mengurangi kekusutan. Tiap grup difilter hrd_sections (rekan HRD terbatas lihat subsetnya).
   if (adminView) {
-    // ⭐ Mulai di sini — ikhtisar tahap periode + blokir finalisasi (selalu tampil utk admin view).
-    sections.push({ title: 'Mulai di Sini', items: [{ href: '/admin/siklus', label: 'Panduan Siklus', icon: ListChecks }] });
-
+    // Status siklus kini di kartu Beranda (bukan halaman/menu sendiri) → tak ada grup "Mulai di Sini".
     const konfig = filterAdmin([
       { href: '/admin/periode', label: 'Kelola Periode', icon: CalendarRange, section: 'periode' },
       { href: '/admin/pertanyaan', label: 'Kelola Pertanyaan', icon: HelpCircle, section: 'pertanyaan' },

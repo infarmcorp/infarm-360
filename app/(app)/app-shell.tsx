@@ -305,13 +305,13 @@ export function AppShell({
             <div key={sec.title ?? 'main'}>
               {sec.title && (collapsible ? (
                 <button type="button" onClick={() => setOpenTitle(isOpen ? null : sec.title!)}
-                  className="w-full flex items-center gap-1.5 px-3 pt-3 pb-1 text-[10px] font-bold text-sidebar-soft/80 tracking-wider uppercase hover:text-sidebar-soft">
+                  className="w-full flex items-center gap-1.5 px-1.5 pt-3 pb-1 text-[10px] font-bold text-sidebar-soft/80 tracking-wider uppercase hover:text-sidebar-soft">
                   <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
                   <span className="flex-1 text-left">{sec.title}</span>
                   {!isOpen && containsActive && <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" aria-label="halaman aktif di grup ini" />}
                 </button>
               ) : (
-                <div className="text-[10px] font-bold text-sidebar-soft/80 tracking-wider px-3 pt-3 pb-1 uppercase">{sec.title}</div>
+                <div className="text-[10px] font-bold text-sidebar-soft/80 tracking-wider px-1.5 pt-3 pb-1 uppercase">{sec.title}</div>
               ))}
               {isOpen && sec.items.map((it) => {
                 const Icon = it.icon;
@@ -321,7 +321,7 @@ export function AppShell({
                     key={it.href}
                     href={it.href}
                     onClick={() => setOpen(false)}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-control text-xs font-bold transition-colors ${
+                    className={`w-full flex items-center gap-2 pl-5 pr-3 py-2 rounded-control text-xs font-bold transition-colors ${
                       active ? 'bg-brand text-white' : 'text-sidebar-soft hover:bg-white/[0.05] hover:text-white'
                     }`}
                   >

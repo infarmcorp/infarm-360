@@ -35,6 +35,8 @@ export default async function BerandaPage() {
   const jar = await cookies();
   const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   const adminView = canAdmin(emp) && hrdMode === 'admin';
+  // Beranda HANYA untuk HRD Mode Admin. Peran lain (Pegawai/SPV/Direksi/HRD mode-SPV) dialihkan.
+  if (!adminView) redirect(role === 'direksi' ? '/admin/dashboard' : '/penilaian');
 
   const { data: ap } = await supabase
     .from('periods').select('label, status, end_date').eq('status', 'active').limit(1).maybeSingle();

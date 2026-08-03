@@ -276,16 +276,19 @@ export function AppShell({
 
       {/* Nav */}
       <nav className="p-2 space-y-1 flex-1 overflow-y-auto">
-        <Link
-          href="/beranda"
-          onClick={() => setOpen(false)}
-          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
-            isActive('/beranda') ? 'bg-white text-emerald-900 shadow-2xs' : 'text-white/80 hover:bg-white/10 hover:text-white'
-          }`}
-        >
-          <Home className={`w-4 h-4 shrink-0 ${isActive('/beranda') ? 'text-emerald-700' : 'text-emerald-300'}`} />
-          <span>Beranda</span>
-        </Link>
+        {/* Beranda (Pusat Tindakan) HANYA untuk HRD Mode Admin — peran lain langsung ke fiturnya. */}
+        {accordion && (
+          <Link
+            href="/beranda"
+            onClick={() => setOpen(false)}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+              isActive('/beranda') ? 'bg-white text-emerald-900 shadow-2xs' : 'text-white/80 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            <Home className={`w-4 h-4 shrink-0 ${isActive('/beranda') ? 'text-emerald-700' : 'text-emerald-300'}`} />
+            <span>Beranda</span>
+          </Link>
+        )}
         {sections.map((sec) => {
           const collapsible = accordion && !!sec.title;
           const containsActive = sec.items.some((it) => isActive(it.href));

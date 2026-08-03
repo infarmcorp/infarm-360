@@ -30,13 +30,13 @@ export function IndicatorManager({
   }
 
   return (
-    <section className="border border-gray-200 rounded-xl p-3">
+    <section className="border border-line rounded-panel p-4">
       <AspectHeader aspectId={aspectId} aspectName={aspectName} canUp={canUp} canDown={canDown} run={run} busy={busy} count={indicators.length} />
       <div className="space-y-2">
         {indicators.map((ind) => <IndicatorRow key={ind.id} ind={ind} run={run} busy={busy} />)}
-        {indicators.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada indikator.</p>}
+        {indicators.length === 0 && <p className="text-[12px] text-ink-faint italic">Belum ada indikator.</p>}
       </div>
-      {err && <p className="text-[10px] text-rose-600 mt-1">{err}</p>}
+      {err && <p className="text-[11px] text-danger-ink mt-1">{err}</p>}
     </section>
   );
 }
@@ -69,22 +69,22 @@ function AspectHeader({
         <div className="flex items-center gap-1 flex-1">
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setEditing(false); setName(aspectName); } }}
-            className="flex-1 text-sm font-bold p-1 border border-emerald-300 rounded focus:ring-1 focus:ring-emerald-600 outline-none" />
-          <button type="button" onClick={save} disabled={busy} title="Simpan" className="text-emerald-700 hover:text-emerald-900 p-0.5"><Check className="w-4 h-4" /></button>
-          <button type="button" onClick={() => { setEditing(false); setName(aspectName); }} title="Batal" className="text-gray-500 hover:text-gray-600 p-0.5"><X className="w-4 h-4" /></button>
+            className="flex-1 text-[13px] font-bold px-2 py-1 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+          <button type="button" onClick={save} disabled={busy} title="Simpan" className="text-brand hover:text-brand-ink p-0.5"><Check className="w-4 h-4" /></button>
+          <button type="button" onClick={() => { setEditing(false); setName(aspectName); }} title="Batal" className="text-ink-faint hover:text-ink-soft p-0.5"><X className="w-4 h-4" /></button>
         </div>
       ) : (
-        <h3 className="text-sm font-extrabold text-emerald-800 flex items-center gap-1.5">
+        <h3 className="text-[13.5px] font-bold text-ink flex items-center gap-1.5">
           {aspectName}
-          <span className="text-[10px] font-semibold text-gray-500">· {count} indikator</span>
+          <span className="text-[11px] font-semibold text-ink-faint">· <span className="data-value">{count}</span> indikator</span>
         </h3>
       )}
       {!editing && (
         <div className="flex items-center gap-0.5 shrink-0">
-          <button type="button" onClick={() => setEditing(true)} disabled={busy} title="Ubah nama" className="text-gray-500 hover:text-emerald-700 p-1"><Pencil className="w-3.5 h-3.5" /></button>
-          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'up'))} disabled={busy || !canUp} title="Naik" className="text-gray-500 hover:text-gray-700 p-1 disabled:opacity-30"><ChevronUp className="w-4 h-4" /></button>
-          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'down'))} disabled={busy || !canDown} title="Turun" className="text-gray-500 hover:text-gray-700 p-1 disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
-          <button type="button" onClick={remove} disabled={busy} title="Hapus aspek" className="text-gray-500 hover:text-rose-600 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+          <button type="button" onClick={() => setEditing(true)} disabled={busy} title="Ubah nama" className="text-ink-faint hover:text-brand p-1"><Pencil className="w-3.5 h-3.5" /></button>
+          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'up'))} disabled={busy || !canUp} title="Naik" className="text-ink-faint hover:text-ink p-1 disabled:opacity-30"><ChevronUp className="w-4 h-4" /></button>
+          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'down'))} disabled={busy || !canDown} title="Turun" className="text-ink-faint hover:text-ink p-1 disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
+          <button type="button" onClick={remove} disabled={busy} title="Hapus aspek" className="text-ink-faint hover:text-danger-ink p-1"><Trash2 className="w-3.5 h-3.5" /></button>
         </div>
       )}
     </div>
@@ -123,55 +123,55 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
 
   return (
     <>
-    <div className={`rounded-lg ${ind.is_active ? '' : 'opacity-50'}`}>
+    <div className={`rounded-control ${ind.is_active ? '' : 'opacity-50'}`}>
       <div className="flex items-center gap-1.5 flex-wrap">
         <button type="button" onClick={() => setOpen((o) => !o)} title="Panduan penilaian"
-          className="text-gray-500 hover:text-gray-600 shrink-0">
+          className="text-ink-faint hover:text-ink-soft shrink-0">
           {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
         </button>
         <input value={text} onChange={(e) => setText(e.target.value)}
-          className="flex-1 min-w-[140px] text-xs px-2 py-1 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-        {hasGuide && !open && <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-1 py-0.5 rounded shrink-0">panduan</span>}
+          className="flex-1 min-w-[140px] text-[12.5px] px-2.5 py-1.5 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+        {hasGuide && !open && <span className="text-[10px] font-semibold text-brand-ink bg-brand-tint border border-brand/20 px-1.5 py-0.5 rounded-full shrink-0">panduan</span>}
         {dirtyText && (
           <button type="button" disabled={busy} onClick={() => run(() => updateIndicator(ind.id, text))}
-            className="text-[10px] font-bold px-2 py-1 rounded bg-emerald-600 text-white disabled:opacity-50 shrink-0">Simpan</button>
+            className="text-[11px] font-semibold px-2.5 py-1.5 rounded-control bg-brand text-white hover:bg-brand-ink disabled:opacity-50 shrink-0">Simpan</button>
         )}
         <button type="button" disabled={busy} onClick={() => run(() => toggleIndicator(ind.id, !ind.is_active))}
-          className="text-[10px] font-bold px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 shrink-0">
+          className="text-[11px] font-semibold px-2.5 py-1.5 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-50 shrink-0">
           {ind.is_active ? 'Nonaktif' : 'Aktifkan'}
         </button>
         <button type="button" disabled={busy} title="Hapus indikator (hanya bila belum dipakai penilaian)"
           onClick={() => setConfirmDel(true)}
-          className="text-[10px] font-bold px-1.5 py-1 rounded border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50 shrink-0">
+          className="text-[11px] font-semibold px-2 py-1.5 rounded-control border border-line text-danger-ink hover:border-danger-ink disabled:opacity-50 shrink-0">
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {open && (
-        <div className="mt-2 ml-5 p-3 bg-gray-50/70 border border-gray-200 rounded-lg space-y-2.5">
+        <div className="mt-2 ml-5 p-3 bg-neutral-tint border border-line rounded-control space-y-2.5">
           <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Deskripsi Perilaku (kotak penjelasan di form)</label>
+            <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-0.5">Deskripsi Perilaku (kotak penjelasan di form)</label>
             <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2}
               placeholder="Penjelasan singkat indikator ini bagi penilai…"
-              className="w-full text-[11px] p-2 bg-white border border-gray-250 rounded focus:ring-1 focus:ring-emerald-600 outline-none resize-none" />
+              className="w-full text-[12px] p-2 bg-surface border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint resize-none" />
           </div>
           <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Panduan Rating per Level (opsional)</label>
+            <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">Panduan Rating per Level (opsional)</label>
             <div className="space-y-1.5">
               {['1', '2', '3', '4', '5'].map((lv) => (
                 <div key={lv} className="flex items-start gap-1.5">
-                  <span className="text-[10px] font-black text-emerald-800 font-mono w-4 text-center shrink-0 mt-1.5">{lv}</span>
+                  <span className="text-[11px] font-bold text-brand-ink data-value w-4 text-center shrink-0 mt-1.5">{lv}</span>
                   <input value={guide[lv]} onChange={(e) => setGuide((p) => ({ ...p, [lv]: e.target.value }))}
                     placeholder={`${RATING_LABELS[lv]} — contoh/kriteria…`}
-                    className="flex-1 text-[11px] px-2 py-1 bg-white border border-gray-250 rounded focus:ring-1 focus:ring-emerald-600 outline-none" />
+                    className="flex-1 text-[12px] px-2 py-1 bg-surface border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
                 </div>
               ))}
             </div>
           </div>
           <div className="flex gap-2 pt-0.5">
             <button type="button" disabled={busy} onClick={saveGuide}
-              className="text-[10px] font-bold px-3 py-1.5 rounded bg-emerald-700 text-white hover:bg-emerald-800 disabled:opacity-50">Simpan Panduan</button>
-            <button type="button" onClick={() => setOpen(false)} className="text-[10px] font-semibold text-gray-500 hover:underline">Tutup</button>
+              className="text-[11px] font-semibold px-3 py-1.5 rounded-control bg-brand text-white hover:bg-brand-ink disabled:opacity-50">Simpan Panduan</button>
+            <button type="button" onClick={() => setOpen(false)} className="text-[11px] font-semibold text-ink-faint hover:text-ink-soft">Tutup</button>
           </div>
         </div>
       )}

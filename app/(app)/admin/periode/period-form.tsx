@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPeriod } from './actions';
+import { Button } from '@/components/button';
 
 export function PeriodForm() {
   const router = useRouter();
@@ -26,42 +27,42 @@ export function PeriodForm() {
     router.refresh();
   }
 
+  const inputCls = 'w-full text-[13.5px] px-3 py-2 rounded-control border border-line bg-[#FDFDFC] text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint';
+
   return (
-    <form onSubmit={submit} className="border border-gray-200 rounded-xl p-4 bg-gray-50/50 space-y-3">
-      <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Buat Periode Baru</p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <form onSubmit={submit}>
+      <div className="grid grid-cols-1 sm:grid-cols-[1.3fr_1fr_1fr] gap-4">
         <div>
-          <label className="block text-[10px] font-bold text-gray-500 mb-1">Label (mis. Q4 2026)</label>
-          <input value={label} onChange={(e) => setLabel(e.target.value)} required placeholder="Q4 2026"
-            className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+          <label className="block text-[12.5px] font-medium text-ink-soft mb-1.5">Label</label>
+          <input value={label} onChange={(e) => setLabel(e.target.value)} required placeholder="Q4 2026" className={inputCls} />
         </div>
         <div>
-          <label className="block text-[10px] font-bold text-gray-500 mb-1">Tanggal Mulai</label>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required
-            className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+          <label className="block text-[12.5px] font-medium text-ink-soft mb-1.5">Tanggal Mulai</label>
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required className={`${inputCls} font-mono`} />
         </div>
         <div>
-          <label className="block text-[10px] font-bold text-gray-500 mb-1">Tanggal Selesai</label>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required
-            className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+          <label className="block text-[12.5px] font-medium text-ink-soft mb-1.5">Tanggal Selesai</label>
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required className={`${inputCls} font-mono`} />
         </div>
       </div>
-      <label className="flex items-center gap-2 text-xs text-gray-600">
-        <input type="checkbox" checked={has360} onChange={(e) => setHas360(e.target.checked)} />
-        Sertakan Evaluasi 360° (Skor Akhir = blend KPI 50% + 360° 50%; jika tidak, 100% KPI)
+
+      <label className="flex items-start gap-2.5 mt-4 text-[13px] text-ink-soft leading-relaxed">
+        <input type="checkbox" checked={has360} onChange={(e) => setHas360(e.target.checked)} className="mt-0.5 accent-brand" />
+        <span>Sertakan Evaluasi 360° <span className="text-ink font-semibold">(Skor Akhir = blend KPI 50% + 360° 50%; jika tidak, 100% KPI)</span></span>
       </label>
-      <div className="flex items-center gap-2 text-xs text-gray-600">
-        <label htmlFor="kpiStandard">Standar/Target KPI (≥) untuk metrik dashboard:</label>
+
+      <div className="flex items-center gap-2.5 mt-4 text-[13px] text-ink-soft">
+        <label htmlFor="kpiStandard">Standar/Target KPI untuk metrik dashboard</label>
         <input id="kpiStandard" type="number" min={0} max={100} value={kpiStandard}
           onChange={(e) => setKpiStandard(e.target.value)}
-          className="w-16 text-center text-sm px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-        <span className="text-[10px] text-gray-500">tak memengaruhi rumus skor; bisa diubah per kuartal</span>
+          className="w-16 text-center text-[13px] font-mono px-2 py-1.5 rounded-control border border-line text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+        <span className="text-[12px] text-ink-faint">tak memengaruhi rumus skor · bisa diubah per kuartal</span>
       </div>
-      {err && <p className="text-xs text-rose-600 font-semibold">{err}</p>}
-      <button type="submit" disabled={busy}
-        className="text-sm font-bold px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-60">
+
+      {err && <p className="text-[13px] text-danger-ink font-semibold mt-3">{err}</p>}
+      <Button type="submit" disabled={busy} className="mt-5">
         {busy ? 'Membuat…' : 'Buat Periode'}
-      </button>
+      </Button>
     </form>
   );
 }

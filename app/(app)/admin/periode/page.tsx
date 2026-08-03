@@ -7,6 +7,8 @@ import { PeriodActions } from './period-actions';
 import { KpiStandardEditor } from './kpi-standard-editor';
 import { ReadinessPanel } from './readiness-panel';
 import { EmptyState } from '@/components/empty-state';
+import { Panel, PanelLabel } from '@/components/panel';
+import { StatusChip } from '@/components/status-chip';
 
 /**
  * Kelola Siklus Periode (HRD). Buat/aktivasi/kunci periode + toggle 360.
@@ -18,8 +20,8 @@ export default async function PeriodePage() {
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'periode')) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin.</p>
-      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin.</p>
+      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
   const { data: periods } = await supabase
@@ -48,15 +50,18 @@ export default async function PeriodePage() {
 
   return (
     <Shell>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between mb-7">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Kelola Siklus Periode</h1>
-          <p className="text-sm text-gray-500">Aktivasi membuka pengisian; Kunci &amp; Akhiri menghentikannya.</p>
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Kelola Siklus Periode</h1>
+          <p className="text-[13.5px] text-ink-soft mt-1 max-w-xl">Aktivasi membuka pengisian; Kunci &amp; Akhiri menghentikannya.</p>
         </div>
-        <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+        <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
 
-      <div className="mb-5"><PeriodForm /></div>
+      <Panel className="mb-5">
+        <PanelLabel className="mb-[18px]">Buat Periode Baru</PanelLabel>
+        <PeriodForm />
+      </Panel>
 
       {active && readiness && (
         <ReadinessPanel
@@ -82,40 +87,41 @@ export default async function PeriodePage() {
           note="Hanya satu periode aktif pada satu waktu."
         />
       ) : (
+      <Panel>
       <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm min-w-[560px]">
+      <table className="w-full text-left min-w-[600px]">
         <thead>
-          <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
-            <th className="py-2 pr-3">Periode</th>
-            <th className="py-2 px-3">Rentang</th>
-            <th className="py-2 px-3 text-center">360°</th>
-            <th className="py-2 px-3 text-center">Standar KPI</th>
-            <th className="py-2 px-3 text-center">Status</th>
-            <th className="py-2 pl-3 text-right">Aksi</th>
+          <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
+            <th className="pb-3 pr-3 font-semibold">Periode</th>
+            <th className="pb-3 px-3 font-semibold">Rentang</th>
+            <th className="pb-3 px-3 text-center font-semibold">360°</th>
+            <th className="pb-3 px-3 text-center font-semibold">Standar KPI</th>
+            <th className="pb-3 px-3 text-center font-semibold">Status</th>
+            <th className="pb-3 pl-3 text-right font-semibold"></th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody>
           {list.map((p) => (
-            <tr key={p.id}>
-              <td className="py-3 pr-3">
-                <span className="font-bold text-gray-800 block">{p.label}</span>
-                <span className="text-[11px] text-gray-500 font-mono">{p.code} · {monthCount.get(p.id) ?? 0} bln</span>
+            <tr key={p.id} className="border-b border-line-soft last:border-0">
+              <td className="py-4 pr-3">
+                <span className="block text-[14px] font-bold text-ink">{p.label}</span>
+                <span className="text-[12px] text-ink-faint font-mono">{p.code} · {monthCount.get(p.id) ?? 0} bln</span>
               </td>
-              <td className="py-3 px-3 text-[11px] text-gray-500">{p.start_date} → {p.end_date}</td>
-              <td className="py-3 px-3 text-center">
+              <td className="py-4 px-3 text-[13px] font-mono text-ink-soft">{p.start_date} → {p.end_date}</td>
+              <td className="py-4 px-3 text-center text-[13px]">
                 {p.has_360
-                  ? <span className="text-[10px] font-bold text-indigo-700">Aktif</span>
-                  : <span className="text-[10px] text-gray-500">Tanpa</span>}
+                  ? <span className="font-medium text-brand-ink">Aktif</span>
+                  : <span className="text-ink-faint">Tanpa</span>}
               </td>
-              <td className="py-3 px-3 text-center">
+              <td className="py-4 px-3 text-center">
                 <KpiStandardEditor periodId={p.id} value={p.kpi_standard} />
               </td>
-              <td className="py-3 px-3 text-center">
+              <td className="py-4 px-3 text-center">
                 {p.status === 'active'
-                  ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">Aktif</span>
-                  : <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-gray-50 text-gray-500 border-gray-200">Terkunci</span>}
+                  ? <StatusChip tone="brand">Aktif</StatusChip>
+                  : <StatusChip tone="neutral">Terkunci</StatusChip>}
               </td>
-              <td className="py-3 pl-3 text-right">
+              <td className="py-4 pl-3 text-right">
                 <PeriodActions periodId={p.id} status={p.status} has360={p.has_360} formOpen={p.form_open} />
               </td>
             </tr>
@@ -123,19 +129,16 @@ export default async function PeriodePage() {
         </tbody>
       </table>
       </div>
+      </Panel>
       )}
-      <p className="text-[10px] text-gray-500 italic mt-3">
+      <p className="text-[12px] text-ink-faint mt-5">
         Hanya satu periode aktif pada satu waktu — mengaktivasi periode akan mengunci yang lain.
-        Periode baru harus diisi pertanyaan &amp; mapping (kelola terpisah) sebelum penilaian.
+        Periode baru harus diisi pertanyaan &amp; pemetaan (kelola terpisah) sebelum penilaian.
       </p>
     </Shell>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
-  );
+  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
 }

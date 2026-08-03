@@ -15,8 +15,8 @@ export default async function AkunPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees')
-    .select('name, dept, role, emp_code, is_hrd_admin').eq('id', user.id).maybeSingle();
-  const panduan = panduanFor(me?.role, me?.is_hrd_admin ?? false);
+    .select('name, dept, role, emp_code, is_hrd_admin, is_coordinator').eq('id', user.id).maybeSingle();
+  const panduan = panduanFor(me?.role, me?.is_hrd_admin ?? false, me?.is_coordinator ?? false);
 
   return (
     <main className="w-full p-4 sm:p-5 lg:p-6">

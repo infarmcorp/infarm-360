@@ -150,9 +150,9 @@ const ROLE_LABEL_ID: Record<string, string> = {
  * section "Panduan Pengguna" di aplikasi). Mengembalikan null bila base URL kosong (tak bisa
  * membentuk tautan) — pemanggil cukup mengirim tanpa lampiran.
  */
-export function panduanAttachment(role: string, isHrdAdmin: boolean, base: string): EmailAttachment | null {
+export function panduanAttachment(role: string, isHrdAdmin: boolean, base: string, isCoordinator = false): EmailAttachment | null {
   if (!base) return null;
-  const def = panduanFor(role, isHrdAdmin);
+  const def = panduanFor(role, isHrdAdmin, isCoordinator);
   return { filename: def.filename, path: `${base.replace(/\/+$/, '')}/panduan/${def.file}` };
 }
 

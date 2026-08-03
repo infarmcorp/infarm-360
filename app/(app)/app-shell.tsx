@@ -40,14 +40,21 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
   if (!adminView) main.push({ href: '/laporan', label: 'Laporan Hasil Saya', icon: FileText });
   // Peninjau Hasil Lintas Divisi kini = GRANT halaman "Review Hasil Akhir" (lingkup selain divisinya) —
   // tampil di section "Akses dari HRD" di bawah, bukan menu khusus. (is_cross_reviewer dipensiunkan, migrasi 0033.)
-  // Koordinator (grant is_coordinator) — Input KPI + Laporan Kinerja Tim (tinjau & ACC) untuk
-  // anggota naungannya. Hanya di mode base & bila BUKAN SPV/HRD (mereka sudah punya menu Supervisor).
+  const sections: Section[] = main.length ? [{ title: 'Menu Utama', items: main }] : [];
+
+  // Koordinator (grant is_coordinator) — grup TERPISAH "Tim Koordinasi" (paritas dgn Menu Supervisor):
+  // Input KPI + Laporan Kinerja Tim (tinjau & ACC) + Monitor untuk anggota naungannya. Hanya di mode
+  // base & bila BUKAN SPV/HRD (mereka sudah punya Menu Supervisor).
   if (!adminView && isCoordinator && role !== 'spv' && role !== 'hrd') {
-    main.push({ href: '/kpi', label: 'Input KPI', icon: Target });
-    main.push({ href: '/laporan-tim', label: 'Laporan Kinerja Tim', icon: Users });
-    main.push({ href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp });
+    sections.push({
+      title: 'Menu Koordinator',
+      items: [
+        { href: '/kpi', label: 'Input KPI Anggota', icon: Target },
+        { href: '/laporan-tim', label: 'Laporan Kinerja Tim', icon: Users },
+        { href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp },
+      ],
+    });
   }
-  const sections: Section[] = main.length ? [{ title: 'Navigasi Utama', items: main }] : [];
 
   // SPV biasa & HRD dalam mode SPV memakai menu Supervisor yang sama (paritas SPV).
   // Rekapitulasi Kuartal TIDAK jadi item terpisah — sudah ada sebagai tab di Input KPI Anggota.
@@ -109,7 +116,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
 
   if (role === 'direksi') {
     sections.push({
-      title: 'Eksekutif',
+      title: 'Menu Direksi',
       items: [
         { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
         { href: '/laporan-tim', label: 'Laporan Kinerja Tim', icon: Users },

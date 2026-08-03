@@ -73,7 +73,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
       { href: '/admin/bobot', label: 'Bobot & Kalkulasi 360°', icon: Scale, section: 'bobot' },
       { href: '/admin/pemetaan', label: 'Pemetaan 360°', icon: Network, section: 'pemetaan' },
     ]);
-    if (konfig.length) sections.push({ title: 'Konfigurasi Siklus', items: konfig });
+    if (konfig.length) sections.push({ title: 'Persiapan Siklus', items: konfig });
 
     const pelaksanaan = filterAdmin([
       { href: '/admin/progress', label: 'Progress 360 Feedback', icon: CircleCheckBig, section: 'progress' },
@@ -85,7 +85,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
       { href: '/admin/laporan', label: 'Review Hasil Akhir', icon: ClipboardCheck, section: 'laporan' },
       { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award, section: 'suksesi' },
     ]);
-    if (hasil.length) sections.push({ title: 'Hasil & Keputusan', items: hasil });
+    if (hasil.length) sections.push({ title: 'Hasil & Tindak Lanjut', items: hasil });
 
     const pemantauan = filterAdmin([
       { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard, section: 'dashboard' },
@@ -95,7 +95,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
       { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText, section: 'audit' },
       { href: '/admin/ekspor', label: 'Ekspor Dataset', icon: Download, section: 'ekspor' },
     ]);
-    if (pemantauan.length) sections.push({ title: 'Pemantauan & Data', items: pemantauan });
+    if (pemantauan.length) sections.push({ title: 'Pemantauan & Laporan', items: pemantauan });
 
     // 🔧 Pengaturan — Kelola Pegawai + Manajemen Akses. Akses (RBAC ber-lingkup, migrasi 0024):
     // HANYA HRD PENUH (tak dibatasi hrd_sections) — cegah rekan HRD terbatas menaikkan aksesnya sendiri.
@@ -104,7 +104,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
     ]);
     const isFullHrd = !hrdSections || hrdSections.length === 0;
     if (isFullHrd) pengaturan.push({ href: '/admin/akses', label: 'Manajemen Akses', icon: KeyRound });
-    if (pengaturan.length) sections.push({ title: 'Pengaturan', items: pengaturan });
+    if (pengaturan.length) sections.push({ title: 'Administrasi', items: pengaturan });
   }
 
   if (role === 'direksi') {

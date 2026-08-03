@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { DEMO_USERS } from '@/lib/auth/demo-users';
+import { BrandLogo } from '@/components/brand-logo';
 import { LoginForm } from './login-form';
 
 type RosterUser = { email: string; name: string; role: string; dept: string };
@@ -56,8 +57,11 @@ export default async function LoginPage({
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
       <div className="w-full max-w-sm bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
-        <h1 className="text-lg font-bold text-gray-800">Infarm 360° Portal</h1>
-        <p className="text-sm text-gray-500 mb-5">Pilih peran &amp; nama Anda, lalu masukkan sandi.</p>
+        <div className="flex flex-col items-center text-center mb-5">
+          <BrandLogo className="w-16 h-16 mb-3" />
+          <h1 className="text-lg font-bold text-gray-800">Infarm Performance Appraisal</h1>
+          <p className="text-sm text-gray-500 mt-1">Pilih peran &amp; nama Anda, lalu masukkan sandi.</p>
+        </div>
         <LoginForm next={next} users={users} />
       </div>
     </main>

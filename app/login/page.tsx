@@ -60,7 +60,6 @@ export default async function LoginPage({
         <div className="flex flex-col items-center text-center mb-5">
           <BrandLogo className="w-16 h-16 mb-3" />
           <h1 className="text-lg font-bold text-gray-800">Infarm Performance Appraisal</h1>
-          <p className="text-sm text-gray-500 mt-1">Pilih peran &amp; nama Anda, lalu masukkan sandi.</p>
         </div>
         <LoginForm next={next} users={users} />
       </div>

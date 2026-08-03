@@ -1,4 +1,38 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap');
+
+/*
+ * DESIGN TOKENS (redesign 2026-08) — sumber tunggal warna/radius/font. Komponen memakai utilitas
+ * dari token ini (bg-surface, text-ink-soft, border-line, bg-brand-tint, rounded-panel, font-mono),
+ * BUKAN hex mentah. Diterapkan bertahap per halaman; halaman lama tetap pakai palet default Tailwind
+ * sampai dimigrasikan. Untuk membatalkan font: hapus @import di atas + --font-* di bawah.
+ */
+@theme {
+  --color-bg: #F6F7F5;
+  --color-surface: #FFFFFF;
+  --color-ink: #1B1F1C;
+  --color-ink-soft: #5B615C;
+  --color-ink-faint: #8B918C;
+  --color-line: #E4E6E2;
+  --color-line-soft: #EDEFEB;
+  --color-line-strong: #C9CEC7;
+  --color-brand: #33604A;
+  --color-brand-ink: #1F4735;
+  --color-brand-tint: #E9F1EC;
+  --color-warn-ink: #8A5A12;
+  --color-warn-tint: #FBF0DE;
+  --color-danger-ink: #A23C33;
+  --color-danger-tint: #FBEAE7;
+  --color-neutral-tint: #EEEFEC;
+  --color-sidebar: #121713;
+  --color-sidebar-soft: #8FA096;
+  --radius-panel: 10px;
+  --radius-control: 7px;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+body { font-family: var(--font-sans); }
 
 /*
  * Dropdown <select> native SERAGAM — samakan panah dengan komponen SearchableSelect

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CheckCircle2, Circle, CircleDot, AlertTriangle, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Circle, CircleDot, MinusCircle, AlertTriangle, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 
 /**
@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server';
  * Menampilkan TAHAP periode aktif + "apa yang memblokir finalisasi" langsung di landing, tanpa
  * menambah route/menu. Read-only; angka dari tabel yang sudah ada (RLS is_hrd, user-scoped).
  */
-type StageStatus = 'done' | 'current' | 'todo';
+type StageStatus = 'done' | 'current' | 'todo' | 'skipped';
 type Stage = { label: string; detail?: string; href?: string; status: StageStatus };
 
 export async function CycleStatus() {
@@ -64,36 +64,28 @@ export async function CycleStatus() {
     : { data: [] as { employee_id: string }[] };
   const kpiFilled = new Set((krows ?? []).map((r) => r.employee_id)).size;
 
-  const raw: Omit<Stage, 'status'>[] = [
-    { label: 'Periode dibuat & diaktifkan', detail: ap.label, href: '/admin/periode' },
-    { label: 'Input KPI bulanan (SPV)', detail: `${kpiFilled}/${nEmp} pegawai ada KPI`, href: '/kpi?tab=riwayat' },
-    ...(has360 ? [
-      { label: 'Pertanyaan, bobot & pemetaan disiapkan', detail: `${nMap} pemetaan aktif`, href: '/admin/pemetaan' },
-      { label: '360° diluncurkan (form dibuka)', detail: ap.form_open ? 'form terbuka' : 'form ditutup', href: '/admin/pemetaan' },
-      { label: 'Pengisian 360° oleh pegawai', detail: `${nSub}/${nMap} penilaian terkirim`, href: '/admin/progress' },
-      { label: '① Hitung Ulang Skor 360°', detail: `${scoredN}/${targetsN} target berskor 360°`, href: '/admin/laporan' },
-      { label: 'Review & susun ringkasan (opsional rilis ke SPV)', detail: nReview > 0 ? `${nReview} sedang ditinjau` : undefined, href: '/admin/laporan' },
-    ] : []),
-    { label: 'Finalisasi laporan', detail: `${nFinal}/${nEmp} pegawai difinalkan`, href: '/admin/laporan' },
-    { label: 'Kunci & akhiri periode', detail: 'setelah semua difinalkan', href: '/admin/periode' },
+  // Alur END-TO-END periode (SOP lengkap) — SELALU ditampilkan utuh sebagai peta. Langkah 360°
+  // ditandai 'skipped' (dilewati) saat mode Tanpa 360°, bukan dihilangkan, agar alur tetap terbaca
+  // dari awal sampai akhir. 'base' = status tanpa penanda "current" (diberikan ke todo pertama).
+  const skip = !has360; // langkah 360° dilewati bila periode Tanpa 360°
+  const off = 'Dilewati — periode Tanpa 360°';
+  const defs: { label: string; detail?: string; href?: string; base: StageStatus }[] = [
+    { label: 'Periode dibuat & diaktifkan', detail: ap.label, href: '/admin/periode', base: 'done' },
+    { label: 'Pertanyaan, bobot & pemetaan 360°', detail: skip ? off : `${nMap} pemetaan aktif`, href: '/admin/pemetaan', base: skip ? 'skipped' : (nMap > 0 ? 'done' : 'todo') },
+    { label: 'Aktifkan / luncurkan 360°', detail: skip ? off : (ap.form_open ? 'form terbuka' : 'form ditutup'), href: '/admin/pemetaan', base: skip ? 'skipped' : 'done' },
+    { label: 'Input KPI bulanan (SPV)', detail: `${kpiFilled}/${nEmp} pegawai ada KPI`, href: '/kpi?tab=riwayat', base: nEmp > 0 && kpiFilled >= nEmp ? 'done' : 'todo' },
+    { label: 'Pengisian 360° oleh pegawai', detail: skip ? off : `${nSub}/${nMap} penilaian terkirim`, href: '/admin/progress', base: skip ? 'skipped' : (nMap > 0 && nSub >= nMap ? 'done' : 'todo') },
+    { label: '① Hitung Ulang Skor 360°', detail: skip ? off : `${scoredN}/${targetsN} target berskor 360°`, href: '/admin/laporan', base: skip ? 'skipped' : (targetsN > 0 && scoredN >= targetsN ? 'done' : 'todo') },
+    { label: 'Review & susun ringkasan', detail: skip ? off : (nReview > 0 ? `${nReview} sedang ditinjau` : 'tulis Ringkasan Aspek, opsional rilis ke SPV'), href: '/admin/laporan', base: skip ? 'skipped' : (nFinal > 0 || nReview > 0 ? 'done' : 'todo') },
+    { label: 'Finalisasi laporan', detail: `${nFinal}/${nEmp} pegawai difinalkan`, href: '/admin/laporan', base: nEmp > 0 && nFinal >= nEmp ? 'done' : 'todo' },
+    { label: 'Kunci & akhiri periode', detail: 'setelah semua difinalkan', href: '/admin/periode', base: 'todo' },
+    { label: 'Ekspor & backup arsip', detail: 'simpanan kuartal (opsional)', href: '/admin/ekspor', base: 'todo' },
   ];
-  const doneOf = (label: string): boolean => {
-    if (label.startsWith('Periode dibuat')) return true;
-    if (label.startsWith('Input KPI')) return nEmp > 0 && kpiFilled >= nEmp;
-    if (label.startsWith('Pertanyaan')) return nMap > 0;
-    if (label.startsWith('360° diluncurkan')) return has360;
-    if (label.startsWith('Pengisian')) return nMap > 0 && nSub >= nMap;
-    if (label.startsWith('① Hitung')) return targetsN > 0 && scoredN >= targetsN;
-    if (label.startsWith('Review')) return nFinal > 0 || nReview > 0;
-    if (label.startsWith('Finalisasi')) return nEmp > 0 && nFinal >= nEmp;
-    return false;
-  };
   let currentAssigned = false;
-  const stages: Stage[] = raw.map((s) => {
-    const done = doneOf(s.label);
-    let status: StageStatus = done ? 'done' : 'todo';
-    if (!done && !currentAssigned) { status = 'current'; currentAssigned = true; }
-    return { ...s, status };
+  const stages: Stage[] = defs.map((d) => {
+    let status: StageStatus = d.base;
+    if (d.base === 'todo' && !currentAssigned) { status = 'current'; currentAssigned = true; }
+    return { label: d.label, detail: d.detail, href: d.href, status };
   });
 
   const blockers: { label: string; href: string }[] = [];
@@ -124,17 +116,23 @@ export async function CycleStatus() {
 
       <ol className="space-y-1">
         {stages.map((s, i) => (
-          <li key={i} className={`flex items-start gap-2.5 rounded-lg border px-3 py-2 ${s.status === 'current' ? 'border-emerald-300 bg-emerald-50/60' : 'border-gray-200'}`}>
+          <li key={i} className={`flex items-start gap-2.5 rounded-lg border px-3 py-2 ${
+            s.status === 'current' ? 'border-emerald-300 bg-emerald-50/60'
+              : s.status === 'skipped' ? 'border-gray-200 bg-gray-50/50' : 'border-gray-200'
+          }`}>
             <span className="mt-0.5 shrink-0">
               {s.status === 'done' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                 : s.status === 'current' ? <CircleDot className="w-4 h-4 text-emerald-600" />
+                : s.status === 'skipped' ? <MinusCircle className="w-4 h-4 text-gray-300" />
                 : <Circle className="w-4 h-4 text-gray-300" />}
             </span>
             <div className="min-w-0 flex-1">
-              <div className={`text-[13px] font-semibold ${s.status === 'todo' ? 'text-gray-500' : 'text-gray-800'}`}>{s.label}</div>
-              {s.detail && <div className="text-[11px] text-gray-500">{s.detail}</div>}
+              <div className={`text-[13px] font-semibold ${
+                s.status === 'skipped' ? 'text-gray-400' : s.status === 'todo' ? 'text-gray-500' : 'text-gray-800'
+              }`}>{s.label}</div>
+              {s.detail && <div className={`text-[11px] ${s.status === 'skipped' ? 'text-gray-400 italic' : 'text-gray-500'}`}>{s.detail}</div>}
             </div>
-            {s.href && (
+            {s.href && s.status !== 'skipped' && (
               <Link href={s.href} className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:underline">
                 Buka <ArrowRight className="w-3 h-3" />
               </Link>

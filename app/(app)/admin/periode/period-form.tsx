@@ -38,11 +38,11 @@ export function PeriodForm() {
         </div>
         <div>
           <label className="block text-[12.5px] font-medium text-ink-soft mb-1.5">Tanggal Mulai</label>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required className={`${inputCls} font-mono`} />
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required className={`${inputCls} data-value`} />
         </div>
         <div>
           <label className="block text-[12.5px] font-medium text-ink-soft mb-1.5">Tanggal Selesai</label>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required className={`${inputCls} font-mono`} />
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required className={`${inputCls} data-value`} />
         </div>
       </div>
 
@@ -55,7 +55,7 @@ export function PeriodForm() {
         <label htmlFor="kpiStandard">Standar/Target KPI untuk metrik dashboard</label>
         <input id="kpiStandard" type="number" min={0} max={100} value={kpiStandard}
           onChange={(e) => setKpiStandard(e.target.value)}
-          className="w-16 text-center text-[13px] font-mono px-2 py-1.5 rounded-control border border-line text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+          className="w-16 text-center text-[13px] data-value px-2 py-1.5 rounded-control border border-line text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
         <span className="text-[12px] text-ink-faint">tak memengaruhi rumus skor · bisa diubah per kuartal</span>
       </div>
 

@@ -105,9 +105,9 @@ export default async function PeriodePage() {
             <tr key={p.id} className="border-b border-line-soft last:border-0">
               <td className="py-4 pr-3">
                 <span className="block text-[14px] font-bold text-ink">{p.label}</span>
-                <span className="text-[12px] text-ink-faint font-mono">{p.code} · {monthCount.get(p.id) ?? 0} bln</span>
+                <span className="text-[12px] text-ink-faint data-value">{p.code} · {monthCount.get(p.id) ?? 0} bln</span>
               </td>
-              <td className="py-4 px-3 text-[13px] font-mono text-ink-soft">{p.start_date} → {p.end_date}</td>
+              <td className="py-4 px-3 text-[13px] data-value text-ink-soft">{p.start_date} → {p.end_date}</td>
               <td className="py-4 px-3 text-center text-[13px]">
                 {p.has_360
                   ? <span className="font-medium text-brand-ink">Aktif</span>

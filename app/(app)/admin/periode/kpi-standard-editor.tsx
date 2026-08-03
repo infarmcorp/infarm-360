@@ -39,7 +39,7 @@ export function KpiStandardEditor({ periodId, value }: { periodId: string; value
           onChange={(e) => setVal(e.target.value)}
           onBlur={save}
           onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-          className="w-14 text-center text-[13px] font-mono px-1.5 py-1.5 border border-line rounded-control text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint disabled:opacity-50"
+          className="w-14 text-center text-[13px] data-value px-1.5 py-1.5 border border-line rounded-control text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint disabled:opacity-50"
         />
       </div>
       {err && <span className="text-[10px] text-danger-ink">{err}</span>}

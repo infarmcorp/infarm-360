@@ -35,6 +35,18 @@
 body { font-family: var(--font-sans); }
 
 /*
+ * .data-value — SEMUA angka/nilai data (skor, jumlah, tanggal, ID, kode, persentase):
+ * monospace tipis + tabular-nums agar digit sejajar & jelas beda dari teks kalimat.
+ * Utility reusable lintas halaman (standar redesign 2026-08). Alias .mono untuk singkat.
+ * Pakai untuk data, JANGAN untuk teks biasa/kalimat.
+ */
+.data-value,
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
  * Dropdown <select> native SERAGAM — samakan panah dengan komponen SearchableSelect
  * ("Nama Pegawai"): ganti panah bawaan browser (hitam pekat, beda tiap OS) dengan chevron
  * abu-abu (lucide ChevronDown, #6b7280) di kanan. Berlaku ke SELURUH <select> aplikasi agar

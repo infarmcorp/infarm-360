@@ -28,7 +28,7 @@ export function ReadinessPanel({
   }) => (
     <div className="flex items-center gap-2.5 text-[13px]">
       <Check ok={ok} />
-      {value && <span className="font-mono font-semibold text-ink">{value}</span>}
+      {value && <span className="data-value font-semibold text-ink">{value}</span>}
       <span className="text-ink-soft">{label}</span>
       {href && (
         <Link href={href} className="ml-auto text-[12px] text-ink-faint border-b border-dotted border-ink-faint hover:text-ink-soft">
@@ -54,8 +54,11 @@ export function ReadinessPanel({
           <Item ok={hasWeights} label={hasWeights ? 'Bobot penilai tersimpan' : 'Bobot penilai (pakai default)'} href={hasWeights ? undefined : '/admin/bobot'} linkLabel="Atur Bobot" />
         </div>
 
-        <p className="mt-4 pt-3.5 border-t border-line-soft text-[12px] text-ink-faint">
-          <span className="font-semibold text-ink-soft">Urutan tutup periode:</span> Hitung ulang skor 360° → finalisasi laporan → Kunci &amp; Akhiri.
+        {/* Catatan alur (bukan link) — no-underline eksplisit + spasi terjamin agar tak
+            ke-render seperti tautan/warna tautan dari konteks tetangga. */}
+        <p className="mt-4 pt-3.5 border-t border-line-soft text-[12px] text-ink-faint no-underline">
+          <span className="font-semibold text-ink-soft">Urutan tutup periode:</span>{' '}
+          Hitung ulang skor 360° → finalisasi laporan → Kunci &amp; Akhiri.
         </p>
       </div>
 

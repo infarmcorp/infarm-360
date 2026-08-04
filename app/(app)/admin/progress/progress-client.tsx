@@ -67,16 +67,16 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
     <div className="space-y-4">
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <Stat label="Total Penilai" value={stats.total} c="text-slate-800" />
-        <Stat label="Lengkap (wajib)" value={stats.done} c="text-emerald-700" />
-        <Stat label="Belum (wajib)" value={stats.pending} c="text-amber-700" />
-        <Stat label="Progres Wajib" value={`${stats.pct}%`} c="text-indigo-700" />
+        <Stat label="Total Penilai" value={stats.total} c="text-ink" />
+        <Stat label="Lengkap (wajib)" value={stats.done} c="text-brand-ink" />
+        <Stat label="Belum (wajib)" value={stats.pending} c="text-warn-ink" />
+        <Stat label="Progres Wajib" value={`${stats.pct}%`} c="text-brand-ink" />
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-center">
         <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama penilai…"
-          className="text-xs px-3 py-2 border border-gray-200 rounded-lg flex-1 min-w-[160px] focus:outline-none focus:ring-1 focus:ring-emerald-600" />
+          className="text-xs px-3 py-2 border border-line rounded-control bg-surface flex-1 min-w-[160px] focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
         <MultiCheckFilter label="Divisi"
           options={depts.map((d) => ({ value: d, label: d }))}
           selected={deptSel} onChange={(s) => { setDeptSel(s); setPage(0); }} />
@@ -86,7 +86,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
         {!readOnly && (
           <>
             <button type="button" onClick={() => act(massReminder)} disabled={pending}
-              className="text-xs font-bold px-3 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white disabled:opacity-60">
+              className="text-xs font-semibold px-3.5 py-2 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-60">
               🔔 Kirim Pengingat Massal
             </button>
             <button type="button" disabled={pending}
@@ -97,31 +97,31 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                   <>
                     <p>Kirim <strong>Undangan &amp; Info Akun</strong> ke semua pegawai.</p>
                     <p>Sandi mereka akan <strong>DISETEL ULANG</strong> (acak unik) lalu dikirim via email.</p>
-                    <p className="font-semibold text-rose-700">Lakukan sekali di awal periode, sebelum mereka mengganti sandi sendiri.</p>
+                    <p className="font-semibold text-danger-ink">Lakukan sekali di awal periode, sebelum mereka mengganti sandi sendiri.</p>
                   </>
                 ),
               })}
-              className="text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-60">
+              className="text-xs font-semibold px-3.5 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-60">
               📨 Kirim Undangan Massal
             </button>
           </>
         )}
       </div>
-      {toast && <p className={`text-xs font-semibold ${toast.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{toast.text}</p>}
+      {toast && <p className={`text-xs font-semibold ${toast.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{toast.text}</p>}
 
       {/* Catatan tampilan bawaan: fokus ke yang perlu tindakan. */}
       {statusSel.size === 1 && statusSel.has('belum') && (
-        <p className="text-[11px] text-gray-500 italic">
-          Menampilkan penilai yang <strong>belum lengkap</strong> (perlu tindakan). Ubah filter <strong>Status</strong> untuk melihat semua.
+        <p className="text-[11px] text-ink-faint italic">
+          Menampilkan penilai yang <strong className="font-semibold text-ink-soft">belum lengkap</strong> (perlu tindakan). Ubah filter <strong className="font-semibold text-ink-soft">Status</strong> untuk melihat semua.
         </p>
       )}
 
       {/* Rows (per penilai) */}
       <div className="space-y-2">
         {shown.length === 0 && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-ink-soft">
             {stats.pending === 0 ? '✅ Semua penilai sudah lengkap (wajib).' : 'Tidak ada penilai sesuai filter.'}
-            <span className="block text-[11px] mt-0.5">Ubah filter <strong>Status</strong> (mis. tambahkan “Lengkap”) untuk melihat penilai lain.</span>
+            <span className="block text-[11px] mt-0.5 text-ink-faint">Ubah filter <strong className="font-semibold text-ink-soft">Status</strong> (mis. tambahkan “Lengkap”) untuk melihat penilai lain.</span>
           </p>
         )}
         {paged.map((r) => {
@@ -132,15 +132,15 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
           const byComplete = !!by && by.total > 0 && by.done === by.total;
           const byPct = by && by.total ? Math.round((by.done / by.total) * 100) : 0;
           return (
-            <div key={r.id} className="border border-gray-200 rounded-xl p-3">
+            <div key={r.id} className="border border-line rounded-panel bg-surface p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                 <div className="min-w-0">
-                  <span className="font-bold text-gray-800 text-sm">{r.name}</span>
-                  <span className="text-[11px] text-gray-500"> · {r.dept}</span>
+                  <span className="font-bold text-ink text-sm">{r.name}</span>
+                  <span className="text-[11px] text-ink-faint"> · {r.dept}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${complete ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                    {r.mandatoryDone}/{r.mandatoryTotal} wajib · {complete ? 'Lengkap' : 'Belum'}
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${complete ? 'bg-brand-tint text-brand-ink' : 'bg-warn-tint text-warn-ink'}`}>
+                    <span className="data-value">{r.mandatoryDone}/{r.mandatoryTotal}</span> wajib · {complete ? 'Lengkap' : 'Belum'}
                   </span>
                   {!readOnly && (
                     <button type="button" disabled={pending}
@@ -152,19 +152,19 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                         ),
                       })}
                       title="Kirim undangan + info akun (peran, email, sandi baru, panduan)"
-                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-60">
+                      className="text-[11px] font-semibold px-2.5 py-1 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-60">
                       Undangan
                     </button>
                   )}
                   {!readOnly && !complete && (
                     <button type="button" onClick={() => act(() => sendReminder(r.id))} disabled={pending}
-                      className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 disabled:opacity-60">
+                      className="text-[11px] font-semibold px-2.5 py-1 rounded-control border border-line text-brand-ink hover:border-brand disabled:opacity-60">
                       Kirim Pengingat
                     </button>
                   )}
                   {r.pending.length > 0 && (
                     <button type="button" onClick={() => setExpanded(expanded === r.id ? null : r.id)}
-                      className="text-[11px] font-semibold text-gray-500 hover:underline">
+                      className="text-[11px] font-semibold text-ink-faint hover:text-ink-soft">
                       {expanded === r.id ? 'Tutup' : `Rincian (${r.pending.length})`}
                     </button>
                   )}
@@ -173,42 +173,42 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
               {/* Dua progres berdampingan (paritas legacy): "Menilai" vs "Dinilai oleh". */}
               <div className="grid sm:grid-cols-2 gap-x-4 gap-y-2 mt-2">
                 <div>
-                  <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 mb-0.5">
+                  <div className="flex justify-between items-center text-[10px] font-semibold text-ink-faint mb-0.5">
                     <span>Menilai (wajib)</span>
-                    <span>{r.mandatoryDone}/{r.mandatoryTotal} · {pct}%</span>
+                    <span className="data-value">{r.mandatoryDone}/{r.mandatoryTotal} · {pct}%</span>
                   </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${complete ? 'bg-emerald-500' : 'bg-amber-400'}`} style={{ width: `${pct}%` }} />
+                  <div className="h-2 bg-line-soft rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${complete ? 'bg-brand' : 'bg-warn-ink'}`} style={{ width: `${pct}%` }} />
                   </div>
                   {optionalPending > 0 && (
-                    <p className="text-[10px] text-gray-400 mt-0.5">+{optionalPending} opsional belum (tak memengaruhi status)</p>
+                    <p className="text-[10px] text-ink-faint mt-0.5">+{optionalPending} opsional belum (tak memengaruhi status)</p>
                   )}
                 </div>
                 <div>
-                  <div className="flex justify-between items-center text-[10px] font-bold text-gray-500 mb-0.5">
+                  <div className="flex justify-between items-center text-[10px] font-semibold text-ink-faint mb-0.5">
                     <span>Dinilai oleh</span>
-                    <span>{by ? `${by.done}/${by.total} orang · ${byPct}%` : '—'}</span>
+                    <span className="data-value">{by ? `${by.done}/${by.total} orang · ${byPct}%` : '—'}</span>
                   </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${byComplete ? 'bg-indigo-600' : 'bg-amber-400'}`} style={{ width: `${byPct}%` }} />
+                  <div className="h-2 bg-line-soft rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${byComplete ? 'bg-brand' : 'bg-warn-ink'}`} style={{ width: `${byPct}%` }} />
                   </div>
                 </div>
               </div>
               {expanded === r.id && r.pending.length > 0 && (
-                <div className="mt-3 space-y-1.5 border-t border-gray-100 pt-2">
-                  <p className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">Belum dinilai:</p>
+                <div className="mt-3 space-y-1.5 border-t border-line-soft pt-2">
+                  <p className="text-[10px] uppercase tracking-[0.05em] text-ink-faint font-semibold">Belum dinilai:</p>
                   {r.pending.map((p) => (
                     <div key={p.targetId} className="flex items-center justify-between gap-2 text-xs">
                       <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                        <span className="text-gray-700 font-semibold">{p.targetName}</span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">{p.relation}</span>
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${p.mandatory ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                        <span className="text-ink-soft font-semibold">{p.targetName}</span>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft">{p.relation}</span>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${p.mandatory ? 'bg-danger-tint text-danger-ink' : 'bg-neutral-tint text-ink-faint'}`}>
                           {p.mandatory ? 'Wajib' : 'Opsional'}
                         </span>
                       </div>
                       {!readOnly && (
                         <button type="button" onClick={() => act(() => forceComplete(r.id, p.targetId))} disabled={pending}
-                          className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-60 shrink-0">
+                          className="text-[11px] font-semibold px-2.5 py-1 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-60 shrink-0">
                           Paksa Selesai
                         </button>
                       )}
@@ -221,8 +221,8 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
         })}
       </div>
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="penilai" />
-      <p className="text-[10px] text-gray-500 italic">
-        <strong>Status "Lengkap"</strong> dihitung dari penilaian <strong>WAJIB</strong> saja — penilaian
+      <p className="text-[11px] text-ink-faint leading-relaxed">
+        <strong className="font-semibold text-ink-soft">Status "Lengkap"</strong> dihitung dari penilaian <strong className="font-semibold text-ink-soft">WAJIB</strong> saja — penilaian
         opsional tak memengaruhi status/kartu (tetap ditampilkan di Rincian untuk dipantau). Tiap baris:
         <strong> Menilai (wajib)</strong> (tugas wajib penilai) &amp; <strong>Dinilai oleh</strong> (berapa
         penilai sudah menilai pegawai ini). “Paksa Selesai” menandai penilaian terkirim; “Kirim Pengingat”
@@ -248,9 +248,9 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
 
 function Stat({ label, value, c }: { label: string; value: number | string; c: string }) {
   return (
-    <div className="border border-gray-200 rounded-xl p-3 text-center">
-      <div className={`text-xl font-black font-mono ${c}`}>{value}</div>
-      <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wide">{label}</div>
+    <div className="border border-line rounded-panel bg-surface p-3 text-center">
+      <div className={`text-xl font-bold data-value ${c}`}>{value}</div>
+      <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em]">{label}</div>
     </div>
   );
 }

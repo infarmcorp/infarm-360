@@ -9,6 +9,7 @@ import { MappingImport } from './mapping-import';
 import { MappingTable } from './mapping-table';
 import { CopyMapping } from './copy-mapping';
 import { EmptyState } from '@/components/empty-state';
+import { Panel } from '@/components/panel';
 
 /**
  * Pemetaan (Mapping) — HRD atur siapa menilai siapa di periode aktif. Dua tab:
@@ -28,7 +29,7 @@ export default async function PemetaanPage({
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'pemetaan')) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin.</p></Shell>;
+    return <Shell><p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin.</p></Shell>;
   }
 
   const { data: ap } = await supabase
@@ -57,13 +58,18 @@ export default async function PemetaanPage({
 
   return (
     <Shell>
-      <h1 className="text-xl font-bold text-gray-800">Pemetaan Penilai 360°</h1>
-      <p className="text-sm text-gray-500">Periode aktif: {ap.label}</p>
+      <div className="flex items-start justify-between mb-5">
+        <div>
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Pemetaan Penilai 360°</h1>
+          <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span></p>
+        </div>
+        <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
+      </div>
 
-      <div className="flex gap-1 mt-4 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
+      <div className="flex gap-1 mb-5 bg-neutral-tint p-1 rounded-control w-fit">
         <Tab href="/admin/pemetaan?tab=pemetaan" active={tab === 'pemetaan'}>Pemetaan</Tab>
         <Tab href="/admin/pemetaan?tab=koreksi" active={tab === 'koreksi'}>
-          Koreksi Relasi{pendingCount ? <span className="ml-1.5 text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded-full">{pendingCount}</span> : null}
+          Koreksi Relasi{pendingCount ? <span className="ml-1.5 text-[10px] data-value bg-brand text-white px-1.5 py-0.5 rounded-full">{pendingCount}</span> : null}
         </Tab>
       </div>
 
@@ -104,7 +110,7 @@ async function PemetaanTab({ supabase, periodId }: { supabase: Awaited<ReturnTyp
         <MappingImport employees={employees.map((e) => ({ id: e.id, code: e.emp_code, name: e.name }))} />
         <CopyMapping periods={otherPeriods ?? []} />
       </div>
-      <MappingTable rows={rows} />
+      <Panel><MappingTable rows={rows} /></Panel>
     </>
   );
 }
@@ -120,33 +126,33 @@ async function KoreksiTab({ supabase, periodId }: { supabase: Awaited<ReturnType
   const { data: emps } = ids.length ? await supabase.from('employees').select('id, name').in('id', ids) : { data: [] };
   const nameById = new Map((emps ?? []).map((e) => [e.id, e.name]));
 
-  if (list.length === 0) return <p className="text-sm text-gray-500">Tidak ada permohonan koreksi relasi.</p>;
+  if (list.length === 0) return <p className="text-sm text-ink-soft">Tidak ada permohonan koreksi relasi.</p>;
 
   return (
     <div className="space-y-3">
       {list.map((r) => (
-        <div key={r.id} className="border border-gray-200 rounded-xl p-3 flex flex-col sm:flex-row justify-between gap-3">
+        <Panel key={r.id} padded={false} className="p-4 flex flex-col sm:flex-row justify-between gap-3">
           <div className="space-y-1.5">
-            <div className="flex items-center gap-2 flex-wrap text-xs">
-              <span className="font-extrabold text-gray-800">{nameById.get(r.assessor_id) ?? '—'}</span>
-              <span className="text-gray-500">→</span>
-              <span className="font-extrabold text-gray-800">{nameById.get(r.target_id) ?? '—'}</span>
+            <div className="flex items-center gap-2 flex-wrap text-[13px]">
+              <span className="font-bold text-ink">{nameById.get(r.assessor_id) ?? '—'}</span>
+              <span className="text-ink-faint">→</span>
+              <span className="font-bold text-ink">{nameById.get(r.target_id) ?? '—'}</span>
             </div>
             <div className="flex items-center gap-2 text-[11px]">
-              <span className="bg-rose-50 text-rose-700 font-bold px-1.5 py-0.5 rounded line-through">{r.old_relation ?? '—'}</span>
-              <span className="text-gray-500">menjadi</span>
-              <span className="bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded">{r.new_relation ?? '—'}</span>
+              <span className="bg-danger-tint text-danger-ink font-semibold px-1.5 py-0.5 rounded-full line-through">{r.old_relation ?? '—'}</span>
+              <span className="text-ink-faint">menjadi</span>
+              <span className="bg-brand-tint text-brand-ink font-semibold px-1.5 py-0.5 rounded-full">{r.new_relation ?? '—'}</span>
             </div>
-            <p className="text-[11px] text-gray-500 italic bg-gray-50 p-2 rounded-lg border border-gray-150">“{r.reason}”</p>
+            <p className="text-[11.5px] text-ink-soft italic bg-neutral-tint p-2 rounded-control">“{r.reason}”</p>
           </div>
           <div className="shrink-0 self-end sm:self-center">
             {r.status === 'pending'
               ? <ReviewButton requestId={r.id} />
-              : <span className={`text-[10px] font-black uppercase px-2 py-1 rounded border ${r.status === 'approved' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+              : <span className={`text-[10px] font-semibold uppercase px-2 py-1 rounded-full ${r.status === 'approved' ? 'bg-brand-tint text-brand-ink' : 'bg-neutral-tint text-ink-faint'}`}>
                   {r.status === 'approved' ? '✓ Diterima' : '✗ Ditolak'}
                 </span>}
           </div>
-        </div>
+        </Panel>
       ))}
     </div>
   );
@@ -154,16 +160,12 @@ async function KoreksiTab({ supabase, periodId }: { supabase: Awaited<ReturnType
 
 function Tab({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
   return (
-    <Link href={href} className={`px-4 py-1.5 text-xs font-extrabold rounded-lg transition-all ${active ? 'bg-white text-emerald-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+    <Link href={href} className={`px-4 py-1.5 text-[12.5px] font-bold rounded-control transition-colors ${active ? 'bg-surface text-brand-ink shadow-2xs' : 'text-ink-soft hover:text-ink'}`}>
       {children}
     </Link>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
-  );
+  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
 }

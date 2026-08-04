@@ -19,10 +19,10 @@ export function ReviewButton({ requestId }: { requestId: string }) {
   return (
     <div className="flex items-center gap-2">
       <button type="button" onClick={() => decide('approved')} disabled={busy}
-        className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-60">Setujui</button>
+        className="text-[11px] font-semibold px-3 py-1.5 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-60">Setujui</button>
       <button type="button" onClick={() => decide('rejected')} disabled={busy}
-        className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 disabled:opacity-60">Tolak</button>
-      {err && <span className="text-[10px] text-rose-600">{err}</span>}
+        className="text-[11px] font-semibold px-3 py-1.5 rounded-control border border-line text-danger-ink hover:border-danger-ink disabled:opacity-60">Tolak</button>
+      {err && <span className="text-[10px] text-danger-ink">{err}</span>}
     </div>
   );
 }

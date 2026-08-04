@@ -34,10 +34,10 @@ export function DeleteButton({ mappingId }: { mappingId: string }) {
   return (
     <div className="flex flex-col items-end gap-0.5">
       <button type="button" disabled={busy} onClick={openConfirm}
-        className="text-[11px] font-bold px-2 py-1 rounded border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50">
+        className="text-[11px] font-semibold px-2.5 py-1 rounded-control border border-line text-danger-ink hover:border-danger-ink disabled:opacity-50">
         {busy ? '…' : 'Hapus'}
       </button>
-      {err && <span className="text-[10px] text-rose-600">{err}</span>}
+      {err && <span className="text-[10px] text-danger-ink">{err}</span>}
 
       <ConfirmDialog
         open={!!info}

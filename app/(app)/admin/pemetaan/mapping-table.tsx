@@ -32,12 +32,12 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
   const { page, setPage, pageCount, shown: paged, total, rangeFrom, rangeTo } = usePager(shown);
 
   if (rows.length === 0) return (
-    <div className="border-2 border-dashed border-gray-200 rounded-xl p-5 text-center">
+    <div className="border border-dashed border-line-strong rounded-panel p-5 text-center">
       <p className="text-2xl mb-1">🔗</p>
-      <p className="text-sm font-bold text-gray-700">Belum ada pemetaan penilai untuk periode ini</p>
-      <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+      <p className="text-sm font-bold text-ink">Belum ada pemetaan penilai untuk periode ini</p>
+      <p className="text-[12.5px] text-ink-soft mt-1 max-w-sm mx-auto leading-relaxed">
         Tentukan siapa menilai siapa dengan salah satu cara di atas:
-        <strong> tambah manual</strong>, <strong>impor Excel</strong>, atau <strong>salin dari periode sebelumnya</strong> (tetap bisa diedit).
+        <strong className="font-semibold text-ink"> tambah manual</strong>, <strong className="font-semibold text-ink">impor Excel</strong>, atau <strong className="font-semibold text-ink">salin dari periode sebelumnya</strong> (tetap bisa diedit).
       </p>
     </div>
   );
@@ -54,9 +54,9 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h3 className="text-sm font-extrabold text-slate-800">Daftar Pemetaan</h3>
-        <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${active ? 'text-indigo-800 bg-indigo-50 border-indigo-200' : 'text-emerald-800 bg-emerald-50 border-emerald-200'}`}>
-          {totalLabel}{active && <span className="font-normal text-gray-500"> · dari {rows.length}</span>}
+        <h3 className="text-sm font-bold text-ink">Daftar Pemetaan</h3>
+        <span className={`text-[12px] font-semibold px-2.5 py-1 rounded-full ${active ? 'text-brand-ink bg-brand-tint border border-brand/20' : 'text-ink-soft bg-neutral-tint'}`}>
+          {totalLabel}{active && <span className="font-normal text-ink-faint"> · dari <span className="data-value">{rows.length}</span></span>}
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -66,7 +66,7 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
             onChange={(v) => { setFAssessor(v); setPage(0); }}
             options={[{ value: 'all', label: '👤 Semua Penilai' }, ...assessors.map((a) => ({ value: a.id, label: a.name }))]}
             searchPlaceholder="Cari penilai…"
-            className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
+            className="text-xs px-3 py-2 border border-line rounded-control bg-surface focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
           />
         </div>
         <div className="w-full sm:w-56">
@@ -75,34 +75,34 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
             onChange={(v) => { setFTarget(v); setPage(0); }}
             options={[{ value: 'all', label: '🎯 Semua Target' }, ...targets.map((t) => ({ value: t.id, label: t.name }))]}
             searchPlaceholder="Cari target…"
-            className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-600"
+            className="text-xs px-3 py-2 border border-line rounded-control bg-surface focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
           />
         </div>
         {active && (
           <button type="button" onClick={() => { setFAssessor('all'); setFTarget('all'); setPage(0); }}
-            className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
+            className="text-[11px] font-semibold px-2.5 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">Bersihkan</button>
         )}
       </div>
 
       {shown.length === 0 ? (
-        <p className="text-sm text-gray-500">Tidak ada pemetaan sesuai filter.</p>
+        <p className="text-sm text-ink-soft">Tidak ada pemetaan sesuai filter.</p>
       ) : (
         <div className="overflow-x-auto">
         <table className="w-full text-left text-sm min-w-[560px]">
           <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
-              <th className="py-2 pr-3">Penilai</th><th className="py-2 px-3">Yang Dinilai</th><th className="py-2 px-3">Relasi</th>
-              <th className="py-2 px-3 text-center">Sifat</th><th className="py-2 pl-3 text-right">Aksi</th>
+            <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
+              <th className="py-2 pr-3 font-semibold">Penilai</th><th className="py-2 px-3 font-semibold">Yang Dinilai</th><th className="py-2 px-3 font-semibold">Relasi</th>
+              <th className="py-2 px-3 text-center font-semibold">Sifat</th><th className="py-2 pl-3 text-right font-semibold">Aksi</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-line-soft">
             {paged.map((r) => (
               <tr key={r.id}>
-                <td className="py-3 pr-3 font-bold text-gray-800">{r.assessor}</td>
-                <td className="py-3 px-3 text-gray-700">{r.target}</td>
-                <td className="py-3 px-3 text-gray-500">{r.relation}</td>
+                <td className="py-3 pr-3 font-bold text-ink">{r.assessor}</td>
+                <td className="py-3 px-3 text-ink-soft">{r.target}</td>
+                <td className="py-3 px-3 text-ink-soft">{r.relation}</td>
                 <td className="py-3 px-3 text-center">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${r.mandatory ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${r.mandatory ? 'bg-danger-tint text-danger-ink' : 'bg-neutral-tint text-ink-faint'}`}>
                     {r.mandatory ? 'Wajib' : 'Opsional'}
                   </span>
                 </td>
@@ -114,7 +114,7 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
         </div>
       )}
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pasangan" />
-      <p className="text-[10px] text-gray-500 italic">
+      <p className="text-[11px] text-ink-faint leading-relaxed">
         Relasi menentukan kelas bobot 360 (Atasan/Peer/Cross/Self). Sifat Wajib jadi dasar Flag Kepatuhan.
       </p>
     </div>

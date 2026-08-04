@@ -27,22 +27,22 @@ export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[];
   const link = (p: number) => `/admin/akses?tab=log&logPage=${p}#log-akses`;
 
   return (
-    <section id="log-akses" className="mt-8 border-t border-gray-200 pt-5">
-      <h3 className="text-sm font-bold text-gray-800 mb-0.5">Log Akses</h3>
-      <p className="text-[11px] text-gray-500 mb-3 max-w-3xl">
+    <section id="log-akses" className="mt-2">
+      <h3 className="text-sm font-bold text-ink mb-0.5">Log Akses</h3>
+      <p className="text-[11.5px] text-ink-soft mb-3 max-w-3xl leading-relaxed">
         Jejak perubahan akses (grant halaman + izin peran/HRD) — hanya-baca &amp; tak dapat diubah.
-        Terpisah dari <span className="font-semibold text-gray-500">Log Aktivitas HRD</span> umum yang mencatat semua kategori.
+        Terpisah dari <span className="font-semibold text-ink-soft">Log Aktivitas HRD</span> umum yang mencatat semua kategori.
       </p>
 
       {rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-200 py-8 text-center text-sm text-gray-400">
+        <div className="rounded-panel border border-dashed border-line-strong py-8 text-center text-sm text-ink-faint">
           Belum ada perubahan akses tercatat.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-gray-200">
+        <div className="overflow-x-auto rounded-panel border border-line">
           <table className="w-full text-sm min-w-[560px]">
             <thead>
-              <tr className="bg-gray-50 text-left text-[11px] uppercase tracking-wide text-gray-500">
+              <tr className="bg-neutral-tint text-left text-[11px] uppercase tracking-[0.05em] text-ink-faint">
                 <th className="px-3 py-2 font-semibold whitespace-nowrap">Waktu</th>
                 <th className="px-3 py-2 font-semibold">Oleh</th>
                 <th className="px-3 py-2 font-semibold">Aktivitas</th>
@@ -50,10 +50,10 @@ export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[];
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className="border-t border-gray-100 align-top">
-                  <td className="px-3 py-2 text-gray-500 whitespace-nowrap text-[12px]">{fmt(r.createdAt)}</td>
-                  <td className="px-3 py-2 text-gray-700 whitespace-nowrap font-medium">{r.actor}</td>
-                  <td className="px-3 py-2 text-gray-700">{r.summary}</td>
+                <tr key={r.id} className="border-t border-line-soft align-top">
+                  <td className="px-3 py-2 text-ink-faint whitespace-nowrap text-[12px] data-value">{fmt(r.createdAt)}</td>
+                  <td className="px-3 py-2 text-ink-soft whitespace-nowrap font-medium">{r.actor}</td>
+                  <td className="px-3 py-2 text-ink-soft">{r.summary}</td>
                 </tr>
               ))}
             </tbody>
@@ -62,17 +62,17 @@ export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[];
       )}
 
       {(total > pageSize || page > 0) && (
-        <div className="flex items-center justify-between mt-3 text-xs text-gray-600">
+        <div className="flex items-center justify-between mt-3 text-xs text-ink-soft">
           {page > 0 ? (
-            <Link href={link(page - 1)} className="px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50">← Sebelumnya</Link>
+            <Link href={link(page - 1)} className="px-3 py-1.5 rounded-control border border-line hover:border-line-strong">← Sebelumnya</Link>
           ) : (
-            <span className="px-3 py-1.5 rounded-lg border border-gray-200 opacity-40">← Sebelumnya</span>
+            <span className="px-3 py-1.5 rounded-control border border-line opacity-40">← Sebelumnya</span>
           )}
-          <span>{from}–{to} dari {total} · Halaman {page + 1} / {pageCount}</span>
+          <span><span className="data-value">{from}–{to}</span> dari <span className="data-value">{total}</span> · Halaman <span className="data-value">{page + 1} / {pageCount}</span></span>
           {page < pageCount - 1 ? (
-            <Link href={link(page + 1)} className="px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50">Berikutnya →</Link>
+            <Link href={link(page + 1)} className="px-3 py-1.5 rounded-control border border-line hover:border-line-strong">Berikutnya →</Link>
           ) : (
-            <span className="px-3 py-1.5 rounded-lg border border-gray-200 opacity-40">Berikutnya →</span>
+            <span className="px-3 py-1.5 rounded-control border border-line opacity-40">Berikutnya →</span>
           )}
         </div>
       )}

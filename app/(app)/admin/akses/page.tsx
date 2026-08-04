@@ -30,8 +30,8 @@ export default async function AdminAksesPage({
     return (
       <Shell>
         <Header />
-        <p className="text-sm text-gray-600 mt-4">Halaman ini hanya untuk HRD Admin dengan akses penuh.</p>
-        <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link>
+        <p className="text-sm text-ink-soft mt-4">Halaman ini hanya untuk HRD Admin dengan akses penuh.</p>
+        <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link>
       </Shell>
     );
   }
@@ -108,25 +108,21 @@ export default async function AdminAksesPage({
 
 function Header() {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-start justify-between gap-3">
       <div>
-        <h1 className="text-xl font-bold text-gray-800">Manajemen Akses</h1>
-        <p className="text-sm text-gray-500 max-w-3xl">
+        <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Manajemen Akses</h1>
+        <p className="text-[13.5px] text-ink-soft max-w-3xl mt-1 leading-relaxed">
           Berikan akses halaman tertentu kepada SPV/Koordinator/Direksi/pegawai, lengkap dengan
-          <span className="font-semibold text-gray-600"> lingkup data</span>: seluruh pegawai, hanya divisinya,
-          atau selain divisinya. Akses ini <span className="font-semibold text-gray-600">menambah</span> —
+          <span className="font-semibold text-ink"> lingkup data</span>: seluruh pegawai, hanya divisinya,
+          atau selain divisinya. Akses ini <span className="font-semibold text-ink">menambah</span> —
           tak mengubah akses bawaan tiap peran.
         </p>
       </div>
-      <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+      <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
     </div>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
-  );
+  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
 }

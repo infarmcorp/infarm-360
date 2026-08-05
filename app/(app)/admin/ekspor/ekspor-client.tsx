@@ -120,24 +120,25 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
     },
   ];
 
+  // Ikon monokrom on-token — kartu dibedakan lewat judul/ikon bentuk, bukan pelangi warna.
   const TINT: Record<string, string> = {
-    slate: 'text-slate-700', emerald: 'text-emerald-700', indigo: 'text-indigo-700', violet: 'text-violet-700', amber: 'text-amber-700',
+    slate: 'text-ink-soft', emerald: 'text-brand', indigo: 'text-brand', violet: 'text-brand', amber: 'text-warn-ink',
   };
 
   return (
     <div className="space-y-4">
       {/* Filter periode */}
       <div className="flex flex-wrap items-center gap-2">
-        <label className="text-xs font-bold text-gray-600">Periode:</label>
+        <label className="text-xs font-bold text-ink-soft">Periode:</label>
         <select value={periodId} onChange={(e) => setPeriodId(e.target.value)}
-          className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 min-w-[200px]">
+          className="text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint min-w-[200px]">
           <option value="">Semua Periode</option>
           {periods.map((p) => <option key={p.id} value={p.id}>{p.label}{p.active ? ' (aktif)' : ''}</option>)}
         </select>
-        <span className="text-[11px] text-gray-500">Berlaku untuk dataset ber-periode (Pegawai selalu lintas periode).</span>
+        <span className="text-[11px] text-ink-faint">Berlaku untuk dataset ber-periode (Pegawai selalu lintas periode).</span>
       </div>
 
-      <p className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+      <p className="text-[11px] text-ink-soft bg-neutral-tint border border-line rounded-control px-3 py-2">
         Tiap unduhan = <strong>satu file Excel dengan beberapa lembar (sheet)</strong> yang setema — buka file, pindah antar-lembar di bawah. Tak perlu mengunduh berkali-kali untuk data yang berkaitan.
       </p>
 
@@ -145,22 +146,22 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
         {cards.map((c) => {
           const Icon = c.icon;
           return (
-            <div key={c.key} className="border border-gray-200 rounded-xl p-4 flex flex-col gap-2">
+            <div key={c.key} className="border border-line rounded-panel bg-surface p-4 flex flex-col gap-2">
               <div className="flex items-start gap-2">
                 <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${TINT[c.tint]}`} />
                 <div className="min-w-0">
-                  <h3 className="text-sm font-extrabold text-gray-800">{c.title}</h3>
-                  <p className="text-[11px] text-gray-500 leading-snug">{c.desc}</p>
+                  <h3 className="text-sm font-extrabold text-ink">{c.title}</h3>
+                  <p className="text-[11px] text-ink-soft leading-snug">{c.desc}</p>
                 </div>
               </div>
               <div className="mt-auto flex items-center gap-2">
                 <button type="button" disabled={busy !== null} onClick={c.go}
-                  className="inline-flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
+                  className="inline-flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
                   <Download className="w-4 h-4" /> {busy === c.key ? 'Menyiapkan…' : 'Unduh Excel'}
                 </button>
-                <span className="text-[10px] text-gray-500">{c.scoped ? (selected ? selected.label : 'Semua periode') : 'Master'}</span>
+                <span className="text-[10px] text-ink-faint">{c.scoped ? (selected ? selected.label : 'Semua periode') : 'Master'}</span>
               </div>
-              {msg?.key === c.key && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
+              {msg?.key === c.key && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
             </div>
           );
         })}

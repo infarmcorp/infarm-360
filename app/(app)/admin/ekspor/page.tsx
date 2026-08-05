@@ -15,9 +15,9 @@ export default async function EksporPage() {
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'ekspor')) {
     return (
-      <main className="w-full p-4 sm:p-5 lg:p-6">
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-          <p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin.</p>
+      <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
+        <div className="bg-surface border border-line rounded-panel p-5">
+          <p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin.</p>
         </div>
       </main>
     );
@@ -28,21 +28,21 @@ export default async function EksporPage() {
   const periodOpts = (periods ?? []).map((p) => ({ id: p.id, label: p.label, active: p.status === 'active' }));
 
   return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-xl font-bold text-gray-800">Ekspor Dataset</h1>
-          <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
+      <div className="flex items-start justify-between mb-5 gap-3">
+        <div>
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Ekspor Dataset</h1>
+          <p className="text-[13.5px] text-ink-soft mt-1">
+            Unduh data mentah dalam format <strong>Excel (.xlsx)</strong> untuk olah data lanjutan
+            (pivot, statistik, atau alat BI). Pilih <strong>periode</strong> atau seluruh periode.
+          </p>
         </div>
-        <p className="text-sm text-gray-500 mb-4">
-          Unduh data mentah dalam format <strong>Excel (.xlsx)</strong> untuk olah data lanjutan
-          (pivot, statistik, atau alat BI). Pilih <strong>periode</strong> atau seluruh periode.
-        </p>
-        <EksporClient periods={periodOpts} />
-        <p className="text-[10px] text-gray-500 italic mt-4">
-          Data bersifat sensitif (memuat nama, skor, & komentar). Simpan & bagikan file secara bertanggung jawab.
-        </p>
+        <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
+      <EksporClient periods={periodOpts} />
+      <p className="text-[11px] text-ink-faint italic mt-4">
+        Data bersifat sensitif (memuat nama, skor, &amp; komentar). Simpan &amp; bagikan file secara bertanggung jawab.
+      </p>
     </main>
   );
 }

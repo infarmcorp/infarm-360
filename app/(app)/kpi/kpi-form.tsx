@@ -138,26 +138,26 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
   return (
     <div className="mt-6 space-y-4">
       {/* Mode toggle */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
+      <div className="flex gap-1 bg-neutral-tint p-1 rounded-control w-fit">
         {(['manual', 'excel'] as const).map((mo) => (
           <button key={mo} type="button" onClick={() => { setMode(mo); setMsg(null); }}
-            className={`px-4 py-1.5 text-xs font-extrabold rounded-lg transition-all ${mode === mo ? 'bg-white text-emerald-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+            className={`px-4 py-1.5 text-[12.5px] font-bold rounded-control transition-colors ${mode === mo ? 'bg-surface text-brand-ink shadow-2xs' : 'text-ink-soft hover:text-ink'}`}>
             {mo === 'manual' ? 'Input Manual' : 'Impor Excel'}
           </button>
         ))}
       </div>
 
       <div className="flex flex-wrap gap-4">
-        <label className="block text-sm">
+        <label className="block text-sm text-ink-soft">
           Bulan & Tahun Evaluasi
-          <select value={ym} onChange={(e) => setYm(e.target.value)} className="mt-1 block rounded border px-3 py-2">
+          <select value={ym} onChange={(e) => setYm(e.target.value)} className="mt-1 block rounded-control border border-line bg-surface text-ink data-value px-3 py-2 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
             {months.map((m) => <option key={m} value={m}>{m}</option>)}
           </select>
         </label>
         {depts.length > 1 && (
-          <label className="block text-sm">
+          <label className="block text-sm text-ink-soft">
             Divisi
-            <select value={dept} onChange={(e) => setDept(e.target.value)} className="mt-1 block rounded border px-3 py-2">
+            <select value={dept} onChange={(e) => setDept(e.target.value)} className="mt-1 block rounded-control border border-line bg-surface text-ink px-3 py-2 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
               <option value="all">Semua Divisi</option>
               {depts.map((d) => <option key={d} value={d}>{d}</option>)}
             </select>
@@ -169,33 +169,33 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
         <>
           {/* Ringkasan cakupan (#5): berapa anggota yang sudah punya skor bulan ini. */}
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 font-semibold text-gray-700">
-              Terisi <strong className="text-emerald-700">{filledCount}</strong> / {shown.length} anggota untuk <strong>{ym}</strong>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-tint px-3 py-1 font-semibold text-ink-soft">
+              Terisi <strong className="text-brand-ink data-value">{filledCount}</strong> / <span className="data-value">{shown.length}</span> anggota untuk <strong>{ym}</strong>
             </span>
             {filledCount < shown.length && (
-              <span className="text-amber-700 font-semibold">{shown.length - filledCount} belum diisi</span>
+              <span className="text-warn-ink font-semibold"><span className="data-value">{shown.length - filledCount}</span> belum diisi</span>
             )}
           </div>
           {/* Desktop: tabel */}
           <div className="hidden md:block overflow-x-auto">
           <table className="w-full border-collapse text-sm min-w-[520px]">
             <thead>
-              <tr className="border-b text-left">
-                <th className="py-2">Pegawai</th>
-                <th className="py-2">Skor (0–100)</th>
-                <th className="py-2">Komentar Audit (jika edit)</th>
-                <th className="py-2 text-right whitespace-nowrap pr-1">Tersimpan</th>
+              <tr className="border-b border-line text-left text-[11px] uppercase tracking-[0.05em] text-ink-faint">
+                <th className="py-2 font-semibold">Pegawai</th>
+                <th className="py-2 font-semibold">Skor (0–100)</th>
+                <th className="py-2 font-semibold">Komentar Audit (jika edit)</th>
+                <th className="py-2 text-right whitespace-nowrap pr-1 font-semibold">Tersimpan</th>
               </tr>
             </thead>
             <tbody>
               {shown.map((m, i) => {
                 const { key, saved, isEditing, noteMissing } = fieldsFor(m);
                 return (
-                <tr key={m.id} className={`border-b ${noteMissing ? 'bg-amber-50/60' : ''}`}>
-                  <td className="py-2">
-                    {m.name} <span className="text-gray-500">· {m.dept}</span>
+                <tr key={m.id} className={`border-b border-line-soft ${noteMissing ? 'bg-warn-tint/60' : ''}`}>
+                  <td className="py-2 text-ink">
+                    {m.name} <span className="text-ink-faint">· {m.dept}</span>
                     {saved === undefined && (
-                      <span className="ml-2 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-500 align-middle">belum diisi</span>
+                      <span className="ml-2 inline-block rounded-full bg-neutral-tint px-2 py-0.5 text-[10px] font-semibold text-ink-faint align-middle">belum diisi</span>
                     )}
                   </td>
                   <td className="py-2">
@@ -204,26 +204,26 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); focusNextScore(i); } }}
                       placeholder={saved !== undefined ? saved.toFixed(2) : ''}
                       onChange={(e) => setScores((s) => ({ ...s, [key]: e.target.value }))}
-                      className={`w-24 rounded border px-2 py-1 ${isEditing ? 'border-amber-400 bg-amber-50/40' : ''}`} />
+                      className={`w-24 rounded-control border px-2 py-1 data-value bg-surface focus:outline-none focus:ring-2 focus:ring-brand-tint ${isEditing ? 'border-warn-ink/50 bg-warn-tint/40' : 'border-line focus:border-brand'}`} />
                     {isEditing && (
-                      <div className="mt-0.5 text-[10px] font-bold text-amber-700">↻ ubah dari {saved.toFixed(2)}</div>
+                      <div className="mt-0.5 text-[10px] font-bold text-warn-ink">↻ ubah dari {saved.toFixed(2)}</div>
                     )}
                   </td>
                   <td className="py-2">
                     <input type="text" value={notes[key] ?? ''}
                       placeholder={isEditing ? 'Wajib: alasan perubahan' : 'opsional'}
                       onChange={(e) => setNotes((n) => ({ ...n, [key]: e.target.value }))}
-                      className={`w-full rounded border px-2 py-1 ${noteMissing ? 'border-amber-400 bg-amber-50/40 placeholder:text-amber-700' : ''}`} />
+                      className={`w-full rounded-control border px-2 py-1 bg-surface focus:outline-none focus:ring-2 focus:ring-brand-tint ${noteMissing ? 'border-warn-ink/50 bg-warn-tint/40 placeholder:text-warn-ink' : 'border-line focus:border-brand'}`} />
                   </td>
                   <td className="py-2 text-right whitespace-nowrap pr-1">
                     {saved === undefined ? (
-                      <span className="text-gray-400 text-xs">—</span>
+                      <span className="text-ink-faint text-xs">—</span>
                     ) : (
                       <span className="inline-flex items-center justify-end gap-2">
-                        <span className="font-mono font-bold text-emerald-700">{saved.toFixed(2)}</span>
+                        <span className="data-value font-bold text-brand-ink">{saved.toFixed(2)}</span>
                         <button type="button" disabled={pending}
                           onClick={() => { setDelId(m.id); setDelNote(''); setMsg(null); }}
-                          className="text-[11px] font-bold px-2 py-1 rounded border border-rose-300 text-rose-700 hover:bg-rose-50 disabled:opacity-50">
+                          className="text-[11px] font-semibold px-2 py-1 rounded-control border border-line text-danger-ink hover:border-danger-ink disabled:opacity-50">
                           Hapus
                         </button>
                       </span>
@@ -241,27 +241,27 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
             {shown.map((m) => {
               const { key, saved, isEditing, noteMissing } = fieldsFor(m);
               return (
-                <div key={m.id} className={`rounded-xl border p-3 space-y-2 ${noteMissing ? 'border-amber-400 bg-amber-50/40' : 'border-gray-200'}`}>
+                <div key={m.id} className={`rounded-panel border p-3 space-y-2 ${noteMissing ? 'border-warn-ink/40 bg-warn-tint/40' : 'border-line'}`}>
                   <div className="flex items-start justify-between gap-2">
-                    <div className="text-sm font-semibold">
-                      {m.name} <span className="text-gray-500 font-normal">· {m.dept}</span>
+                    <div className="text-sm font-semibold text-ink">
+                      {m.name} <span className="text-ink-faint font-normal">· {m.dept}</span>
                     </div>
                     {saved === undefined ? (
-                      <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-500">belum diisi</span>
+                      <span className="shrink-0 rounded-full bg-neutral-tint px-2 py-0.5 text-[10px] font-semibold text-ink-faint">belum diisi</span>
                     ) : (
-                      <span className="shrink-0 font-mono text-sm font-bold text-emerald-700">{saved.toFixed(2)}</span>
+                      <span className="shrink-0 data-value text-sm font-bold text-brand-ink">{saved.toFixed(2)}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
                     <input type="number" min={0} max={100} inputMode="decimal" value={scores[key] ?? ''}
                       placeholder={saved !== undefined ? saved.toFixed(2) : 'Skor 0–100'}
                       onChange={(e) => setScores((s) => ({ ...s, [key]: e.target.value }))}
-                      className={`w-28 rounded border px-2 py-1.5 text-sm ${isEditing ? 'border-amber-400 bg-amber-50/40' : ''}`} />
-                    {isEditing && <span className="text-[10px] font-bold text-amber-700">↻ dari {saved.toFixed(2)}</span>}
+                      className={`w-28 rounded-control border px-2 py-1.5 text-sm data-value bg-surface focus:outline-none focus:ring-2 focus:ring-brand-tint ${isEditing ? 'border-warn-ink/50 bg-warn-tint/40' : 'border-line focus:border-brand'}`} />
+                    {isEditing && <span className="text-[10px] font-bold text-warn-ink">↻ dari {saved.toFixed(2)}</span>}
                     {saved !== undefined && (
                       <button type="button" disabled={pending}
                         onClick={() => { setDelId(m.id); setDelNote(''); setMsg(null); }}
-                        className="ml-auto shrink-0 text-[11px] font-bold px-2 py-1 rounded border border-rose-300 text-rose-700 hover:bg-rose-50 disabled:opacity-50">
+                        className="ml-auto shrink-0 text-[11px] font-semibold px-2 py-1 rounded-control border border-line text-danger-ink hover:border-danger-ink disabled:opacity-50">
                         Hapus
                       </button>
                     )}
@@ -269,7 +269,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
                   <input type="text" value={notes[key] ?? ''}
                     placeholder={isEditing ? 'Wajib: alasan perubahan' : 'Komentar audit (opsional)'}
                     onChange={(e) => setNotes((n) => ({ ...n, [key]: e.target.value }))}
-                    className={`w-full rounded border px-2 py-1.5 text-sm ${noteMissing ? 'border-amber-400 bg-amber-50/40 placeholder:text-amber-700' : ''}`} />
+                    className={`w-full rounded-control border px-2 py-1.5 text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-brand-tint ${noteMissing ? 'border-warn-ink/50 bg-warn-tint/40 placeholder:text-warn-ink' : 'border-line focus:border-brand'}`} />
                 </div>
               );
             })}
@@ -280,8 +280,8 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
             const m = shown.find((x) => x.id === delId);
             const saved = existing[`${delId}|${ym}`];
             return (
-              <div className="flex flex-col gap-2 bg-rose-50 border border-rose-200 rounded-xl p-3">
-                <p className="text-[12px] text-rose-900">
+              <div className="flex flex-col gap-2 bg-danger-tint border border-danger-ink/25 rounded-panel p-3">
+                <p className="text-[12px] text-danger-ink">
                   Hapus skor KPI <strong>{m?.name ?? 'pegawai'}</strong> bulan <strong>{ym}</strong>
                   {saved !== undefined && <> (nilai <strong>{saved.toFixed(2)}</strong>)</>}? Penghapusan
                   <strong> tercatat di Riwayat &amp; Audit</strong> dan mengurangi rerata KPI.
@@ -289,14 +289,14 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
                 <input type="text" value={delNote} autoFocus
                   onChange={(e) => setDelNote(e.target.value)}
                   placeholder="Alasan penghapusan (wajib)…"
-                  className="w-full rounded border border-rose-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-rose-500" />
+                  className="w-full rounded-control border border-danger-ink/30 bg-surface px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-danger-tint" />
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={doDelete} disabled={pending || !delNote.trim()}
-                    className="text-xs font-bold px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50">
+                    className="text-xs font-semibold px-3 py-1.5 rounded-control bg-danger-ink hover:opacity-90 text-white disabled:opacity-50">
                     {pending ? 'Menghapus…' : 'Ya, hapus skor'}
                   </button>
                   <button type="button" onClick={() => { setDelId(null); setDelNote(''); }} disabled={pending}
-                    className="text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+                    className="text-xs font-semibold px-3 py-1.5 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-50">
                     Batal
                   </button>
                 </div>
@@ -304,50 +304,50 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
             );
           })()}
           <div className="flex items-center gap-3">
-            <button onClick={submitManual} disabled={pending} className="rounded bg-emerald-700 px-4 py-2 text-white text-sm font-bold disabled:opacity-50">
+            <button onClick={submitManual} disabled={pending} className="rounded-control bg-brand hover:bg-brand-ink px-4 py-2 text-white text-sm font-semibold disabled:opacity-50">
               {pending ? 'Menyimpan…' : 'Simpan Semua Skor'}
             </button>
-            {msg && <span className={`text-sm font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
+            {msg && <span className={`text-sm font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
           </div>
         </>
       ) : (
         <div className="space-y-3">
-          <div className="bg-emerald-50/40 border border-emerald-600/20 rounded-xl p-3 text-xs text-emerald-900">
-            Unggah file <strong>.xlsx/.xls/.csv</strong> berkolom <code>emp_code</code> &amp; <code>score</code> (opsional <code>note</code>).
-            Skor disimpan untuk bulan <strong>{ym}</strong>. <button type="button" onClick={downloadTemplate} className="underline font-bold">Unduh template</button>.
+          <div className="bg-brand-tint/40 border border-brand/20 rounded-panel p-3 text-xs text-ink-soft">
+            Unggah file <strong className="text-ink">.xlsx/.xls/.csv</strong> berkolom <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">emp_code</code> &amp; <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">score</code> (opsional <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">note</code>).
+            Skor disimpan untuk bulan <strong className="text-ink">{ym}</strong>. <button type="button" onClick={downloadTemplate} className="text-brand-ink font-semibold hover:underline">Unduh template</button>.
           </div>
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile}
-            className="block text-sm file:mr-3 file:rounded file:border-0 file:bg-emerald-700 file:px-3 file:py-1.5 file:text-white file:font-bold" />
-          {parseErr && <p className="text-sm text-rose-600 font-semibold">{parseErr}</p>}
+            className="block text-sm file:mr-3 file:rounded-control file:border-0 file:bg-brand file:px-3 file:py-1.5 file:text-white file:font-semibold" />
+          {parseErr && <p className="text-sm text-danger-ink font-semibold">{parseErr}</p>}
 
           {parsed && (
             <>
-              <div className="overflow-x-auto border border-gray-200 rounded-xl">
+              <div className="overflow-x-auto border border-line rounded-panel">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="bg-gray-50 text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
-                      <th className="py-2 px-3">Kode</th><th className="py-2 px-3">Pegawai</th>
-                      <th className="py-2 px-3 text-center">Skor</th><th className="py-2 px-3">Catatan</th><th className="py-2 px-3">Status</th>
+                    <tr className="bg-neutral-tint text-[10px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
+                      <th className="py-2 px-3 font-semibold">Kode</th><th className="py-2 px-3 font-semibold">Pegawai</th>
+                      <th className="py-2 px-3 text-center font-semibold">Skor</th><th className="py-2 px-3 font-semibold">Catatan</th><th className="py-2 px-3 font-semibold">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-line-soft">
                     {parsed.map((r, i) => {
                       const valid = isValidKpiRow(r);
                       const old = valid && r.member ? existing[`${r.member.id}|${ym}`] : undefined;
                       const overwrite = old !== undefined;
                       return (
-                        <tr key={i} className={valid ? '' : 'bg-rose-50/40'}>
-                          <td className="py-2 px-3 font-mono">{r.code}</td>
-                          <td className="py-2 px-3">{r.member?.name ?? <span className="text-rose-600">tidak cocok</span>}</td>
-                          <td className="py-2 px-3 text-center font-mono">
+                        <tr key={i} className={valid ? '' : 'bg-danger-tint/40'}>
+                          <td className="py-2 px-3 data-value text-ink">{r.code}</td>
+                          <td className="py-2 px-3 text-ink">{r.member?.name ?? <span className="text-danger-ink">tidak cocok</span>}</td>
+                          <td className="py-2 px-3 text-center data-value text-ink">
                             {Number.isFinite(r.score) ? r.score : '—'}
-                            {overwrite && <span className="text-amber-700"> (dari {old})</span>}
+                            {overwrite && <span className="text-warn-ink"> (dari {old})</span>}
                           </td>
-                          <td className="py-2 px-3 text-gray-500">{r.note || '—'}</td>
+                          <td className="py-2 px-3 text-ink-faint">{r.note || '—'}</td>
                           <td className="py-2 px-3">
-                            {!valid ? <span className="text-rose-600 font-bold">✗ Dilewati</span>
-                              : overwrite ? <span className="text-amber-700 font-bold">↻ Menimpa</span>
-                              : <span className="text-emerald-700 font-bold">✓ Siap</span>}
+                            {!valid ? <span className="text-danger-ink font-semibold">✗ Dilewati</span>
+                              : overwrite ? <span className="text-warn-ink font-semibold">↻ Menimpa</span>
+                              : <span className="text-brand-ink font-semibold">✓ Siap</span>}
                           </td>
                         </tr>
                       );
@@ -358,21 +358,21 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
               {(() => {
                 const overwriteN = parsed.filter((r) => isValidKpiRow(r) && r.member && existing[`${r.member.id}|${ym}`] !== undefined).length;
                 return overwriteN > 0 ? (
-                  <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  <p className="text-xs text-warn-ink bg-warn-tint border border-warn-ink/25 rounded-control px-3 py-2">
                     <strong>{overwriteN} baris akan menimpa</strong> skor bulan {ym} yang sudah ada (lihat tanda <span className="font-bold">↻ Menimpa</span>). Nilai lama tetap tersimpan di Riwayat &amp; Audit.
                   </p>
                 ) : null;
               })()}
               <div className="flex items-center gap-3">
-                <button onClick={applyExcel} disabled={pending} className="rounded bg-emerald-700 px-4 py-2 text-white text-sm font-bold disabled:opacity-50">
+                <button onClick={applyExcel} disabled={pending} className="rounded-control bg-brand hover:bg-brand-ink px-4 py-2 text-white text-sm font-semibold disabled:opacity-50">
                   {pending ? 'Menyimpan…' : `Terapkan & Simpan (${parsed.filter(isValidKpiRow).length} baris)`}
                 </button>
-                <button onClick={() => setParsed(null)} disabled={pending} className="text-sm font-semibold text-gray-500 hover:underline">Batal</button>
-                {msg && <span className={`text-sm font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
+                <button onClick={() => setParsed(null)} disabled={pending} className="text-sm font-semibold text-ink-faint hover:text-ink-soft">Batal</button>
+                {msg && <span className={`text-sm font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
               </div>
             </>
           )}
-          {!parsed && msg && <span className={`text-sm font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
+          {!parsed && msg && <span className={`text-sm font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
         </div>
       )}
     </div>

@@ -29,7 +29,7 @@ export function RekapTable({ rows, monthLabels, has360 }: {
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs min-w-[640px]">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200 text-[10px] uppercase tracking-wider text-gray-500 font-bold">
+            <tr className="bg-neutral-tint border-b border-line text-[10px] uppercase tracking-[0.05em] text-ink-faint font-semibold">
               <th className="py-2.5 px-3">Pegawai</th>
               {monthLabels.map((m, i) => <th key={i} className="py-2.5 px-3 text-center">{m}</th>)}
               <th className="py-2.5 px-3 text-center">Rataan KPI</th>
@@ -38,22 +38,22 @@ export function RekapTable({ rows, monthLabels, has360 }: {
               <th className="py-2.5 px-3 text-right">Kategori</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-line-soft">
             {rows.length === 0 && (
-              <tr><td colSpan={colCount} className="py-6 text-center text-gray-500 italic">Tidak ada pegawai dalam lingkup Anda.</td></tr>
+              <tr><td colSpan={colCount} className="py-6 text-center text-ink-faint italic">Tidak ada pegawai dalam lingkup Anda.</td></tr>
             )}
             {shown.map((r) => (
-              <tr key={r.id} className="hover:bg-gray-50/40">
+              <tr key={r.id} className="hover:bg-neutral-tint/40">
                 <td className="py-3 px-3">
-                  <span className="font-bold text-gray-800 block">{r.name}</span>
-                  <span className="text-[10px] text-gray-500">{r.dept}</span>
+                  <span className="font-bold text-ink block">{r.name}</span>
+                  <span className="text-[10px] text-ink-faint">{r.dept}</span>
                 </td>
                 {r.monthly.map((v, i) => (
-                  <td key={i} className="py-3 px-3 text-center font-mono text-gray-500">{fmt(v)}</td>
+                  <td key={i} className="py-3 px-3 text-center data-value text-ink-faint">{fmt(v)}</td>
                 ))}
-                <td className="py-3 px-3 text-center font-mono font-bold text-emerald-700">{fmt(r.kpiAvg)}</td>
-                {has360 && <td className="py-3 px-3 text-center font-mono font-bold text-indigo-700">{fmt(r.s360)}</td>}
-                <td className="py-3 px-3 text-center font-mono font-black text-slate-900 text-sm">{fmt(r.final)}</td>
+                <td className="py-3 px-3 text-center data-value font-bold text-brand-ink">{fmt(r.kpiAvg)}</td>
+                {has360 && <td className="py-3 px-3 text-center data-value font-bold text-ink-soft">{fmt(r.s360)}</td>}
+                <td className="py-3 px-3 text-center data-value font-bold text-ink text-sm">{fmt(r.final)}</td>
                 <td className={`py-3 px-3 text-right font-bold ${r.katClass}`}>{r.katText}{r.player ? ` · ${playerLabelOf(r.player)}` : ''}</td>
               </tr>
             ))}

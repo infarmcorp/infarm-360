@@ -5,16 +5,17 @@ import { canSection } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
 import { RespondForm } from './respond-form';
 import { SuksesiList, type SuksesiRow } from './suksesi-list';
+import { Panel } from '@/components/panel';
 
 /**
  * Promosi & Suksesi. HRD: ajukan rencana per pegawai (berbasis Skor Akhir periode aktif).
  * Direksi: setujui/tolak yang diajukan. Pegawai tidak melihat (RLS succ_read = HRD/Direksi).
  */
 const STATUS_BADGE: Record<string, { t: string; c: string }> = {
-  draft: { t: 'Draf', c: 'bg-gray-100 text-gray-600' },
-  submitted: { t: 'Diajukan', c: 'bg-amber-100 text-amber-800' },
-  approved: { t: 'Disetujui', c: 'bg-emerald-100 text-emerald-800' },
-  rejected: { t: 'Ditolak', c: 'bg-rose-100 text-rose-700' },
+  draft: { t: 'Draf', c: 'bg-neutral-tint text-ink-soft' },
+  submitted: { t: 'Diajukan', c: 'bg-warn-tint text-warn-ink' },
+  approved: { t: 'Disetujui', c: 'bg-brand-tint text-brand-ink' },
+  rejected: { t: 'Ditolak', c: 'bg-danger-tint text-danger-ink' },
 };
 
 export default async function SuksesiPage() {
@@ -26,11 +27,11 @@ export default async function SuksesiPage() {
   // HRD: butuh bagian 'suksesi' (akses granular Jalur A). Direksi selalu boleh (merespons).
   const admin = canSection(me, 'suksesi');
   if (!admin && role !== 'direksi') {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk HRD / Direksi.</p></Shell>;
+    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk HRD / Direksi.</p></Shell>;
   }
 
   const { data: ap } = await supabase.from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><Header /><p className="text-sm text-gray-500 mt-4">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><Header /><p className="text-sm text-ink-soft mt-4">Tidak ada periode aktif.</p></Shell>;
 
   const { data: plans } = await supabase
     .from('succession_plans')
@@ -78,10 +79,10 @@ async function HrdView({
   return (
     <Shell>
       <Header />
-      <p className="text-[11px] text-gray-500 mt-1 mb-4">
-        Periode aktif: {period.label}. Pertimbangkan kandidat (umumnya Skor Akhir ≥ 90), ajukan rencana ke Direksi.
+      <p className="text-[12px] text-ink-soft mt-1 mb-5">
+        Periode aktif <span className="data-value font-semibold text-ink">{period.label}</span>. Pertimbangkan kandidat (umumnya Skor Akhir ≥ 90), ajukan rencana ke Direksi.
       </p>
-      <SuksesiList rows={rows} />
+      <Panel><SuksesiList rows={rows} /></Panel>
     </Shell>
   );
 }
@@ -103,20 +104,20 @@ async function DireksiView({
   return (
     <Shell>
       <Header />
-      <h2 className="text-sm font-bold text-gray-700 mt-4 mb-2">Menunggu Keputusan ({pending.length})</h2>
+      <h2 className="text-sm font-bold text-ink mt-5 mb-2">Menunggu Keputusan ({pending.length})</h2>
       {pending.length === 0 ? (
-        <p className="text-sm text-gray-500">Tidak ada rencana yang menunggu persetujuan.</p>
+        <p className="text-sm text-ink-soft">Tidak ada rencana yang menunggu persetujuan.</p>
       ) : (
         <div className="space-y-3">
           {pending.map((p) => {
             const e = empBy.get(p.employee_id);
             return (
-              <div key={p.id} className="border border-amber-200 bg-amber-50/40 rounded-xl p-3 grid md:grid-cols-[1fr_1.4fr] gap-3">
+              <div key={p.id} className="rounded-panel border border-warn-ink/25 bg-warn-tint/40 p-3 grid md:grid-cols-[1fr_1.4fr] gap-3">
                 <div>
-                  <span className="font-bold text-gray-800 text-sm block">{e?.name ?? '—'}</span>
-                  <span className="text-[11px] text-gray-500">{e?.dept}</span>
-                  <p className="mt-1.5 text-xs font-semibold text-gray-700">{p.plan}</p>
-                  {p.justification && <p className="mt-1 text-[11px] text-gray-500">{p.justification}</p>}
+                  <span className="font-bold text-ink text-sm block">{e?.name ?? '—'}</span>
+                  <span className="text-[11px] text-ink-faint">{e?.dept}</span>
+                  <p className="mt-1.5 text-xs font-semibold text-ink-soft">{p.plan}</p>
+                  {p.justification && <p className="mt-1 text-[11px] text-ink-faint">{p.justification}</p>}
                 </div>
                 <RespondForm planId={p.id} />
               </div>
@@ -127,21 +128,21 @@ async function DireksiView({
 
       {decided.length > 0 && (
         <>
-          <h2 className="text-sm font-bold text-gray-700 mt-6 mb-2">Riwayat Keputusan ({decided.length})</h2>
+          <h2 className="text-sm font-bold text-ink mt-6 mb-2">Riwayat Keputusan ({decided.length})</h2>
           <div className="space-y-2">
             {decided.map((p) => {
               const e = empBy.get(p.employee_id);
               const badge = STATUS_BADGE[p.status];
               return (
-                <div key={p.id} className="border border-gray-200 rounded-xl p-3 flex items-start justify-between gap-3">
+                <Panel key={p.id} padded={false} className="p-3 flex items-start justify-between gap-3">
                   <div>
-                    <span className="font-bold text-gray-800 text-sm">{e?.name ?? '—'}</span>
-                    <span className="text-[11px] text-gray-500"> · {e?.dept}</span>
-                    <p className="text-xs text-gray-600 mt-0.5">{p.plan}</p>
-                    {p.direksi_comment && <p className="text-[10px] text-gray-500 italic mt-0.5">Komentar: “{p.direksi_comment}”</p>}
+                    <span className="font-bold text-ink text-sm">{e?.name ?? '—'}</span>
+                    <span className="text-[11px] text-ink-faint"> · {e?.dept}</span>
+                    <p className="text-xs text-ink-soft mt-0.5">{p.plan}</p>
+                    {p.direksi_comment && <p className="text-[10px] text-ink-faint italic mt-0.5">Komentar: “{p.direksi_comment}”</p>}
                   </div>
-                  <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.c}`}>{badge.t}</span>
-                </div>
+                  <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full ${badge.c}`}>{badge.t}</span>
+                </Panel>
               );
             })}
           </div>
@@ -154,16 +155,12 @@ async function DireksiView({
 function Header() {
   return (
     <div>
-      <h1 className="text-xl font-bold text-gray-800">Promosi &amp; Suksesi</h1>
-      <p className="text-sm text-gray-500">Pengajuan rencana karier (HRD) &amp; persetujuan eksekutif (Direksi).</p>
+      <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Promosi &amp; Suksesi</h1>
+      <p className="text-[13.5px] text-ink-soft mt-1">Pengajuan rencana karier (HRD) &amp; persetujuan eksekutif (Direksi).</p>
     </div>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
-  );
+  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
 }

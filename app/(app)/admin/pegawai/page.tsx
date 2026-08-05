@@ -14,7 +14,7 @@ export default async function PegawaiPage() {
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'pegawai')) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin.</p></Shell>;
+    return <Shell><p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin.</p></Shell>;
   }
 
   const { data: emps } = await supabase
@@ -59,10 +59,10 @@ export default async function PegawaiPage() {
 
   return (
     <Shell>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Kelola Pegawai</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Kelola Pegawai</h1>
+          <p className="text-[13.5px] text-ink-soft mt-1 max-w-2xl leading-relaxed">
             Tambah, ubah, atau nonaktifkan akun pegawai. Email boleh placeholder — login pakai sandi, ganti email asli kapan saja.
           </p>
         </div>
@@ -74,9 +74,5 @@ export default async function PegawaiPage() {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
-  );
+  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
 }

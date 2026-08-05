@@ -70,13 +70,13 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
   return (
     <div className="space-y-3">
       {/* Ringkasan-dulu: sebaran status sebelum tabel. */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
-        <span><strong className="text-slate-800 font-mono">{rows.length}</strong> pegawai</span>
-        {!readOnly && <span className="text-amber-700"><strong className="font-mono">{sum.actionable}</strong> perlu tindakan</span>}
-        <span className="text-emerald-700"><strong className="font-mono">{sum.final}</strong> final</span>
-        {sum.review > 0 && <span className="text-indigo-700"><strong className="font-mono">{sum.review}</strong> ditinjau</span>}
-        {sum.draft > 0 && <span><strong className="font-mono">{sum.draft}</strong> draf</span>}
-        {has360 && <span><strong className="font-mono">{readyCount}</strong> siap review</span>}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-faint">
+        <span><strong className="text-ink data-value">{rows.length}</strong> pegawai</span>
+        {!readOnly && <span className="text-warn-ink"><strong className="data-value">{sum.actionable}</strong> perlu tindakan</span>}
+        <span className="text-brand-ink"><strong className="data-value">{sum.final}</strong> final</span>
+        {sum.review > 0 && <span className="text-ink-soft"><strong className="data-value">{sum.review}</strong> ditinjau</span>}
+        {sum.draft > 0 && <span><strong className="data-value">{sum.draft}</strong> draf</span>}
+        {has360 && <span><strong className="data-value">{readyCount}</strong> siap review</span>}
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
@@ -84,7 +84,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
           value={q}
           onChange={(e) => { setQ(e.target.value); resetPage(); }}
           placeholder="Cari nama atau divisi…"
-          className="text-xs px-3 py-2 border border-gray-200 rounded-lg flex-1 min-w-[180px] focus:outline-none focus:ring-1 focus:ring-emerald-600"
+          className="text-xs px-3 py-2 border border-line rounded-control bg-surface flex-1 min-w-[180px] focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
         />
         <MultiCheckFilter label="Divisi"
           options={depts.map((d) => ({ value: d, label: d }))}
@@ -99,48 +99,48 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
         )}
         {active && (
           <button type="button" onClick={() => { setQ(''); setDeptSel(new Set()); setRatedSel(new Set()); resetPage(); }}
-            className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
+            className="text-[11px] font-semibold px-2.5 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">Bersihkan</button>
         )}
-        <span className="text-[11px] text-gray-500 ml-auto">
-          {shown.length} dari {rows.length} pegawai
+        <span className="text-[11px] text-ink-faint ml-auto">
+          <span className="data-value">{shown.length}</span> dari <span className="data-value">{rows.length}</span> pegawai
         </span>
       </div>
       {!readOnly && onlyActionable && rows.length - sum.actionable > 0 && (
-        <p className="text-[11px] text-gray-500 italic">{rows.length - sum.actionable} laporan selesai (Final) disembunyikan — hilangkan centang <strong>“Hanya perlu tindakan”</strong> untuk melihat semua.</p>
+        <p className="text-[11px] text-ink-faint italic">{rows.length - sum.actionable} laporan selesai (Final) disembunyikan — hilangkan centang <strong>“Hanya perlu tindakan”</strong> untuk melihat semua.</p>
       )}
 
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm min-w-[820px]">
           <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
-              <th className="py-2 pr-3">Pegawai</th>
-              <th className="py-2 px-3">Divisi</th>
-              <th className="py-2 px-3 text-center">KPI</th>
-              <th className="py-2 px-3 text-center">360°</th>
-              <th className="py-2 px-3 text-center">Punish.</th>
-              <th className="py-2 px-3 text-center">Skor Akhir</th>
-              {has360 && <th className="py-2 px-3 text-center">Dinilai oleh</th>}
-              <th className="py-2 px-3 text-center">ACC</th>
-              <th className="py-2 px-3 text-center">Status</th>
-              <th className="py-2 pl-3 text-right">Aksi</th>
+            <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
+              <th className="py-2 pr-3 font-semibold">Pegawai</th>
+              <th className="py-2 px-3 font-semibold">Divisi</th>
+              <th className="py-2 px-3 text-center font-semibold">KPI</th>
+              <th className="py-2 px-3 text-center font-semibold">360°</th>
+              <th className="py-2 px-3 text-center font-semibold">Punish.</th>
+              <th className="py-2 px-3 text-center font-semibold">Skor Akhir</th>
+              {has360 && <th className="py-2 px-3 text-center font-semibold">Dinilai oleh</th>}
+              <th className="py-2 px-3 text-center font-semibold">ACC</th>
+              <th className="py-2 px-3 text-center font-semibold">Status</th>
+              <th className="py-2 pl-3 text-right font-semibold">Aksi</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-line-soft">
             {shown.length === 0 && (
-              <tr><td colSpan={has360 ? 10 : 9} className="py-6 text-center text-gray-500 italic">Tidak ada pegawai sesuai filter.</td></tr>
+              <tr><td colSpan={has360 ? 10 : 9} className="py-6 text-center text-ink-faint italic">Tidak ada pegawai sesuai filter.</td></tr>
             )}
             {paged.map((r) => (
               <tr key={r.id}>
                 <td className="py-3 pr-3">
-                  <span className="font-bold text-gray-800">{r.name}</span>
+                  <span className="font-bold text-ink">{r.name}</span>
                 </td>
-                <td className="py-3 px-3 text-xs text-gray-600">{r.dept}</td>
-                <td className="py-3 px-3 text-center font-mono text-slate-600">
-                  {r.kpiAvg == null ? <span className="text-rose-500 text-[10px]">kosong</span> : (
+                <td className="py-3 px-3 text-xs text-ink-soft">{r.dept}</td>
+                <td className="py-3 px-3 text-center data-value text-ink-soft">
+                  {r.kpiAvg == null ? <span className="text-danger-ink text-[10px]">kosong</span> : (
                     <div className="flex flex-col items-center gap-0.5">
                       <span>{r.kpiAvg.toFixed(2)}</span>
                       {r.totalMonths > 0 && (
-                        <span className={r.missingMonths.length ? 'text-[9px] font-bold text-amber-700' : 'text-[9px] text-gray-400'}
+                        <span className={r.missingMonths.length ? 'text-[9px] font-bold text-warn-ink' : 'text-[9px] text-ink-faint'}
                           title={r.missingMonths.length ? `Bulan belum ada KPI: ${r.missingMonths.join(', ')}` : 'Semua bulan terisi'}>
                           {r.totalMonths - r.missingMonths.length}/{r.totalMonths} bln
                         </span>
@@ -148,23 +148,23 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                     </div>
                   )}
                 </td>
-                <td className="py-3 px-3 text-center font-mono text-slate-600">
-                  {!has360 ? <span className="text-[10px] text-gray-400">N/A</span>
-                    : r.s360 == null ? <span className="text-[10px] text-amber-600">belum</span>
+                <td className="py-3 px-3 text-center data-value text-ink-soft">
+                  {!has360 ? <span className="text-[10px] text-ink-faint">N/A</span>
+                    : r.s360 == null ? <span className="text-[10px] text-warn-ink">belum</span>
                     : (
                       <div className="flex flex-col items-center gap-0.5">
                         <span>{r.s360.toFixed(2)}</span>
                         {r.needsRecompute && (
                           <span title="Penilaian berubah sejak skor 360° terakhir dihitung — klik Hitung Ulang Skor 360°."
-                            className="text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-full">⚠ perlu hitung</span>
+                            className="text-[9px] font-semibold text-warn-ink bg-warn-tint px-1.5 py-0.5 rounded-full">⚠ perlu hitung</span>
                         )}
                       </div>
                     )}
                 </td>
-                <td className="py-3 px-3 text-center font-mono">
-                  {r.penalty > 0 ? <span className="text-rose-600 font-bold">−{r.penalty}</span> : <span className="text-gray-400">0</span>}
+                <td className="py-3 px-3 text-center data-value">
+                  {r.penalty > 0 ? <span className="text-danger-ink font-bold">−{r.penalty}</span> : <span className="text-ink-faint">0</span>}
                 </td>
-                <td className="py-3 px-3 text-center font-mono font-black text-slate-800">
+                <td className="py-3 px-3 text-center data-value font-bold text-ink">
                   {(() => {
                     // Baris FINAL: tampilkan angka TERSIMPAN (beku) yang dilihat pegawai.
                     // Bila skor LIVE berbeda (KPI/360/punishment berubah sejak final) → badge "berubah".
@@ -176,7 +176,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                           <span>{stored != null ? stored.toFixed(2) : '—'}</span>
                           {drift && (
                             <span title={`Skor terkini ${r.final!.toFixed(2)} berbeda dari yang difinalisasi — Kembalikan ke Draf lalu Finalisasi ulang untuk memperbarui.`}
-                              className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                              className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-warn-tint text-warn-ink">
                               berubah → {r.final!.toFixed(2)}
                             </span>
                           )}
@@ -189,8 +189,8 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                 {has360 && (
                   <td className="py-3 px-3 text-center">
                     {r.ratedTotal === 0
-                      ? <span className="text-[10px] text-gray-500">—</span>
-                      : <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isRatedComplete(r) ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                      ? <span className="text-[10px] text-ink-faint">—</span>
+                      : <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full data-value ${isRatedComplete(r) ? 'bg-brand-tint text-brand-ink' : 'bg-warn-tint text-warn-ink'}`}>
                           {r.ratedDone}/{r.ratedTotal}{isRatedComplete(r) ? ' ✓' : ''}
                         </span>}
                   </td>
@@ -198,32 +198,32 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                 <td className="py-3 px-3 text-center">
                   <div className="flex flex-col items-center gap-0.5">
                     {r.spvAcc
-                      ? <span className="text-[10px] font-bold text-emerald-700">✔ ACC</span>
-                      : <span className="text-[10px] text-gray-500">belum</span>}
-                    {r.isSpvSubject && <span className="text-[9px] text-gray-400" title="Laporan SPV di-ACC oleh Direksi">oleh Direksi</span>}
+                      ? <span className="text-[10px] font-bold text-brand-ink">✔ ACC</span>
+                      : <span className="text-[10px] text-ink-faint">belum</span>}
+                    {r.isSpvSubject && <span className="text-[9px] text-ink-faint" title="Laporan SPV di-ACC oleh Direksi">oleh Direksi</span>}
                   </div>
                 </td>
                 <td className="py-3 px-3 text-center">
                   {r.status === 'finalized'
-                    ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">Final</span>
+                    ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand-tint text-brand-ink">Final</span>
                     : r.status === 'in_review'
-                    ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-indigo-50 text-indigo-700 border-indigo-200">Ditinjau SPV</span>
+                    ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-tint text-ink-soft">Ditinjau SPV</span>
                     : r.status === 'draft'
-                    ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">Draf</span>
-                    : <span className="text-[10px] text-gray-500">—</span>}
+                    ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink">Draf</span>
+                    : <span className="text-[10px] text-ink-faint">—</span>}
                 </td>
                 <td className="py-3 pl-3 text-right">
                   {readOnly
-                    ? <span className="text-[10px] text-gray-400">—</span>
+                    ? <span className="text-[10px] text-ink-faint">—</span>
                     : r.final == null
-                    ? <span className="text-[10px] text-gray-500 italic">KPI &amp; 360° kosong</span>
+                    ? <span className="text-[10px] text-ink-faint italic">KPI &amp; 360° kosong</span>
                     : <span className="inline-flex items-center gap-1.5 justify-end">
                         {/* Skor Akhir dari 360° saja (mis. Direksi) — beri konteks di samping tombol. */}
                         {r.kpiAvg == null && r.s360 != null && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200" title="Skor Akhir dihitung dari 360° saja (belum/tak ada KPI)">Tanpa KPI</span>
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-warn-tint text-warn-ink" title="Skor Akhir dihitung dari 360° saja (belum/tak ada KPI)">Tanpa KPI</span>
                         )}
                         <Link href={`${hrefBase}/${r.id}`}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50">
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-control border border-brand/30 text-brand-ink hover:bg-brand-tint">
                           Tinjau →
                         </Link>
                       </span>}

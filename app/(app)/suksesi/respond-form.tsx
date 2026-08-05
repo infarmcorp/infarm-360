@@ -25,19 +25,19 @@ export function RespondForm({ planId }: { planId: string }) {
         disabled={pending}
         rows={2}
         placeholder="Komentar Direksi (opsional)…"
-        className="w-full text-xs p-2 border border-gray-200 rounded-lg disabled:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-indigo-600"
+        className="w-full text-xs p-2 border border-line rounded-control bg-surface text-ink disabled:bg-neutral-tint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
       />
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => decide('approved')} disabled={pending}
-          className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-60">
+          className="text-[11px] font-semibold px-3 py-1.5 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-60">
           Setujui
         </button>
         <button type="button" onClick={() => decide('rejected')} disabled={pending}
-          className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-60">
+          className="text-[11px] font-semibold px-3 py-1.5 rounded-control border border-line text-danger-ink hover:border-danger-ink disabled:opacity-60">
           Tolak
         </button>
       </div>
-      {msg && <p className="text-[11px] font-semibold text-rose-600">{msg}</p>}
+      {msg && <p className="text-[11px] font-semibold text-danger-ink">{msg}</p>}
     </div>
   );
 }

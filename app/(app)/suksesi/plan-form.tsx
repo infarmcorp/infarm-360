@@ -45,7 +45,7 @@ export function PlanForm({
         value={plan}
         onChange={(e) => setPlan(e.target.value)}
         disabled={locked || pending}
-        className="w-full text-xs p-2 border border-gray-200 rounded-lg bg-white disabled:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+        className="w-full text-xs p-2 border border-line rounded-control bg-surface text-ink disabled:bg-neutral-tint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
       >
         {PLAN_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
         {currentPlan && !PLAN_OPTIONS.includes(currentPlan) && <option value={currentPlan}>{currentPlan}</option>}
@@ -56,28 +56,28 @@ export function PlanForm({
         disabled={locked || pending}
         rows={2}
         placeholder="Justifikasi / catatan rencana…"
-        className="w-full text-xs p-2 border border-gray-200 rounded-lg disabled:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+        className="w-full text-xs p-2 border border-line rounded-control bg-surface text-ink disabled:bg-neutral-tint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
       />
       {!locked && (
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => run(false)} disabled={pending}
-            className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 disabled:opacity-60">
+            className="text-[11px] font-semibold px-3 py-1.5 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-60">
             Simpan Draf
           </button>
           <button type="button" onClick={() => run(true)} disabled={pending}
-            className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-60">
+            className="text-[11px] font-semibold px-3 py-1.5 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-60">
             Ajukan ke Direksi
           </button>
           {planId && (
             <button type="button" onClick={remove} disabled={pending}
-              className="text-[11px] font-semibold text-rose-600 hover:underline ml-auto">
+              className="text-[11px] font-semibold text-danger-ink hover:underline ml-auto">
               Hapus
             </button>
           )}
         </div>
       )}
-      {locked && <p className="text-[10px] text-gray-500 italic">Sudah {status === 'approved' ? 'disetujui' : 'ditolak'} Direksi — terkunci.</p>}
-      {msg && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
+      {locked && <p className="text-[10px] text-ink-faint italic">Sudah {status === 'approved' ? 'disetujui' : 'ditolak'} Direksi — terkunci.</p>}
+      {msg && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
     </div>
   );
 }

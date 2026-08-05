@@ -33,10 +33,10 @@ export function BulkFinalizeButton({ count, staleCount }: { count: number; stale
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <button type="button" onClick={() => setOpen(true)} disabled={busy}
-        className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
+        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
         <CheckCheck className="w-3.5 h-3.5" /> Finalisasi Semua Ber-ACC ({count})
       </button>
-      {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
+      {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
 
       <ConfirmDialog
         open={open} icon="✅" tone="primary"
@@ -47,10 +47,10 @@ export function BulkFinalizeButton({ count, staleCount }: { count: number; stale
         <p>Semua laporan yang <strong>sudah di-ACC</strong> (SPV/Koordinator/Direksi) & masih Ditinjau akan
           <strong> difinalisasi</strong> — langsung <strong>terlihat oleh pegawai</strong> di "Laporan Hasil Saya".</p>
         {staleCount > 0 && (
-          <p className="text-amber-700 font-semibold">⚠️ {staleCount} di antaranya Skor 360°-nya <strong>perlu dihitung ulang</strong>.
+          <p className="text-warn-ink font-semibold">⚠️ {staleCount} di antaranya Skor 360°-nya <strong>perlu dihitung ulang</strong>.
             Sebaiknya klik "Hitung Ulang Skor 360°" dulu agar skor tersimpan yang dilihat pegawai sudah benar.</p>
         )}
-        <p className="text-gray-500">Laporan yang skornya belum bisa dihitung (KPI &amp; 360° kosong) akan dilewati.</p>
+        <p className="text-ink-soft">Laporan yang skornya belum bisa dihitung (KPI &amp; 360° kosong) akan dilewati.</p>
       </ConfirmDialog>
     </div>
   );

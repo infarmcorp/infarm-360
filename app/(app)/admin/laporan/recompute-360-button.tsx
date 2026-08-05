@@ -26,10 +26,10 @@ export function Recompute360Button() {
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <button type="button" onClick={run} disabled={busy}
-        className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50">
+        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
         <RefreshCw className={`w-3.5 h-3.5 ${busy ? 'animate-spin' : ''}`} /> {busy ? 'Menghitung…' : '① Hitung Ulang Skor 360°'}
       </button>
-      {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
+      {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
     </div>
   );
 }

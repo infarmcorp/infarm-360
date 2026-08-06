@@ -28,9 +28,10 @@ export function PanduanCard({
   };
 
   return (
-    <div className="mt-5 border-t border-line-soft pt-4">
-      <div className="flex items-center gap-2 mb-2">
-        <h2 className="text-sm font-bold text-ink">Panduan Pengguna</h2>
+    // Section mandiri (kartu) — sejajar dengan "Informasi Akun"/"Ganti Sandi" di Akun Saya.
+    <section className="bg-surface border border-line rounded-panel p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <h2 className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.07em]">Panduan Pengguna</h2>
         {isNew && (
           <span className="inline-flex items-center rounded-full bg-brand-tint px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-brand-ink">
             Baru
@@ -38,7 +39,7 @@ export function PanduanCard({
         )}
       </div>
 
-      <div className="rounded-panel border border-line p-3">
+      <div>
         <div className="flex items-start gap-3">
           <FileText className="w-5 h-5 shrink-0 text-brand mt-0.5" aria-hidden />
           <div className="min-w-0 flex-1">
@@ -53,6 +54,6 @@ export function PanduanCard({
           <Download className="w-3.5 h-3.5" aria-hidden /> Unduh PDF
         </a>
       </div>
-    </div>
+    </section>
   );
 }

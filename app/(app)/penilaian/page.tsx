@@ -230,16 +230,15 @@ function StatusBadge({ status }: { status: string | null }) {
 function Shell({ children, periodLabel }: { children: React.ReactNode; periodLabel?: string }) {
   return (
     <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
-      <div className="bg-surface border border-line rounded-panel p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Daftar Penilaian Saya</h1>
-            {periodLabel && <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif: {periodLabel}</p>}
-          </div>
-          <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft">← Beranda</Link>
+      {/* Tanpa bingkai/kartu: judul & isi langsung di atas kanvas halaman (pola Dashboard/Monitor). */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Daftar Penilaian Saya</h1>
+          {periodLabel && <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif: {periodLabel}</p>}
         </div>
-        {children}
+        <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft">← Beranda</Link>
       </div>
+      {children}
     </main>
   );
 }

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { Network, Wrench } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection } from '@/lib/auth/roles';
@@ -66,9 +67,9 @@ export default async function PemetaanPage({
         <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
 
-      <div className="flex gap-1 mb-5 bg-neutral-tint p-1 rounded-control w-fit">
-        <Tab href="/admin/pemetaan?tab=pemetaan" active={tab === 'pemetaan'}>Pemetaan</Tab>
-        <Tab href="/admin/pemetaan?tab=koreksi" active={tab === 'koreksi'}>
+      <div className="flex border-b border-line gap-1.5 mb-5 overflow-x-auto">
+        <Tab href="/admin/pemetaan?tab=pemetaan" active={tab === 'pemetaan'} icon={Network}>Pemetaan</Tab>
+        <Tab href="/admin/pemetaan?tab=koreksi" active={tab === 'koreksi'} icon={Wrench}>
           Koreksi Relasi{pendingCount ? <span className="ml-1.5 text-[10px] data-value bg-brand text-white px-1.5 py-0.5 rounded-full">{pendingCount}</span> : null}
         </Tab>
       </div>
@@ -158,10 +159,15 @@ async function KoreksiTab({ supabase, periodId }: { supabase: Awaited<ReturnType
   );
 }
 
-function Tab({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+/** Sub-tab bergaris bawah — model seragam dengan Dashboard Organisasi & halaman KPI. */
+function Tab({ href, active, icon: Icon, children }: {
+  href: string; active: boolean; icon?: React.ElementType; children: React.ReactNode;
+}) {
   return (
-    <Link href={href} className={`px-4 py-1.5 text-[12.5px] font-bold rounded-control transition-colors ${active ? 'bg-surface text-brand-ink shadow-2xs' : 'text-ink-soft hover:text-ink'}`}>
-      {children}
+    <Link href={href} className={`flex items-center gap-2 py-2 px-4 text-xs font-bold border-b-2 transition-colors shrink-0 ${
+      active ? 'border-brand text-brand-ink' : 'border-transparent text-ink-soft hover:text-ink'}`}>
+      {Icon && <Icon className={`w-4 h-4 ${active ? 'text-brand' : 'text-ink-faint'}`} />}
+      <span className="inline-flex items-center">{children}</span>
     </Link>
   );
 }

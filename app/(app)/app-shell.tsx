@@ -257,10 +257,10 @@ export function AppShell({
       {/* Tugas & Notifikasi (diturunkan dari data) */}
       <div className="px-3 py-2.5 border-b border-white/[0.06]">
         <div className="flex items-center gap-1.5 mb-1.5">
-          <Bell className="w-3.5 h-3.5 text-amber-400" />
+          <Bell className="w-3.5 h-3.5 text-warn-bright" />
           <span className="text-[10px] font-bold text-sidebar-soft tracking-wider uppercase">Tugas &amp; Notifikasi</span>
           {todos.length > 0 && (
-            <span className="ml-auto text-[10px] font-black text-white bg-amber-500 rounded-full px-1.5 min-w-[18px] text-center">{todos.length}</span>
+            <span className="ml-auto text-[10px] font-black text-sidebar bg-warn-bright rounded-full px-1.5 min-w-[18px] text-center">{todos.length}</span>
           )}
         </div>
         {todos.length === 0 ? (
@@ -384,7 +384,7 @@ export function AppShell({
             aria-label={open ? 'Tutup menu navigasi' : 'Buka menu navigasi'} aria-expanded={open}>
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             {!open && todos.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 text-[10px] font-black text-white bg-amber-500 rounded-full px-1 min-w-[14px] text-center leading-[14px]">{todos.length}</span>
+              <span className="absolute -top-1.5 -right-1.5 text-[10px] font-black text-sidebar bg-warn-bright rounded-full px-1 min-w-[14px] text-center leading-[14px]">{todos.length}</span>
             )}
           </button>
           <BrandLogo className="w-8 h-8 shrink-0" />
@@ -398,15 +398,20 @@ export function AppShell({
 
 /** Indikator tenggat periode aktif: sisa hari + peringatan saat mendekati/melewati end_date. */
 function Deadline({ daysLeft }: { daysLeft: number }) {
+  // Kontras naik bertahap sesuai urgensi (di atas latar sidebar gelap):
+  //  lewat tenggat / hari ini → CHIP oranye solid (--color-warn-bright) = paling menonjol;
+  //  ≤7 hari → teks oranye terang; selain itu → teks netral redup (tak menarik perhatian).
   const { text, cls } =
-    daysLeft < 0 ? { text: `Lewat tenggat ${Math.abs(daysLeft)} hari`, cls: 'text-rose-300 font-bold' }
-    : daysLeft === 0 ? { text: 'Berakhir hari ini', cls: 'text-rose-300 font-bold' }
-    : daysLeft <= 7 ? { text: `${daysLeft} hari lagi (mendekati tenggat)`, cls: 'text-amber-300 font-bold' }
+    daysLeft < 0 ? { text: `Lewat tenggat ${Math.abs(daysLeft)} hari`, cls: 'bg-warn-bright text-sidebar font-extrabold px-1.5 py-0.5 rounded-control' }
+    : daysLeft === 0 ? { text: 'Berakhir hari ini', cls: 'bg-warn-bright text-sidebar font-extrabold px-1.5 py-0.5 rounded-control' }
+    : daysLeft <= 7 ? { text: `${daysLeft} hari lagi (mendekati tenggat)`, cls: 'text-warn-bright font-bold' }
     : { text: `Tenggat: ${daysLeft} hari lagi`, cls: 'text-white/55' };
   return (
-    <div className={`mt-1 flex items-center gap-1 text-[10px] ${cls}`}>
-      {daysLeft <= 7 ? <AlertTriangle className="w-3 h-3 shrink-0" /> : <Clock className="w-3 h-3 shrink-0" />}
-      <span>{text}</span>
+    <div className="mt-1.5 flex">
+      <div className={`inline-flex items-center gap-1 text-[10px] ${cls}`}>
+        {daysLeft <= 7 ? <AlertTriangle className="w-3 h-3 shrink-0" /> : <Clock className="w-3 h-3 shrink-0" />}
+        <span>{text}</span>
+      </div>
     </div>
   );
 }

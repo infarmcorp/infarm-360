@@ -136,39 +136,40 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
   }
 
   return (
-    <div className="mt-6 space-y-4">
-      {/* Mode toggle */}
-      <div className="flex gap-1 bg-neutral-tint p-1 rounded-control w-fit">
-        {(['manual', 'excel'] as const).map((mo) => (
-          <button key={mo} type="button" onClick={() => { setMode(mo); setMsg(null); }}
-            className={`px-4 py-1.5 text-[12.5px] font-bold rounded-control transition-colors ${mode === mo ? 'bg-surface text-brand-ink shadow-2xs' : 'text-ink-soft hover:text-ink'}`}>
-            {mo === 'manual' ? 'Input Manual' : 'Impor Excel'}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap gap-4">
-        <label className="block text-sm text-ink-soft">
-          Bulan & Tahun Evaluasi
-          <select value={ym} onChange={(e) => setYm(e.target.value)} className="mt-1 block rounded-control border border-line bg-surface text-ink data-value px-3 py-2 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
-            {months.map((m) => <option key={m} value={m}>{m}</option>)}
-          </select>
-        </label>
-        {depts.length > 1 && (
+    <div className="space-y-4">
+      {/* TOOLBAR (di kanvas, tanpa bingkai): kiri = mode + filter, kanan = keterangan "Terisi".
+          Toggle mode sengaja tetap segmented pill (bukan tab garis-bawah) karena ia berada DI
+          DALAM satu tab — hierarki: tab halaman = garis bawah, toggle isi = pill. */}
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex gap-1 bg-neutral-tint p-1 rounded-control w-fit">
+            {(['manual', 'excel'] as const).map((mo) => (
+              <button key={mo} type="button" onClick={() => { setMode(mo); setMsg(null); }}
+                className={`px-4 py-1.5 text-[12.5px] font-bold rounded-control transition-colors ${mode === mo ? 'bg-surface text-brand-ink shadow-2xs' : 'text-ink-soft hover:text-ink'}`}>
+                {mo === 'manual' ? 'Input Manual' : 'Impor Excel'}
+              </button>
+            ))}
+          </div>
           <label className="block text-sm text-ink-soft">
-            Divisi
-            <select value={dept} onChange={(e) => setDept(e.target.value)} className="mt-1 block rounded-control border border-line bg-surface text-ink px-3 py-2 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
-              <option value="all">Semua Divisi</option>
-              {depts.map((d) => <option key={d} value={d}>{d}</option>)}
+            Bulan &amp; Tahun Evaluasi
+            <select value={ym} onChange={(e) => setYm(e.target.value)} className="mt-1 block rounded-control border border-line bg-surface text-ink data-value px-3 py-2 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
+              {months.map((m) => <option key={m} value={m}>{m}</option>)}
             </select>
           </label>
-        )}
-      </div>
+          {depts.length > 1 && (
+            <label className="block text-sm text-ink-soft">
+              Divisi
+              <select value={dept} onChange={(e) => setDept(e.target.value)} className="mt-1 block rounded-control border border-line bg-surface text-ink px-3 py-2 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
+                <option value="all">Semua Divisi</option>
+                {depts.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </label>
+          )}
+        </div>
 
-      {mode === 'manual' ? (
-        <>
-          {/* Ringkasan cakupan (#5): berapa anggota yang sudah punya skor bulan ini. */}
-          <div className="flex flex-wrap items-center gap-2 text-xs">
+        {/* Ringkasan cakupan (#5): berapa anggota yang sudah punya skor bulan ini — RATA KANAN. */}
+        {mode === 'manual' && (
+          <div className="flex flex-wrap items-center justify-end gap-2 text-xs ml-auto">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-tint px-3 py-1 font-semibold text-ink-soft">
               Terisi <strong className="text-brand-ink data-value">{filledCount}</strong> / <span className="data-value">{shown.length}</span> anggota untuk <strong>{ym}</strong>
             </span>
@@ -176,6 +177,11 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
               <span className="text-warn-ink font-semibold"><span className="data-value">{shown.length - filledCount}</span> belum diisi</span>
             )}
           </div>
+        )}
+      </div>
+
+      {mode === 'manual' ? (
+        <div className="rounded-panel border border-line bg-surface p-5 space-y-4">
           {/* Desktop: tabel */}
           <div className="hidden md:block overflow-x-auto">
           <table className="w-full border-collapse text-sm min-w-[520px]">
@@ -309,9 +315,9 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
             </button>
             {msg && <span className={`text-sm font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
           </div>
-        </>
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="rounded-panel border border-line bg-surface p-5 space-y-3">
           <div className="bg-brand-tint/40 border border-brand/20 rounded-panel p-3 text-xs text-ink-soft">
             Unggah file <strong className="text-ink">.xlsx/.xls/.csv</strong> berkolom <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">emp_code</code> &amp; <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">score</code> (opsional <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">note</code>).
             Skor disimpan untuk bulan <strong className="text-ink">{ym}</strong>. <button type="button" onClick={downloadTemplate} className="text-brand-ink font-semibold hover:underline">Unduh template</button>.

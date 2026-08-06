@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
+import { PencilLine, History, LayoutList } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin, canCoordinate, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
@@ -130,20 +131,29 @@ export default async function KpiPage({
 
       {/* Tab nav — disembunyikan untuk koordinator (hanya Input KPI). */}
       {!isCoord && (
-        <div className="flex gap-1 mt-4 mb-5 bg-neutral-tint p-1 rounded-control w-fit">
-          <Tab href="/kpi?tab=input" active={tab === 'input'}>Input KPI</Tab>
-          <Tab href="/kpi?tab=riwayat" active={tab === 'riwayat'}>Riwayat &amp; Audit</Tab>
-          <Tab href="/kpi?tab=rekap" active={tab === 'rekap'}>Rekapitulasi Kuartal</Tab>
+        <div className="mt-4">
+          <TabBar>
+            <Tab href="/kpi?tab=input" active={tab === 'input'} icon={PencilLine}>Input KPI</Tab>
+            <Tab href="/kpi?tab=riwayat" active={tab === 'riwayat'} icon={History}>Riwayat &amp; Audit</Tab>
+            <Tab href="/kpi?tab=rekap" active={tab === 'rekap'} icon={LayoutList}>Rekapitulasi Kuartal</Tab>
+          </TabBar>
         </div>
       )}
 
-      <div className="rounded-panel border border-line bg-surface p-5">
+      {/* Section (kartu) hanya untuk tampilan TABEL BESAR yang perlu dipisahkan dari kanvas
+          (Riwayat & Rekap). Input KPI mengatur section-nya sendiri di KpiForm — toolbar filter
+          tetap di kanvas, tabel input yang dibungkus panel. */}
+      <div className="mt-4">
         {tab === 'input' ? (
           <InputTab supabase={supabase} userId={user.id} role={role} isCoord={isCoord} />
         ) : tab === 'riwayat' ? (
-          <RiwayatView role={role} canAdmin={admin} userId={user.id} hrdMode={hrdMode} page={auditPage} query={auditQ} />
+          <Panel title="Riwayat &amp; Audit Perubahan KPI">
+            <RiwayatView role={role} canAdmin={admin} userId={user.id} hrdMode={hrdMode} page={auditPage} query={auditQ} />
+          </Panel>
         ) : (
-          <RekapView role={role} userId={user.id} periodParam={period} hrdMode={hrdMode} />
+          <Panel title="Rekapitulasi Kuartal">
+            <RekapView role={role} userId={user.id} periodParam={period} hrdMode={hrdMode} />
+          </Panel>
         )}
       </div>
     </Shell>
@@ -154,10 +164,10 @@ export default async function KpiPage({
 function MonitoringTabs({ view, period }: { view: 'rekap' | 'riwayat'; period?: string }) {
   const suffix = period ? `&period=${period}` : '';
   return (
-    <div className="flex gap-1 bg-neutral-tint p-1 rounded-control w-fit">
-      <Tab href={`/kpi?view=rekap${suffix}`} active={view === 'rekap'}>Rekapitulasi Kuartal</Tab>
-      <Tab href={`/kpi?view=riwayat${suffix}`} active={view === 'riwayat'}>Riwayat &amp; Audit</Tab>
-    </div>
+    <TabBar>
+      <Tab href={`/kpi?view=rekap${suffix}`} active={view === 'rekap'} icon={LayoutList}>Rekapitulasi Kuartal</Tab>
+      <Tab href={`/kpi?view=riwayat${suffix}`} active={view === 'riwayat'} icon={History}>Riwayat &amp; Audit</Tab>
+    </TabBar>
   );
 }
 
@@ -250,15 +260,28 @@ async function InputTab({
   return <KpiForm members={members} months={monthOptions} existing={existing} />;
 }
 
-function Tab({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+/**
+ * Sub-tab bergaris bawah — MODEL SERAGAM dengan Dashboard Organisasi (`dashboard-visual.tsx`),
+ * diterjemahkan ke token redesign (brand/ink/line, bukan emerald/gray mentah).
+ * Dipakai untuk navigasi antar-tampilan halaman; toggle di DALAM satu tampilan (mis. Input
+ * Manual ↔ Impor Excel, Teratas ↔ Terbawah) tetap segmented pill agar hierarkinya jelas.
+ */
+function TabBar({ children }: { children: React.ReactNode }) {
+  return <div className="flex border-b border-line gap-1.5 overflow-x-auto">{children}</div>;
+}
+
+function Tab({ href, active, icon: Icon, children }: {
+  href: string; active: boolean; icon?: React.ElementType; children: React.ReactNode;
+}) {
   return (
     <Link
       href={href}
-      className={`px-4 py-1.5 text-[12.5px] font-bold rounded-control transition-colors ${
-        active ? 'bg-surface text-brand-ink shadow-2xs' : 'text-ink-soft hover:text-ink'
+      className={`flex items-center gap-2 py-2 px-4 text-xs font-bold border-b-2 transition-colors shrink-0 ${
+        active ? 'border-brand text-brand-ink' : 'border-transparent text-ink-soft hover:text-ink'
       }`}
     >
-      {children}
+      {Icon && <Icon className={`w-4 h-4 ${active ? 'text-brand' : 'text-ink-faint'}`} />}
+      <span>{children}</span>
     </Link>
   );
 }

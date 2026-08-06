@@ -121,27 +121,27 @@ export default async function PenilaianPage() {
     <Shell periodLabel={ap.label}>
       <AdhocForm candidates={candidates} />
       {mandTotal > 0 && (
-        <div className="mb-4 flex items-center justify-between gap-3 bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+        <div className="mb-4 flex items-center justify-between gap-3 bg-brand-tint border border-brand-ink/20 rounded-panel p-3">
           <div className="min-w-0">
-            <p className="text-xs font-extrabold text-emerald-900">Penilaian Wajib Anda</p>
-            <p className="text-[11px] text-emerald-700">
+            <p className="text-xs font-extrabold text-brand-ink">Penilaian Wajib Anda</p>
+            <p className="text-[11px] text-brand-ink/80">
               {mandDone} dari {mandTotal} sudah dikirim
               {mandDone < mandTotal ? ` · sisa ${mandTotal - mandDone} untuk dikerjakan` : ' · selesai semua 🎉'}
             </p>
           </div>
-          <div className="w-24 sm:w-32 h-2 bg-emerald-100 rounded-full overflow-hidden shrink-0">
-            <div className="h-full bg-emerald-600 rounded-full transition-all"
+          <div className="w-24 sm:w-32 h-2 bg-brand/20 rounded-full overflow-hidden shrink-0">
+            <div className="h-full bg-brand rounded-full transition-all"
               style={{ width: `${mandTotal ? Math.round((mandDone / mandTotal) * 100) : 0}%` }} />
           </div>
         </div>
       )}
       {items.length === 0 ? (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-ink-soft">
           Belum ada penilaian rutin yang ditugaskan. Gunakan panel Ad-Hoc di atas untuk menilai rekan kerja.
         </p>
       ) : (
         <>
-          <div className="mb-4 flex items-start gap-2 bg-sky-50 border border-sky-200 rounded-xl p-3 text-[12px] text-sky-900">
+          <div className="mb-4 flex items-start gap-2 bg-neutral-tint border border-line rounded-panel p-3 text-[12px] text-ink-soft">
             <span aria-hidden>ℹ️</span>
             <p className="leading-relaxed">
               Periksa kolom <strong>Garis Hubungan</strong> tiap rekan. Bila relasi Anda dengan rekan itu
@@ -153,7 +153,7 @@ export default async function PenilaianPage() {
           <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
+              <tr className="text-[10px] uppercase tracking-[0.05em] text-ink-faint font-semibold border-b border-line">
                 <th className="py-2 pr-3">Yang Dinilai</th>
                 <th className="py-2 px-3">Garis Hubungan</th>
                 <th className="py-2 px-3 text-center">Sifat</th>
@@ -161,19 +161,19 @@ export default async function PenilaianPage() {
                 <th className="py-2 pl-3 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line-soft">
               {items.map((it) => (
                 <tr key={it.id}>
                   <td className="py-3 pr-3">
-                    <span className="font-bold text-gray-800 block">{it.name}</span>
-                    <span className="text-[11px] text-gray-500">{it.dept}</span>
+                    <span className="font-bold text-ink block">{it.name}</span>
+                    <span className="text-[11px] text-ink-faint">{it.dept}</span>
                   </td>
-                  <td className="py-3 px-3 text-gray-600">{REL_LABEL[it.relation] ?? it.relation}</td>
+                  <td className="py-3 px-3 text-ink-soft">{REL_LABEL[it.relation] ?? it.relation}</td>
                   <td className="py-3 px-3 text-center">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-control border ${
                       it.mandatory
-                        ? 'bg-rose-50 text-rose-700 border-rose-200'
-                        : 'bg-gray-50 text-gray-500 border-gray-200'
+                        ? 'bg-warn-tint text-warn-ink border-warn-ink/25'
+                        : 'bg-neutral-tint text-ink-faint border-line'
                     }`}>
                       {it.mandatory ? 'Wajib' : 'Opsional'}
                     </span>
@@ -201,7 +201,7 @@ export default async function PenilaianPage() {
                       )}
                       <Link
                         href={`/penilaian/${it.targetId}`}
-                        className="text-xs font-bold text-emerald-700 hover:underline"
+                        className="text-xs font-bold text-brand-ink hover:underline"
                       >
                         {it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai'}
                       </Link>
@@ -220,23 +220,23 @@ export default async function PenilaianPage() {
 
 function StatusBadge({ status }: { status: string | null }) {
   const map: Record<string, { label: string; cls: string }> = {
-    submitted: { label: 'Terkirim', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-    draft: { label: 'Draf', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+    submitted: { label: 'Terkirim', cls: 'bg-brand-tint text-brand-ink border-brand-ink/20' },
+    draft: { label: 'Draf', cls: 'bg-warn-tint text-warn-ink border-warn-ink/25' },
   };
-  const s = status ? map[status] : { label: 'Belum dinilai', cls: 'bg-gray-50 text-gray-500 border-gray-200' };
-  return <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${s.cls}`}>{s.label}</span>;
+  const s = status ? map[status] : { label: 'Belum dinilai', cls: 'bg-neutral-tint text-ink-faint border-line' };
+  return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-control border ${s.cls}`}>{s.label}</span>;
 }
 
 function Shell({ children, periodLabel }: { children: React.ReactNode; periodLabel?: string }) {
   return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
+      <div className="bg-surface border border-line rounded-panel p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-800">Daftar Penilaian Saya</h1>
-            {periodLabel && <p className="text-sm text-gray-500">Periode aktif: {periodLabel}</p>}
+            <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Daftar Penilaian Saya</h1>
+            {periodLabel && <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif: {periodLabel}</p>}
           </div>
-          <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+          <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft">← Beranda</Link>
         </div>
         {children}
       </div>

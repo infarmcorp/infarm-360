@@ -22,7 +22,7 @@ export function AdhocDeleteButton({ targetId, targetName, submitted = false }: {
     return (
       <span
         title="Sudah dikirim — tidak bisa dihapus"
-        className="inline-flex items-center gap-1 text-xs font-bold text-gray-300 cursor-not-allowed"
+        className="inline-flex items-center gap-1 text-xs font-bold text-ink-faint/50 cursor-not-allowed"
       >
         <Trash2 className="w-3.5 h-3.5" /> Hapus
       </span>
@@ -35,7 +35,7 @@ export function AdhocDeleteButton({ targetId, targetName, submitted = false }: {
       onClick={onClick}
       disabled={pending}
       title="Hapus penilaian ad-hoc ini"
-      className="inline-flex items-center gap-1 text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline disabled:opacity-50"
+      className="inline-flex items-center gap-1 text-xs font-bold text-danger-ink hover:underline disabled:opacity-50"
     >
       <Trash2 className="w-3.5 h-3.5" /> {pending ? 'Menghapus…' : 'Hapus'}
     </button>

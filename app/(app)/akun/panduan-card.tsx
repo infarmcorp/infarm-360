@@ -28,27 +28,27 @@ export function PanduanCard({
   };
 
   return (
-    <div className="mt-5 border-t border-gray-100 pt-4">
+    <div className="mt-5 border-t border-line-soft pt-4">
       <div className="flex items-center gap-2 mb-2">
-        <h2 className="text-sm font-bold text-gray-700">Panduan Pengguna</h2>
+        <h2 className="text-sm font-bold text-ink">Panduan Pengguna</h2>
         {isNew && (
-          <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-rose-700">
+          <span className="inline-flex items-center rounded-full bg-brand-tint px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-brand-ink">
             Baru
           </span>
         )}
       </div>
 
-      <div className="rounded-xl border border-gray-200 p-3">
+      <div className="rounded-panel border border-line p-3">
         <div className="flex items-start gap-3">
-          <FileText className="w-5 h-5 shrink-0 text-emerald-700 mt-0.5" aria-hidden />
+          <FileText className="w-5 h-5 shrink-0 text-brand mt-0.5" aria-hidden />
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold text-gray-800">{label}</div>
-            <div className="text-[11px] text-gray-500">Diperbarui {updatedLabel}</div>
+            <div className="text-sm font-semibold text-ink">{label}</div>
+            <div className="text-[11px] text-ink-faint">Diperbarui {updatedLabel}</div>
           </div>
         </div>
         <a
           href={href} download={filename} onClick={markSeen}
-          className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-800"
+          className="mt-3 inline-flex items-center gap-1.5 rounded-control bg-brand px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-ink"
         >
           <Download className="w-3.5 h-3.5" aria-hidden /> Unduh PDF
         </a>

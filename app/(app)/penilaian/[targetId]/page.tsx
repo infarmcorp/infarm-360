@@ -100,20 +100,20 @@ export default async function AssessPage({
   }));
 
   return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
+      <div className="bg-surface border border-line rounded-panel p-5">
         <div className="flex items-center justify-between mb-1">
-          <h1 className="text-xl font-bold text-gray-800">Mulai Nilai</h1>
-          <Link href="/penilaian" className="text-xs text-gray-500 hover:underline">← Daftar</Link>
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Mulai Nilai</h1>
+          <Link href="/penilaian" className="text-xs text-ink-faint hover:text-ink-soft">← Daftar</Link>
         </div>
-        <p className="text-sm text-gray-500 mb-4">
-          Menilai <span className="font-bold text-gray-700">{target?.name ?? '—'}</span>
+        <p className="text-[13.5px] text-ink-soft mb-4">
+          Menilai <span className="font-bold text-ink">{target?.name ?? '—'}</span>
           {' '}({target?.dept}) · {mapping.relation} ·{' '}
-          <span className={mapping.mandatory ? 'text-rose-600 font-semibold' : 'text-gray-500'}>
+          <span className={mapping.mandatory ? 'text-warn-ink font-semibold' : 'text-ink-faint'}>
             {mapping.mandatory ? 'Wajib' : 'Opsional'}
           </span> · Periode {ap.label}
           {existing?.status === 'submitted' && (
-            <span className="ml-2 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+            <span className="ml-2 text-[10px] font-bold text-brand-ink bg-brand-tint border border-brand-ink/20 px-2 py-0.5 rounded-control">
               Sudah terkirim — mengedit akan memperbarui
             </span>
           )}
@@ -144,10 +144,10 @@ export default async function AssessPage({
 
 function Notice({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-        <p className="text-sm text-gray-600">{children}</p>
-        <Link href="/penilaian" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">
+    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
+      <div className="bg-surface border border-line rounded-panel p-5">
+        <p className="text-sm text-ink-soft">{children}</p>
+        <Link href="/penilaian" className="text-xs text-brand-ink hover:underline mt-3 inline-block">
           ← Kembali ke Daftar Penilaian Saya
         </Link>
       </div>

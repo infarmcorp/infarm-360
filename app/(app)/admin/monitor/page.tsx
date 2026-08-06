@@ -55,15 +55,16 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
     grantScopes = grantedAccess(myGrants, 'monitor')?.scopes ?? null;
   }
   if (!isHrdFull && !grantScopes) {
-    return <Shell><p className="text-sm text-gray-600">Anda tidak memiliki akses ke halaman ini.</p>
-      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><div className="bg-surface border border-line rounded-panel p-5">
+      <p className="text-sm text-ink-soft">Anda tidak memiliki akses ke halaman ini.</p>
+      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></div></Shell>;
   }
   const ownDept = (me?.dept ?? '').trim();
 
   const { data: periodRows } = await supabase
     .from('periods').select('id, label, has_360, status, start_date').order('start_date', { ascending: true });
   const periodList = periodRows ?? [];
-  if (periodList.length === 0) return <Shell><Header /><p className="text-sm text-gray-500 mt-4">Belum ada periode.</p></Shell>;
+  if (periodList.length === 0) return <Shell><Header /><p className="text-sm text-ink-soft mt-4">Belum ada periode.</p></Shell>;
   const sel = periodList.find((p) => p.id === periodParam)
     ?? periodList.find((p) => p.status === 'active')
     ?? periodList[periodList.length - 1];
@@ -97,7 +98,7 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   // Query berat (kpi/360 lintas periode di bawah) hanya untuk id yang lolos saring.
   const empRows = (allEmpData ?? []).filter((e) =>
     employeeInScopes(scopes, ownDept, user.id, e, teamIds) && (dept === 'all' || e.dept === dept));
-  if (empRows.length === 0) return <Shell><Header isHrdFull={isHrdFull} scopeLabel={scopeLabel} /><Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} /><p className="text-sm text-gray-500 mt-4">Belum ada pegawai dalam lingkup ini.</p></Shell>;
+  if (empRows.length === 0) return <Shell><Header isHrdFull={isHrdFull} scopeLabel={scopeLabel} /><Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} /><p className="text-sm text-ink-soft mt-4">Belum ada pegawai dalam lingkup ini.</p></Shell>;
   const ids = empRows.map((e) => e.id);
 
   // ── Snapshot periode terpilih → scorecard + tabel ──────────────────────────
@@ -274,7 +275,7 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
       <Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} />
 
       {rows.length === 0 && (
-        <p className="text-sm text-gray-500 mt-4">Belum ada data kinerja untuk lingkup ini — grafik tren lintas periode tetap tampil di bawah.</p>
+        <p className="text-sm text-ink-soft mt-4">Belum ada data kinerja untuk lingkup ini — grafik tren lintas periode tetap tampil di bawah.</p>
       )}
 
       {rows.length > 0 && (
@@ -381,30 +382,28 @@ function Toolbar({ periods, current, depts, dept }: { periods: { id: string; lab
 
 function Header({ isHrdFull = true, scopeLabel }: { isHrdFull?: boolean; scopeLabel?: string }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-start justify-between gap-3 mb-4">
       <div>
-        <h1 className="text-xl font-bold text-gray-800">Monitor Kinerja Pegawai</h1>
-        <p className="text-sm text-gray-500">
-          Pemantauan kinerja {scopeLabel ? <span className="font-semibold text-gray-600">{scopeLabel}</span> : 'seluruh pegawai'} — snapshot per periode &amp; tren lintas waktu.
+        <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Monitor Kinerja Pegawai</h1>
+        <p className="text-[13.5px] text-ink-soft mt-1">
+          Pemantauan kinerja {scopeLabel ? <span className="font-semibold text-ink">{scopeLabel}</span> : 'seluruh pegawai'} — snapshot per periode &amp; tren lintas waktu.
           Skor Akhir dihitung langsung (live).
         </p>
-        <p className="text-[11px] text-gray-400 mt-1">
-          <span className="font-semibold text-gray-500">Fokus halaman ini:</span> pergerakan &amp; pelacakan per-pegawai lintas waktu.
+        <p className="text-[11px] text-ink-faint mt-1">
+          <span className="font-semibold text-ink-soft">Fokus halaman ini:</span> pergerakan &amp; pelacakan per-pegawai lintas waktu.
           {isHrdFull && <>
-            {' '}· Butuh <span className="text-gray-500">klasifikasi talenta &amp; snapshot (4-Box, scatter, kategori)</span>?{' '}
-            <Link href="/admin/dashboard" className="text-emerald-700 hover:underline font-semibold">Dashboard Organisasi →</Link>
+            {' '}· Butuh <span className="text-ink-soft">klasifikasi talenta &amp; snapshot (4-Box, scatter, kategori)</span>?{' '}
+            <Link href="/admin/dashboard" className="text-brand-ink hover:underline font-semibold">Dashboard Organisasi →</Link>
           </>}
         </p>
       </div>
-      <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+      <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
     </div>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
+    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>
   );
 }

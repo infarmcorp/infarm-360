@@ -49,14 +49,15 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   // Koordinator: bukan SPV/HRD tapi punya grant is_coordinator → Monitor untuk naungannya saja.
   const coordinatorView = !adminView && !supervisorView && canCoordinate(me);
   if (!supervisorView && !coordinatorView) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV, Koordinator, atau HRD dalam Mode SPV.</p>
-      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><div className="bg-surface border border-line rounded-panel p-5">
+      <p className="text-sm text-ink-soft">Halaman ini untuk SPV, Koordinator, atau HRD dalam Mode SPV.</p>
+      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></div></Shell>;
   }
 
   const { data: periodRows } = await supabase
     .from('periods').select('id, label, has_360, status, start_date').order('start_date', { ascending: true });
   const periodList = periodRows ?? [];
-  if (periodList.length === 0) return <Shell><Header coordinator={coordinatorView} /><p className="text-sm text-gray-500 mt-4">Belum ada periode.</p></Shell>;
+  if (periodList.length === 0) return <Shell><Header coordinator={coordinatorView} /><p className="text-sm text-ink-soft mt-4">Belum ada periode.</p></Shell>;
   const sel = periodList.find((p) => p.id === periodParam)
     ?? periodList.find((p) => p.status === 'active')
     ?? periodList[periodList.length - 1];
@@ -85,7 +86,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
     empRows = data ?? [];
   }
   if (empRows.length === 0) {
-    return <Shell><Header coordinator={coordinatorView} /><Toolbar periods={periodList} current={sel.id} /><p className="text-sm text-gray-500 mt-4">Belum ada pegawai dalam lingkup Anda.</p></Shell>;
+    return <Shell><Header coordinator={coordinatorView} /><Toolbar periods={periodList} current={sel.id} /><p className="text-sm text-ink-soft mt-4">Belum ada pegawai dalam lingkup Anda.</p></Shell>;
   }
   const ids = empRows.map((e) => e.id);
 
@@ -263,7 +264,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
       <Toolbar periods={periodList} current={sel.id} />
 
       {rows.length === 0 && (
-        <p className="text-sm text-gray-500 mt-4">Belum ada data kinerja untuk periode ini — grafik tren lintas periode tetap tampil di bawah.</p>
+        <p className="text-sm text-ink-soft mt-4">Belum ada data kinerja untuk periode ini — grafik tren lintas periode tetap tampil di bawah.</p>
       )}
 
       {rows.length > 0 && (
@@ -328,24 +329,22 @@ function Toolbar({ periods, current }: { periods: { id: string; label: string; s
 
 function Header({ coordinator = false }: { coordinator?: boolean }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-start justify-between gap-3 mb-4">
       <div>
-        <h1 className="text-xl font-bold text-gray-800">Monitor Kinerja</h1>
-        <p className="text-sm text-gray-500">
+        <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Monitor Kinerja</h1>
+        <p className="text-[13.5px] text-ink-soft mt-1">
           {coordinator
             ? 'Dashboard kinerja pegawai yang Anda koordinasikan — snapshot per periode & tren lintas waktu.'
             : 'Dashboard kinerja tim Anda (termasuk diri Anda) — snapshot per periode & tren lintas waktu.'}
         </p>
       </div>
-      <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+      <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
     </div>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
+    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>
   );
 }

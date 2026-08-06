@@ -7,6 +7,7 @@ import { ConfirmDialog } from '@/components/confirm-dialog';
 import { usePager, Pager } from '@/components/table-controls';
 import { Panel } from '@/components/panel';
 import { Button } from '@/components/button';
+import { DatePicker } from '@/components/date-picker';
 
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type EmpRow = {
@@ -230,12 +231,13 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
               </select>
             </Field>
             <Field label="Tanggal Masuk / Aktif">
-              <input type="date" value={form.joinedOn} onChange={(e) => set('joinedOn', e.target.value)} className="inp data-value" />
+              <DatePicker value={form.joinedOn} onChange={(v) => set('joinedOn', v)} allowClear ariaLabel="Pilih tanggal masuk" />
               <span className="block text-[10px] text-ink-faint mt-0.5">{form.id ? 'Dapat dikoreksi ke tanggal masuk sebenarnya.' : 'Default hari ini; ubah bila tanggal masuk berbeda.'}</span>
             </Field>
             {form.id && (
               <Field label="Tanggal Nonaktif (opsional)">
-                <input type="date" value={form.leftOn} onChange={(e) => set('leftOn', e.target.value)} min={form.joinedOn || undefined} className="inp data-value" />
+                <DatePicker value={form.leftOn} onChange={(v) => set('leftOn', v)} min={form.joinedOn || undefined}
+                  allowClear placeholder="— Masih aktif —" ariaLabel="Pilih tanggal nonaktif" />
                 <span className="block text-[10px] text-ink-faint mt-0.5">
                   Terisi otomatis saat dinonaktifkan; kosongkan bila masih aktif. {form.leftOn ? 'Koreksi ke tanggal keluar sebenarnya.' : ''}
                 </span>

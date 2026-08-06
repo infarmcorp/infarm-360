@@ -1,10 +1,10 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CalendarDays } from 'lucide-react';
 import { createPeriod } from './actions';
 import { Button } from '@/components/button';
+import { DatePicker } from '@/components/date-picker';
 
 export function PeriodForm() {
   const router = useRouter();
@@ -18,6 +18,10 @@ export function PeriodForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    // Tanggal kini dipilih lewat kalender kustom (bukan <input required>), jadi kelengkapannya
+    // diperiksa di sini — server (Zod) tetap jadi penjaga terakhir.
+    if (!startDate || !endDate) { setErr('Tanggal mulai & tanggal selesai wajib dipilih.'); return; }
+    if (endDate < startDate) { setErr('Tanggal selesai tidak boleh lebih awal dari tanggal mulai.'); return; }
     const std = Number(kpiStandard);
     if (!Number.isInteger(std) || std < 0 || std > 100) { setErr('Standar KPI harus bilangan bulat 0–100'); return; }
     setBusy(true); setErr(null);
@@ -37,8 +41,15 @@ export function PeriodForm() {
           <label className="block text-[12.5px] font-medium text-ink-soft mb-1.5">Label</label>
           <input value={label} onChange={(e) => setLabel(e.target.value)} required placeholder="Q4 2026" className={inputCls} />
         </div>
-        <DateField label="Tanggal Mulai" value={startDate} onChange={setStartDate} />
-        <DateField label="Tanggal Selesai" value={endDate} onChange={setEndDate} min={startDate || undefined} />
+        <div>
+          <label className="block text-[12.5px] font-medium text-ink-soft mb-1.5">Tanggal Mulai</label>
+          <DatePicker value={startDate} onChange={setStartDate} ariaLabel="Pilih tanggal mulai periode" />
+        </div>
+        <div>
+          <label className="block text-[12.5px] font-medium text-ink-soft mb-1.5">Tanggal Selesai</label>
+          {/* min = tanggal mulai → tanggal sebelum itu tak bisa dipilih (bukan cuma diperingatkan). */}
+          <DatePicker value={endDate} onChange={setEndDate} min={startDate || undefined} ariaLabel="Pilih tanggal selesai periode" />
+        </div>
       </div>
 
       {/* Pratinjau rentang — konfirmasi cepat bahwa tanggal yang dipilih memang yang dimaksud,
@@ -72,39 +83,6 @@ const parseYmd = (s: string) => {
   if (p.length !== 3 || p.some((n) => !Number.isFinite(n)) || p[1] < 1 || p[1] > 12) return null;
   return { y: p[0], m: p[1], d: p[2] };
 };
-
-/**
- * Kotak tanggal — kalender bawaan browser TETAP dipakai (paling andal & familiar di HP),
- * hanya dibingkai lebih jelas: ikon kalender di kiri, area klik penuh (klik di mana saja pada
- * kotak akan membuka kalender lewat `showPicker()`), dan fokus ber-ring brand.
- */
-function DateField({ label, value, onChange, min }: {
-  label: string; value: string; onChange: (v: string) => void; min?: string;
-}) {
-  const ref = useRef<HTMLInputElement>(null);
-  const openPicker = () => {
-    const el = ref.current;
-    if (!el) return;
-    // showPicker belum ada di semua browser (mis. Safari lama) → abaikan bila tak didukung.
-    try { (el as HTMLInputElement & { showPicker?: () => void }).showPicker?.(); } catch { /* fallback: ikon bawaan */ }
-  };
-  return (
-    <div>
-      <label className="block text-[12.5px] font-medium text-ink-soft mb-1.5">{label}</label>
-      <div
-        onClick={openPicker}
-        className="relative flex items-center rounded-control border border-line bg-[#FDFDFC] cursor-pointer transition-colors focus-within:border-brand focus-within:ring-2 focus-within:ring-brand-tint hover:border-line-strong"
-      >
-        <CalendarDays className="w-4 h-4 text-brand shrink-0 ml-3" aria-hidden />
-        <input
-          ref={ref} type="date" value={value} min={min} required
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-transparent text-[13.5px] data-value text-ink px-2.5 py-2 focus:outline-none"
-        />
-      </div>
-    </div>
-  );
-}
 
 /** Ringkasan rentang terpilih: "1 Jan – 31 Mar 2026 · 3 bulan" + chip bulan. */
 function RangePreview({ start, end }: { start: string; end: string }) {

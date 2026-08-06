@@ -10,6 +10,9 @@ type Init = { model: '4class' | '2class'; atasan: number; peer: number; cross: n
 export function WeightForm({ initial }: { initial: Init }) {
   const router = useRouter();
   const [model, setModel] = useState(initial.model);
+  // `self` TIDAK punya kolom input: Self selalu dikecualikan dari Skor 360° (weightedScore360),
+  // jadi bobotnya tak bisa memengaruhi apa pun. Nilai lamanya tetap dibawa apa adanya saat simpan
+  // agar tidak menimpa data yang sudah tersimpan di DB (skema server tetap menerima field ini).
   const [w, setW] = useState({
     atasan: initial.atasan, peer: initial.peer, cross: initial.cross, bawahan: initial.bawahan, self: initial.self, internal: initial.internal,
   });
@@ -38,41 +41,20 @@ export function WeightForm({ initial }: { initial: Init }) {
     </div>
   );
 
-  /**
-   * Kolom Self — TETAP bisa diisi (permintaan pengguna), tetapi diberi keterangan tegas bahwa
-   * nilainya TIDAK ikut menghitung Skor 360° resmi (`weightedScore360` selalu mengecualikan Self;
-   * lihat lib/score360.ts). Dibedakan: belum diset (0) vs diisi tapi tetap tak dipakai — supaya
-   * HRD tak mengira angka yang diketik di sini akan mengubah skor.
-   */
-  const selfField = (
-    <div>
-      <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">
-        Self <span className="normal-case tracking-normal font-bold text-warn-ink">· tak dihitung</span>
-      </label>
-      <input type="number" min={0} max={100} value={w.self} onChange={set('self')}
-        className="w-full text-[13px] data-value px-2.5 py-1.5 border border-warn-ink/30 bg-warn-tint/40 rounded-control text-right text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
-      <p className="mt-1 text-[10.5px] leading-snug text-warn-ink">
-        {w.self > 0
-          ? <>Terisi, tetapi <strong>bobot Self tetap dikecualikan</strong> dari Skor 360° — evaluasi diri hanya dipakai sebagai pembanding di laporan.</>
-          : <>Tidak diset — <strong>bobot Self dikecualikan</strong> dari perhitungan Skor 360°.</>}
-      </p>
-    </div>
-  );
-
   return (
     <form onSubmit={submit} className="space-y-4">
       <div>
         <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">Model Bobot</label>
         <select value={model} onChange={(e) => setModel(e.target.value as '4class' | '2class')}
           className="text-[13px] px-2.5 py-1.5 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
-          <option value="4class">4-Kelas (Atasan / Peer / Cross / Bawahan / Self)</option>
+          <option value="4class">4-Kelas (Atasan / Peer / Cross / Bawahan)</option>
           <option value="2class">2-Kelas (Atasan / Internal)</option>
         </select>
       </div>
 
       {model === '4class' ? (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 items-start">
-          {field('Atasan', 'atasan')}{field('Peer', 'peer')}{field('Cross', 'cross')}{field('Bawahan', 'bawahan')}{selfField}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {field('Atasan', 'atasan')}{field('Peer', 'peer')}{field('Cross', 'cross')}{field('Bawahan', 'bawahan')}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
@@ -81,8 +63,12 @@ export function WeightForm({ initial }: { initial: Init }) {
       )}
 
       <p className="text-[12px] text-ink-soft">
-        Total bobot resmi (Self dikecualikan): <span className="data-value font-bold text-ink">{total}</span>
+        Total bobot: <span className="data-value font-bold text-ink">{total}</span>
         {total !== 100 && <span className="text-warn-ink"> — umumnya 100</span>}
+        <span className="block text-[11px] text-ink-faint mt-0.5">
+          Evaluasi diri (Self) tidak punya bobot — nilainya tak pernah masuk Skor 360°, hanya tampil
+          sebagai pembanding di laporan pegawai.
+        </span>
       </p>
 
       {msg && <p className={`text-[12.5px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}

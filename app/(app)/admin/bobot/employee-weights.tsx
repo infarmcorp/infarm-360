@@ -14,7 +14,7 @@ export type Override = { employeeId: string; name: string; dept: string; model: 
 /** Ringkasan bobot untuk chip daftar (mis. "A40 · P25 · C15 · B20" / "A70 · Int30"). */
 function summarize(model: '4class' | '2class', w: WeightValues): string {
   return model === '4class'
-    ? `A${w.atasan ?? 0} · P${w.peer ?? 0} · C${w.cross ?? 0} · B${w.bawahan ?? 0}${w.self ? ` · Self${w.self}` : ''}`
+    ? `A${w.atasan ?? 0} · P${w.peer ?? 0} · C${w.cross ?? 0} · B${w.bawahan ?? 0}`
     : `A${w.atasan ?? 0} · Int${w.internal ?? 0}`;
 }
 
@@ -27,6 +27,8 @@ export function EmployeeWeights({ employees, overrides }: { employees: Emp[]; ov
   const [rows, setRows] = useState<Override[]>(overrides);
   const [empId, setEmpId] = useState('');
   const [model, setModel] = useState<'4class' | '2class'>('4class');
+  // `self` selalu 0 & tanpa kolom input — Self dikecualikan dari Skor 360°, jadi bobotnya tak dipakai.
+  // Tetap dikirim ke server agar bentuk payload (skema Zod saveEmployeeWeightOverride) tak berubah.
   const [w, setW] = useState({ atasan: 40, peer: 25, cross: 15, bawahan: 20, self: 0, internal: 60 });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -140,29 +142,16 @@ export function EmployeeWeights({ employees, overrides }: { employees: Emp[]; ov
             <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">Model Bobot</label>
             <select value={model} onChange={(e) => setModel(e.target.value as '4class' | '2class')}
               className="w-full text-sm px-2.5 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
-              <option value="4class">4-Kelas (Atasan / Peer / Cross / Bawahan / Self)</option>
+              <option value="4class">4-Kelas (Atasan / Peer / Cross / Bawahan)</option>
               <option value="2class">2-Kelas (Atasan / Internal)</option>
             </select>
           </div>
         </div>
 
         {model === '4class' ? (
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 items-start">
+          // Tanpa kolom Self — Self selalu dikecualikan dari Skor 360°, jadi bobotnya tak berguna.
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {field('Atasan', 'atasan')}{field('Peer', 'peer')}{field('Cross', 'cross')}{field('Bawahan', 'bawahan')}
-            {/* Self tetap bisa diisi, tapi ditandai jelas: nilainya tak pernah masuk Skor 360°
-                (weightedScore360 selalu mengecualikan Self). Paritas dgn skema periode. */}
-            <div>
-              <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">
-                Self <span className="normal-case tracking-normal font-bold text-warn-ink">· tak dihitung</span>
-              </label>
-              <input type="number" min={0} max={100} value={w.self} onChange={set('self')}
-                className="w-full text-[13px] data-value px-2.5 py-1.5 border border-warn-ink/30 bg-warn-tint/40 rounded-control text-right text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
-              <p className="mt-1 text-[10.5px] leading-snug text-warn-ink">
-                {w.self > 0
-                  ? <>Terisi, tetapi <strong>bobot Self tetap dikecualikan</strong> dari Skor 360°.</>
-                  : <>Tidak diset — <strong>bobot Self dikecualikan</strong> dari perhitungan.</>}
-              </p>
-            </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
@@ -171,7 +160,7 @@ export function EmployeeWeights({ employees, overrides }: { employees: Emp[]; ov
         )}
 
         <p className="text-[12px] text-ink-soft">
-          Total bobot resmi (Self dikecualikan): <span className="data-value font-bold text-ink">{total}</span>
+          Total bobot: <span className="data-value font-bold text-ink">{total}</span>
           {total !== 100 && <span className="text-warn-ink"> — umumnya 100</span>}
         </p>
 

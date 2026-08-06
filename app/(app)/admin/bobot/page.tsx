@@ -173,7 +173,8 @@ export default async function BobotPage() {
       <Section title="Bobot Penilai">
         <WeightForm initial={initial} />
         <p className="text-[12px] text-ink-faint mt-4 leading-relaxed">
-          Skor 360 = rata-rata rating tiap kelas penilai ×20, dibobot di sini (Self dikecualikan dari total).
+          Skor 360 = rata-rata rating tiap kelas penilai ×20, dibobot di sini. Evaluasi diri (Self)
+          tak punya bobot &amp; tak pernah ikut dihitung, jadi tidak ada kolomnya.
           Perubahan berlaku setelah <strong className="font-semibold text-ink-soft">Hitung Ulang Skor 360°</strong> di bawah.
         </p>
       </Section>
@@ -195,7 +196,7 @@ export default async function BobotPage() {
           <p className="text-[12px] text-ink-faint mt-2 leading-relaxed">
             Menulis hasil resmi ke <code className="data-value text-ink-soft bg-neutral-tint px-1 py-0.5 rounded">result_360</code> memakai model aktif:
             <strong className="font-semibold text-ink-soft"> {model === '4class' ? '4-Kelas' : '2-Kelas'}</strong> (bobot global <span className="data-value">{globalLabel}</span>). Pegawai dengan
-            <strong className="font-semibold text-ink-soft"> bobot khusus</strong> memakai bobotnya sendiri. Self dikecualikan dari total.
+            <strong className="font-semibold text-ink-soft"> bobot khusus</strong> memakai bobotnya sendiri. Evaluasi diri (Self) tak ikut dihitung.
           </p>
         </div>
         <Kalkulasi360Table rows={merged} model={model} overrideCount={overrideCount} globalLabel={globalLabel} />

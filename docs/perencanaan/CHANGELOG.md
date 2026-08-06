@@ -133,6 +133,26 @@
   di-ACC setelah `computed_at` → ingatkan Hitung Ulang.
 
 ### Fitur pendukung (ringkas)
+- **Token Redesign UI — restyle per-halaman ke design system** (2026-08; **murni presentasi**, tak
+  menyentuh logika/RLS/rumus/parity/state). Migrasi tampilan dari "template dashboard AI" ke **token**
+  di `app/globals.css` (blok `@theme` + utility **`.data-value`**/`.mono` = IBM Plex Mono untuk semua
+  angka/ID). Acuan: Kelola Siklus Periode + sidebar. Aturan lengkap (brand hanya primary/aktif;
+  status = soft-tint via `StatusChip`; border/radius token; tanpa shadow kecuali mengambang; primitif
+  `Panel`/`Button`/`OverflowMenu`) **terkunci di CLAUDE.md "Design System — Token Redesign (2026-08)"**.
+  - **Pemetaan warna semantik → token** (invariant konsistensi): **brand**=primary/aktif/positif ·
+    **warn**=peringatan/pending/"Wajib" · **danger**=error/hapus/wajib-isi · **neutral**=nonaktif.
+    Chart/2-seri: Rekan/utama=**brand**, pembanding (Self)=**warn** (hex SVG diselaraskan ke `--color-*`).
+  - **Halaman ter-token (per commit):** sidebar+Periode(acuan)/Pertanyaan/Bobot/Pemetaan/Progress/
+    Kepatuhan/Akses/Pegawai/Promosi (s/d `8f5944d`) · Struktur+Monitoring-Audit KPI (`d970142`) · Log
+    Aktivitas+Ekspor (`918c28c`) · Dashboard **chrome** (`13fd383`) · Monitor SPV&HRD **chrome**
+    (`77ffbd4`) · Isi 360° Feedback + Laporan Hasil + Akun Saya (`162bc8e`).
+  - **Dikecualikan atas permintaan pengguna (konten berwarna dibiarkan):** `dashboard-visual.tsx`
+    (sub-tab Kompilasi/KPI/360/Tabel) & analitik Monitor dari section "Ringkasan" ke bawah
+    (`monitor-trends`/`extremes-heatmap`/`per-employee-heatmap`/`dist-bars`/`team-aspect`/`section-header`).
+  - ⚠️ **Gotcha paritas:** `laporan-tim/team-table.tsx` & `scorecards.tsx` **dipakai bersama Monitor** →
+    restyle Laporan Kinerja Tim (belum) akan mengubah Monitor juga; jaga pengecualian di atas.
+  - **Sisa belum di-token:** Laporan Kinerja Tim, Review Hasil Akhir, Beranda, Login/Auth, `loading.tsx`
+    (lihat [TODO.md](TODO.md) "Token Redesign UI").
 - **Analitik Monitor Kinerja & Dashboard — pendalaman** (2026-07-16..18, commit `2b01e93`; **TANPA
   migrasi** — seluruhnya penyajian dari data terkomputasi, rumus terkunci tak disentuh). Menutup audit
   UX (kesan per peran / janggal / kurang informatif / usulan chart 1–5).

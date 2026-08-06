@@ -256,6 +256,12 @@ di Supabase → Authentication → URL Configuration; set `NEXT_PUBLIC_ENABLE_PW
   **primary action & elemen aktif** (tombol utama, item sidebar aktif, ring fokus). Bukan hiasan.
 - **Status/badge = soft-tint** (bg pucat + teks warna), **BUKAN solid fill**. Pakai `StatusChip`
   (`components/status-chip.tsx`, tone `neutral|brand|warn|danger`). Solid hanya untuk primary button.
+- **Pemetaan warna semantik → token (INVARIANT konsistensi, wajib dijaga tiap restyle):** **brand** =
+  primary/aktif/positif (terpilih, sukses, "Terkirim", nilai baik) · **warn** = peringatan/pending/
+  obligasi ("Wajib", draf, autosave-pending, skor basi, "Lengkapi") · **danger** = error/destruktif/
+  wajib-diisi (hapus, gagal, field kosong) · **neutral** = nonaktif/informasi netral. Chart 2-seri:
+  seri utama = **brand**, pembanding = **warn** (mis. Laporan radar Rekan=brand vs Self=warn; hex SVG
+  diselaraskan ke nilai `--color-*`). Jangan pakai palet Tailwind mentah (`emerald/indigo/amber/rose/slate`).
 - **Border & radius:** border tipis netral `--color-line #E4E6E2`; radius `--radius-panel 10px`
   (kartu/panel) & `--radius-control 7px` (input/tombol). **Tanpa shadow** kecuali elemen mengambang
   (dropdown/modal/overflow-menu).

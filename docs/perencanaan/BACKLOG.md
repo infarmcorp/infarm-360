@@ -5,6 +5,15 @@ dijadwalkan). Dipromosikan ke **[TODO.md](TODO.md)** bila diputuskan dikerjakan.
 di **[CHANGELOG.md](CHANGELOG.md)**; panduan durable di **[CLAUDE.md](../../CLAUDE.md)**.
 
 ### Pengembangan opsional
+- ⬜ **Lint guard anti-regresi palet (pasca Token Redesign).** Setelah semua halaman ter-token, tambah
+  aturan lint/CI ringan (mis. grep di CI atau ESLint no-restricted-syntax) yang menolak class palet
+  Tailwind mentah (`emerald-*`/`gray-*`/`indigo-*`/`rounded-2xl`/`shadow-sm`) di `app/`/`components/`
+  agar halaman baru tak diam-diam kembali ke gaya lama. Muncul dari sesi Token Redesign 2026-08.
+- ⬜ **Tinjau ulang konten berwarna yang sengaja dilewati (opsional).** Saat redesign selesai, evaluasi
+  apakah `dashboard-visual.tsx` (sub-tab) & analitik Monitor ("Ringkasan" ke bawah) mau diselaraskan ke
+  palet token — **sekarang sengaja dibiarkan** atas permintaan pengguna (warna chart/kategori dipertahankan).
+- ⬜ **Dukungan tema gelap (dark mode).** Token `@theme` di `globals.css` mempermudah; belum diminta —
+  perlu varian `--color-*` gelap + toggle. Catat sbg peluang, bukan komitmen.
 - ⬜ Ganti email mandiri (lanjutan Akun Saya).
 - ✅ **Ekspor Log Aktivitas HRD ke Excel — SELESAI (2026-07-16).** Kartu "Log Aktivitas HRD" di
   Ekspor Dataset (`exportHrdAuditLog`, lintas-periode, paginasi `.range()` utk >1000 baris; kolom

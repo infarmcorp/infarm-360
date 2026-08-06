@@ -173,6 +173,29 @@ export function AssessForm({
   }
   const atLastQuant = curPos >= total - 1;
 
+  /**
+   * ENTER = lanjut ke pertanyaan berikutnya (permintaan pengguna — terutama di HP, di mana
+   * tombol "Selanjutnya" sering tertutup keyboard sehingga tap-nya tak kena). Shift+Enter tetap
+   * membuat baris baru untuk komentar panjang. `blur()` dipanggil lebih dulu agar keyboard HP
+   * menutup & efek navigasi (gulir ke pertanyaan) berjalan pada layar yang sudah stabil.
+   */
+  function onCommentKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    e.preventDefault();
+    e.currentTarget.blur();
+    goNext();
+  }
+
+  // Enter pada esai kualitatif → pindah ke kolom esai berikutnya (terakhir → lepas fokus).
+  const qualRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
+  function onQualKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>, i: number) {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    e.preventDefault();
+    const nextField = qualRefs.current[i + 1];
+    if (nextField) nextField.focus();
+    else e.currentTarget.blur();
+  }
+
   // Simpan Draf manual.
   async function saveDraft() {
     setBusy(true); setError(null);
@@ -333,12 +356,18 @@ export function AssessForm({
           {activeGroup === QUAL ? (
             <div className="border border-line rounded-panel p-5 space-y-4">
               <h3 className="text-sm font-extrabold text-ink">Umpan Balik Kualitatif <span className="text-[10px] font-bold text-danger-ink">(wajib diisi semua)</span></h3>
-              {questions.map((q) => {
+              <p className="text-[10px] text-ink-faint -mt-2">
+                Tekan <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Enter</kbd> untuk pindah ke pertanyaan berikutnya
+                · <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Shift+Enter</kbd> baris baru.
+              </p>
+              {questions.map((q, qi) => {
                 const filled = (answers[q.id] ?? '').trim().length > 0;
                 return (
                   <div key={q.id}>
                     <p className="text-sm text-ink-soft mb-1.5">{q.text} <span className="text-danger-ink">*</span></p>
                     <textarea rows={2} value={answers[q.id]} onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))}
+                      ref={(el) => { qualRefs.current[qi] = el; }}
+                      onKeyDown={(e) => onQualKeyDown(e, qi)}
                       placeholder="Tulis jawaban Anda…"
                       className={`w-full text-xs px-3 py-2 border rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint ${filled ? 'border-line' : 'border-danger-ink/40'}`} />
                     {!filled && <p className="text-[10px] text-danger-ink font-semibold mt-0.5">Wajib diisi</p>}
@@ -438,9 +467,14 @@ export function AssessForm({
                     Komentar / Bukti Perilaku <span className="text-danger-ink">*</span>
                   </label>
                   <textarea rows={3} value={comments[cur.id] ?? ''} onChange={(e) => setComments((p) => ({ ...p, [cur.id]: e.target.value }))}
+                    onKeyDown={onCommentKeyDown}
                     placeholder="Jelaskan rating dengan contoh konkret (situasi nyata, perilaku yang terlihat, frekuensi)."
                     className="w-full text-xs p-3 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint resize-y" />
-                  <div className="flex justify-end text-[10px]">
+                  <div className="flex flex-wrap justify-between items-center gap-2 text-[10px]">
+                    <span className="text-ink-faint">
+                      Tekan <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Enter</kbd> untuk lanjut ke pertanyaan berikutnya
+                      · <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Shift+Enter</kbd> baris baru
+                    </span>
                     <span className={(comments[cur.id] ?? '').trim().length >= 4 ? 'text-brand-ink font-extrabold' : 'text-danger-ink font-extrabold data-value'}>
                       {(comments[cur.id] ?? '').trim().length >= 4 ? `${(comments[cur.id] ?? '').trim().length} karakter` : 'Wajib · min. 4 karakter'}
                     </span>
@@ -508,15 +542,16 @@ export function AssessForm({
             className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-control text-ink-soft bg-surface border border-line hover:bg-neutral-tint disabled:opacity-60">
             <Save className="w-4 h-4 text-ink-faint" /> Simpan Draf
           </button>
-          {/* Tombol adaptif: belum lengkap → "Lengkapi" (kuning, tetap bisa diklik untuk
-              memandu ke yang kurang); lengkap → "Kirim" (hijau). */}
+          {/* Tombol adaptif: belum lengkap → "Lengkapi" (ORANYE SOLID — sengaja mencolok agar
+              pengguna sadar masih ada yang kurang; teks gelap di atas oranye = kontras tinggi);
+              lengkap → "Kirim" (hijau brand). */}
           <button type="button" disabled={busy || total === 0 || saveState === 'saving' || confirmSend} onClick={submit}
             className={`inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-control disabled:opacity-50 ${
               allComplete
                 ? 'bg-brand hover:bg-brand-ink text-white'
-                : 'bg-warn-tint text-warn-ink border border-warn-ink/30 hover:bg-warn-tint/70'
+                : 'bg-warn text-ink border border-warn-ink/40 hover:brightness-95 shadow-2xs'
             }`}>
-            <Send className={`w-4 h-4 ${allComplete ? 'text-white/85' : 'text-warn-ink'}`} />
+            <Send className={`w-4 h-4 ${allComplete ? 'text-white/85' : 'text-ink'}`} />
             {busy ? 'Memproses…' : allComplete ? 'Kirim Penilaian 360°' : `Lengkapi Penilaian (${remaining} tersisa)`}
           </button>
         </div>
@@ -542,7 +577,11 @@ function AutoSaveHint({ state, disabled }: { state: SaveState; disabled: boolean
     return <p className="text-[11px] text-ink-faint">Penilaian sudah terkirim — perubahan disimpan saat Anda menekan Kirim.</p>;
   }
   if (state === 'saving') return <p className="text-[11px] text-ink-soft flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Menyimpan otomatis…</p>;
-  if (state === 'pending') return <p className="text-[11px] text-warn-ink font-semibold">Perubahan belum disimpan…</p>;
+  if (state === 'pending') return (
+    <p className="text-[11px] font-bold text-ink inline-flex items-center gap-1.5">
+      <span className="w-2 h-2 rounded-full bg-warn animate-pulse" aria-hidden /> Perubahan belum disimpan…
+    </p>
+  );
   if (state === 'saved') return <p className="text-[11px] text-brand-ink font-semibold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tersimpan otomatis</p>;
   if (state === 'error') return <p className="text-[11px] text-danger-ink font-semibold">Gagal menyimpan otomatis — tekan “Simpan Draf”.</p>;
   return <p className="text-[11px] text-ink-faint">Draf tersimpan otomatis saat Anda mengisi.</p>;

@@ -59,7 +59,7 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
               <span className="flex items-center gap-1.5">
                 {/* Oranye solid (--color-warn) — sengaja lebih kontras dari warn-ink agar garis
                     "Evaluasi Diri" langsung terbaca berbeda dari garis hijau "Rekan". */}
-                <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#D97008" strokeWidth="2.5" strokeDasharray="4,3" /></svg>
+                <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#F08C00" strokeWidth="2.5" strokeDasharray="6,3" /></svg>
                 <span className="font-bold text-warn-ink">Evaluasi Diri (Self)</span>
               </span>
             </div>
@@ -183,8 +183,9 @@ function Radar({ aspects }: { aspects: ReportData['aspects'] }) {
           fill="none" stroke="#E4E6E2" strokeWidth="1" />
       ))}
       {aspects.map((_, i) => { const [x, y] = axis(i); return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#E4E6E2" strokeWidth="1" />; })}
-      {/* Garis "Evaluasi Diri" — oranye solid (--color-warn #D97008), kontras terhadap hijau brand. */}
-      {hasSelf && <polygon points={poly('self')} fill="rgba(217,112,8,0.12)" stroke="#D97008" strokeWidth="2" strokeDasharray="4,3" />}
+      {/* Garis "Evaluasi Diri" — oranye terang (--color-warn #F08C00) + garis lebih tebal & putus-
+          putus lebih panjang, agar jelas beda dari garis hijau "Rekan" sekalipun keduanya bertumpuk. */}
+      {hasSelf && <polygon points={poly('self')} fill="rgba(240,140,0,0.14)" stroke="#F08C00" strokeWidth="2.5" strokeDasharray="6,3" strokeLinejoin="round" />}
       <polygon points={poly('score')} fill="rgba(51,96,74,0.18)" stroke="#33604A" strokeWidth="2" />
       {/* Label sumbu = NOMOR aspek (1..n) agar nama panjang/serupa tak terpotong & tak tumpang-tindih.
           Nama lengkap tiap nomor ada di panel "Rincian Aspek Budaya" di sebelahnya. */}

@@ -55,11 +55,16 @@ export default async function LoginPage({
   const users = await loadRoster();
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <div className="w-full max-w-sm bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
-        <div className="flex flex-col items-center text-center mb-5">
-          <BrandLogo className="w-16 h-16 mb-3" />
-          <h1 className="text-lg font-bold text-gray-800">Infarm Performance Appraisal</h1>
+    // TANPA SCROLL DI HP: tinggi dikunci ke `100dvh` (dvh = tinggi viewport nyata setelah bilah
+    // alamat browser HP, tak seperti `100vh` yang bikin halaman "kepanjangan" lalu bisa digulir),
+    // dan `overflow-hidden` mematikan gulir halaman. Kartu sendiri diberi `overflow-y-auto`
+    // sebagai jaring pengaman: di layar sangat pendek isinya tetap bisa dijangkau tanpa membuat
+    // SELURUH halaman ikut bergoyang. Logo/jarak dipadatkan di HP agar muat utuh.
+    <main className="h-[100dvh] overflow-hidden flex items-center justify-center bg-bg p-4 sm:p-6">
+      <div className="w-full max-w-sm max-h-full overflow-y-auto bg-surface border border-line rounded-panel p-5 sm:p-6">
+        <div className="flex flex-col items-center text-center mb-4 sm:mb-5">
+          <BrandLogo className="w-12 h-12 sm:w-16 sm:h-16 mb-2 sm:mb-3" />
+          <h1 className="text-[15px] sm:text-lg font-bold text-ink">Infarm Performance Appraisal</h1>
         </div>
         <LoginForm next={next} users={users} />
       </div>

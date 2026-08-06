@@ -159,8 +159,10 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
   return sections;
 }
 
+// Titik penanda tugas di sidebar (latar GELAP) — nada "amber" dipetakan ke oranye terang
+// (--color-warn-bright) agar sederet dengan ikon lonceng & badge hitungan di section yang sama.
 const TODO_DOT: Record<TodoTone, string> = {
-  amber: 'bg-amber-500', emerald: 'bg-emerald-500', indigo: 'bg-indigo-500', rose: 'bg-rose-500', blue: 'bg-blue-500',
+  amber: 'bg-warn-bright', emerald: 'bg-emerald-400', indigo: 'bg-indigo-400', rose: 'bg-rose-400', blue: 'bg-blue-400',
 };
 
 export function AppShell({

@@ -72,11 +72,11 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
         <>
           {/* Peran = penyaring opsional. <select> native → andal di semua HP. */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Peran (opsional)</label>
+            <label className="block text-xs font-semibold text-ink-soft mb-1">Peran (opsional)</label>
             <select
               value={role}
               onChange={(e) => { setRole(e.target.value); setEmail(''); }}
-              className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
+              className="w-full text-sm px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
             >
               <option value="">— Semua Peran —</option>
               {roles.map((r) => <option key={r} value={r}>{ROLE_LABEL[r] ?? r}</option>)}
@@ -86,7 +86,7 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
               hilang. Combobox dgn PENCARIAN DI DALAM dropdown; tiap opsi menyertakan PERAN.
               Bila combobox bermasalah di perangkat tertentu, tersedia "email manual" di bawah. */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Nama Pegawai</label>
+            <label className="block text-xs font-semibold text-ink-soft mb-1">Nama Pegawai</label>
             <SearchableSelect
               value={email}
               onChange={(val) => {
@@ -98,13 +98,13 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
               options={nameOptions}
               placeholder="— Pilih / Cari Nama —"
               searchPlaceholder="Cari nama / divisi…"
-              className="text-sm px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600"
+              className="text-sm px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
             />
           </div>
         </>
       ) : (
         <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
+          <label className="block text-xs font-semibold text-ink-soft mb-1">Email</label>
           <input
             type="email"
             required
@@ -112,22 +112,22 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="nama@infarm.test"
-            className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
+            className="w-full text-sm px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
           />
         </div>
       )}
 
       <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-1">Sandi</label>
+        <label className="block text-xs font-semibold text-ink-soft mb-1">Sandi</label>
         <PasswordInput autoComplete="current-password" value={password} onChange={setPassword} />
       </div>
 
-      {error && <p className="text-xs text-rose-600 font-semibold">{error}</p>}
+      {error && <p className="text-xs text-danger-ink font-semibold">{error}</p>}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white text-sm font-bold py-2 rounded-lg transition-colors"
+        className="w-full bg-brand hover:bg-brand-ink disabled:opacity-60 text-white text-sm font-bold py-2 rounded-control transition-colors"
       >
         {loading ? 'Memproses…' : 'Masuk'}
       </button>
@@ -135,18 +135,18 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
       <button
         type="button"
         onClick={() => { setManual((v) => !v); setEmail(''); setRole(''); setError(null); }}
-        className="w-full text-[11px] text-gray-500 hover:text-gray-600 hover:underline"
+        className="w-full text-[11px] text-ink-faint hover:text-ink-soft hover:underline"
       >
         {manual ? '← Pilih dari daftar' : 'Masuk dengan email manual'}
       </button>
 
       {PW_RESET_ON ? (
-        <Link href="/auth/lupa-sandi" className="block text-center text-[11px] text-emerald-700 hover:text-emerald-800 hover:underline">
+        <Link href="/auth/lupa-sandi" className="block text-center text-[11px] text-brand-ink hover:underline">
           Lupa sandi?
         </Link>
       ) : (
-        <p className="text-center text-[11px] text-gray-500">
-          Lupa sandi? <span className="text-gray-500 font-semibold">Hubungi HRD untuk reset.</span>
+        <p className="text-center text-[11px] text-ink-faint">
+          Lupa sandi? <span className="font-semibold text-ink-soft">Hubungi HRD untuk reset.</span>
         </p>
       )}
     </form>

@@ -24,7 +24,7 @@
   /* Oranye SOLID (pendamping --color-brand) — dipakai untuk elemen GRAFIS/aksen yang harus
      kontras & langsung terbaca, bukan teks kecil: garis/area chart pembanding (mis. "Evaluasi
      Diri" pada radar Laporan), ikon & indikator tenggat. Teks kecil tetap pakai warn-ink. */
-  --color-warn: #D97008;
+  --color-warn: #F08C00;
   /* Varian terang untuk LATAR GELAP (sidebar): warn/warn-ink terlalu redup di atas --color-sidebar. */
   --color-warn-bright: #F9A03F;
   --color-danger-ink: #A23C33;

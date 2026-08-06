@@ -1,12 +1,52 @@
 'use client';
 
-import { useMemo, useRef, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveKpiScores, deleteKpiScore } from './actions';
 import { parseKpiRows, isValidKpiRow, type KpiMember, type KpiParsedRow } from '@/lib/import/parse';
 
 type Member = KpiMember;
 type ParsedRow = KpiParsedRow;
+
+/**
+ * Keterangan kecil status draf lokal. Sengaja menyebut "di perangkat ini" agar tak disalahartikan
+ * sebagai sudah masuk database — angka baru resmi tersimpan setelah tombol Simpan ditekan.
+ */
+function DraftHint({ state, count, onDiscard }: { state: 'idle' | 'restored' | 'saved'; count: number; onDiscard: () => void }) {
+  if (state === 'idle' || count === 0) {
+    return <span className="text-[10px] text-ink-faint">Isian tersimpan otomatis di perangkat ini sampai Anda menekan Simpan.</span>;
+  }
+  return (
+    <span className="inline-flex items-center gap-2 text-[10px]">
+      <span className={state === 'restored' ? 'font-bold text-warn-ink' : 'font-semibold text-ink-soft'}>
+        {state === 'restored'
+          ? <>Draf sesi sebelumnya dipulihkan (<span className="data-value">{count}</span> isian) — belum tersimpan ke sistem.</>
+          : <>Draf diamankan di perangkat ini (<span className="data-value">{count}</span> isian) — belum tersimpan ke sistem.</>}
+      </span>
+      <button type="button" onClick={onDiscard} className="font-bold text-danger-ink hover:underline">Buang draf</button>
+    </span>
+  );
+}
+
+/**
+ * SIMPAN OTOMATIS (draf lokal) — kunci penyimpanan di browser.
+ * Sengaja draf LOKAL, bukan tulis-otomatis ke database: menulis tiap ketikan ke `kpi_scores`
+ * akan menghasilkan jejak `kpi_audit` untuk nilai setengah jadi (ketik "8" lalu "85" → 2 entri)
+ * dan bertabrakan dengan aturan terkunci "edit skor wajib komentar audit". Jadi ketikan diamankan
+ * di perangkat (tahan refresh/HP ter-lock), lalu masuk database HANYA saat tombol Simpan ditekan.
+ */
+const DRAFT_KEY = 'infarm.kpi-input-draft';
+type Draft = { scores: Record<string, string>; notes: Record<string, string> };
+
+const readDraft = (): Draft | null => {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw) as Draft;
+    if (!d || typeof d !== 'object') return null;
+    return { scores: d.scores ?? {}, notes: d.notes ?? {} };
+  } catch { return null; }
+};
 
 /**
  * Form input KPI — dua mode (ala legacy): Manual & Impor Excel.
@@ -28,6 +68,50 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
   // Penghapusan skor (manual): pegawai yang sedang dikonfirmasi + alasan wajib.
   const [delId, setDelId] = useState<string | null>(null);
   const [delNote, setDelNote] = useState('');
+  // Status draf lokal: 'restored' = isian sesi sebelumnya dipulihkan; 'saved' = baru diamankan.
+  const [draftState, setDraftState] = useState<'idle' | 'restored' | 'saved'>('idle');
+  const draftHydrated = useRef(false);
+
+  // Pulihkan draf lokal saat halaman dibuka (sekali). Dijalankan di efek — localStorage tak
+  // tersedia saat render server, dan membacanya di render awal memicu ketidakcocokan hidrasi.
+  useEffect(() => {
+    // SEKALI saja. `members` bisa berganti referensi tiap router.refresh() (mis. setelah Simpan);
+    // tanpa penjaga ini draf yang baru saja dibersihkan bisa "hidup lagi" dari localStorage.
+    if (draftHydrated.current) return;
+    draftHydrated.current = true;
+    const d = readDraft();
+    if (!d) return;
+    // Saring ke pegawai yang memang ada di lingkup pengguna INI. Di komputer bersama, draf milik
+    // penginput lain (lingkup pegawai berbeda) jadi tak ikut terbawa & tak terhitung.
+    const mine = new Set(members.map((m) => m.id));
+    const keep = (o: Record<string, string>) =>
+      Object.fromEntries(Object.entries(o).filter(([k, v]) => v?.trim() && mine.has(k.split('|')[0])));
+    const s = keep(d.scores), n = keep(d.notes);
+    if (Object.keys(s).length === 0 && Object.keys(n).length === 0) return;
+    setScores(s); setNotes(n); setDraftState('restored');
+  }, [members]);
+
+  // Simpan otomatis (debounce 800ms) tiap isian berubah. Hanya menulis ke perangkat.
+  useEffect(() => {
+    if (!draftHydrated.current) return;                       // jangan timpa sebelum pemulihan
+    const t = setTimeout(() => {
+      const hasContent = Object.values(scores).some((v) => v?.trim()) || Object.values(notes).some((v) => v?.trim());
+      try {
+        if (hasContent) { localStorage.setItem(DRAFT_KEY, JSON.stringify({ scores, notes })); setDraftState('saved'); }
+        else { localStorage.removeItem(DRAFT_KEY); setDraftState('idle'); }
+      } catch { /* penyimpanan penuh/diblokir → abaikan, isian tetap ada di layar */ }
+    }, 800);
+    return () => clearTimeout(t);
+  }, [scores, notes]);
+
+  const discardDraft = () => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* abaikan */ }
+    setScores({}); setNotes({}); setDraftState('idle'); setMsg(null);
+  };
+  const draftCount = useMemo(
+    () => Object.values(scores).filter((v) => v?.trim()).length,
+    [scores],
+  );
 
   const depts = useMemo(() => [...new Set(members.map((m) => m.dept))].sort(), [members]);
   const shown = useMemo(() => (dept === 'all' ? members : members.filter((m) => m.dept === dept)), [members, dept]);
@@ -169,13 +253,16 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
 
         {/* Ringkasan cakupan (#5): berapa anggota yang sudah punya skor bulan ini — RATA KANAN. */}
         {mode === 'manual' && (
-          <div className="flex flex-wrap items-center justify-end gap-2 text-xs ml-auto">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-tint px-3 py-1 font-semibold text-ink-soft">
-              Terisi <strong className="text-brand-ink data-value">{filledCount}</strong> / <span className="data-value">{shown.length}</span> anggota untuk <strong>{ym}</strong>
-            </span>
-            {filledCount < shown.length && (
-              <span className="text-warn-ink font-semibold"><span className="data-value">{shown.length - filledCount}</span> belum diisi</span>
-            )}
+          <div className="flex flex-col items-end gap-1 text-xs ml-auto">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-tint px-3 py-1 font-semibold text-ink-soft">
+                Terisi <strong className="text-brand-ink data-value">{filledCount}</strong> / <span className="data-value">{shown.length}</span> anggota untuk <strong>{ym}</strong>
+              </span>
+              {filledCount < shown.length && (
+                <span className="text-warn-ink font-semibold"><span className="data-value">{shown.length - filledCount}</span> belum diisi</span>
+              )}
+            </div>
+            <DraftHint state={draftState} count={draftCount} onDiscard={discardDraft} />
           </div>
         )}
       </div>

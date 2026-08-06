@@ -147,8 +147,22 @@ export function EmployeeWeights({ employees, overrides }: { employees: Emp[]; ov
         </div>
 
         {model === '4class' ? (
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {field('Atasan', 'atasan')}{field('Peer', 'peer')}{field('Cross', 'cross')}{field('Bawahan', 'bawahan')}{field('Self', 'self')}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 items-start">
+            {field('Atasan', 'atasan')}{field('Peer', 'peer')}{field('Cross', 'cross')}{field('Bawahan', 'bawahan')}
+            {/* Self tetap bisa diisi, tapi ditandai jelas: nilainya tak pernah masuk Skor 360°
+                (weightedScore360 selalu mengecualikan Self). Paritas dgn skema periode. */}
+            <div>
+              <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">
+                Self <span className="normal-case tracking-normal font-bold text-warn-ink">· tak dihitung</span>
+              </label>
+              <input type="number" min={0} max={100} value={w.self} onChange={set('self')}
+                className="w-full text-[13px] data-value px-2.5 py-1.5 border border-warn-ink/30 bg-warn-tint/40 rounded-control text-right text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+              <p className="mt-1 text-[10.5px] leading-snug text-warn-ink">
+                {w.self > 0
+                  ? <>Terisi, tetapi <strong>bobot Self tetap dikecualikan</strong> dari Skor 360°.</>
+                  : <>Tidak diset — <strong>bobot Self dikecualikan</strong> dari perhitungan.</>}
+              </p>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">

@@ -107,7 +107,7 @@ export default async function PeriodePage() {
                 <span className="block text-[14px] font-bold text-ink">{p.label}</span>
                 <span className="text-[12px] text-ink-faint data-value">{p.code} · {monthCount.get(p.id) ?? 0} bln</span>
               </td>
-              <td className="py-4 px-3 text-[13px] data-value text-ink-soft">{p.start_date} → {p.end_date}</td>
+              <td className="py-4 px-3"><DateRange start={p.start_date} end={p.end_date} /></td>
               <td className="py-4 px-3 text-center text-[13px]">
                 {p.has_360
                   ? <span className="font-medium text-brand-ink">Aktif</span>
@@ -136,6 +136,50 @@ export default async function PeriodePage() {
         Periode baru harus diisi pertanyaan &amp; pemetaan (kelola terpisah) sebelum penilaian.
       </p>
     </Shell>
+  );
+}
+
+const ID_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+/** Pecah 'YYYY-MM-DD' tanpa objek Date (hindari geser zona waktu). null bila format tak terduga. */
+function parseYmd(s: string | null): { y: number; m: number; d: number } | null {
+  const parts = (s ?? '').split('-').map(Number);
+  if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) return null;
+  const [y, m, d] = parts;
+  if (m < 1 || m > 12) return null;
+  return { y, m, d };
+}
+
+/**
+ * Rentang tanggal periode dalam bahasa manusia + strip bulan yang tercakup.
+ * Menggantikan "2026-01-01 → 2026-03-31" yang datar & sulit dibaca sekilas.
+ */
+function DateRange({ start, end }: { start: string | null; end: string | null }) {
+  const a = parseYmd(start), b = parseYmd(end);
+  if (!a || !b) return <span className="text-[13px] data-value text-ink-soft">{start} → {end}</span>;
+
+  // Tahun ditulis sekali bila sama (mis. "1 Jan – 31 Mar 2026").
+  const left = `${a.d} ${ID_MONTHS[a.m - 1]}${a.y !== b.y ? ` ${a.y}` : ''}`;
+  const right = `${b.d} ${ID_MONTHS[b.m - 1]} ${b.y}`;
+
+  // Chip bulan yang dilalui (dibatasi 12 agar rentang aneh tak meledakkan baris).
+  const chips: { key: string; label: string }[] = [];
+  for (let y = a.y, m = a.m; (y < b.y || (y === b.y && m <= b.m)) && chips.length < 12; ) {
+    chips.push({ key: `${y}-${m}`, label: ID_MONTHS[m - 1] });
+    m += 1; if (m > 12) { m = 1; y += 1; }
+  }
+
+  return (
+    <div className="min-w-0">
+      <span className="block text-[13px] data-value text-ink whitespace-nowrap">{left} – {right}</span>
+      <span className="mt-1 flex flex-wrap gap-1">
+        {chips.map((c) => (
+          <span key={c.key} className="text-[10px] font-semibold text-ink-soft bg-neutral-tint border border-line rounded-control px-1.5 py-0.5">
+            {c.label}
+          </span>
+        ))}
+      </span>
+    </div>
   );
 }
 

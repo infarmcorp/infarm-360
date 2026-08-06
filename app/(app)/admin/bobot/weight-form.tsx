@@ -38,6 +38,27 @@ export function WeightForm({ initial }: { initial: Init }) {
     </div>
   );
 
+  /**
+   * Kolom Self — TETAP bisa diisi (permintaan pengguna), tetapi diberi keterangan tegas bahwa
+   * nilainya TIDAK ikut menghitung Skor 360° resmi (`weightedScore360` selalu mengecualikan Self;
+   * lihat lib/score360.ts). Dibedakan: belum diset (0) vs diisi tapi tetap tak dipakai — supaya
+   * HRD tak mengira angka yang diketik di sini akan mengubah skor.
+   */
+  const selfField = (
+    <div>
+      <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">
+        Self <span className="normal-case tracking-normal font-bold text-warn-ink">· tak dihitung</span>
+      </label>
+      <input type="number" min={0} max={100} value={w.self} onChange={set('self')}
+        className="w-full text-[13px] data-value px-2.5 py-1.5 border border-warn-ink/30 bg-warn-tint/40 rounded-control text-right text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+      <p className="mt-1 text-[10.5px] leading-snug text-warn-ink">
+        {w.self > 0
+          ? <>Terisi, tetapi <strong>bobot Self tetap dikecualikan</strong> dari Skor 360° — evaluasi diri hanya dipakai sebagai pembanding di laporan.</>
+          : <>Tidak diset — <strong>bobot Self dikecualikan</strong> dari perhitungan Skor 360°.</>}
+      </p>
+    </div>
+  );
+
   return (
     <form onSubmit={submit} className="space-y-4">
       <div>
@@ -50,8 +71,8 @@ export function WeightForm({ initial }: { initial: Init }) {
       </div>
 
       {model === '4class' ? (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {field('Atasan', 'atasan')}{field('Peer', 'peer')}{field('Cross', 'cross')}{field('Bawahan', 'bawahan')}{field('Self', 'self')}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 items-start">
+          {field('Atasan', 'atasan')}{field('Peer', 'peer')}{field('Cross', 'cross')}{field('Bawahan', 'bawahan')}{selfField}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">

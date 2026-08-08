@@ -24,7 +24,7 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
   if (!ap) {
     if (variant === 'summary') return null;
     return (
-      <div className="max-w-5xl rounded-panel border border-line bg-surface p-5">
+      <div className="rounded-panel border border-line bg-surface p-4">
         <h3 className="text-[14.5px] font-bold text-ink">Status Siklus</h3>
         <p className="mt-1.5 text-[13px] text-ink-soft">
           Belum ada periode aktif, jadi belum ada siklus yang berjalan. Buat atau aktifkan periode
@@ -191,16 +191,17 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
     );
   }
 
-  // RINCIAN (sub-tab "Status Siklus"): seluruh langkah dalam 2 kolom, baris padat tanpa bingkai
-  // per langkah (hanya tahap kini yang diberi latar) → jauh lebih pendek dari versi lama.
+  // RINCIAN (sub-tab "Status Siklus"): seluruh langkah dalam 3 kolom selebar halaman, baris padat
+  // tanpa bingkai per langkah (hanya tahap kini yang diberi latar) → 10 langkah cukup 4 baris.
+  // Urutan mengalir per-baris (1·2·3 / 4·5·6 / …), jadi tetap terbaca kiri→kanan sesuai tahapan.
   return (
-    <div className="max-w-5xl rounded-panel border border-line bg-surface p-5">
+    <div className="rounded-panel border border-line bg-surface p-4">
       {header}
       {progress}
 
-      <ol className="mt-4 grid gap-x-6 gap-y-0.5 sm:grid-cols-2">
+      <ol className="mt-3.5 grid gap-x-5 gap-y-0.5 sm:grid-cols-2 lg:grid-cols-3">
         {stages.map((s, i) => (
-          <li key={i} className={`flex items-start gap-2.5 rounded-control px-2.5 py-1.5 ${
+          <li key={i} className={`flex items-start gap-2 rounded-control px-2 py-1.5 ${
             s.status === 'current' ? 'bg-brand-tint/60 ring-1 ring-brand/30' : ''
           }`}>
             <span className="mt-0.5 shrink-0">

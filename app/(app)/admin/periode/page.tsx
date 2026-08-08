@@ -6,6 +6,7 @@ import { PeriodForm } from './period-form';
 import { PeriodActions } from './period-actions';
 import { KpiStandardEditor } from './kpi-standard-editor';
 import { ReadinessPanel } from './readiness-panel';
+import { CycleStatus } from './cycle-status';
 import { EmptyState } from '@/components/empty-state';
 import { Panel, PanelLabel } from '@/components/panel';
 import { StatusChip } from '@/components/status-chip';
@@ -72,6 +73,10 @@ export default async function PeriodePage() {
           has360={active.has_360}
         />
       )}
+
+      {/* Status Siklus — pindahan dari halaman Beranda yang dihapus (2026-08). Ditaruh SETELAH
+          "Kesiapan Peluncuran" karena urutannya memang begitu: siap diluncurkan → siklus berjalan. */}
+      <CycleStatus />
 
       {list.length === 0 ? (
         <EmptyState

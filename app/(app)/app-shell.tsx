@@ -7,7 +7,7 @@ import { PANDUAN_VERSION } from '@/lib/panduan';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, Home, ChevronDown,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, ChevronDown,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 import { BrandLogo } from '@/components/brand-logo';
@@ -286,19 +286,8 @@ export function AppShell({
 
       {/* Nav */}
       <nav className="p-2 space-y-1 flex-1 overflow-y-auto">
-        {/* Beranda (Pusat Tindakan) HANYA untuk HRD Mode Admin — peran lain langsung ke fiturnya. */}
-        {accordion && (
-          <Link
-            href="/beranda"
-            onClick={() => setOpen(false)}
-            className={`w-full flex items-center gap-2 px-3 py-2 rounded-control text-xs font-bold transition-colors ${
-              isActive('/beranda') ? 'bg-brand text-white' : 'text-sidebar-soft hover:bg-white/[0.05] hover:text-white'
-            }`}
-          >
-            <Home className={`w-4 h-4 shrink-0 ${isActive('/beranda') ? 'text-white' : 'text-sidebar-soft'}`} />
-            <span>Beranda</span>
-          </Link>
-        )}
+        {/* Halaman Beranda dihapus 2026-08 → tak ada lagi item menu "Beranda". Landing Mode Admin
+            = Dashboard Organisasi (lihat app/page.tsx); kartu Status Siklus pindah ke Kelola Periode. */}
         {sections.map((sec) => {
           const collapsible = accordion && !!sec.title;
           const containsActive = sec.items.some((it) => isActive(it.href));

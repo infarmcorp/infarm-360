@@ -5,8 +5,11 @@ import { canAdmin } from '@/lib/auth/roles';
 
 /**
  * Pintu utama: belum login → /login. Sudah login → landing per peran & mode.
- * HANYA HRD dalam MODE ADMIN → **Beranda (Pusat Tindakan)**. Direksi → Dashboard; selain itu
- * (Pegawai / SPV / HRD-base / HRD mode-SPV) → **Daftar Penilaian Saya**. Beranda bukan untuk peran non-admin.
+ * HRD dalam MODE ADMIN & Direksi → **Dashboard Organisasi**; selain itu (Pegawai / SPV /
+ * HRD-base / HRD mode-SPV) → **Daftar Penilaian Saya**.
+ *
+ * Halaman Beranda (Pusat Tindakan) DIHAPUS 2026-08 atas permintaan; kartu "Status Siklus"-nya
+ * dipindah ke Kelola Siklus Periode (`admin/periode/cycle-status.tsx`).
  */
 export default async function Home() {
   const supabase = await createClient();
@@ -18,8 +21,7 @@ export default async function Home() {
   const jar = await cookies();
   const adminMode = jar.get('hrd_mode')?.value === 'admin';
 
-  const dest = canAdmin(emp) && adminMode ? '/beranda'
-    : role === 'direksi' ? '/admin/dashboard'
+  const dest = (canAdmin(emp) && adminMode) || role === 'direksi' ? '/admin/dashboard'
     : '/penilaian';
   redirect(dest);
 }

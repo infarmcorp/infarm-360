@@ -77,54 +77,54 @@ export function ReportActions({
   }
 
   return (
-    <div className="no-print mb-3 flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-3">
+    <div className="no-print mb-3 flex flex-wrap items-center gap-2 bg-neutral-tint border border-line rounded-panel p-3">
       <div className="flex items-center gap-2 mr-auto">
-        <span className="text-xs font-bold text-gray-700">Review Hasil Akhir</span>
+        <span className="text-xs font-bold text-ink">Review Hasil Akhir</span>
         {isFinal
-          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">Final</span>
+          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-brand-tint text-brand-ink border-brand-ink/20">Final</span>
           : status === 'in_review'
-          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-indigo-50 text-indigo-700 border-indigo-200">Ditinjau {reviewer}</span>
+          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-neutral-tint text-ink-soft border-line">Ditinjau {reviewer}</span>
           : status === 'draft'
-          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">Draf</span>
-          : <span className="text-[10px] text-gray-500">belum disimpan</span>}
-        {finalScore != null && <span className="text-[11px] font-mono font-bold text-slate-700">Skor Akhir {finalScore.toFixed(2)}</span>}
+          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-warn-tint text-warn-ink border-warn-ink/25">Draf</span>
+          : <span className="text-[10px] text-ink-faint">belum disimpan</span>}
+        {finalScore != null && <span className="text-[11px] data-value font-bold text-ink">Skor Akhir {finalScore.toFixed(2)}</span>}
         {drift && (
           <span title={`Skor terkini ${liveFinal!.toFixed(2)} berbeda dari yang difinalisasi (${finalScore!.toFixed(2)}) — KPI/360°/punishment berubah. Kembalikan ke Draf lalu Finalisasi ulang untuk memperbarui.`}
-            className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+            className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink border border-warn-ink/25">
             berubah → {liveFinal!.toFixed(2)}
           </span>
         )}
       </div>
 
       <button type="button" onClick={() => window.print()}
-        className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white">
+        className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-control bg-sidebar hover:opacity-90 text-white">
         <Download className="w-3.5 h-3.5" /> Unduh PDF
       </button>
 
       {!canCompute ? (
-        <span className="text-[11px] text-gray-500 italic">KPI pegawai masih kosong — belum bisa disimpan.</span>
+        <span className="text-[11px] text-ink-faint italic">KPI pegawai masih kosong — belum bisa disimpan.</span>
       ) : isFinal ? (
         // FINAL: terkunci. Satu-satunya jalan edit = kembalikan ke draf (dgn konfirmasi).
         <button type="button" disabled={busy !== null} onClick={() => setConfirmRevert(true)}
-          className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 disabled:opacity-50">
+          className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-control border border-warn-ink/40 text-warn-ink bg-warn-tint hover:bg-warn-tint/70 disabled:opacity-50">
           <Undo2 className="w-3.5 h-3.5" /> {busy === 'revert' ? 'Mengembalikan…' : 'Kembalikan ke Draf'}
         </button>
       ) : (
         // DRAF / DITINJAU SPV: bisa diedit.
         <>
           <button type="button" disabled={busy !== null} onClick={() => run(false, 'draft')}
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-white disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-control border border-line text-ink-soft hover:bg-surface disabled:opacity-50"
             title="Menyimpan & menghitung ulang Skor Akhir (tetap draf)">
             <Save className="w-3.5 h-3.5" /> {busy === 'draft' ? 'Menyimpan…' : 'Simpan Draf'}
           </button>
           {status !== 'in_review' && (
             <button type="button" disabled={busy !== null} onClick={release}
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg border border-indigo-300 text-indigo-700 hover:bg-indigo-50 disabled:opacity-50">
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-control border border-line text-ink-soft hover:bg-surface disabled:opacity-50">
               <Send className="w-3.5 h-3.5" /> {busy === 'release' ? 'Merilis…' : `Rilis ke ${reviewer}`}
             </button>
           )}
           <button type="button" disabled={busy !== null} onClick={finalGuard}
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
             <CheckCircle2 className="w-3.5 h-3.5" /> {busy === 'final' ? 'Memfinalisasi…' : 'Finalisasi Hasil'}
           </button>
         </>
@@ -132,19 +132,19 @@ export function ReportActions({
 
       {/* Konfirmasi sebelum menurunkan laporan FINAL → draf (menyembunyikan dari pegawai). */}
       {confirmRevert && (
-        <div className="w-full mt-1 flex flex-wrap items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
-          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 mr-auto">
+        <div className="w-full mt-1 flex flex-wrap items-center gap-2 bg-warn-tint border border-warn-ink/25 rounded-control p-2.5">
+          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-warn-ink mr-auto">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             Laporan ini <strong>sudah final &amp; terlihat pegawai</strong>. Mengembalikan ke draf akan
             <strong> menyembunyikannya kembali</strong> dari &quot;Laporan Hasil Saya&quot; sampai difinalisasi ulang. Lanjut?
           </span>
           <button type="button" disabled={busy !== null} onClick={() => setConfirmRevert(false)}
-            className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-amber-300 text-amber-800 hover:bg-amber-100">
+            className="text-[11px] font-bold px-3 py-1.5 rounded-control border border-warn-ink/40 text-warn-ink hover:bg-warn-tint/70">
             Batal
           </button>
           <button type="button" disabled={busy !== null}
             onClick={async () => { setConfirmRevert(false); await run(false, 'revert'); }}
-            className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white">
+            className="text-[11px] font-bold px-3 py-1.5 rounded-control bg-warn-ink hover:opacity-90 text-white">
             Ya, kembalikan ke draf
           </button>
         </div>
@@ -152,8 +152,8 @@ export function ReportActions({
 
       {/* Konfirmasi sebelum Finalisasi bila ada masalah (360° usang / KPI belum lengkap). */}
       {confirmFinal && (
-        <div className="w-full mt-1 flex flex-wrap items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
-          <div className="flex items-start gap-1.5 text-[11px] font-semibold text-amber-800 mr-auto">
+        <div className="w-full mt-1 flex flex-wrap items-center gap-2 bg-warn-tint border border-warn-ink/25 rounded-control p-2.5">
+          <div className="flex items-start gap-1.5 text-[11px] font-semibold text-warn-ink mr-auto">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <div>
               Sebelum finalisasi, perhatikan:
@@ -163,19 +163,19 @@ export function ReportActions({
             </div>
           </div>
           <button type="button" disabled={busy !== null} onClick={() => setConfirmFinal(false)}
-            className="text-[11px] font-bold px-3 py-1.5 rounded-lg border border-amber-300 text-amber-800 hover:bg-amber-100">
+            className="text-[11px] font-bold px-3 py-1.5 rounded-control border border-warn-ink/40 text-warn-ink hover:bg-warn-tint/70">
             Batal (perbaiki dulu)
           </button>
           <button type="button" disabled={busy !== null}
             onClick={async () => { setConfirmFinal(false); await run(true, 'final'); }}
-            className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white">
+            className="text-[11px] font-bold px-3 py-1.5 rounded-control bg-brand hover:bg-brand-ink text-white">
             Ya, finalisasi
           </button>
         </div>
       )}
 
       {msg && (
-        <span className={`w-full text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>
+        <span className={`w-full text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>
       )}
     </div>
   );

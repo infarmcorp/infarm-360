@@ -32,14 +32,14 @@ export function AkunForm() {
       <Field label="Sandi Baru" value={next} onChange={setNext} autoComplete="new-password" placeholder="Minimal 8 karakter" />
       <Field label="Ulangi Sandi Baru" value={confirm} onChange={setConfirm} autoComplete="new-password" />
       {msg && (
-        <p className={`text-xs font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>
+        <p className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>
       )}
       <button type="submit" disabled={busy}
-        className="inline-flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors">
+        className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-ink disabled:opacity-60 text-white text-sm font-bold px-4 py-2 rounded-control transition-colors">
         {msg?.ok ? <Check className="w-4 h-4" /> : <KeyRound className="w-4 h-4" />}
         {busy ? 'Menyimpan…' : 'Simpan Sandi Baru'}
       </button>
-      <p className="text-[10px] text-gray-500 italic">
+      <p className="text-[10px] text-ink-faint italic">
         Demi keamanan, masukkan sandi saat ini untuk mengonfirmasi. Sandi tidak pernah dicatat.
       </p>
     </form>
@@ -53,7 +53,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+      <label className="block text-xs font-semibold text-ink-soft mb-1">{label}</label>
       <PasswordInput value={value} onChange={onChange} autoComplete={autoComplete} placeholder={placeholder} />
     </div>
   );

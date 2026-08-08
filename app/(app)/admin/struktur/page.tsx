@@ -28,8 +28,8 @@ export default async function StrukturPage() {
     grantScopes = grantedAccess(g, 'struktur')?.scopes ?? null;
   }
   if (!isHrdFull && !grantScopes) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk HRD Admin atau pemegang akses Struktur Organisasi.</p>
-      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk HRD Admin atau pemegang akses Struktur Organisasi.</p>
+      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
   const viaGrant = !isHrdFull;
   const ownDept = (me?.dept ?? '').trim();
@@ -150,12 +150,12 @@ export default async function StrukturPage() {
 
   return (
     <Shell>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Struktur Organisasi</h1>
-          <p className="text-sm text-gray-500">Pandangan menyeluruh struktur saat ini — hanya membaca, tak mengubah data.</p>
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Struktur Organisasi</h1>
+          <p className="text-[13.5px] text-ink-soft mt-1">Pandangan menyeluruh struktur saat ini — hanya membaca, tak mengubah data.</p>
         </div>
-        <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+        <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
       <StrukturView
         direksi={direksi} spvNodes={spvNodes} coordNodes={coordNodes}
@@ -166,9 +166,5 @@ export default async function StrukturPage() {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
-  );
+  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
 }

@@ -35,16 +35,16 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
   if (finalIds.length === 0) {
     return (
       <Shell>
-        <h1 className="text-xl font-bold text-gray-800">Laporan Hasil Saya</h1>
+        <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Laporan Hasil Saya</h1>
         {ap ? (
           <>
-            <p className="text-sm text-gray-500">Periode: {ap.label}</p>
-            <p className="text-sm text-gray-500 mt-4">
+            <p className="text-[13.5px] text-ink-soft mt-1">Periode: {ap.label}</p>
+            <p className="text-sm text-ink-soft mt-4">
               Laporan Anda <strong>belum difinalisasi</strong> oleh HRD. Silakan cek kembali nanti.
             </p>
           </>
         ) : (
-          <p className="text-sm text-gray-500 mt-4">Belum ada laporan yang difinalisasi.</p>
+          <p className="text-sm text-ink-soft mt-4">Belum ada laporan yang difinalisasi.</p>
         )}
       </Shell>
     );
@@ -55,13 +55,13 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
     .from('periods').select('id, label, has_360, start_date').in('id', finalIds)
     .order('start_date', { ascending: false });
   const list = periods ?? [];
-  if (list.length === 0) return <Shell><p className="text-sm text-gray-500">Data laporan tidak ditemukan.</p></Shell>;
+  if (list.length === 0) return <Shell><p className="text-sm text-ink-soft">Data laporan tidak ditemukan.</p></Shell>;
 
   // Periode terpilih: dari ?period= bila valid (harus ber-laporan final), else terbaru.
   const selected = list.find((p) => p.id === periodParam) ?? list[0];
 
   const data = await loadReport(supabase, user.id, { id: selected.id, label: selected.label, has_360: selected.has_360 });
-  if (!data) return <Shell><p className="text-sm text-gray-500">Data laporan tidak ditemukan.</p></Shell>;
+  if (!data) return <Shell><p className="text-sm text-ink-soft">Data laporan tidak ditemukan.</p></Shell>;
 
   // Buang lapis 3 (komentar mentah per penilai) sebelum render — pegawai hanya melihat
   // agregat (L1+L2). Array dikosongkan agar tak ikut terserialisasi ke browser.
@@ -73,7 +73,7 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
     <Shell>
       {(list.length > 1 || activePending) && (
         <div className="mb-4">
-          <p className="text-xs font-medium text-gray-500 mb-1.5">Pilih periode</p>
+          <p className="text-xs font-medium text-ink-faint mb-1.5">Pilih periode</p>
           <div className="flex flex-wrap gap-2">
             {list.map((p) => {
               const isSel = p.id === selected.id;
@@ -81,8 +81,8 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
                 <Link
                   key={p.id}
                   href={`/laporan?period=${p.id}`}
-                  className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
-                    isSel ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                  className={`px-3 py-1.5 rounded-control text-sm border transition-colors ${
+                    isSel ? 'bg-brand text-white border-brand' : 'bg-surface text-ink-soft border-line hover:bg-neutral-tint'
                   }`}
                 >
                   {p.label}
@@ -91,7 +91,7 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
             })}
           </div>
           {activePending && (
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-ink-faint mt-2">
               Laporan periode berjalan (<strong>{ap!.label}</strong>) belum difinalisasi oleh HRD.
             </p>
           )}
@@ -112,8 +112,8 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
+    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
+      <div className="bg-surface border border-line rounded-panel p-5">{children}</div>
     </main>
   );
 }

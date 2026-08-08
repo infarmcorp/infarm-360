@@ -4,11 +4,34 @@ Potret status & catatan sesi (cepat-basi — perbarui tiap sesi). Panduan tahan-
 **CLAUDE.md**; rincian tiap fitur di **[CHANGELOG.md](CHANGELOG.md)**; sisa pekerjaan di **[TODO.md](TODO.md)** / **[BACKLOG.md](BACKLOG.md)**
 (CLAUDE.md); catatan operasional trial/Q2 di **REKOMENDASI.md**.
 
-## Sedang Dikerjakan (per 2026-07-20)
+## Sedang Dikerjakan (per 2026-08-06)
 
-**Fokus aktif:** **akurasi data Q1** (backfill Looker presisi tinggi + koreksi KPI darurat) &
-**Manajemen Akses** (halaman administrator pertama yang di-grant: Review Hasil Akhir, Tahap 1).
-Migrasi fungsional **selesai & live**; sisa sebagian besar **aktivasi env** (email/sandi) + **kebersihan akun** + **backup rutin**.
+**Fokus aktif:** **Token Redesign UI (2026-08)** — restyle halaman **per-halaman** dari tampilan
+"template dashboard AI" ke **design system token** (acuan: Kelola Siklus Periode + sidebar; token di
+CLAUDE.md "Design System — Token Redesign"). **Murni presentasi** (className/struktur JSX) — **tanpa
+menyentuh logika/state/RLS/rumus/parity**. Migrasi fungsional tetap **selesai & live**; akurasi data Q1
+& Manajemen Akses (di bawah) tetap berlaku.
+
+- **Sesi 2026-08-05..06 (Token Redesign — `dev`, commit `d970142`→`162bc8e`; typecheck+build hijau tiap commit):**
+  - **Halaman selesai sesi ini:** Struktur Organisasi + Monitoring/Audit KPI (`d970142`); Log Aktivitas
+    HRD + Ekspor Dataset (`918c28c`); **chrome** Dashboard Organisasi (`13fd383`); **chrome** Monitor
+    Kinerja SPV & HRD (`77ffbd4`); Isi 360° Feedback + Laporan Hasil Saya + Akun Saya (`162bc8e`).
+  - **Pengecualian atas permintaan pengguna (JANGAN diubah warnanya saat lanjut):** (a) **Dashboard** —
+    hanya *chrome* (Shell/header/filter) yang di-token-kan; **`dashboard-visual.tsx`** (sub-tab Kompilasi/
+    KPI/360/Tabel Seluruh Pegawai + chart) **dibiarkan**; (b) **Monitor** — hanya *chrome*; section
+    **"Ringkasan" ke bawah** (scorecard, `section-header` tone, `dist-bars`, `team-aspect`, `monitor-trends`,
+    `extremes-heatmap`, `per-employee-heatmap`) **dibiarkan**.
+  - **Pemetaan warna → token** (dipakai konsisten): **brand**=primary/aktif/positif, **warn**=peringatan/
+    pending/"Wajib", **danger**=error/hapus, **neutral**=nonaktif; angka/ID pakai `.data-value` (IBM Plex Mono).
+    Radar Laporan: seri **Rekan=brand**, **Self=warn** (hex diselaraskan nilai token `--color-*`).
+  - ⚠️ **Paritas komponen bersama:** `laporan/report-doc.tsx`, `aspect-summary-view.tsx`, `raw-feedback.tsx`
+    dipakai lintas peran (pegawai + SPV/Koordinator/Direksi/HRD via `/laporan/[employeeId]`) → sudah ikut
+    ter-token. **`laporan-tim/team-table.tsx` & `scorecards.tsx` dipakai BERSAMA Monitor** → saat merestyle
+    **Laporan Kinerja Tim** nanti, perubahannya kena ke Monitor juga → **jaga jangan langgar** "Ringkasan
+    Monitor ke bawah jangan diubah".
+  - **Sisa halaman belum di-token (lihat [TODO.md](TODO.md) "Token Redesign"):** Beranda (`beranda/` + `cycle-status.tsx`),
+    **Laporan Kinerja Tim** (`laporan-tim/`), **Review Hasil Akhir** (`review-hasil/`), Login/Auth
+    (`login/`, `auth/lupa-sandi`, `auth/perbarui-sandi`), `loading.tsx`.
 
 - **Sesi 2026-07-20:**
   - **Backfill Looker Q1 presisi tinggi — SELESAI & DI LIVE** (push `383b745`): migrasi **0026**
@@ -150,6 +173,11 @@ Bagian ini hanya potret status; perincian tiap fitur ada di **[CHANGELOG.md](CHA
   Action (finalisasi/`releaseToSpv`/`setHrdAdmin`/ACC). Lihat **[TODO.md](TODO.md)** / **[BACKLOG.md](BACKLOG.md)**.
 
 **File paling relevan:**
+- **Token Redesign (lanjut):** acuan token `app/globals.css` (`@theme` + `.data-value`) & CLAUDE.md "Design
+  System"; primitif `components/` (`panel.tsx`/`button.tsx`/`status-chip.tsx`/`overflow-menu.tsx`); halaman
+  acuan `app/(app)/admin/periode/` + `app-shell.tsx`. **Belum di-token:** `app/(app)/beranda/`
+  (`cycle-status.tsx`), `app/(app)/laporan-tim/` (⚠️ `team-table.tsx`/`scorecards.tsx` **dipakai Monitor**),
+  `app/(app)/review-hasil/`, `app/login/` + `app/auth/`, `app/(app)/loading.tsx`.
 - Manajemen Akses (RBAC page_grants): `app/(app)/admin/akses/`, `lib/auth/roles.ts` (`grantedScope`/`grantedAccess`/
   `deptScopeFilter`/`GRANTABLE_PAGES`/`GRANTABLE_PAGE_KIND`), `app/(app)/admin/laporan/page.tsx` (SADAR-MODE +
   jalur grant review), `report-table.tsx` (prop `readOnly`), `app/(app)/app-shell.tsx` ("Akses dari HRD"),

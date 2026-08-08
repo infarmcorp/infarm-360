@@ -60,55 +60,55 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
   }
 
   if (!open) {
-    return <button type="button" onClick={() => setOpen(true)} className="text-xs font-bold text-emerald-700 hover:underline">+ Impor dari Excel</button>;
+    return <button type="button" onClick={() => setOpen(true)} className="text-xs font-semibold px-3 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">+ Impor dari Excel</button>;
   }
 
   return (
-    <div className="border border-emerald-200 bg-emerald-50/30 rounded-xl p-3 space-y-2">
+    <div className="rounded-panel border border-line bg-surface p-3 space-y-2">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-bold text-emerald-950 uppercase tracking-wide">Impor Mapping Massal</h3>
-        <button type="button" onClick={() => { setOpen(false); setParsed(null); setMsg(null); }} className="text-gray-500 hover:text-gray-600 text-xs">Tutup ✕</button>
+        <h3 className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.07em]">Impor Mapping Massal</h3>
+        <button type="button" onClick={() => { setOpen(false); setParsed(null); setMsg(null); }} className="text-ink-faint hover:text-ink-soft text-xs">Tutup ✕</button>
       </div>
-      <p className="text-[11px] text-emerald-900">Kolom: <code>penilai</code>, <code>dinilai</code> (kode pegawai), <code>relasi</code> (Atasan/Peer/Cross/Self/Bawahan), <code>wajib</code> (wajib/opsional). <button type="button" onClick={template} className="underline font-bold">Unduh template</button>.</p>
+      <p className="text-[12px] text-ink-soft leading-relaxed">Kolom: <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">penilai</code>, <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">dinilai</code> (kode pegawai), <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">relasi</code> (Atasan/Peer/Cross/Self/Bawahan), <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">wajib</code> (wajib/opsional). <button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh template</button>.</p>
       <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile}
-        className="block text-xs file:mr-3 file:rounded file:border-0 file:bg-emerald-700 file:px-3 file:py-1.5 file:text-white file:font-bold" />
-      {parseErr && <p className="text-xs text-rose-600 font-semibold">{parseErr}</p>}
+        className="block text-xs file:mr-3 file:rounded-control file:border-0 file:bg-brand file:px-3 file:py-1.5 file:text-white file:font-semibold" />
+      {parseErr && <p className="text-xs text-danger-ink font-semibold">{parseErr}</p>}
 
       {parsed && (
         <>
           {skips.length > 0 && (
-            <div className="rounded-lg border border-amber-300 bg-amber-50 p-2 text-[11px] text-amber-900">
+            <div className="rounded-control border border-warn-ink/25 bg-warn-tint p-2 text-[11px] text-warn-ink">
               <strong>{skips.length} baris akan dilewati</strong> ({oks.length} akan diimpor). Pasangan yang dilewati:
               <ul className="mt-1 space-y-0.5 max-h-28 overflow-y-auto">
                 {skips.map((c) => (
                   <li key={c.line} className="flex gap-1.5">
-                    <span className="text-amber-500 shrink-0">baris {c.line}:</span>
+                    <span className="shrink-0 opacity-70">baris <span className="data-value">{c.line}</span>:</span>
                     <span className="font-semibold">{(c.r.assessor?.name ?? c.r.aCode) || '?'} → {(c.r.target?.name ?? c.r.tCode) || '?'}</span>
-                    <span className="text-amber-700">— {c.reason}</span>
+                    <span className="opacity-80">— {c.reason}</span>
                   </li>
                 ))}
               </ul>
             </div>
           )}
-          <div className="overflow-x-auto border border-gray-200 rounded-lg max-h-64 overflow-y-auto bg-white">
+          <div className="overflow-x-auto border border-line rounded-control max-h-64 overflow-y-auto bg-surface">
             <table className="w-full text-left text-[11px]">
-              <thead><tr className="bg-gray-50 text-[10px] uppercase text-gray-500 border-b border-gray-200">
-                <th className="py-1.5 px-2">#</th><th className="py-1.5 px-2">Penilai</th><th className="py-1.5 px-2">Dinilai</th><th className="py-1.5 px-2">Relasi</th><th className="py-1.5 px-2">Sifat</th><th className="py-1.5 px-2">Keterangan</th>
+              <thead><tr className="bg-neutral-tint text-[10px] uppercase text-ink-faint border-b border-line">
+                <th className="py-1.5 px-2 font-semibold">#</th><th className="py-1.5 px-2 font-semibold">Penilai</th><th className="py-1.5 px-2 font-semibold">Dinilai</th><th className="py-1.5 px-2 font-semibold">Relasi</th><th className="py-1.5 px-2 font-semibold">Sifat</th><th className="py-1.5 px-2 font-semibold">Keterangan</th>
               </tr></thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-line-soft">
                 {classified.map((c) => {
                   const r = c.r;
                   return (
-                    <tr key={c.line} className={c.status === 'ok' ? '' : c.status === 'invalid' ? 'bg-rose-50/50' : 'bg-amber-50/60'}>
-                      <td className="py-1.5 px-2 text-gray-500 font-mono">{c.line}</td>
-                      <td className="py-1.5 px-2">{r.assessor?.name ?? <span className="text-rose-600 font-mono">{r.aCode || '?'}</span>}</td>
-                      <td className="py-1.5 px-2">{r.target?.name ?? <span className="text-rose-600 font-mono">{r.tCode || '?'}</span>}</td>
-                      <td className="py-1.5 px-2">{r.relation || <span className="text-rose-600">?</span>}</td>
-                      <td className="py-1.5 px-2">{r.mandatory ? 'Wajib' : 'Opsional'}</td>
+                    <tr key={c.line} className={c.status === 'ok' ? '' : c.status === 'invalid' ? 'bg-danger-tint/50' : 'bg-warn-tint/60'}>
+                      <td className="py-1.5 px-2 text-ink-faint data-value">{c.line}</td>
+                      <td className="py-1.5 px-2 text-ink">{r.assessor?.name ?? <span className="text-danger-ink data-value">{r.aCode || '?'}</span>}</td>
+                      <td className="py-1.5 px-2 text-ink">{r.target?.name ?? <span className="text-danger-ink data-value">{r.tCode || '?'}</span>}</td>
+                      <td className="py-1.5 px-2 text-ink-soft">{r.relation || <span className="text-danger-ink">?</span>}</td>
+                      <td className="py-1.5 px-2 text-ink-soft">{r.mandatory ? 'Wajib' : 'Opsional'}</td>
                       <td className="py-1.5 px-2">
                         {c.status === 'ok'
-                          ? <span className="text-emerald-700 font-bold">✓ Akan diimpor</span>
-                          : <span className="text-amber-800">✗ {c.reason}</span>}
+                          ? <span className="text-brand-ink font-semibold">✓ Akan diimpor</span>
+                          : <span className="text-warn-ink">✗ {c.reason}</span>}
                       </td>
                     </tr>
                   );
@@ -117,14 +117,14 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
             </table>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={apply} disabled={pending} className="rounded bg-emerald-700 px-3 py-1.5 text-white text-xs font-bold disabled:opacity-50">
+            <button onClick={apply} disabled={pending} className="rounded-control bg-brand hover:bg-brand-ink px-3 py-1.5 text-white text-xs font-semibold disabled:opacity-50">
               {pending ? 'Mengimpor…' : `Impor ${oks.length} baris${skips.length ? ` (${skips.length} dilewati)` : ''}`}
             </button>
-            <button onClick={() => setParsed(null)} disabled={pending} className="text-xs font-semibold text-gray-500 hover:underline">Batal</button>
+            <button onClick={() => setParsed(null)} disabled={pending} className="text-xs font-semibold text-ink-faint hover:text-ink-soft">Batal</button>
           </div>
         </>
       )}
-      {msg && <p className={`text-xs font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
+      {msg && <p className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
     </div>
   );
 }

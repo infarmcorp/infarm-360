@@ -4,7 +4,7 @@
 masuk siklus penilaian (dinilai 360° + KPI), dan tercermin di laporan — tanpa langkah terlewat.
 
 **Kapan dipakai:** ada karyawan baru bergabung (satuan atau massal).
-**Pelaku:** HRD Admin (langkah C5, D6–D7 bisa melibatkan SPV/Koordinator).
+**Pelaku:** HRD Admin (langkah D7–D8 bisa melibatkan SPV/Koordinator).
 **Perkiraan waktu:** ±5 menit/orang.
 
 ---
@@ -13,15 +13,22 @@ masuk siklus penilaian (dinilai 360° + KPI), dan tercermin di laporan — tanpa
 
 ```mermaid
 flowchart TD
-    A["Buat akun pegawai"] --> B["Kirim undangan<br/>(sandi + info akun)"]
-    B --> C["Atur atasan / koordinatornya"]
-    C --> D{"Sedang ada<br/>periode berjalan?"}
-    D -- "Ya" --> E["Masukkan ke daftar penilaian 360<br/>+ mulai isi KPI bulanan"]
-    D -- "Belum" --> F["Tunggu periode berikutnya dibuka"]
-    E --> G["Tinjau di kartu Pegawai Baru<br/>lalu tandai selesai"]
-    F --> G
-    G --> H["Selesai"]
+    A["Buat akun pegawai<br/>(sekaligus isi: peran, divisi,<br/>ATASAN/SPV, tanggal masuk)"] --> B["Kirim undangan<br/>(sandi + info akun)"]
+    B --> C["Pegawai ganti sandi sendiri<br/>(lewat Akun Saya)"]
+    C --> D{"Dibawahi seorang<br/>Koordinator?"}
+    D -- "Ya" --> E["Masukkan ke tim naungan<br/>koordinatornya"]
+    D -- "Tidak (langsung ke SPV)" --> F{"Sedang ada<br/>periode berjalan?"}
+    E --> F
+    F -- "Ya" --> G["Masukkan ke daftar penilaian 360<br/>+ mulai isi KPI bulanan"]
+    F -- "Belum" --> H["Tunggu periode berikutnya dibuka"]
+    G --> I["Tinjau di kartu Pegawai Baru<br/>lalu tandai selesai"]
+    H --> I
+    I --> J["Selesai"]
 ```
+
+> **Catatan:** **atasan/SPV sudah diisi saat membuat akun** (node pertama) — tak ada langkah "atur
+> atasan" terpisah. Yang menyusul hanyalah **koordinator** (bila orang ini dibawahi koordinator,
+> naungannya diatur di Manajemen Akses — bukan saat buat akun).
 
 ## A. Buat akun — *Kelola Pegawai*
 1. **HRD → Kelola Pegawai → Tambah Pegawai.** Isi: Nama · **Nama Panggilan** (opsional, untuk tampilan
@@ -42,48 +49,51 @@ flowchart TD
 > me-reset sandi **semua** orang (termasuk yang sudah menggantinya). Massal hanya di **awal periode**.
 
 ## C. Tempatkan di struktur
-5. Pastikan **Atasan/SPV** benar (menentukan siapa input KPI & ACC laporannya). Bila dibawahi
-   **Koordinator** (bukan langsung SPV): **Manajemen Akses → penerima "Seorang pegawai" → koordinatornya
-   → Kelola Tim (Tim Koordinasi)**, tambahkan orang ini ke naungannya.
+5. **Atasan/SPV** sudah diisi saat membuat akun (langkah A1) — cukup **pastikan sudah benar**
+   (menentukan siapa input KPI & ACC laporannya). Ubah lewat **Kelola Pegawai → Ubah** bila keliru.
+6. **Hanya bila dibawahi Koordinator** (bukan langsung ke SPV): **Manajemen Akses → penerima "Seorang
+   pegawai" → pilih koordinatornya → Kelola Tim (Tim Koordinasi)**, tambahkan orang ini ke naungannya.
+   *(Langkah terpisah — naungan koordinator tidak diatur saat membuat akun.)*
 
 ## D. Masukkan ke siklus penilaian — *hanya bila ada periode aktif ber-360°*
-6. **Pemetaan 360°:** tambahkan pasangan penilaian — **siapa menilai dia** & **dia menilai siapa**
+7. **Pemetaan 360°:** tambahkan pasangan penilaian — **siapa menilai dia** & **dia menilai siapa**
    (relasi Atasan/Peer/Cross/Bawahan, sifat Wajib). **Tanpa langkah ini dia tak muncul di daftar
    penilaian siapa pun & tak akan dinilai.**
-7. **KPI:** SPV/Koordinator mulai input KPI bulanannya. Bulan yang belum masuk **tidak** dihitung
+8. **KPI:** SPV/Koordinator mulai input KPI bulanannya. Bulan yang belum masuk **tidak** dihitung
    (wajar untuk yang bergabung di tengah kuartal).
-8. *(Opsional)* **Bobot Khusus per Pegawai** hanya bila kebijakan bobot 360°-nya memang berbeda.
+9. *(Opsional)* **Bobot Khusus per Pegawai** hanya bila kebijakan bobot 360°-nya memang berbeda.
 
 ## E. Tinjau akses — *Manajemen Akses*
-9. Buka **Manajemen Akses** → kartu **"Pegawai Baru"** (menyorot yang bergabung ≤30 hari & belum
-   ditinjau). Buka profilnya, beri akses halaman/izin khusus **bila perlu**, lalu **"Tandai selesai"**.
+10. Buka **Manajemen Akses** → kartu **"Pegawai Baru"** (menyorot yang bergabung ≤30 hari & belum
+    ditinjau). Buka profilnya, beri akses halaman/izin khusus **bila perlu**, lalu **"Tandai selesai"**.
 
 ---
 
 ## Cabang keputusan
 - **Masuk di tengah periode berjalan** → kerjakan A–C lalu **tambahkan ke Pemetaan periode aktif**
-  (D6) agar ikut dinilai kuartal ini. KPI = rata-rata bulan yang sempat terisi.
+  (D7) agar ikut dinilai kuartal ini. KPI = rata-rata bulan yang sempat terisi.
 - **Belum ada periode aktif / periode sudah dikunci** → cukup A–C. Langkah D dilakukan saat **periode
   berikutnya diaktifkan** (salin pemetaan + tambahkan dia).
 - **Pegawai eksternal** (vendor/freelance yang hanya *menilai*, tak dinilai) → centang **Penilai
-  eksternal** di langkah A; lewati D7 (tak punya KPI/laporan). Cukup dimasukkan Pemetaan sebagai **penilai**.
+  eksternal** di langkah A; lewati D8 (tak punya KPI/laporan). Cukup dimasukkan Pemetaan sebagai **penilai**.
 
 ## Catatan / jebakan
 - Aplikasi **tidak** otomatis memasukkan pegawai baru ke pemetaan 360° — itu **keputusan sadar HRD**
-  (D6). Disengaja.
+  (D7). Disengaja.
 - Pegawai baru **tidak** otomatis dapat akses tambahan; hanya bawaan perannya. Kartu "Pegawai Baru"
   ada persis untuk memastikan HRD meninjau ini.
 - Semua aksi (buat/undang/pemetaan) tercatat di **Log Aktivitas HRD**.
 
 ## Checklist ringkas
 ```
-[ ] A1  Tambah Pegawai (peran, divisi, kode, email, atasan, tgl masuk)
-[ ] B3  Kirim Undangan (per-orang) → sandi + info akun
-[ ] B4  Pegawai ganti sandi sendiri (Akun Saya)
-[ ] C5  Atasan/SPV benar · (bila perlu) masuk Tim Koordinasi
-[ ] D6  Tambah ke Pemetaan 360° periode aktif  (bila ada periode & 360° aktif)
-[ ] D7  Mulai input KPI bulanan
-[ ] E9  Tinjau di "Pegawai Baru" (Manajemen Akses) → Tandai selesai
+[ ] A1   Tambah Pegawai (peran, divisi, kode, email, ATASAN, tgl masuk)
+[ ] B3   Kirim Undangan (per-orang) → sandi + info akun
+[ ] B4   Pegawai ganti sandi sendiri (Akun Saya)
+[ ] C5   Pastikan Atasan/SPV benar (sudah diisi di A1)
+[ ] C6   (bila dibawahi koordinator) masukkan ke Tim Koordinasi
+[ ] D7   Tambah ke Pemetaan 360° periode aktif  (bila ada periode & 360° aktif)
+[ ] D8   Mulai input KPI bulanan
+[ ] E10  Tinjau di "Pegawai Baru" (Manajemen Akses) → Tandai selesai
 ```
 
 ## Rujukan

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { DEMO_USERS } from '@/lib/auth/demo-users';
+import { BrandLogo } from '@/components/brand-logo';
 import { LoginForm } from './login-form';
 
 type RosterUser = { email: string; name: string; role: string; dept: string };
@@ -54,10 +55,17 @@ export default async function LoginPage({
   const users = await loadRoster();
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <div className="w-full max-w-sm bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
-        <h1 className="text-lg font-bold text-gray-800">Infarm 360° Portal</h1>
-        <p className="text-sm text-gray-500 mb-5">Pilih peran &amp; nama Anda, lalu masukkan sandi.</p>
+    // TANPA SCROLL DI HP: tinggi dikunci ke `100dvh` (dvh = tinggi viewport nyata setelah bilah
+    // alamat browser HP, tak seperti `100vh` yang bikin halaman "kepanjangan" lalu bisa digulir),
+    // dan `overflow-hidden` mematikan gulir halaman. Kartu sendiri diberi `overflow-y-auto`
+    // sebagai jaring pengaman: di layar sangat pendek isinya tetap bisa dijangkau tanpa membuat
+    // SELURUH halaman ikut bergoyang. Logo/jarak dipadatkan di HP agar muat utuh.
+    <main className="h-[100dvh] overflow-hidden flex items-center justify-center bg-bg p-4 sm:p-6">
+      <div className="w-full max-w-sm max-h-full overflow-y-auto bg-surface border border-line rounded-panel p-5 sm:p-6">
+        <div className="flex flex-col items-center text-center mb-4 sm:mb-5">
+          <BrandLogo className="w-12 h-12 sm:w-16 sm:h-16 mb-2 sm:mb-3" />
+          <h1 className="text-[15px] sm:text-lg font-bold text-ink">Infarm Performance Appraisal</h1>
+        </div>
         <LoginForm next={next} users={users} />
       </div>
     </main>

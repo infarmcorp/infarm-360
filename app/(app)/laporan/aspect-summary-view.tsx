@@ -20,21 +20,21 @@ export function AspectSummaryView({
 
   return (
     <section className="mt-6 break-inside-avoid">
-      <div className="bg-emerald-700 text-white rounded-t-xl px-4 py-2.5">
+      <div className="bg-brand text-white rounded-t-panel px-4 py-2.5">
         <h2 className="text-sm font-extrabold uppercase tracking-wide flex items-center gap-2">
           <Sparkles className="w-4 h-4" /> {title}
         </h2>
       </div>
-      <div className="border border-t-0 border-gray-200 rounded-b-xl p-4 space-y-3">
-        <p className="text-[11px] text-gray-500 bg-emerald-50/60 border border-emerald-100 rounded-lg p-2">
+      <div className="border border-t-0 border-line rounded-b-panel p-4 space-y-3">
+        <p className="text-[11px] text-ink-soft bg-brand-tint/60 border border-brand-ink/15 rounded-control p-2">
           {intro}
         </p>
         {entries.map(([name, text]) => (
-          <div key={name} className="border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-3 py-2 bg-gray-50 border-b border-gray-150">
-              <span className="text-xs font-bold text-emerald-800 flex items-center gap-1.5">★ {name}</span>
+          <div key={name} className="border border-line rounded-panel overflow-hidden">
+            <div className="px-3 py-2 bg-neutral-tint border-b border-line-soft">
+              <span className="text-xs font-bold text-brand-ink flex items-center gap-1.5">★ {name}</span>
             </div>
-            <p className="text-xs p-3 text-gray-700 leading-relaxed whitespace-pre-wrap">{text}</p>
+            <p className="text-xs p-3 text-ink-soft leading-relaxed whitespace-pre-wrap">{text}</p>
           </div>
         ))}
       </div>

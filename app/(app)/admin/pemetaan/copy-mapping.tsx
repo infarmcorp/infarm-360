@@ -30,34 +30,34 @@ export function CopyMapping({ periods }: { periods: P[] }) {
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg border border-indigo-200 text-indigo-700 hover:bg-indigo-50">
+        className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">
         <CopyPlus className="w-4 h-4" /> Salin dari Periode Sebelumnya
       </button>
     );
   }
 
   return (
-    <div className="border border-indigo-200 bg-indigo-50/30 rounded-xl p-4 space-y-2">
+    <div className="rounded-panel border border-line bg-surface p-4 space-y-2">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-bold text-indigo-950 uppercase tracking-wide">Salin Pemetaan dari Periode Lain</h3>
-        <button type="button" onClick={() => { setOpen(false); setMsg(null); }} className="text-gray-500 hover:text-gray-600 text-xs">Tutup ✕</button>
+        <h3 className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.07em]">Salin Pemetaan dari Periode Lain</h3>
+        <button type="button" onClick={() => { setOpen(false); setMsg(null); }} className="text-ink-faint hover:text-ink-soft text-xs">Tutup ✕</button>
       </div>
-      <p className="text-[11px] text-indigo-900">
+      <p className="text-[12px] text-ink-soft leading-relaxed">
         Menyalin seluruh pasangan penilai→target dari periode terpilih ke periode aktif. Pasangan yang
-        sudah ada <strong>dilewati</strong>, dan hasil salinan <strong>tetap bisa diedit/dihapus</strong>.
+        sudah ada <strong className="font-semibold text-ink">dilewati</strong>, dan hasil salinan <strong className="font-semibold text-ink">tetap bisa diedit/dihapus</strong>.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <select value={src} onChange={(e) => setSrc(e.target.value)}
-          className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-600 min-w-[180px]">
+          className="text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint min-w-[180px]">
           <option value="">— Pilih Periode Sumber —</option>
           {periods.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
         </select>
         <button type="button" onClick={run} disabled={pending || !src}
-          className="text-xs font-bold px-4 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white disabled:opacity-50">
+          className="text-xs font-semibold px-4 py-2 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
           {pending ? 'Menyalin…' : 'Salin Pemetaan'}
         </button>
       </div>
-      {msg && <p className={`text-xs font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
+      {msg && <p className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
     </div>
   );
 }

@@ -6,6 +6,32 @@ ditandai 🔑. Ide opsional/masa depan ada di **[BACKLOG.md](BACKLOG.md)**; cata
 **[CHANGELOG.md](CHANGELOG.md)**; panduan durable & keputusan terkunci di **[CLAUDE.md](../../CLAUDE.md)**;
 status/sesi terkini di **[STATUS.md](STATUS.md)**.
 
+### Token Redesign UI (2026-08) — restyle per-halaman ke design system token
+Acuan token: `app/globals.css` (`@theme` + `.data-value`) & CLAUDE.md "Design System — Token Redesign".
+**Murni presentasi** (className/JSX) — tak menyentuh logika/RLS/rumus/parity. Verifikasi tiap halaman
+dgn `npm run typecheck` + `npm run build`. Commit granular per kelompok halaman.
+- ✅ **Sidebar + Kelola Periode (acuan)**, **Kelola Pertanyaan**, **Bobot & Pemetaan**, **Progress &
+  Flag Kepatuhan**, **Manajemen Akses**, **Kelola Pegawai / Review Hasil Akhir\* / Promosi** — selesai
+  (sesi sebelumnya, s/d `8f5944d`). \*catatan: `review-hasil/page.tsx` ternyata masih perlu (lihat bawah).
+- ✅ **Struktur Organisasi + Monitoring/Audit KPI** (`/kpi`) — `d970142`.
+- ✅ **Log Aktivitas HRD + Ekspor Dataset** — `918c28c`.
+- ✅ **Dashboard Organisasi — CHROME saja** (`13fd383`): Shell/header/`dashboard-filters`. **Sengaja
+  DIBIARKAN** (permintaan pengguna): `dashboard-visual.tsx` (sub-tab Kompilasi/KPI/360/Tabel + chart).
+- ✅ **Monitor Kinerja (SPV & HRD) — CHROME saja** (`77ffbd4`): Shell/header/filter. **Sengaja
+  DIBIARKAN** (permintaan): section **"Ringkasan" ke bawah** (scorecard, `section-header`, `dist-bars`,
+  `team-aspect`, `monitor-trends`, `extremes-heatmap`, `per-employee-heatmap`).
+- ✅ **Isi 360° Feedback + Laporan Hasil Saya + Akun Saya** — `162bc8e` (17 file; termasuk komponen
+  laporan bersama `report-doc`/`aspect-summary-view`/`raw-feedback`/`aspect-summary-editor`/`report-actions`).
+- 🔄 **Belum di-token (sisa):**
+  - ⬜ **Laporan Kinerja Tim** (`app/(app)/laporan-tim/`: `page.tsx`, `team-table.tsx`, `scorecards.tsx`,
+    `acc-button.tsx`). ⚠️ **`team-table.tsx` & `scorecards.tsx` DIPAKAI BERSAMA Monitor** → perubahan
+    kena ke Monitor; **jangan langgar** "Ringkasan Monitor ke bawah jangan diubah".
+  - ⬜ **Review Hasil Akhir** (`app/(app)/review-hasil/page.tsx` + `[employeeId]/page.tsx`) — masih
+    `bg-white`/gray (belum ter-token walau disebut di commit lama).
+  - ⬜ **Beranda / landing per peran** (`app/(app)/beranda/page.tsx`, `cycle-status.tsx`).
+  - ⬜ **Login & Auth** (`app/login/page.tsx`+`login-form.tsx`, `app/auth/lupa-sandi/*`, `app/auth/perbarui-sandi/*`).
+  - ⬜ **`app/(app)/loading.tsx`** (skeleton).
+
 ### Keamanan pra-go-live
 - ✅ **Sandi awal seragam — TERATASI (2026-07-01):** **Kirim Undangan Massal sudah dijalankan** →
   tiap akun kini punya **sandi unik per orang** (otomatis di-set saat onboarding). App **sudah live &

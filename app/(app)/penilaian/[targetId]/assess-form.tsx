@@ -173,6 +173,29 @@ export function AssessForm({
   }
   const atLastQuant = curPos >= total - 1;
 
+  /**
+   * ENTER = lanjut ke pertanyaan berikutnya (permintaan pengguna — terutama di HP, di mana
+   * tombol "Selanjutnya" sering tertutup keyboard sehingga tap-nya tak kena). Shift+Enter tetap
+   * membuat baris baru untuk komentar panjang. `blur()` dipanggil lebih dulu agar keyboard HP
+   * menutup & efek navigasi (gulir ke pertanyaan) berjalan pada layar yang sudah stabil.
+   */
+  function onCommentKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    e.preventDefault();
+    e.currentTarget.blur();
+    goNext();
+  }
+
+  // Enter pada esai kualitatif → pindah ke kolom esai berikutnya (terakhir → lepas fokus).
+  const qualRefs = useRef<(HTMLTextAreaElement | null)[]>([]);
+  function onQualKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>, i: number) {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    e.preventDefault();
+    const nextField = qualRefs.current[i + 1];
+    if (nextField) nextField.focus();
+    else e.currentTarget.blur();
+  }
+
   // Simpan Draf manual.
   async function saveDraft() {
     setBusy(true); setError(null);
@@ -241,23 +264,23 @@ export function AssessForm({
     const remaining = Math.max(0, mandatoryTotal - doneNow);
     return (
       <div className="flex flex-col items-center text-center py-10 px-4">
-        <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
-          <CheckCircle2 className="w-9 h-9 text-emerald-700" />
+        <div className="w-16 h-16 rounded-full bg-brand-tint flex items-center justify-center mb-4">
+          <CheckCircle2 className="w-9 h-9 text-brand" />
         </div>
-        <h2 className="text-lg font-extrabold text-gray-900">Penilaian Terkirim ✓</h2>
-        <p className="text-sm text-gray-600 mt-1.5 max-w-md">
-          Penilaian untuk <span className="font-bold text-gray-800">{targetName}</span> berhasil dikirim.
+        <h2 className="text-lg font-extrabold text-ink">Penilaian Terkirim ✓</h2>
+        <p className="text-sm text-ink-soft mt-1.5 max-w-md">
+          Penilaian untuk <span className="font-bold text-ink">{targetName}</span> berhasil dikirim.
           Anda masih bisa <span className="font-semibold">mengeditnya kapan saja</span> dari Daftar Penilaian.
         </p>
         {mandatoryTotal > 0 && (
-          <div className={`mt-4 px-4 py-2.5 rounded-xl border text-sm font-bold ${remaining > 0 ? 'bg-amber-50 border-amber-300 text-amber-900' : 'bg-emerald-50 border-emerald-300 text-emerald-800'}`}>
+          <div className={`mt-4 px-4 py-2.5 rounded-panel border text-sm font-bold ${remaining > 0 ? 'bg-warn-tint border-warn-ink/30 text-warn-ink' : 'bg-brand-tint border-brand-ink/25 text-brand-ink'}`}>
             {remaining > 0
               ? <>Penilaian wajib: {doneNow}/{mandatoryTotal} selesai · <span className="font-extrabold">masih ada {remaining} lagi</span> untuk dikerjakan.</>
               : <>🎉 Semua {mandatoryTotal} penilaian wajib Anda sudah selesai!</>}
           </div>
         )}
         <button type="button" onClick={() => { router.push('/penilaian'); router.refresh(); }}
-          className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white">
+          className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2.5 rounded-control bg-brand hover:bg-brand-ink text-white">
           <ChevronLeft className="w-4 h-4" /> {remaining > 0 ? 'Lanjut ke Penilaian Berikutnya' : 'Kembali ke Daftar Penilaian'}
         </button>
       </div>
@@ -267,26 +290,26 @@ export function AssessForm({
   return (
     <div className="space-y-4">
       {/* Bar progres + indikator auto-simpan */}
-      <div className="bg-white border border-gray-200 rounded-xl p-3 space-y-2">
+      <div className="bg-surface border border-line rounded-panel p-3 space-y-2">
         <div className="flex items-center gap-3">
-          <div className="h-2.5 bg-gray-100 flex-1 rounded-full overflow-hidden">
-            <div style={{ width: `${pct}%` }} className="h-full bg-emerald-600 rounded-full transition-all" />
+          <div className="h-2.5 bg-neutral-tint flex-1 rounded-full overflow-hidden">
+            <div style={{ width: `${pct}%` }} className="h-full bg-brand rounded-full transition-all" />
           </div>
-          <span className="text-xs font-bold text-emerald-800 font-mono shrink-0">{progDone}/{progTotal} · {pct}%</span>
+          <span className="text-xs font-bold text-brand-ink data-value shrink-0">{progDone}/{progTotal} · {pct}%</span>
         </div>
         <AutoSaveHint state={saveState} disabled={initialStatus === 'submitted'} />
       </div>
 
       {/* Panduan Penilaian Umum (statis, berlaku semua pertanyaan) */}
-      <div className="bg-stone-50/70 border border-stone-200 rounded-xl">
+      <div className="bg-neutral-tint border border-line rounded-panel">
         <button type="button" onClick={() => setGuideOpen((o) => !o)}
           className="w-full flex items-center gap-2 px-4 py-2.5 text-left">
-          <ClipboardList className="w-4 h-4 text-emerald-800 shrink-0" />
-          <span className="text-xs font-extrabold text-gray-800 flex-1">Panduan Penilaian Umum</span>
-          <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${guideOpen ? 'rotate-180' : ''}`} />
+          <ClipboardList className="w-4 h-4 text-brand shrink-0" />
+          <span className="text-xs font-extrabold text-ink flex-1">Panduan Penilaian Umum</span>
+          <ChevronDown className={`w-4 h-4 text-ink-faint transition-transform ${guideOpen ? 'rotate-180' : ''}`} />
         </button>
         {guideOpen && (
-          <ul className="list-disc list-inside space-y-1.5 px-4 pb-3 text-[11px] text-gray-600 leading-relaxed">
+          <ul className="list-disc list-inside space-y-1.5 px-4 pb-3 text-[11px] text-ink-soft leading-relaxed">
             {GENERAL_GUIDE.map((g, i) => <li key={i}>{g}</li>)}
           </ul>
         )}
@@ -295,7 +318,7 @@ export function AssessForm({
       <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-4">
         {/* RAIL aspek — HP: strip horizontal yang bisa di-geser; layar lebar (lg): vertikal. */}
         <div>
-          <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Aspek Budaya</label>
+          <label className="block text-[11px] font-bold text-ink-faint uppercase tracking-wider mb-1.5">Aspek Budaya</label>
           <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
           {aspectGroups.map((g) => {
             const items = flat.filter((f) => f.gid === g.id);
@@ -304,24 +327,24 @@ export function AssessForm({
             const active = activeGroup === g.id;
             return (
               <button key={g.id} type="button" onClick={() => selectGroup(g.id)}
-                className={`shrink-0 w-[150px] lg:w-full p-3 rounded-xl border text-left transition-all ${active ? 'border-emerald-700 bg-emerald-50/60 ring-1 ring-emerald-700' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
-                <span className={`text-xs leading-tight block ${active ? 'font-extrabold text-emerald-950' : 'font-semibold text-gray-700'}`}>{g.name}</span>
-                <span className="flex items-center justify-between mt-1.5 text-[10px] font-bold text-gray-500">
+                className={`shrink-0 w-[150px] lg:w-full p-3 rounded-control border text-left transition-all ${active ? 'border-brand bg-brand-tint ring-1 ring-brand' : 'border-line bg-surface hover:bg-neutral-tint'}`}>
+                <span className={`text-xs leading-tight block ${active ? 'font-extrabold text-brand-ink' : 'font-semibold text-ink-soft'}`}>{g.name}</span>
+                <span className="flex items-center justify-between mt-1.5 text-[10px] font-bold text-ink-faint">
                   <span>{items.length} indikator</span>
                   {all
-                    ? <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-                    : <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-mono">{done}/{items.length}</span>}
+                    ? <CheckCircle2 className="w-4 h-4 text-brand" />
+                    : <span className="px-1.5 py-0.5 rounded-control bg-neutral-tint text-ink-soft data-value">{done}/{items.length}</span>}
                 </span>
               </button>
             );
           })}
           {hasQual && (
             <button type="button" onClick={() => selectGroup(QUAL)}
-              className={`shrink-0 w-[150px] lg:w-full p-3 rounded-xl border text-left transition-all ${activeGroup === QUAL ? 'border-indigo-600 bg-indigo-50/60 ring-1 ring-indigo-600' : 'border-gray-200 bg-white hover:bg-gray-50'}`}>
-              <span className={`text-xs leading-tight block ${activeGroup === QUAL ? 'font-extrabold text-indigo-950' : 'font-semibold text-gray-700'}`}>Umpan Balik Kualitatif</span>
-              <span className="flex items-center justify-between mt-1.5 text-[10px] font-bold text-gray-500">
+              className={`shrink-0 w-[150px] lg:w-full p-3 rounded-control border text-left transition-all ${activeGroup === QUAL ? 'border-brand bg-brand-tint ring-1 ring-brand' : 'border-line bg-surface hover:bg-neutral-tint'}`}>
+              <span className={`text-xs leading-tight block ${activeGroup === QUAL ? 'font-extrabold text-brand-ink' : 'font-semibold text-ink-soft'}`}>Umpan Balik Kualitatif</span>
+              <span className="flex items-center justify-between mt-1.5 text-[10px] font-bold text-ink-faint">
                 <span>{questions.length} pertanyaan</span>
-                <span className={`px-1.5 py-0.5 rounded font-mono ${qualDone >= questions.length ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>{qualDone}/{questions.length}</span>
+                <span className={`px-1.5 py-0.5 rounded-control data-value ${qualDone >= questions.length ? 'bg-brand-tint text-brand-ink' : 'bg-neutral-tint text-ink-soft'}`}>{qualDone}/{questions.length}</span>
               </span>
             </button>
           )}
@@ -331,28 +354,34 @@ export function AssessForm({
         {/* EDITOR */}
         <div ref={editorRef} className="min-w-0 scroll-mt-24">
           {activeGroup === QUAL ? (
-            <div className="border border-gray-200 rounded-2xl p-5 space-y-4">
-              <h3 className="text-sm font-extrabold text-indigo-800">Umpan Balik Kualitatif <span className="text-[10px] font-bold text-rose-500">(wajib diisi semua)</span></h3>
-              {questions.map((q) => {
+            <div className="border border-line rounded-panel p-5 space-y-4">
+              <h3 className="text-sm font-extrabold text-ink">Umpan Balik Kualitatif <span className="text-[10px] font-bold text-danger-ink">(wajib diisi semua)</span></h3>
+              <p className="text-[10px] text-ink-faint -mt-2">
+                Tekan <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Enter</kbd> untuk pindah ke pertanyaan berikutnya
+                · <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Shift+Enter</kbd> baris baru.
+              </p>
+              {questions.map((q, qi) => {
                 const filled = (answers[q.id] ?? '').trim().length > 0;
                 return (
                   <div key={q.id}>
-                    <p className="text-sm text-gray-700 mb-1.5">{q.text} <span className="text-rose-500">*</span></p>
+                    <p className="text-sm text-ink-soft mb-1.5">{q.text} <span className="text-danger-ink">*</span></p>
                     <textarea rows={2} value={answers[q.id]} onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))}
+                      ref={(el) => { qualRefs.current[qi] = el; }}
+                      onKeyDown={(e) => onQualKeyDown(e, qi)}
                       placeholder="Tulis jawaban Anda…"
-                      className={`w-full text-xs px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 ${filled ? 'border-gray-200' : 'border-rose-200'}`} />
-                    {!filled && <p className="text-[10px] text-rose-500 font-semibold mt-0.5">Wajib diisi</p>}
+                      className={`w-full text-xs px-3 py-2 border rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint ${filled ? 'border-line' : 'border-danger-ink/40'}`} />
+                    {!filled && <p className="text-[10px] text-danger-ink font-semibold mt-0.5">Wajib diisi</p>}
                   </div>
                 );
               })}
               {/* Navigasi: kembali ke indikator kuantitatif terakhir (simetri dgn "Selanjutnya"). */}
               {total > 0 && (
-                <div className="flex justify-between items-center pt-2 border-t border-gray-100 text-xs font-bold text-gray-600">
+                <div className="flex justify-between items-center pt-2 border-t border-line-soft text-xs font-bold text-ink-soft">
                   <button type="button" onClick={() => goTo(total - 1)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-200 bg-white hover:bg-gray-50 rounded-lg">
+                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-line bg-surface hover:bg-neutral-tint rounded-control">
                     <ChevronLeft className="w-3.5 h-3.5" /> Sebelumnya
                   </button>
-                  <span className="font-mono text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Langkah terakhir</span>
+                  <span className="data-value text-[10px] text-ink-faint bg-neutral-tint px-2 py-0.5 rounded-control">Langkah terakhir</span>
                 </div>
               )}
             </div>
@@ -365,59 +394,59 @@ export function AssessForm({
                   const filled = indDone(f.id);
                   return (
                     <button key={f.id} type="button" onClick={() => setActiveId(f.id)}
-                      className={`px-3 py-2 rounded-xl border text-left min-w-[110px] max-w-[180px] flex-1 transition-all ${isActive ? 'border-sky-500 bg-sky-50 ring-1 ring-sky-500' : filled ? 'border-emerald-200 bg-emerald-50/40' : 'border-gray-200 bg-gray-50/60 hover:bg-gray-100'}`}>
-                      <span className="text-[10px] text-gray-500 font-bold block">Q{f.qNum}{filled ? ' ✓' : ''}</span>
-                      <span className="text-[11px] leading-tight line-clamp-1 text-gray-700">{f.text}</span>
+                      className={`px-3 py-2 rounded-control border text-left min-w-[110px] max-w-[180px] flex-1 transition-all ${isActive ? 'border-brand bg-brand-tint ring-1 ring-brand' : filled ? 'border-brand-ink/25 bg-brand-tint/50' : 'border-line bg-neutral-tint hover:bg-neutral-tint/70'}`}>
+                      <span className="text-[10px] text-ink-faint font-bold block">Q{f.qNum}{filled ? ' ✓' : ''}</span>
+                      <span className="text-[11px] leading-tight line-clamp-1 text-ink-soft">{f.text}</span>
                     </button>
                   );
                 })}
               </div>
 
               {/* Editor satu indikator */}
-              <div className="border border-gray-200 rounded-2xl p-5 space-y-4">
+              <div className="border border-line rounded-panel p-5 space-y-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-extrabold text-sm text-gray-900">Q{cur.qNum}: {cur.text}</h3>
+                  <h3 className="font-extrabold text-sm text-ink">Q{cur.qNum}: {cur.text}</h3>
                   {(ratings[cur.id] != null || (comments[cur.id] ?? '') !== '') && (
                     <button type="button" title="Bersihkan jawaban indikator ini"
                       onClick={() => { setRatings((p) => ({ ...p, [cur.id]: null })); setComments((p) => ({ ...p, [cur.id]: '' })); }}
-                      className="p-1 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg shrink-0"><X className="w-4 h-4" /></button>
+                      className="p-1 text-ink-faint hover:text-danger-ink hover:bg-danger-tint rounded-control shrink-0"><X className="w-4 h-4" /></button>
                   )}
                 </div>
 
                 {/* Deskripsi indikator (opsional, dari Kelola Pertanyaan) */}
                 {cur.description && (
-                  <div className="border border-sky-200 border-l-4 border-l-sky-500 bg-sky-100/80 p-3.5 rounded-lg shadow-sm text-[13px] text-sky-950 leading-relaxed font-semibold">
+                  <div className="border border-line border-l-4 border-l-brand bg-brand-tint/40 p-3.5 rounded-control text-[13px] text-ink leading-relaxed font-semibold">
                     {cur.description}
                   </div>
                 )}
 
                 {/* Panduan rating per level (opsional) */}
                 {cur.ratingGuide && Object.keys(cur.ratingGuide).length > 0 && (
-                  <div className="bg-stone-50/70 border border-stone-200 rounded-xl p-3 space-y-1.5">
-                    <span className="text-[10px] font-extrabold text-gray-700 uppercase tracking-wide flex items-center gap-1.5">
-                      <ClipboardList className="w-3.5 h-3.5 text-emerald-800" /> Panduan Rating
+                  <div className="bg-neutral-tint border border-line rounded-panel p-3 space-y-1.5">
+                    <span className="text-[10px] font-extrabold text-ink uppercase tracking-wide flex items-center gap-1.5">
+                      <ClipboardList className="w-3.5 h-3.5 text-brand" /> Panduan Rating
                     </span>
                     {[5, 4, 3, 2, 1].map((n) => cur.ratingGuide?.[String(n)] ? (
                       <div key={n} className="flex gap-2 items-start text-[11px]">
-                        <span className="font-black text-emerald-800 font-mono w-4 text-center shrink-0 rounded bg-emerald-50 border border-emerald-100">{n}</span>
-                        <span className="text-gray-700 leading-snug"><strong className="text-gray-900">{RATING_LABELS[n]}</strong> · {cur.ratingGuide![String(n)]}</span>
+                        <span className="font-black text-brand-ink data-value w-4 text-center shrink-0 rounded-control bg-brand-tint border border-brand-ink/15">{n}</span>
+                        <span className="text-ink-soft leading-snug"><strong className="text-ink">{RATING_LABELS[n]}</strong> · {cur.ratingGuide![String(n)]}</span>
                       </div>
                     ) : null)}
                   </div>
                 )}
 
                 {/* Rating berlabel */}
-                <div className="bg-gray-50/60 border border-gray-200 rounded-xl p-3">
-                  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2">Rating (klik untuk pilih)</span>
+                <div className="bg-neutral-tint border border-line rounded-panel p-3">
+                  <span className="text-[10px] font-black text-ink-faint uppercase tracking-widest block mb-2">Rating (klik untuk pilih)</span>
                   <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
                     {[1, 2, 3, 4, 5].map((n) => {
                       const sel = ratings[cur.id] === n;
                       return (
                         <button key={n} type="button" onClick={() => setRatings((p) => ({ ...p, [cur.id]: n }))}
-                          className={`flex flex-col items-center gap-0.5 py-2.5 rounded-lg border font-extrabold transition-all ${sel ? 'bg-emerald-700 text-white border-emerald-700 shadow' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'}`}>
-                          <span className="text-lg leading-none">{n}</span>
+                          className={`flex flex-col items-center gap-0.5 py-2.5 rounded-control border font-extrabold transition-all ${sel ? 'bg-brand text-white border-brand shadow-2xs' : 'bg-surface text-ink-soft border-line hover:bg-neutral-tint'}`}>
+                          <span className="text-lg leading-none data-value">{n}</span>
                           {/* Label mungil hanya di layar lebar; di HP digantikan baris "Pilihan Anda" di bawah. */}
-                          <span className={`hidden sm:block text-[9px] text-center font-bold leading-tight ${sel ? 'text-emerald-50' : 'text-gray-500'}`}>{RATING_LABELS[n]}</span>
+                          <span className={`hidden sm:block text-[9px] text-center font-bold leading-tight ${sel ? 'text-white/85' : 'text-ink-faint'}`}>{RATING_LABELS[n]}</span>
                         </button>
                       );
                     })}
@@ -425,98 +454,104 @@ export function AssessForm({
                   {/* Label terbaca untuk rating terpilih — terutama berguna di HP (label tombol disembunyikan). */}
                   <div className="mt-2 text-center sm:hidden">
                     {ratings[cur.id] != null ? (
-                      <span className="text-xs font-bold text-emerald-800">Pilihan Anda: {ratings[cur.id]} · {RATING_LABELS[ratings[cur.id]!]}</span>
+                      <span className="text-xs font-bold text-brand-ink">Pilihan Anda: {ratings[cur.id]} · {RATING_LABELS[ratings[cur.id]!]}</span>
                     ) : (
-                      <span className="text-xs font-semibold text-gray-400">Pilih rating 1 (Hampir Tidak Pernah) – 5 (Selalu)</span>
+                      <span className="text-xs font-semibold text-ink-faint">Pilih rating 1 (Hampir Tidak Pernah) – 5 (Selalu)</span>
                     )}
                   </div>
                 </div>
 
                 {/* Komentar WAJIB */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider flex items-center gap-1">
-                    Komentar / Bukti Perilaku <span className="text-rose-500">*</span>
+                  <label className="text-[10px] font-extrabold text-brand-ink uppercase tracking-wider flex items-center gap-1">
+                    Komentar / Bukti Perilaku <span className="text-danger-ink">*</span>
                   </label>
                   <textarea rows={3} value={comments[cur.id] ?? ''} onChange={(e) => setComments((p) => ({ ...p, [cur.id]: e.target.value }))}
+                    onKeyDown={onCommentKeyDown}
                     placeholder="Jelaskan rating dengan contoh konkret (situasi nyata, perilaku yang terlihat, frekuensi)."
-                    className="w-full text-xs p-3 border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-700 resize-y" />
-                  <div className="flex justify-end text-[10px]">
-                    <span className={(comments[cur.id] ?? '').trim().length >= 4 ? 'text-emerald-700 font-extrabold' : 'text-rose-500 font-extrabold font-mono'}>
+                    className="w-full text-xs p-3 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint resize-y" />
+                  <div className="flex flex-wrap justify-between items-center gap-2 text-[10px]">
+                    <span className="text-ink-faint">
+                      Tekan <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Enter</kbd> untuk lanjut ke pertanyaan berikutnya
+                      · <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Shift+Enter</kbd> baris baru
+                    </span>
+                    <span className={(comments[cur.id] ?? '').trim().length >= 4 ? 'text-brand-ink font-extrabold' : 'text-danger-ink font-extrabold data-value'}>
                       {(comments[cur.id] ?? '').trim().length >= 4 ? `${(comments[cur.id] ?? '').trim().length} karakter` : 'Wajib · min. 4 karakter'}
                     </span>
                   </div>
                 </div>
 
                 {/* Navigasi Sebelumnya / Selanjutnya */}
-                <div className="flex justify-between items-center pt-2 border-t border-gray-100 text-xs font-bold text-gray-600">
+                <div className="flex justify-between items-center pt-2 border-t border-line-soft text-xs font-bold text-ink-soft">
                   <button type="button" disabled={curPos <= 0} onClick={() => goTo(curPos - 1)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-200 bg-white hover:bg-gray-50 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed">
+                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-line bg-surface hover:bg-neutral-tint rounded-control disabled:opacity-40 disabled:cursor-not-allowed">
                     <ChevronLeft className="w-3.5 h-3.5" /> Sebelumnya
                   </button>
-                  <span className="font-mono text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Q{cur.qNum}/{total}</span>
+                  <span className="data-value text-[10px] text-ink-faint bg-neutral-tint px-2 py-0.5 rounded-control">Q{cur.qNum}/{total}</span>
                   <button type="button" disabled={atLastQuant && !hasQual} onClick={goNext}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-200 bg-white hover:bg-gray-50 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed">
+                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-line bg-surface hover:bg-neutral-tint rounded-control disabled:opacity-40 disabled:cursor-not-allowed">
                     {atLastQuant && hasQual ? 'Ke Umpan Balik Kualitatif' : 'Selanjutnya'} <ChevronLeft className="w-3.5 h-3.5 rotate-180" />
                   </button>
                 </div>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-500">Belum ada indikator pada periode ini.</p>
+            <p className="text-sm text-ink-soft">Belum ada indikator pada periode ini.</p>
           )}
         </div>
       </div>
 
-      {error && <p className="text-xs text-rose-600 font-semibold">{error}</p>}
+      {error && <p className="text-xs text-danger-ink font-semibold">{error}</p>}
 
       {/* Konfirmasi Kirim */}
       {confirmSend && (
-        <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <p className="text-sm text-emerald-950 font-semibold">
+        <div className="bg-brand-tint border border-brand-ink/25 rounded-panel p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-sm text-brand-ink font-semibold">
             Kirim penilaian untuk <span className="font-extrabold">{targetName}</span>?
-            <span className="block text-[11px] font-normal text-emerald-800 mt-0.5">Setelah dikirim, Anda tetap bisa mengeditnya kapan saja.</span>
+            <span className="block text-[11px] font-normal text-brand-ink/80 mt-0.5">Setelah dikirim, Anda tetap bisa mengeditnya kapan saja.</span>
           </p>
           <div className="flex gap-2 shrink-0">
             <button type="button" disabled={busy} onClick={cancelSend}
-              className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-lg text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-60">
+              className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-control text-ink-soft bg-surface border border-line hover:bg-neutral-tint disabled:opacity-60">
               Batal
             </button>
             <button type="button" disabled={busy} onClick={doSend}
-              className="inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
-              <Send className="w-4 h-4 text-emerald-100" /> {busy ? 'Mengirim…' : 'Ya, Kirim Sekarang'}
+              className="inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
+              <Send className="w-4 h-4 text-white/85" /> {busy ? 'Mengirim…' : 'Ya, Kirim Sekarang'}
             </button>
           </div>
         </div>
       )}
 
       {/* Kontrol bawah */}
-      <div className="bg-gray-50 border border-gray-200 rounded-2xl p-3 flex flex-col sm:flex-row justify-between gap-2">
+      <div className="bg-neutral-tint border border-line rounded-panel p-3 flex flex-col sm:flex-row justify-between gap-2">
         <div className="flex gap-2">
           <button type="button" disabled={busy} onClick={() => router.push('/penilaian')}
-            className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-lg text-gray-600 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-60">
-            <XCircle className="w-4 h-4 text-gray-500" /> Batal
+            className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-control text-ink-soft bg-surface border border-line hover:bg-neutral-tint disabled:opacity-60">
+            <XCircle className="w-4 h-4 text-ink-faint" /> Batal
           </button>
           {hasDraft && (
             <button type="button" disabled={busy} onClick={discard}
-              className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-lg text-rose-600 bg-white border border-rose-300 hover:bg-rose-50 disabled:opacity-60">
+              className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-control text-danger-ink bg-surface border border-danger-ink/30 hover:bg-danger-tint disabled:opacity-60">
               <Trash2 className="w-4 h-4" /> Buang Draf
             </button>
           )}
         </div>
         <div className="flex gap-2">
           <button type="button" disabled={busy} onClick={saveDraft}
-            className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-lg text-indigo-900 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-60">
-            <Save className="w-4 h-4 text-indigo-700" /> Simpan Draf
+            className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-control text-ink-soft bg-surface border border-line hover:bg-neutral-tint disabled:opacity-60">
+            <Save className="w-4 h-4 text-ink-faint" /> Simpan Draf
           </button>
-          {/* Tombol adaptif: belum lengkap → "Lengkapi" (kuning, tetap bisa diklik untuk
-              memandu ke yang kurang); lengkap → "Kirim" (hijau). */}
+          {/* Tombol adaptif: belum lengkap → "Lengkapi" (ORANYE SOLID — sengaja mencolok agar
+              pengguna sadar masih ada yang kurang; teks gelap di atas oranye = kontras tinggi);
+              lengkap → "Kirim" (hijau brand). */}
           <button type="button" disabled={busy || total === 0 || saveState === 'saving' || confirmSend} onClick={submit}
-            className={`inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-lg disabled:opacity-50 ${
+            className={`inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-control disabled:opacity-50 ${
               allComplete
-                ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
-                : 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200'
+                ? 'bg-brand hover:bg-brand-ink text-white'
+                : 'bg-warn text-ink border border-warn-ink/40 hover:brightness-95 shadow-2xs'
             }`}>
-            <Send className={`w-4 h-4 ${allComplete ? 'text-emerald-100' : 'text-amber-700'}`} />
+            <Send className={`w-4 h-4 ${allComplete ? 'text-white/85' : 'text-ink'}`} />
             {busy ? 'Memproses…' : allComplete ? 'Kirim Penilaian 360°' : `Lengkapi Penilaian (${remaining} tersisa)`}
           </button>
         </div>
@@ -539,11 +574,15 @@ export function AssessForm({
 /** Indikator kecil status auto-simpan draf. */
 function AutoSaveHint({ state, disabled }: { state: SaveState; disabled: boolean }) {
   if (disabled) {
-    return <p className="text-[11px] text-gray-400">Penilaian sudah terkirim — perubahan disimpan saat Anda menekan Kirim.</p>;
+    return <p className="text-[11px] text-ink-faint">Penilaian sudah terkirim — perubahan disimpan saat Anda menekan Kirim.</p>;
   }
-  if (state === 'saving') return <p className="text-[11px] text-gray-500 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Menyimpan otomatis…</p>;
-  if (state === 'pending') return <p className="text-[11px] text-amber-600 font-semibold">Perubahan belum disimpan…</p>;
-  if (state === 'saved') return <p className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tersimpan otomatis</p>;
-  if (state === 'error') return <p className="text-[11px] text-rose-600 font-semibold">Gagal menyimpan otomatis — tekan “Simpan Draf”.</p>;
-  return <p className="text-[11px] text-gray-400">Draf tersimpan otomatis saat Anda mengisi.</p>;
+  if (state === 'saving') return <p className="text-[11px] text-ink-soft flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Menyimpan otomatis…</p>;
+  if (state === 'pending') return (
+    <p className="text-[11px] font-bold text-ink inline-flex items-center gap-1.5">
+      <span className="w-2 h-2 rounded-full bg-warn animate-pulse" aria-hidden /> Perubahan belum disimpan…
+    </p>
+  );
+  if (state === 'saved') return <p className="text-[11px] text-brand-ink font-semibold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tersimpan otomatis</p>;
+  if (state === 'error') return <p className="text-[11px] text-danger-ink font-semibold">Gagal menyimpan otomatis — tekan “Simpan Draf”.</p>;
+  return <p className="text-[11px] text-ink-faint">Draf tersimpan otomatis saat Anda mengisi.</p>;
 }

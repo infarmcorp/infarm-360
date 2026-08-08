@@ -44,8 +44,8 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     reviewGrant = grantedAccess(grantRows, 'review');
   }
   if (!isAdmin && role !== 'direksi' && role !== 'spv' && !isCoordinator && !reviewGrant) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD / Direksi.</p>
-      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk SPV / HRD / Direksi.</p>
+      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
   // Mode HRD (dual-mode): HRD-posisi mode-SPV dibatasi setara SPV (tanpa raw 360°).
@@ -57,7 +57,7 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
 
   const { data: ap } = await supabase
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
   // Apakah subjek = SPV/pemimpin tim (untuk eskalasi Direksi→SPV & pelabelan tombol HRD).
   const subjectIsSpv = await isDireksiReviewSubject(employeeId);
@@ -78,15 +78,15 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     const inScope = !!tgt && employeeInScopes(reviewGrant.scopes, me?.dept ?? '', user.id, { id: employeeId, dept: tgt.dept ?? null }, teamIds);
     if (!inScope) {
       return <Shell>
-        <Link href="/admin/laporan" className="text-xs text-gray-500 hover:underline no-print">← Review Hasil Akhir</Link>
-        <p className="text-sm text-gray-500 mt-3">Pegawai ini di luar lingkup akses yang diberikan kepada Anda.</p>
+        <Link href="/admin/laporan" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Review Hasil Akhir</Link>
+        <p className="text-sm text-ink-soft mt-3">Pegawai ini di luar lingkup akses yang diberikan kepada Anda.</p>
       </Shell>;
     }
     const data = await loadReport(admin, employeeId, ap);
     if (!data) {
       return <Shell>
-        <Link href="/admin/laporan" className="text-xs text-gray-500 hover:underline no-print">← Review Hasil Akhir</Link>
-        <p className="text-sm text-gray-500 mt-3">Data tidak ditemukan.</p>
+        <Link href="/admin/laporan" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Review Hasil Akhir</Link>
+        <p className="text-sm text-ink-soft mt-3">Data tidak ditemukan.</p>
       </Shell>;
     }
     const canEditReport = reviewGrant.canEdit;       // Meringkas+ → boleh tulis Ringkasan Aspek
@@ -122,15 +122,15 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
 
     return (
       <Shell>
-        <Link href="/admin/laporan" className="text-xs text-gray-500 hover:underline no-print">← Review Hasil Akhir</Link>
+        <Link href="/admin/laporan" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Review Hasil Akhir</Link>
         <div className="mt-2">
           {!canEditReport && (
-            <div className="mb-3 text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 no-print">
+            <div className="mb-3 text-[11px] text-ink-soft bg-neutral-tint border border-line rounded-control px-3 py-2 no-print">
               Tampilan <strong>lihat-saja</strong> — akses dari HRD (lingkup terbatas). Perubahan laporan hanya oleh yang berwenang.
             </div>
           )}
           {canEditReport && !canFinalizeReport && (
-            <div className="mb-3 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 no-print">
+            <div className="mb-3 text-[11px] text-warn-ink bg-warn-tint border border-warn-ink/25 rounded-control px-3 py-2 no-print">
               Akses <strong>meringkas</strong> — Anda dapat menulis <strong>Ringkasan Aspek</strong>. Finalisasi &amp; kalibrasi skor tetap wewenang HRD.
             </div>
           )}
@@ -184,14 +184,14 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     if (!data) {
       return (
         <Shell>
-          <Link href="/laporan-tim" className="text-xs text-gray-500 hover:underline no-print">← Laporan Kinerja Tim</Link>
-          <p className="text-sm text-gray-500 mt-3">Laporan belum dirilis HRD untuk ditinjau.</p>
+          <Link href="/laporan-tim" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Laporan Kinerja Tim</Link>
+          <p className="text-sm text-ink-soft mt-3">Laporan belum dirilis HRD untuk ditinjau.</p>
         </Shell>
       );
     }
     return (
       <Shell>
-        <Link href="/laporan-tim" className="text-xs text-gray-500 hover:underline no-print">← Laporan Kinerja Tim</Link>
+        <Link href="/laporan-tim" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Laporan Kinerja Tim</Link>
         <div className="mt-2">
           <ReportDoc data={data} anonymize hideAssessorComments />
           {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
@@ -207,8 +207,8 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   if (role === 'direksi') {
     return (
       <Shell>
-        <Link href="/laporan-tim" className="text-xs text-gray-500 hover:underline no-print">← Laporan Kinerja Tim</Link>
-        <p className="text-sm text-gray-500 mt-3">Direksi hanya dapat meninjau laporan Supervisor (SPV).</p>
+        <Link href="/laporan-tim" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Laporan Kinerja Tim</Link>
+        <p className="text-sm text-ink-soft mt-3">Direksi hanya dapat meninjau laporan Supervisor (SPV).</p>
       </Shell>
     );
   }
@@ -221,8 +221,8 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     if (!data) {
       return (
         <Shell>
-          <Link href="/laporan-tim" className="text-xs text-gray-500 hover:underline no-print">← Laporan Kinerja Tim</Link>
-          <p className="text-sm text-gray-500 mt-3">
+          <Link href="/laporan-tim" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Laporan Kinerja Tim</Link>
+          <p className="text-sm text-ink-soft mt-3">
             Laporan belum dirilis HRD untuk ditinjau, atau di luar lingkup tim koordinasi Anda.
           </p>
         </Shell>
@@ -230,7 +230,7 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     }
     return (
       <Shell>
-        <Link href="/laporan-tim" className="text-xs text-gray-500 hover:underline no-print">← Laporan Kinerja Tim</Link>
+        <Link href="/laporan-tim" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Laporan Kinerja Tim</Link>
         <div className="mt-2">
           <ReportDoc data={data} anonymize hideAssessorComments />
           {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
@@ -256,8 +256,8 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     if (!data) {
       return (
         <Shell>
-          <Link href={back.href} className="text-xs text-gray-500 hover:underline no-print">{back.label}</Link>
-          <p className="text-sm text-gray-500 mt-3">
+          <Link href={back.href} className="text-xs text-ink-faint hover:text-ink-soft no-print">{back.label}</Link>
+          <p className="text-sm text-ink-soft mt-3">
             Laporan belum dirilis HRD untuk ditinjau, atau di luar lingkup tim Anda.
           </p>
         </Shell>
@@ -265,7 +265,7 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
     }
     return (
       <Shell>
-        <Link href={back.href} className="text-xs text-gray-500 hover:underline no-print">{back.label}</Link>
+        <Link href={back.href} className="text-xs text-ink-faint hover:text-ink-soft no-print">{back.label}</Link>
         <div className="mt-2">
           <ReportDoc data={data} anonymize hideAssessorComments />
           {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
@@ -280,8 +280,8 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   // Direksi tak sampai di sini (diblok di atas); asSpv sudah ditangani → sisanya = HRD admin.
   const data = await loadReport(supabase, employeeId, ap);
   if (!data) {
-    return <Shell><p className="text-sm text-gray-500">Data tidak ditemukan atau di luar lingkup akses Anda.</p>
-      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><p className="text-sm text-ink-soft">Data tidak ditemukan atau di luar lingkup akses Anda.</p>
+      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
   // Deteksi "Skor 360° basi": skor usang bila ada perubahan SETELAH hitung ulang terakhir —
@@ -335,11 +335,11 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   // feedback anonim). Direksi tak sampai di sini (hanya laporan SPV L2, diblok di atas).
   return (
     <Shell>
-      <Link href={back.href} className="text-xs text-gray-500 hover:underline no-print">{back.label}</Link>
+      <Link href={back.href} className="text-xs text-ink-faint hover:text-ink-soft no-print">{back.label}</Link>
       <div className="mt-2">
           {/* Peringatan skor 360° basi: penilaian berubah setelah hitung ulang terakhir. */}
           {isAdmin && score360Stale && (
-            <div className="mb-3 flex items-start gap-2 bg-amber-50 border border-amber-300 rounded-xl p-3 text-[12px] text-amber-900 no-print">
+            <div className="mb-3 flex items-start gap-2 bg-warn-tint border border-warn-ink/30 rounded-panel p-3 text-[12px] text-warn-ink no-print">
               <span aria-hidden>⚠️</span>
               <div>
                 <strong>Skor 360° perlu dihitung ulang.</strong> Penyebab:
@@ -395,8 +395,8 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
+    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
+      <div className="bg-surface border border-line rounded-panel p-5">{children}</div>
     </main>
   );
 }

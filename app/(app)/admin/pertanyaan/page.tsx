@@ -8,6 +8,7 @@ import { AddAspectForm } from './add-aspect-form';
 import { QualManager } from './qual-manager';
 import { CopyQuestionsForm } from './copy-questions-form';
 import { EmptyState } from '@/components/empty-state';
+import { Panel, PanelLabel } from '@/components/panel';
 
 /**
  * Kelola Pertanyaan (HRD): indikator kuantitatif per aspek + pertanyaan kualitatif
@@ -19,8 +20,8 @@ export default async function PertanyaanPage() {
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'pertanyaan')) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin.</p>
-      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin.</p>
+      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
   const { data: ap } = await supabase
@@ -79,46 +80,61 @@ export default async function PertanyaanPage() {
 
   return (
     <Shell>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between mb-7">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Kelola Pertanyaan</h1>
-          <p className="text-sm text-gray-500">Periode aktif: {ap.label} · indikator (rating 1–5) &amp; esai.</p>
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Kelola Pertanyaan</h1>
+          <p className="text-[13.5px] text-ink-soft mt-1">
+            Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span> · indikator (rating 1–5) &amp; esai. Perubahan langsung tampil di form penilaian.
+          </p>
         </div>
-        <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+        <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
 
-      <div className="space-y-3">
-        <CopyQuestionsForm sources={sourcePeriods} />
+      <CopyQuestionsForm sources={sourcePeriods} />
+
+      <Panel className="mt-5">
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <PanelLabel>Aspek &amp; Indikator Kuantitatif</PanelLabel>
+          <span className="text-[11.5px] text-ink-faint">
+            <span className="data-value font-semibold text-ink-soft">{aspectList.length}</span> aspek
+          </span>
+        </div>
+
         <AddAspectForm hasAspects={aspectList.length > 0} />
-        {aspectList.map((a, idx) => (
-          <IndicatorManager
-            key={a.id}
-            aspectId={a.id}
-            aspectName={a.name}
-            canUp={idx > 0}
-            canDown={idx < aspectList.length - 1}
-            indicators={indicators.filter((i) => i.aspect_id === a.id).map((i) => ({
-              id: i.id, text: i.text, is_active: i.is_active,
-              description: i.description ?? '', ratingGuide: i.rating_guide ?? null,
-            }))}
-          />
-        ))}
-        {aspectList.length > 0 && <AddIndicatorForm aspects={aspectList.map((a) => ({ id: a.id, name: a.name }))} />}
-        <QualManager questions={(quals ?? []).map((q) => ({ id: q.id, text: q.text }))} />
-      </div>
 
-      <p className="text-[10px] text-gray-500 italic mt-3">
-        Indikator dinonaktifkan (bukan dihapus) agar skor historis tetap utuh — yang nonaktif
-        tidak muncul di form penilaian baru. Pertanyaan esai dihapus permanen (beserta jawabannya).
+        {aspectList.length > 0 && (
+          <div className="mt-4 flex flex-col gap-3">
+            {aspectList.map((a, idx) => (
+              <IndicatorManager
+                key={a.id}
+                aspectId={a.id}
+                aspectName={a.name}
+                canUp={idx > 0}
+                canDown={idx < aspectList.length - 1}
+                indicators={indicators.filter((i) => i.aspect_id === a.id).map((i) => ({
+                  id: i.id, text: i.text, is_active: i.is_active,
+                  description: i.description ?? '', ratingGuide: i.rating_guide ?? null,
+                }))}
+              />
+            ))}
+          </div>
+        )}
+
+        {aspectList.length > 0 && <AddIndicatorForm aspects={aspectList.map((a) => ({ id: a.id, name: a.name }))} />}
+      </Panel>
+
+      <Panel className="mt-5">
+        <QualManager questions={(quals ?? []).map((q) => ({ id: q.id, text: q.text }))} />
+      </Panel>
+
+      <p className="text-[12px] text-ink-faint mt-5 leading-relaxed">
+        Indikator <strong className="font-semibold text-ink-soft">dinonaktifkan</strong> (bukan dihapus) agar skor historis tetap utuh — yang nonaktif
+        tak muncul di form penilaian baru. Pertanyaan esai dihapus permanen (beserta jawabannya).
       </p>
     </Shell>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
-  );
+  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
 }

@@ -46,8 +46,8 @@ async function pdfReachable(url: string, cache?: Map<string, boolean>): Promise<
 }
 
 /** Lampiran panduan PDF utk penerima, atau undefined bila tak ada/ tak terjangkau. */
-async function panduanFor(role: string, isHrdAdmin: boolean, base: string, cache?: Map<string, boolean>): Promise<EmailAttachment[] | undefined> {
-  const att = panduanAttachment(role, isHrdAdmin, base);
+async function panduanFor(role: string, isHrdAdmin: boolean, base: string, isCoordinator: boolean, cache?: Map<string, boolean>): Promise<EmailAttachment[] | undefined> {
+  const att = panduanAttachment(role, isHrdAdmin, base, isCoordinator);
   if (att && await pdfReachable(att.path, cache)) return [att];
   return undefined;
 }
@@ -254,7 +254,7 @@ export async function sendOnboarding(employeeId: string): Promise<Result> {
   const { data: ap } = await supabase.from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
-  const { data: emp } = await supabase.from('employees').select('name, role, is_hrd_admin, is_active').eq('id', employeeId).maybeSingle();
+  const { data: emp } = await supabase.from('employees').select('name, role, is_hrd_admin, is_coordinator, is_active').eq('id', employeeId).maybeSingle();
   if (!emp) return { ok: false, error: 'Pegawai tidak ditemukan' };
   // Pegawai nonaktif: jangan reset sandi & kirim undangan (akun terkunci, di luar siklus).
   if (!emp.is_active) return { ok: false, error: 'Pegawai berstatus nonaktif — undangan tidak dikirim.' };
@@ -276,7 +276,7 @@ export async function sendOnboarding(employeeId: string): Promise<Result> {
   const names = (targetEmps ?? []).map((e) => e.name);
 
   const base = await appBaseUrl();
-  const attachments = await panduanFor(emp.role, emp.is_hrd_admin, base);
+  const attachments = await panduanFor(emp.role, emp.is_hrd_admin, base, emp.is_coordinator);
   const send = await sendEmail({
     to: email,
     subject: `Undangan & Info Akun — Infarm 360° (${ap.label})`,
@@ -313,7 +313,7 @@ export async function massOnboarding(): Promise<Result> {
   const { data: ap } = await supabase.from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
-  const { data: emps } = await supabase.from('employees').select('id, name, role, is_hrd_admin').eq('is_active', true);
+  const { data: emps } = await supabase.from('employees').select('id, name, role, is_hrd_admin, is_coordinator').eq('is_active', true);
   const list = emps ?? [];
   const nameById = new Map(list.map((e) => [e.id, e.name]));
   const pending = await pendingByAssessor(supabase, ap.id);
@@ -338,7 +338,7 @@ export async function massOnboarding(): Promise<Result> {
     const { error: pwErr } = await admin.auth.admin.updateUserById(emp.id, { password });
     if (pwErr) { failed++; continue; }
     const names = (pending.get(emp.id) ?? []).map((id) => nameById.get(id) ?? '—');
-    const attachments = await panduanFor(emp.role, emp.is_hrd_admin, base, pdfCache);
+    const attachments = await panduanFor(emp.role, emp.is_hrd_admin, base, emp.is_coordinator, pdfCache);
     const r = await sendEmail({
       to: email!,
       subject: `Undangan & Info Akun — Infarm 360° (${ap.label})`,

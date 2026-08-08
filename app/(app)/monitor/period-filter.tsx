@@ -15,7 +15,7 @@ export function PeriodFilter({ periods, current, basePath = '/monitor' }: {
   const [pending, start] = useTransition();
   return (
     <label className="inline-flex items-center gap-2 text-xs">
-      <span className="font-semibold text-gray-600">Periode</span>
+      <span className="font-semibold text-ink-soft">Periode</span>
       <select
         value={current}
         disabled={pending}
@@ -24,7 +24,7 @@ export function PeriodFilter({ periods, current, basePath = '/monitor' }: {
           p.set('period', e.target.value);
           start(() => router.push(`${basePath}?${p.toString()}`));
         }}
-        className="px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-60"
+        className="px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint disabled:opacity-60"
       >
         {periods.map((p) => (
           <option key={p.id} value={p.id}>{p.label}{p.status === 'active' ? ' (aktif)' : ''}</option>

@@ -6,6 +6,7 @@ import { AccButton } from './acc-button';
 import { PLAYER_BOXES, playerLabelOf, type PlayerClass } from '@/lib/scoring';
 import { TREND_META, type Trend } from '@/lib/trend';
 import { displayName } from '@/lib/employee-name';
+import { InfoTip } from '@/components/info-tip';
 
 export type TeamRow = {
   id: string;
@@ -126,14 +127,21 @@ export function TeamTable({
             <thead>
               <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
                 <th className="py-2 pr-3">Anggota</th>
-                <th className="py-2 px-3 text-center">KPI</th>
-                <th className="py-2 px-3 text-center">360°</th>
-                <th className="py-2 px-3 text-center" title={scoreBasis === 'live'
-                  ? 'Dihitung langsung (live) dari KPI + 360° − punishment periode ini'
-                  : 'Angka finalisasi tersimpan (dari laporan)'}>
-                  Skor Akhir <span className="normal-case font-normal text-gray-400">({scoreBasis === 'live' ? 'live' : 'tersimpan'})</span>
+                <th className="py-2 px-3 text-center whitespace-nowrap">
+                  KPI <InfoTip text="Rata-rata capaian KPI bulanan pegawai pada kuartal ini (0–100)." />
                 </th>
-                <th className="py-2 px-3 text-center">4-Box</th>
+                <th className="py-2 px-3 text-center whitespace-nowrap">
+                  360° <InfoTip text="Skor umpan balik 360° kuartal ini — gabungan berbobot penilaian rekan/atasan/bawahan/lintas divisi (Self dikecualikan)." />
+                </th>
+                <th className="py-2 px-3 text-center whitespace-nowrap">
+                  Skor Akhir <span className="normal-case font-normal text-gray-400">({scoreBasis === 'live' ? 'live' : 'tersimpan'})</span>
+                  <InfoTip text={scoreBasis === 'live'
+                    ? 'Dihitung langsung (live): 50% KPI + 50% Skor 360°, dikurangi punishment. Bila 360° nonaktif = 100% KPI.'
+                    : 'Angka finalisasi tersimpan dari laporan: 50% KPI + 50% Skor 360° − punishment (100% KPI bila 360° nonaktif).'} />
+                </th>
+                <th className="py-2 px-3 text-center whitespace-nowrap">
+                  4-Box <InfoTip text="Klasifikasi talenta KPI×360° (ambang 80): A (keduanya ≥80), B-Culture (360°≥80), B-KPI (KPI≥80), C (keduanya <80)." />
+                </th>
                 <th className={`py-2 px-3 text-center ${showStatus || showAcc ? '' : 'pr-0'}`}>Trend KPI</th>
                 {showStatus && <th className="py-2 px-3 text-center">Status</th>}
                 {showAcc && <th className="py-2 pl-3 text-right">ACC</th>}

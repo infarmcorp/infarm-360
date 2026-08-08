@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { AkunForm } from './akun-form';
+import { PanduanCard } from './panduan-card';
+import { panduanFor, panduanHref, PANDUAN_VERSION, PANDUAN_UPDATED_LABEL } from '@/lib/panduan';
 
 const ROLE_LABEL: Record<string, string> = {
   employee: 'Pegawai Operasional', spv: 'Supervisor (SPV)', hrd: 'HRD Admin', direksi: 'Direktur',
@@ -13,43 +15,67 @@ export default async function AkunPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees')
-    .select('name, dept, role, emp_code').eq('id', user.id).maybeSingle();
+    .select('name, dept, role, emp_code, is_hrd_admin, is_coordinator').eq('id', user.id).maybeSingle();
+  const panduan = panduanFor(me?.role, me?.is_hrd_admin ?? false, me?.is_coordinator ?? false);
 
   return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="max-w-lg mx-auto bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-800">Akun Saya</h1>
-          <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+    // Lebar PENUH (tanpa max-w/mx-auto) + tata letak 2 kolom di layar lebar: identitas & panduan
+    // di kiri, ganti sandi di kanan → seluruh isi muat satu layar tanpa perlu digulir.
+    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Akun Saya</h1>
+          <p className="text-[13.5px] text-ink-soft mt-1">Informasi akun &amp; ganti sandi Anda.</p>
         </div>
-        <p className="text-sm text-gray-500 mt-1">Informasi akun &amp; ganti sandi Anda.</p>
+        <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft">← Beranda</Link>
+      </div>
 
-        <dl className="mt-4 space-y-1.5 text-xs">
-          <Row label="Nama" value={me?.name ?? '—'} />
-          <Row label="Email (login)" value={user.email ?? '—'} mono />
-          <Row label="Divisi" value={me?.dept ?? '—'} />
-          <Row label="Peran" value={ROLE_LABEL[me?.role ?? ''] ?? (me?.role ?? '—')} />
-          <Row label="Kode Pegawai" value={me?.emp_code ?? '—'} mono />
-        </dl>
+      <div className="grid gap-4 lg:grid-cols-2 items-start">
+        {/* Kolom kiri — identitas + panduan */}
+        <div className="space-y-4">
+          <Section title="Informasi Akun">
+            <dl className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2 text-xs">
+              <Row label="Nama" value={me?.name ?? '—'} />
+              <Row label="Email (login)" value={user.email ?? '—'} mono />
+              <Row label="Divisi" value={me?.dept ?? '—'} />
+              <Row label="Peran" value={ROLE_LABEL[me?.role ?? ''] ?? (me?.role ?? '—')} />
+              <Row label="Kode Pegawai" value={me?.emp_code ?? '—'} mono />
+            </dl>
+          </Section>
 
-        <div className="mt-5 border-t border-gray-100 pt-4">
-          <h2 className="text-sm font-bold text-gray-700 mb-2">Ganti Sandi</h2>
-          <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-3">
+          <PanduanCard
+            href={panduanHref(panduan)} label={panduan.label} filename={panduan.filename}
+            version={PANDUAN_VERSION} updatedLabel={PANDUAN_UPDATED_LABEL} />
+        </div>
+
+        {/* Kolom kanan — ganti sandi */}
+        <Section title="Ganti Sandi">
+          <p className="text-[11px] text-warn-ink bg-warn-tint border border-warn-ink/25 rounded-control p-2 mb-3">
             Jika akun Anda masih memakai <strong>sandi awal bersama</strong>, segera ganti dengan
             sandi pribadi yang hanya Anda ketahui — demi menjaga integritas penilaian 360°.
           </p>
           <AkunForm />
-        </div>
+        </Section>
       </div>
     </main>
   );
 }
 
+/** Bingkai section: hanya untuk kelompok isi yang berdiri sendiri (identitas, sandi, panduan). */
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="bg-surface border border-line rounded-panel p-5">
+      <h2 className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.07em] mb-3">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex gap-3">
-      <dt className="w-28 shrink-0 text-gray-500 font-semibold uppercase tracking-wide text-[10px] pt-0.5">{label}</dt>
-      <dd className={`text-gray-700 ${mono ? 'font-mono' : 'font-semibold'}`}>{value}</dd>
+    <div className="min-w-0">
+      <dt className="text-ink-faint font-semibold uppercase tracking-wide text-[10px]">{label}</dt>
+      <dd className={`mt-0.5 text-ink-soft break-words ${mono ? 'data-value' : 'font-semibold'}`}>{value}</dd>
     </div>
   );
 }

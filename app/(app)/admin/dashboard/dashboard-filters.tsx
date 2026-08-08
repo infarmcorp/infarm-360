@@ -57,20 +57,20 @@ export function DashboardFilters({
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white border border-gray-200 rounded-2xl p-4 shadow-xs">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-surface border border-line rounded-panel p-4">
       <div className="space-y-1.5">
-        <label className="block text-[11px] text-gray-500 font-bold uppercase tracking-wider">Tahun</label>
+        <label className="block text-[11px] text-ink-faint font-bold uppercase tracking-[0.05em]">Tahun</label>
         <select value={yearValue} onChange={(e) => onYear(e.target.value)}
-          className="w-full text-xs p-2.5 border border-gray-200 rounded-xl font-bold bg-gray-50 text-gray-800 focus:ring-1 focus:ring-emerald-700 focus:outline-none cursor-pointer">
+          className="w-full text-xs p-2.5 border border-line rounded-control font-bold bg-surface text-ink focus:border-brand focus:ring-2 focus:ring-brand-tint focus:outline-none cursor-pointer">
           {years.length === 0 && <option value={0}>—</option>}
           {years.map((y) => <option key={y} value={y}>🗓️ {y}</option>)}
           <option value="all">📚 Semua Tahun</option>
         </select>
       </div>
       <div className="space-y-1.5">
-        <label className="block text-[11px] text-gray-500 font-bold uppercase tracking-wider">Periode / Kuartal</label>
+        <label className="block text-[11px] text-ink-faint font-bold uppercase tracking-[0.05em]">Periode / Kuartal</label>
         <select value={kuartalValue} onChange={(e) => onKuartal(e.target.value)} disabled={isAllYears}
-          className="w-full text-xs p-2.5 border border-gray-200 rounded-xl font-bold bg-gray-50 text-gray-800 focus:ring-1 focus:ring-emerald-700 focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+          className="w-full text-xs p-2.5 border border-line rounded-control font-bold bg-surface text-ink focus:border-brand focus:ring-2 focus:ring-brand-tint focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
           {isAllYears ? (
             <option value="all-quarters">Semua kuartal (semua tahun)</option>
           ) : (
@@ -84,9 +84,9 @@ export function DashboardFilters({
         </select>
       </div>
       <div className="space-y-1.5">
-        <label className="block text-[11px] text-gray-500 font-bold uppercase tracking-wider">Divisi</label>
+        <label className="block text-[11px] text-ink-faint font-bold uppercase tracking-[0.05em]">Divisi</label>
         <select value={currentDept} onChange={(e) => go(currentPeriod, e.target.value)}
-          className="w-full text-xs p-2.5 border border-gray-200 rounded-xl font-bold bg-gray-50 text-gray-800 focus:ring-1 focus:ring-indigo-700 focus:outline-none cursor-pointer">
+          className="w-full text-xs p-2.5 border border-line rounded-control font-bold bg-surface text-ink focus:border-brand focus:ring-2 focus:ring-brand-tint focus:outline-none cursor-pointer">
           <option value="all">📁 Semua Divisi</option>
           {depts.map((d) => <option key={d} value={d}>🏢 {d}</option>)}
         </select>

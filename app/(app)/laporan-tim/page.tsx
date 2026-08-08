@@ -31,13 +31,13 @@ export default async function LaporanTimPage() {
     // Koordinator (grant is_coordinator): lihat-saja Laporan Kinerja Tim untuk daftar
     // pegawai eksplisit yang dinaunginya (coordinator_team_members). Tanpa ACC/Status/KPI.
     if (me?.is_coordinator) return <CoordinatorTeamReport userId={user.id} />;
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk Supervisor.</p>
-      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk Supervisor.</p>
+      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
   const { data: ap } = await supabase
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
   // Resolusi lingkup anggota per peran. Laporan DIRI SENDIRI TIDAK ditampilkan di sini —
   // laporan SPV/HRD-mode-SPV ditinjau Direksi (eskalasi) & dilihat pemiliknya sendiri lewat
@@ -123,22 +123,26 @@ export default async function LaporanTimPage() {
 
   return (
     <Shell>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-start justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Laporan Kinerja Tim</h1>
-          <p className="text-sm text-gray-500">Periode aktif: {ap.label} · beri ACC laporan anggota tim Anda.</p>
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Laporan Kinerja Tim</h1>
+          <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif: <span className="font-semibold text-ink">{ap.label}</span> · beri ACC laporan anggota tim Anda.</p>
         </div>
-        <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+        <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-sm text-gray-500">Belum ada anggota tim yang ditugaskan.</p>
+        <p className="text-sm text-ink-soft">Belum ada anggota tim yang ditugaskan.</p>
       ) : (
         <>
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
-          <TeamTable rows={rows} pageSize={5} />
+          {/* Tabel diberi bingkai section (kartu) di halaman ini saja — komponennya sendiri
+              tidak disentuh agar Monitor Kinerja tetap seperti semula. */}
+          <div className="bg-surface border border-line rounded-panel p-5">
+            <TeamTable rows={rows} pageSize={5} />
+          </div>
         </>
       )}
     </Shell>
@@ -155,7 +159,7 @@ async function DireksiTeamReport() {
   const supabase = await createClient();
   const { data: ap } = await supabase
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
   const admin = createAdminClient();
   // Subjek yang ditinjau Direksi = role='spv' ATAU pemimpin tim (spv_id di spv_team_members),
@@ -203,23 +207,27 @@ async function DireksiTeamReport() {
 
   return (
     <Shell>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-start justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Laporan Kinerja Tim</h1>
-          <p className="text-sm text-gray-500">
-            Periode aktif: {ap.label} · tinjau &amp; beri ACC laporan hasil akhir para Supervisor (SPV).
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Laporan Kinerja Tim</h1>
+          <p className="text-[13.5px] text-ink-soft mt-1">
+            Periode aktif: <span className="font-semibold text-ink">{ap.label}</span> · tinjau &amp; beri ACC laporan hasil akhir para Supervisor (SPV).
           </p>
         </div>
-        <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+        <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
       {rows.length === 0 ? (
-        <p className="text-sm text-gray-500">Belum ada laporan SPV untuk ditinjau.</p>
+        <p className="text-sm text-ink-soft">Belum ada laporan SPV untuk ditinjau.</p>
       ) : (
         <>
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
-          <TeamTable rows={rows} pageSize={5} />
+          {/* Tabel diberi bingkai section (kartu) di halaman ini saja — komponennya sendiri
+              tidak disentuh agar Monitor Kinerja tetap seperti semula. */}
+          <div className="bg-surface border border-line rounded-panel p-5">
+            <TeamTable rows={rows} pageSize={5} />
+          </div>
         </>
       )}
     </Shell>
@@ -238,7 +246,7 @@ async function CoordinatorTeamReport({ userId }: { userId: string }) {
   const supabase = await createClient();
   const { data: ap } = await supabase
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
   const admin = createAdminClient();
   const { data: team } = await admin.from('coordinator_team_members')
@@ -287,23 +295,27 @@ async function CoordinatorTeamReport({ userId }: { userId: string }) {
 
   return (
     <Shell>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-start justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Laporan Kinerja Tim</h1>
-          <p className="text-sm text-gray-500">
-            Periode aktif: {ap.label} · tinjau &amp; beri ACC laporan pegawai yang Anda koordinasikan.
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Laporan Kinerja Tim</h1>
+          <p className="text-[13.5px] text-ink-soft mt-1">
+            Periode aktif: <span className="font-semibold text-ink">{ap.label}</span> · tinjau &amp; beri ACC laporan pegawai yang Anda koordinasikan.
           </p>
         </div>
-        <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+        <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
       {rows.length === 0 ? (
-        <p className="text-sm text-gray-500">Belum ada pegawai yang ditugaskan di bawah koordinasi Anda.</p>
+        <p className="text-sm text-ink-soft">Belum ada pegawai yang ditugaskan di bawah koordinasi Anda.</p>
       ) : (
         <>
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
-          <TeamTable rows={rows} pageSize={5} />
+          {/* Tabel diberi bingkai section (kartu) di halaman ini saja — komponennya sendiri
+              tidak disentuh agar Monitor Kinerja tetap seperti semula. */}
+          <div className="bg-surface border border-line rounded-panel p-5">
+            <TeamTable rows={rows} pageSize={5} />
+          </div>
         </>
       )}
     </Shell>
@@ -311,9 +323,8 @@ async function CoordinatorTeamReport({ userId }: { userId: string }) {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
-  );
+  // Kanvas ber-token (tanpa wrapper putih besar + shadow), sesuai pola redesign halaman lain.
+  // ⚠️ Warna DI DALAM scorecard & tabel sengaja TIDAK diubah — `scorecards.tsx`/`team-table.tsx`
+  // dipakai bersama Monitor Kinerja yang bagian "Ringkasan ke bawah"-nya dikunci apa adanya.
+  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
 }

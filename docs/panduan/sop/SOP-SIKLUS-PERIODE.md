@@ -16,7 +16,8 @@ periode hingga menguncinya, agar Skor Akhir setiap pegawai valid dan hasilnya te
 
 ```mermaid
 flowchart TD
-    A["Buat periode baru"] --> B["Sembunyikan dulu form 360"]
+    A["Buat periode baru"] --> A2["Aktifkan periode<br/>(periode lama otomatis ditutup)"]
+    A2 --> B["Sembunyikan dulu form 360"]
     B --> C["Siapkan pertanyaan,<br/>bobot, & daftar penilai"]
     C --> D["Buka form 360 (luncurkan)"]
     D --> E["Undang semua pegawai"]

@@ -18,18 +18,20 @@ const CAT_LABEL: Record<string, string> = {
   kepatuhan: 'Kepatuhan', pegawai: 'Pegawai', pemetaan: 'Pemetaan',
   pertanyaan: 'Pertanyaan', progress: 'Progress', suksesi: 'Suksesi', lain: 'Lain',
 };
+// Soft-tint monokrom: kategori dibedakan lewat LABEL, bukan pelangi warna. Aksi
+// berlingkup-skor/kepatuhan (berkonsekuensi) diberi aksen warn; sisanya netral/brand.
 const CAT_COLOR: Record<string, string> = {
-  periode: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  bobot: 'bg-amber-50 text-amber-700 border-amber-200',
-  skor: 'bg-violet-50 text-violet-700 border-violet-200',
-  laporan: 'bg-blue-50 text-blue-700 border-blue-200',
-  kepatuhan: 'bg-rose-50 text-rose-700 border-rose-200',
-  pegawai: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  pemetaan: 'bg-teal-50 text-teal-700 border-teal-200',
-  pertanyaan: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-  progress: 'bg-orange-50 text-orange-700 border-orange-200',
-  suksesi: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200',
-  lain: 'bg-gray-50 text-gray-600 border-gray-200',
+  periode: 'bg-brand-tint text-brand-ink border-brand-ink/20',
+  bobot: 'bg-brand-tint text-brand-ink border-brand-ink/20',
+  skor: 'bg-warn-tint text-warn-ink border-warn-ink/25',
+  laporan: 'bg-brand-tint text-brand-ink border-brand-ink/20',
+  kepatuhan: 'bg-warn-tint text-warn-ink border-warn-ink/25',
+  pegawai: 'bg-neutral-tint text-ink-soft border-line',
+  pemetaan: 'bg-neutral-tint text-ink-soft border-line',
+  pertanyaan: 'bg-neutral-tint text-ink-soft border-line',
+  progress: 'bg-neutral-tint text-ink-soft border-line',
+  suksesi: 'bg-neutral-tint text-ink-soft border-line',
+  lain: 'bg-neutral-tint text-ink-faint border-line',
 };
 
 function fmt(iso: string): string {
@@ -77,9 +79,9 @@ export function AuditClient({
   const active = cat !== 'all' || period !== 'all' || q.trim() !== '';
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm">
+    <div className="bg-surface border border-line rounded-panel">
       {/* Filter bar — perubahan memicu fetch server (reset ke halaman 1). */}
-      <div className="p-4 border-b border-gray-100 flex flex-wrap items-center gap-2">
+      <div className="p-4 border-b border-line-soft flex flex-wrap items-center gap-2">
         <form
           onSubmit={(e) => { e.preventDefault(); go({ q: term, page: 0 }); }}
           className="flex-1 min-w-[180px] flex gap-2"
@@ -88,59 +90,59 @@ export function AuditClient({
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             placeholder="Cari ringkasan / nama / aksi… (Enter)"
-            className="flex-1 min-w-[140px] text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
+            className="flex-1 min-w-[140px] text-xs px-3 py-2 border border-line rounded-control bg-surface focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
           />
           <button type="submit"
-            className="text-[11px] font-bold px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white whitespace-nowrap">
+            className="text-[11px] font-bold px-3 py-2 rounded-control bg-brand hover:bg-brand-ink text-white whitespace-nowrap">
             Cari
           </button>
         </form>
         <select value={period} onChange={(e) => go({ period: e.target.value, page: 0 })}
           title="Saring berdasarkan rentang tanggal periode"
-          className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
+          className="text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
           <option value="all">📅 Semua Periode</option>
           {periods.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
         </select>
         <select value={cat} onChange={(e) => go({ cat: e.target.value, page: 0 })}
-          className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
+          className="text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
           <option value="all">🏷️ Semua Kategori</option>
           {Object.entries(CAT_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
         {active && (
           <button type="button" onClick={() => { setTerm(''); go({ cat: 'all', q: '', period: 'all', page: 0 }); }}
-            className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
+            className="text-[11px] font-bold px-2.5 py-2 rounded-control border border-line text-ink-soft hover:bg-neutral-tint">Bersihkan</button>
         )}
-        <span className="text-[11px] text-gray-500 ml-auto">
+        <span className="text-[11px] text-ink-faint ml-auto data-value">
           {total === 0 ? '0 entri' : `${from}–${to} dari ${total} entri`}
         </span>
       </div>
 
       {rows.length === 0 ? (
-        <p className="p-6 text-sm text-gray-500">
+        <p className="p-6 text-sm text-ink-soft">
           {total === 0 && !active ? 'Belum ada aktivitas tercatat.' : 'Tidak ada entri sesuai filter.'}
         </p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm min-w-[640px]">
             <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
+              <tr className="text-[10px] uppercase tracking-[0.05em] text-ink-faint font-semibold border-b border-line bg-neutral-tint">
                 <th className="py-2.5 px-4 whitespace-nowrap">Waktu</th>
                 <th className="py-2.5 px-3">Pelaku</th>
                 <th className="py-2.5 px-3">Kategori</th>
                 <th className="py-2.5 px-4">Aktivitas</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line-soft">
               {rows.map((r) => (
-                <tr key={r.id} className="align-top">
-                  <td className="py-3 px-4 text-xs text-gray-500 whitespace-nowrap">{fmt(r.createdAt)}</td>
-                  <td className="py-3 px-3 font-bold text-gray-800 whitespace-nowrap">{r.actor}</td>
+                <tr key={r.id} className="align-top hover:bg-neutral-tint/40">
+                  <td className="py-3 px-4 text-xs text-ink-faint whitespace-nowrap data-value">{fmt(r.createdAt)}</td>
+                  <td className="py-3 px-3 font-bold text-ink whitespace-nowrap">{r.actor}</td>
                   <td className="py-3 px-3">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${CAT_COLOR[r.category] ?? CAT_COLOR.lain}`}>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-control border ${CAT_COLOR[r.category] ?? CAT_COLOR.lain}`}>
                       {CAT_LABEL[r.category] ?? r.category}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-gray-700">{r.summary}</td>
+                  <td className="py-3 px-4 text-ink-soft">{r.summary}</td>
                 </tr>
               ))}
             </tbody>
@@ -149,14 +151,14 @@ export function AuditClient({
       )}
 
       {/* Pager: geser 10 sebelumnya / berikutnya (fetch server per klik). */}
-      <div className="p-4 border-t border-gray-100 flex items-center justify-between gap-2">
+      <div className="p-4 border-t border-line-soft flex items-center justify-between gap-2">
         <button type="button" disabled={!hasPrev} onClick={() => go({ page: page - 1 })}
-          className="text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+          className="text-xs font-bold px-3 py-2 rounded-control border border-line text-ink-soft hover:bg-neutral-tint disabled:opacity-40 disabled:cursor-not-allowed">
           ← {pageSize} sebelumnya
         </button>
-        <span className="text-[11px] text-gray-500">Halaman {page + 1} dari {totalPages}</span>
+        <span className="text-[11px] text-ink-faint">Halaman <span className="data-value">{page + 1} / {totalPages}</span></span>
         <button type="button" disabled={!hasNext} onClick={() => go({ page: page + 1 })}
-          className="text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+          className="text-xs font-bold px-3 py-2 rounded-control border border-line text-ink-soft hover:bg-neutral-tint disabled:opacity-40 disabled:cursor-not-allowed">
           {pageSize} berikutnya →
         </button>
       </div>

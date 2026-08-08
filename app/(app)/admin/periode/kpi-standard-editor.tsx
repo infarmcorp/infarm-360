@@ -28,7 +28,7 @@ export function KpiStandardEditor({ periodId, value }: { periodId: string; value
   return (
     <div className="inline-flex flex-col items-center gap-0.5">
       <div className="inline-flex items-center gap-1">
-        <span className="text-[10px] text-gray-500">≥</span>
+        <span className="text-[11px] text-ink-faint">≥</span>
         <input
           type="number"
           min={0}
@@ -39,10 +39,10 @@ export function KpiStandardEditor({ periodId, value }: { periodId: string; value
           onChange={(e) => setVal(e.target.value)}
           onBlur={save}
           onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-          className="w-14 text-center text-xs font-mono font-bold px-1.5 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
+          className="w-14 text-center text-[13px] data-value px-1.5 py-1.5 border border-line rounded-control text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint disabled:opacity-50"
         />
       </div>
-      {err && <span className="text-[10px] text-rose-600">{err}</span>}
+      {err && <span className="text-[10px] text-danger-ink">{err}</span>}
     </div>
   );
 }

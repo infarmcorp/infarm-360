@@ -5,6 +5,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import { KepatuhanTable } from './kepatuhan-table';
+import { Panel } from '@/components/panel';
 
 /**
  * Flag Kepatuhan Penilaian & Punishment (HRD).
@@ -28,8 +29,8 @@ export default async function KepatuhanPage() {
     grantScopes = grantedAccess(g, 'kepatuhan')?.scopes ?? null;
   }
   if (!isHrdFull && !grantScopes) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk HRD Admin atau pemegang akses Flag Kepatuhan.</p>
-      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk HRD Admin atau pemegang akses Flag Kepatuhan.</p>
+      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
   const viaGrant = !isHrdFull;
   const ownDept = (me?.dept ?? '').trim();
@@ -40,7 +41,7 @@ export default async function KepatuhanPage() {
 
   const { data: ap } = await db
     .from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
   const { data: emps } = await db.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
   // Pemegang grant: batasi ke lingkupnya (employeeInScopes; 'coordinator_team' via teamIds).
@@ -79,32 +80,34 @@ export default async function KepatuhanPage() {
 
   return (
     <Shell>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-start justify-between mb-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Flag Kepatuhan Penilaian</h1>
-          <p className="text-sm text-gray-500">Periode aktif: {ap.label}</p>
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Flag Kepatuhan Penilaian</h1>
+          <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span></p>
         </div>
-        <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+        <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-4">
-        <div className="border border-rose-200 bg-rose-50/50 rounded-xl p-3 text-center">
-          <div className="text-lg font-black text-rose-700">{totalLate}</div>
-          <div className="text-[10px] font-bold text-gray-500">Pegawai telat (penilaian wajib)</div>
+      <div className="grid grid-cols-3 gap-2 mb-5">
+        <div className="border border-line rounded-panel bg-surface p-3 text-center">
+          <div className="text-xl font-bold data-value text-danger-ink">{totalLate}</div>
+          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Pegawai telat (penilaian wajib)</div>
         </div>
-        <div className="border border-amber-200 bg-amber-50/50 rounded-xl p-3 text-center">
-          <div className="text-lg font-black text-amber-700">{totalSelfMissing}</div>
-          <div className="text-[10px] font-bold text-gray-500">Belum self-assessment</div>
+        <div className="border border-line rounded-panel bg-surface p-3 text-center">
+          <div className="text-xl font-bold data-value text-warn-ink">{totalSelfMissing}</div>
+          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Belum self-assessment</div>
         </div>
-        <div className="border border-slate-200 bg-slate-50/50 rounded-xl p-3 text-center">
-          <div className="text-lg font-black text-slate-700">{totalPunished}</div>
-          <div className="text-[10px] font-bold text-gray-500">Dengan punishment</div>
+        <div className="border border-line rounded-panel bg-surface p-3 text-center">
+          <div className="text-xl font-bold data-value text-ink">{totalPunished}</div>
+          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Dengan punishment</div>
         </div>
       </div>
 
-      <KepatuhanTable rows={rows} readOnly={viaGrant} />
-      <p className="text-[10px] text-gray-500 italic mt-3">
-        Default menampilkan pegawai yang <strong>perlu perhatian</strong> (penilaian wajib telat, belum
+      <Panel>
+        <KepatuhanTable rows={rows} readOnly={viaGrant} />
+      </Panel>
+      <p className="text-[11px] text-ink-faint mt-5 leading-relaxed">
+        Default menampilkan pegawai yang <strong className="font-semibold text-ink-soft">perlu perhatian</strong> (penilaian wajib telat, belum
         self-assessment, atau sudah punya punishment). &quot;Wajib Telat&quot; = penilaian bersifat Wajib (mapping)
         yang belum dikirim (arahkan kursor untuk daftar nama). Punishment memotong Skor Akhir pegawai di periode ini (min 0).
       </p>
@@ -113,9 +116,5 @@ export default async function KepatuhanPage() {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
-  );
+  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
 }

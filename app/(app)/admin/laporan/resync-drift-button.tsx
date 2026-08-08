@@ -33,10 +33,10 @@ export function ResyncDriftButton({ count }: { count: number }) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <button type="button" onClick={() => setOpen(true)} disabled={busy}
-        className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50">
+        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-control border border-warn-ink/40 bg-warn-tint text-warn-ink hover:bg-warn-tint/70 disabled:opacity-50">
         <RefreshCcwDot className="w-3.5 h-3.5" /> ② Finalisasi Ulang Berubah ({count})
       </button>
-      {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</span>}
+      {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
 
       <ConfirmDialog
         open={open} icon="🔄" tone="primary"
@@ -48,7 +48,7 @@ export function ResyncDriftButton({ count }: { count: number }) {
           pegawai) <strong>ketinggalan</strong> dari data terkini (KPI/360°/punishment berubah setelah finalisasi).</p>
         <p>Aksi ini memperbarui angka tersimpan ke <strong>Skor Akhir terkini</strong>. Laporan <strong>tetap Final</strong>
           &amp; ringkasan naratifnya <strong>tidak berubah</strong> — hanya angkanya yang disegarkan.</p>
-        <p className="text-gray-500">Pastikan sudah <strong>Hitung Ulang Skor 360°</strong> (langkah ①) dulu agar nilainya benar.</p>
+        <p className="text-ink-soft">Pastikan sudah <strong>Hitung Ulang Skor 360°</strong> (langkah ①) dulu agar nilainya benar.</p>
       </ConfirmDialog>
     </div>
   );

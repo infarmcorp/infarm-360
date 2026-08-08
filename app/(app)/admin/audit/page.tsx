@@ -35,9 +35,9 @@ export default async function AuditPage({
   const role = me?.role ?? 'employee';
   if (!canSection(me, 'audit') && role !== 'direksi') {
     return (
-      <main className="w-full p-4 sm:p-5 lg:p-6">
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-          <p className="text-sm text-gray-600">Halaman ini hanya untuk HRD &amp; Direksi.</p>
+      <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
+        <div className="bg-surface border border-line rounded-panel p-5">
+          <p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD &amp; Direksi.</p>
         </div>
       </main>
     );
@@ -83,10 +83,10 @@ export default async function AuditPage({
   }));
 
   return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="mb-4">
-        <h1 className="text-xl font-bold text-gray-800">Log Aktivitas HRD</h1>
-        <p className="mt-1 text-sm text-gray-500">
+    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
+      <div className="mb-5">
+        <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Log Aktivitas HRD</h1>
+        <p className="mt-1 text-[13.5px] text-ink-soft">
           Jejak audit aksi sensitif (kunci/aktivasi periode, bobot, finalisasi, punishment,
           kelola akun, pemetaan, pertanyaan). Hanya-baca &amp; tak dapat diubah.
         </p>

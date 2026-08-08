@@ -33,8 +33,8 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-[11px] text-gray-500">
-          {flagged.length} perlu perhatian{showAll ? ` · ${rows.length} total pegawai` : ''}
+        <span className="text-[11.5px] text-ink-soft">
+          <span className="data-value font-semibold text-ink">{flagged.length}</span> perlu perhatian{showAll ? ` · ${rows.length} total pegawai` : ''}
         </span>
         <div className="flex items-center gap-3">
           <MultiCheckFilter label="Divisi"
@@ -45,11 +45,11 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
       </div>
 
       {list.length === 0 ? (
-        <div className="text-center py-10 text-sm text-gray-500">
+        <div className="text-center py-10 text-sm text-ink-soft">
           ✅ Semua pegawai patuh &amp; tanpa punishment — tak ada yang perlu ditindak.
           {rows.length > 0 && (
-            <div className="text-[11px] mt-1">
-              Ingin memberi punishment manual? Centang <strong>&quot;Tampilkan semua pegawai&quot;</strong> di atas.
+            <div className="text-[11px] mt-1 text-ink-faint">
+              Ingin memberi punishment manual? Centang <strong className="font-semibold text-ink-soft">&quot;Tampilkan semua pegawai&quot;</strong> di atas.
             </div>
           )}
         </div>
@@ -58,35 +58,35 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm min-w-[520px]">
               <thead>
-                <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
-                  <th className="py-2 pr-3">Pegawai</th>
-                  <th className="py-2 px-3 text-center">Wajib Telat</th>
-                  <th className="py-2 px-3 text-center">Self</th>
-                  <th className="py-2 pl-3 text-right">Punishment (poin)</th>
+                <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
+                  <th className="py-2 pr-3 font-semibold">Pegawai</th>
+                  <th className="py-2 px-3 text-center font-semibold">Wajib Telat</th>
+                  <th className="py-2 px-3 text-center font-semibold">Self</th>
+                  <th className="py-2 pl-3 text-right font-semibold">Punishment (poin)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-line-soft">
                 {shown.map((r) => (
                   <tr key={r.id}>
                     <td className="py-3 pr-3">
-                      <span className="font-bold text-gray-800 block">{r.name}</span>
-                      <span className="text-[11px] text-gray-500">{r.dept}</span>
+                      <span className="font-bold text-ink block">{r.name}</span>
+                      <span className="text-[11px] text-ink-faint">{r.dept}</span>
                     </td>
                     <td className="py-3 px-3 text-center">
                       {r.lateCount > 0 ? (
-                        <span className="text-[11px] font-bold text-rose-700" title={r.lateTargets.join(', ')}>
-                          {r.lateCount} telat
+                        <span className="text-[11px] font-semibold text-danger-ink" title={r.lateTargets.join(', ')}>
+                          <span className="data-value">{r.lateCount}</span> telat
                         </span>
-                      ) : <span className="text-[11px] text-emerald-600">✔ patuh</span>}
+                      ) : <span className="text-[11px] text-brand-ink">✔ patuh</span>}
                     </td>
                     <td className="py-3 px-3 text-center">
                       {r.selfMissing
-                        ? <span className="text-[10px] font-bold text-amber-700">belum</span>
-                        : <span className="text-[10px] text-emerald-600">✔</span>}
+                        ? <span className="text-[10px] font-semibold text-warn-ink">belum</span>
+                        : <span className="text-[10px] text-brand-ink">✔</span>}
                     </td>
                     <td className="py-3 pl-3 text-right">
                       {readOnly
-                        ? <span className={`text-sm font-bold ${r.points > 0 ? 'text-rose-700' : 'text-gray-400'}`}>{r.points > 0 ? `${r.points} poin` : '—'}</span>
+                        ? <span className={`text-sm font-bold data-value ${r.points > 0 ? 'text-danger-ink' : 'text-ink-faint'}`}>{r.points > 0 ? `${r.points} poin` : '—'}</span>
                         : <PenaltyInput employeeId={r.id} initial={r.points} />}
                     </td>
                   </tr>
@@ -96,7 +96,7 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
           </div>
           <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
           {!showAll && hiddenCount > 0 && (
-            <p className="text-[11px] text-gray-500 italic">
+            <p className="text-[11px] text-ink-faint italic">
               {hiddenCount} pegawai patuh disembunyikan — centang &quot;Tampilkan semua pegawai&quot; untuk melihat.
             </p>
           )}

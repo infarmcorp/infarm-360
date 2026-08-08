@@ -75,32 +75,32 @@ export function AspectSummaryEditor({
 
   return (
     <section className="mt-6 break-inside-avoid">
-      <div className="bg-emerald-700 text-white rounded-t-xl px-4 py-2.5 flex items-center justify-between gap-2">
+      <div className="bg-brand text-white rounded-t-panel px-4 py-2.5 flex items-center justify-between gap-2">
         <h2 className="text-sm font-extrabold uppercase tracking-wide flex items-center gap-2">
           <Sparkles className="w-4 h-4" /> {title}
         </h2>
         {locked && (
-          <span className="text-[10px] font-bold bg-white/15 px-2 py-0.5 rounded inline-flex items-center gap-1">
+          <span className="text-[10px] font-bold bg-white/15 px-2 py-0.5 rounded-control inline-flex items-center gap-1">
             <Lock className="w-3 h-3" /> Terkunci (Final)
           </span>
         )}
       </div>
-      <div className="border border-t-0 border-gray-200 rounded-b-xl p-4 space-y-3">
-        <p className="text-[11px] text-gray-500 bg-emerald-50/60 border border-emerald-100 rounded-lg p-2">
+      <div className="border border-t-0 border-line rounded-b-panel p-4 space-y-3">
+        <p className="text-[11px] text-ink-soft bg-brand-tint/60 border border-brand-ink/15 rounded-control p-2">
           {intro}
           {!locked && <> Tersimpan <strong>otomatis</strong> — tak perlu tombol Simpan.</>}
         </p>
         {locked && (
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg p-2 no-print">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-ink bg-brand-tint border border-brand-ink/20 rounded-control p-2 no-print">
             <Lock className="w-3.5 h-3.5 shrink-0" />
             Laporan sudah <strong>final</strong> &amp; terlihat pegawai. Untuk mengubah ringkasan,
             klik <strong>&quot;Kembalikan ke Draf&quot;</strong> di panel atas.
           </p>
         )}
         {aspects.map((a) => (
-          <div key={a} className="border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-3 py-2 bg-gray-50 border-b border-gray-150">
-              <span className="text-xs font-bold text-emerald-800 flex items-center gap-1.5">★ {a}</span>
+          <div key={a} className="border border-line rounded-panel overflow-hidden">
+            <div className="px-3 py-2 bg-neutral-tint border-b border-line-soft">
+              <span className="text-xs font-bold text-brand-ink flex items-center gap-1.5">★ {a}</span>
             </div>
             <textarea
               value={vals[a] ?? ''}
@@ -109,13 +109,13 @@ export function AspectSummaryEditor({
               onBlur={() => { if (!locked && changed) void flush(); }} // simpan segera saat pindah fokus
               rows={3}
               placeholder={`Ringkasan kalibrasi HRD untuk ${noun} "${a}"…`}
-              className="w-full text-xs p-3 outline-none resize-y text-gray-700 leading-relaxed disabled:bg-gray-50 disabled:text-gray-500"
+              className="w-full text-xs p-3 outline-none resize-y text-ink-soft leading-relaxed disabled:bg-neutral-tint disabled:text-ink-faint"
             />
           </div>
         ))}
         {!locked && saveState !== 'idle' && (
           <p className={`text-[11px] font-semibold no-print ${
-            saveState === 'error' ? 'text-rose-600' : saveState === 'saved' ? 'text-emerald-700' : 'text-amber-700'
+            saveState === 'error' ? 'text-danger-ink' : saveState === 'saved' ? 'text-brand-ink' : 'text-warn-ink'
           }`}>
             {STATUS_TEXT[saveState]}
           </p>

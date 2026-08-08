@@ -39,51 +39,51 @@ export function RiwayatList({ entries, page, total, pageSize, query }: { entries
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[11px] text-gray-500">
+        <p className="text-[11px] text-ink-faint">
           Jejak perubahan KPI bersifat <strong>append-only</strong> — tidak dapat diubah/dihapus. Urut <strong>terbaru di atas</strong>.
         </p>
         <form onSubmit={submitSearch} className="flex items-center gap-1.5">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama / divisi… (Enter)"
-            className="text-xs px-3 py-2 border border-gray-200 rounded-lg w-52 focus:outline-none focus:ring-1 focus:ring-emerald-600" />
-          <button type="submit" className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50">Cari</button>
+            className="text-xs px-3 py-2 border border-line rounded-control bg-surface w-52 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+          <button type="submit" className="text-[11px] font-semibold px-2.5 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">Cari</button>
           {query && (
             <button type="button" onClick={() => { setQ(''); nav({ auditQ: null, auditPage: null }); }}
-              className="text-[11px] font-bold px-2.5 py-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">Bersihkan</button>
+              className="text-[11px] font-semibold px-2.5 py-2 rounded-control border border-line text-ink-faint hover:text-ink-soft hover:border-line-strong">Bersihkan</button>
           )}
         </form>
       </div>
 
       {entries.length === 0 ? (
-        <p className="text-sm text-gray-500">{query ? 'Tidak ada jejak audit yang cocok dengan pencarian.' : 'Belum ada jejak audit KPI. Riwayat tercatat otomatis setiap input skor.'}</p>
+        <p className="text-sm text-ink-soft">{query ? 'Tidak ada jejak audit yang cocok dengan pencarian.' : 'Belum ada jejak audit KPI. Riwayat tercatat otomatis setiap input skor.'}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs min-w-[680px]">
             <thead>
-              <tr className="text-[10px] uppercase tracking-wider text-gray-500 border-b border-gray-150 bg-white">
-                <th className="py-2 px-3">Pegawai</th>
-                <th className="py-2 px-3">Bulan</th>
-                <th className="py-2 px-3 text-center">Skor</th>
-                <th className="py-2 px-3">Oleh</th>
-                <th className="py-2 px-3">Waktu</th>
-                <th className="py-2 px-3">Catatan</th>
+              <tr className="text-[10px] uppercase tracking-[0.05em] text-ink-faint border-b border-line bg-surface">
+                <th className="py-2 px-3 font-semibold">Pegawai</th>
+                <th className="py-2 px-3 font-semibold">Bulan</th>
+                <th className="py-2 px-3 text-center font-semibold">Skor</th>
+                <th className="py-2 px-3 font-semibold">Oleh</th>
+                <th className="py-2 px-3 font-semibold">Waktu</th>
+                <th className="py-2 px-3 font-semibold">Catatan</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line-soft">
               {entries.map((r, i) => (
                 <tr key={`${r.empId}-${r.ym}-${i}`}>
                   <td className="py-2 px-3">
-                    <span className="font-bold text-gray-800">{r.name}</span>
-                    <span className="text-[10px] text-gray-500 block">{r.dept}</span>
+                    <span className="font-bold text-ink">{r.name}</span>
+                    <span className="text-[10px] text-ink-faint block">{r.dept}</span>
                   </td>
-                  <td className="py-2 px-3 font-semibold text-gray-700 whitespace-nowrap">{labelMonth(r.ym)}</td>
-                  <td className="py-2 px-3 text-center font-mono font-bold">
+                  <td className="py-2 px-3 font-semibold text-ink-soft whitespace-nowrap">{labelMonth(r.ym)}</td>
+                  <td className="py-2 px-3 text-center data-value font-bold">
                     {r.action === 'delete'
-                      ? <span className="text-rose-600" title="Skor dihapus">dihapus <span className="text-gray-400 font-normal">(dari {r.score.toFixed(2)})</span></span>
-                      : <span className="text-emerald-700">{r.score.toFixed(2)}</span>}
+                      ? <span className="text-danger-ink" title="Skor dihapus">dihapus <span className="text-ink-faint font-normal">(dari {r.score.toFixed(2)})</span></span>
+                      : <span className="text-brand-ink">{r.score.toFixed(2)}</span>}
                   </td>
-                  <td className="py-2 px-3 text-gray-600 whitespace-nowrap">{r.by}</td>
-                  <td className="py-2 px-3 text-gray-500 whitespace-nowrap">{r.at}</td>
-                  <td className="py-2 px-3 text-gray-500 italic">{r.note ?? '—'}</td>
+                  <td className="py-2 px-3 text-ink-soft whitespace-nowrap">{r.by}</td>
+                  <td className="py-2 px-3 text-ink-faint whitespace-nowrap data-value">{r.at}</td>
+                  <td className="py-2 px-3 text-ink-faint italic">{r.note ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -92,15 +92,15 @@ export function RiwayatList({ entries, page, total, pageSize, query }: { entries
       )}
 
       {(total > pageSize || page > 0) && (
-        <div className="flex items-center justify-between text-xs text-gray-600">
+        <div className="flex items-center justify-between text-xs text-ink-soft">
           <button type="button" disabled={page === 0} onClick={() => nav({ auditPage: String(page - 1) })}
-            className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50">← Sebelumnya</button>
+            className="px-3 py-1.5 rounded-control border border-line disabled:opacity-40 hover:border-line-strong">← Sebelumnya</button>
           <span className="text-center">
-            Halaman {page + 1} / {pageCount}
-            <span className="block text-[10px] text-gray-400">{from}–{to} dari {total} perubahan</span>
+            Halaman <span className="data-value">{page + 1} / {pageCount}</span>
+            <span className="block text-[10px] text-ink-faint"><span className="data-value">{from}–{to}</span> dari <span className="data-value">{total}</span> perubahan</span>
           </span>
           <button type="button" disabled={page >= pageCount - 1} onClick={() => nav({ auditPage: String(page + 1) })}
-            className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50">Berikutnya →</button>
+            className="px-3 py-1.5 rounded-control border border-line disabled:opacity-40 hover:border-line-strong">Berikutnya →</button>
         </div>
       )}
     </div>

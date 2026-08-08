@@ -24,10 +24,10 @@ export function AdhocForm({ candidates }: { candidates: Candidate[] }) {
   }
 
   return (
-    <div className="bg-emerald-50/40 border border-emerald-600/20 rounded-2xl p-4 mb-5 space-y-2">
+    <div className="bg-brand-tint/50 border border-brand-ink/20 rounded-panel p-4 mb-5 space-y-2">
       <div>
-        <h3 className="text-xs font-bold text-emerald-950 uppercase tracking-wide">Hak Penilaian Ad-Hoc Mandiri</h3>
-        <p className="text-[11px] text-emerald-800">Anda berhak menilai <strong>rekan kerja lain</strong> yang tidak tercantum di daftar rutin (dihitung sebagai relasi Lintas Unit).</p>
+        <h3 className="text-xs font-bold text-brand-ink uppercase tracking-wide">Hak Penilaian Ad-Hoc Mandiri</h3>
+        <p className="text-[11px] text-brand-ink/80">Anda berhak menilai <strong>rekan kerja lain</strong> yang tidak tercantum di daftar rutin (dihitung sebagai relasi Lintas Unit).</p>
       </div>
       <div className="flex flex-col sm:flex-row items-stretch gap-2">
         <div className="w-full sm:flex-1">
@@ -38,19 +38,19 @@ export function AdhocForm({ candidates }: { candidates: Candidate[] }) {
             options={candidates.map((c) => ({ value: c.id, label: `${c.name} — ${c.dept}` }))}
             placeholder={candidates.length ? '— Pilih Rekan Kerja untuk Dinilai —' : 'Semua rekan sudah ada di daftar Anda'}
             searchPlaceholder="Cari rekan…"
-            className="text-xs p-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-700 font-medium disabled:bg-gray-50"
+            className="text-xs p-2.5 bg-surface border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint font-medium disabled:bg-neutral-tint"
           />
         </div>
         <button
           type="button"
           onClick={add}
           disabled={!targetId || pending}
-          className="shrink-0 inline-flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-4 font-bold text-xs bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50"
+          className="shrink-0 inline-flex items-center justify-center gap-1.5 rounded-control py-2.5 px-4 font-bold text-xs bg-brand hover:bg-brand-ink text-white disabled:opacity-50"
         >
           <Plus className="w-4 h-4" /> {pending ? 'Menambah…' : 'Tambahkan Rekan'}
         </button>
       </div>
-      {msg && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>{msg.text}</p>}
+      {msg && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
     </div>
   );
 }

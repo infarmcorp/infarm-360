@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { activatePeriod, endPeriod, toggleHas360, toggleFormOpen, activePeriodReadiness, count360Submitted, periodDataCounts, deletePeriod } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Button } from '@/components/button';
+import { OverflowMenu, type OverflowItem } from '@/components/overflow-menu';
 
 type DelState = {
   label: string;
@@ -168,45 +170,46 @@ export function PeriodActions({
   const delEmpty = del && del.counts.assessments === 0 && del.counts.mappings === 0
     && del.counts.finalReports === 0 && del.counts.kpi === 0;
 
+  // Satu primary action per state; sisanya (toggle 360°, form, hapus) ke menu ⋯.
+  const menuItems: OverflowItem[] = [
+    {
+      label: has360 ? 'Set Tanpa 360°' : 'Aktifkan 360°',
+      onSelect: toggle360Guard,
+      disabled: busy,
+      title: has360
+        ? 'Menutup komponen 360°: form penilaian disembunyikan dari pegawai & skor 360° tak dihitung.'
+        : 'Membuka komponen 360°: form penilaian tampil ke pegawai yang punya pemetaan & skor 360° dihitung.',
+    },
+    ...(status === 'active' && has360 ? [{
+      label: formOpen ? 'Tutup Form' : 'Buka Form',
+      onSelect: () => run(() => toggleFormOpen(periodId, !formOpen)),
+      disabled: busy,
+      title: formOpen
+        ? 'Menutup form: pegawai berhenti mengisi (tahap review). 360° TETAP dihitung & Hitung Ulang tetap tersedia.'
+        : 'Membuka kembali form agar pegawai bisa melanjutkan pengisian 360°.',
+    } as OverflowItem] : []),
+    {
+      label: 'Hapus periode',
+      onSelect: askDelete,
+      tone: 'danger',
+      disabled: busy || status === 'active',
+      title: status === 'active'
+        ? 'Periode aktif tidak bisa dihapus — "Kunci & Akhiri" dulu.'
+        : 'Hapus periode ini beserta seluruh datanya (permanen).',
+    },
+  ];
+
   return (
     <div className="flex flex-col items-end gap-1">
-      <div className="flex flex-wrap gap-1.5 justify-end">
+      <div className="flex items-center justify-end gap-2">
         {status === 'active' ? (
-          <button type="button" disabled={busy} onClick={endWithGuard}
-            className="text-[11px] font-bold px-2 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50">
-            Kunci &amp; Akhiri
-          </button>
+          <Button variant="ghost" size="sm" disabled={busy} onClick={endWithGuard}>Kunci &amp; Akhiri</Button>
         ) : (
-          <button type="button" disabled={busy} onClick={activateWithGuard}
-            className="text-[11px] font-bold px-2 py-1 rounded bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50">
-            Aktivasi
-          </button>
+          <Button variant="primary" size="sm" disabled={busy} onClick={activateWithGuard}>Aktivasi</Button>
         )}
-        <button type="button" disabled={busy} onClick={toggle360Guard}
-          title={has360
-            ? 'Menutup komponen 360°: form penilaian disembunyikan dari pegawai & skor 360° tak dihitung.'
-            : 'Membuka komponen 360°: form penilaian tampil ke pegawai yang punya pemetaan & skor 360° dihitung.'}
-          className="text-[11px] font-bold px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50">
-          {has360 ? 'Set Tanpa 360°' : 'Aktifkan 360°'}
-        </button>
-        {status === 'active' && has360 && (
-          <button type="button" disabled={busy} onClick={() => run(() => toggleFormOpen(periodId, !formOpen))}
-            title={formOpen
-              ? 'Menutup form: pegawai berhenti mengisi (tahap review). 360° TETAP dihitung & Hitung Ulang tetap tersedia.'
-              : 'Membuka kembali form agar pegawai bisa melanjutkan pengisian 360°.'}
-            className="text-[11px] font-bold px-2 py-1 rounded border border-indigo-200 text-indigo-700 hover:bg-indigo-50 disabled:opacity-50">
-            {formOpen ? 'Tutup Form' : 'Buka Form'}
-          </button>
-        )}
-        <button type="button" disabled={busy || status === 'active'} onClick={askDelete}
-          title={status === 'active'
-            ? 'Periode aktif tidak bisa dihapus — "Kunci & Akhiri" dulu.'
-            : 'Hapus periode ini beserta seluruh datanya (permanen).'}
-          className="text-[11px] font-bold px-2 py-1 rounded border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed">
-          Hapus
-        </button>
+        <OverflowMenu items={menuItems} />
       </div>
-      {err && <span className="text-[10px] text-rose-600 max-w-[150px] text-right">{err}</span>}
+      {err && <span className="text-[11px] text-danger-ink max-w-[180px] text-right">{err}</span>}
 
       <ConfirmDialog
         open={!!dialog}

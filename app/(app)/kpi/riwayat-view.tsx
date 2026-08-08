@@ -42,10 +42,10 @@ export async function RiwayatView({
     const sel = list.find((p) => p.id === periodParam)
       ?? list.find((p) => p.status === 'active')
       ?? list[0];
-    if (!sel) return <p className="text-sm text-gray-500">Belum ada periode.</p>;
+    if (!sel) return <p className="text-sm text-ink-soft">Belum ada periode.</p>;
     const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', sel.id);
     ymFilter = (months ?? []).map((m) => m.ym);
-    if (ymFilter.length === 0) return <p className="text-sm text-gray-500">Periode ini belum memiliki bulan.</p>;
+    if (ymFilter.length === 0) return <p className="text-sm text-ink-soft">Periode ini belum memiliki bulan.</p>;
   }
 
   // Lingkup pegawai. Izin HRD (canAdmin) mode admin → semua; HRD-posisi mode-SPV → DIVISINYA;
@@ -70,7 +70,7 @@ export async function RiwayatView({
     const { data } = await supabase.from('employees').select('id, name, dept').in('id', ids);
     empRows = data ?? [];
   }
-  if (empRows.length === 0) return <p className="text-sm text-gray-500">Belum ada anggota tim dalam lingkup Anda.</p>;
+  if (empRows.length === 0) return <p className="text-sm text-ink-soft">Belum ada anggota tim dalam lingkup Anda.</p>;
   const empById = new Map(empRows.map((e) => [e.id, e]));
 
   // Pencarian DI SERVER: saring pegawai dalam lingkup dulu (nama/divisi), lalu batasi query audit

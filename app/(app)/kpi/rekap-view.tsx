@@ -13,11 +13,11 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', '
 const labelOf = (ym: string) => { const [, m] = ym.split('-'); return MONTHS[Number(m) - 1] ?? m; };
 // Warna per kategori terpadu (label dari perfLabelOf agar seragam dgn dashboard/ekspor).
 const KAT_COLOR: Record<string, string> = {
-  exceed: 'text-emerald-700', meet: 'text-blue-700', improve: 'text-amber-700', below: 'text-rose-700',
+  exceed: 'text-brand-ink', meet: 'text-ink', improve: 'text-warn-ink', below: 'text-danger-ink',
 };
 const KAT = (f: number | null) => {
   const c = perfCategoryOf(f);
-  return { t: perfLabelOf(f), c: c ? KAT_COLOR[c] : 'text-gray-500' };
+  return { t: perfLabelOf(f), c: c ? KAT_COLOR[c] : 'text-ink-faint' };
 };
 
 export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', scopedIds }: { role: string; userId: string; periodParam?: string; hrdMode?: 'admin' | 'spv'; scopedIds?: string[] | null }) {
@@ -27,7 +27,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', 
 
   const { data: periods } = await supabase.from('periods').select('id, label, has_360, status').order('label');
   const periodList = periods ?? [];
-  if (periodList.length === 0) return <p className="text-sm text-gray-500">Belum ada periode.</p>;
+  if (periodList.length === 0) return <p className="text-sm text-ink-soft">Belum ada periode.</p>;
   const sel = periodList.find((p) => p.id === periodParam)
     ?? periodList.find((p) => p.status === 'active')
     ?? periodList[0];
@@ -108,16 +108,16 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', 
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-        <p className="text-sm text-gray-500">Ringkasan KPI bulanan, 360°, &amp; Skor Akhir per kuartal.</p>
+        <p className="text-sm text-ink-soft">Ringkasan KPI bulanan, 360°, &amp; Skor Akhir per kuartal.</p>
         <PeriodSelect periods={periodList} current={sel.id} />
       </div>
       {!sel.has_360 && (
-        <div className="mb-3 bg-amber-50 border border-amber-200 p-3 rounded-xl text-xs text-amber-800">
+        <div className="mb-3 bg-warn-tint border border-warn-ink/25 p-3 rounded-control text-xs text-warn-ink">
           Kuartal ini bertipe <strong>KPI Saja</strong> — 360° diabaikan; Skor Akhir = 100% KPI.
         </div>
       )}
       <RekapTable rows={rows} monthLabels={ymList.map(labelOf)} has360={sel.has_360} />
-      <p className="text-[10px] text-gray-500 italic mt-3">
+      <p className="text-[11px] text-ink-faint mt-3 leading-relaxed">
         Rataan KPI = rerata bulan ber-skor di kuartal ini. Skor Akhir = blend KPI+360 (50/50) − punishment
         {sel.has_360 ? '' : ' (kuartal KPI saja → 100% KPI)'}. Kategori: ≥90 Melampaui · ≥80 Memenuhi · ≥70 Perlu Peningkatan · &lt;70 Di Bawah Ekspektasi.
       </p>

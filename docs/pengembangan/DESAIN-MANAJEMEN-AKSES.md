@@ -181,7 +181,11 @@ Konsol Manajemen Akses ditata jadi 3 kolom, satu pemberian akses = **1 halaman �
 > (blok "Izin Peran & Akses HRD"). Dua model data (grant halaman vs kapabilitas peran) tinggal di dua
 > UI berbeda → membingungkan. Target: **satu alur** yang dimulai dari **memilih penerima dulu**.
 
-### 10.1 Diagram — struktur SAAT INI (as-is)
+### 10.1 Diagram — struktur LAMA (as-is sebelum redesain)
+
+> ⚠️ **Historis:** diagram ini menggambarkan struktur **LAMA** (dua "pintu" yang membingungkan) yang
+> menjadi alasan redesain. Struktur ini **sudah digantikan** oleh alur penerima-dulu yang **TERBANGUN**
+> di **§10.6**. Disimpan sebagai rekam jejak keputusan.
 
 Inti kebingungan: ada **DUA cara berbeda** memberi akses di halaman yang sama. Keduanya sama-sama
 "memberi sesuatu ke seseorang", tapi tampil sebagai dua tempat terpisah — dan kata "peran" muncul di

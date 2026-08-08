@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPeriod } from './actions';
+import { Button } from '@/components/button';
+import { DatePicker } from '@/components/date-picker';
 
 export function PeriodForm() {
   const router = useRouter();
@@ -16,6 +18,10 @@ export function PeriodForm() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    // Tanggal kini dipilih lewat kalender kustom (bukan <input required>), jadi kelengkapannya
+    // diperiksa di sini — server (Zod) tetap jadi penjaga terakhir.
+    if (!startDate || !endDate) { setErr('Tanggal mulai & tanggal selesai wajib dipilih.'); return; }
+    if (endDate < startDate) { setErr('Tanggal selesai tidak boleh lebih awal dari tanggal mulai.'); return; }
     const std = Number(kpiStandard);
     if (!Number.isInteger(std) || std < 0 || std > 100) { setErr('Standar KPI harus bilangan bulat 0–100'); return; }
     setBusy(true); setErr(null);
@@ -26,42 +32,87 @@ export function PeriodForm() {
     router.refresh();
   }
 
+  const inputCls = 'w-full text-[13.5px] px-3 py-2 rounded-control border border-line bg-[#FDFDFC] text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint';
+
   return (
-    <form onSubmit={submit} className="border border-gray-200 rounded-xl p-4 bg-gray-50/50 space-y-3">
-      <p className="text-xs font-bold text-gray-600 uppercase tracking-wider">Buat Periode Baru</p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <form onSubmit={submit}>
+      <div className="grid grid-cols-1 sm:grid-cols-[1.3fr_1fr_1fr] gap-4">
         <div>
-          <label className="block text-[10px] font-bold text-gray-500 mb-1">Label (mis. Q4 2026)</label>
-          <input value={label} onChange={(e) => setLabel(e.target.value)} required placeholder="Q4 2026"
-            className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+          <label className="block text-[12.5px] font-medium text-ink-soft mb-1.5">Label</label>
+          <input value={label} onChange={(e) => setLabel(e.target.value)} required placeholder="Q4 2026" className={inputCls} />
         </div>
         <div>
-          <label className="block text-[10px] font-bold text-gray-500 mb-1">Tanggal Mulai</label>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required
-            className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+          <label className="block text-[12.5px] font-medium text-ink-soft mb-1.5">Tanggal Mulai</label>
+          <DatePicker value={startDate} onChange={setStartDate} ariaLabel="Pilih tanggal mulai periode" />
         </div>
         <div>
-          <label className="block text-[10px] font-bold text-gray-500 mb-1">Tanggal Selesai</label>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required
-            className="w-full text-sm px-2 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+          <label className="block text-[12.5px] font-medium text-ink-soft mb-1.5">Tanggal Selesai</label>
+          {/* min = tanggal mulai → tanggal sebelum itu tak bisa dipilih (bukan cuma diperingatkan). */}
+          <DatePicker value={endDate} onChange={setEndDate} min={startDate || undefined} ariaLabel="Pilih tanggal selesai periode" />
         </div>
       </div>
-      <label className="flex items-center gap-2 text-xs text-gray-600">
-        <input type="checkbox" checked={has360} onChange={(e) => setHas360(e.target.checked)} />
-        Sertakan Evaluasi 360° (Skor Akhir = blend KPI 50% + 360° 50%; jika tidak, 100% KPI)
+
+      {/* Pratinjau rentang — konfirmasi cepat bahwa tanggal yang dipilih memang yang dimaksud,
+          tanpa harus membaca ulang dua kotak "YYYY-MM-DD" yang datar. */}
+      <RangePreview start={startDate} end={endDate} />
+
+      <label className="flex items-start gap-2.5 mt-4 text-[13px] text-ink-soft leading-relaxed">
+        <input type="checkbox" checked={has360} onChange={(e) => setHas360(e.target.checked)} className="mt-0.5 accent-brand" />
+        <span>Sertakan Evaluasi 360° <span className="text-ink font-semibold">(Skor Akhir = blend KPI 50% + 360° 50%; jika tidak, 100% KPI)</span></span>
       </label>
-      <div className="flex items-center gap-2 text-xs text-gray-600">
-        <label htmlFor="kpiStandard">Standar/Target KPI (≥) untuk metrik dashboard:</label>
+
+      <div className="flex items-center gap-2.5 mt-4 text-[13px] text-ink-soft">
+        <label htmlFor="kpiStandard">Standar/Target KPI untuk metrik dashboard</label>
         <input id="kpiStandard" type="number" min={0} max={100} value={kpiStandard}
           onChange={(e) => setKpiStandard(e.target.value)}
-          className="w-16 text-center text-sm px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500" />
-        <span className="text-[10px] text-gray-500">tak memengaruhi rumus skor; bisa diubah per kuartal</span>
+          className="w-16 text-center text-[13px] data-value px-2 py-1.5 rounded-control border border-line text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+        <span className="text-[12px] text-ink-faint">tak memengaruhi rumus skor · bisa diubah per kuartal</span>
       </div>
-      {err && <p className="text-xs text-rose-600 font-semibold">{err}</p>}
-      <button type="submit" disabled={busy}
-        className="text-sm font-bold px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-60">
+
+      {err && <p className="text-[13px] text-danger-ink font-semibold mt-3">{err}</p>}
+      <Button type="submit" disabled={busy} className="mt-5">
         {busy ? 'Membuat…' : 'Buat Periode'}
-      </button>
+      </Button>
     </form>
+  );
+}
+
+const ID_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const parseYmd = (s: string) => {
+  const p = s.split('-').map(Number);
+  if (p.length !== 3 || p.some((n) => !Number.isFinite(n)) || p[1] < 1 || p[1] > 12) return null;
+  return { y: p[0], m: p[1], d: p[2] };
+};
+
+/** Ringkasan rentang terpilih: "1 Jan – 31 Mar 2026 · 3 bulan" + chip bulan. */
+function RangePreview({ start, end }: { start: string; end: string }) {
+  const a = parseYmd(start), b = parseYmd(end);
+  if (!a || !b) return null;
+  const backwards = b.y < a.y || (b.y === a.y && (b.m < a.m || (b.m === a.m && b.d < a.d)));
+  if (backwards) {
+    return (
+      <p className="mt-3 text-[12px] font-semibold text-danger-ink">
+        Tanggal selesai lebih awal dari tanggal mulai.
+      </p>
+    );
+  }
+  const chips: { key: string; label: string }[] = [];
+  for (let y = a.y, m = a.m; (y < b.y || (y === b.y && m <= b.m)) && chips.length < 24; ) {
+    chips.push({ key: `${y}-${m}`, label: ID_MONTHS[m - 1] });
+    m += 1; if (m > 12) { m = 1; y += 1; }
+  }
+  const left = `${a.d} ${ID_MONTHS[a.m - 1]}${a.y !== b.y ? ` ${a.y}` : ''}`;
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2 rounded-control border border-line bg-neutral-tint/60 px-3 py-2">
+      <span className="text-[12.5px] font-semibold text-ink data-value">
+        {left} – {b.d} {ID_MONTHS[b.m - 1]} {b.y}
+      </span>
+      <span className="text-[11px] text-ink-faint">· mencakup <span className="data-value font-bold text-ink-soft">{chips.length}</span> bulan</span>
+      <span className="flex flex-wrap gap-1">
+        {chips.map((c) => (
+          <span key={c.key} className="text-[10px] font-semibold text-ink-soft bg-surface border border-line rounded-control px-1.5 py-0.5">{c.label}</span>
+        ))}
+      </span>
+    </div>
   );
 }

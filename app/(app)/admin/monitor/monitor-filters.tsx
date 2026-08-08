@@ -29,18 +29,18 @@ export function MonitorFilters({
   return (
     <div className="mt-3 flex flex-wrap items-center gap-3">
       <label className="inline-flex items-center gap-2 text-xs">
-        <span className="font-semibold text-gray-600">Periode</span>
+        <span className="font-semibold text-ink-soft">Periode</span>
         <select value={currentPeriod} disabled={pending} onChange={(e) => go(e.target.value, currentDept)}
-          className="px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-60">
+          className="px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint disabled:opacity-60">
           {periods.map((p) => (
             <option key={p.id} value={p.id}>{p.label}{p.status === 'active' ? ' (aktif)' : ''}</option>
           ))}
         </select>
       </label>
       <label className="inline-flex items-center gap-2 text-xs">
-        <span className="font-semibold text-gray-600">Divisi</span>
+        <span className="font-semibold text-ink-soft">Divisi</span>
         <select value={currentDept} disabled={pending} onChange={(e) => go(currentPeriod, e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-600 disabled:opacity-60">
+          className="px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint disabled:opacity-60">
           <option value="all">Seluruh Divisi</option>
           {depts.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>

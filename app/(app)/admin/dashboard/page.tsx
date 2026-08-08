@@ -44,8 +44,9 @@ export default async function DashboardPage({
     grantScopes = grantedAccess(g, 'dashboard')?.scopes ?? null;
   }
   if (!isHrdFull && !isDireksi && !grantScopes) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk HRD / Direksi atau pemegang akses Dashboard.</p>
-      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><div className="bg-surface border border-line rounded-panel p-5">
+      <p className="text-sm text-ink-soft">Halaman ini untuk HRD / Direksi atau pemegang akses Dashboard.</p>
+      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></div></Shell>;
   }
   // canMonitor = tautan silang ke Monitor Kinerja Pegawai (hanya HRD penuh).
   const canMonitor = isHrdFull;
@@ -113,15 +114,15 @@ export default async function DashboardPage({
     const kpiStd = aggPeriods[aggPeriods.length - 1]?.kpi_standard ?? ap.kpi_standard ?? 80;
     return (
       <Shell>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-start justify-between mb-4 gap-3">
           <div>
-            <h1 className="text-xl font-bold text-gray-800">Dashboard Organisasi</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Dashboard Organisasi</h1>
+            <p className="text-[13.5px] text-ink-soft mt-1">
               {scopeLabel} · {dept === 'all' ? 'semua divisi' : `divisi ${dept}`} · agregat rata-rata antar-kuartal
             </p>
             <PagePurpose canMonitor={canMonitor} />
           </div>
-          <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+          <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
         </div>
         <DashboardFilters
           periods={periodList.map((p) => ({ id: p.id, label: p.label, status: p.status, year: Number(String(p.start_date).slice(0, 4)) || 0 }))}
@@ -517,15 +518,15 @@ export default async function DashboardPage({
 
   return (
     <Shell>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-start justify-between mb-4 gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Dashboard Organisasi</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Dashboard Organisasi</h1>
+          <p className="text-[13.5px] text-ink-soft mt-1">
             {ap.label}{ap.status === 'active' ? ' (aktif)' : ''} · {dept === 'all' ? 'semua divisi' : `divisi ${dept}`} · {ap.has_360 ? '360° aktif (blend 50/50)' : '360° nonaktif (KPI murni)'}
           </p>
           <PagePurpose canMonitor={canMonitor} />
         </div>
-        <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+        <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
 
       <DashboardFilters
@@ -582,11 +583,11 @@ export default async function DashboardPage({
  */
 function PagePurpose({ canMonitor }: { canMonitor: boolean }) {
   return (
-    <p className="text-[11px] text-gray-400 mt-1">
-      <span className="font-semibold text-gray-500">Fokus halaman ini:</span> klasifikasi talenta &amp; snapshot analitik organisasi.
+    <p className="text-[11px] text-ink-faint mt-1">
+      <span className="font-semibold text-ink-soft">Fokus halaman ini:</span> klasifikasi talenta &amp; snapshot analitik organisasi.
       {canMonitor && (
-        <> · Butuh <span className="text-gray-500">pergerakan &amp; pelacakan per-pegawai lintas waktu</span>?{' '}
-          <Link href="/admin/monitor" className="text-emerald-700 hover:underline font-semibold">Monitor Kinerja Pegawai →</Link></>
+        <> · Butuh <span className="text-ink-soft">pergerakan &amp; pelacakan per-pegawai lintas waktu</span>?{' '}
+          <Link href="/admin/monitor" className="text-brand-ink hover:underline font-semibold">Monitor Kinerja Pegawai →</Link></>
       )}
     </p>
   );
@@ -594,8 +595,6 @@ function PagePurpose({ canMonitor }: { canMonitor: boolean }) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
+    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>
   );
 }

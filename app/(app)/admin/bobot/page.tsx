@@ -9,6 +9,7 @@ import { EmployeeWeights, type Override } from './employee-weights';
 import { Kalkulasi360Table, type MergedRow } from './bobot-tables';
 import { RecomputeButton } from '../360/recompute-button';
 import { EmptyState } from '@/components/empty-state';
+import { Panel, PanelLabel } from '@/components/panel';
 import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
 
 /**
@@ -33,7 +34,7 @@ export default async function BobotPage() {
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'bobot')) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini hanya untuk HRD Admin.</p></Shell>;
+    return <Shell><p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin.</p></Shell>;
   }
 
   const { data: ap } = await supabase
@@ -160,29 +161,30 @@ export default async function BobotPage() {
 
   return (
     <Shell>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between mb-7">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Bobot &amp; Kalkulasi Skor 360°</h1>
-          <p className="text-sm text-gray-500">Periode aktif: {ap.label}</p>
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Bobot &amp; Kalkulasi Skor 360°</h1>
+          <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span></p>
         </div>
-        <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+        <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
 
       {/* 1. Bobot Penilai */}
       <Section title="Bobot Penilai">
         <WeightForm initial={initial} />
-        <p className="text-[10px] text-gray-500 italic mt-4">
-          Skor 360 = rata-rata rating tiap kelas penilai ×20, dibobot di sini (Self dikecualikan dari total).
-          Perubahan berlaku setelah <strong>Hitung Ulang Skor 360°</strong> di bawah.
+        <p className="text-[12px] text-ink-faint mt-4 leading-relaxed">
+          Skor 360 = rata-rata rating tiap kelas penilai ×20, dibobot di sini. Evaluasi diri (Self)
+          tak punya bobot &amp; tak pernah ikut dihitung, jadi tidak ada kolomnya.
+          Perubahan berlaku setelah <strong className="font-semibold text-ink-soft">Hitung Ulang Skor 360°</strong> di bawah.
         </p>
       </Section>
 
       {/* 1b. Bobot Khusus per Pegawai (override skema di atas) */}
       <Section title="Bobot Khusus per Pegawai">
-        <p className="text-[11px] text-gray-500 mb-3 max-w-3xl">
+        <p className="text-[12px] text-ink-soft mb-4 max-w-3xl leading-relaxed">
           Sebagian pegawai bisa memakai bobot berbeda dari skema periode di atas. Pegawai dengan bobot khusus
-          memakai model &amp; nilai di sini; sisanya tetap skema periode. Berlaku setelah <strong>Hitung Ulang Skor 360°</strong>.
-          <span className="block mt-1 text-gray-400">Catatan: kelas tanpa data (mis. pegawai tanpa bawahan) sudah otomatis diabaikan &amp; bobotnya dinormalisasi — bobot khusus hanya perlu bila kebijakan bobotnya memang berbeda.</span>
+          memakai model &amp; nilai di sini; sisanya tetap skema periode. Berlaku setelah <strong className="font-semibold text-ink">Hitung Ulang Skor 360°</strong>.
+          <span className="block mt-1 text-ink-faint">Catatan: kelas tanpa data (mis. pegawai tanpa bawahan) sudah otomatis diabaikan &amp; bobotnya dinormalisasi — bobot khusus hanya perlu bila kebijakan bobotnya memang berbeda.</span>
         </p>
         <EmployeeWeights employees={empList} overrides={overrides} />
       </Section>
@@ -191,10 +193,10 @@ export default async function BobotPage() {
       <Section title="Kalkulasi Skor 360°">
         <div className="mb-4">
           <RecomputeButton />
-          <p className="text-[11px] text-gray-500 mt-1.5">
-            Menulis hasil resmi ke <code>result_360</code> memakai model aktif:
-            <strong> {model === '4class' ? '4-Kelas' : '2-Kelas'}</strong> (bobot global {globalLabel}). Pegawai dengan
-            <strong> bobot khusus</strong> memakai bobotnya sendiri. Self dikecualikan dari total.
+          <p className="text-[12px] text-ink-faint mt-2 leading-relaxed">
+            Menulis hasil resmi ke <code className="data-value text-ink-soft bg-neutral-tint px-1 py-0.5 rounded">result_360</code> memakai model aktif:
+            <strong className="font-semibold text-ink-soft"> {model === '4class' ? '4-Kelas' : '2-Kelas'}</strong> (bobot global <span className="data-value">{globalLabel}</span>). Pegawai dengan
+            <strong className="font-semibold text-ink-soft"> bobot khusus</strong> memakai bobotnya sendiri. Evaluasi diri (Self) tak ikut dihitung.
           </p>
         </div>
         <Kalkulasi360Table rows={merged} model={model} overrideCount={overrideCount} globalLabel={globalLabel} />
@@ -205,17 +207,13 @@ export default async function BobotPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mb-6">
-      <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight mb-3 pb-2 border-b border-gray-100">{title}</h2>
+    <Panel className="mb-5">
+      <PanelLabel className="mb-4">{title}</PanelLabel>
       {children}
-    </div>
+    </Panel>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
-  );
+  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
 }

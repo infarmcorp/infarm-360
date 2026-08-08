@@ -26,7 +26,7 @@ export default async function ProgressPage() {
     grantScopes = grantedAccess(g, 'progress')?.scopes ?? null;
   }
   if (!isHrdFull && !grantScopes) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk HRD Admin atau pemegang akses Progress 360°.</p></Shell>;
+    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk HRD Admin atau pemegang akses Progress 360°.</p></Shell>;
   }
   const viaGrant = !isHrdFull;
   const ownDept = (me?.dept ?? '').trim();
@@ -36,7 +36,7 @@ export default async function ProgressPage() {
     : undefined;
 
   const { data: ap } = await db.from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
   // Independen → paralel. mappings & assessments SELURUH pegawai → bisa >1000; ambil penuh.
   const [empsRes, maps, asmtsAll] = await Promise.all([
@@ -106,9 +106,9 @@ export default async function ProgressPage() {
 
   return (
     <Shell>
-      <div className="mb-4">
-        <h1 className="text-xl font-bold text-gray-800">Progress 360 Feedback</h1>
-        <p className="text-sm text-gray-500">Periode aktif: {ap.label} · kelengkapan pengisian 360°.{viaGrant ? ' (lihat-saja)' : ''}</p>
+      <div className="mb-6">
+        <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Progress 360 Feedback</h1>
+        <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span> · kelengkapan pengisian 360°.{viaGrant ? ' (lihat-saja)' : ''}</p>
       </div>
       <ProgressClient rows={rowsOut} targetRows={targetRowsOut} readOnly={viaGrant} />
     </Shell>
@@ -116,9 +116,5 @@ export default async function ProgressPage() {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
-  );
+  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
 }

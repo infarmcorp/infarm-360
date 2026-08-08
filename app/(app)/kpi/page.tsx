@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
+import { PencilLine, History, LayoutList } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin, canCoordinate, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
+import { TabBar, Tab } from '@/components/tab-nav';
 import { KpiForm } from './kpi-form';
 import { RekapView } from './rekap-view';
 import { RiwayatView } from './riwayat-view';
@@ -50,7 +52,7 @@ export default async function KpiPage({
     const { data: grants } = await supabase.from('page_grants').select('section, scope, scopes, can_edit').eq('employee_id', user.id);
     const kpiGrant = grantedAccess(grants ?? [], 'kpi');
     if (!kpiGrant) {
-      return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV / HRD / Koordinator.</p></Shell>;
+      return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk SPV / HRD / Koordinator.</p></Shell>;
     }
 
     // Saring pegawai per-lingkup (mirror pola halaman grant lain: ambil semua → filter di JS).
@@ -67,10 +69,10 @@ export default async function KpiPage({
       .map((e) => e.id);
 
     return (
-      <main className="w-full p-4 sm:p-5 lg:p-6">
-        <div className="mb-4">
-          <h1 className="text-xl font-bold text-gray-800">Monitoring &amp; Audit KPI</h1>
-          <p className="mt-1 text-sm text-gray-500">Rekapitulasi kuartal &amp; jejak audit perubahan KPI dalam lingkup akses Anda (lihat-saja).</p>
+      <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
+        <div className="mb-5">
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Monitoring &amp; Audit KPI</h1>
+          <p className="mt-1 text-[13.5px] text-ink-soft">Rekapitulasi kuartal &amp; jejak audit perubahan KPI dalam lingkup akses Anda (lihat-saja).</p>
         </div>
         <MonitoringTabs view={view} period={period} />
         <div className="mt-4">
@@ -92,10 +94,10 @@ export default async function KpiPage({
   // satu halaman — Rekapitulasi + Riwayat & Audit berdampingan (ala legacy), tanpa tab.
   if (!canInput) {
     return (
-      <main className="w-full p-4 sm:p-5 lg:p-6">
-        <div className="mb-4">
-          <h1 className="text-xl font-bold text-gray-800">Monitoring &amp; Audit KPI</h1>
-          <p className="mt-1 text-sm text-gray-500">Rekapitulasi kuartal &amp; jejak audit perubahan KPI seluruh pegawai.</p>
+      <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
+        <div className="mb-5">
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Monitoring &amp; Audit KPI</h1>
+          <p className="mt-1 text-[13.5px] text-ink-soft">Rekapitulasi kuartal &amp; jejak audit perubahan KPI seluruh pegawai.</p>
         </div>
         <MonitoringTabs view={view} period={period} />
         <div className="mt-4">
@@ -121,8 +123,8 @@ export default async function KpiPage({
 
   return (
     <Shell>
-      <h1 className="text-xl font-bold text-gray-800">{isCoord ? 'Input KPI' : 'Kinerja Tim'}</h1>
-      <p className="mt-1 text-sm text-gray-500">
+      <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">{isCoord ? 'Input KPI' : 'Kinerja Tim'}</h1>
+      <p className="mt-1 text-[13.5px] text-ink-soft">
         {isCoord
           ? 'Input KPI bulanan untuk pegawai yang Anda koordinasikan.'
           : 'Input KPI bulanan, riwayat audit, & rekapitulasi per kuartal anggota tim.'}
@@ -130,20 +132,31 @@ export default async function KpiPage({
 
       {/* Tab nav — disembunyikan untuk koordinator (hanya Input KPI). */}
       {!isCoord && (
-        <div className="flex gap-1 mt-4 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
-          <Tab href="/kpi?tab=input" active={tab === 'input'}>Input KPI</Tab>
-          <Tab href="/kpi?tab=riwayat" active={tab === 'riwayat'}>Riwayat &amp; Audit</Tab>
-          <Tab href="/kpi?tab=rekap" active={tab === 'rekap'}>Rekapitulasi Kuartal</Tab>
+        <div className="mt-4">
+          <TabBar>
+            <Tab href="/kpi?tab=input" active={tab === 'input'} icon={PencilLine}>Input KPI</Tab>
+            <Tab href="/kpi?tab=riwayat" active={tab === 'riwayat'} icon={History}>Riwayat &amp; Audit</Tab>
+            <Tab href="/kpi?tab=rekap" active={tab === 'rekap'} icon={LayoutList}>Rekapitulasi Kuartal</Tab>
+          </TabBar>
         </div>
       )}
 
-      {tab === 'input' ? (
-        <InputTab supabase={supabase} userId={user.id} role={role} isCoord={isCoord} />
-      ) : tab === 'riwayat' ? (
-        <RiwayatView role={role} canAdmin={admin} userId={user.id} hrdMode={hrdMode} page={auditPage} query={auditQ} />
-      ) : (
-        <RekapView role={role} userId={user.id} periodParam={period} hrdMode={hrdMode} />
-      )}
+      {/* Section (kartu) hanya untuk tampilan TABEL BESAR yang perlu dipisahkan dari kanvas
+          (Riwayat & Rekap). Input KPI mengatur section-nya sendiri di KpiForm — toolbar filter
+          tetap di kanvas, tabel input yang dibungkus panel. */}
+      <div className="mt-4">
+        {tab === 'input' ? (
+          <InputTab supabase={supabase} userId={user.id} role={role} isCoord={isCoord} />
+        ) : tab === 'riwayat' ? (
+          <Panel title="Riwayat &amp; Audit Perubahan KPI">
+            <RiwayatView role={role} canAdmin={admin} userId={user.id} hrdMode={hrdMode} page={auditPage} query={auditQ} />
+          </Panel>
+        ) : (
+          <Panel title="Rekapitulasi Kuartal">
+            <RekapView role={role} userId={user.id} periodParam={period} hrdMode={hrdMode} />
+          </Panel>
+        )}
+      </div>
     </Shell>
   );
 }
@@ -152,18 +165,18 @@ export default async function KpiPage({
 function MonitoringTabs({ view, period }: { view: 'rekap' | 'riwayat'; period?: string }) {
   const suffix = period ? `&period=${period}` : '';
   return (
-    <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
-      <Tab href={`/kpi?view=rekap${suffix}`} active={view === 'rekap'}>Rekapitulasi Kuartal</Tab>
-      <Tab href={`/kpi?view=riwayat${suffix}`} active={view === 'riwayat'}>Riwayat &amp; Audit</Tab>
-    </div>
+    <TabBar>
+      <Tab href={`/kpi?view=rekap${suffix}`} active={view === 'rekap'} icon={LayoutList}>Rekapitulasi Kuartal</Tab>
+      <Tab href={`/kpi?view=riwayat${suffix}`} active={view === 'riwayat'} icon={History}>Riwayat &amp; Audit</Tab>
+    </TabBar>
   );
 }
 
 /** Kartu panel dengan header lengket & scroll vertikal independen. */
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col max-h-[78vh]">
-      <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight px-5 py-3 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">{title}</h2>
+    <div className="bg-surface border border-line rounded-panel flex flex-col max-h-[78vh]">
+      <h2 className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.07em] px-5 py-3 border-b border-line sticky top-0 bg-surface rounded-t-panel z-10">{title}</h2>
       <div className="p-5 overflow-y-auto">{children}</div>
     </div>
   );
@@ -233,8 +246,8 @@ async function InputTab({
   const [emps, monthOptions] = await Promise.all([scopeEmps(), scopeMonths()]);
   const members = emps.map((e) => ({ id: e.id, code: e.emp_code, name: e.name, dept: e.dept }));
 
-  if (members.length === 0) return <p className="text-sm text-gray-500">Belum ada anggota tim yang ditugaskan kepada Anda.</p>;
-  if (monthOptions.length === 0) return <p className="text-sm text-gray-500">Tidak ada periode aktif. Hubungi HRD untuk mengaktifkan siklus.</p>;
+  if (members.length === 0) return <p className="text-sm text-ink-soft">Belum ada anggota tim yang ditugaskan kepada Anda.</p>;
+  if (monthOptions.length === 0) return <p className="text-sm text-ink-soft">Tidak ada periode aktif. Hubungi HRD untuk mengaktifkan siklus.</p>;
 
   // Skor yang SUDAH ada (per pegawai+bulan dalam periode aktif) → dipakai pratinjau Excel
   // menandai baris yang "akan menimpa" input sebelumnya. Hanya petunjuk visual; revalidate
@@ -248,23 +261,6 @@ async function InputTab({
   return <KpiForm members={members} months={monthOptions} existing={existing} />;
 }
 
-function Tab({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className={`px-4 py-1.5 text-xs font-extrabold rounded-lg transition-all ${
-        active ? 'bg-white text-emerald-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-      }`}
-    >
-      {children}
-    </Link>
-  );
-}
-
 function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
-  );
+  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
 }

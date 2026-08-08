@@ -904,7 +904,7 @@ flowchart TD
     Z --> W{"Laporan sudah Final?"}
     W -- "tidak" --> U["Simpan Draf / Finalisasi seperti biasa"]
     W -- "ya" --> V["final_score lama != skor terkini<br/>badge: berubah -> N"]
-    V --> R["HRD: Kembalikan ke Draf -> Finalisasi ulang"]
+    V --> R["HRD: ② Finalisasi Ulang Berubah (1 klik)<br/>atau manual: Kembalikan ke Draf -> Finalisasi ulang"]
     R --> S["Pegawai lihat angka terbaru"]
     M["Pemetaan dihapus (sudah dinilai)"] --> N["Penilaian periode itu terhapus<br/>360° OTOMATIS dihitung ulang"]
 ```

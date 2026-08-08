@@ -49,14 +49,15 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   // Koordinator: bukan SPV/HRD tapi punya grant is_coordinator → Monitor untuk naungannya saja.
   const coordinatorView = !adminView && !supervisorView && canCoordinate(me);
   if (!supervisorView && !coordinatorView) {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk SPV, Koordinator, atau HRD dalam Mode SPV.</p>
-      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><div className="bg-surface border border-line rounded-panel p-5">
+      <p className="text-sm text-ink-soft">Halaman ini untuk SPV, Koordinator, atau HRD dalam Mode SPV.</p>
+      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></div></Shell>;
   }
 
   const { data: periodRows } = await supabase
     .from('periods').select('id, label, has_360, status, start_date').order('start_date', { ascending: true });
   const periodList = periodRows ?? [];
-  if (periodList.length === 0) return <Shell><Header coordinator={coordinatorView} /><p className="text-sm text-gray-500 mt-4">Belum ada periode.</p></Shell>;
+  if (periodList.length === 0) return <Shell><Header coordinator={coordinatorView} /><p className="text-sm text-ink-soft mt-4">Belum ada periode.</p></Shell>;
   const sel = periodList.find((p) => p.id === periodParam)
     ?? periodList.find((p) => p.status === 'active')
     ?? periodList[periodList.length - 1];
@@ -85,7 +86,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
     empRows = data ?? [];
   }
   if (empRows.length === 0) {
-    return <Shell><Header coordinator={coordinatorView} /><Toolbar periods={periodList} current={sel.id} /><p className="text-sm text-gray-500 mt-4">Belum ada pegawai dalam lingkup Anda.</p></Shell>;
+    return <Shell><Header coordinator={coordinatorView} /><Toolbar periods={periodList} current={sel.id} /><p className="text-sm text-ink-soft mt-4">Belum ada pegawai dalam lingkup Anda.</p></Shell>;
   }
   const ids = empRows.map((e) => e.id);
 
@@ -115,10 +116,11 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   const cAvg = await companyAverages(sel.id);
 
   // ── Data tren LINTAS periode/bulan (RLS user-scoped; lingkup tim kecil → aman batas 1000) ──
-  const [kpiAllRes, r360AllRes, pmRes] = await Promise.all([
+  const [kpiAllRes, r360AllRes, pmRes, penAllRes] = await Promise.all([
     dataClient.from('kpi_scores').select('employee_id, ym, score').in('employee_id', ids),
     dataClient.from('result_360').select('employee_id, period_id, score').in('employee_id', ids),
     dataClient.from('period_months').select('period_id, ym'),
+    dataClient.from('compliance_penalties').select('employee_id, period_id, points').in('employee_id', ids),
   ]);
   const kpiAgg = new Map<string, { s: number; n: number }>(); // `${emp}|${ym}`
   (kpiAllRes.data ?? []).forEach((r) => { const k = `${r.employee_id}|${r.ym}`; const a = kpiAgg.get(k) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; kpiAgg.set(k, a); });
@@ -131,6 +133,19 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   const monthLabels = allYms.map(labelOf);
   const nn = (v: number | null): v is number => v != null;
 
+  // Skor Akhir per (pegawai,periode) untuk grafik "Tren Tim per Periode" (Avg Skor Akhir).
+  // finalScoreOf = blend KPI×360 − punishment (LIVE), selaras snapshot laporan.
+  const periodById = new Map(periodList.map((p) => [p.id, p]));
+  const penOf = new Map((penAllRes.data ?? []).map((p) => [`${p.employee_id}|${p.period_id}`, p.points]));
+  const perPeriodKpi = (id: string, pid: string): number | null => {
+    const vals = (monthsByPeriod.get(pid) ?? []).map((ym) => kpiOf(id, ym)).filter(nn);
+    return vals.length ? mean(vals) : null;
+  };
+  const finalOf = (id: string, pid: string): number | null => {
+    const p = periodById.get(pid); if (!p) return null;
+    return finalScoreOf(perPeriodKpi(id, pid), s360Of.get(`${id}|${pid}`) ?? null, p.has_360, penOf.get(`${id}|${pid}`) ?? 0, true);
+  };
+
   // A. Tren tim per periode (Avg KPI & Avg 360° tim). Simpan `id` internal agar bisa mengurai
   //    penyebab perubahan (Sorotan) pada dua periode berdata terakhir.
   const anyHas360 = periodList.some((p) => p.has_360);
@@ -138,14 +153,15 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
     const pYms = monthsByPeriod.get(p.id) ?? [];
     const kpis = ids.map((id) => mean(pYms.map((ym) => kpiOf(id, ym)).filter(nn))).filter(nn);
     const s360s = p.has_360 ? ids.map((id) => s360Of.get(`${id}|${p.id}`) ?? null).filter(nn) : [];
-    return { id: p.id, label: p.label, kpi: mean(kpis), s360: mean(s360s) };
+    const finals = ids.map((id) => finalOf(id, p.id)).filter(nn);
+    return { id: p.id, label: p.label, kpi: mean(kpis), s360: mean(s360s), final: mean(finals) };
   }).filter((pt) => pt.kpi != null || pt.s360 != null);
-  const periodsTrend: PeriodTrendPoint[] = periodsTrendFull.map(({ label, kpi, s360 }) => ({ label, kpi, s360 }));
+  const periodsTrend: PeriodTrendPoint[] = periodsTrendFull.map(({ label, kpi, s360, final }) => ({ label, kpi, s360, final }));
 
   // B. Tren KPI tim per bulan.
   const teamMonthly = allYms.map((ym) => mean(ids.map((id) => kpiOf(id, ym)).filter(nn)));
 
-  // C. Tren KPI per pegawai per bulan (dropdown).
+  // C. Tren KPI per pegawai per bulan (dropdown; pembanding rerata KPI tim saat pilih 1 pegawai).
   const employeesMonthly: EmpMonthly[] = empRows
     .map((e) => ({ id: e.id, name: e.name, nickname: e.nickname, monthly: allYms.map((ym) => kpiOf(e.id, ym)) }))
     .filter((e) => e.monthly.some((v) => v != null))
@@ -153,10 +169,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
 
   // D. Top Movers — selisih KPI per pegawai antara DUA periode berdata terakhir (rerata KPI
   //    bulan-bulan tiap periode). Hanya pegawai yang bernilai di KEDUA periode (bisa dibandingkan).
-  const perPeriodKpi = (id: string, pid: string): number | null => {
-    const vals = (monthsByPeriod.get(pid) ?? []).map((ym) => kpiOf(id, ym)).filter(nn);
-    return vals.length ? mean(vals) : null;
-  };
+  //    (perPeriodKpi didefinisikan di atas — dipakai bersama overlay Skor Akhir per-kuartal.)
   const kpiPeriods = periodList.filter((p) => ids.some((id) => perPeriodKpi(id, p.id) != null));
   const currP = kpiPeriods[kpiPeriods.length - 1] ?? null;
   const prevP = kpiPeriods[kpiPeriods.length - 2] ?? null;
@@ -251,7 +264,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
       <Toolbar periods={periodList} current={sel.id} />
 
       {rows.length === 0 && (
-        <p className="text-sm text-gray-500 mt-4">Belum ada data kinerja untuk periode ini — grafik tren lintas periode tetap tampil di bawah.</p>
+        <p className="text-sm text-ink-soft mt-4">Belum ada data kinerja untuk periode ini — grafik tren lintas periode tetap tampil di bawah.</p>
       )}
 
       {rows.length > 0 && (
@@ -316,24 +329,22 @@ function Toolbar({ periods, current }: { periods: { id: string; label: string; s
 
 function Header({ coordinator = false }: { coordinator?: boolean }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-start justify-between gap-3 mb-4">
       <div>
-        <h1 className="text-xl font-bold text-gray-800">Monitor Kinerja</h1>
-        <p className="text-sm text-gray-500">
+        <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Monitor Kinerja</h1>
+        <p className="text-[13.5px] text-ink-soft mt-1">
           {coordinator
             ? 'Dashboard kinerja pegawai yang Anda koordinasikan — snapshot per periode & tren lintas waktu.'
             : 'Dashboard kinerja tim Anda (termasuk diri Anda) — snapshot per periode & tren lintas waktu.'}
         </p>
       </div>
-      <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
+      <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
     </div>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
+    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>
   );
 }

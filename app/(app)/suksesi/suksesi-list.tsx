@@ -15,10 +15,10 @@ export type SuksesiRow = {
 };
 
 const STATUS_BADGE: Record<string, { t: string; c: string }> = {
-  draft: { t: 'Draf', c: 'bg-gray-100 text-gray-600' },
-  submitted: { t: 'Diajukan', c: 'bg-amber-100 text-amber-800' },
-  approved: { t: 'Disetujui', c: 'bg-emerald-100 text-emerald-800' },
-  rejected: { t: 'Ditolak', c: 'bg-rose-100 text-rose-700' },
+  draft: { t: 'Draf', c: 'bg-neutral-tint text-ink-soft' },
+  submitted: { t: 'Diajukan', c: 'bg-warn-tint text-warn-ink' },
+  approved: { t: 'Disetujui', c: 'bg-brand-tint text-brand-ink' },
+  rejected: { t: 'Ditolak', c: 'bg-danger-tint text-danger-ink' },
 };
 
 /** "Perlu perhatian" = kandidat (Skor Akhir ≥ 90) ATAU sudah punya rencana berjalan (agar rencana
@@ -49,40 +49,40 @@ export function SuksesiList({ rows }: { rows: SuksesiRow[] }) {
   return (
     <div className="space-y-3">
       {/* Ringkasan-dulu: gambaran cepat sebelum daftar. */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
-        <span><strong className="text-slate-800 font-mono">{rows.length}</strong> pegawai</span>
-        <span><strong className="text-emerald-700 font-mono">{candidateCount}</strong> kandidat (≥90)</span>
-        {stat.submitted > 0 && <span><strong className="text-amber-700 font-mono">{stat.submitted}</strong> menunggu ACC Direksi</span>}
-        <span><strong className="text-emerald-700 font-mono">{stat.approved}</strong> disetujui</span>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-faint">
+        <span><strong className="text-ink data-value">{rows.length}</strong> pegawai</span>
+        <span><strong className="text-brand-ink data-value">{candidateCount}</strong> kandidat (≥90)</span>
+        {stat.submitted > 0 && <span><strong className="text-warn-ink data-value">{stat.submitted}</strong> menunggu ACC Direksi</span>}
+        <span><strong className="text-brand-ink data-value">{stat.approved}</strong> disetujui</span>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama atau divisi…"
-          className="text-xs px-3 py-2 border border-gray-200 rounded-lg flex-1 min-w-[180px] focus:outline-none focus:ring-1 focus:ring-emerald-600" />
+          className="text-xs px-3 py-2 border border-line rounded-control bg-surface flex-1 min-w-[180px] focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
         <CheckboxFilter checked={onlyActionable} onChange={(v) => { setOnlyActionable(v); setPage(0); }} label="Fokus (kandidat & rencana berjalan)" count={actionableCount} />
       </div>
 
       {onlyActionable && hiddenCount > 0 && (
-        <p className="text-[11px] text-gray-500 italic">{hiddenCount} pegawai lain disembunyikan — hilangkan centang <strong>“Fokus”</strong> untuk melihat semua.</p>
+        <p className="text-[11px] text-ink-faint italic">{hiddenCount} pegawai lain disembunyikan — hilangkan centang <strong>“Fokus”</strong> untuk melihat semua.</p>
       )}
 
       {filtered.length === 0 ? (
-        <p className="text-sm text-gray-500">Tidak ada pegawai sesuai filter.</p>
+        <p className="text-sm text-ink-soft">Tidak ada pegawai sesuai filter.</p>
       ) : (
         <div className="space-y-3">
           {shown.map((r) => {
             const badge = r.plan ? STATUS_BADGE[r.plan.status] : null;
             return (
-              <div key={r.id} className="border border-gray-200 rounded-xl p-3 grid md:grid-cols-[1fr_1.6fr] gap-3">
+              <div key={r.id} className="border border-line rounded-panel p-3 grid md:grid-cols-[1fr_1.6fr] gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-gray-800 text-sm">{r.name}</span>
-                    {r.final != null && r.final >= 90 && <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full">Kandidat</span>}
+                    <span className="font-bold text-ink text-sm">{r.name}</span>
+                    {r.final != null && r.final >= 90 && <span className="text-[10px] font-semibold bg-brand-tint text-brand-ink px-1.5 py-0.5 rounded-full">Kandidat</span>}
                   </div>
-                  <div className="text-[11px] text-gray-500">{r.dept}</div>
-                  <div className="mt-1 text-xs">Skor Akhir: <span className="font-mono font-black text-slate-800">{r.final != null ? r.final.toFixed(2) : '—'}</span></div>
-                  {badge && <span className={`inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.c}`}>{badge.t}</span>}
-                  {r.plan?.direksi_comment && <p className="mt-1 text-[10px] text-gray-500 italic">Direksi: “{r.plan.direksi_comment}”</p>}
+                  <div className="text-[11px] text-ink-faint">{r.dept}</div>
+                  <div className="mt-1 text-xs text-ink-soft">Skor Akhir: <span className="data-value font-bold text-ink">{r.final != null ? r.final.toFixed(2) : '—'}</span></div>
+                  {badge && <span className={`inline-block mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${badge.c}`}>{badge.t}</span>}
+                  {r.plan?.direksi_comment && <p className="mt-1 text-[10px] text-ink-faint italic">Direksi: “{r.plan.direksi_comment}”</p>}
                 </div>
                 <PlanForm
                   employeeId={r.id}

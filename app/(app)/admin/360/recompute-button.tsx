@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { computeResult360 } from './actions';
+import { Button } from '@/components/button';
 
 export function RecomputeButton() {
   const router = useRouter();
@@ -24,16 +25,11 @@ export function RecomputeButton() {
 
   return (
     <div className="flex items-center gap-3">
-      <button
-        type="button"
-        onClick={run}
-        disabled={busy}
-        className="text-sm font-bold px-4 py-2 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-white disabled:opacity-60"
-      >
+      <Button type="button" onClick={run} disabled={busy}>
         {busy ? 'Menghitung…' : 'Hitung Ulang Skor 360°'}
-      </button>
+      </Button>
       {msg && (
-        <span className={`text-xs font-semibold ${msg.ok ? 'text-emerald-700' : 'text-rose-600'}`}>
+        <span className={`text-[12.5px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>
           {msg.text}
         </span>
       )}

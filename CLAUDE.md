@@ -244,6 +244,36 @@ di Supabase → Authentication → URL Configuration; set `NEXT_PUBLIC_ENABLE_PW
 > klik = kelalaian pegawai, ditanggung pengguna (mis. tercermin di Progress 360 / kepatuhan), bukan
 > dipagari UI. Jangan usulkan fitur "pengaman keteledoran" sejenis tanpa permintaan eksplisit.
 
+## Design System — Token Redesign (2026-08, ACUAN TETAP)
+
+> **Sumber tunggal:** `app/globals.css` (blok `@theme` + utility `.data-value`). Komponen WAJIB
+> pakai utilitas dari token (`bg-brand`, `text-ink-soft`, `border-line`, `rounded-panel`, dst.),
+> **BUKAN hex mentah / palet default Tailwind** (`emerald-*`, `gray-*`, `rounded-lg`, `shadow-sm`).
+> Diterapkan bertahap per halaman; acuan referensi end-to-end = **Kelola Siklus Periode**
+> (`app/(app)/admin/periode/`) + **sidebar** (`app-shell.tsx`). Halaman baru/di-restyle ikuti pola ini.
+
+- **Brand** hijau muted `--color-brand #33604A` (+ `brand-ink`, `brand-tint`): **HANYA** untuk
+  **primary action & elemen aktif** (tombol utama, item sidebar aktif, ring fokus). Bukan hiasan.
+- **Status/badge = soft-tint** (bg pucat + teks warna), **BUKAN solid fill**. Pakai `StatusChip`
+  (`components/status-chip.tsx`, tone `neutral|brand|warn|danger`). Solid hanya untuk primary button.
+- **Pemetaan warna semantik → token (INVARIANT konsistensi, wajib dijaga tiap restyle):** **brand** =
+  primary/aktif/positif (terpilih, sukses, "Terkirim", nilai baik) · **warn** = peringatan/pending/
+  obligasi ("Wajib", draf, autosave-pending, skor basi, "Lengkapi") · **danger** = error/destruktif/
+  wajib-diisi (hapus, gagal, field kosong) · **neutral** = nonaktif/informasi netral. Chart 2-seri:
+  seri utama = **brand**, pembanding = **warn** (mis. Laporan radar Rekan=brand vs Self=warn; hex SVG
+  diselaraskan ke nilai `--color-*`). Jangan pakai palet Tailwind mentah (`emerald/indigo/amber/rose/slate`).
+- **Border & radius:** border tipis netral `--color-line #E4E6E2`; radius `--radius-panel 10px`
+  (kartu/panel) & `--radius-control 7px` (input/tombol). **Tanpa shadow** kecuali elemen mengambang
+  (dropdown/modal/overflow-menu).
+- **Kartu = `Panel`** (`components/panel.tsx`) — flat (border, no shadow); **kurangi nested card**
+  (card hanya untuk container modul utama, bukan tiap grup info).
+- **Font:** sans-serif (Inter) untuk teks; **monospace (IBM Plex Mono) untuk SEMUA angka/data/ID**
+  via utility **`.data-value`** (alias `.mono`, + `tabular-nums`). Jangan pakai `.data-value` untuk kalimat.
+- **Tombol = `Button`** (`components/button.tsx`, variant `primary|ghost|danger`); aksi
+  sekunder/destruktif di tabel → **`OverflowMenu` (⋯)**, sisakan **satu** primary action visible per row.
+- **Microcopy panjang** (penjelasan alur) jadi footnote/tooltip kecil, **bukan** teks besar permanen.
+- **Kanvas** halaman = `bg-bg` (tinted) + padding tipis (`px-5 py-7`), **tanpa** wrapper putih besar.
+
 ## Tech Stack (Target)
 
 - **Framework**: Next.js 16 (App Router) · **Language**: TypeScript (strict)

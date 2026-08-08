@@ -4,6 +4,7 @@ import { PencilLine, History, LayoutList } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin, canCoordinate, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
+import { TabBar, Tab } from '@/components/tab-nav';
 import { KpiForm } from './kpi-form';
 import { RekapView } from './rekap-view';
 import { RiwayatView } from './riwayat-view';
@@ -258,32 +259,6 @@ async function InputTab({
   for (const r of scoreRows ?? []) existing[`${r.employee_id}|${r.ym}`] = r.score;
 
   return <KpiForm members={members} months={monthOptions} existing={existing} />;
-}
-
-/**
- * Sub-tab bergaris bawah — MODEL SERAGAM dengan Dashboard Organisasi (`dashboard-visual.tsx`),
- * diterjemahkan ke token redesign (brand/ink/line, bukan emerald/gray mentah).
- * Dipakai untuk navigasi antar-tampilan halaman; toggle di DALAM satu tampilan (mis. Input
- * Manual ↔ Impor Excel, Teratas ↔ Terbawah) tetap segmented pill agar hierarkinya jelas.
- */
-function TabBar({ children }: { children: React.ReactNode }) {
-  return <div className="flex border-b border-line gap-1.5 overflow-x-auto">{children}</div>;
-}
-
-function Tab({ href, active, icon: Icon, children }: {
-  href: string; active: boolean; icon?: React.ElementType; children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center gap-2 py-2 px-4 text-xs font-bold border-b-2 transition-colors shrink-0 ${
-        active ? 'border-brand text-brand-ink' : 'border-transparent text-ink-soft hover:text-ink'
-      }`}
-    >
-      {Icon && <Icon className={`w-4 h-4 ${active ? 'text-brand' : 'text-ink-faint'}`} />}
-      <span>{children}</span>
-    </Link>
-  );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { CalendarRange, ListChecks } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import { PeriodForm } from './period-form';
@@ -10,12 +11,23 @@ import { CycleStatus } from './cycle-status';
 import { EmptyState } from '@/components/empty-state';
 import { Panel, PanelLabel } from '@/components/panel';
 import { StatusChip } from '@/components/status-chip';
+import { TabBar, Tab } from '@/components/tab-nav';
 
 /**
  * Kelola Siklus Periode (HRD). Buat/aktivasi/kunci periode + toggle 360.
  * Periode aktif menggerakkan semua fitur lain; "Kunci & Akhiri" menghentikan input.
+ *
+ * Dua sub-tab (`?tab=`): 'periode' (default) = form + kesiapan + ringkasan siklus + daftar
+ * periode; 'siklus' = rincian 10 langkah. Rincian dipisah ke tab agar halaman utama tak
+ * memanjang — pengganti kartu Beranda yang dihapus (2026-08).
  */
-export default async function PeriodePage() {
+export default async function PeriodePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const { tab: tabParam } = await searchParams;
+  const tab = tabParam === 'siklus' ? 'siklus' : 'periode';
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -59,6 +71,18 @@ export default async function PeriodePage() {
         <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
 
+      <div className="mb-5">
+        <TabBar>
+          <Tab href="/admin/periode" active={tab === 'periode'} icon={CalendarRange}>Kelola Periode</Tab>
+          <Tab href="/admin/periode?tab=siklus" active={tab === 'siklus'} icon={ListChecks}>Status Siklus</Tab>
+        </TabBar>
+      </div>
+
+      {/* Sub-tab "Status Siklus": rincian 10 langkah (pindahan kartu Beranda yang dihapus). */}
+      {tab === 'siklus' ? (
+        <CycleStatus variant="full" />
+      ) : (
+      <>
       <Panel className="mb-5">
         <PanelLabel className="mb-[18px]">Buat Periode Baru</PanelLabel>
         <PeriodForm />
@@ -74,8 +98,7 @@ export default async function PeriodePage() {
         />
       )}
 
-      {/* Status Siklus — pindahan dari halaman Beranda yang dihapus (2026-08). Ditaruh SETELAH
-          "Kesiapan Peluncuran" karena urutannya memang begitu: siap diluncurkan → siklus berjalan. */}
+      {/* Ringkasan siklus SAJA (bar + tahap kini + penghalang); rincian ada di sub-tab. */}
       <CycleStatus />
 
       {list.length === 0 ? (
@@ -140,6 +163,8 @@ export default async function PeriodePage() {
         Hanya satu periode aktif pada satu waktu — mengaktivasi periode akan mengunci yang lain.
         Periode baru harus diisi pertanyaan &amp; pemetaan (kelola terpisah) sebelum penilaian.
       </p>
+      </>
+      )}
     </Shell>
   );
 }

@@ -95,13 +95,13 @@ export function reminderHtml(assessorName: string, periodLabel: string, pendingN
   const safeUrl = appUrl && /^https?:\/\//i.test(appUrl) ? appUrl : '';
   const button = safeUrl
     ? `<p style="margin:20px 0">
-         <a href="${escapeHtml(safeUrl)}" style="display:inline-block;background:#047857;color:#ffffff;text-decoration:none;font-weight:bold;padding:11px 22px;border-radius:8px">Buka Portal Infarm 360°</a>
+         <a href="${escapeHtml(safeUrl)}" style="display:inline-block;background:#00843b;color:#ffffff;text-decoration:none;font-weight:bold;padding:11px 22px;border-radius:8px">Buka Portal Infarm 360°</a>
        </p>
-       <p style="color:#9ca3af;font-size:12px;margin:0">Atau salin tautan ini: <a href="${escapeHtml(safeUrl)}" style="color:#047857">${escapeHtml(safeUrl)}</a></p>`
+       <p style="color:#9ca3af;font-size:12px;margin:0">Atau salin tautan ini: <a href="${escapeHtml(safeUrl)}" style="color:#00843b">${escapeHtml(safeUrl)}</a></p>`
     : '';
   return `
   <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#1f2937">
-    <h2 style="color:#047857;margin-bottom:4px">Pengingat Penilaian 360°</h2>
+    <h2 style="color:#00843b;margin-bottom:4px">Pengingat Penilaian 360°</h2>
     <p style="color:#6b7280;margin-top:0">Periode: <strong>${escapeHtml(periodLabel)}</strong></p>
     <p>Halo <strong>${escapeHtml(assessorName)}</strong>,</p>
     <p>Anda masih memiliki <strong>${pendingNames.length}</strong> penilaian 360° yang belum diselesaikan:</p>
@@ -200,13 +200,13 @@ export function onboardingHtml(args: {
   const guide = roleGuide(role, isHrdAdmin).map((s) => `<li style="margin:3px 0">${escapeHtml(s)}</li>`).join('');
   const button = safeUrl
     ? `<p style="margin:20px 0">
-         <a href="${escapeHtml(safeUrl)}" style="display:inline-block;background:#047857;color:#ffffff;text-decoration:none;font-weight:bold;padding:11px 22px;border-radius:8px">Masuk ke Portal Infarm 360°</a>
+         <a href="${escapeHtml(safeUrl)}" style="display:inline-block;background:#00843b;color:#ffffff;text-decoration:none;font-weight:bold;padding:11px 22px;border-radius:8px">Masuk ke Portal Infarm 360°</a>
        </p>
-       <p style="color:#9ca3af;font-size:12px;margin:0">Atau salin tautan ini: <a href="${escapeHtml(safeUrl)}" style="color:#047857">${escapeHtml(safeUrl)}</a></p>`
+       <p style="color:#9ca3af;font-size:12px;margin:0">Atau salin tautan ini: <a href="${escapeHtml(safeUrl)}" style="color:#00843b">${escapeHtml(safeUrl)}</a></p>`
     : '';
   return `
   <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1f2937">
-    <h2 style="color:#047857;margin-bottom:4px">Selamat Datang di Portal Infarm 360°</h2>
+    <h2 style="color:#00843b;margin-bottom:4px">Selamat Datang di Portal Infarm 360°</h2>
     <p style="color:#6b7280;margin-top:0">Periode penilaian: <strong>${escapeHtml(periodLabel)}</strong></p>
     <p>Halo <strong>${escapeHtml(name)}</strong>, berikut informasi akun Anda untuk mengikuti penilaian kinerja 360°.</p>
     <table style="border-collapse:collapse;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin:12px 0">

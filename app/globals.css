@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap');
 
 /*
  * DESIGN TOKENS (redesign 2026-08) — sumber tunggal warna/radius/font. Komponen memakai utilitas
@@ -16,9 +16,11 @@
   --color-line: #E4E6E2;
   --color-line-soft: #EDEFEB;
   --color-line-strong: #C9CEC7;
-  --color-brand: #33604A;
-  --color-brand-ink: #1F4735;
-  --color-brand-tint: #E9F1EC;
+  /* Hijau brand #00843b (2026-08). brand-ink = varian gelap untuk teks/hover di atas latar terang;
+     brand-tint = latar pucat untuk chip/status & baris terpilih. Ketiganya sewarna (hue sama). */
+  --color-brand: #00843b;
+  --color-brand-ink: #006B31;
+  --color-brand-tint: #E4F3E9;
   --color-warn-ink: #8A5A12;
   --color-warn-tint: #FBF0DE;
   /* Oranye SOLID (pendamping --color-brand) — dipakai untuk elemen GRAFIS/aksen yang harus
@@ -34,7 +36,7 @@
   --color-sidebar-soft: #8FA096;
   --radius-panel: 10px;
   --radius-control: 7px;
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: 'Montserrat', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
 }
 

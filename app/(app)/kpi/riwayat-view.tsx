@@ -1,4 +1,5 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { formatDateTimeWib } from '@/lib/datetime';
 import { RiwayatList, type FlatAudit } from './riwayat-list';
 
 // Ukuran halaman audit (server-paginated). 5/hal (selaras paginasi 5-baris seluruh app).
@@ -15,11 +16,9 @@ const AUDIT_PAGE_SIZE = 5;
  * di klien). Pencarian menyaring pegawai dalam lingkup lebih dulu (nama/divisi) → id hasil dipakai
  * membatasi query audit. Navigasi halaman/pencarian lewat URL (?auditPage=&auditQ=).
  */
-const fmt = (iso: string) => {
-  const d = new Date(iso);
-  return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' +
-    d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-};
+// WIB dipaksa lewat helper bersama: komponen ini dirender di SERVER (UTC di Vercel), jadi format
+// tanpa zona waktu membuat jam audit meleset 7 jam. Lihat lib/datetime.ts.
+const fmt = (iso: string) => formatDateTimeWib(iso);
 
 export async function RiwayatView({
   role, canAdmin = false, userId, hrdMode = 'admin', byPeriod = false, periodParam, scopedIds,

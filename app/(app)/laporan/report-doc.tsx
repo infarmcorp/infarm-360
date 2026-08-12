@@ -53,7 +53,7 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
             {/* Legenda radar — perjelas mana garis Rekan vs Self */}
             <div className="flex items-center justify-center gap-4 mt-2 text-[10px]">
               <span className="flex items-center gap-1.5">
-                <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#33604A" strokeWidth="2.5" /></svg>
+                <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#00843b" strokeWidth="2.5" /></svg>
                 <span className="font-bold text-brand-ink">Penilaian Rekan</span>
               </span>
               <span className="flex items-center gap-1.5">
@@ -186,7 +186,9 @@ function Radar({ aspects }: { aspects: ReportData['aspects'] }) {
       {/* Garis "Evaluasi Diri" — oranye terang (--color-warn #F08C00) + garis lebih tebal & putus-
           putus lebih panjang, agar jelas beda dari garis hijau "Rekan" sekalipun keduanya bertumpuk. */}
       {hasSelf && <polygon points={poly('self')} fill="rgba(240,140,0,0.14)" stroke="#F08C00" strokeWidth="2.5" strokeDasharray="6,3" strokeLinejoin="round" />}
-      <polygon points={poly('score')} fill="rgba(51,96,74,0.18)" stroke="#33604A" strokeWidth="2" />
+      {/* Hex diselaraskan dengan --color-brand (#00843b) di globals.css — SVG tak bisa memakai
+          utilitas Tailwind, jadi bila token brand berubah, nilai di sini ikut diubah manual. */}
+      <polygon points={poly('score')} fill="rgba(0,132,59,0.16)" stroke="#00843b" strokeWidth="2" />
       {/* Label sumbu = NOMOR aspek (1..n) agar nama panjang/serupa tak terpotong & tak tumpang-tindih.
           Nama lengkap tiap nomor ada di panel "Rincian Aspek Budaya" di sebelahnya. */}
       {aspects.map((_, i) => {
@@ -194,7 +196,7 @@ function Radar({ aspects }: { aspects: ReportData['aspects'] }) {
         const lx = cx + (x - cx) * 1.16, ly = cy + (y - cy) * 1.16;
         return (
           <g key={i}>
-            <circle cx={lx} cy={ly} r="8.5" fill="#E9F1EC" stroke="#C9CEC7" strokeWidth="1" />
+            <circle cx={lx} cy={ly} r="8.5" fill="#E4F3E9" stroke="#C9CEC7" strokeWidth="1" />
             <text x={lx} y={ly} textAnchor="middle" dominantBaseline="central" className="fill-brand-ink text-[9px] font-bold">{i + 1}</text>
           </g>
         );

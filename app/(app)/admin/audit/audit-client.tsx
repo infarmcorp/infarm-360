@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatDateTimeWib } from '@/lib/datetime';
 
 export type AuditRow = {
   id: number;
@@ -34,13 +35,9 @@ const CAT_COLOR: Record<string, string> = {
   lain: 'bg-neutral-tint text-ink-faint border-line',
 };
 
-function fmt(iso: string): string {
-  try {
-    return new Intl.DateTimeFormat('id-ID', {
-      dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta',
-    }).format(new Date(iso));
-  } catch { return iso; }
-}
+// Halaman ini sudah memakai Asia/Jakarta sejak awal; kini lewat helper bersama agar formatnya
+// PERSIS sama dengan Audit KPI & Log Akses (jam 24 titik-dua + label WIB), bukan tiga gaya berbeda.
+const fmt = (iso: string) => formatDateTimeWib(iso);
 
 /**
  * Tabel Log Aktivitas HRD — paginasi & filter DI SERVER (hemat egress: hanya 10 baris/halaman

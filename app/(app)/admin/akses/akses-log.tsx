@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { formatDateTimeWib } from '@/lib/datetime';
 
 /**
  * Log Akses — panel read-only di halaman Manajemen Akses: jejak perubahan AKSES (grant halaman +
@@ -14,11 +15,8 @@ export type AksesLogRow = {
   createdAt: string;
 };
 
-const fmt = (iso: string) => {
-  const d = new Date(iso);
-  return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' +
-    d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-};
+// WIB dipaksa (komponen server = UTC di Vercel) — lihat lib/datetime.ts.
+const fmt = (iso: string) => formatDateTimeWib(iso);
 
 export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[]; page: number; pageSize: number; total: number }) {
   const pageCount = Math.max(1, Math.ceil(total / pageSize));

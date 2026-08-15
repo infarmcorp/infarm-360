@@ -6,6 +6,26 @@ import { trendOf } from '@/lib/trend';
 import { scoreMaps, companyAverages, teamAverages } from '@/lib/team-metrics';
 import { TeamTable, type TeamRow } from './team-table';
 import { TeamScorecards } from './scorecards';
+import { PeriodFilter } from '@/app/(app)/monitor/period-filter';
+
+/** Periode yang dipilih lewat `?period=` (default: periode AKTIF, lalu yang terbaru). */
+type PeriodRow = { id: string; label: string; has_360: boolean; status: string };
+
+/**
+ * Daftar periode + periode terpilih. Dipakai ketiga varian halaman agar perilaku filternya sama.
+ * `?period=` yang tak dikenal diabaikan (jatuh ke periode aktif) — parameter URL tak boleh
+ * memaksa halaman membaca periode yang tak ada.
+ */
+async function resolvePeriod(
+  supabase: Awaited<ReturnType<typeof createClient>>, requested?: string,
+): Promise<{ list: PeriodRow[]; sel: PeriodRow | null }> {
+  const { data } = await supabase
+    .from('periods').select('id, label, has_360, status').order('start_date', { ascending: false });
+  const list = (data ?? []) as PeriodRow[];
+  const active = list.find((p) => p.status === 'active') ?? null;
+  const sel = (requested ? list.find((p) => p.id === requested) : undefined) ?? active ?? list[0] ?? null;
+  return { list, sel };
+}
 
 /**
  * Laporan Kinerja Tim (SPV / HRD mode-SPV / Direksi): tinjau & ACC laporan.
@@ -15,8 +35,18 @@ import { TeamScorecards } from './scorecards';
  *  - Direksi      → SUBJEK SPV (eskalasi Pegawai→SPV, SPV→Direksi) — lihat DireksiTeamReport.
  * Laporan DIRI SENDIRI tak muncul di sini (ditinjau atasannya/Direksi + dilihat lewat
  * "Laporan Hasil Saya"). SPV bisa baca laporan draf-nya lewat migrasi 0009; HRD lewat is_hrd.
+ *
+ * FILTER PERIODE (2026-08): halaman dapat menampilkan periode LAMPAU untuk meninjau hasil kuartal
+ * sebelumnya. Periode selain yang aktif bersifat **lihat-saja**: tombol ACC dimatikan karena
+ * `setSpvAcc` selalu menulis ke periode AKTIF — membiarkan tombolnya hidup akan mengubah laporan
+ * kuartal yang salah tanpa disadari.
  */
-export default async function LaporanTimPage() {
+export default async function LaporanTimPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
+  const { period: periodParam } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -25,19 +55,19 @@ export default async function LaporanTimPage() {
 
   // Direksi: eskalasi laporan SPV (Pegawai→SPV, SPV→Direksi). Halaman "Laporan Kinerja Tim"
   // Direksi = daftar SUBJEK SPV yang bisa ditinjau (agregat L2) & di-ACC setelah HRD rilis.
-  if (me?.role === 'direksi') return <DireksiTeamReport />;
+  if (me?.role === 'direksi') return <DireksiTeamReport periodParam={periodParam} />;
 
   if (me?.role !== 'spv' && me?.role !== 'hrd') {
     // Koordinator (grant is_coordinator): lihat-saja Laporan Kinerja Tim untuk daftar
     // pegawai eksplisit yang dinaunginya (coordinator_team_members). Tanpa ACC/Status/KPI.
-    if (me?.is_coordinator) return <CoordinatorTeamReport userId={user.id} />;
+    if (me?.is_coordinator) return <CoordinatorTeamReport userId={user.id} periodParam={periodParam} />;
     return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk Supervisor.</p>
       <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
-  const { data: ap } = await supabase
-    .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
+  const { list: periods, sel: ap } = await resolvePeriod(supabase, periodParam);
+  if (!ap) return <Shell><p className="text-sm text-ink-soft">Belum ada periode penilaian.</p></Shell>;
+  const periodActive = ap.status === 'active';
 
   // Resolusi lingkup anggota per peran. Laporan DIRI SENDIRI TIDAK ditampilkan di sini —
   // laporan SPV/HRD-mode-SPV ditinjau Direksi (eskalasi) & dilihat pemiliknya sendiri lewat
@@ -106,8 +136,10 @@ export default async function LaporanTimPage() {
       detailOpen: canOpenDetail(status),
       // ACC hanya setelah HRD merilis (in_review) atau final; bukan diri sendiri; dan BUKAN pegawai
       // berkoordinator (itu di-ACC koordinatornya). Untuk berkoordinator → tampil status read-only.
-      canAcc: !isSelf && !coordinated && (status === 'in_review' || status === 'finalized'),
+      canAcc: periodActive && !isSelf && !coordinated && (status === 'in_review' || status === 'finalized'),
       accReadonly: !isSelf && coordinated,
+      // Periode lampau → ACC dikunci (tampil status saja). Lihat catatan di JSDoc halaman.
+      accLocked: !periodActive,
     };
   };
 
@@ -126,10 +158,17 @@ export default async function LaporanTimPage() {
       <div className="flex items-start justify-between gap-4 mb-5">
         <div>
           <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Laporan Kinerja Tim</h1>
-          <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif: <span className="font-semibold text-ink">{ap.label}</span> · beri ACC laporan anggota tim Anda.</p>
+          <p className="text-[13.5px] text-ink-soft mt-1">
+            {periodActive
+              ? <>Periode aktif: <span className="font-semibold text-ink">{ap.label}</span> · beri ACC laporan anggota tim Anda.</>
+              : <>Meninjau periode lampau: <span className="font-semibold text-ink">{ap.label}</span> · lihat-saja.</>}
+          </p>
         </div>
         <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
+
+      <div className="mb-4"><PeriodFilter periods={periods} current={ap.id} basePath="/laporan-tim" /></div>
+      <PastPeriodNote active={periodActive} />
 
       {rows.length === 0 ? (
         <p className="text-sm text-ink-soft">Belum ada anggota tim yang ditugaskan.</p>
@@ -141,7 +180,7 @@ export default async function LaporanTimPage() {
           {/* Tabel diberi bingkai section (kartu) di halaman ini saja — komponennya sendiri
               tidak disentuh agar Monitor Kinerja tetap seperti semula. */}
           <div className="bg-surface border border-line rounded-panel p-5">
-            <TeamTable rows={rows} pageSize={5} />
+            <TeamTable rows={rows} pageSize={5} periodId={ap.id} />
           </div>
         </>
       )}
@@ -155,11 +194,11 @@ export default async function LaporanTimPage() {
  * service_role (Direksi read-only di RLS); detail tetap agregat L2 (lihat detail page +
  * loadSpvReportForDireksi). Detail & ACC terbuka hanya setelah HRD "Rilis" (in_review/finalized).
  */
-async function DireksiTeamReport() {
+async function DireksiTeamReport({ periodParam }: { periodParam?: string }) {
   const supabase = await createClient();
-  const { data: ap } = await supabase
-    .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
+  const { list: periods, sel: ap } = await resolvePeriod(supabase, periodParam);
+  if (!ap) return <Shell><p className="text-sm text-ink-soft">Belum ada periode penilaian.</p></Shell>;
+  const periodActive = ap.status === 'active';
 
   const admin = createAdminClient();
   // Subjek yang ditinjau Direksi = role='spv' ATAU pemimpin tim (spv_id di spv_team_members),
@@ -196,7 +235,8 @@ async function DireksiTeamReport() {
       kpiMonths,
       status, hasReport: !!rep, spvAcc: !!rep?.spv_acc, isSelf: false,
       detailOpen: canOpenDetail(status),
-      canAcc: status === 'in_review' || status === 'finalized',
+      canAcc: periodActive && (status === 'in_review' || status === 'finalized'),
+      accLocked: !periodActive,
     };
   })
     .filter((r) => activeIds.has(r.id) || r.hasReport)
@@ -211,11 +251,15 @@ async function DireksiTeamReport() {
         <div>
           <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Laporan Kinerja Tim</h1>
           <p className="text-[13.5px] text-ink-soft mt-1">
-            Periode aktif: <span className="font-semibold text-ink">{ap.label}</span> · tinjau &amp; beri ACC laporan hasil akhir para Supervisor (SPV).
+            {periodActive
+              ? <>Periode aktif: <span className="font-semibold text-ink">{ap.label}</span> · tinjau &amp; beri ACC laporan hasil akhir para Supervisor (SPV).</>
+              : <>Meninjau periode lampau: <span className="font-semibold text-ink">{ap.label}</span> · lihat-saja.</>}
           </p>
         </div>
         <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
+      <div className="mb-4"><PeriodFilter periods={periods} current={ap.id} basePath="/laporan-tim" /></div>
+      <PastPeriodNote active={periodActive} />
       {rows.length === 0 ? (
         <p className="text-sm text-ink-soft">Belum ada laporan SPV untuk ditinjau.</p>
       ) : (
@@ -226,7 +270,7 @@ async function DireksiTeamReport() {
           {/* Tabel diberi bingkai section (kartu) di halaman ini saja — komponennya sendiri
               tidak disentuh agar Monitor Kinerja tetap seperti semula. */}
           <div className="bg-surface border border-line rounded-panel p-5">
-            <TeamTable rows={rows} pageSize={5} />
+            <TeamTable rows={rows} pageSize={5} periodId={ap.id} />
           </div>
         </>
       )}
@@ -242,11 +286,11 @@ async function DireksiTeamReport() {
  * ke daftar timnya; ACC ditulis via service_role di setSpvAcc. Detail L2 (klik nama) tetap
  * gerbang rilis HRD + buang L3. Angka Skor Akhir = tersimpan (final_reports), sama spt SPV.
  */
-async function CoordinatorTeamReport({ userId }: { userId: string }) {
+async function CoordinatorTeamReport({ userId, periodParam }: { userId: string; periodParam?: string }) {
   const supabase = await createClient();
-  const { data: ap } = await supabase
-    .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
+  const { list: periods, sel: ap } = await resolvePeriod(supabase, periodParam);
+  if (!ap) return <Shell><p className="text-sm text-ink-soft">Belum ada periode penilaian.</p></Shell>;
+  const periodActive = ap.status === 'active';
 
   const admin = createAdminClient();
   const { data: team } = await admin.from('coordinator_team_members')
@@ -284,7 +328,8 @@ async function CoordinatorTeamReport({ userId }: { userId: string }) {
       detailOpen: canOpenDetail(status),
       // Koordinator MENG-ACC laporan pegawai yang dinaunginya (setelah HRD rilis). ACC ditulis
       // via service_role di setSpvAcc (koordinator = pegawai biasa di RLS), berlingkup ke timnya.
-      canAcc: status === 'in_review' || status === 'finalized',
+      canAcc: periodActive && (status === 'in_review' || status === 'finalized'),
+      accLocked: !periodActive,
     };
   })
     .filter((r) => activeIds.has(r.id) || r.hasReport)
@@ -299,11 +344,15 @@ async function CoordinatorTeamReport({ userId }: { userId: string }) {
         <div>
           <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Laporan Kinerja Tim</h1>
           <p className="text-[13.5px] text-ink-soft mt-1">
-            Periode aktif: <span className="font-semibold text-ink">{ap.label}</span> · tinjau &amp; beri ACC laporan pegawai yang Anda koordinasikan.
+            {periodActive
+              ? <>Periode aktif: <span className="font-semibold text-ink">{ap.label}</span> · tinjau &amp; beri ACC laporan pegawai yang Anda koordinasikan.</>
+              : <>Meninjau periode lampau: <span className="font-semibold text-ink">{ap.label}</span> · lihat-saja.</>}
           </p>
         </div>
         <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
+      <div className="mb-4"><PeriodFilter periods={periods} current={ap.id} basePath="/laporan-tim" /></div>
+      <PastPeriodNote active={periodActive} />
       {rows.length === 0 ? (
         <p className="text-sm text-ink-soft">Belum ada pegawai yang ditugaskan di bawah koordinasi Anda.</p>
       ) : (
@@ -314,11 +363,25 @@ async function CoordinatorTeamReport({ userId }: { userId: string }) {
           {/* Tabel diberi bingkai section (kartu) di halaman ini saja — komponennya sendiri
               tidak disentuh agar Monitor Kinerja tetap seperti semula. */}
           <div className="bg-surface border border-line rounded-panel p-5">
-            <TeamTable rows={rows} pageSize={5} />
+            <TeamTable rows={rows} pageSize={5} periodId={ap.id} />
           </div>
         </>
       )}
     </Shell>
+  );
+}
+
+/**
+ * Penanda periode lampau. Bukan sekadar hiasan: menjelaskan MENGAPA tombol ACC hilang, supaya
+ * peninjau tak mengira fiturnya rusak saat membuka kuartal yang sudah dikunci.
+ */
+function PastPeriodNote({ active }: { active: boolean }) {
+  if (active) return null;
+  return (
+    <p className="mb-4 rounded-control border border-warn-ink/25 bg-warn-tint px-3 py-2 text-[12px] text-warn-ink">
+      Periode ini sudah <strong>tidak aktif</strong> — halaman menampilkan hasil apa adanya untuk ditinjau.
+      Pemberian <strong>ACC</strong> hanya tersedia pada periode yang sedang berjalan.
+    </p>
   );
 }
 

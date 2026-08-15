@@ -54,7 +54,11 @@ function fmtDate(s: string | null): string {
 export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: SpvOpt[]; depts: string[] }) {
   const [q, setQ] = useState('');
   const [fRole, setFRole] = useState<'all' | Role>('all');
-  const [fStatus, setFStatus] = useState<'all' | 'active' | 'inactive'>('all');
+  // Default AKTIF: daftar kerja sehari-hari adalah pegawai yang masih bekerja. Pegawai nonaktif
+  // tak pernah dihapus (riwayat penilaian/KPI-nya dipertahankan) sehingga daftarnya terus
+  // bertambah — menampilkannya secara default hanya memanjangkan halaman. Pilihan "Semua Status"
+  // / "Nonaktif" tetap tersedia di filter.
+  const [fStatus, setFStatus] = useState<'all' | 'active' | 'inactive'>('active');
   const [fDept, setFDept] = useState('all');
   const [form, setForm] = useState<FormState | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);

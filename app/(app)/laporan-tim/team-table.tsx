@@ -26,6 +26,10 @@ export type TeamRow = {
   detailOpen: boolean; // boleh buka detail laporan (lapis 2)? — SPV hanya bila sudah dirilis HRD
   canAcc: boolean;     // boleh beri ACC? — hanya setelah HRD "Rilis ke SPV" (in_review/finalized)
   accReadonly?: boolean; // ACC baris ini milik pihak lain (mis. koordinator) → tampil status, bukan tombol
+  // ACC terkunci karena PERIODE-nya bukan periode aktif (mode tinjau kuartal lampau). Beda dari
+  // accReadonly (soal SIAPA yang berhak) — ini soal KAPAN. setSpvAcc selalu menulis ke periode
+  // aktif, jadi tombolnya wajib hilang di periode lampau, bukan sekadar gagal saat diklik.
+  accLocked?: boolean;
 };
 
 /** Badge "Anda" untuk baris pengguna sendiri. */
@@ -85,7 +89,11 @@ function TrendBadge({ t, months }: { t: Trend; months: (number | null)[] }) {
  */
 export function TeamTable({
   rows, linkNames = true, showStatus = true, showAcc = true, scoreBasis = 'stored', showSearch = true, pageSize,
-}: { rows: TeamRow[]; linkNames?: boolean; showStatus?: boolean; showAcc?: boolean; scoreBasis?: 'stored' | 'live'; showSearch?: boolean; pageSize?: number }) {
+  periodId,
+}: { rows: TeamRow[]; linkNames?: boolean; showStatus?: boolean; showAcc?: boolean; scoreBasis?: 'stored' | 'live'; showSearch?: boolean; pageSize?: number;
+  /** Periode yang sedang ditampilkan — diteruskan ke tautan detail (`/laporan/<id>?period=`)
+   *  agar halaman detail membuka KUARTAL YANG SAMA dengan tabel, bukan selalu periode aktif. */
+  periodId?: string }) {
   const [q, setQ] = useState('');
   const [page, setPage] = useState(0);
   const filtered = useMemo(() => {
@@ -153,7 +161,7 @@ export function TeamTable({
                   <td className="py-3 pr-3">
                     {linkNames && r.detailOpen ? (
                       <Link
-                        href={`/laporan/${r.id}`}
+                        href={periodId ? `/laporan/${r.id}?period=${periodId}` : `/laporan/${r.id}`}
                         title={r.name}
                         className="font-bold text-gray-800 inline-flex items-center gap-1.5 hover:text-emerald-700 hover:underline"
                       >
@@ -201,6 +209,15 @@ export function TeamTable({
                     <td className="py-3 pl-3 text-right">
                       {r.isSelf ? (
                         <span className="text-[10px] text-gray-500 italic">laporan Anda</span>
+                      ) : r.accLocked ? (
+                        // Periode lampau: status ACC tetap terbaca, tapi tak bisa diubah.
+                        !r.hasReport ? (
+                          <span className="text-[10px] text-gray-500 italic">tanpa laporan</span>
+                        ) : r.spvAcc ? (
+                          <span className="text-[10px] font-bold text-emerald-700">✔ Di-ACC</span>
+                        ) : (
+                          <span className="text-[10px] text-gray-500 italic">tidak di-ACC</span>
+                        )
                       ) : r.accReadonly ? (
                         // Pegawai berkoordinator: ACC dilakukan koordinatornya → SPV lihat status saja.
                         !r.hasReport ? (

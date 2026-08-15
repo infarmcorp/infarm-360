@@ -22,9 +22,20 @@ const QUAL_INTRO = 'Rangkuman kalibrasi HRD atas jawaban pertanyaan kualitatif (
  *    tampak hanya bila HRD sudah merilis ('in_review') / final.
  *  - HRD mode-admin → laporan penuh + panel aksi & raw feedback (anonim).
  *  - Direksi → HANYA laporan SPV (agregat L2, via Laporan Kinerja Tim); laporan non-SPV DITOLAK.
+ *
+ * PERIODE (2026-08): `?period=<id>` membuka laporan KUARTAL LAMPAU (dipakai filter periode di
+ * Laporan Kinerja Tim). Default tetap periode aktif. Periode non-aktif = LIHAT-SAJA: panel aksi
+ * (finalisasi/rilis) & editor ringkasan disembunyikan — Server Action-nya memang menolak periode
+ * tak aktif, jadi menampilkan tombolnya hanya akan berujung error.
  */
-export default async function LaporanDetailPage({ params }: { params: Promise<{ employeeId: string }> }) {
+export default async function LaporanDetailPage({
+  params, searchParams,
+}: {
+  params: Promise<{ employeeId: string }>;
+  searchParams: Promise<{ period?: string }>;
+}) {
   const { employeeId } = await params;
+  const { period: periodParam } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -55,9 +66,17 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   // Jalur "seperti SPV": SPV biasa ATAU HRD-posisi yang sedang bertindak sebagai SPV.
   const asSpv = role === 'spv' || hrdSpvMode;
 
-  const { data: ap } = await supabase
-    .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
+  // Periode: `?period=` bila dikenal, selain itu periode AKTIF. Id tak dikenal diabaikan
+  // (tak boleh memaksa halaman membaca periode yang tak ada).
+  const { data: periodRows } = await supabase
+    .from('periods').select('id, label, has_360, status').order('start_date', { ascending: false });
+  const allPeriods = periodRows ?? [];
+  const ap = (periodParam ? allPeriods.find((p) => p.id === periodParam) : undefined)
+    ?? allPeriods.find((p) => p.status === 'active')
+    ?? null;
+  if (!ap) return <Shell><p className="text-sm text-ink-soft">Belum ada periode penilaian.</p></Shell>;
+  // Periode lampau → seluruh jalur tulis (finalisasi/rilis/ringkasan) ditutup di UI.
+  const periodActive = ap.status === 'active';
 
   // Apakah subjek = SPV/pemimpin tim (untuk eskalasi Direksi→SPV & pelabelan tombol HRD).
   const subjectIsSpv = await isDireksiReviewSubject(employeeId);
@@ -89,8 +108,9 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
         <p className="text-sm text-ink-soft mt-3">Data tidak ditemukan.</p>
       </Shell>;
     }
-    const canEditReport = reviewGrant.canEdit;       // Meringkas+ → boleh tulis Ringkasan Aspek
-    const canFinalizeReport = reviewGrant.canFinalize; // Finalisasi → boleh panel aksi (finalisasi/rilis)
+    // Periode lampau → turunkan ke lihat-saja, apa pun tingkat izin grant-nya.
+    const canEditReport = reviewGrant.canEdit && periodActive;       // Meringkas+ → boleh tulis Ringkasan Aspek
+    const canFinalizeReport = reviewGrant.canFinalize && periodActive; // Finalisasi → boleh panel aksi (finalisasi/rilis)
     const locked = data.status === 'finalized' || !canEditReport;
 
     // Untuk panel aksi (hanya saat boleh FINALISASI): deteksi Skor 360° basi + bulan KPI belum terisi.
@@ -242,8 +262,10 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
   }
 
   // Tautan kembali sadar-peran: jalur SPV ke Laporan Kinerja Tim, HRD-admin ke Daftar Laporan.
+  // Periode ikut dibawa agar kembali ke kuartal yang sedang ditinjau, bukan lompat ke periode aktif.
+  const backQS = periodActive ? '' : `?period=${ap.id}`;
   const back = asSpv
-    ? { href: '/laporan-tim', label: '← Laporan Kinerja Tim' }
+    ? { href: `/laporan-tim${backQS}`, label: '← Laporan Kinerja Tim' }
     : { href: '/admin/laporan', label: '← Daftar Laporan' };
 
   // Jalur "seperti SPV" (SPV biasa + HRD mode-SPV): HANYA detail agregat (radar/aspek +
@@ -353,8 +375,15 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
               </div>
             </div>
           )}
-          {/* HRD: panel aksi (Unduh PDF / Simpan Draf / Rilis ke SPV / Finalisasi Hasil). */}
-          {isAdmin && (
+          {/* Penanda periode lampau — menjelaskan hilangnya panel aksi & editor. */}
+          {!periodActive && (
+            <p className="mb-3 rounded-control border border-warn-ink/25 bg-warn-tint px-3 py-2 text-[12px] text-warn-ink no-print">
+              Laporan periode <strong>{ap.label}</strong> (sudah tidak aktif) — ditampilkan untuk ditinjau, tanpa perubahan.
+            </p>
+          )}
+          {/* HRD: panel aksi (Unduh PDF / Simpan Draf / Rilis ke SPV / Finalisasi Hasil).
+              Hanya di periode AKTIF — Server Action-nya menolak periode tak aktif. */}
+          {isAdmin && periodActive && (
             <ReportActions
               employeeId={employeeId}
               status={data.status}
@@ -372,13 +401,13 @@ export default async function LaporanDetailPage({ params }: { params: Promise<{ 
           <ReportDoc data={data} anonymize={false} hideAssessorComments={isAdmin} hidePrint={isAdmin} />
           {isAdmin && data.has360 && (
             <>
-              <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} locked={data.status === 'finalized'} />
+              <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} locked={data.status === 'finalized' || !periodActive} />
               {data.qualQuestions.length > 0 && (
                 <AspectSummaryEditor
                   employeeId={employeeId}
                   aspects={data.qualQuestions}
                   initial={data.qualSummaries}
-                  locked={data.status === 'finalized'}
+                  locked={data.status === 'finalized' || !periodActive}
                   saveAction={saveQualSummaries}
                   title={QUAL_TITLE}
                   intro={QUAL_INTRO}

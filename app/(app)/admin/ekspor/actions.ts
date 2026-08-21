@@ -750,7 +750,10 @@ export async function exportMappings(periodId?: string | null): Promise<ExportRe
     admin.from('periods').select('id, label'),
   ]);
   const maps = await fetchAllPaged<{ assessor_id: string; target_id: string; period_id: string; relation: RelationKind; mandatory: boolean; is_active: boolean }>((from, to) => {
-    let q = admin.from('mappings').select('assessor_id, target_id, period_id, relation, mandatory, is_active').eq('is_active', true);
+    // is_adhoc DIKECUALIKAN — dataset ini kembaran Kelola Pemetaan, jadi harus tunduk aturan
+    // kerahasiaan yang sama; tanpa ini, Ekspor jadi jalan pintas melihat daftar Ad-Hoc mandiri.
+    let q = admin.from('mappings').select('assessor_id, target_id, period_id, relation, mandatory, is_active')
+      .eq('is_active', true).eq('is_adhoc', false);
     if (periodId) q = q.eq('period_id', periodId);
     return q.order('assessor_id').order('target_id').range(from, to);
   });

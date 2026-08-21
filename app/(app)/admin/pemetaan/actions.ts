@@ -312,14 +312,20 @@ export async function reviewCorrection(
       if (asmt) await admin.from('assessments').delete().eq('id', asmt.id); // draf ikut dibuang
     } else if (kind === 'add') {
       if (!req.new_relation) return { ok: false, error: 'Permohonan tanpa hubungan kerja — tak dapat disetujui' };
-      // Sudah ada mapping (mis. HRD menambah manual sebelum menyetujui) → aktifkan & selaraskan.
+      // Sudah ada mapping (mis. HRD menambah manual sebelum menyetujui, atau baris Ad-Hoc lama
+      // yang dinonaktifkan) → aktifkan & selaraskan.
       const { data: existing } = await supabase.from('mappings').select('id')
         .eq('period_id', req.period_id).eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).maybeSingle();
+      // WAJIB + BUKAN ad-hoc: begitu HRD menyetujui, penilaian ini setara pemetaan yang
+      // ditetapkan HRD sendiri (kebijakan sama dengan createMapping) — ia tampil di Kelola
+      // Pemetaan, dihitung di Progress 360 & kepatuhan, dan hanya HRD yang boleh membatalkannya
+      // (pegawai lewat "Ajukan Hapus", bukan tombol hapus sendiri). Bedakan dari Ad-Hoc mandiri
+      // yang tetap opsional & rahasia.
+      const fields = { relation: req.new_relation, mandatory: true, is_adhoc: false, is_active: true };
       const res = existing
-        ? await supabase.from('mappings').update({ relation: req.new_relation, is_active: true }).eq('id', existing.id)
+        ? await supabase.from('mappings').update(fields).eq('id', existing.id)
         : await supabase.from('mappings').insert({
-            period_id: req.period_id, assessor_id: req.assessor_id, target_id: req.target_id,
-            relation: req.new_relation, mandatory: false, is_adhoc: true, is_active: true,
+            period_id: req.period_id, assessor_id: req.assessor_id, target_id: req.target_id, ...fields,
           });
       if (res.error) return { ok: false, error: 'Gagal membuat pemetaan: ' + res.error.message };
     }

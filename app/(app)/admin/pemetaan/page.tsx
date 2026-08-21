@@ -96,8 +96,13 @@ async function PemetaanTab({ supabase, periodId }: { supabase: Awaited<ReturnTyp
     .from('periods').select('id, label').neq('id', periodId).order('start_date', { ascending: false });
   // mappings = pegawai × penilai → bisa >1000 (mis. 100×8=800, tumbuh); ambil PENUH agar daftar
   // pemetaan tak terpotong diam-diam (cap PostgREST 1000).
+  // is_adhoc DIKECUALIKAN (kebijakan 2026-08-21): Hak Penilaian Ad-Hoc Mandiri bersifat RAHASIA —
+  // penilai memilih sendiri siapa yang ia nilai di luar penugasan, dan daftar itu tak boleh muncul
+  // di Kelola Pemetaan (bahkan sebagai "Opsional"). Ad-Hoc tetap masuk perhitungan & tinjau laporan
+  // per pegawai (lib/report.ts + computeResult360 sengaja TANPA filter ini).
   const maps = await fetchAllPaged<{ id: string; assessor_id: string; target_id: string; relation: string; mandatory: boolean }>((from, to) =>
     supabase.from('mappings').select('id, assessor_id, target_id, relation, mandatory').eq('period_id', periodId).eq('is_active', true)
+      .eq('is_adhoc', false)
       .order('assessor_id').order('target_id').range(from, to));
   const rows = (maps ?? [])
     .map((m) => ({

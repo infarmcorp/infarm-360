@@ -42,7 +42,10 @@ export default async function ProgressPage() {
   const [empsRes, maps, asmtsAll] = await Promise.all([
     db.from('employees').select('id, name, dept'),
     fetchAllPaged<{ assessor_id: string; target_id: string; relation: string; mandatory: boolean }>((from, to) =>
-      db.from('mappings').select('assessor_id, target_id, relation, mandatory').eq('period_id', ap.id).eq('is_active', true).order('assessor_id').order('target_id').range(from, to)),
+      // is_adhoc DIKECUALIKAN: Ad-Hoc mandiri bersifat rahasia (bukan penugasan HRD) → tak masuk
+      // Progress 360. Pemetaan hasil PERMOHONAN yang disetujui HRD masuk, karena ia disimpan
+      // sebagai pemetaan wajib non-ad-hoc (lihat reviewCorrection).
+      db.from('mappings').select('assessor_id, target_id, relation, mandatory').eq('period_id', ap.id).eq('is_active', true).eq('is_adhoc', false).order('assessor_id').order('target_id').range(from, to)),
     fetchAllPaged<{ assessor_id: string; target_id: string; status: string }>((from, to) =>
       db.from('assessments').select('assessor_id, target_id, status').eq('period_id', ap.id).order('assessor_id').order('target_id').range(from, to)),
   ]);

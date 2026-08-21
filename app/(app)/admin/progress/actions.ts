@@ -69,7 +69,9 @@ async function pendingByAssessor(
   // SELURUH pegawai → bisa >1000; ambil penuh agar pengingat massal tak melewatkan siapa pun.
   const [maps, subs] = await Promise.all([
     fetchAllPaged<{ assessor_id: string; target_id: string }>((from, to) =>
-      supabase.from('mappings').select('assessor_id, target_id').eq('period_id', periodId).eq('is_active', true).order('assessor_id').order('target_id').range(from, to)),
+      // Sejalan dengan Progress 360: Ad-Hoc mandiri (rahasia, opsional) tak ditagih lewat
+      // pengingat — yang ditagih hanya penugasan, termasuk hasil permohonan yang di-ACC HRD.
+      supabase.from('mappings').select('assessor_id, target_id').eq('period_id', periodId).eq('is_active', true).eq('is_adhoc', false).order('assessor_id').order('target_id').range(from, to)),
     fetchAllPaged<{ assessor_id: string; target_id: string }>((from, to) =>
       supabase.from('assessments').select('assessor_id, target_id').eq('period_id', periodId).eq('status', 'submitted').order('assessor_id').order('target_id').range(from, to)),
   ]);

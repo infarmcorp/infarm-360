@@ -448,7 +448,13 @@ describe('reviewCorrection — jenis "add" (penambahan penilaian)', () => {
     expect(updateOf(c.calls, 'relation_correction_requests')).toHaveLength(0);
   });
 
-  it('setuju & belum ada mapping → INSERT mapping baru (opsional, ad-hoc, aktif)', async () => {
+  /**
+   * INVARIANT (kebijakan 2026-08-21): permohonan yang DISETUJUI jadi pemetaan setara penugasan
+   * HRD → `mandatory: true` & `is_adhoc: false`. Konsekuensinya berantai: baris itu tampil di
+   * Kelola Pemetaan, ditagih Progress 360 & kepatuhan, dan pegawai hanya bisa melepasnya lewat
+   * "Ajukan Hapus" (bukan tombol hapus Ad-Hoc). Jangan longgarkan tanpa menyesuaikan semuanya.
+   */
+  it('setuju & belum ada mapping → INSERT mapping WAJIB & BUKAN ad-hoc', async () => {
     const c = use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: HRD }],
       relation_correction_requests: [{ data: REQ }, { error: null }],
@@ -458,11 +464,11 @@ describe('reviewCorrection — jenis "add" (penambahan penilaian)', () => {
     expect(r.ok).toBe(true);
     expect(insertOf(c.calls, 'mappings')).toEqual({
       period_id: 'p1', assessor_id: UID, target_id: TARGET,
-      relation: 'Cross', mandatory: false, is_adhoc: true, is_active: true,
+      relation: 'Cross', mandatory: true, is_adhoc: false, is_active: true,
     });
   });
 
-  it('setuju & mapping sudah ada → UPDATE (selaraskan relasi + aktifkan ulang), tanpa insert', async () => {
+  it('setuju & mapping sudah ada → UPDATE jadi wajib/non-ad-hoc & aktif, tanpa insert', async () => {
     const c = use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: HRD }],
       relation_correction_requests: [{ data: REQ }, { error: null }],
@@ -472,7 +478,9 @@ describe('reviewCorrection — jenis "add" (penambahan penilaian)', () => {
     expect(r.ok).toBe(true);
     expect(insertOf(c.calls, 'mappings')).toBeUndefined();
     const upd = updateOf(c.calls, 'mappings')[0];
-    expect(upd?.payload).toEqual({ relation: 'Cross', is_active: true });
+    // Baris Ad-Hoc lama yang dipakai ulang WAJIB naik status — kalau tidak, penilaian
+    // hasil persetujuan HRD tetap tersembunyi dari Kelola Pemetaan & Progress.
+    expect(upd?.payload).toEqual({ relation: 'Cross', mandatory: true, is_adhoc: false, is_active: true });
     expect(upd?.filters).toEqual([['eq', 'id', MAP]]);
   });
 

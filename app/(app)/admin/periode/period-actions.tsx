@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { activatePeriod, endPeriod, toggleHas360, toggleFormOpen, activePeriodReadiness, count360Submitted, periodDataCounts, deletePeriod } from './actions';
+import { activatePeriod, endPeriod, toggleHas360, toggleFormOpen, toggleMappingPublished, activePeriodReadiness, count360Submitted, periodDataCounts, deletePeriod } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Button } from '@/components/button';
 import { OverflowMenu, type OverflowItem } from '@/components/overflow-menu';
@@ -21,9 +21,11 @@ type Dialog = {
 };
 
 export function PeriodActions({
-  periodId, status, has360, formOpen,
+  periodId, status, has360, formOpen, mappingPublished,
 }: {
   periodId: string; status: 'active' | 'ended'; has360: boolean; formOpen: boolean;
+  /** Pemetaan sudah diumumkan ke pegawai untuk ditinjau (fase sebelum form dibuka). */
+  mappingPublished: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -180,6 +182,15 @@ export function PeriodActions({
         ? 'Menutup komponen 360°: form penilaian disembunyikan dari pegawai & skor 360° tak dihitung.'
         : 'Membuka komponen 360°: form penilaian tampil ke pegawai yang punya pemetaan & skor 360° dihitung.',
     },
+    // Fase tinjau pemetaan — hanya relevan selagi periode aktif & 360° menyala.
+    ...(status === 'active' && has360 ? [{
+      label: mappingPublished ? 'Tarik Pengumuman Pemetaan' : 'Umumkan Pemetaan',
+      onSelect: () => run(() => toggleMappingPublished(periodId, !mappingPublished)),
+      disabled: busy,
+      title: mappingPublished
+        ? 'Menyembunyikan kembali daftar pemetaan dari pegawai (pengajuan hapus/tambah ikut ditutup).'
+        : 'Menampilkan daftar "siapa menilai siapa" ke pegawai untuk ditinjau — mereka bisa mengajukan penghapusan atau penambahan sebelum form dibuka.',
+    } as OverflowItem] : []),
     ...(status === 'active' && has360 ? [{
       label: formOpen ? 'Tutup Form' : 'Buka Form',
       onSelect: () => run(() => toggleFormOpen(periodId, !formOpen)),

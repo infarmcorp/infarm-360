@@ -38,7 +38,7 @@ export default async function PeriodePage({
   }
 
   const { data: periods } = await supabase
-    .from('periods').select('id, code, label, start_date, end_date, status, has_360, form_open, kpi_standard').order('start_date', { ascending: false });
+    .from('periods').select('id, code, label, start_date, end_date, status, has_360, form_open, mapping_published, kpi_standard').order('start_date', { ascending: false });
   const list = periods ?? [];
 
   const { data: monthRows } = await supabase.from('period_months').select('period_id');
@@ -150,7 +150,7 @@ export default async function PeriodePage({
                   : <StatusChip tone="neutral">Terkunci</StatusChip>}
               </td>
               <td className="py-4 pl-3 text-right">
-                <PeriodActions periodId={p.id} status={p.status} has360={p.has_360} formOpen={p.form_open} />
+                <PeriodActions periodId={p.id} status={p.status} has360={p.has_360} formOpen={p.form_open} mappingPublished={p.mapping_published} />
               </td>
             </tr>
           ))}

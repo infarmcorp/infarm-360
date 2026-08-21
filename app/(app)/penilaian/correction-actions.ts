@@ -25,10 +25,12 @@ export async function requestCorrection(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
 
-  const { data: ap } = await supabase.from('periods').select('id, has_360, form_open').eq('status', 'active').limit(1).maybeSingle();
+  // Boleh saat FASE TINJAU PEMETAAN (mapping_published) maupun saat form terbuka — koreksi relasi
+  // justru paling berguna SEBELUM pengisian dimulai (migrasi 0035).
+  const { data: ap } = await supabase.from('periods').select('id, has_360, form_open, mapping_published').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
   if (!ap.has_360) return { ok: false, error: 'Penilaian 360° untuk periode ini belum dibuka oleh HRD' };
-  if (!ap.form_open) return { ok: false, error: 'Form penilaian 360° sedang ditutup HRD (tahap peninjauan hasil)' };
+  if (!ap.mapping_published && !ap.form_open) return { ok: false, error: 'Pemetaan belum diumumkan HRD — permohonan belum bisa dikirim' };
 
   // Verifikasi mapping milik penilai ini (otorisasi tambahan selain RLS).
   const { data: map } = await supabase

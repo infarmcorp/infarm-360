@@ -13,6 +13,8 @@ export type WeightValues = { atasan?: number; peer?: number; cross?: number; baw
 export type ReportStatus = 'draft' | 'in_review' | 'finalized';
 export type SuccessionStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
 export type CorrectionStatus = 'pending' | 'approved' | 'rejected';
+/** Jenis permohonan pemetaan yang diajukan pegawai (migrasi 0035). */
+export type RequestKind = 'relation' | 'remove' | 'add';
 
 export interface Database {
   public: {
@@ -42,8 +44,8 @@ export interface Database {
         Relationships: [];
       };
       periods: {
-        Row: { id: string; code: string; label: string; start_date: string; end_date: string; status: 'active' | 'ended'; has_360: boolean; form_open: boolean; kpi_standard: number; created_at: string };
-        Insert: { code: string; label: string; start_date: string; end_date: string; status?: 'active' | 'ended'; has_360?: boolean; form_open?: boolean; kpi_standard?: number };
+        Row: { id: string; code: string; label: string; start_date: string; end_date: string; status: 'active' | 'ended'; has_360: boolean; form_open: boolean; mapping_published: boolean; kpi_standard: number; created_at: string };
+        Insert: { code: string; label: string; start_date: string; end_date: string; status?: 'active' | 'ended'; has_360?: boolean; form_open?: boolean; mapping_published?: boolean; kpi_standard?: number };
         Update: Partial<Database['public']['Tables']['periods']['Insert']>;
         Relationships: [];
       };
@@ -144,8 +146,8 @@ export interface Database {
         Relationships: [];
       };
       relation_correction_requests: {
-        Row: { id: string; mapping_id: string | null; period_id: string; assessor_id: string; target_id: string; old_relation: RelationKind | null; new_relation: RelationKind | null; reason: string; status: CorrectionStatus; reviewed_by: string | null; reviewed_at: string | null; created_at: string };
-        Insert: { mapping_id?: string | null; period_id: string; assessor_id: string; target_id: string; old_relation?: RelationKind | null; new_relation?: RelationKind | null; reason: string; status?: CorrectionStatus; reviewed_by?: string | null; reviewed_at?: string | null };
+        Row: { id: string; mapping_id: string | null; period_id: string; assessor_id: string; target_id: string; kind: RequestKind; old_relation: RelationKind | null; new_relation: RelationKind | null; reason: string; reject_reason: string | null; status: CorrectionStatus; reviewed_by: string | null; reviewed_at: string | null; created_at: string };
+        Insert: { mapping_id?: string | null; period_id: string; assessor_id: string; target_id: string; kind?: RequestKind; old_relation?: RelationKind | null; new_relation?: RelationKind | null; reason: string; reject_reason?: string | null; status?: CorrectionStatus; reviewed_by?: string | null; reviewed_at?: string | null };
         Update: Partial<Database['public']['Tables']['relation_correction_requests']['Insert']>;
         Relationships: [];
       };

@@ -326,3 +326,30 @@ export async function deletePeriod(periodId: string, confirmText: string): Promi
   revalidatePath('/admin/dashboard');
   return { ok: true };
 }
+
+/**
+ * Umumkan / tarik kembali PEMETAAN 360° ke pegawai (mapping_published, migrasi 0035).
+ *
+ * Fase baru di antara "periode aktif" dan "form dibuka": pegawai dapat MELIHAT daftar
+ * siapa yang harus dinilainya, lalu mengajukan penghapusan pemetaan yang tak sesuai atau
+ * mengajukan penilaian atas rekan lain — sebelum pengisian dimulai. Sengaja TERPISAH dari
+ * `form_open`, karena form juga ditutup di AKHIR siklus (pembekuan untuk finalisasi) dan
+ * pada fase itu pemetaan justru tak boleh diubah.
+ */
+export async function toggleMappingPublished(periodId: string, value: boolean): Promise<Result> {
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const { error } = await supabase.from('periods').update({ mapping_published: value }).eq('id', periodId);
+  if (error) return { ok: false, error: 'Gagal: ' + error.message };
+  const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();
+  await logHrdAction({
+    action: 'period.toggleMappingPublished', category: 'periode',
+    summary: `${value ? 'Mengumumkan' : 'Menarik'} pemetaan 360° ${value ? 'ke' : 'dari'} pegawai pada periode "${pr?.label ?? periodId}"`,
+    targetType: 'period', targetId: periodId, targetLabel: pr?.label ?? null, meta: { mapping_published: value },
+  });
+  revalidatePath('/admin/periode');
+  revalidatePath('/admin/pemetaan');
+  revalidatePath('/penilaian');
+  return { ok: true };
+}

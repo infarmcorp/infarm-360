@@ -1,10 +1,15 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { ClipboardList, Inbox } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { CorrectionButton } from './correction-button';
-import { AdhocForm } from './adhoc-form';
+import { AdhocButton } from './adhoc-form';
 import { AdhocDeleteButton } from './adhoc-delete-button';
 import { EmptyState } from '@/components/empty-state';
+import { TabBar, Tab } from '@/components/tab-nav';
+import { RequestRemoveButton } from './request-remove-button';
+import { RequestAssessmentButton } from './request-assessment-form';
+import { MyRequests, type MyRequest } from './my-requests';
 
 const REL_LABEL: Record<string, string> = {
   Atasan: 'Atasan', Peer: 'Rekan (Peer)', Cross: 'Lintas Divisi', Self: 'Diri Sendiri', Bawahan: 'Bawahan',
@@ -15,14 +20,22 @@ const REL_LABEL: Record<string, string> = {
  * Membaca mapping kuartal aktif di mana user = penilai, + status assessment-nya.
  * Semua query tunduk RLS (map_read/asmt_read): user hanya melihat mapping/penilaian
  * miliknya. Query datar (tanpa embedded join) agar ter-tipe penuh.
+ *
+ * DUA SUB-TAB (`?tab=penilaian|pengajuan`, pola seragam TabBar):
+ *   Penilaian → daftar rekan yang harus dinilai (pekerjaan utama halaman ini)
+ *   Pengajuan → menambah rekan (Ad-Hoc instan / ajukan ke HRD) + status "Permohonan Saya"
+ * Dipisah karena panel-panel pengajuan sebelumnya menumpuk di atas tabel dan menggeser
+ * pekerjaan utama ke bawah layar.
  */
-export default async function PenilaianPage() {
+export default async function PenilaianPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const { tab: tabParam } = await searchParams;
+  const tab = tabParam === 'pengajuan' ? 'pengajuan' : 'penilaian';
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
   const { data: ap } = await supabase
-    .from('periods').select('id, label, has_360, form_open').eq('status', 'active').limit(1).maybeSingle();
+    .from('periods').select('id, label, has_360, form_open, mapping_published').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) {
     return (
       <Shell>
@@ -48,9 +61,12 @@ export default async function PenilaianPage() {
       </Shell>
     );
   }
-  // Form ditutup HRD (pembekuan untuk review/finalisasi) — 360° tetap dihitung, tapi
-  // pengisian dihentikan sementara. Beda dari "Tanpa 360°" (yang mematikan skor 360°).
-  if (!ap.form_open) {
+  // Form ditutup HRD. DUA fase berbeda memakai flag yang sama, dibedakan `mapping_published`:
+  //  (a) SEBELUM form dibuka & pemetaan sudah diumumkan → FASE TINJAU: pegawai melihat daftar
+  //      penilaiannya (belum bisa mengisi) & boleh mengajukan hapus/tambah/koreksi relasi.
+  //  (b) selain itu (belum diumumkan, atau pembekuan di akhir siklus) → terkunci seperti dulu.
+  const reviewPhase = !ap.form_open && ap.mapping_published;
+  if (!ap.form_open && !reviewPhase) {
     return (
       <Shell periodLabel={ap.label}>
         <EmptyState
@@ -82,11 +98,15 @@ export default async function PenilaianPage() {
     .eq('assessor_id', user.id).eq('period_id', ap.id);
   const statusByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.status]));
 
-  // Permohonan koreksi relasi yang masih menunggu (untuk menandai baris).
+  // Permohonan pemetaan milik user di periode ini: yang PENDING dipakai menandai baris
+  // (satu permohonan aktif per rekan), seluruhnya dipakai panel "Permohonan Saya".
   const { data: corrs } = await supabase
-    .from('relation_correction_requests').select('target_id')
-    .eq('assessor_id', user.id).eq('period_id', ap.id).eq('status', 'pending');
-  const pendingCorr = new Set((corrs ?? []).map((c) => c.target_id));
+    .from('relation_correction_requests')
+    .select('id, kind, target_id, old_relation, new_relation, reason, reject_reason, status')
+    .eq('assessor_id', user.id).eq('period_id', ap.id)
+    .order('created_at', { ascending: false });
+  const myReqs = corrs ?? [];
+  const pendingCorr = new Set(myReqs.filter((c) => c.status === 'pending').map((c) => c.target_id));
 
   // Kandidat Ad-Hoc: pegawai non-direksi, bukan diri, belum ada di daftar penilaian.
   const alreadyListed = new Set<string>([user.id, ...targetIds]);
@@ -96,6 +116,12 @@ export default async function PenilaianPage() {
     .filter((e) => !alreadyListed.has(e.id))
     .map((e) => ({ id: e.id, name: e.name, dept: e.dept }))
     .sort((a, b) => a.name.localeCompare(b.name));
+
+  // Nama untuk SEMUA target permohonan: target 'add' belum jadi mapping, jadi tak ada di empById.
+  const nameByAny = new Map<string, string>([
+    ...[...empById.entries()].map(([id, e]) => [id, e.name] as const),
+    ...(allEmps ?? []).map((e) => [e.id, e.name] as const),
+  ]);
 
   const items = rows
     .map((r) => ({
@@ -117,10 +143,80 @@ export default async function PenilaianPage() {
   const mandTotal = mandatoryItems.length;
   const mandDone = mandatoryItems.filter((it) => it.status === 'submitted').length;
 
+  // Panel "Permohonan Saya" — status pengajuan (hapus/tambah/koreksi) + alasan penolakan HRD.
+  const myRequestRows: MyRequest[] = myReqs.map((c) => ({
+    id: c.id,
+    kind: (c.kind ?? 'relation') as MyRequest['kind'],
+    targetName: nameByAny.get(c.target_id) ?? '(pegawai)',
+    oldRelation: c.old_relation,
+    newRelation: c.new_relation,
+    reason: c.reason,
+    rejectReason: c.reject_reason,
+    status: c.status,
+  }));
+  const pendingReqN = myRequestRows.filter((r) => r.status === 'pending').length;
+
   return (
     <Shell periodLabel={ap.label}>
-      <AdhocForm candidates={candidates} />
-      {mandTotal > 0 && (
+      {/* FASE TINJAU: pemetaan sudah diumumkan tapi form belum dibuka. */}
+      {reviewPhase && (
+        <div className="mb-4 rounded-panel border border-warn-ink/25 bg-warn-tint p-3.5">
+          <p className="text-[12.5px] font-bold text-warn-ink">Tahap peninjauan pemetaan — pengisian belum dibuka</p>
+          <p className="text-[11.5px] text-warn-ink/90 mt-1 leading-relaxed">
+            Berikut daftar rekan yang akan Anda nilai kuartal ini. <strong>Periksa dulu:</strong> bila ada yang
+            tidak sesuai, ajukan penghapusan; bila ada rekan yang seharusnya Anda nilai tapi belum tercantum,
+            ajukan lewat form di bawah. Semua permohonan diputuskan HRD. Tombol <strong>Mulai Nilai</strong> muncul
+            setelah HRD membuka form.
+          </p>
+        </div>
+      )}
+
+      <TabBar>
+        <Tab href="/penilaian?tab=penilaian" active={tab === 'penilaian'} icon={ClipboardList}>
+          Penilaian
+          {items.length ? <span className="ml-1.5 text-[10px] data-value bg-neutral-tint text-ink-soft border border-line px-1.5 py-0.5 rounded-full">{items.length}</span> : null}
+        </Tab>
+        <Tab href="/penilaian?tab=pengajuan" active={tab === 'pengajuan'} icon={Inbox}>
+          Pengajuan
+          {pendingReqN ? <span className="ml-1.5 text-[10px] data-value bg-warn-tint text-warn-ink border border-warn-ink/25 px-1.5 py-0.5 rounded-full">{pendingReqN}</span> : null}
+        </Tab>
+      </TabBar>
+
+      <div className="pt-5">
+      {tab === 'pengajuan' ? (
+        <>
+          {/* Dua jalur menambah rekan yang dinilai, berdampingan supaya bedanya terbaca:
+              Ad-Hoc = instan tapi relasi dikunci Cross; Ajukan = relasi bebas tapi perlu ACC HRD. */}
+          <section className="mb-5 rounded-panel border border-line bg-surface p-4">
+            <h3 className="text-xs font-bold text-ink uppercase tracking-wide">Menambah Rekan yang Anda Nilai</h3>
+            <p className="text-[11.5px] text-ink-soft mt-1 leading-relaxed">
+              Ada rekan yang seharusnya Anda nilai tapi belum tercantum? Pilih jalurnya:
+              <strong> Ad-Hoc</strong> berlaku langsung dengan relasi Lintas Unit, sedangkan
+              <strong> Ajukan Penilaian</strong> memungkinkan Anda mengusulkan relasi lain tapi menunggu keputusan HRD.
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <RequestAssessmentButton candidates={candidates} />
+              {/* Ad-Hoc (instan, relasi Cross) hanya saat form terbuka — ia langsung membuat
+                  pemetaan, jadi tak relevan di fase tinjau yang justru sedang merapikan pemetaan. */}
+              {!reviewPhase && <AdhocButton candidates={candidates} />}
+            </div>
+            {reviewPhase && (
+              <p className="text-[11px] text-ink-faint mt-2.5">
+                Penambahan <strong>Ad-Hoc</strong> belum tersedia: pemetaan masih ditinjau, jadi semua
+                penambahan lewat HRD dulu. Tombolnya muncul setelah HRD membuka form penilaian.
+              </p>
+            )}
+          </section>
+
+          {myRequestRows.length === 0 ? (
+            <p className="text-sm text-ink-soft">Belum ada permohonan. Pengajuan Anda beserta keputusan HRD akan tampil di sini.</p>
+          ) : (
+            <MyRequests requests={myRequestRows} />
+          )}
+        </>
+      ) : (
+        <>
+      {mandTotal > 0 && !reviewPhase && (
         <div className="mb-4 flex items-center justify-between gap-3 bg-brand-tint border border-brand-ink/20 rounded-panel p-3">
           <div className="min-w-0">
             <p className="text-xs font-extrabold text-brand-ink">Penilaian Wajib Anda</p>
@@ -137,7 +233,8 @@ export default async function PenilaianPage() {
       )}
       {items.length === 0 ? (
         <p className="text-sm text-ink-soft">
-          Belum ada penilaian rutin yang ditugaskan. Gunakan panel Ad-Hoc di atas untuk menilai rekan kerja.
+          Belum ada penilaian rutin yang ditugaskan. Buka tab <strong>Pengajuan</strong> untuk menambah rekan
+          yang ingin Anda nilai.
         </p>
       ) : (
         <>
@@ -199,12 +296,28 @@ export default async function PenilaianPage() {
                           pending={it.corrPending}
                         />
                       )}
-                      <Link
-                        href={`/penilaian/${it.targetId}`}
-                        className="text-xs font-bold text-brand-ink hover:underline"
-                      >
-                        {it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai'}
-                      </Link>
+                      {/* Ajukan Hapus: untuk pemetaan dari HRD. Target Ad-Hoc buatan sendiri tak perlu
+                          diajukan — pegawai boleh menghapusnya langsung (AdhocDeleteButton di atas).
+                          'Self' dikecualikan: evaluasi diri bukan hal yang bisa ditolak pegawai. */}
+                      {!it.isAdhoc && it.relation !== 'Self' && (
+                        <RequestRemoveButton
+                          mappingId={it.mappingId}
+                          targetId={it.targetId}
+                          targetName={it.name}
+                          pending={it.corrPending}
+                        />
+                      )}
+                      {/* Fase tinjau: pengisian belum dibuka, jadi tak ada tautan "Mulai Nilai". */}
+                      {reviewPhase ? (
+                        <span className="text-[11px] text-ink-faint italic">belum dibuka</span>
+                      ) : (
+                        <Link
+                          href={`/penilaian/${it.targetId}`}
+                          className="text-xs font-bold text-brand-ink hover:underline"
+                        >
+                          {it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai'}
+                        </Link>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -214,6 +327,9 @@ export default async function PenilaianPage() {
           </div>
         </>
       )}
+        </>
+      )}
+      </div>
     </Shell>
   );
 }

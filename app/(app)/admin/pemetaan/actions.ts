@@ -249,11 +249,28 @@ export async function deleteMapping(mappingId: string): Promise<Result> {
 }
 
 /**
- * Tinjau permohonan koreksi relasi (HRD). Setuju → perbarui relasi mapping terkait
- * ke new_relation + tandai approved; Tolak → tandai rejected. RLS corr_review = HRD.
+ * Tinjau permohonan pemetaan (HRD) — SATU pintu untuk tiga jenis (migrasi 0035):
+ *   relation → ubah relasi mapping yang ada (perilaku lama)
+ *   remove   → nonaktifkan mapping (is_active=false), bukan DELETE: jejak & skor
+ *              yang sudah terlanjur masuk tak ikut hilang, dan `deleteMapping`
+ *              punya rekonsiliasi result_360 tersendiri yang tak ingin ditiru di sini
+ *   add      → buat mapping baru dengan relasi yang DIUSULKAN pegawai
+ *
+ * Menolak WAJIB disertai alasan — pemohon melihatnya di "Permohonan Saya", supaya
+ * penolakan tak terasa sepihak (permintaan pengguna 2026-08).
  */
-export async function reviewCorrection(requestId: string, decision: 'approved' | 'rejected'): Promise<Result> {
+export async function reviewCorrection(
+  requestId: string, decision: 'approved' | 'rejected', rawRejectReason?: string,
+): Promise<Result> {
   if (decision !== 'approved' && decision !== 'rejected') return { ok: false, error: 'Keputusan tidak valid' };
+
+  let rejectReason: string | null = null;
+  if (decision === 'rejected') {
+    const parsed = z.string().trim().min(5, 'Alasan penolakan minimal 5 karakter').max(500).safeParse(rawRejectReason ?? '');
+    if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+    rejectReason = parsed.data;
+  }
+
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
@@ -261,29 +278,74 @@ export async function reviewCorrection(requestId: string, decision: 'approved' |
 
   const { data: req } = await supabase
     .from('relation_correction_requests')
-    .select('id, mapping_id, assessor_id, target_id, period_id, new_relation, status')
+    .select('id, kind, mapping_id, assessor_id, target_id, period_id, new_relation, status')
     .eq('id', requestId).maybeSingle();
   if (!req) return { ok: false, error: 'Permohonan tidak ditemukan' };
   if (req.status !== 'pending') return { ok: false, error: 'Permohonan sudah diproses' };
 
-  if (decision === 'approved' && req.new_relation) {
-    // Perbarui relasi mapping (berdasarkan mapping_id, atau pasangan penilai→target).
-    const q = supabase.from('mappings').update({ relation: req.new_relation });
-    const upd = req.mapping_id
-      ? await q.eq('id', req.mapping_id)
-      : await q.eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).eq('period_id', req.period_id);
-    if (upd.error) return { ok: false, error: 'Gagal memperbarui mapping: ' + upd.error.message };
+  const kind = req.kind ?? 'relation';
+
+  if (decision === 'approved') {
+    if (kind === 'relation') {
+      if (req.new_relation) {
+        // Perbarui relasi mapping (berdasarkan mapping_id, atau pasangan penilai→target).
+        const q = supabase.from('mappings').update({ relation: req.new_relation });
+        const upd = req.mapping_id
+          ? await q.eq('id', req.mapping_id)
+          : await q.eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).eq('period_id', req.period_id);
+        if (upd.error) return { ok: false, error: 'Gagal memperbarui mapping: ' + upd.error.message };
+      }
+    } else if (kind === 'remove') {
+      // Tolak bila penilaiannya SUDAH dikirim — menonaktifkan pemetaan setelah itu
+      // mengubah komposisi penilai & skor 360° yang sudah terbentuk.
+      const admin = createAdminClient();
+      const { data: asmt } = await admin.from('assessments').select('id, status')
+        .eq('period_id', req.period_id).eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).maybeSingle();
+      if (asmt?.status === 'submitted') {
+        return { ok: false, error: 'Penilaian untuk pasangan ini sudah dikirim — pemetaan tak dapat dihapus. Tolak permohonan ini atau hapus lewat Kelola Pemetaan.' };
+      }
+      const q = supabase.from('mappings').update({ is_active: false });
+      const upd = req.mapping_id
+        ? await q.eq('id', req.mapping_id)
+        : await q.eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).eq('period_id', req.period_id);
+      if (upd.error) return { ok: false, error: 'Gagal menonaktifkan pemetaan: ' + upd.error.message };
+      if (asmt) await admin.from('assessments').delete().eq('id', asmt.id); // draf ikut dibuang
+    } else if (kind === 'add') {
+      if (!req.new_relation) return { ok: false, error: 'Permohonan tanpa hubungan kerja — tak dapat disetujui' };
+      // Sudah ada mapping (mis. HRD menambah manual sebelum menyetujui, atau baris Ad-Hoc lama
+      // yang dinonaktifkan) → aktifkan & selaraskan.
+      const { data: existing } = await supabase.from('mappings').select('id')
+        .eq('period_id', req.period_id).eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).maybeSingle();
+      // WAJIB + BUKAN ad-hoc: begitu HRD menyetujui, penilaian ini setara pemetaan yang
+      // ditetapkan HRD sendiri (kebijakan sama dengan createMapping) — ia tampil di Kelola
+      // Pemetaan, dihitung di Progress 360 & kepatuhan, dan hanya HRD yang boleh membatalkannya
+      // (pegawai lewat "Ajukan Hapus", bukan tombol hapus sendiri). Bedakan dari Ad-Hoc mandiri
+      // yang tetap opsional & rahasia.
+      const fields = { relation: req.new_relation, mandatory: true, is_adhoc: false, is_active: true };
+      const res = existing
+        ? await supabase.from('mappings').update(fields).eq('id', existing.id)
+        : await supabase.from('mappings').insert({
+            period_id: req.period_id, assessor_id: req.assessor_id, target_id: req.target_id, ...fields,
+          });
+      if (res.error) return { ok: false, error: 'Gagal membuat pemetaan: ' + res.error.message };
+    }
   }
 
   const { error } = await supabase.from('relation_correction_requests')
-    .update({ status: decision, reviewed_by: user?.id ?? null, reviewed_at: new Date().toISOString() }).eq('id', requestId);
+    .update({
+      status: decision, reviewed_by: user?.id ?? null, reviewed_at: new Date().toISOString(),
+      reject_reason: rejectReason,
+    }).eq('id', requestId);
   if (error) return { ok: false, error: 'Gagal: ' + error.message };
 
+  const KIND_LABEL: Record<string, string> = {
+    relation: 'koreksi garis hubungan', remove: 'penghapusan pemetaan', add: 'penambahan penilaian',
+  };
   await logHrdAction({
     action: 'correction.review', category: 'pemetaan',
-    summary: `${decision === 'approved' ? 'Menyetujui' : 'Menolak'} permohonan koreksi garis hubungan`,
+    summary: `${decision === 'approved' ? 'Menyetujui' : 'Menolak'} permohonan ${KIND_LABEL[kind] ?? kind}`,
     targetType: 'correction_request', targetId: requestId,
-    meta: { decision, new_relation: req.new_relation ?? null },
+    meta: { decision, kind, new_relation: req.new_relation ?? null, reject_reason: rejectReason },
   });
   revalidatePath('/admin/pemetaan');
   revalidatePath('/penilaian');

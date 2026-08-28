@@ -97,7 +97,7 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
   });
 
   const blockers: { label: string; href: string }[] = [];
-  if (nCorr > 0) blockers.push({ label: `${nCorr} permohonan koreksi relasi belum diproses`, href: '/admin/pemetaan' });
+  if (nCorr > 0) blockers.push({ label: `${nCorr} permohonan pemetaan dari pegawai belum diproses`, href: '/admin/pemetaan' });
   if (nEmp - kpiFilled > 0) blockers.push({ label: `${nEmp - kpiFilled} pegawai belum ada nilai KPI`, href: '/kpi?tab=riwayat' });
   if (has360 && missing360 > 0) blockers.push({ label: `${missing360} target 360° belum berskor — jalankan ① Hitung Ulang (atau belum ada penilaian masuk)`, href: '/admin/laporan' });
   if (nEmp - nFinal > 0) blockers.push({ label: `${nEmp - nFinal} laporan belum difinalisasi`, href: '/admin/laporan' });

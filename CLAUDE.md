@@ -243,6 +243,10 @@ di Supabase → Authentication → URL Configuration; set `NEXT_PUBLIC_ENABLE_PW
 > **pop-up hapus ad-hoc/alert error → ConfirmDialog TIDAK dikerjakan**. Berhenti di draf atau salah
 > klik = kelalaian pegawai, ditanggung pengguna (mis. tercermin di Progress 360 / kepatuhan), bukan
 > dipagari UI. Jangan usulkan fitur "pengaman keteledoran" sejenis tanpa permintaan eksplisit.
+> **DIKECUALIKAN 2026-08-21 (permintaan eksplisit pengguna):** konfirmasi hapus Ad-Hoc di halaman
+> Penilaian kini **modal in-app** (`app/(app)/penilaian/modal.tsx`), bukan `window.confirm/alert` —
+> alasannya konsistensi design system (dialog bawaan browser lepas dari token), bukan pengaman
+> keteledoran. Prinsip di atas tetap berlaku untuk kasus lain.
 
 ## Design System — Token Redesign (2026-08, ACUAN TETAP)
 

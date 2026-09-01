@@ -98,8 +98,9 @@ export default async function PeriodePage({
         />
       )}
 
-      {/* Ringkasan siklus SAJA (bar + tahap kini + penghalang); rincian ada di sub-tab. */}
-      <CycleStatus />
+      {/* Ringkasan siklus DIHAPUS dari tab ini (2026-09-01, permintaan pengguna): ia mengulang
+          informasi ReadinessPanel di atasnya dan mendorong daftar periode — pekerjaan utama
+          halaman ini — turun dari layar. Rinciannya tetap ada di sub-tab "Status Siklus". */}
 
       {list.length === 0 ? (
         <EmptyState

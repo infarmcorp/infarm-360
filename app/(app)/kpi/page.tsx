@@ -191,6 +191,24 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
  *    di RLS → baca lewat service_role (RLS blokir baca KPI/tim); tulis lewat cabang koordinator
  *    di saveKpiScores (juga service_role, berlingkup).
  */
+type EmpRow = { id: string; emp_code: string; name: string; dept: string; is_active: boolean; left_on: string | null };
+const EMP_COLS = 'id, emp_code, name, dept, is_active, left_on';
+
+/**
+ * PEGAWAI NONAKTIF di Input KPI (kebijakan 2026-09-10): dibatasi TANGGAL KELUAR, bukan
+ * disembunyikan total. Yang resign di tengah kuartal tetap perlu dinilai untuk bulan-bulan
+ * yang benar-benar ia kerjakan — menyembunyikannya memaksa HRD mengaktifkan ulang akun hanya
+ * untuk mengisi KPI Juli. Penyaringan per-bulan (ym ≤ bulan `left_on`) ada di KpiForm; di sini
+ * hanya dibuang yang tak bisa diinput bulan APA PUN:
+ *   - nonaktif TANPA `left_on` (deaktivasi lama, sebelum tanggal keluar distempel) → tak ada
+ *     acuan batas, jadi tak bisa dipastikan bulan mana yang sah.
+ * Deaktivasi sengaja TIDAK mengeluarkan orang dari spv_team_members (reversibel), jadi tanpa
+ * saringan ini mereka terus muncul di daftar SPV selamanya.
+ */
+function inputable(rows: EmpRow[] | null): EmpRow[] {
+  return (rows ?? []).filter((e) => e.is_active || !!e.left_on);
+}
+
 async function InputTab({
   supabase, userId, role, isCoord,
 }: {
@@ -202,9 +220,7 @@ async function InputTab({
 
   // Buang pegawai yang PUNYA koordinator dari daftar (dipakai jalur SPV & HRD mode-SPV).
   // coordinator_team_members tak terbaca SPV via RLS → lookup via service_role.
-  const excludeCoordinated = async (
-    list: { id: string; emp_code: string; name: string; dept: string }[],
-  ) => {
+  const excludeCoordinated = async (list: EmpRow[]) => {
     if (list.length === 0) return list;
     const { data: ct } = await svc.from('coordinator_team_members')
       .select('employee_id').in('employee_id', list.map((e) => e.id));
@@ -213,28 +229,28 @@ async function InputTab({
   };
 
   // Dua rantai independen — lingkup pegawai vs periode/bulan aktif → jalankan paralel.
-  const scopeEmps = async (): Promise<{ id: string; emp_code: string; name: string; dept: string }[]> => {
+  const scopeEmps = async (): Promise<EmpRow[]> => {
     if (isCoord) {
       const { data: team } = await svc.from('coordinator_team_members').select('employee_id').eq('coordinator_id', userId);
       const ids = (team ?? []).map((r) => r.employee_id);
       if (!ids.length) return [];
-      const { data } = await svc.from('employees').select('id, emp_code, name, dept')
-        .in('id', ids).eq('is_active', true).eq('is_external', false);
-      return data ?? [];
+      const { data } = await svc.from('employees').select(EMP_COLS)
+        .in('id', ids).eq('is_external', false);
+      return inputable(data);
     }
     if (role === 'hrd') {
       const { data: me } = await supabase.from('employees').select('dept').eq('id', userId).maybeSingle();
       const { data } = await supabase
-        .from('employees').select('id, emp_code, name, dept')
-        .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
-      return excludeCoordinated(data ?? []);
+        .from('employees').select(EMP_COLS)
+        .eq('dept', me?.dept ?? '__none__').neq('role', 'direksi').eq('is_external', false);
+      return excludeCoordinated(inputable(data));
     }
     const { data: teamRows } = await supabase.from('spv_team_members').select('employee_id').eq('spv_id', userId);
     const memberIds = (teamRows ?? []).map((r) => r.employee_id);
     // SPV juga mencatat capaian KPI dirinya sendiri → selalu sertakan userId.
     const ids = [...new Set([userId, ...memberIds])];
-    const { data } = await supabase.from('employees').select('id, emp_code, name, dept').in('id', ids);
-    return excludeCoordinated(data ?? []);
+    const { data } = await supabase.from('employees').select(EMP_COLS).in('id', ids);
+    return excludeCoordinated(inputable(data));
   };
   const scopeMonths = async (): Promise<string[]> => {
     const { data: activePeriods } = await readClient.from('periods').select('id').eq('status', 'active');
@@ -244,7 +260,12 @@ async function InputTab({
     return (monthRows ?? []).map((m) => m.ym);
   };
   const [emps, monthOptions] = await Promise.all([scopeEmps(), scopeMonths()]);
-  const members = emps.map((e) => ({ id: e.id, code: e.emp_code, name: e.name, dept: e.dept }));
+  // `leftOn` HANYA diisi untuk yang nonaktif — reaktivasi mengosongkan kolomnya, tapi jangan
+  // bergantung pada itu: yang aktif selalu boleh diinput bulan apa pun dalam periode.
+  const members = emps.map((e) => ({
+    id: e.id, code: e.emp_code, name: e.name, dept: e.dept,
+    leftOn: e.is_active ? null : e.left_on,
+  }));
 
   if (members.length === 0) return <p className="text-sm text-ink-soft">Belum ada anggota tim yang ditugaskan kepada Anda.</p>;
   if (monthOptions.length === 0) return <p className="text-sm text-ink-soft">Tidak ada periode aktif. Hubungi HRD untuk mengaktifkan siklus.</p>;

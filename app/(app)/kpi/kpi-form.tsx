@@ -4,8 +4,37 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveKpiScores, deleteKpiScore } from './actions';
 import { parseKpiRows, isValidKpiRow, type KpiMember, type KpiParsedRow } from '@/lib/import/parse';
+import { formatDateWib } from '@/lib/datetime';
 
-type Member = KpiMember;
+/** `leftOn` = tanggal keluar (`employees.left_on`), diisi HANYA untuk pegawai nonaktif. */
+type Member = KpiMember & { leftOn?: string | null };
+
+/**
+ * Pegawai NONAKTIF hanya boleh diinput untuk bulan yang masih ia kerjakan (ym ≤ bulan keluar).
+ * Perbandingan string aman karena kedua sisi berformat 'YYYY-MM' (urutan leksikal = kronologis).
+ * Yang resign sebelum kuartal dimulai otomatis tak pernah muncul.
+ */
+function eligibleForMonth(m: Member, ym: string): boolean {
+  if (!m.leftOn) return true;
+  return ym <= m.leftOn.slice(0, 7);
+}
+
+/**
+ * Penanda pegawai yang sudah keluar tapi bulan ini masih sah diinput. WAJIB terlihat: tanpa ini
+ * penilai bisa mengira daftarnya keliru, atau justru mengisi capaian untuk orang yang sudah tak
+ * bekerja di bulan itu. Nada `warn` = obligasi/perhatian (bukan error), sesuai pemetaan token.
+ */
+function InactiveChip({ leftOn }: { leftOn?: string | null }) {
+  if (!leftOn) return null;
+  return (
+    <span
+      title="Pegawai nonaktif — hanya bulan sampai tanggal keluar yang dapat diisi"
+      className="ml-2 inline-block rounded-full bg-warn-tint border border-warn-ink/25 px-2 py-0.5 text-[10px] font-semibold text-warn-ink align-middle"
+    >
+      Nonaktif sejak {formatDateWib(leftOn)}
+    </span>
+  );
+}
 type ParsedRow = KpiParsedRow;
 
 /**
@@ -114,7 +143,9 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
   );
 
   const depts = useMemo(() => [...new Set(members.map((m) => m.dept))].sort(), [members]);
-  const shown = useMemo(() => (dept === 'all' ? members : members.filter((m) => m.dept === dept)), [members, dept]);
+  // Daftar pegawai yang SAH untuk bulan terpilih — dihitung ulang tiap ganti bulan.
+  const eligible = useMemo(() => members.filter((m) => eligibleForMonth(m, ym)), [members, ym]);
+  const shown = useMemo(() => (dept === 'all' ? eligible : eligible.filter((m) => m.dept === dept)), [eligible, dept]);
   const filledCount = useMemo(() => shown.filter((m) => existing[`${m.id}|${ym}`] !== undefined).length, [shown, existing, ym]);
 
   // Nilai turunan per baris (dipakai tabel desktop & kartu mobile) — hindari duplikasi logika.
@@ -187,7 +218,9 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
       const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
       if (raw.length === 0) { setParseErr('File kosong atau tanpa baris data.'); return; }
 
-      const rows = parseKpiRows(raw, members);
+      // `eligible`, bukan `members`: baris Excel untuk pegawai yang sudah keluar sebelum bulan
+      // ini jadi "kode tak dikenal" → ditandai tak valid di pratinjau, bukan diam-diam tersimpan.
+      const rows = parseKpiRows(raw, eligible);
       if (rows.length === 0) { setParseErr('Tidak menemukan kolom kode pegawai (emp_code/kode).'); return; }
       setParsed(rows);
     } catch {
@@ -287,6 +320,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
                 <tr key={m.id} className={`border-b border-line-soft ${noteMissing ? 'bg-warn-tint/60' : ''}`}>
                   <td className="py-2 text-ink">
                     {m.name} <span className="text-ink-faint">· {m.dept}</span>
+                    <InactiveChip leftOn={m.leftOn} />
                     {saved === undefined && (
                       <span className="ml-2 inline-block rounded-full bg-neutral-tint px-2 py-0.5 text-[10px] font-semibold text-ink-faint align-middle">belum diisi</span>
                     )}
@@ -338,6 +372,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
                   <div className="flex items-start justify-between gap-2">
                     <div className="text-sm font-semibold text-ink">
                       {m.name} <span className="text-ink-faint font-normal">· {m.dept}</span>
+                      <InactiveChip leftOn={m.leftOn} />
                     </div>
                     {saved === undefined ? (
                       <span className="shrink-0 rounded-full bg-neutral-tint px-2 py-0.5 text-[10px] font-semibold text-ink-faint">belum diisi</span>

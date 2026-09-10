@@ -40,6 +40,21 @@ export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
   const { data: me } = await supabase.from('employees').select('role, is_coordinator').eq('id', auth.user.id).maybeSingle();
   const empIds = rows.map((r) => r.employeeId);
 
+  // PEGAWAI NONAKTIF: hanya boleh diberi KPI untuk bulan yang masih ia kerjakan (ym ≤ bulan
+  // `left_on`). Daftar di UI sudah menyaring per bulan, tapi itu TAMPILAN — gembok sesungguhnya
+  // di sini (impor Excel, tab yang terbuka lama, atau pemanggilan langsung tak lewat daftar).
+  // Ditaruh SEBELUM percabangan koordinator agar berlaku untuk semua jalur (SPV/HRD/Koordinator).
+  // Nonaktif tanpa `left_on` (deaktivasi lama) ditolak untuk semua bulan — tak ada acuan batas.
+  const { data: empStatus } = await createAdminClient()
+    .from('employees').select('id, name, is_active, left_on').in('id', empIds);
+  const blocked = (empStatus ?? []).filter((e) => !e.is_active && (!e.left_on || ym > e.left_on.slice(0, 7)));
+  if (blocked.length > 0) {
+    return {
+      ok: false,
+      error: `Pegawai nonaktif tidak dapat diberi KPI bulan ${ym} (di luar masa kerjanya): ${blocked.map((e) => e.name).join(', ')}.`,
+    };
+  }
+
   // KOORDINATOR "murni" (grant is_coordinator, bukan SPV/HRD/Direksi): input KPI HANYA pegawai
   // naungannya. RLS kpi_write menolak koordinator → tulis lewat service_role dgn scoping server.
   if (me?.is_coordinator && me.role !== 'spv' && me.role !== 'hrd' && me.role !== 'direksi') {

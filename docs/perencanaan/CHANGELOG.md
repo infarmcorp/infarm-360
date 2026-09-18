@@ -131,6 +131,17 @@
   menyeluruh. ⚠️ Skor `result_360` lama masih presisi 1-desimal sampai HRD klik **"Hitung Ulang Skor 360°"**.
 - **Banner "Skor 360° basi"** (migrasi 0014 `reviewed_at`): deteksi penilaian diubah / koreksi relasi
   di-ACC setelah `computed_at` → ingatkan Hitung Ulang.
+- **Deadline penilaian 360° + potongan keterlambatan** (migrasi 0036, 2026-09-18; keputusan pengguna).
+  Form **tidak** ditutup otomatis; status On Time / Late = **`first_submitted_at`** (diisi TRIGGER dari
+  jam server DB, immutable; `submitted_at` lama tertimpa tiap edit ulang jadi tak bisa dipakai) vs
+  `periods.assessment_deadline` (input WIB di Kelola Periode). Penilaian terlambat **tetap dihitung**
+  untuk yang dinilai. Penilai dengan ≥1 penilaian **Wajib** terlambat → potongan **FLAT −3** pada **Skor
+  360° MILIKNYA** (bukan Skor Akhir, bukan per penilaian), **otomatis**; tak punya Skor 360° → gugur.
+  Tak dihitung: Opsional/Ad-Hoc, Paksa Selesai HRD (`forced_by_hrd`, diisi trigger), pemetaan dibuat
+  sesudah deadline. HRD bisa **mengecualikan** (`late_penalty_waivers`, alasan wajib, ter-audit) di Flag
+  Kepatuhan. **`result_360.score` = SETELAH potongan** (semua pembaca otomatis ikut) · `score_raw` =
+  rumus murni · `late_penalty`. Diterapkan saat Hitung Ulang 360°, ubah deadline, ubah pengecualian, dan
+  saat penilai kirim terlambat (`refreshLatePenalties`). Rumus murni: `lib/late.ts` (diuji `tests/late.test.ts`).
 
 ### Fitur pendukung (ringkas)
 - **Token Redesign UI — restyle per-halaman ke design system** (2026-08; **murni presentasi**, tak
@@ -248,6 +259,9 @@
   `0025` `page_grants.can_edit boolean default false` (dimensi EDIT utk halaman administrator; pemantauan
   selalu false) · `0026` `assessment_indicator_scores.rating` numeric(3,2) → **numeric(8,6)** (aditif/aman;
   presisi tinggi backfill Looker Q1 — mendukung desimal berulang mis. `4.727273`). Semua diterapkan ke DB live.
+- `0036` `periods.assessment_deadline` · `assessments.first_submitted_at`/`forced_by_hrd` + trigger
+  `assessments_stamp_submit` · `result_360.score_raw`/`late_penalty` · tabel `late_penalty_waivers` (RLS
+  baca berjenjang, tulis HRD). ⚠️ **Belum diterapkan** ke DB (terapkan sebelum merge ke `main`).
 - `final_reports.content` (jsonb lama) dipakai untuk `aspectSummaries` **&** `qualSummaries`
   (ringkasan pertanyaan kualitatif) — tanpa migrasi baru.
 

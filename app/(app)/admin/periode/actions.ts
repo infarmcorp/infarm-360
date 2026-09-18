@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
+import { refreshLatePenalties } from '@/lib/late-server';
 
 /**
  * Kelola Siklus Periode (HRD) — gerbang seluruh proses.
@@ -172,6 +173,50 @@ export async function setKpiStandard(periodId: string, value: number): Promise<R
   });
   revalidatePath('/admin/periode');
   revalidatePath('/admin/dashboard');
+  return { ok: true };
+}
+
+/**
+ * Atur DEADLINE penilaian 360° (migrasi 0036). Input `YYYY-MM-DDTHH:mm` dibaca sebagai WIB
+ * (UTC+7); string kosong = hapus deadline. Form TIDAK ditutup otomatis — deadline hanya dasar
+ * status On Time / Late & potongan −3 pada Skor 360° penilai yang terlambat (lib/late.ts).
+ * Mengubah deadline menerapkan ulang potongan ke seluruh Skor 360° yang sudah dihitung.
+ */
+const DeadlineInput = z.union([z.literal(''), z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Format deadline tidak valid')]);
+
+export async function setAssessmentDeadline(periodId: string, value: string): Promise<Result> {
+  if (!z.string().uuid().safeParse(periodId).success) return { ok: false, error: 'Input tidak valid' };
+  const parsed = DeadlineInput.safeParse(value);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  const deadline = parsed.data ? new Date(`${parsed.data}:00+07:00`) : null;
+  if (deadline && Number.isNaN(deadline.getTime())) return { ok: false, error: 'Tanggal deadline tidak valid' };
+
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const { error } = await supabase.from('periods')
+    .update({ assessment_deadline: deadline ? deadline.toISOString() : null }).eq('id', periodId);
+  if (error) return { ok: false, error: 'Gagal: ' + error.message };
+
+  let changed = 0;
+  try { changed = await refreshLatePenalties(periodId); } catch (e) {
+    return { ok: false, error: 'Deadline tersimpan, tapi gagal menerapkan potongan: ' + (e instanceof Error ? e.message : String(e)) + '. Jalankan Hitung Ulang Skor 360°.' };
+  }
+
+  const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();
+  await logHrdAction({
+    action: 'period.setDeadline', category: 'periode',
+    summary: deadline
+      ? `Mengatur deadline penilaian 360° periode "${pr?.label ?? periodId}" → ${parsed.data.replace('T', ' ')} WIB`
+      : `Menghapus deadline penilaian 360° periode "${pr?.label ?? periodId}"`,
+    targetType: 'period', targetId: periodId, targetLabel: pr?.label ?? null,
+    meta: { assessment_deadline: deadline ? deadline.toISOString() : null, rescored: changed },
+  });
+  revalidatePath('/admin/periode');
+  revalidatePath('/admin/kepatuhan');
+  revalidatePath('/penilaian');
+  revalidatePath('/admin/dashboard');
+  revalidatePath('/admin/laporan');
   return { ok: true };
 }
 

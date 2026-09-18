@@ -44,8 +44,8 @@ export interface Database {
         Relationships: [];
       };
       periods: {
-        Row: { id: string; code: string; label: string; start_date: string; end_date: string; status: 'active' | 'ended'; has_360: boolean; form_open: boolean; mapping_published: boolean; kpi_standard: number; created_at: string };
-        Insert: { code: string; label: string; start_date: string; end_date: string; status?: 'active' | 'ended'; has_360?: boolean; form_open?: boolean; mapping_published?: boolean; kpi_standard?: number };
+        Row: { id: string; code: string; label: string; start_date: string; end_date: string; status: 'active' | 'ended'; has_360: boolean; form_open: boolean; mapping_published: boolean; kpi_standard: number; assessment_deadline: string | null; created_at: string };
+        Insert: { code: string; label: string; start_date: string; end_date: string; status?: 'active' | 'ended'; has_360?: boolean; form_open?: boolean; mapping_published?: boolean; kpi_standard?: number; assessment_deadline?: string | null };
         Update: Partial<Database['public']['Tables']['periods']['Insert']>;
         Relationships: [];
       };
@@ -74,7 +74,7 @@ export interface Database {
         Relationships: [];
       };
       assessments: {
-        Row: { id: string; period_id: string; assessor_id: string; target_id: string; status: AssessmentStatus; is_adhoc: boolean; submitted_at: string | null; created_at: string };
+        Row: { id: string; period_id: string; assessor_id: string; target_id: string; status: AssessmentStatus; is_adhoc: boolean; submitted_at: string | null; first_submitted_at: string | null; forced_by_hrd: boolean; created_at: string };
         Insert: { period_id: string; assessor_id: string; target_id: string; status?: AssessmentStatus; is_adhoc?: boolean; submitted_at?: string | null };
         Update: Partial<Database['public']['Tables']['assessments']['Insert']>;
         Relationships: [];
@@ -122,9 +122,15 @@ export interface Database {
         Relationships: [];
       };
       result_360: {
-        Row: { employee_id: string; period_id: string; score: number | null; computed_at: string };
-        Insert: { employee_id: string; period_id: string; score?: number | null; computed_at?: string };
+        Row: { employee_id: string; period_id: string; score: number | null; score_raw: number | null; late_penalty: number; computed_at: string };
+        Insert: { employee_id: string; period_id: string; score?: number | null; score_raw?: number | null; late_penalty?: number; computed_at?: string };
         Update: Partial<Database['public']['Tables']['result_360']['Insert']>;
+        Relationships: [];
+      };
+      late_penalty_waivers: {
+        Row: { employee_id: string; period_id: string; reason: string; set_by: string | null; created_at: string };
+        Insert: { employee_id: string; period_id: string; reason: string; set_by?: string | null };
+        Update: Partial<Database['public']['Tables']['late_penalty_waivers']['Insert']>;
         Relationships: [];
       };
       compliance_penalties: {

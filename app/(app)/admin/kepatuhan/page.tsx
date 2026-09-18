@@ -6,10 +6,14 @@ import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import { KepatuhanTable } from './kepatuhan-table';
 import { Panel } from '@/components/panel';
+import { loadLateSummaries } from '@/lib/late-server';
+import { formatWib, LATE_PENALTY_360 } from '@/lib/late';
 
 /**
  * Flag Kepatuhan Penilaian & Punishment (HRD).
- * - Flag keterlambatan: penilaian WAJIB (mapping mandatory) yang belum terkirim.
+ * - Belum Kirim: penilaian WAJIB (mapping mandatory) yang belum terkirim.
+ * - Kirim Terlambat (migrasi 0036): penilaian wajib yang KIRIM PERTAMA-nya sesudah deadline →
+ *   potongan flat −3 pada Skor 360° penilai (otomatis; HRD bisa mengecualikan, alasan wajib).
  * - Flag Self Assessment: pegawai belum mengisi penilaian diri sendiri (assessor=target).
  * - Punishment: input poin pengurangan → compliance_penalties (memotong Skor Akhir).
  */
@@ -62,6 +66,9 @@ export default async function KepatuhanPage() {
     .from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id);
   const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
 
+  // Keterlambatan kirim (service_role; halaman ini sudah terotorisasi di atas).
+  const { deadline, byAssessor: lateBy } = await loadLateSummaries(ap.id);
+
   const rows = employees.map((e) => {
     const lateTargets = maps
       .filter((m) => m.assessor_id === e.id && m.mandatory && !submitted.has(`${e.id}:${m.target_id}`))
@@ -71,27 +78,40 @@ export default async function KepatuhanPage() {
       lateCount: lateTargets.length, lateTargets,
       selfMissing: !selfDone.has(e.id),
       points: penBy.get(e.id) ?? 0,
+      lateSubmitted: (lateBy.get(e.id)?.late ?? []).map((l) => `${nameById.get(l.targetId) ?? '—'} · ${formatWib(l.firstSubmittedAt)}`),
+      latePenalty: lateBy.get(e.id)?.penalty ?? 0,
+      lateWaived: lateBy.get(e.id)?.waived ?? false,
+      lateWaiveReason: lateBy.get(e.id)?.waiveReason ?? null,
     };
   }).sort((a, b) => b.lateCount - a.lateCount || a.name.localeCompare(b.name));
 
   const totalLate = rows.filter((r) => r.lateCount > 0).length;
   const totalSelfMissing = rows.filter((r) => r.selfMissing).length;
   const totalPunished = rows.filter((r) => r.points > 0).length;
+  const totalLateSubmit = rows.filter((r) => r.lateSubmitted.length > 0).length;
 
   return (
     <Shell>
       <div className="flex items-start justify-between mb-5">
         <div>
           <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Flag Kepatuhan Penilaian</h1>
-          <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span></p>
+          <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span>
+            {' · '}Deadline 360° {deadline
+              ? <span className="data-value font-semibold text-ink">{formatWib(deadline)}</span>
+              : <span className="text-ink-faint">belum diatur (atur di Kelola Periode)</span>}
+          </p>
         </div>
         <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
         <div className="border border-line rounded-panel bg-surface p-3 text-center">
           <div className="text-xl font-bold data-value text-danger-ink">{totalLate}</div>
-          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Pegawai telat (penilaian wajib)</div>
+          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Belum kirim (penilaian wajib)</div>
+        </div>
+        <div className="border border-line rounded-panel bg-surface p-3 text-center">
+          <div className="text-xl font-bold data-value text-warn-ink">{totalLateSubmit}</div>
+          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Kirim terlambat</div>
         </div>
         <div className="border border-line rounded-panel bg-surface p-3 text-center">
           <div className="text-xl font-bold data-value text-warn-ink">{totalSelfMissing}</div>
@@ -108,8 +128,12 @@ export default async function KepatuhanPage() {
       </Panel>
       <p className="text-[11px] text-ink-faint mt-5 leading-relaxed">
         Default menampilkan pegawai yang <strong className="font-semibold text-ink-soft">perlu perhatian</strong> (penilaian wajib telat, belum
-        self-assessment, atau sudah punya punishment). &quot;Wajib Telat&quot; = penilaian bersifat Wajib (mapping)
-        yang belum dikirim (arahkan kursor untuk daftar nama). Punishment memotong Skor Akhir pegawai di periode ini (min 0).
+        self-assessment, atau sudah punya punishment). &quot;Belum Kirim&quot; = penilaian bersifat Wajib (mapping)
+        yang belum dikirim (arahkan kursor untuk daftar nama). &quot;Kirim Terlambat&quot; = penilaian Wajib yang pertama kali
+        dikirim sesudah deadline (arahkan kursor untuk nama &amp; waktu kirim) — penilaiannya tetap dihitung untuk yang dinilai,
+        tetapi Skor 360° si penilai dipotong <span className="data-value">{LATE_PENALTY_360}</span> poin sekali per periode (otomatis;
+        gugur bila ia tak punya Skor 360°). Opsional/Ad-Hoc, Paksa Selesai HRD, dan pemetaan yang dibuat sesudah deadline tidak dihitung.
+        Punishment memotong Skor Akhir pegawai di periode ini (min 0).
       </p>
     </Shell>
   );

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { refreshLatePenalties } from '@/lib/late-server';
 
 /**
  * Pengisian 360° (semua peran sebagai penilai). PANDUAN: "Mulai Nilai".
@@ -43,7 +44,7 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
 
   // Periode aktif + komponen 360° harus dibuka (locked/ended → bukan aktif → ditolak).
   const { data: ap } = await supabase
-    .from('periods').select('id, has_360, form_open').eq('status', 'active').limit(1).maybeSingle();
+    .from('periods').select('id, has_360, form_open, assessment_deadline').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
   if (!ap.has_360) return { ok: false, error: 'Penilaian 360° untuk periode ini belum dibuka oleh HRD' };
   if (!ap.form_open) return { ok: false, error: 'Form penilaian 360° sedang ditutup HRD (tahap peninjauan hasil)' };
@@ -82,6 +83,8 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
         assessor_id: auth.user.id,
         target_id: targetId,
         status,
+        // Hanya kosmetik: trigger 0036 menimpa submitted_at & mengisi first_submitted_at dgn
+        // waktu SERVER DB (nilai klien diabaikan) — dasar status On Time / Late.
         submitted_at: status === 'submitted' ? new Date().toISOString() : null,
       },
       { onConflict: 'period_id,assessor_id,target_id' },
@@ -114,6 +117,13 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
       { onConflict: 'assessment_id,question_id' },
     );
     if (aErr) return { ok: false, error: 'Gagal menyimpan jawaban esai: ' + aErr.message };
+  }
+
+  // Kirim SESUDAH deadline → potongan keterlambatan penilai langsung masuk ke Skor 360°
+  // miliknya (bila sudah dihitung). Hanya menyentuh baris penilai sendiri; kegagalan di sini
+  // tak membatalkan kiriman (hitung ulang Skor 360° HRD tetap menerapkannya).
+  if (status === 'submitted' && ap.assessment_deadline && Date.now() > Date.parse(ap.assessment_deadline)) {
+    try { await refreshLatePenalties(ap.id, [auth.user.id]); } catch { /* diterapkan saat hitung ulang */ }
   }
 
   revalidatePath('/penilaian');

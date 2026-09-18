@@ -7,6 +7,8 @@ import { logHrdAction } from '@/lib/audit/log';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 import { classOf, avg, round2, weightedScore360, resolveWeightScheme, type Groups360, type WeightScheme } from '@/lib/score360';
 import { fetchAllPaged, fetchAllByIds } from '@/lib/supabase/paginate';
+import { apply360Penalty } from '@/lib/late';
+import { loadLateSummaries } from '@/lib/late-server';
 
 /**
  * Kalkulasi skor 360 terbobot → tabel result_360 (PANDUAN: kalibrasi skor).
@@ -102,13 +104,24 @@ export async function computeResult360(): Promise<ComputeResult> {
   // Hitung skor terbobot per target (rumus murni di lib/score360.ts).
   // computed_at di-set eksplisit agar UPDATE (upsert) ikut memperbarui stempel waktu —
   // dipakai mendeteksi "skor basi" bila penilaian diubah setelah hitung ulang terakhir.
+  // Potongan KETERLAMBATAN menilai (migrasi 0036, lib/late.ts): flat per penilai, diterapkan
+  // pada Skor 360° MILIKNYA sendiri. score = setelah potongan; score_raw = rumus murni.
+  let lateBy: Awaited<ReturnType<typeof loadLateSummaries>>['byAssessor'];
+  try {
+    lateBy = (await loadLateSummaries(ap.id)).byAssessor;
+  } catch (e) {
+    return { ok: false, error: 'Gagal membaca data keterlambatan: ' + (e instanceof Error ? e.message : String(e)) };
+  }
   const computedAt = new Date().toISOString();
-  const rows: { employee_id: string; period_id: string; score: number; computed_at: string }[] = [];
+  const rows: { employee_id: string; period_id: string; score: number; score_raw: number; late_penalty: number; computed_at: string }[] = [];
   for (const [targetId, g] of byTarget) {
     // Skema per pegawai: override khusus bila ada, else default periode.
     const { model, weights } = resolveWeightScheme(defScheme, overrideBy.get(targetId));
     const score = weightedScore360(g, model, weights);
-    if (score != null) rows.push({ employee_id: targetId, period_id: ap.id, score: round2(score), computed_at: computedAt });
+    if (score == null) continue;
+    const raw = round2(score);
+    const pen = lateBy.get(targetId)?.penalty ?? 0;
+    rows.push({ employee_id: targetId, period_id: ap.id, score: apply360Penalty(raw, pen)!, score_raw: raw, late_penalty: pen, computed_at: computedAt });
   }
 
   if (rows.length === 0) return { ok: false, error: 'Tidak ada skor yang dapat dihitung' };
@@ -119,7 +132,7 @@ export async function computeResult360(): Promise<ComputeResult> {
   await logHrdAction({
     action: 'score360.recompute', category: 'skor',
     summary: `Menghitung ulang Skor 360° periode "${ap.label}" (${rows.length} pegawai, model ${ws.model === '4class' ? '4-Kelas' : '2-Kelas'})`,
-    targetType: 'period', targetId: ap.id, targetLabel: ap.label, meta: { computed: rows.length, model: ws.model },
+    targetType: 'period', targetId: ap.id, targetLabel: ap.label, meta: { computed: rows.length, model: ws.model, late_penalized: rows.filter((r) => r.late_penalty > 0).length },
   });
   revalidatePath('/admin/bobot');
   revalidatePath('/admin/dashboard');

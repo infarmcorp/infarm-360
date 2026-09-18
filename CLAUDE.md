@@ -346,6 +346,10 @@ ONBOARDING_GMAIL_ONLY          # server-only — 'false' utk kirim undangan ke S
 - **Skor Akhir** = blend KPI+360 **dikurangi** punishment kepatuhan per kuartal (min 0). Rumus
   murni terkunci di `lib/scoring.ts` & `lib/score360.ts` (lihat Pengujian); kalau mengubah,
   sinkronkan semua tempat + perbarui tesnya.
+- **Skor 360° resmi** (`result_360.score`) = `score_raw` (rumus `weightedScore360`) **dikurangi potongan
+  keterlambatan menilai** (flat −3 bila ≥1 penilaian Wajib dikirim pertama kali sesudah deadline; min 0;
+  migrasi 0036, rumus `lib/late.ts` + `tests/late.test.ts`). Waktu kirim pertama (`first_submitted_at`)
+  diisi **trigger DB**, bukan klien — jangan tulis/andalkan nilai dari app.
 - **Klasifikasi talenta Dashboard** (4-Box A/B-Culture/B-KPI/C — **tanpa D**) **dikunci ke satu
   kuartal** lewat filter periode agar KPI, 360°, dan Skor Akhir dari periode sama. Kuartal tanpa 360°
   → pada 4-Box hanya **B-KPI / C** yang mungkin (A & B-Culture butuh sumbu 360°). 4-Box berbasis

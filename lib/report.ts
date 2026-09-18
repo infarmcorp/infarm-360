@@ -27,6 +27,8 @@ export type ReportData = {
   kpiAvg: number | null;
   s360: number | null;
   penalty: number;
+  /** Potongan keterlambatan menilai yang SUDAH termasuk di s360 (migrasi 0036). 0 = tanpa. */
+  latePenalty360: number;
   aspects: AspectScore[];
   assessors: AssessorBlock[];
   // Tambahan untuk view HRD (anonim, dikelompokkan):
@@ -53,8 +55,9 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
   const { data: kpi } = yms.length
     ? await supabase.from('kpi_scores').select('score').eq('employee_id', employeeId).in('ym', yms) : { data: [] };
   const kpiAvg = kpi && kpi.length ? kpi.reduce((a, b) => a + b.score, 0) / kpi.length : null;
-  const { data: r } = await supabase.from('result_360').select('score').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
+  const { data: r } = await supabase.from('result_360').select('score, late_penalty').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
   const s360 = r?.score ?? null;
+  const latePenalty360 = Number(r?.late_penalty ?? 0);
   const { data: pen } = await supabase.from('compliance_penalties').select('points').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
   const penalty = pen?.points ?? 0;
   const { data: fr } = await supabase.from('final_reports').select('status, final_score, content').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
@@ -186,7 +189,7 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
 
   return {
     emp, periodLabel: period.label, has360: period.has_360, status: fr?.status ?? null,
-    finalScore, kpiAvg, s360, penalty, aspects, assessors,
+    finalScore, kpiAvg, s360, penalty, latePenalty360, aspects, assessors,
     byAspect, essays, aspectSummaries,
     qualSummaries, qualQuestions: (quals ?? []).map((q) => q.text),
   };

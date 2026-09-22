@@ -85,13 +85,14 @@ export function parseMappingRows(raw: Record<string, unknown>[], employees: MapE
     .filter((r) => r.aCode || r.tCode);
 }
 
-export type MapStatus = 'ok' | 'dup' | 'self' | 'invalid';
+export type MapStatus = 'ok' | 'dup' | 'invalid';
 export type MapClassified = { r: MapParsedRow; line: number; status: MapStatus; reason: string };
 
 /**
  * Klasifikasi tiap baris pemetaan + alasan bila dilewati (nomor baris 1-based):
- *  - 'invalid' : kode penilai/dinilai tak dikenal, atau relasi kosong/tak valid.
- *  - 'self'    : penilai = dinilai tetapi relasi bukan Self.
+ *  - 'invalid' : kode penilai/dinilai tak dikenal, relasi kosong/tak valid, ATAU Self
+ *                Assessment (penilai = dinilai, atau relasi 'Self') — DINONAKTIFKAN
+ *                (BR-02, kebijakan Q3 2026: tidak menggunakan Self Assessment).
  *  - 'dup'     : pasangan penilai→target sama dengan baris sebelumnya (keunikan DB =
  *                penilai+target saja, relasi tak dihitung).
  *  - 'ok'      : siap diimpor.
@@ -104,7 +105,8 @@ export function classifyMappingRows(rows: MapParsedRow[]): MapClassified[] {
     if (!r.assessor) { status = 'invalid'; reason = `Kode penilai "${r.aCode || '?'}" tak dikenal`; }
     else if (!r.target) { status = 'invalid'; reason = `Kode dinilai "${r.tCode || '?'}" tak dikenal`; }
     else if (!r.relOk) { status = 'invalid'; reason = 'Relasi kosong/tak valid'; }
-    else if (r.assessor.id === r.target.id && r.relation !== 'Self') { status = 'self'; reason = 'Penilai = Dinilai tetapi relasi bukan Self'; }
+    else if (r.assessor.id === r.target.id) { status = 'invalid'; reason = 'Penilai = Dinilai tidak diperbolehkan (Self Assessment dinonaktifkan)'; }
+    else if (r.relation === 'Self') { status = 'invalid'; reason = 'Relasi Self dinonaktifkan untuk periode ini'; }
     else {
       const key = `${r.assessor.id}|${r.target.id}`;
       if (seen.has(key)) { status = 'dup'; reason = `Duplikat — pasangan sama dengan baris ${seen.get(key)}`; }

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { AssessForm } from './assess-form';
+import { ExposureCheckForm } from './exposure-check-form';
 
 /**
  * Form Pengisian 360° untuk satu target (read + prefill draf).
@@ -56,20 +57,31 @@ export default async function AssessPage({
     .eq('period_id', ap.id).order('order_idx');
   const questions = qRows ?? [];
 
-  // Draf yang sudah ada (prefill).
+  // Draf yang sudah ada (prefill) + status Exposure Check (BR-03).
   const { data: existing } = await supabase
-    .from('assessments').select('id, status')
+    .from('assessments').select('id, status, exposure_status')
     .eq('assessor_id', user.id).eq('target_id', targetId).eq('period_id', ap.id)
     .maybeSingle();
 
-  const initialScores: Record<string, { rating: number | null; comment: string }> = {};
+  // BR-03: Not Eligible → penilaian dihentikan, tampilkan notice (bukan form).
+  if (existing?.exposure_status === 'not_eligible') {
+    return (
+      <Notice>
+        Anda menandai <strong>Not Eligible</strong> (tidak memiliki exposure kerja yang cukup) untuk menilai
+        pegawai ini. Penilaian tidak dilanjutkan, tidak dihitung sebagai tunggakan, dan tidak dikenakan
+        penalty keterlambatan. Hubungi HRD bila status ini perlu dikoreksi.
+      </Notice>
+    );
+  }
+
+  const initialScores: Record<string, { rating: number | null; comment: string; isNa: boolean }> = {};
   const initialAnswers: Record<string, string> = {};
   if (existing) {
     const { data: sc } = await supabase
-      .from('assessment_indicator_scores').select('indicator_id, rating, comment')
+      .from('assessment_indicator_scores').select('indicator_id, rating, comment, is_na')
       .eq('assessment_id', existing.id);
     (sc ?? []).forEach((s) => {
-      initialScores[s.indicator_id] = { rating: s.rating, comment: s.comment ?? '' };
+      initialScores[s.indicator_id] = { rating: s.rating, comment: s.comment ?? '', isNa: s.is_na ?? false };
     });
     const { data: an } = await supabase
       .from('assessment_qual_answers').select('question_id, answer')
@@ -119,24 +131,30 @@ export default async function AssessPage({
           )}
         </p>
 
-        {/* key=targetId → form di-MOUNT ULANG tiap ganti target. Tanpa ini, berpindah dari
-            /penilaian/A ke /penilaian/B (tanpa reload) membuat React mempertahankan state
-            (activeGroup/activeId/rating/komentar) target sebelumnya → form bisa terbuka di
-            "Umpan Balik Kualitatif" atau menampilkan jawaban target lama. */}
-        <AssessForm
-          key={targetId}
-          targetId={targetId}
-          targetName={target?.name ?? 'pegawai ini'}
-          groups={groups}
-          questions={questions.map((q) => ({ id: q.id, text: q.text }))}
-          initialScores={initialScores}
-          initialAnswers={initialAnswers}
-          hasDraft={existing?.status === 'draft'}
-          initialStatus={existing?.status ?? null}
-          mandatoryTotal={mandatoryTotal}
-          mandatoryDoneOthers={mandatoryDoneOthers}
-          thisMandatory={thisMandatory}
-        />
+        {/* BR-03: Exposure Check WAJIB sebelum form muncul, sekali per pasangan penilai→target. */}
+        {!existing?.exposure_status ? (
+          <ExposureCheckForm key={targetId} targetId={targetId} targetName={target?.name ?? 'pegawai ini'} />
+        ) : (
+          // key=targetId → form di-MOUNT ULANG tiap ganti target. Tanpa ini, berpindah dari
+          // /penilaian/A ke /penilaian/B (tanpa reload) membuat React mempertahankan state
+          // (activeGroup/activeId/rating/komentar) target sebelumnya → form bisa terbuka di
+          // "Umpan Balik Kualitatif" atau menampilkan jawaban target lama.
+          <AssessForm
+            key={targetId}
+            targetId={targetId}
+            targetName={target?.name ?? 'pegawai ini'}
+            groups={groups}
+            questions={questions.map((q) => ({ id: q.id, text: q.text }))}
+            initialScores={initialScores}
+            initialAnswers={initialAnswers}
+            hasDraft={existing?.status === 'draft'}
+            initialStatus={existing?.status ?? null}
+            mandatoryTotal={mandatoryTotal}
+            mandatoryDoneOthers={mandatoryDoneOthers}
+            thisMandatory={thisMandatory}
+            partiallyEligible={existing?.exposure_status === 'partially_eligible'}
+          />
+        )}
       </div>
     </main>
   );

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, CheckCircle2, X, Send, Save, XCircle, Trash2, ClipboardList, ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronLeft, CheckCircle2, X, Send, Save, XCircle, Trash2, ClipboardList, ChevronDown, Loader2, MinusCircle } from 'lucide-react';
 import { submitAssessment, discardAssessment } from '../actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
@@ -10,9 +10,11 @@ type Indicator = { id: string; text: string; description?: string | null; rating
 type Group = { id: string; name: string; indicators: Indicator[] };
 type Question = { id: string; text: string };
 
+// Label skala BARS (BR-06, Q3 2026) — menggantikan label frekuensi lama.
 const RATING_LABELS: Record<number, string> = {
-  1: 'Hampir Tidak Pernah', 2: 'Jarang', 3: 'Kadang', 4: 'Sering', 5: 'Selalu',
+  1: 'Evidence Paling Rendah', 2: 'Di Bawah Ekspektasi', 3: 'Sesuai Ekspektasi', 4: 'Di Atas Ekspektasi', 5: 'Evidence Paling Kuat',
 };
+const EVIDENCE_MIN = 20;
 const QUAL = '__qual__';
 
 // Status auto-simpan draf.
@@ -21,15 +23,15 @@ type SaveState = 'idle' | 'pending' | 'saving' | 'saved' | 'error';
 // Panduan Penilaian Umum (statis, paritas legacy) — berlaku untuk semua pertanyaan.
 const GENERAL_GUIDE = [
   'Penilaian berbasis perilaku nyata sehari-hari, bukan kedekatan atau sentimen pribadi.',
-  'Skala 1 (Hampir Tidak Pernah) hingga 5 (Selalu) — sesuaikan dengan konsistensi tindakan target.',
-  'Wajib mengisi komentar/bukti perilaku (min. 4 karakter) sebagai dasar skor.',
+  'Skala BARS 1 (evidence paling rendah) hingga 5 (evidence paling kuat) — sesuaikan panduan perilaku tiap level.',
+  'Wajib mengisi komentar/bukti perilaku (evidence, min. 20 karakter) sebagai dasar skor.',
   'Gunakan rail aspek & navigasi Sebelumnya/Selanjutnya agar pengisian terstruktur.',
 ];
 
 /**
  * Form Pengisian 360° — paritas legacy: rail aspek (kiri) + editor SATU indikator
  * (kanan) dengan navigasi Sebelumnya/Selanjutnya, label rating, bar progres, dan
- * komentar/bukti perilaku WAJIB (min. 4 karakter) sebelum kirim. Umpan balik
+ * komentar/bukti perilaku WAJIB (min. 20 karakter, BR-06) sebelum kirim. Umpan balik
  * kualitatif jadi item terakhir di rail (opsional).
  *
  * UX tambahan:
@@ -40,19 +42,21 @@ const GENERAL_GUIDE = [
  */
 export function AssessForm({
   targetId, targetName, groups, questions, initialScores, initialAnswers, hasDraft = false, initialStatus = null,
-  mandatoryTotal = 0, mandatoryDoneOthers = 0, thisMandatory = false,
+  mandatoryTotal = 0, mandatoryDoneOthers = 0, thisMandatory = false, partiallyEligible = false,
 }: {
   targetId: string;
   targetName: string;
   groups: Group[];
   questions: Question[];
-  initialScores: Record<string, { rating: number | null; comment: string }>;
+  initialScores: Record<string, { rating: number | null; comment: string; isNa?: boolean }>;
   initialAnswers: Record<string, string>;
   hasDraft?: boolean;
   initialStatus?: 'draft' | 'submitted' | null;
   mandatoryTotal?: number;
   mandatoryDoneOthers?: number;
   thisMandatory?: boolean;
+  /** BR-03: rater menandai Partially Eligible saat Exposure Check → tampilkan pengingat N/A. */
+  partiallyEligible?: boolean;
 }) {
   const router = useRouter();
   const aspectGroups = useMemo(() => groups.filter((g) => g.indicators.length > 0), [groups]);
@@ -75,6 +79,12 @@ export function AssessForm({
   const [comments, setComments] = useState<Record<string, string>>(() => {
     const o: Record<string, string> = {};
     flat.forEach((f) => { o[f.id] = initialScores[f.id]?.comment ?? ''; });
+    return o;
+  });
+  // BR-05: N/A per indikator — tak punya exposure/evidence cukup. Bukan nilai 0.
+  const [naFlags, setNaFlags] = useState<Record<string, boolean>>(() => {
+    const o: Record<string, boolean> = {};
+    flat.forEach((f) => { o[f.id] = initialScores[f.id]?.isNa ?? false; });
     return o;
   });
   const [answers, setAnswers] = useState<Record<string, string>>(() => {
@@ -102,7 +112,7 @@ export function AssessForm({
   const editorRef = useRef<HTMLDivElement>(null);
   const navedRef = useRef(false);
 
-  const indDone = (id: string) => ratings[id] != null && (comments[id] ?? '').trim().length >= 4;
+  const indDone = (id: string) => naFlags[id] || (ratings[id] != null && (comments[id] ?? '').trim().length >= EVIDENCE_MIN);
   const indDoneCount = flat.filter((f) => indDone(f.id)).length;
   const total = flat.length;                                  // jumlah indikator (dipakai navigasi)
   const qualDone = questions.filter((q) => (answers[q.id] ?? '').trim().length > 0).length;
@@ -120,7 +130,12 @@ export function AssessForm({
 
   const buildPayload = (status: 'draft' | 'submitted') => ({
     targetId, status,
-    scores: flat.map((f) => ({ indicatorId: f.id, rating: ratings[f.id] ?? null, comment: comments[f.id] ?? '' })),
+    scores: flat.map((f) => ({
+      indicatorId: f.id,
+      rating: naFlags[f.id] ? null : ratings[f.id] ?? null,
+      comment: comments[f.id] ?? '',
+      isNa: naFlags[f.id] ?? false,
+    })),
     answers: questions.map((q) => ({ questionId: q.id, answer: answers[q.id] ?? '' })),
   });
 
@@ -129,7 +144,7 @@ export function AssessForm({
     if (!hydratedRef.current) { hydratedRef.current = true; return; }      // lewati mount awal
     if (initialStatus === 'submitted' || lockRef.current || busy || sentDone) return; // jangan turunkan status / balapan kirim
     const hasContent =
-      flat.some((f) => ratings[f.id] != null || (comments[f.id] ?? '').trim().length > 0) ||
+      flat.some((f) => ratings[f.id] != null || naFlags[f.id] || (comments[f.id] ?? '').trim().length > 0) ||
       questions.some((q) => (answers[q.id] ?? '').trim().length > 0);
     if (!hasContent) return;                                               // jangan buat draf kosong
 
@@ -143,7 +158,7 @@ export function AssessForm({
     }, 5000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ratings, comments, answers]);
+  }, [ratings, comments, answers, naFlags]);
 
   // Saat BERPINDAH indikator/aspek/kualitatif (bukan saat mengetik): lepas fokus
   // (iOS → zoom-out, Android → tutup keyboard) lalu gulir ke pertanyaan di HP.
@@ -208,14 +223,15 @@ export function AssessForm({
   // Tahap 1 Kirim: validasi → tampilkan konfirmasi (kunci autosave).
   function submit() {
     for (const f of flat) {
+      if (naFlags[f.id]) continue; // BR-05: N/A dikecualikan dari rating & evidence wajib
       if (ratings[f.id] == null) {
         setActiveGroup(f.gid); setActiveId(f.id);
-        setError(`Beri rating untuk Q${f.qNum}: ${f.text}`);
+        setError(`Beri rating (atau tandai N/A) untuk Q${f.qNum}: ${f.text}`);
         return;
       }
-      if ((comments[f.id] ?? '').trim().length < 4) {
+      if ((comments[f.id] ?? '').trim().length < EVIDENCE_MIN) {
         setActiveGroup(f.gid); setActiveId(f.id);
-        setError(`Isi komentar/bukti perilaku Q${f.qNum} (min. 4 karakter).`);
+        setError(`Isi komentar/bukti perilaku (evidence) Q${f.qNum} minimal ${EVIDENCE_MIN} karakter.`);
         return;
       }
     }
@@ -299,6 +315,13 @@ export function AssessForm({
         </div>
         <AutoSaveHint state={saveState} disabled={initialStatus === 'submitted'} />
       </div>
+
+      {partiallyEligible && (
+        <div className="bg-warn-tint border border-warn-ink/25 rounded-panel p-3 text-[12px] text-warn-ink leading-relaxed">
+          Anda menandai <strong>Partially Eligible</strong> pada Exposure Check — untuk indikator yang tidak
+          pernah Anda amati langsung, tandai <strong>N/A</strong> (tombol di tiap indikator) alih-alih menebak nilainya.
+        </div>
+      )}
 
       {/* Panduan Penilaian Umum (statis, berlaku semua pertanyaan) */}
       <div className="bg-neutral-tint border border-line rounded-panel">
@@ -406,12 +429,29 @@ export function AssessForm({
               <div className="border border-line rounded-panel p-5 space-y-4">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-extrabold text-sm text-ink">Q{cur.qNum}: {cur.text}</h3>
-                  {(ratings[cur.id] != null || (comments[cur.id] ?? '') !== '') && (
-                    <button type="button" title="Bersihkan jawaban indikator ini"
-                      onClick={() => { setRatings((p) => ({ ...p, [cur.id]: null })); setComments((p) => ({ ...p, [cur.id]: '' })); }}
-                      className="p-1 text-ink-faint hover:text-danger-ink hover:bg-danger-tint rounded-control shrink-0"><X className="w-4 h-4" /></button>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {/* BR-05: N/A — tak punya exposure/evidence cukup untuk indikator ini. */}
+                    <button type="button" onClick={() => setNaFlags((p) => ({ ...p, [cur.id]: !p[cur.id] }))}
+                      title="Tandai N/A — tak punya exposure/evidence cukup untuk indikator ini"
+                      className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-control border ${
+                        naFlags[cur.id] ? 'bg-neutral text-ink border-line-strong' : 'bg-surface text-ink-faint border-line hover:border-line-strong'
+                      }`}>
+                      <MinusCircle className="w-3.5 h-3.5" /> N/A
+                    </button>
+                    {(ratings[cur.id] != null || (comments[cur.id] ?? '') !== '' || naFlags[cur.id]) && (
+                      <button type="button" title="Bersihkan jawaban indikator ini"
+                        onClick={() => { setRatings((p) => ({ ...p, [cur.id]: null })); setComments((p) => ({ ...p, [cur.id]: '' })); setNaFlags((p) => ({ ...p, [cur.id]: false })); }}
+                        className="p-1 text-ink-faint hover:text-danger-ink hover:bg-danger-tint rounded-control"><X className="w-4 h-4" /></button>
+                    )}
+                  </div>
                 </div>
+
+                {naFlags[cur.id] && (
+                  <div className="border border-line-strong bg-neutral-tint rounded-control p-3 text-[12px] text-ink-soft leading-relaxed">
+                    Ditandai <strong className="text-ink">N/A — Tidak Dapat Menilai</strong>. Indikator ini
+                    dikecualikan dari perhitungan skor (bukan nilai 0) dan evidence tidak wajib diisi.
+                  </div>
+                )}
 
                 {/* Deskripsi indikator (opsional, dari Kelola Pertanyaan) */}
                 {cur.description && (
@@ -435,7 +475,8 @@ export function AssessForm({
                   </div>
                 )}
 
-                {/* Rating berlabel */}
+                {/* Rating berlabel — disembunyikan saat N/A (BR-05) */}
+                {!naFlags[cur.id] && (
                 <div className="bg-neutral-tint border border-line rounded-panel p-3">
                   <span className="text-[10px] font-black text-ink-faint uppercase tracking-widest block mb-2">Rating (klik untuk pilih)</span>
                   <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
@@ -456,15 +497,17 @@ export function AssessForm({
                     {ratings[cur.id] != null ? (
                       <span className="text-xs font-bold text-brand-ink">Pilihan Anda: {ratings[cur.id]} · {RATING_LABELS[ratings[cur.id]!]}</span>
                     ) : (
-                      <span className="text-xs font-semibold text-ink-faint">Pilih rating 1 (Hampir Tidak Pernah) – 5 (Selalu)</span>
+                      <span className="text-xs font-semibold text-ink-faint">Pilih rating 1 (evidence paling rendah) – 5 (evidence paling kuat)</span>
                     )}
                   </div>
                 </div>
+                )}
 
-                {/* Komentar WAJIB */}
+                {/* Komentar — WAJIB kecuali N/A (BR-05, evidence tak wajib untuk N/A) */}
+                {!naFlags[cur.id] && (
                 <div className="space-y-1">
                   <label className="text-[10px] font-extrabold text-brand-ink uppercase tracking-wider flex items-center gap-1">
-                    Komentar / Bukti Perilaku <span className="text-danger-ink">*</span>
+                    Komentar / Bukti Perilaku (Evidence) <span className="text-danger-ink">*</span>
                   </label>
                   <textarea rows={3} value={comments[cur.id] ?? ''} onChange={(e) => setComments((p) => ({ ...p, [cur.id]: e.target.value }))}
                     onKeyDown={onCommentKeyDown}
@@ -475,11 +518,12 @@ export function AssessForm({
                       Tekan <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Enter</kbd> untuk lanjut ke pertanyaan berikutnya
                       · <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Shift+Enter</kbd> baris baru
                     </span>
-                    <span className={(comments[cur.id] ?? '').trim().length >= 4 ? 'text-brand-ink font-extrabold' : 'text-danger-ink font-extrabold data-value'}>
-                      {(comments[cur.id] ?? '').trim().length >= 4 ? `${(comments[cur.id] ?? '').trim().length} karakter` : 'Wajib · min. 4 karakter'}
+                    <span className={(comments[cur.id] ?? '').trim().length >= EVIDENCE_MIN ? 'text-brand-ink font-extrabold' : 'text-danger-ink font-extrabold data-value'}>
+                      {(comments[cur.id] ?? '').trim().length >= EVIDENCE_MIN ? `${(comments[cur.id] ?? '').trim().length} karakter` : `${(comments[cur.id] ?? '').trim().length}/${EVIDENCE_MIN} karakter · wajib min. ${EVIDENCE_MIN}`}
                     </span>
                   </div>
                 </div>
+                )}
 
                 {/* Navigasi Sebelumnya / Selanjutnya */}
                 <div className="flex justify-between items-center pt-2 border-t border-line-soft text-xs font-bold text-ink-soft">

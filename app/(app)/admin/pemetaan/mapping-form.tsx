@@ -7,7 +7,9 @@ import { SearchableSelect } from '@/components/searchable-select';
 import { Button } from '@/components/button';
 
 type Emp = { id: string; name: string; dept: string; is_external?: boolean };
-const RELATIONS = ['Atasan', 'Peer', 'Cross', 'Self', 'Bawahan'] as const;
+// BR-02 (Q3 2026): Self Assessment dinonaktifkan — tak lagi dipilihkan di form ini
+// (enum backend tetap punya 'Self' untuk kompatibilitas baca periode lama).
+const RELATIONS = ['Atasan', 'Peer', 'Cross', 'Bawahan'] as const;
 
 export function MappingForm({ employees }: { employees: Emp[] }) {
   const router = useRouter();

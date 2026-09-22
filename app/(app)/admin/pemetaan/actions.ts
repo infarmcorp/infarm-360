@@ -34,8 +34,14 @@ export async function createMapping(raw: unknown): Promise<Result> {
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
   const { assessorId, targetId, relation } = parsed.data;
   const mandatory = true; // kebijakan: penilaian yang ditugaskan HRD selalu WAJIB
-  if (assessorId === targetId && relation !== 'Self') {
-    return { ok: false, error: 'Penilai = target hanya boleh untuk relasi Self' };
+  // BR-02 (Q3 2026): Self Assessment DINONAKTIFKAN — tidak boleh membuat pemetaan
+  // penilai=target maupun relasi 'Self'. 'Self' tetap ada di enum untuk kompatibilitas
+  // baca data historis (periode lama), bukan untuk dibuat baru.
+  if (relation === 'Self') {
+    return { ok: false, error: 'Self Assessment dinonaktifkan untuk periode ini' };
+  }
+  if (assessorId === targetId) {
+    return { ok: false, error: 'Penilai = target tidak diperbolehkan (Self Assessment dinonaktifkan)' };
   }
 
   const supabase = await createClient();
@@ -94,10 +100,11 @@ export async function createMappingsBulk(rawRows: unknown): Promise<{ ok: true; 
   const externalIds = new Set((empMeta ?? []).filter((e) => e.is_external).map((e) => e.id));
   const inactiveIds = new Set((empMeta ?? []).filter((e) => !e.is_active).map((e) => e.id));
   const rows = parsed.data
-    .filter((r) => !(r.assessorId === r.targetId && r.relation !== 'Self'))
+    // BR-02 (Q3 2026): Self Assessment dinonaktifkan — buang penilai=target & relasi 'Self'.
+    .filter((r) => r.relation !== 'Self' && r.assessorId !== r.targetId)
     .filter((r) => !externalIds.has(r.targetId))
     .filter((r) => !inactiveIds.has(r.assessorId) && !inactiveIds.has(r.targetId));
-  if (rows.length === 0) return { ok: false, error: 'Tidak ada baris valid (penilai=target hanya untuk Self; eksternal tak boleh jadi target; pegawai nonaktif dilewati)' };
+  if (rows.length === 0) return { ok: false, error: 'Tidak ada baris valid (Self Assessment dinonaktifkan; eksternal tak boleh jadi target; pegawai nonaktif dilewati)' };
 
   const { error, count } = await supabase.from('mappings').upsert(
     rows.map((r) => ({ period_id: ap.id, assessor_id: r.assessorId, target_id: r.targetId, relation: r.relation, mandatory: true, is_active: true })),

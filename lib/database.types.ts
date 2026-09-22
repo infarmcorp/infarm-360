@@ -9,6 +9,7 @@
 export type UserRole = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type RelationKind = 'Atasan' | 'Peer' | 'Cross' | 'Self' | 'Bawahan';
 export type AssessmentStatus = 'draft' | 'submitted';
+export type ExposureStatus = 'eligible' | 'partially_eligible' | 'not_eligible'; // BR-03 Exposure Check
 export type WeightValues = { atasan?: number; peer?: number; cross?: number; bawahan?: number; self?: number; internal?: number };
 export type ReportStatus = 'draft' | 'in_review' | 'finalized';
 export type SuccessionStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
@@ -74,8 +75,8 @@ export interface Database {
         Relationships: [];
       };
       assessments: {
-        Row: { id: string; period_id: string; assessor_id: string; target_id: string; status: AssessmentStatus; is_adhoc: boolean; submitted_at: string | null; first_submitted_at: string | null; forced_by_hrd: boolean; created_at: string };
-        Insert: { period_id: string; assessor_id: string; target_id: string; status?: AssessmentStatus; is_adhoc?: boolean; submitted_at?: string | null };
+        Row: { id: string; period_id: string; assessor_id: string; target_id: string; status: AssessmentStatus; is_adhoc: boolean; submitted_at: string | null; first_submitted_at: string | null; forced_by_hrd: boolean; exposure_status: ExposureStatus | null; exposure_confirmed_at: string | null; created_at: string };
+        Insert: { period_id: string; assessor_id: string; target_id: string; status?: AssessmentStatus; is_adhoc?: boolean; submitted_at?: string | null; exposure_status?: ExposureStatus | null; exposure_confirmed_at?: string | null };
         Update: Partial<Database['public']['Tables']['assessments']['Insert']>;
         Relationships: [];
       };
@@ -98,8 +99,8 @@ export interface Database {
         Relationships: [];
       };
       assessment_indicator_scores: {
-        Row: { assessment_id: string; indicator_id: string; rating: number | null; comment: string | null };
-        Insert: { assessment_id: string; indicator_id: string; rating?: number | null; comment?: string | null };
+        Row: { assessment_id: string; indicator_id: string; rating: number | null; comment: string | null; is_na: boolean };
+        Insert: { assessment_id: string; indicator_id: string; rating?: number | null; comment?: string | null; is_na?: boolean };
         Update: Partial<Database['public']['Tables']['assessment_indicator_scores']['Insert']>;
         Relationships: [];
       };

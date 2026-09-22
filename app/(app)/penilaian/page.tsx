@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { ClipboardList, Inbox } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { CorrectionButton } from './correction-button';
-import { AdhocButton } from './adhoc-form';
 import { AdhocDeleteButton } from './adhoc-delete-button';
 import { EmptyState } from '@/components/empty-state';
 import { TabBar, Tab } from '@/components/tab-nav';
@@ -95,10 +94,12 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
   const empById = new Map((emps ?? []).map((e) => [e.id, e]));
 
   const { data: asmts } = await supabase
-    .from('assessments').select('target_id, status, first_submitted_at')
+    .from('assessments').select('target_id, status, first_submitted_at, exposure_status')
     .eq('assessor_id', user.id).eq('period_id', ap.id);
   const statusByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.status]));
   const firstSubByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.first_submitted_at]));
+  // BR-03: Not Eligible → kewajiban gugur (tak dihitung tunggakan/skor/penalty).
+  const exposureByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.exposure_status]));
   const deadline = ap.assessment_deadline;
   const deadlinePassed = isPastDeadline(deadline);
 
@@ -143,11 +144,14 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
       late: r.mandatory && !r.is_adhoc && statusByTarget.get(r.target_id) === 'submitted'
         && submitTimingOf(firstSubByTarget.get(r.target_id), deadline) === 'late',
       corrPending: pendingCorr.has(r.target_id),
+      // BR-03 Exposure Check: null = belum dicek, 'not_eligible' = kewajiban gugur.
+      exposureStatus: exposureByTarget.get(r.target_id) ?? null,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   // Ringkasan penilaian WAJIB (sifat = Wajib) — berapa harus dinilai vs sudah dikirim.
-  const mandatoryItems = items.filter((it) => it.mandatory);
+  // Not Eligible (BR-03) dikeluarkan: kewajibannya gugur, tak dihitung tunggakan.
+  const mandatoryItems = items.filter((it) => it.mandatory && it.exposureStatus !== 'not_eligible');
   const mandTotal = mandatoryItems.length;
   const mandDone = mandatoryItems.filter((it) => it.status === 'submitted').length;
 
@@ -193,27 +197,17 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
       <div className="pt-5">
       {tab === 'pengajuan' ? (
         <>
-          {/* Dua jalur menambah rekan yang dinilai, berdampingan supaya bedanya terbaca:
-              Ad-Hoc = instan tapi relasi dikunci Cross; Ajukan = relasi bebas tapi perlu ACC HRD. */}
+          {/* Satu jalur menambah rekan yang dinilai (BR-04, Q3 2026): Ad-Hoc instan
+              dinonaktifkan — semua penambahan wajib alasan + ACC HRD. */}
           <section className="mb-5 rounded-panel border border-line bg-surface p-4">
             <h3 className="text-xs font-bold text-ink uppercase tracking-wide">Menambah Rekan yang Anda Nilai</h3>
             <p className="text-[11.5px] text-ink-soft mt-1 leading-relaxed">
-              Ada rekan yang seharusnya Anda nilai tapi belum tercantum? Pilih jalurnya:
-              <strong> Ad-Hoc</strong> berlaku langsung dengan relasi Lintas Unit, sedangkan
-              <strong> Ajukan Penilaian</strong> memungkinkan Anda mengusulkan relasi lain tapi menunggu keputusan HRD.
+              Ada rekan yang seharusnya Anda nilai tapi belum tercantum? Ajukan lewat{' '}
+              <strong>Ajukan Penilaian</strong> — sertakan alasan, lalu tunggu keputusan HRD.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <RequestAssessmentButton candidates={candidates} />
-              {/* Ad-Hoc (instan, relasi Cross) hanya saat form terbuka — ia langsung membuat
-                  pemetaan, jadi tak relevan di fase tinjau yang justru sedang merapikan pemetaan. */}
-              {!reviewPhase && <AdhocButton candidates={candidates} />}
             </div>
-            {reviewPhase && (
-              <p className="text-[11px] text-ink-faint mt-2.5">
-                Penambahan <strong>Ad-Hoc</strong> belum tersedia: pemetaan masih ditinjau, jadi semua
-                penambahan lewat HRD dulu. Tombolnya muncul setelah HRD membuka form penilaian.
-              </p>
-            )}
           </section>
 
           {myRequestRows.length === 0 ? (
@@ -300,7 +294,12 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                   </td>
                   <td className="py-3 px-3 text-right">
                     <span className="inline-flex items-center gap-1">
-                      <StatusBadge status={it.status} />
+                      {it.exposureStatus === 'not_eligible' ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-neutral-tint text-ink-faint border-line"
+                          title="Not Eligible — kewajiban gugur, tak dihitung tunggakan/skor">Not Eligible</span>
+                      ) : (
+                        <StatusBadge status={it.status} />
+                      )}
                       {it.late && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-warn-tint text-warn-ink border-warn-ink/25"
                           title="Dikirim pertama kali sesudah deadline">Terlambat</span>
@@ -344,7 +343,10 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                           href={`/penilaian/${it.targetId}`}
                           className="text-xs font-bold text-brand-ink hover:underline"
                         >
-                          {it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai'}
+                          {it.exposureStatus === 'not_eligible'
+                            ? 'Lihat'
+                            : it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan'
+                            : it.exposureStatus ? 'Lanjutkan' : 'Cek Exposure'}
                         </Link>
                       )}
                     </div>

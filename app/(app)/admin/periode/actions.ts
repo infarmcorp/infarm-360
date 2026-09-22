@@ -276,6 +276,32 @@ export async function toggleFormOpen(periodId: string, value: boolean): Promise<
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
+
+  // BR-06 (Q3 2026): sebelum form DIBUKA (bukan ditutup), pastikan instrumen 360° siap —
+  // tepat 10 indikator aktif & tiap indikator punya panduan perilaku (BARS) lengkap level
+  // 1–5. Mencegah form terbuka dengan instrumen yang belum final dari Kelola Pertanyaan.
+  if (value) {
+    const { data: pr360 } = await supabase.from('periods').select('has_360').eq('id', periodId).maybeSingle();
+    if (pr360?.has_360) {
+      const { data: aspects } = await supabase.from('culture_aspects').select('id').eq('period_id', periodId);
+      const aspectIds = (aspects ?? []).map((a) => a.id);
+      const { data: inds } = aspectIds.length
+        ? await supabase.from('indicators').select('id, text, rating_guide').in('aspect_id', aspectIds).eq('is_active', true)
+        : { data: [] as { id: string; text: string; rating_guide: Record<string, string> | null }[] };
+      const list = inds ?? [];
+      if (list.length !== 10) {
+        return { ok: false, error: `Jumlah indikator aktif harus tepat 10 (saat ini ${list.length}). Sesuaikan di Kelola Pertanyaan sebelum membuka form (BR-06).` };
+      }
+      const incomplete = list.filter((i) => {
+        const g = i.rating_guide;
+        return !g || !['1', '2', '3', '4', '5'].every((k) => (g[k] ?? '').trim().length > 0);
+      });
+      if (incomplete.length > 0) {
+        return { ok: false, error: `${incomplete.length} indikator belum punya panduan perilaku (BARS) lengkap untuk level 1–5: ${incomplete.slice(0, 3).map((i) => i.text).join(', ')}${incomplete.length > 3 ? ', …' : ''}. Lengkapi di Kelola Pertanyaan sebelum membuka form.` };
+      }
+    }
+  }
+
   const { error } = await supabase.from('periods').update({ form_open: value }).eq('id', periodId);
   if (error) return { ok: false, error: 'Gagal: ' + error.message };
   const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();

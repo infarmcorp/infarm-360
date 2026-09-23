@@ -86,7 +86,7 @@ export function RequestAssessmentButton({ candidates }: { candidates: Candidate[
             />
           </div>
           <div>
-            <label className="block text-[10px] uppercase font-extrabold text-ink-faint mb-1">Hubungan Kerja Anda dengan Rekan Itu</label>
+            <label className="block text-[10px] uppercase font-extrabold text-ink-faint mb-1">Hubungan dengan Rekan yang Dinilai</label>
             <select value={relation} onChange={(e) => setRelation(e.target.value)} disabled={busy}
               className="w-full text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink font-semibold focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
               {REL_OPTS.map((r) => <option key={r} value={r}>{REL_LABEL[r]}</option>)}

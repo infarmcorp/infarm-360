@@ -60,6 +60,13 @@ export function MyRequests({ requests }: { requests: MyRequest[] }) {
                     <strong>Alasan HRD menolak:</strong> {r.rejectReason}
                   </p>
                 )}
+                {/* BR-04: setelah disetujui, rater tetap wajib Exposure Check (BR-03) sebelum menilai. */}
+                {r.kind === 'add' && r.status === 'approved' && (
+                  <p className="text-[11px] text-brand-ink mt-1 bg-brand-tint border border-brand-ink/20 rounded-control px-2 py-1.5">
+                    Disetujui — buka tab <strong>Penilaian</strong>, cari {r.targetName}, lalu selesaikan{' '}
+                    <strong>Exposure Check</strong> sebelum bisa menilai.
+                  </p>
+                )}
               </div>
               <StatusChipReq status={r.status} />
             </div>

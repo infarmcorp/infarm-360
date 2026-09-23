@@ -61,6 +61,10 @@ export default async function KepatuhanPage() {
     db.from('assessments').select('assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted').order('assessor_id').order('target_id').range(from, to));
   const submitted = new Set(asmts.map((a) => `${a.assessor_id}:${a.target_id}`));
   const selfDone = new Set(asmts.filter((a) => a.assessor_id === a.target_id).map((a) => a.assessor_id));
+  // BR-03: Not Eligible → kewajiban gugur, TAK dihitung "Belum Kirim".
+  const notEligible = await fetchAllPaged<{ assessor_id: string; target_id: string }>((from, to) =>
+    db.from('assessments').select('assessor_id, target_id').eq('period_id', ap.id).eq('exposure_status', 'not_eligible').order('assessor_id').order('target_id').range(from, to));
+  const notEligibleSet = new Set(notEligible.map((a) => `${a.assessor_id}:${a.target_id}`));
 
   const { data: pen } = await db
     .from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id);
@@ -71,7 +75,8 @@ export default async function KepatuhanPage() {
 
   const rows = employees.map((e) => {
     const lateTargets = maps
-      .filter((m) => m.assessor_id === e.id && m.mandatory && !submitted.has(`${e.id}:${m.target_id}`))
+      .filter((m) => m.assessor_id === e.id && m.mandatory
+        && !submitted.has(`${e.id}:${m.target_id}`) && !notEligibleSet.has(`${e.id}:${m.target_id}`))
       .map((m) => nameById.get(m.target_id) ?? '—');
     return {
       id: e.id, name: e.name, dept: e.dept,
@@ -129,7 +134,8 @@ export default async function KepatuhanPage() {
       <p className="text-[11px] text-ink-faint mt-5 leading-relaxed">
         Default menampilkan pegawai yang <strong className="font-semibold text-ink-soft">perlu perhatian</strong> (penilaian wajib telat, belum
         self-assessment, atau sudah punya punishment). &quot;Belum Kirim&quot; = penilaian bersifat Wajib (mapping)
-        yang belum dikirim (arahkan kursor untuk daftar nama). &quot;Kirim Terlambat&quot; = penilaian Wajib yang pertama kali
+        yang belum dikirim (arahkan kursor untuk daftar nama) — kewajiban ber-status <strong className="font-semibold text-ink-soft">Not Eligible</strong> pada
+        Exposure Check (BR-03) sudah gugur & dikeluarkan dari hitungan ini. &quot;Kirim Terlambat&quot; = penilaian Wajib yang pertama kali
         dikirim sesudah deadline (arahkan kursor untuk nama &amp; waktu kirim) — penilaiannya tetap dihitung untuk yang dinilai,
         tetapi Skor 360° si penilai dipotong <span className="data-value">{LATE_PENALTY_360}</span> poin sekali per periode (otomatis;
         gugur bila ia tak punya Skor 360°). Opsional/Ad-Hoc, Paksa Selesai HRD, dan pemetaan yang dibuat sesudah deadline tidak dihitung.

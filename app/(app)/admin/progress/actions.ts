@@ -116,6 +116,40 @@ function genPassword(): string {
   return `Inf-${body}`;
 }
 
+/**
+ * BR-03 Exposure Check — koreksi HRD. Rater tak bisa mengubah status sendiri setelah
+ * dikonfirmasi (lihat setExposureStatus di penilaian/actions.ts); HRD bisa mengosongkan
+ * kembali status ini (mis. rater salah pilih Not Eligible) agar rater mengulang Exposure
+ * Check dari layar awal. Tidak menghapus rating/komentar yang sudah terlanjur diisi.
+ */
+export async function resetExposureStatus(assessorId: string, targetId: string): Promise<Result> {
+  if (!Id.safeParse(assessorId).success || !Id.safeParse(targetId).success) return { ok: false, error: 'Input tidak valid' };
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+
+  const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  const { data: existing } = await supabase.from('assessments').select('id, exposure_status')
+    .eq('period_id', ap.id).eq('assessor_id', assessorId).eq('target_id', targetId).maybeSingle();
+  if (!existing?.exposure_status) return { ok: false, error: 'Belum ada status Exposure Check untuk pasangan ini' };
+
+  const { error } = await supabase.from('assessments')
+    .update({ exposure_status: null, exposure_confirmed_at: null }).eq('id', existing.id);
+  if (error) return { ok: false, error: 'Gagal: ' + error.message };
+
+  await logHrdAction({
+    action: 'progress.reset_exposure', category: 'progress',
+    summary: `Mengosongkan status Exposure Check (sebelumnya "${existing.exposure_status}") agar penilai mengulang`,
+    targetType: 'assessment', meta: { assessor_id: assessorId, target_id: targetId, previous: existing.exposure_status },
+  });
+  revalidatePath('/admin/progress');
+  revalidatePath('/admin/kepatuhan');
+  revalidatePath('/penilaian');
+  return { ok: true, msg: 'Status Exposure Check dikosongkan — penilai akan diminta mengisi ulang.' };
+}
+
 export async function forceComplete(assessorId: string, targetId: string): Promise<Result> {
   if (!Id.safeParse(assessorId).success || !Id.safeParse(targetId).success) return { ok: false, error: 'Input tidak valid' };
   const supabase = await createClient();

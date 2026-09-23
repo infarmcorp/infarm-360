@@ -23,6 +23,9 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
   // Default: hanya penilai BELUM lengkap (perlu tindakan) → halaman fokus. Ubah/hapus filter Status
   // untuk melihat yang sudah lengkap. (kosong = semua status)
   const [statusSel, setStatusSel] = useState<Set<string>>(new Set(['belum']));
+  // BR-03: filter cepat "hanya yang ada Not Eligible" — tanpa ini HRD harus buka Rincian
+  // satu-satu untuk menemukan siapa yang perlu direview (tak praktis kalau penilai banyak).
+  const [onlyNotEligible, setOnlyNotEligible] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [confirm, setConfirm] = useState<{ title: string; body: React.ReactNode; onYes: () => void; confirmLabel?: string; icon?: string; tone?: 'primary' | 'danger' } | null>(null);
@@ -52,7 +55,10 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
     const statusKey = complete ? 'lengkap' : 'belum';
     if (q.trim() && !r.name.toLowerCase().includes(q.toLowerCase())) return false;
     if (deptSel.size > 0 && !deptSel.has(r.dept)) return false;
-    if (statusSel.size > 0 && !statusSel.has(statusKey)) return false;
+    // Filter Status diabaikan saat mencari Not Eligible — penilai bisa "Lengkap" (wajib
+    // lainnya sudah dikirim) tapi tetap punya kewajiban Not Eligible yang perlu direview.
+    if (!onlyNotEligible && statusSel.size > 0 && !statusSel.has(statusKey)) return false;
+    if (onlyNotEligible && r.notEligible.length === 0) return false;
     return true;
   });
   // Paginasi 5-baris (komponen bersama) → daftar penilai bisa 100+; batasi DOM per halaman.
@@ -74,8 +80,23 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
         <Stat label="Lengkap (wajib)" value={stats.done} c="text-brand-ink" />
         <Stat label="Belum (wajib)" value={stats.pending} c="text-warn-ink" />
         <Stat label="Progres Wajib" value={`${stats.pct}%`} c="text-brand-ink" />
-        <Stat label="Not Eligible (review)" value={stats.notEligible} c={stats.notEligible ? 'text-danger-ink' : 'text-ink-faint'} />
+        {/* Klik untuk langsung menyaring ke penilai yang punya Not Eligible — tanpa ini HRD
+            harus membuka Rincian tiap penilai satu-satu untuk menemukannya. */}
+        <button type="button" onClick={() => { setOnlyNotEligible((v) => !v); setPage(0); }}
+          className={`border rounded-panel p-3 text-center transition-colors ${
+            onlyNotEligible ? 'border-danger-ink bg-danger-tint' : 'border-line bg-surface hover:bg-neutral-tint'
+          }`}>
+          <div className={`text-xl font-bold data-value ${stats.notEligible ? 'text-danger-ink' : 'text-ink-faint'}`}>{stats.notEligible}</div>
+          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">
+            Not Eligible (review){onlyNotEligible ? ' · aktif' : ''}
+          </div>
+        </button>
       </div>
+      {onlyNotEligible && (
+        <p className="text-[11px] text-danger-ink italic">
+          Menampilkan hanya penilai yang punya kewajiban <strong>Not Eligible</strong> (perlu direview). Klik kartu di atas lagi untuk kembali ke tampilan biasa.
+        </p>
+      )}
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-center">
@@ -141,6 +162,12 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                 <div className="min-w-0">
                   <span className="font-bold text-ink text-sm">{r.name}</span>
                   <span className="text-[11px] text-ink-faint"> · {r.dept}</span>
+                  {/* Terlihat langsung tanpa buka Rincian — HRD tak perlu menebak/cek satu-satu. */}
+                  {r.notEligible.length > 0 && (
+                    <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-danger-tint text-danger-ink border border-danger-ink/25">
+                      ⚠ {r.notEligible.length} Not Eligible
+                    </span>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${complete ? 'bg-brand-tint text-brand-ink' : 'bg-warn-tint text-warn-ink'}`}>

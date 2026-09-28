@@ -13,11 +13,19 @@ import { refreshLatePenalties } from '@/lib/late-server';
  *  - Verifikasi mapping di sini = pastikan penilai memang ditugaskan + pesan ramah.
  *  - Periode terkunci ditolak server-side (RLS asmt_write juga cek status='active').
  */
+// BR-05 (dropdown final HRD 2026-09-28): alasan N/A wajib dipilih; "Lainnya" wajib keterangan.
+export const NA_REASONS = [
+  'Tidak memiliki interaksi kerja yang relevan dengan indikator ini',
+  'Tidak terlibat dalam pekerjaan atau situasi yang memungkinkan indikator ini diamati',
+  'Indikator ini tidak relevan dengan hubungan kerja selama periode penilaian',
+] as const;
+
 const ScoreItem = z.object({
   indicatorId: z.string().uuid(),
   rating: z.number().int().min(1).max(5).nullable(),
   comment: z.string().trim().max(1000).optional().default(''),
   isNa: z.boolean().optional().default(false), // BR-05: N/A — tak punya exposure/evidence cukup
+  naReason: z.string().trim().max(500).optional().default(''), // BR-05: alasan N/A (dropdown final HRD 2026-09-28)
 });
 const AnswerItem = z.object({
   questionId: z.string().uuid(),
@@ -66,17 +74,24 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
     return { ok: false, error: 'Anda menandai Not Eligible untuk pegawai ini — penilaian tidak dilanjutkan' };
   }
 
-  // BR-05: sanitasi — indikator N/A selalu tersimpan rating NULL, apa pun yang dikirim klien.
-  const sanitized = scores.map((s) => (s.isNa ? { ...s, rating: null } : s));
+  // BR-05: sanitasi — indikator N/A selalu tersimpan rating NULL & evidence kosong (alasan N/A
+  // dipakai sebagai gantinya), apa pun yang dikirim klien. Non-N/A: alasan N/A selalu kosong.
+  const sanitized = scores.map((s) => (s.isNa
+    ? { ...s, rating: null, comment: '' }
+    : { ...s, naReason: '' }));
 
   // Saat KIRIM: semua indikator NON-N/A wajib rating + evidence (min. 20 karakter, BR-06).
-  // Indikator N/A (BR-05) dikecualikan dari kedua syarat ini & tak wajib evidence.
+  // Indikator N/A (BR-05) dikecualikan dari kedua syarat ini & tak wajib evidence, TAPI wajib
+  // memilih satu alasan N/A (dropdown final HRD 2026-09-28, min. 5 karakter, "Lainnya" bebas teks).
   if (status === 'submitted') {
     if (sanitized.some((s) => !s.isNa && s.rating === null)) {
       return { ok: false, error: 'Lengkapi seluruh rating indikator (atau tandai N/A) sebelum mengirim' };
     }
     if (sanitized.some((s) => !s.isNa && (s.comment ?? '').trim().length < 20)) {
       return { ok: false, error: 'Setiap indikator (kecuali N/A) wajib komentar/bukti perilaku (evidence) minimal 20 karakter' };
+    }
+    if (sanitized.some((s) => s.isNa && (s.naReason ?? '').trim().length < 5)) {
+      return { ok: false, error: 'Setiap indikator N/A wajib memilih satu alasan (minimal 5 karakter)' };
     }
     // Semua pertanyaan kualitatif (esai) periode ini wajib terisi.
     const { data: quals } = await supabase
@@ -116,6 +131,7 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
       rating: s.rating,
       comment: s.comment || null,
       is_na: s.isNa,
+      na_reason: s.isNa ? (s.naReason || null) : null,
     })),
     { onConflict: 'assessment_id,indicator_id' },
   );

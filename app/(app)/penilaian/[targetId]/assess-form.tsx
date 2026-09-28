@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, CheckCircle2, X, Send, Save, XCircle, Trash2, ClipboardList, ChevronDown, Loader2, MinusCircle } from 'lucide-react';
-import { submitAssessment, discardAssessment } from '../actions';
+import { submitAssessment, discardAssessment, NA_REASONS } from '../actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
 type Indicator = { id: string; text: string; description?: string | null; ratingGuide?: Record<string, string> | null };
@@ -16,6 +16,9 @@ const RATING_LABELS: Record<number, string> = {
 };
 const EVIDENCE_MIN = 20;
 const QUAL = '__qual__';
+// BR-05 (dropdown final HRD 2026-09-28): alasan N/A wajib, "Lainnya" wajib keterangan bebas.
+const NA_REASON_LAINNYA = 'Lainnya';
+const NA_REASON_OPTS = [...NA_REASONS, NA_REASON_LAINNYA] as const;
 
 // Status auto-simpan draf.
 type SaveState = 'idle' | 'pending' | 'saving' | 'saved' | 'error';
@@ -48,7 +51,7 @@ export function AssessForm({
   targetName: string;
   groups: Group[];
   questions: Question[];
-  initialScores: Record<string, { rating: number | null; comment: string; isNa?: boolean }>;
+  initialScores: Record<string, { rating: number | null; comment: string; isNa?: boolean; naReason?: string | null }>;
   initialAnswers: Record<string, string>;
   hasDraft?: boolean;
   initialStatus?: 'draft' | 'submitted' | null;
@@ -87,6 +90,23 @@ export function AssessForm({
     flat.forEach((f) => { o[f.id] = initialScores[f.id]?.isNa ?? false; });
     return o;
   });
+  // Alasan N/A wajib (dropdown final HRD 2026-09-28) — pilihan per indikator + teks "Lainnya".
+  const [naReasonOpt, setNaReasonOpt] = useState<Record<string, string>>(() => {
+    const o: Record<string, string> = {};
+    flat.forEach((f) => {
+      const r = (initialScores[f.id]?.naReason ?? '').trim();
+      o[f.id] = r && (NA_REASONS as readonly string[]).includes(r) ? r : (r ? NA_REASON_LAINNYA : NA_REASONS[0]);
+    });
+    return o;
+  });
+  const [naReasonOther, setNaReasonOther] = useState<Record<string, string>>(() => {
+    const o: Record<string, string> = {};
+    flat.forEach((f) => {
+      const r = (initialScores[f.id]?.naReason ?? '').trim();
+      o[f.id] = r && !(NA_REASONS as readonly string[]).includes(r) ? r : '';
+    });
+    return o;
+  });
   const [answers, setAnswers] = useState<Record<string, string>>(() => {
     const o: Record<string, string> = {};
     questions.forEach((q) => { o[q.id] = initialAnswers[q.id] ?? ''; });
@@ -112,7 +132,10 @@ export function AssessForm({
   const editorRef = useRef<HTMLDivElement>(null);
   const navedRef = useRef(false);
 
-  const indDone = (id: string) => naFlags[id] || (ratings[id] != null && (comments[id] ?? '').trim().length >= EVIDENCE_MIN);
+  // Alasan N/A final: opsi terpilih, atau teks "Lainnya" bila dipilih.
+  const naReasonOf = (id: string) => (naReasonOpt[id] === NA_REASON_LAINNYA ? (naReasonOther[id] ?? '').trim() : naReasonOpt[id] ?? '');
+  const indDone = (id: string) =>
+    naFlags[id] ? naReasonOf(id).length >= 5 : (ratings[id] != null && (comments[id] ?? '').trim().length >= EVIDENCE_MIN);
   const indDoneCount = flat.filter((f) => indDone(f.id)).length;
   const total = flat.length;                                  // jumlah indikator (dipakai navigasi)
   const qualDone = questions.filter((q) => (answers[q.id] ?? '').trim().length > 0).length;
@@ -135,6 +158,7 @@ export function AssessForm({
       rating: naFlags[f.id] ? null : ratings[f.id] ?? null,
       comment: comments[f.id] ?? '',
       isNa: naFlags[f.id] ?? false,
+      naReason: naFlags[f.id] ? naReasonOf(f.id) : '',
     })),
     answers: questions.map((q) => ({ questionId: q.id, answer: answers[q.id] ?? '' })),
   });
@@ -158,7 +182,7 @@ export function AssessForm({
     }, 5000);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ratings, comments, answers, naFlags]);
+  }, [ratings, comments, answers, naFlags, naReasonOpt, naReasonOther]);
 
   // Saat BERPINDAH indikator/aspek/kualitatif (bukan saat mengetik): lepas fokus
   // (iOS → zoom-out, Android → tutup keyboard) lalu gulir ke pertanyaan di HP.
@@ -223,7 +247,15 @@ export function AssessForm({
   // Tahap 1 Kirim: validasi → tampilkan konfirmasi (kunci autosave).
   function submit() {
     for (const f of flat) {
-      if (naFlags[f.id]) continue; // BR-05: N/A dikecualikan dari rating & evidence wajib
+      if (naFlags[f.id]) {
+        // BR-05: N/A dikecualikan dari rating & evidence, tapi wajib alasan.
+        if (naReasonOf(f.id).length < 5) {
+          setActiveGroup(f.gid); setActiveId(f.id);
+          setError(`Pilih alasan N/A untuk Q${f.qNum} (isi keterangan bila "Lainnya").`);
+          return;
+        }
+        continue;
+      }
       if (ratings[f.id] == null) {
         setActiveGroup(f.gid); setActiveId(f.id);
         setError(`Beri rating (atau tandai N/A) untuk Q${f.qNum}: ${f.text}`);
@@ -440,16 +472,39 @@ export function AssessForm({
                     </button>
                     {(ratings[cur.id] != null || (comments[cur.id] ?? '') !== '' || naFlags[cur.id]) && (
                       <button type="button" title="Bersihkan jawaban indikator ini"
-                        onClick={() => { setRatings((p) => ({ ...p, [cur.id]: null })); setComments((p) => ({ ...p, [cur.id]: '' })); setNaFlags((p) => ({ ...p, [cur.id]: false })); }}
+                        onClick={() => {
+                          setRatings((p) => ({ ...p, [cur.id]: null })); setComments((p) => ({ ...p, [cur.id]: '' }));
+                          setNaFlags((p) => ({ ...p, [cur.id]: false }));
+                          setNaReasonOpt((p) => ({ ...p, [cur.id]: NA_REASONS[0] })); setNaReasonOther((p) => ({ ...p, [cur.id]: '' }));
+                        }}
                         className="p-1 text-ink-faint hover:text-danger-ink hover:bg-danger-tint rounded-control"><X className="w-4 h-4" /></button>
                     )}
                   </div>
                 </div>
 
                 {naFlags[cur.id] && (
-                  <div className="border border-line-strong bg-neutral-tint rounded-control p-3 text-[12px] text-ink-soft leading-relaxed">
-                    Ditandai <strong className="text-ink">N/A — Tidak Dapat Menilai</strong>. Indikator ini
-                    dikecualikan dari perhitungan skor (bukan nilai 0) dan evidence tidak wajib diisi.
+                  <div className="border border-line-strong bg-neutral-tint rounded-control p-3 space-y-2">
+                    <p className="text-[12px] text-ink-soft leading-relaxed">
+                      Ditandai <strong className="text-ink">N/A — Tidak Dapat Menilai</strong>. Indikator ini
+                      dikecualikan dari perhitungan skor (bukan nilai 0) dan evidence tidak wajib diisi.
+                    </p>
+                    <div>
+                      <label className="block text-[10px] uppercase font-extrabold text-ink-faint mb-1">Alasan N/A</label>
+                      <select value={naReasonOpt[cur.id] ?? NA_REASONS[0]}
+                        onChange={(e) => setNaReasonOpt((p) => ({ ...p, [cur.id]: e.target.value }))}
+                        className="w-full text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink font-semibold focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
+                        {NA_REASON_OPTS.map((r) => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                      {naReasonOpt[cur.id] === NA_REASON_LAINNYA && (
+                        <>
+                          <textarea value={naReasonOther[cur.id] ?? ''} rows={2}
+                            onChange={(e) => setNaReasonOther((p) => ({ ...p, [cur.id]: e.target.value }))}
+                            placeholder="Jelaskan alasan N/A Anda."
+                            className="w-full text-xs p-2.5 mt-1.5 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+                          <p className="text-[10px] text-ink-faint mt-1">Wajib diisi (minimal 5 karakter) untuk pilihan "Lainnya".</p>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
 

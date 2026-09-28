@@ -99,8 +99,8 @@ export interface Database {
         Relationships: [];
       };
       assessment_indicator_scores: {
-        Row: { assessment_id: string; indicator_id: string; rating: number | null; comment: string | null; is_na: boolean };
-        Insert: { assessment_id: string; indicator_id: string; rating?: number | null; comment?: string | null; is_na?: boolean };
+        Row: { assessment_id: string; indicator_id: string; rating: number | null; comment: string | null; is_na: boolean; na_reason: string | null };
+        Insert: { assessment_id: string; indicator_id: string; rating?: number | null; comment?: string | null; is_na?: boolean; na_reason?: string | null };
         Update: Partial<Database['public']['Tables']['assessment_indicator_scores']['Insert']>;
         Relationships: [];
       };

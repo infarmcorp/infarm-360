@@ -13,13 +13,6 @@ import { refreshLatePenalties } from '@/lib/late-server';
  *  - Verifikasi mapping di sini = pastikan penilai memang ditugaskan + pesan ramah.
  *  - Periode terkunci ditolak server-side (RLS asmt_write juga cek status='active').
  */
-// BR-05 (dropdown final HRD 2026-09-28): alasan N/A wajib dipilih; "Lainnya" wajib keterangan.
-export const NA_REASONS = [
-  'Tidak memiliki interaksi kerja yang relevan dengan indikator ini',
-  'Tidak terlibat dalam pekerjaan atau situasi yang memungkinkan indikator ini diamati',
-  'Indikator ini tidak relevan dengan hubungan kerja selama periode penilaian',
-] as const;
-
 const ScoreItem = z.object({
   indicatorId: z.string().uuid(),
   rating: z.number().int().min(1).max(5).nullable(),
@@ -179,12 +172,6 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
  * Disimpan sebagai teks resolusi akhir (bukan enum), sama pola dengan alasan
  * BR-04 (relation_correction_requests.reason).
  */
-export const NOT_ELIGIBLE_REASONS = [
-  'Tidak pernah bekerja sama secara langsung selama periode penilaian',
-  'Interaksi kerja terlalu terbatas untuk memberikan penilaian',
-  'Hubungan kerja tidak sesuai dengan assignment yang diberikan',
-] as const;
-
 const ExposureInput = z.object({
   targetId: z.string().uuid(),
   status: z.enum(['eligible', 'partially_eligible', 'not_eligible']),

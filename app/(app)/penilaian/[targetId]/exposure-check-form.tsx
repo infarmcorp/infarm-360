@@ -3,7 +3,8 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
-import { setExposureStatus, NOT_ELIGIBLE_REASONS } from '../actions';
+import { setExposureStatus } from '../actions';
+import { NOT_ELIGIBLE_REASONS } from '@/lib/assessment-reasons';
 
 // BR-03 (dropdown final HRD 2026-09-28): alasan Not Eligible wajib dipilih; "Lainnya"
 // wajib disertai penjelasan bebas.

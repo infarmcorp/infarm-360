@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, CheckCircle2, X, Send, Save, XCircle, Trash2, ClipboardList, ChevronDown, Loader2, MinusCircle } from 'lucide-react';
-import { submitAssessment, discardAssessment, NA_REASONS } from '../actions';
+import { submitAssessment, discardAssessment } from '../actions';
+import { NA_REASONS } from '@/lib/assessment-reasons';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
 type Indicator = { id: string; text: string; description?: string | null; ratingGuide?: Record<string, string> | null };

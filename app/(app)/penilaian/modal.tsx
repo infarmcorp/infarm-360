@@ -4,10 +4,9 @@ import { useEffect } from 'react';
 
 /**
  * Kerangka modal bersama halaman Penilaian — markup yang sebelumnya diduplikasi di
- * correction-button & (bekas) request-remove-button, kini dipakai SEMUA pop-up di
- * halaman ini (Minta Koreksi, Ajukan Penilaian, Hapus Ad-Hoc, Exposure Check) agar
- * satu perubahan gaya berlaku serentak. ("Ajukan Hapus" dinonaktifkan 2026-09-28 —
- * digantikan Exposure Check / Not Eligible.)
+ * correction-button & request-remove-button, kini dipakai SEMUA pop-up di halaman ini
+ * (Minta Koreksi, Ajukan Hapus, Ajukan Penilaian, Hapus Ad-Hoc) agar satu perubahan
+ * gaya berlaku serentak.
  *
  * Sengaja TIDAK memakai components/confirm-dialog.tsx: dialog itu masih memakai palet
  * Tailwind mentah (gray/rose/emerald, rounded-2xl) dari era pra-redesign, sedangkan

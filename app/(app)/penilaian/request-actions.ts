@@ -55,20 +55,48 @@ async function hasPending(
 }
 
 /**
- * Ajukan penghapusan sebuah pemetaan milik sendiri — DINONAKTIFKAN (mockup Screen 01/07,
- * Notion, 2026-09-28 keputusan HRD: "Hilangkan Ajukan Hapus dari sisi rater; penghapusan
- * dilakukan HRD"). Fungsinya sudah digantikan Exposure Check (BR-03): rater yang tak
- * punya exposure memilih Not Eligible sendiri (self-service, tanpa menunggu ACC HRD),
- * dan HRD tetap dapat flag "perlu review" (Progress 360). Penghapusan pemetaan yang
- * memang salah kini murni wewenang HRD lewat Kelola Pemetaan (sudah ada). Ditolak di
- * SERVER (bukan cuma disembunyikan dari UI) agar tak bisa dipanggil langsung.
- * Permohonan 'remove' LAMA (dibuat sebelum kebijakan ini) tetap bisa diproses HRD
- * seperti biasa — lihat admin/pemetaan/actions.ts → reviewCorrection.
+ * Ajukan penghapusan sebuah pemetaan milik sendiri (mis. tak pernah bekerja sama).
+ * DIAKTIFKAN KEMBALI 2026-09-29 (Exposure Check sedang dinonaktifkan sementara — lihat
+ * [targetId]/page.tsx — jadi ini kembali jadi satu-satunya jalur rater melapor tak perlu
+ * menilai seseorang). Hanya MENGIRIM permohonan; pemetaan baru hilang setelah HRD
+ * menyetujui (reviewCorrection di admin/pemetaan/actions.ts) — HRD tetap gerbangnya.
  */
 export async function requestMappingRemoval(
-  _mappingId: string, _targetId: string, _rawReason: string,
+  mappingId: string, targetId: string, rawReason: string,
 ): Promise<Result> {
-  return { ok: false, error: 'Ajukan Hapus dinonaktifkan. Gunakan Exposure Check (pilih "Not Eligible") saat membuka penilaian rekan ini.' };
+  const reason = Reason.safeParse(rawReason);
+  if (!reason.success) return { ok: false, error: reason.error.issues[0].message };
+  const tid = TargetId.safeParse(targetId);
+  if (!tid.success) return { ok: false, error: tid.error.issues[0].message };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+
+  const gate = await activePeriodForRequest(supabase);
+  if (!gate.ok) return gate;
+
+  // Pemetaan wajib milik pengaju (otorisasi tambahan di atas RLS).
+  const { data: map } = await supabase.from('mappings')
+    .select('id, relation').eq('id', mappingId)
+    .eq('assessor_id', user.id).eq('target_id', tid.data).eq('is_active', true).maybeSingle();
+  if (!map) return { ok: false, error: 'Pemetaan tidak ditemukan / bukan milik Anda' };
+
+  if (await hasPending(supabase, user.id, tid.data, gate.period.id)) {
+    return { ok: false, error: 'Sudah ada permohonan yang menunggu untuk rekan ini' };
+  }
+
+  const { error } = await supabase.from('relation_correction_requests').insert({
+    kind: 'remove', mapping_id: map.id, period_id: gate.period.id,
+    assessor_id: user.id, target_id: tid.data,
+    old_relation: map.relation, new_relation: null,
+    reason: reason.data, status: 'pending',
+  });
+  if (error) return { ok: false, error: 'Gagal mengirim: ' + error.message };
+
+  revalidatePath('/penilaian');
+  revalidatePath('/admin/pemetaan');
+  return { ok: true };
 }
 
 /**

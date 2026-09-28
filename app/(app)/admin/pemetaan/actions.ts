@@ -326,8 +326,8 @@ export async function reviewCorrection(
       // WAJIB + BUKAN ad-hoc: begitu HRD menyetujui, penilaian ini setara pemetaan yang
       // ditetapkan HRD sendiri (kebijakan sama dengan createMapping) — ia tampil di Kelola
       // Pemetaan, dihitung di Progress 360 & kepatuhan, dan hanya HRD yang boleh membatalkannya
-      // (pegawai lewat Exposure Check → Not Eligible, bukan tombol hapus sendiri — "Ajukan
-      // Hapus" dinonaktifkan 2026-09-28). Bedakan dari Ad-Hoc mandiri yang tetap opsional & rahasia.
+      // (pegawai lewat "Ajukan Hapus", bukan tombol hapus sendiri). Bedakan dari Ad-Hoc mandiri
+      // yang tetap opsional & rahasia.
       const fields = { relation: req.new_relation, mandatory: true, is_adhoc: false, is_active: true };
       const res = existing
         ? await supabase.from('mappings').update(fields).eq('id', existing.id)

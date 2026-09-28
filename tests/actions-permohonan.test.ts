@@ -52,18 +52,116 @@ function updateOf(calls: MockCall[], table: string) {
 beforeEach(() => { vi.clearAllMocks(); });
 
 /**
- * requestMappingRemoval DINONAKTIFKAN (mockup Screen 01/07, 2026-09-28 — "Hilangkan
- * Ajukan Hapus dari sisi rater"): digantikan Exposure Check/Not Eligible (BR-03),
- * self-service tanpa ACC HRD. Fungsi kini SELALU menolak & TIDAK menyentuh DB apa pun
- * — pengganti seluruh baterai uji guard/gerbang-fase versi lama.
+ * requestMappingRemoval DIAKTIFKAN KEMBALI 2026-09-29 (Exposure Check dinonaktifkan
+ * sementara — lihat lib/late.ts atau [targetId]/page.tsx untuk konteksnya). Pengajuan
+ * tetap wajib disetujui HRD sebelum pemetaan benar-benar hilang.
  */
-describe('requestMappingRemoval — dinonaktifkan (digantikan Exposure Check)', () => {
-  it('selalu menolak, apa pun input & kondisi sesi/periode, tanpa menyentuh DB', async () => {
-    const c = use(makeClient({ user: { id: UID }, tables: { periods: [PERIOD_OPEN], mappings: [MINE] } }));
+describe('requestMappingRemoval — validasi & gerbang fase', () => {
+  it('tolak alasan terlalu pendek (tanpa menyentuh DB)', async () => {
+    const c = use(makeClient({ user: { id: UID } }));
+    const r = await requestMappingRemoval(MAP, TARGET, 'oke');
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/minimal 5 karakter/i);
+    expect(c.calls).toHaveLength(0);
+  });
+
+  it('tolak target bukan UUID', async () => {
+    use(makeClient({ user: { id: UID } }));
+    const r = await requestMappingRemoval(MAP, 'bukan-uuid', REASON);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/Rekan tidak valid/i);
+  });
+
+  it('tolak bila sesi berakhir', async () => {
+    use(makeClient({ user: null }));
     const r = await requestMappingRemoval(MAP, TARGET, REASON);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toMatch(/Ajukan Hapus dinonaktifkan/i);
-    expect(c.calls).toHaveLength(0);
+    if (!r.ok) expect(r.error).toMatch(/Sesi berakhir/i);
+  });
+
+  it('tolak bila tak ada periode aktif', async () => {
+    use(makeClient({ user: { id: UID }, tables: { periods: [{ data: null }] } }));
+    const r = await requestMappingRemoval(MAP, TARGET, REASON);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/periode aktif/i);
+  });
+
+  it('tolak bila 360° periode belum dibuka HRD', async () => {
+    use(makeClient({ user: { id: UID }, tables: {
+      periods: [{ data: { id: 'p1', has_360: false, form_open: true, mapping_published: true } }],
+    } }));
+    const r = await requestMappingRemoval(MAP, TARGET, REASON);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/belum dibuka oleh HRD/i);
+  });
+
+  it('tolak bila pemetaan belum diumumkan DAN form tertutup', async () => {
+    use(makeClient({ user: { id: UID }, tables: {
+      periods: [{ data: { id: 'p1', has_360: true, form_open: false, mapping_published: false } }],
+    } }));
+    const r = await requestMappingRemoval(MAP, TARGET, REASON);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/belum diumumkan/i);
+  });
+
+  it('IZINKAN saat form terbuka meski pemetaan belum diumumkan', async () => {
+    use(makeClient({ user: { id: UID }, tables: {
+      periods: [{ data: { id: 'p1', has_360: true, form_open: true, mapping_published: false } }],
+      mappings: [MINE],
+      relation_correction_requests: [NO_PENDING, { error: null }],
+    } }));
+    const r = await requestMappingRemoval(MAP, TARGET, REASON);
+    expect(r.ok).toBe(true);
+  });
+
+  it('tolak pemetaan yang bukan milik pengaju', async () => {
+    const c = use(makeClient({ user: { id: UID }, tables: {
+      periods: [PERIOD_OPEN],
+      mappings: [{ data: null }],
+    } }));
+    const r = await requestMappingRemoval(MAP, TARGET, REASON);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/bukan milik Anda/i);
+    // Kepemilikan ditegakkan di query: penilai = pengaju & pemetaan masih aktif.
+    const q = c.calls.find((x) => x.table === 'mappings');
+    expect(q?.filters).toEqual(expect.arrayContaining([
+      ['eq', 'assessor_id', UID], ['eq', 'target_id', TARGET], ['eq', 'is_active', true],
+    ]));
+  });
+
+  it('tolak bila sudah ada permohonan pending untuk rekan yang sama', async () => {
+    use(makeClient({ user: { id: UID }, tables: {
+      periods: [PERIOD_OPEN], mappings: [MINE],
+      relation_correction_requests: [{ data: { id: 'r9' } }],
+    } }));
+    const r = await requestMappingRemoval(MAP, TARGET, REASON);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/menunggu/i);
+  });
+
+  it('sukses → insert kind=remove, PENDING, relasi lama tercatat, TIDAK mengubah mapping', async () => {
+    const c = use(makeClient({ user: { id: UID }, tables: {
+      periods: [PERIOD_OPEN], mappings: [MINE],
+      relation_correction_requests: [NO_PENDING, { error: null }],
+    } }));
+    const r = await requestMappingRemoval(MAP, TARGET, '  ' + REASON + '  ');
+    expect(r.ok).toBe(true);
+    expect(insertOf(c.calls, 'relation_correction_requests')).toMatchObject({
+      kind: 'remove', mapping_id: MAP, period_id: 'p1', assessor_id: UID, target_id: TARGET,
+      old_relation: 'Peer', new_relation: null, reason: REASON, status: 'pending',
+    });
+    // INVARIANT: permohonan tak boleh menyentuh tabel mappings (HRD tetap gerbangnya).
+    expect(c.calls.filter((x) => x.table === 'mappings' && x.op !== 'select')).toHaveLength(0);
+  });
+
+  it('kegagalan insert dilaporkan sebagai error, bukan sukses palsu', async () => {
+    use(makeClient({ user: { id: UID }, tables: {
+      periods: [PERIOD_OPEN], mappings: [MINE],
+      relation_correction_requests: [NO_PENDING, { error: { message: 'duplicate key' } }],
+    } }));
+    const r = await requestMappingRemoval(MAP, TARGET, REASON);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/Gagal mengirim/i);
   });
 });
 
@@ -359,8 +457,7 @@ describe('reviewCorrection — jenis "add" (penambahan penilaian)', () => {
    * INVARIANT (kebijakan 2026-08-21): permohonan yang DISETUJUI jadi pemetaan setara penugasan
    * HRD → `mandatory: true` & `is_adhoc: false`. Konsekuensinya berantai: baris itu tampil di
    * Kelola Pemetaan, ditagih Progress 360 & kepatuhan, dan pegawai hanya bisa melepasnya lewat
-   * Exposure Check → Not Eligible (BR-03), bukan tombol hapus Ad-Hoc ("Ajukan Hapus" dinonaktifkan
-   * 2026-09-28). Jangan longgarkan tanpa menyesuaikan semuanya.
+   * "Ajukan Hapus" (bukan tombol hapus Ad-Hoc). Jangan longgarkan tanpa menyesuaikan semuanya.
    */
   it('setuju & belum ada mapping → INSERT mapping WAJIB & BUKAN ad-hoc', async () => {
     const c = use(makeClient({ user: { id: UID }, tables: {

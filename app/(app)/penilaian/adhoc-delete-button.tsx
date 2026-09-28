@@ -59,8 +59,8 @@ export function AdhocDeleteButton({ targetId, targetName, submitted = false }: {
           <strong className="text-danger-ink"> Draf yang belum dikirim ikut terhapus</strong> dan tak dapat dipulihkan.
         </p>
         <p className="text-[11px] text-ink-faint">
-          Bila rekan ini ditugaskan HRD (bukan tambahan Anda sendiri), gunakan <strong>Exposure Check</strong>
-          (pilih "Not Eligible" saat membuka penilaiannya) — hanya HRD yang boleh membatalkan penugasan.
+          Bila rekan ini ditugaskan HRD (bukan tambahan Anda sendiri), pakai <strong>Ajukan Hapus</strong> —
+          hanya HRD yang boleh membatalkan penugasan.
         </p>
         {err && <p className="text-[11px] text-danger-ink font-semibold">{err}</p>}
         <ModalActions busy={busy} tone="danger" confirmLabel="Hapus" busyLabel="Menghapus…"

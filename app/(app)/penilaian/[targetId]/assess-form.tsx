@@ -503,10 +503,12 @@ export function AssessForm({
                 )}
 
                 {/* Rating 1–5 + N/A DALAM SATU BARIS (N/A tepat setelah angka 5). Memilih N/A
-                    membersihkan rating; memilih angka membatalkan N/A — saling meniadakan. */}
+                    membersihkan rating; memilih angka membatalkan N/A — saling meniadakan.
+                    N/A HANYA untuk penilaian OPSIONAL — penilaian WAJIB harus tetap diberi
+                    rating 1–5 (keputusan pengguna 2026-09-29), tak boleh dilewatkan lewat N/A. */}
                 <div className="bg-neutral-tint border border-line rounded-panel p-3">
                   <span className="text-[11px] font-black text-ink-faint uppercase tracking-widest block mb-2">Rating (klik untuk pilih)</span>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
+                  <div className={`grid gap-1.5 sm:gap-2 ${thisMandatory ? 'grid-cols-5' : 'grid-cols-3 sm:grid-cols-6'}`}>
                     {[1, 2, 3, 4, 5].map((n) => {
                       const sel = !naFlags[cur.id] && ratings[cur.id] === n;
                       return (
@@ -517,13 +519,19 @@ export function AssessForm({
                         </button>
                       );
                     })}
-                    {/* N/A — setelah angka 5, sebagai pilihan ke-6 yang setara. */}
-                    <button type="button" title="N/A — tak punya exposure/evidence cukup untuk indikator ini"
-                      onClick={() => { setNaFlags((p) => ({ ...p, [cur.id]: !p[cur.id] })); setRatings((p) => ({ ...p, [cur.id]: null })); }}
-                      className={`flex items-center justify-center py-3.5 rounded-control border font-extrabold transition-all ${naFlags[cur.id] ? 'bg-brand text-white border-brand shadow-2xs' : 'bg-surface text-ink-soft border-line hover:bg-neutral-tint'}`}>
-                      <span className="text-base sm:text-lg leading-none">N/A</span>
-                    </button>
+                    {/* N/A — setelah angka 5, sebagai pilihan ke-6 yang setara. Disembunyikan untuk
+                        penilaian Wajib. */}
+                    {!thisMandatory && (
+                      <button type="button" title="N/A — tak punya exposure/evidence cukup untuk indikator ini"
+                        onClick={() => { setNaFlags((p) => ({ ...p, [cur.id]: !p[cur.id] })); setRatings((p) => ({ ...p, [cur.id]: null })); }}
+                        className={`flex items-center justify-center py-3.5 rounded-control border font-extrabold transition-all ${naFlags[cur.id] ? 'bg-brand text-white border-brand shadow-2xs' : 'bg-surface text-ink-soft border-line hover:bg-neutral-tint'}`}>
+                        <span className="text-base sm:text-lg leading-none">N/A</span>
+                      </button>
+                    )}
                   </div>
+                  {thisMandatory && (
+                    <p className="text-[11px] text-ink-faint mt-2">Penilaian ini bersifat Wajib — N/A tidak tersedia, beri rating 1–5 untuk semua indikator.</p>
+                  )}
                   <div className="mt-2 text-center sm:hidden">
                     {naFlags[cur.id] ? (
                       <span className="text-sm font-bold text-brand-ink">Ditandai N/A — Tidak Dapat Menilai</span>

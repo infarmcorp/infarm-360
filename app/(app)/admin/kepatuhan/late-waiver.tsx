@@ -9,9 +9,9 @@ import { setLateWaiver } from './actions';
  * Tampil hanya bila pegawai punya keterlambatan terhitung atau sudah dikecualikan.
  */
 export function LateWaiver({
-  employeeId, penalty, waived, waiveReason, lateCount, readOnly,
+  employeeId, penalty, waived, waiveReason, readOnly,
 }: {
-  employeeId: string; penalty: number; waived: boolean; waiveReason: string | null; lateCount: number; readOnly: boolean;
+  employeeId: string; penalty: number; waived: boolean; waiveReason: string | null; readOnly: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -28,7 +28,10 @@ export function LateWaiver({
     router.refresh();
   }
 
-  if (lateCount === 0 && !waived) return <span className="text-[11px] text-ink-faint">—</span>;
+  // Sumber kebenaran = `penalty` (mencakup terlambat MAUPUN belum pernah kirim sama sekali,
+  // lihat lib/late.ts) — BUKAN jumlah baris "Kirim Terlambat" di kolom sebelah, yang sengaja
+  // hanya menampilkan yang sudah kirim (lihat catatan di kepatuhan/page.tsx).
+  if (penalty === 0 && !waived) return <span className="text-[11px] text-ink-faint">—</span>;
 
   return (
     <div className="flex flex-col items-center gap-1">

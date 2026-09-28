@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { AssessForm } from './assess-form';
-import { ExposureCheckForm } from './exposure-check-form';
 
 /**
  * Form Pengisian 360° untuk satu target (read + prefill draf).
@@ -132,30 +131,30 @@ export default async function AssessPage({
           )}
         </p>
 
-        {/* BR-03: Exposure Check WAJIB sebelum form muncul, sekali per pasangan penilai→target. */}
-        {!existing?.exposure_status ? (
-          <ExposureCheckForm key={targetId} targetId={targetId} targetName={target?.name ?? 'pegawai ini'} />
-        ) : (
-          // key=targetId → form di-MOUNT ULANG tiap ganti target. Tanpa ini, berpindah dari
-          // /penilaian/A ke /penilaian/B (tanpa reload) membuat React mempertahankan state
-          // (activeGroup/activeId/rating/komentar) target sebelumnya → form bisa terbuka di
-          // "Umpan Balik Kualitatif" atau menampilkan jawaban target lama.
-          <AssessForm
-            key={targetId}
-            targetId={targetId}
-            targetName={target?.name ?? 'pegawai ini'}
-            groups={groups}
-            questions={questions.map((q) => ({ id: q.id, text: q.text }))}
-            initialScores={initialScores}
-            initialAnswers={initialAnswers}
-            hasDraft={existing?.status === 'draft'}
-            initialStatus={existing?.status ?? null}
-            mandatoryTotal={mandatoryTotal}
-            mandatoryDoneOthers={mandatoryDoneOthers}
-            thisMandatory={thisMandatory}
-            partiallyEligible={existing?.exposure_status === 'partially_eligible'}
-          />
-        )}
+        {/* BR-03 Exposure Check DINONAKTIFKAN SEMENTARA (keputusan pengguna 2026-09-28):
+            pemetaan sudah di-cross-check ulang oleh leader masing-masing, jadi langkah ini
+            dilewati dulu — langsung ke form penilaian. Kode Exposure Check (skema,
+            setExposureStatus, ExposureCheckForm, Progress 360 "Not Eligible") TIDAK dihapus,
+            supaya gampang dinyalakan lagi nanti bila dibutuhkan: cukup kembalikan gerbang di
+            bawah ini (`!existing?.exposure_status ? <ExposureCheckForm .../> : <AssessForm .../>`).
+            key=targetId → form di-MOUNT ULANG tiap ganti target. Tanpa ini, berpindah dari
+            /penilaian/A ke /penilaian/B (tanpa reload) membuat React mempertahankan state
+            (activeGroup/activeId/rating/komentar) target sebelumnya → form bisa terbuka di
+            "Umpan Balik Kualitatif" atau menampilkan jawaban target lama. */}
+        <AssessForm
+          key={targetId}
+          targetId={targetId}
+          targetName={target?.name ?? 'pegawai ini'}
+          groups={groups}
+          questions={questions.map((q) => ({ id: q.id, text: q.text }))}
+          initialScores={initialScores}
+          initialAnswers={initialAnswers}
+          hasDraft={existing?.status === 'draft'}
+          initialStatus={existing?.status ?? null}
+          mandatoryTotal={mandatoryTotal}
+          mandatoryDoneOthers={mandatoryDoneOthers}
+          thisMandatory={thisMandatory}
+        />
       </div>
     </main>
   );

@@ -333,8 +333,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                         >
                           {it.exposureStatus === 'not_eligible'
                             ? 'Lihat'
-                            : it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan'
-                            : it.exposureStatus ? 'Lanjutkan' : 'Cek Exposure'}
+                            : it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai'}
                         </Link>
                       )}
                     </div>

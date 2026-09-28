@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, CheckCircle2, X, Send, Save, XCircle, Trash2, ClipboardList, ChevronDown, Loader2, MinusCircle } from 'lucide-react';
+import { ChevronLeft, CheckCircle2, X, Send, Save, XCircle, Trash2, ClipboardList, ChevronDown, Loader2 } from 'lucide-react';
 import { submitAssessment, discardAssessment } from '../actions';
 import { NA_REASONS } from '@/lib/assessment-reasons';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -462,57 +462,21 @@ export function AssessForm({
               {/* Editor satu indikator */}
               <div className="border border-line rounded-panel p-5 space-y-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-extrabold text-sm text-ink">Q{cur.qNum}: {cur.text}</h3>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {/* BR-05: N/A — tak punya exposure/evidence cukup untuk indikator ini. */}
-                    <button type="button" onClick={() => setNaFlags((p) => ({ ...p, [cur.id]: !p[cur.id] }))}
-                      title="Tandai N/A — tak punya exposure/evidence cukup untuk indikator ini"
-                      className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-control border ${
-                        naFlags[cur.id] ? 'bg-neutral text-ink border-line-strong' : 'bg-surface text-ink-faint border-line hover:border-line-strong'
-                      }`}>
-                      <MinusCircle className="w-3.5 h-3.5" /> N/A
-                    </button>
-                    {(ratings[cur.id] != null || (comments[cur.id] ?? '') !== '' || naFlags[cur.id]) && (
-                      <button type="button" title="Bersihkan jawaban indikator ini"
-                        onClick={() => {
-                          setRatings((p) => ({ ...p, [cur.id]: null })); setComments((p) => ({ ...p, [cur.id]: '' }));
-                          setNaFlags((p) => ({ ...p, [cur.id]: false }));
-                          setNaReasonOpt((p) => ({ ...p, [cur.id]: NA_REASONS[0] })); setNaReasonOther((p) => ({ ...p, [cur.id]: '' }));
-                        }}
-                        className="p-1 text-ink-faint hover:text-danger-ink hover:bg-danger-tint rounded-control"><X className="w-4 h-4" /></button>
-                    )}
-                  </div>
+                  <h3 className="font-extrabold text-base sm:text-lg text-ink">Q{cur.qNum}: {cur.text}</h3>
+                  {(ratings[cur.id] != null || (comments[cur.id] ?? '') !== '' || naFlags[cur.id]) && (
+                    <button type="button" title="Bersihkan jawaban indikator ini"
+                      onClick={() => {
+                        setRatings((p) => ({ ...p, [cur.id]: null })); setComments((p) => ({ ...p, [cur.id]: '' }));
+                        setNaFlags((p) => ({ ...p, [cur.id]: false }));
+                        setNaReasonOpt((p) => ({ ...p, [cur.id]: NA_REASONS[0] })); setNaReasonOther((p) => ({ ...p, [cur.id]: '' }));
+                      }}
+                      className="p-1 text-ink-faint hover:text-danger-ink hover:bg-danger-tint rounded-control shrink-0"><X className="w-4 h-4" /></button>
+                  )}
                 </div>
-
-                {naFlags[cur.id] && (
-                  <div className="border border-line-strong bg-neutral-tint rounded-control p-3 space-y-2">
-                    <p className="text-[12px] text-ink-soft leading-relaxed">
-                      Ditandai <strong className="text-ink">N/A — Tidak Dapat Menilai</strong>. Indikator ini
-                      dikecualikan dari perhitungan skor (bukan nilai 0) dan evidence tidak wajib diisi.
-                    </p>
-                    <div>
-                      <label className="block text-[10px] uppercase font-extrabold text-ink-faint mb-1">Alasan N/A</label>
-                      <select value={naReasonOpt[cur.id] ?? NA_REASONS[0]}
-                        onChange={(e) => setNaReasonOpt((p) => ({ ...p, [cur.id]: e.target.value }))}
-                        className="w-full text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink font-semibold focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
-                        {NA_REASON_OPTS.map((r) => <option key={r} value={r}>{r}</option>)}
-                      </select>
-                      {naReasonOpt[cur.id] === NA_REASON_LAINNYA && (
-                        <>
-                          <textarea value={naReasonOther[cur.id] ?? ''} rows={2}
-                            onChange={(e) => setNaReasonOther((p) => ({ ...p, [cur.id]: e.target.value }))}
-                            placeholder="Jelaskan alasan N/A Anda."
-                            className="w-full text-xs p-2.5 mt-1.5 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
-                          <p className="text-[10px] text-ink-faint mt-1">Wajib diisi (minimal 5 karakter) untuk pilihan "Lainnya".</p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
 
                 {/* Deskripsi indikator (opsional, dari Kelola Pertanyaan) */}
                 {cur.description && (
-                  <div className="border border-line border-l-4 border-l-brand bg-brand-tint/40 p-3.5 rounded-control text-[13px] text-ink leading-relaxed font-semibold">
+                  <div className="border border-line border-l-4 border-l-brand bg-brand-tint/40 p-3.5 rounded-control text-[15px] text-ink leading-relaxed font-semibold">
                     {cur.description}
                   </div>
                 )}
@@ -520,17 +484,17 @@ export function AssessForm({
                 {/* Panduan BARS untuk indikator ini — key point (khusus indikator ini) + deskripsi. */}
                 {(cur.ratingGuide && Object.keys(cur.ratingGuide).length > 0) && (
                   <div className="bg-neutral-tint border border-line rounded-panel p-3 space-y-2">
-                    <span className="text-[10px] font-extrabold text-ink uppercase tracking-wide flex items-center gap-1.5">
-                      <ClipboardList className="w-3.5 h-3.5 text-brand" /> Panduan BARS untuk indikator ini
+                    <span className="text-[11px] font-extrabold text-ink uppercase tracking-wide flex items-center gap-1.5">
+                      <ClipboardList className="w-4 h-4 text-brand" /> Panduan BARS untuk indikator ini
                     </span>
-                    <p className="text-[10.5px] text-ink-faint -mt-1">Pilih skor berdasarkan perilaku yang paling sesuai dengan pengamatan Anda selama periode penilaian.</p>
+                    <p className="text-[12px] text-ink-faint -mt-1">Pilih skor berdasarkan perilaku yang paling sesuai dengan pengamatan Anda selama periode penilaian.</p>
                     {[5, 4, 3, 2, 1].map((n) => {
                       const desc = cur.ratingGuide?.[String(n)];
                       if (!desc) return null;
                       const keyPoint = cur.ratingKeyPoints?.[String(n)] || FALLBACK_KEY_POINTS[n];
                       return (
-                        <div key={n} className="flex gap-2 items-start text-[11px]">
-                          <span className="font-black text-brand-ink data-value w-5 h-5 flex items-center justify-center shrink-0 rounded-control bg-brand-tint border border-brand-ink/15">{n}</span>
+                        <div key={n} className="flex gap-2 items-start text-[13px]">
+                          <span className="font-black text-brand-ink data-value w-6 h-6 flex items-center justify-center shrink-0 rounded-control bg-brand-tint border border-brand-ink/15">{n}</span>
                           <span className="text-ink-soft leading-snug"><strong className="text-ink">{keyPoint}</strong> — {desc}</span>
                         </div>
                       );
@@ -538,51 +502,83 @@ export function AssessForm({
                   </div>
                 )}
 
-                {/* Rating — disembunyikan saat N/A (BR-05). Tombol angka saja; panduan lengkap ada di atas. */}
-                {!naFlags[cur.id] && (
+                {/* Rating 1–5 + N/A DALAM SATU BARIS (N/A tepat setelah angka 5). Memilih N/A
+                    membersihkan rating; memilih angka membatalkan N/A — saling meniadakan. */}
                 <div className="bg-neutral-tint border border-line rounded-panel p-3">
-                  <span className="text-[10px] font-black text-ink-faint uppercase tracking-widest block mb-2">Rating (klik untuk pilih)</span>
-                  <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+                  <span className="text-[11px] font-black text-ink-faint uppercase tracking-widest block mb-2">Rating (klik untuk pilih)</span>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
                     {[1, 2, 3, 4, 5].map((n) => {
-                      const sel = ratings[cur.id] === n;
+                      const sel = !naFlags[cur.id] && ratings[cur.id] === n;
                       return (
-                        <button key={n} type="button" onClick={() => setRatings((p) => ({ ...p, [cur.id]: n }))}
-                          className={`flex items-center justify-center py-2.5 rounded-control border font-extrabold transition-all ${sel ? 'bg-brand text-white border-brand shadow-2xs' : 'bg-surface text-ink-soft border-line hover:bg-neutral-tint'}`}>
-                          <span className="text-lg leading-none data-value">{n}</span>
+                        <button key={n} type="button"
+                          onClick={() => { setRatings((p) => ({ ...p, [cur.id]: n })); setNaFlags((p) => ({ ...p, [cur.id]: false })); }}
+                          className={`flex items-center justify-center py-3.5 rounded-control border font-extrabold transition-all ${sel ? 'bg-brand text-white border-brand shadow-2xs' : 'bg-surface text-ink-soft border-line hover:bg-neutral-tint'}`}>
+                          <span className="text-2xl leading-none data-value">{n}</span>
                         </button>
                       );
                     })}
+                    {/* N/A — setelah angka 5, sebagai pilihan ke-6 yang setara. */}
+                    <button type="button" title="N/A — tak punya exposure/evidence cukup untuk indikator ini"
+                      onClick={() => { setNaFlags((p) => ({ ...p, [cur.id]: !p[cur.id] })); setRatings((p) => ({ ...p, [cur.id]: null })); }}
+                      className={`flex items-center justify-center py-3.5 rounded-control border font-extrabold transition-all ${naFlags[cur.id] ? 'bg-brand text-white border-brand shadow-2xs' : 'bg-surface text-ink-soft border-line hover:bg-neutral-tint'}`}>
+                      <span className="text-base sm:text-lg leading-none">N/A</span>
+                    </button>
                   </div>
                   <div className="mt-2 text-center sm:hidden">
-                    {ratings[cur.id] != null ? (
-                      <span className="text-xs font-bold text-brand-ink">Pilihan Anda: {ratings[cur.id]}</span>
+                    {naFlags[cur.id] ? (
+                      <span className="text-sm font-bold text-brand-ink">Ditandai N/A — Tidak Dapat Menilai</span>
+                    ) : ratings[cur.id] != null ? (
+                      <span className="text-sm font-bold text-brand-ink">Pilihan Anda: {ratings[cur.id]}</span>
                     ) : (
-                      <span className="text-xs font-semibold text-ink-faint">Pilih rating 1–5 sesuai panduan BARS di atas.</span>
+                      <span className="text-sm font-semibold text-ink-faint">Pilih rating 1–5, atau N/A bila tak bisa mengamati indikator ini.</span>
                     )}
                   </div>
                 </div>
-                )}
 
-                {/* Komentar — WAJIB kecuali N/A (BR-05, evidence tak wajib untuk N/A) */}
-                {!naFlags[cur.id] && (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-extrabold text-brand-ink uppercase tracking-wider flex items-center gap-1">
-                    Komentar / Bukti Perilaku (Evidence) <span className="text-danger-ink">*</span>
-                  </label>
-                  <textarea rows={3} value={comments[cur.id] ?? ''} onChange={(e) => setComments((p) => ({ ...p, [cur.id]: e.target.value }))}
-                    onKeyDown={onCommentKeyDown}
-                    placeholder="Jelaskan rating dengan contoh konkret (situasi nyata, perilaku yang terlihat, frekuensi)."
-                    className="w-full text-xs p-3 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint resize-y" />
-                  <div className="flex flex-wrap justify-between items-center gap-2 text-[10px]">
-                    <span className="text-ink-faint">
-                      Tekan <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Enter</kbd> untuk lanjut ke pertanyaan berikutnya
-                      · <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Shift+Enter</kbd> baris baru
-                    </span>
-                    <span className={(comments[cur.id] ?? '').trim().length >= EVIDENCE_MIN ? 'text-brand-ink font-extrabold' : 'text-danger-ink font-extrabold data-value'}>
-                      {(comments[cur.id] ?? '').trim().length >= EVIDENCE_MIN ? `${(comments[cur.id] ?? '').trim().length} karakter` : `${(comments[cur.id] ?? '').trim().length}/${EVIDENCE_MIN} karakter · wajib min. ${EVIDENCE_MIN}`}
-                    </span>
+                {naFlags[cur.id] ? (
+                  /* Alasan N/A — muncul menggantikan Evidence saat N/A dipilih. */
+                  <div className="border border-line-strong bg-neutral-tint rounded-control p-3 space-y-2">
+                    <p className="text-[13px] text-ink-soft leading-relaxed">
+                      Indikator ini dikecualikan dari perhitungan skor (bukan nilai 0) dan evidence tidak wajib diisi.
+                    </p>
+                    <div>
+                      <label className="block text-[11px] uppercase font-extrabold text-ink-faint mb-1">Alasan N/A <span className="text-danger-ink">*</span></label>
+                      <select value={naReasonOpt[cur.id] ?? NA_REASONS[0]}
+                        onChange={(e) => setNaReasonOpt((p) => ({ ...p, [cur.id]: e.target.value }))}
+                        className="w-full text-sm px-3 py-2 border border-line rounded-control bg-surface text-ink font-semibold focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
+                        {NA_REASON_OPTS.map((r) => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                      {naReasonOpt[cur.id] === NA_REASON_LAINNYA && (
+                        <>
+                          <textarea value={naReasonOther[cur.id] ?? ''} rows={2}
+                            onChange={(e) => setNaReasonOther((p) => ({ ...p, [cur.id]: e.target.value }))}
+                            placeholder="Jelaskan alasan N/A Anda."
+                            className="w-full text-sm p-2.5 mt-1.5 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+                          <p className="text-[11px] text-ink-faint mt-1">Wajib diisi (minimal 5 karakter) untuk pilihan "Lainnya".</p>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  /* Komentar — WAJIB (BR-06, evidence). */
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-extrabold text-brand-ink uppercase tracking-wider flex items-center gap-1">
+                      Komentar / Bukti Perilaku (Evidence) <span className="text-danger-ink">*</span>
+                    </label>
+                    <textarea rows={3} value={comments[cur.id] ?? ''} onChange={(e) => setComments((p) => ({ ...p, [cur.id]: e.target.value }))}
+                      onKeyDown={onCommentKeyDown}
+                      placeholder="Jelaskan rating dengan contoh konkret (situasi nyata, perilaku yang terlihat, frekuensi)."
+                      className="w-full text-sm p-3 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint resize-y" />
+                    <div className="flex flex-wrap justify-between items-center gap-2 text-[11px]">
+                      <span className="text-ink-faint">
+                        Tekan <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Enter</kbd> untuk lanjut ke pertanyaan berikutnya
+                        · <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Shift+Enter</kbd> baris baru
+                      </span>
+                      <span className={(comments[cur.id] ?? '').trim().length >= EVIDENCE_MIN ? 'text-brand-ink font-extrabold' : 'text-danger-ink font-extrabold data-value'}>
+                        {(comments[cur.id] ?? '').trim().length >= EVIDENCE_MIN ? `${(comments[cur.id] ?? '').trim().length} karakter` : `${(comments[cur.id] ?? '').trim().length}/${EVIDENCE_MIN} karakter · wajib min. ${EVIDENCE_MIN}`}
+                      </span>
+                    </div>
+                  </div>
                 )}
 
                 {/* Navigasi Sebelumnya / Selanjutnya */}

@@ -1,12 +1,16 @@
 /**
  * Logika murni KETERLAMBATAN penilaian 360° (migrasi 0036) — diuji `tests/late.test.ts`.
  *
- * Kebijakan (keputusan pengguna 2026-09-18):
+ * Kebijakan (keputusan pengguna 2026-09-18, diperluas 2026-09-28):
  *  - Form tak ditutup otomatis; status On Time / Late = WAKTU KIRIM PERTAMA vs deadline periode.
  *  - Penilaian terlambat TETAP dihitung untuk yang dinilai (rumus skor tak disentuh).
- *  - Penilai dengan ≥1 penilaian terlambat yang DIHITUNG → potongan FLAT `LATE_PENALTY_360`
+ *  - Penilai dengan ≥1 kewajiban "belum selesai saat deadline" → potongan FLAT `LATE_PENALTY_360`
  *    pada Skor 360° miliknya sendiri (bukan per penilaian, bukan Skor Akhir). Tak punya Skor
  *    360° sendiri → diabaikan (pemanggil hanya menerapkan pada baris result_360 yang ada).
+ *  - "Belum selesai saat deadline" mencakup DUA kondisi (2026-09-28 — sebelumnya hanya yang
+ *    pertama, celah yang membuat "tidak pernah mengirim" lebih untung daripada telat mengirim):
+ *      a) TERKIRIM tapi kirim PERTAMA-nya sesudah deadline (submitTimingOf = 'late'), ATAU
+ *      b) BELUM terkirim sama sekali (draft/belum mulai) DAN deadline sudah lewat SAAT INI.
  *  - Yang TIDAK dihitung terlambat: penilaian Opsional/Ad-Hoc, Paksa Selesai oleh HRD, dan
  *    pemetaan yang baru dibuat SESUDAH deadline (tak mungkin tepat waktu).
  *  - HRD dapat memberi pengecualian per pegawai (waiver) → potongan 0.
@@ -41,22 +45,33 @@ export function isPastDeadline(deadline: string | null | undefined, now: number 
 
 export type LateCandidate = {
   firstSubmittedAt: string | null;
-  status: string;               // assessment_status
+  /** assessment_status ('draft'|'submitted'), ATAU 'not_started' bila baris assessments
+   *  belum pernah dibuat sama sekali (penilai belum menyentuh form ini). */
+  status: string;
   forcedByHrd: boolean;
   mandatory: boolean;           // mappings.mandatory
   isAdhoc: boolean;             // mappings.is_adhoc
   mappingCreatedAt: string | null;
 };
 
-/** Penilaian ini terlambat DAN dihitung untuk potongan penilainya? */
-export function isPenalizableLate(a: LateCandidate, deadline: string | null | undefined): boolean {
-  if (a.status !== 'submitted') return false;
+/**
+ * Kewajiban ini "belum selesai saat deadline" DAN dihitung untuk potongan penilainya?
+ * `nowMs` WAJIB diberikan eksplisit (bukan default Date.now()) — kondisi (b) di bawah
+ * bergantung waktu SAAT DICEK, jadi hasilnya harus deterministik & bisa diuji, bukan diam-diam
+ * berubah seiring jam berjalan di dalam fungsi murni ini.
+ */
+export function isPenalizableLate(a: LateCandidate, deadline: string | null | undefined, nowMs: number): boolean {
   if (!a.mandatory || a.isAdhoc || a.forcedByHrd) return false;
-  if (submitTimingOf(a.firstSubmittedAt, deadline) !== 'late') return false;
-  // Pemetaan dibuat sesudah deadline (koreksi/tambahan HRD) → tak mungkin tepat waktu.
-  const m = ts(a.mappingCreatedAt), d = ts(deadline);
-  if (m != null && d != null && m > d) return false;
-  return true;
+  const d = ts(deadline);
+  if (d == null) return false; // tanpa deadline → tak ada yang "terlambat"
+  // Pemetaan dibuat sesudah deadline (koreksi/tambahan HRD) → tak mungkin tepat waktu, dikecualikan.
+  const m = ts(a.mappingCreatedAt);
+  if (m != null && m > d) return false;
+  if (a.status === 'submitted') {
+    return submitTimingOf(a.firstSubmittedAt, deadline) === 'late';
+  }
+  // draft / not_started: belum selesai — terhitung terlambat begitu deadline sudah lewat SAAT INI.
+  return nowMs > d;
 }
 
 /** Potongan flat untuk seorang penilai: ada ≥1 keterlambatan terhitung & tak dikecualikan. */

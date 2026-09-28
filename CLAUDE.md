@@ -307,6 +307,7 @@ SMTP_PASS                      # server-only — App Password Gmail (butuh 2FA)
 SMTP_FROM                      # server-only, opsional — mis. "Infarm 360 <infarmcorp@gmail.com>"
 NEXT_PUBLIC_ENABLE_PW_RESET    # 'true' utk aktifkan alur "Lupa Sandi via email"
 ONBOARDING_GMAIL_ONLY          # server-only — 'false' utk kirim undangan ke SEMUA domain (default: hanya @gmail.com, mode trial)
+CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api/cron/late-penalty (BR-08); WAJIB diset agar endpoint aktif
 ```
 
 ## Security Rules
@@ -347,9 +348,14 @@ ONBOARDING_GMAIL_ONLY          # server-only — 'false' utk kirim undangan ke S
   murni terkunci di `lib/scoring.ts` & `lib/score360.ts` (lihat Pengujian); kalau mengubah,
   sinkronkan semua tempat + perbarui tesnya.
 - **Skor 360° resmi** (`result_360.score`) = `score_raw` (rumus `weightedScore360`) **dikurangi potongan
-  keterlambatan menilai** (flat −3 bila ≥1 penilaian Wajib dikirim pertama kali sesudah deadline; min 0;
-  migrasi 0036, rumus `lib/late.ts` + `tests/late.test.ts`). Waktu kirim pertama (`first_submitted_at`)
-  diisi **trigger DB**, bukan klien — jangan tulis/andalkan nilai dari app.
+  keterlambatan menilai** (flat −3 bila ≥1 kewajiban Wajib "belum selesai saat deadline" — mencakup
+  terkirim-telat MAUPUN tak pernah dikirim sama sekali, 2026-09-29; min 0; migrasi 0036, rumus
+  `lib/late.ts` + `tests/late.test.ts`). Waktu kirim pertama (`first_submitted_at`) diisi **trigger DB**,
+  bukan klien — jangan tulis/andalkan nilai dari app. **Diterapkan otomatis** oleh Vercel Cron
+  (`vercel.json` → `app/api/cron/late-penalty/route.ts`, tiap jam, butuh env `CRON_SECRET`) yang
+  memanggil `refreshLatePenalties` — cron ini hanya memperbarui `result_360` yang **sudah ada**
+  (skor 360° yang sudah pernah dihitung HRD sekali via "Hitung Ulang Skor 360°"), bukan menghitung
+  dari nol (itu tetap aksi manual HRD, perlu sesi login).
 - **Klasifikasi talenta Dashboard** (4-Box A/B-Culture/B-KPI/C — **tanpa D**) **dikunci ke satu
   kuartal** lewat filter periode agar KPI, 360°, dan Skor Akhir dari periode sama. Kuartal tanpa 360°
   → pada 4-Box hanya **B-KPI / C** yang mungkin (A & B-Culture butuh sumbu 360°). 4-Box berbasis

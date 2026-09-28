@@ -42,7 +42,7 @@ export default async function PertanyaanPage() {
   const aspectList = aspects ?? [];
 
   const { data: inds } = aspectList.length
-    ? await supabase.from('indicators').select('id, aspect_id, text, is_active, order_idx, description, rating_guide')
+    ? await supabase.from('indicators').select('id, aspect_id, text, is_active, order_idx, description, rating_guide, rating_key_points')
         .in('aspect_id', aspectList.map((a) => a.id)).order('order_idx')
     : { data: [] };
   const indicators = inds ?? [];
@@ -113,7 +113,7 @@ export default async function PertanyaanPage() {
                 canDown={idx < aspectList.length - 1}
                 indicators={indicators.filter((i) => i.aspect_id === a.id).map((i) => ({
                   id: i.id, text: i.text, is_active: i.is_active,
-                  description: i.description ?? '', ratingGuide: i.rating_guide ?? null,
+                  description: i.description ?? '', ratingGuide: i.rating_guide ?? null, ratingKeyPoints: i.rating_key_points ?? null,
                 }))}
               />
             ))}

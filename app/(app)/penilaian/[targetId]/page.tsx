@@ -45,7 +45,7 @@ export default async function AssessPage({
 
   const { data: indRows } = aspects.length
     ? await supabase
-        .from('indicators').select('id, aspect_id, text, order_idx, is_active, description, rating_guide')
+        .from('indicators').select('id, aspect_id, text, order_idx, is_active, description, rating_guide, rating_key_points')
         .in('aspect_id', aspects.map((a) => a.id))
         .eq('is_active', true)
         .order('order_idx')
@@ -108,7 +108,7 @@ export default async function AssessPage({
     id: a.id,
     name: a.name,
     indicators: indicators.filter((i) => i.aspect_id === a.id).map((i) => ({
-      id: i.id, text: i.text, description: i.description ?? null, ratingGuide: i.rating_guide ?? null,
+      id: i.id, text: i.text, description: i.description ?? null, ratingGuide: i.rating_guide ?? null, ratingKeyPoints: i.rating_key_points ?? null,
     })),
   }));
 

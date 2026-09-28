@@ -7,12 +7,13 @@ import { submitAssessment, discardAssessment } from '../actions';
 import { NA_REASONS } from '@/lib/assessment-reasons';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
-type Indicator = { id: string; text: string; description?: string | null; ratingGuide?: Record<string, string> | null };
+type Indicator = { id: string; text: string; description?: string | null; ratingGuide?: Record<string, string> | null; ratingKeyPoints?: Record<string, string> | null };
 type Group = { id: string; name: string; indicators: Indicator[] };
 type Question = { id: string; text: string };
 
-// Label skala BARS (BR-06, Q3 2026) — menggantikan label frekuensi lama.
-const RATING_LABELS: Record<number, string> = {
+// Label BARS generik — CADANGAN saja bila indikator belum diisi key point-nya sendiri
+// (Kelola Pertanyaan). Key point sesungguhnya khusus per indikator, lihat mockup Screen 03.
+const FALLBACK_KEY_POINTS: Record<number, string> = {
   1: 'Evidence Paling Rendah', 2: 'Di Bawah Ekspektasi', 3: 'Sesuai Ekspektasi', 4: 'Di Atas Ekspektasi', 5: 'Evidence Paling Kuat',
 };
 const EVIDENCE_MIN = 20;
@@ -67,10 +68,10 @@ export function AssessForm({
 
   // Daftar indikator rata dengan nomor Q global + aspek induk.
   const flat = useMemo(() => {
-    const arr: { gid: string; gname: string; id: string; text: string; qNum: number; description?: string | null; ratingGuide?: Record<string, string> | null }[] = [];
+    const arr: { gid: string; gname: string; id: string; text: string; qNum: number; description?: string | null; ratingGuide?: Record<string, string> | null; ratingKeyPoints?: Record<string, string> | null }[] = [];
     let n = 0;
     aspectGroups.forEach((g) => g.indicators.forEach((ind) => {
-      n += 1; arr.push({ gid: g.id, gname: g.name, id: ind.id, text: ind.text, qNum: n, description: ind.description, ratingGuide: ind.ratingGuide });
+      n += 1; arr.push({ gid: g.id, gname: g.name, id: ind.id, text: ind.text, qNum: n, description: ind.description, ratingGuide: ind.ratingGuide, ratingKeyPoints: ind.ratingKeyPoints });
     }));
     return arr;
   }, [aspectGroups]);
@@ -516,22 +517,28 @@ export function AssessForm({
                   </div>
                 )}
 
-                {/* Panduan rating per level (opsional) */}
-                {cur.ratingGuide && Object.keys(cur.ratingGuide).length > 0 && (
-                  <div className="bg-neutral-tint border border-line rounded-panel p-3 space-y-1.5">
+                {/* Panduan BARS untuk indikator ini — key point (khusus indikator ini) + deskripsi. */}
+                {(cur.ratingGuide && Object.keys(cur.ratingGuide).length > 0) && (
+                  <div className="bg-neutral-tint border border-line rounded-panel p-3 space-y-2">
                     <span className="text-[10px] font-extrabold text-ink uppercase tracking-wide flex items-center gap-1.5">
-                      <ClipboardList className="w-3.5 h-3.5 text-brand" /> Panduan Rating
+                      <ClipboardList className="w-3.5 h-3.5 text-brand" /> Panduan BARS untuk indikator ini
                     </span>
-                    {[5, 4, 3, 2, 1].map((n) => cur.ratingGuide?.[String(n)] ? (
-                      <div key={n} className="flex gap-2 items-start text-[11px]">
-                        <span className="font-black text-brand-ink data-value w-4 text-center shrink-0 rounded-control bg-brand-tint border border-brand-ink/15">{n}</span>
-                        <span className="text-ink-soft leading-snug"><strong className="text-ink">{RATING_LABELS[n]}</strong> · {cur.ratingGuide![String(n)]}</span>
-                      </div>
-                    ) : null)}
+                    <p className="text-[10.5px] text-ink-faint -mt-1">Pilih skor berdasarkan perilaku yang paling sesuai dengan pengamatan Anda selama periode penilaian.</p>
+                    {[5, 4, 3, 2, 1].map((n) => {
+                      const desc = cur.ratingGuide?.[String(n)];
+                      if (!desc) return null;
+                      const keyPoint = cur.ratingKeyPoints?.[String(n)] || FALLBACK_KEY_POINTS[n];
+                      return (
+                        <div key={n} className="flex gap-2 items-start text-[11px]">
+                          <span className="font-black text-brand-ink data-value w-5 h-5 flex items-center justify-center shrink-0 rounded-control bg-brand-tint border border-brand-ink/15">{n}</span>
+                          <span className="text-ink-soft leading-snug"><strong className="text-ink">{keyPoint}</strong> — {desc}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
-                {/* Rating berlabel — disembunyikan saat N/A (BR-05) */}
+                {/* Rating — disembunyikan saat N/A (BR-05). Tombol angka saja; panduan lengkap ada di atas. */}
                 {!naFlags[cur.id] && (
                 <div className="bg-neutral-tint border border-line rounded-panel p-3">
                   <span className="text-[10px] font-black text-ink-faint uppercase tracking-widest block mb-2">Rating (klik untuk pilih)</span>
@@ -540,20 +547,17 @@ export function AssessForm({
                       const sel = ratings[cur.id] === n;
                       return (
                         <button key={n} type="button" onClick={() => setRatings((p) => ({ ...p, [cur.id]: n }))}
-                          className={`flex flex-col items-center gap-0.5 py-2.5 rounded-control border font-extrabold transition-all ${sel ? 'bg-brand text-white border-brand shadow-2xs' : 'bg-surface text-ink-soft border-line hover:bg-neutral-tint'}`}>
+                          className={`flex items-center justify-center py-2.5 rounded-control border font-extrabold transition-all ${sel ? 'bg-brand text-white border-brand shadow-2xs' : 'bg-surface text-ink-soft border-line hover:bg-neutral-tint'}`}>
                           <span className="text-lg leading-none data-value">{n}</span>
-                          {/* Label mungil hanya di layar lebar; di HP digantikan baris "Pilihan Anda" di bawah. */}
-                          <span className={`hidden sm:block text-[9px] text-center font-bold leading-tight ${sel ? 'text-white/85' : 'text-ink-faint'}`}>{RATING_LABELS[n]}</span>
                         </button>
                       );
                     })}
                   </div>
-                  {/* Label terbaca untuk rating terpilih — terutama berguna di HP (label tombol disembunyikan). */}
                   <div className="mt-2 text-center sm:hidden">
                     {ratings[cur.id] != null ? (
-                      <span className="text-xs font-bold text-brand-ink">Pilihan Anda: {ratings[cur.id]} · {RATING_LABELS[ratings[cur.id]!]}</span>
+                      <span className="text-xs font-bold text-brand-ink">Pilihan Anda: {ratings[cur.id]}</span>
                     ) : (
-                      <span className="text-xs font-semibold text-ink-faint">Pilih rating 1 (evidence paling rendah) – 5 (evidence paling kuat)</span>
+                      <span className="text-xs font-semibold text-ink-faint">Pilih rating 1–5 sesuai panduan BARS di atas.</span>
                     )}
                   </div>
                 </div>

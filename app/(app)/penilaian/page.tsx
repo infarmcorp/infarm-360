@@ -6,7 +6,6 @@ import { CorrectionButton } from './correction-button';
 import { AdhocDeleteButton } from './adhoc-delete-button';
 import { EmptyState } from '@/components/empty-state';
 import { TabBar, Tab } from '@/components/tab-nav';
-import { RequestRemoveButton } from './request-remove-button';
 import { RequestAssessmentButton } from './request-assessment-form';
 import { MyRequests, type MyRequest } from './my-requests';
 import { LATE_PENALTY_360, formatWib, isPastDeadline, submitTimingOf } from '@/lib/late';
@@ -321,17 +320,6 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                           targetId={it.targetId}
                           targetName={it.name}
                           currentRelation={it.relation}
-                          pending={it.corrPending}
-                        />
-                      )}
-                      {/* Ajukan Hapus: untuk pemetaan dari HRD. Target Ad-Hoc buatan sendiri tak perlu
-                          diajukan — pegawai boleh menghapusnya langsung (AdhocDeleteButton di atas).
-                          'Self' dikecualikan: evaluasi diri bukan hal yang bisa ditolak pegawai. */}
-                      {!it.isAdhoc && it.relation !== 'Self' && (
-                        <RequestRemoveButton
-                          mappingId={it.mappingId}
-                          targetId={it.targetId}
-                          targetName={it.name}
                           pending={it.corrPending}
                         />
                       )}

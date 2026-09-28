@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
+import { refreshLatePenalties } from '@/lib/late-server';
 
 /**
  * Kelola Siklus Periode (HRD) — gerbang seluruh proses.
@@ -175,6 +176,50 @@ export async function setKpiStandard(periodId: string, value: number): Promise<R
   return { ok: true };
 }
 
+/**
+ * Atur DEADLINE penilaian 360° (migrasi 0036). Input `YYYY-MM-DDTHH:mm` dibaca sebagai WIB
+ * (UTC+7); string kosong = hapus deadline. Form TIDAK ditutup otomatis — deadline hanya dasar
+ * status On Time / Late & potongan −3 pada Skor 360° penilai yang terlambat (lib/late.ts).
+ * Mengubah deadline menerapkan ulang potongan ke seluruh Skor 360° yang sudah dihitung.
+ */
+const DeadlineInput = z.union([z.literal(''), z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Format deadline tidak valid')]);
+
+export async function setAssessmentDeadline(periodId: string, value: string): Promise<Result> {
+  if (!z.string().uuid().safeParse(periodId).success) return { ok: false, error: 'Input tidak valid' };
+  const parsed = DeadlineInput.safeParse(value);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  const deadline = parsed.data ? new Date(`${parsed.data}:00+07:00`) : null;
+  if (deadline && Number.isNaN(deadline.getTime())) return { ok: false, error: 'Tanggal deadline tidak valid' };
+
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const { error } = await supabase.from('periods')
+    .update({ assessment_deadline: deadline ? deadline.toISOString() : null }).eq('id', periodId);
+  if (error) return { ok: false, error: 'Gagal: ' + error.message };
+
+  let changed = 0;
+  try { changed = await refreshLatePenalties(periodId); } catch (e) {
+    return { ok: false, error: 'Deadline tersimpan, tapi gagal menerapkan potongan: ' + (e instanceof Error ? e.message : String(e)) + '. Jalankan Hitung Ulang Skor 360°.' };
+  }
+
+  const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();
+  await logHrdAction({
+    action: 'period.setDeadline', category: 'periode',
+    summary: deadline
+      ? `Mengatur deadline penilaian 360° periode "${pr?.label ?? periodId}" → ${parsed.data.replace('T', ' ')} WIB`
+      : `Menghapus deadline penilaian 360° periode "${pr?.label ?? periodId}"`,
+    targetType: 'period', targetId: periodId, targetLabel: pr?.label ?? null,
+    meta: { assessment_deadline: deadline ? deadline.toISOString() : null, rescored: changed },
+  });
+  revalidatePath('/admin/periode');
+  revalidatePath('/admin/kepatuhan');
+  revalidatePath('/penilaian');
+  revalidatePath('/admin/dashboard');
+  revalidatePath('/admin/laporan');
+  return { ok: true };
+}
+
 /** Jumlah penilaian 360° TERKIRIM di periode — dipakai memutuskan konfirmasi "matikan 360°". */
 export async function count360Submitted(periodId: string): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
   const supabase = await createClient();
@@ -231,6 +276,32 @@ export async function toggleFormOpen(periodId: string, value: boolean): Promise<
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
+
+  // BR-06 (Q3 2026): sebelum form DIBUKA (bukan ditutup), pastikan instrumen 360° siap —
+  // tepat 10 indikator aktif & tiap indikator punya panduan perilaku (BARS) lengkap level
+  // 1–5. Mencegah form terbuka dengan instrumen yang belum final dari Kelola Pertanyaan.
+  if (value) {
+    const { data: pr360 } = await supabase.from('periods').select('has_360').eq('id', periodId).maybeSingle();
+    if (pr360?.has_360) {
+      const { data: aspects } = await supabase.from('culture_aspects').select('id').eq('period_id', periodId);
+      const aspectIds = (aspects ?? []).map((a) => a.id);
+      const { data: inds } = aspectIds.length
+        ? await supabase.from('indicators').select('id, text, rating_guide').in('aspect_id', aspectIds).eq('is_active', true)
+        : { data: [] as { id: string; text: string; rating_guide: Record<string, string> | null }[] };
+      const list = inds ?? [];
+      if (list.length !== 10) {
+        return { ok: false, error: `Jumlah indikator aktif harus tepat 10 (saat ini ${list.length}). Sesuaikan di Kelola Pertanyaan sebelum membuka form (BR-06).` };
+      }
+      const incomplete = list.filter((i) => {
+        const g = i.rating_guide;
+        return !g || !['1', '2', '3', '4', '5'].every((k) => (g[k] ?? '').trim().length > 0);
+      });
+      if (incomplete.length > 0) {
+        return { ok: false, error: `${incomplete.length} indikator belum punya panduan perilaku (BARS) lengkap untuk level 1–5: ${incomplete.slice(0, 3).map((i) => i.text).join(', ')}${incomplete.length > 3 ? ', …' : ''}. Lengkapi di Kelola Pertanyaan sebelum membuka form.` };
+      }
+    }
+  }
+
   const { error } = await supabase.from('periods').update({ form_open: value }).eq('id', periodId);
   if (error) return { ok: false, error: 'Gagal: ' + error.message };
   const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();

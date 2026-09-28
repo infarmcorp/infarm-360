@@ -13,6 +13,17 @@ const REL_LABEL: Record<string, string> = {
   Atasan: 'Atasan saya', Peer: 'Rekan sejawat (Peer)', Cross: 'Lintas Divisi', Bawahan: 'Bawahan saya',
 };
 
+// BR-04 (Q3 2026, keputusan HRD): pilihan alasan pengajuan lewat dropdown, bukan teks bebas.
+// 'Lainnya' tetap butuh keterangan bebas agar tak menyempitkan kasus yang belum tercakup.
+const REASON_OPTS = [
+  'Sering bekerja sama dengan ratee selama periode ini',
+  'Terlibat dalam project/tugas yang sama selama periode ini',
+  'Sering berkoordinasi dalam pekerjaan selama periode ini',
+  'Memiliki hubungan kerja lintas divisi selama periode ini',
+  'Lainnya',
+] as const;
+const REASON_LAINNYA = 'Lainnya';
+
 /**
  * "Ajukan Penilaian": pegawai mengusulkan menilai rekan yang belum ada di daftarnya, LENGKAP
  * dengan hubungan kerja yang menurutnya benar. Berbeda dari Ad-Hoc (instan, relasi dikunci
@@ -26,20 +37,24 @@ export function RequestAssessmentButton({ candidates }: { candidates: Candidate[
   const [open, setOpen] = useState(false);
   const [targetId, setTargetId] = useState('');
   const [relation, setRelation] = useState<string>('Peer');
-  const [reason, setReason] = useState('');
+  const [reasonOpt, setReasonOpt] = useState<string>(REASON_OPTS[0]);
+  const [reasonOther, setReasonOther] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [busy, start] = useTransition();
 
   function close() { setOpen(false); setErr(null); }
+  const isOther = reasonOpt === REASON_LAINNYA;
+  const finalReason = isOther ? reasonOther.trim() : reasonOpt;
 
   function submit() {
     setErr(null);
     if (!targetId) { setErr('Pilih rekan yang ingin Anda nilai.'); return; }
+    if (isOther && reasonOther.trim().length < 5) { setErr('Isi keterangan alasan (minimal 5 karakter) untuk pilihan "Lainnya".'); return; }
     start(async () => {
-      const res = await requestNewAssessment(targetId, relation, reason);
+      const res = await requestNewAssessment(targetId, relation, finalReason);
       // Sukses → tutup; konfirmasinya = baris baru "Menunggu" di panel Permohonan Saya
       // (disegarkan revalidatePath), jadi tak perlu toast terpisah.
-      if (res.ok) { setOpen(false); setTargetId(''); setReason(''); setRelation('Peer'); }
+      if (res.ok) { setOpen(false); setTargetId(''); setReasonOpt(REASON_OPTS[0]); setReasonOther(''); setRelation('Peer'); }
       else setErr(res.error);
     });
   }
@@ -71,7 +86,7 @@ export function RequestAssessmentButton({ candidates }: { candidates: Candidate[
             />
           </div>
           <div>
-            <label className="block text-[10px] uppercase font-extrabold text-ink-faint mb-1">Hubungan Kerja Anda dengan Rekan Itu</label>
+            <label className="block text-[10px] uppercase font-extrabold text-ink-faint mb-1">Hubungan dengan Rekan yang Dinilai</label>
             <select value={relation} onChange={(e) => setRelation(e.target.value)} disabled={busy}
               className="w-full text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink font-semibold focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
               {REL_OPTS.map((r) => <option key={r} value={r}>{REL_LABEL[r]}</option>)}
@@ -81,10 +96,19 @@ export function RequestAssessmentButton({ candidates }: { candidates: Candidate[
 
         <div>
           <label className="block text-[10px] uppercase font-extrabold text-brand-ink mb-1">Alasan Pengajuan</label>
-          <textarea value={reason} onChange={(e) => setReason(e.target.value)} disabled={busy} rows={3}
-            placeholder="Mis. 'Kami satu tim proyek selama kuartal ini, sehingga saya punya dasar menilai kinerjanya.'"
-            className="w-full text-xs p-2.5 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
-          <p className="text-[10px] text-ink-faint mt-1">Minimal 5 karakter. Alasan ini yang dibaca HRD saat memutuskan.</p>
+          <select value={reasonOpt} onChange={(e) => setReasonOpt(e.target.value)} disabled={busy}
+            className="w-full text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink font-semibold focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
+            {REASON_OPTS.map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+          {isOther && (
+            <>
+              <textarea value={reasonOther} onChange={(e) => setReasonOther(e.target.value)} disabled={busy} rows={3}
+                placeholder="Jelaskan alasan Anda mengajukan penilaian ini."
+                className="w-full text-xs p-2.5 mt-1.5 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+              <p className="text-[10px] text-ink-faint mt-1">Wajib diisi (minimal 5 karakter) untuk pilihan "Lainnya".</p>
+            </>
+          )}
+          <p className="text-[10px] text-ink-faint mt-1">Alasan ini yang dibaca HRD saat memutuskan.</p>
         </div>
 
         {err && <p className="text-[11px] text-danger-ink font-semibold">{err}</p>}

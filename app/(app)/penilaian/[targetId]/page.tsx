@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { AssessForm } from './assess-form';
+import { ExposureCheckForm } from './exposure-check-form';
 
 /**
  * Form Pengisian 360° untuk satu target (read + prefill draf).
@@ -44,7 +45,7 @@ export default async function AssessPage({
 
   const { data: indRows } = aspects.length
     ? await supabase
-        .from('indicators').select('id, aspect_id, text, order_idx, is_active, description, rating_guide')
+        .from('indicators').select('id, aspect_id, text, order_idx, is_active, description, rating_guide, rating_key_points')
         .in('aspect_id', aspects.map((a) => a.id))
         .eq('is_active', true)
         .order('order_idx')
@@ -56,20 +57,32 @@ export default async function AssessPage({
     .eq('period_id', ap.id).order('order_idx');
   const questions = qRows ?? [];
 
-  // Draf yang sudah ada (prefill).
+  // Draf yang sudah ada (prefill) + status Exposure Check (BR-03).
   const { data: existing } = await supabase
-    .from('assessments').select('id, status')
+    .from('assessments').select('id, status, exposure_status, exposure_reason')
     .eq('assessor_id', user.id).eq('target_id', targetId).eq('period_id', ap.id)
     .maybeSingle();
 
-  const initialScores: Record<string, { rating: number | null; comment: string }> = {};
+  // BR-03: Not Eligible → penilaian dihentikan, tampilkan notice (bukan form).
+  if (existing?.exposure_status === 'not_eligible') {
+    return (
+      <Notice>
+        Anda menandai <strong>Not Eligible</strong> (tidak memiliki exposure kerja yang cukup) untuk menilai
+        pegawai ini{existing.exposure_reason ? <> — alasan: <em>&ldquo;{existing.exposure_reason}&rdquo;</em></> : null}.
+        Penilaian tidak dilanjutkan, tidak dihitung sebagai tunggakan, dan tidak dikenakan penalty keterlambatan.
+        Hubungi HRD bila status ini perlu dikoreksi.
+      </Notice>
+    );
+  }
+
+  const initialScores: Record<string, { rating: number | null; comment: string; isNa: boolean; naReason: string }> = {};
   const initialAnswers: Record<string, string> = {};
   if (existing) {
     const { data: sc } = await supabase
-      .from('assessment_indicator_scores').select('indicator_id, rating, comment')
+      .from('assessment_indicator_scores').select('indicator_id, rating, comment, is_na, na_reason')
       .eq('assessment_id', existing.id);
     (sc ?? []).forEach((s) => {
-      initialScores[s.indicator_id] = { rating: s.rating, comment: s.comment ?? '' };
+      initialScores[s.indicator_id] = { rating: s.rating, comment: s.comment ?? '', isNa: s.is_na ?? false, naReason: s.na_reason ?? '' };
     });
     const { data: an } = await supabase
       .from('assessment_qual_answers').select('question_id, answer')
@@ -95,7 +108,7 @@ export default async function AssessPage({
     id: a.id,
     name: a.name,
     indicators: indicators.filter((i) => i.aspect_id === a.id).map((i) => ({
-      id: i.id, text: i.text, description: i.description ?? null, ratingGuide: i.rating_guide ?? null,
+      id: i.id, text: i.text, description: i.description ?? null, ratingGuide: i.rating_guide ?? null, ratingKeyPoints: i.rating_key_points ?? null,
     })),
   }));
 
@@ -119,24 +132,30 @@ export default async function AssessPage({
           )}
         </p>
 
-        {/* key=targetId → form di-MOUNT ULANG tiap ganti target. Tanpa ini, berpindah dari
-            /penilaian/A ke /penilaian/B (tanpa reload) membuat React mempertahankan state
-            (activeGroup/activeId/rating/komentar) target sebelumnya → form bisa terbuka di
-            "Umpan Balik Kualitatif" atau menampilkan jawaban target lama. */}
-        <AssessForm
-          key={targetId}
-          targetId={targetId}
-          targetName={target?.name ?? 'pegawai ini'}
-          groups={groups}
-          questions={questions.map((q) => ({ id: q.id, text: q.text }))}
-          initialScores={initialScores}
-          initialAnswers={initialAnswers}
-          hasDraft={existing?.status === 'draft'}
-          initialStatus={existing?.status ?? null}
-          mandatoryTotal={mandatoryTotal}
-          mandatoryDoneOthers={mandatoryDoneOthers}
-          thisMandatory={thisMandatory}
-        />
+        {/* BR-03: Exposure Check WAJIB sebelum form muncul, sekali per pasangan penilai→target. */}
+        {!existing?.exposure_status ? (
+          <ExposureCheckForm key={targetId} targetId={targetId} targetName={target?.name ?? 'pegawai ini'} />
+        ) : (
+          // key=targetId → form di-MOUNT ULANG tiap ganti target. Tanpa ini, berpindah dari
+          // /penilaian/A ke /penilaian/B (tanpa reload) membuat React mempertahankan state
+          // (activeGroup/activeId/rating/komentar) target sebelumnya → form bisa terbuka di
+          // "Umpan Balik Kualitatif" atau menampilkan jawaban target lama.
+          <AssessForm
+            key={targetId}
+            targetId={targetId}
+            targetName={target?.name ?? 'pegawai ini'}
+            groups={groups}
+            questions={questions.map((q) => ({ id: q.id, text: q.text }))}
+            initialScores={initialScores}
+            initialAnswers={initialAnswers}
+            hasDraft={existing?.status === 'draft'}
+            initialStatus={existing?.status ?? null}
+            mandatoryTotal={mandatoryTotal}
+            mandatoryDoneOthers={mandatoryDoneOthers}
+            thisMandatory={thisMandatory}
+            partiallyEligible={existing?.exposure_status === 'partially_eligible'}
+          />
+        )}
       </div>
     </main>
   );

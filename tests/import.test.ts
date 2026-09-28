@@ -171,14 +171,14 @@ describe('classifyMappingRows', () => {
     expect(c[0]).toMatchObject({ status: 'invalid', reason: 'Relasi kosong/tak valid' });
   });
 
-  it('self: penilai = dinilai tetapi relasi bukan Self', () => {
+  it('invalid: penilai = dinilai (Self Assessment dinonaktifkan, BR-02)', () => {
     const c = parse([{ penilai: 'EMP001', dinilai: 'EMP001', relasi: 'Peer' }]);
-    expect(c[0].status).toBe('self');
+    expect(c[0].status).toBe('invalid');
   });
 
-  it('ok: penilai = dinilai dengan relasi Self', () => {
-    const c = parse([{ penilai: 'EMP001', dinilai: 'EMP001', relasi: 'Self' }]);
-    expect(c[0].status).toBe('ok');
+  it('invalid: relasi Self dinonaktifkan meski penilai ≠ dinilai', () => {
+    const c = parse([{ penilai: 'SPV001', dinilai: 'EMP001', relasi: 'Self' }]);
+    expect(c[0]).toMatchObject({ status: 'invalid', reason: 'Relasi Self dinonaktifkan untuk periode ini' });
   });
 
   it('dup: pasangan penilai→target berulang (relasi tak dihitung untuk keunikan)', () => {

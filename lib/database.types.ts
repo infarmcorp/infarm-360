@@ -9,6 +9,7 @@
 export type UserRole = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type RelationKind = 'Atasan' | 'Peer' | 'Cross' | 'Self' | 'Bawahan';
 export type AssessmentStatus = 'draft' | 'submitted';
+export type ExposureStatus = 'eligible' | 'partially_eligible' | 'not_eligible'; // BR-03 Exposure Check
 export type WeightValues = { atasan?: number; peer?: number; cross?: number; bawahan?: number; self?: number; internal?: number };
 export type ReportStatus = 'draft' | 'in_review' | 'finalized';
 export type SuccessionStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
@@ -44,8 +45,8 @@ export interface Database {
         Relationships: [];
       };
       periods: {
-        Row: { id: string; code: string; label: string; start_date: string; end_date: string; status: 'active' | 'ended'; has_360: boolean; form_open: boolean; mapping_published: boolean; kpi_standard: number; created_at: string };
-        Insert: { code: string; label: string; start_date: string; end_date: string; status?: 'active' | 'ended'; has_360?: boolean; form_open?: boolean; mapping_published?: boolean; kpi_standard?: number };
+        Row: { id: string; code: string; label: string; start_date: string; end_date: string; status: 'active' | 'ended'; has_360: boolean; form_open: boolean; mapping_published: boolean; kpi_standard: number; assessment_deadline: string | null; created_at: string };
+        Insert: { code: string; label: string; start_date: string; end_date: string; status?: 'active' | 'ended'; has_360?: boolean; form_open?: boolean; mapping_published?: boolean; kpi_standard?: number; assessment_deadline?: string | null };
         Update: Partial<Database['public']['Tables']['periods']['Insert']>;
         Relationships: [];
       };
@@ -74,8 +75,8 @@ export interface Database {
         Relationships: [];
       };
       assessments: {
-        Row: { id: string; period_id: string; assessor_id: string; target_id: string; status: AssessmentStatus; is_adhoc: boolean; submitted_at: string | null; created_at: string };
-        Insert: { period_id: string; assessor_id: string; target_id: string; status?: AssessmentStatus; is_adhoc?: boolean; submitted_at?: string | null };
+        Row: { id: string; period_id: string; assessor_id: string; target_id: string; status: AssessmentStatus; is_adhoc: boolean; submitted_at: string | null; first_submitted_at: string | null; forced_by_hrd: boolean; exposure_status: ExposureStatus | null; exposure_confirmed_at: string | null; exposure_reason: string | null; created_at: string };
+        Insert: { period_id: string; assessor_id: string; target_id: string; status?: AssessmentStatus; is_adhoc?: boolean; submitted_at?: string | null; exposure_status?: ExposureStatus | null; exposure_confirmed_at?: string | null; exposure_reason?: string | null };
         Update: Partial<Database['public']['Tables']['assessments']['Insert']>;
         Relationships: [];
       };
@@ -86,8 +87,8 @@ export interface Database {
         Relationships: [];
       };
       indicators: {
-        Row: { id: string; aspect_id: string; text: string; order_idx: number; is_active: boolean; description: string | null; rating_guide: Record<string, string> | null };
-        Insert: { aspect_id: string; text: string; order_idx?: number; is_active?: boolean; description?: string | null; rating_guide?: Record<string, string> | null };
+        Row: { id: string; aspect_id: string; text: string; order_idx: number; is_active: boolean; description: string | null; rating_guide: Record<string, string> | null; rating_key_points: Record<string, string> | null };
+        Insert: { aspect_id: string; text: string; order_idx?: number; is_active?: boolean; description?: string | null; rating_guide?: Record<string, string> | null; rating_key_points?: Record<string, string> | null };
         Update: Partial<Database['public']['Tables']['indicators']['Insert']>;
         Relationships: [];
       };
@@ -98,8 +99,8 @@ export interface Database {
         Relationships: [];
       };
       assessment_indicator_scores: {
-        Row: { assessment_id: string; indicator_id: string; rating: number | null; comment: string | null };
-        Insert: { assessment_id: string; indicator_id: string; rating?: number | null; comment?: string | null };
+        Row: { assessment_id: string; indicator_id: string; rating: number | null; comment: string | null; is_na: boolean; na_reason: string | null };
+        Insert: { assessment_id: string; indicator_id: string; rating?: number | null; comment?: string | null; is_na?: boolean; na_reason?: string | null };
         Update: Partial<Database['public']['Tables']['assessment_indicator_scores']['Insert']>;
         Relationships: [];
       };
@@ -122,9 +123,15 @@ export interface Database {
         Relationships: [];
       };
       result_360: {
-        Row: { employee_id: string; period_id: string; score: number | null; computed_at: string };
-        Insert: { employee_id: string; period_id: string; score?: number | null; computed_at?: string };
+        Row: { employee_id: string; period_id: string; score: number | null; score_raw: number | null; late_penalty: number; computed_at: string };
+        Insert: { employee_id: string; period_id: string; score?: number | null; score_raw?: number | null; late_penalty?: number; computed_at?: string };
         Update: Partial<Database['public']['Tables']['result_360']['Insert']>;
+        Relationships: [];
+      };
+      late_penalty_waivers: {
+        Row: { employee_id: string; period_id: string; reason: string; set_by: string | null; created_at: string };
+        Insert: { employee_id: string; period_id: string; reason: string; set_by?: string | null };
+        Update: Partial<Database['public']['Tables']['late_penalty_waivers']['Insert']>;
         Relationships: [];
       };
       compliance_penalties: {

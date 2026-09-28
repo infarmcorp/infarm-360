@@ -6,6 +6,7 @@ import { canSection } from '@/lib/auth/roles';
 import { PeriodForm } from './period-form';
 import { PeriodActions } from './period-actions';
 import { KpiStandardEditor } from './kpi-standard-editor';
+import { DeadlineEditor } from './deadline-editor';
 import { ReadinessPanel } from './readiness-panel';
 import { CycleStatus } from './cycle-status';
 import { EmptyState } from '@/components/empty-state';
@@ -38,7 +39,7 @@ export default async function PeriodePage({
   }
 
   const { data: periods } = await supabase
-    .from('periods').select('id, code, label, start_date, end_date, status, has_360, form_open, mapping_published, kpi_standard').order('start_date', { ascending: false });
+    .from('periods').select('id, code, label, start_date, end_date, status, has_360, form_open, mapping_published, kpi_standard, assessment_deadline').order('start_date', { ascending: false });
   const list = periods ?? [];
 
   const { data: monthRows } = await supabase.from('period_months').select('period_id');
@@ -118,12 +119,13 @@ export default async function PeriodePage({
       ) : (
       <Panel>
       <div className="overflow-x-auto">
-      <table className="w-full text-left min-w-[600px]">
+      <table className="w-full text-left min-w-[780px]">
         <thead>
           <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
             <th className="pb-3 pr-3 font-semibold">Periode</th>
             <th className="pb-3 px-3 font-semibold">Rentang</th>
             <th className="pb-3 px-3 text-center font-semibold">360°</th>
+            <th className="pb-3 px-3 text-center font-semibold">Deadline 360°</th>
             <th className="pb-3 px-3 text-center font-semibold">Standar KPI</th>
             <th className="pb-3 px-3 text-center font-semibold">Status</th>
             <th className="pb-3 pl-3 text-right font-semibold"></th>
@@ -141,6 +143,11 @@ export default async function PeriodePage({
                 {p.has_360
                   ? <span className="font-medium text-brand-ink">Aktif</span>
                   : <span className="text-ink-faint">Tanpa</span>}
+              </td>
+              <td className="py-4 px-3 text-center">
+                {p.has_360
+                  ? <DeadlineEditor periodId={p.id} value={p.assessment_deadline} />
+                  : <span className="text-ink-faint">—</span>}
               </td>
               <td className="py-4 px-3 text-center">
                 <KpiStandardEditor periodId={p.id} value={p.kpi_standard} />

@@ -29,9 +29,11 @@ const Text = z.string().trim().min(3, 'Teks terlalu pendek').max(300);
 const Desc = z.string().trim().max(500).optional().default('');
 // Panduan rating: {"1".."5"} teks per level (opsional). Kosong → tak disimpan.
 const Guide = z.record(z.enum(['1', '2', '3', '4', '5']), z.string().trim().max(300)).optional();
+// Key point BARS: {"1".."5"} label PENDEK per level (mockup Screen 03) — khusus per indikator.
+const KeyPoints = z.record(z.enum(['1', '2', '3', '4', '5']), z.string().trim().max(80)).optional();
 
-/** Normalisasi panduan rating → jsonb {level:teks} hanya untuk level berisi, atau null. */
-function normGuide(g?: Record<string, string>): Record<string, string> | null {
+/** Normalisasi map level→teks → jsonb {level:teks} hanya untuk level berisi, atau null. */
+function normLevelMap(g?: Record<string, string>): Record<string, string> | null {
   if (!g) return null;
   const out: Record<string, string> = {};
   for (const k of ['1', '2', '3', '4', '5']) { const v = (g[k] ?? '').trim(); if (v) out[k] = v; }
@@ -121,7 +123,7 @@ export async function addIndicator(aspectId: string, rawText: string, rawDesc?: 
   const { data: last } = await c.supabase.from('indicators').select('order_idx').eq('aspect_id', aspectId).order('order_idx', { ascending: false }).limit(1).maybeSingle();
   const { error } = await c.supabase.from('indicators').insert({
     aspect_id: aspectId, text: text.data, order_idx: (last?.order_idx ?? -1) + 1, is_active: true,
-    description: desc.data || null, rating_guide: normGuide(guide.success ? guide.data : undefined),
+    description: desc.data || null, rating_guide: normLevelMap(guide.success ? guide.data : undefined),
   });
   if (error) return { ok: false, error: 'Gagal menambah: ' + error.message };
   await logHrdAction({
@@ -132,18 +134,22 @@ export async function addIndicator(aspectId: string, rawText: string, rawDesc?: 
   return { ok: true };
 }
 
-export async function updateIndicator(indicatorId: string, rawText: string, rawDesc?: string, rawGuide?: Record<string, string>): Promise<Result> {
+export async function updateIndicator(
+  indicatorId: string, rawText: string, rawDesc?: string, rawGuide?: Record<string, string>, rawKeyPoints?: Record<string, string>,
+): Promise<Result> {
   const text = Text.safeParse(rawText);
   if (!text.success) return { ok: false, error: text.error.issues[0].message };
   const desc = Desc.safeParse(rawDesc ?? '');
   const guide = Guide.safeParse(rawGuide);
+  const keyPoints = KeyPoints.safeParse(rawKeyPoints);
   if (!desc.success) return { ok: false, error: 'Deskripsi terlalu panjang' };
   const c = await ctx(); if (!c.ok) return c;
-  // Hanya kirim description/rating_guide bila argumen diberikan (edit panduan), agar
-  // edit teks cepat tak menimpa panduan.
-  const patch: { text: string; description?: string | null; rating_guide?: Record<string, string> | null } = { text: text.data };
+  // Hanya kirim description/rating_guide/rating_key_points bila argumen diberikan (edit
+  // panduan), agar edit teks cepat tak menimpa panduan.
+  const patch: { text: string; description?: string | null; rating_guide?: Record<string, string> | null; rating_key_points?: Record<string, string> | null } = { text: text.data };
   if (rawDesc !== undefined) patch.description = desc.data || null;
-  if (rawGuide !== undefined) patch.rating_guide = normGuide(guide.success ? guide.data : undefined);
+  if (rawGuide !== undefined) patch.rating_guide = normLevelMap(guide.success ? guide.data : undefined);
+  if (rawKeyPoints !== undefined) patch.rating_key_points = normLevelMap(keyPoints.success ? keyPoints.data : undefined);
   const { error } = await c.supabase.from('indicators').update(patch).eq('id', indicatorId);
   if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
   await logHrdAction({
@@ -219,7 +225,7 @@ export async function importQuestionsFromPeriod(sourcePeriodId: string): Promise
   const srcAspectIds = (srcAspects ?? []).map((a) => a.id);
   const { data: srcInds } = srcAspectIds.length
     ? await admin.from('indicators')
-        .select('aspect_id, text, order_idx, is_active, description, rating_guide')
+        .select('aspect_id, text, order_idx, is_active, description, rating_guide, rating_key_points')
         .in('aspect_id', srcAspectIds).order('order_idx')
     : { data: [] };
 
@@ -241,7 +247,7 @@ export async function importQuestionsFromPeriod(sourcePeriodId: string): Promise
     if (inds.length) {
       const rows = inds.map((i, idx) => ({
         aspect_id: newAsp.id, text: i.text, order_idx: idx, is_active: true,
-        description: i.description ?? null, rating_guide: i.rating_guide ?? null,
+        description: i.description ?? null, rating_guide: i.rating_guide ?? null, rating_key_points: i.rating_key_points ?? null,
       }));
       const { error: ie } = await admin.from('indicators').insert(rows);
       if (ie) return { ok: false, error: 'Gagal menyalin indikator: ' + ie.message };

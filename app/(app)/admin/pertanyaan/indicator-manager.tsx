@@ -6,10 +6,17 @@ import { ChevronDown, ChevronRight, Trash2, ChevronUp, Pencil, Check, X } from '
 import { updateIndicator, toggleIndicator, deleteIndicator, renameAspect, deleteAspect, moveAspect } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
-type Ind = { id: string; text: string; is_active: boolean; description: string; ratingGuide: Record<string, string> | null };
+type Ind = {
+  id: string; text: string; is_active: boolean; description: string;
+  ratingGuide: Record<string, string> | null; ratingKeyPoints: Record<string, string> | null;
+};
 
-const RATING_LABELS: Record<string, string> = {
-  '1': 'Hampir Tidak Pernah', '2': 'Jarang', '3': 'Kadang', '4': 'Sering', '5': 'Selalu',
+// Contoh placeholder saja (BUKAN nilai default tersimpan) — key point sesungguhnya WAJIB
+// diisi per indikator dari Instrumen Final Q3 2026, bukan label generik yang sama untuk
+// semua indikator (lihat mockup Screen 03 / BR-06 Catatan Developer).
+const KEY_POINT_PLACEHOLDER: Record<string, string> = {
+  '1': 'mis. Belum terlihat', '2': 'mis. Di bawah ekspektasi', '3': 'mis. Sesuai ekspektasi',
+  '4': 'mis. Di atas ekspektasi', '5': 'mis. Sangat konsisten',
 };
 
 export function IndicatorManager({
@@ -112,12 +119,16 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
     '1': ind.ratingGuide?.['1'] ?? '', '2': ind.ratingGuide?.['2'] ?? '', '3': ind.ratingGuide?.['3'] ?? '',
     '4': ind.ratingGuide?.['4'] ?? '', '5': ind.ratingGuide?.['5'] ?? '',
   }));
+  const [keyPoints, setKeyPoints] = useState<Record<string, string>>(() => ({
+    '1': ind.ratingKeyPoints?.['1'] ?? '', '2': ind.ratingKeyPoints?.['2'] ?? '', '3': ind.ratingKeyPoints?.['3'] ?? '',
+    '4': ind.ratingKeyPoints?.['4'] ?? '', '5': ind.ratingKeyPoints?.['5'] ?? '',
+  }));
 
   const dirtyText = text.trim() !== ind.text;
-  const hasGuide = !!ind.description || !!ind.ratingGuide;
+  const hasGuide = !!ind.description || !!ind.ratingGuide || !!ind.ratingKeyPoints;
 
   async function saveGuide() {
-    const ok = await run(() => updateIndicator(ind.id, text, desc, guide));
+    const ok = await run(() => updateIndicator(ind.id, text, desc, guide, keyPoints));
     if (ok) setOpen(false);
   }
 
@@ -156,14 +167,23 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
               className="w-full text-[12px] p-2 bg-surface border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint resize-none" />
           </div>
           <div>
-            <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">Panduan Rating per Level (opsional)</label>
+            <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">Panduan BARS per Level</label>
+            <p className="text-[10px] text-ink-faint mb-1.5 leading-relaxed">
+              Key point = label pendek yang tampil besar di form penilaian (khusus indikator ini, dari Instrumen Final Q3 2026 — jangan disamakan antar indikator).
+              Deskripsi = penjelasan panjang di bawahnya.
+            </p>
             <div className="space-y-1.5">
               {['1', '2', '3', '4', '5'].map((lv) => (
                 <div key={lv} className="flex items-start gap-1.5">
                   <span className="text-[11px] font-bold text-brand-ink data-value w-4 text-center shrink-0 mt-1.5">{lv}</span>
-                  <input value={guide[lv]} onChange={(e) => setGuide((p) => ({ ...p, [lv]: e.target.value }))}
-                    placeholder={`${RATING_LABELS[lv]} — contoh/kriteria…`}
-                    className="flex-1 text-[12px] px-2 py-1 bg-surface border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+                  <div className="flex-1 space-y-1">
+                    <input value={keyPoints[lv]} onChange={(e) => setKeyPoints((p) => ({ ...p, [lv]: e.target.value }))}
+                      placeholder={`Key point — ${KEY_POINT_PLACEHOLDER[lv]}`}
+                      className="w-full text-[12px] font-semibold px-2 py-1 bg-surface border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+                    <input value={guide[lv]} onChange={(e) => setGuide((p) => ({ ...p, [lv]: e.target.value }))}
+                      placeholder="Deskripsi — contoh/kriteria perilaku…"
+                      className="w-full text-[12px] px-2 py-1 bg-surface border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+                  </div>
                 </div>
               ))}
             </div>

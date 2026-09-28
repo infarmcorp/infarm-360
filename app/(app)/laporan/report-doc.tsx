@@ -41,6 +41,9 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
         <ScoreCard label="Evaluasi 360°" value={data.has360 ? data.s360 : null} color="text-brand-ink" />
         <ScoreCard label="Skor Akhir" value={data.finalScore} color="text-ink" big />
       </div>
+      {data.has360 && data.latePenalty360 > 0 && data.s360 != null && (
+        <p className="text-[11px] text-warn-ink mt-2">Evaluasi 360° termasuk potongan keterlambatan menilai −{data.latePenalty360.toFixed(2)}.</p>
+      )}
       {data.penalty > 0 && (
         <p className="text-[11px] text-danger-ink mt-2">Termasuk pengurangan punishment kepatuhan −{data.penalty.toFixed(2)}.</p>
       )}

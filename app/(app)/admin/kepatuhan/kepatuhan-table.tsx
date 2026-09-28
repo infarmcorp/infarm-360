@@ -2,19 +2,24 @@
 
 import { useMemo, useState } from 'react';
 import { PenaltyInput } from './penalty-input';
+import { LateWaiver } from './late-waiver';
 import { usePager, Pager, CheckboxFilter, MultiCheckFilter } from '@/components/table-controls';
 
 export type KepatuhanRow = {
   id: string; name: string; dept: string;
   lateCount: number; lateTargets: string[]; selfMissing: boolean; points: number;
+  /** Penilaian wajib yang DIKIRIM SESUDAH deadline (terhitung potongan) — nama + waktu kirim pertama (WIB). */
+  lateSubmitted: string[];
+  latePenalty: number; lateWaived: boolean; lateWaiveReason: string | null;
 };
 
 /**
- * Baris "perlu perhatian" = ada penilaian wajib telat, ATAU belum self-assessment,
- * ATAU sudah punya punishment (agar tetap bisa ditinjau/dikoreksi). Sisanya (patuh
+ * Baris "perlu perhatian" = ada penilaian wajib belum dikirim, ATAU dikirim terlambat, ATAU
+ * belum self-assessment, ATAU sudah punya punishment/pengecualian (agar tetap bisa ditinjau/dikoreksi). Sisanya (patuh
  * penuh & tanpa punishment) disembunyikan secara default → halaman lebih bersih.
  */
-const needsAttention = (r: KepatuhanRow) => r.lateCount > 0 || r.selfMissing || r.points > 0;
+const needsAttention = (r: KepatuhanRow) =>
+  r.lateCount > 0 || r.lateSubmitted.length > 0 || r.lateWaived || r.selfMissing || r.points > 0;
 
 export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[]; readOnly?: boolean }) {
   const [showAll, setShowAll] = useState(false);
@@ -56,11 +61,13 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[520px]">
+            <table className="w-full text-left text-sm min-w-[720px]">
               <thead>
                 <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
                   <th className="py-2 pr-3 font-semibold">Pegawai</th>
-                  <th className="py-2 px-3 text-center font-semibold">Wajib Telat</th>
+                  <th className="py-2 px-3 text-center font-semibold">Belum Kirim</th>
+                  <th className="py-2 px-3 text-center font-semibold">Kirim Terlambat</th>
+                  <th className="py-2 px-3 text-center font-semibold">Potongan 360°</th>
                   <th className="py-2 px-3 text-center font-semibold">Self</th>
                   <th className="py-2 pl-3 text-right font-semibold">Punishment (poin)</th>
                 </tr>
@@ -75,9 +82,20 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
                     <td className="py-3 px-3 text-center">
                       {r.lateCount > 0 ? (
                         <span className="text-[11px] font-semibold text-danger-ink" title={r.lateTargets.join(', ')}>
-                          <span className="data-value">{r.lateCount}</span> telat
+                          <span className="data-value">{r.lateCount}</span> belum
                         </span>
-                      ) : <span className="text-[11px] text-brand-ink">✔ patuh</span>}
+                      ) : <span className="text-[11px] text-brand-ink">✔ lengkap</span>}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      {r.lateSubmitted.length > 0 ? (
+                        <span className="text-[11px] font-semibold text-warn-ink" title={r.lateSubmitted.join('\n')}>
+                          <span className="data-value">{r.lateSubmitted.length}</span> terlambat
+                        </span>
+                      ) : <span className="text-[11px] text-ink-faint">—</span>}
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <LateWaiver employeeId={r.id} penalty={r.latePenalty} waived={r.lateWaived}
+                        waiveReason={r.lateWaiveReason} lateCount={r.lateSubmitted.length} readOnly={readOnly} />
                     </td>
                     <td className="py-3 px-3 text-center">
                       {r.selfMissing

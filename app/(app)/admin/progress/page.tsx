@@ -46,8 +46,8 @@ export default async function ProgressPage() {
       // Progress 360. Pemetaan hasil PERMOHONAN yang disetujui HRD masuk, karena ia disimpan
       // sebagai pemetaan wajib non-ad-hoc (lihat reviewCorrection).
       db.from('mappings').select('assessor_id, target_id, relation, mandatory').eq('period_id', ap.id).eq('is_active', true).eq('is_adhoc', false).order('assessor_id').order('target_id').range(from, to)),
-    fetchAllPaged<{ assessor_id: string; target_id: string; status: string; exposure_status: string | null }>((from, to) =>
-      db.from('assessments').select('assessor_id, target_id, status, exposure_status').eq('period_id', ap.id).order('assessor_id').order('target_id').range(from, to)),
+    fetchAllPaged<{ assessor_id: string; target_id: string; status: string; exposure_status: string | null; exposure_reason: string | null }>((from, to) =>
+      db.from('assessments').select('assessor_id, target_id, status, exposure_status, exposure_reason').eq('period_id', ap.id).order('assessor_id').order('target_id').range(from, to)),
   ]);
   // Pemegang grant: himpunan id pegawai DALAM lingkup → menyaring baris penilai & yang-dinilai.
   const scopedIds = viaGrant
@@ -57,6 +57,7 @@ export default async function ProgressPage() {
   const submitted = new Set(asmtsAll.filter((a) => a.status === 'submitted').map((a) => `${a.assessor_id}|${a.target_id}`));
   // BR-03: Not Eligible → kewajiban gugur, dikeluarkan dari tunggakan; ditandai terpisah utk review HRD.
   const notEligible = new Set(asmtsAll.filter((a) => a.exposure_status === 'not_eligible').map((a) => `${a.assessor_id}|${a.target_id}`));
+  const notEligibleReason = new Map(asmtsAll.filter((a) => a.exposure_status === 'not_eligible').map((a) => [`${a.assessor_id}|${a.target_id}`, a.exposure_reason]));
 
   // Kelompokkan tugas per penilai (bawa relasi & sifat wajib/opsional).
   const byAssessor = new Map<string, { targetId: string; relation: string; mandatory: boolean }[]>();
@@ -75,7 +76,10 @@ export default async function ProgressPage() {
       .map((t) => ({ targetId: t.targetId, targetName: empById.get(t.targetId)?.name ?? '—', relation: t.relation, mandatory: t.mandatory }));
     const notEligibleList = tasks
       .filter((t) => notEligible.has(`${assessorId}|${t.targetId}`))
-      .map((t) => ({ targetId: t.targetId, targetName: empById.get(t.targetId)?.name ?? '—', relation: t.relation, mandatory: t.mandatory }));
+      .map((t) => ({
+        targetId: t.targetId, targetName: empById.get(t.targetId)?.name ?? '—', relation: t.relation, mandatory: t.mandatory,
+        reason: notEligibleReason.get(`${assessorId}|${t.targetId}`) ?? null,
+      }));
     // Kelengkapan diukur dari penilaian WAJIB saja (opsional tak menentukan "lengkap").
     const mandatoryTasks = activeTasks.filter((t) => t.mandatory);
     const mandatoryDone = mandatoryTasks.filter((t) => submitted.has(`${assessorId}|${t.targetId}`)).length;

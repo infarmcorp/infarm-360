@@ -5,7 +5,7 @@ import { forceComplete, sendReminder, massReminder, sendOnboarding, massOnboardi
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { usePager, Pager, MultiCheckFilter } from '@/components/table-controls';
 
-export type Pending = { targetId: string; targetName: string; relation: string; mandatory: boolean };
+export type Pending = { targetId: string; targetName: string; relation: string; mandatory: boolean; reason?: string | null };
 export type AssessorRow = {
   id: string; name: string; dept: string;
   total: number; done: number;              // semua tugas (wajib + opsional) — info sekunder
@@ -253,9 +253,12 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                   <p className="text-[10px] uppercase tracking-[0.05em] text-danger-ink font-semibold">Not Eligible (perlu review HRD):</p>
                   {r.notEligible.map((p) => (
                     <div key={p.targetId} className="flex items-center justify-between gap-2 text-xs">
-                      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                        <span className="text-ink-soft font-semibold">{p.targetName}</span>
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft">{p.relation}</span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-ink-soft font-semibold">{p.targetName}</span>
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft">{p.relation}</span>
+                        </div>
+                        {p.reason && <p className="text-[10.5px] text-ink-faint italic mt-0.5">Alasan: {p.reason}</p>}
                       </div>
                       {!readOnly && (
                         <button type="button" onClick={() => setConfirm({

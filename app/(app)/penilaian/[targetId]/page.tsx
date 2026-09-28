@@ -59,7 +59,7 @@ export default async function AssessPage({
 
   // Draf yang sudah ada (prefill) + status Exposure Check (BR-03).
   const { data: existing } = await supabase
-    .from('assessments').select('id, status, exposure_status')
+    .from('assessments').select('id, status, exposure_status, exposure_reason')
     .eq('assessor_id', user.id).eq('target_id', targetId).eq('period_id', ap.id)
     .maybeSingle();
 
@@ -68,8 +68,9 @@ export default async function AssessPage({
     return (
       <Notice>
         Anda menandai <strong>Not Eligible</strong> (tidak memiliki exposure kerja yang cukup) untuk menilai
-        pegawai ini. Penilaian tidak dilanjutkan, tidak dihitung sebagai tunggakan, dan tidak dikenakan
-        penalty keterlambatan. Hubungi HRD bila status ini perlu dikoreksi.
+        pegawai ini{existing.exposure_reason ? <> — alasan: <em>&ldquo;{existing.exposure_reason}&rdquo;</em></> : null}.
+        Penilaian tidak dilanjutkan, tidak dihitung sebagai tunggakan, dan tidak dikenakan penalty keterlambatan.
+        Hubungi HRD bila status ini perlu dikoreksi.
       </Notice>
     );
   }

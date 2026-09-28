@@ -136,7 +136,7 @@ export async function resetExposureStatus(assessorId: string, targetId: string):
   if (!existing?.exposure_status) return { ok: false, error: 'Belum ada status Exposure Check untuk pasangan ini' };
 
   const { error } = await supabase.from('assessments')
-    .update({ exposure_status: null, exposure_confirmed_at: null }).eq('id', existing.id);
+    .update({ exposure_status: null, exposure_confirmed_at: null, exposure_reason: null }).eq('id', existing.id);
   if (error) return { ok: false, error: 'Gagal: ' + error.message };
 
   await logHrdAction({

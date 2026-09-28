@@ -154,16 +154,35 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
  *
  * TERKUNCI setelah dikonfirmasi — rater tak bisa mengubah sendiri (mencegah
  * "downgrade" status buat menghindari kewajiban). Koreksi lewat HRD menyusul (Tahap 2).
+ *
+ * Not Eligible WAJIB disertai alasan (dropdown final HRD 2026-09-28, migrasi 0038):
+ *   a) Tidak pernah bekerja sama secara langsung selama periode penilaian
+ *   b) Interaksi kerja terlalu terbatas untuk memberikan penilaian
+ *   c) Hubungan kerja tidak sesuai dengan assignment yang diberikan
+ *   d) Lainnya — wajib mengisi penjelasan
+ * Disimpan sebagai teks resolusi akhir (bukan enum), sama pola dengan alasan
+ * BR-04 (relation_correction_requests.reason).
  */
+export const NOT_ELIGIBLE_REASONS = [
+  'Tidak pernah bekerja sama secara langsung selama periode penilaian',
+  'Interaksi kerja terlalu terbatas untuk memberikan penilaian',
+  'Hubungan kerja tidak sesuai dengan assignment yang diberikan',
+] as const;
+
 const ExposureInput = z.object({
   targetId: z.string().uuid(),
   status: z.enum(['eligible', 'partially_eligible', 'not_eligible']),
-});
+  reason: z.string().trim().max(500).optional(),
+}).refine(
+  (v) => v.status !== 'not_eligible' || (v.reason ?? '').trim().length >= 5,
+  { message: 'Alasan Not Eligible wajib diisi (minimal 5 karakter)', path: ['reason'] },
+);
 
 export async function setExposureStatus(raw: unknown): Promise<SubmitResult> {
   const parsed = ExposureInput.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
-  const { targetId, status: exposureStatus } = parsed.data;
+  const { targetId, status: exposureStatus, reason } = parsed.data;
+  const exposureReason = exposureStatus === 'not_eligible' ? (reason ?? '').trim() : null;
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -193,6 +212,7 @@ export async function setExposureStatus(raw: unknown): Promise<SubmitResult> {
     {
       period_id: ap.id, assessor_id: auth.user.id, target_id: targetId,
       exposure_status: exposureStatus, exposure_confirmed_at: new Date().toISOString(),
+      exposure_reason: exposureReason,
     },
     { onConflict: 'period_id,assessor_id,target_id' },
   );

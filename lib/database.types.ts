@@ -75,8 +75,8 @@ export interface Database {
         Relationships: [];
       };
       assessments: {
-        Row: { id: string; period_id: string; assessor_id: string; target_id: string; status: AssessmentStatus; is_adhoc: boolean; submitted_at: string | null; first_submitted_at: string | null; forced_by_hrd: boolean; exposure_status: ExposureStatus | null; exposure_confirmed_at: string | null; created_at: string };
-        Insert: { period_id: string; assessor_id: string; target_id: string; status?: AssessmentStatus; is_adhoc?: boolean; submitted_at?: string | null; exposure_status?: ExposureStatus | null; exposure_confirmed_at?: string | null };
+        Row: { id: string; period_id: string; assessor_id: string; target_id: string; status: AssessmentStatus; is_adhoc: boolean; submitted_at: string | null; first_submitted_at: string | null; forced_by_hrd: boolean; exposure_status: ExposureStatus | null; exposure_confirmed_at: string | null; exposure_reason: string | null; created_at: string };
+        Insert: { period_id: string; assessor_id: string; target_id: string; status?: AssessmentStatus; is_adhoc?: boolean; submitted_at?: string | null; exposure_status?: ExposureStatus | null; exposure_confirmed_at?: string | null; exposure_reason?: string | null };
         Update: Partial<Database['public']['Tables']['assessments']['Insert']>;
         Relationships: [];
       };

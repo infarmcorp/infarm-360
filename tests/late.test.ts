@@ -29,23 +29,62 @@ describe('submitTimingOf', () => {
   });
 });
 
-describe('isPenalizableLate', () => {
+// "now" dipakai untuk cek status draft/belum-mulai — sengaja SESUDAH deadline pada sebagian
+// besar uji, kecuali disebut lain. Fungsi WAJIB diberi nowMs eksplisit (tak boleh diam-diam
+// pakai Date.now() — hasil harus deterministik & tak berubah seiring jam berjalan).
+const AFTER_DL = Date.parse('2026-09-30T12:00:00Z');  // 2 jam sesudah deadline
+const BEFORE_DL = Date.parse('2026-09-30T09:00:00Z'); // 1 jam sebelum deadline
+
+describe('isPenalizableLate — terkirim (submitted)', () => {
   it('penilaian wajib terkirim sesudah deadline → terhitung', () => {
-    expect(isPenalizableLate(base, DL)).toBe(true);
+    expect(isPenalizableLate(base, DL, AFTER_DL)).toBe(true);
   });
-  it('tepat waktu / tanpa deadline / belum terkirim → tidak', () => {
-    expect(isPenalizableLate({ ...base, firstSubmittedAt: '2026-09-30T09:00:00Z' }, DL)).toBe(false);
-    expect(isPenalizableLate(base, null)).toBe(false);
-    expect(isPenalizableLate({ ...base, status: 'draft' }, DL)).toBe(false);
+  it('terkirim tepat waktu → tidak, meski dicek lama sesudahnya', () => {
+    expect(isPenalizableLate({ ...base, firstSubmittedAt: '2026-09-30T09:00:00Z' }, DL, AFTER_DL)).toBe(false);
+  });
+  it('tanpa deadline → tidak pernah terhitung', () => {
+    expect(isPenalizableLate(base, null, AFTER_DL)).toBe(false);
   });
   it('dikecualikan: opsional, ad-hoc, paksa selesai HRD', () => {
-    expect(isPenalizableLate({ ...base, mandatory: false }, DL)).toBe(false);
-    expect(isPenalizableLate({ ...base, isAdhoc: true }, DL)).toBe(false);
-    expect(isPenalizableLate({ ...base, forcedByHrd: true }, DL)).toBe(false);
+    expect(isPenalizableLate({ ...base, mandatory: false }, DL, AFTER_DL)).toBe(false);
+    expect(isPenalizableLate({ ...base, isAdhoc: true }, DL, AFTER_DL)).toBe(false);
+    expect(isPenalizableLate({ ...base, forcedByHrd: true }, DL, AFTER_DL)).toBe(false);
   });
   it('pemetaan dibuat sesudah deadline → tidak (tak mungkin tepat waktu)', () => {
-    expect(isPenalizableLate({ ...base, mappingCreatedAt: '2026-10-01T00:00:00Z' }, DL)).toBe(false);
-    expect(isPenalizableLate({ ...base, mappingCreatedAt: null }, DL)).toBe(true);
+    expect(isPenalizableLate({ ...base, mappingCreatedAt: '2026-10-01T00:00:00Z' }, DL, AFTER_DL)).toBe(false);
+    expect(isPenalizableLate({ ...base, mappingCreatedAt: null }, DL, AFTER_DL)).toBe(true);
+  });
+});
+
+/**
+ * Sejak 2026-09-28: "belum selesai saat deadline" JUGA mencakup yang tak pernah mengirim
+ * sama sekali (draft atau belum disentuh) — bukan cuma yang terlanjur kirim telat. Ini
+ * menutup celah "diam-diam untung": dulu tak mengirim sama sekali tak kena potongan sama
+ * sekali, sedangkan kirim telat 1 detik kena −3.
+ */
+describe('isPenalizableLate — draft / belum mulai (celah 2026-09-28)', () => {
+  const draft = { ...base, status: 'draft', firstSubmittedAt: null };
+  const notStarted = { ...base, status: 'not_started', firstSubmittedAt: null };
+
+  it('draft & deadline SUDAH lewat → terhitung terlambat', () => {
+    expect(isPenalizableLate(draft, DL, AFTER_DL)).toBe(true);
+  });
+  it('belum pernah disentuh (not_started) & deadline sudah lewat → terhitung terlambat juga', () => {
+    expect(isPenalizableLate(notStarted, DL, AFTER_DL)).toBe(true);
+  });
+  it('draft tapi deadline BELUM lewat → belum terhitung (masih ada waktu)', () => {
+    expect(isPenalizableLate(draft, DL, BEFORE_DL)).toBe(false);
+  });
+  it('tepat PADA detik deadline → belum terhitung (belum "lewat")', () => {
+    expect(isPenalizableLate(draft, DL, Date.parse(DL))).toBe(false);
+  });
+  it('draft tapi opsional/ad-hoc/paksa-selesai → tetap tidak terhitung', () => {
+    expect(isPenalizableLate({ ...draft, mandatory: false }, DL, AFTER_DL)).toBe(false);
+    expect(isPenalizableLate({ ...draft, isAdhoc: true }, DL, AFTER_DL)).toBe(false);
+    expect(isPenalizableLate({ ...draft, forcedByHrd: true }, DL, AFTER_DL)).toBe(false);
+  });
+  it('pemetaan dibuat sesudah deadline → tetap tidak terhitung meski belum mulai', () => {
+    expect(isPenalizableLate({ ...notStarted, mappingCreatedAt: '2026-10-01T00:00:00Z' }, DL, AFTER_DL)).toBe(false);
   });
 });
 

@@ -53,11 +53,18 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
 
   // Penilai harus ditugaskan menilai target ini (mapping aktif).
   const { data: mapping } = await supabase
-    .from('mappings').select('id')
+    .from('mappings').select('id, mandatory')
     .eq('assessor_id', auth.user.id).eq('target_id', targetId)
     .eq('period_id', ap.id).eq('is_active', true)
     .maybeSingle();
   if (!mapping) return { ok: false, error: 'Anda tidak ditugaskan menilai pegawai ini' };
+
+  // BR-05 (keputusan pengguna 2026-09-29): N/A HANYA untuk penilaian OPSIONAL. Penilaian
+  // Wajib tak boleh memakai N/A sama sekali — ditolak di server, bukan cuma disembunyikan
+  // dari UI (klien lama/dimodifikasi bisa saja masih mengirim isNa=true).
+  if (mapping.mandatory && scores.some((s) => s.isNa)) {
+    return { ok: false, error: 'N/A tidak tersedia untuk penilaian Wajib — beri rating 1–5 untuk semua indikator' };
+  }
 
   // BR-03: Not Eligible menghentikan penilaian — tak boleh submit sama sekali.
   const { data: exExisting } = await supabase

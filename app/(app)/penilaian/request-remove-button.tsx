@@ -7,7 +7,7 @@ import { Modal, ModalActions } from './modal';
 /**
  * Tombol + modal "Ajukan Hapus": pegawai memberi tahu HRD bahwa sebuah pemetaan tak sesuai
  * (mis. tak pernah bekerja sama dengan orang tersebut). Hanya MENGIRIM permohonan — pemetaan
- * baru hilang setelah HRD menyetujui.
+ * baru hilang setelah HRD menyetujui. (Diaktifkan kembali 2026-09-29.)
  */
 export function RequestRemoveButton({
   mappingId, targetId, targetName, pending,

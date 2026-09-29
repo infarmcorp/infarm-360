@@ -21,7 +21,8 @@
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import pg from 'pg';
 
-// 20 tabel publik (urutan apa pun — backup tak peduli relasi).
+// Daftar acuan 20 tabel awal. Backup sebenarnya memakai SEMUA tabel publik yang ada di DB
+// (lihat query information_schema di bawah) agar tabel migrasi baru tak terlewat.
 const PUBLIC_TABLES = [
   'employees', 'spv_team_members', 'periods', 'period_months',
   'culture_aspects', 'indicators', 'qualitative_questions', 'weight_schemes',
@@ -58,8 +59,17 @@ async function dump(label, sql) {
   console.log(`  ✓ ${label.padEnd(34)} ${rows.length} baris`);
 }
 
+// Tabel publik ditemukan otomatis dari DB — tabel dari migrasi baru (page_grants, dll.)
+// ikut ter-backup tanpa perlu memperbarui daftar di atas (daftar itu kini hanya acuan).
+const { rows: found } = await client.query(
+  `select table_name from information_schema.tables
+    where table_schema = 'public' and table_type = 'BASE TABLE' order by table_name`);
+const tables = found.map((r) => r.table_name);
+const extra = tables.filter((t) => !PUBLIC_TABLES.includes(t));
+if (extra.length) console.log(`ℹ️  Tabel di luar daftar acuan (ikut di-backup): ${extra.join(', ')}\n`);
+
 console.log('Tabel aplikasi:');
-for (const t of PUBLIC_TABLES) await dump(t, `select * from public.${t}`);
+for (const t of tables) await dump(t, `select * from public."${t}"`);
 
 console.log('\nAkun login (Auth):');
 for (const t of AUTH_TABLES) await dump(`auth.${t}`, `select * from auth.${t}`);

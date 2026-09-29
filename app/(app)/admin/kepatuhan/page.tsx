@@ -83,7 +83,13 @@ export default async function KepatuhanPage() {
       lateCount: lateTargets.length, lateTargets,
       selfMissing: !selfDone.has(e.id),
       points: penBy.get(e.id) ?? 0,
-      lateSubmitted: (lateBy.get(e.id)?.late ?? []).map((l) => `${nameById.get(l.targetId) ?? '—'} · ${formatWib(l.firstSubmittedAt)}`),
+      // Tampilan "Kirim Terlambat" HANYA yang benar-benar sudah kirim (telat) — yang belum
+      // kirim sama sekali sudah tampil di kartu "Belum Kirim" di atas. Potongan (latePenalty)
+      // tetap MENCAKUP KEDUANYA (2026-09-28) — cuma daftar nama di sini yang dipisah agar tak
+      // ganda/membingungkan.
+      lateSubmitted: (lateBy.get(e.id)?.late ?? [])
+        .filter((l) => l.firstSubmittedAt)
+        .map((l) => `${nameById.get(l.targetId) ?? '—'} · ${formatWib(l.firstSubmittedAt)}`),
       latePenalty: lateBy.get(e.id)?.penalty ?? 0,
       lateWaived: lateBy.get(e.id)?.waived ?? false,
       lateWaiveReason: lateBy.get(e.id)?.waiveReason ?? null,
@@ -136,9 +142,12 @@ export default async function KepatuhanPage() {
         self-assessment, atau sudah punya punishment). &quot;Belum Kirim&quot; = penilaian bersifat Wajib (mapping)
         yang belum dikirim (arahkan kursor untuk daftar nama) — kewajiban ber-status <strong className="font-semibold text-ink-soft">Not Eligible</strong> pada
         Exposure Check (BR-03) sudah gugur & dikeluarkan dari hitungan ini. &quot;Kirim Terlambat&quot; = penilaian Wajib yang pertama kali
-        dikirim sesudah deadline (arahkan kursor untuk nama &amp; waktu kirim) — penilaiannya tetap dihitung untuk yang dinilai,
-        tetapi Skor 360° si penilai dipotong <span className="data-value">{LATE_PENALTY_360}</span> poin sekali per periode (otomatis;
-        gugur bila ia tak punya Skor 360°). Opsional/Ad-Hoc, Paksa Selesai HRD, dan pemetaan yang dibuat sesudah deadline tidak dihitung.
+        dikirim sesudah deadline (arahkan kursor untuk nama &amp; waktu kirim).
+        <strong className="font-semibold text-ink-soft"> Potongan Skor 360° {LATE_PENALTY_360} poin (otomatis, sekali per periode)</strong> berlaku
+        untuk KEDUA kondisi — sudah kirim tapi telat, MAUPUN belum kirim sama sekali sampai deadline lewat (kolom &quot;Belum Kirim&quot;
+        yang masih &gt;0 saat deadline terlampaui ikut kena potongan yang sama; gugur bila penilai tak punya Skor 360° sendiri).
+        Penilaian yang telat tetap dihitung penuh untuk pegawai yang dinilai — potongan hanya menyentuh Skor 360° milik si penilai.
+        Opsional/Ad-Hoc, Paksa Selesai HRD, dan pemetaan yang dibuat sesudah deadline tidak dihitung.
         Punishment memotong Skor Akhir pegawai di periode ini (min 0).
       </p>
     </Shell>

@@ -20,7 +20,6 @@
  */
 import { readFileSync } from 'fs';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { DEMO_PASSWORD } from '../lib/auth/demo-users';
 
 const PROD_REF = 'beajoczjpywozavatzmf';
 const STAGING_REF = 'twgdlhmsoifvmiqpkqsr';
@@ -41,6 +40,11 @@ const PROD_URL = prodEnv.NEXT_PUBLIC_SUPABASE_URL;
 const PROD_SVC = prodEnv.SUPABASE_SERVICE_ROLE_KEY;
 const STG_URL = stagingEnv.NEXT_PUBLIC_SUPABASE_URL;
 const STG_SVC = stagingEnv.SUPABASE_SERVICE_ROLE_KEY;
+// Sandi login akun staging — dari .env.staging (di-gitignore), BUKAN sandi demo di repo:
+// repo bisa publik, jadi sandi yang tertulis di kode = staging terbuka untuk siapa pun.
+const STAGING_PASSWORD = stagingEnv.STAGING_PASSWORD;
+if (!STAGING_PASSWORD || STAGING_PASSWORD.length < 12)
+  throw new Error('STAGING_PASSWORD (min 12 karakter) wajib diisi di .env.staging');
 
 // --- PENGAMAN: pastikan arah baca=prod, tulis=staging ---
 if (!PROD_URL || !PROD_SVC) throw new Error('Kredensial prod (.env.local.production.bak) tidak lengkap');
@@ -182,7 +186,7 @@ async function main() {
     const num = String(n).padStart(3, '0');
     const email = `pegawai${num}@staging.test`;
     const { data, error } = await stg.auth.admin.createUser({
-      email, password: DEMO_PASSWORD, email_confirm: true,
+      email, password: STAGING_PASSWORD, email_confirm: true,
       user_metadata: { name: `Pegawai ${num}`, emp_code: e.emp_code },
     });
     if (error) throw new Error(`createUser ${email}: ${error.message}`);
@@ -232,7 +236,7 @@ async function main() {
   }
 
   console.log('\n== CLONE SELESAI ==');
-  console.log('Login staging: pegawai001@staging.test .. pegawaiNNN@staging.test / sandi:', DEMO_PASSWORD);
+  console.log('Login staging: pegawai001@staging.test .. pegawaiNNN@staging.test / sandi: STAGING_PASSWORD di .env.staging');
   console.log('(Cari pemegang peran HRD via kolom role/is_hrd_admin di tabel employees staging.)');
 }
 

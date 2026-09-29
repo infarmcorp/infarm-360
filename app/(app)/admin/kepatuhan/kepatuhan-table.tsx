@@ -95,7 +95,7 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
                     </td>
                     <td className="py-3 px-3 text-center">
                       <LateWaiver employeeId={r.id} penalty={r.latePenalty} waived={r.lateWaived}
-                        waiveReason={r.lateWaiveReason} lateCount={r.lateSubmitted.length} readOnly={readOnly} />
+                        waiveReason={r.lateWaiveReason} readOnly={readOnly} />
                     </td>
                     <td className="py-3 px-3 text-center">
                       {r.selfMissing

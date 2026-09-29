@@ -4,9 +4,9 @@ import { ClipboardList, Inbox } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { CorrectionButton } from './correction-button';
 import { AdhocDeleteButton } from './adhoc-delete-button';
+import { RequestRemoveButton } from './request-remove-button';
 import { EmptyState } from '@/components/empty-state';
 import { TabBar, Tab } from '@/components/tab-nav';
-import { RequestRemoveButton } from './request-remove-button';
 import { RequestAssessmentButton } from './request-assessment-form';
 import { MyRequests, type MyRequest } from './my-requests';
 import { LATE_PENALTY_360, formatWib, isPastDeadline, submitTimingOf } from '@/lib/late';
@@ -345,8 +345,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                         >
                           {it.exposureStatus === 'not_eligible'
                             ? 'Lihat'
-                            : it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan'
-                            : it.exposureStatus ? 'Lanjutkan' : 'Cek Exposure'}
+                            : it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai'}
                         </Link>
                       )}
                     </div>

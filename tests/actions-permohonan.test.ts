@@ -51,6 +51,11 @@ function updateOf(calls: MockCall[], table: string) {
 
 beforeEach(() => { vi.clearAllMocks(); });
 
+/**
+ * requestMappingRemoval DIAKTIFKAN KEMBALI 2026-09-29 (Exposure Check dinonaktifkan
+ * sementara — lihat lib/late.ts atau [targetId]/page.tsx untuk konteksnya). Pengajuan
+ * tetap wajib disetujui HRD sebelum pemetaan benar-benar hilang.
+ */
 describe('requestMappingRemoval — validasi & gerbang fase', () => {
   it('tolak alasan terlalu pendek (tanpa menyentuh DB)', async () => {
     const c = use(makeClient({ user: { id: UID } }));

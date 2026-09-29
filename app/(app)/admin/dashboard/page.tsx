@@ -196,7 +196,7 @@ export default async function DashboardPage({
       : Promise.resolve([] as { assessment_id: string; indicator_id: string; rating: number | null }[]),
   ]);
 
-  // "KPI belum terbaca" per pegawai = Trend 'unread' (bln-1=0 & bln-2=0) atas KPI bulanan kuartal.
+  // "KPI belum terbaca" per pegawai = Trend 'unread' (2 dari 3 bulan kuartal KOSONG) — lib/trend.ts.
   // Dikecualikan dari KATEGORISASI & rerata KPI/Skor Akhir (Kompilasi & KPI) — bukan pekerja rendah,
   // melainkan data belum masuk. Tetap tampil sebagai bucket "Belum Terbaca" sendiri (dan di 360°/Tabel).
   const empYm = new Map<string, Map<string, { s: number; n: number }>>();
@@ -213,7 +213,7 @@ export default async function DashboardPage({
 
   // Rerata KPI per pegawai + rerata KPI organisasi per bulan (untuk Analisis KPI).
   // kpiAgg dihitung untuk SEMUA (agar baris tetap punya nilai utk Tabel/bucket); rerata bulanan
-  // organisasi (monthAgg) MENGECUALIKAN yang belum terbaca agar tak bias oleh 0-placeholder.
+  // organisasi (monthAgg) MENGECUALIKAN yang belum terbaca (data 1 bulan belum menggambarkan kuartal).
   const kpiAgg = new Map<string, { sum: number; n: number }>();
   const monthAgg = new Map<string, { sum: number; n: number }>();
   kpiAll.forEach((r) => {
@@ -275,8 +275,32 @@ export default async function DashboardPage({
       ? db.from('period_months').select('period_id, ym').in('period_id', periodsInYearIds)
       : Promise.resolve({ data: [] as { period_id: string; ym: string }[] }),
   ]);
+  // "Belum terbaca" PER (pegawai × kuartal) — dikecualikan dari tren bulanan tahunan & distribusi
+  // per kuartal, selaras kartu kuartal terpilih (unreadIds). Kunci `${employee_id}|${period_id}`.
+  const ymToPeriodY = new Map<string, string>();
+  (yearPmRes.data ?? []).forEach((m) => ymToPeriodY.set(m.ym, m.period_id));
+  const ymsByPeriodY = new Map<string, string[]>();
+  (yearPmRes.data ?? []).forEach((m) => ymsByPeriodY.set(m.period_id, [...(ymsByPeriodY.get(m.period_id) ?? []), m.ym]));
+  const empYmScoreY = new Map<string, Map<string, number>>();
+  yearKpiRows.forEach((r) => {
+    let m = empYmScoreY.get(r.employee_id); if (!m) { m = new Map(); empYmScoreY.set(r.employee_id, m); }
+    m.set(r.ym, r.score);
+  });
+  const unreadEmpPeriodY = new Set<string>();
+  for (const [id, m] of empYmScoreY) {
+    for (const [pid, pYms] of ymsByPeriodY) {
+      const first3 = [...pYms].sort().slice(0, 3);
+      if (trendOf(first3.map((ym) => m.get(ym) ?? null)) === 'unread') unreadEmpPeriodY.add(`${id}|${pid}`);
+    }
+  }
+  const isUnreadY = (empId: string, ym: string): boolean => {
+    const pid = ymToPeriodY.get(ym);
+    return pid != null && unreadEmpPeriodY.has(`${empId}|${pid}`);
+  };
+
   const ymAgg = new Map<string, { sum: number; n: number }>();
   yearKpiRows.forEach((r) => {
+    if (isUnreadY(r.employee_id, r.ym)) return;
     const a = ymAgg.get(r.ym) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n += 1; ymAgg.set(r.ym, a);
   });
   const yearMonthly = [...ymAgg.entries()]
@@ -295,8 +319,7 @@ export default async function DashboardPage({
 
   // Distribusi kategori kinerja PER KUARTAL (band Skor Akhir) — untuk grafik tren komposisi.
   // Skor Akhir per pegawai per kuartal = finalScoreOf(KPI kuartal, 360° kuartal, has_360, TANPA punishment).
-  const ymToPeriodY = new Map<string, string>();
-  (yearPmRes.data ?? []).forEach((m) => ymToPeriodY.set(m.ym, m.period_id));
+  // Pegawai "belum terbaca" di kuartal itu dikecualikan (selaras kategorisasi kuartal terpilih).
   const empPerKpiY = new Map<string, Map<string, { s: number; n: number }>>();
   yearKpiRows.forEach((r) => {
     const pid = ymToPeriodY.get(r.ym); if (!pid) return;
@@ -312,6 +335,7 @@ export default async function DashboardPage({
   const quarterlyDist = periodsInYear.map((p) => {
     let exceed = 0, meet = 0, improve = 0, below = 0;
     for (const e of emps) {
+      if (unreadEmpPeriodY.has(`${e.id}|${p.id}`)) continue;
       const km = empPerKpiY.get(e.id)?.get(p.id);
       const kpiAvg = km ? km.s / km.n : null;
       const s360 = empPer360Y.get(e.id)?.get(p.id) ?? null;

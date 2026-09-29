@@ -51,8 +51,8 @@ export async function penaltyMap(periodId: string, ids: string[]): Promise<Map<s
   return penBy;
 }
 
-/** KPI "belum terbaca" = trend 3 bulan pertama 'unread' (bln-1=0 & bln-2=0). Dikecualikan dari
- *  rerata KPI (selaras Dashboard) — data belum masuk, bukan berkinerja rendah. 360° tetap dihitung. */
+/** KPI "belum terbaca" = trend 3 bulan pertama 'unread' (2 dari 3 bulan kosong). Dikecualikan dari
+ *  rerata KPI (selaras Dashboard) — belum menggambarkan kuartal, bukan berkinerja rendah. 360° tetap dihitung. */
 const isUnreadMonths = (months: (number | null)[] | undefined): boolean =>
   trendOf((months ?? []).slice(0, 3)) === 'unread';
 

@@ -26,7 +26,7 @@ export type Row = {
   // Skornya TETAP dihitung di agregat (akurat per periode, hindari survivorship bias);
   // penanda ini hanya untuk kejelasan visual di tabel.
   isActive?: boolean;
-  // KPI "belum terbaca" (bln-1 & bln-2 = 0) → dikecualikan dari kategorisasi/rerata KPI & Skor Akhir.
+  // KPI "belum terbaca" (2 dari 3 bulan kuartal kosong) → dikecualikan dari kategorisasi/rerata KPI & Skor Akhir.
   kpiUnread?: boolean;
   // Single-axis: saat 360° aktif, pegawai hanya punya 1 sumbu (KPI saja / 360° saja) → belum bisa
   // diklasifikasi 4-Box (nilai bisa melompat begitu sumbu kedua masuk) → bucket "Data Belum Lengkap".
@@ -382,7 +382,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
               <span className="text-[13px] font-black text-slate-700 leading-tight">Belum Terbaca (Tak Terkategori)</span>
               <span className="text-lg font-black font-mono shrink-0 text-gray-500">{unread.length}</span>
             </div>
-            <span className="text-[10px] text-gray-500 font-semibold mt-0.5 leading-tight block">KPI belum terbaca (bln-1 &amp; bln-2 = 0) → dikecualikan dari kategorisasi &amp; rerata; bukan pekerja rendah.</span>
+            <span className="text-[10px] text-gray-500 font-semibold mt-0.5 leading-tight block">KPI belum terbaca (baru 1 dari 3 bulan kuartal terisi) → dikecualikan dari kategorisasi &amp; rerata; bukan pekerja rendah.</span>
             <div className="mt-2 flex flex-wrap gap-1">
               {unread.map((e) => (
                 <span key={e.id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
@@ -544,7 +544,7 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
 
       {unreadCount > 0 && (
         <p className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-          <strong>{unreadCount} pegawai</strong> berstatus <strong>KPI belum terbaca</strong> (bln-1 &amp; bln-2 = 0) — dikecualikan dari rerata, distribusi, &amp; ranking KPI (data belum masuk, bukan berkinerja rendah).
+          <strong>{unreadCount} pegawai</strong> berstatus <strong>KPI belum terbaca</strong> (baru 1 dari 3 bulan kuartal terisi) — dikecualikan dari rerata, distribusi, &amp; ranking KPI (belum menggambarkan kuartal, bukan berkinerja rendah).
         </p>
       )}
 

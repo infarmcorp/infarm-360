@@ -111,11 +111,19 @@
   resign. **Murni pelaporan** — tak menyentuh `lib/scoring.ts`.
 - **Trend KPI seragam + "KPI Belum Terbaca"** (`lib/trend.ts` `trendOf`, 2026-07-10). Satu sumber
   definisi trend 3-bulan (6 kategori: empty/unread/stable/up/down/volatile) dipakai di **Laporan Kinerja
-  Tim, Monitor, & Dashboard** (kolom Trend KPI + tooltip). **"Belum terbaca"** (`unread` = bln-1=0 &
-  bln-2=0) = data KPI belum masuk, **bukan** kinerja rendah → **dikecualikan seragam** dari rerata &
+  Tim, Monitor, & Dashboard** (kolom Trend KPI + tooltip). **"Belum terbaca"** = data kuartal belum
+  menggambarkan fluktuasi, **bukan** kinerja rendah → **dikecualikan seragam** dari rerata &
   kategorisasi KPI/Skor Akhir di ketiga permukaan (baris tetap tampil; **360° tetap dihitung**); Dashboard
   4-Box menampilkannya sebagai bucket terpisah "Belum Terbaca". Input `trendOf` **selalu 3 bulan pertama**
   `period_months` terurut (null = bulan belum diisi). Murni pelaporan.
+  - **DIUBAH 2026-09-29 (definisi HRD):** KPI **kosong** = belum ditetapkan; **0 = nilai sungguhan**.
+    Trend kini ditentukan **jumlah bulan terisi**: 0 → `empty` · 1 (2 bulan kosong, mis. pegawai masuk
+    bulan ke-3) → `unread` · 2 (bulan-1 kosong = pegawai baru; bulan-3 kosong = resign / kuartal berjalan)
+    → Stabil (selisih ≤2) / Naik / Turun dari dua bulan itu · 3 → aturan lama (Fluktuatif hanya di sini).
+    Aturan lama "bln-1=0 & bln-2=0 → Belum terbaca" **dihapus**. Pengecualian "belum terbaca" kini juga
+    diterapkan per (pegawai × kuartal) di grafik **tren tahunan**, **distribusi per kuartal**, dan
+    Dashboard mode **semua kuartal** (`lib/dashboard/aggregate.ts`) — sebelumnya hanya kartu kuartal
+    terpilih. Rumus Skor Akhir **tak berubah** (rerata bulan terisi; 0 ikut, kosong tidak).
 - **Metrik tim bersama + Skor Akhir "live vs tersimpan"** (`lib/team-metrics.ts`, 2026-07-10).
   `scoreMaps`/`companyAverages`/`teamAverages`/`penaltyMap` dipakai bersama **Laporan Kinerja Tim** &
   **Monitor** (scorecard Total/Avg-KPI/Avg-360° + selisih vs perusahaan). **Laporan Kinerja Tim** tampilkan

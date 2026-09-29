@@ -1,6 +1,7 @@
 /**
- * CEK "KPI BELUM TERBACA" (read-only) — replikasi definisi trendOf('unread'):
- * 2 bulan PERTAMA kuartal aktif (dari period_months, urut) keduanya = 0.
+ * CEK "KPI BELUM TERBACA" (read-only) — replikasi definisi trendOf('unread') (lib/trend.ts):
+ * dari 3 bulan PERTAMA kuartal aktif (period_months, urut), hanya SATU bulan yang terisi
+ * (dua bulan kosong). Angka 0 = nilai sungguhan (terhitung terisi).
  * Tidak mengubah apa pun. Pakai: node scripts/check-unread.mjs
  */
 import { readFileSync } from 'node:fs';
@@ -37,17 +38,14 @@ try {
     byEmp.get(r.id).m.set(r.ym, r.s);
   }
 
-  // trendOf: b1===0 && b2===0 → unread  (b1/b2 = bulan pertama & kedua)
-  const b1 = first3[0], b2 = first3[1];
+  // trendOf: tepat 1 dari 3 bulan awal terisi → unread (kosong = tak ada baris; 0 = terisi).
   const unread = [];
   for (const [, { name, m }] of byEmp) {
-    const v1 = m.has(b1) ? m.get(b1) : null;
-    const v2 = m.has(b2) ? m.get(b2) : null;
-    if (v1 === 0 && v2 === 0) unread.push(name);
+    if (first3.filter((ym) => m.has(ym)).length === 1) unread.push(name);
   }
 
   console.log(`Pegawai punya baris KPI di 3 bln awal: ${byEmp.size}`);
-  console.log(`KPI "belum terbaca" (bln-1=0 & bln-2=0): ${unread.length}`);
+  console.log(`KPI "belum terbaca" (2 dari 3 bulan kosong): ${unread.length}`);
   if (unread.length) unread.forEach((n) => console.log(`  • ${n}`));
   else console.log('  (tidak ada — kartu "Belum Terbaca" memang tidak tampil; ini benar)');
 } finally {

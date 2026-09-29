@@ -385,8 +385,9 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
   - `tests/score360.test.ts` → `lib/score360.ts`: `weightedScore360` **4class** (semua kelas,
     normalisasi bobot, **kelas Bawahan**, **Self dikecualikan**) & **2class** (Internal = rerata
     semua skor Peer+Cross+Bawahan, fallback satu sisi); `round2` (2 desimal).
-  - `tests/trend.test.ts` → `lib/trend.ts`: `trendOf` (empty/unread/stable/up/down/volatile — urut
-    prioritas, toleransi ±2, butuh 3 bulan untuk naik/turun/stabil).
+  - `tests/trend.test.ts` → `lib/trend.ts`: `trendOf` berdasar JUMLAH bulan terisi (kosong = KPI belum
+    ditetapkan; **0 = nilai sungguhan**): 0 → empty · 1 → unread ("Belum terbaca") · 2 → stable/up/down
+    dari dua bulan itu (toleransi ±2) · 3 → stable/up/down/volatile (Fluktuatif hanya bila 3 bulan).
   - `tests/import.test.ts` → `lib/import/parse.ts`: parsing impor Excel **KPI** (`parseKpiRows`,
     `isValidKpiRow`: alias kolom, normalisasi kode uppercase, skor kosong→tak valid, batas 0–100)
     & **pemetaan 360°** (`parseMappingRows`, `classifyMappingRows`: ok/invalid/self/dup, alias,

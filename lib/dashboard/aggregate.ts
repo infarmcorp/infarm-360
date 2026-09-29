@@ -3,6 +3,7 @@ import { finalScoreOf, playerClassOf, type PlayerClass } from '@/lib/scoring';
 import { classOf, avg as avg360, weightedScore360, type Groups360 } from '@/lib/score360';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
+import { trendOf } from '@/lib/trend';
 
 /**
  * Agregasi Dashboard LINTAS-PERIODE (mode "Semua Kuartal" = 1 tahun · "Semua Tahun" = all-time).
@@ -148,12 +149,34 @@ export async function computeDashboardAggregate(
     admin.from('result_360').select('employee_id, period_id, score').in('period_id', periodIds).in('employee_id', empIds),
   ]);
 
+  // "Belum terbaca" PER (pegawai × kuartal) — kuartal itu dikecualikan dari rerata KPI & grafik
+  // bulanan (selaras Dashboard satu-kuartal). Lihat lib/trend.ts.
+  const ymsByPeriod = new Map<string, string[]>();
+  (pmRows ?? []).forEach((m) => ymsByPeriod.set(m.period_id, [...(ymsByPeriod.get(m.period_id) ?? []), m.ym]));
+  const empYmScore = new Map<string, Map<string, number>>();
+  (kpiRes.data ?? []).forEach((r) => {
+    let m = empYmScore.get(r.employee_id); if (!m) { m = new Map(); empYmScore.set(r.employee_id, m); }
+    m.set(r.ym, r.score);
+  });
+  const unreadEmpPeriod = new Set<string>();
+  for (const [id, m] of empYmScore) {
+    for (const [pid, pYms] of ymsByPeriod) {
+      const first3 = [...pYms].sort().slice(0, 3);
+      if (trendOf(first3.map((ym) => m.get(ym) ?? null)) === 'unread') unreadEmpPeriod.add(`${id}|${pid}`);
+    }
+  }
+
   // Per pegawai: KPI per periode (rata bulan) → rata antar-kuartal; 360° per periode → rata antar-kuartal.
+  // empPerKpiAll = SEMUA kuartal berdata (fallback bila seluruh kuartalnya "belum terbaca").
   const empPerKpi = new Map<string, Map<string, { sum: number; n: number }>>();
+  const empPerKpiAll = new Map<string, Map<string, { sum: number; n: number }>>();
   const monthAgg = new Map<string, { sum: number; n: number }>();          // ym → org KPI
   const dmAgg = new Map<string, { sum: number; n: number }>();             // `${dept}|${ym}`
   (kpiRes.data ?? []).forEach((r) => {
     const pid = ymToPeriod.get(r.ym); if (!pid) return;
+    let all = empPerKpiAll.get(r.employee_id); if (!all) { all = new Map(); empPerKpiAll.set(r.employee_id, all); }
+    const aa = all.get(pid) ?? { sum: 0, n: 0 }; aa.sum += r.score; aa.n += 1; all.set(pid, aa);
+    if (unreadEmpPeriod.has(`${r.employee_id}|${pid}`)) return;
     let m = empPerKpi.get(r.employee_id); if (!m) { m = new Map(); empPerKpi.set(r.employee_id, m); }
     const a = m.get(pid) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n += 1; m.set(pid, a);
     const ma = monthAgg.get(r.ym) ?? { sum: 0, n: 0 }; ma.sum += r.score; ma.n += 1; monthAgg.set(r.ym, ma);
@@ -170,20 +193,25 @@ export async function computeDashboardAggregate(
   });
 
   const rows: AggRow[] = emps.map((e) => {
+    // Seluruh kuartal berdatanya "belum terbaca" → tandai kpiUnread (dikeluarkan dari kategori & rerata
+    // oleh DashboardVisual), nilai KPI tetap ditampilkan dari data yang ada.
     const km = empPerKpi.get(e.id);
-    const kpiAvg = km ? mean([...km.values()].map((a) => a.sum / a.n)) : null;
+    const kmAll = empPerKpiAll.get(e.id);
+    const kpiUnread = !km && !!kmAll;
+    const kpiSrc = km ?? kmAll;
+    const kpiAvg = kpiSrc ? mean([...kpiSrc.values()].map((a) => a.sum / a.n)) : null;
     const sm = empPer360.get(e.id);
     const s360 = sm ? mean([...sm.values()]) : null;
     const axisIncomplete = has360 && ((kpiAvg != null) !== (s360 != null));
     const player = axisIncomplete ? null : playerClassOf(kpiAvg, has360 ? s360 : null);
     const final = finalScoreOf(kpiAvg, s360, has360, 0);
-    return { id: e.id, name: e.name, nickname: e.nickname, dept: e.dept, kpiAvg, s360, final, player, axisIncomplete, isActive: true, kpiUnread: false, trend: 'empty' as const, kpiMonths: [] };
+    return { id: e.id, name: e.name, nickname: e.nickname, dept: e.dept, kpiAvg, s360, final, player, axisIncomplete, isActive: true, kpiUnread, trend: 'empty' as const, kpiMonths: [] };
   })
     .filter((r) => r.kpiAvg != null || r.s360 != null)
     .sort((a, b) => (b.final ?? -1) - (a.final ?? -1));
 
   const deptAgg = new Map<string, { sum: number; n: number }>();
-  rows.forEach((r) => { if (r.kpiAvg == null) return; const a = deptAgg.get(r.dept) ?? { sum: 0, n: 0 }; a.sum += r.kpiAvg; a.n += 1; deptAgg.set(r.dept, a); });
+  rows.forEach((r) => { if (r.kpiAvg == null || r.kpiUnread) return; const a = deptAgg.get(r.dept) ?? { sum: 0, n: 0 }; a.sum += r.kpiAvg; a.n += 1; deptAgg.set(r.dept, a); });
   const deptScores: [string, number][] = [...deptAgg.entries()].map(([d, a]) => [d, a.sum / a.n] as [string, number]).sort((a, b) => b[1] - a[1]);
 
   const monthly = yms.map((ym) => ({ ym, avg: monthAgg.has(ym) ? monthAgg.get(ym)!.sum / monthAgg.get(ym)!.n : 0 })).filter((m) => m.avg > 0);

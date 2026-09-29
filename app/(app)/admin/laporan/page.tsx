@@ -41,7 +41,7 @@ export default async function AdminLaporanPage() {
     grantCanFinalize = !!access?.canFinalize;
   }
   if (!isHrdFull && !reviewScopes) {
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin atau pemegang akses Review Hasil Akhir.</p>
+    return <Shell><p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin atau pemegang akses Review & Finalisasi.</p>
       <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
@@ -221,7 +221,12 @@ export default async function AdminLaporanPage() {
     <Shell>
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Review Hasil Akhir</h1>
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink flex items-center gap-2">
+            Review &amp; Finalisasi
+            {!isHrdFull && !grantCanEdit && (
+              <span className="text-[10px] font-semibold uppercase tracking-[0.05em] px-2 py-0.5 rounded-control border bg-neutral-tint text-ink-soft border-line">Lihat-saja</span>
+            )}
+          </h1>
           <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span> · {isHrdFull ? 'finalisasi Skor Akhir kalibrasi.' : grantCanFinalize ? 'akses dari HRD — boleh tinjau & finalisasi (lingkup terbatas).' : grantCanEdit ? 'akses dari HRD — boleh tinjau & meringkas, tanpa finalisasi (lingkup terbatas).' : 'lihat-saja (akses dari HRD, lingkup terbatas).'}</p>
         </div>
         <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>

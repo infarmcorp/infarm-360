@@ -33,7 +33,7 @@ export default async function ReviewHasilDetailPage({ params }: { params: Promis
   if (!data) {
     return (
       <Shell>
-        <Link href="/review-hasil" className="text-xs text-gray-500 hover:underline no-print">← Review Hasil Akhir</Link>
+        <Link href="/review-hasil" className="text-xs text-gray-500 hover:underline no-print">← Tinjauan Hasil Akhir</Link>
         <p className="text-sm text-gray-500 mt-3">Data tidak ditemukan.</p>
       </Shell>
     );
@@ -41,7 +41,7 @@ export default async function ReviewHasilDetailPage({ params }: { params: Promis
 
   return (
     <Shell>
-      <Link href="/review-hasil" className="text-xs text-gray-500 hover:underline no-print">← Review Hasil Akhir</Link>
+      <Link href="/review-hasil" className="text-xs text-gray-500 hover:underline no-print">← Tinjauan Hasil Akhir</Link>
       <div className="mt-2">
         {/* Anonim + sembunyikan blok per-penilai bernama (L3 sudah dibuang di loader). */}
         <ReportDoc data={data} anonymize hideAssessorComments />

@@ -21,6 +21,15 @@
 /** Besar potongan keterlambatan (poin, skala Skor 360° 0–100). */
 export const LATE_PENALTY_360 = 3;
 
+/**
+ * AJUAN ikut potongan hanya untuk periode yang MULAI pada/sesudah tanggal ini (keputusan HRD
+ * 2026-09-29: berlaku Q3 2026 dst.; Q1–Q2 2026 & Ad-Hoc Mandiri lama tak terdampak).
+ */
+export const AJUAN_PENALTY_FROM = '2026-07-01';
+/** Apakah aturan potongan untuk AJUAN berlaku pada periode dgn tanggal mulai ini ('YYYY-MM-DD'). */
+export const ajuanPenaltyApplies = (periodStart: string | null | undefined): boolean =>
+  !!periodStart && String(periodStart).slice(0, 10) >= AJUAN_PENALTY_FROM;
+
 export type SubmitTiming = 'on_time' | 'late' | 'none';
 
 const ts = (s: string | null | undefined): number | null => {

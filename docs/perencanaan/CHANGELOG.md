@@ -336,6 +336,16 @@
   pegawai ("Ajuan · wajib selesai"); potongan **diterapkan otomatis** saat HRD membuka Kepatuhan/Review &
   sebelum simpan/rilis/finalisasi. **Batas input KPI di server disamakan dengan UI** (HRD posisi → divisinya;
   SPV → tim + diri; Koordinator → timnya). Belum diterapkan ke DB.
+- **Istilah & tombol disederhanakan (2026-09-29, usulan audit no. 9):** menu halaman HRD `/admin/laporan`
+  "Review Hasil Akhir" → **"Review & Finalisasi"** (juga untuk pemegang grant; badge **"Lihat-saja"** bila
+  izin hanya Lihat); halaman Direksi `/review-hasil` → **"Tinjauan Hasil Akhir"**. Tombol **Hitung Ulang
+  Skor 360°** kini **hanya satu** (kokpit Review & Finalisasi) — halaman Bobot memberi tautan; tombol ②
+  → **"Perbarui Laporan Final yang Berubah"**. Kode `section`/route tak berubah (hanya label).
+- **Fitur N/A (BR-05) DICABUT** (2026-09-29, permintaan HRD — perhitungannya perlu divalidasi): semua
+  indikator wajib rating 1–5 + evidence; server mengabaikan isNa dari klien & selalu menulis
+  `is_na=false`/`na_reason=null` (kolom 0039 dibiarkan, tanpa migrasi). Data N/A di DB saat dicabut: 0.
+- **Ajuan ikut potongan hanya mulai Q3 2026** (`AJUAN_PENALTY_FROM = 2026-07-01`); Q1–Q2 & Ad-Hoc
+  Mandiri lama tak terdampak.
 - **Format angka `fmt2`** (2026-09-29): tampilan 2 desimal memakai `roundScore` (bukan `toFixed` bawaan
   yang membulatkan atas galat biner, mis. 84.925 → "84.92") di seluruh halaman skor → angka tampil =
   angka klasifikasi.

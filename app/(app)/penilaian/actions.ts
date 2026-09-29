@@ -17,8 +17,8 @@ const ScoreItem = z.object({
   indicatorId: z.string().uuid(),
   rating: z.number().int().min(1).max(5).nullable(),
   comment: z.string().trim().max(1000).optional().default(''),
-  isNa: z.boolean().optional().default(false), // BR-05: N/A — tak punya exposure/evidence cukup
-  naReason: z.string().trim().max(500).optional().default(''), // BR-05: alasan N/A (dropdown final HRD 2026-09-28)
+  // Fitur N/A (BR-05) DICABUT 2026-09-29 (permintaan HRD — perhitungannya perlu divalidasi dulu):
+  // semua indikator wajib rating 1–5 + evidence. Field isNa/naReason dari klien lama diabaikan (Zod strip).
 });
 const AnswerItem = z.object({
   questionId: z.string().uuid(),
@@ -59,12 +59,6 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
     .maybeSingle();
   if (!mapping) return { ok: false, error: 'Anda tidak ditugaskan menilai pegawai ini' };
 
-  // BR-05 (keputusan pengguna 2026-09-29): N/A HANYA untuk penilaian OPSIONAL. Penilaian
-  // Wajib tak boleh memakai N/A sama sekali — ditolak di server, bukan cuma disembunyikan
-  // dari UI (klien lama/dimodifikasi bisa saja masih mengirim isNa=true).
-  if (mapping.mandatory && scores.some((s) => s.isNa)) {
-    return { ok: false, error: 'N/A tidak tersedia untuk penilaian Wajib — beri rating 1–5 untuk semua indikator' };
-  }
 
   // BR-03: Not Eligible menghentikan penilaian — tak boleh submit sama sekali.
   const { data: exExisting } = await supabase
@@ -79,24 +73,15 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
     return { ok: false, error: 'Penilaian ini sudah terkirim — simpan perubahan dengan "Kirim Ulang", bukan Simpan Draf' };
   }
 
-  // BR-05: sanitasi — indikator N/A selalu tersimpan rating NULL & evidence kosong (alasan N/A
-  // dipakai sebagai gantinya), apa pun yang dikirim klien. Non-N/A: alasan N/A selalu kosong.
-  const sanitized = scores.map((s) => (s.isNa
-    ? { ...s, rating: null, comment: '' }
-    : { ...s, naReason: '' }));
+  const sanitized = scores;
 
-  // Saat KIRIM: semua indikator NON-N/A wajib rating + evidence (min. 20 karakter, BR-06).
-  // Indikator N/A (BR-05) dikecualikan dari kedua syarat ini & tak wajib evidence, TAPI wajib
-  // memilih satu alasan N/A (dropdown final HRD 2026-09-28, min. 5 karakter, "Lainnya" bebas teks).
+  // Saat KIRIM: SEMUA indikator wajib rating + evidence (min. 20 karakter, BR-06).
   if (status === 'submitted') {
-    if (sanitized.some((s) => !s.isNa && s.rating === null)) {
-      return { ok: false, error: 'Lengkapi seluruh rating indikator (atau tandai N/A) sebelum mengirim' };
+    if (sanitized.some((s) => s.rating === null)) {
+      return { ok: false, error: 'Lengkapi seluruh rating indikator sebelum mengirim' };
     }
-    if (sanitized.some((s) => !s.isNa && (s.comment ?? '').trim().length < 20)) {
-      return { ok: false, error: 'Setiap indikator (kecuali N/A) wajib komentar/bukti perilaku (evidence) minimal 20 karakter' };
-    }
-    if (sanitized.some((s) => s.isNa && (s.naReason ?? '').trim().length < 5)) {
-      return { ok: false, error: 'Setiap indikator N/A wajib memilih satu alasan (minimal 5 karakter)' };
+    if (sanitized.some((s) => (s.comment ?? '').trim().length < 20)) {
+      return { ok: false, error: 'Setiap indikator wajib komentar/bukti perilaku (evidence) minimal 20 karakter' };
     }
     // Semua pertanyaan kualitatif (esai) periode ini wajib terisi.
     const { data: quals } = await supabase
@@ -135,8 +120,9 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
       indicator_id: s.indicatorId,
       rating: s.rating,
       comment: s.comment || null,
-      is_na: s.isNa,
-      na_reason: s.isNa ? (s.naReason || null) : null,
+      // Kolom N/A (0039) dipertahankan di DB tapi selalu dikosongkan — fitur dicabut 2026-09-29.
+      is_na: false,
+      na_reason: null,
     })),
     { onConflict: 'assessment_id,indicator_id' },
   );

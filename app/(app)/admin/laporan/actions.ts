@@ -14,7 +14,7 @@ import { refreshLatePenalties } from '@/lib/late-server';
  *
  * DUA jalur penulis (Tahap 2 — Manajemen Akses):
  *   1. HRD PENUH (Mode Admin): tulis via klien user-scoped, RLS fr_hrd mengizinkan.
- *   2. PEMEGANG GRANT "Review Hasil Akhir" boleh-edit + target dalam lingkup: tulis via
+ *   2. PEMEGANG GRANT "Review & Finalisasi" boleh-edit + target dalam lingkup: tulis via
  *      service_role (pemegang non-HRD ditolak RLS fr_hrd → INI gembok NYATA-nya). Lingkup &
  *      can_edit dicek di `resolveReportWriteActor` sebelum menulis.
  * SADAR-MODE: HRD di Mode-SPV TIDAK dianggap HRD penuh (paritas) — ia harus punya grant untuk menulis.
@@ -45,12 +45,12 @@ async function resolveReportWriteActor(
     return { ok: true, userId: user.id, userName: me?.name ?? null, db: supabase, viaGrant: false, canFinalize: true };
   }
 
-  // Jalur GRANT: pemegang akses "Review Hasil Akhir" boleh-edit dgn target di dalam SALAH SATU lingkup.
+  // Jalur GRANT: pemegang akses "Review & Finalisasi" boleh-edit dgn target di dalam SALAH SATU lingkup.
   // Tiga tingkat: Lihat (tolak tulis) · Meringkas (canEdit, tulis ringkasan) · Finalisasi (canFinalize).
   const { data: grantRows } = await supabase.from('page_grants').select('section, scope, scopes, can_edit, can_finalize').eq('employee_id', user.id);
   const access = grantedAccess(grantRows, 'review');
-  if (!access) return { ok: false, error: 'Hanya HRD atau pemegang akses Review Hasil Akhir yang dapat mengubah laporan.' };
-  if (!access.canEdit) return { ok: false, error: 'Akses Anda ke Review Hasil Akhir bersifat hanya-lihat.' };
+  if (!access) return { ok: false, error: 'Hanya HRD atau pemegang akses Review & Finalisasi yang dapat mengubah laporan.' };
+  if (!access.canEdit) return { ok: false, error: 'Akses Anda ke Review & Finalisasi bersifat hanya-lihat.' };
 
   // dept target dibaca via service_role (pemegang grant bukan is_hrd() → RLS memblokir baca lintas-pegawai).
   const admin = createAdminClient();

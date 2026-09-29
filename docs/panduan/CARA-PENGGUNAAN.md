@@ -72,7 +72,7 @@ tak perlu ditandai "sudah dibaca", selalu mengikuti keadaan nyata akun yang logi
 - **Laporan Hasil Anda sudah final** (Employee/SPV) → ke Laporan Hasil Saya.
 - **X anggota belum ada KPI [bulan]** (SPV / HRD mode-SPV) → ke Input KPI.
 - **X permohonan koreksi relasi menunggu**, **X penilaian 360° belum lengkap**, **X laporan belum
-  difinalisasi**, & **X laporan final perlu dihitung ulang (data berubah)** → ke Review Hasil Akhir,
+  difinalisasi**, & **X laporan final perlu dihitung ulang (data berubah)** → ke Review & Finalisasi,
   muncul bila skor tersimpan laporan final berbeda dari skor terkini (HRD Admin).
 - **X usulan suksesi menunggu ACC** (Direksi).
 
@@ -148,16 +148,16 @@ Panel hanya aktif saat ada **periode aktif**.
 
 ---
 
-## Akses Khusus: Review Hasil Akhir berlingkup (grant halaman)
+## Akses Khusus: Review & Finalisasi berlingkup (grant halaman)
 
 > **Perubahan penting (per 2026-07-24):** izin lama **"Peninjau Lintas Divisi"** (tombol 👁️ di
 > Kelola Pegawai + menu "Review Lintas Divisi") **sudah dipensiunkan**. Fungsinya kini diwujudkan
 > lewat mekanisme umum **grant halaman berlingkup** di **Manajemen Akses** (lihat bagian HRD Admin):
-> HRD memberi seseorang akses ke halaman **"Review Hasil Akhir"** dengan **lingkup "Selain
+> HRD memberi seseorang akses ke halaman **"Review & Finalisasi"** dengan **lingkup "Selain
 > divisinya"** dan **izin "Meringkas"**. Hasilnya **identik** dengan Peninjau lama — satu halaman yang
 > menyesuaikan lingkup, bukan halaman/menu khusus.
 
-Bila Anda diberi akses ini, muncul menu **"Review Hasil Akhir"** di section sidebar **"Akses dari
+Bila Anda diberi akses ini, muncul menu **"Review & Finalisasi"** di section sidebar **"Akses dari
 HRD"**. Yang Anda lihat & bisa lakukan **ditentukan oleh lingkup + izin** yang HRD berikan:
 
 - **Lingkup data** membatasi **pegawai mana** yang tampil — mis. *Selain divisinya* (semua divisi
@@ -291,7 +291,7 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
    riwayat penilaian/KPI, **dan ikut menonaktifkan pemetaannya** (orang itu keluar dari siklus:
    tak lagi dihitung di Progress 360 & tak jadi tugas penilai lain). Aktifkan kembali kapan pun →
    pemetaan ikut aktif lagi. Catatan: di halaman **pelaporan** (Dashboard/Rekap/Monitor/Laporan Tim/
-   Review Hasil Akhir), pegawai nonaktif yang **sudah punya data di periode** (KPI/360°/laporan)
+   Review & Finalisasi), pegawai nonaktif yang **sudah punya data di periode** (KPI/360°/laporan)
    **tetap ditampilkan** agar hasil kuartalnya tak hilang & bisa difinalisasi (mis. resign di akhir
    periode); di halaman **flag/siklus** (Kepatuhan/Progress/Penilaian) mereka **disembunyikan**.
 5. **Impor dari Excel** (tombol di kanan atas) — tambah **banyak pegawai sekaligus**.
@@ -363,7 +363,7 @@ flowchart TD
 #### Tiga lapis akses (di profil seorang pegawai)
 
 - **Lapis A — Akses halaman berlingkup.** Beri seseorang akses ke satu **halaman dari katalog tetap**:
-  **Monitor Kinerja Pegawai · Review Hasil Akhir · Dashboard Organisasi · Struktur Organisasi ·
+  **Monitor Kinerja Pegawai · Review & Finalisasi · Dashboard Organisasi · Struktur Organisasi ·
   Progress 360 · Flag Kepatuhan · Monitoring & Audit KPI**. Tiap grant = **halaman + lingkup + izin**:
   - **Lingkup data** (boleh lebih dari satu, digabung OR):
 
@@ -375,7 +375,7 @@ flowchart TD
     | **Diri sendiri** | hanya catatan penerima sendiri |
     | **Tim naungannya** | hanya anggota tim koordinasi penerima (khusus Koordinator) |
 
-  - **Izin 3-tingkat** (hanya untuk halaman jenis **"administrator"**, saat ini **Review Hasil Akhir**;
+  - **Izin 3-tingkat** (hanya untuk halaman jenis **"administrator"**, saat ini **Review & Finalisasi**;
     halaman **"pemantauan"** lain selalu **Lihat-saja**):
     **👁 Lihat** → **✎ Meringkas** (boleh tulis Ringkasan Aspek) → **✎ Finalisasi** (boleh finalisasi).
     Klik badge izin untuk **memutar** tingkatnya. "Finalisasi" selalu menyiratkan "Meringkas".
@@ -404,7 +404,7 @@ flowchart TD
 #### Yang dilihat penerima grant
 
 Pemegang grant halaman melihat section sidebar **"Akses dari HRD"** berisi menu halaman yang
-diberikan (mis. "Review Hasil Akhir", "Dashboard Organisasi"). Isinya tersaring **persis** pada
+diberikan (mis. "Review & Finalisasi", "Dashboard Organisasi"). Isinya tersaring **persis** pada
 lingkup grant — bukan tampilan HRD penuh.
 
 #### Pencabutan & peninjauan
@@ -514,10 +514,11 @@ Dataset dirangkai jadi beberapa **file multi-lembar** (bukan banyak unduhan terp
 - **Bobot Penilai**: pilih **Model 4-Kelas** (Atasan/Peer/Cross/**Bawahan**/Self) atau **2-Kelas**
   (Atasan/Internal — Internal = Peer+Cross+Bawahan), atur angka, lalu **Simpan & Terapkan Bobot**.
   **Self** selalu dikecualikan dari total. Setelah mengubah, jalankan **Hitung Ulang Skor 360°**.
-- **Kalkulasi Skor 360°**: tombol **Hitung Ulang Skor 360°** menulis hasil resmi
-  (`result_360`) memakai model aktif + tabel hasil per pegawai. (Tab terpisah lama
-  sudah disatukan ke halaman ini.) Tombol **"Hitung Ulang Skor 360°"** kini **juga tersedia di
-  halaman Review Hasil Akhir** (kokpit), jadi HRD tak perlu berpindah halaman.
+- **Kalkulasi Skor 360°**: tabel hasil resmi per pegawai (`result_360`, model aktif). Tombol
+  **"Hitung Ulang Skor 360°"** kini **hanya ada di Review & Finalisasi** (kokpit "Sinkronkan Skor") —
+  di halaman Bobot tersedia tautan **"Buka Review & Finalisasi →"**. Setelah bobot diubah, Review &
+  Finalisasi otomatis menandai pegawai yang **perlu dihitung ulang**. Total bobot kelas (tanpa Self)
+  **wajib tepat 100%**.
 - **Perbandingan Model 4-Kelas vs 2-Kelas**: pratinjau skor tiap pegawai bila dihitung
   dengan kedua model sekaligus + **Selisih**, membantu memilih model sebelum Hitung Ulang.
   (Pratinjau tak mengubah data.)
@@ -567,7 +568,7 @@ Dataset dirangkai jadi beberapa **file multi-lembar** (bukan banyak unduhan terp
 - Pilih **Rencana Suksesi (Rekomendasi HRD)** per pegawai, isi **Catatan Justifikasi**.
 - Filter **Sektor/Divisi** dan **Saring Rencana Suksesi**.
 
-### Review Hasil Akhir
+### Review & Finalisasi
 **Daftar pegawai** (tabel "kokpit") berisi kolom **Pegawai · Divisi · KPI · 360° · Punish. ·
 Skor Akhir · Dinilai oleh · ACC SPV · Status · Aksi**. Ada **pencarian nama/divisi**, **filter
 Divisi** & **filter Kelengkapan 360°** — keduanya berupa **centang multi-pilih** (panel daftar
@@ -628,7 +629,7 @@ di kolom Aksi — **nama pegawai tidak bisa diklik lagi**.
      **setelah** Skor 360° terakhir dihitung — **penilaian** dikirim/diubah, **atau koreksi relasi
      di-ACC** (yang mengubah kelas bobot), atau **belum pernah dihitung**. Banner menyebut **penyebab
      spesifik**. Artinya angka Skor 360°/Skor Akhir yang tampil masih lama. Jalankan **"Hitung Ulang
-     Skor 360°"** (tersedia di **Review Hasil Akhir** atau halaman **Bobot & Kalkulasi**) lalu
+     Skor 360°"** (tersedia di **Review & Finalisasi** atau halaman **Bobot & Kalkulasi**) lalu
      Simpan/Rilis/Finalisasi **ulang** agar skor mengikuti data terbaru.
 2. **Ringkasan skor** (Rerata KPI · Evaluasi 360° · Skor Akhir) + **Radar Aspek 360°** — garis
    **penuh indigo = Penilaian Rekan**, garis **putus-putus amber = Evaluasi Diri (Self)**;
@@ -718,7 +719,7 @@ flowchart TD
 - **Pegawai non-aktif tidak ikut kepatuhan** — hanya pegawai aktif yang dihitung (yang dinonaktifkan
   tak lagi diflag telat/belum-self). Pengecualian **ketat** ini berlaku di halaman **flag/siklus**:
   Kepatuhan, Progress 360, Daftar Penilaian, & Suksesi. **Di halaman pelaporan** (Dashboard, Rekap,
-  Monitor, Laporan Tim, Review Hasil Akhir) pegawai non-aktif **tetap tampil bila punya data periode**
+  Monitor, Laporan Tim, Review & Finalisasi) pegawai non-aktif **tetap tampil bila punya data periode**
   (Opsi B) — agar hasil kuartalnya tak hilang & masih bisa difinalisasi; di Dashboard diberi penanda
   **"nonaktif"**.
 - **Tabel default hanya menampilkan pegawai yang perlu perhatian** — yakni yang punya penilaian
@@ -730,10 +731,16 @@ flowchart TD
 - **Kartu ringkasan kini 3**: **telat** · **belum self** · **Dengan punishment** (baru).
 - **Flag keterlambatan**: pegawai dengan penilaian **Wajib** yang belum selesai, lengkap
   dengan **jumlah** penilaian terlambat + daftar targetnya.
+- **Potongan keterlambatan menilai (Skor 360°)**: **otomatis −3** bila ada kewajiban yang belum selesai
+  saat deadline. Mulai **periode Q3 2026**, kewajiban juga mencakup **Ajuan** — penilaian Opsional yang
+  diajukan pegawai sendiri & disetujui HRD — dan ditandai terpisah ("+N ajuan belum", rincian
+  "wajib · ajuan", kartu **"Kena potongan krn ajuan"**). HRD bisa **Ubah** nilai potongan per pegawai
+  (alasan wajib; 0 = dikecualikan) atau **Kembalikan otomatis**. Potongan **diterapkan otomatis** ke Skor
+  360° saat HRD membuka halaman ini / Review & Finalisasi dan sebelum laporan disimpan/dirilis/difinalisasi.
 - **Flag Self Assessment**: menandai pegawai yang **belum** mengisi penilaian diri sendiri.
 - **Punishment (pengurangan nilai)**: HRD input poin pengurangan per pegawai. **Kolom Punishment
   kosong bila belum ada** (placeholder "0", seperti KPI: kosong ≠ 0) — HRD mengisinya secara sadar.
-  Poin ini **memotong Skor Akhir** (minimal 0) dan menjalar ke Review Hasil Akhir, Dashboard, dan
+  Poin ini **memotong Skor Akhir** (minimal 0) dan menjalar ke Review & Finalisasi, Dashboard, dan
   Monitor Kinerja. **Per kuartal** — banner menampilkan siklus aktif yang sedang dipunish.
 
 ### Monitor Kinerja & Dashboard Organisasi
@@ -809,11 +816,11 @@ aktif/nonaktif, grant → langsung tercermin). Toggle **Bagan / Daftar**:
 - **Laporan Kinerja Tim** — meninjau & **meng-ACC laporan SPV** (agregat L2 anonim). Direksi
   **hanya** meninjau laporan **SPV** (atau pegawai yang memimpin tim) — laporan pegawai biasa
   non-SPV **ditolak**. ACC Direksi non-blok (tak menghambat finalisasi HRD).
-- **Review Hasil Akhir** — *read-only*: melihat Hasil Akhir **semua pegawai** (agregat + umpan balik
+- **Tinjauan Hasil Akhir** — *read-only*: melihat Hasil Akhir **semua pegawai** (agregat + umpan balik
   **anonim**, termasuk status draf), **tanpa** Hitung Ulang / Rilis / Finalisasi / edit ringkasan / ACC.
 
 > **Direksi sebagai subjek 360°:** Direksi **boleh dinilai** 360°. Bila dinilai, hasilnya muncul di
-> **Review Hasil Akhir** & **Ekspor Rekap** HRD dengan Skor Akhir dihitung **murni dari 360°** (Direksi
+> **Review & Finalisasi** & **Ekspor Rekap** HRD dengan Skor Akhir dihitung **murni dari 360°** (Direksi
 > tak punya KPI). Namun Direksi **tetap dikecualikan** dari Dashboard/4-Box, KPI, kepatuhan, & monitor.
 
 > Catatan: Direksi **tidak** punya "Monitor Kinerja" maupun "Rekapitulasi Kuartal" (sengaja
@@ -831,7 +838,7 @@ HRD hanya mengubah *input*: KPI, bobot, 360° aktif/nonaktif, punishment.)
 - SPV memasukkan skor **0–100 per bulan** untuk tiap pegawai (Input KPI).
 - **KPI pegawai = rerata bulan yang TERISI.** Bulan yang belum diisi **tidak** dihitung sebagai 0 —
   hanya tidak ikut rata-rata. (Mis. terisi 2 dari 3 bulan → rerata dari 2 bulan itu; kolom KPI di
-  Review Hasil Akhir menandai **"2/3 bln"** amber agar HRD sadar belum lengkap.)
+  Review & Finalisasi menandai **"2/3 bln"** amber agar HRD sadar belum lengkap.)
 
 ### 2. Skor 360°
 - Tiap penilai memberi **rating 1–5** per indikator → diubah ke **skala 0–100**.
@@ -960,14 +967,14 @@ tanpa komentar; **edit (input kedua di bulan sama) WAJIB Komentar Audit** — bi
 **Tahap 3 — HRD hitung Skor 360°.** Bobot & Kalkulasi → **Hitung Ulang Skor 360°** → menulis
 `result_360`. *Bila tidak diklik, komponen 360° kosong → Skor Akhir = 100% KPI.*
 
-**Tahap 4 — HRD menyusun laporan** (Review Hasil Akhir → detail pegawai):
+**Tahap 4 — HRD menyusun laporan** (Review & Finalisasi → detail pegawai):
 - **(a) Ringkasan kualitatif** — tulis narasi per aspek; **tersimpan otomatis** (auto-simpan, tanpa
   tombol Simpan manual) dengan indikator status.
 - **(b) Status laporan** — **Simpan Draf** / **Rilis ke SPV** / **Finalisasi**.
 - **(c) Bantuan peninjau lintas divisi** *(opsional)* — pegawai yang diberi **grant halaman "Review
   Hasil Akhir"** (lingkup *Selain divisinya* + izin *Meringkas*) dapat membantu menulis **Ringkasan
   Aspek** untuk pegawai **divisi lain**, tanpa bisa Rilis/Finalisasi (kecuali diberi izin
-  *Finalisasi*). Lihat *Akses Khusus: Review Hasil Akhir berlingkup* & **Manajemen Akses**.
+  *Finalisasi*). Lihat *Akses Khusus: Review & Finalisasi berlingkup* & **Manajemen Akses**.
 
 **Tahap 5 — SPV/Koordinator meninjau & ACC** (status `in_review`). Buka **detail agregat** anggota
 (radar/aspek + ringkasan HRD **+ raw anonim**, **tanpa L3 bernama**) → **Beri ACC** (tombol muncul
@@ -1002,7 +1009,7 @@ Buat → Aktivasi → Set Tanpa 360° → Pertanyaan → Bobot → Pemetaan
 | 5 | **Kirim Undangan Massal** (lalu Pengingat) | Pegawai menerima info akun + sandi + panduan; tahu harus mulai |
 | 6 | *(pengisian berjalan)* — pantau **Progress 360** | Data 360° + KPI terkumpul; kirim pengingat utk yang belum |
 | 7 | **Hitung Ulang Skor 360°** | `result_360` terisi; banner "Skor 360° perlu dihitung ulang" bila ada perubahan setelah hitung |
-| 8 | **Review Hasil Akhir** → **Rilis ke SPV** | Status `in_review`; SPV bisa lihat detail agregat + ACC |
+| 8 | **Review & Finalisasi** → **Rilis ke SPV** | Status `in_review`; SPV bisa lihat detail agregat + ACC |
 | 9 | **Finalisasi** per pegawai | Status `finalized`; **pegawai bisa lihat Laporan Hasil Saya** |
 | 10 | **Kunci & Akhiri Periode** | Status **ended**; **semua isi/edit ditolak server**; periode jadi arsip |
 | 11 | **Aktivasi periode berikutnya** | Periode lama otomatis diakhiri; **palang kesiapan** bila masih ada tugas tertunda |
@@ -1036,7 +1043,7 @@ draft ───────────→ in_review ─────────
 
 > **\*ACC:** untuk pegawai yang punya **Koordinator**, yang meng-ACC & input KPI adalah
 > **koordinatornya** (SPV hanya lihat status, read-only); SPV meng-ACC pegawai **tanpa** koordinator.
-> **Direksi** melihat raw anonim di **Laporan Kinerja Tim** (khusus laporan SPV) & **Review Hasil Akhir**.
+> **Direksi** melihat raw anonim di **Laporan Kinerja Tim** (khusus laporan SPV) & **Tinjauan Hasil Akhir**.
 
 **Empat lapis informasi:**
 - **L1** Skor Akhir (angka) — SPV/Koordinator lihat sejak `draft`.
@@ -1062,7 +1069,7 @@ peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
   peran** (Employee, SPV, Direksi). Tanpa ini, tidak ada yang bisa menilai.
 - Centang **Aktifkan Angket 360** → menentukan apakah kuartal punya komponen 360. Ini
   mengubah **rumus Skor Akhir**: tanpa 360 = KPI murni; dengan 360 = blend 50/50 KPI+360.
-  Terlihat di Monitor Kinerja, Rekapitulasi, Review Hasil Akhir, Dashboard.
+  Terlihat di Monitor Kinerja, Rekapitulasi, Review & Finalisasi, Dashboard.
 - **Kunci & Akhiri Periode** → semua form 360 **nonaktif**; Employee/SPV tak bisa isi/edit.
   Mengunci data agar bisa difinalisasi.
 
@@ -1087,7 +1094,7 @@ peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
 **Fungsi:** tambah/edit/hapus indikator kuantitatif (rating 1–5) & pertanyaan kualitatif.
 **Berdampak ke:**
 - **FormAssess** (Mulai Nilai) yang dilihat **semua penilai** — pertanyaan langsung berubah.
-- Struktur aspek di **Review Hasil Akhir** & "Rincian Komentar Murni".
+- Struktur aspek di **Review & Finalisasi** & "Rincian Komentar Murni".
 - **Dashboard** (Indeks Sub-Aspek Kompetensi & Perilaku) yang mengelompokkan per indikator.
 - ⚠️ **Hapus = permanen** (tidak bisa undo) → jawaban historis untuk indikator itu bisa hilang konteksnya.
 
@@ -1095,12 +1102,12 @@ peran lain**. Berikut tiap fitur, fungsinya, dan **ke mana dampaknya menyebar**.
 **Fungsi:** atur bobot Atasan/Peer/Cross (Model 4-Kelas) atau Atasan/Internal (Model 2-Kelas).
 **Berdampak ke:**
 - **Nilai Evaluasi 360** tiap pegawai → mengubah **Skor Akhir** → menjalar ke Monitor
-  Kinerja, Rekapitulasi Kuartal, Review Hasil Akhir, Dashboard, **Kategori Evaluasi**, dan
+  Kinerja, Rekapitulasi Kuartal, Review & Finalisasi, Dashboard, **Kategori Evaluasi**, dan
   **Papan Pertimbangan Suksesi** (skor > 90).
 - Berlaku setelah klik **Simpan & Terapkan Bobot**, lalu jalankan **Hitung Ulang Skor 360°**
   (menyimpan bobot saja tidak otomatis menghitung ulang).
 
-### 5. Review Hasil Akhir — *finalisasi & rilis laporan bertahap*
+### 5. Review & Finalisasi — *finalisasi & rilis laporan bertahap*
 **Fungsi:** audit Final Report per pegawai, tulis ringkasan aspek, rilis ke SPV, lalu finalisasi.
 **Panel aksi berbasis status** (state-machine) di halaman detail — saat masih dapat diedit
 (draf/belum/Ditinjau SPV): **Unduh PDF · Simpan Draf · Rilis ke SPV · Finalisasi Hasil**; saat
@@ -1138,7 +1145,7 @@ Badge **Status** & **Skor Akhir** + badge **"berubah → N"** bila skor terkini 
   (menyetel ulang sandi orang itu). Saat trial hanya alamat `@gmail.com` yang dikirimi.
 - **Paksa Selesai** → meng-override status pengisian menjadi selesai (penyesuaian manual),
   sehingga data dianggap lengkap untuk finalisasi.
-- Tidak mengubah skor, tapi memengaruhi **kesiapan data** sebelum Review Hasil Akhir.
+- Tidak mengubah skor, tapi memengaruhi **kesiapan data** sebelum Review & Finalisasi.
 
 ### 8. Flag Kepatuhan Penilaian & Punishment — *menghukum ketidakpatuhan*
 **Fungsi:** menandai keterlambatan penilaian **wajib** & Self Assessment yang kosong, lalu
@@ -1146,7 +1153,7 @@ memberi **punishment** (pengurangan poin).
 **Berdampak ke:**
 - **Flag** dihitung dari **Sifat (Pemetaan)** + status pengisian (assessList).
 - **Punishment** → input poin **per kuartal** per pegawai → **memotong Skor Akhir** (minimal 0).
-- Pengurangan menjalar ke **Review Hasil Akhir, Dashboard, Monitor Kinerja** (matriks &
+- Pengurangan menjalar ke **Review & Finalisasi, Dashboard, Monitor Kinerja** (matriks &
   tren bulanan) untuk kuartal terkait.
 
 ### 9. Monitoring & Audit KPI — *pengawasan, bukan pengubahan*
@@ -1189,13 +1196,13 @@ Tim** semuanya hanya menampilkan pegawai **divisi HRD-nya sendiri** (termasuk di
 - **Visibilitas laporan setara SPV:** saat membuka detail laporan dalam mode-SPV, HRD melihat
   **detail agregat** (radar/aspek + ringkasan aspek HRD **+ raw anonim tanpa nama penilai**), **tanpa
   L3 bernama** — sama seperti SPV biasa, dan detail terkunci sampai laporan **Ditinjau/Final**. Untuk
-  melihat **identitas penilai (L3 bernama)** & finalisasi, HRD kembali ke **mode admin** (Review Hasil Akhir).
+  melihat **identitas penilai (L3 bernama)** & finalisasi, HRD kembali ke **mode admin** (Review & Finalisasi).
 
 **Peninjau Lintas Divisi (dipensiunkan → grant halaman berlingkup):** izin lama "Peninjau" **sudah
-tidak ada** sebagai tombol/menu tersendiri. Kini HRD memberi akses halaman **"Review Hasil Akhir"**
+tidak ada** sebagai tombol/menu tersendiri. Kini HRD memberi akses halaman **"Review & Finalisasi"**
 di **Manajemen Akses** dengan **lingkup "Selain divisinya" + izin "Meringkas"** — hasilnya identik
 (pegawai membantu meringkas Hasil Akhir 360° divisi lain, tanpa rilis/finalisasi & tanpa nama
-penilai). Lihat *Akses Khusus: Review Hasil Akhir berlingkup* & bagian **Manajemen Akses**.
+penilai). Lihat *Akses Khusus: Review & Finalisasi berlingkup* & bagian **Manajemen Akses**.
 
 > **Catatan kebijakan — tak ada "halaman custom" buatan HRD.** Pemberian izin hanya **membuka akses
 > ke halaman yang sudah ada**; HRD **tidak** bisa merakit halaman/tampilan baru sendiri. Kebutuhan
@@ -1232,7 +1239,7 @@ flowchart TD
     PUNISH -- "mengurangi (lantai 0)" --> AKHIR
 
     AKHIR --> ANALITIK["Monitor · Rekap · Dashboard"]
-    AKHIR --> REVIEW["Review Hasil Akhir"]
+    AKHIR --> REVIEW["Review & Finalisasi"]
 
     subgraph SM["Alur laporan (state-machine)"]
         direction LR

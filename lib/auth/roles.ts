@@ -34,7 +34,7 @@ export const HRD_SECTION_LABELS: Record<HrdSection, string> = {
   bobot: 'Bobot & Kalkulasi 360°',
   progress: 'Progress 360°',
   kepatuhan: 'Flag Kepatuhan',
-  laporan: 'Review Hasil Akhir',
+  laporan: 'Review & Finalisasi',
   suksesi: 'Promosi & Suksesi',
   dashboard: 'Dashboard Organisasi',
   ekspor: 'Ekspor Dataset',
@@ -85,7 +85,7 @@ export type GrantablePage = (typeof GRANTABLE_PAGES)[number];
 /** Label Indonesia tiap halaman yang bisa diberikan — dipakai di halaman Manajemen Akses. */
 export const GRANTABLE_PAGE_LABELS: Record<GrantablePage, string> = {
   monitor: 'Monitor Kinerja Pegawai',
-  review: 'Review Hasil Akhir',
+  review: 'Review & Finalisasi',
   dashboard: 'Dashboard Organisasi',
   struktur: 'Struktur Organisasi',
   progress: 'Progress 360 Feedback',
@@ -286,7 +286,7 @@ export function allowedDeptsForMulti(depts: string[], scopes: PageScope[], ownDe
 }
 
 // canCrossReview() DIHAPUS (2026-07-24): "Peninjau Hasil Lintas Divisi" dipensiunkan (migrasi 0033) —
-// kini diwujudkan sebagai GRANT halaman "Review Hasil Akhir" berlingkup ("selain divisinya") + izin
+// kini diwujudkan sebagai GRANT halaman "Review & Finalisasi" berlingkup ("selain divisinya") + izin
 // "Boleh meringkas". Kolom is_cross_reviewer dipertahankan (vestigial) tapi tak lagi dibaca kode.
 
 /**

@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
-import { isPenalizableLate, latePenaltyOf, apply360Penalty } from '@/lib/late';
+import { isPenalizableLate, latePenaltyOf, apply360Penalty, ajuanPenaltyApplies } from '@/lib/late';
 
 /**
  * I/O keterlambatan penilaian 360° (migrasi 0036). Rumus murni ada di `lib/late.ts`.
@@ -34,8 +34,9 @@ export type LateSummary = {
  */
 export async function loadLateSummaries(periodId: string): Promise<{ deadline: string | null; byAssessor: Map<string, LateSummary> }> {
   const admin = createAdminClient();
-  const { data: p } = await admin.from('periods').select('assessment_deadline').eq('id', periodId).maybeSingle();
+  const { data: p } = await admin.from('periods').select('assessment_deadline, start_date').eq('id', periodId).maybeSingle();
   const deadline = p?.assessment_deadline ?? null;
+  const ajuanCounts = ajuanPenaltyApplies(p?.start_date); // ajuan ikut potongan mulai Q3 2026
 
   // Nilai potongan yang ditetapkan HRD (kolom points, migrasi 0043). Sebelum 0043 diterapkan kolom
   // belum ada → baca tanpa points; baris yang ada = pengecualian penuh (0), perilaku lama.
@@ -71,10 +72,13 @@ export async function loadLateSummaries(periodId: string): Promise<{ deadline: s
       admin.from('mappings').select('assessor_id, target_id, mandatory, is_adhoc, created_at')
         .eq('period_id', periodId).eq('is_active', true).eq('is_adhoc', false)
         .order('assessor_id').order('target_id').range(from, to));
-    const { data: reqs, error: reqErr } = await admin.from('relation_correction_requests')
-      .select('assessor_id, target_id').eq('period_id', periodId).eq('kind', 'add').eq('status', 'approved');
-    if (reqErr) throw new Error('Gagal membaca permohonan penilaian: ' + reqErr.message);
-    const requested = new Set((reqs ?? []).map((r) => `${r.assessor_id}:${r.target_id}`));
+    const requested = new Set<string>();
+    if (ajuanCounts) {
+      const { data: reqs, error: reqErr } = await admin.from('relation_correction_requests')
+        .select('assessor_id, target_id').eq('period_id', periodId).eq('kind', 'add').eq('status', 'approved');
+      if (reqErr) throw new Error('Gagal membaca permohonan penilaian: ' + reqErr.message);
+      (reqs ?? []).forEach((r) => requested.add(`${r.assessor_id}:${r.target_id}`));
+    }
     if (maps.length) {
       const asmts = await fetchAllPaged<{ assessor_id: string; target_id: string; status: string; first_submitted_at: string | null; forced_by_hrd: boolean }>((from, to) =>
         admin.from('assessments').select('assessor_id, target_id, status, first_submitted_at, forced_by_hrd')

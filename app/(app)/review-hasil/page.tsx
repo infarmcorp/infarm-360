@@ -73,7 +73,7 @@ export default async function ReviewHasilDireksiPage() {
     <Shell>
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Review Hasil Akhir</h1>
+          <h1 className="text-xl font-bold text-gray-800">Tinjauan Hasil Akhir</h1>
           <p className="text-sm text-gray-500">
             {ap.label} · tinjauan eksekutif (read-only) hasil akhir seluruh pegawai. Kalibrasi &amp;
             finalisasi tetap wewenang HRD.

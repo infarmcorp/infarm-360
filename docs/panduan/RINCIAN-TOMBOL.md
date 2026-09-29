@@ -58,7 +58,7 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **HRD Admin** (toggle) | Set cookie `hrd_mode='admin'` → tampilkan Menu Administrator | Pemegang izin HRD | Hanya bila `canAdmin` | — |
 | **Mode SPV / Mode Pegawai** (toggle) | Set `hrd_mode='spv'` (mode base) | Pemegang izin HRD | Hanya bila `canAdmin` | — |
 | **Item Tugas & Notifikasi** | Navigasi ke halaman terkait | Sesuai sumber notifikasi | Bila ada todo | — |
-| **Item navigasi** (Daftar Penilaian, Laporan Hasil Saya, Input KPI, Laporan Kinerja Tim, Monitor, Kelola Pegawai/Periode/Pemetaan/Pertanyaan, Bobot, Progress 360, Flag Kepatuhan, Review Hasil Akhir, Promosi & Suksesi, Dashboard, Monitoring & Audit KPI, Log Aktivitas, Ekspor) | Navigasi antar-halaman | Sesuai peran & mode (base/admin/eksekutif) | Muncul per peran (lihat tabel detail di kode) | — |
+| **Item navigasi** (Daftar Penilaian, Laporan Hasil Saya, Input KPI, Laporan Kinerja Tim, Monitor, Kelola Pegawai/Periode/Pemetaan/Pertanyaan, Bobot, Progress 360, Flag Kepatuhan, Review & Finalisasi, Promosi & Suksesi, Dashboard, Monitoring & Audit KPI, Log Aktivitas, Ekspor) | Navigasi antar-halaman | Sesuai peran & mode (base/admin/eksekutif) | Muncul per peran (lihat tabel detail di kode) | — |
 | **Akun Saya** | Link ke `/akun` | Semua | Selalu (footer) | — |
 | **Keluar** | Signout (akhiri sesi) | Semua | Selalu (footer) | — |
 | **Hamburger / overlay** (mobile) | Buka/tutup drawer sidebar | Semua | Hanya mobile | — |
@@ -261,8 +261,8 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | Tombol | Fungsi | Peran | Kondisi | Konfirmasi |
 |--------|--------|-------|---------|------------|
 | **Model Bobot** (select 4class/2class) | Ganti model bobot | HRD Admin | — | — |
-| **Simpan & Terapkan Bobot** | `saveWeights` (tak otomatis hitung ulang) | HRD Admin | Nonaktif saat busy | — |
-| **Hitung Ulang Skor 360°** | `computeResult360` → tulis `result_360` resmi (Self dikecualikan) | HRD Admin | Nonaktif saat busy | — |
+| **Simpan & Terapkan Bobot** | `saveWeights` (tak otomatis hitung ulang) | HRD Admin | Nonaktif saat busy **atau total bobot ≠ 100** | — |
+| **Buka Review & Finalisasi →** (tautan) | Pindah ke kokpit "Sinkronkan Skor" untuk Hitung Ulang Skor 360° (tombol hitung ulang kini hanya di sana) | HRD Admin | — | — |
 
 ### Progress 360 Feedback (`/admin/progress`)
 
@@ -276,13 +276,13 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **Paksa Selesai** | `forceComplete` (tandai submitted) | HRD Admin | Di dalam Rincian | — |
 | **Cari / Divisi / Status** | Filter daftar penilai | HRD Admin | Selalu | — |
 
-### Review Hasil Akhir (`/admin/laporan`)
+### Review & Finalisasi (`/admin/laporan`)
 
 | Tombol | Fungsi | Peran | Kondisi | Konfirmasi |
 |--------|--------|-------|---------|------------|
 | **Cari + Dropdown Divisi / Kelengkapan 360° / Hanya perlu tindakan / Bersihkan** | Filter baris (klien); filter kelengkapan = penilai WAJIB lengkap; "perlu tindakan" sembunyikan laporan Final yang skornya tak berubah | HRD Admin | Filter kelengkapan hanya saat `has_360` | — |
 | **① Hitung Ulang Skor 360°** | `computeResult360` semua pegawai (kokpit "Sinkronkan Skor"; tanpa pindah ke halaman Bobot) | HRD Admin | Di kokpit; nonaktif saat busy | — |
-| **② Finalisasi Ulang Berubah (N)** | `resyncDriftedFinals` — sinkronkan `final_score` tersimpan pada laporan Final yang skornya ketinggalan ("berubah → N"); laporan tetap Final, ringkasan tak berubah | HRD Admin (Mode Admin) | Muncul bila ada laporan berubah (N>0) | **Ya** — ConfirmDialog |
+| **② Perbarui Laporan Final yang Berubah (N)** | `resyncDriftedFinals` — sinkronkan `final_score` tersimpan pada laporan Final yang skornya ketinggalan ("berubah → N"); laporan tetap Final, ringkasan tak berubah | HRD Admin (Mode Admin) | Muncul bila ada laporan berubah (N>0) | **Ya** — ConfirmDialog |
 | **⚖ Atur Bobot / ⚑ Flag Kepatuhan** | Pintasan ke `/admin/bobot` & `/admin/kepatuhan` | HRD Admin | Di kokpit | — |
 | **Tinjau →** (kolom Aksi) | Buka detail `/laporan/{id}` (state-machine ada di detail) | HRD Admin | "KPI kosong" bila KPI belum ada (nama **tidak** bisa diklik lagi) | — |
 
@@ -315,6 +315,9 @@ tombol edit muncul; saat **Final** panel jadi read-only (hanya Unduh PDF + Kemba
 |--------|--------|-------|---------|------------|
 | **Input Punishment + Simpan** (per baris) | `setPenalty` (potong Skor Akhir, min 0; kolom **kosong** bila belum ada — placeholder "0") | HRD Admin | Nonaktif saat busy | — |
 | **Tampilkan semua pegawai** (toggle) | Tampilkan seluruh pegawai (default hanya yang **perlu perhatian**: telat / belum self / sudah ada punishment) | HRD Admin | Selalu | — |
+| **Ubah** (kolom Potongan 360°) | `setLateWaiver` — tetapkan nilai potongan keterlambatan pegawai (menggantikan −3 otomatis; **0 = dikecualikan**); alasan wajib ≥3 karakter; tampil badge "diubah HRD" | HRD Admin | Ada potongan otomatis / penetapan HRD. Nilai selain 0 butuh migrasi 0043 | — |
+| **Kembalikan otomatis** | `setLateWaiver` (alasan kosong) — hapus penetapan HRD → kembali −3 otomatis | HRD Admin | Ada penetapan HRD | — |
+| **Terapkan Potongan ke Skor 360° (N pegawai)** | `applyLatePenalties` → `refreshLatePenalties` (hanya memperbarui potongan pada skor tersimpan, bukan hitung ulang penuh) | HRD Admin | **Cadangan** — muncul hanya bila penerapan otomatis gagal / masih ada yang tertunda | — |
 
 ### Ekspor Dataset (`/admin/ekspor`)
 
@@ -334,19 +337,19 @@ tombol edit muncul; saat **Final** panel jadi read-only (hanya Unduh PDF + Kemba
 
 ## 5. DIREKSI
 
-Direksi **sebagian besar read-only** (Dashboard, Log Aktivitas, Review Hasil Akhir). Aksi tulis:
+Direksi **sebagian besar read-only** (Dashboard, Log Aktivitas, Tinjauan Hasil Akhir). Aksi tulis:
 **ACC rencana suksesi** & **ACC laporan SPV**.
 
-### Laporan Kinerja Tim & Review Hasil Akhir (Direksi)
+### Laporan Kinerja Tim & Tinjauan Hasil Akhir (Direksi)
 
 | Tombol | Fungsi | Peran | Kondisi | Konfirmasi |
 |--------|--------|-------|---------|------------|
 | **Tinjau / Nama (link detail)** | Buka detail agregat laporan **SPV** (radar/aspek + ringkasan HRD **+ raw anonim**; **tanpa L3 bernama**) | Direksi | Hanya laporan **SPV** (atau pemimpin tim) yang sudah dirilis; laporan pegawai non-SPV **ditolak** | — |
 | **Beri ACC / ✔ ACC** | `setSpvAcc` (cabang **Direksi** via `service_role`) — pakai ulang kolom `spv_acc` | Direksi | Hanya bila target = SPV & report `in_review`/`finalized`; **non-blok** (tak menghambat finalisasi HRD) | — (error inline) |
 
-> **Review Hasil Akhir** (`/review-hasil`) = **read-only** untuk Direksi: lihat Hasil Akhir **semua**
+> **Tinjauan Hasil Akhir** (`/review-hasil`) = **read-only** untuk Direksi: lihat Hasil Akhir **semua**
 > pegawai (agregat + raw anonim, termasuk draf), **tanpa** Hitung Ulang / Rilis / Finalisasi / ACC / edit
-> ringkasan. Direksi juga **boleh dinilai 360°** → hasilnya tampil di Review Hasil Akhir & Ekspor Rekap HRD.
+> ringkasan. Direksi juga **boleh dinilai 360°** → hasilnya tampil di Review & Finalisasi & Ekspor Rekap HRD.
 
 ### Promosi & Suksesi (`/suksesi`)
 

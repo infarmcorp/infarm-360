@@ -71,7 +71,7 @@ export function RequestAssessmentButton({ candidates }: { candidates: Candidate[
           Merasa perlu menilai rekan yang belum ada di daftar? Ajukan di sini beserta hubungan kerjanya.
           <strong> Berlaku setelah disetujui HRD.</strong> Penilaian yang disetujui bersifat Opsional, tetapi
           karena Anda sendiri yang mengajukannya, <strong>wajib dikirim sebelum deadline</strong> — bila tidak,
-          Skor 360° Anda terkena potongan keterlambatan.
+          Skor 360° Anda terkena potongan keterlambatan (berlaku mulai periode Q3 2026).
         </p>
 
         <div className="grid gap-2 sm:grid-cols-2">

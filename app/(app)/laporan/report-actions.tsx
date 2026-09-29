@@ -81,7 +81,7 @@ export function ReportActions({
   return (
     <div className="no-print mb-3 flex flex-wrap items-center gap-2 bg-neutral-tint border border-line rounded-panel p-3">
       <div className="flex items-center gap-2 mr-auto">
-        <span className="text-xs font-bold text-ink">Review Hasil Akhir</span>
+        <span className="text-xs font-bold text-ink">Review & Finalisasi</span>
         {isFinal
           ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-brand-tint text-brand-ink border-brand-ink/20">Final</span>
           : status === 'in_review'

@@ -43,7 +43,7 @@ export default async function LaporanDetailPage({
   const role = me?.role;
   const isAdmin = canAdmin(me);
   const isCoordinator = canCoordinate(me);
-  // Pemegang grant "Review Hasil Akhir" (Manajemen Akses) juga boleh membuka detail dalam lingkupnya
+  // Pemegang grant "Review & Finalisasi" (Manajemen Akses) juga boleh membuka detail dalam lingkupnya
   // (dicek di cabang grant di bawah). Tanpa itu, gate kasar tetap: SPV / HRD / Direksi / Koordinator.
   // SADAR-MODE: HRD "penuh" HANYA di Mode Admin; di Mode-SPV, akses detail lewat grant (bila ada).
   const jarEarly = await cookies();
@@ -81,7 +81,7 @@ export default async function LaporanDetailPage({
   // Apakah subjek = SPV/pemimpin tim (untuk eskalasi Direksi→SPV & pelabelan tombol HRD).
   const subjectIsSpv = await isDireksiReviewSubject(employeeId);
 
-  // ── Jalur GRANT "Review Hasil Akhir" (Manajemen Akses, Tahap 2) ─────────────────────────────
+  // ── Jalur GRANT "Review & Finalisasi" (Manajemen Akses, Tahap 2) ─────────────────────────────
   // Pemegang grant 'review' (non-HRD-penuh) membuka detail pegawai DALAM LINGKUP-nya. Diprioritaskan
   // di atas cabang peran (Direksi/Koordinator/SPV) — grant eksplisit & berlingkup. Baca via
   // service_role (pemegang bukan is_hrd() → RLS memblokir). Umpan balik tetap ANONIM (L3 bernama
@@ -97,14 +97,14 @@ export default async function LaporanDetailPage({
     const inScope = !!tgt && employeeInScopes(reviewGrant.scopes, me?.dept ?? '', user.id, { id: employeeId, dept: tgt.dept ?? null }, teamIds);
     if (!inScope) {
       return <Shell>
-        <Link href="/admin/laporan" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Review Hasil Akhir</Link>
+        <Link href="/admin/laporan" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Review & Finalisasi</Link>
         <p className="text-sm text-ink-soft mt-3">Pegawai ini di luar lingkup akses yang diberikan kepada Anda.</p>
       </Shell>;
     }
     const data = await loadReport(admin, employeeId, ap);
     if (!data) {
       return <Shell>
-        <Link href="/admin/laporan" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Review Hasil Akhir</Link>
+        <Link href="/admin/laporan" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Review & Finalisasi</Link>
         <p className="text-sm text-ink-soft mt-3">Data tidak ditemukan.</p>
       </Shell>;
     }
@@ -142,7 +142,7 @@ export default async function LaporanDetailPage({
 
     return (
       <Shell>
-        <Link href="/admin/laporan" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Review Hasil Akhir</Link>
+        <Link href="/admin/laporan" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Review & Finalisasi</Link>
         <div className="mt-2">
           {!canEditReport && (
             <div className="mb-3 text-[11px] text-ink-soft bg-neutral-tint border border-line rounded-control px-3 py-2 no-print">
@@ -369,7 +369,7 @@ export default async function LaporanDetailPage({
                   {staleReasons.map((r, i) => <li key={i}>{r}</li>)}
                 </ul>
                 Jalankan <strong>&quot;Hitung Ulang Skor 360°&quot;</strong> (tombol di halaman{' '}
-                <Link href="/admin/laporan" className="underline font-bold">Review Hasil Akhir</Link> atau{' '}
+                <Link href="/admin/laporan" className="underline font-bold">Review & Finalisasi</Link> atau{' '}
                 <Link href="/admin/bobot" className="underline font-bold">Bobot &amp; Kalkulasi</Link>), lalu
                 Simpan Draf / Rilis / Finalisasi ulang agar Skor Akhir mencerminkan kondisi terbaru.
               </div>

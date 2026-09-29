@@ -358,7 +358,8 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
   keterlambatan menilai** (flat −3 bila ≥1 kewajiban "belum selesai saat deadline" — mencakup
   terkirim-telat MAUPUN tak pernah dikirim sama sekali; kewajiban = pemetaan **Wajib** + **AJUAN**
   (Opsional hasil permohonan pegawai yang disetujui HRD, dikenali dari `relation_correction_requests`
-  kind='add' approved; ditampilkan terpisah di Kepatuhan); min 0; migrasi 0036, rumus `lib/late.ts` +
+  kind='add' approved; ditampilkan terpisah di Kepatuhan; **berlaku untuk periode mulai 2026-07-01 / Q3
+  2026 dst.** — `AJUAN_PENALTY_FROM`; Ad-Hoc Mandiri lama tak terdampak); min 0; migrasi 0036, rumus `lib/late.ts` +
   `tests/late.test.ts`). HRD bisa **mengubah nilai potongan** per pegawai (`late_penalty_waivers.points`,
   migrasi 0043; 0 = dikecualikan; alasan wajib). Waktu kirim pertama (`first_submitted_at`) diisi **trigger DB**,
   bukan klien — jangan tulis/andalkan nilai dari app. Route cron tersedia di

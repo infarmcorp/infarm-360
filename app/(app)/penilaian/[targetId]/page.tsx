@@ -74,14 +74,14 @@ export default async function AssessPage({
     );
   }
 
-  const initialScores: Record<string, { rating: number | null; comment: string; isNa: boolean; naReason: string }> = {};
+  const initialScores: Record<string, { rating: number | null; comment: string }> = {};
   const initialAnswers: Record<string, string> = {};
   if (existing) {
     const { data: sc } = await supabase
-      .from('assessment_indicator_scores').select('indicator_id, rating, comment, is_na, na_reason')
+      .from('assessment_indicator_scores').select('indicator_id, rating, comment')
       .eq('assessment_id', existing.id);
     (sc ?? []).forEach((s) => {
-      initialScores[s.indicator_id] = { rating: s.rating, comment: s.comment ?? '', isNa: s.is_na ?? false, naReason: s.na_reason ?? '' };
+      initialScores[s.indicator_id] = { rating: s.rating, comment: s.comment ?? '' };
     });
     const { data: an } = await supabase
       .from('assessment_qual_answers').select('question_id, answer')

@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/empty-state';
 import { TabBar, Tab } from '@/components/tab-nav';
 import { RequestAssessmentButton } from './request-assessment-form';
 import { MyRequests, type MyRequest } from './my-requests';
-import { LATE_PENALTY_360, formatWib, isPastDeadline, submitTimingOf } from '@/lib/late';
+import { LATE_PENALTY_360, formatWib, isPastDeadline, submitTimingOf, ajuanPenaltyApplies } from '@/lib/late';
 
 const REL_LABEL: Record<string, string> = {
   Atasan: 'Atasan', Peer: 'Rekan (Peer)', Cross: 'Lintas Divisi', Self: 'Diri Sendiri', Bawahan: 'Bawahan',
@@ -35,7 +35,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
   if (!user) redirect('/login');
 
   const { data: ap } = await supabase
-    .from('periods').select('id, label, has_360, form_open, mapping_published, assessment_deadline').eq('status', 'active').limit(1).maybeSingle();
+    .from('periods').select('id, label, has_360, form_open, mapping_published, assessment_deadline, start_date').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) {
     return (
       <Shell>
@@ -114,7 +114,10 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
   const pendingCorr = new Set(myReqs.filter((c) => c.status === 'pending').map((c) => c.target_id));
   // AJUAN yang disetujui HRD (permohonan "tambah penilaian") → pemetaan Opsional yang tetap WAJIB
   // dituntaskan sebelum deadline (ikut potongan keterlambatan, 2026-09-29).
-  const approvedAjuan = new Set(myReqs.filter((c) => c.kind === 'add' && c.status === 'approved').map((c) => c.target_id));
+  // Berlaku untuk periode Q3 2026 dst. (ajuanPenaltyApplies); periode sebelumnya → kosong.
+  const approvedAjuan = new Set(ajuanPenaltyApplies(ap.start_date)
+    ? myReqs.filter((c) => c.kind === 'add' && c.status === 'approved').map((c) => c.target_id)
+    : []);
 
   // Kandidat Ad-Hoc: pegawai non-direksi, bukan diri, belum ada di daftar penilaian.
   const alreadyListed = new Set<string>([user.id, ...targetIds]);

@@ -10,6 +10,7 @@ import { Recompute360Button } from './recompute-360-button';
 import { ResyncDriftButton } from './resync-drift-button';
 import { BulkFinalizeButton } from './bulk-finalize-button';
 import { Panel } from '@/components/panel';
+import { loadPendingLatePenalties } from '@/lib/late-server';
 
 /**
  * Review Hasil Akhir (HRD): hitung Skor Akhir tiap pegawai, lihat ACC SPV & status,
@@ -208,6 +209,9 @@ export default async function AdminLaporanPage() {
   // punishment berubah setelah finalisasi) → perlu finalisasi ulang (langkah ②). hasScoreDrift
   // selaras badge di tabel. Ini state BERBEDA dari staleCount (Skor 360° usang, langkah ①).
   const driftCount = shownRows.filter((r) => r.status === 'finalized' && hasScoreDrift(r.final, r.storedFinal)).length;
+  // Potongan keterlambatan yang belum masuk Skor 360° tersimpan (cron nonaktif) → diterapkan di
+  // halaman Flag Kepatuhan. Diperingatkan di sini agar tak terlanjur difinalisasi tanpa potongan.
+  const pendingLate = isHrdFull && ap.has_360 ? (await loadPendingLatePenalties(ap.id)).length : 0;
 
   return (
     <Shell>
@@ -226,7 +230,7 @@ export default async function AdminLaporanPage() {
       <div className="mb-5 rounded-panel border border-line bg-neutral-tint p-3 space-y-2.5">
         <div className="flex items-center gap-2">
           <h2 className="text-[11px] font-semibold text-ink-soft uppercase tracking-[0.05em]">Sinkronkan Skor</h2>
-          {ap.has_360 && staleCount === 0 && driftCount === 0 && (
+          {ap.has_360 && staleCount === 0 && driftCount === 0 && pendingLate === 0 && (
             <span className="text-[11px] font-semibold text-brand-ink">✓ semua skor mutakhir</span>
           )}
         </div>
@@ -249,6 +253,12 @@ export default async function AdminLaporanPage() {
           )}
           <ResyncDriftButton count={driftCount} />
         </div>
+        {pendingLate > 0 && (
+          <p className="text-[11px] text-warn-ink font-semibold">
+            ⚠ {pendingLate} pegawai: potongan keterlambatan menilai belum masuk Skor 360° —{' '}
+            <Link href="/admin/kepatuhan" className="underline hover:no-underline">terapkan di Flag Kepatuhan</Link> sebelum finalisasi.
+          </p>
+        )}
 
         {/* Baris sekunder: finalisasi massal ber-ACC + pintasan Bobot/Flag. */}
         <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-line">

@@ -8,8 +8,9 @@
  *
  * Yang diverifikasi pada `kpi_scores` (+ struktur tim):
  *  - BACA: SPV→tim+diri · Employee→diri · HRD/Direksi→semua.
- *  - TULIS: SPV boleh tim & diri sendiri (0008); SPV DITOLAK untuk pegawai SPV lain;
- *    Employee & Direksi DITOLAK menulis KPI.
+ *  - TULIS lewat API: DITOLAK untuk SEMUA peran termasuk HRD [0042] — KPI hanya lewat UI (Server
+ *    Action → fungsi DB kpi_save_with_audit via service_role). Fungsi itu pun tak bisa dipanggil
+ *    pengguna lewat API.
  *
  * Yang diverifikasi pada umpan balik 360° MENTAH lapis 3 (migrasi 0012 — jaring regresi):
  *  - SPV TIDAK PERNAH membaca assessments / assessment_indicator_scores /
@@ -23,6 +24,9 @@
  *  - Penilai DITOLAK menurunkan/menghapus penilaian terkirim (kirim ulang tetap boleh).
  *  - SPV DITOLAK mengubah final_score/status laporan tim & ACC laporan yang masih draft.
  *  - SPV DITOLAK menulis KPI bulan di luar periode aktif (periode terkunci).
+ *
+ * Anonimitas 0042: siapa-menilai-siapa hanya untuk HRD — Direksi & target DITOLAK membaca
+ * penilaian mentah; pemetaan hanya terbaca oleh penilainya sendiri (bukan target/SPV/Direksi).
  *
  * ⚠️ Membuat periode uji berstatus 'active' selama skrip berjalan — jalankan di STAGING, atau di
  * produksi saat tak ada aktivitas (halaman yang membaca "periode aktif" bisa sesaat memilih periode uji).
@@ -205,6 +209,16 @@ async function tryKpiLockedWrite(c: SupabaseClient): Promise<number> {
   if (error) return 0;
   return data?.length ?? 0;
 }
+/** Jumlah baris pemetaan uji (OTH→EMP) yang terlihat client. */
+async function mapVisible(c: SupabaseClient): Promise<number> {
+  const { data, error } = await c.from('mappings').select('id').eq('period_id', aid.periodId).eq('target_id', id.EMP);
+  return error ? 0 : (data?.length ?? 0);
+}
+/** Coba panggil fungsi simpan KPI langsung lewat API. true = berhasil (= celah terbuka). */
+async function tryKpiRpc(c: SupabaseClient): Promise<boolean> {
+  const { error } = await c.rpc('kpi_save_with_audit', { p_actor: id.HRD, p_ym: YM, p_rows: [{ employee_id: id.EMP, score: 80, note: null }] });
+  return !error;
+}
 /** Coba sisipkan penilaian tanpa pemetaan (EMP→SP2). true = berhasil (= celah terbuka). */
 async function tryInjectAssessment(c: SupabaseClient): Promise<boolean> {
   const { data, error } = await c.from('assessments').insert({
@@ -245,8 +259,10 @@ async function main() {
     {
       const c = await loginAs(FIX.SPV.email);
       check('BACA kpi: hanya diri + anggota tim (SPV, EMP)', sameSet(await visibleTestKpiCodes(c), ['RLSTEST-SPV', 'RLSTEST-EMP']));
-      check('TULIS kpi anggota tim (EMP) DIIZINKAN', (await tryKpiWrite(c, 'EMP')) > 0);
-      check('TULIS kpi diri sendiri DIIZINKAN [migrasi 0008]', (await tryKpiWrite(c, 'SPV')) > 0);
+      check('TULIS kpi anggota tim (EMP) lewat API DITOLAK — wajib lewat UI [0042]', (await tryKpiWrite(c, 'EMP')) === 0);
+      check('TULIS kpi diri sendiri lewat API DITOLAK [0042]', (await tryKpiWrite(c, 'SPV')) === 0);
+      check('PANGGIL fungsi kpi_save_with_audit lewat API DITOLAK [0042]', !(await tryKpiRpc(c)));
+      check('BACA pemetaan anggota tim (siapa menilai EMP) DITOLAK [0042]', (await mapVisible(c)) === 0);
       check('TULIS kpi pegawai SPV lain (OTH) DITOLAK', (await tryKpiWrite(c, 'OTH')) === 0);
       check('TULIS kpi SPV lain (SP2) DITOLAK', (await tryKpiWrite(c, 'SP2')) === 0);
       // 360° lapis 3 — anggota tim EMP dinilai OTH; SPV TAK BOLEH lihat raw (0012).
@@ -270,6 +286,7 @@ async function main() {
       check('TULIS kpi diri sendiri DITOLAK (employee tak boleh tulis KPI)', (await tryKpiWrite(c, 'EMP')) === 0);
       check('TULIS kpi orang lain (SPV) DITOLAK', (await tryKpiWrite(c, 'SPV')) === 0);
       check('SISIPKAN penilaian 360° TANPA pemetaan (EMP→SP2) DITOLAK [0041]', !(await tryInjectAssessment(c)));
+      check('BACA pemetaan "siapa menilai saya" (target EMP) DITOLAK [0042]', (await mapVisible(c)) === 0);
       await c.auth.signOut();
     }
 
@@ -278,7 +295,8 @@ async function main() {
       const c = await loginAs(FIX.HRD.email);
       const vis = await visibleTestKpiCodes(c);
       check('BACA kpi: seluruh fixture terlihat', sameSet(vis, Object.values(FIX).map((f) => f.code)), `terlihat: ${vis.sort().join(',')}`);
-      check('TULIS kpi pegawai mana pun (EMP) DIIZINKAN', (await tryKpiWrite(c, 'EMP')) > 0);
+      check('TULIS kpi (EMP) lewat API DITOLAK juga untuk HRD — wajib lewat UI [0042]', (await tryKpiWrite(c, 'EMP')) === 0);
+      check('BACA pemetaan DIIZINKAN (HRD mengatur pemetaan — kontrol positif)', (await mapVisible(c)) === 1);
       // 360° lapis 3 — kontrol positif: HRD baca raw penuh (header + komentar + esai).
       check('BACA assessments 360° DIIZINKAN (kontrol positif)', (await asmtVisible(c)) === 1);
       check('BACA komentar indikator (AIS) DIIZINKAN', (await aisVisible(c)) === 1);
@@ -291,6 +309,7 @@ async function main() {
       const c = await loginAs(FIX.OTH.email); // OTH = penilai (assessor) atas penilaiannya
       check('Penilai (OTH) BACA assessments-nya sendiri DIIZINKAN', (await asmtVisible(c)) === 1);
       check('Penilai (OTH) BACA komentar indikatornya sendiri DIIZINKAN', (await aisVisible(c)) === 1);
+      check('Penilai (OTH) BACA pemetaan "saya menilai siapa" DIIZINKAN', (await mapVisible(c)) === 1);
       // Edit & kirim ulang tetap boleh (punya pemetaan aktif) — kontrol positif [0041].
       { const { data } = await c.from('assessments').update({ status: 'submitted' }).eq('id', aid.asmtId).select('id');
         check('Penilai (OTH) KIRIM ULANG penilaiannya DIIZINKAN', (data?.length ?? 0) === 1); }
@@ -319,6 +338,9 @@ async function main() {
       const vis = await visibleTestKpiCodes(c);
       check('BACA kpi: seluruh fixture terlihat (read-only)', sameSet(vis, Object.values(FIX).map((f) => f.code)), `terlihat: ${vis.sort().join(',')}`);
       check('TULIS kpi (EMP) DITOLAK (Direksi read-only)', (await tryKpiWrite(c, 'EMP')) === 0);
+      check('BACA penilaian 360° mentah (identitas penilai) DITOLAK [0042]', (await asmtVisible(c)) === 0);
+      check('BACA komentar indikator (AIS) mentah DITOLAK [0042]', (await aisVisible(c)) === 0);
+      check('BACA pemetaan (siapa menilai siapa) DITOLAK [0042]', (await mapVisible(c)) === 0);
       await c.auth.signOut();
     }
 

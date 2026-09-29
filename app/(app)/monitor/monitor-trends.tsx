@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt2 } from '@/lib/scoring';
+
 import { useMemo, useState } from 'react';
 import { displayName } from '@/lib/employee-name';
 
@@ -130,7 +132,7 @@ function LineChart({ xLabels, series, band, yMax = 100 }: { xLabels: string[]; s
                   y={y(v) + (s.labelDy ?? -6)}
                   textAnchor={n > 1 && i === 0 ? 'start' : n > 1 && i === n - 1 ? 'end' : 'middle'}
                   style={{ fontSize: 9, fontWeight: 700 }} fill={s.color}>
-                  {v.toFixed(2)}
+                  {fmt2(v)}
                 </text>
               )}
             </g>
@@ -167,12 +169,12 @@ function DeltaMetric({ label, curr, prev }: { label: string; curr: number | null
     <div className="rounded-lg border border-gray-200 bg-gray-50/60 px-3 py-2">
       <div className="text-[11px] font-bold uppercase tracking-wide text-gray-500">{label}</div>
       <div className="flex items-baseline gap-2 mt-0.5">
-        <span className="text-xl font-black font-mono text-slate-800">{curr != null ? curr.toFixed(2) : '—'}</span>
+        <span className="text-xl font-black font-mono text-slate-800">{curr != null ? fmt2(curr) : '—'}</span>
         <span className={`text-xs font-bold ${cls}`}>
           {d == null ? '—' : `${arrow} ${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(2)}`}
         </span>
       </div>
-      <div className="text-[10px] text-gray-400">{prev != null ? `dari ${prev.toFixed(2)}` : 'periode pertama'}</div>
+      <div className="text-[10px] text-gray-400">{prev != null ? `dari ${fmt2(prev)}` : 'periode pertama'}</div>
     </div>
   );
 }

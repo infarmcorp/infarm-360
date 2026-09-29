@@ -1,7 +1,7 @@
 'use client';
 
 import { usePager, Pager } from '@/components/table-controls';
-import { playerLabelOf, type PlayerClass } from '@/lib/scoring';
+import { playerLabelOf, type PlayerClass, fmt2 } from '@/lib/scoring';
 
 /**
  * Tabel Rekapitulasi Kuartal (klien) — paginasi 5-baris (komponen bersama). Data dihitung
@@ -16,7 +16,7 @@ export type RekapRow = {
   katText: string; katClass: string;
 };
 
-const fmt = (v: number | null) => (v != null ? v.toFixed(2) : '—');
+const fmt = (v: number | null) => (v != null ? fmt2(v) : '—');
 
 export function RekapTable({ rows, monthLabels, has360 }: {
   rows: RekapRow[]; monthLabels: string[]; has360: boolean;

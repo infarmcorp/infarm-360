@@ -53,7 +53,9 @@ export default async function DashboardPage({
   const viaGrant = !isHrdFull && !isDireksi;
   const ownDept = (me?.dept ?? '').trim();
   // Pemegang grant bukan is_hrd() → RLS memblokir baca lintas-pegawai → SELURUH data via service_role.
-  const db = viaGrant ? createAdminClient() : supabase;
+  // Direksi juga via service_role: sejak migrasi 0042 Direksi tak lagi membaca penilaian 360° mentah
+  // lewat RLS (siapa-menilai-siapa hanya untuk HRD); dashboard hanya menyajikan AGREGAT anonim.
+  const db = viaGrant || isDireksi ? createAdminClient() : supabase;
   // Tim naungan (hanya bila lingkup 'coordinator_team'): id anggota tim pemegang.
   const teamIds = viaGrant && grantScopes!.includes('coordinator_team')
     ? new Set(((await db.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id)).data ?? []).map((r) => r.employee_id))

@@ -1,3 +1,4 @@
+import { fmt2 } from '@/lib/scoring';
 /**
  * Kartu skor ringkas Laporan Kinerja Tim: Total Pegawai · Avg KPI Tim · Avg 360° Tim.
  * Avg KPI & 360° menyertakan selisih terhadap rata-rata perusahaan (▲ hijau di atas, ▼ merah
@@ -44,7 +45,7 @@ export function TeamScorecards({
       <Card label="Total Pegawai" value={total} />
       <Card
         label="Avg KPI Tim"
-        value={teamKpi != null ? teamKpi.toFixed(2) : '—'}
+        value={teamKpi != null ? fmt2(teamKpi) : '—'}
         sub={<>
           <Delta team={teamKpi} company={companyKpi} />
           {kpiUnread > 0 && <div className="text-[10px] text-gray-500">· {kpiUnread} belum terbaca (dikecualikan)</div>}
@@ -54,7 +55,7 @@ export function TeamScorecards({
       {has360 && (
         <Card
           label="Avg 360° Tim"
-          value={team360 != null ? team360.toFixed(2) : '—'}
+          value={team360 != null ? fmt2(team360) : '—'}
           sub={<>
             <Delta team={team360} company={company360} />
             {fillTotal != null && s360Filled != null && <FilledNote n={s360Filled} total={fillTotal} />}

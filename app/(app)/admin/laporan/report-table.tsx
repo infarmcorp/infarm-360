@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { ReportStatus } from '@/lib/database.types';
-import { hasScoreDrift } from '@/lib/scoring';
+import { hasScoreDrift, fmt2 } from '@/lib/scoring';
 import { usePager, Pager, MultiCheckFilter, CheckboxFilter } from '@/components/table-controls';
 
 export type ReportRow = {
@@ -139,7 +139,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                 <td className="py-3 px-3 text-center data-value text-ink-soft">
                   {r.kpiAvg == null ? <span className="text-danger-ink text-[10px]">kosong</span> : (
                     <div className="flex flex-col items-center gap-0.5">
-                      <span>{r.kpiAvg.toFixed(2)}</span>
+                      <span>{fmt2(r.kpiAvg)}</span>
                       {r.totalMonths > 0 && (
                         <span className={r.missingMonths.length ? 'text-[9px] font-bold text-warn-ink' : 'text-[9px] text-ink-faint'}
                           title={r.missingMonths.length ? `Bulan belum ada KPI: ${r.missingMonths.join(', ')}` : 'Semua bulan terisi'}>
@@ -154,7 +154,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                     : r.s360 == null ? <span className="text-[10px] text-warn-ink">belum</span>
                     : (
                       <div className="flex flex-col items-center gap-0.5">
-                        <span>{r.s360.toFixed(2)}</span>
+                        <span>{fmt2(r.s360)}</span>
                         {r.needsRecompute && (
                           <span title="Penilaian, koreksi relasi, atau bobot berubah sejak skor 360° terakhir dihitung — klik Hitung Ulang Skor 360°."
                             className="text-[9px] font-semibold text-warn-ink bg-warn-tint px-1.5 py-0.5 rounded-full">⚠ perlu hitung</span>
@@ -174,17 +174,17 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                       const drift = hasScoreDrift(r.final, stored);
                       return (
                         <div className="flex flex-col items-center gap-0.5">
-                          <span>{stored != null ? stored.toFixed(2) : '—'}</span>
+                          <span>{stored != null ? fmt2(stored) : '—'}</span>
                           {drift && (
-                            <span title={`Skor terkini ${r.final!.toFixed(2)} berbeda dari yang difinalisasi — Kembalikan ke Draf lalu Finalisasi ulang untuk memperbarui.`}
+                            <span title={`Skor terkini ${fmt2(r.final!)} berbeda dari yang difinalisasi — Kembalikan ke Draf lalu Finalisasi ulang untuk memperbarui.`}
                               className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-warn-tint text-warn-ink">
-                              berubah → {r.final!.toFixed(2)}
+                              berubah → {fmt2(r.final!)}
                             </span>
                           )}
                         </div>
                       );
                     }
-                    return r.final != null ? r.final.toFixed(2) : '—';
+                    return r.final != null ? fmt2(r.final) : '—';
                   })()}
                 </td>
                 {has360 && (

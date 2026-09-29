@@ -105,3 +105,36 @@ export async function setPenalty(raw: unknown): Promise<PenaltyResult> {
   revalidatePath('/laporan');
   return { ok: true, points };
 }
+
+/**
+ * Terapkan POTONGAN KETERLAMBATAN (−3) ke seluruh Skor 360° tersimpan periode aktif — tombol di
+ * halaman Flag Kepatuhan (audit 2026-09-29). Pengganti cron yang dinonaktifkan: potongan bagi
+ * penilai yang TAK PERNAH mengirim sampai deadline lewat baru masuk skor lewat aksi ini (atau
+ * Hitung Ulang Skor 360°). Hanya memperbarui baris result_360 yang ada — tak menghitung ulang
+ * rumus 360°. HRD-only.
+ */
+export async function applyLatePenalties(): Promise<{ ok: true; changed: number } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat menerapkan potongan keterlambatan' };
+
+  const { data: ap } = await supabase.from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  let changed = 0;
+  try { changed = await refreshLatePenalties(ap.id); } catch (e) {
+    return { ok: false, error: 'Gagal menerapkan potongan: ' + (e instanceof Error ? e.message : String(e)) };
+  }
+
+  await logHrdAction({
+    action: 'late_penalty.apply', category: 'kepatuhan',
+    summary: `Menerapkan potongan keterlambatan menilai ke Skor 360° periode "${ap.label}" (${changed} pegawai diperbarui)`,
+    targetType: 'period', targetId: ap.id, targetLabel: ap.label, meta: { changed },
+  });
+  revalidatePath('/admin/kepatuhan');
+  revalidatePath('/admin/laporan');
+  revalidatePath('/admin/dashboard');
+  return { ok: true, changed };
+}

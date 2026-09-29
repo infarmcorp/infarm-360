@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt2 } from '@/lib/scoring';
+
 import { useState } from 'react';
 import { displayName } from '@/lib/employee-name';
 
@@ -100,7 +102,7 @@ function SegBar({ title, people }: { title: string; people: Person[] }) {
                   {selPeople.map((p) => (
                     <div key={p.name} className="flex items-center justify-between gap-2 text-[12px]">
                       <span className="min-w-0 truncate text-gray-700" title={p.name}>{displayName(p.nickname, p.name)}</span>
-                      <span className="font-mono font-bold text-slate-700">{p.value.toFixed(2)}</span>
+                      <span className="font-mono font-bold text-slate-700">{fmt2(p.value)}</span>
                     </div>
                   ))}
                 </div>

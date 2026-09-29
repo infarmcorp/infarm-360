@@ -104,6 +104,14 @@ export function roundScore(n: number | null): number | null {
 }
 
 /**
+ * Format angka 2 desimal untuk TAMPILAN — pakai `roundScore` (bukan `toFixed` bawaan yang membulatkan
+ * atas representasi biner: 79.995 → "79.99"), agar angka yang tampil = angka yang dipakai klasifikasi.
+ */
+export function fmt2(n: number): string {
+  return roundScore(n).toFixed(2);
+}
+
+/**
  * SATU definisi rerata KPI (per pegawai per kuartal): rata-rata bulan yang TERISI. Bulan kosong
  * (null/undefined) tidak dihitung; angka 0 = nilai sungguhan (ikut dihitung). Tak ada bulan → null.
  * SENGAJA presisi penuh (tak dibulatkan): pembulatan hanya di AKHIR (Skor Akhir di finalScoreOf) &

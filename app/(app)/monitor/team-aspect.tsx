@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt2 } from '@/lib/scoring';
+
 import { motion } from 'motion/react';
 import { heatColor } from '@/lib/score-color';
 
@@ -42,11 +44,11 @@ export function TeamAspectProfile({ aspects, scopeLabel }: { aspects: AspectScor
                   {d != null && (
                     <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded ${
                       d >= 0 ? 'text-emerald-700 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`}
-                      title={`Rata-rata organisasi: ${org!.toFixed(2)}`}>
+                      title={`Rata-rata organisasi: ${fmt2(org!)}`}>
                       {d >= 0 ? '▲ +' : '▼ −'}{Math.abs(d).toFixed(2)}
                     </span>
                   )}
-                  <span className="font-bold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{a.score.toFixed(2)} / 100</span>
+                  <span className="font-bold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{fmt2(a.score)} / 100</span>
                 </div>
               </div>
               <div className="relative h-2.5">
@@ -57,7 +59,7 @@ export function TeamAspectProfile({ aspects, scopeLabel }: { aspects: AspectScor
                 {org != null && (
                   <span className="absolute top-[-3px] h-[calc(100%+6px)] w-[2px] bg-slate-800 rounded-sm"
                     style={{ left: `calc(${Math.min(org, 100)}% - 1px)` }}
-                    title={`Rata-rata organisasi: ${org.toFixed(2)}`} />
+                    title={`Rata-rata organisasi: ${fmt2(org)}`} />
                 )}
               </div>
             </div>

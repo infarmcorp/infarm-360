@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection, grantedAccess, employeeInScopes, allowedDeptsForMulti, PAGE_SCOPE_LABELS, type PageScope } from '@/lib/auth/roles';
-import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf } from '@/lib/scoring';
+import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf, fmt2 } from '@/lib/scoring';
 import { trendOf } from '@/lib/trend';
 import { scoreMaps, penaltyMap, teamAverages, companyAverages } from '@/lib/team-metrics';
 import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
@@ -368,11 +368,11 @@ function ScopeScorecards({
   return (
     <div className="flex flex-wrap gap-3 mb-4">
       <Card label="Total Pegawai" value={total} subtext={scopeLabel} />
-      <Card label="Avg KPI" value={kpi != null ? kpi.toFixed(2) : '—'}
+      <Card label="Avg KPI" value={kpi != null ? fmt2(kpi) : '—'}
         delta={orgKpi != null ? <OrgDelta scope={kpi} org={orgKpi} /> : undefined}
         subtext={kpiUnread > 0 ? `${sub} · ${kpiUnread} belum terbaca (dikecualikan)` : sub}
         note={fillTotal != null && kpiFilled != null ? <FilledNote n={kpiFilled} total={fillTotal} /> : undefined} />
-      {has360 && <Card label="Avg 360°" value={s360 != null ? s360.toFixed(2) : '—'}
+      {has360 && <Card label="Avg 360°" value={s360 != null ? fmt2(s360) : '—'}
         delta={orgS360 != null ? <OrgDelta scope={s360} org={orgS360} /> : undefined}
         subtext={sub}
         note={fillTotal != null && s360Filled != null ? <FilledNote n={s360Filled} total={fillTotal} /> : undefined} />}

@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt2 } from '@/lib/scoring';
+
 import { useMemo, useState } from 'react';
 import { usePager, Pager, CheckboxFilter } from '@/components/table-controls';
 
@@ -20,9 +22,9 @@ export type MergedRow = {
   s4: number | null; s2: number | null; // simulasi model (bobot global periode)
 };
 
-const fmt = (n: number | null) => (n != null ? n.toFixed(2) : '—');
+const fmt = (n: number | null) => (n != null ? fmt2(n) : '—');
 const deltaCls = (d: number | null) => (d == null || d === 0 ? 'text-ink-faint' : d > 0 ? 'text-brand-ink' : 'text-danger-ink');
-const deltaTxt = (d: number | null) => (d == null ? '—' : d === 0 ? '0' : `${d > 0 ? '+' : ''}${d.toFixed(2)}`);
+const deltaTxt = (d: number | null) => (d == null ? '—' : d === 0 ? '0' : `${d > 0 ? '+' : ''}${fmt2(d)}`);
 
 export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
   rows: MergedRow[]; model: '4class' | '2class'; overrideCount: number; globalLabel: string;

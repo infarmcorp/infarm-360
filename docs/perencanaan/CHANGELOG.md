@@ -314,6 +314,24 @@
   tetap dibatasi laporan FINAL miliknya). `verify:rls` diperluas untuk tiap poin. Data historis Q1 2026
   (51 penilaian sintetis backfill, tanpa pemetaan) tak terdampak (periode tutup, jalur service_role).
   ⚠️ **Belum diterapkan** ke DB.
+- `0042` **Anonimitas penilai + KPI hanya lewat UI (2026-09-29, keputusan HRD).** (A) Siapa-menilai-siapa
+  hanya untuk HRD: `asmt_read`/`ais_read`/`aqa_read` cabut cabang **Direksi**; `map_read` hanya HRD + penilai
+  (pegawai tahu SIAPA YANG IA NILAI, bukan siapa yang menilainya; SPV/Direksi/target tak lagi membaca
+  pemetaan); `corr_read` cabut cabang target. Data mentah ANONIM untuk SPV/Koordinator/Direksi/pemegang
+  grant tetap disajikan server (service_role). Dashboard Direksi kini membaca via service_role (agregat).
+  (B) `kpi_write` & `kpiaudit_insert` DICABUT (termasuk HRD) → KPI hanya lewat Server Action; lingkup
+  (HRD semua · SPV tim+diri · Koordinator tim) ditegakkan di server (`assertKpiScope`); skor + audit ditulis
+  atomik oleh fungsi `kpi_save_with_audit`/`kpi_delete_with_audit` (hanya service_role; tolak bulan di luar
+  periode aktif). Kode punya **fallback** 2-langkah bila fungsi belum ada → aman dideploy SEBELUM migrasi.
+  `verify:rls` diperluas. ⚠️ **Urutan rilis: deploy kode dulu, baru terapkan 0041 → 0042** (kode lama di
+  `main` bergantung pada izin yang dicabut). Belum diterapkan ke DB.
+- **Potongan keterlambatan tertunda** (2026-09-29): halaman Flag Kepatuhan menampilkan jumlah pegawai yang
+  potongannya belum masuk Skor 360° tersimpan + tombol **"Terapkan Potongan ke Skor 360°"**
+  (`applyLatePenalties` → `refreshLatePenalties`, tanpa hitung ulang penuh); Review Hasil Akhir memberi
+  peringatan & tautan sebelum finalisasi (`loadPendingLatePenalties`). Pengganti cron yang nonaktif.
+- **Format angka `fmt2`** (2026-09-29): tampilan 2 desimal memakai `roundScore` (bukan `toFixed` bawaan
+  yang membulatkan atas galat biner, mis. 84.925 → "84.92") di seluruh halaman skor → angka tampil =
+  angka klasifikasi.
 - `final_reports.content` (jsonb lama) dipakai untuk `aspectSummaries` **&** `qualSummaries`
   (ringkasan pertanyaan kualitatif) — tanpa migrasi baru.
 

@@ -6,7 +6,8 @@ import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import { KepatuhanTable } from './kepatuhan-table';
 import { Panel } from '@/components/panel';
-import { loadLateSummaries } from '@/lib/late-server';
+import { loadLateSummaries, loadPendingLatePenalties } from '@/lib/late-server';
+import { ApplyLateButton } from './apply-late-button';
 import { formatWib, LATE_PENALTY_360 } from '@/lib/late';
 
 /**
@@ -72,6 +73,9 @@ export default async function KepatuhanPage() {
 
   // Keterlambatan kirim (service_role; halaman ini sudah terotorisasi di atas).
   const { deadline, byAssessor: lateBy } = await loadLateSummaries(ap.id);
+  // Potongan yang BELUM masuk Skor 360° tersimpan (cron nonaktif) — dalam lingkup halaman ini.
+  const inScope = new Set(employees.map((e) => e.id));
+  const pendingLate = (await loadPendingLatePenalties(ap.id, lateBy)).filter((p) => inScope.has(p.employeeId));
 
   const rows = employees.map((e) => {
     const lateTargets = maps
@@ -114,6 +118,16 @@ export default async function KepatuhanPage() {
         </div>
         <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
+
+      {pendingLate.length > 0 && (
+        <div className="mb-5 border border-warn-ink/25 bg-warn-tint rounded-panel p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <p className="text-[12.5px] text-warn-ink leading-relaxed">
+            <strong>{pendingLate.length} pegawai</strong> punya potongan keterlambatan yang <strong>belum masuk Skor 360°</strong> tersimpan
+            (mis. penilai yang belum mengirim sampai deadline lewat). Terapkan sebelum memfinalisasi laporan.
+          </p>
+          {!viaGrant && <ApplyLateButton pending={pendingLate.length} />}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
         <div className="border border-line rounded-panel bg-surface p-3 text-center">

@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Award, Target, Flame, TrendingUp, TrendingDown, Building2, Users, BarChart3 } from 'lucide-react';
 import {
-  PLAYER_BOXES, type PlayerClass, perfLabelOf,
-} from '@/lib/scoring';
+  PLAYER_BOXES, type PlayerClass, perfLabelOf, fmt2 } from '@/lib/scoring';
 import { heatColor, HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
 import { TREND_META, type Trend } from '@/lib/trend';
 import { displayName } from '@/lib/employee-name';
@@ -113,7 +112,7 @@ const shortName = (r: { nickname?: string | null; name: string }) => r.nickname?
 function TrendBadge({ t, months }: { t?: Trend; months?: (number | null)[] }) {
   if (!t || t === 'empty') return <span className="text-[10px] text-gray-400">—</span>;
   const m = TREND_META[t];
-  const tip = (months ?? []).map((v, i) => `Bln ${i + 1}: ${v == null ? '—' : v.toFixed(2)}`).join(' · ');
+  const tip = (months ?? []).map((v, i) => `Bln ${i + 1}: ${v == null ? '—' : fmt2(v)}`).join(' · ');
   return (
     <span title={tip} className="text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-0.5"
       style={{ color: m.color, backgroundColor: `${m.color}1a` }}>
@@ -184,7 +183,7 @@ function Delta({ curr, prev, prevLabel, move }: { curr: number | null; prev: num
  */
 function moveTooltip(prevLabel: string | null, m: MoveBreakdown | null): string | undefined {
   if (!prevLabel || !m) return undefined;
-  const fmt = (v: number | null) => (v != null ? v.toFixed(2) : '—');
+  const fmt = (v: number | null) => (v != null ? fmt2(v) : '—');
   const signed = (v: number | null) => (v == null ? '—' : `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}`);
   const lines = [`Penyebab perubahan vs ${prevLabel}`, ''];
   lines.push(`• Perubahan skor pegawai konsisten (${m.cohortN}): ${signed(m.cohortDelta)}`);
@@ -253,14 +252,14 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
     <div className="space-y-6">
       <SectionHeader label="Ringkasan Talenta" hint="metrik utama organisasi" tone="emerald" />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Stat icon={<Award className="w-6 h-6" />} tint="emerald" value={orgAvg.toFixed(2)} label="Rataan Skor Akhir Organisasi"
+        <Stat icon={<Award className="w-6 h-6" />} tint="emerald" value={fmt2(orgAvg)} label="Rataan Skor Akhir Organisasi"
           sub={prevLabel && prevFinalAvg != null
             ? <span className="text-[11px] text-gray-500"><Delta curr={orgAvg} prev={prevFinalAvg} prevLabel={prevLabel} move={finalMove} /> <span className="text-gray-400">vs {prevLabel}</span></span>
             : undefined} />
         <Stat icon={<Target className="w-6 h-6" />} tint="emerald"
-          value={topEmp?.final != null ? topEmp.final.toFixed(2) : '—'} label="Skor Akhir Tertinggi" sub={topEmp ? displayName(topEmp.nickname, topEmp.name) : undefined} />
+          value={topEmp?.final != null ? fmt2(topEmp.final) : '—'} label="Skor Akhir Tertinggi" sub={topEmp ? displayName(topEmp.nickname, topEmp.name) : undefined} />
         <Stat icon={<TrendingDown className="w-6 h-6" />} tint="rose"
-          value={lowEmp?.final != null ? lowEmp.final.toFixed(2) : '—'} label="Skor Akhir Terendah" sub={lowEmp ? displayName(lowEmp.nickname, lowEmp.name) : undefined} />
+          value={lowEmp?.final != null ? fmt2(lowEmp.final) : '—'} label="Skor Akhir Terendah" sub={lowEmp ? displayName(lowEmp.nickname, lowEmp.name) : undefined} />
         <Stat icon={<Target className="w-6 h-6" />} tint="blue" value={String(aPlayers)} label="A Player" />
         <Stat icon={<Flame className="w-6 h-6" />} tint="amber" value={String(coaching)} label="Perlu Coaching (<80)" />
         <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={dominant?.n ? dominant.label : '—'} label="Kategori Dominan" />
@@ -300,7 +299,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
                 <div key={dept} className="space-y-1">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-semibold text-gray-700">{dept}</span>
-                    <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{score.toFixed(2)}</span>
+                    <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{fmt2(score)}</span>
                   </div>
                   <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
                     <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(score, 100)}%` }}
@@ -321,7 +320,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
                 <div key={asp.aspek} className="space-y-1">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-medium text-gray-700">⭐ {asp.aspek}</span>
-                    <span className="text-xs font-semibold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{asp.score.toFixed(2)} / 100</span>
+                    <span className="text-xs font-semibold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{fmt2(asp.score)} / 100</span>
                   </div>
                   <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
                     <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(asp.score, 100)}%` }}
@@ -354,7 +353,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
                 <div className="mt-2 flex flex-wrap gap-1">
                   {emps.map((e) => (
                     <span key={e.id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
-                      title={`${e.name} · KPI ${e.kpiAvg?.toFixed(2)} · 360 ${e.s360 != null ? e.s360.toFixed(2) : 'N/A'}`}>{shortName(e)}</span>
+                      title={`${e.name} · KPI ${e.kpiAvg?.toFixed(2)} · 360 ${e.s360 != null ? fmt2(e.s360) : 'N/A'}`}>{shortName(e)}</span>
                   ))}
                 </div>
               </div>
@@ -371,7 +370,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
             <div className="mt-2 flex flex-wrap gap-1">
               {incomplete.map((e) => (
                 <span key={e.id} className="text-[10px] bg-white/70 text-gray-600 px-1.5 py-0.5 rounded font-semibold border border-amber-200"
-                  title={`${e.name} · KPI ${e.kpiAvg != null ? e.kpiAvg.toFixed(2) : 'N/A'} · 360 ${e.s360 != null ? e.s360.toFixed(2) : 'N/A'}`}>{shortName(e)}</span>
+                  title={`${e.name} · KPI ${e.kpiAvg != null ? fmt2(e.kpiAvg) : 'N/A'} · 360 ${e.s360 != null ? fmt2(e.s360) : 'N/A'}`}>{shortName(e)}</span>
               ))}
             </div>
           </div>
@@ -386,7 +385,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
             <div className="mt-2 flex flex-wrap gap-1">
               {unread.map((e) => (
                 <span key={e.id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
-                  title={`${e.name} · KPI belum terbaca · 360 ${e.s360 != null ? e.s360.toFixed(2) : 'N/A'}`}>{shortName(e)}</span>
+                  title={`${e.name} · KPI belum terbaca · 360 ${e.s360 != null ? fmt2(e.s360) : 'N/A'}`}>{shortName(e)}</span>
               ))}
             </div>
           </div>
@@ -549,14 +548,14 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-        <Stat icon={<Award className="w-6 h-6" />} tint="emerald" value={avgKpi.toFixed(2)} label="Rerata KPI Organisasi"
+        <Stat icon={<Award className="w-6 h-6" />} tint="emerald" value={fmt2(avgKpi)} label="Rerata KPI Organisasi"
           sub={prevLabel && prevKpiAvg != null
             ? <span className="text-[11px] text-gray-500"><Delta curr={avgKpi} prev={prevKpiAvg} prevLabel={prevLabel} move={kpiMove} /> <span className="text-gray-400">vs {prevLabel}</span></span>
             : undefined} />
         <Stat icon={<Target className="w-6 h-6" />} tint="blue"
-          value={topEmp?.kpiAvg != null ? topEmp.kpiAvg.toFixed(2) : '—'} label="Skor KPI Tertinggi" sub={topEmp ? displayName(topEmp.nickname, topEmp.name) : undefined} />
+          value={topEmp?.kpiAvg != null ? fmt2(topEmp.kpiAvg) : '—'} label="Skor KPI Tertinggi" sub={topEmp ? displayName(topEmp.nickname, topEmp.name) : undefined} />
         <Stat icon={<TrendingDown className="w-6 h-6" />} tint="rose"
-          value={lowEmp?.kpiAvg != null ? lowEmp.kpiAvg.toFixed(2) : '—'} label="Skor KPI Terendah" sub={lowEmp ? displayName(lowEmp.nickname, lowEmp.name) : undefined} />
+          value={lowEmp?.kpiAvg != null ? fmt2(lowEmp.kpiAvg) : '—'} label="Skor KPI Terendah" sub={lowEmp ? displayName(lowEmp.nickname, lowEmp.name) : undefined} />
         <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={`${pctOverStd.toFixed(0)}%`} label={`KPI Di Atas Standar (≥${kpiStandard})`} />
         <Stat icon={<BarChart3 className="w-6 h-6" />} tint="amber" value={`${monthly.length} Bulan`} label="Siklus Penilaian Terpilih" />
       </div>
@@ -586,7 +585,7 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
                 <div key={dept} className="space-y-1">
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-bold text-slate-700">{dept}</span>
-                    <span className="font-bold font-mono px-2 py-0.5 rounded" style={{ backgroundColor: hc.bg, color: hc.fg }}>{score.toFixed(2)} / 100</span>
+                    <span className="font-bold font-mono px-2 py-0.5 rounded" style={{ backgroundColor: hc.bg, color: hc.fg }}>{fmt2(score)} / 100</span>
                   </div>
                   <div className="h-2.5 bg-gray-100 rounded-md overflow-hidden">
                     <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(score, 100)}%` }}
@@ -607,7 +606,7 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
                   <div key={m.ym} className="space-y-1">
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-bold text-slate-700">{ymLabel(m.ym)}</span>
-                      <span className="font-bold font-mono px-2 py-0.5 rounded" style={{ backgroundColor: hc.bg, color: hc.fg }}>{m.avg.toFixed(2)}</span>
+                      <span className="font-bold font-mono px-2 py-0.5 rounded" style={{ backgroundColor: hc.bg, color: hc.fg }}>{fmt2(m.avg)}</span>
                     </div>
                     <div className="h-2.5 bg-gray-100 rounded-md overflow-hidden">
                       <motion.div initial={{ width: 0 }} animate={{ width: `${(m.avg / maxMonthly) * 100}%` }}
@@ -648,12 +647,12 @@ function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, has360
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={avg360.toFixed(2)} label="Rerata Skor 360° Organisasi"
+        <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={fmt2(avg360)} label="Rerata Skor 360° Organisasi"
           sub={prevLabel && prev360Avg != null
             ? <span className="text-[11px] text-gray-500"><Delta curr={avg360} prev={prev360Avg} prevLabel={prevLabel} move={s360Move} /> <span className="text-gray-400">vs {prevLabel}</span></span>
             : undefined} />
-        <Stat icon={<Target className="w-6 h-6" />} tint="emerald" value={top ? top.s360!.toFixed(2) : '—'} label="Skor 360° Tertinggi" sub={top ? displayName(top.nickname, top.name) : undefined} />
-        <Stat icon={<TrendingDown className="w-6 h-6" />} tint="rose" value={low ? low.s360!.toFixed(2) : '—'} label="Skor 360° Terendah" sub={low ? displayName(low.nickname, low.name) : undefined} />
+        <Stat icon={<Target className="w-6 h-6" />} tint="emerald" value={top ? fmt2(top.s360!) : '—'} label="Skor 360° Tertinggi" sub={top ? displayName(top.nickname, top.name) : undefined} />
+        <Stat icon={<TrendingDown className="w-6 h-6" />} tint="rose" value={low ? fmt2(low.s360!) : '—'} label="Skor 360° Terendah" sub={low ? displayName(low.nickname, low.name) : undefined} />
         <Stat icon={<Users className="w-6 h-6" />} tint="blue" value={String(assessed)} label="Pegawai Ternilai 360°" />
       </div>
 
@@ -681,7 +680,7 @@ function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, has360
                 <div key={asp.aspek} className="space-y-1">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-medium text-gray-700">⭐ {asp.aspek}</span>
-                    <span className="text-xs font-semibold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{asp.score.toFixed(2)} / 100</span>
+                    <span className="text-xs font-semibold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{fmt2(asp.score)} / 100</span>
                   </div>
                   <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
                     <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(asp.score, 100)}%` }}
@@ -759,10 +758,10 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
                     </span>
                     <span className="text-[11px] text-gray-500">{r.dept}</span>
                   </td>
-                  <td className="py-3 px-3 text-center font-mono text-emerald-700">{r.kpiAvg != null ? r.kpiAvg.toFixed(2) : '—'}</td>
+                  <td className="py-3 px-3 text-center font-mono text-emerald-700">{r.kpiAvg != null ? fmt2(r.kpiAvg) : '—'}</td>
                   <td className="py-3 px-3 text-center"><TrendBadge t={r.trend} months={r.kpiMonths} /></td>
-                  <td className="py-3 px-3 text-center font-mono text-indigo-700">{r.s360 != null ? r.s360.toFixed(2) : '—'}</td>
-                  <td className="py-3 px-3 text-center font-mono font-black text-slate-800">{r.final != null ? r.final.toFixed(2) : '—'}</td>
+                  <td className="py-3 px-3 text-center font-mono text-indigo-700">{r.s360 != null ? fmt2(r.s360) : '—'}</td>
+                  <td className="py-3 px-3 text-center font-mono font-black text-slate-800">{r.final != null ? fmt2(r.final) : '—'}</td>
                   <td className="py-3 pl-3 text-center">
                     {r.player ? (
                       <span className={`text-[11px] font-black px-2 py-0.5 rounded border ${PLAYER_COLOR[r.player]}`}>{PLAYER_BADGE[r.player]}</span>
@@ -808,7 +807,7 @@ const ymShort = (ym: string) => MONTHS[Number(ym.split('-')[1]) - 1] ?? ym;
 function YearTrendCaption({ value, label, unit }: { value: number | null; label: string; unit: string }) {
   return (
     <div className="flex items-baseline gap-2 mb-3">
-      <span className="text-2xl font-black text-slate-800 font-mono">{value != null ? value.toFixed(2) : '—'}</span>
+      <span className="text-2xl font-black text-slate-800 font-mono">{value != null ? fmt2(value) : '—'}</span>
       <span className="text-xs font-bold text-gray-600">{label}</span>
       <span className="text-[10px] text-gray-500">· {unit}</span>
     </div>
@@ -859,7 +858,7 @@ function TrendLine({ points }: { points: { label: string; value: number }[] }) {
                 x={x(i) + (points.length > 1 && i === 0 ? 3 : points.length > 1 && i === points.length - 1 ? -3 : 0)}
                 y={y(p.value) - 9}
                 textAnchor={points.length > 1 && i === 0 ? 'start' : points.length > 1 && i === points.length - 1 ? 'end' : 'middle'}
-                fill="#374151" fontSize={10} fontWeight={700}>{p.value.toFixed(2)}</text>
+                fill="#374151" fontSize={10} fontWeight={700}>{fmt2(p.value)}</text>
               <text
                 x={x(i)} y={H - 8}
                 textAnchor={points.length > 1 && i === 0 ? 'start' : points.length > 1 && i === points.length - 1 ? 'end' : 'middle'}
@@ -907,7 +906,7 @@ function CategoryPie({ title, subtitle, unit, values }: { title: string; subtitl
                 const len = (c.n / total) * C;
                 const seg = (
                   <circle key={c.key} cx={70} cy={70} r={R} fill="none" stroke={c.color}
-                    strokeWidth={SW} strokeDasharray={`${len.toFixed(2)} ${(C - len).toFixed(2)}`} strokeDashoffset={-acc} />
+                    strokeWidth={SW} strokeDasharray={`${fmt2(len)} ${(C - len).toFixed(2)}`} strokeDashoffset={-acc} />
                 );
                 acc += len;
                 return seg;
@@ -974,8 +973,8 @@ function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; mont
                   return (
                     <td key={c.ym} className="text-center font-mono font-bold rounded-md py-2.5 px-2"
                       style={{ backgroundColor: bg, color: fg }}
-                      title={`${row.dept} · ${ymLabel(c.ym)} · ${c.avg != null ? c.avg.toFixed(2) : 'tanpa data'}`}>
-                      {c.avg != null ? c.avg.toFixed(2) : '—'}
+                      title={`${row.dept} · ${ymLabel(c.ym)} · ${c.avg != null ? fmt2(c.avg) : 'tanpa data'}`}>
+                      {c.avg != null ? fmt2(c.avg) : '—'}
                     </td>
                   );
                 })}
@@ -1032,8 +1031,8 @@ function Aspect360Heatmap({ deptAspect, aspects }: { deptAspect: DeptAspectRow[]
                   return (
                     <td key={c.aspect} className="text-center font-mono font-bold rounded-md py-2.5 px-2"
                       style={{ backgroundColor: bg, color: fg }}
-                      title={`${row.dept} · ${c.aspect} · ${c.avg != null ? c.avg.toFixed(2) : 'tanpa data'}`}>
-                      {c.avg != null ? c.avg.toFixed(2) : '—'}
+                      title={`${row.dept} · ${c.aspect} · ${c.avg != null ? fmt2(c.avg) : 'tanpa data'}`}>
+                      {c.avg != null ? fmt2(c.avg) : '—'}
                     </td>
                   );
                 })}
@@ -1134,7 +1133,7 @@ function LeaderboardRows({ items, valueOf, tone, startIndex = 0 }: { items: Row[
               <div><span className="font-bold text-gray-800 text-xs block" title={e.name}>{displayName(e.nickname, e.name)}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
             </div>
             <div className="flex items-center gap-2.5">
-              <span className={`font-mono font-black text-xs px-2 py-1 rounded border ${chip}`}>{v != null ? v.toFixed(2) : '—'}</span>
+              <span className={`font-mono font-black text-xs px-2 py-1 rounded border ${chip}`}>{v != null ? fmt2(v) : '—'}</span>
               {bandBadge(v)}
             </div>
           </div>

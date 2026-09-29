@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt2 } from '@/lib/scoring';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Download, Save, CheckCircle2, Send, Undo2, AlertTriangle } from 'lucide-react';
@@ -87,11 +89,11 @@ export function ReportActions({
           : status === 'draft'
           ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-warn-tint text-warn-ink border-warn-ink/25">Draf</span>
           : <span className="text-[10px] text-ink-faint">belum disimpan</span>}
-        {finalScore != null && <span className="text-[11px] data-value font-bold text-ink">Skor Akhir {finalScore.toFixed(2)}</span>}
+        {finalScore != null && <span className="text-[11px] data-value font-bold text-ink">Skor Akhir {fmt2(finalScore)}</span>}
         {drift && (
-          <span title={`Skor terkini ${liveFinal!.toFixed(2)} berbeda dari yang difinalisasi (${finalScore!.toFixed(2)}) — KPI/360°/punishment berubah. Kembalikan ke Draf lalu Finalisasi ulang untuk memperbarui.`}
+          <span title={`Skor terkini ${fmt2(liveFinal!)} berbeda dari yang difinalisasi (${fmt2(finalScore!)}) — KPI/360°/punishment berubah. Kembalikan ke Draf lalu Finalisasi ulang untuk memperbarui.`}
             className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink border border-warn-ink/25">
-            berubah → {liveFinal!.toFixed(2)}
+            berubah → {fmt2(liveFinal!)}
           </span>
         )}
       </div>

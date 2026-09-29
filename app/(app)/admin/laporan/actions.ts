@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
 import { logHrdAction, logAuditAsService, type AuditEntry } from '@/lib/audit/log';
-import { finalScoreOf, kpiAvgOf, hasScoreDrift } from '@/lib/scoring';
+import { finalScoreOf, kpiAvgOf, hasScoreDrift, fmt2 } from '@/lib/scoring';
 
 /**
  * Review Hasil Akhir: hitung Skor Akhir kalibrasi & tulis final_reports.
@@ -274,7 +274,7 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
     if (final == null) { skipped.push({ name: label, reason: 'Skor Akhir belum bisa dihitung (KPI & 360° kosong)' }); continue; }
     // ACC diberikan atas angka yang dirilis; bila Skor Akhir kini berbeda, jangan finalisasi otomatis.
     if (r.final_score != null && hasScoreDrift(final, r.final_score)) {
-      skipped.push({ name: label, reason: `Skor Akhir berubah sejak di-ACC (${Number(r.final_score).toFixed(2)} → ${final.toFixed(2)}) — rilis ulang ke SPV untuk ACC baru` });
+      skipped.push({ name: label, reason: `Skor Akhir berubah sejak di-ACC (${Number(r.final_score).toFixed(2)} → ${fmt2(final)}) — rilis ulang ke SPV untuk ACC baru` });
       continue;
     }
     const { error } = await supabase.from('final_reports')

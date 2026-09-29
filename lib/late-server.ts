@@ -77,6 +77,26 @@ export async function loadLateSummaries(periodId: string): Promise<{ deadline: s
 }
 
 /**
+ * Pegawai yang potongan keterlambatannya BELUM diterapkan ke Skor 360° tersimpan: punya baris
+ * result_360 tetapi `late_penalty` tersimpan ≠ potongan yang berlaku sekarang. Terjadi terutama
+ * pada penilai yang TAK PERNAH mengirim — kondisinya berubah seiring waktu (deadline lewat) tanpa
+ * ada aksi yang memicu penerapan, karena cron dinonaktifkan (audit 2026-09-29).
+ * `byAssessor` boleh diberikan (hasil loadLateSummaries yang sudah dimuat) agar tak dimuat ulang.
+ */
+export async function loadPendingLatePenalties(
+  periodId: string,
+  byAssessor?: Map<string, LateSummary>,
+): Promise<{ employeeId: string; stored: number; due: number }[]> {
+  const admin = createAdminClient();
+  const by = byAssessor ?? (await loadLateSummaries(periodId)).byAssessor;
+  const rows = await fetchAllPaged<{ employee_id: string; late_penalty: number }>((from, to) =>
+    admin.from('result_360').select('employee_id, late_penalty').eq('period_id', periodId).order('employee_id').range(from, to));
+  return rows
+    .map((r) => ({ employeeId: r.employee_id, stored: Number(r.late_penalty ?? 0), due: by.get(r.employee_id)?.penalty ?? 0 }))
+    .filter((r) => r.stored !== r.due);
+}
+
+/**
  * Terapkan ulang potongan keterlambatan ke result_360 yang SUDAH ada (tanpa menghitung ulang
  * rumus 360°): score = max(0, score_raw − penalty). Dipanggil saat deadline diubah, pengecualian
  * diberi/dicabut, atau penilai mengirim terlambat. `onlyIds` membatasi pegawai yang disentuh.

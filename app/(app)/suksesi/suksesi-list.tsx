@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt2 } from '@/lib/scoring';
+
 import { useMemo, useState } from 'react';
 import { usePager, Pager, CheckboxFilter } from '@/components/table-controls';
 import { PlanForm } from './plan-form';
@@ -80,7 +82,7 @@ export function SuksesiList({ rows }: { rows: SuksesiRow[] }) {
                     {r.final != null && r.final >= 90 && <span className="text-[10px] font-semibold bg-brand-tint text-brand-ink px-1.5 py-0.5 rounded-full">Kandidat</span>}
                   </div>
                   <div className="text-[11px] text-ink-faint">{r.dept}</div>
-                  <div className="mt-1 text-xs text-ink-soft">Skor Akhir: <span className="data-value font-bold text-ink">{r.final != null ? r.final.toFixed(2) : '—'}</span></div>
+                  <div className="mt-1 text-xs text-ink-soft">Skor Akhir: <span className="data-value font-bold text-ink">{r.final != null ? fmt2(r.final) : '—'}</span></div>
                   {badge && <span className={`inline-block mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full ${badge.c}`}>{badge.t}</span>}
                   {r.plan?.direksi_comment && <p className="mt-1 text-[10px] text-ink-faint italic">Direksi: “{r.plan.direksi_comment}”</p>}
                 </div>

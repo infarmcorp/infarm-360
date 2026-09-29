@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  kpiBandOf, s360BandOf, talentBoxOf, playerClassOf, finalScoreOf, roundScore, kpiAvgOf, displayedFinalOf, perfCategoryOf,
+  kpiBandOf, s360BandOf, talentBoxOf, playerClassOf, finalScoreOf, roundScore, kpiAvgOf, displayedFinalOf, perfCategoryOf, fmt2,
 } from '@/lib/scoring';
 
 describe('kpiBandOf — band KPI (≥90 hi · ≥80 mid · <80 lo)', () => {
@@ -157,5 +157,16 @@ describe('displayedFinalOf — angka Skor Akhir yang ditampilkan (opsi 1)', () =
   });
   it('final tapi final_score kosong → angka hidup', () => {
     expect(displayedFinalOf(90, { status: 'finalized', final_score: null })).toBe(90);
+  });
+});
+
+describe('fmt2 — tampilan 2 desimal selaras klasifikasi', () => {
+  it('84.925 tampil "84.93" (toFixed bawaan memberi "84.92" akibat galat biner)', () => {
+    expect((84.925).toFixed(2)).toBe('84.92'); // perilaku bawaan yang keliru
+    expect(fmt2(84.925)).toBe('84.93');
+    expect(fmt2(1.005)).toBe('1.01');
+    expect(fmt2(79.995)).toBe('80.00');
+    expect(fmt2(80)).toBe('80.00');
+    expect(fmt2(85.333333)).toBe('85.33');
   });
 });

@@ -35,7 +35,7 @@ export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
   const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(filtered);
 
   if (rows.length === 0) {
-    return <p className="text-sm text-ink-soft">Belum ada data. Klik <strong className="font-semibold text-ink">Hitung Ulang Skor 360°</strong> setelah ada penilaian terkirim.</p>;
+    return <p className="text-sm text-ink-soft">Belum ada data. Jalankan <strong className="font-semibold text-ink">Hitung Ulang Skor 360°</strong> di Review &amp; Finalisasi setelah ada penilaian terkirim.</p>;
   }
 
   return (

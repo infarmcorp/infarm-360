@@ -174,7 +174,7 @@ export default async function BobotPage() {
         <p className="text-[12px] text-ink-faint mt-4 leading-relaxed">
           Skor 360 = rata-rata rating tiap kelas penilai ×20, dibobot di sini. Evaluasi diri (Self)
           tak punya bobot &amp; tak pernah ikut dihitung, jadi tidak ada kolomnya.
-          Perubahan berlaku setelah <strong className="font-semibold text-ink-soft">Hitung Ulang Skor 360°</strong> di bawah.
+          Perubahan berlaku setelah <strong className="font-semibold text-ink-soft">Hitung Ulang Skor 360°</strong> di Review &amp; Finalisasi (tautan di bawah).
         </p>
       </Section>
 

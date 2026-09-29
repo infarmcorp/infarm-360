@@ -336,6 +336,13 @@
   pegawai ("Ajuan · wajib selesai"); potongan **diterapkan otomatis** saat HRD membuka Kepatuhan/Review &
   sebelum simpan/rilis/finalisasi. **Batas input KPI di server disamakan dengan UI** (HRD posisi → divisinya;
   SPV → tim + diri; Koordinator → timnya). Belum diterapkan ke DB.
+- **Bersih-bersih aturan lama di UI (2026-09-29):** Flag Kepatuhan tak lagi menandai "Belum self-assessment"
+  (Self Assessment nonaktif sejak Q3 2026 → dulu SEMUA pegawai tertandai); kartu "Not Eligible" di Progress 360
+  hanya tampil bila ada datanya; pemegang grant non-HRD di Progress 360 & Kepatuhan hanya melihat JUMLAH —
+  nama target (siapa menilai siapa) dibuang di server & tombol Rincian disembunyikan; banner deadline pegawai
+  ikut menghitung ajuan; teks bantuan diselaraskan (label ②, Hitung Ulang hanya di Review & Finalisasi, status
+  "Ditinjau Direksi", ambang badge "berubah" panel detail = hasScoreDrift). Panduan markdown & SOP diperbarui;
+  daftar revisi 4 PDF in-app di `docs/panduan/REVISI-PANDUAN-PDF.md` (PDF sendiri belum diganti).
 - **Istilah & tombol disederhanakan (2026-09-29, usulan audit no. 9):** menu halaman HRD `/admin/laporan`
   "Review Hasil Akhir" → **"Review & Finalisasi"** (juga untuk pemegang grant; badge **"Lihat-saja"** bila
   izin hanya Lihat); halaman Direksi `/review-hasil` → **"Tinjauan Hasil Akhir"**. Tombol **Hitung Ulang

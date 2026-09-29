@@ -324,7 +324,7 @@ export async function reviewCorrection(
       const { data: existing } = await supabase.from('mappings').select('id, mandatory, is_adhoc, is_active')
         .eq('period_id', req.period_id).eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).maybeSingle();
       // OPSIONAL + BUKAN ad-hoc (kebijakan 2026-09-29): penilaian atas inisiatif pegawai yang
-      // disetujui HRD tampil di Kelola Pemetaan & Progress 360 dan boleh memakai N/A. Ia TETAP ikut
+      // disetujui HRD tampil di Kelola Pemetaan & Progress 360. Ia TETAP ikut
       // potongan keterlambatan bila tak dituntaskan sebelum deadline ("ajuan", lib/late-server —
       // dikenali dari permohonan kind='add' yang disetujui, 2026-09-29). Pengecualian: bila HRD sudah lebih dulu
       // menugaskan pasangan ini sebagai Wajib (baris aktif non-ad-hoc), sifat Wajib-nya dipertahankan

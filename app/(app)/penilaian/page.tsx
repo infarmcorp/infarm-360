@@ -161,6 +161,8 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
   const mandatoryItems = items.filter((it) => it.mandatory && it.exposureStatus !== 'not_eligible');
   const mandTotal = mandatoryItems.length;
   const mandDone = mandatoryItems.filter((it) => it.status === 'submitted').length;
+  // Ajuan (Q3 2026 dst.) yang belum dikirim — ikut potongan bila deadline lewat.
+  const ajuanPendingN = items.filter((it) => it.requested && it.status !== 'submitted').length;
 
   // Panel "Permohonan Saya" — status pengajuan (hapus/tambah/koreksi) + alasan penolakan HRD.
   const myRequestRows: MyRequest[] = myReqs.map((c) => ({
@@ -245,11 +247,11 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
           </div>
         </div>
       )}
-      {deadlinePassed && !reviewPhase && mandDone < mandTotal && (
+      {deadlinePassed && !reviewPhase && (mandDone < mandTotal || ajuanPendingN > 0) && (
         <div className="mb-4 rounded-panel border border-warn-ink/25 bg-warn-tint p-3">
           <p className="text-[12px] font-bold text-warn-ink">Deadline penilaian sudah lewat</p>
           <p className="text-[11.5px] text-warn-ink/90 mt-0.5 leading-relaxed">
-            Form masih bisa diisi, tetapi penilaian wajib yang dikirim sekarang tercatat <strong>Terlambat</strong> dan
+            Form masih bisa diisi, tetapi penilaian wajib{ajuanPendingN > 0 ? ' (termasuk ajuan Anda)' : ''} yang dikirim sekarang tercatat <strong>Terlambat</strong> dan
             Skor 360° Anda dipotong <span className="data-value">{LATE_PENALTY_360}</span> poin (sekali per periode).
             Penilaian Anda tetap dihitung untuk rekan yang dinilai.
           </p>

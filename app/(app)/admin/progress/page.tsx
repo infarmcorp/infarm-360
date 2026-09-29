@@ -116,7 +116,12 @@ export default async function ProgressPage() {
   }).sort((a, b) => (a.done / Math.max(a.total, 1)) - (b.done / Math.max(b.total, 1)) || a.name.localeCompare(b.name));
 
   // Pemegang grant: saring baris ke lingkup (penilai & yang-dinilai dalam lingkup).
-  const rowsOut = scopedIds ? rows.filter((r) => scopedIds.has(r.id)) : rows;
+  // Siapa-menilai-siapa HANYA untuk HRD (keputusan 2026-09-29): pemegang grant non-HRD hanya melihat
+  // JUMLAH per penilai/target — daftar target (nama + relasi) DIBUANG di server, tak ikut ke browser.
+  const rowsScoped = scopedIds ? rows.filter((r) => scopedIds.has(r.id)) : rows;
+  const rowsOut = viaGrant
+    ? rowsScoped.map((r) => ({ ...r, pending: r.pending.map(() => ({ targetId: '', targetName: '', relation: '', mandatory: false })), notEligible: [] }))
+    : rowsScoped;
   const targetRowsOut = scopedIds ? targetRows.filter((t) => scopedIds.has(t.id)) : targetRows;
 
   return (

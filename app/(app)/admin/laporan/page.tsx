@@ -286,7 +286,7 @@ export default async function AdminLaporanPage() {
           Klik <strong>Tinjau</strong> untuk membuka & mengelola laporan pegawai (Simpan Draf → Rilis ke SPV →
           Finalisasi) di panel detail. Setelah <strong>Final</strong>, kolom Skor Akhir menampilkan angka
           tersimpan yang dilihat pegawai; badge <strong>berubah</strong> muncul bila data terkini berbeda —
-          tekan <strong>② Finalisasi Ulang Berubah</strong> di atas untuk menyegarkan semuanya sekaligus
+          tekan <strong>② Perbarui Laporan Final yang Berubah</strong> di atas untuk menyegarkan semuanya sekaligus
           (atau kembalikan satu laporan ke draf lalu finalisasi ulang manual).
         </p>
       ) : grantCanFinalize ? (

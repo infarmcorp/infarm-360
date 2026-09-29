@@ -7,7 +7,7 @@ import { usePager, Pager, CheckboxFilter, MultiCheckFilter } from '@/components/
 
 export type KepatuhanRow = {
   id: string; name: string; dept: string;
-  lateCount: number; lateTargets: string[]; selfMissing: boolean; points: number;
+  lateCount: number; lateTargets: string[]; points: number;
   /** Penilaian wajib yang DIKIRIM SESUDAH deadline (terhitung potongan) — nama + waktu kirim pertama (WIB). */
   lateSubmitted: string[];
   latePenalty: number; lateAuto: number; lateOverride: number | null; lateWaiveReason: string | null;
@@ -18,12 +18,12 @@ export type KepatuhanRow = {
 };
 
 /**
- * Baris "perlu perhatian" = ada penilaian wajib belum dikirim, ATAU dikirim terlambat, ATAU
- * belum self-assessment, ATAU sudah punya punishment/pengecualian (agar tetap bisa ditinjau/dikoreksi). Sisanya (patuh
+ * Baris "perlu perhatian" = ada penilaian wajib/ajuan belum dikirim, ATAU dikirim terlambat, ATAU
+ * sudah punya punishment/penetapan potongan HRD (Self Assessment dinonaktifkan Q3 2026) (agar tetap bisa ditinjau/dikoreksi). Sisanya (patuh
  * penuh & tanpa punishment) disembunyikan secara default → halaman lebih bersih.
  */
 const needsAttention = (r: KepatuhanRow) =>
-  r.lateCount > 0 || r.lateSubmitted.length > 0 || r.ajuanPending.length > 0 || r.lateOverride != null || r.selfMissing || r.points > 0;
+  r.lateCount > 0 || r.lateSubmitted.length > 0 || r.ajuanPending.length > 0 || r.lateOverride != null || r.points > 0;
 
 export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[]; readOnly?: boolean }) {
   const [showAll, setShowAll] = useState(false);
@@ -72,7 +72,6 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
                   <th className="py-2 px-3 text-center font-semibold">Belum Kirim</th>
                   <th className="py-2 px-3 text-center font-semibold">Kirim Terlambat</th>
                   <th className="py-2 px-3 text-center font-semibold">Potongan 360°</th>
-                  <th className="py-2 px-3 text-center font-semibold">Self</th>
                   <th className="py-2 pl-3 text-right font-semibold">Punishment (poin)</th>
                 </tr>
               </thead>
@@ -85,20 +84,20 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
                     </td>
                     <td className="py-3 px-3 text-center">
                       {r.lateCount > 0 ? (
-                        <span className="text-[11px] font-semibold text-danger-ink" title={r.lateTargets.join(', ')}>
+                        <span className="text-[11px] font-semibold text-danger-ink" title={readOnly ? undefined : r.lateTargets.join(', ')}>
                           <span className="data-value">{r.lateCount}</span> belum
                         </span>
                       ) : <span className="text-[11px] text-brand-ink">✔ lengkap</span>}
                       {r.ajuanPending.length > 0 && (
                         <span className="block text-[10px] font-semibold text-warn-ink mt-0.5"
-                          title={`Ajuan (opsional, diajukan sendiri & disetujui HRD) belum dikirim sampai deadline: ${r.ajuanPending.join(', ')}`}>
+                          title={readOnly ? 'Ajuan (opsional, diajukan sendiri & disetujui HRD) belum dikirim sampai deadline' : `Ajuan (opsional, diajukan sendiri & disetujui HRD) belum dikirim sampai deadline: ${r.ajuanPending.join(', ')}`}>
                           + <span className="data-value">{r.ajuanPending.length}</span> ajuan belum
                         </span>
                       )}
                     </td>
                     <td className="py-3 px-3 text-center">
                       {r.lateSubmitted.length > 0 ? (
-                        <span className="text-[11px] font-semibold text-warn-ink" title={r.lateSubmitted.join('\n')}>
+                        <span className="text-[11px] font-semibold text-warn-ink" title={readOnly ? undefined : r.lateSubmitted.join('\n')}>
                           <span className="data-value">{r.lateSubmitted.length}</span> terlambat
                         </span>
                       ) : <span className="text-[11px] text-ink-faint">—</span>}
@@ -106,11 +105,6 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
                     <td className="py-3 px-3 text-center">
                       <LateWaiver employeeId={r.id} penalty={r.latePenalty} auto={r.lateAuto} override={r.lateOverride}
                         reason={r.lateWaiveReason} lateWajib={r.lateWajib} lateAjuan={r.lateAjuan} readOnly={readOnly} />
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      {r.selfMissing
-                        ? <span className="text-[10px] font-semibold text-warn-ink">belum</span>
-                        : <span className="text-[10px] text-brand-ink">✔</span>}
                     </td>
                     <td className="py-3 pl-3 text-right">
                       {readOnly

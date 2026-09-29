@@ -1,6 +1,6 @@
 'use client';
 
-import { fmt2 } from '@/lib/scoring';
+import { fmt2, hasScoreDrift } from '@/lib/scoring';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -13,7 +13,7 @@ import { saveOrFinalizeReport, releaseToSpv } from '@/app/(app)/admin/laporan/ac
  *  - finalized: READ-ONLY (terlihat pegawai) → hanya Unduh PDF + "Kembalikan ke Draf"
  *    (amber + konfirmasi) untuk membuka kunci & merevisi.
  * Ringkasan aspek kini AUTO-SIMPAN (lihat AspectSummaryEditor) → tak perlu guard "belum disimpan".
- * `canCompute`=false bila KPI pegawai masih kosong (Skor Akhir belum bisa dihitung).
+ * `canCompute`=false bila KPI & Skor 360° pegawai sama-sama kosong (Skor Akhir belum bisa dihitung).
  */
 export function ReportActions({
   employeeId, status, finalScore, liveFinal, canCompute, totalMonths, missingMonths, stale360,
@@ -51,7 +51,7 @@ export function ReportActions({
     else run(true, 'final');
   }
   // Baris FINAL: data dasar (KPI/360/punishment) berubah sejak difinalisasi?
-  const drift = isFinal && finalScore != null && liveFinal != null && Math.abs(liveFinal - finalScore) >= 0.05;
+  const drift = isFinal && hasScoreDrift(liveFinal, finalScore); // ambang sama dgn tabel (≥0.01)
 
   async function run(finalize: boolean, mode: 'draft' | 'final' | 'revert') {
     setBusy(mode);
@@ -91,7 +91,7 @@ export function ReportActions({
           : <span className="text-[10px] text-ink-faint">belum disimpan</span>}
         {finalScore != null && <span className="text-[11px] data-value font-bold text-ink">Skor Akhir {fmt2(finalScore)}</span>}
         {drift && (
-          <span title={`Skor terkini ${fmt2(liveFinal!)} berbeda dari yang difinalisasi (${fmt2(finalScore!)}) — KPI/360°/punishment berubah. Kembalikan ke Draf lalu Finalisasi ulang untuk memperbarui.`}
+          <span title={`Skor terkini ${fmt2(liveFinal!)} berbeda dari yang difinalisasi (${fmt2(finalScore!)}) — KPI/360°/punishment berubah. Tekan ② Perbarui Laporan Final yang Berubah di Review & Finalisasi (atau Kembalikan ke Draf lalu Finalisasi ulang) untuk memperbarui.`}
             className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink border border-warn-ink/25">
             berubah → {fmt2(liveFinal!)}
           </span>
@@ -104,7 +104,7 @@ export function ReportActions({
       </button>
 
       {!canCompute ? (
-        <span className="text-[11px] text-ink-faint italic">KPI pegawai masih kosong — belum bisa disimpan.</span>
+        <span className="text-[11px] text-ink-faint italic">KPI & Skor 360° pegawai masih kosong — belum bisa disimpan.</span>
       ) : isFinal ? (
         // FINAL: terkunci. Satu-satunya jalan edit = kembalikan ke draf (dgn konfirmasi).
         <button type="button" disabled={busy !== null} onClick={() => setConfirmRevert(true)}

@@ -30,11 +30,13 @@ flowchart TD
 |-------|-------------|---------|
 | **Izin HRD Admin** | pegawai **divisi HRD** (server tolak non-HRD) | akses penuh fitur HRD (mode ganda). Batasi dgn **Atur Akses** bila perlu. |
 | **Atur Akses (batas rekan HRD)** | pemegang Izin HRD | membatasi ke **sebagian halaman admin**. ⚠️ Ini pembatasan **tampilan menu**, **bukan** gembok data. Tak bisa ke akun sendiri. |
-| **Koordinator** | pegawai (Employee) | Laporan Tim + ACC + Input KPI untuk **tim naungannya** (pilih via Tim Koordinasi). Tak memengaruhi 360°. |
+| **Koordinator** | pegawai (Employee) | Laporan Tim + ACC + Input KPI + Monitor Kinerja untuk **tim naungannya** (pilih via Tim Koordinasi). Tak memengaruhi 360°. |
 | **Akses halaman berlingkup** | siapa pun (non-HRD) | 1 grant = halaman + **lingkup** + **izin**. Ditegakkan **server** (gembok nyata utk non-HRD). |
 
-**Katalog halaman:** Monitor Kinerja · **Review Hasil Akhir** · Dashboard · Struktur Organisasi ·
+**Katalog halaman:** Monitor Kinerja Pegawai · **Review & Finalisasi** · Dashboard Organisasi · Struktur Organisasi ·
 Progress 360 · Flag Kepatuhan · Monitoring & Audit KPI.
+> ℹ️ Pada **Progress 360** & **Flag Kepatuhan**, pemegang akses non-HRD hanya melihat **jumlah** penilaian —
+> nama target (siapa menilai siapa) & tombol Rincian disembunyikan, karena informasi itu hanya untuk HRD.
 **Lingkup:** Seluruh / Hanya divisinya / Selain divisinya / Diri sendiri / Tim naungannya.
 **Izin (halaman "administrator" spt Review):** 👁 **Lihat** → ✎ **Meringkas** → ✎ **Finalisasi**.
 
@@ -48,7 +50,7 @@ Progress 360 · Flag Kepatuhan · Monitoring & Audit KPI.
 3. **Sebuah peran** → beri akses halaman **massal** ke semua anggota peran **saat ini**. *(Pegawai baru
    TIDAK otomatis ikut — beri ulang bila perlu.)*
 
-> **Peninjau lintas divisi** = beri akses halaman **"Review Hasil Akhir"** lingkup **"Selain divisinya"**
+> **Peninjau lintas divisi** = beri akses halaman **"Review & Finalisasi"** lingkup **"Selain divisinya"**
 > + izin **"Meringkas"**. (Bukan izin khusus tersendiri lagi.)
 
 ## B. Meninjau — kartu "Pegawai Baru"
@@ -87,5 +89,5 @@ Progress 360 · Flag Kepatuhan · Monitoring & Audit KPI.
 ```
 
 ## Rujukan
-[CARA-PENGGUNAAN.md](../CARA-PENGGUNAAN.md) ("Manajemen Akses" & "Akses Khusus: Review Hasil Akhir berlingkup") ·
+[CARA-PENGGUNAAN.md](../CARA-PENGGUNAAN.md) ("Manajemen Akses" & "Akses Khusus: Review & Finalisasi berlingkup") ·
 [RINCIAN-TOMBOL.md](../RINCIAN-TOMBOL.md) · [SOP-PEGAWAI-KELUAR.md](SOP-PEGAWAI-KELUAR.md)

@@ -75,13 +75,14 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
   return (
     <div className="space-y-4">
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <div className={`grid grid-cols-2 gap-2 ${stats.notEligible > 0 || onlyNotEligible ? 'sm:grid-cols-5' : 'sm:grid-cols-4'}`}>
         <Stat label="Total Penilai" value={stats.total} c="text-ink" />
         <Stat label="Lengkap (wajib)" value={stats.done} c="text-brand-ink" />
         <Stat label="Belum (wajib)" value={stats.pending} c="text-warn-ink" />
         <Stat label="Progres Wajib" value={`${stats.pct}%`} c="text-brand-ink" />
-        {/* Klik untuk langsung menyaring ke penilai yang punya Not Eligible — tanpa ini HRD
-            harus membuka Rincian tiap penilai satu-satu untuk menemukannya. */}
+        {/* Kartu Not Eligible hanya tampil bila ADA data (Exposure Check dinonaktifkan Q3 2026 →
+            normalnya 0 & disembunyikan agar tak membingungkan). */}
+        {(stats.notEligible > 0 || onlyNotEligible) && (
         <button type="button" onClick={() => { setOnlyNotEligible((v) => !v); setPage(0); }}
           className={`border rounded-panel p-3 text-center transition-colors ${
             onlyNotEligible ? 'border-danger-ink bg-danger-tint' : 'border-line bg-surface hover:bg-neutral-tint'
@@ -91,6 +92,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
             Not Eligible (review){onlyNotEligible ? ' · aktif' : ''}
           </div>
         </button>
+        )}
       </div>
       {onlyNotEligible && (
         <p className="text-[11px] text-danger-ink italic">
@@ -193,7 +195,8 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                       Kirim Pengingat
                     </button>
                   )}
-                  {(r.pending.length > 0 || r.notEligible.length > 0) && (
+                  {/* Rincian (nama target = siapa-menilai-siapa) hanya untuk HRD, bukan pemegang grant. */}
+                  {!readOnly && (r.pending.length > 0 || r.notEligible.length > 0) && (
                     <button type="button" onClick={() => setExpanded(expanded === r.id ? null : r.id)}
                       className="text-[11px] font-semibold text-ink-faint hover:text-ink-soft">
                       {expanded === r.id ? 'Tutup' : `Rincian (${r.pending.length}${r.notEligible.length ? ` + ${r.notEligible.length} Not Eligible` : ''})`}

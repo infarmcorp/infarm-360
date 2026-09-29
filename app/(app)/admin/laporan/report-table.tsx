@@ -208,7 +208,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                   {r.status === 'finalized'
                     ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand-tint text-brand-ink">Final</span>
                     : r.status === 'in_review'
-                    ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-tint text-ink-soft">Ditinjau SPV</span>
+                    ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-tint text-ink-soft">{r.isSpvSubject ? "Ditinjau Direksi" : "Ditinjau"}</span>
                     : r.status === 'draft'
                     ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink">Draf</span>
                     : <span className="text-[10px] text-ink-faint">—</span>}

@@ -40,7 +40,7 @@ export function ResyncDriftButton({ count }: { count: number }) {
 
       <ConfirmDialog
         open={open} icon="🔄" tone="primary"
-        title={`Finalisasi ulang ${count} laporan yang skornya berubah?`}
+        title={`Perbarui ${count} laporan Final yang skornya berubah?`}
         confirmLabel={`Ya, sinkronkan ${count}`} busy={busy}
         onConfirm={run} onCancel={() => setOpen(false)}
       >

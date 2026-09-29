@@ -91,13 +91,13 @@ async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): P
     supabase.from('final_reports').select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('status', 'finalized'),
     supabase.from('relation_correction_requests').select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('status', 'pending'),
   ]);
-  // Permohonan Koreksi Relasi menunggu ACC HRD (di Pemetaan → tab Koreksi Relasi).
-  if ((corrCount ?? 0) > 0) out.push({ id: 'hrd-corr', tone: 'rose', href: '/admin/pemetaan', label: `${corrCount} permohonan koreksi relasi menunggu` });
+  // Permohonan pemetaan (koreksi relasi / hapus / tambah) menunggu keputusan HRD (Pemetaan → tab Permohonan).
+  if ((corrCount ?? 0) > 0) out.push({ id: 'hrd-corr', tone: 'rose', href: '/admin/pemetaan', label: `${corrCount} permohonan pemetaan menunggu` });
   const pendingReports = (empCount ?? 0) - (finalCount ?? 0);
   if (pendingReports > 0) out.push({ id: 'hrd-final', tone: 'blue', href: '/admin/laporan', label: `${pendingReports} laporan belum difinalisasi` });
   // Laporan FINAL yang skornya sudah usang (KPI/360°/punishment berubah sejak difinalisasi).
   const stale = await countStaleFinalReports(supabase, periodId, has360);
-  if (stale > 0) out.push({ id: 'hrd-stale', tone: 'amber', href: '/admin/laporan', label: `${stale} laporan final perlu dihitung ulang (data berubah)` });
+  if (stale > 0) out.push({ id: 'hrd-stale', tone: 'amber', href: '/admin/laporan', label: `${stale} laporan Final skornya berubah — perbarui di Review & Finalisasi` });
   return out;
 }
 

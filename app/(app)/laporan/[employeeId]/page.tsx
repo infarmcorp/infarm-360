@@ -368,9 +368,8 @@ export default async function LaporanDetailPage({
                 <ul className="list-disc pl-5 mt-1 mb-1.5 space-y-0.5">
                   {staleReasons.map((r, i) => <li key={i}>{r}</li>)}
                 </ul>
-                Jalankan <strong>&quot;Hitung Ulang Skor 360°&quot;</strong> (tombol di halaman{' '}
-                <Link href="/admin/laporan" className="underline font-bold">Review & Finalisasi</Link> atau{' '}
-                <Link href="/admin/bobot" className="underline font-bold">Bobot &amp; Kalkulasi</Link>), lalu
+                Jalankan <strong>&quot;Hitung Ulang Skor 360°&quot;</strong> (kokpit di halaman{' '}
+                <Link href="/admin/laporan" className="underline font-bold">Review & Finalisasi</Link>), lalu
                 Simpan Draf / Rilis / Finalisasi ulang agar Skor Akhir mencerminkan kondisi terbaru.
               </div>
             </div>

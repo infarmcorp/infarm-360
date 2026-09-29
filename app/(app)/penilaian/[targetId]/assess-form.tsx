@@ -646,10 +646,14 @@ export function AssessForm({
           )}
         </div>
         <div className="flex gap-2">
-          <button type="button" disabled={busy} onClick={saveDraft}
-            className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-control text-ink-soft bg-surface border border-line hover:bg-neutral-tint disabled:opacity-60">
-            <Save className="w-4 h-4 text-ink-faint" /> Simpan Draf
-          </button>
+          {/* Sudah terkirim → tak ada Simpan Draf (akan menurunkan status & mengeluarkan nilai dari
+              laporan yang dinilai); perubahan disimpan lewat "Kirim Ulang". Server juga menolaknya. */}
+          {initialStatus !== 'submitted' && (
+            <button type="button" disabled={busy} onClick={saveDraft}
+              className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-control text-ink-soft bg-surface border border-line hover:bg-neutral-tint disabled:opacity-60">
+              <Save className="w-4 h-4 text-ink-faint" /> Simpan Draf
+            </button>
+          )}
           {/* Tombol adaptif: belum lengkap → "Lengkapi" (ORANYE SOLID — sengaja mencolok agar
               pengguna sadar masih ada yang kurang; teks gelap di atas oranye = kontras tinggi);
               lengkap → "Kirim" (hijau brand). */}
@@ -660,7 +664,7 @@ export function AssessForm({
                 : 'bg-warn text-ink border border-warn-ink/40 hover:brightness-95 shadow-2xs'
             }`}>
             <Send className={`w-4 h-4 ${allComplete ? 'text-white/85' : 'text-ink'}`} />
-            {busy ? 'Memproses…' : allComplete ? 'Kirim Penilaian 360°' : `Lengkapi Penilaian (${remaining} tersisa)`}
+            {busy ? 'Memproses…' : allComplete ? (initialStatus === 'submitted' ? 'Kirim Ulang Penilaian 360°' : 'Kirim Penilaian 360°') :`Lengkapi Penilaian (${remaining} tersisa)`}
           </button>
         </div>
       </div>

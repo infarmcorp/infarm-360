@@ -14,9 +14,18 @@
  * Yang diverifikasi pada umpan balik 360° MENTAH lapis 3 (migrasi 0012 — jaring regresi):
  *  - SPV TIDAK PERNAH membaca assessments / assessment_indicator_scores /
  *    assessment_qual_answers anggota timnya (komentar per penilai BESERTA NAMA).
- *  - Kontrol positif: HRD baca semua; penilai baca penilaiannya sendiri; target
- *    (pegawai dinilai) baca penilaian atas dirinya. → menjaga 0012 tak ter-regresi
- *    (mis. is_my_member sengaja/tak sengaja dikembalikan ke asmt_read/ais_read/aqa_read).
+ *  - Kontrol positif: HRD baca semua; penilai baca penilaiannya sendiri. → menjaga 0012 tak
+ *    ter-regresi (mis. is_my_member sengaja/tak sengaja dikembalikan ke asmt_read/ais_read/aqa_read).
+ *
+ * Pengetatan 0041 (audit 2026-09-29):
+ *  - Target (pegawai dinilai) DITOLAK membaca baris mentah atas dirinya (identitas penilai).
+ *  - Pegawai DITOLAK menyisipkan penilaian tanpa pemetaan aktif.
+ *  - Penilai DITOLAK menurunkan/menghapus penilaian terkirim (kirim ulang tetap boleh).
+ *  - SPV DITOLAK mengubah final_score/status laporan tim & ACC laporan yang masih draft.
+ *  - SPV DITOLAK menulis KPI bulan di luar periode aktif (periode terkunci).
+ *
+ * ⚠️ Membuat periode uji berstatus 'active' selama skrip berjalan — jalankan di STAGING, atau di
+ * produksi saat tak ada aktivitas (halaman yang membaca "periode aktif" bisa sesaat memilih periode uji).
  *
  * Keluar kode 1 bila ada assertion gagal. Cleanup dijamin lewat finally.
  */
@@ -40,6 +49,7 @@ const admin = createClient(URL, SERVICE, { auth: { autoRefreshToken: false, pers
 
 const PW = 'RlsTest@2026!';
 const YM = '2099-01'; // bulan jauh di masa depan → hindari bentrok periode nyata
+const YM_LOCKED = '2098-12'; // bulan di luar periode aktif mana pun (simulasi periode terkunci)
 type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
 type Fixture = { code: string; email: string; name: string; role: Role };
 const FIX: Record<string, Fixture> = {
@@ -128,6 +138,21 @@ async function setup() {
       status: 'active', has_360: true,
     }).select('id').single();
     if (error) throw new Error('periods: ' + error.message); aid.periodId = data.id; }
+  // Bulan KPI uji (YM) milik periode uji aktif — kpi_write hanya untuk bulan periode AKTIF [0041].
+  // YM_LOCKED sengaja TIDAK masuk periode aktif mana pun (mensimulasikan KPI periode terkunci).
+  { const { error } = await admin.from('period_months').insert({ period_id: aid.periodId, ym: YM });
+    if (error) throw new Error('period_months: ' + error.message); }
+  { const { error } = await admin.from('kpi_scores').insert({ employee_id: id.EMP, ym: YM_LOCKED, score: 80 });
+    if (error) throw new Error('kpi_scores (locked): ' + error.message); }
+  // Pemetaan OTH→EMP (aktif) — penilaian OTH sah; EMP→SP2 SENGAJA tanpa pemetaan (uji injeksi) [0041].
+  { const { error } = await admin.from('mappings').insert({
+      period_id: aid.periodId, assessor_id: id.OTH, target_id: id.EMP, relation: 'Peer',
+    }); if (error) throw new Error('mappings: ' + error.message); }
+  // Laporan EMP (draft dulu; diubah ke in_review di tengah uji) — uji penjaga kolom SPV [0041].
+  { const { data, error } = await admin.from('final_reports').insert({
+      employee_id: id.EMP, period_id: aid.periodId, final_score: 80, status: 'draft',
+    }).select('id').single();
+    if (error) throw new Error('final_reports: ' + error.message); aid.reportId = data.id; }
   { const { data, error } = await admin.from('culture_aspects')
       .insert({ period_id: aid.periodId, name: 'RLS Aspek', order_idx: 0 }).select('id').single();
     if (error) throw new Error('culture_aspects: ' + error.message); aid.aspectId = data.id; }
@@ -173,6 +198,29 @@ async function tryKpiWrite(c: SupabaseClient, key: string): Promise<number> {
   return data?.length ?? 0;
 }
 
+/** UPDATE idempoten KPI bulan TERKUNCI (YM_LOCKED) milik EMP; jumlah baris terpengaruh. */
+async function tryKpiLockedWrite(c: SupabaseClient): Promise<number> {
+  const { data, error } = await c.from('kpi_scores')
+    .update({ score: 80 }).eq('employee_id', id.EMP).eq('ym', YM_LOCKED).select('employee_id');
+  if (error) return 0;
+  return data?.length ?? 0;
+}
+/** Coba sisipkan penilaian tanpa pemetaan (EMP→SP2). true = berhasil (= celah terbuka). */
+async function tryInjectAssessment(c: SupabaseClient): Promise<boolean> {
+  const { data, error } = await c.from('assessments').insert({
+    period_id: aid.periodId, assessor_id: id.EMP, target_id: id.SP2, status: 'submitted',
+  }).select('id');
+  if (error || !data?.length) return false;
+  await admin.from('assessments').delete().eq('id', data[0].id); // bersihkan bila (salah) lolos
+  return true;
+}
+/** Update final_reports EMP; jumlah baris terpengaruh (0 = ditolak). */
+async function tryReportUpdate(c: SupabaseClient, patch: Record<string, unknown>): Promise<number> {
+  const { data, error } = await c.from('final_reports').update(patch).eq('id', aid.reportId).select('id');
+  if (error) return 0;
+  return data?.length ?? 0;
+}
+
 /** Jumlah baris penilaian 360° (header/AIS/AQA) milik fixture yang terlihat client. */
 async function asmtVisible(c: SupabaseClient): Promise<number> {
   const { data, error } = await c.from('assessments').select('id').eq('id', aid.asmtId);
@@ -205,6 +253,13 @@ async function main() {
       check('BACA assessments anggota tim (EMP) DITOLAK [0012]', (await asmtVisible(c)) === 0);
       check('BACA komentar indikator (AIS) anggota tim DITOLAK [0012]', (await aisVisible(c)) === 0);
       check('BACA esai kualitatif (AQA) anggota tim DITOLAK [0012]', (await aqaVisible(c)) === 0);
+      // KPI periode terkunci & penjaga kolom laporan tim [0041].
+      check('TULIS kpi anggota tim di bulan PERIODE TERKUNCI DITOLAK [0041]', (await tryKpiLockedWrite(c)) === 0);
+      check('ACC laporan tim saat masih DRAFT DITOLAK [0041]', (await tryReportUpdate(c, { spv_acc: true })) === 0);
+      await admin.from('final_reports').update({ status: 'in_review' }).eq('id', aid.reportId);
+      check('UBAH final_score laporan tim DITOLAK [0041]', (await tryReportUpdate(c, { final_score: 99 })) === 0);
+      check('UBAH status laporan tim → finalized DITOLAK [0041]', (await tryReportUpdate(c, { status: 'finalized' })) === 0);
+      check('ACC laporan tim yang sudah dirilis DIIZINKAN (kontrol positif)', (await tryReportUpdate(c, { spv_acc: true })) === 1);
       await c.auth.signOut();
     }
 
@@ -214,6 +269,7 @@ async function main() {
       check('BACA kpi: hanya diri sendiri (EMP)', sameSet(await visibleTestKpiCodes(c), ['RLSTEST-EMP']));
       check('TULIS kpi diri sendiri DITOLAK (employee tak boleh tulis KPI)', (await tryKpiWrite(c, 'EMP')) === 0);
       check('TULIS kpi orang lain (SPV) DITOLAK', (await tryKpiWrite(c, 'SPV')) === 0);
+      check('SISIPKAN penilaian 360° TANPA pemetaan (EMP→SP2) DITOLAK [0041]', !(await tryInjectAssessment(c)));
       await c.auth.signOut();
     }
 
@@ -235,11 +291,25 @@ async function main() {
       const c = await loginAs(FIX.OTH.email); // OTH = penilai (assessor) atas penilaiannya
       check('Penilai (OTH) BACA assessments-nya sendiri DIIZINKAN', (await asmtVisible(c)) === 1);
       check('Penilai (OTH) BACA komentar indikatornya sendiri DIIZINKAN', (await aisVisible(c)) === 1);
+      // Edit & kirim ulang tetap boleh (punya pemetaan aktif) — kontrol positif [0041].
+      { const { data } = await c.from('assessments').update({ status: 'submitted' }).eq('id', aid.asmtId).select('id');
+        check('Penilai (OTH) KIRIM ULANG penilaiannya DIIZINKAN', (data?.length ?? 0) === 1); }
+      { const { data, error } = await c.from('assessments').update({ status: 'draft' }).eq('id', aid.asmtId).select('id');
+        check('Penilai (OTH) TURUNKAN penilaian terkirim ke draf DITOLAK [0041]', !!error || (data?.length ?? 0) === 0); }
+      { const { data, error } = await c.from('assessments').delete().eq('id', aid.asmtId).select('id');
+        check('Penilai (OTH) HAPUS penilaian terkirim DITOLAK [0041]', !!error || (data?.length ?? 0) === 0); }
       await c.auth.signOut();
+      // Pastikan penilaian uji masih utuh & terkirim — agar uji baca target di bawah tak "lolos palsu".
+      const { data: still } = await admin.from('assessments').select('status').eq('id', aid.asmtId).maybeSingle();
+      check('Penilaian uji masih ada & berstatus submitted', still?.status === 'submitted', `status: ${still?.status ?? 'hilang'}`);
     }
     {
-      const c = await loginAs(FIX.EMP.email); // EMP = target (dinilai) atas dirinya
-      check('Target (EMP) BACA penilaian atas dirinya DIIZINKAN', (await asmtVisible(c)) === 1);
+      // Target (pegawai dinilai) TAK BOLEH membaca baris mentah — assessor_id = identitas penilai [0041].
+      // Laporannya disajikan server (anonim, hanya saat finalized).
+      const c = await loginAs(FIX.EMP.email);
+      check('Target (EMP) BACA penilaian mentah atas dirinya DITOLAK [0041]', (await asmtVisible(c)) === 0);
+      check('Target (EMP) BACA komentar indikator (AIS) atas dirinya DITOLAK [0041]', (await aisVisible(c)) === 0);
+      check('Target (EMP) BACA esai (AQA) atas dirinya DITOLAK [0041]', (await aqaVisible(c)) === 0);
       await c.auth.signOut();
     }
 

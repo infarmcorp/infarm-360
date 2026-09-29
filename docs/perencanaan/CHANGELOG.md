@@ -270,6 +270,19 @@
 - `0036` `periods.assessment_deadline` · `assessments.first_submitted_at`/`forced_by_hrd` + trigger
   `assessments_stamp_submit` · `result_360.score_raw`/`late_penalty` · tabel `late_penalty_waivers` (RLS
   baca berjenjang, tulis HRD). ⚠️ **Belum diterapkan** ke DB (terapkan sebelum merge ke `main`).
+- `0041` **Pengetatan RLS hasil audit (2026-09-29)** — celah "lewat API langsung" (anon key + JWT
+  sendiri melewati Server Action): (1) `asmt_write` kini **wajib pemetaan aktif** (termasuk Ad-Hoc
+  disetujui) — sebelumnya pegawai bisa menyuntik nilai untuk rekan mana pun (dihitung sbg 'Peer');
+  (2) trigger `assessments_keep_submitted`: penilai non-HRD **tak bisa menurunkan ke draf / menghapus**
+  penilaian terkirim (edit & kirim ulang tetap boleh; tombol "Simpan Draf" juga disembunyikan setelah
+  terkirim + ditolak di `submitAssessment`); (3) trigger `final_reports_guard_non_hrd`: SPV via
+  `fr_spv_acc` **hanya boleh ubah `spv_acc`** & hanya setelah dirilis (sebelumnya bisa ubah
+  final_score/status/content); (4) `kpi_write` **hanya bulan periode aktif** (KPI periode terkunci tak
+  bisa diubah lewat API); (5) `asmt_read`/`ais_read`/`aqa_read` **cabut cabang target** — pegawai dinilai
+  tak lagi membaca baris mentah + identitas penilai (Laporan Hasil Saya kini dimuat via service_role,
+  tetap dibatasi laporan FINAL miliknya). `verify:rls` diperluas untuk tiap poin. Data historis Q1 2026
+  (51 penilaian sintetis backfill, tanpa pemetaan) tak terdampak (periode tutup, jalur service_role).
+  ⚠️ **Belum diterapkan** ke DB.
 - `final_reports.content` (jsonb lama) dipakai untuk `aspectSummaries` **&** `qualSummaries`
   (ringkasan pertanyaan kualitatif) — tanpa migrasi baru.
 

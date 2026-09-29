@@ -54,15 +54,18 @@ async function aspectForPeriod(
 ): Promise<{ org: Map<string, number>; dept: Map<string, number>; names: { name: string; order: number }[] }> {
   const org = new Map<string, number>();
   const dept = new Map<string, number>();
-  const [aspRes, asmtRes] = await Promise.all([
+  // assessments satu periode (seluruh organisasi) bisa >1000 → dipaginasi.
+  const [aspRes, asmtRows] = await Promise.all([
     admin.from('culture_aspects').select('id, name, order_idx').eq('period_id', periodId).order('order_idx'),
-    admin.from('assessments').select('id, assessor_id, target_id').eq('period_id', periodId).eq('status', 'submitted'),
+    fetchAllPaged<{ id: string; assessor_id: string; target_id: string }>((from, to) =>
+      admin.from('assessments').select('id, assessor_id, target_id').eq('period_id', periodId).eq('status', 'submitted')
+        .order('id').range(from, to)),
   ]);
   const aspectList = aspRes.data ?? [];
   const names = aspectList.map((a) => ({ name: a.name, order: a.order_idx ?? 0 }));
   if (aspectList.length === 0) return { org, dept, names };
   const inScope = (id: string) => empIds.includes(id);
-  const nonSelfIds = (asmtRes.data ?? []).filter((a) => a.assessor_id !== a.target_id && inScope(a.target_id)).map((a) => a.id);
+  const nonSelfIds = asmtRows.filter((a) => a.assessor_id !== a.target_id && inScope(a.target_id)).map((a) => a.id);
 
   const [indRes, wsRes, mapsData, scoreRows] = await Promise.all([
     admin.from('indicators').select('id, aspect_id').in('aspect_id', aspectList.map((a) => a.id)),
@@ -83,7 +86,7 @@ async function aspectForPeriod(
   const hasWS = !!wsRes.data;
   const relByPair = new Map<string, RelationKind>();
   mapsData.forEach((m) => relByPair.set(`${m.assessor_id}:${m.target_id}`, m.relation));
-  const asmtInfo = new Map((asmtRes.data ?? []).map((a) => [a.id, { assessor: a.assessor_id, target: a.target_id }]));
+  const asmtInfo = new Map(asmtRows.map((a) => [a.id, { assessor: a.assessor_id, target: a.target_id }]));
 
   const aaRatings = new Map<string, number[]>(); // `${assessmentId}|${aspectId}`
   scoreRows.forEach((s) => {
@@ -144,9 +147,16 @@ export async function computeDashboardAggregate(
   const { data: pmRows } = await admin.from('period_months').select('period_id, ym').in('period_id', periodIds);
   const ymToPeriod = new Map((pmRows ?? []).map((m) => [m.ym, m.period_id]));
   const yms = [...new Set((pmRows ?? []).map((m) => m.ym))].sort();
-  const [kpiRes, r360Res] = await Promise.all([
-    yms.length ? admin.from('kpi_scores').select('employee_id, ym, score').in('ym', yms).in('employee_id', empIds) : Promise.resolve({ data: [] as { employee_id: string; ym: string; score: number }[] }),
-    admin.from('result_360').select('employee_id, period_id, score').in('period_id', periodIds).in('employee_id', empIds),
+  // Lintas kuartal × seluruh pegawai → mudah >1000 baris & daftar id panjang → chunk + paginasi.
+  const [kpiRows, r360Rows] = await Promise.all([
+    yms.length
+      ? fetchAllByIds<{ employee_id: string; ym: string; score: number }>(empIds, (chunk, from, to) =>
+          admin.from('kpi_scores').select('employee_id, ym, score').in('ym', yms).in('employee_id', chunk)
+            .order('employee_id').order('ym').range(from, to))
+      : Promise.resolve([] as { employee_id: string; ym: string; score: number }[]),
+    fetchAllByIds<{ employee_id: string; period_id: string; score: number | null }>(empIds, (chunk, from, to) =>
+      admin.from('result_360').select('employee_id, period_id, score').in('period_id', periodIds).in('employee_id', chunk)
+        .order('employee_id').order('period_id').range(from, to)),
   ]);
 
   // "Belum terbaca" PER (pegawai × kuartal) — kuartal itu dikecualikan dari rerata KPI & grafik
@@ -154,7 +164,7 @@ export async function computeDashboardAggregate(
   const ymsByPeriod = new Map<string, string[]>();
   (pmRows ?? []).forEach((m) => ymsByPeriod.set(m.period_id, [...(ymsByPeriod.get(m.period_id) ?? []), m.ym]));
   const empYmScore = new Map<string, Map<string, number>>();
-  (kpiRes.data ?? []).forEach((r) => {
+  kpiRows.forEach((r) => {
     let m = empYmScore.get(r.employee_id); if (!m) { m = new Map(); empYmScore.set(r.employee_id, m); }
     m.set(r.ym, r.score);
   });
@@ -172,7 +182,7 @@ export async function computeDashboardAggregate(
   const empPerKpiAll = new Map<string, Map<string, { sum: number; n: number }>>();
   const monthAgg = new Map<string, { sum: number; n: number }>();          // ym → org KPI
   const dmAgg = new Map<string, { sum: number; n: number }>();             // `${dept}|${ym}`
-  (kpiRes.data ?? []).forEach((r) => {
+  kpiRows.forEach((r) => {
     const pid = ymToPeriod.get(r.ym); if (!pid) return;
     let all = empPerKpiAll.get(r.employee_id); if (!all) { all = new Map(); empPerKpiAll.set(r.employee_id, all); }
     const aa = all.get(pid) ?? { sum: 0, n: 0 }; aa.sum += r.score; aa.n += 1; all.set(pid, aa);
@@ -185,7 +195,7 @@ export async function computeDashboardAggregate(
   });
   const empPer360 = new Map<string, Map<string, number>>();
   const p360Agg = new Map<string, { sum: number; n: number }>();           // period → org 360
-  (r360Res.data ?? []).forEach((r) => {
+  r360Rows.forEach((r) => {
     if (r.score == null) return;
     let m = empPer360.get(r.employee_id); if (!m) { m = new Map(); empPer360.set(r.employee_id, m); }
     m.set(r.period_id, r.score);

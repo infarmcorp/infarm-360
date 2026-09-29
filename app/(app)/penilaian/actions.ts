@@ -68,10 +68,15 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
 
   // BR-03: Not Eligible menghentikan penilaian — tak boleh submit sama sekali.
   const { data: exExisting } = await supabase
-    .from('assessments').select('exposure_status')
+    .from('assessments').select('status, exposure_status')
     .eq('assessor_id', auth.user.id).eq('target_id', targetId).eq('period_id', ap.id).maybeSingle();
   if (exExisting?.exposure_status === 'not_eligible') {
     return { ok: false, error: 'Anda menandai Not Eligible untuk pegawai ini — penilaian tidak dilanjutkan' };
+  }
+  // Penilaian yang SUDAH terkirim tak boleh turun ke draf: nilainya sudah masuk laporan pegawai yang
+  // dinilai. Pegawai tetap boleh mengedit — lewat "Kirim Ulang" (status tetap 'submitted').
+  if (exExisting?.status === 'submitted' && status === 'draft') {
+    return { ok: false, error: 'Penilaian ini sudah terkirim — simpan perubahan dengan "Kirim Ulang", bukan Simpan Draf' };
   }
 
   // BR-05: sanitasi — indikator N/A selalu tersimpan rating NULL & evidence kosong (alasan N/A

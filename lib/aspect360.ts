@@ -74,16 +74,19 @@ export async function aspectScoresByEmployee(periodId: string, empIds: string[])
   if (!empIds.length) return { byEmp, names: [], indByEmp, indicators: [] };
   const admin = createAdminClient();
 
-  const [aspRes, asmtRes] = await Promise.all([
+  // assessments satu periode (seluruh organisasi) bisa >1000 → dipaginasi (tanpa ini data terpotong diam-diam).
+  const [aspRes, asmtRows] = await Promise.all([
     admin.from('culture_aspects').select('id, name, order_idx').eq('period_id', periodId).order('order_idx'),
-    admin.from('assessments').select('id, assessor_id, target_id').eq('period_id', periodId).eq('status', 'submitted'),
+    fetchAllPaged<{ id: string; assessor_id: string; target_id: string }>((from, to) =>
+      admin.from('assessments').select('id, assessor_id, target_id').eq('period_id', periodId).eq('status', 'submitted')
+        .order('id').range(from, to)),
   ]);
   const aspectList = aspRes.data ?? [];
   const names = aspectList.map((a) => a.name);
   if (aspectList.length === 0) return { byEmp, names, indByEmp, indicators: [] };
 
   const scope = new Set(empIds);
-  const nonSelfIds = (asmtRes.data ?? [])
+  const nonSelfIds = asmtRows
     .filter((a) => a.assessor_id !== a.target_id && scope.has(a.target_id))
     .map((a) => a.id);
 
@@ -107,7 +110,7 @@ export async function aspectScoresByEmployee(periodId: string, empIds: string[])
   const hasWS = !!wsRes.data;
   const relByPair = new Map<string, RelationKind>();
   mapsData.forEach((m) => relByPair.set(`${m.assessor_id}:${m.target_id}`, m.relation));
-  const asmtInfo = new Map((asmtRes.data ?? []).map((a) => [a.id, { assessor: a.assessor_id, target: a.target_id }]));
+  const asmtInfo = new Map(asmtRows.map((a) => [a.id, { assessor: a.assessor_id, target: a.target_id }]));
 
   // Rerata rating per (assessment × aspek) → skor 0–100 (×20), dikelompokkan per (target × aspek).
   const aaRatings = new Map<string, number[]>(); // `${assessmentId}|${aspectId}`

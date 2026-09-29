@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/late-penalty",
-      "schedule": "0 * * * *"
-    }
-  ]
-}

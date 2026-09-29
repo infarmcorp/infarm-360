@@ -6,6 +6,12 @@ import { refreshLatePenalties } from '@/lib/late-server';
  * CRON — terapkan potongan keterlambatan 360° (BR-08) OTOMATIS tanpa perlu HRD membuka
  * halaman apa pun. Dipanggil berkala oleh Vercel Cron (lihat `vercel.json`), bukan pengguna.
  *
+ * STATUS: DINONAKTIFKAN SEMENTARA (2026-09-29, permintaan pengguna) — `vercel.json` sengaja
+ * TIDAK ADA sehingga tak ada jadwal cron yang memanggil route ini; HRD masih sanggup menangani
+ * potongan ini manual (klik "Hitung Ulang Skor 360°" / ubah deadline periode). Endpoint & logika
+ * di bawah tetap dibiarkan utuh untuk diaktifkan lagi kapan pun (buat ulang `vercel.json` + set
+ * `CRON_SECRET`) — jangan hapus file ini.
+ *
  * Kenapa perlu: `refreshLatePenalties` (lib/late-server.ts) sudah menghitung dengan benar
  * siapa yang "belum selesai saat deadline" (termasuk yang TAK PERNAH mengirim sama sekali,
  * bukan cuma yang kirim telat — lihat lib/late.ts), tapi sebelumnya hanya TERTULIS ke

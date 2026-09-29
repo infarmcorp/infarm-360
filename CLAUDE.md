@@ -307,7 +307,7 @@ SMTP_PASS                      # server-only — App Password Gmail (butuh 2FA)
 SMTP_FROM                      # server-only, opsional — mis. "Infarm 360 <infarmcorp@gmail.com>"
 NEXT_PUBLIC_ENABLE_PW_RESET    # 'true' utk aktifkan alur "Lupa Sandi via email"
 ONBOARDING_GMAIL_ONLY          # server-only — 'false' utk kirim undangan ke SEMUA domain (default: hanya @gmail.com, mode trial)
-CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api/cron/late-penalty (BR-08); WAJIB diset agar endpoint aktif
+CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api/cron/late-penalty (BR-08); cron DINONAKTIFKAN SEMENTARA (vercel.json sengaja tak ada, 2026-09-29) — tak dibutuhkan sampai diaktifkan lagi
 ```
 
 ## Security Rules
@@ -351,11 +351,15 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
   keterlambatan menilai** (flat −3 bila ≥1 kewajiban Wajib "belum selesai saat deadline" — mencakup
   terkirim-telat MAUPUN tak pernah dikirim sama sekali, 2026-09-29; min 0; migrasi 0036, rumus
   `lib/late.ts` + `tests/late.test.ts`). Waktu kirim pertama (`first_submitted_at`) diisi **trigger DB**,
-  bukan klien — jangan tulis/andalkan nilai dari app. **Diterapkan otomatis** oleh Vercel Cron
-  (`vercel.json` → `app/api/cron/late-penalty/route.ts`, tiap jam, butuh env `CRON_SECRET`) yang
-  memanggil `refreshLatePenalties` — cron ini hanya memperbarui `result_360` yang **sudah ada**
-  (skor 360° yang sudah pernah dihitung HRD sekali via "Hitung Ulang Skor 360°"), bukan menghitung
-  dari nol (itu tetap aksi manual HRD, perlu sesi login).
+  bukan klien — jangan tulis/andalkan nilai dari app. Route cron tersedia di
+  `app/api/cron/late-penalty/route.ts` (panggil `refreshLatePenalties`, hanya memperbarui
+  `result_360` yang **sudah ada**, tak menghitung dari nol) tapi **DINONAKTIFKAN SEMENTARA**
+  (2026-09-29, permintaan pengguna) — `vercel.json` **sengaja tidak ada** jadi tak terjadwal;
+  HRD masih sanggup menangani manual. Sampai kondisi berubah, potongan −3 untuk yang **tak
+  pernah menilai** hanya masuk ke skor tersimpan lewat aksi HRD (klik "Hitung Ulang Skor 360°",
+  atau ubah deadline periode) — halaman Kepatuhan tetap menampilkan pratinjau live tanpa
+  menunggu ini. Untuk aktifkan lagi: buat ulang `vercel.json` berisi cron `late-penalty` + set
+  `CRON_SECRET`.
 - **Klasifikasi talenta Dashboard** (4-Box A/B-Culture/B-KPI/C — **tanpa D**) **dikunci ke satu
   kuartal** lewat filter periode agar KPI, 360°, dan Skor Akhir dari periode sama. Kuartal tanpa 360°
   → pada 4-Box hanya **B-KPI / C** yang mungkin (A & B-Culture butuh sumbu 360°). 4-Box berbasis

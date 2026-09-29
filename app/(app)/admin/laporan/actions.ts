@@ -7,6 +7,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
 import { logHrdAction, logAuditAsService, type AuditEntry } from '@/lib/audit/log';
 import { finalScoreOf, kpiAvgOf, hasScoreDrift, fmt2 } from '@/lib/scoring';
+import { refreshLatePenalties } from '@/lib/late-server';
 
 /**
  * Review Hasil Akhir: hitung Skor Akhir kalibrasi & tulis final_reports.
@@ -78,7 +79,12 @@ async function logReportAction(actor: { userId: string; userName: string | null;
 async function computeFinal(
   supabase: Awaited<ReturnType<typeof createClient>>,
   periodId: string, has360: boolean, employeeId: string,
+  opts: { skipLateRefresh?: boolean } = {},
 ) {
+  // Potongan keterlambatan menilai diterapkan OTOMATIS ke Skor 360° pegawai ini sebelum Skor Akhir
+  // dihitung (keputusan HRD 2026-09-29; pengganti cron nonaktif) — hasil final tak pernah memakai
+  // potongan yang basi. Aksi massal menerapkannya sekali untuk semua (skipLateRefresh).
+  if (has360 && !opts.skipLateRefresh) await refreshLatePenalties(periodId, [employeeId]);
   // Kegagalan baca WAJIB menghentikan proses (audit 2026-09-29): dulu error ditelan → KPI terbaca
   // "kosong" → Skor Akhir diam-diam = 360° saja & bisa terfinalisasi. Pemanggil menangkap & melapor.
   const must = <T,>(res: { data: T; error: { message: string } | null | undefined }, what: string): T => {
@@ -259,6 +265,11 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
   const { data: candidates } = await supabase.from('final_reports')
     .select('id, employee_id, final_score').eq('period_id', ap.id).eq('spv_acc', true).eq('status', 'in_review');
   const list = candidates ?? [];
+  if (ap.has_360 && list.length) {
+    try { await refreshLatePenalties(ap.id); } catch (e) {
+      return { ok: false, error: 'Gagal menerapkan potongan keterlambatan: ' + (e instanceof Error ? e.message : String(e)) };
+    }
+  }
   if (!list.length) return { ok: true, finalized: 0, skipped: [] };
 
   const { data: emps } = await supabase.from('employees').select('id, name').in('id', list.map((r) => r.employee_id));
@@ -268,7 +279,7 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
   const skipped: { name: string; reason: string }[] = [];
   for (const r of list) {
     const label = nameById.get(r.employee_id) ?? r.employee_id;
-    const cf = await computeFinalSafe(supabase, ap.id, ap.has_360, r.employee_id);
+    const cf = await computeFinalSafe(supabase, ap.id, ap.has_360, r.employee_id, { skipLateRefresh: true });
     if (!cf.ok) { skipped.push({ name: label, reason: cf.error }); continue; }
     const { final } = cf;
     if (final == null) { skipped.push({ name: label, reason: 'Skor Akhir belum bisa dihitung (KPI & 360° kosong)' }); continue; }
@@ -323,10 +334,15 @@ export async function resyncDriftedFinals(): Promise<ResyncResult> {
   const { data: finals } = await supabase.from('final_reports')
     .select('id, employee_id, final_score').eq('period_id', ap.id).eq('status', 'finalized');
   const list = finals ?? [];
+  if (ap.has_360 && list.length) {
+    try { await refreshLatePenalties(ap.id); } catch (e) {
+      return { ok: false, error: 'Gagal menerapkan potongan keterlambatan: ' + (e instanceof Error ? e.message : String(e)) };
+    }
+  }
 
   let resynced = 0, skipped = 0;
   for (const r of list) {
-    const cf = await computeFinalSafe(supabase, ap.id, ap.has_360, r.employee_id);
+    const cf = await computeFinalSafe(supabase, ap.id, ap.has_360, r.employee_id, { skipLateRefresh: true });
     if (!cf.ok) { skipped++; continue; }                               // gagal baca → jangan timpa
     const { final } = cf;
     if (final == null) { skipped++; continue; }                       // tak bisa dihitung → lewati

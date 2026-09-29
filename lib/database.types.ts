@@ -129,8 +129,8 @@ export interface Database {
         Relationships: [];
       };
       late_penalty_waivers: {
-        Row: { employee_id: string; period_id: string; reason: string; set_by: string | null; created_at: string };
-        Insert: { employee_id: string; period_id: string; reason: string; set_by?: string | null };
+        Row: { employee_id: string; period_id: string; reason: string; points: number; set_by: string | null; created_at: string };
+        Insert: { employee_id: string; period_id: string; reason: string; points?: number; set_by?: string | null };
         Update: Partial<Database['public']['Tables']['late_penalty_waivers']['Insert']>;
         Relationships: [];
       };

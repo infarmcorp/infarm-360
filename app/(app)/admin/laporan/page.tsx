@@ -10,7 +10,7 @@ import { Recompute360Button } from './recompute-360-button';
 import { ResyncDriftButton } from './resync-drift-button';
 import { BulkFinalizeButton } from './bulk-finalize-button';
 import { Panel } from '@/components/panel';
-import { loadPendingLatePenalties } from '@/lib/late-server';
+import { loadPendingLatePenalties, refreshLatePenalties } from '@/lib/late-server';
 
 /**
  * Review Hasil Akhir (HRD): hitung Skor Akhir tiap pegawai, lihat ACC SPV & status,
@@ -86,6 +86,10 @@ export default async function AdminLaporanPage() {
     const s = kpiMonthsByEmp.get(r.employee_id) ?? new Set<string>(); s.add(r.ym); kpiMonthsByEmp.set(r.employee_id, s);
   });
 
+  // Potongan keterlambatan diterapkan OTOMATIS saat HRD membuka halaman ini (pengganti cron nonaktif,
+  // keputusan HRD 2026-09-29) — angka 360°/Skor Akhir yang ditinjau sudah memuat potongan terbaru.
+  // Gagal → tak memblokir halaman; sisa yang tertunda tetap diperingatkan di kokpit di bawah.
+  if (isHrdFull && ap.has_360) { try { await refreshLatePenalties(ap.id); } catch { /* diperingatkan via pendingLate */ } }
   const { data: r360 } = await db.from('result_360').select('employee_id, score, computed_at').eq('period_id', ap.id);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
   // computed_at per pegawai → deteksi "perlu hitung ulang" (penilaian berubah setelah hitung).

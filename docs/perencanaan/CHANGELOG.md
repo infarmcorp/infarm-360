@@ -329,6 +329,13 @@
   potongannya belum masuk Skor 360° tersimpan + tombol **"Terapkan Potongan ke Skor 360°"**
   (`applyLatePenalties` → `refreshLatePenalties`, tanpa hitung ulang penuh); Review Hasil Akhir memberi
   peringatan & tautan sebelum finalisasi (`loadPendingLatePenalties`). Pengganti cron yang nonaktif.
+- `0043` `late_penalty_waivers.points` — **nilai potongan keterlambatan yang ditetapkan HRD** (menggantikan −3
+  otomatis; 0 = dikecualikan; baris lama = 0). Kode kompatibel sebelum migrasi (nilai selain 0 baru bisa
+  disimpan setelahnya). Sekaligus (tanpa migrasi): **AJUAN** (Opsional hasil permohonan yang disetujui HRD)
+  kini ikut potongan bila tak selesai saat deadline & ditandai terpisah di Kepatuhan + di daftar penilaian
+  pegawai ("Ajuan · wajib selesai"); potongan **diterapkan otomatis** saat HRD membuka Kepatuhan/Review &
+  sebelum simpan/rilis/finalisasi. **Batas input KPI di server disamakan dengan UI** (HRD posisi → divisinya;
+  SPV → tim + diri; Koordinator → timnya). Belum diterapkan ke DB.
 - **Format angka `fmt2`** (2026-09-29): tampilan 2 desimal memakai `roundScore` (bukan `toFixed` bawaan
   yang membulatkan atas galat biner, mis. 84.925 → "84.92") di seluruh halaman skor → angka tampil =
   angka klasifikasi.

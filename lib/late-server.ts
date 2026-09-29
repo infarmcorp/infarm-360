@@ -14,12 +14,17 @@ import { isPenalizableLate, latePenaltyOf, apply360Penalty } from '@/lib/late';
 
 // firstSubmittedAt null = belum pernah dikirim sama sekali (celah 2026-09-28: dulu hanya yang
 // SUDAH kirim tapi telat yang terhitung; sekarang "belum selesai saat deadline" ikut terhitung).
-export type LateItem = { targetId: string; firstSubmittedAt: string | null };
+// kind: 'wajib' = pemetaan Wajib; 'ajuan' = Opsional hasil PERMOHONAN pegawai yang disetujui HRD
+// (ditampilkan terpisah agar HRD tahu potongan berasal dari ajuan yang tak dituntaskan).
+export type LateItem = { targetId: string; firstSubmittedAt: string | null; kind: 'wajib' | 'ajuan' };
 export type LateSummary = {
-  late: LateItem[];          // penilaian terlambat yang DIHITUNG (wajib, non-ad-hoc, non-paksa)
+  late: LateItem[];          // penilaian terlambat yang DIHITUNG (wajib + ajuan, non-ad-hoc, non-paksa)
+  /** HRD menetapkan nilai potongan sendiri (late_penalty_waivers). `override` 0 = dikecualikan. */
   waived: boolean;
   waiveReason: string | null;
-  penalty: number;           // potongan yang berlaku (0 bila dikecualikan / tak terlambat)
+  override: number | null;
+  auto: number;              // potongan otomatis (tanpa campur tangan HRD)
+  penalty: number;           // potongan yang BERLAKU (override bila ada, else otomatis)
 };
 
 /**
@@ -32,14 +37,26 @@ export async function loadLateSummaries(periodId: string): Promise<{ deadline: s
   const { data: p } = await admin.from('periods').select('assessment_deadline').eq('id', periodId).maybeSingle();
   const deadline = p?.assessment_deadline ?? null;
 
-  const { data: wv } = await admin.from('late_penalty_waivers').select('employee_id, reason').eq('period_id', periodId);
-  const waiverBy = new Map((wv ?? []).map((w) => [w.employee_id, w.reason]));
+  // Nilai potongan yang ditetapkan HRD (kolom points, migrasi 0043). Sebelum 0043 diterapkan kolom
+  // belum ada → baca tanpa points; baris yang ada = pengecualian penuh (0), perilaku lama.
+  let wv: { employee_id: string; reason: string; points?: number | null }[] = [];
+  {
+    const withPts = await admin.from('late_penalty_waivers').select('employee_id, reason, points').eq('period_id', periodId);
+    if (!withPts.error) wv = withPts.data ?? [];
+    else {
+      const plain = await admin.from('late_penalty_waivers').select('employee_id, reason').eq('period_id', periodId);
+      if (plain.error) throw new Error('Gagal membaca pengaturan potongan: ' + plain.error.message);
+      wv = plain.data ?? [];
+    }
+  }
+  const waiverBy = new Map(wv.map((w) => [w.employee_id, { reason: w.reason, points: Number(w.points ?? 0) }]));
 
   const byAssessor = new Map<string, LateSummary>();
   const get = (id: string): LateSummary => {
     let s = byAssessor.get(id);
     if (!s) {
-      s = { late: [], waived: waiverBy.has(id), waiveReason: waiverBy.get(id) ?? null, penalty: 0 };
+      const w = waiverBy.get(id);
+      s = { late: [], waived: !!w, waiveReason: w?.reason ?? null, override: w ? w.points : null, auto: 0, penalty: 0 };
       byAssessor.set(id, s);
     }
     return s;
@@ -47,13 +64,17 @@ export async function loadLateSummaries(periodId: string): Promise<{ deadline: s
 
   if (deadline) {
     const now = Date.now();
-    // SEMUA pemetaan WAJIB non-ad-hoc periode ini = kandidat kewajiban (bukan cuma yang sudah
-    // terkirim telat) — sejak 2026-09-28, penilai yang TAK PERNAH mengirim sampai deadline juga
-    // kena potongan (dulu celah: tak mengirim sama sekali lebih "aman" daripada mengirim telat).
+    // Kandidat kewajiban = pemetaan WAJIB + Opsional hasil AJUAN yang disetujui HRD (2026-09-29),
+    // non-ad-hoc, aktif (bukan cuma yang sudah terkirim telat) — sejak 2026-09-28, penilai yang TAK
+    // PERNAH mengirim sampai deadline juga kena potongan.
     const maps = await fetchAllPaged<{ assessor_id: string; target_id: string; mandatory: boolean; is_adhoc: boolean; created_at: string }>((from, to) =>
       admin.from('mappings').select('assessor_id, target_id, mandatory, is_adhoc, created_at')
-        .eq('period_id', periodId).eq('is_active', true).eq('mandatory', true).eq('is_adhoc', false)
+        .eq('period_id', periodId).eq('is_active', true).eq('is_adhoc', false)
         .order('assessor_id').order('target_id').range(from, to));
+    const { data: reqs, error: reqErr } = await admin.from('relation_correction_requests')
+      .select('assessor_id, target_id').eq('period_id', periodId).eq('kind', 'add').eq('status', 'approved');
+    if (reqErr) throw new Error('Gagal membaca permohonan penilaian: ' + reqErr.message);
+    const requested = new Set((reqs ?? []).map((r) => `${r.assessor_id}:${r.target_id}`));
     if (maps.length) {
       const asmts = await fetchAllPaged<{ assessor_id: string; target_id: string; status: string; first_submitted_at: string | null; forced_by_hrd: boolean }>((from, to) =>
         admin.from('assessments').select('assessor_id, target_id, status, first_submitted_at, forced_by_hrd')
@@ -66,13 +87,19 @@ export async function loadLateSummaries(periodId: string): Promise<{ deadline: s
           status: a?.status ?? 'not_started', // belum ada baris assessments = belum disentuh sama sekali
           forcedByHrd: a?.forced_by_hrd ?? false,
           mandatory: m.mandatory, isAdhoc: m.is_adhoc, mappingCreatedAt: m.created_at,
+          requested: !m.mandatory && requested.has(`${m.assessor_id}:${m.target_id}`),
         }, deadline, now);
-        if (late) get(m.assessor_id).late.push({ targetId: m.target_id, firstSubmittedAt: a?.first_submitted_at ?? null });
+        if (late) get(m.assessor_id).late.push({
+          targetId: m.target_id, firstSubmittedAt: a?.first_submitted_at ?? null, kind: m.mandatory ? 'wajib' : 'ajuan',
+        });
       }
     }
   }
   for (const id of waiverBy.keys()) get(id);
-  for (const s of byAssessor.values()) s.penalty = latePenaltyOf(s.late.length, s.waived);
+  for (const s of byAssessor.values()) {
+    s.auto = latePenaltyOf(s.late.length);
+    s.penalty = latePenaltyOf(s.late.length, s.override);
+  }
   return { deadline, byAssessor };
 }
 

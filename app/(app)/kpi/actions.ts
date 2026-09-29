@@ -3,7 +3,6 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canAdmin } from '@/lib/auth/roles';
 
 /**
  * Input KPI bulanan (peran SPV). PANDUAN: "Pengisian Manual Apps".
@@ -11,19 +10,33 @@ import { canAdmin } from '@/lib/auth/roles';
  * Keamanan (jangan dilemahkan) — keputusan HRD 2026-09-29, migrasi 0042:
  *  - KPI HANYA bisa diubah LEWAT UI (Server Action ini). RLS tak lagi memberi hak tulis
  *    kpi_scores/kpi_audit ke pengguna mana pun (termasuk HRD) → API langsung ditolak.
- *  - Karena itu LINGKUP ditegakkan DI SINI (`assertKpiScope`): HRD → semua; SPV → tim + diri;
- *    Koordinator → tim naungannya. Lalu tulis via service_role.
+ *  - Karena itu LINGKUP ditegakkan DI SINI (`assertKpiScope`), SAMA dengan daftar yang tampil di UI:
+ *    HRD (posisi, Mode SPV) → pegawai se-divisinya + diri; SPV → tim + diri; Koordinator → tim
+ *    naungannya. Lalu tulis via service_role.
  *  - Skor + jejak audit ditulis dalam SATU transaksi (fungsi DB kpi_save_with_audit /
  *    kpi_delete_with_audit) → tak mungkin ada skor tanpa Komentar Audit.
  */
 
 type Svc = ReturnType<typeof createAdminClient>;
-type Me = { role: string | null; is_coordinator: boolean | null; is_hrd_admin: boolean | null } | null;
+type Me = { role: string | null; is_coordinator: boolean | null; is_hrd_admin: boolean | null; dept: string | null } | null;
 
-/** Lingkup tulis KPI untuk jalur SPV/HRD (koordinator punya jalurnya sendiri). null = boleh. */
+/**
+ * Lingkup tulis KPI jalur SPV/HRD (koordinator punya jalurnya sendiri) — cermin daftar pegawai di tab
+ * Input KPI (kpi/page.tsx InputTab), agar API tak lebih longgar daripada UI. null = boleh.
+ */
 async function assertKpiScope(svc: Svc, me: Me, userId: string, empIds: string[]): Promise<string | null> {
-  if (canAdmin(me)) return null;                                  // HRD (grant/posisi) → semua pegawai
-  if (me?.role !== 'spv') return 'Hanya SPV, Koordinator, atau HRD yang dapat mengubah KPI.';
+  if (me?.role === 'hrd') {
+    // HRD posisi (Mode SPV) → pegawai se-divisinya (bukan Direksi) + dirinya sendiri.
+    const { data, error } = await svc.from('employees').select('id, dept, role').in('id', empIds);
+    if (error) return 'Gagal memeriksa divisi pegawai: ' + error.message;
+    const byId = new Map((data ?? []).map((e) => [e.id, e]));
+    const ok = empIds.every((id) => {
+      const e = byId.get(id);
+      return !!e && (id === userId || (e.dept === me.dept && e.role !== 'direksi'));
+    });
+    return ok ? null : 'Sebagian pegawai berada di luar divisi Anda.';
+  }
+  if (me?.role !== 'spv') return 'Hanya SPV, Koordinator, atau HRD (Mode SPV) yang dapat mengubah KPI.';
   const { data: team, error } = await svc.from('spv_team_members')
     .select('employee_id').eq('spv_id', userId).in('employee_id', empIds);
   if (error) return 'Gagal memeriksa tim: ' + error.message;
@@ -78,7 +91,7 @@ export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_coordinator, is_hrd_admin').eq('id', auth.user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_coordinator, is_hrd_admin, dept').eq('id', auth.user.id).maybeSingle();
   const empIds = rows.map((r) => r.employeeId);
 
   // PEGAWAI NONAKTIF: hanya boleh diberi KPI untuk bulan yang masih ia kerjakan (ym ≤ bulan
@@ -227,7 +240,7 @@ export async function deleteKpiScore(raw: unknown): Promise<DeleteKpiResult> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_coordinator, is_hrd_admin').eq('id', auth.user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_coordinator, is_hrd_admin, dept').eq('id', auth.user.id).maybeSingle();
 
   // KOORDINATOR "murni": hapus KPI HANYA pegawai naungannya, via service_role (RLS menolaknya).
   const isCoord = me?.is_coordinator && me.role !== 'spv' && me.role !== 'hrd' && me.role !== 'direksi';

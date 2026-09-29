@@ -112,6 +112,9 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
     .order('created_at', { ascending: false });
   const myReqs = corrs ?? [];
   const pendingCorr = new Set(myReqs.filter((c) => c.status === 'pending').map((c) => c.target_id));
+  // AJUAN yang disetujui HRD (permohonan "tambah penilaian") → pemetaan Opsional yang tetap WAJIB
+  // dituntaskan sebelum deadline (ikut potongan keterlambatan, 2026-09-29).
+  const approvedAjuan = new Set(myReqs.filter((c) => c.kind === 'add' && c.status === 'approved').map((c) => c.target_id));
 
   // Kandidat Ad-Hoc: pegawai non-direksi, bukan diri, belum ada di daftar penilaian.
   const alreadyListed = new Set<string>([user.id, ...targetIds]);
@@ -138,10 +141,11 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
       relation: r.relation as string,
       mandatory: r.mandatory,
       isAdhoc: r.is_adhoc,
+      requested: !r.mandatory && !r.is_adhoc && approvedAjuan.has(r.target_id),
       status: statusByTarget.get(r.target_id) ?? null,
       // Label Terlambat hanya untuk penilaian yang TERHITUNG potongan (Wajib, non-Ad-Hoc);
       // keputusan final (incl. paksa-selesai / pemetaan pasca-deadline) dihitung server (lib/late-server).
-      late: r.mandatory && !r.is_adhoc && statusByTarget.get(r.target_id) === 'submitted'
+      late: (r.mandatory || approvedAjuan.has(r.target_id)) && !r.is_adhoc && statusByTarget.get(r.target_id) === 'submitted'
         && submitTimingOf(firstSubByTarget.get(r.target_id), deadline) === 'late',
       corrPending: pendingCorr.has(r.target_id),
       // BR-03 Exposure Check: null = belum dicek, 'not_eligible' = kewajiban gugur.
@@ -291,6 +295,12 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                     }`}>
                       {it.mandatory ? 'Wajib' : 'Opsional'}
                     </span>
+                    {it.requested && (
+                      <span className="block mt-1 text-[9.5px] font-semibold text-warn-ink"
+                        title="Penilaian ini Anda ajukan sendiri & sudah disetujui HRD — tetap harus dikirim sebelum deadline, bila tidak Skor 360° Anda terkena potongan keterlambatan.">
+                        Ajuan · wajib selesai
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 px-3 text-right">
                     <span className="inline-flex items-center gap-1">

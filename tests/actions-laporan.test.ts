@@ -4,6 +4,8 @@ import { makeClient, type MockClient, type QResult } from './helpers/mock-supaba
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn(), createAdminClient: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/audit/log', () => ({ logHrdAction: vi.fn(async () => {}), logAuditAsService: vi.fn(async () => {}) }));
+// Penerapan otomatis potongan keterlambatan (lib/late-server) diuji terpisah — di sini dipantau saja.
+vi.mock('@/lib/late-server', () => ({ refreshLatePenalties: vi.fn(async () => 0) }));
 // SADAR-MODE: aksi membaca cookie hrd_mode. Default 'admin' agar jalur HRD-penuh aktif; tes jalur
 // grant memakai aktor NON-canAdmin sehingga mode tak relevan (isHrdFull tetap false).
 vi.mock('next/headers', () => ({ cookies: vi.fn(async () => ({ get: () => ({ value: 'admin' }) })) }));
@@ -11,6 +13,7 @@ vi.mock('next/headers', () => ({ cookies: vi.fn(async () => ({ get: () => ({ val
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { saveOrFinalizeReport, releaseToSpv } from '@/app/(app)/admin/laporan/actions';
+import { refreshLatePenalties } from '@/lib/late-server';
 
 const mockCreate = vi.mocked(createClient);
 const mockCreateAdmin = vi.mocked(createAdminClient);
@@ -86,6 +89,17 @@ describe('saveOrFinalizeReport — otorisasi & prasyarat skor', () => {
     const r = await saveOrFinalizeReport(EMP, false);
     expect(r.ok).toBe(true);
     if (r.ok) { expect(r.finalized).toBe(false); expect(r.finalScore).toBe(80); }
+  });
+
+  it('potongan keterlambatan pegawai DITERAPKAN otomatis sebelum Skor Akhir dihitung (periode ber-360°)', async () => {
+    use(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: HRD }, { data: { name: 'Andi' } }],
+      periods: [ACTIVE],
+      ...computeTablesNonNull(),
+      final_reports: [{ data: { id: 'r1' } }, { error: null }],
+    } }));
+    await saveOrFinalizeReport(EMP, false);
+    expect(vi.mocked(refreshLatePenalties)).toHaveBeenCalledWith('p1', [EMP]);
   });
 
   it('finalisasi sukses (baris belum ada → insert) → finalized:true', async () => {

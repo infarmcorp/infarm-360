@@ -6,7 +6,7 @@ import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import { KepatuhanTable } from './kepatuhan-table';
 import { Panel } from '@/components/panel';
-import { loadLateSummaries, loadPendingLatePenalties } from '@/lib/late-server';
+import { loadLateSummaries, loadPendingLatePenalties, refreshLatePenalties } from '@/lib/late-server';
 import { ApplyLateButton } from './apply-late-button';
 import { formatWib, LATE_PENALTY_360 } from '@/lib/late';
 
@@ -72,6 +72,9 @@ export default async function KepatuhanPage() {
   const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
 
   // Keterlambatan kirim (service_role; halaman ini sudah terotorisasi di atas).
+  // Potongan diterapkan OTOMATIS saat HRD membuka halaman ini (pengganti cron nonaktif, 2026-09-29).
+  // Gagal → tak memblokir; sisa tertunda tampil di banner + tombol cadangan di bawah.
+  if (!viaGrant) { try { await refreshLatePenalties(ap.id); } catch { /* tampil sebagai tertunda */ } }
   const { deadline, byAssessor: lateBy } = await loadLateSummaries(ap.id);
   // Potongan yang BELUM masuk Skor 360° tersimpan (cron nonaktif) — dalam lingkup halaman ini.
   const inScope = new Set(employees.map((e) => e.id));
@@ -95,8 +98,14 @@ export default async function KepatuhanPage() {
         .filter((l) => l.firstSubmittedAt)
         .map((l) => `${nameById.get(l.targetId) ?? '—'} · ${formatWib(l.firstSubmittedAt)}`),
       latePenalty: lateBy.get(e.id)?.penalty ?? 0,
-      lateWaived: lateBy.get(e.id)?.waived ?? false,
+      lateAuto: lateBy.get(e.id)?.auto ?? 0,
+      lateOverride: lateBy.get(e.id)?.override ?? null,
       lateWaiveReason: lateBy.get(e.id)?.waiveReason ?? null,
+      lateWajib: (lateBy.get(e.id)?.late ?? []).filter((l) => l.kind === 'wajib').length,
+      lateAjuan: (lateBy.get(e.id)?.late ?? []).filter((l) => l.kind === 'ajuan').length,
+      ajuanPending: (lateBy.get(e.id)?.late ?? [])
+        .filter((l) => l.kind === 'ajuan' && !l.firstSubmittedAt)
+        .map((l) => nameById.get(l.targetId) ?? '—'),
     };
   }).sort((a, b) => b.lateCount - a.lateCount || a.name.localeCompare(b.name));
 
@@ -104,6 +113,7 @@ export default async function KepatuhanPage() {
   const totalSelfMissing = rows.filter((r) => r.selfMissing).length;
   const totalPunished = rows.filter((r) => r.points > 0).length;
   const totalLateSubmit = rows.filter((r) => r.lateSubmitted.length > 0).length;
+  const totalAjuan = rows.filter((r) => r.lateAjuan > 0).length;
 
   return (
     <Shell>
@@ -129,7 +139,7 @@ export default async function KepatuhanPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
         <div className="border border-line rounded-panel bg-surface p-3 text-center">
           <div className="text-xl font-bold data-value text-danger-ink">{totalLate}</div>
           <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Belum kirim (penilaian wajib)</div>
@@ -137,6 +147,11 @@ export default async function KepatuhanPage() {
         <div className="border border-line rounded-panel bg-surface p-3 text-center">
           <div className="text-xl font-bold data-value text-warn-ink">{totalLateSubmit}</div>
           <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Kirim terlambat</div>
+        </div>
+        <div className="border border-line rounded-panel bg-surface p-3 text-center"
+          title="Penilaian Opsional yang diajukan pegawai sendiri & disetujui HRD, tapi belum selesai saat deadline — ikut kena potongan.">
+          <div className="text-xl font-bold data-value text-warn-ink">{totalAjuan}</div>
+          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Kena potongan krn ajuan</div>
         </div>
         <div className="border border-line rounded-panel bg-surface p-3 text-center">
           <div className="text-xl font-bold data-value text-warn-ink">{totalSelfMissing}</div>
@@ -161,7 +176,9 @@ export default async function KepatuhanPage() {
         untuk KEDUA kondisi — sudah kirim tapi telat, MAUPUN belum kirim sama sekali sampai deadline lewat (kolom &quot;Belum Kirim&quot;
         yang masih &gt;0 saat deadline terlampaui ikut kena potongan yang sama; gugur bila penilai tak punya Skor 360° sendiri).
         Penilaian yang telat tetap dihitung penuh untuk pegawai yang dinilai — potongan hanya menyentuh Skor 360° milik si penilai.
-        Opsional/Ad-Hoc, Paksa Selesai HRD, dan pemetaan yang dibuat sesudah deadline tidak dihitung.
+        <strong className="font-semibold text-ink-soft">Ajuan</strong> (penilaian Opsional yang diajukan pegawai sendiri &amp; disetujui HRD) ikut dihitung
+        dan ditandai terpisah. Opsional biasa, Ad-Hoc Mandiri lama, Paksa Selesai HRD, dan pemetaan yang dibuat sesudah deadline tidak dihitung.
+        Nilai potongan bisa <strong className="font-semibold text-ink-soft">diubah HRD</strong> per pegawai (tombol Ubah, alasan wajib; 0 = dikecualikan).
         Punishment memotong Skor Akhir pegawai di periode ini (min 0).
       </p>
     </Shell>

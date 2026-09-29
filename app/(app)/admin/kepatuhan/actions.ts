@@ -19,19 +19,21 @@ const Input = z.object({
 });
 
 /**
- * Pengecualian POTONGAN KETERLAMBATAN (−3 Skor 360°, migrasi 0036) untuk satu pegawai di
- * periode aktif — mis. sakit/cuti. `reason` kosong/null = CABUT pengecualian. Alasan wajib
- * (≥3 karakter) saat memberi. Skor 360° pegawai langsung diterapkan ulang.
+ * PENETAPAN POTONGAN KETERLAMBATAN oleh HRD (−3 otomatis, migrasi 0036/0043) untuk satu pegawai di
+ * periode aktif. `points` = nilai yang berlaku (0 = dikecualikan penuh, mis. sakit/cuti; default 0).
+ * `reason` kosong/null = KEMBALIKAN ke otomatis. Alasan wajib (≥3 karakter) saat menetapkan.
+ * Skor 360° pegawai langsung diterapkan ulang.
  */
 const WaiverInput = z.object({
   employeeId: z.string().uuid(),
   reason: z.string().trim().max(300).nullable(),
+  points: z.coerce.number().min(0, 'Potongan minimal 0').max(100, 'Potongan maksimal 100').optional().default(0),
 });
 
 export async function setLateWaiver(raw: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
   const parsed = WaiverInput.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
-  const { employeeId } = parsed.data;
+  const { employeeId, points } = parsed.data;
   const reason = parsed.data.reason?.trim() || null;
   if (reason !== null && reason.length < 3) return { ok: false, error: 'Alasan pengecualian minimal 3 karakter' };
 
@@ -46,10 +48,18 @@ export async function setLateWaiver(raw: unknown): Promise<{ ok: true } | { ok: 
 
   const { error } = reason
     ? await supabase.from('late_penalty_waivers').upsert(
-        { employee_id: employeeId, period_id: ap.id, reason, set_by: user.id },
+        // Nilai 0 ditulis TANPA kolom points agar tetap jalan sebelum migrasi 0043 (default kolom = 0).
+        points > 0
+          ? { employee_id: employeeId, period_id: ap.id, reason, points, set_by: user.id }
+          : { employee_id: employeeId, period_id: ap.id, reason, set_by: user.id },
         { onConflict: 'employee_id,period_id' })
     : await supabase.from('late_penalty_waivers').delete().eq('employee_id', employeeId).eq('period_id', ap.id);
-  if (error) return { ok: false, error: 'Gagal menyimpan pengecualian: ' + error.message };
+  if (error) {
+    const needMigration = /points/i.test(error.message);
+    return { ok: false, error: needMigration
+      ? 'Mengubah nilai potongan (selain 0) memerlukan migrasi database 0043 — hubungi admin sistem.'
+      : 'Gagal menyimpan: ' + error.message };
+  }
 
   try { await refreshLatePenalties(ap.id, [employeeId]); } catch (e) {
     return { ok: false, error: 'Pengecualian tersimpan, tapi gagal menerapkan ke Skor 360°: ' + (e instanceof Error ? e.message : String(e)) };
@@ -57,11 +67,13 @@ export async function setLateWaiver(raw: unknown): Promise<{ ok: true } | { ok: 
 
   const { data: emp } = await supabase.from('employees').select('name').eq('id', employeeId).maybeSingle();
   await logHrdAction({
-    action: reason ? 'late_penalty.waive' : 'late_penalty.unwaive', category: 'kepatuhan',
+    action: reason ? (points > 0 ? 'late_penalty.set' : 'late_penalty.waive') : 'late_penalty.unwaive', category: 'kepatuhan',
     summary: reason
-      ? `Mengecualikan potongan keterlambatan menilai untuk ${emp?.name ?? employeeId} — alasan: ${reason}`
-      : `Mencabut pengecualian potongan keterlambatan menilai untuk ${emp?.name ?? employeeId}`,
-    targetType: 'employee', targetId: employeeId, targetLabel: emp?.name ?? null, meta: { reason },
+      ? (points > 0
+          ? `Menetapkan potongan keterlambatan menilai ${emp?.name ?? employeeId} menjadi −${points} — alasan: ${reason}`
+          : `Mengecualikan potongan keterlambatan menilai untuk ${emp?.name ?? employeeId} — alasan: ${reason}`)
+      : `Mengembalikan potongan keterlambatan menilai ${emp?.name ?? employeeId} ke otomatis`,
+    targetType: 'employee', targetId: employeeId, targetLabel: emp?.name ?? null, meta: { reason, points: reason ? points : null },
   });
   revalidatePath('/admin/kepatuhan');
   revalidatePath('/admin/dashboard');

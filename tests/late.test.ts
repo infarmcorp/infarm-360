@@ -45,6 +45,13 @@ describe('isPenalizableLate — terkirim (submitted)', () => {
   it('tanpa deadline → tidak pernah terhitung', () => {
     expect(isPenalizableLate(base, null, AFTER_DL)).toBe(false);
   });
+  it('AJUAN (opsional hasil permohonan disetujui HRD) ikut terhitung', () => {
+    expect(isPenalizableLate({ ...base, mandatory: false, requested: true, firstSubmittedAt: '2026-09-30T11:00:00Z' }, DL, AFTER_DL)).toBe(true);
+    expect(isPenalizableLate({ ...base, mandatory: false, requested: true, status: 'not_started', firstSubmittedAt: null }, DL, AFTER_DL)).toBe(true);
+    // Ad-Hoc Mandiri lama tetap tidak, walau ditandai ajuan.
+    expect(isPenalizableLate({ ...base, mandatory: false, requested: true, isAdhoc: true, firstSubmittedAt: '2026-09-30T11:00:00Z' }, DL, AFTER_DL)).toBe(false);
+  });
+
   it('dikecualikan: opsional, ad-hoc, paksa selesai HRD', () => {
     expect(isPenalizableLate({ ...base, mandatory: false }, DL, AFTER_DL)).toBe(false);
     expect(isPenalizableLate({ ...base, isAdhoc: true }, DL, AFTER_DL)).toBe(false);
@@ -89,14 +96,17 @@ describe('isPenalizableLate — draft / belum mulai (celah 2026-09-28)', () => {
 });
 
 describe('latePenaltyOf — flat, sekali per periode', () => {
-  it('0 terlambat → 0; ≥1 → 3 (tidak dikali jumlah)', () => {
+  it('0 terlambat → 0; ≥1 → 3 otomatis (tidak dikali jumlah)', () => {
     expect(LATE_PENALTY_360).toBe(3);
-    expect(latePenaltyOf(0, false)).toBe(0);
-    expect(latePenaltyOf(1, false)).toBe(3);
-    expect(latePenaltyOf(7, false)).toBe(3);
+    expect(latePenaltyOf(0)).toBe(0);
+    expect(latePenaltyOf(1)).toBe(3);
+    expect(latePenaltyOf(7)).toBe(3);
   });
-  it('pengecualian HRD → 0', () => {
-    expect(latePenaltyOf(2, true)).toBe(0);
+  it('nilai yang DITETAPKAN HRD menggantikan otomatis (0 = dikecualikan)', () => {
+    expect(latePenaltyOf(2, 0)).toBe(0);
+    expect(latePenaltyOf(2, 1.5)).toBe(1.5);
+    expect(latePenaltyOf(0, 2)).toBe(2);     // keputusan eksplisit HRD tetap berlaku
+    expect(latePenaltyOf(2, null)).toBe(3);  // tanpa campur tangan → otomatis
   });
 });
 

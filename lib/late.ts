@@ -11,9 +11,11 @@
  *    pertama, celah yang membuat "tidak pernah mengirim" lebih untung daripada telat mengirim):
  *      a) TERKIRIM tapi kirim PERTAMA-nya sesudah deadline (submitTimingOf = 'late'), ATAU
  *      b) BELUM terkirim sama sekali (draft/belum mulai) DAN deadline sudah lewat SAAT INI.
- *  - Yang TIDAK dihitung terlambat: penilaian Opsional/Ad-Hoc, Paksa Selesai oleh HRD, dan
- *    pemetaan yang baru dibuat SESUDAH deadline (tak mungkin tepat waktu).
- *  - HRD dapat memberi pengecualian per pegawai (waiver) → potongan 0.
+ *  - Yang DIHITUNG: penilaian WAJIB, dan (2026-09-29) penilaian OPSIONAL hasil PERMOHONAN pegawai
+ *    yang disetujui HRD ("ajuan") — ia sendiri yang meminta menilai, jadi wajib menuntaskannya.
+ *  - Yang TIDAK dihitung terlambat: Opsional biasa, Ad-Hoc Mandiri lama (is_adhoc), Paksa Selesai
+ *    oleh HRD, dan pemetaan yang baru dibuat SESUDAH deadline (tak mungkin tepat waktu).
+ *  - Potongan OTOMATIS −3; HRD dapat MENGUBAH nilainya per pegawai (alasan wajib), 0 = dikecualikan.
  */
 
 /** Besar potongan keterlambatan (poin, skala Skor 360° 0–100). */
@@ -50,7 +52,9 @@ export type LateCandidate = {
   status: string;
   forcedByHrd: boolean;
   mandatory: boolean;           // mappings.mandatory
-  isAdhoc: boolean;             // mappings.is_adhoc
+  isAdhoc: boolean;             // mappings.is_adhoc (Ad-Hoc Mandiri lama — tak dihitung)
+  /** Opsional hasil PERMOHONAN pegawai yang disetujui HRD ("ajuan") — ikut dihitung (2026-09-29). */
+  requested?: boolean;
   mappingCreatedAt: string | null;
 };
 
@@ -61,7 +65,8 @@ export type LateCandidate = {
  * berubah seiring jam berjalan di dalam fungsi murni ini.
  */
 export function isPenalizableLate(a: LateCandidate, deadline: string | null | undefined, nowMs: number): boolean {
-  if (!a.mandatory || a.isAdhoc || a.forcedByHrd) return false;
+  if (a.isAdhoc || a.forcedByHrd) return false;
+  if (!a.mandatory && !a.requested) return false; // Opsional biasa tak ditagih
   const d = ts(deadline);
   if (d == null) return false; // tanpa deadline → tak ada yang "terlambat"
   // Pemetaan dibuat sesudah deadline (koreksi/tambahan HRD) → tak mungkin tepat waktu, dikecualikan.
@@ -74,9 +79,14 @@ export function isPenalizableLate(a: LateCandidate, deadline: string | null | un
   return nowMs > d;
 }
 
-/** Potongan flat untuk seorang penilai: ada ≥1 keterlambatan terhitung & tak dikecualikan. */
-export function latePenaltyOf(lateCount: number, waived: boolean): number {
-  return lateCount > 0 && !waived ? LATE_PENALTY_360 : 0;
+/**
+ * Potongan untuk seorang penilai: OTOMATIS `LATE_PENALTY_360` bila ada ≥1 keterlambatan terhitung.
+ * `override` = nilai yang DITETAPKAN HRD (late_penalty_waivers.points, 0 = dikecualikan) — bila ada,
+ * menggantikan nilai otomatis (keputusan HRD 2026-09-29: "−3 otomatis, HRD tetap bisa mengedit").
+ */
+export function latePenaltyOf(lateCount: number, override: number | null = null): number {
+  if (override != null) return override;
+  return lateCount > 0 ? LATE_PENALTY_360 : 0;
 }
 
 // ── Format waktu WIB (UTC+7, tanpa DST) — independen dari zona waktu server/Vercel (UTC). ──

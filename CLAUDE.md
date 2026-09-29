@@ -355,17 +355,19 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
   > (`hasScoreDrift`, ≥0.01). Dashboard selalu memotong punishment; mode "semua kuartal" = rata-rata
   > Skor Akhir PER KUARTAL. **Jangan** hitung Skor Akhir/rerata KPI manual di halaman — pakai helper ini.
 - **Skor 360° resmi** (`result_360.score`) = `score_raw` (rumus `weightedScore360`) **dikurangi potongan
-  keterlambatan menilai** (flat −3 bila ≥1 kewajiban Wajib "belum selesai saat deadline" — mencakup
-  terkirim-telat MAUPUN tak pernah dikirim sama sekali, 2026-09-29; min 0; migrasi 0036, rumus
-  `lib/late.ts` + `tests/late.test.ts`). Waktu kirim pertama (`first_submitted_at`) diisi **trigger DB**,
+  keterlambatan menilai** (flat −3 bila ≥1 kewajiban "belum selesai saat deadline" — mencakup
+  terkirim-telat MAUPUN tak pernah dikirim sama sekali; kewajiban = pemetaan **Wajib** + **AJUAN**
+  (Opsional hasil permohonan pegawai yang disetujui HRD, dikenali dari `relation_correction_requests`
+  kind='add' approved; ditampilkan terpisah di Kepatuhan); min 0; migrasi 0036, rumus `lib/late.ts` +
+  `tests/late.test.ts`). HRD bisa **mengubah nilai potongan** per pegawai (`late_penalty_waivers.points`,
+  migrasi 0043; 0 = dikecualikan; alasan wajib). Waktu kirim pertama (`first_submitted_at`) diisi **trigger DB**,
   bukan klien — jangan tulis/andalkan nilai dari app. Route cron tersedia di
   `app/api/cron/late-penalty/route.ts` (panggil `refreshLatePenalties`, hanya memperbarui
   `result_360` yang **sudah ada**, tak menghitung dari nol) tapi **DINONAKTIFKAN SEMENTARA**
   (2026-09-29, permintaan pengguna) — `vercel.json` **sengaja tidak ada** jadi tak terjadwal;
-  HRD masih sanggup menangani manual. Sampai kondisi berubah, potongan −3 untuk yang **tak
-  pernah menilai** hanya masuk ke skor tersimpan lewat aksi HRD (klik "Hitung Ulang Skor 360°",
-  atau ubah deadline periode) — halaman Kepatuhan tetap menampilkan pratinjau live tanpa
-  menunggu ini. Untuk aktifkan lagi: buat ulang `vercel.json` berisi cron `late-penalty` + set
+  sebagai gantinya potongan **diterapkan OTOMATIS** (2026-09-29) saat HRD membuka Flag Kepatuhan /
+  Review Hasil Akhir, dan sebelum tiap simpan/rilis/finalisasi laporan (`computeFinal`) — hasil final
+  tak pernah memakai potongan basi. Cadangan: tombol "Terapkan Potongan ke Skor 360°" di Kepatuhan. Untuk aktifkan lagi: buat ulang `vercel.json` berisi cron `late-penalty` + set
   `CRON_SECRET`.
 - **Klasifikasi talenta Dashboard** (4-Box A/B-Culture/B-KPI/C — **tanpa D**) **dikunci ke satu
   kuartal** lewat filter periode agar KPI, 360°, dan Skor Akhir dari periode sama. Kuartal tanpa 360°

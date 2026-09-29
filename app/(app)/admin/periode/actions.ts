@@ -84,21 +84,9 @@ export async function activatePeriod(periodId: string): Promise<Result> {
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
-
-  // KUNCI PERMANEN (audit 2026-09-29): periode yang SUDAH punya laporan final tak boleh dibuka lagi —
-  // membuka kembali mengizinkan edit KPI/penilaian atas hasil yang sudah dirilis ke pegawai.
-  // (Periode baru dibuat berstatus 'ended' sebelum diaktifkan, jadi status saja tak cukup membedakan.)
-  const { data: target } = await supabase.from('periods').select('status, label').eq('id', periodId).maybeSingle();
-  if (!target) return { ok: false, error: 'Periode tidak ditemukan' };
-  if (target.status !== 'active') {
-    const { count, error: cErr } = await supabase.from('final_reports')
-      .select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('status', 'finalized');
-    if (cErr) return { ok: false, error: 'Gagal memeriksa laporan periode: ' + cErr.message };
-    if ((count ?? 0) > 0) {
-      return { ok: false, error: `Periode "${target.label}" sudah dikunci: ${count} laporan telah difinalisasi & dirilis ke pegawai, sehingga tidak bisa dibuka kembali.` };
-    }
-  }
-
+  // CATATAN (keputusan pengguna 2026-09-29): periode yang sudah dikunci BOLEH dibuka kembali, termasuk
+  // yang sudah punya laporan final. Laporan final tetap aman — Skor Akhir tersimpan tak berubah otomatis;
+  // selisih akibat edit sesudah dibuka ditandai "berubah → N" di Review Hasil Akhir (hasScoreDrift).
   // Akhiri semua periode lain → jaga hanya satu aktif.
   const { error: e1 } = await supabase.from('periods').update({ status: 'ended' }).neq('id', periodId);
   if (e1) return { ok: false, error: 'Gagal: ' + e1.message };

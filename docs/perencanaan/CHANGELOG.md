@@ -20,8 +20,9 @@
   (6) **ACC tercatat di Log Aktivitas** (`report.acc`/`report.acc_revoke`, 3 jalur) & **gugur** bila laporan
   dikembalikan ke draf atau dirilis ulang dgn Skor Akhir berbeda; finalisasi massal MELEWATI laporan ber-ACC
   yang skornya berubah sejak di-ACC.
-  (7) **Kunci periode permanen**: periode yang sudah punya laporan FINAL tak bisa diaktifkan kembali
-  (`activatePeriod`). (8) **Hapus periode**: error hapus KPI/audit diperiksa & jumlah nilai KPI + jejak audit
+  (7) ~~Kunci periode permanen~~ — **dibatalkan** atas permintaan pengguna: periode terkunci (termasuk
+  yang sudah punya laporan final) **tetap boleh dibuka kembali**; laporan final terlindungi karena angka
+  tersimpan tak berubah otomatis (selisih ditandai di Review Hasil Akhir). (8) **Hapus periode**: error hapus KPI/audit diperiksa & jumlah nilai KPI + jejak audit
   KPI yang ikut terhapus dicatat di Log Aktivitas.
 - **Skor Akhir seragam di semua halaman** (audit 2026-09-29, keputusan HRD). Sebelumnya dihitung ulang di
   ±12 tempat dengan aturan berbeda (opsi `allow360Only` hanya di sebagian halaman; Dashboard sebagian tanpa

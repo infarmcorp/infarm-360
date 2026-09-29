@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { isDireksiReviewSubject } from '@/lib/report';
+import { logAuditAsService } from '@/lib/audit/log';
 
 /**
  * ACC Laporan Kinerja Tim. Tiga jalur berdasarkan peran/lingkup pelaku:
@@ -19,11 +20,27 @@ import { isDireksiReviewSubject } from '@/lib/report';
  */
 export type AccResult = { ok: true; acc: boolean } | { ok: false; error: string };
 
+/** Catat ACC/batal ACC ke Log Aktivitas (audit 2026-09-29 — sebelumnya tak tercatat siapa/kapan).
+ *  Via service_role karena pelaku bukan HRD (RLS hrd_audit_insert). Best-effort. */
+async function logAcc(actor: { id: string; name: string | null }, via: string, employeeId: string, acc: boolean): Promise<void> {
+  try {
+    const { data: t } = await createAdminClient().from('employees').select('name').eq('id', employeeId).maybeSingle();
+    await logAuditAsService({
+      action: acc ? 'report.acc' : 'report.acc_revoke', category: 'laporan',
+      summary: `${acc ? 'Memberi ACC' : 'Membatalkan ACC'} Laporan Kinerja ${t?.name ?? employeeId} (${via})`,
+      targetType: 'employee', targetId: employeeId, targetLabel: t?.name ?? null, meta: { acc, via },
+    }, actor);
+  } catch {
+    // Pencatatan gagal tak boleh menggagalkan ACC (selaras logHrdAction).
+  }
+}
+
 export async function setSpvAcc(employeeId: string, acc: boolean): Promise<AccResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_coordinator').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_coordinator, name').eq('id', user.id).maybeSingle();
+  const actor = { id: user.id, name: me?.name ?? null };
 
   const { data: ap } = await supabase
     .from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
@@ -46,6 +63,7 @@ export async function setSpvAcc(employeeId: string, acc: boolean): Promise<AccRe
     const { error } = await admin.from('final_reports').update({ spv_acc: acc })
       .eq('employee_id', employeeId).eq('period_id', ap.id);
     if (error) return { ok: false, error: 'Gagal menyimpan ACC: ' + error.message };
+    await logAcc(actor, 'Koordinator', employeeId, acc);
     revalidatePath('/laporan-tim');
     revalidatePath('/admin/laporan');
     return { ok: true, acc };
@@ -67,6 +85,7 @@ export async function setSpvAcc(employeeId: string, acc: boolean): Promise<AccRe
     const { error } = await admin.from('final_reports').update({ spv_acc: acc })
       .eq('employee_id', employeeId).eq('period_id', ap.id);
     if (error) return { ok: false, error: 'Gagal menyimpan ACC: ' + error.message };
+    await logAcc(actor, 'Direksi', employeeId, acc);
     revalidatePath('/laporan-tim');
     revalidatePath('/admin/laporan');
     return { ok: true, acc };
@@ -98,6 +117,7 @@ export async function setSpvAcc(employeeId: string, acc: boolean): Promise<AccRe
   if (!data || data.length === 0) {
     return { ok: false, error: 'Laporan belum tersedia (menunggu HRD membuat draf) atau di luar tim Anda' };
   }
+  await logAcc(actor, 'SPV', employeeId, acc);
 
   revalidatePath('/laporan-tim');
   revalidatePath('/admin/laporan');

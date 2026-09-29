@@ -112,7 +112,7 @@ export interface Database {
       };
       weight_schemes: {
         Row: { id: string; period_id: string; model: '4class' | '2class'; weights: WeightValues; is_active: boolean; updated_by: string | null; updated_at: string };
-        Insert: { period_id: string; model: '4class' | '2class'; weights: WeightValues; is_active?: boolean; updated_by?: string | null };
+        Insert: { period_id: string; model: '4class' | '2class'; weights: WeightValues; is_active?: boolean; updated_by?: string | null; updated_at?: string };
         Update: Partial<Database['public']['Tables']['weight_schemes']['Insert']>;
         Relationships: [];
       };

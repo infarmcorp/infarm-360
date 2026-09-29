@@ -99,11 +99,16 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
   const relById = new Map((maps ?? []).map((m) => [m.assessor_id, m.relation]));
   // Skema bobot aktif (config; dibaca via service_role agar andal untuk semua pemanggil —
   // pegawai/SPV/Direksi belum tentu punya RLS baca weight_schemes).
-  const { data: ws } = await createAdminClient()
-    .from('weight_schemes').select('model, weights').eq('period_id', period.id).eq('is_active', true).maybeSingle();
-  const wModel = (ws?.model ?? '4class') as '4class' | '2class';
-  const wVals = (ws?.weights ?? {}) as WeightValues;
-  const hasWS = !!ws;
+  const cfg = createAdminClient();
+  const [{ data: ws }, { data: ovr }] = await Promise.all([
+    cfg.from('weight_schemes').select('model, weights').eq('period_id', period.id).eq('is_active', true).maybeSingle(),
+    // Bobot KHUSUS pegawai ini (migrasi 0031) — sama dengan computeResult360 (audit 2026-09-29).
+    cfg.from('employee_weight_overrides').select('model, weights').eq('period_id', period.id).eq('employee_id', employeeId).maybeSingle(),
+  ]);
+  const scheme = ovr ?? ws;
+  const wModel = (scheme?.model ?? '4class') as '4class' | '2class';
+  const wVals = (scheme?.weights ?? {}) as WeightValues;
+  const hasWS = !!scheme;
 
   // Aspek skor: OTHERS = TERBOBOT per kelas penilai (meniru computeResult360 — konsisten dgn Skor
   // 360° headline); SELF = rata-rata biasa (satu penilai, tak ada kelas). Kumpulkan rating per

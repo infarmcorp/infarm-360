@@ -79,23 +79,41 @@ async function computeFinal(
   supabase: Awaited<ReturnType<typeof createClient>>,
   periodId: string, has360: boolean, employeeId: string,
 ) {
-  const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', periodId);
+  // Kegagalan baca WAJIB menghentikan proses (audit 2026-09-29): dulu error ditelan → KPI terbaca
+  // "kosong" → Skor Akhir diam-diam = 360° saja & bisa terfinalisasi. Pemanggil menangkap & melapor.
+  const must = <T,>(res: { data: T; error: { message: string } | null | undefined }, what: string): T => {
+    if (res.error) throw new Error(`Gagal membaca ${what}: ${res.error.message}`);
+    return res.data;
+  };
+  const months = must(await supabase.from('period_months').select('ym').eq('period_id', periodId), 'bulan periode');
   const yms = (months ?? []).map((m) => m.ym);
-  const { data: kpi } = yms.length
-    ? await supabase.from('kpi_scores').select('score').eq('employee_id', employeeId).in('ym', yms)
-    : { data: [] };
+  const kpi = yms.length
+    ? must(await supabase.from('kpi_scores').select('score').eq('employee_id', employeeId).in('ym', yms), 'KPI')
+    : [];
   const kpiAvg = kpiAvgOf((kpi ?? []).map((k) => Number(k.score)));
-  const { data: r } = await supabase.from('result_360').select('score')
-    .eq('employee_id', employeeId).eq('period_id', periodId).maybeSingle();
+  const r = must(await supabase.from('result_360').select('score')
+    .eq('employee_id', employeeId).eq('period_id', periodId).maybeSingle(), 'Skor 360°');
   const s360 = r?.score ?? null;
-  const { data: p } = await supabase.from('compliance_penalties').select('points')
-    .eq('employee_id', employeeId).eq('period_id', periodId).maybeSingle();
+  const p = must(await supabase.from('compliance_penalties').select('points')
+    .eq('employee_id', employeeId).eq('period_id', periodId).maybeSingle(), 'punishment');
   const penalty = p?.points ?? 0;
   // Rumus resmi tunggal (lib/scoring): tanpa KPI → 360° saja (mis. Direksi); dibulatkan 2 desimal.
   return { kpiAvg, s360, penalty, final: finalScoreOf(kpiAvg, s360, has360, penalty) };
 }
 
-export type FinalizeResult = { ok: true; finalScore: number; finalized: boolean } | { ok: false; error: string };
+/** computeFinal yang tak melempar: kegagalan baca → { ok: false, error } untuk ditampilkan ke HRD. */
+async function computeFinalSafe(...args: Parameters<typeof computeFinal>): Promise<
+  { ok: true; final: number | null } | { ok: false; error: string }
+> {
+  try {
+    const { final } = await computeFinal(...args);
+    return { ok: true, final };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export type FinalizeResult ={ ok: true; finalScore: number; finalized: boolean } | { ok: false; error: string };
 
 export async function saveOrFinalizeReport(employeeId: string, finalize: boolean): Promise<FinalizeResult> {
   const supabase = await createClient();
@@ -110,7 +128,9 @@ export async function saveOrFinalizeReport(employeeId: string, finalize: boolean
     .from('periods').select('id, has_360, status').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
-  const { final } = await computeFinal(db, ap.id, ap.has_360, employeeId);
+  const cf = await computeFinalSafe(db, ap.id, ap.has_360, employeeId);
+  if (!cf.ok) return { ok: false, error: cf.error };
+  const { final } = cf;
   if (final == null) {
     // Tolak hanya bila KPI DAN 360° dua-duanya kosong (tak ada dasar skor). Subjek ber-360°-
     // tanpa-KPI (mis. Direksi) TETAP boleh: Skor Akhir dari 360° (rumus resmi tunggal lib/scoring).
@@ -123,8 +143,10 @@ export async function saveOrFinalizeReport(employeeId: string, finalize: boolean
     .eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
 
   if (existing) {
+    // Kembali ke DRAF → ACC SPV/Koordinator/Direksi gugur (ACC hanya sah atas laporan yang dirilis;
+    // audit 2026-09-29). Finalisasi tak menyentuh ACC (HRD boleh finalisasi tanpa menunggu ACC).
     const { error } = await db.from('final_reports')
-      .update({ final_score: final, status, finalized_by: finalize ? actor.userId : null })
+      .update({ final_score: final, status, finalized_by: finalize ? actor.userId : null, ...(finalize ? {} : { spv_acc: false }) })
       .eq('id', existing.id);
     if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
   } else {
@@ -165,14 +187,16 @@ export async function releaseToSpv(employeeId: string): Promise<FinalizeResult> 
     .from('periods').select('id, has_360, status').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
-  const { final } = await computeFinal(db, ap.id, ap.has_360, employeeId);
+  const cf = await computeFinalSafe(db, ap.id, ap.has_360, employeeId);
+  if (!cf.ok) return { ok: false, error: cf.error };
+  const { final } = cf;
   if (final == null) {
     // Tolak hanya bila KPI & 360° dua-duanya kosong (selaras saveOrFinalizeReport).
     return { ok: false, error: 'Skor Akhir belum bisa dihitung (KPI & Skor 360° pegawai keduanya masih kosong)' };
   }
 
   const { data: existing } = await db
-    .from('final_reports').select('id, status')
+    .from('final_reports').select('id, status, final_score')
     .eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
 
   if (existing?.status === 'finalized') {
@@ -180,8 +204,10 @@ export async function releaseToSpv(employeeId: string): Promise<FinalizeResult> 
   }
 
   if (existing) {
+    // Rilis ulang dengan Skor Akhir BERBEDA → ACC lama gugur (diberikan atas angka lama).
+    const scoreChanged = existing.final_score == null || hasScoreDrift(final, existing.final_score);
     const { error } = await db.from('final_reports')
-      .update({ final_score: final, status: 'in_review', finalized_by: null })
+      .update({ final_score: final, status: 'in_review', finalized_by: null, ...(scoreChanged ? { spv_acc: false } : {}) })
       .eq('id', existing.id);
     if (error) return { ok: false, error: 'Gagal merilis: ' + error.message };
   } else {
@@ -231,7 +257,7 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
   const { data: candidates } = await supabase.from('final_reports')
-    .select('id, employee_id').eq('period_id', ap.id).eq('spv_acc', true).eq('status', 'in_review');
+    .select('id, employee_id, final_score').eq('period_id', ap.id).eq('spv_acc', true).eq('status', 'in_review');
   const list = candidates ?? [];
   if (!list.length) return { ok: true, finalized: 0, skipped: [] };
 
@@ -242,8 +268,15 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
   const skipped: { name: string; reason: string }[] = [];
   for (const r of list) {
     const label = nameById.get(r.employee_id) ?? r.employee_id;
-    const { final } = await computeFinal(supabase, ap.id, ap.has_360, r.employee_id);
+    const cf = await computeFinalSafe(supabase, ap.id, ap.has_360, r.employee_id);
+    if (!cf.ok) { skipped.push({ name: label, reason: cf.error }); continue; }
+    const { final } = cf;
     if (final == null) { skipped.push({ name: label, reason: 'Skor Akhir belum bisa dihitung (KPI & 360° kosong)' }); continue; }
+    // ACC diberikan atas angka yang dirilis; bila Skor Akhir kini berbeda, jangan finalisasi otomatis.
+    if (r.final_score != null && hasScoreDrift(final, r.final_score)) {
+      skipped.push({ name: label, reason: `Skor Akhir berubah sejak di-ACC (${Number(r.final_score).toFixed(2)} → ${final.toFixed(2)}) — rilis ulang ke SPV untuk ACC baru` });
+      continue;
+    }
     const { error } = await supabase.from('final_reports')
       .update({ final_score: final, status: 'finalized', finalized_by: user.id }).eq('id', r.id);
     if (error) { skipped.push({ name: label, reason: error.message }); continue; }
@@ -293,7 +326,9 @@ export async function resyncDriftedFinals(): Promise<ResyncResult> {
 
   let resynced = 0, skipped = 0;
   for (const r of list) {
-    const { final } = await computeFinal(supabase, ap.id, ap.has_360, r.employee_id);
+    const cf = await computeFinalSafe(supabase, ap.id, ap.has_360, r.employee_id);
+    if (!cf.ok) { skipped++; continue; }                               // gagal baca → jangan timpa
+    const { final } = cf;
     if (final == null) { skipped++; continue; }                       // tak bisa dihitung → lewati
     const stored = r.final_score;
     if (stored != null && !hasScoreDrift(final, stored)) continue;     // tak berubah → lewati diam
@@ -353,7 +388,9 @@ export async function saveAspectSummaries(employeeId: string, raw: unknown): Pro
     if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
     if (!upd || upd.length === 0) return { ok: false, error: 'Gagal menyimpan ringkasan (akses ditolak / laporan tak ditemukan)' };
   } else {
-    const { final } = await computeFinal(db, ap.id, ap.has_360, employeeId);
+    const cf = await computeFinalSafe(db, ap.id, ap.has_360, employeeId);
+  if (!cf.ok) return { ok: false, error: cf.error };
+  const { final } = cf;
     const { error } = await db.from('final_reports').insert({
       employee_id: employeeId, period_id: ap.id, final_score: final, status: 'draft',
       content: { aspectSummaries: summaries },
@@ -405,7 +442,9 @@ export async function saveQualSummaries(employeeId: string, raw: unknown): Promi
     if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
     if (!upd || upd.length === 0) return { ok: false, error: 'Gagal menyimpan ringkasan (akses ditolak / laporan tak ditemukan)' };
   } else {
-    const { final } = await computeFinal(db, ap.id, ap.has_360, employeeId);
+    const cf = await computeFinalSafe(db, ap.id, ap.has_360, employeeId);
+  if (!cf.ok) return { ok: false, error: cf.error };
+  const { final } = cf;
     const { error } = await db.from('final_reports').insert({
       employee_id: employeeId, period_id: ap.id, final_score: final, status: 'draft',
       content: { qualSummaries: summaries },

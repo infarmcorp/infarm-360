@@ -64,7 +64,7 @@ export function WeightForm({ initial }: { initial: Init }) {
 
       <p className="text-[12px] text-ink-soft">
         Total bobot: <span className="data-value font-bold text-ink">{total}</span>
-        {total !== 100 && <span className="text-warn-ink"> — umumnya 100</span>}
+        {total !== 100 && <span className="text-danger-ink"> — harus tepat 100 untuk bisa disimpan</span>}
         <span className="block text-[11px] text-ink-faint mt-0.5">
           Evaluasi diri (Self) tidak punya bobot — nilainya tak pernah masuk Skor 360°, hanya tampil
           sebagai pembanding di laporan pegawai.
@@ -73,7 +73,7 @@ export function WeightForm({ initial }: { initial: Init }) {
 
       {msg && <p className={`text-[12.5px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
 
-      <Button type="submit" disabled={busy}>
+      <Button type="submit" disabled={busy || total !== 100}>
         {busy ? 'Menyimpan…' : 'Simpan & Terapkan Bobot'}
       </Button>
     </form>

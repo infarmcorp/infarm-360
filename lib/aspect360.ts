@@ -90,9 +90,10 @@ export async function aspectScoresByEmployee(periodId: string, empIds: string[])
     .filter((a) => a.assessor_id !== a.target_id && scope.has(a.target_id))
     .map((a) => a.id);
 
-  const [indRes, wsRes, mapsData, scoreRows] = await Promise.all([
+  const [indRes, wsRes, ovrRes, mapsData, scoreRows] = await Promise.all([
     admin.from('indicators').select('id, aspect_id, text, order_idx').in('aspect_id', aspectList.map((a) => a.id)),
     admin.from('weight_schemes').select('model, weights').eq('period_id', periodId).eq('is_active', true).maybeSingle(),
+    admin.from('employee_weight_overrides').select('employee_id, model, weights').eq('period_id', periodId),
     fetchAllPaged<{ assessor_id: string; target_id: string; relation: RelationKind }>((from, to) =>
       admin.from('mappings').select('assessor_id, target_id, relation').eq('period_id', periodId)
         .order('assessor_id').order('target_id').range(from, to)),
@@ -153,7 +154,11 @@ export async function aspectScoresByEmployee(periodId: string, empIds: string[])
     g[cls].push(score100);
   });
 
-  const scoreOfG = (g: Groups360): number | null => {
+  // Bobot KHUSUS per pegawai (migrasi 0031) — sama dengan computeResult360 (audit 2026-09-29).
+  const ovrBy = new Map((ovrRes.data ?? []).map((o) => [o.employee_id, { model: o.model as '4class' | '2class', weights: o.weights as WeightValues }]));
+  const scoreOfG = (g: Groups360, target: string): number | null => {
+    const o = ovrBy.get(target);
+    if (o) return weightedScore360(g, o.model, o.weights);
     if (hasWS) return weightedScore360(g, wModel, wVals);
     const all = [...g.atasan, ...g.peer, ...g.cross, ...g.bawahan];
     return all.length ? all.reduce((a, b) => a + b, 0) / all.length : null;
@@ -161,7 +166,7 @@ export async function aspectScoresByEmployee(periodId: string, empIds: string[])
   for (const [tk, g] of targetAspectG) {
     const sep = tk.indexOf('|');
     const target = tk.slice(0, sep), aid = tk.slice(sep + 1);
-    const s = scoreOfG(g);
+    const s = scoreOfG(g, target);
     const nm = idToName.get(aid);
     if (nm && s != null && s > 0) {
       let m = byEmp.get(target); if (!m) { m = new Map(); byEmp.set(target, m); }
@@ -171,7 +176,7 @@ export async function aspectScoresByEmployee(periodId: string, empIds: string[])
   for (const [tk, g] of targetIndG) {
     const sep = tk.indexOf('|');
     const target = tk.slice(0, sep), indId = tk.slice(sep + 1);
-    const s = scoreOfG(g);
+    const s = scoreOfG(g, target);
     if (s != null && s > 0) {
       let m = indByEmp.get(target); if (!m) { m = new Map(); indByEmp.set(target, m); }
       m.set(indId, s);

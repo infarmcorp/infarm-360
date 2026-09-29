@@ -137,6 +137,26 @@ export default async function AdminLaporanPage() {
     if (!cur || c.reviewed_at > cur) maxReviewedByTarget.set(c.target_id, c.reviewed_at);
   });
 
+  // Perubahan BOBOT sesudah hitung terakhir juga membuat Skor 360° usang: skema periode
+  // (weight_schemes.updated_at), bobot khusus per pegawai (updated_at), dan penghapusan bobot khusus
+  // (tercatat di log aktivitas HRD). Data konfigurasi → dibaca via service_role.
+  const cfg = createAdminClient();
+  const [{ data: wsRow }, { data: ovrRows }, { data: ovrRemoved }] = await Promise.all([
+    cfg.from('weight_schemes').select('updated_at').eq('period_id', ap.id).eq('is_active', true).maybeSingle(),
+    cfg.from('employee_weight_overrides').select('employee_id, updated_at').eq('period_id', ap.id),
+    cfg.from('hrd_audit_log').select('target_id, created_at').eq('action', 'weights.override_remove'),
+  ]);
+  const weightsChangedAt = wsRow?.updated_at ?? null;
+  const ovrChangedBy = new Map<string, string>();
+  const bumpOvr = (id: string | null, at: string | null) => {
+    if (!id || !at) return;
+    const cur = ovrChangedBy.get(id);
+    if (!cur || Date.parse(at) > Date.parse(cur)) ovrChangedBy.set(id, at);
+  };
+  (ovrRows ?? []).forEach((o) => bumpOvr(o.employee_id, o.updated_at));
+  (ovrRemoved ?? []).forEach((l) => bumpOvr(l.target_id, l.created_at));
+  const after = (a: string | null, b: string | null) => a != null && b != null && Date.parse(a) > Date.parse(b);
+
   const rows: ReportRow[] = employees.map((e) => {
     const kpiAvg = kpiAvgOf(kpiValsBy.get(e.id) ?? []);
     const s360 = s360By.get(e.id) ?? null;
@@ -151,7 +171,8 @@ export default async function AdminLaporanPage() {
     const staleByAssessment = maxSub != null && (computedAt == null || maxSub > computedAt);
     // Koreksi relevan hanya RELATIF terhadap hitung sebelumnya (butuh computedAt).
     const staleByCorrection = maxReviewed != null && computedAt != null && maxReviewed > computedAt;
-    const needsRecompute = ap.has_360 && (staleByAssessment || staleByCorrection);
+    const staleByWeights = after(weightsChangedAt, computedAt) || after(ovrChangedBy.get(e.id) ?? null, computedAt);
+    const needsRecompute = ap.has_360 && (staleByAssessment || staleByCorrection || staleByWeights);
     // Bulan KPI yang belum terisi (untuk indikator "X/Y bulan" + konfirmasi finalisasi).
     const presentMonths = kpiMonthsByEmp.get(e.id) ?? new Set<string>();
     const missingMonths = sortedMonths.filter((m) => !presentMonths.has(m));

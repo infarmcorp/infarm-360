@@ -5,6 +5,24 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **Kerapian 360° & alur HRD (audit 2026-09-29, Prioritas 4):**
+  (1) **Bobot wajib total 100%** (tanpa Self) — `saveWeights`/`saveEmployeeWeightOverride` menolak di server
+  (Zod), tombol simpan nonaktif di form; dulu total bebas & semua-0 membuat pegawai hilang dari `result_360`.
+  (2) **Bobot khusus per pegawai** (0031) kini dipakai di SEMUA perhitungan per pegawai: laporan
+  (`loadReport` aspek), heatmap/aspek per pegawai (`lib/aspect360.ts`), Ekspor Ringkasan 360 & Nilai per
+  Aspek — sebelumnya hanya `computeResult360`. (Agregat aspek org/divisi yang MENGGABUNG banyak pegawai
+  tetap memakai skema periode — bobot per orang tak bisa diterapkan pada kumpulan gabungan.)
+  (3) **"Perlu hitung ulang"** kini juga menyala bila bobot periode / bobot khusus diubah atau dihapus
+  sesudah hitung terakhir (`saveWeights` kini menulis `updated_at`).
+  (4) **Skor 360° yatim** dihapus saat Hitung Ulang (pegawai tanpa penilaian terkirim lagi).
+  (5) **`computeFinal` tak lagi menelan error** — gagal baca KPI/360°/punishment menghentikan
+  simpan/rilis/finalisasi dgn pesan (dulu Skor Akhir diam-diam = 360° saja).
+  (6) **ACC tercatat di Log Aktivitas** (`report.acc`/`report.acc_revoke`, 3 jalur) & **gugur** bila laporan
+  dikembalikan ke draf atau dirilis ulang dgn Skor Akhir berbeda; finalisasi massal MELEWATI laporan ber-ACC
+  yang skornya berubah sejak di-ACC.
+  (7) **Kunci periode permanen**: periode yang sudah punya laporan FINAL tak bisa diaktifkan kembali
+  (`activatePeriod`). (8) **Hapus periode**: error hapus KPI/audit diperiksa & jumlah nilai KPI + jejak audit
+  KPI yang ikut terhapus dicatat di Log Aktivitas.
 - **Skor Akhir seragam di semua halaman** (audit 2026-09-29, keputusan HRD). Sebelumnya dihitung ulang di
   ±12 tempat dengan aturan berbeda (opsi `allow360Only` hanya di sebagian halaman; Dashboard sebagian tanpa
   punishment; ambang dicek atas nilai tak terbulat → 79.996 tampil "80.00" tapi dikelaskan <80; Laporan

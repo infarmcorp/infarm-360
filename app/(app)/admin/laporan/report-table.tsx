@@ -156,7 +156,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                       <div className="flex flex-col items-center gap-0.5">
                         <span>{r.s360.toFixed(2)}</span>
                         {r.needsRecompute && (
-                          <span title="Penilaian berubah sejak skor 360° terakhir dihitung — klik Hitung Ulang Skor 360°."
+                          <span title="Penilaian, koreksi relasi, atau bobot berubah sejak skor 360° terakhir dihitung — klik Hitung Ulang Skor 360°."
                             className="text-[9px] font-semibold text-warn-ink bg-warn-tint px-1.5 py-0.5 rounded-full">⚠ perlu hitung</span>
                         )}
                       </div>

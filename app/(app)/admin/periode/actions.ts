@@ -84,6 +84,21 @@ export async function activatePeriod(periodId: string): Promise<Result> {
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
+
+  // KUNCI PERMANEN (audit 2026-09-29): periode yang SUDAH punya laporan final tak boleh dibuka lagi —
+  // membuka kembali mengizinkan edit KPI/penilaian atas hasil yang sudah dirilis ke pegawai.
+  // (Periode baru dibuat berstatus 'ended' sebelum diaktifkan, jadi status saja tak cukup membedakan.)
+  const { data: target } = await supabase.from('periods').select('status, label').eq('id', periodId).maybeSingle();
+  if (!target) return { ok: false, error: 'Periode tidak ditemukan' };
+  if (target.status !== 'active') {
+    const { count, error: cErr } = await supabase.from('final_reports')
+      .select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('status', 'finalized');
+    if (cErr) return { ok: false, error: 'Gagal memeriksa laporan periode: ' + cErr.message };
+    if ((count ?? 0) > 0) {
+      return { ok: false, error: `Periode "${target.label}" sudah dikunci: ${count} laporan telah difinalisasi & dirilis ke pegawai, sehingga tidak bisa dibuka kembali.` };
+    }
+  }
+
   // Akhiri semua periode lain → jaga hanya satu aktif.
   const { error: e1 } = await supabase.from('periods').update({ status: 'ended' }).neq('id', periodId);
   if (e1) return { ok: false, error: 'Gagal: ' + e1.message };
@@ -378,11 +393,18 @@ export async function deletePeriod(periodId: string, confirmText: string): Promi
   if (!p) return { ok: false, error: 'Periode tidak ditemukan' };
   if (p.status === 'active') return { ok: false, error: 'Periode aktif tidak bisa dihapus. "Kunci & Akhiri" dulu.' };
 
-  // KPI tak cascade dari periods → hapus manual, hanya bulan UNIK periode ini.
+  // KPI tak cascade dari periods → hapus manual, hanya bulan UNIK periode ini. Error DIPERIKSA (dulu
+  // diabaikan → periode bisa terhapus sementara KPI-nya tertinggal) & jumlah baris yang ikut terhapus
+  // (termasuk jejak audit KPI) DICATAT di Log Aktivitas agar penghapusan tetap bisa ditelusuri.
   const uniqueYms = await uniqueMonthsOf(admin, periodId);
+  let kpiDeleted = 0, kpiAuditDeleted = 0;
   if (uniqueYms.length) {
-    await admin.from('kpi_audit').delete().in('ym', uniqueYms);
-    await admin.from('kpi_scores').delete().in('ym', uniqueYms);
+    const { data: a, error: aErr } = await admin.from('kpi_audit').delete().in('ym', uniqueYms).select('id');
+    if (aErr) return { ok: false, error: 'Gagal menghapus jejak audit KPI periode: ' + aErr.message };
+    const { data: k, error: kErr } = await admin.from('kpi_scores').delete().in('ym', uniqueYms).select('employee_id');
+    if (kErr) return { ok: false, error: 'Gagal menghapus KPI periode: ' + kErr.message };
+    kpiAuditDeleted = a?.length ?? 0;
+    kpiDeleted = k?.length ?? 0;
   }
 
   const { error } = await admin.from('periods').delete().eq('id', periodId);
@@ -390,8 +412,9 @@ export async function deletePeriod(periodId: string, confirmText: string): Promi
 
   await logHrdAction({
     action: 'period.delete', category: 'periode',
-    summary: `Menghapus periode "${p.label}" beserta seluruh datanya`,
+    summary: `Menghapus periode "${p.label}" beserta seluruh datanya (${kpiDeleted} nilai KPI, ${kpiAuditDeleted} jejak audit KPI, bulan ${uniqueYms.join(', ') || '—'})`,
     targetType: 'period', targetId: periodId, targetLabel: p.label,
+    meta: { kpi_deleted: kpiDeleted, kpi_audit_deleted: kpiAuditDeleted, months: uniqueYms },
   });
   revalidatePath('/admin/periode');
   revalidatePath('/admin/dashboard');

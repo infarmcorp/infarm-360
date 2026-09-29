@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  kpiBandOf, s360BandOf, talentBoxOf, playerClassOf, finalScoreOf,
+  kpiBandOf, s360BandOf, talentBoxOf, playerClassOf, finalScoreOf, roundScore, kpiAvgOf, displayedFinalOf, perfCategoryOf,
 } from '@/lib/scoring';
 
 describe('kpiBandOf — band KPI (≥90 hi · ≥80 mid · <80 lo)', () => {
@@ -68,21 +68,8 @@ describe('playerClassOf — 4-Box A/B-Culture/B-KPI/C (KPI × 360°, ambang 80, 
   });
 });
 
-describe('finalScoreOf — Skor Akhir = blend KPI+360 (50/50) − punishment, min 0', () => {
-  it('KPI kosong → null (default, allow360Only=false)', () => {
-    expect(finalScoreOf(null, 90, true, 0)).toBeNull();
-  });
-  it('KPI kosong + allow360Only → skor murni dari 360°', () => {
-    expect(finalScoreOf(null, 90, true, 0, true)).toBe(90);       // 360-only (mis. Direksi)
-    expect(finalScoreOf(null, 90, true, 10, true)).toBe(80);      // − punishment
-    expect(finalScoreOf(null, null, true, 0, true)).toBeNull();   // KPI & 360 keduanya kosong → null
-    expect(finalScoreOf(null, 90, false, 0, true)).toBeNull();    // 360 nonaktif → tak ada dasar
-  });
-  it('KPI ada → allow360Only tak mengubah hasil (blend/KPI seperti biasa)', () => {
-    expect(finalScoreOf(80, 90, true, 0, true)).toBe(85);
-    expect(finalScoreOf(80, null, true, 0, true)).toBe(80);
-  });
-  it('360 aktif & ada → rerata 50/50', () => {
+describe('finalScoreOf — Skor Akhir resmi (satu rumus semua halaman), 2 desimal', () => {
+  it('KPI & 360 ada → rerata 50/50', () => {
     expect(finalScoreOf(80, 90, true, 0)).toBe(85);
   });
   it('360 nonaktif → 100% KPI (s360 diabaikan)', () => {
@@ -91,11 +78,84 @@ describe('finalScoreOf — Skor Akhir = blend KPI+360 (50/50) − punishment, mi
   it('360 aktif tapi s360 null → 100% KPI', () => {
     expect(finalScoreOf(80, null, true, 0)).toBe(80);
   });
+  it('KPI kosong + 360 ada → 360° saja (mis. Direksi) — berlaku di semua halaman', () => {
+    expect(finalScoreOf(null, 90, true, 0)).toBe(90);
+    expect(finalScoreOf(null, 90, true, 10)).toBe(80);   // − punishment
+  });
+  it('tak ada dasar skor → null', () => {
+    expect(finalScoreOf(null, null, true, 0)).toBeNull();
+    expect(finalScoreOf(null, 90, false, 0)).toBeNull(); // 360 nonaktif & KPI kosong
+  });
   it('punishment mengurangi skor', () => {
     expect(finalScoreOf(80, 90, true, 10)).toBe(75);
     expect(finalScoreOf(80, null, false, 5)).toBe(75);
   });
   it('punishment tak boleh membuat skor negatif (min 0)', () => {
     expect(finalScoreOf(10, 10, true, 50)).toBe(0);
+  });
+  it('dibulatkan 2 desimal SEBELUM dipakai klasifikasi (batas 80)', () => {
+    expect(finalScoreOf(79.99, 80, true, 0)).toBe(80);     // 79.995 → 80.00 (sama dgn numeric(5,2))
+    expect(finalScoreOf(79.98, 80, true, 0)).toBe(79.99);
+    expect(finalScoreOf(85.333333, null, true, 0)).toBe(85.33);
+  });
+});
+
+describe('roundScore — pembulatan 2 desimal selaras numeric(5,2) Postgres', () => {
+  it('setengah dibulatkan ke atas (atas angka desimal, bukan galat biner)', () => {
+    expect(roundScore(79.995)).toBe(80);
+    expect(roundScore(1.005)).toBe(1.01);
+    expect(roundScore(12.344)).toBe(12.34);
+    expect(roundScore(12.345)).toBe(12.35);
+    expect(roundScore(80)).toBe(80);
+    expect(roundScore(0)).toBe(0);
+  });
+  it('null tetap null', () => {
+    expect(roundScore(null)).toBeNull();
+  });
+});
+
+describe('kpiAvgOf — satu definisi rerata KPI kuartal', () => {
+  it('rata-rata bulan terisi; kosong tak dihitung; 0 = nilai sungguhan', () => {
+    expect(kpiAvgOf([80, 90, null])).toBe(85);
+    expect(kpiAvgOf([null, null, 85])).toBe(85);
+    expect(kpiAvgOf([0, 90, 90])).toBe(60);
+  });
+  it('presisi penuh (pembulatan hanya di akhir — tak menggeser Skor Akhir tersimpan)', () => {
+    expect(kpiAvgOf([100, 90, 90])).toBeCloseTo(93.3333, 4);
+    // KPI 77.0667 & 360 77 → Skor Akhir 77.03 (dari presisi penuh), BUKAN 77.04 (dari KPI terbulat 77.07).
+    expect(finalScoreOf(kpiAvgOf([77.2, 77, 77]), 77, true, 0)).toBe(77.03);
+  });
+  it('tak ada bulan terisi → null', () => {
+    expect(kpiAvgOf([null, null, null])).toBeNull();
+    expect(kpiAvgOf([])).toBeNull();
+  });
+});
+
+describe('klasifikasi memakai nilai TERBULAT (kategori = angka yang tampil)', () => {
+  it('KPI 79.9966 (tampil 80.00) → dianggap ≥ 80', () => {
+    const k = kpiAvgOf([80, 80, 79.99])!;          // 79.99666…
+    expect(playerClassOf(k, 85)).toBe('A');
+    expect(kpiBandOf(k)).toBe('mid');
+    expect(perfCategoryOf(k)).toBe('meet');
+  });
+  it('79.994 (tampil 79.99) tetap < 80', () => {
+    expect(playerClassOf(79.994, 85)).toBe('B_CULTURE');
+    expect(perfCategoryOf(79.994)).toBe('improve');
+    expect(s360BandOf(69.996)).toBe('mid');       // tampil 70.00 → mid
+  });
+});
+
+describe('displayedFinalOf — angka Skor Akhir yang ditampilkan (opsi 1)', () => {
+  it('laporan FINAL → angka tersimpan (yang dilihat pegawai)', () => {
+    expect(displayedFinalOf(90, { status: 'finalized', final_score: 85 })).toBe(85);
+  });
+  it('laporan belum final / tanpa laporan → angka hidup', () => {
+    expect(displayedFinalOf(90, { status: 'in_review', final_score: 85 })).toBe(90);
+    expect(displayedFinalOf(90, { status: 'draft', final_score: 85 })).toBe(90);
+    expect(displayedFinalOf(90, null)).toBe(90);
+    expect(displayedFinalOf(null, undefined)).toBeNull();
+  });
+  it('final tapi final_score kosong → angka hidup', () => {
+    expect(displayedFinalOf(90, { status: 'finalized', final_score: null })).toBe(90);
   });
 });

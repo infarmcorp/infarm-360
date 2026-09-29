@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
-import { finalScoreOf } from '@/lib/scoring';
+import { finalScoreOf, kpiAvgOf, hasScoreDrift } from '@/lib/scoring';
 import { ReportTable, type ReportRow } from './report-table';
 import { Recompute360Button } from './recompute-360-button';
 import { ResyncDriftButton } from './resync-drift-button';
@@ -78,10 +78,10 @@ export default async function AdminLaporanPage() {
     ? await fetchAllPaged<{ employee_id: string; score: number; ym: string }>((from, to) =>
         db.from('kpi_scores').select('employee_id, score, ym').in('ym', yms).order('employee_id').order('ym').range(from, to))
     : [];
-  const kpiAgg = new Map<string, { sum: number; n: number }>();
+  const kpiValsBy = new Map<string, number[]>(); // nilai KPI bulanan per pegawai → kpiAvgOf
   const kpiMonthsByEmp = new Map<string, Set<string>>(); // bulan yang sudah ada KPI per pegawai
   kpiRows.forEach((r) => {
-    const a = kpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n++; kpiAgg.set(r.employee_id, a);
+    kpiValsBy.set(r.employee_id, [...(kpiValsBy.get(r.employee_id) ?? []), Number(r.score)]);
     const s = kpiMonthsByEmp.get(r.employee_id) ?? new Set<string>(); s.add(r.ym); kpiMonthsByEmp.set(r.employee_id, s);
   });
 
@@ -138,11 +138,10 @@ export default async function AdminLaporanPage() {
   });
 
   const rows: ReportRow[] = employees.map((e) => {
-    const agg = kpiAgg.get(e.id);
-    const kpiAvg = agg ? agg.sum / agg.n : null;
+    const kpiAvg = kpiAvgOf(kpiValsBy.get(e.id) ?? []);
     const s360 = s360By.get(e.id) ?? null;
     const penalty = penBy.get(e.id) ?? 0;
-    const final = finalScoreOf(kpiAvg, s360, ap.has_360, penalty, true); // allow360Only: subjek ber-360°-tanpa-KPI (mis. Direksi) → skor dari 360°
+    const final = finalScoreOf(kpiAvg, s360, ap.has_360, penalty); // rumus resmi tunggal (tanpa KPI → 360° saja)
     const rep = repBy.get(e.id);
     // Perlu hitung ulang 360°: ada penilaian dikirim/diubah setelah result_360 terakhir dihitung
     // (atau sudah ada penilaian tapi belum pernah dihitung). Hanya relevan saat 360° aktif.
@@ -185,11 +184,9 @@ export default async function AdminLaporanPage() {
   const accReadyCount = accReady.length;
   const accStaleCount = accReady.filter((r) => r.needsRecompute).length;
   // "berubah → N": laporan sudah Final tapi Skor Akhir tersimpan ≠ Skor Akhir live (KPI/360°/
-  // punishment berubah setelah finalisasi) → perlu finalisasi ulang (langkah ②). Ambang 0.05
+  // punishment berubah setelah finalisasi) → perlu finalisasi ulang (langkah ②). hasScoreDrift
   // selaras badge di tabel. Ini state BERBEDA dari staleCount (Skor 360° usang, langkah ①).
-  const driftCount = shownRows.filter((r) =>
-    r.status === 'finalized' && r.final != null && r.storedFinal != null && Math.abs(r.final - r.storedFinal) >= 0.05,
-  ).length;
+  const driftCount = shownRows.filter((r) => r.status === 'finalized' && hasScoreDrift(r.final, r.storedFinal)).length;
 
   return (
     <Shell>

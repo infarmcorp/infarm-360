@@ -5,6 +5,18 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **Skor Akhir seragam di semua halaman** (audit 2026-09-29, keputusan HRD). Sebelumnya dihitung ulang di
+  ±12 tempat dengan aturan berbeda (opsi `allow360Only` hanya di sebagian halaman; Dashboard sebagian tanpa
+  punishment; ambang dicek atas nilai tak terbulat → 79.996 tampil "80.00" tapi dikelaskan <80; Laporan
+  Tim menampilkan `final_score` tersimpan apa pun statusnya). Kini: `finalScoreOf` tunggal (tanpa KPI →
+  360° saja di SEMUA halaman; hasil `roundScore` 2 desimal selaras `numeric(5,2)`), `kpiAvgOf` (presisi
+  penuh, bulatkan di akhir — agar tak menggeser Skor Akhir yang sudah difinalisasi), klasifikasi
+  (`playerClassOf`/`perfCategoryOf`/band) atas nilai terbulat, dan **`displayedFinalOf`**: laporan FINAL →
+  angka tersimpan (yang dilihat pegawai) di Dashboard, Monitor, Laporan Tim, Rekap, Suksesi, Ekspor;
+  hanya Review Hasil Akhir menampilkan "berubah → N" (`hasScoreDrift`, ≥0.01, menggantikan ambang 0.05).
+  Dashboard: punishment selalu dipotong; mode "semua kuartal" = rata-rata Skor Akhir per kuartal.
+  Dampak data (dicek read-only): tak ada kategori bergeser & tak ada laporan final ter-"berubah"; yang
+  berubah hanya pegawai tanpa KPI (kini tampil skor 360°) & Laporan Tim tanpa laporan (kini angka hidup).
 - **Visibilitas laporan bertahap** (`draft → in_review → finalized`, migrasi 0011/0012). Lapisannya:
   **L1** Skor Akhir · **L2** agregat (radar/aspek + ringkasan HRD, anonim) · **raw ANONIM**
   (`byAspect`/`essays` — komentar/rating verbatim TANPA nama) · **L3 BERNAMA** (`assessors` — identitas

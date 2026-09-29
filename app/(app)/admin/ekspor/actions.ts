@@ -3,7 +3,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canAdmin } from '@/lib/auth/roles';
-import { finalScoreOf, playerClassOf, playerLabelOf, perfLabelOf } from '@/lib/scoring';
+import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf, playerLabelOf, perfLabelOf } from '@/lib/scoring';
 import { classOf, avg, weightedScore360, type Groups360 } from '@/lib/score360';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 
@@ -177,7 +177,7 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   // kpi_scores/result_360/penalties LINTAS periode → bisa >1000; ambil penuh.
-  const [{ data: emps }, { data: periodsAll }, { data: pmonths }, kpi, r360, pen] = await Promise.all([
+  const [{ data: emps }, { data: periodsAll }, { data: pmonths }, kpi, r360, pen, reps] = await Promise.all([
     // Direksi SENGAJA IKUT (subjek 360° — keputusan 2026-07-08): guard `kpiAvg==null && s360==null`
     // di bawah memastikan hanya yang PUNYA data (mis. Direksi ber-360°) yang muncul.
     admin.from('employees').select('id, emp_code, name, dept'),
@@ -189,8 +189,11 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
       admin.from('result_360').select('employee_id, period_id, score').order('employee_id').order('period_id').range(from, to)),
     fetchAllPaged<{ employee_id: string; period_id: string; points: number }>((from, to) =>
       admin.from('compliance_penalties').select('employee_id, period_id, points').order('employee_id').order('period_id').range(from, to)),
+    fetchAllPaged<{ employee_id: string; period_id: string; status: string; final_score: number | null }>((from, to) =>
+      admin.from('final_reports').select('employee_id, period_id, status, final_score').order('employee_id').order('period_id').range(from, to)),
   ]);
   const periods = (periodsAll ?? []).filter((p) => !periodId || p.id === periodId);
+  const repBy = new Map(reps.map((r) => [`${r.employee_id}|${r.period_id}`, r]));
   const monthsByPeriod = new Map<string, string[]>();
   (pmonths ?? []).forEach((m) => { const a = monthsByPeriod.get(m.period_id) ?? []; a.push(m.ym); monthsByPeriod.set(m.period_id, a); });
   const kpiByCell = new Map<string, { s: number; n: number }>();
@@ -202,13 +205,12 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
   for (const p of periods) {
     const yms = monthsByPeriod.get(p.id) ?? [];
     for (const e of emps ?? []) {
-      const present = yms.map((ym) => kpiByCell.get(`${e.id}|${ym}`)).filter(Boolean).map((a) => a!.s / a!.n);
-      const kpiAvg = present.length ? present.reduce((a, b) => a + b, 0) / present.length : null;
+      const kpiAvg = kpiAvgOf(yms.map((ym) => { const a = kpiByCell.get(`${e.id}|${ym}`); return a ? a.s / a.n : null; }));
       const s360 = p.has_360 ? (s360By.get(`${e.id}|${p.id}`) ?? null) : null;
       const penalty = penBy.get(`${e.id}|${p.id}`) ?? 0;
       if (kpiAvg == null && s360 == null) continue;
-      // allow360Only: subjek ber-360°-tanpa-KPI (mis. Direksi) → Skor Akhir dari 360° saja.
-      const final = finalScoreOf(kpiAvg, s360, p.has_360, penalty, true);
+      // Rumus resmi tunggal (tanpa KPI → 360° saja); laporan FINAL → angka tersimpan (yang dilihat pegawai).
+      const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, p.has_360, penalty), repBy.get(`${e.id}|${p.id}`));
       const player = playerClassOf(kpiAvg, s360); // s360 sudah null bila 360 nonaktif
       rows.push({
         periode: p.label, kode: e.emp_code, nama: e.name, divisi: e.dept,

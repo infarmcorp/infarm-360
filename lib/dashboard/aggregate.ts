@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/server';
-import { finalScoreOf, playerClassOf, type PlayerClass } from '@/lib/scoring';
+import { finalScoreOf, kpiAvgOf, displayedFinalOf, roundScore, playerClassOf, type PlayerClass } from '@/lib/scoring';
 import { classOf, avg as avg360, weightedScore360, type Groups360 } from '@/lib/score360';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
@@ -148,7 +148,7 @@ export async function computeDashboardAggregate(
   const ymToPeriod = new Map((pmRows ?? []).map((m) => [m.ym, m.period_id]));
   const yms = [...new Set((pmRows ?? []).map((m) => m.ym))].sort();
   // Lintas kuartal × seluruh pegawai → mudah >1000 baris & daftar id panjang → chunk + paginasi.
-  const [kpiRows, r360Rows] = await Promise.all([
+  const [kpiRows, r360Rows, penRows, repRows] = await Promise.all([
     yms.length
       ? fetchAllByIds<{ employee_id: string; ym: string; score: number }>(empIds, (chunk, from, to) =>
           admin.from('kpi_scores').select('employee_id, ym, score').in('ym', yms).in('employee_id', chunk)
@@ -157,7 +157,17 @@ export async function computeDashboardAggregate(
     fetchAllByIds<{ employee_id: string; period_id: string; score: number | null }>(empIds, (chunk, from, to) =>
       admin.from('result_360').select('employee_id, period_id, score').in('period_id', periodIds).in('employee_id', chunk)
         .order('employee_id').order('period_id').range(from, to)),
+    // Punishment & laporan per (pegawai, kuartal) → Skor Akhir resmi per kuartal (displayedFinalOf).
+    fetchAllByIds<{ employee_id: string; period_id: string; points: number }>(empIds, (chunk, from, to) =>
+      admin.from('compliance_penalties').select('employee_id, period_id, points').in('period_id', periodIds).in('employee_id', chunk)
+        .order('employee_id').order('period_id').range(from, to)),
+    fetchAllByIds<{ employee_id: string; period_id: string; status: string; final_score: number | null }>(empIds, (chunk, from, to) =>
+      admin.from('final_reports').select('employee_id, period_id, status, final_score').in('period_id', periodIds).in('employee_id', chunk)
+        .order('employee_id').order('period_id').range(from, to)),
   ]);
+  const penOf = new Map(penRows.map((p) => [`${p.employee_id}|${p.period_id}`, Number(p.points)]));
+  const repOf = new Map(repRows.map((r) => [`${r.employee_id}|${r.period_id}`, r]));
+  const periodMeta = new Map(periods.map((p) => [p.id, p]));
 
   // "Belum terbaca" PER (pegawai × kuartal) — kuartal itu dikecualikan dari rerata KPI & grafik
   // bulanan (selaras Dashboard satu-kuartal). Lihat lib/trend.ts.
@@ -209,12 +219,26 @@ export async function computeDashboardAggregate(
     const kmAll = empPerKpiAll.get(e.id);
     const kpiUnread = !km && !!kmAll;
     const kpiSrc = km ?? kmAll;
-    const kpiAvg = kpiSrc ? mean([...kpiSrc.values()].map((a) => a.sum / a.n)) : null;
+    const kpiAvg = kpiSrc ? roundScore(mean([...kpiSrc.values()].map((a) => kpiAvgOf([a.sum / a.n])!))) : null;
     const sm = empPer360.get(e.id);
-    const s360 = sm ? mean([...sm.values()]) : null;
+    const s360 = sm ? roundScore(mean([...sm.values()])) : null;
     const axisIncomplete = has360 && ((kpiAvg != null) !== (s360 != null));
     const player = axisIncomplete ? null : playerClassOf(kpiAvg, has360 ? s360 : null);
-    const final = finalScoreOf(kpiAvg, s360, has360, 0);
+    // Skor Akhir "semua kuartal" (keputusan HRD 2026-09-29) = rata-rata Skor Akhir PER KUARTAL,
+    // tiap kuartal = rumus resmi − punishment kuartal itu, atau angka TERSIMPAN bila laporannya final.
+    // Kuartal "belum terbaca" dilewati (kecuali SEMUA kuartalnya belum terbaca → pakai semuanya).
+    const quarterFinals: number[] = [];
+    const pids = new Set([...(kmAll?.keys() ?? []), ...(sm?.keys() ?? [])]);
+    for (const pid of pids) {
+      if (!kpiUnread && unreadEmpPeriod.has(`${e.id}|${pid}`)) continue;
+      const p = periodMeta.get(pid); if (!p) continue;
+      const qa = kmAll?.get(pid);
+      const kpiQ = qa ? kpiAvgOf([qa.sum / qa.n]) : null;
+      const key = `${e.id}|${pid}`;
+      const fq = displayedFinalOf(finalScoreOf(kpiQ, sm?.get(pid) ?? null, p.has_360, penOf.get(key) ?? 0), repOf.get(key));
+      if (fq != null) quarterFinals.push(fq);
+    }
+    const final = quarterFinals.length ? roundScore(mean(quarterFinals)) : null;
     return { id: e.id, name: e.name, nickname: e.nickname, dept: e.dept, kpiAvg, s360, final, player, axisIncomplete, isActive: true, kpiUnread, trend: 'empty' as const, kpiMonths: [] };
   })
     .filter((r) => r.kpiAvg != null || r.s360 != null)

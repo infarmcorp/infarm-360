@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { trendOf, type Trend } from '@/lib/trend';
 import { fetchAllByIds } from '@/lib/supabase/paginate';
+import { kpiAvgOf } from '@/lib/scoring';
 
 /**
  * Metrik tim/pegawai per periode untuk Laporan Kinerja Tim & Monitor Kinerja.
@@ -36,8 +37,8 @@ export async function scoreMaps(periodId: string, ids: string[]): Promise<ScoreM
     for (const [id, m] of perEmp) {
       const vals = yms.map((ym) => (m.has(ym) ? m.get(ym)! : null));
       monthlyBy.set(id, vals);
-      const present = vals.filter((v): v is number => v != null);
-      if (present.length) kpiBy.set(id, present.reduce((a, b) => a + b, 0) / present.length);
+      const kpiAvg = kpiAvgOf(vals); // definisi tunggal rerata KPI (lib/scoring)
+      if (kpiAvg != null) kpiBy.set(id, kpiAvg);
     }
   }
   const rs = await fetchAllByIds<{ employee_id: string; score: number | null }>(ids, (chunk, from, to) =>

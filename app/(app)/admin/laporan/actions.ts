@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
 import { logHrdAction, logAuditAsService, type AuditEntry } from '@/lib/audit/log';
-import { finalScoreOf } from '@/lib/scoring';
+import { finalScoreOf, kpiAvgOf, hasScoreDrift } from '@/lib/scoring';
 
 /**
  * Review Hasil Akhir: hitung Skor Akhir kalibrasi & tulis final_reports.
@@ -84,15 +84,15 @@ async function computeFinal(
   const { data: kpi } = yms.length
     ? await supabase.from('kpi_scores').select('score').eq('employee_id', employeeId).in('ym', yms)
     : { data: [] };
-  const kpiAvg = kpi && kpi.length ? kpi.reduce((a, b) => a + b.score, 0) / kpi.length : null;
+  const kpiAvg = kpiAvgOf((kpi ?? []).map((k) => Number(k.score)));
   const { data: r } = await supabase.from('result_360').select('score')
     .eq('employee_id', employeeId).eq('period_id', periodId).maybeSingle();
   const s360 = r?.score ?? null;
   const { data: p } = await supabase.from('compliance_penalties').select('points')
     .eq('employee_id', employeeId).eq('period_id', periodId).maybeSingle();
   const penalty = p?.points ?? 0;
-  // allow360Only: subjek ber-360°-tanpa-KPI (mis. Direksi) → Skor Akhir dihitung dari 360° saja.
-  return { kpiAvg, s360, penalty, final: finalScoreOf(kpiAvg, s360, has360, penalty, true) };
+  // Rumus resmi tunggal (lib/scoring): tanpa KPI → 360° saja (mis. Direksi); dibulatkan 2 desimal.
+  return { kpiAvg, s360, penalty, final: finalScoreOf(kpiAvg, s360, has360, penalty) };
 }
 
 export type FinalizeResult = { ok: true; finalScore: number; finalized: boolean } | { ok: false; error: string };
@@ -113,7 +113,7 @@ export async function saveOrFinalizeReport(employeeId: string, finalize: boolean
   const { final } = await computeFinal(db, ap.id, ap.has_360, employeeId);
   if (final == null) {
     // Tolak hanya bila KPI DAN 360° dua-duanya kosong (tak ada dasar skor). Subjek ber-360°-
-    // tanpa-KPI (mis. Direksi) TETAP boleh: Skor Akhir dari 360° (lihat computeFinal allow360Only).
+    // tanpa-KPI (mis. Direksi) TETAP boleh: Skor Akhir dari 360° (rumus resmi tunggal lib/scoring).
     return { ok: false, error: 'Skor Akhir belum bisa dihitung (KPI & Skor 360° pegawai keduanya masih kosong)' };
   }
 
@@ -271,7 +271,7 @@ export type ResyncResult =
  * ke Skor Akhir terkini. Ini menyederhanakan alur lama "Kembalikan ke Draf → Finalisasi ulang" jadi
  * satu klik; ringkasan naratif TIDAK tersentuh (drift murni perubahan angka, bukan narasi).
  *
- * Ambang drift = 0.05 (selaras badge "berubah" di tabel). HRD-penuh (Mode Admin) SAJA — sama seperti
+ * Deteksi drift = hasScoreDrift (beda ≥ 0.01, selaras badge "berubah" di tabel). HRD-penuh (Mode Admin) SAJA — sama seperti
  * finalisasi massal. Idealnya dijalankan SETELAH "Hitung Ulang Skor 360°" agar result_360 mutakhir.
  */
 export async function resyncDriftedFinals(): Promise<ResyncResult> {
@@ -296,7 +296,7 @@ export async function resyncDriftedFinals(): Promise<ResyncResult> {
     const { final } = await computeFinal(supabase, ap.id, ap.has_360, r.employee_id);
     if (final == null) { skipped++; continue; }                       // tak bisa dihitung → lewati
     const stored = r.final_score;
-    if (stored != null && Math.abs(final - stored) < 0.05) continue;   // tak berubah → lewati diam
+    if (stored != null && !hasScoreDrift(final, stored)) continue;     // tak berubah → lewati diam
     const { error } = await supabase.from('final_reports')
       .update({ final_score: final, finalized_by: user.id }).eq('id', r.id); // tetap 'finalized'
     if (error) { skipped++; continue; }

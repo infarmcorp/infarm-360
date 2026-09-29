@@ -347,6 +347,13 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
 - **Skor Akhir** = blend KPI+360 **dikurangi** punishment kepatuhan per kuartal (min 0). Rumus
   murni terkunci di `lib/scoring.ts` & `lib/score360.ts` (lihat Pengujian); kalau mengubah,
   sinkronkan semua tempat + perbarui tesnya.
+  > **SATU rumus untuk SEMUA halaman (2026-09-29, keputusan HRD):** `finalScoreOf` (tanpa KPI → 360°
+  > saja, mis. Direksi; dibulatkan 2 desimal = `numeric(5,2)`), rerata KPI via `kpiAvgOf` (presisi
+  > penuh — bulatkan hanya di akhir), klasifikasi atas nilai TERBULAT (`roundScore`). Angka yang
+  > DITAMPILKAN = `displayedFinalOf`: laporan **final** → `final_reports.final_score` tersimpan (yang
+  > dilihat pegawai), selain itu angka hidup. Hanya Review Hasil Akhir menampilkan selisihnya
+  > (`hasScoreDrift`, ≥0.01). Dashboard selalu memotong punishment; mode "semua kuartal" = rata-rata
+  > Skor Akhir PER KUARTAL. **Jangan** hitung Skor Akhir/rerata KPI manual di halaman — pakai helper ini.
 - **Skor 360° resmi** (`result_360.score`) = `score_raw` (rumus `weightedScore360`) **dikurangi potongan
   keterlambatan menilai** (flat −3 bila ≥1 kewajiban Wajib "belum selesai saat deadline" — mencakup
   terkirim-telat MAUPUN tak pernah dikirim sama sekali, 2026-09-29; min 0; migrasi 0036, rumus
@@ -379,8 +386,8 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
 
 - **Jalankan:** `npm test` (sekali) atau `npm run test:watch` (mode pantau).
 - **Cakupan (99 tes):**
-  - `tests/scoring.test.ts` → `lib/scoring.ts`: `finalScoreOf` (blend 50/50, KPI-only, s360
-    null, punishment, floor 0), `playerClassOf` (KPI×360° ambang 80 → A / B-Culture / B-KPI / C,
+  - `tests/scoring.test.ts` → `lib/scoring.ts`: `finalScoreOf` (blend 50/50, KPI-only, 360°-only,
+    punishment, floor 0, pembulatan 2 desimal), `roundScore`/`kpiAvgOf`/`displayedFinalOf`, `playerClassOf` (KPI×360° ambang 80 → A / B-Culture / B-KPI / C,
     null bila keduanya kosong, nilai hilang <80; **tanpa D**), `kpiBandOf`/`s360BandOf`, `talentBoxOf` (9 kotak).
   - `tests/score360.test.ts` → `lib/score360.ts`: `weightedScore360` **4class** (semua kelas,
     normalisasi bobot, **kelas Bawahan**, **Self dikecualikan**) & **2class** (Internal = rerata

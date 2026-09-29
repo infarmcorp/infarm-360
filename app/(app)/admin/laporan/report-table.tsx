@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { ReportStatus } from '@/lib/database.types';
+import { hasScoreDrift } from '@/lib/scoring';
 import { usePager, Pager, MultiCheckFilter, CheckboxFilter } from '@/components/table-controls';
 
 export type ReportRow = {
@@ -24,7 +25,7 @@ export type ReportRow = {
 const isRatedComplete = (r: ReportRow) => r.ratedTotal > 0 && r.ratedDone >= r.ratedTotal;
 
 /** Skor tersimpan (Final) berbeda dari skor live → "berubah → N", perlu finalisasi ulang. */
-const hasDrift = (r: ReportRow) => r.status === 'finalized' && r.final != null && r.storedFinal != null && Math.abs(r.final - r.storedFinal) >= 0.05;
+const hasDrift = (r: ReportRow) => r.status === 'finalized' && hasScoreDrift(r.final, r.storedFinal);
 /** "Selesai" (tak perlu tindakan) = sudah Final, skor tak berubah, & 360° tak perlu dihitung ulang. */
 const isDone = (r: ReportRow) => r.status === 'finalized' && !r.needsRecompute && !hasDrift(r);
 
@@ -170,7 +171,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                     // Bila skor LIVE berbeda (KPI/360/punishment berubah sejak final) → badge "berubah".
                     if (r.status === 'finalized') {
                       const stored = r.storedFinal;
-                      const drift = r.final != null && stored != null && Math.abs(r.final - stored) >= 0.05;
+                      const drift = hasScoreDrift(r.final, stored);
                       return (
                         <div className="flex flex-col items-center gap-0.5">
                           <span>{stored != null ? stored.toFixed(2) : '—'}</span>

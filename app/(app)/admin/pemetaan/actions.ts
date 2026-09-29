@@ -321,14 +321,15 @@ export async function reviewCorrection(
       if (!req.new_relation) return { ok: false, error: 'Permohonan tanpa hubungan kerja — tak dapat disetujui' };
       // Sudah ada mapping (mis. HRD menambah manual sebelum menyetujui, atau baris Ad-Hoc lama
       // yang dinonaktifkan) → aktifkan & selaraskan.
-      const { data: existing } = await supabase.from('mappings').select('id')
+      const { data: existing } = await supabase.from('mappings').select('id, mandatory, is_adhoc, is_active')
         .eq('period_id', req.period_id).eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).maybeSingle();
-      // WAJIB + BUKAN ad-hoc: begitu HRD menyetujui, penilaian ini setara pemetaan yang
-      // ditetapkan HRD sendiri (kebijakan sama dengan createMapping) — ia tampil di Kelola
-      // Pemetaan, dihitung di Progress 360 & kepatuhan, dan hanya HRD yang boleh membatalkannya
-      // (pegawai lewat "Ajukan Hapus", bukan tombol hapus sendiri). Bedakan dari Ad-Hoc mandiri
-      // yang tetap opsional & rahasia.
-      const fields = { relation: req.new_relation, mandatory: true, is_adhoc: false, is_active: true };
+      // OPSIONAL + BUKAN ad-hoc (kebijakan 2026-09-29): penilaian atas inisiatif pegawai yang
+      // disetujui HRD tampil di Kelola Pemetaan & Progress 360, tapi TIDAK ditagih kepatuhan/
+      // potongan keterlambatan dan boleh memakai N/A. Pengecualian: bila HRD sudah lebih dulu
+      // menugaskan pasangan ini sebagai Wajib (baris aktif non-ad-hoc), sifat Wajib-nya dipertahankan
+      // — persetujuan tak boleh menurunkan penugasan HRD.
+      const keepMandatory = !!(existing?.is_active && !existing.is_adhoc && existing.mandatory);
+      const fields = { relation: req.new_relation, mandatory: keepMandatory, is_adhoc: false, is_active: true };
       const res = existing
         ? await supabase.from('mappings').update(fields).eq('id', existing.id)
         : await supabase.from('mappings').insert({

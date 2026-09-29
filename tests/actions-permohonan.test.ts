@@ -454,12 +454,11 @@ describe('reviewCorrection — jenis "add" (penambahan penilaian)', () => {
   });
 
   /**
-   * INVARIANT (kebijakan 2026-08-21): permohonan yang DISETUJUI jadi pemetaan setara penugasan
-   * HRD → `mandatory: true` & `is_adhoc: false`. Konsekuensinya berantai: baris itu tampil di
-   * Kelola Pemetaan, ditagih Progress 360 & kepatuhan, dan pegawai hanya bisa melepasnya lewat
-   * "Ajukan Hapus" (bukan tombol hapus Ad-Hoc). Jangan longgarkan tanpa menyesuaikan semuanya.
+   * INVARIANT (kebijakan 2026-09-29): permohonan yang DISETUJUI jadi pemetaan OPSIONAL & bukan
+   * ad-hoc → tampil di Kelola Pemetaan & Progress 360, tapi tak ditagih kepatuhan/potongan
+   * keterlambatan. Pengecualian: pasangan yang sudah ditugaskan HRD sebagai Wajib tetap Wajib.
    */
-  it('setuju & belum ada mapping → INSERT mapping WAJIB & BUKAN ad-hoc', async () => {
+  it('setuju & belum ada mapping → INSERT mapping OPSIONAL & BUKAN ad-hoc', async () => {
     const c = use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: HRD }],
       relation_correction_requests: [{ data: REQ }, { error: null }],
@@ -469,24 +468,36 @@ describe('reviewCorrection — jenis "add" (penambahan penilaian)', () => {
     expect(r.ok).toBe(true);
     expect(insertOf(c.calls, 'mappings')).toEqual({
       period_id: 'p1', assessor_id: UID, target_id: TARGET,
-      relation: 'Cross', mandatory: true, is_adhoc: false, is_active: true,
+      relation: 'Cross', mandatory: false, is_adhoc: false, is_active: true,
     });
   });
 
-  it('setuju & mapping sudah ada → UPDATE jadi wajib/non-ad-hoc & aktif, tanpa insert', async () => {
+  it('setuju & ada baris Ad-Hoc lama → UPDATE jadi opsional/non-ad-hoc & aktif, tanpa insert', async () => {
     const c = use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: HRD }],
       relation_correction_requests: [{ data: REQ }, { error: null }],
-      mappings: [{ data: { id: MAP } }, { error: null }],
+      mappings: [{ data: { id: MAP, mandatory: false, is_adhoc: true, is_active: false } }, { error: null }],
     } }));
     const r = await reviewCorrection('r1', 'approved');
     expect(r.ok).toBe(true);
     expect(insertOf(c.calls, 'mappings')).toBeUndefined();
     const upd = updateOf(c.calls, 'mappings')[0];
-    // Baris Ad-Hoc lama yang dipakai ulang WAJIB naik status — kalau tidak, penilaian
+    // Baris Ad-Hoc lama yang dipakai ulang harus lepas dari is_adhoc — kalau tidak, penilaian
     // hasil persetujuan HRD tetap tersembunyi dari Kelola Pemetaan & Progress.
-    expect(upd?.payload).toEqual({ relation: 'Cross', mandatory: true, is_adhoc: false, is_active: true });
+    expect(upd?.payload).toEqual({ relation: 'Cross', mandatory: false, is_adhoc: false, is_active: true });
     expect(upd?.filters).toEqual([['eq', 'id', MAP]]);
+  });
+
+  it('setuju & pasangan sudah ditugaskan HRD sebagai Wajib → tetap Wajib', async () => {
+    const c = use(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: HRD }],
+      relation_correction_requests: [{ data: REQ }, { error: null }],
+      mappings: [{ data: { id: MAP, mandatory: true, is_adhoc: false, is_active: true } }, { error: null }],
+    } }));
+    const r = await reviewCorrection('r1', 'approved');
+    expect(r.ok).toBe(true);
+    expect(updateOf(c.calls, 'mappings')[0]?.payload)
+      .toEqual({ relation: 'Cross', mandatory: true, is_adhoc: false, is_active: true });
   });
 
   it('gagal membuat pemetaan → permohonan TIDAK ditandai selesai', async () => {

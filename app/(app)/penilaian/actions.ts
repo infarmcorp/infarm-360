@@ -69,24 +69,48 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
     return { ok: false, error: 'Penilaian ini sudah terkirim — simpan perubahan dengan "Kirim Ulang", bukan Simpan Draf' };
   }
 
+  // Indikator AKTIF & pertanyaan esai periode ini = daftar resmi yang harus dinilai. Audit
+  // 2026-09-30: sebelumnya server hanya memeriksa indikator yang IKUT dikirim → kiriman berisi
+  // sebagian indikator (atau indikator periode lain) tetap diterima & dihitung "selesai".
+  const { data: aspectRows } = await supabase.from('culture_aspects').select('id').eq('period_id', ap.id);
+  const aspectIds = (aspectRows ?? []).map((a) => a.id);
+  const { data: indRows } = aspectIds.length
+    ? await supabase.from('indicators').select('id').in('aspect_id', aspectIds).eq('is_active', true)
+    : { data: [] as { id: string }[] };
+  const activeInd = new Set((indRows ?? []).map((i) => i.id));
+  const { data: quals } = await supabase.from('qualitative_questions').select('id').eq('period_id', ap.id);
+  const periodQ = new Set((quals ?? []).map((q) => q.id));
+
+  if (activeInd.size === 0) return { ok: false, error: 'Belum ada indikator aktif pada periode ini' };
+  if (scores.some((x) => !activeInd.has(x.indicatorId))) {
+    return { ok: false, error: 'Ada indikator yang tidak termasuk periode ini — muat ulang halaman lalu coba lagi' };
+  }
+  if (answers.some((a) => !periodQ.has(a.questionId))) {
+    return { ok: false, error: 'Ada pertanyaan esai yang tidak termasuk periode ini — muat ulang halaman lalu coba lagi' };
+  }
   const sanitized = scores;
 
-  // Saat KIRIM: SEMUA indikator wajib rating + evidence (min. 20 karakter, BR-06).
+  // Saat KIRIM: SEMUA indikator aktif wajib rating + evidence (min. 20 karakter, BR-06).
   if (status === 'submitted') {
-    if (sanitized.some((s) => s.rating === null)) {
+    const byInd = new Map(sanitized.map((x) => [x.indicatorId, x]));
+    if ([...activeInd].some((id) => byInd.get(id)?.rating == null)) {
       return { ok: false, error: 'Lengkapi seluruh rating indikator sebelum mengirim' };
     }
-    if (sanitized.some((s) => (s.comment ?? '').trim().length < 20)) {
+    if ([...activeInd].some((id) => (byInd.get(id)?.comment ?? '').trim().length < 20)) {
       return { ok: false, error: 'Setiap indikator wajib komentar/bukti perilaku (evidence) minimal 20 karakter' };
     }
     // Semua pertanyaan kualitatif (esai) periode ini wajib terisi.
-    const { data: quals } = await supabase
-      .from('qualitative_questions').select('id').eq('period_id', ap.id);
     const answeredQ = new Set(answers.filter((a) => (a.answer ?? '').trim().length > 0).map((a) => a.questionId));
-    if ((quals ?? []).some((q) => !answeredQ.has(q.id))) {
+    if ([...periodQ].some((id) => !answeredQ.has(id))) {
       return { ok: false, error: 'Semua pertanyaan kualitatif (esai) wajib diisi sebelum mengirim' };
     }
   }
+
+  // Kiriman PERTAMA ditulis dulu sebagai draf, lalu dinaikkan ke 'submitted' SETELAH skor & esai
+  // tersimpan — DB (trigger 0045) memeriksa kelengkapan tepat saat status berubah jadi terkirim.
+  // Penilaian yang sudah terkirim tetap 'submitted' (Kirim Ulang).
+  const alreadySubmitted = exExisting?.status === 'submitted';
+  const headerStatus = alreadySubmitted ? 'submitted' : 'draft';
 
   // Header assessment (upsert → dapat id).
   const { data: header, error: hErr } = await supabase
@@ -96,10 +120,10 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
         period_id: ap.id,
         assessor_id: auth.user.id,
         target_id: targetId,
-        status,
+        status: headerStatus,
         // Hanya kosmetik: trigger 0036 menimpa submitted_at & mengisi first_submitted_at dgn
         // waktu SERVER DB (nilai klien diabaikan) — dasar status On Time / Late.
-        submitted_at: status === 'submitted' ? new Date().toISOString() : null,
+        submitted_at: headerStatus === 'submitted' ? new Date().toISOString() : null,
       },
       { onConflict: 'period_id,assessor_id,target_id' },
     )
@@ -134,6 +158,13 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
       { onConflict: 'assessment_id,question_id' },
     );
     if (aErr) return { ok: false, error: 'Gagal menyimpan jawaban esai: ' + aErr.message };
+  }
+
+  if (status === 'submitted' && !alreadySubmitted) {
+    const { error: uErr } = await supabase.from('assessments')
+      .update({ status: 'submitted', submitted_at: new Date().toISOString() })
+      .eq('id', header.id);
+    if (uErr) return { ok: false, error: 'Penilaian tersimpan sebagai draf, tapi gagal dikirim: ' + uErr.message };
   }
 
   // Kirim SESUDAH deadline → potongan keterlambatan penilai langsung masuk ke Skor 360°

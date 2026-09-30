@@ -178,20 +178,19 @@ describe('saveOrFinalizeReport — jalur GRANT "Review Hasil Akhir" (Tahap 2)', 
     if (!r.ok) expect(r.error).toMatch(/di luar lingkup/i);
   });
 
-  it("lingkup 'self' — SUKSES bila target = diri sendiri (via service_role)", async () => {
+  // Konflik kepentingan (audit 2026-09-30): walau lingkupnya mencakup diri sendiri, pemegang akses
+  // tak boleh meringkas/merilis/memfinalisasi laporannya SENDIRI.
+  it("TOLAK mengubah/memfinalisasi laporan SENDIRI walau lingkup 'self' + izin Finalisasi", async () => {
     use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: GRANT_HOLDER }],
       page_grants: [{ data: [{ section: 'review', scope: 'self', scopes: ['self'], can_edit: true, can_finalize: true }] }],
     } }));
-    useAdmin(makeClient({ user: { id: UID }, tables: {
-      employees: [{ data: { dept: 'Marketing' } }, { data: { name: 'Ulfa' } }], // dept target (resolver) lalu nama (akhir)
-      periods: [ACTIVE],
-      ...computeTablesNonNull(),
-      final_reports: [{ data: null }, { error: null }],
-    } }));
+    const admin = makeClient({ user: { id: UID } });
+    useAdmin(admin);
     const r = await saveOrFinalizeReport(UID, true); // employeeId === user.id
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.finalized).toBe(true);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/laporan Anda sendiri/i);
+    expect(admin.calls.filter((x) => x.op !== 'select')).toHaveLength(0);
   });
 
   it('finalisasi SUKSES bila boleh-finalisasi + target DALAM lingkup (tulis via service_role)', async () => {

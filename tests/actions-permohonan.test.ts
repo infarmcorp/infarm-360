@@ -279,7 +279,8 @@ describe('reviewCorrection — otorisasi HRD & alasan penolakan', () => {
         id: 'r1', kind: 'relation', mapping_id: MAP, assessor_id: UID, target_id: TARGET,
         period_id: 'p1', new_relation: 'Atasan', status: 'pending',
       } }, { error: null }],
-      mappings: [{ error: null }],
+      periods: [{ data: { status: 'active' } }],
+      mappings: [{ data: { id: MAP, relation: 'Peer', is_active: true, mandatory: true, is_adhoc: false } }, { error: null }],
     } }));
     const r = await reviewCorrection('r1', 'approved');
     expect(r.ok).toBe(true);
@@ -320,19 +321,21 @@ describe('reviewCorrection — jenis "relation" (koreksi garis hubungan)', () =>
     period_id: 'p1', new_relation: 'Bawahan', status: 'pending',
   };
 
-  it('setuju → update relasi via pasangan penilai→target bila mapping_id kosong', async () => {
+  it('setuju → update relasi pemetaan PASANGAN di permohonan (bukan mapping_id kiriman)', async () => {
     const c = use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: HRD }],
       relation_correction_requests: [{ data: REQ }, { error: null }],
-      mappings: [{ error: null }],
+      periods: [{ data: { status: 'active' } }],
+      mappings: [{ data: { id: MAP, relation: 'Peer', is_active: true, mandatory: true, is_adhoc: false } }, { error: null }],
     } }));
     const r = await reviewCorrection('r1', 'approved');
     expect(r.ok).toBe(true);
     const upd = updateOf(c.calls, 'mappings')[0];
     expect(upd?.payload).toEqual({ relation: 'Bawahan' });
-    expect(upd?.filters).toEqual([
-      ['eq', 'assessor_id', UID], ['eq', 'target_id', TARGET], ['eq', 'period_id', 'p1'],
-    ]);
+    expect(upd?.filters).toEqual([['eq', 'id', MAP]]);
+    // Pemetaan dicari dari pasangan penilai→target di permohonan.
+    const sel = c.calls.find((x) => x.table === 'mappings' && x.op === 'select');
+    expect(sel?.filters).toEqual([['eq', 'period_id', 'p1'], ['eq', 'assessor_id', UID], ['eq', 'target_id', TARGET]]);
   });
 
   it('TOLAK (rejected) → mapping tidak disentuh, alasan penolakan tersimpan', async () => {
@@ -352,7 +355,8 @@ describe('reviewCorrection — jenis "relation" (koreksi garis hubungan)', () =>
     const c = use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: HRD }],
       relation_correction_requests: [{ data: REQ }, { error: null }],
-      mappings: [{ error: null }],
+      periods: [{ data: { status: 'active' } }],
+      mappings: [{ data: { id: MAP, relation: 'Peer', is_active: true, mandatory: true, is_adhoc: false } }, { error: null }],
     } }));
     await reviewCorrection('r1', 'approved');
     expect(updateOf(c.calls, 'relation_correction_requests')[0]?.payload).toMatchObject({
@@ -364,7 +368,8 @@ describe('reviewCorrection — jenis "relation" (koreksi garis hubungan)', () =>
     const c = use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: HRD }],
       relation_correction_requests: [{ data: REQ }],
-      mappings: [{ error: { message: 'RLS' } }],
+      periods: [{ data: { status: 'active' } }],
+      mappings: [{ data: { id: MAP, relation: 'Peer', is_active: true, mandatory: true, is_adhoc: false } }, { error: { message: 'RLS' } }],
     } }));
     const r = await reviewCorrection('r1', 'approved');
     expect(r.ok).toBe(false);
@@ -383,21 +388,24 @@ describe('reviewCorrection — jenis "remove" (penghapusan pemetaan)', () => {
     const c = use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: HRD }],
       relation_correction_requests: [{ data: REQ }],
+      periods: [{ data: { status: 'active' } }],
+      mappings: [{ data: { id: MAP, relation: 'Peer', is_active: true, mandatory: true, is_adhoc: false } }],
     } }));
     useAdmin(makeClient({ tables: { assessments: [{ data: { id: 'a1', status: 'submitted' } }] } }));
     const r = await reviewCorrection('r1', 'approved');
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toMatch(/sudah dikirim/i);
     // Pemetaan tetap aktif & permohonan tetap pending (HRD boleh menolak / hapus manual).
-    expect(c.calls.filter((x) => x.table === 'mappings')).toHaveLength(0);
+    expect(updateOf(c.calls, 'mappings')).toHaveLength(0);
     expect(updateOf(c.calls, 'relation_correction_requests')).toHaveLength(0);
   });
 
-  it('setuju → nonaktifkan pemetaan (is_active:false) via mapping_id, DRAF penilaian dibuang', async () => {
+  it('setuju → nonaktifkan pemetaan (is_active:false) pasangan di permohonan, DRAF penilaian dibuang', async () => {
     const c = use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: HRD }],
       relation_correction_requests: [{ data: REQ }, { error: null }],
-      mappings: [{ error: null }],
+      periods: [{ data: { status: 'active' } }],
+      mappings: [{ data: { id: MAP, relation: 'Peer', is_active: true, mandatory: true, is_adhoc: false } }, { error: null }],
     } }));
     const admin = useAdmin(makeClient({ tables: {
       assessments: [{ data: { id: 'a1', status: 'draft' } }, { error: null }],
@@ -415,7 +423,8 @@ describe('reviewCorrection — jenis "remove" (penghapusan pemetaan)', () => {
     use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: HRD }],
       relation_correction_requests: [{ data: REQ }, { error: null }],
-      mappings: [{ error: null }],
+      periods: [{ data: { status: 'active' } }],
+      mappings: [{ data: { id: MAP, relation: 'Peer', is_active: true, mandatory: true, is_adhoc: false } }, { error: null }],
     } }));
     const admin = useAdmin(makeClient({ tables: { assessments: [{ data: null }] } }));
     const r = await reviewCorrection('r1', 'approved');
@@ -446,6 +455,8 @@ describe('reviewCorrection — jenis "add" (penambahan penilaian)', () => {
     const c = use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: HRD }],
       relation_correction_requests: [{ data: { ...REQ, new_relation: null } }],
+      periods: [{ data: { status: 'active' } }],
+      mappings: [{ data: null }],
     } }));
     const r = await reviewCorrection('r1', 'approved');
     expect(r.ok).toBe(false);
@@ -460,8 +471,9 @@ describe('reviewCorrection — jenis "add" (penambahan penilaian)', () => {
    */
   it('setuju & belum ada mapping → INSERT mapping OPSIONAL & BUKAN ad-hoc', async () => {
     const c = use(makeClient({ user: { id: UID }, tables: {
-      employees: [{ data: HRD }],
+      employees: [{ data: HRD }, { data: { role: 'employee', is_external: false, is_active: true } }],
       relation_correction_requests: [{ data: REQ }, { error: null }],
+      periods: [{ data: { status: 'active' } }],
       mappings: [{ data: null }, { error: null }],
     } }));
     const r = await reviewCorrection('r1', 'approved');
@@ -474,8 +486,9 @@ describe('reviewCorrection — jenis "add" (penambahan penilaian)', () => {
 
   it('setuju & ada baris Ad-Hoc lama → UPDATE jadi opsional/non-ad-hoc & aktif, tanpa insert', async () => {
     const c = use(makeClient({ user: { id: UID }, tables: {
-      employees: [{ data: HRD }],
+      employees: [{ data: HRD }, { data: { role: 'employee', is_external: false, is_active: true } }],
       relation_correction_requests: [{ data: REQ }, { error: null }],
+      periods: [{ data: { status: 'active' } }],
       mappings: [{ data: { id: MAP, mandatory: false, is_adhoc: true, is_active: false } }, { error: null }],
     } }));
     const r = await reviewCorrection('r1', 'approved');
@@ -490,8 +503,9 @@ describe('reviewCorrection — jenis "add" (penambahan penilaian)', () => {
 
   it('setuju & pasangan sudah ditugaskan HRD sebagai Wajib → tetap Wajib', async () => {
     const c = use(makeClient({ user: { id: UID }, tables: {
-      employees: [{ data: HRD }],
+      employees: [{ data: HRD }, { data: { role: 'employee', is_external: false, is_active: true } }],
       relation_correction_requests: [{ data: REQ }, { error: null }],
+      periods: [{ data: { status: 'active' } }],
       mappings: [{ data: { id: MAP, mandatory: true, is_adhoc: false, is_active: true } }, { error: null }],
     } }));
     const r = await reviewCorrection('r1', 'approved');
@@ -502,8 +516,9 @@ describe('reviewCorrection — jenis "add" (penambahan penilaian)', () => {
 
   it('gagal membuat pemetaan → permohonan TIDAK ditandai selesai', async () => {
     const c = use(makeClient({ user: { id: UID }, tables: {
-      employees: [{ data: HRD }],
+      employees: [{ data: HRD }, { data: { role: 'employee', is_external: false, is_active: true } }],
       relation_correction_requests: [{ data: REQ }],
+      periods: [{ data: { status: 'active' } }],
       mappings: [{ data: null }, { error: { message: 'RLS' } }],
     } }));
     const r = await reviewCorrection('r1', 'approved');
@@ -520,5 +535,68 @@ describe('reviewCorrection — jenis "add" (penambahan penilaian)', () => {
     const r = await reviewCorrection('r1', 'rejected', REASON);
     expect(r.ok).toBe(true);
     expect(c.calls.filter((x) => x.table === 'mappings')).toHaveLength(0);
+  });
+});
+
+describe('reviewCorrection — validasi ulang saat disetujui (audit 2026-09-30)', () => {
+  it('TOLAK setuju bila periode permohonan sudah tidak aktif', async () => {
+    const c = use(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: HRD }],
+      relation_correction_requests: [{ data: {
+        id: 'r1', kind: 'relation', mapping_id: MAP, assessor_id: UID, target_id: TARGET,
+        period_id: 'p0', new_relation: 'Atasan', status: 'pending',
+      } }],
+      periods: [{ data: { status: 'ended' } }],
+    } }));
+    const r = await reviewCorrection('r1', 'approved');
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/tidak aktif/i);
+    expect(updateOf(c.calls, 'mappings')).toHaveLength(0);
+  });
+
+  it('TOLAK permohonan relasi Self (sisipan lewat API)', async () => {
+    const c = use(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: HRD }],
+      relation_correction_requests: [{ data: {
+        id: 'r1', kind: 'relation', mapping_id: MAP, assessor_id: UID, target_id: TARGET,
+        period_id: 'p1', new_relation: 'Self', status: 'pending',
+      } }],
+      periods: [{ data: { status: 'active' } }],
+    } }));
+    const r = await reviewCorrection('r1', 'approved');
+    expect(r.ok).toBe(false);
+    expect(updateOf(c.calls, 'mappings')).toHaveLength(0);
+  });
+
+  it('TOLAK koreksi relasi bila pasangan di permohonan tak punya pemetaan aktif', async () => {
+    const c = use(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: HRD }],
+      relation_correction_requests: [{ data: {
+        id: 'r1', kind: 'relation', mapping_id: 'pemetaan-orang-lain', assessor_id: UID, target_id: TARGET,
+        period_id: 'p1', new_relation: 'Atasan', status: 'pending',
+      } }],
+      periods: [{ data: { status: 'active' } }],
+      mappings: [{ data: null }],
+    } }));
+    const r = await reviewCorrection('r1', 'approved');
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/tidak aktif/i);
+    expect(updateOf(c.calls, 'mappings')).toHaveLength(0);
+  });
+
+  it('TOLAK penambahan penilaian atas Direksi (sisipan lewat API)', async () => {
+    const c = use(makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: HRD }, { data: { role: 'direksi', is_external: false, is_active: true } }],
+      relation_correction_requests: [{ data: {
+        id: 'r1', kind: 'add', mapping_id: null, assessor_id: UID, target_id: TARGET,
+        period_id: 'p1', new_relation: 'Cross', status: 'pending',
+      } }],
+      periods: [{ data: { status: 'active' } }],
+      mappings: [{ data: null }],
+    } }));
+    const r = await reviewCorrection('r1', 'approved');
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/Direksi/i);
+    expect(insertOf(c.calls, 'mappings')).toBeUndefined();
   });
 });

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { isDireksiReviewSubject } from '@/lib/report';
 import { logAuditAsService } from '@/lib/audit/log';
+import { canSection } from '@/lib/auth/roles';
 
 /**
  * ACC Laporan Kinerja Tim. Tiga jalur berdasarkan peran/lingkup pelaku:
@@ -39,7 +40,7 @@ export async function setSpvAcc(employeeId: string, acc: boolean): Promise<AccRe
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_coordinator, name').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_coordinator, is_hrd_admin, hrd_sections, name').eq('id', user.id).maybeSingle();
   const actor = { id: user.id, name: me?.name ?? null };
 
   const { data: ap } = await supabase
@@ -117,7 +118,9 @@ export async function setSpvAcc(employeeId: string, acc: boolean): Promise<AccRe
   if (!data || data.length === 0) {
     return { ok: false, error: 'Laporan belum tersedia (menunggu HRD membuat draf) atau di luar tim Anda' };
   }
-  await logAcc(actor, 'SPV', employeeId, acc);
+  // ACC SPV biasa dicatat oleh trigger DB (final_reports_guard_non_hrd, migrasi 0045) — mencakup juga
+  // ACC yang dikirim langsung lewat API. Trigger melewati HRD ber-akses Review & Finalisasi, jadi HRD itu (Mode-SPV) dicatat di sini.
+  if (canSection(me, 'laporan')) await logAcc(actor, 'SPV', employeeId, acc);
 
   revalidatePath('/laporan-tim');
   revalidatePath('/admin/laporan');

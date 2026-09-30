@@ -100,7 +100,12 @@ export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
   // Ditaruh SEBELUM percabangan koordinator agar berlaku untuk semua jalur (SPV/HRD/Koordinator).
   // Nonaktif tanpa `left_on` (deaktivasi lama) ditolak untuk semua bulan — tak ada acuan batas.
   const { data: empStatus } = await createAdminClient()
-    .from('employees').select('id, name, is_active, left_on').in('id', empIds);
+    .from('employees').select('id, name, is_active, left_on, is_external').in('id', empIds);
+  // Penilai EKSTERNAL (vendor/freelance) tak punya KPI — hanya menjadi penilai 360°.
+  const external = (empStatus ?? []).filter((e) => e.is_external);
+  if (external.length > 0) {
+    return { ok: false, error: `Pegawai eksternal tidak memiliki KPI: ${external.map((e) => e.name).join(', ')}.` };
+  }
   const blocked = (empStatus ?? []).filter((e) => !e.is_active && (!e.left_on || ym > e.left_on.slice(0, 7)));
   if (blocked.length > 0) {
     return {

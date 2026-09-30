@@ -51,6 +51,9 @@ async function resolveReportWriteActor(
   const access = grantedAccess(grantRows, 'review');
   if (!access) return { ok: false, error: 'Hanya HRD atau pemegang akses Review & Finalisasi yang dapat mengubah laporan.' };
   if (!access.canEdit) return { ok: false, error: 'Akses Anda ke Review & Finalisasi bersifat hanya-lihat.' };
+  // Konflik kepentingan (audit 2026-09-30): pemegang akses tak boleh meringkas/merilis/memfinalisasi
+  // laporannya SENDIRI, walau lingkupnya mencakup dirinya (mis. lingkup 'divisinya' / 'self').
+  if (employeeId === user.id) return { ok: false, error: 'Anda tidak dapat mengubah atau memfinalisasi laporan Anda sendiri.' };
 
   // dept target dibaca via service_role (pemegang grant bukan is_hrd() → RLS memblokir baca lintas-pegawai).
   const admin = createAdminClient();

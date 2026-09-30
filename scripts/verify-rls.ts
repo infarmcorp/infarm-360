@@ -63,6 +63,8 @@ const FIX: Record<string, Fixture> = {
   OTH: { code: 'RLSTEST-OTH', email: 'rlstest.oth@infarm.test', name: 'RLS Test Oth', role: 'employee' },
   HRD: { code: 'RLSTEST-HRD', email: 'rlstest.hrd@infarm.test', name: 'RLS Test HRD', role: 'hrd' },
   DIR: { code: 'RLSTEST-DIR', email: 'rlstest.dir@infarm.test', name: 'RLS Test Dir', role: 'direksi' },
+  // HRD TERBATAS: izin HRD Admin tapi hanya bagian Ekspor (hrd_sections) — uji 0045.
+  HRL: { code: 'RLSTEST-HRL', email: 'rlstest.hrl@infarm.test', name: 'RLS Test HRD Terbatas', role: 'employee' },
 };
 const ALL_EMAILS = Object.values(FIX).map((f) => f.email);
 const id: Record<string, string> = {}; // key (SPV/EMP/...) → auth user id
@@ -104,6 +106,8 @@ async function cleanup() {
   const users = await listTestUserIds();
   const ids = users.map((u) => u.id);
   if (ids.length) {
+    // Log ACC yang dicatat trigger 0045 selama uji (append-only untuk pengguna; service_role boleh).
+    await admin.from('hrd_audit_log').delete().in('actor_id', ids);
     await admin.from('kpi_scores').delete().in('employee_id', ids);
     await admin.from('spv_team_members').delete().in('spv_id', ids);
     await admin.from('spv_team_members').delete().in('employee_id', ids);
@@ -125,6 +129,8 @@ async function setup() {
     id: id[key], emp_code: f.code, name: f.name, dept: 'RLSTEST', role: f.role, is_active: true,
   }));
   { const { error } = await admin.from('employees').insert(empRows); if (error) throw new Error('employees: ' + error.message); }
+  { const { error } = await admin.from('employees').update({ is_hrd_admin: true, hrd_sections: ['ekspor'] }).eq('id', id.HRL);
+    if (error) throw new Error('employees (HRL): ' + error.message); }
   // Tim: SPV→EMP, SP2→OTH.
   { const { error } = await admin.from('spv_team_members').insert([
       { spv_id: id.SPV, employee_id: id.EMP },
@@ -149,9 +155,17 @@ async function setup() {
   { const { error } = await admin.from('kpi_scores').insert({ employee_id: id.EMP, ym: YM_LOCKED, score: 80 });
     if (error) throw new Error('kpi_scores (locked): ' + error.message); }
   // Pemetaan OTH→EMP (aktif) — penilaian OTH sah; EMP→SP2 SENGAJA tanpa pemetaan (uji injeksi) [0041].
-  { const { error } = await admin.from('mappings').insert({
+  { const { data, error } = await admin.from('mappings').insert({
       period_id: aid.periodId, assessor_id: id.OTH, target_id: id.EMP, relation: 'Peer',
-    }); if (error) throw new Error('mappings: ' + error.message); }
+    }).select('id').single(); if (error) throw new Error('mappings: ' + error.message); aid.mapId = data.id; }
+  // Pemetaan OTH→SPV (belum dinilai) — uji kirim penilaian KOSONG [0045].
+  { const { error } = await admin.from('mappings').insert({
+      period_id: aid.periodId, assessor_id: id.OTH, target_id: id.SPV, relation: 'Cross',
+    }); if (error) throw new Error('mappings (OTH→SPV): ' + error.message); }
+  // Rencana suksesi DRAF (belum diajukan) — Direksi tak boleh meresponsnya [0045].
+  { const { data, error } = await admin.from('succession_plans').insert({
+      employee_id: id.EMP, period_id: aid.periodId, plan: 'RLS rencana', status: 'draft',
+    }).select('id').single(); if (error) throw new Error('succession_plans: ' + error.message); aid.planId = data.id; }
   // Laporan EMP (draft dulu; diubah ke in_review di tengah uji) — uji penjaga kolom SPV [0041].
   { const { data, error } = await admin.from('final_reports').insert({
       employee_id: id.EMP, period_id: aid.periodId, final_score: 80, status: 'draft',
@@ -342,6 +356,79 @@ async function main() {
       check('BACA komentar indikator (AIS) mentah DITOLAK [0042]', (await aisVisible(c)) === 0);
       check('BACA pemetaan (siapa menilai siapa) DITOLAK [0042]', (await mapVisible(c)) === 0);
       await c.auth.signOut();
+    }
+
+    console.log('\n0045 — sisa celah server:');
+    {
+      // HRD terbatas (hanya Ekspor): tak bisa menaikkan izin sendiri / menulis bagian lain.
+      const c = await loginAs(FIX.HRL.email);
+      { const { data, error } = await c.from('employees').update({ hrd_sections: null }).eq('id', id.HRL).select('id');
+        check('HRD terbatas MENGOSONGKAN batasan bagiannya sendiri DITOLAK [0045]', !!error || (data?.length ?? 0) === 0); }
+      { const { data, error } = await c.from('employees').update({ is_hrd_admin: true }).eq('id', id.EMP).select('id');
+        check('HRD terbatas MEMBERI izin HRD Admin ke orang lain DITOLAK [0045]', !!error || (data?.length ?? 0) === 0); }
+      { const { data, error } = await c.from('periods').update({ label: 'RLS Test 360' }).eq('id', aid.periodId).select('id');
+        check('HRD terbatas (tanpa bagian Periode) UBAH periode DITOLAK [0045]', !!error || (data?.length ?? 0) === 0); }
+      check('HRD terbatas tetap BACA penilaian (baca tak berubah — kontrol positif)', (await asmtVisible(c)) === 1);
+      await c.auth.signOut();
+    }
+    {
+      const c = await loginAs(FIX.HRD.email);
+      { const { data, error } = await c.from('periods').update({ label: 'RLS Test 360' }).eq('id', aid.periodId).select('id');
+        check('HRD penuh UBAH periode DIIZINKAN (kontrol positif)', !error && (data?.length ?? 0) === 1, error?.message ?? ''); }
+      { const { error } = await c.from('weight_schemes').insert({
+          period_id: aid.periodId, model: '2class', weights: { atasan: 40, internal: 50 }, is_active: false });
+        check('Bobot dengan total ≠ 100 DITOLAK database [0045]', !!error); }
+      await c.auth.signOut();
+    }
+    {
+      const c = await loginAs(FIX.OTH.email);
+      // Isi penilaian terkirim tak bisa "dikosongkan" (evidence < 20 karakter).
+      { const { error } = await c.from('assessment_indicator_scores').update({ comment: 'pendek' })
+          .eq('assessment_id', aid.asmtId).eq('indicator_id', aid.indId);
+        check('Penilai KOSONGKAN evidence penilaian terkirim DITOLAK [0045]', !!error); }
+      // Kirim penilaian KOSONG (tanpa rating/evidence/esai) lewat API.
+      { const { data: h, error: hErr } = await c.from('assessments').insert({
+          period_id: aid.periodId, assessor_id: id.OTH, target_id: id.SPV, status: 'draft' }).select('id').single();
+        check('Penilai BUAT draf untuk pasangan yang dipetakan DIIZINKAN (kontrol positif)', !hErr && !!h, hErr?.message ?? '');
+        if (h) {
+          const { data, error } = await c.from('assessments').update({ status: 'submitted' }).eq('id', h.id).select('id');
+          check('Penilai KIRIM penilaian tanpa isi DITOLAK [0045]', !!error || (data?.length ?? 0) === 0);
+        } }
+      // Form ditutup HRD → isi penilaian tak bisa diubah.
+      await admin.from('periods').update({ form_open: false }).eq('id', aid.periodId);
+      { const { data, error } = await c.from('assessment_indicator_scores').update({ rating: 5 })
+          .eq('assessment_id', aid.asmtId).eq('indicator_id', aid.indId).select('rating');
+        check('Penilai UBAH rating saat form DITUTUP DITOLAK [0045]', !!error || (data?.length ?? 0) === 0); }
+      { const { data, error } = await c.from('assessment_qual_answers').update({ answer: 'DIUBAH LEWAT API' })
+          .eq('assessment_id', aid.asmtId).eq('question_id', aid.qId).select('answer');
+        check('Penilai UBAH esai saat form DITUTUP DITOLAK [0045]', !!error || (data?.length ?? 0) === 0); }
+      await admin.from('periods').update({ form_open: true }).eq('id', aid.periodId);
+      await c.auth.signOut();
+    }
+    {
+      // Permohonan palsu: menunjuk pemetaan orang lain / langsung berstatus disetujui.
+      const c = await loginAs(FIX.EMP.email);
+      { const { error } = await c.from('relation_correction_requests').insert({
+          kind: 'relation', mapping_id: aid.mapId, period_id: aid.periodId, assessor_id: id.EMP, target_id: id.SP2,
+          old_relation: 'Peer', new_relation: 'Atasan', reason: 'uji RLS', status: 'pending' });
+        check('Permohonan dengan PEMETAAN ORANG LAIN DITOLAK [0045]', !!error); }
+      { const { error } = await c.from('relation_correction_requests').insert({
+          kind: 'add', mapping_id: null, period_id: aid.periodId, assessor_id: id.EMP, target_id: id.SP2,
+          old_relation: null, new_relation: 'Cross', reason: 'uji RLS', status: 'approved' });
+        check('Permohonan langsung berstatus DISETUJUI DITOLAK [0045]', !!error); }
+      await c.auth.signOut();
+    }
+    {
+      const c = await loginAs(FIX.DIR.email);
+      { const { data, error } = await c.from('succession_plans').update({ status: 'approved', direksi_id: id.DIR })
+          .eq('id', aid.planId).select('id');
+        check('Direksi merespons rencana suksesi yang masih DRAF DITOLAK [0045]', !!error || (data?.length ?? 0) === 0); }
+      await c.auth.signOut();
+    }
+    {
+      // ACC SPV (kontrol positif di atas) kini tercatat di Log Aktivitas oleh trigger.
+      const { data } = await admin.from('hrd_audit_log').select('id').eq('actor_id', id.SPV).eq('action', 'report.acc');
+      check('ACC oleh SPV TERCATAT di Log Aktivitas [0045]', (data?.length ?? 0) >= 1);
     }
 
     console.log(`\n== HASIL: ${pass} lolos, ${fail} gagal ==`);

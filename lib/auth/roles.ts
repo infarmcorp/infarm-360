@@ -46,8 +46,8 @@ export const HRD_SECTION_LABELS: Record<HrdSection, string> = {
  *   - Bukan HRD (canAdmin false) → selalu false.
  *   - `hrd_sections` NULL / kosong → AKSES PENUH (semua bagian) — perilaku lama.
  *   - berisi daftar → hanya bagian yang tercantum.
- * ⚠️ Ini pembatasan tingkat MENU + guard halaman (rekan HRD tepercaya), BUKAN batas RLS:
- * pemegang grant tetap is_hrd() penuh di database. Batas data nyata = Jalur B (ditunda).
+ * Ditegakkan di menu + guard halaman, di semua Server Action admin, dan di DB untuk TULIS (fungsi
+ * hrd_can(bagian), migrasi 0045). BACA tetap is_hrd() penuh (rekan HRD tepercaya).
  */
 export function canSection(m: ActorRow | null | undefined, section: HrdSection): boolean {
   if (!canAdmin(m)) return false;

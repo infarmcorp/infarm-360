@@ -341,6 +341,29 @@
   Progress 360, Kepatuhan), pengecekan not_eligible di `submitAssessment`, dan daftar alasan (`lib/assessment-reasons.ts`)
   dihapus. Migrasi 0044: trigger `trg_assessments_block_exposure` mengosongkan kolom exposure_* untuk semua tulisan
   pengguna (API langsung pun tak bisa mengisinya) + membersihkan sisa data (0 baris saat dicabut). Kolom dibiarkan.
+- `0045` **Menutup sisa celah server** (audit 2026-09-30; semua hanya bisa dipakai lewat API langsung, bukan
+  tombol). Kode + DB:
+  (1) **Kirim penilaian wajib lengkap** — `submitAssessment` memeriksa SEMUA indikator aktif periode (bukan hanya
+  yang ikut dikirim) & menolak indikator/esai periode lain; kiriman pertama ditulis draf dulu lalu dinaikkan ke
+  terkirim, dan trigger `assessments_guard_submit` menolak status terkirim bila ada indikator tanpa rating 1–5 +
+  evidence ≥ 20 / esai kosong. Penilaian tanpa pemetaan aktif ditolak untuk semua jalur (termasuk Paksa Selesai).
+  (2) **Isi penilaian (rating/komentar/esai)** hanya bisa ditulis saat periode aktif + 360° dibuka + form
+  terbuka + pemetaan aktif (`assessment_writable`); isi penilaian terkirim tak bisa dikosongkan/dihapus.
+  (3) **Persetujuan permohonan** (`reviewCorrection`) memakai pasangan penilai→target DI PERMOHONAN (bukan
+  `mapping_id` kiriman pemohon) & memvalidasi ulang (periode aktif, bukan Self, target aktif/bukan Direksi/
+  bukan eksternal); `corr_insert` hanya menerima permohonan *pending* atas pemetaan milik pemohon.
+  (4) **Akses HRD per bagian kini ditegakkan di DB** (`hrd_can(bagian)`; baca tetap `is_hrd()`) & di semua
+  Server Action admin (`canSection`, bukan `canAdmin`). Mengubah izin (HRD Admin, bagian HRD, Koordinator +
+  timnya) & akun HRD/Direksi (ubah data, nonaktifkan, **reset sandi**) hanya HRD berakses penuh; tak ada yang
+  bisa mengubah izin dirinya sendiri (`employees_guard_privileges`). Reset sandi pegawai biasa tetap boleh.
+  (5) ACC SPV: hanya periode aktif, bukan pegawai berkoordinator, & **dicatat trigger** di Log Aktivitas
+  (juga yang lewat API). (6) Direksi hanya merespons rencana suksesi yang sudah diajukan (status/komentar,
+  atas namanya). (7) KPI ditolak untuk pegawai eksternal. (8) Pertanyaan/indikator hanya bisa diubah bila milik
+  periode aktif; esai yang sudah dijawab tak bisa dihapus. (9) Invarian DB: total bobot = 100, relasi Self ⇔
+  menilai diri sendiri. "Maksimal satu periode aktif" sengaja TIDAK dijadikan batasan (verify:rls membuat
+  periode uji aktif). (10) `?next=` login/callback lewat `safeNext` (tolak `//…`, backslash) — cegah open
+  redirect. (11) Pemegang grant Review tak bisa mengubah/memfinalisasi **laporannya sendiri**.
+  `verify:rls` +15 pemeriksaan (56 total, fixture HRD terbatas). Terapkan **setelah 0044**. Belum diterapkan ke DB.
 - **Bersih-bersih aturan lama di UI (2026-09-29):** Flag Kepatuhan tak lagi menandai "Belum self-assessment"
   (Self Assessment nonaktif sejak Q3 2026 → dulu SEMUA pegawai tertandai); kartu "Not Eligible" di Progress 360
   hanya tampil bila ada datanya; pemegang grant non-HRD di Progress 360 & Kepatuhan hanya melihat JUMLAH —

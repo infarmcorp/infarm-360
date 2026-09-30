@@ -423,7 +423,8 @@ DIIZINKAN [0008]) **dan umpan balik 360° mentah lapis 3** (fixture penilaian OT
 baca `assessments`/`assessment_indicator_scores`/`assessment_qual_answers` anggota timnya [0012];
 kontrol positif HRD baca penuh, penilai & target baca miliknya), lalu **menghapus seluruh fixture**
 (finally — termasuk hapus periode uji yang cascade ke seluruh turunan 360°). **AMAN**: tak menyentuh
-data nyata, uji tulis pakai `UPDATE score=score` (idempoten). Total **21 assertion**. Butuh
+data nyata, uji tulis pakai `UPDATE score=score` (idempoten). Total **56 pemeriksaan** (termasuk celah
+0045: HRD terbatas, isi penilaian saat form ditutup, permohonan palsu, bobot ≠ 100, respons suksesi draf, log ACC). Butuh
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` + `SUPABASE_SERVICE_ROLE_KEY` di `.env.local`. Jalankan manual
 pra-rilis (tak di CI — perlu kredensial).
 

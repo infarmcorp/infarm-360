@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { safeNext } from '@/lib/safe-next';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { DEMO_USERS } from '@/lib/auth/demo-users';
 import { BrandLogo } from '@/components/brand-logo';
@@ -45,7 +46,7 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const sp = await searchParams;
-  const next = sp.next && sp.next.startsWith('/') ? sp.next : '/';
+  const next = safeNext(sp.next);
 
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();

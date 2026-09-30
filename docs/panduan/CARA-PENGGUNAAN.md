@@ -348,7 +348,8 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
      ke **Skor 360°** pegawai lewat bobot Cross. Baris eksternal ditandai badge **"Eksternal"**.
 2. **Ubah** — ganti nama/divisi/peran/kode, email, atasan, atau status **Penilai eksternal**.
 3. **Reset Sandi** — modal konfirmasi untuk setel sandi baru (tombol **Acak** mengisi sandi acak);
-   disarankan pegawai menggantinya sendiri setelahnya.
+   disarankan pegawai menggantinya sendiri setelahnya. Sandi akun **HRD/Direksi** hanya bisa direset HRD
+   berakses penuh.
 4. **Aktif/Nonaktif** — menonaktifkan **mengunci akun** (tak bisa login) tanpa menghapus
    riwayat penilaian/KPI, **dan ikut menonaktifkan pemetaannya** (orang itu keluar dari siklus:
    tak lagi dihitung di Progress 360 & tak jadi tugas penilai lain). Aktifkan kembali kapan pun →
@@ -450,9 +451,11 @@ flowchart TD
 - **Lapis B — Kapabilitas peran** (grant tingkat peran, bukan per-halaman):
   - **🛡️ Izin HRD Admin** — pegawai (employee/SPV) mampu mengoperasikan **seluruh** fitur HRD (mode
     ganda). Badge **"HRD"**. **Batas akses rekan HRD**: tombol **Atur Akses** membatasi pemegang izin
-    ke **sebagian halaman admin** (grid centang katalog HRD); badge jadi **"HRD (N)"**. ⚠️ Ini
-    pembatasan **tampilan menu** untuk pembagian tugas rekan HRD **tepercaya** — **bukan** gembok data
-    (pemegang izin HRD secara teknis masih is_hrd penuh di DB). **Tak bisa** membatasi akun sendiri.
+    ke **sebagian halaman admin** (grid centang katalog HRD); badge jadi **"HRD (N)"**. Batas ini
+    ditegakkan juga di **server & database** untuk semua perubahan data (per 2026-09-30): HRD terbatas
+    hanya bisa mengubah data di bagian yang dicentang (melihat data tetap bisa). Mengubah **izin** (HRD Admin,
+    Atur Akses, Koordinator) serta mengubah/menonaktifkan/**mereset sandi akun HRD atau Direksi** hanya
+    bisa dilakukan **HRD berakses penuh**. **Tak ada** yang bisa mengubah izin akunnya sendiri.
   - **👥 Koordinator** — pegawai (Employee) mendapat **Laporan Kinerja Tim + ACC + Input KPI** untuk
     **daftar naungannya** (dialog **"Tim Koordinasi"**). Badge **"Koordinator"**. **Tidak** memengaruhi
     360°; **bukan** akses HRD penuh. (Lihat *Akses Khusus: Koordinator Tim*.)

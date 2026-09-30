@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { canAdmin } from '@/lib/auth/roles';
+import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import type { WeightValues } from '@/lib/database.types';
 
@@ -44,8 +44,8 @@ export async function saveWeights(raw: unknown): Promise<SaveResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
-  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
+  if (!canSection(me, 'bobot')) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
 
   const { data: ap } = await supabase
     .from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
@@ -94,8 +94,8 @@ export async function saveEmployeeWeightOverride(raw: unknown): Promise<SaveResu
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
-  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
+  if (!canSection(me, 'bobot')) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
 
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
@@ -131,8 +131,8 @@ export async function removeEmployeeWeightOverride(employeeId: unknown): Promise
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
-  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
+  if (!canSection(me, 'bobot')) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
 
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };

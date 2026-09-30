@@ -2,7 +2,7 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
-import { canAdmin } from '@/lib/auth/roles';
+import { canSection } from '@/lib/auth/roles';
 import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf, playerLabelOf, perfLabelOf } from '@/lib/scoring';
 import { classOf, avg, weightedScore360, type Groups360 } from '@/lib/score360';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
@@ -50,8 +50,8 @@ async function requireHrd(): Promise<boolean> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
-  return canAdmin(me);
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
+  return canSection(me, 'ekspor');
 }
 
 const KAT = (f: number | null) => perfLabelOf(f);

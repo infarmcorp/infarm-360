@@ -60,10 +60,6 @@ export default async function KepatuhanPage() {
   const asmts = await fetchAllPaged<{ assessor_id: string; target_id: string }>((from, to) =>
     db.from('assessments').select('assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted').order('assessor_id').order('target_id').range(from, to));
   const submitted = new Set(asmts.map((a) => `${a.assessor_id}:${a.target_id}`));
-  // BR-03: Not Eligible → kewajiban gugur, TAK dihitung "Belum Kirim".
-  const notEligible = await fetchAllPaged<{ assessor_id: string; target_id: string }>((from, to) =>
-    db.from('assessments').select('assessor_id, target_id').eq('period_id', ap.id).eq('exposure_status', 'not_eligible').order('assessor_id').order('target_id').range(from, to));
-  const notEligibleSet = new Set(notEligible.map((a) => `${a.assessor_id}:${a.target_id}`));
   // Siapa-menilai-siapa HANYA untuk HRD (keputusan 2026-09-29): pemegang grant non-HRD hanya melihat
   // JUMLAH, bukan nama target — nama dikosongkan di SERVER agar tak ikut terkirim ke browser.
   const targetName = (id: string) => (viaGrant ? '' : nameById.get(id) ?? '—');
@@ -84,7 +80,7 @@ export default async function KepatuhanPage() {
   const rows = employees.map((e) => {
     const lateTargets = maps
       .filter((m) => m.assessor_id === e.id && m.mandatory
-        && !submitted.has(`${e.id}:${m.target_id}`) && !notEligibleSet.has(`${e.id}:${m.target_id}`))
+        && !submitted.has(`${e.id}:${m.target_id}`))
       .map((m) => targetName(m.target_id));
     return {
       id: e.id, name: e.name, dept: e.dept,

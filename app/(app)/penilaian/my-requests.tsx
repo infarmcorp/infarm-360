@@ -60,8 +60,6 @@ export function MyRequests({ requests }: { requests: MyRequest[] }) {
                     <strong>Alasan HRD menolak:</strong> {r.rejectReason}
                   </p>
                 )}
-                {/* Exposure Check (BR-03) sedang dinonaktifkan — rater langsung ke form penilaian.
-                    Bila Exposure Check dinyalakan lagi, kembalikan petunjuknya di sini. */}
                 {r.kind === 'add' && r.status === 'approved' && (
                   <p className="text-[11px] text-brand-ink mt-1 bg-brand-tint border border-brand-ink/20 rounded-control px-2 py-1.5">
                     Disetujui — buka tab <strong>Penilaian</strong>, cari {r.targetName}, lalu mulai menilai

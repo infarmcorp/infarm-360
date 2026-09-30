@@ -336,6 +336,11 @@
   pegawai ("Ajuan · wajib selesai"); potongan **diterapkan otomatis** saat HRD membuka Kepatuhan/Review &
   sebelum simpan/rilis/finalisasi. **Batas input KPI di server disamakan dengan UI** (HRD posisi → divisinya;
   SPV → tim + diri; Koordinator → timnya). Belum diterapkan ke DB.
+- `0044` **Exposure Check (BR-03) DICABUT TOTAL** (2026-09-29, permintaan pengguna): Server Action
+  `setExposureStatus` & `resetExposureStatus`, form Exposure, notice/badge/kartu/filter Not Eligible (Penilaian,
+  Progress 360, Kepatuhan), pengecekan not_eligible di `submitAssessment`, dan daftar alasan (`lib/assessment-reasons.ts`)
+  dihapus. Migrasi 0044: trigger `trg_assessments_block_exposure` mengosongkan kolom exposure_* untuk semua tulisan
+  pengguna (API langsung pun tak bisa mengisinya) + membersihkan sisa data (0 baris saat dicabut). Kolom dibiarkan.
 - **Bersih-bersih aturan lama di UI (2026-09-29):** Flag Kepatuhan tak lagi menandai "Belum self-assessment"
   (Self Assessment nonaktif sejak Q3 2026 → dulu SEMUA pegawai tertandai); kartu "Not Eligible" di Progress 360
   hanya tampil bila ada datanya; pemegang grant non-HRD di Progress 360 & Kepatuhan hanya melihat JUMLAH —

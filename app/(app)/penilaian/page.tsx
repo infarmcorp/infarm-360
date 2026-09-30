@@ -94,12 +94,10 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
   const empById = new Map((emps ?? []).map((e) => [e.id, e]));
 
   const { data: asmts } = await supabase
-    .from('assessments').select('target_id, status, first_submitted_at, exposure_status')
+    .from('assessments').select('target_id, status, first_submitted_at')
     .eq('assessor_id', user.id).eq('period_id', ap.id);
   const statusByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.status]));
   const firstSubByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.first_submitted_at]));
-  // BR-03: Not Eligible → kewajiban gugur (tak dihitung tunggakan/skor/penalty).
-  const exposureByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.exposure_status]));
   const deadline = ap.assessment_deadline;
   const deadlinePassed = isPastDeadline(deadline);
 
@@ -151,14 +149,11 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
       late: (r.mandatory || approvedAjuan.has(r.target_id)) && !r.is_adhoc && statusByTarget.get(r.target_id) === 'submitted'
         && submitTimingOf(firstSubByTarget.get(r.target_id), deadline) === 'late',
       corrPending: pendingCorr.has(r.target_id),
-      // BR-03 Exposure Check: null = belum dicek, 'not_eligible' = kewajiban gugur.
-      exposureStatus: exposureByTarget.get(r.target_id) ?? null,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   // Ringkasan penilaian WAJIB (sifat = Wajib) — berapa harus dinilai vs sudah dikirim.
-  // Not Eligible (BR-03) dikeluarkan: kewajibannya gugur, tak dihitung tunggakan.
-  const mandatoryItems = items.filter((it) => it.mandatory && it.exposureStatus !== 'not_eligible');
+  const mandatoryItems = items.filter((it) => it.mandatory);
   const mandTotal = mandatoryItems.length;
   const mandDone = mandatoryItems.filter((it) => it.status === 'submitted').length;
   // Ajuan (Q3 2026 dst.) yang belum dikirim — ikut potongan bila deadline lewat.
@@ -309,12 +304,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                   </td>
                   <td className="py-3 px-3 text-right">
                     <span className="inline-flex items-center gap-1">
-                      {it.exposureStatus === 'not_eligible' ? (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-neutral-tint text-ink-faint border-line"
-                          title="Not Eligible — kewajiban gugur, tak dihitung tunggakan/skor">Not Eligible</span>
-                      ) : (
-                        <StatusBadge status={it.status} />
-                      )}
+                      <StatusBadge status={it.status} />
                       {it.late && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-warn-tint text-warn-ink border-warn-ink/25"
                           title="Dikirim pertama kali sesudah deadline">Terlambat</span>
@@ -358,9 +348,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                           href={`/penilaian/${it.targetId}`}
                           className="text-xs font-bold text-brand-ink hover:underline"
                         >
-                          {it.exposureStatus === 'not_eligible'
-                            ? 'Lihat'
-                            : it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai'}
+                          {it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai'}
                         </Link>
                       )}
                     </div>

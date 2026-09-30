@@ -56,9 +56,8 @@ async function hasPending(
 
 /**
  * Ajukan penghapusan sebuah pemetaan milik sendiri (mis. tak pernah bekerja sama).
- * DIAKTIFKAN KEMBALI 2026-09-29 (Exposure Check sedang dinonaktifkan sementara — lihat
- * [targetId]/page.tsx — jadi ini kembali jadi satu-satunya jalur rater melapor tak perlu
- * menilai seseorang). Hanya MENGIRIM permohonan; pemetaan baru hilang setelah HRD
+ * Satu-satunya jalur rater melapor tak perlu menilai seseorang (Exposure Check DICABUT
+ * 2026-09-29). Hanya MENGIRIM permohonan; pemetaan baru hilang setelah HRD
  * menyetujui (reviewCorrection di admin/pemetaan/actions.ts) — HRD tetap gerbangnya.
  */
 export async function requestMappingRemoval(

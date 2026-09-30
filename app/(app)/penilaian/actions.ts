@@ -60,13 +60,9 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
   if (!mapping) return { ok: false, error: 'Anda tidak ditugaskan menilai pegawai ini' };
 
 
-  // BR-03: Not Eligible menghentikan penilaian — tak boleh submit sama sekali.
   const { data: exExisting } = await supabase
-    .from('assessments').select('status, exposure_status')
+    .from('assessments').select('status')
     .eq('assessor_id', auth.user.id).eq('target_id', targetId).eq('period_id', ap.id).maybeSingle();
-  if (exExisting?.exposure_status === 'not_eligible') {
-    return { ok: false, error: 'Anda menandai Not Eligible untuk pegawai ini — penilaian tidak dilanjutkan' };
-  }
   // Penilaian yang SUDAH terkirim tak boleh turun ke draf: nilainya sudah masuk laporan pegawai yang
   // dinilai. Pegawai tetap boleh mengedit — lewat "Kirim Ulang" (status tetap 'submitted').
   if (exExisting?.status === 'submitted' && status === 'draft') {
@@ -150,78 +146,6 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
   revalidatePath('/penilaian');
   revalidatePath(`/penilaian/${targetId}`);
   return { ok: true, status };
-}
-
-/**
- * BR-03 Exposure Check (Q3 2026). Rater WAJIB memastikan exposure kerja sebelum
- * menilai — ditampilkan sebagai layar pertama di /penilaian/[targetId] selama belum
- * pernah dikonfirmasi. Eligible/Partially Eligible → lanjut ke form penilaian seperti
- * biasa. Not Eligible → penilaian dihentikan (submitAssessment menolaknya, tidak
- * dihitung tunggakan/skor/penalty).
- *
- * TERKUNCI setelah dikonfirmasi — rater tak bisa mengubah sendiri (mencegah
- * "downgrade" status buat menghindari kewajiban). Koreksi lewat HRD menyusul (Tahap 2).
- *
- * Not Eligible WAJIB disertai alasan (dropdown final HRD 2026-09-28, migrasi 0038):
- *   a) Tidak pernah bekerja sama secara langsung selama periode penilaian
- *   b) Interaksi kerja terlalu terbatas untuk memberikan penilaian
- *   c) Hubungan kerja tidak sesuai dengan assignment yang diberikan
- *   d) Lainnya — wajib mengisi penjelasan
- * Disimpan sebagai teks resolusi akhir (bukan enum), sama pola dengan alasan
- * BR-04 (relation_correction_requests.reason).
- */
-const ExposureInput = z.object({
-  targetId: z.string().uuid(),
-  status: z.enum(['eligible', 'partially_eligible', 'not_eligible']),
-  reason: z.string().trim().max(500).optional(),
-}).refine(
-  (v) => v.status !== 'not_eligible' || (v.reason ?? '').trim().length >= 5,
-  { message: 'Alasan Not Eligible wajib diisi (minimal 5 karakter)', path: ['reason'] },
-);
-
-export async function setExposureStatus(raw: unknown): Promise<SubmitResult> {
-  const parsed = ExposureInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
-  const { targetId, status: exposureStatus, reason } = parsed.data;
-  const exposureReason = exposureStatus === 'not_eligible' ? (reason ?? '').trim() : null;
-
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-
-  const { data: ap } = await supabase
-    .from('periods').select('id, has_360, form_open').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
-  if (!ap.has_360) return { ok: false, error: 'Penilaian 360° untuk periode ini belum dibuka oleh HRD' };
-  if (!ap.form_open) return { ok: false, error: 'Form penilaian 360° sedang ditutup HRD (tahap peninjauan hasil)' };
-
-  const { data: mapping } = await supabase
-    .from('mappings').select('id')
-    .eq('assessor_id', auth.user.id).eq('target_id', targetId)
-    .eq('period_id', ap.id).eq('is_active', true)
-    .maybeSingle();
-  if (!mapping) return { ok: false, error: 'Anda tidak ditugaskan menilai pegawai ini' };
-
-  const { data: existing } = await supabase
-    .from('assessments').select('exposure_status')
-    .eq('assessor_id', auth.user.id).eq('target_id', targetId).eq('period_id', ap.id).maybeSingle();
-  if (existing?.exposure_status) {
-    return { ok: false, error: 'Status exposure untuk pegawai ini sudah dikonfirmasi dan terkunci. Hubungi HRD bila perlu koreksi.' };
-  }
-
-  const { error } = await supabase.from('assessments').upsert(
-    {
-      period_id: ap.id, assessor_id: auth.user.id, target_id: targetId,
-      exposure_status: exposureStatus, exposure_confirmed_at: new Date().toISOString(),
-      exposure_reason: exposureReason,
-    },
-    { onConflict: 'period_id,assessor_id,target_id' },
-  );
-  if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
-
-  revalidatePath('/penilaian');
-  revalidatePath(`/penilaian/${targetId}`);
-  return { ok: true, status: 'draft' };
 }
 
 /**

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import { forceComplete, sendReminder, massReminder, sendOnboarding, massOnboarding, resetExposureStatus } from './actions';
+import { forceComplete, sendReminder, massReminder, sendOnboarding, massOnboarding } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { usePager, Pager, MultiCheckFilter } from '@/components/table-controls';
 
@@ -11,8 +11,6 @@ export type AssessorRow = {
   total: number; done: number;              // semua tugas (wajib + opsional) — info sekunder
   mandatoryTotal: number; mandatoryDone: number; // kelengkapan ditentukan dari WAJIB saja
   pending: Pending[];
-  /** BR-03: kewajiban ber-status Not Eligible pada Exposure Check — sudah gugur, perlu review HRD. */
-  notEligible: Pending[];
 };
 /** Info read-only "per yang dinilai": berapa penilai ditugaskan & berapa sudah menilai dia. */
 export type TargetRow = { id: string; name: string; dept: string; total: number; done: number };
@@ -25,7 +23,6 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
   const [statusSel, setStatusSel] = useState<Set<string>>(new Set(['belum']));
   // BR-03: filter cepat "hanya yang ada Not Eligible" — tanpa ini HRD harus buka Rincian
   // satu-satu untuk menemukan siapa yang perlu direview (tak praktis kalau penilai banyak).
-  const [onlyNotEligible, setOnlyNotEligible] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [confirm, setConfirm] = useState<{ title: string; body: React.ReactNode; onYes: () => void; confirmLabel?: string; icon?: string; tone?: 'primary' | 'danger' } | null>(null);
@@ -46,8 +43,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
     const done = rows.filter(isComplete).length;
     const tasks = rows.reduce((s, r) => s + r.mandatoryTotal, 0);
     const doneTasks = rows.reduce((s, r) => s + r.mandatoryDone, 0);
-    const notEligible = rows.reduce((s, r) => s + r.notEligible.length, 0);
-    return { total, done, pending: total - done, pct: tasks ? Math.round((doneTasks / tasks) * 100) : 0, notEligible };
+    return { total, done, pending: total - done, pct: tasks ? Math.round((doneTasks / tasks) * 100) : 0 };
   }, [rows]);
 
   const shown = rows.filter((r) => {
@@ -55,10 +51,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
     const statusKey = complete ? 'lengkap' : 'belum';
     if (q.trim() && !r.name.toLowerCase().includes(q.toLowerCase())) return false;
     if (deptSel.size > 0 && !deptSel.has(r.dept)) return false;
-    // Filter Status diabaikan saat mencari Not Eligible — penilai bisa "Lengkap" (wajib
-    // lainnya sudah dikirim) tapi tetap punya kewajiban Not Eligible yang perlu direview.
-    if (!onlyNotEligible && statusSel.size > 0 && !statusSel.has(statusKey)) return false;
-    if (onlyNotEligible && r.notEligible.length === 0) return false;
+    if (statusSel.size > 0 && !statusSel.has(statusKey)) return false;
     return true;
   });
   // Paginasi 5-baris (komponen bersama) → daftar penilai bisa 100+; batasi DOM per halaman.
@@ -75,30 +68,12 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
   return (
     <div className="space-y-4">
       {/* Stats */}
-      <div className={`grid grid-cols-2 gap-2 ${stats.notEligible > 0 || onlyNotEligible ? 'sm:grid-cols-5' : 'sm:grid-cols-4'}`}>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Stat label="Total Penilai" value={stats.total} c="text-ink" />
         <Stat label="Lengkap (wajib)" value={stats.done} c="text-brand-ink" />
         <Stat label="Belum (wajib)" value={stats.pending} c="text-warn-ink" />
         <Stat label="Progres Wajib" value={`${stats.pct}%`} c="text-brand-ink" />
-        {/* Kartu Not Eligible hanya tampil bila ADA data (Exposure Check dinonaktifkan Q3 2026 →
-            normalnya 0 & disembunyikan agar tak membingungkan). */}
-        {(stats.notEligible > 0 || onlyNotEligible) && (
-        <button type="button" onClick={() => { setOnlyNotEligible((v) => !v); setPage(0); }}
-          className={`border rounded-panel p-3 text-center transition-colors ${
-            onlyNotEligible ? 'border-danger-ink bg-danger-tint' : 'border-line bg-surface hover:bg-neutral-tint'
-          }`}>
-          <div className={`text-xl font-bold data-value ${stats.notEligible ? 'text-danger-ink' : 'text-ink-faint'}`}>{stats.notEligible}</div>
-          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">
-            Not Eligible (review){onlyNotEligible ? ' · aktif' : ''}
-          </div>
-        </button>
-        )}
       </div>
-      {onlyNotEligible && (
-        <p className="text-[11px] text-danger-ink italic">
-          Menampilkan hanya penilai yang punya kewajiban <strong>Not Eligible</strong> (perlu direview). Klik kartu di atas lagi untuk kembali ke tampilan biasa.
-        </p>
-      )}
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-center">
@@ -164,12 +139,6 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                 <div className="min-w-0">
                   <span className="font-bold text-ink text-sm">{r.name}</span>
                   <span className="text-[11px] text-ink-faint"> · {r.dept}</span>
-                  {/* Terlihat langsung tanpa buka Rincian — HRD tak perlu menebak/cek satu-satu. */}
-                  {r.notEligible.length > 0 && (
-                    <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-danger-tint text-danger-ink border border-danger-ink/25">
-                      ⚠ {r.notEligible.length} Not Eligible
-                    </span>
-                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${complete ? 'bg-brand-tint text-brand-ink' : 'bg-warn-tint text-warn-ink'}`}>
@@ -196,10 +165,10 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                     </button>
                   )}
                   {/* Rincian (nama target = siapa-menilai-siapa) hanya untuk HRD, bukan pemegang grant. */}
-                  {!readOnly && (r.pending.length > 0 || r.notEligible.length > 0) && (
+                  {!readOnly && r.pending.length > 0 && (
                     <button type="button" onClick={() => setExpanded(expanded === r.id ? null : r.id)}
                       className="text-[11px] font-semibold text-ink-faint hover:text-ink-soft">
-                      {expanded === r.id ? 'Tutup' : `Rincian (${r.pending.length}${r.notEligible.length ? ` + ${r.notEligible.length} Not Eligible` : ''})`}
+                      {expanded === r.id ? 'Tutup' : `Rincian (${r.pending.length})`}
                     </button>
                   )}
                 </div>
@@ -250,34 +219,6 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                   ))}
                 </div>
               )}
-              {/* BR-03: flag Not Eligible untuk direview HRD — penilaian sudah gugur, bukan tunggakan. */}
-              {expanded === r.id && r.notEligible.length > 0 && (
-                <div className="mt-3 space-y-1.5 border-t border-line-soft pt-2">
-                  <p className="text-[10px] uppercase tracking-[0.05em] text-danger-ink font-semibold">Not Eligible (perlu review HRD):</p>
-                  {r.notEligible.map((p) => (
-                    <div key={p.targetId} className="flex items-center justify-between gap-2 text-xs">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-ink-soft font-semibold">{p.targetName}</span>
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft">{p.relation}</span>
-                        </div>
-                        {p.reason && <p className="text-[10.5px] text-ink-faint italic mt-0.5">Alasan: {p.reason}</p>}
-                      </div>
-                      {!readOnly && (
-                        <button type="button" onClick={() => setConfirm({
-                          title: `Kosongkan status Exposure Check ${r.name} → ${p.targetName}?`,
-                          onYes: () => act(() => resetExposureStatus(r.id, p.targetId)),
-                          body: <p>Penilai akan diminta mengisi ulang <strong>Exposure Check</strong> untuk pasangan ini dari awal.</p>,
-                          confirmLabel: 'Ya, Kosongkan', icon: '🔁', tone: 'danger',
-                        })} disabled={pending}
-                          className="text-[11px] font-semibold px-2.5 py-1 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-60 shrink-0">
-                          Reset (isi ulang)
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           );
         })}
@@ -290,9 +231,6 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
         penilai sudah menilai pegawai ini). “Paksa Selesai” menandai penilaian terkirim; “Kirim Pengingat”
         mengirim email berisi daftar yang belum dinilai; “Undangan” / “Kirim Undangan Massal” mengirim
         info akun (peran, email, sandi baru, panduan) sekali di awal periode — sandi disetel ulang.
-        <strong> Not Eligible</strong> = penilai menyatakan tak punya exposure kerja cukup (BR-03 Exposure
-        Check) — kewajibannya gugur (tak dihitung tunggakan/skor/penalty); &quot;Reset&quot; membuka kembali
-        Exposure Check bila penilaiannya perlu diulang.
       </p>
 
       <ConfirmDialog

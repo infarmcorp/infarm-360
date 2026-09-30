@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt2 } from '@/lib/scoring';
+
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveKpiScores, deleteKpiScore } from './actions';
@@ -329,11 +331,11 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
                     <input type="number" min={0} max={100} inputMode="decimal" value={scores[key] ?? ''}
                       ref={(el) => { scoreRefs.current[i] = el; }}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); focusNextScore(i); } }}
-                      placeholder={saved !== undefined ? saved.toFixed(2) : ''}
+                      placeholder={saved !== undefined ? fmt2(saved) : ''}
                       onChange={(e) => setScores((s) => ({ ...s, [key]: e.target.value }))}
                       className={`w-24 rounded-control border px-2 py-1 data-value bg-surface focus:outline-none focus:ring-2 focus:ring-brand-tint ${isEditing ? 'border-warn-ink/50 bg-warn-tint/40' : 'border-line focus:border-brand'}`} />
                     {isEditing && (
-                      <div className="mt-0.5 text-[10px] font-bold text-warn-ink">↻ ubah dari {saved.toFixed(2)}</div>
+                      <div className="mt-0.5 text-[10px] font-bold text-warn-ink">↻ ubah dari {fmt2(saved)}</div>
                     )}
                   </td>
                   <td className="py-2">
@@ -347,7 +349,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
                       <span className="text-ink-faint text-xs">—</span>
                     ) : (
                       <span className="inline-flex items-center justify-end gap-2">
-                        <span className="data-value font-bold text-brand-ink">{saved.toFixed(2)}</span>
+                        <span className="data-value font-bold text-brand-ink">{fmt2(saved)}</span>
                         <button type="button" disabled={pending}
                           onClick={() => { setDelId(m.id); setDelNote(''); setMsg(null); }}
                           className="text-[11px] font-semibold px-2 py-1 rounded-control border border-line text-danger-ink hover:border-danger-ink disabled:opacity-50">
@@ -377,15 +379,15 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
                     {saved === undefined ? (
                       <span className="shrink-0 rounded-full bg-neutral-tint px-2 py-0.5 text-[10px] font-semibold text-ink-faint">belum diisi</span>
                     ) : (
-                      <span className="shrink-0 data-value text-sm font-bold text-brand-ink">{saved.toFixed(2)}</span>
+                      <span className="shrink-0 data-value text-sm font-bold text-brand-ink">{fmt2(saved)}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
                     <input type="number" min={0} max={100} inputMode="decimal" value={scores[key] ?? ''}
-                      placeholder={saved !== undefined ? saved.toFixed(2) : 'Skor 0–100'}
+                      placeholder={saved !== undefined ? fmt2(saved) : 'Skor 0–100'}
                       onChange={(e) => setScores((s) => ({ ...s, [key]: e.target.value }))}
                       className={`w-28 rounded-control border px-2 py-1.5 text-sm data-value bg-surface focus:outline-none focus:ring-2 focus:ring-brand-tint ${isEditing ? 'border-warn-ink/50 bg-warn-tint/40' : 'border-line focus:border-brand'}`} />
-                    {isEditing && <span className="text-[10px] font-bold text-warn-ink">↻ dari {saved.toFixed(2)}</span>}
+                    {isEditing && <span className="text-[10px] font-bold text-warn-ink">↻ dari {fmt2(saved)}</span>}
                     {saved !== undefined && (
                       <button type="button" disabled={pending}
                         onClick={() => { setDelId(m.id); setDelNote(''); setMsg(null); }}
@@ -411,7 +413,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
               <div className="flex flex-col gap-2 bg-danger-tint border border-danger-ink/25 rounded-panel p-3">
                 <p className="text-[12px] text-danger-ink">
                   Hapus skor KPI <strong>{m?.name ?? 'pegawai'}</strong> bulan <strong>{ym}</strong>
-                  {saved !== undefined && <> (nilai <strong>{saved.toFixed(2)}</strong>)</>}? Penghapusan
+                  {saved !== undefined && <> (nilai <strong>{fmt2(saved)}</strong>)</>}? Penghapusan
                   <strong> tercatat di Riwayat &amp; Audit</strong> dan mengurangi rerata KPI.
                 </p>
                 <input type="text" value={delNote} autoFocus

@@ -1,5 +1,5 @@
 import { createAdminClient, type createClient } from '@/lib/supabase/server';
-import { finalScoreOf } from '@/lib/scoring';
+import { finalScoreOf, kpiAvgOf, displayedFinalOf } from '@/lib/scoring';
 import { classOf, weightedScore360, type Groups360 } from '@/lib/score360';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 
@@ -54,14 +54,15 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
   const yms = (months ?? []).map((m) => m.ym);
   const { data: kpi } = yms.length
     ? await supabase.from('kpi_scores').select('score').eq('employee_id', employeeId).in('ym', yms) : { data: [] };
-  const kpiAvg = kpi && kpi.length ? kpi.reduce((a, b) => a + b.score, 0) / kpi.length : null;
+  const kpiAvg = kpiAvgOf((kpi ?? []).map((k) => Number(k.score)));
   const { data: r } = await supabase.from('result_360').select('score, late_penalty').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
   const s360 = r?.score ?? null;
   const latePenalty360 = Number(r?.late_penalty ?? 0);
   const { data: pen } = await supabase.from('compliance_penalties').select('points').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
   const penalty = pen?.points ?? 0;
   const { data: fr } = await supabase.from('final_reports').select('status, final_score, content').eq('employee_id', employeeId).eq('period_id', period.id).maybeSingle();
-  const finalScore = fr?.final_score ?? finalScoreOf(kpiAvg, s360, period.has_360, penalty);
+  // Laporan FINAL → angka tersimpan (yang dilihat pegawai); selain itu angka hidup (rumus resmi tunggal).
+  const finalScore = displayedFinalOf(finalScoreOf(kpiAvg, s360, period.has_360, penalty), fr);
   const frContent = (fr?.content ?? {}) as {
     aspectSummaries?: Record<string, string>;
     qualSummaries?: Record<string, string>;
@@ -98,11 +99,16 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
   const relById = new Map((maps ?? []).map((m) => [m.assessor_id, m.relation]));
   // Skema bobot aktif (config; dibaca via service_role agar andal untuk semua pemanggil —
   // pegawai/SPV/Direksi belum tentu punya RLS baca weight_schemes).
-  const { data: ws } = await createAdminClient()
-    .from('weight_schemes').select('model, weights').eq('period_id', period.id).eq('is_active', true).maybeSingle();
-  const wModel = (ws?.model ?? '4class') as '4class' | '2class';
-  const wVals = (ws?.weights ?? {}) as WeightValues;
-  const hasWS = !!ws;
+  const cfg = createAdminClient();
+  const [{ data: ws }, { data: ovr }] = await Promise.all([
+    cfg.from('weight_schemes').select('model, weights').eq('period_id', period.id).eq('is_active', true).maybeSingle(),
+    // Bobot KHUSUS pegawai ini (migrasi 0031) — sama dengan computeResult360 (audit 2026-09-29).
+    cfg.from('employee_weight_overrides').select('model, weights').eq('period_id', period.id).eq('employee_id', employeeId).maybeSingle(),
+  ]);
+  const scheme = ovr ?? ws;
+  const wModel = (scheme?.model ?? '4class') as '4class' | '2class';
+  const wVals = (scheme?.weights ?? {}) as WeightValues;
+  const hasWS = !!scheme;
 
   // Aspek skor: OTHERS = TERBOBOT per kelas penilai (meniru computeResult360 — konsisten dgn Skor
   // 360° headline); SELF = rata-rata biasa (satu penilai, tak ada kelas). Kumpulkan rating per

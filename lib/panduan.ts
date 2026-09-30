@@ -4,7 +4,7 @@
  * "Panduan Pengguna" di aplikasi (akun/). Menjaga paritas: satu mapping, tak ada duplikasi.
  *
  * Cara memperbarui panduan: timpa file di public/panduan/ lalu naikkan PANDUAN_VERSION +
- * PANDUAN_WHATS_NEW, commit & deploy. Badge "BARU" muncul otomatis untuk pengguna yang belum
+ * PANDUAN_UPDATED_LABEL, commit & deploy (daftar revisi isi: docs/panduan/REVISI-PANDUAN-PDF.md). Badge "BARU" muncul otomatis untuk pengguna yang belum
  * membuka versi ini (dilacak di localStorage — tanpa menyentuh database).
  */
 export type PanduanDef = { file: string; filename: string; label: string };

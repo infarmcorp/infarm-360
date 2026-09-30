@@ -100,7 +100,10 @@ export async function respondPlan(planId: string, decision: 'approved' | 'reject
 
   // Pegawai terkait + nama pelaku (Direksi) untuk ringkasan audit.
   const { data: plan } = await c.supabase.from('succession_plans')
-    .select('employee_id').eq('id', planId).maybeSingle();
+    .select('employee_id, status').eq('id', planId).maybeSingle();
+  if (!plan) return { ok: false, error: 'Rencana tidak ditemukan' };
+  // Draf HRD belum diajukan → belum boleh direspons (DB juga menegakkan, migrasi 0045).
+  if (plan.status === 'draft') return { ok: false, error: 'Rencana ini masih draf HRD — belum diajukan ke Direksi' };
   const empName = await empNameOf(c.supabase, plan?.employee_id ?? null);
 
   const { error } = await c.supabase.from('succession_plans')

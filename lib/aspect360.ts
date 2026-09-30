@@ -74,22 +74,26 @@ export async function aspectScoresByEmployee(periodId: string, empIds: string[])
   if (!empIds.length) return { byEmp, names: [], indByEmp, indicators: [] };
   const admin = createAdminClient();
 
-  const [aspRes, asmtRes] = await Promise.all([
+  // assessments satu periode (seluruh organisasi) bisa >1000 → dipaginasi (tanpa ini data terpotong diam-diam).
+  const [aspRes, asmtRows] = await Promise.all([
     admin.from('culture_aspects').select('id, name, order_idx').eq('period_id', periodId).order('order_idx'),
-    admin.from('assessments').select('id, assessor_id, target_id').eq('period_id', periodId).eq('status', 'submitted'),
+    fetchAllPaged<{ id: string; assessor_id: string; target_id: string }>((from, to) =>
+      admin.from('assessments').select('id, assessor_id, target_id').eq('period_id', periodId).eq('status', 'submitted')
+        .order('id').range(from, to)),
   ]);
   const aspectList = aspRes.data ?? [];
   const names = aspectList.map((a) => a.name);
   if (aspectList.length === 0) return { byEmp, names, indByEmp, indicators: [] };
 
   const scope = new Set(empIds);
-  const nonSelfIds = (asmtRes.data ?? [])
+  const nonSelfIds = asmtRows
     .filter((a) => a.assessor_id !== a.target_id && scope.has(a.target_id))
     .map((a) => a.id);
 
-  const [indRes, wsRes, mapsData, scoreRows] = await Promise.all([
+  const [indRes, wsRes, ovrRes, mapsData, scoreRows] = await Promise.all([
     admin.from('indicators').select('id, aspect_id, text, order_idx').in('aspect_id', aspectList.map((a) => a.id)),
     admin.from('weight_schemes').select('model, weights').eq('period_id', periodId).eq('is_active', true).maybeSingle(),
+    admin.from('employee_weight_overrides').select('employee_id, model, weights').eq('period_id', periodId),
     fetchAllPaged<{ assessor_id: string; target_id: string; relation: RelationKind }>((from, to) =>
       admin.from('mappings').select('assessor_id, target_id, relation').eq('period_id', periodId)
         .order('assessor_id').order('target_id').range(from, to)),
@@ -107,7 +111,7 @@ export async function aspectScoresByEmployee(periodId: string, empIds: string[])
   const hasWS = !!wsRes.data;
   const relByPair = new Map<string, RelationKind>();
   mapsData.forEach((m) => relByPair.set(`${m.assessor_id}:${m.target_id}`, m.relation));
-  const asmtInfo = new Map((asmtRes.data ?? []).map((a) => [a.id, { assessor: a.assessor_id, target: a.target_id }]));
+  const asmtInfo = new Map(asmtRows.map((a) => [a.id, { assessor: a.assessor_id, target: a.target_id }]));
 
   // Rerata rating per (assessment × aspek) → skor 0–100 (×20), dikelompokkan per (target × aspek).
   const aaRatings = new Map<string, number[]>(); // `${assessmentId}|${aspectId}`
@@ -150,7 +154,11 @@ export async function aspectScoresByEmployee(periodId: string, empIds: string[])
     g[cls].push(score100);
   });
 
-  const scoreOfG = (g: Groups360): number | null => {
+  // Bobot KHUSUS per pegawai (migrasi 0031) — sama dengan computeResult360 (audit 2026-09-29).
+  const ovrBy = new Map((ovrRes.data ?? []).map((o) => [o.employee_id, { model: o.model as '4class' | '2class', weights: o.weights as WeightValues }]));
+  const scoreOfG = (g: Groups360, target: string): number | null => {
+    const o = ovrBy.get(target);
+    if (o) return weightedScore360(g, o.model, o.weights);
     if (hasWS) return weightedScore360(g, wModel, wVals);
     const all = [...g.atasan, ...g.peer, ...g.cross, ...g.bawahan];
     return all.length ? all.reduce((a, b) => a + b, 0) / all.length : null;
@@ -158,7 +166,7 @@ export async function aspectScoresByEmployee(periodId: string, empIds: string[])
   for (const [tk, g] of targetAspectG) {
     const sep = tk.indexOf('|');
     const target = tk.slice(0, sep), aid = tk.slice(sep + 1);
-    const s = scoreOfG(g);
+    const s = scoreOfG(g, target);
     const nm = idToName.get(aid);
     if (nm && s != null && s > 0) {
       let m = byEmp.get(target); if (!m) { m = new Map(); byEmp.set(target, m); }
@@ -168,7 +176,7 @@ export async function aspectScoresByEmployee(periodId: string, empIds: string[])
   for (const [tk, g] of targetIndG) {
     const sep = tk.indexOf('|');
     const target = tk.slice(0, sep), indId = tk.slice(sep + 1);
-    const s = scoreOfG(g);
+    const s = scoreOfG(g, target);
     if (s != null && s > 0) {
       let m = indByEmp.get(target); if (!m) { m = new Map(); indByEmp.set(target, m); }
       m.set(indId, s);

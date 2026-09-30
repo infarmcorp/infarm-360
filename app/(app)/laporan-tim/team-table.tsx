@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AccButton } from './acc-button';
-import { PLAYER_BOXES, playerLabelOf, type PlayerClass } from '@/lib/scoring';
+import { PLAYER_BOXES, playerLabelOf, type PlayerClass, fmt2 } from '@/lib/scoring';
 import { TREND_META, type Trend } from '@/lib/trend';
 import { displayName } from '@/lib/employee-name';
 import { InfoTip } from '@/components/info-tip';
@@ -182,13 +182,13 @@ export function TeamTable({
                     </span>
                   </td>
                   <td className="py-3 px-3 text-center font-mono text-slate-600">
-                    {r.kpiAvg != null ? r.kpiAvg.toFixed(2) : '—'}
+                    {r.kpiAvg != null ? fmt2(r.kpiAvg) : '—'}
                   </td>
                   <td className="py-3 px-3 text-center font-mono text-slate-600">
-                    {r.s360 != null ? r.s360.toFixed(2) : '—'}
+                    {r.s360 != null ? fmt2(r.s360) : '—'}
                   </td>
                   <td className="py-3 px-3 text-center font-mono font-black text-slate-800">
-                    {r.finalScore != null ? r.finalScore.toFixed(2) : '—'}
+                    {r.finalScore != null ? fmt2(r.finalScore) : '—'}
                   </td>
                   <td className="py-3 px-3 text-center"><PlayerBadge p={r.player} /></td>
                   <td className="py-3 px-3 text-center"><TrendBadge t={r.trend} months={r.kpiMonths} /></td>

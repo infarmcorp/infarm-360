@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt2 } from '@/lib/scoring';
+
 import { useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
@@ -78,8 +80,8 @@ export function RiwayatList({ entries, page, total, pageSize, query }: { entries
                   <td className="py-2 px-3 font-semibold text-ink-soft whitespace-nowrap">{labelMonth(r.ym)}</td>
                   <td className="py-2 px-3 text-center data-value font-bold">
                     {r.action === 'delete'
-                      ? <span className="text-danger-ink" title="Skor dihapus">dihapus <span className="text-ink-faint font-normal">(dari {r.score.toFixed(2)})</span></span>
-                      : <span className="text-brand-ink">{r.score.toFixed(2)}</span>}
+                      ? <span className="text-danger-ink" title="Skor dihapus">dihapus <span className="text-ink-faint font-normal">(dari {fmt2(r.score)})</span></span>
+                      : <span className="text-brand-ink">{fmt2(r.score)}</span>}
                   </td>
                   <td className="py-2 px-3 text-ink-soft whitespace-nowrap">{r.by}</td>
                   <td className="py-2 px-3 text-ink-faint whitespace-nowrap data-value">{r.at}</td>

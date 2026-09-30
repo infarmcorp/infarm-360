@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection } from '@/lib/auth/roles';
-import { finalScoreOf } from '@/lib/scoring';
+import { finalScoreOf, kpiAvgOf, displayedFinalOf } from '@/lib/scoring';
 import { RespondForm } from './respond-form';
 import { SuksesiList, type SuksesiRow } from './suksesi-list';
 import { Panel } from '@/components/panel';
@@ -62,17 +62,20 @@ async function HrdView({
     ? await fetchAllPaged<{ employee_id: string; score: number }>((from, to) =>
         supabase.from('kpi_scores').select('employee_id, score').in('ym', ymList).order('employee_id').order('ym').range(from, to))
     : [];
-  const kpiAgg = new Map<string, { sum: number; n: number }>();
-  kpiRows.forEach((r) => { const a = kpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n += 1; kpiAgg.set(r.employee_id, a); });
+  const kpiValsBy = new Map<string, number[]>();
+  kpiRows.forEach((r) => kpiValsBy.set(r.employee_id, [...(kpiValsBy.get(r.employee_id) ?? []), Number(r.score)]));
   const { data: r360 } = await supabase.from('result_360').select('employee_id, score').eq('period_id', period.id);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
   const { data: pen } = await supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', period.id);
   const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
+  // Laporan FINAL → Skor Akhir tersimpan (yang dilihat pegawai) — displayedFinalOf.
+  const { data: reps } = await supabase.from('final_reports').select('employee_id, status, final_score').eq('period_id', period.id);
+  const repBy = new Map((reps ?? []).map((r) => [r.employee_id, r]));
 
   const rows: SuksesiRow[] = employees.map((e) => {
-    const agg = kpiAgg.get(e.id);
-    const kpiAvg = agg ? agg.sum / agg.n : null;
-    const final = finalScoreOf(kpiAvg, s360By.get(e.id) ?? null, period.has_360, penBy.get(e.id) ?? 0);
+    const kpiAvg = kpiAvgOf(kpiValsBy.get(e.id) ?? []);
+    const live = finalScoreOf(kpiAvg, s360By.get(e.id) ?? null, period.has_360, penBy.get(e.id) ?? 0);
+    const final = displayedFinalOf(live, repBy.get(e.id));
     return { id: e.id, name: e.name, dept: e.dept, final, plan: planBy.get(e.id) ?? null };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));
 

@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt2 } from '@/lib/scoring';
+
 import { Download } from 'lucide-react';
 import type { ReportData } from '@/lib/report';
 
@@ -42,10 +44,10 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
         <ScoreCard label="Skor Akhir" value={data.finalScore} color="text-ink" big />
       </div>
       {data.has360 && data.latePenalty360 > 0 && data.s360 != null && (
-        <p className="text-[11px] text-warn-ink mt-2">Evaluasi 360° termasuk potongan keterlambatan menilai −{data.latePenalty360.toFixed(2)}.</p>
+        <p className="text-[11px] text-warn-ink mt-2">Evaluasi 360° termasuk potongan keterlambatan menilai −{fmt2(data.latePenalty360)}.</p>
       )}
       {data.penalty > 0 && (
-        <p className="text-[11px] text-danger-ink mt-2">Termasuk pengurangan punishment kepatuhan −{data.penalty.toFixed(2)}.</p>
+        <p className="text-[11px] text-danger-ink mt-2">Termasuk pengurangan punishment kepatuhan −{fmt2(data.penalty)}.</p>
       )}
 
       {/* Radar aspek 360 */}
@@ -83,7 +85,7 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
                   <div className="flex-1 h-2 bg-neutral-tint rounded-full overflow-hidden">
                     <div className="h-full bg-brand rounded-full" style={{ width: `${Math.min(a.score ?? 0, 100)}%` }} />
                   </div>
-                  <span className="text-[10px] data-value font-bold text-brand-ink w-11 text-right">{a.score != null ? a.score.toFixed(2) : '—'}</span>
+                  <span className="text-[10px] data-value font-bold text-brand-ink w-11 text-right">{a.score != null ? fmt2(a.score) : '—'}</span>
                 </div>
                 {/* Bar Diri (evaluasi diri) — pembanding */}
                 {a.self != null && (
@@ -92,7 +94,7 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
                     <div className="flex-1 h-2 bg-neutral-tint rounded-full overflow-hidden">
                       <div className="h-full bg-warn rounded-full" style={{ width: `${Math.min(a.self, 100)}%` }} />
                     </div>
-                    <span className="text-[10px] data-value font-bold text-warn-ink w-11 text-right">{a.self.toFixed(2)}</span>
+                    <span className="text-[10px] data-value font-bold text-warn-ink w-11 text-right">{fmt2(a.self)}</span>
                   </div>
                 )}
               </div>
@@ -156,7 +158,7 @@ function ScoreCard({ label, value, color, big }: { label: string; value: number 
   return (
     <div className="border border-line rounded-panel p-3 text-center break-inside-avoid">
       <p className="text-[10px] text-ink-faint uppercase font-bold">{label}</p>
-      <p className={`font-black data-value ${color} ${big ? 'text-3xl' : 'text-xl'}`}>{value != null ? value.toFixed(2) : '—'}</p>
+      <p className={`font-black data-value ${color} ${big ? 'text-3xl' : 'text-xl'}`}>{value != null ? fmt2(value) : '—'}</p>
     </div>
   );
 }

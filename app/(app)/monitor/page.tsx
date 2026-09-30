@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin, canCoordinate } from '@/lib/auth/roles';
-import { finalScoreOf, playerClassOf } from '@/lib/scoring';
+import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf } from '@/lib/scoring';
 import { trendOf } from '@/lib/trend';
 import { scoreMaps, penaltyMap, companyAverages, teamAverages } from '@/lib/team-metrics';
 import { TeamTable, type TeamRow } from '@/app/(app)/laporan-tim/team-table';
@@ -23,7 +23,7 @@ import { SectionHeader } from './section-header';
  *  - Grafik tren LINTAS periode/bulan (tak terpengaruh filter): Tim per periode, KPI tim per bulan,
  *    KPI pegawai per bulan (dropdown).
  * BEDA dari Laporan Kinerja Tim: tanpa tinjau/Status/ACC, MEMASUKKAN baris SPV sendiri, Skor Akhir
- * LIVE (allow360Only=true, selaras snapshot laporan). Halaman Supervisor (tak untuk Mode HRD Admin).
+ * rumus resmi tunggal (lib/scoring); laporan FINAL → angka tersimpan (displayedFinalOf). Halaman Supervisor (tak untuk Mode HRD Admin).
  *
  * KOORDINATOR (grant is_coordinator): lihat Monitor Kinerja untuk daftar pegawai eksplisit yang
  * dinaunginya (coordinator_team_members) SAJA — TANPA dirinya sendiri. Koordinator = pegawai biasa
@@ -93,6 +93,9 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   // ── Snapshot periode terpilih → scorecard + tabel ──────────────────────────
   const { kpiBy, s360By, monthlyBy } = await scoreMaps(sel.id, ids);
   const penBy = await penaltyMap(sel.id, ids);
+  // Laporan per (pegawai, periode) — laporan FINAL → Skor Akhir tersimpan (displayedFinalOf).
+  const { data: repAll } = await dataClient.from('final_reports').select('employee_id, period_id, status, final_score').in('employee_id', ids);
+  const repOf = new Map((repAll ?? []).map((r) => [`${r.employee_id}|${r.period_id}`, r]));
   const activeIds = new Set(empRows.filter((e) => e.is_active).map((e) => e.id));
   const rows: TeamRow[] = empRows.map((e) => {
     const kpiAvg = kpiBy.get(e.id) ?? null;
@@ -102,7 +105,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
     return {
       id: e.id, name: e.name, nickname: e.nickname, dept: e.dept,
       kpiAvg, s360,
-      finalScore: finalScoreOf(kpiAvg, s360, sel.has_360, penalty, true), // LIVE, selaras snapshot laporan
+      finalScore: displayedFinalOf(finalScoreOf(kpiAvg, s360, sel.has_360, penalty), repOf.get(`${e.id}|${sel.id}`)),
       player: playerClassOf(kpiAvg, sel.has_360 ? s360 : null),
       trend: trendOf(kpiMonths),
       kpiMonths,
@@ -134,16 +137,15 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   const nn = (v: number | null): v is number => v != null;
 
   // Skor Akhir per (pegawai,periode) untuk grafik "Tren Tim per Periode" (Avg Skor Akhir).
-  // finalScoreOf = blend KPI×360 − punishment (LIVE), selaras snapshot laporan.
+  // Rumus resmi tunggal (lib/scoring); laporan FINAL → angka tersimpan (displayedFinalOf).
   const periodById = new Map(periodList.map((p) => [p.id, p]));
   const penOf = new Map((penAllRes.data ?? []).map((p) => [`${p.employee_id}|${p.period_id}`, p.points]));
-  const perPeriodKpi = (id: string, pid: string): number | null => {
-    const vals = (monthsByPeriod.get(pid) ?? []).map((ym) => kpiOf(id, ym)).filter(nn);
-    return vals.length ? mean(vals) : null;
-  };
+  const perPeriodKpi = (id: string, pid: string): number | null =>
+    kpiAvgOf((monthsByPeriod.get(pid) ?? []).map((ym) => kpiOf(id, ym)));
   const finalOf = (id: string, pid: string): number | null => {
     const p = periodById.get(pid); if (!p) return null;
-    return finalScoreOf(perPeriodKpi(id, pid), s360Of.get(`${id}|${pid}`) ?? null, p.has_360, penOf.get(`${id}|${pid}`) ?? 0, true);
+    const live = finalScoreOf(perPeriodKpi(id, pid), s360Of.get(`${id}|${pid}`) ?? null, p.has_360, penOf.get(`${id}|${pid}`) ?? 0);
+    return displayedFinalOf(live, repOf.get(`${id}|${pid}`));
   };
 
   // A. Tren tim per periode (Avg KPI & Avg 360° tim). Simpan `id` internal agar bisa mengurai

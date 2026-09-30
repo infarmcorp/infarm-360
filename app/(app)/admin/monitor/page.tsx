@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection, grantedAccess, employeeInScopes, allowedDeptsForMulti, PAGE_SCOPE_LABELS, type PageScope } from '@/lib/auth/roles';
-import { finalScoreOf, playerClassOf } from '@/lib/scoring';
+import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf, fmt2 } from '@/lib/scoring';
 import { trendOf } from '@/lib/trend';
 import { scoreMaps, penaltyMap, teamAverages, companyAverages } from '@/lib/team-metrics';
 import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
@@ -104,6 +104,11 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   // ── Snapshot periode terpilih → scorecard + tabel ──────────────────────────
   const { kpiBy, s360By, monthlyBy } = await scoreMaps(sel.id, ids);
   const penBy = await penaltyMap(sel.id, ids);
+  // Laporan per (pegawai, periode) — laporan FINAL → Skor Akhir tersimpan (displayedFinalOf).
+  const repAll = await fetchAllByIds<{ employee_id: string; period_id: string; status: string; final_score: number | null }>(ids, (chunk, from, to) =>
+    admin.from('final_reports').select('employee_id, period_id, status, final_score').in('employee_id', chunk)
+      .order('employee_id').order('period_id').range(from, to));
+  const repOf = new Map(repAll.map((r) => [`${r.employee_id}|${r.period_id}`, r]));
   const activeIds = new Set(empRows.filter((e) => e.is_active).map((e) => e.id));
   const rows: TeamRow[] = empRows.map((e) => {
     const kpiAvg = kpiBy.get(e.id) ?? null;
@@ -113,7 +118,7 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
     return {
       id: e.id, name: e.name, nickname: e.nickname, dept: e.dept,
       kpiAvg, s360,
-      finalScore: finalScoreOf(kpiAvg, s360, sel.has_360, penalty, true),
+      finalScore: displayedFinalOf(finalScoreOf(kpiAvg, s360, sel.has_360, penalty), repOf.get(`${e.id}|${sel.id}`)),
       player: playerClassOf(kpiAvg, sel.has_360 ? s360 : null),
       trend: trendOf(kpiMonths),
       kpiMonths,
@@ -149,16 +154,15 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   const nn = (v: number | null): v is number => v != null;
 
   // Skor Akhir per (pegawai,periode) untuk grafik "Tren Tim per Periode" (Avg Skor Akhir).
-  // finalScoreOf = blend KPI×360 − punishment (LIVE), selaras snapshot laporan.
+  // Rumus resmi tunggal (lib/scoring); laporan FINAL → angka tersimpan (displayedFinalOf).
   const periodById = new Map(periodList.map((p) => [p.id, p]));
   const penOf = new Map(penAll.map((p) => [`${p.employee_id}|${p.period_id}`, p.points]));
-  const perPeriodKpi = (id: string, pid: string): number | null => {
-    const vals = (monthsByPeriod.get(pid) ?? []).map((ym) => kpiOf(id, ym)).filter(nn);
-    return vals.length ? mean(vals) : null;
-  };
+  const perPeriodKpi = (id: string, pid: string): number | null =>
+    kpiAvgOf((monthsByPeriod.get(pid) ?? []).map((ym) => kpiOf(id, ym)));
   const finalOf = (id: string, pid: string): number | null => {
     const p = periodById.get(pid); if (!p) return null;
-    return finalScoreOf(perPeriodKpi(id, pid), s360Of.get(`${id}|${pid}`) ?? null, p.has_360, penOf.get(`${id}|${pid}`) ?? 0, true);
+    const live = finalScoreOf(perPeriodKpi(id, pid), s360Of.get(`${id}|${pid}`) ?? null, p.has_360, penOf.get(`${id}|${pid}`) ?? 0);
+    return displayedFinalOf(live, repOf.get(`${id}|${pid}`));
   };
 
   const anyHas360 = periodList.some((p) => p.has_360);
@@ -364,11 +368,11 @@ function ScopeScorecards({
   return (
     <div className="flex flex-wrap gap-3 mb-4">
       <Card label="Total Pegawai" value={total} subtext={scopeLabel} />
-      <Card label="Avg KPI" value={kpi != null ? kpi.toFixed(2) : '—'}
+      <Card label="Avg KPI" value={kpi != null ? fmt2(kpi) : '—'}
         delta={orgKpi != null ? <OrgDelta scope={kpi} org={orgKpi} /> : undefined}
         subtext={kpiUnread > 0 ? `${sub} · ${kpiUnread} belum terbaca (dikecualikan)` : sub}
         note={fillTotal != null && kpiFilled != null ? <FilledNote n={kpiFilled} total={fillTotal} /> : undefined} />
-      {has360 && <Card label="Avg 360°" value={s360 != null ? s360.toFixed(2) : '—'}
+      {has360 && <Card label="Avg 360°" value={s360 != null ? fmt2(s360) : '—'}
         delta={orgS360 != null ? <OrgDelta scope={s360} org={orgS360} /> : undefined}
         subtext={sub}
         note={fillTotal != null && s360Filled != null ? <FilledNote n={s360Filled} total={fillTotal} /> : undefined} />}

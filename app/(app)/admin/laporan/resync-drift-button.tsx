@@ -34,13 +34,13 @@ export function ResyncDriftButton({ count }: { count: number }) {
     <div className="flex items-center gap-2 flex-wrap">
       <button type="button" onClick={() => setOpen(true)} disabled={busy}
         className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-control border border-warn-ink/40 bg-warn-tint text-warn-ink hover:bg-warn-tint/70 disabled:opacity-50">
-        <RefreshCcwDot className="w-3.5 h-3.5" /> ② Finalisasi Ulang Berubah ({count})
+        <RefreshCcwDot className="w-3.5 h-3.5" /> ② Perbarui Laporan Final yang Berubah ({count})
       </button>
       {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
 
       <ConfirmDialog
         open={open} icon="🔄" tone="primary"
-        title={`Finalisasi ulang ${count} laporan yang skornya berubah?`}
+        title={`Perbarui ${count} laporan Final yang skornya berubah?`}
         confirmLabel={`Ya, sinkronkan ${count}`} busy={busy}
         onConfirm={run} onCancel={() => setOpen(false)}
       >

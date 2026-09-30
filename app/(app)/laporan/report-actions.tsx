@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt2, hasScoreDrift } from '@/lib/scoring';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Download, Save, CheckCircle2, Send, Undo2, AlertTriangle } from 'lucide-react';
@@ -11,7 +13,7 @@ import { saveOrFinalizeReport, releaseToSpv } from '@/app/(app)/admin/laporan/ac
  *  - finalized: READ-ONLY (terlihat pegawai) → hanya Unduh PDF + "Kembalikan ke Draf"
  *    (amber + konfirmasi) untuk membuka kunci & merevisi.
  * Ringkasan aspek kini AUTO-SIMPAN (lihat AspectSummaryEditor) → tak perlu guard "belum disimpan".
- * `canCompute`=false bila KPI pegawai masih kosong (Skor Akhir belum bisa dihitung).
+ * `canCompute`=false bila KPI & Skor 360° pegawai sama-sama kosong (Skor Akhir belum bisa dihitung).
  */
 export function ReportActions({
   employeeId, status, finalScore, liveFinal, canCompute, totalMonths, missingMonths, stale360,
@@ -49,7 +51,7 @@ export function ReportActions({
     else run(true, 'final');
   }
   // Baris FINAL: data dasar (KPI/360/punishment) berubah sejak difinalisasi?
-  const drift = isFinal && finalScore != null && liveFinal != null && Math.abs(liveFinal - finalScore) >= 0.05;
+  const drift = isFinal && hasScoreDrift(liveFinal, finalScore); // ambang sama dgn tabel (≥0.01)
 
   async function run(finalize: boolean, mode: 'draft' | 'final' | 'revert') {
     setBusy(mode);
@@ -79,7 +81,7 @@ export function ReportActions({
   return (
     <div className="no-print mb-3 flex flex-wrap items-center gap-2 bg-neutral-tint border border-line rounded-panel p-3">
       <div className="flex items-center gap-2 mr-auto">
-        <span className="text-xs font-bold text-ink">Review Hasil Akhir</span>
+        <span className="text-xs font-bold text-ink">Review & Finalisasi</span>
         {isFinal
           ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-brand-tint text-brand-ink border-brand-ink/20">Final</span>
           : status === 'in_review'
@@ -87,11 +89,11 @@ export function ReportActions({
           : status === 'draft'
           ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-warn-tint text-warn-ink border-warn-ink/25">Draf</span>
           : <span className="text-[10px] text-ink-faint">belum disimpan</span>}
-        {finalScore != null && <span className="text-[11px] data-value font-bold text-ink">Skor Akhir {finalScore.toFixed(2)}</span>}
+        {finalScore != null && <span className="text-[11px] data-value font-bold text-ink">Skor Akhir {fmt2(finalScore)}</span>}
         {drift && (
-          <span title={`Skor terkini ${liveFinal!.toFixed(2)} berbeda dari yang difinalisasi (${finalScore!.toFixed(2)}) — KPI/360°/punishment berubah. Kembalikan ke Draf lalu Finalisasi ulang untuk memperbarui.`}
+          <span title={`Skor terkini ${fmt2(liveFinal!)} berbeda dari yang difinalisasi (${fmt2(finalScore!)}) — KPI/360°/punishment berubah. Tekan ② Perbarui Laporan Final yang Berubah di Review & Finalisasi (atau Kembalikan ke Draf lalu Finalisasi ulang) untuk memperbarui.`}
             className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink border border-warn-ink/25">
-            berubah → {liveFinal!.toFixed(2)}
+            berubah → {fmt2(liveFinal!)}
           </span>
         )}
       </div>
@@ -102,7 +104,7 @@ export function ReportActions({
       </button>
 
       {!canCompute ? (
-        <span className="text-[11px] text-ink-faint italic">KPI pegawai masih kosong — belum bisa disimpan.</span>
+        <span className="text-[11px] text-ink-faint italic">KPI & Skor 360° pegawai masih kosong — belum bisa disimpan.</span>
       ) : isFinal ? (
         // FINAL: terkunci. Satu-satunya jalan edit = kembalikan ke draf (dgn konfirmasi).
         <button type="button" disabled={busy !== null} onClick={() => setConfirmRevert(true)}

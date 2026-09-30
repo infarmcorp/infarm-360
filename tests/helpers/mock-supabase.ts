@@ -19,7 +19,7 @@ export type MockUser = { id: string } | null;
 
 export type MockCall = {
   table: string;
-  op: 'select' | 'update' | 'insert' | 'delete';
+  op: 'select' | 'update' | 'insert' | 'upsert' | 'delete';
   payload?: unknown;
   filters: unknown[];
 };
@@ -35,6 +35,7 @@ type QueryBuilder = {
   select: (cols?: string) => QueryBuilder;
   update: (payload: unknown) => QueryBuilder;
   insert: (payload: unknown) => QueryBuilder;
+  upsert: (payload: unknown, opts?: unknown) => QueryBuilder;
   delete: () => QueryBuilder;
   eq: (col: string, val: unknown) => QueryBuilder;
   or: (expr: string) => QueryBuilder;
@@ -72,6 +73,7 @@ export function makeClient(cfg: { user?: MockUser; tables?: Record<string, QResu
       select: () => builder,
       update: (payload) => { state.op = 'update'; state.payload = payload; return builder; },
       insert: (payload) => { state.op = 'insert'; state.payload = payload; return builder; },
+      upsert: (payload) => { state.op = 'upsert'; state.payload = payload; return builder; },
       delete: () => { state.op = 'delete'; return builder; },
       eq: (col, val) => { state.filters.push(['eq', col, val]); return builder; },
       or: (expr) => { state.filters.push(['or', expr]); return builder; },

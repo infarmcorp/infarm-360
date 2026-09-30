@@ -1,3 +1,4 @@
+import { fmt2 } from '@/lib/scoring';
 import type { AspectRaw, EssayGroup } from '@/lib/report';
 
 /**
@@ -46,7 +47,7 @@ export function RawFeedback({ byAspect, essays, badge = 'HRD VIEW' }: { byAspect
                         : ind.ratings.map((r, i) => (
                             <span key={i} className={`text-[10px] data-value font-bold px-1.5 py-0.5 rounded-control ${RATING_COLOR(r)}`}>{r}</span>
                           ))}
-                      {m != null && <span className="text-[10px] text-ink-faint ml-1">· rerata <strong>{m.toFixed(2)}</strong> ({ind.ratings.length} penilai)</span>}
+                      {m != null && <span className="text-[10px] text-ink-faint ml-1">· rerata <strong>{fmt2(m)}</strong> ({ind.ratings.length} penilai)</span>}
                     </div>
                     {/* Komentar mentah (anonim) */}
                     {ind.comments.length > 0 ? (

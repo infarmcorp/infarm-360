@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canAdmin, isHrdDept, HRD_SECTIONS } from '@/lib/auth/roles';
+import { canAdmin, canSection, isFullHrd, isHrdDept, HRD_SECTIONS } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 
 /**
@@ -20,13 +20,34 @@ type Result = { ok: true; msg?: string } | { ok: false; error: string };
 
 const BAN_FOREVER = '876000h'; // ~100 tahun
 
-async function requireHrd(supabase: Awaited<ReturnType<typeof createClient>>) {
+/**
+ * Gerbang aksi Kelola Pegawai (audit 2026-09-30):
+ *   - 'section' (default): HRD yang boleh membuka bagian Kelola Pegawai (canSection 'pegawai').
+ *   - 'full': HANYA HRD berakses penuh — untuk aksi yang MENGUBAH IZIN (HRD Admin, bagian HRD,
+ *     Koordinator + timnya). Cegah rekan HRD terbatas menaikkan aksesnya sendiri / orang lain.
+ * DB juga menegakkan ini (trigger employees_guard_privileges, migrasi 0045).
+ */
+async function requireHrd(supabase: Awaited<ReturnType<typeof createClient>>, level: 'section' | 'full' = 'section') {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canAdmin(me)) return { ok: false as const, error: 'Hanya HRD yang dapat mengelola pegawai' };
-  return { ok: true as const, userId: user.id };
+  if (level === 'full' && !isFullHrd(me)) {
+    return { ok: false as const, error: 'Hanya HRD Admin dengan akses penuh yang dapat mengubah izin.' };
+  }
+  if (level === 'section' && !canSection(me, 'pegawai')) {
+    return { ok: false as const, error: 'Hanya HRD dengan akses Kelola Pegawai yang dapat mengelola pegawai' };
+  }
+  return { ok: true as const, userId: user.id, full: isFullHrd(me) };
 }
+
+/** Akun ber-hak istimewa (HRD Admin / Direksi) hanya boleh diubah oleh HRD berakses penuh. */
+const PRIVILEGED_MSG = 'Akun HRD / Direksi hanya dapat diubah oleh HRD Admin dengan akses penuh.';
+async function isPrivileged(supabase: Awaited<ReturnType<typeof createClient>>, id: string): Promise<boolean> {
+  const { data: t } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', id).maybeSingle();
+  return canAdmin(t) || t?.role === 'direksi';
+}
+const isPrivilegedRole = (role: string) => role === 'hrd' || role === 'direksi';
 
 function revalidate() {
   revalidatePath('/admin/pegawai');
@@ -49,7 +70,7 @@ function revalidate() {
  */
 export async function setHrdAdmin(employeeId: string, value: boolean): Promise<Result> {
   const supabase = await createClient();
-  const auth = await requireHrd(supabase);
+  const auth = await requireHrd(supabase, 'full');
   if (!auth.ok) return auth;
 
   const { data: target } = await supabase.from('employees').select('name, dept').eq('id', employeeId).maybeSingle();
@@ -82,7 +103,7 @@ export async function setHrdAdmin(employeeId: string, value: boolean): Promise<R
 export async function setCoordinator(employeeId: string, value: boolean): Promise<Result> {
   if (!z.string().uuid().safeParse(employeeId).success) return { ok: false, error: 'Input tidak valid' };
   const supabase = await createClient();
-  const auth = await requireHrd(supabase);
+  const auth = await requireHrd(supabase, 'full');
   if (!auth.ok) return auth;
 
   const { data: target } = await supabase.from('employees').select('name').eq('id', employeeId).maybeSingle();
@@ -114,7 +135,7 @@ export async function setCoordinatorTeam(coordinatorId: string, employeeIds: unk
   const { coordinatorId: cid, ids } = parsed.data;
 
   const supabase = await createClient();
-  const auth = await requireHrd(supabase);
+  const auth = await requireHrd(supabase, 'full');
   if (!auth.ok) return auth;
 
   // Pastikan target memang koordinator (cegah salah pasang tim ke non-koordinator).
@@ -143,7 +164,7 @@ export async function setCoordinatorTeam(coordinatorId: string, employeeIds: unk
  *   sections = null / []  → AKSES PENUH (semua bagian).
  *   sections = [..]        → hanya bagian tercantum (subset katalog HRD_SECTIONS).
  * Hanya berlaku untuk pemegang izin HRD Admin (sections tak berarti bagi non-admin).
- * ⚠️ Pembatasan tingkat MENU/UI — pemegang grant tetap is_hrd() penuh di RLS (rekan tepercaya).
+ * Ditegakkan juga di Server Action admin & di DB untuk tulis (hrd_can, migrasi 0045); baca tetap is_hrd().
  * Hanya HRD yang boleh; tercatat di Log Aktivitas HRD.
  */
 export async function setHrdSections(employeeId: string, sections: unknown): Promise<Result> {
@@ -156,7 +177,7 @@ export async function setHrdSections(employeeId: string, sections: unknown): Pro
   const { employeeId: id, sections: secs } = parsed.data;
 
   const supabase = await createClient();
-  const auth = await requireHrd(supabase);
+  const auth = await requireHrd(supabase, 'full');
   if (!auth.ok) return auth;
   // Cegah kunci-diri: HRD tak boleh membatasi akun sendiri (bisa hilang akses Kelola Pegawai).
   if (auth.userId === id) return { ok: false, error: 'Tidak dapat mengubah akses Anda sendiri.' };
@@ -220,6 +241,7 @@ export async function createEmployee(raw: unknown): Promise<Result> {
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
+  if (!auth.full && isPrivilegedRole(role)) return { ok: false, error: PRIVILEGED_MSG };
 
   const admin = createAdminClient();
 
@@ -305,6 +327,7 @@ export async function createEmployeesBulk(rawRows: unknown): Promise<BulkResult>
     if (seenCode.has(code) || codeToId.has(code)) { skipped++; continue; }
     if (seenEmail.has(email)) { skipped++; continue; }
     seenCode.add(code); seenEmail.add(email);
+    if (!auth.full && isPrivilegedRole(r.role)) { failed.push({ code, reason: PRIVILEGED_MSG }); continue; }
 
     // 1) Akun auth.
     const { data: cu, error: cErr } = await admin.auth.admin.createUser({
@@ -368,6 +391,7 @@ export async function updateEmployee(raw: unknown): Promise<Result> {
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
+  if (!auth.full && (isPrivilegedRole(role) || await isPrivileged(supabase, id))) return { ok: false, error: PRIVILEGED_MSG };
   const admin = createAdminClient();
 
   const { error: eErr } = await supabase.from('employees')
@@ -404,6 +428,7 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (id === auth.userId) return { ok: false, error: 'Tidak dapat menonaktifkan akun Anda sendiri' };
+  if (!auth.full && await isPrivileged(supabase, id)) return { ok: false, error: PRIVILEGED_MSG };
 
   // Stempel tanggal otomatis (dapat dikoreksi via "Ubah"): nonaktif → left_on = hari ini;
   // aktif kembali → left_on dikosongkan (joined_on = tgl masuk dipertahankan sbg histori).
@@ -460,6 +485,9 @@ export async function resetPassword(id: string, newPassword: string): Promise<Re
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
+  // Reset sandi SENGAJA boleh untuk HRD (bantu pegawai yang lupa sandi) — tapi akun HRD/Direksi
+  // hanya oleh HRD berakses penuh (cegah pengambilalihan akun ber-hak lebih tinggi).
+  if (!auth.full && await isPrivileged(supabase, id)) return { ok: false, error: PRIVILEGED_MSG };
 
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.updateUserById(id, { password: newPassword });

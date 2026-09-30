@@ -347,18 +347,28 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
 - **Skor Akhir** = blend KPI+360 **dikurangi** punishment kepatuhan per kuartal (min 0). Rumus
   murni terkunci di `lib/scoring.ts` & `lib/score360.ts` (lihat Pengujian); kalau mengubah,
   sinkronkan semua tempat + perbarui tesnya.
+  > **SATU rumus untuk SEMUA halaman (2026-09-29, keputusan HRD):** `finalScoreOf` (tanpa KPI → 360°
+  > saja, mis. Direksi; dibulatkan 2 desimal = `numeric(5,2)`), rerata KPI via `kpiAvgOf` (presisi
+  > penuh — bulatkan hanya di akhir), klasifikasi atas nilai TERBULAT (`roundScore`). Angka yang
+  > DITAMPILKAN = `displayedFinalOf`: laporan **final** → `final_reports.final_score` tersimpan (yang
+  > dilihat pegawai), selain itu angka hidup. Hanya Review Hasil Akhir menampilkan selisihnya
+  > (`hasScoreDrift`, ≥0.01). Dashboard selalu memotong punishment; mode "semua kuartal" = rata-rata
+  > Skor Akhir PER KUARTAL. **Jangan** hitung Skor Akhir/rerata KPI manual di halaman — pakai helper ini.
 - **Skor 360° resmi** (`result_360.score`) = `score_raw` (rumus `weightedScore360`) **dikurangi potongan
-  keterlambatan menilai** (flat −3 bila ≥1 kewajiban Wajib "belum selesai saat deadline" — mencakup
-  terkirim-telat MAUPUN tak pernah dikirim sama sekali, 2026-09-29; min 0; migrasi 0036, rumus
-  `lib/late.ts` + `tests/late.test.ts`). Waktu kirim pertama (`first_submitted_at`) diisi **trigger DB**,
+  keterlambatan menilai** (flat −3 bila ≥1 kewajiban "belum selesai saat deadline" — mencakup
+  terkirim-telat MAUPUN tak pernah dikirim sama sekali; kewajiban = pemetaan **Wajib** + **AJUAN**
+  (Opsional hasil permohonan pegawai yang disetujui HRD, dikenali dari `relation_correction_requests`
+  kind='add' approved; ditampilkan terpisah di Kepatuhan; **berlaku untuk periode mulai 2026-07-01 / Q3
+  2026 dst.** — `AJUAN_PENALTY_FROM`; Ad-Hoc Mandiri lama tak terdampak); min 0; migrasi 0036, rumus `lib/late.ts` +
+  `tests/late.test.ts`). HRD bisa **mengubah nilai potongan** per pegawai (`late_penalty_waivers.points`,
+  migrasi 0043; 0 = dikecualikan; alasan wajib). Waktu kirim pertama (`first_submitted_at`) diisi **trigger DB**,
   bukan klien — jangan tulis/andalkan nilai dari app. Route cron tersedia di
   `app/api/cron/late-penalty/route.ts` (panggil `refreshLatePenalties`, hanya memperbarui
   `result_360` yang **sudah ada**, tak menghitung dari nol) tapi **DINONAKTIFKAN SEMENTARA**
   (2026-09-29, permintaan pengguna) — `vercel.json` **sengaja tidak ada** jadi tak terjadwal;
-  HRD masih sanggup menangani manual. Sampai kondisi berubah, potongan −3 untuk yang **tak
-  pernah menilai** hanya masuk ke skor tersimpan lewat aksi HRD (klik "Hitung Ulang Skor 360°",
-  atau ubah deadline periode) — halaman Kepatuhan tetap menampilkan pratinjau live tanpa
-  menunggu ini. Untuk aktifkan lagi: buat ulang `vercel.json` berisi cron `late-penalty` + set
+  sebagai gantinya potongan **diterapkan OTOMATIS** (2026-09-29) saat HRD membuka Flag Kepatuhan /
+  Review Hasil Akhir, dan sebelum tiap simpan/rilis/finalisasi laporan (`computeFinal`) — hasil final
+  tak pernah memakai potongan basi. Cadangan: tombol "Terapkan Potongan ke Skor 360°" di Kepatuhan. Untuk aktifkan lagi: buat ulang `vercel.json` berisi cron `late-penalty` + set
   `CRON_SECRET`.
 - **Klasifikasi talenta Dashboard** (4-Box A/B-Culture/B-KPI/C — **tanpa D**) **dikunci ke satu
   kuartal** lewat filter periode agar KPI, 360°, dan Skor Akhir dari periode sama. Kuartal tanpa 360°
@@ -379,14 +389,15 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
 
 - **Jalankan:** `npm test` (sekali) atau `npm run test:watch` (mode pantau).
 - **Cakupan (99 tes):**
-  - `tests/scoring.test.ts` → `lib/scoring.ts`: `finalScoreOf` (blend 50/50, KPI-only, s360
-    null, punishment, floor 0), `playerClassOf` (KPI×360° ambang 80 → A / B-Culture / B-KPI / C,
+  - `tests/scoring.test.ts` → `lib/scoring.ts`: `finalScoreOf` (blend 50/50, KPI-only, 360°-only,
+    punishment, floor 0, pembulatan 2 desimal), `roundScore`/`kpiAvgOf`/`displayedFinalOf`, `playerClassOf` (KPI×360° ambang 80 → A / B-Culture / B-KPI / C,
     null bila keduanya kosong, nilai hilang <80; **tanpa D**), `kpiBandOf`/`s360BandOf`, `talentBoxOf` (9 kotak).
   - `tests/score360.test.ts` → `lib/score360.ts`: `weightedScore360` **4class** (semua kelas,
     normalisasi bobot, **kelas Bawahan**, **Self dikecualikan**) & **2class** (Internal = rerata
     semua skor Peer+Cross+Bawahan, fallback satu sisi); `round2` (2 desimal).
-  - `tests/trend.test.ts` → `lib/trend.ts`: `trendOf` (empty/unread/stable/up/down/volatile — urut
-    prioritas, toleransi ±2, butuh 3 bulan untuk naik/turun/stabil).
+  - `tests/trend.test.ts` → `lib/trend.ts`: `trendOf` berdasar JUMLAH bulan terisi (kosong = KPI belum
+    ditetapkan; **0 = nilai sungguhan**): 0 → empty · 1 → unread ("Belum terbaca") · 2 → stable/up/down
+    dari dua bulan itu (toleransi ±2) · 3 → stable/up/down/volatile (Fluktuatif hanya bila 3 bulan).
   - `tests/import.test.ts` → `lib/import/parse.ts`: parsing impor Excel **KPI** (`parseKpiRows`,
     `isValidKpiRow`: alias kolom, normalisasi kode uppercase, skor kosong→tak valid, batas 0–100)
     & **pemetaan 360°** (`parseMappingRows`, `classifyMappingRows`: ok/invalid/self/dup, alias,
@@ -412,7 +423,8 @@ DIIZINKAN [0008]) **dan umpan balik 360° mentah lapis 3** (fixture penilaian OT
 baca `assessments`/`assessment_indicator_scores`/`assessment_qual_answers` anggota timnya [0012];
 kontrol positif HRD baca penuh, penilai & target baca miliknya), lalu **menghapus seluruh fixture**
 (finally — termasuk hapus periode uji yang cascade ke seluruh turunan 360°). **AMAN**: tak menyentuh
-data nyata, uji tulis pakai `UPDATE score=score` (idempoten). Total **21 assertion**. Butuh
+data nyata, uji tulis pakai `UPDATE score=score` (idempoten). Total **56 pemeriksaan** (termasuk celah
+0045: HRD terbatas, isi penilaian saat form ditutup, permohonan palsu, bobot ≠ 100, respons suksesi draf, log ACC). Butuh
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` + `SUPABASE_SERVICE_ROLE_KEY` di `.env.local`. Jalankan manual
 pra-rilis (tak di CI — perlu kredensial).
 

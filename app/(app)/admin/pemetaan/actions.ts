@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canAdmin } from '@/lib/auth/roles';
+import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { computeResult360 } from '@/app/(app)/admin/360/actions';
 
@@ -15,8 +15,8 @@ import { computeResult360 } from '@/app/(app)/admin/360/actions';
 async function requireHrd(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
-  if (!canAdmin(me)) return { ok: false as const, error: 'Hanya HRD yang dapat mengelola pemetaan' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
+  if (!canSection(me, 'pemetaan')) return { ok: false as const, error: 'Hanya HRD yang dapat mengelola pemetaan' };
   return { ok: true as const };
 }
 
@@ -293,16 +293,26 @@ export async function reviewCorrection(
   const kind = req.kind ?? 'relation';
 
   if (decision === 'approved') {
+    // Audit 2026-09-30: pemetaan yang diubah SELALU dicari dari pasangan penilai→target yang
+    // TERTULIS di permohonan (yang dilihat HRD), bukan dari mapping_id kiriman pemohon — mapping_id
+    // bisa diisi lewat API dengan pemetaan pasangan LAIN. Aturan pengajuan juga divalidasi ulang.
+    const { data: period } = await supabase.from('periods').select('status').eq('id', req.period_id).maybeSingle();
+    if (period?.status !== 'active') return { ok: false, error: 'Periode permohonan ini sudah tidak aktif — tolak permohonan ini' };
+    if (req.new_relation === 'Self' || (kind !== 'remove' && req.assessor_id === req.target_id)) {
+      return { ok: false, error: 'Permohonan tidak sah (menilai diri sendiri diatur HRD lewat pemetaan) — tolak permohonan ini' };
+    }
+    const { data: pairMap } = await supabase.from('mappings').select('id, relation, is_active, mandatory, is_adhoc')
+      .eq('period_id', req.period_id).eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).maybeSingle();
+
     if (kind === 'relation') {
+      if (!pairMap?.is_active) return { ok: false, error: 'Pemetaan pasangan ini sudah tidak aktif — tolak permohonan ini' };
+      if (pairMap.relation === 'Self') return { ok: false, error: 'Relasi Self tidak dapat dikoreksi lewat permohonan' };
       if (req.new_relation) {
-        // Perbarui relasi mapping (berdasarkan mapping_id, atau pasangan penilai→target).
-        const q = supabase.from('mappings').update({ relation: req.new_relation });
-        const upd = req.mapping_id
-          ? await q.eq('id', req.mapping_id)
-          : await q.eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).eq('period_id', req.period_id);
+        const upd = await supabase.from('mappings').update({ relation: req.new_relation }).eq('id', pairMap.id);
         if (upd.error) return { ok: false, error: 'Gagal memperbarui mapping: ' + upd.error.message };
       }
     } else if (kind === 'remove') {
+      if (!pairMap?.is_active) return { ok: false, error: 'Pemetaan pasangan ini sudah tidak aktif — tolak permohonan ini' };
       // Tolak bila penilaiannya SUDAH dikirim — menonaktifkan pemetaan setelah itu
       // mengubah komposisi penilai & skor 360° yang sudah terbentuk.
       const admin = createAdminClient();
@@ -311,24 +321,28 @@ export async function reviewCorrection(
       if (asmt?.status === 'submitted') {
         return { ok: false, error: 'Penilaian untuk pasangan ini sudah dikirim — pemetaan tak dapat dihapus. Tolak permohonan ini atau hapus lewat Kelola Pemetaan.' };
       }
-      const q = supabase.from('mappings').update({ is_active: false });
-      const upd = req.mapping_id
-        ? await q.eq('id', req.mapping_id)
-        : await q.eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).eq('period_id', req.period_id);
+      const upd = await supabase.from('mappings').update({ is_active: false }).eq('id', pairMap.id);
       if (upd.error) return { ok: false, error: 'Gagal menonaktifkan pemetaan: ' + upd.error.message };
       if (asmt) await admin.from('assessments').delete().eq('id', asmt.id); // draf ikut dibuang
     } else if (kind === 'add') {
       if (!req.new_relation) return { ok: false, error: 'Permohonan tanpa hubungan kerja — tak dapat disetujui' };
+      // Aturan sama dengan saat pegawai mengajukan (request-actions.ts) — dicek ulang di sini karena
+      // baris permohonan bisa disisipkan lewat API tanpa melewati validasi itu.
+      const { data: tgt } = await supabase.from('employees').select('role, is_external, is_active').eq('id', req.target_id).maybeSingle();
+      if (!tgt?.is_active) return { ok: false, error: 'Pegawai yang akan dinilai tidak aktif — tolak permohonan ini' };
+      if (tgt.role === 'direksi') return { ok: false, error: 'Direksi tidak dinilai lewat jalur permohonan — tolak permohonan ini' };
+      if (tgt.is_external) return { ok: false, error: 'Pegawai eksternal tidak dapat dinilai — tolak permohonan ini' };
       // Sudah ada mapping (mis. HRD menambah manual sebelum menyetujui, atau baris Ad-Hoc lama
       // yang dinonaktifkan) → aktifkan & selaraskan.
-      const { data: existing } = await supabase.from('mappings').select('id')
-        .eq('period_id', req.period_id).eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).maybeSingle();
-      // WAJIB + BUKAN ad-hoc: begitu HRD menyetujui, penilaian ini setara pemetaan yang
-      // ditetapkan HRD sendiri (kebijakan sama dengan createMapping) — ia tampil di Kelola
-      // Pemetaan, dihitung di Progress 360 & kepatuhan, dan hanya HRD yang boleh membatalkannya
-      // (pegawai lewat "Ajukan Hapus", bukan tombol hapus sendiri). Bedakan dari Ad-Hoc mandiri
-      // yang tetap opsional & rahasia.
-      const fields = { relation: req.new_relation, mandatory: true, is_adhoc: false, is_active: true };
+      const existing = pairMap;
+      // OPSIONAL + BUKAN ad-hoc (kebijakan 2026-09-29): penilaian atas inisiatif pegawai yang
+      // disetujui HRD tampil di Kelola Pemetaan & Progress 360. Ia TETAP ikut
+      // potongan keterlambatan bila tak dituntaskan sebelum deadline ("ajuan", lib/late-server —
+      // dikenali dari permohonan kind='add' yang disetujui, 2026-09-29). Pengecualian: bila HRD sudah lebih dulu
+      // menugaskan pasangan ini sebagai Wajib (baris aktif non-ad-hoc), sifat Wajib-nya dipertahankan
+      // — persetujuan tak boleh menurunkan penugasan HRD.
+      const keepMandatory = !!(existing?.is_active && !existing.is_adhoc && existing.mandatory);
+      const fields = { relation: req.new_relation, mandatory: keepMandatory, is_adhoc: false, is_active: true };
       const res = existing
         ? await supabase.from('mappings').update(fields).eq('id', existing.id)
         : await supabase.from('mappings').insert({

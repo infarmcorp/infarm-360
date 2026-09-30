@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { canAdmin } from '@/lib/auth/roles';
+import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import type { WeightValues } from '@/lib/database.types';
 
@@ -13,7 +13,7 @@ import type { WeightValues } from '@/lib/database.types';
  * Memengaruhi computeResult360 (perlu Hitung Ulang Skor 360 setelah ubah).
  * RLS weight_schemes write = HRD. Indeks unik menjaga 1 skema aktif/periode.
  */
-const Input = z.object({
+const BaseInput = z.object({
   model: z.enum(['4class', '2class']),
   atasan: z.coerce.number().min(0).max(100),
   peer: z.coerce.number().min(0).max(100),
@@ -22,6 +22,17 @@ const Input = z.object({
   self: z.coerce.number().min(0).max(100),
   internal: z.coerce.number().min(0).max(100),
 });
+
+/**
+ * Total bobot kelas yang DIHITUNG wajib tepat 100% (audit 2026-09-29). Self tak ikut (dikecualikan
+ * dari Skor 360° resmi). Sebelumnya total bebas & dinormalisasi diam-diam; semua 0 → pegawai
+ * hilang dari result_360 tanpa pesan.
+ */
+const weightTotal = (v: z.infer<typeof BaseInput>): number =>
+  v.model === '4class' ? v.atasan + v.peer + v.cross + v.bawahan : v.atasan + v.internal;
+const TOTAL_100 = { message: 'Total bobot kelas penilai (tanpa Self) harus tepat 100%' };
+const is100 = (v: z.infer<typeof BaseInput>) => Math.abs(weightTotal(v) - 100) < 1e-9;
+const Input = BaseInput.refine(is100, TOTAL_100);
 
 export type SaveResult = { ok: true } | { ok: false; error: string };
 
@@ -33,8 +44,8 @@ export async function saveWeights(raw: unknown): Promise<SaveResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
-  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
+  if (!canSection(me, 'bobot')) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
 
   const { data: ap } = await supabase
     .from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
@@ -49,7 +60,9 @@ export async function saveWeights(raw: unknown): Promise<SaveResult> {
 
   if (existing) {
     const { error } = await supabase.from('weight_schemes')
-      .update({ model: v.model, weights, updated_by: user.id }).eq('id', existing.id);
+      // updated_at eksplisit (default kolom hanya berlaku saat insert) — dipakai Review Hasil Akhir
+      // untuk menandai "perlu hitung ulang" bila bobot berubah sesudah Skor 360° terakhir dihitung.
+      .update({ model: v.model, weights, updated_by: user.id, updated_at: new Date().toISOString() }).eq('id', existing.id);
     if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
   } else {
     const { error } = await supabase.from('weight_schemes')
@@ -67,7 +80,7 @@ export async function saveWeights(raw: unknown): Promise<SaveResult> {
 }
 
 // ── Bobot KHUSUS per pegawai (override skema periode, migrasi 0031) ─────────────────────────────
-const OverrideInput = Input.extend({ employeeId: z.string().uuid() });
+const OverrideInput = BaseInput.extend({ employeeId: z.string().uuid() }).refine(is100, TOTAL_100);
 
 /**
  * Simpan bobot KHUSUS untuk seorang pegawai pada periode aktif (upsert per (periode, pegawai)).
@@ -81,8 +94,8 @@ export async function saveEmployeeWeightOverride(raw: unknown): Promise<SaveResu
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
-  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
+  if (!canSection(me, 'bobot')) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
 
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
@@ -118,8 +131,8 @@ export async function removeEmployeeWeightOverride(employeeId: unknown): Promise
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
-  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
+  if (!canSection(me, 'bobot')) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
 
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };

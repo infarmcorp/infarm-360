@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
-import { finalScoreOf } from '@/lib/scoring';
+import { finalScoreOf, kpiAvgOf, hasScoreDrift } from '@/lib/scoring';
 import { ReportTable, type ReportRow } from './report-table';
 import { Recompute360Button } from './recompute-360-button';
 import { ResyncDriftButton } from './resync-drift-button';
 import { BulkFinalizeButton } from './bulk-finalize-button';
 import { Panel } from '@/components/panel';
+import { loadPendingLatePenalties, refreshLatePenalties } from '@/lib/late-server';
 
 /**
  * Review Hasil Akhir (HRD): hitung Skor Akhir tiap pegawai, lihat ACC SPV & status,
@@ -40,7 +41,7 @@ export default async function AdminLaporanPage() {
     grantCanFinalize = !!access?.canFinalize;
   }
   if (!isHrdFull && !reviewScopes) {
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin atau pemegang akses Review Hasil Akhir.</p>
+    return <Shell><p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin atau pemegang akses Review & Finalisasi.</p>
       <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
@@ -78,13 +79,17 @@ export default async function AdminLaporanPage() {
     ? await fetchAllPaged<{ employee_id: string; score: number; ym: string }>((from, to) =>
         db.from('kpi_scores').select('employee_id, score, ym').in('ym', yms).order('employee_id').order('ym').range(from, to))
     : [];
-  const kpiAgg = new Map<string, { sum: number; n: number }>();
+  const kpiValsBy = new Map<string, number[]>(); // nilai KPI bulanan per pegawai → kpiAvgOf
   const kpiMonthsByEmp = new Map<string, Set<string>>(); // bulan yang sudah ada KPI per pegawai
   kpiRows.forEach((r) => {
-    const a = kpiAgg.get(r.employee_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n++; kpiAgg.set(r.employee_id, a);
+    kpiValsBy.set(r.employee_id, [...(kpiValsBy.get(r.employee_id) ?? []), Number(r.score)]);
     const s = kpiMonthsByEmp.get(r.employee_id) ?? new Set<string>(); s.add(r.ym); kpiMonthsByEmp.set(r.employee_id, s);
   });
 
+  // Potongan keterlambatan diterapkan OTOMATIS saat HRD membuka halaman ini (pengganti cron nonaktif,
+  // keputusan HRD 2026-09-29) — angka 360°/Skor Akhir yang ditinjau sudah memuat potongan terbaru.
+  // Gagal → tak memblokir halaman; sisa yang tertunda tetap diperingatkan di kokpit di bawah.
+  if (isHrdFull && ap.has_360) { try { await refreshLatePenalties(ap.id); } catch { /* diperingatkan via pendingLate */ } }
   const { data: r360 } = await db.from('result_360').select('employee_id, score, computed_at').eq('period_id', ap.id);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
   // computed_at per pegawai → deteksi "perlu hitung ulang" (penilaian berubah setelah hitung).
@@ -137,12 +142,31 @@ export default async function AdminLaporanPage() {
     if (!cur || c.reviewed_at > cur) maxReviewedByTarget.set(c.target_id, c.reviewed_at);
   });
 
+  // Perubahan BOBOT sesudah hitung terakhir juga membuat Skor 360° usang: skema periode
+  // (weight_schemes.updated_at), bobot khusus per pegawai (updated_at), dan penghapusan bobot khusus
+  // (tercatat di log aktivitas HRD). Data konfigurasi → dibaca via service_role.
+  const cfg = createAdminClient();
+  const [{ data: wsRow }, { data: ovrRows }, { data: ovrRemoved }] = await Promise.all([
+    cfg.from('weight_schemes').select('updated_at').eq('period_id', ap.id).eq('is_active', true).maybeSingle(),
+    cfg.from('employee_weight_overrides').select('employee_id, updated_at').eq('period_id', ap.id),
+    cfg.from('hrd_audit_log').select('target_id, created_at').eq('action', 'weights.override_remove'),
+  ]);
+  const weightsChangedAt = wsRow?.updated_at ?? null;
+  const ovrChangedBy = new Map<string, string>();
+  const bumpOvr = (id: string | null, at: string | null) => {
+    if (!id || !at) return;
+    const cur = ovrChangedBy.get(id);
+    if (!cur || Date.parse(at) > Date.parse(cur)) ovrChangedBy.set(id, at);
+  };
+  (ovrRows ?? []).forEach((o) => bumpOvr(o.employee_id, o.updated_at));
+  (ovrRemoved ?? []).forEach((l) => bumpOvr(l.target_id, l.created_at));
+  const after = (a: string | null, b: string | null) => a != null && b != null && Date.parse(a) > Date.parse(b);
+
   const rows: ReportRow[] = employees.map((e) => {
-    const agg = kpiAgg.get(e.id);
-    const kpiAvg = agg ? agg.sum / agg.n : null;
+    const kpiAvg = kpiAvgOf(kpiValsBy.get(e.id) ?? []);
     const s360 = s360By.get(e.id) ?? null;
     const penalty = penBy.get(e.id) ?? 0;
-    const final = finalScoreOf(kpiAvg, s360, ap.has_360, penalty, true); // allow360Only: subjek ber-360°-tanpa-KPI (mis. Direksi) → skor dari 360°
+    const final = finalScoreOf(kpiAvg, s360, ap.has_360, penalty); // rumus resmi tunggal (tanpa KPI → 360° saja)
     const rep = repBy.get(e.id);
     // Perlu hitung ulang 360°: ada penilaian dikirim/diubah setelah result_360 terakhir dihitung
     // (atau sudah ada penilaian tapi belum pernah dihitung). Hanya relevan saat 360° aktif.
@@ -152,7 +176,8 @@ export default async function AdminLaporanPage() {
     const staleByAssessment = maxSub != null && (computedAt == null || maxSub > computedAt);
     // Koreksi relevan hanya RELATIF terhadap hitung sebelumnya (butuh computedAt).
     const staleByCorrection = maxReviewed != null && computedAt != null && maxReviewed > computedAt;
-    const needsRecompute = ap.has_360 && (staleByAssessment || staleByCorrection);
+    const staleByWeights = after(weightsChangedAt, computedAt) || after(ovrChangedBy.get(e.id) ?? null, computedAt);
+    const needsRecompute = ap.has_360 && (staleByAssessment || staleByCorrection || staleByWeights);
     // Bulan KPI yang belum terisi (untuk indikator "X/Y bulan" + konfirmasi finalisasi).
     const presentMonths = kpiMonthsByEmp.get(e.id) ?? new Set<string>();
     const missingMonths = sortedMonths.filter((m) => !presentMonths.has(m));
@@ -185,17 +210,23 @@ export default async function AdminLaporanPage() {
   const accReadyCount = accReady.length;
   const accStaleCount = accReady.filter((r) => r.needsRecompute).length;
   // "berubah → N": laporan sudah Final tapi Skor Akhir tersimpan ≠ Skor Akhir live (KPI/360°/
-  // punishment berubah setelah finalisasi) → perlu finalisasi ulang (langkah ②). Ambang 0.05
+  // punishment berubah setelah finalisasi) → perlu finalisasi ulang (langkah ②). hasScoreDrift
   // selaras badge di tabel. Ini state BERBEDA dari staleCount (Skor 360° usang, langkah ①).
-  const driftCount = shownRows.filter((r) =>
-    r.status === 'finalized' && r.final != null && r.storedFinal != null && Math.abs(r.final - r.storedFinal) >= 0.05,
-  ).length;
+  const driftCount = shownRows.filter((r) => r.status === 'finalized' && hasScoreDrift(r.final, r.storedFinal)).length;
+  // Potongan keterlambatan yang belum masuk Skor 360° tersimpan (cron nonaktif) → diterapkan di
+  // halaman Flag Kepatuhan. Diperingatkan di sini agar tak terlanjur difinalisasi tanpa potongan.
+  const pendingLate = isHrdFull && ap.has_360 ? (await loadPendingLatePenalties(ap.id)).length : 0;
 
   return (
     <Shell>
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Review Hasil Akhir</h1>
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink flex items-center gap-2">
+            Review &amp; Finalisasi
+            {!isHrdFull && !grantCanEdit && (
+              <span className="text-[10px] font-semibold uppercase tracking-[0.05em] px-2 py-0.5 rounded-control border bg-neutral-tint text-ink-soft border-line">Lihat-saja</span>
+            )}
+          </h1>
           <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span> · {isHrdFull ? 'finalisasi Skor Akhir kalibrasi.' : grantCanFinalize ? 'akses dari HRD — boleh tinjau & finalisasi (lingkup terbatas).' : grantCanEdit ? 'akses dari HRD — boleh tinjau & meringkas, tanpa finalisasi (lingkup terbatas).' : 'lihat-saja (akses dari HRD, lingkup terbatas).'}</p>
         </div>
         <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
@@ -208,7 +239,7 @@ export default async function AdminLaporanPage() {
       <div className="mb-5 rounded-panel border border-line bg-neutral-tint p-3 space-y-2.5">
         <div className="flex items-center gap-2">
           <h2 className="text-[11px] font-semibold text-ink-soft uppercase tracking-[0.05em]">Sinkronkan Skor</h2>
-          {ap.has_360 && staleCount === 0 && driftCount === 0 && (
+          {ap.has_360 && staleCount === 0 && driftCount === 0 && pendingLate === 0 && (
             <span className="text-[11px] font-semibold text-brand-ink">✓ semua skor mutakhir</span>
           )}
         </div>
@@ -231,6 +262,12 @@ export default async function AdminLaporanPage() {
           )}
           <ResyncDriftButton count={driftCount} />
         </div>
+        {pendingLate > 0 && (
+          <p className="text-[11px] text-warn-ink font-semibold">
+            ⚠ {pendingLate} pegawai: potongan keterlambatan menilai belum masuk Skor 360° —{' '}
+            <Link href="/admin/kepatuhan" className="underline hover:no-underline">terapkan di Flag Kepatuhan</Link> sebelum finalisasi.
+          </p>
+        )}
 
         {/* Baris sekunder: finalisasi massal ber-ACC + pintasan Bobot/Flag. */}
         <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-line">
@@ -249,7 +286,7 @@ export default async function AdminLaporanPage() {
           Klik <strong>Tinjau</strong> untuk membuka & mengelola laporan pegawai (Simpan Draf → Rilis ke SPV →
           Finalisasi) di panel detail. Setelah <strong>Final</strong>, kolom Skor Akhir menampilkan angka
           tersimpan yang dilihat pegawai; badge <strong>berubah</strong> muncul bila data terkini berbeda —
-          tekan <strong>② Finalisasi Ulang Berubah</strong> di atas untuk menyegarkan semuanya sekaligus
+          tekan <strong>② Perbarui Laporan Final yang Berubah</strong> di atas untuk menyegarkan semuanya sekaligus
           (atau kembalikan satu laporan ke draf lalu finalisasi ulang manual).
         </p>
       ) : grantCanFinalize ? (

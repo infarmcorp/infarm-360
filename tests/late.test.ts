@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   LATE_PENALTY_360, submitTimingOf, isPenalizableLate, latePenaltyOf, apply360Penalty,
-  isPastDeadline, formatWib, toWibInput, type LateCandidate,
+  isPastDeadline, formatWib, toWibInput, ajuanPenaltyApplies, type LateCandidate,
 } from '@/lib/late';
 
 // Deadline 30 Sep 2026 17:00 WIB = 10:00 UTC.
@@ -45,6 +45,13 @@ describe('isPenalizableLate — terkirim (submitted)', () => {
   it('tanpa deadline → tidak pernah terhitung', () => {
     expect(isPenalizableLate(base, null, AFTER_DL)).toBe(false);
   });
+  it('AJUAN (opsional hasil permohonan disetujui HRD) ikut terhitung', () => {
+    expect(isPenalizableLate({ ...base, mandatory: false, requested: true, firstSubmittedAt: '2026-09-30T11:00:00Z' }, DL, AFTER_DL)).toBe(true);
+    expect(isPenalizableLate({ ...base, mandatory: false, requested: true, status: 'not_started', firstSubmittedAt: null }, DL, AFTER_DL)).toBe(true);
+    // Ad-Hoc Mandiri lama tetap tidak, walau ditandai ajuan.
+    expect(isPenalizableLate({ ...base, mandatory: false, requested: true, isAdhoc: true, firstSubmittedAt: '2026-09-30T11:00:00Z' }, DL, AFTER_DL)).toBe(false);
+  });
+
   it('dikecualikan: opsional, ad-hoc, paksa selesai HRD', () => {
     expect(isPenalizableLate({ ...base, mandatory: false }, DL, AFTER_DL)).toBe(false);
     expect(isPenalizableLate({ ...base, isAdhoc: true }, DL, AFTER_DL)).toBe(false);
@@ -89,14 +96,17 @@ describe('isPenalizableLate — draft / belum mulai (celah 2026-09-28)', () => {
 });
 
 describe('latePenaltyOf — flat, sekali per periode', () => {
-  it('0 terlambat → 0; ≥1 → 3 (tidak dikali jumlah)', () => {
+  it('0 terlambat → 0; ≥1 → 3 otomatis (tidak dikali jumlah)', () => {
     expect(LATE_PENALTY_360).toBe(3);
-    expect(latePenaltyOf(0, false)).toBe(0);
-    expect(latePenaltyOf(1, false)).toBe(3);
-    expect(latePenaltyOf(7, false)).toBe(3);
+    expect(latePenaltyOf(0)).toBe(0);
+    expect(latePenaltyOf(1)).toBe(3);
+    expect(latePenaltyOf(7)).toBe(3);
   });
-  it('pengecualian HRD → 0', () => {
-    expect(latePenaltyOf(2, true)).toBe(0);
+  it('nilai yang DITETAPKAN HRD menggantikan otomatis (0 = dikecualikan)', () => {
+    expect(latePenaltyOf(2, 0)).toBe(0);
+    expect(latePenaltyOf(2, 1.5)).toBe(1.5);
+    expect(latePenaltyOf(0, 2)).toBe(2);     // keputusan eksplisit HRD tetap berlaku
+    expect(latePenaltyOf(2, null)).toBe(3);  // tanpa campur tangan → otomatis
   });
 });
 
@@ -121,5 +131,14 @@ describe('waktu WIB', () => {
     expect(formatWib(null)).toBe('—');
     expect(toWibInput(DL)).toBe('2026-09-30T17:00');
     expect(toWibInput(null)).toBe('');
+  });
+});
+
+describe('ajuanPenaltyApplies — aturan ajuan berlaku Q3 2026 dst.', () => {
+  it('periode mulai sebelum 1 Jul 2026 → tidak berlaku; sesudahnya → berlaku', () => {
+    expect(ajuanPenaltyApplies('2026-04-01')).toBe(false); // Q2 2026
+    expect(ajuanPenaltyApplies('2026-07-01')).toBe(true);  // Q3 2026
+    expect(ajuanPenaltyApplies('2027-01-01')).toBe(true);
+    expect(ajuanPenaltyApplies(null)).toBe(false);
   });
 });

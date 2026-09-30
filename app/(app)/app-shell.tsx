@@ -89,7 +89,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
     if (pelaksanaan.length) sections.push({ title: 'Pelaksanaan', items: pelaksanaan });
 
     const hasil = filterAdmin([
-      { href: '/admin/laporan', label: 'Review Hasil Akhir', icon: ClipboardCheck, section: 'laporan' },
+      { href: '/admin/laporan', label: 'Review & Finalisasi', icon: ClipboardCheck, section: 'laporan' },
       { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award, section: 'suksesi' },
     ]);
     if (hasil.length) sections.push({ title: 'Hasil & Tindak Lanjut', items: hasil });
@@ -120,7 +120,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
       items: [
         { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
         { href: '/laporan-tim', label: 'Laporan Kinerja Tim', icon: Users },
-        { href: '/review-hasil', label: 'Review Hasil Akhir', icon: ClipboardCheck },
+        { href: '/review-hasil', label: 'Tinjauan Hasil Akhir', icon: ClipboardCheck },
         { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText },
         { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award },
       ],
@@ -136,7 +136,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
       grantItems.push({ href: '/admin/monitor', label: 'Monitor Kinerja Pegawai', icon: TrendingUp });
     }
     if (pageGrants.some((g) => g.section === 'review')) {
-      grantItems.push({ href: '/admin/laporan', label: 'Review Hasil Akhir', icon: ClipboardCheck });
+      grantItems.push({ href: '/admin/laporan', label: 'Review & Finalisasi', icon: ClipboardCheck });
     }
     if (pageGrants.some((g) => g.section === 'dashboard')) {
       grantItems.push({ href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard });

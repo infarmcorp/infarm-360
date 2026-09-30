@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canAdmin } from '@/lib/auth/roles';
+import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 import { classOf, avg, round2, weightedScore360, resolveWeightScheme, type Groups360, type WeightScheme } from '@/lib/score360';
@@ -28,8 +28,9 @@ export async function computeResult360(): Promise<ComputeResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
-  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat menghitung skor 360' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
+  // Dipicu dari Review & Finalisasi (Hitung Ulang), Bobot, dan persetujuan koreksi Pemetaan.
+  if (!(canSection(me, 'laporan') || canSection(me, 'bobot') || canSection(me, 'pemetaan'))) return { ok: false, error: 'Hanya HRD yang dapat menghitung skor 360' };
 
   // 2) Komputasi pakai service_role (baca semua + tulis result_360).
   const admin = createAdminClient();
@@ -129,10 +130,29 @@ export async function computeResult360(): Promise<ComputeResult> {
   const { error } = await admin.from('result_360').upsert(rows, { onConflict: 'employee_id,period_id' });
   if (error) return { ok: false, error: 'Gagal menulis result_360: ' + error.message };
 
+  // Buang Skor 360° YATIM: pegawai yang punya baris result_360 periode ini tetapi kini tak punya
+  // penilaian terkirim yang bisa dihitung (mis. semua penilaiannya dihapus/pemetaannya dicabut).
+  // Tanpa ini angka lama bertahan & terus dipakai Skor Akhir (audit 2026-09-29).
+  let removed = 0;
+  try {
+    const computedIds = new Set(rows.map((r) => r.employee_id));
+    const existing = await fetchAllPaged<{ employee_id: string }>((from, to) =>
+      admin.from('result_360').select('employee_id').eq('period_id', ap.id).order('employee_id').range(from, to));
+    const orphanIds = existing.map((r) => r.employee_id).filter((id) => !computedIds.has(id));
+    for (let i = 0; i < orphanIds.length; i += 150) {
+      const chunk = orphanIds.slice(i, i + 150);
+      const { error: dErr } = await admin.from('result_360').delete().eq('period_id', ap.id).in('employee_id', chunk);
+      if (dErr) throw new Error(dErr.message);
+      removed += chunk.length;
+    }
+  } catch (e) {
+    return { ok: false, error: 'Skor tersimpan, tetapi gagal membersihkan skor 360° lama: ' + (e instanceof Error ? e.message : String(e)) };
+  }
+
   await logHrdAction({
     action: 'score360.recompute', category: 'skor',
-    summary: `Menghitung ulang Skor 360° periode "${ap.label}" (${rows.length} pegawai, model ${ws.model === '4class' ? '4-Kelas' : '2-Kelas'})`,
-    targetType: 'period', targetId: ap.id, targetLabel: ap.label, meta: { computed: rows.length, model: ws.model, late_penalized: rows.filter((r) => r.late_penalty > 0).length },
+    summary: `Menghitung ulang Skor 360° periode "${ap.label}" (${rows.length} pegawai, model ${ws.model === '4class' ? '4-Kelas' : '2-Kelas'})${removed ? ` · ${removed} skor lama tanpa penilaian dihapus` : ''}`,
+    targetType: 'period', targetId: ap.id, targetLabel: ap.label, meta: { computed: rows.length, removed_orphans: removed, model: ws.model, late_penalized: rows.filter((r) => r.late_penalty > 0).length },
   });
   revalidatePath('/admin/bobot');
   revalidatePath('/admin/dashboard');

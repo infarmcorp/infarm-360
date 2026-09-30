@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { loadReport } from '@/lib/report';
 import { ReportDoc } from './report-doc';
 import { AspectSummaryView } from './aspect-summary-view';
@@ -60,7 +60,10 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
   // Periode terpilih: dari ?period= bila valid (harus ber-laporan final), else terbaru.
   const selected = list.find((p) => p.id === periodParam) ?? list[0];
 
-  const data = await loadReport(supabase, user.id, { id: selected.id, label: selected.label, has_360: selected.has_360 });
+  // Dibaca via service_role: sejak migrasi 0041 pegawai yang DINILAI tak lagi boleh membaca baris 360°
+  // mentah (identitas penilai) lewat RLS. Aman — `selected` sudah dibatasi ke laporan FINAL miliknya
+  // sendiri (query user-scoped di atas, RLS fr_read), dan data mentah dibuang sebelum render (`safe`).
+  const data = await loadReport(createAdminClient(), user.id, { id: selected.id, label: selected.label, has_360: selected.has_360 });
   if (!data) return <Shell><p className="text-sm text-ink-soft">Data laporan tidak ditemukan.</p></Shell>;
 
   // Buang lapis 3 (komentar mentah per penilai) sebelum render — pegawai hanya melihat

@@ -6,7 +6,8 @@ import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import { KepatuhanTable } from './kepatuhan-table';
 import { Panel } from '@/components/panel';
-import { loadLateSummaries } from '@/lib/late-server';
+import { loadLateSummaries, loadPendingLatePenalties, refreshLatePenalties } from '@/lib/late-server';
+import { ApplyLateButton } from './apply-late-button';
 import { formatWib, LATE_PENALTY_360 } from '@/lib/late';
 
 /**
@@ -14,7 +15,6 @@ import { formatWib, LATE_PENALTY_360 } from '@/lib/late';
  * - Belum Kirim: penilaian WAJIB (mapping mandatory) yang belum terkirim.
  * - Kirim Terlambat (migrasi 0036): penilaian wajib yang KIRIM PERTAMA-nya sesudah deadline →
  *   potongan flat −3 pada Skor 360° penilai (otomatis; HRD bisa mengecualikan, alasan wajib).
- * - Flag Self Assessment: pegawai belum mengisi penilaian diri sendiri (assessor=target).
  * - Punishment: input poin pengurangan → compliance_penalties (memotong Skor Akhir).
  */
 export default async function KepatuhanPage() {
@@ -60,28 +60,31 @@ export default async function KepatuhanPage() {
   const asmts = await fetchAllPaged<{ assessor_id: string; target_id: string }>((from, to) =>
     db.from('assessments').select('assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted').order('assessor_id').order('target_id').range(from, to));
   const submitted = new Set(asmts.map((a) => `${a.assessor_id}:${a.target_id}`));
-  const selfDone = new Set(asmts.filter((a) => a.assessor_id === a.target_id).map((a) => a.assessor_id));
-  // BR-03: Not Eligible → kewajiban gugur, TAK dihitung "Belum Kirim".
-  const notEligible = await fetchAllPaged<{ assessor_id: string; target_id: string }>((from, to) =>
-    db.from('assessments').select('assessor_id, target_id').eq('period_id', ap.id).eq('exposure_status', 'not_eligible').order('assessor_id').order('target_id').range(from, to));
-  const notEligibleSet = new Set(notEligible.map((a) => `${a.assessor_id}:${a.target_id}`));
+  // Siapa-menilai-siapa HANYA untuk HRD (keputusan 2026-09-29): pemegang grant non-HRD hanya melihat
+  // JUMLAH, bukan nama target — nama dikosongkan di SERVER agar tak ikut terkirim ke browser.
+  const targetName = (id: string) => (viaGrant ? '' : nameById.get(id) ?? '—');
 
   const { data: pen } = await db
     .from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id);
   const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
 
   // Keterlambatan kirim (service_role; halaman ini sudah terotorisasi di atas).
+  // Potongan diterapkan OTOMATIS saat HRD membuka halaman ini (pengganti cron nonaktif, 2026-09-29).
+  // Gagal → tak memblokir; sisa tertunda tampil di banner + tombol cadangan di bawah.
+  if (!viaGrant) { try { await refreshLatePenalties(ap.id); } catch { /* tampil sebagai tertunda */ } }
   const { deadline, byAssessor: lateBy } = await loadLateSummaries(ap.id);
+  // Potongan yang BELUM masuk Skor 360° tersimpan (cron nonaktif) — dalam lingkup halaman ini.
+  const inScope = new Set(employees.map((e) => e.id));
+  const pendingLate = (await loadPendingLatePenalties(ap.id, lateBy)).filter((p) => inScope.has(p.employeeId));
 
   const rows = employees.map((e) => {
     const lateTargets = maps
       .filter((m) => m.assessor_id === e.id && m.mandatory
-        && !submitted.has(`${e.id}:${m.target_id}`) && !notEligibleSet.has(`${e.id}:${m.target_id}`))
-      .map((m) => nameById.get(m.target_id) ?? '—');
+        && !submitted.has(`${e.id}:${m.target_id}`))
+      .map((m) => targetName(m.target_id));
     return {
       id: e.id, name: e.name, dept: e.dept,
       lateCount: lateTargets.length, lateTargets,
-      selfMissing: !selfDone.has(e.id),
       points: penBy.get(e.id) ?? 0,
       // Tampilan "Kirim Terlambat" HANYA yang benar-benar sudah kirim (telat) — yang belum
       // kirim sama sekali sudah tampil di kartu "Belum Kirim" di atas. Potongan (latePenalty)
@@ -89,17 +92,23 @@ export default async function KepatuhanPage() {
       // ganda/membingungkan.
       lateSubmitted: (lateBy.get(e.id)?.late ?? [])
         .filter((l) => l.firstSubmittedAt)
-        .map((l) => `${nameById.get(l.targetId) ?? '—'} · ${formatWib(l.firstSubmittedAt)}`),
+        .map((l) => (viaGrant ? '' : `${targetName(l.targetId)} · ${formatWib(l.firstSubmittedAt)}`)),
       latePenalty: lateBy.get(e.id)?.penalty ?? 0,
-      lateWaived: lateBy.get(e.id)?.waived ?? false,
+      lateAuto: lateBy.get(e.id)?.auto ?? 0,
+      lateOverride: lateBy.get(e.id)?.override ?? null,
       lateWaiveReason: lateBy.get(e.id)?.waiveReason ?? null,
+      lateWajib: (lateBy.get(e.id)?.late ?? []).filter((l) => l.kind === 'wajib').length,
+      lateAjuan: (lateBy.get(e.id)?.late ?? []).filter((l) => l.kind === 'ajuan').length,
+      ajuanPending: (lateBy.get(e.id)?.late ?? [])
+        .filter((l) => l.kind === 'ajuan' && !l.firstSubmittedAt)
+        .map((l) => targetName(l.targetId)),
     };
   }).sort((a, b) => b.lateCount - a.lateCount || a.name.localeCompare(b.name));
 
   const totalLate = rows.filter((r) => r.lateCount > 0).length;
-  const totalSelfMissing = rows.filter((r) => r.selfMissing).length;
   const totalPunished = rows.filter((r) => r.points > 0).length;
   const totalLateSubmit = rows.filter((r) => r.lateSubmitted.length > 0).length;
+  const totalAjuan = rows.filter((r) => r.lateAjuan > 0).length;
 
   return (
     <Shell>
@@ -115,6 +124,16 @@ export default async function KepatuhanPage() {
         <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
 
+      {pendingLate.length > 0 && (
+        <div className="mb-5 border border-warn-ink/25 bg-warn-tint rounded-panel p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <p className="text-[12.5px] text-warn-ink leading-relaxed">
+            <strong>{pendingLate.length} pegawai</strong> punya potongan keterlambatan yang <strong>belum masuk Skor 360°</strong> tersimpan
+            (mis. penilai yang belum mengirim sampai deadline lewat). Terapkan sebelum memfinalisasi laporan.
+          </p>
+          {!viaGrant && <ApplyLateButton pending={pendingLate.length} />}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
         <div className="border border-line rounded-panel bg-surface p-3 text-center">
           <div className="text-xl font-bold data-value text-danger-ink">{totalLate}</div>
@@ -124,9 +143,10 @@ export default async function KepatuhanPage() {
           <div className="text-xl font-bold data-value text-warn-ink">{totalLateSubmit}</div>
           <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Kirim terlambat</div>
         </div>
-        <div className="border border-line rounded-panel bg-surface p-3 text-center">
-          <div className="text-xl font-bold data-value text-warn-ink">{totalSelfMissing}</div>
-          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Belum self-assessment</div>
+        <div className="border border-line rounded-panel bg-surface p-3 text-center"
+          title="Penilaian Opsional yang diajukan pegawai sendiri & disetujui HRD, tapi belum selesai saat deadline — ikut kena potongan.">
+          <div className="text-xl font-bold data-value text-warn-ink">{totalAjuan}</div>
+          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Kena potongan krn ajuan</div>
         </div>
         <div className="border border-line rounded-panel bg-surface p-3 text-center">
           <div className="text-xl font-bold data-value text-ink">{totalPunished}</div>
@@ -138,16 +158,17 @@ export default async function KepatuhanPage() {
         <KepatuhanTable rows={rows} readOnly={viaGrant} />
       </Panel>
       <p className="text-[11px] text-ink-faint mt-5 leading-relaxed">
-        Default menampilkan pegawai yang <strong className="font-semibold text-ink-soft">perlu perhatian</strong> (penilaian wajib telat, belum
-        self-assessment, atau sudah punya punishment). &quot;Belum Kirim&quot; = penilaian bersifat Wajib (mapping)
-        yang belum dikirim (arahkan kursor untuk daftar nama) — kewajiban ber-status <strong className="font-semibold text-ink-soft">Not Eligible</strong> pada
-        Exposure Check (BR-03) sudah gugur & dikeluarkan dari hitungan ini. &quot;Kirim Terlambat&quot; = penilaian Wajib yang pertama kali
-        dikirim sesudah deadline (arahkan kursor untuk nama &amp; waktu kirim).
+        Default menampilkan pegawai yang <strong className="font-semibold text-ink-soft">perlu perhatian</strong> (penilaian wajib/ajuan belum
+        selesai, terlambat, atau sudah punya potongan/punishment). &quot;Belum Kirim&quot; = penilaian bersifat Wajib (mapping)
+        yang belum dikirim{viaGrant ? '' : ' (arahkan kursor untuk daftar nama)'}. &quot;Kirim Terlambat&quot; = penilaian Wajib yang pertama kali
+        dikirim sesudah deadline{viaGrant ? '' : ' (arahkan kursor untuk nama & waktu kirim)'}.
         <strong className="font-semibold text-ink-soft"> Potongan Skor 360° {LATE_PENALTY_360} poin (otomatis, sekali per periode)</strong> berlaku
         untuk KEDUA kondisi — sudah kirim tapi telat, MAUPUN belum kirim sama sekali sampai deadline lewat (kolom &quot;Belum Kirim&quot;
         yang masih &gt;0 saat deadline terlampaui ikut kena potongan yang sama; gugur bila penilai tak punya Skor 360° sendiri).
         Penilaian yang telat tetap dihitung penuh untuk pegawai yang dinilai — potongan hanya menyentuh Skor 360° milik si penilai.
-        Opsional/Ad-Hoc, Paksa Selesai HRD, dan pemetaan yang dibuat sesudah deadline tidak dihitung.
+        <strong className="font-semibold text-ink-soft">Ajuan</strong> (penilaian Opsional yang diajukan pegawai sendiri &amp; disetujui HRD) ikut dihitung
+        mulai periode Q3 2026 dan ditandai terpisah. Opsional biasa, Ad-Hoc Mandiri lama, Paksa Selesai HRD, dan pemetaan yang dibuat sesudah deadline tidak dihitung.
+        Nilai potongan bisa <strong className="font-semibold text-ink-soft">diubah HRD</strong> per pegawai (tombol Ubah, alasan wajib; 0 = dikecualikan).
         Punishment memotong Skor Akhir pegawai di periode ini (min 0).
       </p>
     </Shell>

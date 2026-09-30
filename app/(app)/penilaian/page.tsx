@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/empty-state';
 import { TabBar, Tab } from '@/components/tab-nav';
 import { RequestAssessmentButton } from './request-assessment-form';
 import { MyRequests, type MyRequest } from './my-requests';
-import { LATE_PENALTY_360, formatWib, isPastDeadline, submitTimingOf } from '@/lib/late';
+import { LATE_PENALTY_360, formatWib, isPastDeadline, submitTimingOf, ajuanPenaltyApplies } from '@/lib/late';
 
 const REL_LABEL: Record<string, string> = {
   Atasan: 'Atasan', Peer: 'Rekan (Peer)', Cross: 'Lintas Divisi', Self: 'Diri Sendiri', Bawahan: 'Bawahan',
@@ -35,7 +35,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
   if (!user) redirect('/login');
 
   const { data: ap } = await supabase
-    .from('periods').select('id, label, has_360, form_open, mapping_published, assessment_deadline').eq('status', 'active').limit(1).maybeSingle();
+    .from('periods').select('id, label, has_360, form_open, mapping_published, assessment_deadline, start_date').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) {
     return (
       <Shell>
@@ -94,12 +94,10 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
   const empById = new Map((emps ?? []).map((e) => [e.id, e]));
 
   const { data: asmts } = await supabase
-    .from('assessments').select('target_id, status, first_submitted_at, exposure_status')
+    .from('assessments').select('target_id, status, first_submitted_at')
     .eq('assessor_id', user.id).eq('period_id', ap.id);
   const statusByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.status]));
   const firstSubByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.first_submitted_at]));
-  // BR-03: Not Eligible → kewajiban gugur (tak dihitung tunggakan/skor/penalty).
-  const exposureByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.exposure_status]));
   const deadline = ap.assessment_deadline;
   const deadlinePassed = isPastDeadline(deadline);
 
@@ -112,6 +110,12 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
     .order('created_at', { ascending: false });
   const myReqs = corrs ?? [];
   const pendingCorr = new Set(myReqs.filter((c) => c.status === 'pending').map((c) => c.target_id));
+  // AJUAN yang disetujui HRD (permohonan "tambah penilaian") → pemetaan Opsional yang tetap WAJIB
+  // dituntaskan sebelum deadline (ikut potongan keterlambatan, 2026-09-29).
+  // Berlaku untuk periode Q3 2026 dst. (ajuanPenaltyApplies); periode sebelumnya → kosong.
+  const approvedAjuan = new Set(ajuanPenaltyApplies(ap.start_date)
+    ? myReqs.filter((c) => c.kind === 'add' && c.status === 'approved').map((c) => c.target_id)
+    : []);
 
   // Kandidat Ad-Hoc: pegawai non-direksi, bukan diri, belum ada di daftar penilaian.
   const alreadyListed = new Set<string>([user.id, ...targetIds]);
@@ -138,22 +142,22 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
       relation: r.relation as string,
       mandatory: r.mandatory,
       isAdhoc: r.is_adhoc,
+      requested: !r.mandatory && !r.is_adhoc && approvedAjuan.has(r.target_id),
       status: statusByTarget.get(r.target_id) ?? null,
       // Label Terlambat hanya untuk penilaian yang TERHITUNG potongan (Wajib, non-Ad-Hoc);
       // keputusan final (incl. paksa-selesai / pemetaan pasca-deadline) dihitung server (lib/late-server).
-      late: r.mandatory && !r.is_adhoc && statusByTarget.get(r.target_id) === 'submitted'
+      late: (r.mandatory || approvedAjuan.has(r.target_id)) && !r.is_adhoc && statusByTarget.get(r.target_id) === 'submitted'
         && submitTimingOf(firstSubByTarget.get(r.target_id), deadline) === 'late',
       corrPending: pendingCorr.has(r.target_id),
-      // BR-03 Exposure Check: null = belum dicek, 'not_eligible' = kewajiban gugur.
-      exposureStatus: exposureByTarget.get(r.target_id) ?? null,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   // Ringkasan penilaian WAJIB (sifat = Wajib) — berapa harus dinilai vs sudah dikirim.
-  // Not Eligible (BR-03) dikeluarkan: kewajibannya gugur, tak dihitung tunggakan.
-  const mandatoryItems = items.filter((it) => it.mandatory && it.exposureStatus !== 'not_eligible');
+  const mandatoryItems = items.filter((it) => it.mandatory);
   const mandTotal = mandatoryItems.length;
   const mandDone = mandatoryItems.filter((it) => it.status === 'submitted').length;
+  // Ajuan (Q3 2026 dst.) yang belum dikirim — ikut potongan bila deadline lewat.
+  const ajuanPendingN = items.filter((it) => it.requested && it.status !== 'submitted').length;
 
   // Panel "Permohonan Saya" — status pengajuan (hapus/tambah/koreksi) + alasan penolakan HRD.
   const myRequestRows: MyRequest[] = myReqs.map((c) => ({
@@ -238,11 +242,11 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
           </div>
         </div>
       )}
-      {deadlinePassed && !reviewPhase && mandDone < mandTotal && (
+      {deadlinePassed && !reviewPhase && (mandDone < mandTotal || ajuanPendingN > 0) && (
         <div className="mb-4 rounded-panel border border-warn-ink/25 bg-warn-tint p-3">
           <p className="text-[12px] font-bold text-warn-ink">Deadline penilaian sudah lewat</p>
           <p className="text-[11.5px] text-warn-ink/90 mt-0.5 leading-relaxed">
-            Form masih bisa diisi, tetapi penilaian wajib yang dikirim sekarang tercatat <strong>Terlambat</strong> dan
+            Form masih bisa diisi, tetapi penilaian wajib{ajuanPendingN > 0 ? ' (termasuk ajuan Anda)' : ''} yang dikirim sekarang tercatat <strong>Terlambat</strong> dan
             Skor 360° Anda dipotong <span className="data-value">{LATE_PENALTY_360}</span> poin (sekali per periode).
             Penilaian Anda tetap dihitung untuk rekan yang dinilai.
           </p>
@@ -291,15 +295,16 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                     }`}>
                       {it.mandatory ? 'Wajib' : 'Opsional'}
                     </span>
+                    {it.requested && (
+                      <span className="block mt-1 text-[9.5px] font-semibold text-warn-ink"
+                        title="Penilaian ini Anda ajukan sendiri & sudah disetujui HRD — tetap harus dikirim sebelum deadline, bila tidak Skor 360° Anda terkena potongan keterlambatan.">
+                        Ajuan · wajib selesai
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 px-3 text-right">
                     <span className="inline-flex items-center gap-1">
-                      {it.exposureStatus === 'not_eligible' ? (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-neutral-tint text-ink-faint border-line"
-                          title="Not Eligible — kewajiban gugur, tak dihitung tunggakan/skor">Not Eligible</span>
-                      ) : (
-                        <StatusBadge status={it.status} />
-                      )}
+                      <StatusBadge status={it.status} />
                       {it.late && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-warn-tint text-warn-ink border-warn-ink/25"
                           title="Dikirim pertama kali sesudah deadline">Terlambat</span>
@@ -343,9 +348,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                           href={`/penilaian/${it.targetId}`}
                           className="text-xs font-bold text-brand-ink hover:underline"
                         >
-                          {it.exposureStatus === 'not_eligible'
-                            ? 'Lihat'
-                            : it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai'}
+                          {it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai'}
                         </Link>
                       )}
                     </div>

@@ -1,5 +1,5 @@
 import type { createClient } from '@/lib/supabase/server';
-import { finalScoreOf } from '@/lib/scoring';
+import { finalScoreOf, kpiAvgOf, hasScoreDrift } from '@/lib/scoring';
 
 /**
  * Tugas & Notifikasi in-app — DITURUNKAN dari data yang sudah ada (tanpa tabel baru).
@@ -91,13 +91,13 @@ async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): P
     supabase.from('final_reports').select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('status', 'finalized'),
     supabase.from('relation_correction_requests').select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('status', 'pending'),
   ]);
-  // Permohonan Koreksi Relasi menunggu ACC HRD (di Pemetaan → tab Koreksi Relasi).
-  if ((corrCount ?? 0) > 0) out.push({ id: 'hrd-corr', tone: 'rose', href: '/admin/pemetaan', label: `${corrCount} permohonan koreksi relasi menunggu` });
+  // Permohonan pemetaan (koreksi relasi / hapus / tambah) menunggu keputusan HRD (Pemetaan → tab Permohonan).
+  if ((corrCount ?? 0) > 0) out.push({ id: 'hrd-corr', tone: 'rose', href: '/admin/pemetaan', label: `${corrCount} permohonan pemetaan menunggu` });
   const pendingReports = (empCount ?? 0) - (finalCount ?? 0);
   if (pendingReports > 0) out.push({ id: 'hrd-final', tone: 'blue', href: '/admin/laporan', label: `${pendingReports} laporan belum difinalisasi` });
   // Laporan FINAL yang skornya sudah usang (KPI/360°/punishment berubah sejak difinalisasi).
   const stale = await countStaleFinalReports(supabase, periodId, has360);
-  if (stale > 0) out.push({ id: 'hrd-stale', tone: 'amber', href: '/admin/laporan', label: `${stale} laporan final perlu dihitung ulang (data berubah)` });
+  if (stale > 0) out.push({ id: 'hrd-stale', tone: 'amber', href: '/admin/laporan', label: `${stale} laporan Final skornya berubah — perbarui di Review & Finalisasi` });
   return out;
 }
 
@@ -117,8 +117,8 @@ async function countStaleFinalReports(supabase: SB, periodId: string, has360: bo
   const { data: kpi } = yms.length
     ? await supabase.from('kpi_scores').select('employee_id, score').in('employee_id', ids).in('ym', yms)
     : { data: [] as { employee_id: string; score: number }[] };
-  const agg = new Map<string, { sum: number; n: number }>();
-  (kpi ?? []).forEach((r) => { const a = agg.get(r.employee_id) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n++; agg.set(r.employee_id, a); });
+  const kpiValsBy = new Map<string, number[]>();
+  (kpi ?? []).forEach((r) => kpiValsBy.set(r.employee_id, [...(kpiValsBy.get(r.employee_id) ?? []), Number(r.score)]));
 
   const { data: r360 } = await supabase.from('result_360').select('employee_id, score').eq('period_id', periodId);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
@@ -127,10 +127,9 @@ async function countStaleFinalReports(supabase: SB, periodId: string, has360: bo
 
   let n = 0;
   for (const rep of reports) {
-    const a = agg.get(rep.employee_id);
-    const kpiAvg = a ? a.sum / a.n : null;
+    const kpiAvg = kpiAvgOf(kpiValsBy.get(rep.employee_id) ?? []);
     const live = finalScoreOf(kpiAvg, s360By.get(rep.employee_id) ?? null, has360, penBy.get(rep.employee_id) ?? 0);
-    if (live != null && rep.final_score != null && Math.abs(live - rep.final_score) >= 0.05) n++;
+    if (hasScoreDrift(live, rep.final_score)) n++;
   }
   return n;
 }

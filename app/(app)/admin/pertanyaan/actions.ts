@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canAdmin } from '@/lib/auth/roles';
+import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 
 /**
@@ -17,11 +17,26 @@ async function ctx(): Promise<
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
-  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat mengelola pertanyaan' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
+  if (!canSection(me, 'pertanyaan')) return { ok: false, error: 'Hanya HRD yang dapat mengelola pertanyaan' };
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
   return { ok: true, supabase, periodId: ap.id };
+}
+
+type Ctx = Extract<Awaited<ReturnType<typeof ctx>>, { ok: true }>;
+
+/** Indikator/pertanyaan hanya boleh diubah bila milik PERIODE AKTIF (audit 2026-09-30) — periode
+ *  lama/terkunci tak boleh berubah diam-diam lewat pemanggilan langsung dengan id-nya. */
+async function indicatorInActivePeriod(c: Ctx, indicatorId: string): Promise<boolean> {
+  const { data } = await c.supabase.from('indicators').select('id, culture_aspects!inner(period_id)')
+    .eq('id', indicatorId).eq('culture_aspects.period_id', c.periodId).maybeSingle();
+  return !!data;
+}
+async function qualInActivePeriod(c: Ctx, questionId: string): Promise<boolean> {
+  const { data } = await c.supabase.from('qualitative_questions').select('id')
+    .eq('id', questionId).eq('period_id', c.periodId).maybeSingle();
+  return !!data;
 }
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -144,6 +159,7 @@ export async function updateIndicator(
   const keyPoints = KeyPoints.safeParse(rawKeyPoints);
   if (!desc.success) return { ok: false, error: 'Deskripsi terlalu panjang' };
   const c = await ctx(); if (!c.ok) return c;
+  if (!(await indicatorInActivePeriod(c, indicatorId))) return { ok: false, error: 'Indikator tidak ditemukan di periode aktif' };
   // Hanya kirim description/rating_guide/rating_key_points bila argumen diberikan (edit
   // panduan), agar edit teks cepat tak menimpa panduan.
   const patch: { text: string; description?: string | null; rating_guide?: Record<string, string> | null; rating_key_points?: Record<string, string> | null } = { text: text.data };
@@ -162,6 +178,7 @@ export async function updateIndicator(
 
 export async function toggleIndicator(indicatorId: string, isActive: boolean): Promise<Result> {
   const c = await ctx(); if (!c.ok) return c;
+  if (!(await indicatorInActivePeriod(c, indicatorId))) return { ok: false, error: 'Indikator tidak ditemukan di periode aktif' };
   const { error } = await c.supabase.from('indicators').update({ is_active: isActive }).eq('id', indicatorId);
   if (error) return { ok: false, error: 'Gagal: ' + error.message };
   await logHrdAction({
@@ -180,6 +197,7 @@ export async function toggleIndicator(indicatorId: string, isActive: boolean): P
 export async function deleteIndicator(indicatorId: string): Promise<Result> {
   if (!z.string().uuid().safeParse(indicatorId).success) return { ok: false, error: 'Input tidak valid' };
   const c = await ctx(); if (!c.ok) return c;
+  if (!(await indicatorInActivePeriod(c, indicatorId))) return { ok: false, error: 'Indikator tidak ditemukan di periode aktif' };
 
   const admin = createAdminClient();
   const { count } = await admin.from('assessment_indicator_scores')
@@ -203,7 +221,7 @@ export async function deleteIndicator(indicatorId: string): Promise<Result> {
  * Aman & idempoten: aspek yang NAMANYA sudah ada di periode aktif DILEWATI (cegah dobel);
  * esai dengan teks identik juga dilewati. Hanya menyalin indikator `is_active`. Skor historis
  * tak tersentuh (indikator baru = baris baru di periode aktif). Pakai service_role utk baca
- * lintas-periode + tulis (HRD sudah diotorisasi via ctx/canAdmin).
+ * lintas-periode + tulis (HRD sudah diotorisasi via ctx/canSection).
  */
 export type ImportResult =
   | { ok: true; aspects: number; indicators: number; quals: number; skipped: number }
@@ -299,6 +317,7 @@ export async function updateQualQuestion(questionId: string, rawText: string): P
   const text = Text.safeParse(rawText);
   if (!text.success) return { ok: false, error: text.error.issues[0].message };
   const c = await ctx(); if (!c.ok) return c;
+  if (!(await qualInActivePeriod(c, questionId))) return { ok: false, error: 'Pertanyaan tidak ditemukan di periode aktif' };
   const { error } = await c.supabase.from('qualitative_questions').update({ text: text.data }).eq('id', questionId);
   if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
   await logHrdAction({
@@ -311,6 +330,11 @@ export async function updateQualQuestion(questionId: string, rawText: string): P
 
 export async function deleteQualQuestion(questionId: string): Promise<Result> {
   const c = await ctx(); if (!c.ok) return c;
+  if (!(await qualInActivePeriod(c, questionId))) return { ok: false, error: 'Pertanyaan tidak ditemukan di periode aktif' };
+  // Jawaban esai ikut terhapus (FK cascade) → tolak bila sudah pernah dijawab, sama seperti indikator.
+  const { count } = await createAdminClient().from('assessment_qual_answers')
+    .select('*', { count: 'exact', head: true }).eq('question_id', questionId);
+  if ((count ?? 0) > 0) return { ok: false, error: `Pertanyaan sudah dijawab di ${count} penilaian — tidak dapat dihapus agar jawaban historis tetap utuh.` };
   const { error } = await c.supabase.from('qualitative_questions').delete().eq('id', questionId);
   if (error) return { ok: false, error: 'Gagal menghapus: ' + error.message };
   await logHrdAction({

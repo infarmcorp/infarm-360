@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt2 } from '@/lib/scoring';
+
 import { useMemo, useState } from 'react';
 import { heatColor, HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
 import { displayName } from '@/lib/employee-name';
@@ -110,8 +112,8 @@ export function PerEmployeeHeatmap({
                       <td key={c.key}
                         className="text-center font-mono font-bold rounded-md py-2.5 px-1 whitespace-nowrap"
                         style={{ backgroundColor: bg, color: fg, width: CELL_W, minWidth: CELL_W, maxWidth: CELL_W }}
-                        title={`${r.name} · ${c.full ?? c.label} · ${v != null ? v.toFixed(2) : 'tanpa data'}`}>
-                        {v != null ? v.toFixed(2) : '—'}
+                        title={`${r.name} · ${c.full ?? c.label} · ${v != null ? fmt2(v) : 'tanpa data'}`}>
+                        {v != null ? fmt2(v) : '—'}
                       </td>
                     );
                   })}

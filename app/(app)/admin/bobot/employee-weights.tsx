@@ -161,12 +161,12 @@ export function EmployeeWeights({ employees, overrides }: { employees: Emp[]; ov
 
         <p className="text-[12px] text-ink-soft">
           Total bobot: <span className="data-value font-bold text-ink">{total}</span>
-          {total !== 100 && <span className="text-warn-ink"> — umumnya 100</span>}
+          {total !== 100 && <span className="text-danger-ink"> — harus tepat 100 untuk bisa disimpan</span>}
         </p>
 
         {msg && <p className={`text-[12.5px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
 
-        <Button type="submit" disabled={busy || !empId}>
+        <Button type="submit" disabled={busy || !empId || total !== 100}>
           {busy ? 'Menyimpan…' : 'Simpan bobot khusus'}
         </Button>
       </form>

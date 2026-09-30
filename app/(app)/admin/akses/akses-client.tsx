@@ -54,7 +54,7 @@ function inheritedAccess(e: AksesEmployee): string[] {
   if (e.role === 'hrd' || e.isHrdAdmin) out.push('Menu Administrator HRD (sesuai “Atur Akses”).');
   if (e.role === 'spv') out.push('Input KPI, Laporan Kinerja Tim, & Monitor Kinerja — untuk anggota timnya.');
   if (e.isCoordinator) out.push('Input KPI & Laporan Kinerja Tim — untuk tim naungannya (Koordinator).');
-  if (e.role === 'direksi') out.push('Dashboard eksekutif, ACC promosi/suksesi, & Review Hasil Akhir (agregat).');
+  if (e.role === 'direksi') out.push('Dashboard eksekutif, ACC promosi/suksesi, & Tinjauan Hasil Akhir (agregat).');
   out.push('Mengisi 360° Feedback & melihat Laporan Hasil miliknya sendiri.');
   return out;
 }
@@ -568,7 +568,7 @@ export function AksesClient({
                     )}
                   </div>
                 )}
-                <p className="text-[10px] text-ink-faint mt-1.5">Peninjau Lintas Divisi bukan izin khusus lagi — beri lewat akses halaman <strong>“Review Hasil Akhir”</strong> (lingkup “selain divisinya”, izin “Boleh meringkas”).</p>
+                <p className="text-[10px] text-ink-faint mt-1.5">Peninjau Lintas Divisi bukan izin khusus lagi — beri lewat akses halaman <strong>“Review & Finalisasi”</strong> (lingkup “selain divisinya”, izin “Boleh meringkas”).</p>
               </div>
             </div>
           );

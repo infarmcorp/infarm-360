@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllByIds } from '@/lib/supabase/paginate';
-import { finalScoreOf } from '@/lib/scoring';
+import { finalScoreOf, kpiAvgOf } from '@/lib/scoring';
 import { ReportTable, type ReportRow } from '@/app/(app)/admin/laporan/report-table';
 
 /**
@@ -10,7 +10,7 @@ import { ReportTable, type ReportRow } from '@/app/(app)/admin/laporan/report-ta
  * Daftar SEMUA pegawai (termasuk non-SPV & Direksi/diri sendiri). Kolom KPI · 360° · Skor Akhir ·
  * ACC · Status. Tautan "Tinjau" → detail read-only (`/review-hasil/[id]`): L2 + raw feedback anonim.
  * Data dibaca via service_role (Direksi tak menulis apa pun; tak ada Hitung Ulang/Rilis/Finalisasi).
- * Berbeda dari "Laporan Kinerja Tim" (fokus SPV + ACC). Skor mengikuti Review HRD (allow360Only).
+ * Berbeda dari "Laporan Kinerja Tim" (fokus SPV + ACC). Skor mengikuti Review HRD (rumus resmi tunggal lib/scoring).
  */
 export default async function ReviewHasilDireksiPage() {
   const supabase = await createClient();
@@ -38,8 +38,8 @@ export default async function ReviewHasilDireksiPage() {
     ? await fetchAllByIds<{ employee_id: string; score: number }>(empIds, (chunk, from, to) =>
         admin.from('kpi_scores').select('employee_id, score').in('ym', yms).in('employee_id', chunk).order('employee_id').order('ym').range(from, to))
     : [];
-  const kpiAgg = new Map<string, { s: number; n: number }>();
-  kpiRows.forEach((r) => { const a = kpiAgg.get(r.employee_id) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; kpiAgg.set(r.employee_id, a); });
+  const kpiValsBy = new Map<string, number[]>();
+  kpiRows.forEach((r) => kpiValsBy.set(r.employee_id, [...(kpiValsBy.get(r.employee_id) ?? []), Number(r.score)]));
 
   const { data: r360 } = await admin.from('result_360').select('employee_id, score').eq('period_id', ap.id);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
@@ -49,13 +49,12 @@ export default async function ReviewHasilDireksiPage() {
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
 
   const rows: ReportRow[] = employees
-    .filter((e) => e.is_active || kpiAgg.has(e.id) || s360By.has(e.id) || repBy.has(e.id))
+    .filter((e) => e.is_active || kpiValsBy.has(e.id) || s360By.has(e.id) || repBy.has(e.id))
     .map((e) => {
-      const agg = kpiAgg.get(e.id);
-      const kpiAvg = agg ? agg.s / agg.n : null;
+      const kpiAvg = kpiAvgOf(kpiValsBy.get(e.id) ?? []);
       const s360 = s360By.get(e.id) ?? null;
       const penalty = penBy.get(e.id) ?? 0;
-      const final = finalScoreOf(kpiAvg, s360, ap.has_360, penalty, true); // selaras Review HRD
+      const final = finalScoreOf(kpiAvg, s360, ap.has_360, penalty); // rumus resmi tunggal (selaras Review HRD)
       const rep = repBy.get(e.id);
       return {
         id: e.id, name: e.name, dept: e.dept,
@@ -74,7 +73,7 @@ export default async function ReviewHasilDireksiPage() {
     <Shell>
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Review Hasil Akhir</h1>
+          <h1 className="text-xl font-bold text-gray-800">Tinjauan Hasil Akhir</h1>
           <p className="text-sm text-gray-500">
             {ap.label} · tinjauan eksekutif (read-only) hasil akhir seluruh pegawai. Kalibrasi &amp;
             finalisasi tetap wewenang HRD.

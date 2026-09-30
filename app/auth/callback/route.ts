@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { safeNext } from '@/lib/safe-next';
 
 /**
  * Callback Auth Supabase (PKCE). Dipakai oleh link email — mis. "Lupa Sandi":
@@ -13,7 +14,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get('code');
   const nextParam = url.searchParams.get('next');
-  const next = nextParam && nextParam.startsWith('/') ? nextParam : '/';
+  const next = safeNext(nextParam);
 
   if (code) {
     const supabase = await createClient();

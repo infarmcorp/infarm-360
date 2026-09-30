@@ -1,5 +1,7 @@
 'use client';
 
+import { fmt2 } from '@/lib/scoring';
+
 import { useMemo, useState } from 'react';
 import { usePager, Pager, CheckboxFilter } from '@/components/table-controls';
 
@@ -20,9 +22,9 @@ export type MergedRow = {
   s4: number | null; s2: number | null; // simulasi model (bobot global periode)
 };
 
-const fmt = (n: number | null) => (n != null ? n.toFixed(2) : '—');
+const fmt = (n: number | null) => (n != null ? fmt2(n) : '—');
 const deltaCls = (d: number | null) => (d == null || d === 0 ? 'text-ink-faint' : d > 0 ? 'text-brand-ink' : 'text-danger-ink');
-const deltaTxt = (d: number | null) => (d == null ? '—' : d === 0 ? '0' : `${d > 0 ? '+' : ''}${d.toFixed(2)}`);
+const deltaTxt = (d: number | null) => (d == null ? '—' : d === 0 ? '0' : `${d > 0 ? '+' : ''}${fmt2(d)}`);
 
 export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
   rows: MergedRow[]; model: '4class' | '2class'; overrideCount: number; globalLabel: string;
@@ -33,7 +35,7 @@ export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
   const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(filtered);
 
   if (rows.length === 0) {
-    return <p className="text-sm text-ink-soft">Belum ada data. Klik <strong className="font-semibold text-ink">Hitung Ulang Skor 360°</strong> setelah ada penilaian terkirim.</p>;
+    return <p className="text-sm text-ink-soft">Belum ada data. Jalankan <strong className="font-semibold text-ink">Hitung Ulang Skor 360°</strong> di Review &amp; Finalisasi setelah ada penilaian terkirim.</p>;
   }
 
   return (

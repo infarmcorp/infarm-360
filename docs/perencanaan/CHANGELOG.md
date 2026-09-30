@@ -5,6 +5,37 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **Kerapian 360° & alur HRD (audit 2026-09-29, Prioritas 4):**
+  (1) **Bobot wajib total 100%** (tanpa Self) — `saveWeights`/`saveEmployeeWeightOverride` menolak di server
+  (Zod), tombol simpan nonaktif di form; dulu total bebas & semua-0 membuat pegawai hilang dari `result_360`.
+  (2) **Bobot khusus per pegawai** (0031) kini dipakai di SEMUA perhitungan per pegawai: laporan
+  (`loadReport` aspek), heatmap/aspek per pegawai (`lib/aspect360.ts`), Ekspor Ringkasan 360 & Nilai per
+  Aspek — sebelumnya hanya `computeResult360`. (Agregat aspek org/divisi yang MENGGABUNG banyak pegawai
+  tetap memakai skema periode — bobot per orang tak bisa diterapkan pada kumpulan gabungan.)
+  (3) **"Perlu hitung ulang"** kini juga menyala bila bobot periode / bobot khusus diubah atau dihapus
+  sesudah hitung terakhir (`saveWeights` kini menulis `updated_at`).
+  (4) **Skor 360° yatim** dihapus saat Hitung Ulang (pegawai tanpa penilaian terkirim lagi).
+  (5) **`computeFinal` tak lagi menelan error** — gagal baca KPI/360°/punishment menghentikan
+  simpan/rilis/finalisasi dgn pesan (dulu Skor Akhir diam-diam = 360° saja).
+  (6) **ACC tercatat di Log Aktivitas** (`report.acc`/`report.acc_revoke`, 3 jalur) & **gugur** bila laporan
+  dikembalikan ke draf atau dirilis ulang dgn Skor Akhir berbeda; finalisasi massal MELEWATI laporan ber-ACC
+  yang skornya berubah sejak di-ACC.
+  (7) ~~Kunci periode permanen~~ — **dibatalkan** atas permintaan pengguna: periode terkunci (termasuk
+  yang sudah punya laporan final) **tetap boleh dibuka kembali**; laporan final terlindungi karena angka
+  tersimpan tak berubah otomatis (selisih ditandai di Review Hasil Akhir). (8) **Hapus periode**: error hapus KPI/audit diperiksa & jumlah nilai KPI + jejak audit
+  KPI yang ikut terhapus dicatat di Log Aktivitas.
+- **Skor Akhir seragam di semua halaman** (audit 2026-09-29, keputusan HRD). Sebelumnya dihitung ulang di
+  ±12 tempat dengan aturan berbeda (opsi `allow360Only` hanya di sebagian halaman; Dashboard sebagian tanpa
+  punishment; ambang dicek atas nilai tak terbulat → 79.996 tampil "80.00" tapi dikelaskan <80; Laporan
+  Tim menampilkan `final_score` tersimpan apa pun statusnya). Kini: `finalScoreOf` tunggal (tanpa KPI →
+  360° saja di SEMUA halaman; hasil `roundScore` 2 desimal selaras `numeric(5,2)`), `kpiAvgOf` (presisi
+  penuh, bulatkan di akhir — agar tak menggeser Skor Akhir yang sudah difinalisasi), klasifikasi
+  (`playerClassOf`/`perfCategoryOf`/band) atas nilai terbulat, dan **`displayedFinalOf`**: laporan FINAL →
+  angka tersimpan (yang dilihat pegawai) di Dashboard, Monitor, Laporan Tim, Rekap, Suksesi, Ekspor;
+  hanya Review Hasil Akhir menampilkan "berubah → N" (`hasScoreDrift`, ≥0.01, menggantikan ambang 0.05).
+  Dashboard: punishment selalu dipotong; mode "semua kuartal" = rata-rata Skor Akhir per kuartal.
+  Dampak data (dicek read-only): tak ada kategori bergeser & tak ada laporan final ter-"berubah"; yang
+  berubah hanya pegawai tanpa KPI (kini tampil skor 360°) & Laporan Tim tanpa laporan (kini angka hidup).
 - **Visibilitas laporan bertahap** (`draft → in_review → finalized`, migrasi 0011/0012). Lapisannya:
   **L1** Skor Akhir · **L2** agregat (radar/aspek + ringkasan HRD, anonim) · **raw ANONIM**
   (`byAspect`/`essays` — komentar/rating verbatim TANPA nama) · **L3 BERNAMA** (`assessors` — identitas
@@ -111,11 +142,19 @@
   resign. **Murni pelaporan** — tak menyentuh `lib/scoring.ts`.
 - **Trend KPI seragam + "KPI Belum Terbaca"** (`lib/trend.ts` `trendOf`, 2026-07-10). Satu sumber
   definisi trend 3-bulan (6 kategori: empty/unread/stable/up/down/volatile) dipakai di **Laporan Kinerja
-  Tim, Monitor, & Dashboard** (kolom Trend KPI + tooltip). **"Belum terbaca"** (`unread` = bln-1=0 &
-  bln-2=0) = data KPI belum masuk, **bukan** kinerja rendah → **dikecualikan seragam** dari rerata &
+  Tim, Monitor, & Dashboard** (kolom Trend KPI + tooltip). **"Belum terbaca"** = data kuartal belum
+  menggambarkan fluktuasi, **bukan** kinerja rendah → **dikecualikan seragam** dari rerata &
   kategorisasi KPI/Skor Akhir di ketiga permukaan (baris tetap tampil; **360° tetap dihitung**); Dashboard
   4-Box menampilkannya sebagai bucket terpisah "Belum Terbaca". Input `trendOf` **selalu 3 bulan pertama**
   `period_months` terurut (null = bulan belum diisi). Murni pelaporan.
+  - **DIUBAH 2026-09-29 (definisi HRD):** KPI **kosong** = belum ditetapkan; **0 = nilai sungguhan**.
+    Trend kini ditentukan **jumlah bulan terisi**: 0 → `empty` · 1 (2 bulan kosong, mis. pegawai masuk
+    bulan ke-3) → `unread` · 2 (bulan-1 kosong = pegawai baru; bulan-3 kosong = resign / kuartal berjalan)
+    → Stabil (selisih ≤2) / Naik / Turun dari dua bulan itu · 3 → aturan lama (Fluktuatif hanya di sini).
+    Aturan lama "bln-1=0 & bln-2=0 → Belum terbaca" **dihapus**. Pengecualian "belum terbaca" kini juga
+    diterapkan per (pegawai × kuartal) di grafik **tren tahunan**, **distribusi per kuartal**, dan
+    Dashboard mode **semua kuartal** (`lib/dashboard/aggregate.ts`) — sebelumnya hanya kartu kuartal
+    terpilih. Rumus Skor Akhir **tak berubah** (rerata bulan terisi; 0 ikut, kosong tidak).
 - **Metrik tim bersama + Skor Akhir "live vs tersimpan"** (`lib/team-metrics.ts`, 2026-07-10).
   `scoreMaps`/`companyAverages`/`teamAverages`/`penaltyMap` dipakai bersama **Laporan Kinerja Tim** &
   **Monitor** (scorecard Total/Avg-KPI/Avg-360° + selisih vs perusahaan). **Laporan Kinerja Tim** tampilkan
@@ -262,6 +301,89 @@
 - `0036` `periods.assessment_deadline` · `assessments.first_submitted_at`/`forced_by_hrd` + trigger
   `assessments_stamp_submit` · `result_360.score_raw`/`late_penalty` · tabel `late_penalty_waivers` (RLS
   baca berjenjang, tulis HRD). ⚠️ **Belum diterapkan** ke DB (terapkan sebelum merge ke `main`).
+- `0041` **Pengetatan RLS hasil audit (2026-09-29)** — celah "lewat API langsung" (anon key + JWT
+  sendiri melewati Server Action): (1) `asmt_write` kini **wajib pemetaan aktif** (termasuk Ad-Hoc
+  disetujui) — sebelumnya pegawai bisa menyuntik nilai untuk rekan mana pun (dihitung sbg 'Peer');
+  (2) trigger `assessments_keep_submitted`: penilai non-HRD **tak bisa menurunkan ke draf / menghapus**
+  penilaian terkirim (edit & kirim ulang tetap boleh; tombol "Simpan Draf" juga disembunyikan setelah
+  terkirim + ditolak di `submitAssessment`); (3) trigger `final_reports_guard_non_hrd`: SPV via
+  `fr_spv_acc` **hanya boleh ubah `spv_acc`** & hanya setelah dirilis (sebelumnya bisa ubah
+  final_score/status/content); (4) `kpi_write` **hanya bulan periode aktif** (KPI periode terkunci tak
+  bisa diubah lewat API); (5) `asmt_read`/`ais_read`/`aqa_read` **cabut cabang target** — pegawai dinilai
+  tak lagi membaca baris mentah + identitas penilai (Laporan Hasil Saya kini dimuat via service_role,
+  tetap dibatasi laporan FINAL miliknya). `verify:rls` diperluas untuk tiap poin. Data historis Q1 2026
+  (51 penilaian sintetis backfill, tanpa pemetaan) tak terdampak (periode tutup, jalur service_role).
+  ⚠️ **Belum diterapkan** ke DB.
+- `0042` **Anonimitas penilai + KPI hanya lewat UI (2026-09-29, keputusan HRD).** (A) Siapa-menilai-siapa
+  hanya untuk HRD: `asmt_read`/`ais_read`/`aqa_read` cabut cabang **Direksi**; `map_read` hanya HRD + penilai
+  (pegawai tahu SIAPA YANG IA NILAI, bukan siapa yang menilainya; SPV/Direksi/target tak lagi membaca
+  pemetaan); `corr_read` cabut cabang target. Data mentah ANONIM untuk SPV/Koordinator/Direksi/pemegang
+  grant tetap disajikan server (service_role). Dashboard Direksi kini membaca via service_role (agregat).
+  (B) `kpi_write` & `kpiaudit_insert` DICABUT (termasuk HRD) → KPI hanya lewat Server Action; lingkup
+  (HRD semua · SPV tim+diri · Koordinator tim) ditegakkan di server (`assertKpiScope`); skor + audit ditulis
+  atomik oleh fungsi `kpi_save_with_audit`/`kpi_delete_with_audit` (hanya service_role; tolak bulan di luar
+  periode aktif). Kode punya **fallback** 2-langkah bila fungsi belum ada → aman dideploy SEBELUM migrasi.
+  `verify:rls` diperluas. ⚠️ **Urutan rilis: deploy kode dulu, baru terapkan 0041 → 0042** (kode lama di
+  `main` bergantung pada izin yang dicabut). Belum diterapkan ke DB.
+- **Potongan keterlambatan tertunda** (2026-09-29): halaman Flag Kepatuhan menampilkan jumlah pegawai yang
+  potongannya belum masuk Skor 360° tersimpan + tombol **"Terapkan Potongan ke Skor 360°"**
+  (`applyLatePenalties` → `refreshLatePenalties`, tanpa hitung ulang penuh); Review Hasil Akhir memberi
+  peringatan & tautan sebelum finalisasi (`loadPendingLatePenalties`). Pengganti cron yang nonaktif.
+- `0043` `late_penalty_waivers.points` — **nilai potongan keterlambatan yang ditetapkan HRD** (menggantikan −3
+  otomatis; 0 = dikecualikan; baris lama = 0). Kode kompatibel sebelum migrasi (nilai selain 0 baru bisa
+  disimpan setelahnya). Sekaligus (tanpa migrasi): **AJUAN** (Opsional hasil permohonan yang disetujui HRD)
+  kini ikut potongan bila tak selesai saat deadline & ditandai terpisah di Kepatuhan + di daftar penilaian
+  pegawai ("Ajuan · wajib selesai"); potongan **diterapkan otomatis** saat HRD membuka Kepatuhan/Review &
+  sebelum simpan/rilis/finalisasi. **Batas input KPI di server disamakan dengan UI** (HRD posisi → divisinya;
+  SPV → tim + diri; Koordinator → timnya). Belum diterapkan ke DB.
+- `0044` **Exposure Check (BR-03) DICABUT TOTAL** (2026-09-29, permintaan pengguna): Server Action
+  `setExposureStatus` & `resetExposureStatus`, form Exposure, notice/badge/kartu/filter Not Eligible (Penilaian,
+  Progress 360, Kepatuhan), pengecekan not_eligible di `submitAssessment`, dan daftar alasan (`lib/assessment-reasons.ts`)
+  dihapus. Migrasi 0044: trigger `trg_assessments_block_exposure` mengosongkan kolom exposure_* untuk semua tulisan
+  pengguna (API langsung pun tak bisa mengisinya) + membersihkan sisa data (0 baris saat dicabut). Kolom dibiarkan.
+- `0045` **Menutup sisa celah server** (audit 2026-09-30; semua hanya bisa dipakai lewat API langsung, bukan
+  tombol). Kode + DB:
+  (1) **Kirim penilaian wajib lengkap** — `submitAssessment` memeriksa SEMUA indikator aktif periode (bukan hanya
+  yang ikut dikirim) & menolak indikator/esai periode lain; kiriman pertama ditulis draf dulu lalu dinaikkan ke
+  terkirim, dan trigger `assessments_guard_submit` menolak status terkirim bila ada indikator tanpa rating 1–5 +
+  evidence ≥ 20 / esai kosong. Penilaian tanpa pemetaan aktif ditolak untuk semua jalur (termasuk Paksa Selesai).
+  (2) **Isi penilaian (rating/komentar/esai)** hanya bisa ditulis saat periode aktif + 360° dibuka + form
+  terbuka + pemetaan aktif (`assessment_writable`); isi penilaian terkirim tak bisa dikosongkan/dihapus.
+  (3) **Persetujuan permohonan** (`reviewCorrection`) memakai pasangan penilai→target DI PERMOHONAN (bukan
+  `mapping_id` kiriman pemohon) & memvalidasi ulang (periode aktif, bukan Self, target aktif/bukan Direksi/
+  bukan eksternal); `corr_insert` hanya menerima permohonan *pending* atas pemetaan milik pemohon.
+  (4) **Akses HRD per bagian kini ditegakkan di DB** (`hrd_can(bagian)`; baca tetap `is_hrd()`) & di semua
+  Server Action admin (`canSection`, bukan `canAdmin`). Mengubah izin (HRD Admin, bagian HRD, Koordinator +
+  timnya) & akun HRD/Direksi (ubah data, nonaktifkan, **reset sandi**) hanya HRD berakses penuh; tak ada yang
+  bisa mengubah izin dirinya sendiri (`employees_guard_privileges`). Reset sandi pegawai biasa tetap boleh.
+  (5) ACC SPV: hanya periode aktif, bukan pegawai berkoordinator, & **dicatat trigger** di Log Aktivitas
+  (juga yang lewat API). (6) Direksi hanya merespons rencana suksesi yang sudah diajukan (status/komentar,
+  atas namanya). (7) KPI ditolak untuk pegawai eksternal. (8) Pertanyaan/indikator hanya bisa diubah bila milik
+  periode aktif; esai yang sudah dijawab tak bisa dihapus. (9) Invarian DB: total bobot = 100, relasi Self ⇔
+  menilai diri sendiri. "Maksimal satu periode aktif" sengaja TIDAK dijadikan batasan (verify:rls membuat
+  periode uji aktif). (10) `?next=` login/callback lewat `safeNext` (tolak `//…`, backslash) — cegah open
+  redirect. (11) Pemegang grant Review tak bisa mengubah/memfinalisasi **laporannya sendiri**.
+  `verify:rls` +15 pemeriksaan (56 total, fixture HRD terbatas). Terapkan **setelah 0044**. Belum diterapkan ke DB.
+- **Bersih-bersih aturan lama di UI (2026-09-29):** Flag Kepatuhan tak lagi menandai "Belum self-assessment"
+  (Self Assessment nonaktif sejak Q3 2026 → dulu SEMUA pegawai tertandai); kartu "Not Eligible" di Progress 360
+  hanya tampil bila ada datanya; pemegang grant non-HRD di Progress 360 & Kepatuhan hanya melihat JUMLAH —
+  nama target (siapa menilai siapa) dibuang di server & tombol Rincian disembunyikan; banner deadline pegawai
+  ikut menghitung ajuan; teks bantuan diselaraskan (label ②, Hitung Ulang hanya di Review & Finalisasi, status
+  "Ditinjau Direksi", ambang badge "berubah" panel detail = hasScoreDrift). Panduan markdown & SOP diperbarui;
+  daftar revisi 4 PDF in-app di `docs/panduan/REVISI-PANDUAN-PDF.md` (PDF sendiri belum diganti).
+- **Istilah & tombol disederhanakan (2026-09-29, usulan audit no. 9):** menu halaman HRD `/admin/laporan`
+  "Review Hasil Akhir" → **"Review & Finalisasi"** (juga untuk pemegang grant; badge **"Lihat-saja"** bila
+  izin hanya Lihat); halaman Direksi `/review-hasil` → **"Tinjauan Hasil Akhir"**. Tombol **Hitung Ulang
+  Skor 360°** kini **hanya satu** (kokpit Review & Finalisasi) — halaman Bobot memberi tautan; tombol ②
+  → **"Perbarui Laporan Final yang Berubah"**. Kode `section`/route tak berubah (hanya label).
+- **Fitur N/A (BR-05) DICABUT** (2026-09-29, permintaan HRD — perhitungannya perlu divalidasi): semua
+  indikator wajib rating 1–5 + evidence; server mengabaikan isNa dari klien & selalu menulis
+  `is_na=false`/`na_reason=null` (kolom 0039 dibiarkan, tanpa migrasi). Data N/A di DB saat dicabut: 0.
+- **Ajuan ikut potongan hanya mulai Q3 2026** (`AJUAN_PENALTY_FROM = 2026-07-01`); Q1–Q2 & Ad-Hoc
+  Mandiri lama tak terdampak.
+- **Format angka `fmt2`** (2026-09-29): tampilan 2 desimal memakai `roundScore` (bukan `toFixed` bawaan
+  yang membulatkan atas galat biner, mis. 84.925 → "84.92") di seluruh halaman skor → angka tampil =
+  angka klasifikasi.
 - `final_reports.content` (jsonb lama) dipakai untuk `aspectSummaries` **&** `qualSummaries`
   (ringkasan pertanyaan kualitatif) — tanpa migrasi baru.
 

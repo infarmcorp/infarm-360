@@ -7,8 +7,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 /**
  * Penilaian Ad-Hoc INSTAN (tanpa persetujuan HRD) — DINONAKTIFKAN (BR-04, Q3 2026,
  * keputusan HRD): satu-satunya jalur menambah ratee di luar mapping rutin kini
- * "Ajukan Penilaian" (request-actions.ts), yang wajib alasan + ACC HRD, lalu
- * (setelah dibangun) Exposure Check. `addAdhocTarget` ditolak di SERVER — bukan
+ * "Ajukan Penilaian" (request-actions.ts), yang wajib alasan + ACC HRD. `addAdhocTarget` ditolak di SERVER — bukan
  * cuma disembunyikan dari UI — agar tak bisa dipanggil langsung.
  * `removeAdhocTarget` di bawah TETAP aktif agar pemetaan ad-hoc dari periode
  * sebelum kebijakan ini masih bisa dibersihkan pemiliknya sendiri.

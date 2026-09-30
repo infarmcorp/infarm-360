@@ -17,8 +17,8 @@ const ScoreItem = z.object({
   indicatorId: z.string().uuid(),
   rating: z.number().int().min(1).max(5).nullable(),
   comment: z.string().trim().max(1000).optional().default(''),
-  isNa: z.boolean().optional().default(false), // BR-05: N/A — tak punya exposure/evidence cukup
-  naReason: z.string().trim().max(500).optional().default(''), // BR-05: alasan N/A (dropdown final HRD 2026-09-28)
+  // Fitur N/A (BR-05) DICABUT 2026-09-29 (permintaan HRD — perhitungannya perlu divalidasi dulu):
+  // semua indikator wajib rating 1–5 + evidence. Field isNa/naReason dari klien lama diabaikan (Zod strip).
 });
 const AnswerItem = z.object({
   questionId: z.string().uuid(),
@@ -59,48 +59,58 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
     .maybeSingle();
   if (!mapping) return { ok: false, error: 'Anda tidak ditugaskan menilai pegawai ini' };
 
-  // BR-05 (keputusan pengguna 2026-09-29): N/A HANYA untuk penilaian OPSIONAL. Penilaian
-  // Wajib tak boleh memakai N/A sama sekali — ditolak di server, bukan cuma disembunyikan
-  // dari UI (klien lama/dimodifikasi bisa saja masih mengirim isNa=true).
-  if (mapping.mandatory && scores.some((s) => s.isNa)) {
-    return { ok: false, error: 'N/A tidak tersedia untuk penilaian Wajib — beri rating 1–5 untuk semua indikator' };
-  }
 
-  // BR-03: Not Eligible menghentikan penilaian — tak boleh submit sama sekali.
   const { data: exExisting } = await supabase
-    .from('assessments').select('exposure_status')
+    .from('assessments').select('status')
     .eq('assessor_id', auth.user.id).eq('target_id', targetId).eq('period_id', ap.id).maybeSingle();
-  if (exExisting?.exposure_status === 'not_eligible') {
-    return { ok: false, error: 'Anda menandai Not Eligible untuk pegawai ini — penilaian tidak dilanjutkan' };
+  // Penilaian yang SUDAH terkirim tak boleh turun ke draf: nilainya sudah masuk laporan pegawai yang
+  // dinilai. Pegawai tetap boleh mengedit — lewat "Kirim Ulang" (status tetap 'submitted').
+  if (exExisting?.status === 'submitted' && status === 'draft') {
+    return { ok: false, error: 'Penilaian ini sudah terkirim — simpan perubahan dengan "Kirim Ulang", bukan Simpan Draf' };
   }
 
-  // BR-05: sanitasi — indikator N/A selalu tersimpan rating NULL & evidence kosong (alasan N/A
-  // dipakai sebagai gantinya), apa pun yang dikirim klien. Non-N/A: alasan N/A selalu kosong.
-  const sanitized = scores.map((s) => (s.isNa
-    ? { ...s, rating: null, comment: '' }
-    : { ...s, naReason: '' }));
+  // Indikator AKTIF & pertanyaan esai periode ini = daftar resmi yang harus dinilai. Audit
+  // 2026-09-30: sebelumnya server hanya memeriksa indikator yang IKUT dikirim → kiriman berisi
+  // sebagian indikator (atau indikator periode lain) tetap diterima & dihitung "selesai".
+  const { data: aspectRows } = await supabase.from('culture_aspects').select('id').eq('period_id', ap.id);
+  const aspectIds = (aspectRows ?? []).map((a) => a.id);
+  const { data: indRows } = aspectIds.length
+    ? await supabase.from('indicators').select('id').in('aspect_id', aspectIds).eq('is_active', true)
+    : { data: [] as { id: string }[] };
+  const activeInd = new Set((indRows ?? []).map((i) => i.id));
+  const { data: quals } = await supabase.from('qualitative_questions').select('id').eq('period_id', ap.id);
+  const periodQ = new Set((quals ?? []).map((q) => q.id));
 
-  // Saat KIRIM: semua indikator NON-N/A wajib rating + evidence (min. 20 karakter, BR-06).
-  // Indikator N/A (BR-05) dikecualikan dari kedua syarat ini & tak wajib evidence, TAPI wajib
-  // memilih satu alasan N/A (dropdown final HRD 2026-09-28, min. 5 karakter, "Lainnya" bebas teks).
+  if (activeInd.size === 0) return { ok: false, error: 'Belum ada indikator aktif pada periode ini' };
+  if (scores.some((x) => !activeInd.has(x.indicatorId))) {
+    return { ok: false, error: 'Ada indikator yang tidak termasuk periode ini — muat ulang halaman lalu coba lagi' };
+  }
+  if (answers.some((a) => !periodQ.has(a.questionId))) {
+    return { ok: false, error: 'Ada pertanyaan esai yang tidak termasuk periode ini — muat ulang halaman lalu coba lagi' };
+  }
+  const sanitized = scores;
+
+  // Saat KIRIM: SEMUA indikator aktif wajib rating + evidence (min. 20 karakter, BR-06).
   if (status === 'submitted') {
-    if (sanitized.some((s) => !s.isNa && s.rating === null)) {
-      return { ok: false, error: 'Lengkapi seluruh rating indikator (atau tandai N/A) sebelum mengirim' };
+    const byInd = new Map(sanitized.map((x) => [x.indicatorId, x]));
+    if ([...activeInd].some((id) => byInd.get(id)?.rating == null)) {
+      return { ok: false, error: 'Lengkapi seluruh rating indikator sebelum mengirim' };
     }
-    if (sanitized.some((s) => !s.isNa && (s.comment ?? '').trim().length < 20)) {
-      return { ok: false, error: 'Setiap indikator (kecuali N/A) wajib komentar/bukti perilaku (evidence) minimal 20 karakter' };
-    }
-    if (sanitized.some((s) => s.isNa && (s.naReason ?? '').trim().length < 5)) {
-      return { ok: false, error: 'Setiap indikator N/A wajib memilih satu alasan (minimal 5 karakter)' };
+    if ([...activeInd].some((id) => (byInd.get(id)?.comment ?? '').trim().length < 20)) {
+      return { ok: false, error: 'Setiap indikator wajib komentar/bukti perilaku (evidence) minimal 20 karakter' };
     }
     // Semua pertanyaan kualitatif (esai) periode ini wajib terisi.
-    const { data: quals } = await supabase
-      .from('qualitative_questions').select('id').eq('period_id', ap.id);
     const answeredQ = new Set(answers.filter((a) => (a.answer ?? '').trim().length > 0).map((a) => a.questionId));
-    if ((quals ?? []).some((q) => !answeredQ.has(q.id))) {
+    if ([...periodQ].some((id) => !answeredQ.has(id))) {
       return { ok: false, error: 'Semua pertanyaan kualitatif (esai) wajib diisi sebelum mengirim' };
     }
   }
+
+  // Kiriman PERTAMA ditulis dulu sebagai draf, lalu dinaikkan ke 'submitted' SETELAH skor & esai
+  // tersimpan — DB (trigger 0045) memeriksa kelengkapan tepat saat status berubah jadi terkirim.
+  // Penilaian yang sudah terkirim tetap 'submitted' (Kirim Ulang).
+  const alreadySubmitted = exExisting?.status === 'submitted';
+  const headerStatus = alreadySubmitted ? 'submitted' : 'draft';
 
   // Header assessment (upsert → dapat id).
   const { data: header, error: hErr } = await supabase
@@ -110,10 +120,10 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
         period_id: ap.id,
         assessor_id: auth.user.id,
         target_id: targetId,
-        status,
+        status: headerStatus,
         // Hanya kosmetik: trigger 0036 menimpa submitted_at & mengisi first_submitted_at dgn
         // waktu SERVER DB (nilai klien diabaikan) — dasar status On Time / Late.
-        submitted_at: status === 'submitted' ? new Date().toISOString() : null,
+        submitted_at: headerStatus === 'submitted' ? new Date().toISOString() : null,
       },
       { onConflict: 'period_id,assessor_id,target_id' },
     )
@@ -130,8 +140,9 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
       indicator_id: s.indicatorId,
       rating: s.rating,
       comment: s.comment || null,
-      is_na: s.isNa,
-      na_reason: s.isNa ? (s.naReason || null) : null,
+      // Kolom N/A (0039) dipertahankan di DB tapi selalu dikosongkan — fitur dicabut 2026-09-29.
+      is_na: false,
+      na_reason: null,
     })),
     { onConflict: 'assessment_id,indicator_id' },
   );
@@ -149,6 +160,13 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
     if (aErr) return { ok: false, error: 'Gagal menyimpan jawaban esai: ' + aErr.message };
   }
 
+  if (status === 'submitted' && !alreadySubmitted) {
+    const { error: uErr } = await supabase.from('assessments')
+      .update({ status: 'submitted', submitted_at: new Date().toISOString() })
+      .eq('id', header.id);
+    if (uErr) return { ok: false, error: 'Penilaian tersimpan sebagai draf, tapi gagal dikirim: ' + uErr.message };
+  }
+
   // Kirim SESUDAH deadline → potongan keterlambatan penilai langsung masuk ke Skor 360°
   // miliknya (bila sudah dihitung). Hanya menyentuh baris penilai sendiri; kegagalan di sini
   // tak membatalkan kiriman (hitung ulang Skor 360° HRD tetap menerapkannya).
@@ -159,78 +177,6 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
   revalidatePath('/penilaian');
   revalidatePath(`/penilaian/${targetId}`);
   return { ok: true, status };
-}
-
-/**
- * BR-03 Exposure Check (Q3 2026). Rater WAJIB memastikan exposure kerja sebelum
- * menilai — ditampilkan sebagai layar pertama di /penilaian/[targetId] selama belum
- * pernah dikonfirmasi. Eligible/Partially Eligible → lanjut ke form penilaian seperti
- * biasa. Not Eligible → penilaian dihentikan (submitAssessment menolaknya, tidak
- * dihitung tunggakan/skor/penalty).
- *
- * TERKUNCI setelah dikonfirmasi — rater tak bisa mengubah sendiri (mencegah
- * "downgrade" status buat menghindari kewajiban). Koreksi lewat HRD menyusul (Tahap 2).
- *
- * Not Eligible WAJIB disertai alasan (dropdown final HRD 2026-09-28, migrasi 0038):
- *   a) Tidak pernah bekerja sama secara langsung selama periode penilaian
- *   b) Interaksi kerja terlalu terbatas untuk memberikan penilaian
- *   c) Hubungan kerja tidak sesuai dengan assignment yang diberikan
- *   d) Lainnya — wajib mengisi penjelasan
- * Disimpan sebagai teks resolusi akhir (bukan enum), sama pola dengan alasan
- * BR-04 (relation_correction_requests.reason).
- */
-const ExposureInput = z.object({
-  targetId: z.string().uuid(),
-  status: z.enum(['eligible', 'partially_eligible', 'not_eligible']),
-  reason: z.string().trim().max(500).optional(),
-}).refine(
-  (v) => v.status !== 'not_eligible' || (v.reason ?? '').trim().length >= 5,
-  { message: 'Alasan Not Eligible wajib diisi (minimal 5 karakter)', path: ['reason'] },
-);
-
-export async function setExposureStatus(raw: unknown): Promise<SubmitResult> {
-  const parsed = ExposureInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
-  const { targetId, status: exposureStatus, reason } = parsed.data;
-  const exposureReason = exposureStatus === 'not_eligible' ? (reason ?? '').trim() : null;
-
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-
-  const { data: ap } = await supabase
-    .from('periods').select('id, has_360, form_open').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
-  if (!ap.has_360) return { ok: false, error: 'Penilaian 360° untuk periode ini belum dibuka oleh HRD' };
-  if (!ap.form_open) return { ok: false, error: 'Form penilaian 360° sedang ditutup HRD (tahap peninjauan hasil)' };
-
-  const { data: mapping } = await supabase
-    .from('mappings').select('id')
-    .eq('assessor_id', auth.user.id).eq('target_id', targetId)
-    .eq('period_id', ap.id).eq('is_active', true)
-    .maybeSingle();
-  if (!mapping) return { ok: false, error: 'Anda tidak ditugaskan menilai pegawai ini' };
-
-  const { data: existing } = await supabase
-    .from('assessments').select('exposure_status')
-    .eq('assessor_id', auth.user.id).eq('target_id', targetId).eq('period_id', ap.id).maybeSingle();
-  if (existing?.exposure_status) {
-    return { ok: false, error: 'Status exposure untuk pegawai ini sudah dikonfirmasi dan terkunci. Hubungi HRD bila perlu koreksi.' };
-  }
-
-  const { error } = await supabase.from('assessments').upsert(
-    {
-      period_id: ap.id, assessor_id: auth.user.id, target_id: targetId,
-      exposure_status: exposureStatus, exposure_confirmed_at: new Date().toISOString(),
-      exposure_reason: exposureReason,
-    },
-    { onConflict: 'period_id,assessor_id,target_id' },
-  );
-  if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
-
-  revalidatePath('/penilaian');
-  revalidatePath(`/penilaian/${targetId}`);
-  return { ok: true, status: 'draft' };
 }
 
 /**

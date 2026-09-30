@@ -29,7 +29,7 @@ flowchart TD
 1. Bila periode aktif & orang ini **sudah punya data** (KPI/360°): pertimbangkan **selesaikan dulu**
    sebelum menonaktifkan —
    - Lengkapi KPI bulan yang perlu (KPI = rata bulan terisi; tak apa bila hanya sebagian bulan).
-   - **① Hitung Ulang Skor 360° → Review Hasil Akhir → Finalisasi** laporannya bila memang ingin
+   - **① Hitung Ulang Skor 360° → Review & Finalisasi → Finalisasi** laporannya bila memang ingin
      hasil kuartalnya keluar.
    > Halaman **pelaporan** (Dashboard/Rekap/Monitor/Laporan Tim/Review) **tetap menampilkan** pegawai
    > nonaktif yang **punya data periode** (diberi penanda "nonaktif") — jadi hasilnya **tak hilang** &

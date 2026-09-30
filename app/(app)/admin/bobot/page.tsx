@@ -7,7 +7,6 @@ import { weightedScore360, round2, type Groups360 } from '@/lib/score360';
 import { WeightForm } from './weight-form';
 import { EmployeeWeights, type Override } from './employee-weights';
 import { Kalkulasi360Table, type MergedRow } from './bobot-tables';
-import { RecomputeButton } from '../360/recompute-button';
 import { EmptyState } from '@/components/empty-state';
 import { Panel, PanelLabel } from '@/components/panel';
 import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
@@ -175,7 +174,7 @@ export default async function BobotPage() {
         <p className="text-[12px] text-ink-faint mt-4 leading-relaxed">
           Skor 360 = rata-rata rating tiap kelas penilai ×20, dibobot di sini. Evaluasi diri (Self)
           tak punya bobot &amp; tak pernah ikut dihitung, jadi tidak ada kolomnya.
-          Perubahan berlaku setelah <strong className="font-semibold text-ink-soft">Hitung Ulang Skor 360°</strong> di bawah.
+          Perubahan berlaku setelah <strong className="font-semibold text-ink-soft">Hitung Ulang Skor 360°</strong> di Review &amp; Finalisasi (tautan di bawah).
         </p>
       </Section>
 
@@ -183,18 +182,24 @@ export default async function BobotPage() {
       <Section title="Bobot Khusus per Pegawai">
         <p className="text-[12px] text-ink-soft mb-4 max-w-3xl leading-relaxed">
           Sebagian pegawai bisa memakai bobot berbeda dari skema periode di atas. Pegawai dengan bobot khusus
-          memakai model &amp; nilai di sini; sisanya tetap skema periode. Berlaku setelah <strong className="font-semibold text-ink">Hitung Ulang Skor 360°</strong>.
+          memakai model &amp; nilai di sini; sisanya tetap skema periode. Berlaku setelah <strong className="font-semibold text-ink">Hitung Ulang Skor 360°</strong> di Review &amp; Finalisasi.
           <span className="block mt-1 text-ink-faint">Catatan: kelas tanpa data (mis. pegawai tanpa bawahan) sudah otomatis diabaikan &amp; bobotnya dinormalisasi — bobot khusus hanya perlu bila kebijakan bobotnya memang berbeda.</span>
         </p>
         <EmployeeWeights employees={empList} overrides={overrides} />
       </Section>
 
-      {/* 2. Kalkulasi & Perbandingan (Hitung Ulang + hasil resmi + dampak bobot khusus + banding model) */}
+      {/* 2. Kalkulasi & Perbandingan (hasil resmi + dampak bobot khusus + banding model). Tombol Hitung Ulang
+          SENGAJA hanya satu, di Review & Finalisasi (kokpit Sinkronkan Skor) — di sini cukup tautan. */}
       <Section title="Kalkulasi Skor 360°">
         <div className="mb-4">
-          <RecomputeButton />
+          <div className="flex flex-wrap items-center gap-2 border border-line bg-neutral-tint rounded-panel px-3 py-2.5">
+            <span className="text-[12px] text-ink-soft">Bobot berubah? Skor 360° perlu dihitung ulang agar bobot baru berlaku.</span>
+            <Link href="/admin/laporan" className="text-[12px] font-semibold px-3 py-1.5 rounded-control bg-brand hover:bg-brand-ink text-white">
+              Buka Review &amp; Finalisasi →
+            </Link>
+          </div>
           <p className="text-[12px] text-ink-faint mt-2 leading-relaxed">
-            Menulis hasil resmi ke <code className="data-value text-ink-soft bg-neutral-tint px-1 py-0.5 rounded">result_360</code> memakai model aktif:
+            Hitung ulang menulis hasil resmi ke <code className="data-value text-ink-soft bg-neutral-tint px-1 py-0.5 rounded">result_360</code> memakai model aktif:
             <strong className="font-semibold text-ink-soft"> {model === '4class' ? '4-Kelas' : '2-Kelas'}</strong> (bobot global <span className="data-value">{globalLabel}</span>). Pegawai dengan
             <strong className="font-semibold text-ink-soft"> bobot khusus</strong> memakai bobotnya sendiri. Evaluasi diri (Self) tak ikut dihitung.
           </p>

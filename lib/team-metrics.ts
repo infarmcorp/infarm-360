@@ -1,10 +1,12 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { trendOf, type Trend } from '@/lib/trend';
+import { fetchAllByIds } from '@/lib/supabase/paginate';
+import { kpiAvgOf } from '@/lib/scoring';
 
 /**
  * Metrik tim/pegawai per periode untuk Laporan Kinerja Tim & Monitor Kinerja.
- * Dibaca via service_role (lingkup dibatasi daftar `ids` per peran di pemanggil). `ids` selalu
- * subset kecil (tim/divisi) → aman dari batas 1000-baris PostgREST.
+ * Dibaca via service_role (lingkup dibatasi daftar `ids` per peran di pemanggil). `ids` bisa
+ * SELURUH pegawai (companyAverages) → query di-chunk + dipaginasi (batas 1000-baris PostgREST).
  */
 export type ScoreMaps = {
   kpiBy: Map<string, number>;                 // rerata KPI kuartal per pegawai
@@ -22,9 +24,12 @@ export async function scoreMaps(periodId: string, ids: string[]): Promise<ScoreM
   const { data: months } = await admin.from('period_months').select('ym').eq('period_id', periodId);
   const yms = (months ?? []).map((m) => m.ym).sort(); // kronologis: bulan-1, bulan-2, bulan-3
   if (yms.length) {
-    const { data: ks } = await admin.from('kpi_scores').select('employee_id, ym, score').in('ym', yms).in('employee_id', ids);
+    // companyAverages memanggil ini untuk SELURUH pegawai → chunk id + paginasi (batas 1000 baris & URL).
+    const ks = await fetchAllByIds<{ employee_id: string; ym: string; score: number }>(ids, (chunk, from, to) =>
+      admin.from('kpi_scores').select('employee_id, ym, score').in('ym', yms).in('employee_id', chunk)
+        .order('employee_id').order('ym').range(from, to));
     const perEmp = new Map<string, Map<string, number>>();
-    (ks ?? []).forEach((r) => {
+    ks.forEach((r) => {
       let m = perEmp.get(r.employee_id);
       if (!m) { m = new Map(); perEmp.set(r.employee_id, m); }
       m.set(r.ym, r.score);
@@ -32,12 +37,14 @@ export async function scoreMaps(periodId: string, ids: string[]): Promise<ScoreM
     for (const [id, m] of perEmp) {
       const vals = yms.map((ym) => (m.has(ym) ? m.get(ym)! : null));
       monthlyBy.set(id, vals);
-      const present = vals.filter((v): v is number => v != null);
-      if (present.length) kpiBy.set(id, present.reduce((a, b) => a + b, 0) / present.length);
+      const kpiAvg = kpiAvgOf(vals); // definisi tunggal rerata KPI (lib/scoring)
+      if (kpiAvg != null) kpiBy.set(id, kpiAvg);
     }
   }
-  const { data: rs } = await admin.from('result_360').select('employee_id, score').eq('period_id', periodId).in('employee_id', ids);
-  (rs ?? []).forEach((r) => { if (r.score != null) s360By.set(r.employee_id, r.score); });
+  const rs = await fetchAllByIds<{ employee_id: string; score: number | null }>(ids, (chunk, from, to) =>
+    admin.from('result_360').select('employee_id, score').eq('period_id', periodId).in('employee_id', chunk)
+      .order('employee_id').range(from, to));
+  rs.forEach((r) => { if (r.score != null) s360By.set(r.employee_id, r.score); });
   return { kpiBy, s360By, monthlyBy };
 }
 
@@ -51,8 +58,8 @@ export async function penaltyMap(periodId: string, ids: string[]): Promise<Map<s
   return penBy;
 }
 
-/** KPI "belum terbaca" = trend 3 bulan pertama 'unread' (bln-1=0 & bln-2=0). Dikecualikan dari
- *  rerata KPI (selaras Dashboard) — data belum masuk, bukan berkinerja rendah. 360° tetap dihitung. */
+/** KPI "belum terbaca" = trend 3 bulan pertama 'unread' (2 dari 3 bulan kosong). Dikecualikan dari
+ *  rerata KPI (selaras Dashboard) — belum menggambarkan kuartal, bukan berkinerja rendah. 360° tetap dihitung. */
 const isUnreadMonths = (months: (number | null)[] | undefined): boolean =>
   trendOf((months ?? []).slice(0, 3)) === 'unread';
 

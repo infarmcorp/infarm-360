@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { CheckCircle2, Circle, CircleDot, MinusCircle, AlertTriangle, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { fetchAllPaged } from '@/lib/supabase/paginate';
 
 /**
  * Status Siklus — TAHAP periode aktif (peta alur end-to-end) + "apa yang memblokir finalisasi".
@@ -48,14 +49,21 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
   ]);
 
   // Cakupan 360° berbasis TARGET yang dipetakan (bukan seluruh pegawai) → cegah alarm palsu.
-  const [{ data: mapT }, { data: resE }] = await Promise.all([
-    has360 ? supabase.from('mappings').select('target_id').eq('period_id', ap.id).eq('is_active', true)
-           : Promise.resolve({ data: [] as { target_id: string }[] }),
-    has360 ? supabase.from('result_360').select('employee_id').eq('period_id', ap.id).not('score', 'is', null)
-           : Promise.resolve({ data: [] as { employee_id: string }[] }),
+  // mappings satu periode = pegawai × penilai → bisa >1000 → dipaginasi agar hitungan tak terpotong.
+  const [mapT, resE] = await Promise.all([
+    has360
+      ? fetchAllPaged<{ target_id: string }>((from, to) =>
+          supabase.from('mappings').select('target_id').eq('period_id', ap.id).eq('is_active', true)
+            .order('assessor_id').order('target_id').range(from, to))
+      : Promise.resolve([] as { target_id: string }[]),
+    has360
+      ? fetchAllPaged<{ employee_id: string }>((from, to) =>
+          supabase.from('result_360').select('employee_id').eq('period_id', ap.id).not('score', 'is', null)
+            .order('employee_id').range(from, to))
+      : Promise.resolve([] as { employee_id: string }[]),
   ]);
-  const targets = new Set((mapT ?? []).map((m) => m.target_id));
-  const computed = new Set((resE ?? []).map((r) => r.employee_id));
+  const targets = new Set(mapT.map((m) => m.target_id));
+  const computed = new Set(resE.map((r) => r.employee_id));
   const targetsN = targets.size;
   const scoredN = [...targets].filter((id) => computed.has(id)).length;
   const missing360 = targetsN - scoredN;
@@ -67,10 +75,11 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
   // sudah punya minimal satu nilai KPI di bulan-bulan periode ini.
   const { data: pm } = await supabase.from('period_months').select('ym').eq('period_id', ap.id);
   const yms = (pm ?? []).map((m) => m.ym);
-  const { data: krows } = yms.length
-    ? await supabase.from('kpi_scores').select('employee_id').in('ym', yms)
-    : { data: [] as { employee_id: string }[] };
-  const kpiFilled = new Set((krows ?? []).map((r) => r.employee_id)).size;
+  const krows = yms.length
+    ? await fetchAllPaged<{ employee_id: string }>((from, to) =>
+        supabase.from('kpi_scores').select('employee_id').in('ym', yms).order('employee_id').order('ym').range(from, to))
+    : [];
+  const kpiFilled = new Set(krows.map((r) => r.employee_id)).size;
 
   // Alur END-TO-END periode (SOP lengkap) — SELALU ditampilkan utuh sebagai peta. Langkah 360°
   // ditandai 'skipped' (dilewati) saat mode Tanpa 360°, bukan dihilangkan, agar alur tetap terbaca
@@ -80,7 +89,7 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
   const defs: { label: string; detail?: string; href?: string; base: StageStatus }[] = [
     { label: 'Periode dibuat & diaktifkan', detail: ap.label, href: '/admin/periode', base: 'done' },
     { label: 'Pertanyaan, bobot & pemetaan 360°', detail: skip ? off : `${nMap} pemetaan aktif`, href: '/admin/pemetaan', base: skip ? 'skipped' : (nMap > 0 ? 'done' : 'todo') },
-    { label: 'Aktifkan / luncurkan 360°', detail: skip ? off : (ap.form_open ? 'form terbuka' : 'form ditutup'), href: '/admin/pemetaan', base: skip ? 'skipped' : 'done' },
+    { label: 'Aktifkan / luncurkan 360°', detail: skip ? off : (ap.form_open ? 'form terbuka' : 'form ditutup'), href: '/admin/periode', base: skip ? 'skipped' : 'done' },
     { label: 'Input KPI bulanan (SPV)', detail: `${kpiFilled}/${nEmp} pegawai ada KPI`, href: '/kpi?tab=riwayat', base: nEmp > 0 && kpiFilled >= nEmp ? 'done' : 'todo' },
     { label: 'Pengisian 360° oleh pegawai', detail: skip ? off : `${nSub}/${nMap} penilaian terkirim`, href: '/admin/progress', base: skip ? 'skipped' : (nMap > 0 && nSub >= nMap ? 'done' : 'todo') },
     { label: '① Hitung Ulang Skor 360°', detail: skip ? off : `${scoredN}/${targetsN} target berskor 360°`, href: '/admin/laporan', base: skip ? 'skipped' : (targetsN > 0 && scoredN >= targetsN ? 'done' : 'todo') },

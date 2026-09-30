@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canAdmin } from '@/lib/auth/roles';
+import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { refreshLatePenalties } from '@/lib/late-server';
 
@@ -20,8 +20,8 @@ async function requireHrd(
 ): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
-  if (!canAdmin(me)) return { ok: false, error: 'Hanya HRD yang dapat mengelola periode' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
+  if (!canSection(me, 'periode')) return { ok: false, error: 'Hanya HRD yang dapat mengelola periode' };
   return { ok: true, userId: user.id };
 }
 
@@ -84,6 +84,9 @@ export async function activatePeriod(periodId: string): Promise<Result> {
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
+  // CATATAN (keputusan pengguna 2026-09-29): periode yang sudah dikunci BOLEH dibuka kembali, termasuk
+  // yang sudah punya laporan final. Laporan final tetap aman — Skor Akhir tersimpan tak berubah otomatis;
+  // selisih akibat edit sesudah dibuka ditandai "berubah → N" di Review Hasil Akhir (hasScoreDrift).
   // Akhiri semua periode lain → jaga hanya satu aktif.
   const { error: e1 } = await supabase.from('periods').update({ status: 'ended' }).neq('id', periodId);
   if (e1) return { ok: false, error: 'Gagal: ' + e1.message };
@@ -378,11 +381,18 @@ export async function deletePeriod(periodId: string, confirmText: string): Promi
   if (!p) return { ok: false, error: 'Periode tidak ditemukan' };
   if (p.status === 'active') return { ok: false, error: 'Periode aktif tidak bisa dihapus. "Kunci & Akhiri" dulu.' };
 
-  // KPI tak cascade dari periods → hapus manual, hanya bulan UNIK periode ini.
+  // KPI tak cascade dari periods → hapus manual, hanya bulan UNIK periode ini. Error DIPERIKSA (dulu
+  // diabaikan → periode bisa terhapus sementara KPI-nya tertinggal) & jumlah baris yang ikut terhapus
+  // (termasuk jejak audit KPI) DICATAT di Log Aktivitas agar penghapusan tetap bisa ditelusuri.
   const uniqueYms = await uniqueMonthsOf(admin, periodId);
+  let kpiDeleted = 0, kpiAuditDeleted = 0;
   if (uniqueYms.length) {
-    await admin.from('kpi_audit').delete().in('ym', uniqueYms);
-    await admin.from('kpi_scores').delete().in('ym', uniqueYms);
+    const { data: a, error: aErr } = await admin.from('kpi_audit').delete().in('ym', uniqueYms).select('id');
+    if (aErr) return { ok: false, error: 'Gagal menghapus jejak audit KPI periode: ' + aErr.message };
+    const { data: k, error: kErr } = await admin.from('kpi_scores').delete().in('ym', uniqueYms).select('employee_id');
+    if (kErr) return { ok: false, error: 'Gagal menghapus KPI periode: ' + kErr.message };
+    kpiAuditDeleted = a?.length ?? 0;
+    kpiDeleted = k?.length ?? 0;
   }
 
   const { error } = await admin.from('periods').delete().eq('id', periodId);
@@ -390,8 +400,9 @@ export async function deletePeriod(periodId: string, confirmText: string): Promi
 
   await logHrdAction({
     action: 'period.delete', category: 'periode',
-    summary: `Menghapus periode "${p.label}" beserta seluruh datanya`,
+    summary: `Menghapus periode "${p.label}" beserta seluruh datanya (${kpiDeleted} nilai KPI, ${kpiAuditDeleted} jejak audit KPI, bulan ${uniqueYms.join(', ') || '—'})`,
     targetType: 'period', targetId: periodId, targetLabel: p.label,
+    meta: { kpi_deleted: kpiDeleted, kpi_audit_deleted: kpiAuditDeleted, months: uniqueYms },
   });
   revalidatePath('/admin/periode');
   revalidatePath('/admin/dashboard');

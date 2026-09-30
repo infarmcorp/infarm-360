@@ -161,7 +161,7 @@ function roleGuide(role: string, isHrdAdmin: boolean): string[] {
   if (role === 'hrd' || isHrdAdmin) return [
     'Atur siklus di Kelola Siklus Periode, Pemetaan (siapa menilai siapa), dan Kelola Pertanyaan.',
     'Pantau pengisian di Progress 360 dan kirim pengingat bila perlu.',
-    'Setelah cukup terisi, buka Review Hasil Akhir → Finalisasi & rilis laporan.',
+    'Setelah cukup terisi, buka Review & Finalisasi → Finalisasi & rilis laporan.',
     'Gunakan tombol Mode Admin ↔ Mode posisi-asli untuk berganti peran.',
   ];
   if (role === 'spv') return [

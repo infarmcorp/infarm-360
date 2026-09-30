@@ -5,7 +5,7 @@ import { headers } from 'next/headers';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
-import { canAdmin } from '@/lib/auth/roles';
+import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { randomBytes } from 'crypto';
 import { emailConfigured, sendEmail, reminderHtml, onboardingHtml, panduanAttachment, type EmailAttachment } from '@/lib/email/mailer';
@@ -89,8 +89,8 @@ async function pendingByAssessor(
 async function requireHrd(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: 'Sesi berakhir, silakan login ulang' };
-  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin').eq('id', user.id).maybeSingle();
-  if (!canAdmin(me)) return { ok: false as const, error: 'Hanya HRD yang dapat mengakses Progress 360' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
+  if (!canSection(me, 'progress')) return { ok: false as const, error: 'Hanya HRD yang dapat mengakses Progress 360' };
   return { ok: true as const, userId: user.id };
 }
 
@@ -116,40 +116,6 @@ function genPassword(): string {
   return `Inf-${body}`;
 }
 
-/**
- * BR-03 Exposure Check — koreksi HRD. Rater tak bisa mengubah status sendiri setelah
- * dikonfirmasi (lihat setExposureStatus di penilaian/actions.ts); HRD bisa mengosongkan
- * kembali status ini (mis. rater salah pilih Not Eligible) agar rater mengulang Exposure
- * Check dari layar awal. Tidak menghapus rating/komentar yang sudah terlanjur diisi.
- */
-export async function resetExposureStatus(assessorId: string, targetId: string): Promise<Result> {
-  if (!Id.safeParse(assessorId).success || !Id.safeParse(targetId).success) return { ok: false, error: 'Input tidak valid' };
-  const supabase = await createClient();
-  const auth = await requireHrd(supabase);
-  if (!auth.ok) return { ok: false, error: auth.error };
-
-  const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
-
-  const { data: existing } = await supabase.from('assessments').select('id, exposure_status')
-    .eq('period_id', ap.id).eq('assessor_id', assessorId).eq('target_id', targetId).maybeSingle();
-  if (!existing?.exposure_status) return { ok: false, error: 'Belum ada status Exposure Check untuk pasangan ini' };
-
-  const { error } = await supabase.from('assessments')
-    .update({ exposure_status: null, exposure_confirmed_at: null, exposure_reason: null }).eq('id', existing.id);
-  if (error) return { ok: false, error: 'Gagal: ' + error.message };
-
-  await logHrdAction({
-    action: 'progress.reset_exposure', category: 'progress',
-    summary: `Mengosongkan status Exposure Check (sebelumnya "${existing.exposure_status}") agar penilai mengulang`,
-    targetType: 'assessment', meta: { assessor_id: assessorId, target_id: targetId, previous: existing.exposure_status },
-  });
-  revalidatePath('/admin/progress');
-  revalidatePath('/admin/kepatuhan');
-  revalidatePath('/penilaian');
-  return { ok: true, msg: 'Status Exposure Check dikosongkan — penilai akan diminta mengisi ulang.' };
-}
-
 export async function forceComplete(assessorId: string, targetId: string): Promise<Result> {
   if (!Id.safeParse(assessorId).success || !Id.safeParse(targetId).success) return { ok: false, error: 'Input tidak valid' };
   const supabase = await createClient();
@@ -158,6 +124,12 @@ export async function forceComplete(assessorId: string, targetId: string): Promi
 
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  // Hanya pasangan yang BENAR-BENAR ditugaskan (pemetaan aktif) — tanpa ini, penilaian kosong bisa
+  // dibuat untuk pasangan sembarang dan dihitung sebagai relasi default saat Hitung Ulang Skor 360°.
+  const { data: mapping } = await supabase.from('mappings').select('id')
+    .eq('period_id', ap.id).eq('assessor_id', assessorId).eq('target_id', targetId).eq('is_active', true).maybeSingle();
+  if (!mapping) return { ok: false, error: 'Pasangan ini tidak punya pemetaan aktif di periode berjalan' };
 
   const { error } = await supabase.from('assessments').upsert(
     { period_id: ap.id, assessor_id: assessorId, target_id: targetId, status: 'submitted', submitted_at: new Date().toISOString() },

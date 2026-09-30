@@ -112,7 +112,7 @@ export interface Database {
       };
       weight_schemes: {
         Row: { id: string; period_id: string; model: '4class' | '2class'; weights: WeightValues; is_active: boolean; updated_by: string | null; updated_at: string };
-        Insert: { period_id: string; model: '4class' | '2class'; weights: WeightValues; is_active?: boolean; updated_by?: string | null };
+        Insert: { period_id: string; model: '4class' | '2class'; weights: WeightValues; is_active?: boolean; updated_by?: string | null; updated_at?: string };
         Update: Partial<Database['public']['Tables']['weight_schemes']['Insert']>;
         Relationships: [];
       };
@@ -129,8 +129,8 @@ export interface Database {
         Relationships: [];
       };
       late_penalty_waivers: {
-        Row: { employee_id: string; period_id: string; reason: string; set_by: string | null; created_at: string };
-        Insert: { employee_id: string; period_id: string; reason: string; set_by?: string | null };
+        Row: { employee_id: string; period_id: string; reason: string; points: number; set_by: string | null; created_at: string };
+        Insert: { employee_id: string; period_id: string; reason: string; points?: number; set_by?: string | null };
         Update: Partial<Database['public']['Tables']['late_penalty_waivers']['Insert']>;
         Relationships: [];
       };
@@ -166,7 +166,17 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    // Fungsi DB (migrasi 0042) — hanya dieksekusi service_role dari Server Action KPI.
+    Functions: {
+      kpi_save_with_audit: {
+        Args: { p_actor: string; p_ym: string; p_rows: { employee_id: string; score: number; note: string | null }[] };
+        Returns: number;
+      };
+      kpi_delete_with_audit: {
+        Args: { p_actor: string; p_employee: string; p_ym: string; p_note: string };
+        Returns: number | null;
+      };
+    };
     Enums: { user_role: UserRole; relation_kind: RelationKind; assessment_status: AssessmentStatus };
     CompositeTypes: Record<string, never>;
   };

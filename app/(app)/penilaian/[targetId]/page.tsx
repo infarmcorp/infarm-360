@@ -56,32 +56,20 @@ export default async function AssessPage({
     .eq('period_id', ap.id).order('order_idx');
   const questions = qRows ?? [];
 
-  // Draf yang sudah ada (prefill) + status Exposure Check (BR-03).
+  // Draf yang sudah ada (prefill). (Exposure Check BR-03 DICABUT 2026-09-29.)
   const { data: existing } = await supabase
-    .from('assessments').select('id, status, exposure_status, exposure_reason')
+    .from('assessments').select('id, status')
     .eq('assessor_id', user.id).eq('target_id', targetId).eq('period_id', ap.id)
     .maybeSingle();
 
-  // BR-03: Not Eligible → penilaian dihentikan, tampilkan notice (bukan form).
-  if (existing?.exposure_status === 'not_eligible') {
-    return (
-      <Notice>
-        Anda menandai <strong>Not Eligible</strong> (tidak memiliki exposure kerja yang cukup) untuk menilai
-        pegawai ini{existing.exposure_reason ? <> — alasan: <em>&ldquo;{existing.exposure_reason}&rdquo;</em></> : null}.
-        Penilaian tidak dilanjutkan, tidak dihitung sebagai tunggakan, dan tidak dikenakan penalty keterlambatan.
-        Hubungi HRD bila status ini perlu dikoreksi.
-      </Notice>
-    );
-  }
-
-  const initialScores: Record<string, { rating: number | null; comment: string; isNa: boolean; naReason: string }> = {};
+  const initialScores: Record<string, { rating: number | null; comment: string }> = {};
   const initialAnswers: Record<string, string> = {};
   if (existing) {
     const { data: sc } = await supabase
-      .from('assessment_indicator_scores').select('indicator_id, rating, comment, is_na, na_reason')
+      .from('assessment_indicator_scores').select('indicator_id, rating, comment')
       .eq('assessment_id', existing.id);
     (sc ?? []).forEach((s) => {
-      initialScores[s.indicator_id] = { rating: s.rating, comment: s.comment ?? '', isNa: s.is_na ?? false, naReason: s.na_reason ?? '' };
+      initialScores[s.indicator_id] = { rating: s.rating, comment: s.comment ?? '' };
     });
     const { data: an } = await supabase
       .from('assessment_qual_answers').select('question_id, answer')
@@ -131,12 +119,8 @@ export default async function AssessPage({
           )}
         </p>
 
-        {/* BR-03 Exposure Check DINONAKTIFKAN SEMENTARA (keputusan pengguna 2026-09-28):
-            pemetaan sudah di-cross-check ulang oleh leader masing-masing, jadi langkah ini
-            dilewati dulu — langsung ke form penilaian. Kode Exposure Check (skema,
-            setExposureStatus, ExposureCheckForm, Progress 360 "Not Eligible") TIDAK dihapus,
-            supaya gampang dinyalakan lagi nanti bila dibutuhkan: cukup kembalikan gerbang di
-            bawah ini (`!existing?.exposure_status ? <ExposureCheckForm .../> : <AssessForm .../>`).
+        {/* Exposure Check (BR-03) DICABUT 2026-09-29 (permintaan pengguna) — dari UI & server; langsung
+            ke form penilaian. Kolom DB exposure_* dibiarkan kosong & dikunci trigger (migrasi 0044).
             key=targetId → form di-MOUNT ULANG tiap ganti target. Tanpa ini, berpindah dari
             /penilaian/A ke /penilaian/B (tanpa reload) membuat React mempertahankan state
             (activeGroup/activeId/rating/komentar) target sebelumnya → form bisa terbuka di

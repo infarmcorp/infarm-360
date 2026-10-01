@@ -81,8 +81,9 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **Mulai Nilai / Lanjutkan / Edit** | Link ke `/penilaian/{targetId}` (label adaptif per status) | Pemilik baris | Tidak tampil pada **fase tinjau pemetaan** (tertulis "belum dibuka") | — |
 
 > Empty-state bila tak ada periode aktif, `has_360=false` ("Penilaian 360° belum dibuka"), atau form
-> ditutup HRD di luar fase tinjau. Kartu "Penilaian Wajib Anda" memuat **Deadline** (WIB); badge
-> **Terlambat** & label **"Ajuan · wajib selesai"** tampil per baris. **Self Assessment dinonaktifkan
+> ditutup HRD di luar fase tinjau. Kartu "Penilaian Wajib Anda" memuat **Deadline** (WIB); kolom Status
+> memakai **4 status** (Belum Mulai · Sedang Diisi · Selesai – Tepat Waktu · Selesai – Terlambat, BR-07) &
+> label **"Ajuan · wajib selesai"** tampil per baris. **Self Assessment dinonaktifkan
 > (Q3 2026)** — tak ada baris untuk diri sendiri. Panel **Permohonan Saya** (tab Pengajuan) menampilkan
 > status & alasan penolakan HRD.
 
@@ -284,7 +285,7 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 
 | Tombol | Fungsi | Peran | Kondisi | Konfirmasi |
 |--------|--------|-------|---------|------------|
-| **Model Bobot** (select 4class/2class) | Ganti model bobot | HRD Admin | — | — |
+| **Model Bobot** (select 4class/2class) | Ganti model bobot. **2-Kelas mulai Q3 2026: isian % dikunci — bobot otomatis** 40/60 · 60/40 · 100% sesuai jumlah penilai Internal yang mengirim (BR-10) | HRD Admin | — | — |
 | **Simpan & Terapkan Bobot** | `saveWeights` (tak otomatis hitung ulang) | HRD Admin | Nonaktif saat busy **atau total bobot ≠ 100** | — |
 | **Bobot Khusus per Pegawai: pilih pegawai → Simpan** | Simpan bobot 360° khusus satu pegawai (periode aktif) | HRD Admin | Nonaktif bila belum pilih pegawai **atau total ≠ 100** | — |
 | **Hapus bobot khusus** (per baris) | Kembali ke skema periode | HRD Admin | Ada override | — |

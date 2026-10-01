@@ -9,6 +9,9 @@ Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saa
 > terkirim, **rumus Skor Akhir tunggal**, **Trend KPI / "Belum terbaca"**, **ACC gugur** bila laporan
 > berubah, **periode terkunci bisa dibuka kembali**, menu **Review & Finalisasi** (HRD) &
 > **Tinjauan Hasil Akhir** (Direksi), tombol **② Perbarui Laporan Final yang Berubah**.
+> **Diperbarui 2026-10-01** — **4 status penilaian** (Belum Mulai · Sedang Diisi · Selesai – Tepat Waktu ·
+> Selesai – Terlambat, BR-07), **bobot 2-Kelas otomatis** 40/60 · 60/40 mulai Q3 2026 (BR-10), status
+> **"No Score"** untuk Skor 360° kosong (BR-09), dan klasifikasi **"HRD Review"** bila KPI atau 360° kosong (BR-11).
 
 > 📌 **Rincian tiap tombol per halaman** (fungsi · peran · kondisi · konfirmasi): lihat
 > [RINCIAN-TOMBOL.md](RINCIAN-TOMBOL.md) — kamus lengkap semua aksi di aplikasi.
@@ -119,7 +122,10 @@ Halaman ini punya **dua tab**: **Penilaian** (daftar rekan yang harus Anda nilai
    - Kolom **Sifat** menandai tiap penilaian **Wajib** atau **Opsional**. Label **"Ajuan · wajib
      selesai"** = penilaian yang **Anda ajukan sendiri & sudah disetujui HRD** — mulai **periode Q3 2026**
      ia **wajib dituntaskan sebelum deadline** (bila tidak, ikut potongan keterlambatan).
-   - Badge **Terlambat** = penilaian yang pertama kali dikirim sesudah deadline.
+   - Kolom **Status** memakai **4 status**: **Belum Mulai** · **Sedang Diisi** (draf) · **Selesai – Tepat
+     Waktu** · **Selesai – Terlambat** (dikirim pertama kali sesudah deadline). Status tepat waktu/terlambat
+     ditentukan dari waktu kirim **pertama** — tidak berubah bila penilaian diedit kemudian. Penilaian
+     Opsional biasa cukup berlabel **Terkirim**.
    - **Ajukan Hapus** (untuk pemetaan dari HRD): minta agar Anda **tidak perlu menilai** orang itu
      (mis. tak pernah bekerja sama), dengan alasan min. 5 karakter. Pemetaan baru hilang **setelah HRD
      menyetujui**. Satu permohonan aktif per rekan (baris bertanda "Menunggu HRD").
@@ -604,6 +610,13 @@ Dataset dirangkai jadi beberapa **file multi-lembar** (bukan banyak unduhan terp
 ### Bobot & Kalkulasi Skor 360° (satu halaman)
 - **Bobot Penilai**: pilih **Model 4-Kelas** (Atasan/Peer/Cross/**Bawahan**) atau **2-Kelas**
   (Atasan/Internal — Internal = Peer+Cross+Bawahan), atur angka, lalu **Simpan & Terapkan Bobot**.
+- **Model 2-Kelas mulai Q3 2026 = bobot OTOMATIS (BR-10)** — isian persen dikunci & diganti penjelasan.
+  Bobot ditentukan dari **jumlah penilai Internal yang sudah mengirim** (dihitung **per orang**):
+  **Atasan + ≥ 2 Internal → Atasan 40% · Internal 60%**; **Atasan + 1 Internal → 60% · 40%**;
+  **hanya Atasan → Atasan 100%**; **hanya Internal → Internal 100%**. Skor Internal = rata-rata seluruh
+  penilai internal (tidak dibobot per Peer/Cross/Bawahan). **Model 4-Kelas** dan **Bobot Khusus per
+  Pegawai** tidak berubah (tetap memakai angka yang diisi HRD). Periode Q1–Q2 tetap memakai bobot tersimpan.
+  HRD tetap memilih model 2/4-Kelas per periode dan tetap perlu **Simpan & Terapkan Bobot** sekali.
   Total bobot **wajib tepat 100%** (tombol simpan nonaktif bila belum). **Self** tak punya bobot & tak
   pernah ikut dihitung (Self Assessment juga dinonaktifkan sejak Q3 2026). Setelah mengubah, jalankan
   **Hitung Ulang Skor 360°** di **Review & Finalisasi**.
@@ -695,7 +708,7 @@ dari 360° (belum/tak ada KPI, mis. Direksi) muncul badge **"Tanpa KPI"**.
   ada kandidat.
 - **Kolom KPI** = rerata KPI + indikator **"X/Y bulan"** (**amber** bila belum semua bulan terisi;
   hover menampilkan bulan yang masih kosong).
-- **Kolom 360°** = skor 360° terhitung; **"belum"** bila belum dihitung; **"N/A"** bila periode tanpa
+- **Kolom 360°** = skor 360° terhitung; **"No Score"** (Insufficient Data) bila belum ada Skor 360° yang bisa dihitung — bukan nilai 0; **"N/A"** bila periode tanpa
   360°; badge **"⚠ perlu hitung"** bila penilaian berubah / koreksi relasi di-ACC sejak hitung terakhir.
 - **Kolom Punish.** = poin pengurangan (−poin) bila ada.
 - **Kolom Skor Akhir** untuk baris berstatus **Final** menampilkan **angka TERSIMPAN** (yang dilihat
@@ -795,6 +808,12 @@ dari 360° (belum/tak ada KPI, mis. Direksi) muncul badge **"Tanpa KPI"**.
 - Filter **Divisi** & **Status** kini berupa **centang multi-pilih** (klik tombol → panel daftar
   centang, "Pilih semua"/"Bersihkan"; kosong = semua) + pencarian **Nama**; lihat status
   "Belum / Sudah Lengkap".
+- **4 status penilaian (BR-07)** untuk tugas **wajib**: **Belum Mulai · Sedang Diisi · Selesai – Tepat
+  Waktu · Selesai – Terlambat** (dari waktu kirim **pertama** vs **Deadline 360°**; Paksa Selesai dihitung
+  tepat waktu). Tampil sebagai **kartu jumlah** di atas tabel, **chip per penilai**, label per target di
+  **Rincian**, dan filter **"Status Penilaian"** (mis. tampilkan hanya penilai yang punya tugas "Sedang
+  Diisi"). Di bawah judul halaman tampil **Deadline** periode — bila belum diisi, ada peringatan karena
+  Tepat Waktu/Terlambat belum bisa dibedakan.
 - Tiap baris menampilkan **dua progres berdampingan** (paritas legacy):
   - **Menilai (wajib)** — tugas **wajib** penilai terhadap orang lain (mis. `5/8 · 63%`).
   - **Dinilai oleh** — **berapa penilai yang sudah menilai pegawai ini** dari total yang
@@ -920,13 +939,14 @@ distribusi, & ranking KPI (ada catatan jumlahnya). **4 sub-dashboard (tab):**
   **A** (KPI ≥ 80 **dan** 360° ≥ 80) · **B Player (High Culture)** (KPI < 80 **dan** 360° ≥ 80) ·
   **B Player (High KPI)** (KPI ≥ 80 **dan** 360° < 80) · **C** (keduanya < 80).
   Pegawai dengan KPI & 360° **keduanya kosong** tak terklasifikasi.
+- **HRD Review (BR-11):** bila **salah satu** sumbu kosong (KPI **atau** Skor 360°), pegawai **tidak
+  diklasifikasi otomatis** dan **tidak dianggap di bawah 80** — statusnya **HRD Review**. Berlaku di
+  Dashboard, Ekspor, Monitor Kinerja, Rekap KPI, dan Laporan Kinerja Tim (semua periode).
 - **Sefase periode:** KPI & 360° diambil dari **periode yang dipilih** di Panel Filter
   (default periode aktif) agar klasifikasi adil. Semua pegawai ditampilkan di tiap kotak.
-- **Periode tanpa 360°:** pada 4-Box hanya **B (High KPI)** atau **C** yang mungkin —
-  **A & B (High Culture) tidak tersedia** (butuh sumbu 360°).
-- **Data 1 sumbu (saat 360° aktif):** pegawai yang baru punya **salah satu** sumbu (KPI saja **atau**
-  360° saja) **belum diklasifikasi** A/B/C — ditaruh di kelompok **"Data Belum Lengkap (1 Sumbu)"** di
-  tab Kompilasi & badge **"—\*"** di Tabel, agar tak "melompat" kategori begitu sumbu kedua masuk.
+- **Periode tanpa 360°:** sumbu 360° kosong → semua pegawai yang punya KPI berstatus **HRD Review**.
+- **Data 1 sumbu:** pegawai yang baru punya **salah satu** sumbu ditaruh di kelompok **"HRD Review"** di tab
+  Kompilasi; di **Tabel Hasil Seluruh Pegawai** tampil badge **HRD Review** dan bisa difilter "HRD Review".
 - **Catatan:** Matriks **9-Box** **tidak lagi ditampilkan** di dashboard (dihapus atas permintaan).
   Rumus 9-Box tetap ada di kode (`lib/scoring.ts`, terkunci & teruji) bila kelak diperlukan.
 
@@ -999,6 +1019,10 @@ HRD hanya mengubah *input*: KPI, bobot, 360° aktif/nonaktif, punishment.)
 - Skor digabung **berbobot menurut kelas relasi** penilai (Atasan / Peer / Cross / Bawahan pada
   Model 4-Kelas, atau Atasan / Internal pada Model 2-Kelas). **Self tidak dihitung** (dan Self
   Assessment dinonaktifkan sejak Q3 2026). Total bobot wajib **100%**.
+- **Model 2-Kelas mulai Q3 2026:** bobot **otomatis** menurut jumlah penilai Internal yang mengirim —
+  ≥ 2 orang → **Atasan 40 / Internal 60**; 1 orang → **60 / 40**; satu sisi saja → **100%** (BR-10).
+  Contoh: Atasan 80, Peer 85, Cross 90 → Internal 87,5 → 0,4 × 80 + 0,6 × 87,5 = **84,5**.
+- Tidak ada penilaian terkirim yang bisa dihitung → tampil **"No Score"** (Insufficient Data), **bukan 0** (BR-09).
 - **Skor 360° resmi = skor terbobot − potongan keterlambatan menilai** (otomatis **−3** bila si pegawai,
   sebagai penilai, punya kewajiban yang belum selesai saat deadline; nilainya bisa diubah HRD, 0 =
   dikecualikan; minimal 0). Lihat *Flag Kepatuhan*.
@@ -1343,12 +1367,12 @@ langsung, ambang 80, tanpa D). *(Matriks 9-Box sudah dihapus dari tampilan dashb
 **Berdampak ke:** tidak mengubah data — dasar **pengambilan keputusan** (promosi, pembinaan).
 - Klasifikasi **sefase periode** lewat Panel Filter (KPI, 360°, Skor Akhir dari **periode
   yang dipilih**; default periode aktif).
-- Pegawai **1 sumbu** (KPI saja / 360° saja, saat 360° aktif) masuk kelompok **"Data Belum Lengkap
-  (1 Sumbu)"**, belum diklasifikasi A/B/C sampai kedua sumbu terisi.
+- Pegawai **1 sumbu** (KPI saja / 360° saja, termasuk periode tanpa 360°) masuk kelompok **"HRD Review"**,
+  belum diklasifikasi A/B/C sampai kedua sumbu terisi (BR-11).
 - **Struktur Organisasi** (Pemantauan, read-only): bagan menurun & daftar struktur saat ini —
   otomatis mengikuti Kelola Pegawai; pegawai berkoordinator tampil di bawah koordinatornya.
-- Mengikuti flag **360°** periode (dari Kelola Periode, #1): periode tanpa 360° → pada 4-Box
-  kategori **A & B-Culture** tidak tersedia (Skor Akhir = 100% KPI).
+- Mengikuti flag **360°** periode (dari Kelola Periode, #1): periode tanpa 360° → pegawai berstatus
+  **HRD Review** pada 4-Box (BR-11; Skor Akhir = 100% KPI).
 
 ### 11. Mode Ganda (berganti "topi") & Izin HRD Admin
 **Inti:** "HRD Admin" adalah **izin mengoperasikan aplikasi**, bukan jabatan. Seseorang berposisi

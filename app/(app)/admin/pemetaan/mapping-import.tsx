@@ -60,7 +60,7 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
   }
 
   if (!open) {
-    return <button type="button" onClick={() => setOpen(true)} className="text-xs font-semibold px-3 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">+ Impor dari Excel</button>;
+    return <button type="button" onClick={() => setOpen(true)} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">+ Impor dari Excel</button>;
   }
 
   return (

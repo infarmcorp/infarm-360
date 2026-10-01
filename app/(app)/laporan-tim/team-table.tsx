@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { colPercents } from '@/lib/table-cols';
 import Link from 'next/link';
 import { AccButton } from './acc-button';
 import { PLAYER_BOXES, playerLabelOf, type PlayerClass, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
@@ -133,7 +134,21 @@ export function TeamTable({
         <p className="text-sm text-gray-500">Tidak ada pegawai cocok dengan "{q}".</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className={`w-full text-left text-sm ${showStatus || showAcc ? 'min-w-[840px]' : 'min-w-[680px]'}`}>
+          {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/pencarian (tak bergeser saat paging). */}
+          <table className="w-full table-fixed text-left text-sm"
+            style={{ minWidth: Math.round((810 + (showStatus ? 96 : 0) + (showAcc ? 170 : 0)) * 0.78) }}>
+            <colgroup>
+              {colPercents([
+                220, // Anggota + divisi
+                90, // KPI
+                100, // 360° ("No Score")
+                150, // Skor Akhir (live/tersimpan)
+                110, // 4-Box
+                140, // Trend KPI ("Belum terbaca")
+                showStatus && 96, // Status
+                showAcc && 170, // ACC ("✔ ACC (batalkan)")
+              ]).map((w, i) => <col key={i} style={{ width: w }} />)}
+            </colgroup>
             <thead>
               <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
                 <th className="py-2 pr-3">Anggota</th>
@@ -143,7 +158,7 @@ export function TeamTable({
                 <th className="py-2 px-3 text-center whitespace-nowrap">
                   360° <InfoTip text="Skor umpan balik 360° kuartal ini — gabungan berbobot penilaian rekan/atasan/bawahan/lintas divisi (Self dikecualikan)." />
                 </th>
-                <th className="py-2 px-3 text-center whitespace-nowrap">
+                <th className="py-2 px-3 text-center">
                   Skor Akhir <span className="normal-case font-normal text-gray-400">({scoreBasis === 'live' ? 'live' : 'tersimpan'})</span>
                   <InfoTip text={scoreBasis === 'live'
                     ? 'Dihitung langsung (live): 50% KPI + 50% Skor 360°. Bila 360° nonaktif = 100% KPI.'
@@ -160,7 +175,7 @@ export function TeamTable({
             <tbody className="divide-y divide-gray-100">
               {paged.map((r) => (
                 <tr key={r.id}>
-                  <td className="py-3 pr-3">
+                  <td className="py-3 pr-3 break-words">
                     {linkNames && r.detailOpen ? (
                       <Link
                         href={periodId ? `/laporan/${r.id}?period=${periodId}` : `/laporan/${r.id}`}

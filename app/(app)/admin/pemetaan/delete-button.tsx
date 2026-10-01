@@ -59,7 +59,7 @@ export function DeleteButton({ mappingId, status }: { mappingId: string; status:
   return (
     <div className="flex flex-col items-end gap-0.5">
       <button type="button" disabled={busy} onClick={open}
-        className={`text-[11px] font-semibold px-2.5 py-1 rounded-control border whitespace-nowrap disabled:opacity-50 ${btnCls}`}>
+        className={`text-[11px] font-semibold px-2.5 py-1 rounded-control border leading-tight disabled:opacity-50 ${btnCls}`}>
         {busy && !info ? '…' : label}
       </button>
       {err && !info && <span className="text-[10px] text-danger-ink">{err}</span>}

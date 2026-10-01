@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { colPercents } from '@/lib/table-cols';
 import { LateWaiver } from './late-waiver';
 import { usePager, Pager, CheckboxFilter, MultiCheckFilter } from '@/components/table-controls';
 
@@ -64,7 +65,16 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[600px]">
+            {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}
+            <table className="w-full table-fixed text-left text-sm min-w-[580px]">
+              <colgroup>
+                {colPercents([
+                  220, // Pegawai + divisi
+                  130, // Belum Kirim
+                  140, // Kirim Terlambat
+                  250, // Potongan 360° (+ form ubah: angka + alasan)
+                ]).map((w, i) => <col key={i} style={{ width: w }} />)}
+              </colgroup>
               <thead>
                 <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
                   <th className="py-2 pr-3 font-semibold">Pegawai</th>
@@ -76,7 +86,7 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
               <tbody className="divide-y divide-line-soft">
                 {shown.map((r) => (
                   <tr key={r.id}>
-                    <td className="py-3 pr-3">
+                    <td className="py-3 pr-3 break-words">
                       <span className="font-bold text-ink block">{r.name}</span>
                       <span className="text-[11px] text-ink-faint">{r.dept}</span>
                     </td>

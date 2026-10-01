@@ -1,6 +1,7 @@
 'use client';
 
 import { fmt2 } from '@/lib/scoring';
+import { colPercents } from '@/lib/table-cols';
 
 import { useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -59,7 +60,18 @@ export function RiwayatList({ entries, page, total, pageSize, query }: { entries
         <p className="text-sm text-ink-soft">{query ? 'Tidak ada jejak audit yang cocok dengan pencarian.' : 'Belum ada jejak audit KPI. Riwayat tercatat otomatis setiap input skor.'}</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[680px]">
+          {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}
+          <table className="w-full table-fixed text-left text-xs min-w-[730px]">
+            <colgroup>
+              {colPercents([
+                200, // Pegawai + divisi
+                96, // Bulan ("Agu 2026")
+                132, // Skor ("dihapus (dari 84.50)")
+                150, // Oleh
+                172, // Waktu ("01 Okt 2026 14:30 WIB")
+                190, // Catatan
+              ]).map((w, i) => <col key={i} style={{ width: w }} />)}
+            </colgroup>
             <thead>
               <tr className="text-[10px] uppercase tracking-[0.05em] text-ink-faint border-b border-line bg-surface">
                 <th className="py-2 px-3 font-semibold">Pegawai</th>
@@ -73,19 +85,19 @@ export function RiwayatList({ entries, page, total, pageSize, query }: { entries
             <tbody className="divide-y divide-line-soft">
               {entries.map((r, i) => (
                 <tr key={`${r.empId}-${r.ym}-${i}`}>
-                  <td className="py-2 px-3">
+                  <td className="py-2 px-3 break-words">
                     <span className="font-bold text-ink">{r.name}</span>
                     <span className="text-[10px] text-ink-faint block">{r.dept}</span>
                   </td>
-                  <td className="py-2 px-3 font-semibold text-ink-soft whitespace-nowrap">{labelMonth(r.ym)}</td>
+                  <td className="py-2 px-3 font-semibold text-ink-soft">{labelMonth(r.ym)}</td>
                   <td className="py-2 px-3 text-center data-value font-bold">
                     {r.action === 'delete'
                       ? <span className="text-danger-ink" title="Skor dihapus">dihapus <span className="text-ink-faint font-normal">(dari {fmt2(r.score)})</span></span>
                       : <span className="text-brand-ink">{fmt2(r.score)}</span>}
                   </td>
-                  <td className="py-2 px-3 text-ink-soft whitespace-nowrap">{r.by}</td>
-                  <td className="py-2 px-3 text-ink-faint whitespace-nowrap data-value">{r.at}</td>
-                  <td className="py-2 px-3 text-ink-faint italic">{r.note ?? '—'}</td>
+                  <td className="py-2 px-3 text-ink-soft break-words">{r.by}</td>
+                  <td className="py-2 px-3 text-ink-faint data-value">{r.at}</td>
+                  <td className="py-2 px-3 text-ink-faint italic break-words">{r.note ?? '—'}</td>
                 </tr>
               ))}
             </tbody>

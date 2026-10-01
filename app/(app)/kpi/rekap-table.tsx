@@ -1,6 +1,7 @@
 'use client';
 
 import { usePager, Pager } from '@/components/table-controls';
+import { colPercents } from '@/lib/table-cols';
 import { playerLabelOf, type PlayerClass, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
 
 /**
@@ -27,7 +28,19 @@ export function RekapTable({ rows, monthLabels, has360 }: {
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs min-w-[640px]">
+        {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}
+        <table className="w-full table-fixed text-left text-xs"
+          style={{ minWidth: Math.round((200 + monthLabels.length * 76 + 96 + (has360 ? 100 : 0) + 96 + 210) * 0.78) }}>
+          <colgroup>
+            {colPercents([
+              200, // Pegawai + divisi
+              ...monthLabels.map(() => 76), // skor bulanan
+              96, // Rataan KPI
+              has360 && 100, // Hasil 360° ("No Score")
+              96, // Skor Akhir
+              210, // Kategori (+ · kelas Player)
+            ]).map((w, i) => <col key={i} style={{ width: w }} />)}
+          </colgroup>
           <thead>
             <tr className="bg-neutral-tint border-b border-line text-[10px] uppercase tracking-[0.05em] text-ink-faint font-semibold">
               <th className="py-2.5 px-3">Pegawai</th>
@@ -44,7 +57,7 @@ export function RekapTable({ rows, monthLabels, has360 }: {
             )}
             {shown.map((r) => (
               <tr key={r.id} className="hover:bg-neutral-tint/40">
-                <td className="py-3 px-3">
+                <td className="py-3 px-3 break-words">
                   <span className="font-bold text-ink block">{r.name}</span>
                   <span className="text-[10px] text-ink-faint">{r.dept}</span>
                 </td>
@@ -54,7 +67,7 @@ export function RekapTable({ rows, monthLabels, has360 }: {
                 <td className="py-3 px-3 text-center data-value font-bold text-brand-ink">{fmt(r.kpiAvg)}</td>
                 {has360 && <td className="py-3 px-3 text-center data-value font-bold text-ink-soft">{r.s360 != null ? fmt(r.s360) : <span className="text-[10px] font-semibold text-warn-ink font-sans" title={NO_SCORE_TITLE}>{NO_SCORE_LABEL}</span>}</td>}
                 <td className="py-3 px-3 text-center data-value font-bold text-ink text-sm">{fmt(r.final)}</td>
-                <td className={`py-3 px-3 text-right font-bold ${r.katClass}`}>{r.katText}{r.player ? ` · ${playerLabelOf(r.player)}` : ''}</td>
+                <td className={`py-3 px-3 text-right font-bold break-words ${r.katClass}`}>{r.katText}{r.player ? ` · ${playerLabelOf(r.player)}` : ''}</td>
               </tr>
             ))}
           </tbody>

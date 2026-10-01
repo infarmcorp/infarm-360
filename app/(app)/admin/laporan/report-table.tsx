@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { colPercents } from '@/lib/table-cols';
 import Link from 'next/link';
 import type { ReportStatus } from '@/lib/database.types';
 import { hasScoreDrift, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
@@ -111,7 +112,22 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
       )}
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm min-w-[820px]">
+        {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
+        <table className={`w-full table-fixed text-left text-sm ${has360 ? 'min-w-[800px]' : 'min-w-[670px]'}`}>
+          <colgroup>
+            {colPercents([
+              170, // Pegawai
+              110, // Divisi
+              72, // KPI (+ "2/3 bln")
+              100, // 360° (+ chip "⚠ perlu hitung")
+              has360 && 80, // Potongan
+              112, // Skor Akhir (+ chip "berubah → 84.50")
+              has360 && 92, // Dinilai oleh
+              64, // ACC
+              110, // Status ("Ditinjau Direksi")
+              130, // Aksi ("Tanpa KPI" + Tinjau)
+            ]).map((w, i) => <col key={i} style={{ width: w }} />)}
+          </colgroup>
           <thead>
             <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
               <th className="py-2 pr-3 font-semibold">Pegawai</th>
@@ -128,14 +144,14 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
           </thead>
           <tbody className="divide-y divide-line-soft">
             {shown.length === 0 && (
-              <tr><td colSpan={has360 ? 10 : 8}className="py-6 text-center text-ink-faint italic">Tidak ada pegawai sesuai filter.</td></tr>
+              <tr><td colSpan={has360 ? 10 : 8} className="py-6 text-center text-ink-faint italic">Tidak ada pegawai sesuai filter.</td></tr>
             )}
             {paged.map((r) => (
               <tr key={r.id}>
-                <td className="py-3 pr-3">
+                <td className="py-3 pr-3 break-words">
                   <span className="font-bold text-ink">{r.name}</span>
                 </td>
-                <td className="py-3 px-3 text-xs text-ink-soft">{r.dept}</td>
+                <td className="py-3 px-3 text-xs text-ink-soft break-words">{r.dept}</td>
                 <td className="py-3 px-3 text-center data-value text-ink-soft">
                   {r.kpiAvg == null ? <span className="text-danger-ink text-[10px]">kosong</span> : (
                     <div className="flex flex-col items-center gap-0.5">

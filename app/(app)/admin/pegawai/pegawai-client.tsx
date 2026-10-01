@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { colPercents } from '@/lib/table-cols';
 import { UserPlus, Pencil, KeyRound, Power, X } from 'lucide-react';
 import { createEmployee, updateEmployee, setEmployeeActive, resetPassword } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -288,7 +289,19 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
       {/* Tabel */}
       <Panel padded={false} className="p-4">
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm min-w-[760px]">
+        {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
+        <table className="w-full table-fixed text-left text-sm min-w-[780px]">
+          <colgroup>
+            {colPercents([
+              190, // Pegawai (+ kode · email)
+              115, // Divisi
+              140, // Peran (+ chip Eksternal)
+              135, // Atasan
+              136, // Masa Aktif (dd/mm/yyyy, tak dibungkus)
+              104, // Status ("Nonaktif")
+              130, // Aksi (3 ikon, tak dibungkus)
+            ]).map((w, i) => <col key={i} style={{ width: w }} />)}
+          </colgroup>
           <thead>
             <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
               <th className="py-2 pr-3 font-semibold">Pegawai</th>
@@ -304,18 +317,18 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
             {shown.length === 0 && <tr><td colSpan={7} className="py-6 text-center text-sm text-ink-soft">Tidak ada pegawai sesuai filter.</td></tr>}
             {paged.map((r) => (
               <tr key={r.id} className={r.active ? '' : 'opacity-55'}>
-                <td className="py-3 pr-3">
+                <td className="py-3 pr-3 break-words">
                   <span className="font-bold text-ink block">{r.name}</span>
-                  <span className="text-[11px] text-ink-faint data-value">{r.empCode}{r.email ? ` · ${r.email}` : ''}</span>
+                  <span className="text-[11px] text-ink-faint data-value [overflow-wrap:anywhere]">{r.empCode}{r.email ? ` · ${r.email}` : ''}</span>
                 </td>
-                <td className="py-3 px-3 text-xs text-ink-soft">{r.dept}</td>
+                <td className="py-3 px-3 text-xs text-ink-soft break-words">{r.dept}</td>
                 <td className="py-3 px-3">
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-tint text-ink-soft">{ROLE_LABEL[r.role]}</span>
                   {r.isExternal && (
                     <span className="ml-1 inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-warn-tint text-warn-ink" title="Penilai eksternal (vendor/freelance) — hanya menilai, bukan dinilai">Eksternal</span>
                   )}
                 </td>
-                <td className="py-3 px-3 text-xs text-ink-faint">{r.spvName ?? '—'}</td>
+                <td className="py-3 px-3 text-xs text-ink-faint break-words">{r.spvName ?? '—'}</td>
                 <td className="py-3 px-3 text-[11px] text-ink-soft whitespace-nowrap">
                   <span title="Tanggal masuk / aktif" className="data-value">↳ {fmtDate(r.joinedOn)}</span>
                   {r.leftOn && <span className="block text-danger-ink data-value" title="Tanggal nonaktif">⇥ {fmtDate(r.leftOn)}</span>}

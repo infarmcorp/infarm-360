@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { colPercents } from '@/lib/table-cols';
 import { DeleteButton } from './delete-button';
 import type { PairStatus } from './actions';
 import { SearchableSelect } from '@/components/searchable-select';
@@ -105,7 +106,18 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
         <p className="text-sm text-ink-soft">Tidak ada pemetaan sesuai filter.</p>
       ) : (
         <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm min-w-[640px]">
+        {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
+        <table className="w-full table-fixed text-left text-sm min-w-[530px]">
+          <colgroup>
+            {colPercents([
+              18, // Penilai (%)
+              18, // Yang Dinilai
+              14, // Relasi ("Atasan"/"Bawahan" muat satu baris)
+              14, // Sifat (Wajib/Opsional)
+              18, // Status ("Belum Mulai")
+              18, // Aksi ("Periksa Validitas", boleh 2 baris)
+            ]).map((w, i) => <col key={i} style={{ width: w }} />)}
+          </colgroup>
           <thead>
             <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
               <th className="py-2 pr-3 font-semibold">Penilai</th><th className="py-2 px-3 font-semibold">Yang Dinilai</th><th className="py-2 px-3 font-semibold">Relasi</th>
@@ -116,15 +128,15 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
           <tbody className="divide-y divide-line-soft">
             {paged.map((r) => (
               <tr key={r.id}>
-                <td className="py-3 pr-3 font-bold text-ink">{r.assessor}</td>
-                <td className="py-3 px-3 text-ink-soft">{r.target}</td>
-                <td className="py-3 px-3 text-ink-soft">{r.relation}</td>
-                <td className="py-3 px-3 text-center">
+                <td className="py-3 pr-3 font-bold text-ink break-words">{r.assessor}</td>
+                <td className="py-3 px-3 text-ink-soft break-words">{r.target}</td>
+                <td className="py-3 px-2 text-ink-soft">{r.relation}</td>
+                <td className="py-3 px-2 text-center">
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${r.mandatory ? 'bg-danger-tint text-danger-ink' : 'bg-neutral-tint text-ink-faint'}`}>
                     {r.mandatory ? 'Wajib' : 'Opsional'}
                   </span>
                 </td>
-                <td className="py-3 px-3 text-center">
+                <td className="py-3 px-2 text-center">
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_CLS[r.status]}`}>{STATUS_LABEL[r.status]}</span>
                 </td>
                 <td className="py-3 pl-3 text-right"><DeleteButton mappingId={r.id} status={r.status} /></td>

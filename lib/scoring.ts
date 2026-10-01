@@ -26,7 +26,15 @@ export function talentBoxOf(kpi: number, s360: number): TalentBox | null {
   return TALENT_BOXES.find((b) => b.kpiBand === kpiBandOf(kpi) && b.s360Band === s360BandOf(s360)) ?? null;
 }
 
-export type PlayerClass = 'A' | 'B_CULTURE' | 'B_KPI' | 'C';
+/** 'HRD_REVIEW' (BR-11, Q3 2026) = salah satu sumbu (KPI / Skor 360°) kosong → tak diklasifikasi
+ *  otomatis; HRD yang memutuskan. Bukan kotak 4-Box (tak ada di PLAYER_BOXES). */
+export type PlayerClass = 'A' | 'B_CULTURE' | 'B_KPI' | 'C' | 'HRD_REVIEW';
+export const HRD_REVIEW_LABEL = 'HRD Review';
+
+/** BR-09 (Q3 2026): Skor 360° tak bisa dihitung (tak ada penilaian terkirim) pada periode BER-360° →
+ *  tampilkan status ini, BUKAN nilai 0 / kosong. */
+export const NO_SCORE_LABEL = 'No Score';
+export const NO_SCORE_TITLE = 'No Score / Insufficient Data — belum ada penilaian 360° terkirim yang bisa dihitung (bukan nilai 0)';
 
 export const PLAYER_BOXES: { key: PlayerClass; label: string; color: string }[] = [
   { key: 'A',         label: 'A Player',                color: '#059669' },
@@ -37,7 +45,7 @@ export const PLAYER_BOXES: { key: PlayerClass; label: string; color: string }[] 
 
 /** Label penuh kelas pemain (untuk badge/ekspor). */
 export const playerLabelOf = (p: PlayerClass | null): string =>
-  PLAYER_BOXES.find((b) => b.key === p)?.label ?? '';
+  p === 'HRD_REVIEW' ? HRD_REVIEW_LABEL : PLAYER_BOXES.find((b) => b.key === p)?.label ?? '';
 
 /**
  * 4-Box A/B/C berbasis KPI (rerata) × 360° LANGSUNG, ambang 80 — bukan Skor Akhir.
@@ -47,13 +55,15 @@ export const playerLabelOf = (p: PlayerClass | null): string =>
  *   KPI <80 & 360 ≥80          → B Player (High Culture)
  *   KPI ≥80 & 360 <80          → B Player (High KPI)
  *   selain itu (keduanya <80)  → C Player
- * Nilai hilang (null) diperlakukan sebagai DI BAWAH 80 — kecuali KEDUANYA kosong (→ null).
- * Tidak ada D Player. (360 nonaktif → s360 null → otomatis jatuh ke B-KPI / C.)
+ * BR-11 (Q3 2026, keputusan HRD 2026-10-01): nilai hilang TIDAK lagi dianggap di bawah 80.
+ *   tepat SATU sumbu kosong (KPI atau 360°) → 'HRD_REVIEW' (termasuk periode tanpa 360°).
+ * Tidak ada D Player.
  */
 export function playerClassOf(kpi: number | null, s360: number | null): PlayerClass | null {
   if (kpi == null && s360 == null) return null;
-  const k = kpi != null ? roundScore(kpi) : -1; // ambang atas nilai terbulat (= yang tampil)
-  const s = s360 != null ? roundScore(s360) : -1;
+  if (kpi == null || s360 == null) return 'HRD_REVIEW';
+  const k = roundScore(kpi); // ambang atas nilai terbulat (= yang tampil)
+  const s = roundScore(s360);
   if (k >= 80 && s >= 80) return 'A';
   if (k < 80 && s >= 80) return 'B_CULTURE';
   if (k >= 80 && s < 80) return 'B_KPI';

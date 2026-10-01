@@ -7,7 +7,7 @@ import {
   finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf,
 } from '@/lib/scoring';
 import { computeDashboardAggregate } from '@/lib/dashboard/aggregate';
-import { classOf, avg as avg360, weightedScore360, type Groups360 } from '@/lib/score360';
+import { classOf, avg as avg360, weightedScore360, effectiveModel, type Groups360, type Model360 } from '@/lib/score360';
 import { trendOf } from '@/lib/trend';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
@@ -365,14 +365,10 @@ export default async function DashboardPage({
     const penalty = penBy.get(e.id) ?? 0;
     // Laporan FINAL → angka tersimpan (yang dilihat pegawai); selain itu rumus resmi hidup.
     const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, ap.has_360, penalty), repOfY.get(`${e.id}|${ap.id}`));
-    // Single-axis: saat 360° AKTIF, pegawai yang cuma punya SATU sumbu (KPI saja ATAU 360° saja)
-    // belum bisa diklasifikasi 4-Box andal — nilainya bisa "melompat" begitu sumbu kedua masuk
-    // (mis. terplot B-KPI/C lalu jadi A saat 360° dihitung). Tandai agar dashboard mengeluarkannya
-    // dari A/B/C & menaruhnya di bucket "Data Belum Lengkap". Saat 360° NONAKTIF tak berlaku
-    // (periode itu memang tanpa sumbu budaya → tetap KPI-only, perilaku lama).
-    const axisIncomplete = ap.has_360 && ((kpiAvg != null) !== (s360 != null)); // tepat satu sumbu (XOR)
-    // 4-Box: butuh KEDUA sumbu saat 360° aktif; single-axis → tak diklasifikasi (null).
-    const player = axisIncomplete ? null : playerClassOf(kpiAvg, ap.has_360 ? s360 : null);
+    // BR-11 (Q3 2026): tepat SATU sumbu (KPI saja ATAU 360° saja — termasuk periode tanpa 360°) →
+    // 'HRD_REVIEW' (playerClassOf), dikeluarkan dari A/B/C & ditaruh di bucket "HRD Review".
+    const player = playerClassOf(kpiAvg, ap.has_360 ? s360 : null);
+    const axisIncomplete = player === 'HRD_REVIEW';
     // Keanggotaan kuartal SADAR-PERIODE via irisan masa kerja × rentang periode:
     //   masuk sebelum periode berakhir  DAN  belum keluar sebelum periode mulai.
     // `left_on` diketahui → dipakai presisi; belum diisi → fallback ke is_active (aman sebelum
@@ -414,7 +410,8 @@ export default async function DashboardPage({
       admin.from('mappings').select('assessor_id, target_id, relation').eq('period_id', ap.id)
         .order('assessor_id').order('target_id').range(from, to)),
   ]);
-  const wModel = (wsRes.data?.model ?? '4class') as '4class' | '2class';
+  // 2 kelas Q3 2026 dst. → bobot otomatis BR-10 (effectiveModel).
+  const wModel = effectiveModel((wsRes.data?.model ?? '4class') as Model360, String(ap.start_date));
   const wVals = (wsRes.data?.weights ?? {}) as WeightValues;
   const hasWS = !!wsRes.data;
   const relByPair = new Map<string, RelationKind>();

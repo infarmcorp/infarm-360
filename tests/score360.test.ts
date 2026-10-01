@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classOf, avg, round2, weightedScore360, resolveWeightScheme, type Groups360, type WeightScheme } from '@/lib/score360';
+import { classOf, avg, round2, weightedScore360, resolveWeightScheme, effectiveModel, schemeFor, autoWeights2class, type Groups360, type WeightScheme } from '@/lib/score360';
 
 const G = (g: Partial<Groups360>): Groups360 => ({ atasan: [], peer: [], cross: [], bawahan: [], self: [], ...g });
 
@@ -107,5 +107,43 @@ describe('resolveWeightScheme — pilih bobot per pegawai (override khusus vs de
     const chosen = resolveWeightScheme(def, ovr);
     // 2class: internal = avg(80,80,20,50)=57.5 → (90*70 + 57.5*30)/100 = 80.25
     expect(weightedScore360(g, chosen.model, chosen.weights)).toBeCloseTo(80.25, 10);
+  });
+});
+
+describe('BR-10 — bobot otomatis 2 kelas (Q3 2026 dst.)', () => {
+  const W = { atasan: 50, internal: 50 }; // isian HRD — DIABAIKAN pada 2class_auto
+  it('effectiveModel: 2class mulai 1 Jul 2026 → auto; Q1–Q2 & 4class tetap', () => {
+    expect(effectiveModel('2class', '2026-07-01')).toBe('2class_auto');
+    expect(effectiveModel('2class', '2026-10-01')).toBe('2class_auto');
+    expect(effectiveModel('2class', '2026-04-01')).toBe('2class');
+    expect(effectiveModel('2class', null)).toBe('2class');
+    expect(effectiveModel('4class', '2026-07-01')).toBe('4class');
+  });
+  it('autoWeights2class: ≥2 internal → 40/60, 1 internal → 60/40', () => {
+    expect(autoWeights2class(1)).toEqual({ atasan: 60, internal: 40 });
+    expect(autoWeights2class(2)).toEqual({ atasan: 40, internal: 60 });
+    expect(autoWeights2class(5)).toEqual({ atasan: 40, internal: 60 });
+  });
+  it('contoh HRD Decision BR-10: Atasan 80, Peer 85, Cross 90 → 84,5', () => {
+    expect(weightedScore360(G({ atasan: [80], peer: [85], cross: [90] }), '2class_auto', W)).toBeCloseTo(84.5, 10);
+  });
+  it('Atasan + 1 Internal → 60/40', () => {
+    expect(weightedScore360(G({ atasan: [80], bawahan: [90] }), '2class_auto', W)).toBeCloseTo(84, 10);
+  });
+  it('internal dirata-rata PER ORANG, bukan per kelompok', () => {
+    // Peer 70 & 70, Cross 100 → internal (70+70+100)/3 = 80 (bukan (70+100)/2 = 85).
+    expect(weightedScore360(G({ atasan: [80], peer: [70, 70], cross: [100] }), '2class_auto', W)).toBeCloseTo(80, 10);
+  });
+  it('hanya Atasan → 100% Atasan; hanya Internal → 100% Internal; kosong → null; Self diabaikan', () => {
+    expect(weightedScore360(G({ atasan: [76] }), '2class_auto', W)).toBeCloseTo(76, 10);
+    expect(weightedScore360(G({ peer: [70], cross: [90] }), '2class_auto', W)).toBeCloseTo(80, 10);
+    expect(weightedScore360(G({ self: [100] }), '2class_auto', W)).toBeNull();
+  });
+  it('schemeFor: bobot khusus pegawai tetap berlaku apa adanya; tanpa override → model efektif periode', () => {
+    const def: WeightScheme = { model: '2class', weights: W };
+    const ovr: WeightScheme = { model: '2class', weights: { atasan: 70, internal: 30 } };
+    expect(schemeFor(def, ovr, '2026-07-01')).toBe(ovr);
+    expect(schemeFor(def, null, '2026-07-01').model).toBe('2class_auto');
+    expect(schemeFor(def, null, '2026-04-01').model).toBe('2class');
   });
 });

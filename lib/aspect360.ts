@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/server';
-import { classOf, avg as avg360, weightedScore360, type Groups360 } from '@/lib/score360';
+import { classOf, avg as avg360, weightedScore360, effectiveModel, type Groups360, type Model360 } from '@/lib/score360';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
 
@@ -90,7 +90,7 @@ export async function aspectScoresByEmployee(periodId: string, empIds: string[])
     .filter((a) => a.assessor_id !== a.target_id && scope.has(a.target_id))
     .map((a) => a.id);
 
-  const [indRes, wsRes, ovrRes, mapsData, scoreRows] = await Promise.all([
+  const [indRes, wsRes, ovrRes, mapsData, scoreRows, pmetaRes] = await Promise.all([
     admin.from('indicators').select('id, aspect_id, text, order_idx').in('aspect_id', aspectList.map((a) => a.id)),
     admin.from('weight_schemes').select('model, weights').eq('period_id', periodId).eq('is_active', true).maybeSingle(),
     admin.from('employee_weight_overrides').select('employee_id, model, weights').eq('period_id', periodId),
@@ -102,11 +102,13 @@ export async function aspectScoresByEmployee(periodId: string, empIds: string[])
           admin.from('assessment_indicator_scores').select('assessment_id, indicator_id, rating')
             .in('assessment_id', chunk).order('assessment_id').order('indicator_id').range(from, to))
       : Promise.resolve([] as { assessment_id: string; indicator_id: string; rating: number | null }[]),
+    admin.from('periods').select('start_date').eq('id', periodId).maybeSingle(),
   ]);
 
   const indToAspect = new Map((indRes.data ?? []).map((i) => [i.id, i.aspect_id]));
   const idToName = new Map(aspectList.map((a) => [a.id, a.name]));
-  const wModel = (wsRes.data?.model ?? '4class') as '4class' | '2class';
+  // 2 kelas Q3 2026 dst. → bobot otomatis BR-10 (effectiveModel); bobot khusus di bawah apa adanya.
+  const wModel = effectiveModel((wsRes.data?.model ?? '4class') as Model360, pmetaRes.data?.start_date);
   const wVals = (wsRes.data?.weights ?? {}) as WeightValues;
   const hasWS = !!wsRes.data;
   const relByPair = new Map<string, RelationKind>();
@@ -155,7 +157,7 @@ export async function aspectScoresByEmployee(periodId: string, empIds: string[])
   });
 
   // Bobot KHUSUS per pegawai (migrasi 0031) — sama dengan computeResult360 (audit 2026-09-29).
-  const ovrBy = new Map((ovrRes.data ?? []).map((o) => [o.employee_id, { model: o.model as '4class' | '2class', weights: o.weights as WeightValues }]));
+  const ovrBy = new Map((ovrRes.data ?? []).map((o) => [o.employee_id, { model: o.model as Model360, weights: o.weights as WeightValues }]));
   const scoreOfG = (g: Groups360, target: string): number | null => {
     const o = ovrBy.get(target);
     if (o) return weightedScore360(g, o.model, o.weights);

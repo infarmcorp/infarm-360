@@ -28,10 +28,41 @@ export const round2 = (n: number): number => Math.round(n * 100) / 100;
  *   bobot dinormalisasi ke kelas yang ada). Self DIKECUALIKAN.
  * - 2class: Atasan vs Internal (gabungan Peer+Cross+Bawahan; internal = rerata semua
  *   skornya, bukan rerata-dari-rerata). Bila salah satu sisi kosong → pakai sisi lain.
+ * - 2class_auto (BR-10, Q3 2026 dst.): sama dgn 2class, tetapi bobot dari `autoWeights2class`
+ *   menurut jumlah penilai internal (40/60 atau 60/40), bukan isian HRD.
  * Mengembalikan skor mentah (belum dibulatkan) atau null bila tak ada data terbobot.
  */
+/**
+ * Model bobot. '4class'/'2class' = model yang tersimpan di DB (dipilih HRD per periode).
+ * '2class_auto' = model 2 kelas dengan bobot OTOMATIS BR-10 (Q3 2026 dst., lihat `effectiveModel`) —
+ * tak pernah disimpan di DB, hanya hasil terjemahan di sisi kode.
+ */
+export type Model360 = '4class' | '2class' | '2class_auto';
+
 /** Satu skema bobot (model + nilai). Dipakai untuk memilih bobot per pegawai. */
-export type WeightScheme = { model: '4class' | '2class'; weights: WeightValues };
+export type WeightScheme = { model: Model360; weights: WeightValues };
+
+/**
+ * BR-10 (Q3 2026, keputusan HRD 2026-10-01): periode yang MULAI pada/sesudah tanggal ini dan memakai
+ * model 2 kelas → bobot Atasan/Internal OTOMATIS sesuai jumlah penilai internal (isian % HRD diabaikan).
+ * Q1–Q2 2026 tetap memakai bobot tersimpan agar skor final lama tak bergeser.
+ */
+export const AUTO_WEIGHT_FROM = '2026-07-01';
+
+/** Terjemahkan model skema PERIODE (dari DB) ke model efektif. 4 kelas tak tersentuh. */
+export function effectiveModel(model: Model360, periodStart: string | null | undefined): Model360 {
+  if (model === '2class' && !!periodStart && String(periodStart).slice(0, 10) >= AUTO_WEIGHT_FROM) return '2class_auto';
+  return model;
+}
+
+/**
+ * Bobot otomatis BR-10 bila ADA Atasan dan ada penilai Internal (dihitung PER ORANG yang mengirim):
+ * ≥2 Internal → Atasan 40 / Internal 60 · tepat 1 Internal → Atasan 60 / Internal 40.
+ * (Hanya Atasan → 100% Atasan; hanya Internal → 100% Internal — ditangani di weightedScore360.)
+ */
+export function autoWeights2class(nInternal: number): { atasan: number; internal: number } {
+  return nInternal >= 2 ? { atasan: 40, internal: 60 } : { atasan: 60, internal: 40 };
+}
 
 /**
  * Pilih skema bobot untuk seorang pegawai: pakai OVERRIDE khusus bila ada (migrasi 0031
@@ -42,7 +73,17 @@ export function resolveWeightScheme(def: WeightScheme, override: WeightScheme | 
   return override ?? def;
 }
 
-export function weightedScore360(g: Groups360, model: '4class' | '2class', w: WeightValues): number | null {
+/**
+ * Skema efektif seorang pegawai di suatu periode: bobot KHUSUS (override) dipakai apa adanya
+ * (keputusan 2026-10-01: tetap berlaku); selain itu skema periode dgn model diterjemahkan
+ * `effectiveModel` (2 kelas Q3 dst. → bobot otomatis BR-10).
+ */
+export function schemeFor(def: WeightScheme, override: WeightScheme | null | undefined, periodStart: string | null | undefined): WeightScheme {
+  if (override) return override;
+  return { model: effectiveModel(def.model, periodStart), weights: def.weights };
+}
+
+export function weightedScore360(g: Groups360, model: Model360, w: WeightValues): number | null {
   const aAvg = avg(g.atasan), pAvg = avg(g.peer), cAvg = avg(g.cross), bAvg = avg(g.bawahan);
 
   if (model === '4class') {
@@ -58,9 +99,12 @@ export function weightedScore360(g: Groups360, model: '4class' | '2class', w: We
     return tW > 0 ? wSum / tW : null;
   }
 
-  // 2class: Atasan vs Internal (peer+cross+bawahan).
-  const internal = avg([...g.peer, ...g.cross, ...g.bawahan]);
-  const wA = w.atasan ?? 0, wI = w.internal ?? 0;
+  // 2class: Atasan vs Internal (peer+cross+bawahan). Internal = rerata SEMUA penilai internal per orang
+  // (tanpa dikelompokkan dulu per Peer/Cross/Bawahan). Satu entri grup = satu penilai yang mengirim.
+  const internalScores = [...g.peer, ...g.cross, ...g.bawahan];
+  const internal = avg(internalScores);
+  const auto = model === '2class_auto' ? autoWeights2class(internalScores.length) : null;
+  const wA = auto ? auto.atasan : (w.atasan ?? 0), wI = auto ? auto.internal : (w.internal ?? 0);
   if (aAvg != null && internal != null && wA + wI > 0) return (aAvg * wA + internal * wI) / (wA + wI);
   if (aAvg != null) return aAvg;
   if (internal != null) return internal;

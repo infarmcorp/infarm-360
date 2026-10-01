@@ -1,6 +1,6 @@
 import { createAdminClient, type createClient } from '@/lib/supabase/server';
 import { finalScoreOf, kpiAvgOf, displayedFinalOf } from '@/lib/scoring';
-import { classOf, weightedScore360, type Groups360 } from '@/lib/score360';
+import { classOf, weightedScore360, effectiveModel, type Groups360, type Model360 } from '@/lib/score360';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 
 type SB = Awaited<ReturnType<typeof createClient>>;
@@ -100,13 +100,17 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
   // Skema bobot aktif (config; dibaca via service_role agar andal untuk semua pemanggil —
   // pegawai/SPV/Direksi belum tentu punya RLS baca weight_schemes).
   const cfg = createAdminClient();
-  const [{ data: ws }, { data: ovr }] = await Promise.all([
+  const [{ data: ws }, { data: ovr }, { data: pmeta }] = await Promise.all([
     cfg.from('weight_schemes').select('model, weights').eq('period_id', period.id).eq('is_active', true).maybeSingle(),
     // Bobot KHUSUS pegawai ini (migrasi 0031) — sama dengan computeResult360 (audit 2026-09-29).
     cfg.from('employee_weight_overrides').select('model, weights').eq('period_id', period.id).eq('employee_id', employeeId).maybeSingle(),
+    cfg.from('periods').select('start_date').eq('id', period.id).maybeSingle(),
   ]);
   const scheme = ovr ?? ws;
-  const wModel = (scheme?.model ?? '4class') as '4class' | '2class';
+  // Bobot khusus dipakai apa adanya; skema periode 2 kelas Q3 dst. → bobot otomatis BR-10.
+  const wModel = ovr
+    ? (ovr.model as Model360)
+    : effectiveModel((ws?.model ?? '4class') as Model360, pmeta?.start_date);
   const wVals = (scheme?.weights ?? {}) as WeightValues;
   const hasWS = !!scheme;
 

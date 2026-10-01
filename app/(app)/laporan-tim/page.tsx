@@ -181,7 +181,7 @@ export default async function LaporanTimPage({
           {/* Tabel diberi bingkai section (kartu) di halaman ini saja — komponennya sendiri
               tidak disentuh agar Monitor Kinerja tetap seperti semula. */}
           <div className="bg-surface border border-line rounded-panel p-5">
-            <TeamTable rows={rows} pageSize={5} periodId={ap.id} />
+            <TeamTable rows={rows} pageSize={5} periodId={ap.id} has360={ap.has_360} />
           </div>
         </>
       )}
@@ -272,7 +272,7 @@ async function DireksiTeamReport({ periodParam }: { periodParam?: string }) {
           {/* Tabel diberi bingkai section (kartu) di halaman ini saja — komponennya sendiri
               tidak disentuh agar Monitor Kinerja tetap seperti semula. */}
           <div className="bg-surface border border-line rounded-panel p-5">
-            <TeamTable rows={rows} pageSize={5} periodId={ap.id} />
+            <TeamTable rows={rows} pageSize={5} periodId={ap.id} has360={ap.has_360} />
           </div>
         </>
       )}
@@ -366,7 +366,7 @@ async function CoordinatorTeamReport({ userId, periodParam }: { userId: string; 
           {/* Tabel diberi bingkai section (kartu) di halaman ini saja — komponennya sendiri
               tidak disentuh agar Monitor Kinerja tetap seperti semula. */}
           <div className="bg-surface border border-line rounded-panel p-5">
-            <TeamTable rows={rows} pageSize={5} periodId={ap.id} />
+            <TeamTable rows={rows} pageSize={5} periodId={ap.id} has360={ap.has_360} />
           </div>
         </>
       )}

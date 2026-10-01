@@ -1,6 +1,6 @@
 'use client';
 
-import { fmt2 } from '@/lib/scoring';
+import { fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
 
 import { Download } from 'lucide-react';
 import type { ReportData } from '@/lib/report';
@@ -40,7 +40,7 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
       {/* Ringkasan skor */}
       <div className="grid grid-cols-3 gap-3 mt-4">
         <ScoreCard label="Rerata KPI" value={data.kpiAvg} color="text-brand-ink" />
-        <ScoreCard label="Evaluasi 360°" value={data.has360 ? data.s360 : null} color="text-brand-ink" />
+        <ScoreCard label="Evaluasi 360°" value={data.has360 ? data.s360 : null} color="text-brand-ink" noScore={data.has360} />
         <ScoreCard label="Skor Akhir" value={data.finalScore} color="text-ink" big />
       </div>
       {data.has360 && data.latePenalty360 > 0 && data.s360 != null && (
@@ -154,11 +154,14 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
   );
 }
 
-function ScoreCard({ label, value, color, big }: { label: string; value: number | null; color: string; big?: boolean }) {
+/** `noScore`: nilai kosong ditampilkan sebagai "No Score" (BR-09, Skor 360° periode ber-360°), bukan "—". */
+function ScoreCard({ label, value, color, big, noScore }: { label: string; value: number | null; color: string; big?: boolean; noScore?: boolean }) {
   return (
     <div className="border border-line rounded-panel p-3 text-center break-inside-avoid">
       <p className="text-[10px] text-ink-faint uppercase font-bold">{label}</p>
-      <p className={`font-black data-value ${color} ${big ? 'text-3xl' : 'text-xl'}`}>{value != null ? fmt2(value) : '—'}</p>
+      {value == null && noScore
+        ? <p className="font-bold text-warn-ink text-base mt-1" title={NO_SCORE_TITLE}>{NO_SCORE_LABEL}<span className="block text-[10px] font-semibold text-ink-faint">Insufficient Data</span></p>
+        : <p className={`font-black data-value ${color} ${big ? 'text-3xl' : 'text-xl'}`}>{value != null ? fmt2(value) : '—'}</p>}
     </div>
   );
 }

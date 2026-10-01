@@ -5,7 +5,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
-import { classOf, avg, round2, weightedScore360, resolveWeightScheme, type Groups360, type WeightScheme } from '@/lib/score360';
+import { classOf, avg, round2, weightedScore360, schemeFor, type Groups360, type WeightScheme } from '@/lib/score360';
 import { fetchAllPaged, fetchAllByIds } from '@/lib/supabase/paginate';
 import { apply360Penalty } from '@/lib/late';
 import { loadLateSummaries } from '@/lib/late-server';
@@ -36,7 +36,7 @@ export async function computeResult360(): Promise<ComputeResult> {
   const admin = createAdminClient();
 
   const { data: ap } = await admin
-    .from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
+    .from('periods').select('id, label, start_date').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
   const { data: ws } = await admin
@@ -116,8 +116,8 @@ export async function computeResult360(): Promise<ComputeResult> {
   const computedAt = new Date().toISOString();
   const rows: { employee_id: string; period_id: string; score: number; score_raw: number; late_penalty: number; computed_at: string }[] = [];
   for (const [targetId, g] of byTarget) {
-    // Skema per pegawai: override khusus bila ada, else default periode.
-    const { model, weights } = resolveWeightScheme(defScheme, overrideBy.get(targetId));
+    // Skema per pegawai: override khusus bila ada, else default periode (2 kelas Q3 dst. → bobot otomatis BR-10).
+    const { model, weights } = schemeFor(defScheme, overrideBy.get(targetId), ap.start_date);
     const score = weightedScore360(g, model, weights);
     if (score == null) continue;
     const raw = round2(score);

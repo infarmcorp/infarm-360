@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AccButton } from './acc-button';
-import { PLAYER_BOXES, playerLabelOf, type PlayerClass, fmt2 } from '@/lib/scoring';
+import { PLAYER_BOXES, playerLabelOf, type PlayerClass, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
 import { TREND_META, type Trend } from '@/lib/trend';
 import { displayName } from '@/lib/employee-name';
 import { InfoTip } from '@/components/info-tip';
@@ -42,15 +42,17 @@ function SelfBadge({ show }: { show: boolean }) {
   );
 }
 
-const PLAYER_SHORT: Record<PlayerClass, string> = { A: 'A', B_CULTURE: 'B-Cul', B_KPI: 'B-KPI', C: 'C' };
-const playerColor = (p: PlayerClass) => PLAYER_BOXES.find((b) => b.key === p)?.color ?? '#6b7280';
+const PLAYER_SHORT: Record<PlayerClass, string> = { A: 'A', B_CULTURE: 'B-Cul', B_KPI: 'B-KPI', C: 'C', HRD_REVIEW: 'HRD Review' };
+// HRD Review (BR-11): KPI atau 360° kosong → warna peringatan (warn), bukan warna kelas.
+const playerColor = (p: PlayerClass) => p === 'HRD_REVIEW' ? '#B45309' : PLAYER_BOXES.find((b) => b.key === p)?.color ?? '#6b7280';
 
 /** Badge kategori 4-Box (KPI×360). */
 function PlayerBadge({ p }: { p: PlayerClass | null }) {
   if (!p) return <span className="text-[10px] text-gray-400">—</span>;
   const c = playerColor(p);
   return (
-    <span title={playerLabelOf(p)} className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+    <span title={p === 'HRD_REVIEW' ? 'HRD Review — KPI atau Skor 360° belum tersedia; tidak diklasifikasi otomatis' : playerLabelOf(p)}
+      className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap"
       style={{ color: c, backgroundColor: `${c}1a` }}>
       {PLAYER_SHORT[p]}
     </span>
@@ -89,8 +91,8 @@ function TrendBadge({ t, months }: { t: Trend; months: (number | null)[] }) {
  */
 export function TeamTable({
   rows, linkNames = true, showStatus = true, showAcc = true, scoreBasis = 'stored', showSearch = true, pageSize,
-  periodId,
-}: { rows: TeamRow[]; linkNames?: boolean; showStatus?: boolean; showAcc?: boolean; scoreBasis?: 'stored' | 'live'; showSearch?: boolean; pageSize?: number;
+  periodId, has360 = true,
+}: { rows: TeamRow[]; /** Periode ber-360°? Skor 360° kosong → "No Score" (BR-09); tanpa 360° → "—". */ has360?: boolean; linkNames?: boolean; showStatus?: boolean; showAcc?: boolean; scoreBasis?: 'stored' | 'live'; showSearch?: boolean; pageSize?: number;
   /** Periode yang sedang ditampilkan — diteruskan ke tautan detail (`/laporan/<id>?period=`)
    *  agar halaman detail membuka KUARTAL YANG SAMA dengan tabel, bukan selalu periode aktif. */
   periodId?: string }) {
@@ -148,7 +150,7 @@ export function TeamTable({
                     : 'Angka finalisasi tersimpan dari laporan: 50% KPI + 50% Skor 360° − punishment (100% KPI bila 360° nonaktif).'} />
                 </th>
                 <th className="py-2 px-3 text-center whitespace-nowrap">
-                  4-Box <InfoTip text="Klasifikasi talenta KPI×360° (ambang 80): A (keduanya ≥80), B-Culture (360°≥80), B-KPI (KPI≥80), C (keduanya <80)." />
+                  4-Box <InfoTip text="Klasifikasi talenta KPI×360° (ambang 80): A (keduanya ≥80), B-Culture (360°≥80), B-KPI (KPI≥80), C (keduanya <80). KPI atau 360° kosong → HRD Review." />
                 </th>
                 <th className={`py-2 px-3 text-center ${showStatus || showAcc ? '' : 'pr-0'}`}>Trend KPI</th>
                 {showStatus && <th className="py-2 px-3 text-center">Status</th>}
@@ -185,7 +187,9 @@ export function TeamTable({
                     {r.kpiAvg != null ? fmt2(r.kpiAvg) : '—'}
                   </td>
                   <td className="py-3 px-3 text-center font-mono text-slate-600">
-                    {r.s360 != null ? fmt2(r.s360) : '—'}
+                    {r.s360 != null ? fmt2(r.s360) : has360
+                      ? <span className="text-[10px] font-semibold text-amber-700 font-sans" title={NO_SCORE_TITLE}>{NO_SCORE_LABEL}</span>
+                      : '—'}
                   </td>
                   <td className="py-3 px-3 text-center font-mono font-black text-slate-800">
                     {r.finalScore != null ? fmt2(r.finalScore) : '—'}

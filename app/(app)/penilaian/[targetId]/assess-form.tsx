@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, CheckCircle2, X, Send, Save, XCircle, Trash2, ClipboardList, ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronLeft, CheckCircle2, X, Send, Save, XCircle, Trash2, ClipboardList, ChevronDown, Loader2, Pencil, ListChecks } from 'lucide-react';
 import { submitAssessment, discardAssessment } from '../actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
@@ -40,6 +40,8 @@ const GENERAL_GUIDE = [
  *    ter-lock/refresh. TIDAK aktif untuk penilaian yang sudah 'submitted' (agar tak
  *    menurunkan status), dan dikunci selama proses Kirim agar tak menimpa status.
  *  - Konfirmasi sebelum Kirim + layar sukses sesudahnya (kepastian terkirim).
+ *  - Screen 04 (Review & Submit): bila semua lengkap, tombol utama = "Review Penilaian" → ringkasan
+ *    seluruh indikator (skor + evidence) & esai, tombol Edit kembali ke indikator terkait, baru Kirim.
  */
 export function AssessForm({
   targetId, targetName, groups, questions, initialScores, initialAnswers, hasDraft = false, initialStatus = null,
@@ -99,6 +101,7 @@ export function AssessForm({
   const [confirmSend, setConfirmSend] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [sentDone, setSentDone] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
 
   // Pengaman auto-save: lockRef = jangan autosave (sedang konfirmasi/kirim/selesai);
   // savingRef = ada autosave berjalan; hydratedRef = lewati render awal.
@@ -216,7 +219,7 @@ export function AssessForm({
     setSaveState('saved'); router.refresh();
   }
 
-  // Tahap 1 Kirim: validasi → tampilkan konfirmasi (kunci autosave).
+  // Tahap 1: validasi kelengkapan → buka halaman Review (Screen 04).
   function submit() {
     for (const f of flat) {
       if (ratings[f.id] == null) {
@@ -240,8 +243,23 @@ export function AssessForm({
       }
     }
     setError(null);
+    setReviewing(true);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Tahap 2 (dari halaman Review): tampilkan konfirmasi kirim (kunci autosave).
+  function askSend() {
+    setError(null);
     lockRef.current = true;     // hentikan autosave selama proses kirim
     setConfirmSend(true);
+  }
+
+  // Edit dari halaman Review → kembali ke indikator/esai terkait.
+  function editFrom(target: string) {
+    cancelSend();
+    setReviewing(false);
+    if (target === QUAL) setActiveGroup(QUAL);
+    else { const i = flat.findIndex((f) => f.id === target); if (i >= 0) goTo(i); }
   }
 
   function cancelSend() {
@@ -313,7 +331,8 @@ export function AssessForm({
         <AutoSaveHint state={saveState} disabled={initialStatus === 'submitted'} />
       </div>
 
-      {/* Panduan Penilaian Umum (statis, berlaku semua pertanyaan) */}
+      {/* Panduan Penilaian Umum (statis, berlaku semua pertanyaan) — disembunyikan di halaman Review. */}
+      {!reviewing && (
       <div className="bg-neutral-tint border border-line rounded-panel">
         <button type="button" onClick={() => setGuideOpen((o) => !o)}
           className="w-full flex items-center gap-2 px-4 py-2.5 text-left">
@@ -327,7 +346,14 @@ export function AssessForm({
           </ul>
         )}
       </div>
+      )}
 
+      {reviewing ? (
+        <ReviewPanel
+          flat={flat} ratings={ratings} comments={comments}
+          questions={questions} answers={answers} onEdit={editFrom}
+        />
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-4">
         {/* RAIL aspek — HP: strip horizontal yang bisa di-geser; layar lebar (lg): vertikal. */}
         <div>
@@ -519,6 +545,7 @@ export function AssessForm({
           )}
         </div>
       </div>
+      )}
 
       {error && <p className="text-xs text-danger-ink font-semibold">{error}</p>}
 
@@ -547,11 +574,18 @@ export function AssessForm({
       {/* Kontrol bawah */}
       <div className="bg-neutral-tint border border-line rounded-panel p-3 flex flex-col sm:flex-row justify-between gap-2">
         <div className="flex gap-2">
+          {reviewing ? (
+            <button type="button" disabled={busy} onClick={() => { cancelSend(); setReviewing(false); }}
+              className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-control text-ink-soft bg-surface border border-line hover:bg-neutral-tint disabled:opacity-60">
+              <ChevronLeft className="w-4 h-4 text-ink-faint" /> Kembali ke Form
+            </button>
+          ) : (
           <button type="button" disabled={busy} onClick={() => router.push('/penilaian')}
             className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-control text-ink-soft bg-surface border border-line hover:bg-neutral-tint disabled:opacity-60">
             <XCircle className="w-4 h-4 text-ink-faint" /> Batal
           </button>
-          {hasDraft && (
+          )}
+          {hasDraft && !reviewing && (
             <button type="button" disabled={busy} onClick={discard}
               className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-control text-danger-ink bg-surface border border-danger-ink/30 hover:bg-danger-tint disabled:opacity-60">
               <Trash2 className="w-4 h-4" /> Buang Draf
@@ -570,15 +604,23 @@ export function AssessForm({
           {/* Tombol adaptif: belum lengkap → "Lengkapi" (ORANYE SOLID — sengaja mencolok agar
               pengguna sadar masih ada yang kurang; teks gelap di atas oranye = kontras tinggi);
               lengkap → "Kirim" (hijau brand). */}
+          {reviewing ? (
+            <button type="button" disabled={busy || saveState === 'saving' || confirmSend} onClick={askSend}
+              className="inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
+              <Send className="w-4 h-4 text-white/85" />
+              {busy ? 'Memproses…' : initialStatus === 'submitted' ? 'Kirim Ulang Penilaian 360°' : 'Kirim Penilaian 360°'}
+            </button>
+          ) : (
           <button type="button" disabled={busy || total === 0 || saveState === 'saving' || confirmSend} onClick={submit}
             className={`inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-control disabled:opacity-50 ${
               allComplete
                 ? 'bg-brand hover:bg-brand-ink text-white'
                 : 'bg-warn text-ink border border-warn-ink/40 hover:brightness-95 shadow-2xs'
             }`}>
-            <Send className={`w-4 h-4 ${allComplete ? 'text-white/85' : 'text-ink'}`} />
-            {busy ? 'Memproses…' : allComplete ? (initialStatus === 'submitted' ? 'Kirim Ulang Penilaian 360°' : 'Kirim Penilaian 360°') :`Lengkapi Penilaian (${remaining} tersisa)`}
+            {allComplete ? <ListChecks className="w-4 h-4 text-white/85" /> : <Send className="w-4 h-4 text-ink" />}
+            {busy ? 'Memproses…' : allComplete ? 'Review Penilaian' : `Lengkapi Penilaian (${remaining} tersisa)`}
           </button>
+          )}
         </div>
       </div>
       <ConfirmDialog
@@ -592,6 +634,93 @@ export function AssessForm({
       >
         <p>Semua rating &amp; komentar yang tersimpan sebagai draf akan <strong>dihapus</strong>. Tindakan ini tak bisa dibatalkan.</p>
       </ConfirmDialog>
+    </div>
+  );
+}
+
+/**
+ * Halaman Review (Screen 04): ringkasan seluruh indikator per aspek (skor + key point + evidence yang
+ * bisa dibuka) & jawaban esai, dengan tombol Edit ke item terkait. Tidak menampilkan skor rata-rata.
+ */
+function ReviewPanel({ flat, ratings, comments, questions, answers, onEdit }: {
+  flat: { gid: string; gname: string; id: string; text: string; qNum: number; ratingKeyPoints?: Record<string, string> | null }[];
+  ratings: Record<string, number | null>;
+  comments: Record<string, string>;
+  questions: Question[];
+  answers: Record<string, string>;
+  onEdit: (target: string) => void;
+}) {
+  const groups: { gid: string; gname: string; items: typeof flat }[] = [];
+  flat.forEach((f) => {
+    const g = groups.find((x) => x.gid === f.gid);
+    if (g) g.items.push(f); else groups.push({ gid: f.gid, gname: f.gname, items: [f] });
+  });
+  const doneN = flat.filter((f) => ratings[f.id] != null && (comments[f.id] ?? '').trim().length >= EVIDENCE_MIN).length;
+  const editBtn = (target: string) => (
+    <button type="button" onClick={(e) => { e.preventDefault(); onEdit(target); }}
+      className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-control border border-line text-brand-ink bg-surface hover:border-brand shrink-0">
+      <Pencil className="w-3 h-3" /> Edit
+    </button>
+  );
+  return (
+    <div className="space-y-3">
+      <div className="border border-line rounded-panel p-4">
+        <h3 className="text-base font-extrabold text-ink">Review Penilaian</h3>
+        <p className="text-[12.5px] text-ink-soft mt-0.5">Periksa kembali seluruh jawaban sebelum dikirim. Klik baris untuk melihat bukti perilaku, atau <strong>Edit</strong> untuk memperbaiki.</p>
+        <p className="mt-2 text-[12px] font-bold text-brand-ink">
+          <CheckCircle2 className="w-4 h-4 inline -mt-0.5 mr-1" />
+          <span className="data-value">{doneN}/{flat.length}</span> indikator lengkap
+          {questions.length > 0 && <> · <span className="data-value">{questions.length}</span> pertanyaan esai terjawab</>}
+        </p>
+      </div>
+      {groups.map((g, gi) => (
+        <section key={g.gid} className="border border-line rounded-panel overflow-hidden">
+          <h4 className="px-4 py-2 bg-neutral-tint border-b border-line text-[12.5px] font-extrabold text-ink">
+            <span className="data-value text-ink-faint mr-1.5">{gi + 1}</span>{g.gname}
+          </h4>
+          <ul className="divide-y divide-line-soft">
+            {g.items.map((f) => {
+              const r = ratings[f.id];
+              const kp = r != null ? f.ratingKeyPoints?.[String(r)] || FALLBACK_KEY_POINTS[r] : null;
+              return (
+                <li key={f.id} className="px-4 py-2.5">
+                  <details className="group">
+                    <summary className="flex items-center gap-2 cursor-pointer list-none">
+                      <span className="data-value text-[11px] text-ink-faint w-7 shrink-0">Q{f.qNum}</span>
+                      <span className="text-[13px] font-semibold text-ink flex-1 min-w-0">{f.text}</span>
+                      <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-control bg-brand-tint text-brand-ink border border-brand-ink/20 whitespace-nowrap">
+                        Skor <span className="data-value">{r ?? '—'}</span>
+                      </span>
+                      <ChevronDown className="w-4 h-4 text-ink-faint transition-transform group-open:rotate-180 shrink-0" />
+                      {editBtn(f.id)}
+                    </summary>
+                    <div className="mt-2 ml-9 text-[12px] text-ink-soft leading-relaxed">
+                      {kp && <p className="text-[11px] font-semibold text-ink mb-1">{kp}</p>}
+                      <p className="whitespace-pre-wrap"><span className="font-semibold text-ink-faint">Bukti perilaku: </span>{(comments[f.id] ?? '').trim() || '—'}</p>
+                    </div>
+                  </details>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+      {questions.length > 0 && (
+        <section className="border border-line rounded-panel overflow-hidden">
+          <div className="px-4 py-2 bg-neutral-tint border-b border-line flex items-center justify-between gap-2">
+            <h4 className="text-[12.5px] font-extrabold text-ink">Umpan Balik Kualitatif</h4>
+            {editBtn(QUAL)}
+          </div>
+          <ul className="divide-y divide-line-soft">
+            {questions.map((q) => (
+              <li key={q.id} className="px-4 py-2.5">
+                <p className="text-[12.5px] font-semibold text-ink">{q.text}</p>
+                <p className="text-[12px] text-ink-soft mt-1 whitespace-pre-wrap">{(answers[q.id] ?? '').trim() || '—'}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

@@ -36,7 +36,7 @@ export function ReadOnlyView({ groups, questions, scores, answers, deadline }: {
                 <li key={ind.id} className="px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-[13px] font-semibold text-ink"><span className="data-value text-ink-faint mr-1.5">{n}.</span>{ind.text}</p>
-                    <span className="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-control border bg-brand-tint text-brand-ink border-brand-ink/20 whitespace-nowrap">
+                    <span className={`shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-control border whitespace-nowrap ${s?.rating != null ? 'bg-brand-tint text-brand-ink border-brand-ink/20' : 'bg-neutral-tint text-ink-faint border-line'}`}>
                       {s?.rating != null ? <>Skor <span className="data-value">{s.rating}</span>{kp ? ` · ${kp}` : ''}</> : 'Belum dinilai'}
                     </span>
                   </div>

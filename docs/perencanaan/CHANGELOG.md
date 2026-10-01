@@ -376,6 +376,13 @@
   izin hanya Lihat); halaman Direksi `/review-hasil` → **"Tinjauan Hasil Akhir"**. Tombol **Hitung Ulang
   Skor 360°** kini **hanya satu** (kokpit Review & Finalisasi) — halaman Bobot memberi tautan; tombol ②
   → **"Perbarui Laporan Final yang Berubah"**. Kode `section`/route tak berubah (hanya label).
+- **Screen 04 Review & Screen 01 kartu HP (2026-10-01, dev; tanpa migrasi):** (Screen 04) bila semua lengkap tombol utama
+  form = **"Review Penilaian"** → `ReviewPanel`: ringkasan indikator per aspek (skor + key point, evidence bisa dibuka),
+  jawaban esai, tombol **Edit** ke item terkait; dari situ **Kirim Penilaian** → konfirmasi → layar sukses. Tak menampilkan
+  rata-rata/skor akhir. (Screen 01, Decision 03 opsi B) di HP (< sm) daftar penilaian = **kartu per rekan** (nama, divisi ·
+  relasi, status, Wajib/Ajuan, tombol utama penuh, aksi sekunder kecil); layar ≥ sm tetap tabel. **Progres draf** "x dari N
+  indikator selesai" (rating + evidence ≥ 20, indikator aktif) di kartu & tabel. Aksi baris dipusatkan
+  (`primaryAction`/`secondaryActions`). Diverifikasi visual di staging (Server Action diblokir — tanpa tulis).
 - `0047` **Penilaian terkirim TERKUNCI setelah deadline (Decision 01, Screen 01/04; 2026-10-01, dev):** Kirim Ulang hanya
   sampai `periods.assessment_deadline`; sesudahnya tombol daftar = **Lihat** & halaman per rekan = `ReadOnlyView`
   (rating + evidence + esai, baca-saja). Belum terkirim tetap boleh dikirim sesudah deadline (Terlambat), lalu ikut terkunci.

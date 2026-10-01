@@ -94,13 +94,34 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
   const empById = new Map((emps ?? []).map((e) => [e.id, e]));
 
   const { data: asmts } = await supabase
-    .from('assessments').select('target_id, status, first_submitted_at, forced_by_hrd')
+    .from('assessments').select('id, target_id, status, first_submitted_at, forced_by_hrd')
     .eq('assessor_id', user.id).eq('period_id', ap.id);
   const statusByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.status]));
   const firstSubByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.first_submitted_at]));
   const forcedByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.forced_by_hrd]));
   const deadline = ap.assessment_deadline;
   const deadlinePassed = isPastDeadline(deadline);
+
+  // Progres DRAF (Decision 03 / mockup Screen 01): "x dari N indikator selesai" — indikator lengkap =
+  // rating 1–5 + evidence ≥ 20 karakter, dari indikator AKTIF periode ini (RLS: hanya milik sendiri).
+  const draftIds = (asmts ?? []).filter((a) => a.status === 'draft').map((a) => a.id);
+  const draftDoneBy = new Map<string, number>();
+  let indicatorTotal = 0;
+  if (draftIds.length) {
+    const { data: asp } = await supabase.from('culture_aspects').select('id').eq('period_id', ap.id);
+    const { data: inds } = (asp ?? []).length
+      ? await supabase.from('indicators').select('id').in('aspect_id', (asp ?? []).map((a) => a.id)).eq('is_active', true)
+      : { data: [] as { id: string }[] };
+    const activeInd = new Set((inds ?? []).map((i) => i.id));
+    indicatorTotal = activeInd.size;
+    const { data: sc } = await supabase.from('assessment_indicator_scores')
+      .select('assessment_id, indicator_id, rating, comment').in('assessment_id', draftIds);
+    (sc ?? []).forEach((s) => {
+      if (!activeInd.has(s.indicator_id) || s.rating == null || (s.comment ?? '').trim().length < 20) return;
+      draftDoneBy.set(s.assessment_id, (draftDoneBy.get(s.assessment_id) ?? 0) + 1);
+    });
+  }
+  const draftIdByTarget = new Map((asmts ?? []).filter((a) => a.status === 'draft').map((a) => [a.target_id, a.id]));
 
   // Permohonan pemetaan milik user di periode ini: yang PENDING dipakai menandai baris
   // (satu permohonan aktif per rekan), seluruhnya dipakai panel "Permohonan Saya".
@@ -151,15 +172,17 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
       progress: progressStatusOf(statusByTarget.get(r.target_id), firstSubByTarget.get(r.target_id), deadline, forcedByTarget.get(r.target_id) ?? false),
       counted: (r.mandatory || approvedAjuan.has(r.target_id)) && !r.is_adhoc,
       corrPending: pendingCorr.has(r.target_id),
+      draftDone: draftIdByTarget.has(r.target_id) ? (draftDoneBy.get(draftIdByTarget.get(r.target_id)!) ?? 0) : null,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
   // Ringkasan penilaian WAJIB (sifat = Wajib) — berapa harus dinilai vs sudah dikirim.
-  const mandatoryItems = items.filter((it) => it.mandatory);
+  // Penilaian yang dibatalkan validitasnya oleh HRD (0046) bukan lagi kewajiban.
+  const mandatoryItems = items.filter((it) => it.mandatory && it.status !== 'invalidated');
   const mandTotal = mandatoryItems.length;
   const mandDone = mandatoryItems.filter((it) => it.status === 'submitted').length;
   // Ajuan (Q3 2026 dst.) yang belum dikirim — ikut potongan bila deadline lewat.
-  const ajuanPendingN = items.filter((it) => it.requested && it.status !== 'submitted').length;
+  const ajuanPendingN = items.filter((it) => it.requested && it.status !== 'submitted' && it.status !== 'invalidated').length;
 
   // Panel "Permohonan Saya" — status pengajuan (hapus/tambah/koreksi) + alasan penolakan HRD.
   const myRequestRows: MyRequest[] = myReqs.map((c) => ({
@@ -173,6 +196,54 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
     status: c.status,
   }));
   const pendingReqN = myRequestRows.filter((r) => r.status === 'pending').length;
+
+  type Item = (typeof items)[number];
+  const primaryLabel = (it: Item) =>
+    // Decision 01: terkirim → Edit sampai deadline, sesudahnya Lihat (read-only).
+    it.status === 'submitted' ? (deadlinePassed ? 'Lihat' : 'Edit') : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai';
+  /** Aksi sekunder (koreksi relasi / ajukan hapus / hapus ad-hoc) — dipakai tabel & kartu HP. */
+  const secondaryActions = (it: Item) => (
+    <>
+      {it.isAdhoc && (
+        <AdhocDeleteButton targetId={it.targetId} targetName={it.name} submitted={it.status === 'submitted'} />
+      )}
+      {/* Minta Koreksi tersedia untuk SEMUA pemetaan (termasuk Ad-Hoc): target ad-hoc dikunci relasi 'Cross'
+          saat dibuat, padahal hubungan sebenarnya bisa berbeda. HRD yang menyetujui. Self dikecualikan. */}
+      {it.relation !== 'Self' && it.status !== 'invalidated' && (
+        <CorrectionButton mappingId={it.mappingId} targetId={it.targetId} targetName={it.name}
+          currentRelation={it.relation} pending={it.corrPending} />
+      )}
+      {/* Ajukan Hapus: untuk pemetaan dari HRD ('Self' dikecualikan). */}
+      {!it.isAdhoc && it.relation !== 'Self' && it.status !== 'invalidated' && (
+        <RequestRemoveButton mappingId={it.mappingId} targetId={it.targetId} targetName={it.name} pending={it.corrPending} />
+      )}
+    </>
+  );
+  /** Aksi utama — teks (tabel) atau tombol penuh (kartu HP). */
+  const primaryAction = (it: Item, asButton: boolean) => {
+    if (it.status === 'invalidated') {
+      return <span className="text-[11px] text-ink-faint italic" title="HRD membatalkan validitas penilaian ini — tidak dihitung & tidak bisa diubah.">dibatalkan HRD</span>;
+    }
+    if (reviewPhase) return <span className="text-[11px] text-ink-faint italic">belum dibuka</span>;
+    const label = primaryLabel(it);
+    const solid = label === 'Mulai Nilai' || label === 'Lanjutkan';
+    return (
+      <Link href={`/penilaian/${it.targetId}`}
+        className={asButton
+          ? `block w-full text-center text-sm font-bold py-2.5 rounded-control ${solid ? 'bg-brand hover:bg-brand-ink text-white' : 'border border-line text-ink bg-surface hover:bg-neutral-tint'}`
+          : 'text-xs font-bold text-brand-ink hover:underline'}>
+        {label === 'Edit' && asButton ? 'Edit Penilaian' : label}
+      </Link>
+    );
+  };
+  const draftProgress = (it: Item) => it.status === 'draft' && it.draftDone != null && indicatorTotal > 0 ? (
+    <div className="mt-1.5">
+      <p className="text-[11px] text-ink-soft"><span className="data-value font-semibold">{it.draftDone}</span> dari <span className="data-value">{indicatorTotal}</span> indikator selesai</p>
+      <div className="h-1.5 mt-1 bg-neutral-tint rounded-full overflow-hidden">
+        <div className="h-full bg-brand rounded-full" style={{ width: `${Math.round((it.draftDone / indicatorTotal) * 100)}%` }} />
+      </div>
+    </div>
+  ) : null;
 
   return (
     <Shell periodLabel={ap.label}>
@@ -250,7 +321,8 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
           <p className="text-[11.5px] text-warn-ink/90 mt-0.5 leading-relaxed">
             Form masih bisa diisi, tetapi penilaian wajib{ajuanPendingN > 0 ? ' (termasuk ajuan Anda)' : ''} yang dikirim sekarang tercatat <strong>Terlambat</strong> dan
             Skor 360° Anda dipotong <span className="data-value">{LATE_PENALTY_360}</span> poin (sekali per periode).
-            Penilaian Anda tetap dihitung untuk rekan yang dinilai.
+            Penilaian Anda tetap dihitung untuk rekan yang dinilai. Penilaian yang <strong>sudah terkirim</strong> kini
+            terkunci (hanya bisa dilihat).
           </p>
         </div>
       )}
@@ -270,7 +342,31 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
               memengaruhi hasil akhir pegawai.
             </p>
           </div>
-          <div className="overflow-x-auto">
+          {/* HP (Decision 03, opsi kartu): satu kartu per rekan — nama, divisi · relasi, status, progres draf,
+              tombol utama penuh; aksi sekunder kecil di bawahnya. Layar ≥ sm tetap tabel. */}
+          <ul className="sm:hidden space-y-3">
+            {items.map((it) => (
+              <li key={it.id} className="rounded-panel border border-line bg-surface p-3.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-bold text-ink leading-tight">{it.name}</p>
+                    <p className="text-[11.5px] text-ink-faint mt-0.5">{it.dept} · {REL_LABEL[it.relation] ?? it.relation}</p>
+                  </div>
+                  <StatusBadge status={it.progress} counted={it.counted} />
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-control border ${it.mandatory ? 'bg-warn-tint text-warn-ink border-warn-ink/25' : 'bg-neutral-tint text-ink-faint border-line'}`}>
+                    {it.mandatory ? 'Wajib' : 'Opsional'}
+                  </span>
+                  {it.requested && <span className="text-[9.5px] font-semibold text-warn-ink">Ajuan · wajib selesai</span>}
+                </div>
+                {draftProgress(it)}
+                <div className="mt-3">{primaryAction(it, true)}</div>
+                <div className="mt-2 flex flex-wrap items-center justify-end gap-3">{secondaryActions(it)}</div>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden sm:block overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="text-[10px] uppercase tracking-[0.05em] text-ink-faint font-semibold border-b border-line">
@@ -306,47 +402,12 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                   </td>
                   <td className="py-3 px-3 text-right">
                     <StatusBadge status={it.progress} counted={it.counted} />
+                    {draftProgress(it)}
                   </td>
                   <td className="py-3 pl-3 text-right">
                     <div className="flex items-center justify-end gap-3">
-                      {it.isAdhoc && (
-                        <AdhocDeleteButton targetId={it.targetId} targetName={it.name} submitted={it.status === 'submitted'} />
-                      )}
-                      {/* Minta Koreksi tersedia untuk SEMUA pemetaan (termasuk Ad-Hoc): target ad-hoc
-                          dikunci relasi 'Cross' saat dibuat, padahal hubungan sebenarnya bisa berbeda
-                          (mis. ternyata Bawahan/Atasan). Penilai mengajukan koreksi → HRD yang menyetujui
-                          (gatekeeper), jadi bobot tetap tak bisa digelembungkan sepihak. Self dikecualikan. */}
-                      {it.relation !== 'Self' && (
-                        <CorrectionButton
-                          mappingId={it.mappingId}
-                          targetId={it.targetId}
-                          targetName={it.name}
-                          currentRelation={it.relation}
-                          pending={it.corrPending}
-                        />
-                      )}
-                      {/* Ajukan Hapus: untuk pemetaan dari HRD. Target Ad-Hoc buatan sendiri tak perlu
-                          diajukan — pegawai boleh menghapusnya langsung (AdhocDeleteButton di atas).
-                          'Self' dikecualikan: evaluasi diri bukan hal yang bisa ditolak pegawai. */}
-                      {!it.isAdhoc && it.relation !== 'Self' && (
-                        <RequestRemoveButton
-                          mappingId={it.mappingId}
-                          targetId={it.targetId}
-                          targetName={it.name}
-                          pending={it.corrPending}
-                        />
-                      )}
-                      {/* Fase tinjau: pengisian belum dibuka, jadi tak ada tautan "Mulai Nilai". */}
-                      {reviewPhase ? (
-                        <span className="text-[11px] text-ink-faint italic">belum dibuka</span>
-                      ) : (
-                        <Link
-                          href={`/penilaian/${it.targetId}`}
-                          className="text-xs font-bold text-brand-ink hover:underline"
-                        >
-                          {it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai'}
-                        </Link>
-                      )}
+                      {secondaryActions(it)}
+                      {primaryAction(it, false)}
                     </div>
                   </td>
                 </tr>
@@ -368,18 +429,20 @@ const STATUS_CLS: Record<ProgressStatus, string> = {
   in_progress: 'bg-warn-tint text-warn-ink border-warn-ink/25',
   on_time: 'bg-brand-tint text-brand-ink border-brand-ink/20',
   late: 'bg-danger-tint text-danger-ink border-danger-ink/25',
+  invalidated: 'bg-neutral-tint text-ink-faint border-line',
 };
 const STATUS_TITLE: Record<ProgressStatus, string> = {
   not_started: 'Not Started — penilaian belum mulai dikerjakan',
   in_progress: 'In Progress — sudah mulai diisi, belum dikirim final',
   on_time: 'Completed – On Time — dikirim pertama kali sebelum/tepat pada deadline',
   late: 'Completed – Late — dikirim pertama kali sesudah deadline',
+  invalidated: 'Dibatalkan HRD — penilaian dinyatakan tidak valid; tidak dihitung dan bukan lagi kewajiban',
 };
 
 /** BR-07: status penyelesaian. Penilaian yang tak dihitung potongan (Opsional biasa / Ad-Hoc lama)
  *  cukup "Terkirim" — label tepat waktu/terlambat tak relevan untuknya. */
 function StatusBadge({ status, counted }: { status: ProgressStatus; counted: boolean }) {
-  const done = status === 'on_time' || status === 'late';
+  const done = status === 'on_time' || status === 'late'; // invalidated tetap berlabel "Dibatalkan"
   const key: ProgressStatus = done && !counted ? 'on_time' : status;
   const label = done && !counted ? 'Terkirim' : PROGRESS_STATUS_LABEL[status];
   return (

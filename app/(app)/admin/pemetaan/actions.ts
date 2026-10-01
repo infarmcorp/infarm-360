@@ -171,12 +171,15 @@ export async function copyMappingsFromPeriod(sourcePeriodId: string): Promise<{ 
   return { ok: true, saved, skipped: src.length - saved };
 }
 
+/** Status penilaian satu pasangan pemetaan (Screen 07). 'none' = Belum Mulai. */
+export type PairStatus = 'none' | 'draft' | 'submitted' | 'invalidated';
+
 /**
- * Info pra-hapus pemetaan (untuk dialog konfirmasi): nama pasangan, relasi, dan
- * apakah pasangan ini sudah punya penilaian 360° (draf/terkirim) di periode pemetaan.
+ * Info pra-tindakan pemetaan (untuk dialog Screen 07): nama pasangan, relasi, status penilaian
+ * (Belum Mulai / Draft / Terkirim / Dibatalkan) + data pembatalan bila ada.
  */
 export async function mappingDeleteInfo(mappingId: string): Promise<
-  { ok: true; assessor: string; target: string; relation: string; hasAssessment: boolean; submitted: boolean }
+  { ok: true; assessor: string; target: string; relation: string; status: PairStatus; invalidReason: string | null; invalidatedAt: string | null }
   | { ok: false; error: string }
 > {
   const supabase = await createClient();
@@ -187,26 +190,57 @@ export async function mappingDeleteInfo(mappingId: string): Promise<
   if (!m) return { ok: false, error: 'Pemetaan tidak ditemukan' };
   const { data: emps } = await supabase.from('employees').select('id, name').in('id', [m.assessor_id, m.target_id]);
   const nameById = new Map((emps ?? []).map((e) => [e.id, e.name]));
-  const { data: asmts } = await supabase.from('assessments')
-    .select('status').eq('period_id', m.period_id).eq('assessor_id', m.assessor_id).eq('target_id', m.target_id);
+  const { data: a } = await createAdminClient().from('assessments')
+    .select('status, invalid_reason, invalidated_at').eq('period_id', m.period_id).eq('assessor_id', m.assessor_id).eq('target_id', m.target_id).maybeSingle();
   return {
     ok: true,
     assessor: nameById.get(m.assessor_id) ?? '—',
     target: nameById.get(m.target_id) ?? '—',
     relation: m.relation,
-    hasAssessment: !!asmts && asmts.length > 0,
-    submitted: (asmts ?? []).some((a) => a.status === 'submitted'),
+    status: (a?.status ?? 'none') as PairStatus,
+    invalidReason: a?.invalid_reason ?? null,
+    invalidatedAt: a?.invalidated_at ?? null,
   };
 }
 
-export async function deleteMapping(mappingId: string): Promise<Result> {
+const Reason = z.string().trim().min(5, 'Alasan minimal 5 karakter').max(300, 'Alasan maksimal 300 karakter');
+
+/**
+ * Rekonsiliasi Skor 360° target setelah pemetaan/penilaiannya berubah: tanpa penilaian terkirim
+ * tersisa → buang result_360 (tak ada yang dihitung); masih ada → hitung ulang (best-effort).
+ * Sinyal "perlu hitung ulang" TIDAK mendeteksi penghapusan/pembatalan, jadi dilakukan di sini.
+ */
+async function reconcileTarget360(periodId: string, targetId: string) {
+  const admin = createAdminClient();
+  const { count: remaining } = await admin.from('assessments').select('*', { count: 'exact', head: true })
+    .eq('period_id', periodId).eq('target_id', targetId).eq('status', 'submitted');
+  if ((remaining ?? 0) === 0) {
+    await admin.from('result_360').delete().eq('period_id', periodId).eq('employee_id', targetId);
+  } else {
+    await computeResult360();
+  }
+}
+
+/**
+ * Hapus pemetaan (Screen 07, Decision 09): HANYA untuk status Belum Mulai / Draft, ALASAN WAJIB.
+ * Penilaian TERKIRIM tak bisa dihapus — HRD memakai "Batalkan Validitas" (arsip tetap tersimpan).
+ */
+export async function deleteMapping(mappingId: string, rawReason: string): Promise<Result> {
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
+  const reason = Reason.safeParse(rawReason ?? '');
+  if (!reason.success) return { ok: false, error: reason.error.issues[0]?.message ?? 'Alasan penghapusan wajib diisi' };
 
   // Ambil pasangan + periode pemetaan SEBELUM dihapus (untuk hapus penilaian yang sama).
   const { data: m } = await supabase.from('mappings')
     .select('assessor_id, target_id, period_id').eq('id', mappingId).maybeSingle();
+  if (m) {
+    const { data: cur } = await createAdminClient().from('assessments').select('status')
+      .eq('period_id', m.period_id).eq('assessor_id', m.assessor_id).eq('target_id', m.target_id).maybeSingle();
+    if (cur?.status === 'submitted') return { ok: false, error: 'Penilaian sudah terkirim — tidak dapat dihapus. Gunakan "Batalkan Validitas".' };
+    if (cur?.status === 'invalidated') return { ok: false, error: 'Penilaian ini sudah dibatalkan validitasnya — disimpan sebagai arsip, tidak dapat dihapus.' };
+  }
 
   const { error } = await supabase.from('mappings').delete().eq('id', mappingId);
   if (error) return { ok: false, error: 'Gagal menghapus: ' + error.message };
@@ -226,32 +260,77 @@ export async function deleteMapping(mappingId: string): Promise<Result> {
       removedAssessment = true;
     }
 
-    // Rekonsiliasi skor 360° target — SELALU dijalankan tiap pemetaan dihapus, terlepas
-    // dari apakah langkah ini yang menghapus penilaiannya (penilaian bisa sudah hilang lebih
-    // dulu, mis. via skrip reset → blok di atas terlewat). Sinyal "perlu hitung ulang" TIDAK
-    // mendeteksi penghapusan, jadi lakukan manual:
-    //   target tak punya penilaian submitted → buang result_360 (tak ada yg dihitung);
-    //   masih punya → hitung ulang agar skor mencerminkan penilai yang tersisa.
-    const { count: remaining } = await admin.from('assessments').select('*', { count: 'exact', head: true })
-      .eq('period_id', m.period_id).eq('target_id', m.target_id).eq('status', 'submitted');
-    if ((remaining ?? 0) === 0) {
-      await admin.from('result_360').delete().eq('period_id', m.period_id).eq('employee_id', m.target_id);
-    } else {
-      await computeResult360(); // best-effort; upsert ulang skor target yang masih punya penilaian
-    }
+    // Rekonsiliasi skor 360° target — SELALU dijalankan tiap pemetaan dihapus, terlepas dari apakah
+    // langkah ini yang menghapus penilaiannya (penilaian bisa sudah hilang lebih dulu, mis. via skrip reset).
+    await reconcileTarget360(m.period_id, m.target_id);
   }
 
   await logHrdAction({
     action: 'mapping.delete', category: 'pemetaan',
     summary: removedAssessment
-      ? 'Menghapus pemetaan penilai→target + penilaian 360°-nya (periode pemetaan)'
+      ? 'Menghapus pemetaan penilai→target + draf penilaian 360°-nya (periode pemetaan)'
       : 'Menghapus satu pemetaan penilai→target',
     targetType: 'mapping', targetId: mappingId,
+    meta: { reason: reason.data, status_before: removedAssessment ? 'draft' : 'none' },
   });
   revalidatePath('/admin/pemetaan');
   revalidatePath('/penilaian');
   revalidatePath('/admin/laporan');
   revalidatePath('/', 'layout'); // segarkan notifikasi sidebar (getTodos) — jumlah penilaian berubah
+  return { ok: true };
+}
+
+/**
+ * BATALKAN VALIDITAS penilaian TERKIRIM (Screen 06/07, migrasi 0046) — pengganti hapus untuk status
+ * Terkirim. Status → 'invalidated' (keluar dari SEMUA hitungan skor yang memakai status 'submitted'),
+ * jawaban & evidence tetap tersimpan sebagai arsip, kewajiban rater gugur (tak ditagih / tak kena
+ * potongan telat). Alasan wajib; dicatat di Log Aktivitas. Ditulis via service_role.
+ */
+export async function setAssessmentValidity(mappingId: string, action: 'invalidate' | 'restore', rawReason: string): Promise<Result> {
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  const reason = Reason.safeParse(rawReason ?? '');
+  if (!reason.success) return { ok: false, error: reason.error.issues[0]?.message ?? 'Alasan wajib diisi' };
+
+  const admin = createAdminClient();
+  const { data: m } = await admin.from('mappings').select('assessor_id, target_id, period_id').eq('id', mappingId).maybeSingle();
+  if (!m) return { ok: false, error: 'Pemetaan tidak ditemukan' };
+  const { data: per } = await admin.from('periods').select('status').eq('id', m.period_id).maybeSingle();
+  if (per?.status !== 'active') return { ok: false, error: 'Hanya penilaian pada periode aktif yang dapat diubah validitasnya' };
+  const { data: a } = await admin.from('assessments').select('id, status')
+    .eq('period_id', m.period_id).eq('assessor_id', m.assessor_id).eq('target_id', m.target_id).maybeSingle();
+
+  if (action === 'invalidate') {
+    if (a?.status !== 'submitted') return { ok: false, error: 'Hanya penilaian berstatus Terkirim yang dapat dibatalkan validitasnya' };
+    const { error } = await admin.from('assessments').update({
+      status: 'invalidated', invalidated_at: new Date().toISOString(), invalidated_by: user.id, invalid_reason: reason.data,
+    }).eq('id', a.id);
+    if (error) return { ok: false, error: 'Gagal membatalkan validitas: ' + error.message };
+  } else {
+    if (a?.status !== 'invalidated') return { ok: false, error: 'Penilaian ini tidak dalam status dibatalkan' };
+    const { error } = await admin.from('assessments').update({
+      status: 'submitted', invalidated_at: null, invalidated_by: null, invalid_reason: null,
+    }).eq('id', a.id);
+    if (error) return { ok: false, error: 'Gagal memulihkan validitas: ' + error.message };
+  }
+
+  await reconcileTarget360(m.period_id, m.target_id);
+  const { data: emps } = await admin.from('employees').select('id, name').in('id', [m.assessor_id, m.target_id]);
+  const nm = new Map((emps ?? []).map((e) => [e.id, e.name]));
+  await logHrdAction({
+    action: action === 'invalidate' ? 'assessment.invalidate' : 'assessment.restore', category: 'pemetaan',
+    summary: `${action === 'invalidate' ? 'Membatalkan' : 'Memulihkan'} validitas penilaian ${nm.get(m.assessor_id) ?? '—'} → ${nm.get(m.target_id) ?? '—'}`,
+    targetType: 'mapping', targetId: mappingId,
+    meta: { reason: reason.data },
+  });
+  revalidatePath('/admin/pemetaan');
+  revalidatePath('/admin/progress');
+  revalidatePath('/penilaian');
+  revalidatePath('/admin/laporan');
+  revalidatePath('/', 'layout');
   return { ok: true };
 }
 
@@ -319,7 +398,10 @@ export async function reviewCorrection(
       const { data: asmt } = await admin.from('assessments').select('id, status')
         .eq('period_id', req.period_id).eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).maybeSingle();
       if (asmt?.status === 'submitted') {
-        return { ok: false, error: 'Penilaian untuk pasangan ini sudah dikirim — pemetaan tak dapat dihapus. Tolak permohonan ini atau hapus lewat Kelola Pemetaan.' };
+        return { ok: false, error: 'Penilaian untuk pasangan ini sudah dikirim — pemetaan tak dapat dihapus. Tolak permohonan ini; bila rater memang tidak layak menilai, gunakan "Periksa Validitas" di daftar Pemetaan.' };
+      }
+      if (asmt?.status === 'invalidated') {
+        return { ok: false, error: 'Penilaian pasangan ini sudah dibatalkan validitasnya — tolak permohonan ini.' };
       }
       const upd = await supabase.from('mappings').update({ is_active: false }).eq('id', pairMap.id);
       if (upd.error) return { ok: false, error: 'Gagal menonaktifkan pemetaan: ' + upd.error.message };

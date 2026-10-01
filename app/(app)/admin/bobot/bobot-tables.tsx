@@ -1,6 +1,7 @@
 'use client';
 
 import { fmt2 } from '@/lib/scoring';
+import { colPercents } from '@/lib/table-cols';
 
 import { useMemo, useState } from 'react';
 import { usePager, Pager, CheckboxFilter } from '@/components/table-controls';
@@ -56,7 +57,18 @@ export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm min-w-[720px]">
+        {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
+        <table className="w-full table-fixed text-left text-sm min-w-[660px]">
+          <colgroup>
+            {colPercents([
+              230, // Pegawai + divisi
+              200, // Bobot dipakai (chip Khusus + label bobot)
+              110, // Skor Resmi
+              100, // 4-Kelas
+              100, // 2-Kelas
+              100, // Δ Model
+            ]).map((w, i) => <col key={i} style={{ width: w }} />)}
+          </colgroup>
           <thead>
             {/* Header grup: bobot-fokus | (pemisah) perbandingan model */}
             <tr className="text-[10px] uppercase tracking-[0.05em] text-ink-faint">
@@ -77,11 +89,11 @@ export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
               const dModel = r.s4 != null && r.s2 != null ? Math.round((r.s4 - r.s2) * 100) / 100 : null;
               return (
                 <tr key={r.id} className={r.hasOverride ? 'bg-brand-tint/50' : ''}>
-                  <td className="py-3 pr-3">
+                  <td className="py-3 pr-3 break-words">
                     <span className="font-bold text-ink block">{r.name}</span>
                     <span className="text-[11px] text-ink-faint">{r.dept}</span>
                   </td>
-                  <td className="py-3 px-3">
+                  <td className="py-3 px-3 break-words">
                     {r.hasOverride ? (
                       <span className="inline-flex flex-col gap-0.5">
                         <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-brand-ink bg-brand-tint border border-brand/20 rounded-full px-2 py-0.5 w-fit">Khusus</span>

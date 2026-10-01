@@ -5,7 +5,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin, canCoordinate } from '@/lib/auth/roles';
 import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf } from '@/lib/scoring';
 import { trendOf } from '@/lib/trend';
-import { scoreMaps, penaltyMap, companyAverages, teamAverages } from '@/lib/team-metrics';
+import { scoreMaps, companyAverages, teamAverages } from '@/lib/team-metrics';
 import { TeamTable, type TeamRow } from '@/app/(app)/laporan-tim/team-table';
 import { TeamScorecards } from '@/app/(app)/laporan-tim/scorecards';
 import { MonitorTrends, type EmpMonthly, type PeriodTrendPoint, type MoverRow, type MoverRow360, type DeltaCause } from './monitor-trends';
@@ -92,7 +92,6 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
 
   // ── Snapshot periode terpilih → scorecard + tabel ──────────────────────────
   const { kpiBy, s360By, monthlyBy } = await scoreMaps(sel.id, ids);
-  const penBy = await penaltyMap(sel.id, ids);
   // Laporan per (pegawai, periode) — laporan FINAL → Skor Akhir tersimpan (displayedFinalOf).
   const { data: repAll } = await dataClient.from('final_reports').select('employee_id, period_id, status, final_score').in('employee_id', ids);
   const repOf = new Map((repAll ?? []).map((r) => [`${r.employee_id}|${r.period_id}`, r]));
@@ -101,11 +100,10 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
     const kpiAvg = kpiBy.get(e.id) ?? null;
     const s360 = s360By.get(e.id) ?? null;
     const kpiMonths = (monthlyBy.get(e.id) ?? []).slice(0, 3);
-    const penalty = penBy.get(e.id) ?? 0;
     return {
       id: e.id, name: e.name, nickname: e.nickname, dept: e.dept,
       kpiAvg, s360,
-      finalScore: displayedFinalOf(finalScoreOf(kpiAvg, s360, sel.has_360, penalty), repOf.get(`${e.id}|${sel.id}`)),
+      finalScore: displayedFinalOf(finalScoreOf(kpiAvg, s360, sel.has_360), repOf.get(`${e.id}|${sel.id}`)),
       player: playerClassOf(kpiAvg, sel.has_360 ? s360 : null),
       trend: trendOf(kpiMonths),
       kpiMonths,
@@ -119,11 +117,10 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   const cAvg = await companyAverages(sel.id);
 
   // ── Data tren LINTAS periode/bulan (RLS user-scoped; lingkup tim kecil → aman batas 1000) ──
-  const [kpiAllRes, r360AllRes, pmRes, penAllRes] = await Promise.all([
+  const [kpiAllRes, r360AllRes, pmRes] = await Promise.all([
     dataClient.from('kpi_scores').select('employee_id, ym, score').in('employee_id', ids),
     dataClient.from('result_360').select('employee_id, period_id, score').in('employee_id', ids),
     dataClient.from('period_months').select('period_id, ym'),
-    dataClient.from('compliance_penalties').select('employee_id, period_id, points').in('employee_id', ids),
   ]);
   const kpiAgg = new Map<string, { s: number; n: number }>(); // `${emp}|${ym}`
   (kpiAllRes.data ?? []).forEach((r) => { const k = `${r.employee_id}|${r.ym}`; const a = kpiAgg.get(k) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; kpiAgg.set(k, a); });
@@ -139,12 +136,11 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   // Skor Akhir per (pegawai,periode) untuk grafik "Tren Tim per Periode" (Avg Skor Akhir).
   // Rumus resmi tunggal (lib/scoring); laporan FINAL → angka tersimpan (displayedFinalOf).
   const periodById = new Map(periodList.map((p) => [p.id, p]));
-  const penOf = new Map((penAllRes.data ?? []).map((p) => [`${p.employee_id}|${p.period_id}`, p.points]));
   const perPeriodKpi = (id: string, pid: string): number | null =>
     kpiAvgOf((monthsByPeriod.get(pid) ?? []).map((ym) => kpiOf(id, ym)));
   const finalOf = (id: string, pid: string): number | null => {
     const p = periodById.get(pid); if (!p) return null;
-    const live = finalScoreOf(perPeriodKpi(id, pid), s360Of.get(`${id}|${pid}`) ?? null, p.has_360, penOf.get(`${id}|${pid}`) ?? 0);
+    const live = finalScoreOf(perPeriodKpi(id, pid), s360Of.get(`${id}|${pid}`) ?? null, p.has_360);
     return displayedFinalOf(live, repOf.get(`${id}|${pid}`));
   };
 

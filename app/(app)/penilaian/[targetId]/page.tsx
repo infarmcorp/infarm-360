@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { AssessForm } from './assess-form';
+import { ReadOnlyView } from './read-only-view';
+import { isPastDeadline } from '@/lib/late';
 
 /**
  * Form Pengisian 360° untuk satu target (read + prefill draf).
@@ -18,7 +20,7 @@ export default async function AssessPage({
   if (!user) redirect('/login');
 
   const { data: ap } = await supabase
-    .from('periods').select('id, label, has_360, form_open').eq('status', 'active').limit(1).maybeSingle();
+    .from('periods').select('id, label, has_360, form_open, assessment_deadline').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Notice>Tidak ada periode aktif.</Notice>;
   // Komponen 360° belum dibuka HRD → form penilaian tidak tersedia.
   if (!ap.has_360) return <Notice>Penilaian 360° untuk periode ini belum dibuka oleh HRD.</Notice>;
@@ -99,11 +101,14 @@ export default async function AssessPage({
     })),
   }));
 
+  // Decision 01 (Screen 01/04): penilaian TERKIRIM terkunci (read-only) setelah deadline periode.
+  const locked = existing?.status === 'submitted' && isPastDeadline(ap.assessment_deadline);
+
   return (
     <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
       <div className="bg-surface border border-line rounded-panel p-5">
         <div className="flex items-center justify-between mb-1">
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Mulai Nilai</h1>
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">{locked ? 'Lihat Penilaian' : 'Mulai Nilai'}</h1>
           <Link href="/penilaian" className="text-xs text-ink-faint hover:text-ink-soft">← Daftar</Link>
         </div>
         <p className="text-[13.5px] text-ink-soft mb-4">
@@ -114,7 +119,7 @@ export default async function AssessPage({
           </span> · Periode {ap.label}
           {existing?.status === 'submitted' && (
             <span className="ml-2 text-[10px] font-bold text-brand-ink bg-brand-tint border border-brand-ink/20 px-2 py-0.5 rounded-control">
-              Sudah terkirim — mengedit akan memperbarui
+              {locked ? 'Terkirim — terkunci (deadline lewat)' : 'Sudah terkirim — mengedit (sampai deadline) akan memperbarui'}
             </span>
           )}
         </p>
@@ -125,6 +130,24 @@ export default async function AssessPage({
             /penilaian/A ke /penilaian/B (tanpa reload) membuat React mempertahankan state
             (activeGroup/activeId/rating/komentar) target sebelumnya → form bisa terbuka di
             "Umpan Balik Kualitatif" atau menampilkan jawaban target lama. */}
+        {existing?.status === 'invalidated' ? (
+          // Dibatalkan validitasnya oleh HRD (0046): arsip, tak bisa diubah; DB juga menolak tulis.
+          <div className="rounded-panel border border-line bg-neutral-tint p-4">
+            <p className="text-[13px] font-bold text-ink">Penilaian ini dibatalkan validitasnya oleh HRD</p>
+            <p className="text-[12px] text-ink-soft mt-1 leading-relaxed">
+              Penilaian Anda untuk rekan ini dinyatakan tidak valid, sehingga tidak dihitung dalam Skor 360° dan
+              bukan lagi kewajiban Anda. Jawaban tidak dapat diubah. Hubungi HRD bila ada pertanyaan.
+            </p>
+          </div>
+        ) : locked ? (
+          <ReadOnlyView
+            groups={groups}
+            questions={questions.map((q) => ({ id: q.id, text: q.text }))}
+            scores={initialScores}
+            answers={initialAnswers}
+            deadline={ap.assessment_deadline}
+          />
+        ) : (
         <AssessForm
           key={targetId}
           targetId={targetId}
@@ -138,7 +161,9 @@ export default async function AssessPage({
           mandatoryTotal={mandatoryTotal}
           mandatoryDoneOthers={mandatoryDoneOthers}
           thisMandatory={thisMandatory}
+          deadlinePassed={isPastDeadline(ap.assessment_deadline)}
         />
+        )}
       </div>
     </main>
   );

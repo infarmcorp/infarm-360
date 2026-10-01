@@ -1,6 +1,6 @@
 /**
  * Fungsi skoring murni — dipakai Dashboard HRD (data Supabase).
- * Rumus identik dengan SPA legacy (blend KPI+360 − punishment, klasifikasi 9-Box/4-Box).
+ * Skor Akhir = blend KPI+360 (tanpa pengurangan lain); klasifikasi 9-Box/4-Box.
  */
 export type Band = 'hi' | 'mid' | 'lo';
 
@@ -140,13 +140,13 @@ export function kpiAvgOf(months: (number | null | undefined)[]): number | null {
  *  - KPI ada, 360° nonaktif/kosong       → KPI
  *  - KPI kosong, 360° aktif & ada        → 360° saja (keputusan HRD 2026-09-29, mis. Direksi)
  *  - selain itu                          → null
- * Lalu − punishment kepatuhan kuartal, lantai 0.
+ * Tanpa pengurangan lain: fitur Punishment manual DIHAPUS (keputusan HRD 2026-10-01). Satu-satunya
+ * sanksi = potongan keterlambatan menilai (−3) yang sudah termasuk di Skor 360° (`result_360.score`).
  */
 export function finalScoreOf(
   kpiAvg: number | null,
   s360: number | null,
   has360: boolean,
-  penalty: number,
 ): number | null {
   const s = has360 ? s360 : null;
   let base: number;
@@ -154,7 +154,7 @@ export function finalScoreOf(
   else if (kpiAvg != null) base = kpiAvg;
   else if (s != null) base = s;
   else return null;
-  return roundScore(Math.max(0, base - penalty));
+  return roundScore(base);
 }
 
 /**

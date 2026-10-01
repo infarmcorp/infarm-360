@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { playerClassOf, finalScoreOf, displayedFinalOf } from '@/lib/scoring';
 import { trendOf } from '@/lib/trend';
-import { scoreMaps, penaltyMap, companyAverages, teamAverages } from '@/lib/team-metrics';
+import { scoreMaps, companyAverages, teamAverages } from '@/lib/team-metrics';
 import { TeamTable, type TeamRow } from './team-table';
 import { TeamScorecards } from './scorecards';
 import { PeriodFilter } from '@/app/(app)/monitor/period-filter';
@@ -94,7 +94,6 @@ export default async function LaporanTimPage({
     : { data: [] };
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
   const { kpiBy, s360By, monthlyBy } = await scoreMaps(ap.id, reportIds);
-  const penBy = await penaltyMap(ap.id, reportIds);
 
   // Pegawai yang punya KOORDINATOR di-ACC oleh koordinatornya (bukan SPV). SPV/HRD-mode-SPV
   // hanya melihat status ACC koordinator (read-only) & fokus meng-ACC pegawai TANPA koordinator.
@@ -125,7 +124,7 @@ export default async function LaporanTimPage({
       dept: e.dept,
       kpiAvg,
       s360,
-      finalScore: displayedFinalOf(finalScoreOf(kpiAvg, s360, ap.has_360, penBy.get(e.id) ?? 0), rep),
+      finalScore: displayedFinalOf(finalScoreOf(kpiAvg, s360, ap.has_360), rep),
       // 4-Box KPI×360 (360 nonaktif → sumbu budaya null); trend dari KPI 3 bulan.
       player: playerClassOf(kpiAvg, ap.has_360 ? s360 : null),
       trend: trendOf(kpiMonths),
@@ -217,7 +216,6 @@ async function DireksiTeamReport({ periodParam }: { periodParam?: string }) {
     : { data: [] as { employee_id: string; status: string | null; spv_acc: boolean; final_score: number | null }[] };
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
   const { kpiBy, s360By, monthlyBy } = await scoreMaps(ap.id, ids);
-  const penBy = await penaltyMap(ap.id, ids);
 
   const canOpenDetail = (status: string | null): boolean =>
     status === 'in_review' || status === 'finalized';
@@ -231,7 +229,7 @@ async function DireksiTeamReport({ periodParam }: { periodParam?: string }) {
     return {
       id: e.id, name: e.name, dept: e.dept,
       kpiAvg, s360,
-      finalScore: displayedFinalOf(finalScoreOf(kpiAvg, s360, ap.has_360, penBy.get(e.id) ?? 0), rep),
+      finalScore: displayedFinalOf(finalScoreOf(kpiAvg, s360, ap.has_360), rep),
       player: playerClassOf(kpiAvg, ap.has_360 ? s360 : null),
       trend: trendOf(kpiMonths),
       kpiMonths,
@@ -310,7 +308,6 @@ async function CoordinatorTeamReport({ userId, periodParam }: { userId: string; 
     : { data: [] as { employee_id: string; status: string | null; spv_acc: boolean; final_score: number | null }[] };
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
   const { kpiBy, s360By, monthlyBy } = await scoreMaps(ap.id, ids);
-  const penBy = await penaltyMap(ap.id, ids);
 
   const canOpenDetail = (status: string | null): boolean => status === 'in_review' || status === 'finalized';
   const activeIds = new Set(list.filter((e) => e.is_active).map((e) => e.id));
@@ -323,7 +320,7 @@ async function CoordinatorTeamReport({ userId, periodParam }: { userId: string; 
     return {
       id: e.id, name: e.name, dept: e.dept,
       kpiAvg, s360,
-      finalScore: displayedFinalOf(finalScoreOf(kpiAvg, s360, ap.has_360, penBy.get(e.id) ?? 0), rep),
+      finalScore: displayedFinalOf(finalScoreOf(kpiAvg, s360, ap.has_360), rep),
       player: playerClassOf(kpiAvg, ap.has_360 ? s360 : null),
       trend: trendOf(kpiMonths),
       kpiMonths,

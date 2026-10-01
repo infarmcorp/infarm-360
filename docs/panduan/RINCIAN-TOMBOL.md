@@ -81,8 +81,9 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **Mulai Nilai / Lanjutkan / Edit** | Link ke `/penilaian/{targetId}` (label adaptif per status) | Pemilik baris | Tidak tampil pada **fase tinjau pemetaan** (tertulis "belum dibuka") | — |
 
 > Empty-state bila tak ada periode aktif, `has_360=false` ("Penilaian 360° belum dibuka"), atau form
-> ditutup HRD di luar fase tinjau. Kartu "Penilaian Wajib Anda" memuat **Deadline** (WIB); badge
-> **Terlambat** & label **"Ajuan · wajib selesai"** tampil per baris. **Self Assessment dinonaktifkan
+> ditutup HRD di luar fase tinjau. Kartu "Penilaian Wajib Anda" memuat **Deadline** (WIB); kolom Status
+> memakai **4 status** (Belum Mulai · Sedang Diisi · Selesai – Tepat Waktu · Selesai – Terlambat, BR-07) &
+> label **"Ajuan · wajib selesai"** tampil per baris. **Self Assessment dinonaktifkan
 > (Q3 2026)** — tak ada baris untuk diri sendiri. Panel **Permohonan Saya** (tab Pengajuan) menampilkan
 > status & alasan penolakan HRD.
 
@@ -107,7 +108,7 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **Batal** | Keluar tanpa simpan manual (`/penilaian`) | Penilai | Nonaktif saat busy | — |
 | **Buang Draf** | `discardAssessment` → hapus draf | Penilai | Hanya bila ada draf | **Ya** — ConfirmDialog "Buang draf penilaian?" |
 | **Simpan Draf** | `submitAssessment(status:'draft')` (selain autosave 5 detik) | Penilai | **Hanya untuk penilaian yang belum terkirim** (disembunyikan setelah terkirim; server juga menolak); nonaktif saat busy | — |
-| **Lengkapi Penilaian (N tersisa) / Kirim Penilaian 360° / Kirim Ulang Penilaian 360°** | Adaptif: oranye = memandu ke yang kurang (rating, evidence **≥ 20 karakter**, semua esai); hijau = validasi → konfirmasi kirim. Untuk penilaian yang sudah terkirim labelnya **Kirim Ulang** (satu-satunya cara menyimpan perubahan; tanpa autosave) | Penilai | Nonaktif saat busy/sedang menyimpan | **Ya** — panel konfirmasi "Kirim penilaian untuk …?" |
+| **Lengkapi Penilaian (N tersisa) / Kirim Penilaian 360° / Kirim Ulang Penilaian 360°** | Adaptif: oranye = memandu ke yang kurang (rating, evidence **≥ 20 karakter**, semua esai); hijau = validasi → konfirmasi kirim. Untuk penilaian yang sudah terkirim labelnya **Kirim Ulang** (satu-satunya cara menyimpan perubahan; tanpa autosave) — **hanya sampai deadline**; sesudahnya penilaian terkirim terkunci & tombol di daftar menjadi **Lihat** | Penilai | Nonaktif saat busy/sedang menyimpan | **Ya** — panel konfirmasi "Kirim penilaian untuk …?" |
 | **Ya, Kirim Sekarang** | `submitAssessment(status:'submitted')` → layar sukses | Penilai | Saat panel konfirmasi | — |
 | **Lanjut ke Penilaian Berikutnya / Kembali ke Daftar** | Ke `/penilaian` (label adaptif sisa wajib) | Penilai | Di layar sukses | — |
 
@@ -194,7 +195,7 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **Sub-tab** Kompilasi / Analisis KPI / Analisis 360 / Tabel Hasil | Ganti tampilan dashboard | HRD/Direksi | Selalu | — |
 | **Cari nama/divisi + Dropdown Player** (tab Tabel) | Filter baris tabel (klien) | HRD/Direksi | Hanya tab Tabel | — |
 
-> Murni pelaporan — tak ada aksi tulis. Skor Akhir = rumus resmi tunggal (dikurangi punishment; laporan Final = angka tersimpan); pegawai "KPI belum terbaca" dikecualikan dari rerata/distribusi/ranking KPI.
+> Murni pelaporan — tak ada aksi tulis. Skor Akhir = rumus resmi tunggal (laporan Final = angka tersimpan); pegawai "KPI belum terbaca" dikecualikan dari rerata/distribusi/ranking KPI.
 
 ### Kelola Pegawai (`/admin/pegawai`)
 
@@ -284,7 +285,7 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 
 | Tombol | Fungsi | Peran | Kondisi | Konfirmasi |
 |--------|--------|-------|---------|------------|
-| **Model Bobot** (select 4class/2class) | Ganti model bobot | HRD Admin | — | — |
+| **Model Bobot** (select 4class/2class) | Ganti model bobot. **2-Kelas mulai Q3 2026: isian % dikunci — bobot otomatis** 40/60 · 60/40 · 100% sesuai jumlah penilai Internal yang mengirim (BR-10) | HRD Admin | — | — |
 | **Simpan & Terapkan Bobot** | `saveWeights` (tak otomatis hitung ulang) | HRD Admin | Nonaktif saat busy **atau total bobot ≠ 100** | — |
 | **Bobot Khusus per Pegawai: pilih pegawai → Simpan** | Simpan bobot 360° khusus satu pegawai (periode aktif) | HRD Admin | Nonaktif bila belum pilih pegawai **atau total ≠ 100** | — |
 | **Hapus bobot khusus** (per baris) | Kembali ke skema periode | HRD Admin | Ada override | — |
@@ -314,7 +315,7 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **Tinjau →** (kolom Aksi) | Buka detail `/laporan/{id}` (state-machine ada di detail) | HRD Admin | Teks **"KPI & 360° kosong"** bila keduanya kosong; badge **"Tanpa KPI"** bila Skor Akhir dari 360° saja (nama **tidak** bisa diklik) | — |
 
 > Tabel = **kokpit** read-only: kolom KPI ("X/Y bln" amber bila kurang) · 360° ("belum"/"N/A"/
-> "⚠ perlu hitung") · Punish. · Skor Akhir (baris Final = angka **tersimpan** + badge "berubah → N"
+> "⚠ perlu hitung") · Potongan (−3 telat menilai, sudah termasuk di 360°) · Skor Akhir (baris Final = angka **tersimpan** + badge "berubah → N"
 > bila skor terkini beda) · Dinilai oleh X/Y · ACC · Status. Aksi Simpan/Finalisasi/Rilis kini
 > **hanya di halaman detail** (Panel Aksi di bawah). Membuka halaman ini (HRD penuh) **menerapkan potongan
 > keterlambatan otomatis**; bila gagal, kokpit menautkan ke Flag Kepatuhan.
@@ -343,8 +344,7 @@ hanya ada untuk **periode aktif** (laporan periode tidak aktif = read-only).
 
 | Tombol | Fungsi | Peran | Kondisi | Konfirmasi |
 |--------|--------|-------|---------|------------|
-| **Input Punishment + Simpan** (per baris) | `setPenalty` (potong Skor Akhir, min 0; kolom **kosong** bila belum ada — placeholder "0") | HRD Admin | Nonaktif saat busy | — |
-| **Tampilkan semua pegawai** (centang) | Tampilkan seluruh pegawai (default hanya yang **perlu perhatian**: belum kirim / kirim terlambat / ajuan tertunda / potongan diubah HRD / sudah ada punishment) | HRD Admin | Selalu | — |
+| **Tampilkan semua pegawai** (centang) | Tampilkan seluruh pegawai (default hanya yang **perlu perhatian**: belum kirim / kirim terlambat / ajuan tertunda / potongan diubah HRD) | HRD Admin | Selalu | — |
 | **Centang multi-pilih Divisi** | Filter baris | HRD Admin | Selalu | — |
 | **Ubah** (kolom Potongan 360°) | `setLateWaiver` — tetapkan nilai potongan keterlambatan pegawai (menggantikan −3 otomatis; **0 = dikecualikan**); alasan wajib ≥3 karakter; tampil badge "diubah HRD" | HRD Admin | Ada potongan otomatis / penetapan HRD. Nilai selain 0 butuh migrasi 0043 | — |
 | **Kembalikan otomatis** | `setLateWaiver` (alasan kosong) — hapus penetapan HRD → kembali −3 otomatis | HRD Admin | Ada penetapan HRD | — |
@@ -357,7 +357,7 @@ hanya ada untuk **periode aktif** (laporan periode tidak aktif = read-only).
 | **Dropdown Periode** (atau Semua Periode) | Set scope dataset ber-periode | HRD Admin | Selalu | — |
 | **Unduh — Pegawai (Master)** | 1 lembar, lintas periode | HRD Admin | Nonaktif saat ada unduhan lain | — |
 | **Unduh — Konfigurasi Periode Lengkap** | 6 lembar: Ringkasan · Bobot Penilai · Bulan KPI · Aspek & Indikator · Pertanyaan Esai · Pemetaan 360° | HRD Admin | idem | — |
-| **Unduh — Kinerja Lengkap per Periode** | 4 lembar: Rekap · KPI Bulanan · Audit KPI · Punishment | HRD Admin | idem | — |
+| **Unduh — Kinerja Lengkap per Periode** | 4 lembar: Rekap · KPI Bulanan · Audit KPI · Potongan Keterlambatan | HRD Admin | idem | — |
 | **Unduh — Penilaian 360° Lengkap** | 5 lembar, **anonim penilai**: Ringkasan per Pegawai · Rekap Aspek · Kuantitatif · Kualitatif · Ringkasan Naratif | HRD Admin | idem | — |
 | **Unduh — Log Aktivitas HRD** | 1 lembar, lintas periode | HRD Admin | idem | — |
 

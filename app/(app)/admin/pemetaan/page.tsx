@@ -8,6 +8,7 @@ import { MappingForm } from './mapping-form';
 import { ReviewButton } from './review-button';
 import { MappingImport } from './mapping-import';
 import { MappingTable } from './mapping-table';
+import type { PairStatus } from './actions';
 import { CopyMapping } from './copy-mapping';
 import { EmptyState } from '@/components/empty-state';
 import { Panel } from '@/components/panel';
@@ -104,22 +105,33 @@ async function PemetaanTab({ supabase, periodId }: { supabase: Awaited<ReturnTyp
     supabase.from('mappings').select('id, assessor_id, target_id, relation, mandatory').eq('period_id', periodId).eq('is_active', true)
       .eq('is_adhoc', false)
       .order('assessor_id').order('target_id').range(from, to));
+  // Status penilaian tiap pasangan (Screen 07): Belum Mulai / Draft / Terkirim / Dibatalkan.
+  const asmts = await fetchAllPaged<{ assessor_id: string; target_id: string; status: string }>((from, to) =>
+    supabase.from('assessments').select('assessor_id, target_id, status').eq('period_id', periodId)
+      .order('assessor_id').order('target_id').range(from, to));
+  const statusBy = new Map(asmts.map((a) => [`${a.assessor_id}|${a.target_id}`, a.status as PairStatus]));
   const rows = (maps ?? [])
     .map((m) => ({
       id: m.id, assessorId: m.assessor_id, assessor: empById.get(m.assessor_id)?.name ?? '—',
       targetId: m.target_id, target: empById.get(m.target_id)?.name ?? '—',
       relation: m.relation as string, mandatory: m.mandatory,
+      status: statusBy.get(`${m.assessor_id}|${m.target_id}`) ?? ('none' as PairStatus),
     }))
     .sort((a, b) => a.assessor.localeCompare(b.assessor) || a.target.localeCompare(b.target));
 
   return (
     <>
-      <div className="mb-3"><MappingForm employees={employees} /></div>
-      <div className="mb-5 flex flex-wrap items-start gap-2">
-        <MappingImport employees={employees.map((e) => ({ id: e.id, code: e.emp_code, name: e.name }))} />
-        <CopyMapping periods={otherPeriods ?? []} />
+      {/* Split screen (layar lebar): kiri = tambah/impor/salin, kanan = daftar. Layar sempit → bertumpuk. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)] gap-5 items-start">
+        <div className="space-y-3">
+          <MappingForm employees={employees} />
+          <div className="grid gap-2">
+            <MappingImport employees={employees.map((e) => ({ id: e.id, code: e.emp_code, name: e.name }))} />
+            <CopyMapping periods={otherPeriods ?? []} />
+          </div>
+        </div>
+        <Panel className="min-w-0"><MappingTable rows={rows} /></Panel>
       </div>
-      <Panel><MappingTable rows={rows} /></Panel>
     </>
   );
 }

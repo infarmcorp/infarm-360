@@ -11,6 +11,11 @@ export type HeatRow = { id: string; name: string; nickname?: string | null; dept
 
 // Lebar seragam tiap kolom heatmap (px) — header & sel dipatok sama agar semua kolom sejajar.
 const CELL_W = 92;
+// Lebar TETAP kolom non-skor (px) — table-fixed agar kolom tak bergeser saat ganti halaman/cari.
+const NAME_W = 180;   // Pegawai + divisi (teks dibungkus)
+const WEAK_W = 244;   // Terlemah (pl-8 + teks maks 200px + pr-3)
+const STRONG_W = 224; // Terkuat (px-3 + teks maks 200px)
+const SPACING = 4;    // border-spacing-1
 
 /**
  * Heatmap PER-PEGAWAI (aspek atau indikator 360°) — tiap baris = 1 pegawai, tiap kolom = aspek/
@@ -72,7 +77,14 @@ export function PerEmployeeHeatmap({
       </div>
       {subtitle && <p className="text-xs text-gray-500 mb-4">{subtitle}</p>}
       <div className="overflow-x-auto">
-        <table className="border-separate border-spacing-1 text-xs">
+        <table className="table-fixed border-separate border-spacing-1 text-xs"
+          style={{ width: NAME_W + columns.length * CELL_W + WEAK_W + STRONG_W + (columns.length + 4) * SPACING }}>
+          <colgroup>
+            <col style={{ width: NAME_W }} />{/* Pegawai */}
+            {columns.map((c) => <col key={c.key} style={{ width: CELL_W }} />)}
+            <col style={{ width: WEAK_W }} />{/* Terlemah */}
+            <col style={{ width: STRONG_W }} />{/* Terkuat */}
+          </colgroup>
           <thead>
             {hasGroups && (
               <tr>

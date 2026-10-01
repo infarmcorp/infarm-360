@@ -50,6 +50,9 @@ export async function removeAdhocTarget(rawTargetId: string): Promise<Result> {
   if (asmt?.status === 'submitted') {
     return { ok: false, error: 'Penilaian ad-hoc ini sudah dikirim — tidak bisa dihapus' };
   }
+  if (asmt?.status === 'invalidated') {
+    return { ok: false, error: 'Penilaian ini dibatalkan validitasnya oleh HRD — disimpan sebagai arsip, tidak bisa dihapus' };
+  }
   if (asmt) await admin.from('assessments').delete().eq('id', asmt.id); // draf → hapus (skor/esai cascade)
 
   const { error } = await admin.from('mappings').delete().eq('id', map.id);

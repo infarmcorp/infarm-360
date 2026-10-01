@@ -103,11 +103,8 @@ async function computeFinal(
   const r = must(await supabase.from('result_360').select('score')
     .eq('employee_id', employeeId).eq('period_id', periodId).maybeSingle(), 'Skor 360°');
   const s360 = r?.score ?? null;
-  const p = must(await supabase.from('compliance_penalties').select('points')
-    .eq('employee_id', employeeId).eq('period_id', periodId).maybeSingle(), 'punishment');
-  const penalty = p?.points ?? 0;
   // Rumus resmi tunggal (lib/scoring): tanpa KPI → 360° saja (mis. Direksi); dibulatkan 2 desimal.
-  return { kpiAvg, s360, penalty, final: finalScoreOf(kpiAvg, s360, has360, penalty) };
+  return { kpiAvg, s360, final: finalScoreOf(kpiAvg, s360, has360) };
 }
 
 /** computeFinal yang tak melempar: kegagalan baca → { ok: false, error } untuk ditampilkan ke HRD. */
@@ -313,7 +310,7 @@ export type ResyncResult =
 
 /**
  * "Finalisasi Ulang Laporan Berubah" — sinkronkan `final_score` TERSIMPAN pada laporan yang sudah
- * `finalized` tetapi skornya ketinggalan (badge "berubah → N": KPI/360°/punishment berubah setelah
+ * `finalized` tetapi skornya ketinggalan (badge "berubah → N": KPI/360° berubah setelah
  * finalisasi). Laporan TETAP `finalized` (tak disembunyikan dari pegawai) — hanya angkanya diperbarui
  * ke Skor Akhir terkini. Ini menyederhanakan alur lama "Kembalikan ke Draf → Finalisasi ulang" jadi
  * satu klik; ringkasan naratif TIDAK tersentuh (drift murni perubahan angka, bukan narasi).

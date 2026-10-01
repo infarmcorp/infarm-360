@@ -1,5 +1,6 @@
 import type { createClient } from '@/lib/supabase/server';
 import { finalScoreOf, kpiAvgOf, hasScoreDrift } from '@/lib/scoring';
+import { fetchAllPaged } from '@/lib/supabase/paginate';
 
 /**
  * Tugas & Notifikasi in-app — DITURUNKAN dari data yang sudah ada (tanpa tabel baru).
@@ -48,7 +49,8 @@ async function countAssessPending(supabase: SB, periodId: string, userId: string
   const [{ data: maps }, { data: subs }] = await Promise.all([
     // Hanya pemetaan AKTIF (selaras halaman /penilaian) — pemetaan terhapus/nonaktif tak dihitung.
     supabase.from('mappings').select('target_id').eq('period_id', periodId).eq('assessor_id', userId).eq('is_active', true),
-    supabase.from('assessments').select('target_id').eq('period_id', periodId).eq('assessor_id', userId).eq('status', 'submitted'),
+    // 'invalidated' (dibatalkan HRD, 0046) = bukan lagi tugas.
+    supabase.from('assessments').select('target_id').eq('period_id', periodId).eq('assessor_id', userId).in('status', ['submitted', 'invalidated']),
   ]);
   if (!maps?.length) return 0;
   const done = new Set((subs ?? []).map((s) => s.target_id));
@@ -79,12 +81,28 @@ async function countKpiMissing(supabase: SB, periodId: string, userId: string): 
 async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): Promise<TodoItem[]> {
   const out: TodoItem[] = [];
   if (has360) {
-    const [{ count: mapCount }, { count: subCount }] = await Promise.all([
-      supabase.from('mappings').select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('is_active', true),
-      supabase.from('assessments').select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('status', 'submitted'),
+    // Selaras kartu Progress 360: WAJIB dihitung sendiri; AJUAN (Opsional hasil permohonan pegawai yang
+    // disetujui HRD) dipisah; Opsional biasa & Ad-Hoc tak dihitung. Selesai = submitted/invalidated (0046).
+    const [maps, done, { data: ajuanReqs }] = await Promise.all([
+      fetchAllPaged<{ assessor_id: string; target_id: string; mandatory: boolean }>((from, to) =>
+        supabase.from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', periodId).eq('is_active', true).eq('is_adhoc', false)
+          .order('assessor_id').order('target_id').range(from, to)),
+      fetchAllPaged<{ assessor_id: string; target_id: string }>((from, to) =>
+        supabase.from('assessments').select('assessor_id, target_id').eq('period_id', periodId).in('status', ['submitted', 'invalidated'])
+          .order('assessor_id').order('target_id').range(from, to)),
+      supabase.from('relation_correction_requests').select('assessor_id, target_id').eq('period_id', periodId).eq('kind', 'add').eq('status', 'approved'),
     ]);
-    const pending = (mapCount ?? 0) - (subCount ?? 0);
-    if (pending > 0) out.push({ id: 'hrd-progress', tone: 'amber', href: '/admin/progress', label: `${pending} penilaian 360° belum lengkap` });
+    const doneSet = new Set(done.map((a) => `${a.assessor_id}|${a.target_id}`));
+    const ajuanSet = new Set((ajuanReqs ?? []).map((r) => `${r.assessor_id}|${r.target_id}`));
+    let wajib = 0, ajuan = 0;
+    for (const m of maps) {
+      const k = `${m.assessor_id}|${m.target_id}`;
+      if (doneSet.has(k)) continue;
+      if (m.mandatory) wajib++;
+      else if (ajuanSet.has(k)) ajuan++;
+    }
+    if (wajib > 0) out.push({ id: 'hrd-progress', tone: 'amber', href: '/admin/progress', label: `${wajib} penilaian wajib belum lengkap` });
+    if (ajuan > 0) out.push({ id: 'hrd-ajuan', tone: 'blue', href: '/admin/progress', label: `${ajuan} penilaian ajuan belum selesai` });
   }
   const [{ count: empCount }, { count: finalCount }, { count: corrCount }] = await Promise.all([
     supabase.from('employees').select('*', { count: 'exact', head: true }).eq('is_active', true).neq('role', 'direksi').eq('is_external', false),
@@ -95,7 +113,7 @@ async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): P
   if ((corrCount ?? 0) > 0) out.push({ id: 'hrd-corr', tone: 'rose', href: '/admin/pemetaan', label: `${corrCount} permohonan pemetaan menunggu` });
   const pendingReports = (empCount ?? 0) - (finalCount ?? 0);
   if (pendingReports > 0) out.push({ id: 'hrd-final', tone: 'blue', href: '/admin/laporan', label: `${pendingReports} laporan belum difinalisasi` });
-  // Laporan FINAL yang skornya sudah usang (KPI/360°/punishment berubah sejak difinalisasi).
+  // Laporan FINAL yang skornya sudah usang (KPI/360° berubah sejak difinalisasi).
   const stale = await countStaleFinalReports(supabase, periodId, has360);
   if (stale > 0) out.push({ id: 'hrd-stale', tone: 'amber', href: '/admin/laporan', label: `${stale} laporan Final skornya berubah — perbarui di Review & Finalisasi` });
   return out;
@@ -103,8 +121,8 @@ async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): P
 
 /**
  * Hitung laporan FINAL yang Skor Akhir TERSIMPAN-nya beda dari skor TERKINI — artinya
- * KPI/360°/punishment berubah setelah finalisasi (pegawai masih melihat angka lama).
- * Bandingkan final_score tersimpan vs finalScoreOf(KPI,360,punishment) terkini.
+ * KPI/360° berubah setelah finalisasi (pegawai masih melihat angka lama).
+ * Bandingkan final_score tersimpan vs finalScoreOf(KPI,360) terkini.
  */
 async function countStaleFinalReports(supabase: SB, periodId: string, has360: boolean): Promise<number> {
   const { data: reports } = await supabase.from('final_reports')
@@ -122,13 +140,11 @@ async function countStaleFinalReports(supabase: SB, periodId: string, has360: bo
 
   const { data: r360 } = await supabase.from('result_360').select('employee_id, score').eq('period_id', periodId);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
-  const { data: pen } = await supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', periodId);
-  const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
 
   let n = 0;
   for (const rep of reports) {
     const kpiAvg = kpiAvgOf(kpiValsBy.get(rep.employee_id) ?? []);
-    const live = finalScoreOf(kpiAvg, s360By.get(rep.employee_id) ?? null, has360, penBy.get(rep.employee_id) ?? 0);
+    const live = finalScoreOf(kpiAvg, s360By.get(rep.employee_id) ?? null, has360);
     if (hasScoreDrift(live, rep.final_score)) n++;
   }
   return n;

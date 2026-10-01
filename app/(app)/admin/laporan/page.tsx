@@ -90,12 +90,11 @@ export default async function AdminLaporanPage() {
   // keputusan HRD 2026-09-29) — angka 360°/Skor Akhir yang ditinjau sudah memuat potongan terbaru.
   // Gagal → tak memblokir halaman; sisa yang tertunda tetap diperingatkan di kokpit di bawah.
   if (isHrdFull && ap.has_360) { try { await refreshLatePenalties(ap.id); } catch { /* diperingatkan via pendingLate */ } }
-  const { data: r360 } = await db.from('result_360').select('employee_id, score, computed_at').eq('period_id', ap.id);
+  const { data: r360 } = await db.from('result_360').select('employee_id, score, late_penalty, computed_at').eq('period_id', ap.id);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
+  const lateBy = new Map((r360 ?? []).map((r) => [r.employee_id, Number(r.late_penalty ?? 0)]));
   // computed_at per pegawai → deteksi "perlu hitung ulang" (penilaian berubah setelah hitung).
   const computedAtBy = new Map((r360 ?? []).map((r) => [r.employee_id, r.computed_at]));
-  const { data: pen } = await db.from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id);
-  const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
   const { data: reports } = await db
     .from('final_reports').select('employee_id, status, spv_acc, final_score').eq('period_id', ap.id);
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
@@ -165,8 +164,7 @@ export default async function AdminLaporanPage() {
   const rows: ReportRow[] = employees.map((e) => {
     const kpiAvg = kpiAvgOf(kpiValsBy.get(e.id) ?? []);
     const s360 = s360By.get(e.id) ?? null;
-    const penalty = penBy.get(e.id) ?? 0;
-    const final = finalScoreOf(kpiAvg, s360, ap.has_360, penalty); // rumus resmi tunggal (tanpa KPI → 360° saja)
+    const final = finalScoreOf(kpiAvg, s360, ap.has_360); // rumus resmi tunggal (tanpa KPI → 360° saja)
     const rep = repBy.get(e.id);
     // Perlu hitung ulang 360°: ada penilaian dikirim/diubah setelah result_360 terakhir dihitung
     // (atau sudah ada penilaian tapi belum pernah dihitung). Hanya relevan saat 360° aktif.
@@ -183,7 +181,7 @@ export default async function AdminLaporanPage() {
     const missingMonths = sortedMonths.filter((m) => !presentMonths.has(m));
     return {
       id: e.id, name: e.name, dept: e.dept,
-      kpiAvg, s360, penalty, needsRecompute,
+      kpiAvg, s360, needsRecompute, latePenalty: lateBy.get(e.id) ?? 0,
       totalMonths: sortedMonths.length, missingMonths,
       final, storedFinal: rep?.final_score ?? null,
       status: rep?.status ?? null, spvAcc: !!rep?.spv_acc,
@@ -209,8 +207,8 @@ export default async function AdminLaporanPage() {
   const accReady = shownRows.filter((r) => r.spvAcc && r.status === 'in_review');
   const accReadyCount = accReady.length;
   const accStaleCount = accReady.filter((r) => r.needsRecompute).length;
-  // "berubah → N": laporan sudah Final tapi Skor Akhir tersimpan ≠ Skor Akhir live (KPI/360°/
-  // punishment berubah setelah finalisasi) → perlu finalisasi ulang (langkah ②). hasScoreDrift
+  // "berubah → N": laporan sudah Final tapi Skor Akhir tersimpan ≠ Skor Akhir live (KPI/360°
+  // berubah setelah finalisasi) → perlu finalisasi ulang (langkah ②). hasScoreDrift
   // selaras badge di tabel. Ini state BERBEDA dari staleCount (Skor 360° usang, langkah ①).
   const driftCount = shownRows.filter((r) => r.status === 'finalized' && hasScoreDrift(r.final, r.storedFinal)).length;
   // Potongan keterlambatan yang belum masuk Skor 360° tersimpan (cron nonaktif) → diterapkan di

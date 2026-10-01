@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Download, Users, Settings, BarChart3, MessageSquareText, ScrollText } from 'lucide-react';
 import {
-  exportEmployees, exportKpi, exportKpiAudit, exportPenalties, exportRekap,
+  exportEmployees, exportKpi, exportKpiAudit, exportRekap, exportLatePenalties,
   exportAssessments, exportQualAnswers, exportMappings, exportAspectSummaries,
   exportSummary360, exportAspectScores, exportPeriodConfig, exportHrdAuditLog, type ExportResult, type Sheet,
 } from './actions';
@@ -18,7 +18,7 @@ const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').r
  * di sini hanya dirangkai jadi beberapa lembar dalam satu workbook (perakitan di sisi klien).
  *  1. Pegawai (Master)            — 1 lembar, lintas periode.
  *  2. Konfigurasi Periode Lengkap — Ringkasan/Bobot/Bulan KPI/Aspek & Indikator/Esai + Pemetaan.
- *  3. Kinerja Lengkap per Periode — Rekap/KPI Bulanan/Audit KPI/Punishment.
+ *  3. Kinerja Lengkap per Periode — Rekap/KPI Bulanan/Audit KPI/Potongan Keterlambatan.
  *  4. Penilaian 360° Lengkap      — Kuantitatif/Kualitatif/Ringkasan Naratif HRD (anonim penilai).
  */
 export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
@@ -83,14 +83,14 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
     },
     {
       key: 'kinerja', title: 'Kinerja Lengkap per Periode', icon: BarChart3, tint: 'indigo', scoped: true,
-      desc: <><strong>4 lembar</strong>: Rekap (KPI rerata · Skor 360° · punishment · Skor Akhir · kategori · 4-Box) · KPI Bulanan · Audit KPI · Punishment.</>,
+      desc: <><strong>4 lembar</strong>: Rekap (KPI rerata · Skor 360° · potongan telat · Skor Akhir · kategori · 4-Box) · KPI Bulanan · Audit KPI · <strong>Potongan Keterlambatan</strong> (siapa yang Skor 360°-nya dipotong & keputusan HRD).</>,
       go: () => run('kinerja', async () => {
-        const [rekap, kpi, audit, pen] = await Promise.all([exportRekap(pid()), exportKpi(pid()), exportKpiAudit(pid()), exportPenalties(pid())]);
+        const [rekap, kpi, audit, late] = await Promise.all([exportRekap(pid()), exportKpi(pid()), exportKpiAudit(pid()), exportLatePenalties(pid())]);
         const sheets: Sheet[] = [
           { name: 'Rekap', rows: rowsOf(rekap) },
           { name: 'KPI Bulanan', rows: rowsOf(kpi) },
           { name: 'Audit KPI', rows: rowsOf(audit) },
-          { name: 'Punishment', rows: rowsOf(pen) },
+          { name: 'Potongan Keterlambatan', rows: rowsOf(late) },
         ];
         return { sheets, filename: `kinerja-lengkap-${suffix}.xlsx` };
       }),

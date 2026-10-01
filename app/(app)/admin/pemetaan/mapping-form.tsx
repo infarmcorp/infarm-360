@@ -39,7 +39,8 @@ export function MappingForm({ employees }: { employees: Emp[] }) {
   return (
     <form onSubmit={submit} className="rounded-panel border border-line bg-surface p-4 space-y-3">
       <p className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.07em]">Tambah Pemetaan</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Satu kolom: form berada di kolom kiri split screen halaman Pemetaan (sempit). */}
+      <div className="grid grid-cols-1 gap-3">
         <div>
           <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">Penilai</label>
           <SearchableSelect value={assessorId} onChange={setAssessorId} options={assessorOptions} placeholder="— pilih penilai —" className={inputCls} />
@@ -55,8 +56,8 @@ export function MappingForm({ employees }: { employees: Emp[] }) {
             {RELATIONS.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
-        <div className="flex items-end">
-          <p className="text-[12.5px] text-ink-soft pb-1.5">
+        <div>
+          <p className="text-[12.5px] text-ink-soft">
             Sifat: <span className="font-semibold text-danger-ink">Wajib</span> — semua penilaian wajib (kebijakan).
           </p>
         </div>

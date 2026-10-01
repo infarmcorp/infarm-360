@@ -5,6 +5,19 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **Progress 360 — panel "Penilaian Ajuan" (2026-10-01, keputusan HRD):** Ajuan (Opsional hasil permohonan
+  "tambah" yang disetujui, dikenali dari `relation_correction_requests` kind='add' approved) **TETAP Opsional**
+  (nanti N/A berlaku juga untuk Ajuan) — tak masuk kartu/kelengkapan Wajib; dipantau di panel terpisah + chip +
+  filter "Punya Ajuan". Notifikasi sidebar HRD dipisah Wajib vs Ajuan (dulu: semua pemetaan aktif − semua
+  terkirim, sehingga selisih 1 dgn kartu Wajib). Aturan potongan telat Ajuan (Q3+) tak berubah.
+- **Fitur Punishment manual DIHAPUS (2026-10-01, keputusan HRD):** "punishment" = potongan keterlambatan
+  menilai −3 pada **Skor 360°** penilai (bukan KPI, bukan Skor Akhir) — satu-satunya sanksi. Input poin
+  manual di Flag Kepatuhan (`setPenalty`, `penalty-input.tsx`), kolom "Punish." (Review/Kepatuhan), lembar
+  ekspor Punishment & kolom `punishment` di Rekap dibuang; `finalScoreOf(kpi, s360, has360)` tanpa
+  parameter penalty (lantai 0 ikut hilang — tak ada lagi pengurang). Tabel `compliance_penalties`
+  **dibiarkan dorman** (0 baris di prod; tanpa migrasi), riwayat log lama tetap tampil. Sebagai gantinya
+  tabel Review & Finalisasi / Review Hasil Akhir punya kolom **Potongan** (`result_360.late_penalty`, sudah
+  termasuk di 360°) dan Ekspor Kinerja punya lembar **Potongan Keterlambatan** + kolom `potongan_telat_360` di Rekap.
 - **Kerapian 360° & alur HRD (audit 2026-09-29, Prioritas 4):**
   (1) **Bobot wajib total 100%** (tanpa Self) — `saveWeights`/`saveEmployeeWeightOverride` menolak di server
   (Zod), tombol simpan nonaktif di form; dulu total bebas & semua-0 membuat pegawai hilang dari `result_360`.
@@ -376,6 +389,24 @@
   izin hanya Lihat); halaman Direksi `/review-hasil` → **"Tinjauan Hasil Akhir"**. Tombol **Hitung Ulang
   Skor 360°** kini **hanya satu** (kokpit Review & Finalisasi) — halaman Bobot memberi tautan; tombol ②
   → **"Perbarui Laporan Final yang Berubah"**. Kode `section`/route tak berubah (hanya label).
+- **Rilis 2026-10-02 (dari `release/hp-cards`, sebagian isi `dev`):** (Decision 03) **kartu di HP** untuk Daftar Penilaian
+  Saya + **progres draf** "x dari N indikator selesai" (layar lebar tetap tabel); (Decision 01) **penilaian terkirim
+  terkunci setelah deadline** — tombol "Lihat", halaman baca-saja (`ReadOnlyView`), Server Action menolak, teks
+  form/sukses/banner & panduan diselaraskan. Migrasi `0046` & `0047` sudah diterapkan ke staging & produksi oleh
+  pengguna (file disertakan sebagai catatan); ikut dirilis: **Pemetaan 360°** (status per pasangan, hapus hanya Belum Mulai/Draft + alasan wajib, Periksa Validitas →
+  Batalkan/Pulihkan, tampilan berdampingan) & penanganan status `invalidated`; sidebar tenggat = deadline penilaian.
+  Halaman Review (Screen 04) **belum** dirilis — dikeluarkan dari `dev`, disimpan di cabang `feature/review-penilaian`
+  (menunggu simulasi ke pegawai).
+- `0046` **Pembatalan validitas penilaian + Hapus Assignment ber-status (Screen 06/07, 2026-10-01, dev):**
+  nilai enum `assessment_status` baru **`invalidated`** + kolom `invalidated_at/by`, `invalid_reason`. Semua hitungan
+  skor memakai `status='submitted'` → penilaian dibatalkan otomatis keluar dari Skor 360°/aspek/laporan/ekspor; jawaban
+  tetap tersimpan (arsip). Kewajiban gugur: Progress 360, Kepatuhan, pengingat, notifikasi sidebar memperlakukannya
+  tuntas; `isPenalizableLate` → tak pernah telat; `progressStatusOf` → status ke-5 "Dibatalkan – Tidak Valid".
+  Trigger `assessments_guard_invalidation` + `assessment_writable` menolak pengguna non-HRD mengubah/menghapus/
+  mengisi pembatalan lewat API. Pemetaan 360°: kolom & filter **Status** (Belum Mulai/Draft/Terkirim/Dibatalkan);
+  **Hapus hanya Belum Mulai/Draft + alasan wajib** (dialog beda per status); Terkirim → **Periksa Validitas** →
+  `setAssessmentValidity` (Batalkan / Pulihkan, alasan wajib, Log Aktivitas `assessment.invalidate|restore`, Skor 360°
+  target direkonsiliasi). Penilai melihat "dibatalkan HRD" (form terkunci). **Terapkan 0046 SEBELUM merge ke main.**
 - **BR-09/10/11 — skor & klasifikasi Q3 2026 (2026-10-01, Tahap 2; keputusan HRD 2026-10-01):**
   (BR-10) model **2 kelas** pada periode mulai ≥ 2026-07-01 → bobot OTOMATIS menurut jumlah penilai Internal yang
   mengirim (≥2 → Atasan 40/Internal 60; 1 → 60/40; satu sisi → 100%); `Model360` + `effectiveModel`/`schemeFor`/

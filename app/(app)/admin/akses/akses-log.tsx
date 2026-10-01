@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { colPercents } from '@/lib/table-cols';
 import { formatDateTimeWib } from '@/lib/datetime';
 
 /**
@@ -38,7 +39,15 @@ export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[];
         </div>
       ) : (
         <div className="overflow-x-auto rounded-panel border border-line">
-          <table className="w-full text-sm min-w-[560px]">
+          {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}
+          <table className="w-full table-fixed text-sm min-w-[570px]">
+            <colgroup>
+              {colPercents([
+                180, // Waktu ("01 Okt 2026 14:30 WIB")
+                170, // Oleh
+                380, // Aktivitas
+              ]).map((w, i) => <col key={i} style={{ width: w }} />)}
+            </colgroup>
             <thead>
               <tr className="bg-neutral-tint text-left text-[11px] uppercase tracking-[0.05em] text-ink-faint">
                 <th className="px-3 py-2 font-semibold whitespace-nowrap">Waktu</th>
@@ -49,9 +58,9 @@ export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[];
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} className="border-t border-line-soft align-top">
-                  <td className="px-3 py-2 text-ink-faint whitespace-nowrap text-[12px] data-value">{fmt(r.createdAt)}</td>
-                  <td className="px-3 py-2 text-ink-soft whitespace-nowrap font-medium">{r.actor}</td>
-                  <td className="px-3 py-2 text-ink-soft">{r.summary}</td>
+                  <td className="px-3 py-2 text-ink-faint text-[12px] data-value">{fmt(r.createdAt)}</td>
+                  <td className="px-3 py-2 text-ink-soft break-words font-medium">{r.actor}</td>
+                  <td className="px-3 py-2 text-ink-soft break-words">{r.summary}</td>
                 </tr>
               ))}
             </tbody>

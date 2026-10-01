@@ -9,6 +9,9 @@ Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saa
 > terkirim, **rumus Skor Akhir tunggal**, **Trend KPI / "Belum terbaca"**, **ACC gugur** bila laporan
 > berubah, **periode terkunci bisa dibuka kembali**, menu **Review & Finalisasi** (HRD) &
 > **Tinjauan Hasil Akhir** (Direksi), tombol **② Perbarui Laporan Final yang Berubah**.
+> **Diperbarui 2026-10-01** — **4 status penilaian** (Belum Mulai · Sedang Diisi · Selesai – Tepat Waktu ·
+> Selesai – Terlambat, BR-07), **bobot 2-Kelas otomatis** 40/60 · 60/40 mulai Q3 2026 (BR-10), status
+> **"No Score"** untuk Skor 360° kosong (BR-09), dan klasifikasi **"HRD Review"** bila KPI atau 360° kosong (BR-11).
 
 > 📌 **Rincian tiap tombol per halaman** (fungsi · peran · kondisi · konfirmasi): lihat
 > [RINCIAN-TOMBOL.md](RINCIAN-TOMBOL.md) — kamus lengkap semua aksi di aplikasi.
@@ -119,7 +122,10 @@ Halaman ini punya **dua tab**: **Penilaian** (daftar rekan yang harus Anda nilai
    - Kolom **Sifat** menandai tiap penilaian **Wajib** atau **Opsional**. Label **"Ajuan · wajib
      selesai"** = penilaian yang **Anda ajukan sendiri & sudah disetujui HRD** — mulai **periode Q3 2026**
      ia **wajib dituntaskan sebelum deadline** (bila tidak, ikut potongan keterlambatan).
-   - Badge **Terlambat** = penilaian yang pertama kali dikirim sesudah deadline.
+   - Kolom **Status** memakai **4 status**: **Belum Mulai** · **Sedang Diisi** (draf) · **Selesai – Tepat
+     Waktu** · **Selesai – Terlambat** (dikirim pertama kali sesudah deadline). Status tepat waktu/terlambat
+     ditentukan dari waktu kirim **pertama** — tidak berubah bila penilaian diedit kemudian. Penilaian
+     Opsional biasa cukup berlabel **Terkirim**.
    - **Ajukan Hapus** (untuk pemetaan dari HRD): minta agar Anda **tidak perlu menilai** orang itu
      (mis. tak pernah bekerja sama), dengan alasan min. 5 karakter. Pemetaan baru hilang **setelah HRD
      menyetujui**. Satu permohonan aktif per rekan (baris bertanda "Menunggu HRD").
@@ -150,7 +156,9 @@ Halaman ini punya **dua tab**: **Penilaian** (daftar rekan yang harus Anda nilai
 5. **Mengubah penilaian yang sudah terkirim:** buka **Edit** → ubah → tekan **Kirim Ulang Penilaian
    360°**. Untuk penilaian terkirim **tidak ada Simpan Draf & tidak ada auto-simpan** (agar statusnya
    tak turun jadi draf) — perubahan baru tersimpan saat Anda menekan Kirim Ulang. Waktu kirim
-   **pertama** tetap menjadi acuan tepat waktu/terlambat.
+   **pertama** tetap menjadi acuan tepat waktu/terlambat. **Hanya sampai deadline:** setelah deadline lewat,
+   penilaian yang sudah terkirim **terkunci** — tombolnya menjadi **Lihat** (baca-saja). Penilaian yang
+   belum terkirim tetap bisa diselesaikan & dikirim setelah deadline (tercatat Terlambat), lalu ikut terkunci.
 6. **Batal** kembali ke daftar tanpa menyimpan; **Buang Draf** (muncul bila ada draf
    tersimpan) menghapus draf beserta rating & komentarnya (dengan konfirmasi).
 
@@ -587,8 +595,9 @@ Dataset dirangkai jadi beberapa **file multi-lembar** (bukan banyak unduhan terp
 - **Pegawai (Master)** — 1 lembar, lintas periode: kode, nama, divisi, peran, status, atasan, email.
 - **Konfigurasi Periode Lengkap** — 6 lembar: Ringkasan · Bobot Penilai · Bulan KPI · Aspek & Indikator ·
   Pertanyaan Esai · **Pemetaan 360°** (pasangan penilai→target, relasi, sifat).
-- **Kinerja Lengkap per Periode** — 4 lembar: **Rekap** (KPI rerata · Skor 360° · punishment · Skor Akhir ·
-  kategori · 4-Box) · KPI Bulanan · Audit KPI · Punishment.
+- **Kinerja Lengkap per Periode** — 4 lembar: **Rekap** (KPI rerata · Skor 360° · potongan telat · Skor Akhir ·
+  kategori · 4-Box) · KPI Bulanan · Audit KPI · **Potongan Keterlambatan** (pegawai yang Skor 360°-nya
+  dipotong: nilai potongan, otomatis/diubah/dikecualikan HRD, skor sebelum & sesudah, alasan HRD).
 - **Penilaian 360° Lengkap** — 5 lembar (semua **anonim penilai**): **Ringkasan per Pegawai** (per kelas
   penilai + Nilai 360°/Gap) · **Rekap Aspek** (Skor 360° **terbobot** & Nilai Diri **per aspek budaya** +
   gap diri-vs-360°, cocok dengan radar laporan) · **Kuantitatif** (rating per indikator) · **Kualitatif**
@@ -602,6 +611,13 @@ Dataset dirangkai jadi beberapa **file multi-lembar** (bukan banyak unduhan terp
 ### Bobot & Kalkulasi Skor 360° (satu halaman)
 - **Bobot Penilai**: pilih **Model 4-Kelas** (Atasan/Peer/Cross/**Bawahan**) atau **2-Kelas**
   (Atasan/Internal — Internal = Peer+Cross+Bawahan), atur angka, lalu **Simpan & Terapkan Bobot**.
+- **Model 2-Kelas mulai Q3 2026 = bobot OTOMATIS (BR-10)** — isian persen dikunci & diganti penjelasan.
+  Bobot ditentukan dari **jumlah penilai Internal yang sudah mengirim** (dihitung **per orang**):
+  **Atasan + ≥ 2 Internal → Atasan 40% · Internal 60%**; **Atasan + 1 Internal → 60% · 40%**;
+  **hanya Atasan → Atasan 100%**; **hanya Internal → Internal 100%**. Skor Internal = rata-rata seluruh
+  penilai internal (tidak dibobot per Peer/Cross/Bawahan). **Model 4-Kelas** dan **Bobot Khusus per
+  Pegawai** tidak berubah (tetap memakai angka yang diisi HRD). Periode Q1–Q2 tetap memakai bobot tersimpan.
+  HRD tetap memilih model 2/4-Kelas per periode dan tetap perlu **Simpan & Terapkan Bobot** sekali.
   Total bobot **wajib tepat 100%** (tombol simpan nonaktif bila belum). **Self** tak punya bobot & tak
   pernah ikut dihitung (Self Assessment juga dinonaktifkan sejak Q3 2026). Setelah mengubah, jalankan
   **Hitung Ulang Skor 360°** di **Review & Finalisasi**.
@@ -649,7 +665,7 @@ Dataset dirangkai jadi beberapa **file multi-lembar** (bukan banyak unduhan terp
 - **Jejak audit aksi sensitif HRD** — *read-only* & **tak bisa diubah/dihapus** (append-only).
   Dapat dibuka HRD **dan Direksi** (pengawasan).
 - Tercatat otomatis: aktif/kunci/toggle-360 **periode**, simpan **bobot**, **Hitung Ulang 360°**,
-  finalisasi/draft/rilis **laporan**, **punishment**, kelola **pegawai** (buat/ubah/aktif/reset sandi/impor),
+  finalisasi/draft/rilis **laporan**, **potongan keterlambatan**, kelola **pegawai** (buat/ubah/aktif/reset sandi/impor),
   **pemetaan** (buat/impor/hapus/keputusan permohonan), undangan/pengingat/paksa-selesai **progress**,
   kelola **pertanyaan**, **deadline 360°**, **potongan keterlambatan** (penerapan & perubahan nilai oleh
   HRD), **ACC laporan** (SPV/Koordinator/Direksi, termasuk pembatalan), dan **suksesi** (HRD
@@ -666,7 +682,7 @@ Dataset dirangkai jadi beberapa **file multi-lembar** (bukan banyak unduhan terp
 - Filter: **cari nama/divisi** + centang **"Fokus (kandidat & rencana berjalan)"** (default aktif).
 
 ### Review & Finalisasi
-**Daftar pegawai** (tabel "kokpit") berisi kolom **Pegawai · Divisi · KPI · 360° · Punish. ·
+**Daftar pegawai** (tabel "kokpit") berisi kolom **Pegawai · Divisi · KPI · 360° · Potongan (−3 bila telat menilai; sudah termasuk di 360°) ·
 Skor Akhir · Dinilai oleh · ACC SPV · Status · Aksi**. Ada **pencarian nama/divisi**, **filter
 Divisi** & **filter Kelengkapan 360°** — keduanya berupa **centang multi-pilih** (panel daftar
 centang; kosong = semua). Centang **"Hanya perlu tindakan"** (default **aktif**) menyembunyikan laporan
@@ -693,9 +709,8 @@ dari 360° (belum/tak ada KPI, mis. Direksi) muncul badge **"Tanpa KPI"**.
   ada kandidat.
 - **Kolom KPI** = rerata KPI + indikator **"X/Y bulan"** (**amber** bila belum semua bulan terisi;
   hover menampilkan bulan yang masih kosong).
-- **Kolom 360°** = skor 360° terhitung; **"belum"** bila belum dihitung; **"N/A"** bila periode tanpa
+- **Kolom 360°** = skor 360° terhitung; **"No Score"** (Insufficient Data) bila belum ada Skor 360° yang bisa dihitung — bukan nilai 0; **"N/A"** bila periode tanpa
   360°; badge **"⚠ perlu hitung"** bila penilaian berubah / koreksi relasi di-ACC sejak hitung terakhir.
-- **Kolom Punish.** = poin pengurangan (−poin) bila ada.
 - **Kolom Skor Akhir** untuk baris berstatus **Final** menampilkan **angka TERSIMPAN** (yang dilihat
   pegawai) + badge **"berubah → N"** bila skor terkini berbeda (perlu finalisasi ulang).
 - **Kolom "Dinilai oleh X/Y"** = berapa penilai **wajib** pegawai itu yang sudah **submit** (badge
@@ -793,6 +808,17 @@ dari 360° (belum/tak ada KPI, mis. Direksi) muncul badge **"Tanpa KPI"**.
 - Filter **Divisi** & **Status** kini berupa **centang multi-pilih** (klik tombol → panel daftar
   centang, "Pilih semua"/"Bersihkan"; kosong = semua) + pencarian **Nama**; lihat status
   "Belum / Sudah Lengkap".
+- **4 status penilaian (BR-07)** untuk tugas **wajib**: **Belum Mulai · Sedang Diisi · Selesai – Tepat
+  Waktu · Selesai – Terlambat** (dari waktu kirim **pertama** vs **Deadline 360°**; Paksa Selesai dihitung
+  tepat waktu). Tampil sebagai **kartu jumlah** di atas tabel, **chip per penilai**, label per target di
+  **Rincian**, dan filter **"Status Penilaian"** (mis. tampilkan hanya penilai yang punya tugas "Sedang
+  Diisi"). Di bawah judul halaman tampil **Deadline** periode — bila belum diisi, ada peringatan karena
+  Tepat Waktu/Terlambat belum bisa dibedakan.
+- **Panel "Penilaian Ajuan"** (di samping kartu Wajib): penilaian **Ajuan** (Opsional yang diajukan pegawai
+  sendiri & disetujui HRD) dipantau **terpisah** — "X / Y selesai" + 4 status. Ajuan **tetap Opsional**: tidak
+  masuk kartu/Progres Wajib maupun status "Lengkap". Di baris penilai tampil chip bergaris putus-putus
+  "Ajuan · <status>", dan filter **Status Penilaian** punya opsi **"Punya Ajuan"**. Notifikasi sidebar HRD
+  ikut dipisah: "N penilaian wajib belum lengkap" & "N penilaian ajuan belum selesai".
 - Tiap baris menampilkan **dua progres berdampingan** (paritas legacy):
   - **Menilai (wajib)** — tugas **wajib** penilai terhadap orang lain (mis. `5/8 · 63%`).
   - **Dinilai oleh** — **berapa penilai yang sudah menilai pegawai ini** dari total yang
@@ -841,7 +867,8 @@ flowchart TD
 ```
 
 ### Flag Kepatuhan Penilaian
-- Memantau **kepatuhan** pengisian 360° dan memberi **punishment**.
+- Memantau **kepatuhan** pengisian 360° dan mengelola **potongan keterlambatan** (satu-satunya sanksi;
+  fitur Punishment manual pada Skor Akhir **dihapus** 2026-10-01).
 - **Pegawai non-aktif tidak ikut kepatuhan** — hanya pegawai aktif yang dihitung (yang dinonaktifkan
   tak lagi diflag telat). Pengecualian **ketat** ini berlaku di halaman **flag/siklus**:
   Kepatuhan, Progress 360, Daftar Penilaian, & Suksesi. **Di halaman pelaporan** (Dashboard, Rekap,
@@ -851,16 +878,15 @@ flowchart TD
 - Judul halaman menampilkan **Deadline 360°** periode aktif (diatur di **Kelola Periode**; bila belum
   diatur, tak ada yang dihitung terlambat).
 - **Tabel default hanya menampilkan pegawai yang perlu perhatian** — yang punya penilaian wajib/ajuan
-  **belum dikirim** atau **terkirim terlambat**, potongan yang **diubah HRD**, ATAU sudah punya
-  **punishment**. Pegawai patuh penuh & tanpa punishment **disembunyikan**. Centang **"Tampilkan semua
-  pegawai"** menampilkan seluruhnya (untuk memberi punishment manual ke pegawai patuh). Bila semua
-  patuh & tanpa punishment → **empty-state "Semua pegawai patuh"**. Tersedia **filter Divisi** berupa
+  **belum dikirim** atau **terkirim terlambat**, ATAU potongan yang **diubah HRD**. Pegawai patuh penuh
+  **disembunyikan**. Centang **"Tampilkan semua pegawai"** menampilkan seluruhnya. Bila semua patuh →
+  **empty-state "Semua pegawai patuh"**. Tersedia **filter Divisi** berupa
   **centang multi-pilih** (kosong = semua divisi).
 - **Kartu ringkasan**: **Belum kirim (penilaian wajib)** · **Kirim terlambat** · **Kena potongan krn
-  ajuan** · **Dengan punishment**.
+  ajuan**.
 - **Kolom tabel**: **Belum Kirim** (jumlah penilaian wajib yang belum dikirim; arahkan kursor untuk
   daftar nama) · **Kirim Terlambat** (penilaian wajib yang pertama kali dikirim sesudah deadline) ·
-  **Potongan 360°** · **Punishment (poin)**.
+  **Potongan 360°**.
 - **Potongan keterlambatan menilai (Skor 360°)**: **otomatis −3 poin**, **sekali per periode**, pada
   **Skor 360° milik si penilai** bila ia punya ≥1 kewajiban yang **belum selesai saat deadline** — baik
   **terkirim sesudah deadline** maupun **belum dikirim sama sekali** setelah deadline lewat. Penilaian
@@ -876,10 +902,6 @@ flowchart TD
   - Potongan **diterapkan otomatis** ke Skor 360° tersimpan saat HRD membuka halaman ini atau Review &
     Finalisasi, dan sebelum laporan disimpan/dirilis/difinalisasi (penjadwal otomatis/cron **dinonaktifkan**).
     Bila penerapan otomatis gagal, muncul banner + tombol cadangan **"Terapkan Potongan ke Skor 360°"**.
-- **Punishment (pengurangan nilai)**: HRD input poin pengurangan per pegawai. **Kolom Punishment
-  kosong bila belum ada** (placeholder "0", seperti KPI: kosong ≠ 0) — HRD mengisinya secara sadar.
-  Poin ini **memotong Skor Akhir** (minimal 0) dan menjalar ke Review & Finalisasi, Dashboard, dan
-  Monitor Kinerja. **Per kuartal** — banner menampilkan siklus aktif yang sedang dipunish.
 
 ### Monitor Kinerja Pegawai & Dashboard Organisasi
 *(Keduanya ada di grup sidebar **Pemantauan & Laporan**.)*
@@ -900,7 +922,7 @@ seluruh chart dihitung ulang konsisten untuk lingkup itu (default: periode aktif
 divisi). Pilihan periode juga menyediakan mode agregat **"Semua Kuartal (tahun X)"** dan **"Semua
 kuartal (semua tahun)"** — angka di mode ini = **rata-rata antar-kuartal** (Skor Akhir = rerata Skor
 Akhir tiap kuartal). Skor Akhir memakai **rumus resmi tunggal** (lihat *Bagaimana Nilai Dihitung*),
-sudah **dikurangi punishment**, dan untuk laporan **Final** memakai angka **tersimpan**. Pegawai
+dan untuk laporan **Final** memakai angka **tersimpan**. Pegawai
 berstatus **"KPI belum terbaca"** (baru 1 dari 3 bulan kuartal terisi) **dikecualikan** dari rerata,
 distribusi, & ranking KPI (ada catatan jumlahnya). **4 sub-dashboard (tab):**
 - **Kompilasi Kinerja Organisasi** — stat talenta, **Distribusi Kategori Kinerja**,
@@ -918,13 +940,14 @@ distribusi, & ranking KPI (ada catatan jumlahnya). **4 sub-dashboard (tab):**
   **A** (KPI ≥ 80 **dan** 360° ≥ 80) · **B Player (High Culture)** (KPI < 80 **dan** 360° ≥ 80) ·
   **B Player (High KPI)** (KPI ≥ 80 **dan** 360° < 80) · **C** (keduanya < 80).
   Pegawai dengan KPI & 360° **keduanya kosong** tak terklasifikasi.
+- **HRD Review (BR-11):** bila **salah satu** sumbu kosong (KPI **atau** Skor 360°), pegawai **tidak
+  diklasifikasi otomatis** dan **tidak dianggap di bawah 80** — statusnya **HRD Review**. Berlaku di
+  Dashboard, Ekspor, Monitor Kinerja, Rekap KPI, dan Laporan Kinerja Tim (semua periode).
 - **Sefase periode:** KPI & 360° diambil dari **periode yang dipilih** di Panel Filter
   (default periode aktif) agar klasifikasi adil. Semua pegawai ditampilkan di tiap kotak.
-- **Periode tanpa 360°:** pada 4-Box hanya **B (High KPI)** atau **C** yang mungkin —
-  **A & B (High Culture) tidak tersedia** (butuh sumbu 360°).
-- **Data 1 sumbu (saat 360° aktif):** pegawai yang baru punya **salah satu** sumbu (KPI saja **atau**
-  360° saja) **belum diklasifikasi** A/B/C — ditaruh di kelompok **"Data Belum Lengkap (1 Sumbu)"** di
-  tab Kompilasi & badge **"—\*"** di Tabel, agar tak "melompat" kategori begitu sumbu kedua masuk.
+- **Periode tanpa 360°:** sumbu 360° kosong → semua pegawai yang punya KPI berstatus **HRD Review**.
+- **Data 1 sumbu:** pegawai yang baru punya **salah satu** sumbu ditaruh di kelompok **"HRD Review"** di tab
+  Kompilasi; di **Tabel Hasil Seluruh Pegawai** tampil badge **HRD Review** dan bisa difilter "HRD Review".
 - **Catatan:** Matriks **9-Box** **tidak lagi ditampilkan** di dashboard (dihapus atas permintaan).
   Rumus 9-Box tetap ada di kode (`lib/scoring.ts`, terkunci & teruji) bila kelak diperlukan.
 
@@ -977,7 +1000,7 @@ Manajemen Akses (koordinator, grant) → langsung tercermin. Toggle **Bagan / Da
 
 Bagian ini merangkai **dari input mentah hingga angka akhir** dalam satu tempat, plus apa yang
 terjadi bila ada **edit/interupsi** di tengah jalan. (Rumus inti terkunci di kode & diuji otomatis;
-HRD hanya mengubah *input*: KPI, bobot, 360° aktif/nonaktif, punishment.)
+HRD hanya mengubah *input*: KPI, bobot, 360° aktif/nonaktif, potongan keterlambatan.)
 
 ### 1. Nilai KPI
 - SPV memasukkan skor **0–100 per bulan** untuk tiap pegawai (Input KPI).
@@ -997,6 +1020,10 @@ HRD hanya mengubah *input*: KPI, bobot, 360° aktif/nonaktif, punishment.)
 - Skor digabung **berbobot menurut kelas relasi** penilai (Atasan / Peer / Cross / Bawahan pada
   Model 4-Kelas, atau Atasan / Internal pada Model 2-Kelas). **Self tidak dihitung** (dan Self
   Assessment dinonaktifkan sejak Q3 2026). Total bobot wajib **100%**.
+- **Model 2-Kelas mulai Q3 2026:** bobot **otomatis** menurut jumlah penilai Internal yang mengirim —
+  ≥ 2 orang → **Atasan 40 / Internal 60**; 1 orang → **60 / 40**; satu sisi saja → **100%** (BR-10).
+  Contoh: Atasan 80, Peer 85, Cross 90 → Internal 87,5 → 0,4 × 80 + 0,6 × 87,5 = **84,5**.
+- Tidak ada penilaian terkirim yang bisa dihitung → tampil **"No Score"** (Insufficient Data), **bukan 0** (BR-09).
 - **Skor 360° resmi = skor terbobot − potongan keterlambatan menilai** (otomatis **−3** bila si pegawai,
   sebagai penilai, punya kewajiban yang belum selesai saat deadline; nilainya bisa diubah HRD, 0 =
   dikecualikan; minimal 0). Lihat *Flag Kepatuhan*.
@@ -1010,8 +1037,8 @@ KPI & Skor 360° ada (360° aktif)  :  Skor Akhir = KPI × 0,5  +  Skor 360° ×
 KPI ada, 360° nonaktif/kosong     :  Skor Akhir = KPI (100%)
 KPI kosong, Skor 360° ada         :  Skor Akhir = Skor 360° (mis. Direksi)
 keduanya kosong                   :  belum bisa dihitung
-lalu                              :  DIKURANGI punishment (Flag Kepatuhan), minimal 0,
-                                     dibulatkan 2 desimal
+lalu                              :  dibulatkan 2 desimal (tanpa pengurangan lain —
+                                     potongan telat −3 sudah termasuk di Skor 360°)
 ```
 - Rumus ini sama di Review & Finalisasi, Laporan, Laporan Tim, Monitor, Dashboard, & Ekspor.
   Klasifikasi (A/B/C, kategori) memakai angka yang sudah dibulatkan 2 desimal.
@@ -1035,7 +1062,7 @@ lalu                              :  DIKURANGI punishment (Flag Kepatuhan), mini
 | **Laporan dikembalikan ke Draf / dirilis ulang dengan skor berbeda** | **ACC SPV/Koordinator/Direksi gugur** | Rilis ulang → minta ACC baru (opsional; ACC non-blok) |
 | **Pemetaan dihapus** (pasangan sudah dinilai) | Penilaiannya di periode itu ikut terhapus → skor 360° **otomatis dihitung ulang** | (tak perlu aksi) |
 | **KPI diedit** (bulan yang sudah ada) | Wajib isi **Komentar Audit**; bila kosong → ditolak | Simpan Draf laporan → Skor Akhir dihitung ulang dari data terkini |
-| **Punishment / potongan keterlambatan diubah** | Skor Akhir **live** berubah | Belum Final: terbawa otomatis saat simpan/finalisasi · Sudah Final: **② Perbarui Laporan Final yang Berubah** |
+| **Potongan keterlambatan diubah** | Skor 360° & Skor Akhir **live** berubah | Belum Final: terbawa otomatis saat simpan/finalisasi · Sudah Final: **② Perbarui Laporan Final yang Berubah** |
 | Data berubah **setelah laporan Final** | `final_score` tersimpan ≠ skor terkini → badge **"berubah → N"** | Klik **② Perbarui Laporan Final yang Berubah** (kokpit Sinkronkan Skor — menyegarkan semua sekaligus) · atau manual **Kembalikan ke Draf → Finalisasi ulang** |
 
 > **Ringkas:** badge **"perlu dihitung ulang"** = Skor 360° (foto) usang → *Hitung Ulang*. Badge
@@ -1059,7 +1086,7 @@ flowchart TD
     D0 --> F
     F -- "ya" --> G["Skor Akhir = KPI x 0,5 + 360° x 0,5"]
     F -- "tidak" --> H["Skor Akhir = KPI (100%)<br/>atau 360° saja bila KPI kosong"]
-    G --> I["dikurangi punishment (lantai 0)<br/>dibulatkan 2 desimal"]
+    G --> I["dibulatkan 2 desimal"]
     H --> I
     I --> J{"HRD Finalisasi?"}
     J -- "belum" --> L["Draf — pegawai belum lihat"]
@@ -1319,14 +1346,13 @@ Badge **Status** & **Skor Akhir** + badge **"berubah → N"** bila skor terkini 
   sehingga data dianggap lengkap untuk finalisasi.
 - Tidak mengubah skor, tapi memengaruhi **kesiapan data** sebelum Review & Finalisasi.
 
-### 8. Flag Kepatuhan Penilaian & Punishment — *menghukum ketidakpatuhan*
+### 8. Flag Kepatuhan Penilaian — *menghukum ketidakpatuhan*
 **Fungsi:** menandai penilaian **wajib/ajuan** yang belum dikirim atau terkirim terlambat (menurut
-**Deadline 360°**), mengelola **potongan keterlambatan −3** pada Skor 360° (bisa diubah HRD), lalu
-memberi **punishment** (pengurangan poin Skor Akhir).
+**Deadline 360°**) dan mengelola **potongan keterlambatan −3** pada Skor 360° (bisa diubah HRD) —
+satu-satunya sanksi; tidak ada pengurangan langsung pada KPI maupun Skor Akhir.
 **Berdampak ke:**
 - **Flag** dihitung dari **Sifat (Pemetaan)** + status & waktu kirim pertama penilaian.
 - **Potongan keterlambatan** → mengurangi **Skor 360°** penilai → ikut memengaruhi Skor Akhir-nya.
-- **Punishment** → input poin **per kuartal** per pegawai → **memotong Skor Akhir** (minimal 0).
 - Pengurangan menjalar ke **Review & Finalisasi, Dashboard, Monitor Kinerja** (matriks &
   tren bulanan) untuk kuartal terkait.
 
@@ -1341,12 +1367,12 @@ langsung, ambang 80, tanpa D). *(Matriks 9-Box sudah dihapus dari tampilan dashb
 **Berdampak ke:** tidak mengubah data — dasar **pengambilan keputusan** (promosi, pembinaan).
 - Klasifikasi **sefase periode** lewat Panel Filter (KPI, 360°, Skor Akhir dari **periode
   yang dipilih**; default periode aktif).
-- Pegawai **1 sumbu** (KPI saja / 360° saja, saat 360° aktif) masuk kelompok **"Data Belum Lengkap
-  (1 Sumbu)"**, belum diklasifikasi A/B/C sampai kedua sumbu terisi.
+- Pegawai **1 sumbu** (KPI saja / 360° saja, termasuk periode tanpa 360°) masuk kelompok **"HRD Review"**,
+  belum diklasifikasi A/B/C sampai kedua sumbu terisi (BR-11).
 - **Struktur Organisasi** (Pemantauan, read-only): bagan menurun & daftar struktur saat ini —
   otomatis mengikuti Kelola Pegawai; pegawai berkoordinator tampil di bawah koordinatornya.
-- Mengikuti flag **360°** periode (dari Kelola Periode, #1): periode tanpa 360° → pada 4-Box
-  kategori **A & B-Culture** tidak tersedia (Skor Akhir = 100% KPI).
+- Mengikuti flag **360°** periode (dari Kelola Periode, #1): periode tanpa 360° → pegawai berstatus
+  **HRD Review** pada 4-Box (BR-11; Skor Akhir = 100% KPI).
 
 ### 11. Mode Ganda (berganti "topi") & Izin HRD Admin
 **Inti:** "HRD Admin" adalah **izin mengoperasikan aplikasi**, bukan jabatan. Seseorang berposisi
@@ -1388,7 +1414,7 @@ penilai). Lihat *Akses Khusus: Review & Finalisasi berlingkup* & bagian **Manaje
 **Fungsi:** mencatat **otomatis** setiap aksi sensitif HRD ke jejak **append-only** (tak bisa
 diubah/dihapus). **Tidak mengubah data** — alat **akuntabilitas**.
 **Berdampak ke:** memberi HRD & **Direksi** rekaman *siapa melakukan apa & kapan* (kunci periode,
-ubah bobot, Hitung Ulang 360°, finalisasi, punishment, kelola akun/pemetaan/pertanyaan, dll).
+ubah bobot, Hitung Ulang 360°, finalisasi, potongan keterlambatan, kelola akun/pemetaan/pertanyaan, dll).
 Berguna saat audit/sengketa. Sandi tak pernah dicatat.
 
 ---
@@ -1410,8 +1436,7 @@ flowchart TD
 
     KPI["KPI bulanan<br/>(SPV / Koordinator)"] --> AKHIR["Skor Akhir"]
     S360 --> AKHIR
-    KEPATUHAN["Flag Kepatuhan"] --> PUNISH["Punishment<br/>(−poin/kuartal)"]
-    PUNISH -- "mengurangi (lantai 0)" --> AKHIR
+    KEPATUHAN["Flag Kepatuhan"] -- "potongan telat −3" --> S360
 
     AKHIR --> ANALITIK["Monitor · Rekap · Dashboard"]
     AKHIR --> REVIEW["Review & Finalisasi"]

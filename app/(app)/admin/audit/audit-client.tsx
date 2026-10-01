@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { colPercents } from '@/lib/table-cols';
 import { useRouter } from 'next/navigation';
 import { formatDateTimeWib } from '@/lib/datetime';
 
@@ -120,7 +121,16 @@ export function AuditClient({
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm min-w-[640px]">
+          {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}
+          <table className="w-full table-fixed text-left text-sm min-w-[680px]">
+            <colgroup>
+              {colPercents([
+                180, // Waktu ("01 Okt 2026 14:30 WIB")
+                170, // Pelaku
+                130, // Kategori ("Pertanyaan")
+                390, // Aktivitas
+              ]).map((w, i) => <col key={i} style={{ width: w }} />)}
+            </colgroup>
             <thead>
               <tr className="text-[10px] uppercase tracking-[0.05em] text-ink-faint font-semibold border-b border-line bg-neutral-tint">
                 <th className="py-2.5 px-4 whitespace-nowrap">Waktu</th>
@@ -132,14 +142,14 @@ export function AuditClient({
             <tbody className="divide-y divide-line-soft">
               {rows.map((r) => (
                 <tr key={r.id} className="align-top hover:bg-neutral-tint/40">
-                  <td className="py-3 px-4 text-xs text-ink-faint whitespace-nowrap data-value">{fmt(r.createdAt)}</td>
-                  <td className="py-3 px-3 font-bold text-ink whitespace-nowrap">{r.actor}</td>
+                  <td className="py-3 px-4 text-xs text-ink-faint data-value">{fmt(r.createdAt)}</td>
+                  <td className="py-3 px-3 font-bold text-ink break-words">{r.actor}</td>
                   <td className="py-3 px-3">
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-control border ${CAT_COLOR[r.category] ?? CAT_COLOR.lain}`}>
                       {CAT_LABEL[r.category] ?? r.category}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-ink-soft">{r.summary}</td>
+                  <td className="py-3 px-4 text-ink-soft break-words">{r.summary}</td>
                 </tr>
               ))}
             </tbody>

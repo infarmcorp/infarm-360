@@ -45,7 +45,7 @@ export function ResyncDriftButton({ count }: { count: number }) {
         onConfirm={run} onCancel={() => setOpen(false)}
       >
         <p><strong>{count} laporan</strong> sudah <strong>Final</strong> tetapi Skor Akhir tersimpan (yang dilihat
-          pegawai) <strong>ketinggalan</strong> dari data terkini (KPI/360°/punishment berubah setelah finalisasi).</p>
+          pegawai) <strong>ketinggalan</strong> dari data terkini (KPI/360° berubah setelah finalisasi).</p>
         <p>Aksi ini memperbarui angka tersimpan ke <strong>Skor Akhir terkini</strong>. Laporan <strong>tetap Final</strong>
           &amp; ringkasan naratifnya <strong>tidak berubah</strong> — hanya angkanya yang disegarkan.</p>
         <p className="text-ink-soft">Pastikan sudah <strong>Hitung Ulang Skor 360°</strong> (langkah ①) dulu agar nilainya benar.</p>

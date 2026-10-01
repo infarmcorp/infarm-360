@@ -17,7 +17,7 @@ import { EmptyState } from '@/components/empty-state';
 
 /**
  * Dashboard Organisasi (HRD/Direksi) — versi termigrasi Supabase.
- * Gabung Rerata KPI + result_360 + punishment → Skor Akhir, lalu klasifikasi 4-Box.
+ * Gabung Rerata KPI + result_360 → Skor Akhir, lalu klasifikasi 4-Box.
  * Lingkup dipilih lewat ?period=&dept= (default periode aktif, semua divisi); KPI, 360°,
  * & Skor Akhir selalu dari periode + divisi yang sama agar konsisten.
  */
@@ -168,10 +168,9 @@ export default async function DashboardPage({
   // Gelombang 1 — query periode terpilih, di-scope ke pegawai dalam lingkup divisi.
   // assessments SELURUH pegawai → bisa >1000; ambil penuh (tanpa ini nonSelfIds terpotong →
   // rating aspek 360° & asmtInfo tak lengkap → radar/aspek SALAH diam-diam).
-  const [monthsRes, r360Res, penRes, aspectRes, asmtAll] = await Promise.all([
+  const [monthsRes, r360Res, aspectRes, asmtAll] = await Promise.all([
     db.from('period_months').select('ym').eq('period_id', ap.id),
     db.from('result_360').select('employee_id, score').eq('period_id', ap.id),
-    db.from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id),
     db.from('culture_aspects').select('id, name, order_idx').eq('period_id', ap.id).order('order_idx'),
     fetchAllPaged<{ id: string; assessor_id: string; target_id: string }>((from, to) =>
       db.from('assessments').select('id, assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted').order('id').range(from, to)),
@@ -259,7 +258,7 @@ export default async function DashboardPage({
   const periodsInYearIds = periodsInYear.map((p) => p.id);
   // Paginasi (fetchAllByIds): org × 12 bulan bisa >1000 baris → tanpa ini yearMonthly & distribusi
   // per-kuartal terpotong diam-diam. employee_id disertakan agar bisa klasifikasi per-pegawai per-kuartal.
-  const [yearKpiRows, year360Rows, yearPmRes, yearPenRows, yearRepRows] = await Promise.all([
+  const [yearKpiRows, year360Rows, yearPmRes, yearRepRows] = await Promise.all([
     empIds.length
       ? fetchAllByIds<{ employee_id: string; ym: string; score: number }>(empIds, (chunk, from, to) =>
           db.from('kpi_scores').select('employee_id, ym, score').in('employee_id', chunk)
@@ -273,20 +272,14 @@ export default async function DashboardPage({
     periodsInYearIds.length
       ? db.from('period_months').select('period_id, ym').in('period_id', periodsInYearIds)
       : Promise.resolve({ data: [] as { period_id: string; ym: string }[] }),
-    // Punishment & laporan per (pegawai, kuartal) — Skor Akhir resmi (− punishment) & angka
-    // TERSIMPAN untuk laporan final (displayedFinalOf), selaras halaman lain.
-    empIds.length && periodsInYearIds.length
-      ? fetchAllByIds<{ employee_id: string; period_id: string; points: number }>(empIds, (chunk, from, to) =>
-          db.from('compliance_penalties').select('employee_id, period_id, points').in('employee_id', chunk)
-            .in('period_id', periodsInYearIds).order('employee_id').order('period_id').range(from, to))
-      : Promise.resolve([] as { employee_id: string; period_id: string; points: number }[]),
+    // Laporan per (pegawai, kuartal) — angka TERSIMPAN untuk laporan final (displayedFinalOf),
+    // selaras halaman lain.
     empIds.length && periodsInYearIds.length
       ? fetchAllByIds<{ employee_id: string; period_id: string; status: string; final_score: number | null }>(empIds, (chunk, from, to) =>
           db.from('final_reports').select('employee_id, period_id, status, final_score').in('employee_id', chunk)
             .in('period_id', periodsInYearIds).order('employee_id').order('period_id').range(from, to))
       : Promise.resolve([] as { employee_id: string; period_id: string; status: string; final_score: number | null }[]),
   ]);
-  const penOfY = new Map(yearPenRows.map((p) => [`${p.employee_id}|${p.period_id}`, Number(p.points)]));
   const repOfY = new Map(yearRepRows.map((r) => [`${r.employee_id}|${r.period_id}`, r]));
   // "Belum terbaca" PER (pegawai × kuartal) — dikecualikan dari tren bulanan tahunan & distribusi
   // per kuartal, selaras kartu kuartal terpilih (unreadIds). Kunci `${employee_id}|${period_id}`.
@@ -331,7 +324,7 @@ export default async function DashboardPage({
   const year360Avg = year360.length ? year360.reduce((s, m) => s + m.avg, 0) / year360.length : null;
 
   // Distribusi kategori kinerja PER KUARTAL (band Skor Akhir) — untuk grafik tren komposisi.
-  // Skor Akhir per pegawai per kuartal = Skor Akhir RESMI (finalScoreOf − punishment kuartal itu),
+  // Skor Akhir per pegawai per kuartal = Skor Akhir RESMI (finalScoreOf),
   // atau angka TERSIMPAN bila laporannya final (displayedFinalOf) — sama dengan halaman lain.
   // Pegawai "belum terbaca" di kuartal itu dikecualikan (selaras kategorisasi kuartal terpilih).
   const empPer360Y = new Map<string, Map<string, number>>();
@@ -348,23 +341,21 @@ export default async function DashboardPage({
       const kpiAvg = kpiAvgOf((ymsByPeriodY.get(p.id) ?? []).map((ym) => m?.get(ym) ?? null));
       const s360 = empPer360Y.get(e.id)?.get(p.id) ?? null;
       const key = `${e.id}|${p.id}`;
-      const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, p.has_360, penOfY.get(key) ?? 0), repOfY.get(key));
+      const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, p.has_360), repOfY.get(key));
       if (final == null) continue;
       if (final >= 90) exceed += 1; else if (final >= 80) meet += 1; else if (final >= 70) improve += 1; else below += 1;
     }
     return { label: p.label, exceed, meet, improve, below, total: exceed + meet + improve + below };
   }).filter((q) => q.total > 0);
 
-  // Skor 360 (hasil komputasi) + punishment.
+  // Skor 360 (hasil komputasi).
   const s360By = new Map((r360Res.data ?? []).map((r) => [r.employee_id, r.score]));
-  const penBy = new Map((penRes.data ?? []).map((p) => [p.employee_id, p.points]));
 
   const rows = emps.map((e) => {
     const kpiAvg = kpiAvgOf([...(empYm.get(e.id)?.values() ?? [])].map((a) => a.s / a.n));
     const s360 = s360By.get(e.id) ?? null;
-    const penalty = penBy.get(e.id) ?? 0;
     // Laporan FINAL → angka tersimpan (yang dilihat pegawai); selain itu rumus resmi hidup.
-    const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, ap.has_360, penalty), repOfY.get(`${e.id}|${ap.id}`));
+    const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, ap.has_360), repOfY.get(`${e.id}|${ap.id}`));
     // BR-11 (Q3 2026): tepat SATU sumbu (KPI saja ATAU 360° saja — termasuk periode tanpa 360°) →
     // 'HRD_REVIEW' (playerClassOf), dikeluarkan dari A/B/C & ditaruh di bucket "HRD Review".
     const player = playerClassOf(kpiAvg, ap.has_360 ? s360 : null);
@@ -479,13 +470,12 @@ export default async function DashboardPage({
   if (prevPeriod && empIds.length) {
     const { data: pMonths } = await db.from('period_months').select('ym').eq('period_id', prevPeriod.id);
     const pYms = (pMonths ?? []).map((m) => m.ym);
-    const [pKpiAll, pr360Res, pPenRes, pRepRes] = await Promise.all([
+    const [pKpiAll, pr360Res, pRepRes] = await Promise.all([
       pYms.length
         ? fetchAllByIds<{ employee_id: string; ym: string; score: number }>(empIds, (chunk, from, to) =>
             db.from('kpi_scores').select('employee_id, ym, score').in('ym', pYms).in('employee_id', chunk).order('employee_id').order('ym').range(from, to))
         : Promise.resolve([] as { employee_id: string; ym: string; score: number }[]),
       db.from('result_360').select('employee_id, score').eq('period_id', prevPeriod.id).in('employee_id', empIds),
-      db.from('compliance_penalties').select('employee_id, points').eq('period_id', prevPeriod.id).in('employee_id', empIds),
       db.from('final_reports').select('employee_id, status, final_score').eq('period_id', prevPeriod.id).in('employee_id', empIds),
     ]);
     // Rerata KPI per pegawai + deteksi "belum terbaca" (trend unread 3 bulan pertama).
@@ -502,7 +492,6 @@ export default async function DashboardPage({
       if (trendOf(months) === 'unread') pUnread.add(id);
     }
     const p360By = new Map((pr360Res.data ?? []).map((r) => [r.employee_id, r.score]));
-    const pPenBy = new Map((pPenRes.data ?? []).map((p) => [p.employee_id, p.points]));
     // Tiap rata-rata memakai POPULASI yang sama dgn kartunya masing-masing agar delta apel-ke-apel:
     //  - Skor Akhir (Kompilasi): readable (bukan unread) & final != null.
     //  - KPI (tab Analisis KPI): readable (bukan unread) & kpiAvg != null.
@@ -514,7 +503,7 @@ export default async function DashboardPage({
       if (s360 != null) prev360ById.set(id, s360);
       if (!unread && kpiAvg != null) prevKpiById.set(id, kpiAvg);
       if (!unread) {
-        const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, prevPeriod.has_360, pPenBy.get(id) ?? 0), pRepBy.get(id));
+        const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, prevPeriod.has_360), pRepBy.get(id));
         if (final != null) prevFinalById.set(id, final);
       }
     }

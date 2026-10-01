@@ -159,7 +159,7 @@ export default async function LaporanDetailPage({
               employeeId={employeeId}
               status={data.status}
               finalScore={data.finalScore}
-              liveFinal={finalScoreOf(data.kpiAvg, data.s360, data.has360, data.penalty)}
+              liveFinal={finalScoreOf(data.kpiAvg, data.s360, data.has360)}
               canCompute={data.kpiAvg != null || (data.has360 && data.s360 != null)}
               totalMonths={gTotalMonths}
               missingMonths={gMissingMonths}
@@ -387,7 +387,7 @@ export default async function LaporanDetailPage({
               employeeId={employeeId}
               status={data.status}
               finalScore={data.finalScore}
-              liveFinal={finalScoreOf(data.kpiAvg, data.s360, data.has360, data.penalty)}
+              liveFinal={finalScoreOf(data.kpiAvg, data.s360, data.has360)}
               canCompute={data.kpiAvg != null || (data.has360 && data.s360 != null)}
               totalMonths={kpiTotalMonths}
               missingMonths={kpiMissingMonths}

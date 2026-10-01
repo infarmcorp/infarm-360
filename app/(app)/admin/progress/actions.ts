@@ -73,7 +73,8 @@ async function pendingByAssessor(
       // pengingat — yang ditagih hanya penugasan, termasuk hasil permohonan yang di-ACC HRD.
       supabase.from('mappings').select('assessor_id, target_id').eq('period_id', periodId).eq('is_active', true).eq('is_adhoc', false).order('assessor_id').order('target_id').range(from, to)),
     fetchAllPaged<{ assessor_id: string; target_id: string }>((from, to) =>
-      supabase.from('assessments').select('assessor_id, target_id').eq('period_id', periodId).eq('status', 'submitted').order('assessor_id').order('target_id').range(from, to)),
+      // 'invalidated' (0046) = dibatalkan HRD → kewajiban gugur, tak ditagih.
+      supabase.from('assessments').select('assessor_id, target_id').eq('period_id', periodId).in('status', ['submitted', 'invalidated']).order('assessor_id').order('target_id').range(from, to)),
   ]);
   const done = new Set(subs.map((s) => `${s.assessor_id}|${s.target_id}`));
   const byAssessor = new Map<string, string[]>();

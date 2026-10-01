@@ -6,13 +6,16 @@ import { ConfirmDialog } from '@/components/confirm-dialog';
 import { usePager, Pager, MultiCheckFilter } from '@/components/table-controls';
 import { PROGRESS_STATUS_LABEL, type ProgressStatus } from '@/lib/late';
 
-export type Pending = { targetId: string; targetName: string; relation: string; mandatory: boolean; progress: ProgressStatus; reason?: string | null };
+export type Pending = { targetId: string; targetName: string; relation: string; mandatory: boolean; ajuan: boolean; progress: ProgressStatus; reason?: string | null };
 export type AssessorRow = {
   id: string; name: string; dept: string;
   total: number; done: number;              // semua tugas (wajib + opsional) — info sekunder
   mandatoryTotal: number; mandatoryDone: number; // kelengkapan ditentukan dari WAJIB saja
   /** BR-07: jumlah tugas WAJIB per status (Belum Mulai / Sedang Diisi / Tepat Waktu / Terlambat). */
   statusCounts: Record<ProgressStatus, number>;
+  /** Penilaian AJUAN (Opsional hasil permohonan pegawai yang disetujui HRD) — dipantau terpisah. */
+  ajuanTotal: number;
+  ajuanCounts: Record<ProgressStatus, number>;
   pending: Pending[];
 };
 /** Info read-only "per yang dinilai": berapa penilai ditugaskan & berapa sudah menilai dia. */
@@ -46,9 +49,13 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
     const done = rows.filter(isComplete).length;
     const tasks = rows.reduce((s, r) => s + r.mandatoryTotal, 0);
     const doneTasks = rows.reduce((s, r) => s + r.mandatoryDone, 0);
-    const byStatus: Record<ProgressStatus, number> = { not_started: 0, in_progress: 0, on_time: 0, late: 0 };
-    rows.forEach((r) => STATUS_ORDER.forEach((k) => { byStatus[k] += r.statusCounts[k]; }));
-    return { total, done, pending: total - done, pct: tasks ? Math.round((doneTasks / tasks) * 100) : 0, byStatus };
+    const byStatus: Record<ProgressStatus, number> = { not_started: 0, in_progress: 0, on_time: 0, late: 0, invalidated: 0 };
+    rows.forEach((r) => CHIP_ORDER.forEach((k) => { byStatus[k] += r.statusCounts[k]; }));
+    const ajuan: Record<ProgressStatus, number> = { not_started: 0, in_progress: 0, on_time: 0, late: 0, invalidated: 0 };
+    rows.forEach((r) => CHIP_ORDER.forEach((k) => { ajuan[k] += r.ajuanCounts[k]; }));
+    const ajuanTotal = rows.reduce((s, r) => s + r.ajuanTotal, 0);
+    const ajuanAssessors = rows.filter((r) => r.ajuanTotal > 0).length;
+    return { total, done, pending: total - done, pct: tasks ? Math.round((doneTasks / tasks) * 100) : 0, byStatus, ajuan, ajuanTotal, ajuanAssessors };
   }, [rows]);
 
   const shown = rows.filter((r) => {
@@ -57,7 +64,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
     if (q.trim() && !r.name.toLowerCase().includes(q.toLowerCase())) return false;
     if (deptSel.size > 0 && !deptSel.has(r.dept)) return false;
     if (statusSel.size > 0 && !statusSel.has(statusKey)) return false;
-    if (progSel.size > 0 && !STATUS_ORDER.some((k) => progSel.has(k) && r.statusCounts[k] > 0)) return false;
+    if (progSel.size > 0 && !(STATUS_ORDER.some((k) => progSel.has(k) && r.statusCounts[k] > 0) || (progSel.has('ajuan') && r.ajuanTotal > 0))) return false;
     return true;
   });
   // Paginasi 5-baris (komponen bersama) → daftar penilai bisa 100+; batasi DOM per halaman.
@@ -73,19 +80,44 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
 
   return (
     <div className="space-y-4">
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <Stat label="Total Penilai" value={stats.total} c="text-ink" />
-        <Stat label="Lengkap (wajib)" value={stats.done} c="text-brand-ink" />
-        <Stat label="Belum (wajib)" value={stats.pending} c="text-warn-ink" />
-        <Stat label="Progres Wajib" value={`${stats.pct}%`} c="text-brand-ink" />
+      {/* Stats: kiri = WAJIB (kelengkapan + 4 status BR-07); kanan = panel AJUAN terpisah (tetap Opsional). */}
+      <div className="grid gap-2 lg:grid-cols-[minmax(0,3fr)_minmax(220px,1fr)]">
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <Stat label="Total Penilai" value={stats.total} c="text-ink" />
+            <Stat label="Lengkap (wajib)" value={stats.done} c="text-brand-ink" />
+            <Stat label="Belum (wajib)" value={stats.pending} c="text-warn-ink" />
+            <Stat label="Progres Wajib" value={`${stats.pct}%`} c="text-brand-ink" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {STATUS_ORDER.map((k) => (
+              <Stat key={k} label={PROGRESS_STATUS_LABEL[k]} value={stats.byStatus[k]} c={STATUS_TEXT[k]} />
+            ))}
+          </div>
+        </div>
+        <aside aria-label="Penilaian Ajuan" className="border border-dashed border-line-strong rounded-panel bg-surface p-3 flex flex-col gap-1.5">
+          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em]">Penilaian Ajuan</div>
+          <div className="text-xl font-bold text-ink">
+            <span className="data-value">{stats.ajuan.on_time + stats.ajuan.late} / {stats.ajuanTotal}</span>
+            <span className="text-[11px] font-semibold text-ink-faint ml-1">selesai</span>
+          </div>
+          {STATUS_ORDER.map((k) => (
+            <div key={k} className="flex justify-between text-[12px] text-ink-soft">
+              <span>{PROGRESS_STATUS_LABEL[k]}</span>
+              <span className={`data-value font-semibold ${stats.ajuan[k] > 0 ? STATUS_TEXT[k] : ''}`}>{stats.ajuan[k]}</span>
+            </div>
+          ))}
+          <p className="text-[10px] text-ink-faint mt-auto pt-1">
+            Opsional, diajukan pegawai &amp; disetujui HRD{stats.ajuanAssessors > 0 ? <> · <span className="data-value">{stats.ajuanAssessors}</span> penilai</> : ''}. Tidak masuk Progres Wajib.
+          </p>
+        </aside>
       </div>
-      {/* BR-07: sebaran 4 status untuk seluruh tugas WAJIB. */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {STATUS_ORDER.map((k) => (
-          <Stat key={k} label={PROGRESS_STATUS_LABEL[k]} value={stats.byStatus[k]} c={STATUS_TEXT[k]} />
-        ))}
-      </div>
+      {stats.byStatus.invalidated > 0 && (
+        <p className="text-[11px] text-ink-faint">
+          <span className="data-value font-semibold text-ink-soft">{stats.byStatus.invalidated}</span> penilaian wajib
+          dibatalkan validitasnya oleh HRD — dikeluarkan dari kewajiban &amp; perhitungan skor.
+        </p>
+      )}
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-center">
@@ -98,7 +130,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
           options={[{ value: 'lengkap', label: 'Lengkap' }, { value: 'belum', label: 'Belum Lengkap' }]}
           selected={statusSel} onChange={(s) => { setStatusSel(s); setPage(0); }} />
         <MultiCheckFilter label="Status Penilaian"
-          options={STATUS_ORDER.map((k) => ({ value: k, label: PROGRESS_STATUS_LABEL[k] }))}
+          options={[...STATUS_ORDER.map((k) => ({ value: k, label: PROGRESS_STATUS_LABEL[k] })), { value: 'ajuan', label: 'Punya Ajuan' }]}
           selected={progSel} onChange={(s) => { setProgSel(s); setPage(0); }} />
         {!readOnly && (
           <>
@@ -144,7 +176,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
         {paged.map((r) => {
           const complete = isComplete(r);
           const pct = r.mandatoryTotal ? Math.round((r.mandatoryDone / r.mandatoryTotal) * 100) : 100;
-          const optionalPending = r.pending.filter((p) => !p.mandatory).length;
+          const optionalPending = r.pending.filter((p) => !p.mandatory && !p.ajuan).length;
           const by = dinilaiBy.get(r.id);
           const byComplete = !!by && by.total > 0 && by.done === by.total;
           const byPct = by && by.total ? Math.round((by.done / by.total) * 100) : 0;
@@ -199,9 +231,15 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                     <div className={`h-full rounded-full ${complete ? 'bg-brand' : 'bg-warn-ink'}`} style={{ width: `${pct}%` }} />
                   </div>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {STATUS_ORDER.filter((k) => r.statusCounts[k] > 0).map((k) => (
+                    {CHIP_ORDER.filter((k) => r.statusCounts[k] > 0).map((k) => (
                       <span key={k} className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_CHIP[k]}`}>
                         {PROGRESS_STATUS_LABEL[k]} <span className="data-value">{r.statusCounts[k]}</span>
+                      </span>
+                    ))}
+                    {STATUS_ORDER.filter((k) => r.ajuanCounts[k] > 0).map((k) => (
+                      <span key={`aj-${k}`} title="Penilaian Ajuan (opsional, diajukan pegawai & disetujui HRD)"
+                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-dashed border-line-strong text-ink-soft">
+                        Ajuan · {PROGRESS_STATUS_LABEL[k]} <span className="data-value">{r.ajuanCounts[k]}</span>
                       </span>
                     ))}
                   </div>
@@ -228,8 +266,8 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                         <span className="text-ink-soft font-semibold">{p.targetName}</span>
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft">{p.relation}</span>
                         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_CHIP[p.progress]}`}>{PROGRESS_STATUS_LABEL[p.progress]}</span>
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${p.mandatory ? 'bg-danger-tint text-danger-ink' : 'bg-neutral-tint text-ink-faint'}`}>
-                          {p.mandatory ? 'Wajib' : 'Opsional'}
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${p.mandatory ? 'bg-danger-tint text-danger-ink' : p.ajuan ? 'border border-dashed border-line-strong text-ink-soft' : 'bg-neutral-tint text-ink-faint'}`}>
+                          {p.mandatory ? 'Wajib' : p.ajuan ? 'Ajuan' : 'Opsional'}
                         </span>
                       </div>
                       {!readOnly && (
@@ -249,7 +287,9 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="penilai" />
       <p className="text-[11px] text-ink-faint leading-relaxed">
         <strong className="font-semibold text-ink-soft">Status "Lengkap"</strong> dihitung dari penilaian <strong className="font-semibold text-ink-soft">WAJIB</strong> saja — penilaian
-        opsional tak memengaruhi status/kartu (tetap ditampilkan di Rincian untuk dipantau). Tiap baris:
+        opsional tak memengaruhi status/kartu (tetap ditampilkan di Rincian untuk dipantau). Penilaian
+        <strong className="font-semibold text-ink-soft"> Ajuan</strong> (opsional yang diajukan pegawai &amp; disetujui HRD) dipantau di panel
+        <strong> Penilaian Ajuan</strong> &amp; chip bergaris putus-putus. Tiap baris:
         <strong> Menilai (wajib)</strong> (tugas wajib penilai) &amp; <strong>Dinilai oleh</strong> (berapa
         penilai sudah menilai pegawai ini). <strong>Status penilaian</strong> (tugas wajib): Belum Mulai · Sedang Diisi
         (draf) · Selesai – Tepat Waktu · Selesai – Terlambat — ditentukan dari waktu kirim <em>pertama</em> dibanding
@@ -275,12 +315,14 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
 }
 
 const STATUS_ORDER: ProgressStatus[] = ['not_started', 'in_progress', 'on_time', 'late'];
+/** Chip per penilai: 4 status BR-07 + "Dibatalkan" (0046) bila ada. */
+const CHIP_ORDER: ProgressStatus[] = [...STATUS_ORDER, 'invalidated'];
 const STATUS_TEXT: Record<ProgressStatus, string> = {
-  not_started: 'text-ink-soft', in_progress: 'text-warn-ink', on_time: 'text-brand-ink', late: 'text-danger-ink',
+  not_started: 'text-ink-soft', in_progress: 'text-warn-ink', on_time: 'text-brand-ink', late: 'text-danger-ink', invalidated: 'text-ink-faint',
 };
 const STATUS_CHIP: Record<ProgressStatus, string> = {
   not_started: 'bg-neutral-tint text-ink-soft', in_progress: 'bg-warn-tint text-warn-ink',
-  on_time: 'bg-brand-tint text-brand-ink', late: 'bg-danger-tint text-danger-ink',
+  on_time: 'bg-brand-tint text-brand-ink', late: 'bg-danger-tint text-danger-ink', invalidated: 'bg-neutral-tint text-ink-faint',
 };
 
 function Stat({ label, value, c }: { label: string; value: number | string; c: string }) {

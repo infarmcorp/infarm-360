@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { colPercents } from '@/lib/table-cols';
 import { motion } from 'motion/react';
 import { Award, Target, Flame, TrendingUp, TrendingDown, Building2, Users, BarChart3 } from 'lucide-react';
 import {
@@ -279,7 +280,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
       {/* Distribusi Kategori Kinerja + Rencana Tindak Lanjut */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="📊 Distribusi Kategori Kinerja — Skor Akhir">
-          <p className="text-[10px] text-gray-500 mb-3 -mt-1">Skor Akhir = blend KPI 50% + 360° 50% − punishment (KPI murni bila 360° nonaktif). Berbeda dari tab <strong>Analisis Hasil KPI</strong> (KPI saja).{aggregate && <span className="text-indigo-700 font-semibold"> Mode agregat: rata-rata antar-kuartal, tanpa punishment.</span>}</p>
+          <p className="text-[10px] text-gray-500 mb-3 -mt-1">Skor Akhir = blend KPI 50% + 360° 50% (KPI murni bila 360° nonaktif). Berbeda dari tab <strong>Analisis Hasil KPI</strong> (KPI saja).{aggregate && <span className="text-indigo-700 font-semibold"> Mode agregat: rata-rata Skor Akhir per kuartal.</span>}</p>
           <CountBars items={categories} denom={denom} />
         </Card>
         <Card title="🎯 Rencana Tindak Lanjut Organisasi — Skor Akhir"><CountBars items={recommendations} denom={denom} /></Card>
@@ -734,14 +735,25 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm min-w-[720px]">
+        {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
+        <table className="w-full table-fixed text-left text-sm min-w-[660px]">
+          <colgroup>
+            {colPercents([
+              240, // Pegawai (+ chip nonaktif) + divisi
+              110, // Rerata KPI
+              140, // Trend KPI ("Belum terbaca")
+              110, // Skor 360°
+              130, // Skor Akhir (live)
+              120, // Player ("B · Culture")
+            ]).map((w, i) => <col key={i} style={{ width: w }} />)}
+          </colgroup>
           <thead>
             <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
               <th className="py-2 pr-3">Pegawai</th>
               <th className="py-2 px-3 text-center">Rerata KPI</th>
               <th className="py-2 px-3 text-center">Trend KPI</th>
               <th className="py-2 px-3 text-center">Skor 360°</th>
-              <th className="py-2 px-3 text-center" title="Dihitung langsung (live) dari KPI + 360° − punishment periode ini">
+              <th className="py-2 px-3 text-center" title="Dihitung langsung (live) dari KPI + 360° periode ini">
                 Skor Akhir <span className="normal-case font-normal text-gray-400">(live)</span>
               </th>
               <th className="py-2 pl-3 text-center">Player</th>
@@ -752,7 +764,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
             {paged.map((r) => {
               return (
                 <tr key={r.id}>
-                  <td className="py-3 pr-3">
+                  <td className="py-3 pr-3 break-words">
                     <span className="font-bold text-gray-800 block" title={r.name}>
                       {displayName(r.nickname, r.name)}
                       {r.isActive === false && (
@@ -792,7 +804,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
         </div>
       )}
       <p className="text-[10px] text-gray-500 italic mt-3">
-        Skor Akhir <strong>(live)</strong> = blend KPI+360 (50/50) − punishment, dihitung langsung dari data periode aktif —
+        Skor Akhir <strong>(live)</strong> = blend KPI+360 (50/50), dihitung langsung dari data periode aktif —
         bisa berbeda dari angka <strong>finalisasi tersimpan</strong> di Laporan Kinerja Tim.
         Player (A/B/C) berbasis KPI × 360° (ambang 80); <strong>HRD Review</strong> = KPI atau Skor 360° kosong → tidak diklasifikasi otomatis.{!has360 && ' Periode tanpa 360° → semua pegawai berstatus HRD Review.'}
       </p>
@@ -956,7 +968,14 @@ function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; mont
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full border-separate border-spacing-1 text-xs min-w-[560px]">
+        {/* table-fixed: kolom Divisi lebar tetap, kolom data berbagi rata — tak bergeser saat filter berubah. */}
+        <table className="w-full table-fixed border-separate border-spacing-1 text-xs" style={{ minWidth: Math.max(440, Math.round((160 + months.length * 84) * 0.78)) }}>
+          <colgroup>
+            {colPercents([
+              160, // Divisi
+              ...months.map(() => 84), // tiap bulan (berbagi rata)
+            ]).map((w, i) => <col key={i} style={{ width: w }} />)}
+          </colgroup>
           <thead>
             <tr>
               <th className="text-left py-2 px-3 text-[10px] font-extrabold uppercase tracking-wider text-gray-500 sticky left-0 bg-white">Divisi</th>
@@ -968,7 +987,7 @@ function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; mont
           <tbody>
             {deptMonthly.map((row) => (
               <tr key={row.dept}>
-                <td className="py-2 px-3 font-bold text-slate-700 whitespace-nowrap sticky left-0 bg-white">{row.dept}</td>
+                <td className="py-2 px-3 font-bold text-slate-700 break-words sticky left-0 bg-white">{row.dept}</td>
                 {row.cells.map((c) => {
                   const { bg, fg } = heatColor(c.avg);
                   return (
@@ -1014,19 +1033,26 @@ function Aspect360Heatmap({ deptAspect, aspects }: { deptAspect: DeptAspectRow[]
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full border-separate border-spacing-1 text-xs min-w-[560px]">
+        {/* table-fixed: kolom Divisi lebar tetap, kolom data berbagi rata — tak bergeser saat filter berubah. */}
+        <table className="w-full table-fixed border-separate border-spacing-1 text-xs" style={{ minWidth: Math.max(440, Math.round((160 + aspects.length * 84) * 0.78)) }}>
+          <colgroup>
+            {colPercents([
+              160, // Divisi
+              ...aspects.map(() => 84), // tiap aspek (berbagi rata)
+            ]).map((w, i) => <col key={i} style={{ width: w }} />)}
+          </colgroup>
           <thead>
             <tr>
               <th className="text-left py-2 px-3 text-[10px] font-extrabold uppercase tracking-wider text-gray-500 sticky left-0 bg-white">Divisi</th>
               {aspects.map((a) => (
-                <th key={a} className="text-center py-2 px-2 text-[10px] font-extrabold uppercase tracking-wider text-gray-500 whitespace-normal max-w-[110px] leading-tight">{a}</th>
+                <th key={a} className="text-center py-2 px-2 text-[10px] font-extrabold uppercase tracking-wider text-gray-500 whitespace-normal break-words leading-tight">{a}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {deptAspect.map((row) => (
               <tr key={row.dept}>
-                <td className="py-2 px-3 font-bold text-slate-700 whitespace-nowrap sticky left-0 bg-white">{row.dept}</td>
+                <td className="py-2 px-3 font-bold text-slate-700 break-words sticky left-0 bg-white">{row.dept}</td>
                 {row.cells.map((c) => {
                   const { bg, fg } = heatColor(c.avg);
                   return (

@@ -367,7 +367,7 @@ export async function periodDataCounts(periodId: string): Promise<
  * HAPUS PERIODE beserta seluruh datanya. Pengaman: hanya HRD, periode AKTIF ditolak
  * (harus "Kunci & Akhiri" dulu), wajib konfirmasi ketik `HAPUS`. Penghapusan baris
  * periods cascade ke months/aspek/indikator/pertanyaan/bobot/pemetaan/koreksi/penilaian
- * (+anak)/result_360/punishment/laporan final/suksesi. KPI (per ym, tak cascade) dihapus
+ * (+anak)/result_360/laporan final/suksesi. KPI (per ym, tak cascade) dihapus
  * manual HANYA untuk bulan unik periode ini agar tak mengganggu periode lain.
  */
 export async function deletePeriod(periodId: string, confirmText: string): Promise<Result> {

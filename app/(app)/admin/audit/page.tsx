@@ -5,7 +5,7 @@ import { AuditClient, type AuditRow } from './audit-client';
 
 /**
  * Log Aktivitas HRD — jejak audit aksi sensitif (kunci periode, bobot, finalisasi,
- * punishment, kelola akun, dll). Read-only untuk HRD & Direksi (RLS hrd_audit_read).
+ * potongan keterlambatan, kelola akun, dll). Read-only untuk HRD & Direksi (RLS hrd_audit_read).
  * Tabel append-only; tak ada cara mengubah/menghapus baris dari aplikasi.
  *
  * OPTIMASI EGRESS (2026-07-15): paginasi di SISI SERVER — hanya 10 baris per halaman
@@ -87,7 +87,7 @@ export default async function AuditPage({
       <div className="mb-5">
         <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Log Aktivitas HRD</h1>
         <p className="mt-1 text-[13.5px] text-ink-soft">
-          Jejak audit aksi sensitif (kunci/aktivasi periode, bobot, finalisasi, punishment,
+          Jejak audit aksi sensitif (kunci/aktivasi periode, bobot, finalisasi, potongan keterlambatan,
           kelola akun, pemetaan, pertanyaan). Hanya-baca &amp; tak dapat diubah.
         </p>
       </div>

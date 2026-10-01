@@ -82,10 +82,6 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', 
     ? await supabase.from('result_360').select('employee_id, score').eq('period_id', sel.id).in('employee_id', empIds)
     : { data: [] };
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
-  const { data: pen } = empIds.length
-    ? await supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', sel.id).in('employee_id', empIds)
-    : { data: [] };
-  const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
   // Laporan FINAL → Skor Akhir tersimpan (yang dilihat pegawai) — displayedFinalOf.
   const { data: reps } = empIds.length
     ? await supabase.from('final_reports').select('employee_id, status, final_score').eq('period_id', sel.id).in('employee_id', empIds)
@@ -99,8 +95,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', 
     });
     const kpiAvg = kpiAvgOf(monthly);
     const s360 = s360By.get(e.id) ?? null;
-    const penalty = penBy.get(e.id) ?? 0;
-    const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, sel.has_360, penalty), repBy.get(e.id));
+    const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, sel.has_360), repBy.get(e.id));
     const player = playerClassOf(kpiAvg, sel.has_360 ? s360 : null);
     const kat = KAT(final);
     return { id: e.id, name: e.name, dept: e.dept, is_active: e.is_active, monthly, kpiAvg, s360, final, player, katText: kat.t, katClass: kat.c };
@@ -122,7 +117,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', 
       )}
       <RekapTable rows={rows} monthLabels={ymList.map(labelOf)} has360={sel.has_360} />
       <p className="text-[11px] text-ink-faint mt-3 leading-relaxed">
-        Rataan KPI = rerata bulan ber-skor di kuartal ini. Skor Akhir = blend KPI+360 (50/50) − punishment
+        Rataan KPI = rerata bulan ber-skor di kuartal ini. Skor Akhir = blend KPI+360 (50/50)
         {sel.has_360 ? '' : ' (kuartal KPI saja → 100% KPI)'}. Kategori: ≥90 Melampaui · ≥80 Memenuhi · ≥70 Perlu Peningkatan · &lt;70 Di Bawah Ekspektasi.
       </p>
     </div>

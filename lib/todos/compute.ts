@@ -48,7 +48,8 @@ async function countAssessPending(supabase: SB, periodId: string, userId: string
   const [{ data: maps }, { data: subs }] = await Promise.all([
     // Hanya pemetaan AKTIF (selaras halaman /penilaian) — pemetaan terhapus/nonaktif tak dihitung.
     supabase.from('mappings').select('target_id').eq('period_id', periodId).eq('assessor_id', userId).eq('is_active', true),
-    supabase.from('assessments').select('target_id').eq('period_id', periodId).eq('assessor_id', userId).eq('status', 'submitted'),
+    // 'invalidated' (dibatalkan HRD, 0046) = bukan lagi tugas.
+    supabase.from('assessments').select('target_id').eq('period_id', periodId).eq('assessor_id', userId).in('status', ['submitted', 'invalidated']),
   ]);
   if (!maps?.length) return 0;
   const done = new Set((subs ?? []).map((s) => s.target_id));

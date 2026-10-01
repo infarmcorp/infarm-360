@@ -155,11 +155,12 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
     .sort((a, b) => a.name.localeCompare(b.name));
 
   // Ringkasan penilaian WAJIB (sifat = Wajib) — berapa harus dinilai vs sudah dikirim.
-  const mandatoryItems = items.filter((it) => it.mandatory);
+  // Penilaian yang dibatalkan validitasnya oleh HRD (0046) bukan lagi kewajiban.
+  const mandatoryItems = items.filter((it) => it.mandatory && it.status !== 'invalidated');
   const mandTotal = mandatoryItems.length;
   const mandDone = mandatoryItems.filter((it) => it.status === 'submitted').length;
   // Ajuan (Q3 2026 dst.) yang belum dikirim — ikut potongan bila deadline lewat.
-  const ajuanPendingN = items.filter((it) => it.requested && it.status !== 'submitted').length;
+  const ajuanPendingN = items.filter((it) => it.requested && it.status !== 'submitted' && it.status !== 'invalidated').length;
 
   // Panel "Permohonan Saya" — status pengajuan (hapus/tambah/koreksi) + alasan penolakan HRD.
   const myRequestRows: MyRequest[] = myReqs.map((c) => ({
@@ -316,7 +317,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                           dikunci relasi 'Cross' saat dibuat, padahal hubungan sebenarnya bisa berbeda
                           (mis. ternyata Bawahan/Atasan). Penilai mengajukan koreksi → HRD yang menyetujui
                           (gatekeeper), jadi bobot tetap tak bisa digelembungkan sepihak. Self dikecualikan. */}
-                      {it.relation !== 'Self' && (
+                      {it.relation !== 'Self' && it.status !== 'invalidated' && (
                         <CorrectionButton
                           mappingId={it.mappingId}
                           targetId={it.targetId}
@@ -328,7 +329,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                       {/* Ajukan Hapus: untuk pemetaan dari HRD. Target Ad-Hoc buatan sendiri tak perlu
                           diajukan — pegawai boleh menghapusnya langsung (AdhocDeleteButton di atas).
                           'Self' dikecualikan: evaluasi diri bukan hal yang bisa ditolak pegawai. */}
-                      {!it.isAdhoc && it.relation !== 'Self' && (
+                      {!it.isAdhoc && it.relation !== 'Self' && it.status !== 'invalidated' && (
                         <RequestRemoveButton
                           mappingId={it.mappingId}
                           targetId={it.targetId}
@@ -337,7 +338,9 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                         />
                       )}
                       {/* Fase tinjau: pengisian belum dibuka, jadi tak ada tautan "Mulai Nilai". */}
-                      {reviewPhase ? (
+                      {it.status === 'invalidated' ? (
+                        <span className="text-[11px] text-ink-faint italic" title="HRD membatalkan validitas penilaian ini — tidak dihitung & tidak bisa diubah.">dibatalkan HRD</span>
+                      ) : reviewPhase ? (
                         <span className="text-[11px] text-ink-faint italic">belum dibuka</span>
                       ) : (
                         <Link
@@ -368,18 +371,20 @@ const STATUS_CLS: Record<ProgressStatus, string> = {
   in_progress: 'bg-warn-tint text-warn-ink border-warn-ink/25',
   on_time: 'bg-brand-tint text-brand-ink border-brand-ink/20',
   late: 'bg-danger-tint text-danger-ink border-danger-ink/25',
+  invalidated: 'bg-neutral-tint text-ink-faint border-line',
 };
 const STATUS_TITLE: Record<ProgressStatus, string> = {
   not_started: 'Not Started — penilaian belum mulai dikerjakan',
   in_progress: 'In Progress — sudah mulai diisi, belum dikirim final',
   on_time: 'Completed – On Time — dikirim pertama kali sebelum/tepat pada deadline',
   late: 'Completed – Late — dikirim pertama kali sesudah deadline',
+  invalidated: 'Dibatalkan HRD — penilaian dinyatakan tidak valid; tidak dihitung dan bukan lagi kewajiban',
 };
 
 /** BR-07: status penyelesaian. Penilaian yang tak dihitung potongan (Opsional biasa / Ad-Hoc lama)
  *  cukup "Terkirim" — label tepat waktu/terlambat tak relevan untuknya. */
 function StatusBadge({ status, counted }: { status: ProgressStatus; counted: boolean }) {
-  const done = status === 'on_time' || status === 'late';
+  const done = status === 'on_time' || status === 'late'; // invalidated tetap berlabel "Dibatalkan"
   const key: ProgressStatus = done && !counted ? 'on_time' : status;
   const label = done && !counted ? 'Terkirim' : PROGRESS_STATUS_LABEL[status];
   return (

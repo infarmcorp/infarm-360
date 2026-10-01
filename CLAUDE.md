@@ -360,6 +360,10 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
   Isian % HRD diabaikan (dikunci di halaman Bobot). **4 kelas tak berubah**; **bobot khusus per pegawai tetap
   berlaku apa adanya**; Q1–Q2 tetap bobot tersimpan. Semua pemanggil WAJIB lewat `schemeFor`/`effectiveModel`
   (`lib/score360.ts`) — jangan suapkan model DB langsung ke `weightedScore360`.
+- **Penilaian DIBATALKAN validitasnya** (`assessments.status='invalidated'`, migrasi 0046) = arsip: tak pernah masuk
+  skor (filter `status='submitted'` di semua hitungan — jangan ganti filter itu jadi "bukan draft"), kewajiban rater
+  gugur (tuntas di Progress/Kepatuhan/pengingat, tak kena potongan telat). Penilaian **Terkirim tak boleh dihapus**
+  (Pemetaan → "Periksa Validitas"); hapus pemetaan hanya Belum Mulai/Draft + alasan wajib.
 - **Skor 360° resmi** (`result_360.score`) = `score_raw` (rumus `weightedScore360`) **dikurangi potongan
   keterlambatan menilai** (flat −3 bila ≥1 kewajiban "belum selesai saat deadline" — mencakup
   terkirim-telat MAUPUN tak pernah dikirim sama sekali; kewajiban = pemetaan **Wajib** + **AJUAN**

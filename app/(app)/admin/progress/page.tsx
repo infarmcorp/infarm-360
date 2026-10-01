@@ -73,15 +73,18 @@ export default async function ProgressPage() {
 
   const rows: AssessorRow[] = [...byAssessor.entries()].map(([assessorId, tasks]) => {
     const e = empById.get(assessorId);
-    const activeTasks = tasks;
+    // Penilaian yang DIBATALKAN validitasnya oleh HRD (0046) → kewajiban gugur: keluar dari total & tunggakan.
+    const isInvalid = (t: { targetId: string }) => statusOf(assessorId, t.targetId) === 'invalidated';
+    const activeTasks = tasks.filter((t) => !isInvalid(t));
     const pending = activeTasks
       .filter((t) => !submitted.has(`${assessorId}|${t.targetId}`))
       .map((t) => ({ targetId: t.targetId, targetName: empById.get(t.targetId)?.name ?? '—', relation: t.relation, mandatory: t.mandatory, progress: statusOf(assessorId, t.targetId) }));
     // Kelengkapan diukur dari penilaian WAJIB saja (opsional tak menentukan "lengkap").
     const mandatoryTasks = activeTasks.filter((t) => t.mandatory);
     const mandatoryDone = mandatoryTasks.filter((t) => submitted.has(`${assessorId}|${t.targetId}`)).length;
-    const statusCounts: Record<ProgressStatus, number> = { not_started: 0, in_progress: 0, on_time: 0, late: 0 };
+    const statusCounts: Record<ProgressStatus, number> = { not_started: 0, in_progress: 0, on_time: 0, late: 0, invalidated: 0 };
     mandatoryTasks.forEach((t) => { statusCounts[statusOf(assessorId, t.targetId)]++; });
+    statusCounts.invalidated = tasks.filter((t) => t.mandatory && isInvalid(t)).length;
     return {
       id: assessorId,
       name: e?.name ?? '—',

@@ -125,6 +125,16 @@ export default async function AssessPage({
             /penilaian/A ke /penilaian/B (tanpa reload) membuat React mempertahankan state
             (activeGroup/activeId/rating/komentar) target sebelumnya → form bisa terbuka di
             "Umpan Balik Kualitatif" atau menampilkan jawaban target lama. */}
+        {existing?.status === 'invalidated' ? (
+          // Dibatalkan validitasnya oleh HRD (0046): arsip, tak bisa diubah; DB juga menolak tulis.
+          <div className="rounded-panel border border-line bg-neutral-tint p-4">
+            <p className="text-[13px] font-bold text-ink">Penilaian ini dibatalkan validitasnya oleh HRD</p>
+            <p className="text-[12px] text-ink-soft mt-1 leading-relaxed">
+              Penilaian Anda untuk rekan ini dinyatakan tidak valid, sehingga tidak dihitung dalam Skor 360° dan
+              bukan lagi kewajiban Anda. Jawaban tidak dapat diubah. Hubungi HRD bila ada pertanyaan.
+            </p>
+          </div>
+        ) : (
         <AssessForm
           key={targetId}
           targetId={targetId}
@@ -139,6 +149,7 @@ export default async function AssessPage({
           mandatoryDoneOthers={mandatoryDoneOthers}
           thisMandatory={thisMandatory}
         />
+        )}
       </div>
     </main>
   );

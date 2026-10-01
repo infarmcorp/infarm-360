@@ -63,6 +63,10 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
   const { data: exExisting } = await supabase
     .from('assessments').select('status')
     .eq('assessor_id', auth.user.id).eq('target_id', targetId).eq('period_id', ap.id).maybeSingle();
+  // Dibatalkan validitasnya oleh HRD (0046) → arsip, tak bisa diubah (DB juga menolak lewat trigger).
+  if (exExisting?.status === 'invalidated') {
+    return { ok: false, error: 'Penilaian ini telah dibatalkan validitasnya oleh HRD dan tidak dapat diubah' };
+  }
   // Penilaian yang SUDAH terkirim tak boleh turun ke draf: nilainya sudah masuk laporan pegawai yang
   // dinilai. Pegawai tetap boleh mengedit — lewat "Kirim Ulang" (status tetap 'submitted').
   if (exExisting?.status === 'submitted' && status === 'draft') {

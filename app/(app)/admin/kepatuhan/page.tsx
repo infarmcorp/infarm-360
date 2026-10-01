@@ -56,9 +56,9 @@ export default async function KepatuhanPage() {
   // harus lengkap agar keputusan punishment tak keliru).
   const maps = await fetchAllPaged<{ assessor_id: string; target_id: string; mandatory: boolean }>((from, to) =>
     db.from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', ap.id).eq('is_active', true).order('assessor_id').order('target_id').range(from, to));
-  // Assessment terkirim → set "assessor:target".
+  // Assessment terkirim → set "assessor:target". 'invalidated' (dibatalkan HRD, 0046) = kewajiban gugur.
   const asmts = await fetchAllPaged<{ assessor_id: string; target_id: string }>((from, to) =>
-    db.from('assessments').select('assessor_id, target_id').eq('period_id', ap.id).eq('status', 'submitted').order('assessor_id').order('target_id').range(from, to));
+    db.from('assessments').select('assessor_id, target_id').eq('period_id', ap.id).in('status', ['submitted', 'invalidated']).order('assessor_id').order('target_id').range(from, to));
   const submitted = new Set(asmts.map((a) => `${a.assessor_id}:${a.target_id}`));
   // Siapa-menilai-siapa HANYA untuk HRD (keputusan 2026-09-29): pemegang grant non-HRD hanya melihat
   // JUMLAH, bukan nama target — nama dikosongkan di SERVER agar tak ikut terkirim ke browser.

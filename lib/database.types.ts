@@ -8,7 +8,8 @@
  */
 export type UserRole = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type RelationKind = 'Atasan' | 'Peer' | 'Cross' | 'Self' | 'Bawahan';
-export type AssessmentStatus = 'draft' | 'submitted';
+/** 'invalidated' (migrasi 0046) = penilaian terkirim yang DIBATALKAN validitasnya oleh HRD — arsip, keluar dari skor. */
+export type AssessmentStatus = 'draft' | 'submitted' | 'invalidated';
 export type ExposureStatus = 'eligible' | 'partially_eligible' | 'not_eligible'; // BR-03 Exposure Check
 export type WeightValues = { atasan?: number; peer?: number; cross?: number; bawahan?: number; self?: number; internal?: number };
 export type ReportStatus = 'draft' | 'in_review' | 'finalized';
@@ -75,8 +76,8 @@ export interface Database {
         Relationships: [];
       };
       assessments: {
-        Row: { id: string; period_id: string; assessor_id: string; target_id: string; status: AssessmentStatus; is_adhoc: boolean; submitted_at: string | null; first_submitted_at: string | null; forced_by_hrd: boolean; exposure_status: ExposureStatus | null; exposure_confirmed_at: string | null; exposure_reason: string | null; created_at: string };
-        Insert: { period_id: string; assessor_id: string; target_id: string; status?: AssessmentStatus; is_adhoc?: boolean; submitted_at?: string | null; exposure_status?: ExposureStatus | null; exposure_confirmed_at?: string | null; exposure_reason?: string | null };
+        Row: { id: string; period_id: string; assessor_id: string; target_id: string; status: AssessmentStatus; is_adhoc: boolean; submitted_at: string | null; first_submitted_at: string | null; forced_by_hrd: boolean; exposure_status: ExposureStatus | null; exposure_confirmed_at: string | null; exposure_reason: string | null; created_at: string; invalidated_at: string | null; invalidated_by: string | null; invalid_reason: string | null };
+        Insert: { period_id: string; assessor_id: string; target_id: string; status?: AssessmentStatus; is_adhoc?: boolean; submitted_at?: string | null; exposure_status?: ExposureStatus | null; exposure_confirmed_at?: string | null; exposure_reason?: string | null; invalidated_at?: string | null; invalidated_by?: string | null; invalid_reason?: string | null };
         Update: Partial<Database['public']['Tables']['assessments']['Insert']>;
         Relationships: [];
       };

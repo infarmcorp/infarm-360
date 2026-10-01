@@ -376,6 +376,16 @@
   izin hanya Lihat); halaman Direksi `/review-hasil` → **"Tinjauan Hasil Akhir"**. Tombol **Hitung Ulang
   Skor 360°** kini **hanya satu** (kokpit Review & Finalisasi) — halaman Bobot memberi tautan; tombol ②
   → **"Perbarui Laporan Final yang Berubah"**. Kode `section`/route tak berubah (hanya label).
+- `0046` **Pembatalan validitas penilaian + Hapus Assignment ber-status (Screen 06/07, 2026-10-01, dev):**
+  nilai enum `assessment_status` baru **`invalidated`** + kolom `invalidated_at/by`, `invalid_reason`. Semua hitungan
+  skor memakai `status='submitted'` → penilaian dibatalkan otomatis keluar dari Skor 360°/aspek/laporan/ekspor; jawaban
+  tetap tersimpan (arsip). Kewajiban gugur: Progress 360, Kepatuhan, pengingat, notifikasi sidebar memperlakukannya
+  tuntas; `isPenalizableLate` → tak pernah telat; `progressStatusOf` → status ke-5 "Dibatalkan – Tidak Valid".
+  Trigger `assessments_guard_invalidation` + `assessment_writable` menolak pengguna non-HRD mengubah/menghapus/
+  mengisi pembatalan lewat API. Pemetaan 360°: kolom & filter **Status** (Belum Mulai/Draft/Terkirim/Dibatalkan);
+  **Hapus hanya Belum Mulai/Draft + alasan wajib** (dialog beda per status); Terkirim → **Periksa Validitas** →
+  `setAssessmentValidity` (Batalkan / Pulihkan, alasan wajib, Log Aktivitas `assessment.invalidate|restore`, Skor 360°
+  target direkonsiliasi). Penilai melihat "dibatalkan HRD" (form terkunci). **Terapkan 0046 SEBELUM merge ke main.**
 - **BR-09/10/11 — skor & klasifikasi Q3 2026 (2026-10-01, Tahap 2; keputusan HRD 2026-10-01):**
   (BR-10) model **2 kelas** pada periode mulai ≥ 2026-07-01 → bobot OTOMATIS menurut jumlah penilai Internal yang
   mengirim (≥2 → Atasan 40/Internal 60; 1 → 60/40; satu sisi → 100%); `Model360` + `effectiveModel`/`schemeFor`/

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  kpiBandOf, s360BandOf, talentBoxOf, playerClassOf, finalScoreOf, roundScore, kpiAvgOf, displayedFinalOf, perfCategoryOf, fmt2,
+  kpiBandOf, s360BandOf, talentBoxOf, playerClassOf, playerLabelOf, finalScoreOf, roundScore, kpiAvgOf, displayedFinalOf, perfCategoryOf, fmt2,
 } from '@/lib/scoring';
 
 describe('kpiBandOf — band KPI (≥90 hi · ≥80 mid · <80 lo)', () => {
@@ -60,11 +60,12 @@ describe('playerClassOf — 4-Box A/B-Culture/B-KPI/C (KPI × 360°, ambang 80, 
     expect(playerClassOf(50, 50)).toBe('C');
     expect(playerClassOf(0, 0)).toBe('C');
   });
-  it('nilai hilang diperlakukan <80 (kecuali keduanya kosong)', () => {
-    expect(playerClassOf(90, null)).toBe('B_KPI');     // KPI tinggi, 360 belum ada
-    expect(playerClassOf(null, 90)).toBe('B_CULTURE');  // 360 tinggi, KPI belum ada
-    expect(playerClassOf(70, null)).toBe('C');          // KPI rendah, 360 belum ada
-    expect(playerClassOf(null, 70)).toBe('C');          // 360 rendah, KPI belum ada
+  it('BR-11: satu sumbu kosong → HRD Review (tak dianggap <80)', () => {
+    expect(playerClassOf(85, null)).toBe('HRD_REVIEW'); // contoh HRD Decision: KPI 85, 360 No Score
+    expect(playerClassOf(70, null)).toBe('HRD_REVIEW');
+    expect(playerClassOf(null, 90)).toBe('HRD_REVIEW'); // KPI kosong pun HRD Review
+    expect(playerClassOf(null, 70)).toBe('HRD_REVIEW');
+    expect(playerLabelOf('HRD_REVIEW')).toBe('HRD Review');
   });
 });
 

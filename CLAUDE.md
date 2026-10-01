@@ -354,6 +354,12 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
   > dilihat pegawai), selain itu angka hidup. Hanya Review Hasil Akhir menampilkan selisihnya
   > (`hasScoreDrift`, ≥0.01). Dashboard selalu memotong punishment; mode "semua kuartal" = rata-rata
   > Skor Akhir PER KUARTAL. **Jangan** hitung Skor Akhir/rerata KPI manual di halaman — pakai helper ini.
+- **Bobot 360° 2 kelas OTOMATIS (BR-10, Q3 2026 dst. — keputusan HRD 2026-10-01):** periode mulai ≥
+  `AUTO_WEIGHT_FROM` (2026-07-01) yang memakai model **2 kelas** → bobot dari jumlah penilai Internal
+  (per ORANG yang mengirim): Atasan + ≥2 Internal = 40/60 · Atasan + 1 Internal = 60/40 · satu sisi saja = 100%.
+  Isian % HRD diabaikan (dikunci di halaman Bobot). **4 kelas tak berubah**; **bobot khusus per pegawai tetap
+  berlaku apa adanya**; Q1–Q2 tetap bobot tersimpan. Semua pemanggil WAJIB lewat `schemeFor`/`effectiveModel`
+  (`lib/score360.ts`) — jangan suapkan model DB langsung ke `weightedScore360`.
 - **Skor 360° resmi** (`result_360.score`) = `score_raw` (rumus `weightedScore360`) **dikurangi potongan
   keterlambatan menilai** (flat −3 bila ≥1 kewajiban "belum selesai saat deadline" — mencakup
   terkirim-telat MAUPUN tak pernah dikirim sama sekali; kewajiban = pemetaan **Wajib** + **AJUAN**
@@ -371,8 +377,8 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
   tak pernah memakai potongan basi. Cadangan: tombol "Terapkan Potongan ke Skor 360°" di Kepatuhan. Untuk aktifkan lagi: buat ulang `vercel.json` berisi cron `late-penalty` + set
   `CRON_SECRET`.
 - **Klasifikasi talenta Dashboard** (4-Box A/B-Culture/B-KPI/C — **tanpa D**) **dikunci ke satu
-  kuartal** lewat filter periode agar KPI, 360°, dan Skor Akhir dari periode sama. Kuartal tanpa 360°
-  → pada 4-Box hanya **B-KPI / C** yang mungkin (A & B-Culture butuh sumbu 360°). 4-Box berbasis
+  kuartal** lewat filter periode agar KPI, 360°, dan Skor Akhir dari periode sama. KPI **atau** 360°
+  kosong (termasuk kuartal tanpa 360°) → **HRD Review** (BR-11), tak diklasifikasi otomatis. 4-Box berbasis
   **KPI × 360° langsung** (ambang 80), bukan Skor Akhir — lihat **Klasifikasi Talenta** di bawah.
   > **Matriks 9-Box DIHAPUS dari tampilan dashboard (2026-06-30)** atas permintaan — matriks tab
   > Kompilasi + kolom tabel dibuang. **Rumus `talentBoxOf`/`kpiBandOf`/`s360BandOf` di `lib/scoring.ts`
@@ -391,10 +397,11 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
 - **Cakupan (99 tes):**
   - `tests/scoring.test.ts` → `lib/scoring.ts`: `finalScoreOf` (blend 50/50, KPI-only, 360°-only,
     punishment, floor 0, pembulatan 2 desimal), `roundScore`/`kpiAvgOf`/`displayedFinalOf`, `playerClassOf` (KPI×360° ambang 80 → A / B-Culture / B-KPI / C,
-    null bila keduanya kosong, nilai hilang <80; **tanpa D**), `kpiBandOf`/`s360BandOf`, `talentBoxOf` (9 kotak).
+    null bila keduanya kosong, satu sumbu kosong → HRD_REVIEW; **tanpa D**), `kpiBandOf`/`s360BandOf`, `talentBoxOf` (9 kotak).
   - `tests/score360.test.ts` → `lib/score360.ts`: `weightedScore360` **4class** (semua kelas,
     normalisasi bobot, **kelas Bawahan**, **Self dikecualikan**) & **2class** (Internal = rerata
-    semua skor Peer+Cross+Bawahan, fallback satu sisi); `round2` (2 desimal).
+    semua skor Peer+Cross+Bawahan, fallback satu sisi) & **2class_auto** (BR-10: bobot otomatis 40/60 · 60/40
+    menurut jumlah penilai internal, `effectiveModel`/`schemeFor`); `round2` (2 desimal).
   - `tests/trend.test.ts` → `lib/trend.ts`: `trendOf` berdasar JUMLAH bulan terisi (kosong = KPI belum
     ditetapkan; **0 = nilai sungguhan**): 0 → empty · 1 → unread ("Belum terbaca") · 2 → stable/up/down
     dari dua bulan itu (toleransi ±2) · 3 → stable/up/down/volatile (Fluktuatif hanya bila 3 bulan).
@@ -464,7 +471,7 @@ Kotak = perpotongan band KPI (baris) × band 360° (kolom):
 
 ### 4-Box — A / B-Culture / B-KPI / C (`playerClassOf`)
 **Berbasis KPI (rerata) × Skor 360° LANGSUNG, ambang 80 — BUKAN Skor Akhir. Tidak ada D Player.**
-Signature: `playerClassOf(kpi: number|null, s360: number|null): PlayerClass|null`.
+Signature: `playerClassOf(kpi: number|null, s360: number|null): PlayerClass|null` (`PlayerClass` termasuk `'HRD_REVIEW'`).
 
 | Kelas (`key`) | Syarat |
 |-------|--------|
@@ -473,10 +480,12 @@ Signature: `playerClassOf(kpi: number|null, s360: number|null): PlayerClass|null
 | **B Player (High Culture)** (`B_CULTURE`) | `KPI < 80` **DAN** `360° ≥ 80` |
 | **B Player (High KPI)** (`B_KPI`) | `KPI ≥ 80` **DAN** `360° < 80` |
 | **C Player** (`C`) | keduanya `< 80` |
+| **HRD Review** (`HRD_REVIEW`) | tepat **satu** sumbu kosong (KPI **atau** 360°) |
 
-- Nilai hilang (`null`) diperlakukan **di bawah 80** — kecuali **keduanya** kosong (→ `null`).
-- **Tanpa 360°** (`has360=false` → s360 null): tak ada sumbu budaya → hanya **B-KPI** (KPI≥80) atau
-  **C** yang mungkin; **A & B-Culture tidak tersedia**. (Pemanggil melewatkan `has_360 ? s360 : null`.)
+- **BR-11 (Q3 2026, keputusan HRD 2026-10-01):** nilai hilang **TIDAK** lagi dianggap di bawah 80 →
+  `HRD_REVIEW` (bukan kotak 4-Box; Dashboard menaruhnya di bucket "HRD Review").
+- **Tanpa 360°** (`has360=false` → s360 null; pemanggil melewatkan `has_360 ? s360 : null`) → semua
+  pegawai ber-KPI berstatus **HRD Review**.
 - Berbeda dari versi lama (yang berbasis Skor Akhir + ada D). Diubah atas permintaan (rumus Excel HRD).
 - 9-Box (`talentBoxOf`) **tidak berubah** (tetap band 90/80 × 80/70, butuh KPI & 360 keduanya ada).
 

@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { ReportStatus } from '@/lib/database.types';
-import { hasScoreDrift, fmt2 } from '@/lib/scoring';
+import { hasScoreDrift, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
 import { usePager, Pager, MultiCheckFilter, CheckboxFilter } from '@/components/table-controls';
 
 export type ReportRow = {
@@ -151,7 +151,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                 </td>
                 <td className="py-3 px-3 text-center data-value text-ink-soft">
                   {!has360 ? <span className="text-[10px] text-ink-faint">N/A</span>
-                    : r.s360 == null ? <span className="text-[10px] text-warn-ink">belum</span>
+                    : r.s360 == null ? <span className="text-[10px] text-warn-ink" title={NO_SCORE_TITLE}>{NO_SCORE_LABEL}</span>
                     : (
                       <div className="flex flex-col items-center gap-0.5">
                         <span>{fmt2(r.s360)}</span>

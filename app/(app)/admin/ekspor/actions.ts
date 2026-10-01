@@ -4,7 +4,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection } from '@/lib/auth/roles';
 import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf, playerLabelOf, perfLabelOf } from '@/lib/scoring';
-import { classOf, avg, weightedScore360, type Groups360 } from '@/lib/score360';
+import { classOf, avg, weightedScore360, effectiveModel, type Groups360, type Model360 } from '@/lib/score360';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 
 /**
@@ -390,7 +390,7 @@ async function loadWeightOverrides(admin: ReturnType<typeof createAdminClient>, 
   if (periodId) q = q.eq('period_id', periodId);
   const { data, error } = await q;
   if (error) throw new Error('Gagal membaca bobot khusus pegawai: ' + error.message);
-  return new Map((data ?? []).map((o) => [`${o.period_id}|${o.employee_id}`, { model: o.model as '4class' | '2class', weights: o.weights as WeightValues }]));
+  return new Map((data ?? []).map((o) => [`${o.period_id}|${o.employee_id}`, { model: o.model as Model360, weights: o.weights as WeightValues }]));
 }
 
 /**
@@ -430,7 +430,9 @@ export async function exportSummary360(periodId?: string | null): Promise<Export
   ]);
   const empById = new Map((emps ?? []).map((e) => [e.id, e]));
   const periodLabel = new Map((periodsAll ?? []).map((p) => [p.id, p.label]));
-  const wsByPeriod = new Map((ws ?? []).map((w) => [w.period_id, { model: w.model as '4class' | '2class', weights: w.weights as WeightValues }]));
+  // 2 kelas Q3 2026 dst. → bobot otomatis BR-10 (effectiveModel); bobot khusus pegawai apa adanya.
+  const startBy = new Map((periodsAll ?? []).map((p) => [p.id, p.start_date as string]));
+  const wsByPeriod = new Map((ws ?? []).map((w) => [w.period_id, { model: effectiveModel(w.model as Model360, startBy.get(w.period_id)), weights: w.weights as WeightValues }]));
   let ovrBy: Awaited<ReturnType<typeof loadWeightOverrides>>;
   try { ovrBy = await loadWeightOverrides(admin, periodId); } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
   const relBy = new Map(mapsAll.map((m) => [`${m.assessor_id}|${m.target_id}|${m.period_id}`, m.relation as RelationKind]));
@@ -526,7 +528,9 @@ export async function exportAspectScores(periodId?: string | null): Promise<Expo
   ]);
   const empById = new Map((emps ?? []).map((e) => [e.id, e]));
   const periodLabel = new Map((periodsAll ?? []).map((p) => [p.id, p.label]));
-  const wsByPeriod = new Map((ws ?? []).map((w) => [w.period_id, { model: w.model as '4class' | '2class', weights: w.weights as WeightValues }]));
+  // 2 kelas Q3 2026 dst. → bobot otomatis BR-10 (effectiveModel); bobot khusus pegawai apa adanya.
+  const startBy = new Map((periodsAll ?? []).map((p) => [p.id, p.start_date as string]));
+  const wsByPeriod = new Map((ws ?? []).map((w) => [w.period_id, { model: effectiveModel(w.model as Model360, startBy.get(w.period_id)), weights: w.weights as WeightValues }]));
   const relBy = new Map(mapsAll.map((m) => [`${m.assessor_id}|${m.target_id}|${m.period_id}`, m.relation as RelationKind]));
   const aspectOf = new Map((inds ?? []).map((i) => [i.id, i.aspect_id])); // indikator → aspek
   const aspectMeta = new Map((aspects ?? []).map((a) => [a.id, { name: a.name, ord: a.order_idx ?? 0 }]));

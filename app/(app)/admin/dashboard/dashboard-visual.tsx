@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Award, Target, Flame, TrendingUp, TrendingDown, Building2, Users, BarChart3 } from 'lucide-react';
 import {
-  PLAYER_BOXES, type PlayerClass, perfLabelOf, fmt2 } from '@/lib/scoring';
+  PLAYER_BOXES, type PlayerClass, perfLabelOf, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
 import { heatColor, HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
 import { TREND_META, type Trend } from '@/lib/trend';
 import { displayName } from '@/lib/employee-name';
@@ -27,8 +27,8 @@ export type Row = {
   isActive?: boolean;
   // KPI "belum terbaca" (2 dari 3 bulan kuartal kosong) → dikecualikan dari kategorisasi/rerata KPI & Skor Akhir.
   kpiUnread?: boolean;
-  // Single-axis: saat 360° aktif, pegawai hanya punya 1 sumbu (KPI saja / 360° saja) → belum bisa
-  // diklasifikasi 4-Box (nilai bisa melompat begitu sumbu kedua masuk) → bucket "Data Belum Lengkap".
+  // BR-11: hanya 1 sumbu (KPI saja / 360° saja, termasuk periode tanpa 360°) → player 'HRD_REVIEW',
+  // tak diklasifikasi 4-Box → bucket "HRD Review".
   axisIncomplete?: boolean;
   // Trend KPI 3 bulan (trendOf) + skor bulanannya (untuk badge & tooltip di Tabel).
   trend?: Trend;
@@ -86,17 +86,19 @@ const PLAYER_DESC: Record<PlayerClass, string> = {
   B_CULTURE: 'KPI <80 · 360° ≥80',
   B_KPI: 'KPI ≥80 · 360° <80',
   C: 'KPI <80 · 360° <80',
+  HRD_REVIEW: 'KPI atau 360° kosong',
 };
 
 /** Label ringkas untuk badge tabel. */
 const PLAYER_BADGE: Record<PlayerClass, string> = {
-  A: 'A', B_CULTURE: 'B · Culture', B_KPI: 'B · KPI', C: 'C',
+  A: 'A', B_CULTURE: 'B · Culture', B_KPI: 'B · KPI', C: 'C', HRD_REVIEW: 'HRD Review',
 };
 const PLAYER_COLOR: Record<PlayerClass, string> = {
   A: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   B_CULTURE: 'bg-blue-50 text-blue-700 border-blue-200',
   B_KPI: 'bg-indigo-50 text-indigo-700 border-indigo-200',
   C: 'bg-rose-50 text-rose-700 border-rose-200',
+  HRD_REVIEW: 'bg-amber-50 text-amber-700 border-amber-200',
 };
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -208,8 +210,8 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
   // ditampilkan terpisah sebagai bucket "Belum Terbaca".
   const readable = rows.filter((r) => !r.kpiUnread);
   const unread = rows.filter((r) => r.kpiUnread);
-  // Single-axis (saat 360° aktif, hanya 1 sumbu terisi) → dikeluarkan dari 4-Box (player=null di
-  // page.tsx) & ditampilkan di bucket "Data Belum Lengkap" terpisah, seperti pola "Belum Terbaca".
+  // BR-11: satu sumbu kosong (KPI atau 360°, termasuk periode tanpa 360°) → player 'HRD_REVIEW',
+  // dikeluarkan dari 4-Box & ditampilkan di bucket "HRD Review" terpisah, seperti pola "Belum Terbaca".
   const incomplete = readable.filter((r) => r.axisIncomplete);
   const scored = readable.filter((r) => r.final != null);
   const denom = scored.length || 1;
@@ -239,7 +241,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
     .sort((a, b) => b.n - a.n)[0];
 
   const playerGroups = new Map<PlayerClass, Row[]>();
-  readable.forEach((r) => { if (r.player) { const a = playerGroups.get(r.player) ?? []; a.push(r); playerGroups.set(r.player, a); } });
+  readable.forEach((r) => { if (r.player && r.player !== 'HRD_REVIEW') { const a = playerGroups.get(r.player) ?? []; a.push(r); playerGroups.set(r.player, a); } });
 
   // 10 pegawai dengan Skor Akhir TERTINGGI / TERENDAH (bukan lagi dibatasi ambang <85).
   const rankedFinal = [...scored].sort((a, b) => (b.final ?? 0) - (a.final ?? 0));
@@ -338,7 +340,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
       {/* 4-Box */}
       <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
         <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Klasifikasi Pemain — Matriks 4-Box (A / B Culture / B KPI / C)</h3>
-        <p className="text-xs text-gray-500 mt-0.5 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan KPI × 360° (ambang 80){incomplete.length > 0 ? ` · ${incomplete.length} data belum lengkap (dikecualikan)` : ''}{unread.length > 0 ? ` · ${unread.length} belum terbaca (dikecualikan)` : ''}.</p>
+        <p className="text-xs text-gray-500 mt-0.5 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan KPI × 360° (ambang 80){incomplete.length > 0 ? ` · ${incomplete.length} HRD Review (dikecualikan)` : ''}{unread.length > 0 ? ` · ${unread.length} belum terbaca (dikecualikan)` : ''}.</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {PLAYER_BOXES.map((box) => {
             const emps = playerGroups.get(box.key) ?? [];
@@ -363,14 +365,14 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
         {incomplete.length > 0 && (
           <div className="mt-3 border border-gray-200 border-t-4 border-t-amber-400 rounded-xl p-3 bg-amber-50/50">
             <div className="flex items-start justify-between gap-1">
-              <span className="text-[13px] font-black text-slate-700 leading-tight">Data Belum Lengkap (1 Sumbu)</span>
+              <span className="text-[13px] font-black text-slate-700 leading-tight">HRD Review</span>
               <span className="text-lg font-black font-mono shrink-0 text-amber-600">{incomplete.length}</span>
             </div>
-            <span className="text-[10px] text-gray-500 font-semibold mt-0.5 leading-tight block">Baru punya SATU sumbu (KPI saja atau 360° saja) saat 360° aktif → belum diklasifikasi agar tak "melompat" begitu sumbu kedua masuk. Lengkapi KPI/360°-nya lalu Hitung Ulang.</span>
+            <span className="text-[10px] text-gray-500 font-semibold mt-0.5 leading-tight block">KPI atau Skor 360° belum tersedia (No Score / Insufficient Data) → tidak diklasifikasi otomatis (tidak dianggap di bawah 80). Diputuskan HRD, atau lengkapi datanya lalu Hitung Ulang.</span>
             <div className="mt-2 flex flex-wrap gap-1">
               {incomplete.map((e) => (
                 <span key={e.id} className="text-[10px] bg-white/70 text-gray-600 px-1.5 py-0.5 rounded font-semibold border border-amber-200"
-                  title={`${e.name} · KPI ${e.kpiAvg != null ? fmt2(e.kpiAvg) : 'N/A'} · 360 ${e.s360 != null ? fmt2(e.s360) : 'N/A'}`}>{shortName(e)}</span>
+                  title={`${e.name} · KPI ${e.kpiAvg != null ? fmt2(e.kpiAvg) : 'kosong'} · 360 ${e.s360 != null ? fmt2(e.s360) : has360 ? NO_SCORE_LABEL : 'tanpa 360°'}`}>{shortName(e)}</span>
               ))}
             </div>
           </div>
@@ -392,8 +394,8 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
         )}
         <p className="text-[10px] text-gray-500 italic mt-2">
           Berbasis KPI × 360° (ambang 80): A = KPI≥80 &amp; 360°≥80 · B Culture = KPI&lt;80 &amp; 360°≥80 ·
-          B KPI = KPI≥80 &amp; 360°&lt;80 · C = keduanya &lt;80. Tanpa kelas D.
-          {!has360 && <span className="text-amber-700 font-semibold not-italic"> Tanpa 360° → tak ada sumbu budaya, A &amp; B-Culture tidak tersedia.</span>}
+          B KPI = KPI≥80 &amp; 360°&lt;80 · C = keduanya &lt;80. Tanpa kelas D. KPI atau 360° kosong → HRD Review.
+          {!has360 && <span className="text-amber-700 font-semibold not-italic"> Tanpa 360° → semua pegawai berstatus HRD Review.</span>}
         </p>
       </div>
 
@@ -727,6 +729,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
             className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
             <option value="all">Semua Player</option>
             {PLAYER_BOXES.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
+            <option value="HRD_REVIEW">HRD Review</option>
           </select>
         </div>
       </div>
@@ -760,16 +763,14 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
                   </td>
                   <td className="py-3 px-3 text-center font-mono text-emerald-700">{r.kpiAvg != null ? fmt2(r.kpiAvg) : '—'}</td>
                   <td className="py-3 px-3 text-center"><TrendBadge t={r.trend} months={r.kpiMonths} /></td>
-                  <td className="py-3 px-3 text-center font-mono text-indigo-700">{r.s360 != null ? fmt2(r.s360) : '—'}</td>
+                  <td className="py-3 px-3 text-center font-mono text-indigo-700">{r.s360 != null ? fmt2(r.s360) : has360
+                    ? <span className="text-[10px] font-semibold text-amber-700 font-sans" title={NO_SCORE_TITLE}>{NO_SCORE_LABEL}</span> : '—'}</td>
                   <td className="py-3 px-3 text-center font-mono font-black text-slate-800">{r.final != null ? fmt2(r.final) : '—'}</td>
                   <td className="py-3 pl-3 text-center">
                     {r.player ? (
                       <span className={`text-[11px] font-black px-2 py-0.5 rounded border ${PLAYER_COLOR[r.player]}`}>{PLAYER_BADGE[r.player]}</span>
                     ) : (
-                      <span className="text-gray-500 text-xs"
-                        title={r.axisIncomplete ? 'Data belum lengkap — baru 1 sumbu (KPI saja atau 360° saja); belum diklasifikasi 4-Box' : undefined}>
-                        —{r.axisIncomplete ? '*' : ''}
-                      </span>
+                      <span className="text-gray-500 text-xs">—</span>
                     )}
                   </td>
                 </tr>
@@ -793,7 +794,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
       <p className="text-[10px] text-gray-500 italic mt-3">
         Skor Akhir <strong>(live)</strong> = blend KPI+360 (50/50) − punishment, dihitung langsung dari data periode aktif —
         bisa berbeda dari angka <strong>finalisasi tersimpan</strong> di Laporan Kinerja Tim.
-        Player (A/B/C) berbasis KPI × 360° (ambang 80); <strong>—*</strong> = data belum lengkap (baru 1 sumbu saat 360° aktif) → belum diklasifikasi.{!has360 && ' Tanpa 360° → A & B-Culture tidak tersedia.'}
+        Player (A/B/C) berbasis KPI × 360° (ambang 80); <strong>HRD Review</strong> = KPI atau Skor 360° kosong → tidak diklasifikasi otomatis.{!has360 && ' Periode tanpa 360° → semua pegawai berstatus HRD Review.'}
       </p>
     </div>
   );

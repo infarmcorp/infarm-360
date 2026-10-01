@@ -1,7 +1,7 @@
 'use client';
 
 import { usePager, Pager } from '@/components/table-controls';
-import { playerLabelOf, type PlayerClass, fmt2 } from '@/lib/scoring';
+import { playerLabelOf, type PlayerClass, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
 
 /**
  * Tabel Rekapitulasi Kuartal (klien) — paginasi 5-baris (komponen bersama). Data dihitung
@@ -52,7 +52,7 @@ export function RekapTable({ rows, monthLabels, has360 }: {
                   <td key={i} className="py-3 px-3 text-center data-value text-ink-faint">{fmt(v)}</td>
                 ))}
                 <td className="py-3 px-3 text-center data-value font-bold text-brand-ink">{fmt(r.kpiAvg)}</td>
-                {has360 && <td className="py-3 px-3 text-center data-value font-bold text-ink-soft">{fmt(r.s360)}</td>}
+                {has360 && <td className="py-3 px-3 text-center data-value font-bold text-ink-soft">{r.s360 != null ? fmt(r.s360) : <span className="text-[10px] font-semibold text-warn-ink font-sans" title={NO_SCORE_TITLE}>{NO_SCORE_LABEL}</span>}</td>}
                 <td className="py-3 px-3 text-center data-value font-bold text-ink text-sm">{fmt(r.final)}</td>
                 <td className={`py-3 px-3 text-right font-bold ${r.katClass}`}>{r.katText}{r.player ? ` · ${playerLabelOf(r.player)}` : ''}</td>
               </tr>

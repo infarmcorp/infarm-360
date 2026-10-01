@@ -376,6 +376,16 @@
   izin hanya Lihat); halaman Direksi `/review-hasil` → **"Tinjauan Hasil Akhir"**. Tombol **Hitung Ulang
   Skor 360°** kini **hanya satu** (kokpit Review & Finalisasi) — halaman Bobot memberi tautan; tombol ②
   → **"Perbarui Laporan Final yang Berubah"**. Kode `section`/route tak berubah (hanya label).
+- **BR-09/10/11 — skor & klasifikasi Q3 2026 (2026-10-01, Tahap 2; keputusan HRD 2026-10-01):**
+  (BR-10) model **2 kelas** pada periode mulai ≥ 2026-07-01 → bobot OTOMATIS menurut jumlah penilai Internal yang
+  mengirim (≥2 → Atasan 40/Internal 60; 1 → 60/40; satu sisi → 100%); `Model360` + `effectiveModel`/`schemeFor`/
+  `autoWeights2class` (`lib/score360.ts`, diuji; contoh HRD 84,5 lulus) dipakai di Hitung Ulang, laporan, dashboard,
+  aspek, ekspor, halaman Bobot (isian % 2 kelas dikunci + penjelasan). 4 kelas & bobot khusus pegawai tak berubah.
+  (BR-11) `PlayerClass` + `'HRD_REVIEW'`: KPI **atau** 360° kosong (termasuk periode tanpa 360°) → HRD Review, tak
+  lagi dianggap <80; Dashboard: bucket "Data Belum Lengkap" → "HRD Review", filter tabel; badge di Laporan Kinerja
+  Tim; label di Rekap KPI & Ekspor. (BR-09) `NO_SCORE_LABEL`: Skor 360° kosong pada periode ber-360° tampil
+  "No Score" (Insufficient Data) di laporan pegawai, Rekap KPI, Laporan Kinerja Tim, Dashboard, Review & Finalisasi.
+  (BR-08) tak berubah: −3 otomatis + HRD tetap bisa mengedit. Tanpa migrasi.
 - **BR-07 — 4 status penilaian (2026-10-01, Tahap 2):** `progressStatusOf` (`lib/late.ts`, diuji) →
   Belum Mulai · Sedang Diisi (draf) · Selesai – Tepat Waktu · Selesai – Terlambat, dari waktu kirim PERTAMA vs
   deadline (Paksa Selesai HRD & periode tanpa deadline = tepat waktu). Halaman penilai: badge 4 status (Opsional

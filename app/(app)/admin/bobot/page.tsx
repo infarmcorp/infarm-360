@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import type { WeightValues, RelationKind } from '@/lib/database.types';
-import { weightedScore360, round2, type Groups360 } from '@/lib/score360';
+import { weightedScore360, round2, effectiveModel, type Groups360 } from '@/lib/score360';
 import { WeightForm } from './weight-form';
 import { EmployeeWeights, type Override } from './employee-weights';
 import { Kalkulasi360Table, type MergedRow } from './bobot-tables';
@@ -37,7 +37,7 @@ export default async function BobotPage() {
   }
 
   const { data: ap } = await supabase
-    .from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
+    .from('periods').select('id, label, start_date').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return (
     <Shell>
       <EmptyState
@@ -54,6 +54,8 @@ export default async function BobotPage() {
     .from('weight_schemes').select('model, weights').eq('period_id', ap.id).eq('is_active', true).maybeSingle();
   const w = (ws?.weights ?? {}) as WeightValues;
   const model = (ws?.model ?? '4class') as '4class' | '2class';
+  // BR-10: 2 kelas pada periode Q3 2026 dst. → bobot OTOMATIS sesuai jumlah penilai internal.
+  const auto2 = effectiveModel('2class', ap.start_date) === '2class_auto';
   const initial = {
     model, atasan: w.atasan ?? 40, peer: w.peer ?? 25, cross: w.cross ?? 15, bawahan: w.bawahan ?? 20,
     self: w.self ?? 0, internal: w.internal ?? 60,
@@ -123,7 +125,7 @@ export default async function BobotPage() {
   // Bobot GLOBAL periode per model (dipakai simulasi 4/2-Kelas & sebagai "bobot default").
   const gw4: WeightValues = { atasan: initial.atasan, peer: initial.peer, cross: initial.cross, bawahan: initial.bawahan };
   const gw2: WeightValues = { atasan: initial.atasan, internal: initial.internal };
-  const globalLabel = summarizeW(model, model === '4class' ? gw4 : gw2);
+  const globalLabel = model === '2class' && auto2 ? 'otomatis BR-10' : summarizeW(model, model === '4class' ? gw4 : gw2);
 
   const overrideByEmp = new Map(overrides.map((o) => [o.employeeId, o]));
   const scoreById = new Map(resAll.map((r) => [r.employee_id, r.score]));
@@ -138,7 +140,7 @@ export default async function BobotPage() {
     const g = byTarget.get(id);
     const gFull: Groups360 | null = g ? { ...g, self: [] } : null;
     const s4 = gFull ? weightedScore360(gFull, '4class', gw4) : null;
-    const s2 = gFull ? weightedScore360(gFull, '2class', gw2) : null;
+    const s2 = gFull ? weightedScore360(gFull, auto2 ? '2class_auto' : '2class', gw2) : null;
     const ov = overrideByEmp.get(id);
     const base = model === '4class' ? s4 : s2;                                   // skor bila pakai bobot default
     const applied = gFull && ov ? weightedScore360(gFull, ov.model, ov.weights) : base; // skor bila pakai bobot khusus
@@ -170,7 +172,7 @@ export default async function BobotPage() {
 
       {/* 1. Bobot Penilai */}
       <Section title="Bobot Penilai">
-        <WeightForm initial={initial} />
+        <WeightForm initial={initial} auto2={auto2} />
         <p className="text-[12px] text-ink-faint mt-4 leading-relaxed">
           Skor 360 = rata-rata rating tiap kelas penilai ×20, dibobot di sini. Evaluasi diri (Self)
           tak punya bobot &amp; tak pernah ikut dihitung, jadi tidak ada kolomnya.

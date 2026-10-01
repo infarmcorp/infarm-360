@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { finalScoreOf, kpiAvgOf, displayedFinalOf, roundScore, playerClassOf, type PlayerClass } from '@/lib/scoring';
-import { classOf, avg as avg360, weightedScore360, type Groups360 } from '@/lib/score360';
+import { classOf, avg as avg360, weightedScore360, effectiveModel, type Groups360, type Model360 } from '@/lib/score360';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
 import { trendOf } from '@/lib/trend';
@@ -51,6 +51,7 @@ async function aspectForPeriod(
   periodId: string,
   empIds: string[],
   empDept: Map<string, string>,
+  periodStart: string,
 ): Promise<{ org: Map<string, number>; dept: Map<string, number>; names: { name: string; order: number }[] }> {
   const org = new Map<string, number>();
   const dept = new Map<string, number>();
@@ -81,7 +82,8 @@ async function aspectForPeriod(
   ]);
   const indToAspect = new Map((indRes.data ?? []).map((i) => [i.id, i.aspect_id]));
   const idToName = new Map(aspectList.map((a) => [a.id, a.name]));
-  const wModel = (wsRes.data?.model ?? '4class') as '4class' | '2class';
+  // 2 kelas Q3 2026 dst. → bobot otomatis BR-10 (effectiveModel).
+  const wModel = effectiveModel((wsRes.data?.model ?? '4class') as Model360, periodStart);
   const wVals = (wsRes.data?.weights ?? {}) as WeightValues;
   const hasWS = !!wsRes.data;
   const relByPair = new Map<string, RelationKind>();
@@ -222,8 +224,9 @@ export async function computeDashboardAggregate(
     const kpiAvg = kpiSrc ? roundScore(mean([...kpiSrc.values()].map((a) => kpiAvgOf([a.sum / a.n])!))) : null;
     const sm = empPer360.get(e.id);
     const s360 = sm ? roundScore(mean([...sm.values()])) : null;
-    const axisIncomplete = has360 && ((kpiAvg != null) !== (s360 != null));
-    const player = axisIncomplete ? null : playerClassOf(kpiAvg, has360 ? s360 : null);
+    // BR-11: satu sumbu kosong (termasuk periode tanpa 360°) → 'HRD_REVIEW'.
+    const player = playerClassOf(kpiAvg, has360 ? s360 : null);
+    const axisIncomplete = player === 'HRD_REVIEW';
     // Skor Akhir "semua kuartal" (keputusan HRD 2026-09-29) = rata-rata Skor Akhir PER KUARTAL,
     // tiap kuartal = rumus resmi − punishment kuartal itu, atau angka TERSIMPAN bila laporannya final.
     // Kuartal "belum terbaca" dilewati (kecuali SEMUA kuartalnya belum terbaca → pakai semuanya).
@@ -264,7 +267,7 @@ export async function computeDashboardAggregate(
   const orgByName = new Map<string, number[]>();
   const deptByName = new Map<string, number[]>();       // `${dept}|${name}`
   const nameOrder = new Map<string, number>();
-  const perPeriodAspects = await Promise.all(periods.map((p) => aspectForPeriod(admin, p.id, empIds, empDept)));
+  const perPeriodAspects = await Promise.all(periods.map((p) => aspectForPeriod(admin, p.id, empIds, empDept, p.start_date)));
   perPeriodAspects.forEach((res) => {
     res.names.forEach((n) => { if (!nameOrder.has(n.name)) nameOrder.set(n.name, n.order); });
     for (const [nm, v] of res.org) { const arr = orgByName.get(nm) ?? []; arr.push(v); orgByName.set(nm, arr); }

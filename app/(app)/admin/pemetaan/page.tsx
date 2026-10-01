@@ -121,12 +121,17 @@ async function PemetaanTab({ supabase, periodId }: { supabase: Awaited<ReturnTyp
 
   return (
     <>
-      <div className="mb-3"><MappingForm employees={employees} /></div>
-      <div className="mb-5 flex flex-wrap items-start gap-2">
-        <MappingImport employees={employees.map((e) => ({ id: e.id, code: e.emp_code, name: e.name }))} />
-        <CopyMapping periods={otherPeriods ?? []} />
+      {/* Split screen (layar lebar): kiri = tambah/impor/salin, kanan = daftar. Layar sempit → bertumpuk. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)] gap-5 items-start">
+        <div className="space-y-3">
+          <MappingForm employees={employees} />
+          <div className="grid gap-2">
+            <MappingImport employees={employees.map((e) => ({ id: e.id, code: e.emp_code, name: e.name }))} />
+            <CopyMapping periods={otherPeriods ?? []} />
+          </div>
+        </div>
+        <Panel className="min-w-0"><MappingTable rows={rows} /></Panel>
       </div>
-      <Panel><MappingTable rows={rows} /></Panel>
     </>
   );
 }

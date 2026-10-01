@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
+import { progressStatusOf, formatWib, type ProgressStatus } from '@/lib/late';
 import { ProgressClient, type AssessorRow, type TargetRow } from './progress-client';
 
 /**
@@ -35,7 +36,7 @@ export default async function ProgressPage() {
     ? new Set(((await db.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id)).data ?? []).map((r) => r.employee_id))
     : undefined;
 
-  const { data: ap } = await db.from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
+  const { data: ap } = await db.from('periods').select('id, label, assessment_deadline').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
   // Independen → paralel. mappings & assessments SELURUH pegawai → bisa >1000; ambil penuh.
@@ -46,8 +47,8 @@ export default async function ProgressPage() {
       // Progress 360. Pemetaan hasil PERMOHONAN yang disetujui HRD masuk, karena ia disimpan
       // sebagai pemetaan wajib non-ad-hoc (lihat reviewCorrection).
       db.from('mappings').select('assessor_id, target_id, relation, mandatory').eq('period_id', ap.id).eq('is_active', true).eq('is_adhoc', false).order('assessor_id').order('target_id').range(from, to)),
-    fetchAllPaged<{ assessor_id: string; target_id: string; status: string }>((from, to) =>
-      db.from('assessments').select('assessor_id, target_id, status').eq('period_id', ap.id).order('assessor_id').order('target_id').range(from, to)),
+    fetchAllPaged<{ assessor_id: string; target_id: string; status: string; first_submitted_at: string | null; forced_by_hrd: boolean }>((from, to) =>
+      db.from('assessments').select('assessor_id, target_id, status, first_submitted_at, forced_by_hrd').eq('period_id', ap.id).order('assessor_id').order('target_id').range(from, to)),
   ]);
   // Pemegang grant: himpunan id pegawai DALAM lingkup → menyaring baris penilai & yang-dinilai.
   const scopedIds = viaGrant
@@ -55,7 +56,12 @@ export default async function ProgressPage() {
     : null;
   const empById = new Map((empsRes.data ?? []).map((e) => [e.id, e]));
   const submitted = new Set(asmtsAll.filter((a) => a.status === 'submitted').map((a) => `${a.assessor_id}|${a.target_id}`));
-  // BR-03: Not Eligible → kewajiban gugur, dikeluarkan dari tunggakan; ditandai terpisah utk review HRD.
+  // BR-07: status 4 tahap per tugas (waktu kirim PERTAMA vs deadline periode).
+  const asmtByPair = new Map(asmtsAll.map((a) => [`${a.assessor_id}|${a.target_id}`, a]));
+  const statusOf = (assessorId: string, targetId: string): ProgressStatus => {
+    const a = asmtByPair.get(`${assessorId}|${targetId}`);
+    return progressStatusOf(a?.status, a?.first_submitted_at, ap.assessment_deadline, a?.forced_by_hrd ?? false);
+  };
 
   // Kelompokkan tugas per penilai (bawa relasi & sifat wajib/opsional).
   const byAssessor = new Map<string, { targetId: string; relation: string; mandatory: boolean }[]>();
@@ -70,10 +76,12 @@ export default async function ProgressPage() {
     const activeTasks = tasks;
     const pending = activeTasks
       .filter((t) => !submitted.has(`${assessorId}|${t.targetId}`))
-      .map((t) => ({ targetId: t.targetId, targetName: empById.get(t.targetId)?.name ?? '—', relation: t.relation, mandatory: t.mandatory }));
+      .map((t) => ({ targetId: t.targetId, targetName: empById.get(t.targetId)?.name ?? '—', relation: t.relation, mandatory: t.mandatory, progress: statusOf(assessorId, t.targetId) }));
     // Kelengkapan diukur dari penilaian WAJIB saja (opsional tak menentukan "lengkap").
     const mandatoryTasks = activeTasks.filter((t) => t.mandatory);
     const mandatoryDone = mandatoryTasks.filter((t) => submitted.has(`${assessorId}|${t.targetId}`)).length;
+    const statusCounts: Record<ProgressStatus, number> = { not_started: 0, in_progress: 0, on_time: 0, late: 0 };
+    mandatoryTasks.forEach((t) => { statusCounts[statusOf(assessorId, t.targetId)]++; });
     return {
       id: assessorId,
       name: e?.name ?? '—',
@@ -82,6 +90,7 @@ export default async function ProgressPage() {
       done: activeTasks.length - pending.length,
       mandatoryTotal: mandatoryTasks.length,
       mandatoryDone,
+      statusCounts,
       pending,
     };
   }).sort((a, b) => {
@@ -110,7 +119,7 @@ export default async function ProgressPage() {
   // JUMLAH per penilai/target — daftar target (nama + relasi) DIBUANG di server, tak ikut ke browser.
   const rowsScoped = scopedIds ? rows.filter((r) => scopedIds.has(r.id)) : rows;
   const rowsOut = viaGrant
-    ? rowsScoped.map((r) => ({ ...r, pending: r.pending.map(() => ({ targetId: '', targetName: '', relation: '', mandatory: false })) }))
+    ? rowsScoped.map((r) => ({ ...r, pending: r.pending.map((p) => ({ targetId: '', targetName: '', relation: '', mandatory: false, progress: p.progress })) }))
     : rowsScoped;
   const targetRowsOut = scopedIds ? targetRows.filter((t) => scopedIds.has(t.id)) : targetRows;
 
@@ -119,6 +128,11 @@ export default async function ProgressPage() {
       <div className="mb-6">
         <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Progress 360 Feedback</h1>
         <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span> · kelengkapan pengisian 360°.{viaGrant ? ' (lihat-saja)' : ''}</p>
+        <p className="text-[12px] text-ink-faint mt-0.5">
+          Deadline: {ap.assessment_deadline
+            ? <span className="data-value font-semibold text-ink-soft">{formatWib(ap.assessment_deadline)}</span>
+            : <span className="font-semibold text-warn-ink">belum ditetapkan — status Tepat Waktu/Terlambat belum bisa dibedakan (atur di Kelola Periode)</span>}
+        </p>
       </div>
       <ProgressClient rows={rowsOut} targetRows={targetRowsOut} readOnly={viaGrant} />
     </Shell>

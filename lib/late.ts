@@ -48,6 +48,35 @@ export function submitTimingOf(firstSubmittedAt: string | null | undefined, dead
   return s > d ? 'late' : 'on_time';
 }
 
+/**
+ * BR-07 (Q3 2026): 4 status penyelesaian satu penilaian untuk monitoring.
+ *  not_started = belum ada baris penilaian · in_progress = draf (belum kirim final)
+ *  on_time     = terkirim, kirim pertama ≤ deadline (atau periode tanpa deadline / Paksa Selesai HRD)
+ *  late        = terkirim, kirim pertama > deadline
+ * Berdasar WAKTU KIRIM PERTAMA — tak berubah bila penilaian diedit sesudahnya.
+ */
+export type ProgressStatus = 'not_started' | 'in_progress' | 'on_time' | 'late';
+
+export const PROGRESS_STATUS_LABEL: Record<ProgressStatus, string> = {
+  not_started: 'Belum Mulai',
+  in_progress: 'Sedang Diisi',
+  on_time: 'Selesai – Tepat Waktu',
+  late: 'Selesai – Terlambat',
+};
+
+export function progressStatusOf(
+  status: string | null | undefined,
+  firstSubmittedAt: string | null | undefined,
+  deadline: string | null | undefined,
+  forcedByHrd = false,
+): ProgressStatus {
+  if (status === 'submitted') {
+    if (forcedByHrd) return 'on_time';
+    return submitTimingOf(firstSubmittedAt, deadline) === 'late' ? 'late' : 'on_time';
+  }
+  return status === 'draft' ? 'in_progress' : 'not_started';
+}
+
 /** Deadline sudah lewat pada saat `now` (default sekarang)? Tanpa deadline → false. */
 export function isPastDeadline(deadline: string | null | undefined, now: number = Date.now()): boolean {
   const d = ts(deadline);

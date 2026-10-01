@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/empty-state';
 import { TabBar, Tab } from '@/components/tab-nav';
 import { RequestAssessmentButton } from './request-assessment-form';
 import { MyRequests, type MyRequest } from './my-requests';
-import { LATE_PENALTY_360, formatWib, isPastDeadline, submitTimingOf, ajuanPenaltyApplies } from '@/lib/late';
+import { LATE_PENALTY_360, formatWib, isPastDeadline, ajuanPenaltyApplies, progressStatusOf, PROGRESS_STATUS_LABEL, type ProgressStatus } from '@/lib/late';
 
 const REL_LABEL: Record<string, string> = {
   Atasan: 'Atasan', Peer: 'Rekan (Peer)', Cross: 'Lintas Divisi', Self: 'Diri Sendiri', Bawahan: 'Bawahan',
@@ -94,10 +94,11 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
   const empById = new Map((emps ?? []).map((e) => [e.id, e]));
 
   const { data: asmts } = await supabase
-    .from('assessments').select('target_id, status, first_submitted_at')
+    .from('assessments').select('target_id, status, first_submitted_at, forced_by_hrd')
     .eq('assessor_id', user.id).eq('period_id', ap.id);
   const statusByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.status]));
   const firstSubByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.first_submitted_at]));
+  const forcedByTarget = new Map((asmts ?? []).map((a) => [a.target_id, a.forced_by_hrd]));
   const deadline = ap.assessment_deadline;
   const deadlinePassed = isPastDeadline(deadline);
 
@@ -144,10 +145,11 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
       isAdhoc: r.is_adhoc,
       requested: !r.mandatory && !r.is_adhoc && approvedAjuan.has(r.target_id),
       status: statusByTarget.get(r.target_id) ?? null,
-      // Label Terlambat hanya untuk penilaian yang TERHITUNG potongan (Wajib, non-Ad-Hoc);
-      // keputusan final (incl. paksa-selesai / pemetaan pasca-deadline) dihitung server (lib/late-server).
-      late: (r.mandatory || approvedAjuan.has(r.target_id)) && !r.is_adhoc && statusByTarget.get(r.target_id) === 'submitted'
-        && submitTimingOf(firstSubByTarget.get(r.target_id), deadline) === 'late',
+      // BR-07: 4 status (Belum Mulai / Sedang Diisi / Selesai – Tepat Waktu / Selesai – Terlambat).
+      // Tepat Waktu/Terlambat hanya untuk penilaian yang TERHITUNG potongan (Wajib/ajuan, non-Ad-Hoc);
+      // keputusan potongan final (incl. pemetaan pasca-deadline) tetap dihitung server (lib/late-server).
+      progress: progressStatusOf(statusByTarget.get(r.target_id), firstSubByTarget.get(r.target_id), deadline, forcedByTarget.get(r.target_id) ?? false),
+      counted: (r.mandatory || approvedAjuan.has(r.target_id)) && !r.is_adhoc,
       corrPending: pendingCorr.has(r.target_id),
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -303,13 +305,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                     )}
                   </td>
                   <td className="py-3 px-3 text-right">
-                    <span className="inline-flex items-center gap-1">
-                      <StatusBadge status={it.status} />
-                      {it.late && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-warn-tint text-warn-ink border-warn-ink/25"
-                          title="Dikirim pertama kali sesudah deadline">Terlambat</span>
-                      )}
-                    </span>
+                    <StatusBadge status={it.progress} counted={it.counted} />
                   </td>
                   <td className="py-3 pl-3 text-right">
                     <div className="flex items-center justify-end gap-3">
@@ -367,13 +363,29 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
   );
 }
 
-function StatusBadge({ status }: { status: string | null }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    submitted: { label: 'Terkirim', cls: 'bg-brand-tint text-brand-ink border-brand-ink/20' },
-    draft: { label: 'Draf', cls: 'bg-warn-tint text-warn-ink border-warn-ink/25' },
-  };
-  const s = status ? map[status] : { label: 'Belum dinilai', cls: 'bg-neutral-tint text-ink-faint border-line' };
-  return <span className={`text-[10px] font-bold px-2 py-0.5 rounded-control border ${s.cls}`}>{s.label}</span>;
+const STATUS_CLS: Record<ProgressStatus, string> = {
+  not_started: 'bg-neutral-tint text-ink-faint border-line',
+  in_progress: 'bg-warn-tint text-warn-ink border-warn-ink/25',
+  on_time: 'bg-brand-tint text-brand-ink border-brand-ink/20',
+  late: 'bg-danger-tint text-danger-ink border-danger-ink/25',
+};
+const STATUS_TITLE: Record<ProgressStatus, string> = {
+  not_started: 'Not Started — penilaian belum mulai dikerjakan',
+  in_progress: 'In Progress — sudah mulai diisi, belum dikirim final',
+  on_time: 'Completed – On Time — dikirim pertama kali sebelum/tepat pada deadline',
+  late: 'Completed – Late — dikirim pertama kali sesudah deadline',
+};
+
+/** BR-07: status penyelesaian. Penilaian yang tak dihitung potongan (Opsional biasa / Ad-Hoc lama)
+ *  cukup "Terkirim" — label tepat waktu/terlambat tak relevan untuknya. */
+function StatusBadge({ status, counted }: { status: ProgressStatus; counted: boolean }) {
+  const done = status === 'on_time' || status === 'late';
+  const key: ProgressStatus = done && !counted ? 'on_time' : status;
+  const label = done && !counted ? 'Terkirim' : PROGRESS_STATUS_LABEL[status];
+  return (
+    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-control border whitespace-nowrap ${STATUS_CLS[key]}`}
+      title={done && !counted ? 'Penilaian opsional sudah dikirim' : STATUS_TITLE[status]}>{label}</span>
+  );
 }
 
 function Shell({ children, periodLabel }: { children: React.ReactNode; periodLabel?: string }) {

@@ -198,7 +198,8 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
 
   type Item = (typeof items)[number];
   const primaryLabel = (it: Item) =>
-    it.status === 'submitted' ? 'Edit' : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai';
+    // Decision 01: terkirim → Edit sampai deadline, sesudahnya Lihat (read-only).
+    it.status === 'submitted' ? (deadlinePassed ? 'Lihat' : 'Edit') : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai';
   /** Aksi sekunder (koreksi relasi / ajukan hapus / hapus ad-hoc) — dipakai tabel & kartu HP. */
   const secondaryActions = (it: Item) => (
     <>
@@ -316,7 +317,8 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
           <p className="text-[11.5px] text-warn-ink/90 mt-0.5 leading-relaxed">
             Form masih bisa diisi, tetapi penilaian wajib{ajuanPendingN > 0 ? ' (termasuk ajuan Anda)' : ''} yang dikirim sekarang tercatat <strong>Terlambat</strong> dan
             Skor 360° Anda dipotong <span className="data-value">{LATE_PENALTY_360}</span> poin (sekali per periode).
-            Penilaian Anda tetap dihitung untuk rekan yang dinilai.
+            Penilaian Anda tetap dihitung untuk rekan yang dinilai. Penilaian yang <strong>sudah terkirim</strong> kini
+            terkunci (hanya bisa dilihat).
           </p>
         </div>
       )}

@@ -376,6 +376,12 @@
   izin hanya Lihat); halaman Direksi `/review-hasil` → **"Tinjauan Hasil Akhir"**. Tombol **Hitung Ulang
   Skor 360°** kini **hanya satu** (kokpit Review & Finalisasi) — halaman Bobot memberi tautan; tombol ②
   → **"Perbarui Laporan Final yang Berubah"**. Kode `section`/route tak berubah (hanya label).
+- **Rilis 2026-10-02 (dari `release/hp-cards`, sebagian isi `dev`):** (Decision 03) **kartu di HP** untuk Daftar Penilaian
+  Saya + **progres draf** "x dari N indikator selesai" (layar lebar tetap tabel); (Decision 01) **penilaian terkirim
+  terkunci setelah deadline** — tombol "Lihat", halaman baca-saja (`ReadOnlyView`), Server Action menolak, teks
+  form/sukses/banner & panduan diselaraskan. Migrasi `0046` & `0047` sudah diterapkan ke staging & produksi oleh
+  pengguna (file disertakan sebagai catatan); kode UI pembatalan validitas (0046, halaman Pemetaan) & halaman Review
+  (Screen 04) **belum** dirilis — masih di `dev`.
 - **BR-09/10/11 — skor & klasifikasi Q3 2026 (2026-10-01, Tahap 2; keputusan HRD 2026-10-01):**
   (BR-10) model **2 kelas** pada periode mulai ≥ 2026-07-01 → bobot OTOMATIS menurut jumlah penilai Internal yang
   mengirim (≥2 → Atasan 40/Internal 60; 1 → 60/40; satu sisi → 100%); `Model360` + `effectiveModel`/`schemeFor`/

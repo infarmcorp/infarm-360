@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { refreshLatePenalties } from '@/lib/late-server';
+import { isPastDeadline } from '@/lib/late';
 
 /**
  * Pengisian 360° (semua peran sebagai penilai). PANDUAN: "Mulai Nilai".
@@ -63,8 +64,13 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
   const { data: exExisting } = await supabase
     .from('assessments').select('status')
     .eq('assessor_id', auth.user.id).eq('target_id', targetId).eq('period_id', ap.id).maybeSingle();
+  // Decision 01 (Screen 01/04): penilaian TERKIRIM hanya bisa diedit sampai deadline; sesudahnya read-only.
+  // Yang belum terkirim tetap boleh dikirim sesudah deadline (tercatat Terlambat). DB juga menolak (0047).
+  if (exExisting?.status === 'submitted' && isPastDeadline(ap.assessment_deadline)) {
+    return { ok: false, error: 'Deadline sudah lewat — penilaian yang sudah terkirim tidak dapat diubah lagi' };
+  }
   // Penilaian yang SUDAH terkirim tak boleh turun ke draf: nilainya sudah masuk laporan pegawai yang
-  // dinilai. Pegawai tetap boleh mengedit — lewat "Kirim Ulang" (status tetap 'submitted').
+  // dinilai. Sebelum deadline pegawai tetap boleh mengedit — lewat "Kirim Ulang" (status tetap 'submitted').
   if (exExisting?.status === 'submitted' && status === 'draft') {
     return { ok: false, error: 'Penilaian ini sudah terkirim — simpan perubahan dengan "Kirim Ulang", bukan Simpan Draf' };
   }

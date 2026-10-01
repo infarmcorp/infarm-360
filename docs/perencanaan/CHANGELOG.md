@@ -376,19 +376,14 @@
   izin hanya Lihat); halaman Direksi `/review-hasil` → **"Tinjauan Hasil Akhir"**. Tombol **Hitung Ulang
   Skor 360°** kini **hanya satu** (kokpit Review & Finalisasi) — halaman Bobot memberi tautan; tombol ②
   → **"Perbarui Laporan Final yang Berubah"**. Kode `section`/route tak berubah (hanya label).
-- **Screen 04 Review & Screen 01 kartu HP (2026-10-01, dev; tanpa migrasi):** (Screen 04) bila semua lengkap tombol utama
-  form = **"Review Penilaian"** → `ReviewPanel`: ringkasan indikator per aspek (skor + key point, evidence bisa dibuka),
-  jawaban esai, tombol **Edit** ke item terkait; dari situ **Kirim Penilaian** → konfirmasi → layar sukses. Tak menampilkan
-  rata-rata/skor akhir. (Screen 01, Decision 03 opsi B) di HP (< sm) daftar penilaian = **kartu per rekan** (nama, divisi ·
-  relasi, status, Wajib/Ajuan, tombol utama penuh, aksi sekunder kecil); layar ≥ sm tetap tabel. **Progres draf** "x dari N
-  indikator selesai" (rating + evidence ≥ 20, indikator aktif) di kartu & tabel. Aksi baris dipusatkan
-  (`primaryAction`/`secondaryActions`). Diverifikasi visual di staging (Server Action diblokir — tanpa tulis).
-- `0047` **Penilaian terkirim TERKUNCI setelah deadline (Decision 01, Screen 01/04; 2026-10-01, dev):** Kirim Ulang hanya
-  sampai `periods.assessment_deadline`; sesudahnya tombol daftar = **Lihat** & halaman per rekan = `ReadOnlyView`
-  (rating + evidence + esai, baca-saja). Belum terkirim tetap boleh dikirim sesudah deadline (Terlambat), lalu ikut terkunci.
-  Periode tanpa deadline → tak terkunci. Server Action menolak; DB: `assessment_locked_after_deadline` dipakai
-  `assessment_writable` + trigger `assessments_guard_deadline_lock` (HRD bagian Progress & service_role dikecualikan).
-  Teks form/sukses/banner & panduan diselaraskan. **Terapkan 0046 → 0047 sebelum merge ke main.**
+- **Rilis 2026-10-02 (dari `release/hp-cards`, sebagian isi `dev`):** (Decision 03) **kartu di HP** untuk Daftar Penilaian
+  Saya + **progres draf** "x dari N indikator selesai" (layar lebar tetap tabel); (Decision 01) **penilaian terkirim
+  terkunci setelah deadline** — tombol "Lihat", halaman baca-saja (`ReadOnlyView`), Server Action menolak, teks
+  form/sukses/banner & panduan diselaraskan. Migrasi `0046` & `0047` sudah diterapkan ke staging & produksi oleh
+  pengguna (file disertakan sebagai catatan); ikut dirilis: **Pemetaan 360°** (status per pasangan, hapus hanya Belum Mulai/Draft + alasan wajib, Periksa Validitas →
+  Batalkan/Pulihkan, tampilan berdampingan) & penanganan status `invalidated`; sidebar tenggat = deadline penilaian.
+  Halaman Review (Screen 04) **belum** dirilis — dikeluarkan dari `dev`, disimpan di cabang `feature/review-penilaian`
+  (menunggu simulasi ke pegawai).
 - `0046` **Pembatalan validitas penilaian + Hapus Assignment ber-status (Screen 06/07, 2026-10-01, dev):**
   nilai enum `assessment_status` baru **`invalidated`** + kolom `invalidated_at/by`, `invalid_reason`. Semua hitungan
   skor memakai `status='submitted'` → penilaian dibatalkan otomatis keluar dari Skor 360°/aspek/laporan/ekspor; jawaban

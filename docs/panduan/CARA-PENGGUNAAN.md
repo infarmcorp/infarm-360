@@ -150,7 +150,9 @@ Halaman ini punya **dua tab**: **Penilaian** (daftar rekan yang harus Anda nilai
 5. **Mengubah penilaian yang sudah terkirim:** buka **Edit** → ubah → tekan **Kirim Ulang Penilaian
    360°**. Untuk penilaian terkirim **tidak ada Simpan Draf & tidak ada auto-simpan** (agar statusnya
    tak turun jadi draf) — perubahan baru tersimpan saat Anda menekan Kirim Ulang. Waktu kirim
-   **pertama** tetap menjadi acuan tepat waktu/terlambat.
+   **pertama** tetap menjadi acuan tepat waktu/terlambat. **Hanya sampai deadline:** setelah deadline lewat,
+   penilaian yang sudah terkirim **terkunci** — tombolnya menjadi **Lihat** (baca-saja). Penilaian yang
+   belum terkirim tetap bisa diselesaikan & dikirim setelah deadline (tercatat Terlambat), lalu ikut terkunci.
 6. **Batal** kembali ke daftar tanpa menyimpan; **Buang Draf** (muncul bila ada draf
    tersimpan) menghapus draf beserta rating & komentarnya (dengan konfirmasi).
 

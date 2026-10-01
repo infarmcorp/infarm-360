@@ -43,7 +43,7 @@ const GENERAL_GUIDE = [
  */
 export function AssessForm({
   targetId, targetName, groups, questions, initialScores, initialAnswers, hasDraft = false, initialStatus = null,
-  mandatoryTotal = 0, mandatoryDoneOthers = 0, thisMandatory = false,
+  mandatoryTotal = 0, mandatoryDoneOthers = 0, thisMandatory = false, deadlinePassed = false,
 }: {
   targetId: string;
   targetName: string;
@@ -56,6 +56,8 @@ export function AssessForm({
   mandatoryTotal?: number;
   mandatoryDoneOthers?: number;
   thisMandatory?: boolean;
+  /** Deadline periode sudah lewat → setelah dikirim penilaian terkunci (Decision 01). */
+  deadlinePassed?: boolean;
 }) {
   const router = useRouter();
   const aspectGroups = useMemo(() => groups.filter((g) => g.indicators.length > 0), [groups]);
@@ -279,7 +281,9 @@ export function AssessForm({
         <h2 className="text-lg font-extrabold text-ink">Penilaian Terkirim ✓</h2>
         <p className="text-sm text-ink-soft mt-1.5 max-w-md">
           Penilaian untuk <span className="font-bold text-ink">{targetName}</span> berhasil dikirim.
-          Anda masih bisa <span className="font-semibold">mengeditnya kapan saja</span> dari Daftar Penilaian.
+          {deadlinePassed
+            ? <>Deadline sudah lewat, sehingga penilaian ini <span className="font-semibold">tidak dapat diubah lagi</span>.</>
+            : <>Anda masih bisa <span className="font-semibold">mengeditnya sampai deadline</span> dari Daftar Penilaian.</>}
         </p>
         {mandatoryTotal > 0 && (
           <div className={`mt-4 px-4 py-2.5 rounded-panel border text-sm font-bold ${remaining > 0 ? 'bg-warn-tint border-warn-ink/30 text-warn-ink' : 'bg-brand-tint border-brand-ink/25 text-brand-ink'}`}>
@@ -523,7 +527,9 @@ export function AssessForm({
         <div className="bg-brand-tint border border-brand-ink/25 rounded-panel p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <p className="text-sm text-brand-ink font-semibold">
             Kirim penilaian untuk <span className="font-extrabold">{targetName}</span>?
-            <span className="block text-[11px] font-normal text-brand-ink/80 mt-0.5">Setelah dikirim, Anda tetap bisa mengeditnya kapan saja.</span>
+            <span className="block text-[11px] font-normal text-brand-ink/80 mt-0.5">{deadlinePassed
+              ? 'Deadline sudah lewat — setelah dikirim, penilaian ini tidak dapat diubah lagi dan tercatat Terlambat.'
+              : 'Setelah dikirim, Anda masih bisa mengeditnya sampai deadline. Sesudah deadline, penilaian terkunci.'}</span>
           </p>
           <div className="flex gap-2 shrink-0">
             <button type="button" disabled={busy} onClick={cancelSend}

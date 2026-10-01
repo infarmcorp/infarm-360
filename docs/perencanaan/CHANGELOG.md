@@ -376,6 +376,12 @@
   izin hanya Lihat); halaman Direksi `/review-hasil` → **"Tinjauan Hasil Akhir"**. Tombol **Hitung Ulang
   Skor 360°** kini **hanya satu** (kokpit Review & Finalisasi) — halaman Bobot memberi tautan; tombol ②
   → **"Perbarui Laporan Final yang Berubah"**. Kode `section`/route tak berubah (hanya label).
+- `0047` **Penilaian terkirim TERKUNCI setelah deadline (Decision 01, Screen 01/04; 2026-10-01, dev):** Kirim Ulang hanya
+  sampai `periods.assessment_deadline`; sesudahnya tombol daftar = **Lihat** & halaman per rekan = `ReadOnlyView`
+  (rating + evidence + esai, baca-saja). Belum terkirim tetap boleh dikirim sesudah deadline (Terlambat), lalu ikut terkunci.
+  Periode tanpa deadline → tak terkunci. Server Action menolak; DB: `assessment_locked_after_deadline` dipakai
+  `assessment_writable` + trigger `assessments_guard_deadline_lock` (HRD bagian Progress & service_role dikecualikan).
+  Teks form/sukses/banner & panduan diselaraskan. **Terapkan 0046 → 0047 sebelum merge ke main.**
 - `0046` **Pembatalan validitas penilaian + Hapus Assignment ber-status (Screen 06/07, 2026-10-01, dev):**
   nilai enum `assessment_status` baru **`invalidated`** + kolom `invalidated_at/by`, `invalid_reason`. Semua hitungan
   skor memakai `status='submitted'` → penilaian dibatalkan otomatis keluar dari Skor 360°/aspek/laporan/ekspor; jawaban

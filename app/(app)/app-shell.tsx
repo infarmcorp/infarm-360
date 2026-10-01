@@ -387,7 +387,7 @@ export function AppShell({
   );
 }
 
-/** Indikator tenggat periode aktif: sisa hari + peringatan saat mendekati/melewati end_date. */
+/** Indikator tenggat periode aktif: sisa hari + peringatan saat mendekati/melewati deadline penilaian (fallback end_date). */
 function Deadline({ daysLeft }: { daysLeft: number }) {
   // Kontras naik bertahap sesuai urgensi (di atas latar sidebar gelap):
   //  lewat tenggat / hari ini → CHIP oranye solid (--color-warn-bright) = paling menonjol;

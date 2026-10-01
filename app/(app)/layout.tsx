@@ -26,10 +26,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { data: grantRows } = await supabase.from('page_grants').select('section, scope').eq('employee_id', user.id);
 
   const { data: ap } = await supabase
-    .from('periods').select('label, status, end_date').eq('status', 'active').limit(1).maybeSingle();
+    .from('periods').select('label, status, end_date, assessment_deadline').eq('status', 'active').limit(1).maybeSingle();
 
-  // Sisa hari menuju end_date (berbasis tanggal, UTC) → indikator deadline di sidebar.
-  const periodDaysLeft = ap?.end_date ? daysUntil(ap.end_date) : null;
+  // Indikator tenggat di sidebar = DEADLINE PENILAIAN 360° (sama dgn kotak "Deadline" & banner di
+  // Daftar Penilaian). Belum diisi HRD → pakai tanggal akhir periode (perilaku lama).
+  const periodDaysLeft = ap?.assessment_deadline
+    ? daysUntilWib(ap.assessment_deadline)
+    : ap?.end_date ? daysUntil(ap.end_date) : null;
 
   // Dual-mode (hanya relevan bila punya izin HRD/canAdmin). Token 'spv' = mode posisi-asli (base).
   // DEFAULT = base/posisi-asli (lebih aman; masuk Admin harus disengaja via toggle).
@@ -58,6 +61,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {children}
     </AppShell>
   );
+}
+
+/** Selisih hari kalender WIB (UTC+7) dari hari ini ke tanggal deadline (ISO). >0 sisa, 0 hari ini, <0 lewat. */
+function daysUntilWib(iso: string): number {
+  const WIB = 7 * 3600 * 1000;
+  const dayOf = (ms: number) => { const d = new Date(ms + WIB); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); };
+  return Math.round((dayOf(Date.parse(iso)) - dayOf(Date.now())) / 86400000);
 }
 
 /** Selisih hari (tanggal, UTC) dari hari ini ke end_date. >0 sisa, 0 hari ini, <0 lewat. */

@@ -4,12 +4,15 @@ import { useMemo, useState, useTransition } from 'react';
 import { forceComplete, sendReminder, massReminder, sendOnboarding, massOnboarding } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { usePager, Pager, MultiCheckFilter } from '@/components/table-controls';
+import { PROGRESS_STATUS_LABEL, type ProgressStatus } from '@/lib/late';
 
-export type Pending = { targetId: string; targetName: string; relation: string; mandatory: boolean; reason?: string | null };
+export type Pending = { targetId: string; targetName: string; relation: string; mandatory: boolean; progress: ProgressStatus; reason?: string | null };
 export type AssessorRow = {
   id: string; name: string; dept: string;
   total: number; done: number;              // semua tugas (wajib + opsional) — info sekunder
   mandatoryTotal: number; mandatoryDone: number; // kelengkapan ditentukan dari WAJIB saja
+  /** BR-07: jumlah tugas WAJIB per status (Belum Mulai / Sedang Diisi / Tepat Waktu / Terlambat). */
+  statusCounts: Record<ProgressStatus, number>;
   pending: Pending[];
 };
 /** Info read-only "per yang dinilai": berapa penilai ditugaskan & berapa sudah menilai dia. */
@@ -21,8 +24,8 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
   // Default: hanya penilai BELUM lengkap (perlu tindakan) → halaman fokus. Ubah/hapus filter Status
   // untuk melihat yang sudah lengkap. (kosong = semua status)
   const [statusSel, setStatusSel] = useState<Set<string>>(new Set(['belum']));
-  // BR-03: filter cepat "hanya yang ada Not Eligible" — tanpa ini HRD harus buka Rincian
-  // satu-satu untuk menemukan siapa yang perlu direview (tak praktis kalau penilai banyak).
+  // BR-07: tampilkan penilai yang punya ≥1 tugas WAJIB berstatus terpilih (kosong = semua).
+  const [progSel, setProgSel] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<string | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [confirm, setConfirm] = useState<{ title: string; body: React.ReactNode; onYes: () => void; confirmLabel?: string; icon?: string; tone?: 'primary' | 'danger' } | null>(null);
@@ -43,7 +46,9 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
     const done = rows.filter(isComplete).length;
     const tasks = rows.reduce((s, r) => s + r.mandatoryTotal, 0);
     const doneTasks = rows.reduce((s, r) => s + r.mandatoryDone, 0);
-    return { total, done, pending: total - done, pct: tasks ? Math.round((doneTasks / tasks) * 100) : 0 };
+    const byStatus: Record<ProgressStatus, number> = { not_started: 0, in_progress: 0, on_time: 0, late: 0 };
+    rows.forEach((r) => STATUS_ORDER.forEach((k) => { byStatus[k] += r.statusCounts[k]; }));
+    return { total, done, pending: total - done, pct: tasks ? Math.round((doneTasks / tasks) * 100) : 0, byStatus };
   }, [rows]);
 
   const shown = rows.filter((r) => {
@@ -52,6 +57,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
     if (q.trim() && !r.name.toLowerCase().includes(q.toLowerCase())) return false;
     if (deptSel.size > 0 && !deptSel.has(r.dept)) return false;
     if (statusSel.size > 0 && !statusSel.has(statusKey)) return false;
+    if (progSel.size > 0 && !STATUS_ORDER.some((k) => progSel.has(k) && r.statusCounts[k] > 0)) return false;
     return true;
   });
   // Paginasi 5-baris (komponen bersama) → daftar penilai bisa 100+; batasi DOM per halaman.
@@ -74,6 +80,12 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
         <Stat label="Belum (wajib)" value={stats.pending} c="text-warn-ink" />
         <Stat label="Progres Wajib" value={`${stats.pct}%`} c="text-brand-ink" />
       </div>
+      {/* BR-07: sebaran 4 status untuk seluruh tugas WAJIB. */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {STATUS_ORDER.map((k) => (
+          <Stat key={k} label={PROGRESS_STATUS_LABEL[k]} value={stats.byStatus[k]} c={STATUS_TEXT[k]} />
+        ))}
+      </div>
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-center">
@@ -85,6 +97,9 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
         <MultiCheckFilter label="Status"
           options={[{ value: 'lengkap', label: 'Lengkap' }, { value: 'belum', label: 'Belum Lengkap' }]}
           selected={statusSel} onChange={(s) => { setStatusSel(s); setPage(0); }} />
+        <MultiCheckFilter label="Status Penilaian"
+          options={STATUS_ORDER.map((k) => ({ value: k, label: PROGRESS_STATUS_LABEL[k] }))}
+          selected={progSel} onChange={(s) => { setProgSel(s); setPage(0); }} />
         {!readOnly && (
           <>
             <button type="button" onClick={() => act(massReminder)} disabled={pending}
@@ -183,6 +198,13 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                   <div className="h-2 bg-line-soft rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${complete ? 'bg-brand' : 'bg-warn-ink'}`} style={{ width: `${pct}%` }} />
                   </div>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {STATUS_ORDER.filter((k) => r.statusCounts[k] > 0).map((k) => (
+                      <span key={k} className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_CHIP[k]}`}>
+                        {PROGRESS_STATUS_LABEL[k]} <span className="data-value">{r.statusCounts[k]}</span>
+                      </span>
+                    ))}
+                  </div>
                   {optionalPending > 0 && (
                     <p className="text-[10px] text-ink-faint mt-0.5">+{optionalPending} opsional belum (tak memengaruhi status)</p>
                   )}
@@ -205,6 +227,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                       <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                         <span className="text-ink-soft font-semibold">{p.targetName}</span>
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft">{p.relation}</span>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_CHIP[p.progress]}`}>{PROGRESS_STATUS_LABEL[p.progress]}</span>
                         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${p.mandatory ? 'bg-danger-tint text-danger-ink' : 'bg-neutral-tint text-ink-faint'}`}>
                           {p.mandatory ? 'Wajib' : 'Opsional'}
                         </span>
@@ -228,7 +251,9 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
         <strong className="font-semibold text-ink-soft">Status "Lengkap"</strong> dihitung dari penilaian <strong className="font-semibold text-ink-soft">WAJIB</strong> saja — penilaian
         opsional tak memengaruhi status/kartu (tetap ditampilkan di Rincian untuk dipantau). Tiap baris:
         <strong> Menilai (wajib)</strong> (tugas wajib penilai) &amp; <strong>Dinilai oleh</strong> (berapa
-        penilai sudah menilai pegawai ini). “Paksa Selesai” menandai penilaian terkirim; “Kirim Pengingat”
+        penilai sudah menilai pegawai ini). <strong>Status penilaian</strong> (tugas wajib): Belum Mulai · Sedang Diisi
+        (draf) · Selesai – Tepat Waktu · Selesai – Terlambat — ditentukan dari waktu kirim <em>pertama</em> dibanding
+        deadline periode, tak berubah bila penilaian diedit; Paksa Selesai dihitung tepat waktu. “Paksa Selesai” menandai penilaian terkirim; “Kirim Pengingat”
         mengirim email berisi daftar yang belum dinilai; “Undangan” / “Kirim Undangan Massal” mengirim
         info akun (peran, email, sandi baru, panduan) sekali di awal periode — sandi disetel ulang.
       </p>
@@ -248,6 +273,15 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
     </div>
   );
 }
+
+const STATUS_ORDER: ProgressStatus[] = ['not_started', 'in_progress', 'on_time', 'late'];
+const STATUS_TEXT: Record<ProgressStatus, string> = {
+  not_started: 'text-ink-soft', in_progress: 'text-warn-ink', on_time: 'text-brand-ink', late: 'text-danger-ink',
+};
+const STATUS_CHIP: Record<ProgressStatus, string> = {
+  not_started: 'bg-neutral-tint text-ink-soft', in_progress: 'bg-warn-tint text-warn-ink',
+  on_time: 'bg-brand-tint text-brand-ink', late: 'bg-danger-tint text-danger-ink',
+};
 
 function Stat({ label, value, c }: { label: string; value: number | string; c: string }) {
   return (

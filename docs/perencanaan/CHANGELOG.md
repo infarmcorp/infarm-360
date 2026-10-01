@@ -376,6 +376,12 @@
   izin hanya Lihat); halaman Direksi `/review-hasil` → **"Tinjauan Hasil Akhir"**. Tombol **Hitung Ulang
   Skor 360°** kini **hanya satu** (kokpit Review & Finalisasi) — halaman Bobot memberi tautan; tombol ②
   → **"Perbarui Laporan Final yang Berubah"**. Kode `section`/route tak berubah (hanya label).
+- **BR-07 — 4 status penilaian (2026-10-01, Tahap 2):** `progressStatusOf` (`lib/late.ts`, diuji) →
+  Belum Mulai · Sedang Diisi (draf) · Selesai – Tepat Waktu · Selesai – Terlambat, dari waktu kirim PERTAMA vs
+  deadline (Paksa Selesai HRD & periode tanpa deadline = tepat waktu). Halaman penilai: badge 4 status (Opsional
+  biasa/Ad-Hoc lama cukup "Terkirim"). Progress 360: kartu sebaran 4 status (tugas WAJIB), chip per penilai,
+  status per tugas di Rincian, filter "Status Penilaian", info deadline (peringatan bila belum ditetapkan).
+  Tanpa migrasi (pakai `first_submitted_at` 0036).
 - **Fitur N/A (BR-05) DICABUT** (2026-09-29, permintaan HRD — perhitungannya perlu divalidasi): semua
   indikator wajib rating 1–5 + evidence; server mengabaikan isNa dari klien & selalu menulis
   `is_na=false`/`na_reason=null` (kolom 0039 dibiarkan, tanpa migrasi). Data N/A di DB saat dicabut: 0.

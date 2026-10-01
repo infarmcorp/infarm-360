@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   LATE_PENALTY_360, submitTimingOf, isPenalizableLate, latePenaltyOf, apply360Penalty,
-  isPastDeadline, formatWib, toWibInput, ajuanPenaltyApplies, type LateCandidate,
+  isPastDeadline, formatWib, toWibInput, ajuanPenaltyApplies, progressStatusOf, type LateCandidate,
 } from '@/lib/late';
 
 // Deadline 30 Sep 2026 17:00 WIB = 10:00 UTC.
@@ -140,5 +140,25 @@ describe('ajuanPenaltyApplies — aturan ajuan berlaku Q3 2026 dst.', () => {
     expect(ajuanPenaltyApplies('2026-07-01')).toBe(true);  // Q3 2026
     expect(ajuanPenaltyApplies('2027-01-01')).toBe(true);
     expect(ajuanPenaltyApplies(null)).toBe(false);
+  });
+});
+
+describe('progressStatusOf (BR-07)', () => {
+  it('belum ada baris → Belum Mulai; draf → Sedang Diisi', () => {
+    expect(progressStatusOf(null, null, DL)).toBe('not_started');
+    expect(progressStatusOf(undefined, null, DL)).toBe('not_started');
+    expect(progressStatusOf('draft', null, DL)).toBe('in_progress');
+  });
+  it('terkirim: dibandingkan waktu kirim PERTAMA vs deadline', () => {
+    expect(progressStatusOf('submitted', '2026-09-30T09:00:00Z', DL)).toBe('on_time');
+    expect(progressStatusOf('submitted', DL, DL)).toBe('on_time');
+    expect(progressStatusOf('submitted', '2026-09-30T10:00:01Z', DL)).toBe('late');
+  });
+  it('tanpa deadline / tanpa waktu kirim → tak bisa terlambat', () => {
+    expect(progressStatusOf('submitted', '2026-10-05T00:00:00Z', null)).toBe('on_time');
+    expect(progressStatusOf('submitted', null, DL)).toBe('on_time');
+  });
+  it('Paksa Selesai HRD tak pernah tercatat terlambat', () => {
+    expect(progressStatusOf('submitted', '2026-10-05T00:00:00Z', DL, true)).toBe('on_time');
   });
 });

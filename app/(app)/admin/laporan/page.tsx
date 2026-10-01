@@ -90,8 +90,9 @@ export default async function AdminLaporanPage() {
   // keputusan HRD 2026-09-29) — angka 360°/Skor Akhir yang ditinjau sudah memuat potongan terbaru.
   // Gagal → tak memblokir halaman; sisa yang tertunda tetap diperingatkan di kokpit di bawah.
   if (isHrdFull && ap.has_360) { try { await refreshLatePenalties(ap.id); } catch { /* diperingatkan via pendingLate */ } }
-  const { data: r360 } = await db.from('result_360').select('employee_id, score, computed_at').eq('period_id', ap.id);
+  const { data: r360 } = await db.from('result_360').select('employee_id, score, late_penalty, computed_at').eq('period_id', ap.id);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
+  const lateBy = new Map((r360 ?? []).map((r) => [r.employee_id, Number(r.late_penalty ?? 0)]));
   // computed_at per pegawai → deteksi "perlu hitung ulang" (penilaian berubah setelah hitung).
   const computedAtBy = new Map((r360 ?? []).map((r) => [r.employee_id, r.computed_at]));
   const { data: reports } = await db
@@ -180,7 +181,7 @@ export default async function AdminLaporanPage() {
     const missingMonths = sortedMonths.filter((m) => !presentMonths.has(m));
     return {
       id: e.id, name: e.name, dept: e.dept,
-      kpiAvg, s360, needsRecompute,
+      kpiAvg, s360, needsRecompute, latePenalty: lateBy.get(e.id) ?? 0,
       totalMonths: sortedMonths.length, missingMonths,
       final, storedFinal: rep?.final_score ?? null,
       status: rep?.status ?? null, spvAcc: !!rep?.spv_acc,

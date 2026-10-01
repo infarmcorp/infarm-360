@@ -156,8 +156,8 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
     admin.from('period_months').select('period_id, ym'),
     fetchAllPaged<{ employee_id: string; ym: string; score: number }>((from, to) =>
       admin.from('kpi_scores').select('employee_id, ym, score').order('employee_id').order('ym').range(from, to)),
-    fetchAllPaged<{ employee_id: string; period_id: string; score: number | null }>((from, to) =>
-      admin.from('result_360').select('employee_id, period_id, score').order('employee_id').order('period_id').range(from, to)),
+    fetchAllPaged<{ employee_id: string; period_id: string; score: number | null; late_penalty: number }>((from, to) =>
+      admin.from('result_360').select('employee_id, period_id, score, late_penalty').order('employee_id').order('period_id').range(from, to)),
     fetchAllPaged<{ employee_id: string; period_id: string; status: string; final_score: number | null }>((from, to) =>
       admin.from('final_reports').select('employee_id, period_id, status, final_score').order('employee_id').order('period_id').range(from, to)),
   ]);
@@ -168,6 +168,7 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
   const kpiByCell = new Map<string, { s: number; n: number }>();
   kpi.forEach((k) => { const key = `${k.employee_id}|${k.ym}`; const a = kpiByCell.get(key) ?? { s: 0, n: 0 }; a.s += k.score; a.n++; kpiByCell.set(key, a); });
   const s360By = new Map(r360.map((r) => [`${r.employee_id}|${r.period_id}`, r.score]));
+  const lateBy = new Map(r360.map((r) => [`${r.employee_id}|${r.period_id}`, Number(r.late_penalty ?? 0)]));
 
   const rows: Row[] = [];
   for (const p of periods) {
@@ -182,11 +183,64 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
       rows.push({
         periode: p.label, kode: e.emp_code, nama: e.name, divisi: e.dept,
         kpi_rerata: kpiAvg != null ? r2(kpiAvg) : null, skor_360: s360 != null ? r2(s360) : null,
+        // Potongan keterlambatan menilai — SUDAH termasuk di skor_360 (bukan pengurang tambahan).
+        potongan_telat_360: p.has_360 ? (lateBy.get(`${e.id}|${p.id}`) ?? 0) : null,
         skor_akhir: final != null ? r2(final) : null,
         kategori: KAT(final), player: playerLabelOf(player),
       });
     }
   }
+  return { ok: true, rows };
+}
+
+/**
+ * Dataset Potongan Keterlambatan (BR-08): siapa yang Skor 360°-nya dipotong karena terlambat menilai.
+ * Satu baris per (pegawai × periode) yang potongannya > 0 ATAU nilai potongannya diubah HRD
+ * (termasuk dikecualikan = 0), agar jejak keputusan HRD ikut tercatat.
+ */
+export async function exportLatePenalties(periodId?: string | null): Promise<ExportResult> {
+  if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
+  const admin = createAdminClient();
+  const [{ data: emps }, { data: periods }, r360, { data: waivers }] = await Promise.all([
+    admin.from('employees').select('id, emp_code, name, dept'),
+    admin.from('periods').select('id, label, start_date').order('start_date'),
+    fetchAllPaged<{ employee_id: string; period_id: string; score: number | null; score_raw: number | null; late_penalty: number }>((from, to) =>
+      admin.from('result_360').select('employee_id, period_id, score, score_raw, late_penalty').order('period_id').order('employee_id').range(from, to)),
+    admin.from('late_penalty_waivers').select('employee_id, period_id, points, reason, set_by, created_at'),
+  ]);
+  const empById = new Map((emps ?? []).map((e) => [e.id, e]));
+  const plabel = new Map((periods ?? []).map((p) => [p.id, p.label]));
+  const porder = new Map((periods ?? []).map((p, i) => [p.id, i]));
+  const waiverBy = new Map((waivers ?? []).map((w) => [`${w.employee_id}|${w.period_id}`, w]));
+  const r360By = new Map(r360.map((r) => [`${r.employee_id}|${r.period_id}`, r]));
+  const setterIds = [...new Set((waivers ?? []).map((w) => w.set_by).filter(Boolean) as string[])];
+  const setterName = new Map<string, string>();
+  if (setterIds.length) {
+    const { data: s } = await admin.from('employees').select('id, name').in('id', setterIds);
+    (s ?? []).forEach((x) => setterName.set(x.id, x.name));
+  }
+  const keys = new Set<string>([
+    ...r360.filter((r) => Number(r.late_penalty ?? 0) > 0).map((r) => `${r.employee_id}|${r.period_id}`),
+    ...(waivers ?? []).map((w) => `${w.employee_id}|${w.period_id}`),
+  ]);
+  const rows: Row[] = [...keys]
+    .map((k) => { const [empId, pid] = k.split('|'); return { empId, pid, r: r360By.get(k), w: waiverBy.get(k) }; })
+    .filter((x) => !periodId || x.pid === periodId)
+    .sort((a, b) => (porder.get(a.pid) ?? 0) - (porder.get(b.pid) ?? 0) || (empById.get(a.empId)?.name ?? '').localeCompare(empById.get(b.empId)?.name ?? ''))
+    .map(({ empId, pid, r, w }) => {
+      const e = empById.get(empId);
+      const pts = w ? Number(w.points) : Number(r?.late_penalty ?? 0);
+      return {
+        periode: plabel.get(pid) ?? pid, kode: e?.emp_code ?? '', nama: e?.name ?? '—', divisi: e?.dept ?? '—',
+        potongan: pts,
+        sumber: w ? (pts === 0 ? 'Dikecualikan HRD' : 'Diubah HRD') : 'Otomatis (−3)',
+        skor_360_sebelum_potongan: r?.score_raw != null ? r2(r.score_raw) : null,
+        skor_360: r?.score != null ? r2(r.score) : null,
+        alasan_hrd: w?.reason ?? '',
+        diubah_oleh: w?.set_by ? (setterName.get(w.set_by) ?? '—') : '',
+        waktu_diubah: w?.created_at ?? '',
+      };
+    });
   return { ok: true, rows };
 }
 

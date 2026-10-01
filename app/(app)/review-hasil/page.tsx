@@ -41,8 +41,9 @@ export default async function ReviewHasilDireksiPage() {
   const kpiValsBy = new Map<string, number[]>();
   kpiRows.forEach((r) => kpiValsBy.set(r.employee_id, [...(kpiValsBy.get(r.employee_id) ?? []), Number(r.score)]));
 
-  const { data: r360 } = await admin.from('result_360').select('employee_id, score').eq('period_id', ap.id);
+  const { data: r360 } = await admin.from('result_360').select('employee_id, score, late_penalty').eq('period_id', ap.id);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
+  const lateBy = new Map((r360 ?? []).map((r) => [r.employee_id, Number(r.late_penalty ?? 0)]));
   const { data: reports } = await admin.from('final_reports').select('employee_id, status, spv_acc, final_score').eq('period_id', ap.id);
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
 
@@ -55,7 +56,7 @@ export default async function ReviewHasilDireksiPage() {
       const rep = repBy.get(e.id);
       return {
         id: e.id, name: e.name, dept: e.dept,
-        kpiAvg, s360, needsRecompute: false,
+        kpiAvg, s360, needsRecompute: false, latePenalty: lateBy.get(e.id) ?? 0,
         totalMonths: 0, missingMonths: [],
         final, storedFinal: rep?.final_score ?? null,
         status: rep?.status ?? null, spvAcc: !!rep?.spv_acc,

@@ -15,7 +15,9 @@
   manual di Flag Kepatuhan (`setPenalty`, `penalty-input.tsx`), kolom "Punish." (Review/Kepatuhan), lembar
   ekspor Punishment & kolom `punishment` di Rekap dibuang; `finalScoreOf(kpi, s360, has360)` tanpa
   parameter penalty (lantai 0 ikut hilang — tak ada lagi pengurang). Tabel `compliance_penalties`
-  **dibiarkan dorman** (0 baris di prod; tanpa migrasi), riwayat log lama tetap tampil.
+  **dibiarkan dorman** (0 baris di prod; tanpa migrasi), riwayat log lama tetap tampil. Sebagai gantinya
+  tabel Review & Finalisasi / Review Hasil Akhir punya kolom **Potongan** (`result_360.late_penalty`, sudah
+  termasuk di 360°) dan Ekspor Kinerja punya lembar **Potongan Keterlambatan** + kolom `potongan_telat_360` di Rekap.
 - **Kerapian 360° & alur HRD (audit 2026-09-29, Prioritas 4):**
   (1) **Bobot wajib total 100%** (tanpa Self) — `saveWeights`/`saveEmployeeWeightOverride` menolak di server
   (Zod), tombol simpan nonaktif di form; dulu total bebas & semua-0 membuat pegawai hilang dari `result_360`.

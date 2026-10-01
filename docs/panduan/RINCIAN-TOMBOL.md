@@ -315,7 +315,7 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **Tinjau →** (kolom Aksi) | Buka detail `/laporan/{id}` (state-machine ada di detail) | HRD Admin | Teks **"KPI & 360° kosong"** bila keduanya kosong; badge **"Tanpa KPI"** bila Skor Akhir dari 360° saja (nama **tidak** bisa diklik) | — |
 
 > Tabel = **kokpit** read-only: kolom KPI ("X/Y bln" amber bila kurang) · 360° ("belum"/"N/A"/
-> "⚠ perlu hitung") · Skor Akhir (baris Final = angka **tersimpan** + badge "berubah → N"
+> "⚠ perlu hitung") · Potongan (−3 telat menilai, sudah termasuk di 360°) · Skor Akhir (baris Final = angka **tersimpan** + badge "berubah → N"
 > bila skor terkini beda) · Dinilai oleh X/Y · ACC · Status. Aksi Simpan/Finalisasi/Rilis kini
 > **hanya di halaman detail** (Panel Aksi di bawah). Membuka halaman ini (HRD penuh) **menerapkan potongan
 > keterlambatan otomatis**; bila gagal, kokpit menautkan ke Flag Kepatuhan.
@@ -357,7 +357,7 @@ hanya ada untuk **periode aktif** (laporan periode tidak aktif = read-only).
 | **Dropdown Periode** (atau Semua Periode) | Set scope dataset ber-periode | HRD Admin | Selalu | — |
 | **Unduh — Pegawai (Master)** | 1 lembar, lintas periode | HRD Admin | Nonaktif saat ada unduhan lain | — |
 | **Unduh — Konfigurasi Periode Lengkap** | 6 lembar: Ringkasan · Bobot Penilai · Bulan KPI · Aspek & Indikator · Pertanyaan Esai · Pemetaan 360° | HRD Admin | idem | — |
-| **Unduh — Kinerja Lengkap per Periode** | 3 lembar: Rekap · KPI Bulanan · Audit KPI | HRD Admin | idem | — |
+| **Unduh — Kinerja Lengkap per Periode** | 4 lembar: Rekap · KPI Bulanan · Audit KPI · Potongan Keterlambatan | HRD Admin | idem | — |
 | **Unduh — Penilaian 360° Lengkap** | 5 lembar, **anonim penilai**: Ringkasan per Pegawai · Rekap Aspek · Kuantitatif · Kualitatif · Ringkasan Naratif | HRD Admin | idem | — |
 | **Unduh — Log Aktivitas HRD** | 1 lembar, lintas periode | HRD Admin | idem | — |
 

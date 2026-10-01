@@ -595,8 +595,9 @@ Dataset dirangkai jadi beberapa **file multi-lembar** (bukan banyak unduhan terp
 - **Pegawai (Master)** — 1 lembar, lintas periode: kode, nama, divisi, peran, status, atasan, email.
 - **Konfigurasi Periode Lengkap** — 6 lembar: Ringkasan · Bobot Penilai · Bulan KPI · Aspek & Indikator ·
   Pertanyaan Esai · **Pemetaan 360°** (pasangan penilai→target, relasi, sifat).
-- **Kinerja Lengkap per Periode** — 3 lembar: **Rekap** (KPI rerata · Skor 360° · Skor Akhir ·
-  kategori · 4-Box) · KPI Bulanan · Audit KPI.
+- **Kinerja Lengkap per Periode** — 4 lembar: **Rekap** (KPI rerata · Skor 360° · potongan telat · Skor Akhir ·
+  kategori · 4-Box) · KPI Bulanan · Audit KPI · **Potongan Keterlambatan** (pegawai yang Skor 360°-nya
+  dipotong: nilai potongan, otomatis/diubah/dikecualikan HRD, skor sebelum & sesudah, alasan HRD).
 - **Penilaian 360° Lengkap** — 5 lembar (semua **anonim penilai**): **Ringkasan per Pegawai** (per kelas
   penilai + Nilai 360°/Gap) · **Rekap Aspek** (Skor 360° **terbobot** & Nilai Diri **per aspek budaya** +
   gap diri-vs-360°, cocok dengan radar laporan) · **Kuantitatif** (rating per indikator) · **Kualitatif**
@@ -681,7 +682,7 @@ Dataset dirangkai jadi beberapa **file multi-lembar** (bukan banyak unduhan terp
 - Filter: **cari nama/divisi** + centang **"Fokus (kandidat & rencana berjalan)"** (default aktif).
 
 ### Review & Finalisasi
-**Daftar pegawai** (tabel "kokpit") berisi kolom **Pegawai · Divisi · KPI · 360° ·
+**Daftar pegawai** (tabel "kokpit") berisi kolom **Pegawai · Divisi · KPI · 360° · Potongan (−3 bila telat menilai; sudah termasuk di 360°) ·
 Skor Akhir · Dinilai oleh · ACC SPV · Status · Aksi**. Ada **pencarian nama/divisi**, **filter
 Divisi** & **filter Kelengkapan 360°** — keduanya berupa **centang multi-pilih** (panel daftar
 centang; kosong = semua). Centang **"Hanya perlu tindakan"** (default **aktif**) menyembunyikan laporan

@@ -1,5 +1,6 @@
 import type { createClient } from '@/lib/supabase/server';
 import { finalScoreOf, kpiAvgOf, hasScoreDrift } from '@/lib/scoring';
+import { fetchAllPaged } from '@/lib/supabase/paginate';
 
 /**
  * Tugas & Notifikasi in-app — DITURUNKAN dari data yang sudah ada (tanpa tabel baru).
@@ -80,12 +81,28 @@ async function countKpiMissing(supabase: SB, periodId: string, userId: string): 
 async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): Promise<TodoItem[]> {
   const out: TodoItem[] = [];
   if (has360) {
-    const [{ count: mapCount }, { count: subCount }] = await Promise.all([
-      supabase.from('mappings').select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('is_active', true),
-      supabase.from('assessments').select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('status', 'submitted'),
+    // Selaras kartu Progress 360: WAJIB dihitung sendiri; AJUAN (Opsional hasil permohonan pegawai yang
+    // disetujui HRD) dipisah; Opsional biasa & Ad-Hoc tak dihitung. Selesai = submitted/invalidated (0046).
+    const [maps, done, { data: ajuanReqs }] = await Promise.all([
+      fetchAllPaged<{ assessor_id: string; target_id: string; mandatory: boolean }>((from, to) =>
+        supabase.from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', periodId).eq('is_active', true).eq('is_adhoc', false)
+          .order('assessor_id').order('target_id').range(from, to)),
+      fetchAllPaged<{ assessor_id: string; target_id: string }>((from, to) =>
+        supabase.from('assessments').select('assessor_id, target_id').eq('period_id', periodId).in('status', ['submitted', 'invalidated'])
+          .order('assessor_id').order('target_id').range(from, to)),
+      supabase.from('relation_correction_requests').select('assessor_id, target_id').eq('period_id', periodId).eq('kind', 'add').eq('status', 'approved'),
     ]);
-    const pending = (mapCount ?? 0) - (subCount ?? 0);
-    if (pending > 0) out.push({ id: 'hrd-progress', tone: 'amber', href: '/admin/progress', label: `${pending} penilaian 360° belum lengkap` });
+    const doneSet = new Set(done.map((a) => `${a.assessor_id}|${a.target_id}`));
+    const ajuanSet = new Set((ajuanReqs ?? []).map((r) => `${r.assessor_id}|${r.target_id}`));
+    let wajib = 0, ajuan = 0;
+    for (const m of maps) {
+      const k = `${m.assessor_id}|${m.target_id}`;
+      if (doneSet.has(k)) continue;
+      if (m.mandatory) wajib++;
+      else if (ajuanSet.has(k)) ajuan++;
+    }
+    if (wajib > 0) out.push({ id: 'hrd-progress', tone: 'amber', href: '/admin/progress', label: `${wajib} penilaian wajib belum lengkap` });
+    if (ajuan > 0) out.push({ id: 'hrd-ajuan', tone: 'blue', href: '/admin/progress', label: `${ajuan} penilaian ajuan belum selesai` });
   }
   const [{ count: empCount }, { count: finalCount }, { count: corrCount }] = await Promise.all([
     supabase.from('employees').select('*', { count: 'exact', head: true }).eq('is_active', true).neq('role', 'direksi').eq('is_external', false),

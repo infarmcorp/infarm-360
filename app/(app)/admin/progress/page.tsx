@@ -40,7 +40,7 @@ export default async function ProgressPage() {
   if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
   // Independen → paralel. mappings & assessments SELURUH pegawai → bisa >1000; ambil penuh.
-  const [empsRes, maps, asmtsAll] = await Promise.all([
+  const [empsRes, maps, asmtsAll, ajuanRes] = await Promise.all([
     db.from('employees').select('id, name, dept'),
     fetchAllPaged<{ assessor_id: string; target_id: string; relation: string; mandatory: boolean }>((from, to) =>
       // is_adhoc DIKECUALIKAN: Ad-Hoc mandiri bersifat rahasia (bukan penugasan HRD) → tak masuk
@@ -49,7 +49,13 @@ export default async function ProgressPage() {
       db.from('mappings').select('assessor_id, target_id, relation, mandatory').eq('period_id', ap.id).eq('is_active', true).eq('is_adhoc', false).order('assessor_id').order('target_id').range(from, to)),
     fetchAllPaged<{ assessor_id: string; target_id: string; status: string; first_submitted_at: string | null; forced_by_hrd: boolean }>((from, to) =>
       db.from('assessments').select('assessor_id, target_id, status, first_submitted_at, forced_by_hrd').eq('period_id', ap.id).order('assessor_id').order('target_id').range(from, to)),
+    // AJUAN = pemetaan Opsional hasil permohonan "tambah" pegawai yang disetujui HRD. Tetap OPSIONAL
+    // (tak masuk kartu/kelengkapan Wajib), tapi dipantau di panel terpisah (keputusan HRD 2026-10-01).
+    db.from('relation_correction_requests').select('assessor_id, target_id').eq('period_id', ap.id).eq('kind', 'add').eq('status', 'approved'),
   ]);
+  const ajuanPairs = new Set((ajuanRes.data ?? []).map((r) => `${r.assessor_id}|${r.target_id}`));
+  const isAjuanPair = (assessorId: string, t: { targetId: string; mandatory: boolean }) =>
+    !t.mandatory && ajuanPairs.has(`${assessorId}|${t.targetId}`);
   // Pemegang grant: himpunan id pegawai DALAM lingkup → menyaring baris penilai & yang-dinilai.
   const scopedIds = viaGrant
     ? new Set((empsRes.data ?? []).filter((e) => employeeInScopes(grantScopes!, ownDept, user.id, { id: e.id, dept: e.dept }, teamIds)).map((e) => e.id))
@@ -78,13 +84,17 @@ export default async function ProgressPage() {
     const activeTasks = tasks.filter((t) => !isInvalid(t));
     const pending = activeTasks
       .filter((t) => !submitted.has(`${assessorId}|${t.targetId}`))
-      .map((t) => ({ targetId: t.targetId, targetName: empById.get(t.targetId)?.name ?? '—', relation: t.relation, mandatory: t.mandatory, progress: statusOf(assessorId, t.targetId) }));
+      .map((t) => ({ targetId: t.targetId, targetName: empById.get(t.targetId)?.name ?? '—', relation: t.relation, mandatory: t.mandatory, ajuan: isAjuanPair(assessorId, t), progress: statusOf(assessorId, t.targetId) }));
     // Kelengkapan diukur dari penilaian WAJIB saja (opsional tak menentukan "lengkap").
     const mandatoryTasks = activeTasks.filter((t) => t.mandatory);
     const mandatoryDone = mandatoryTasks.filter((t) => submitted.has(`${assessorId}|${t.targetId}`)).length;
     const statusCounts: Record<ProgressStatus, number> = { not_started: 0, in_progress: 0, on_time: 0, late: 0, invalidated: 0 };
     mandatoryTasks.forEach((t) => { statusCounts[statusOf(assessorId, t.targetId)]++; });
     statusCounts.invalidated = tasks.filter((t) => t.mandatory && isInvalid(t)).length;
+    // Sebaran status untuk tugas AJUAN (terpisah dari Wajib).
+    const ajuanTasks = activeTasks.filter((t) => isAjuanPair(assessorId, t));
+    const ajuanCounts: Record<ProgressStatus, number> = { not_started: 0, in_progress: 0, on_time: 0, late: 0, invalidated: 0 };
+    ajuanTasks.forEach((t) => { ajuanCounts[statusOf(assessorId, t.targetId)]++; });
     return {
       id: assessorId,
       name: e?.name ?? '—',
@@ -94,6 +104,8 @@ export default async function ProgressPage() {
       mandatoryTotal: mandatoryTasks.length,
       mandatoryDone,
       statusCounts,
+      ajuanTotal: ajuanTasks.length,
+      ajuanCounts,
       pending,
     };
   }).sort((a, b) => {
@@ -122,7 +134,7 @@ export default async function ProgressPage() {
   // JUMLAH per penilai/target — daftar target (nama + relasi) DIBUANG di server, tak ikut ke browser.
   const rowsScoped = scopedIds ? rows.filter((r) => scopedIds.has(r.id)) : rows;
   const rowsOut = viaGrant
-    ? rowsScoped.map((r) => ({ ...r, pending: r.pending.map((p) => ({ targetId: '', targetName: '', relation: '', mandatory: false, progress: p.progress })) }))
+    ? rowsScoped.map((r) => ({ ...r, pending: r.pending.map((p) => ({ targetId: '', targetName: '', relation: '', mandatory: false, ajuan: false, progress: p.progress })) }))
     : rowsScoped;
   const targetRowsOut = scopedIds ? targetRows.filter((t) => scopedIds.has(t.id)) : targetRows;
 

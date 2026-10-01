@@ -5,6 +5,11 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **Progress 360 — panel "Penilaian Ajuan" (2026-10-01, keputusan HRD):** Ajuan (Opsional hasil permohonan
+  "tambah" yang disetujui, dikenali dari `relation_correction_requests` kind='add' approved) **TETAP Opsional**
+  (nanti N/A berlaku juga untuk Ajuan) — tak masuk kartu/kelengkapan Wajib; dipantau di panel terpisah + chip +
+  filter "Punya Ajuan". Notifikasi sidebar HRD dipisah Wajib vs Ajuan (dulu: semua pemetaan aktif − semua
+  terkirim, sehingga selisih 1 dgn kartu Wajib). Aturan potongan telat Ajuan (Q3+) tak berubah.
 - **Fitur Punishment manual DIHAPUS (2026-10-01, keputusan HRD):** "punishment" = potongan keterlambatan
   menilai −3 pada **Skor 360°** penilai (bukan KPI, bukan Skor Akhir) — satu-satunya sanksi. Input poin
   manual di Flag Kepatuhan (`setPenalty`, `penalty-input.tsx`), kolom "Punish." (Review/Kepatuhan), lembar

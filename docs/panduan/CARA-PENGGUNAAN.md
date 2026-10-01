@@ -813,6 +813,11 @@ dari 360° (belum/tak ada KPI, mis. Direksi) muncul badge **"Tanpa KPI"**.
   **Rincian**, dan filter **"Status Penilaian"** (mis. tampilkan hanya penilai yang punya tugas "Sedang
   Diisi"). Di bawah judul halaman tampil **Deadline** periode — bila belum diisi, ada peringatan karena
   Tepat Waktu/Terlambat belum bisa dibedakan.
+- **Panel "Penilaian Ajuan"** (di samping kartu Wajib): penilaian **Ajuan** (Opsional yang diajukan pegawai
+  sendiri & disetujui HRD) dipantau **terpisah** — "X / Y selesai" + 4 status. Ajuan **tetap Opsional**: tidak
+  masuk kartu/Progres Wajib maupun status "Lengkap". Di baris penilai tampil chip bergaris putus-putus
+  "Ajuan · <status>", dan filter **Status Penilaian** punya opsi **"Punya Ajuan"**. Notifikasi sidebar HRD
+  ikut dipisah: "N penilaian wajib belum lengkap" & "N penilaian ajuan belum selesai".
 - Tiap baris menampilkan **dua progres berdampingan** (paritas legacy):
   - **Menilai (wajib)** — tugas **wajib** penilai terhadap orang lain (mis. `5/8 · 63%`).
   - **Dinilai oleh** — **berapa penilai yang sudah menilai pegawai ini** dari total yang

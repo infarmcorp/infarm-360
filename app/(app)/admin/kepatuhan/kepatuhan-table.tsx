@@ -1,13 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { PenaltyInput } from './penalty-input';
 import { LateWaiver } from './late-waiver';
 import { usePager, Pager, CheckboxFilter, MultiCheckFilter } from '@/components/table-controls';
 
 export type KepatuhanRow = {
   id: string; name: string; dept: string;
-  lateCount: number; lateTargets: string[]; points: number;
+  lateCount: number; lateTargets: string[];
   /** Penilaian wajib yang DIKIRIM SESUDAH deadline (terhitung potongan) — nama + waktu kirim pertama (WIB). */
   lateSubmitted: string[];
   latePenalty: number; lateAuto: number; lateOverride: number | null; lateWaiveReason: string | null;
@@ -19,11 +18,11 @@ export type KepatuhanRow = {
 
 /**
  * Baris "perlu perhatian" = ada penilaian wajib/ajuan belum dikirim, ATAU dikirim terlambat, ATAU
- * sudah punya punishment/penetapan potongan HRD (Self Assessment dinonaktifkan Q3 2026) (agar tetap bisa ditinjau/dikoreksi). Sisanya (patuh
- * penuh & tanpa punishment) disembunyikan secara default → halaman lebih bersih.
+ * sudah punya penetapan potongan HRD (Self Assessment dinonaktifkan Q3 2026) (agar tetap bisa ditinjau/dikoreksi). Sisanya (patuh
+ * penuh & tanpa penetapan potongan) disembunyikan secara default → halaman lebih bersih.
  */
 const needsAttention = (r: KepatuhanRow) =>
-  r.lateCount > 0 || r.lateSubmitted.length > 0 || r.ajuanPending.length > 0 || r.lateOverride != null || r.points > 0;
+  r.lateCount > 0 || r.lateSubmitted.length > 0 || r.ajuanPending.length > 0 || r.lateOverride != null;
 
 export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[]; readOnly?: boolean }) {
   const [showAll, setShowAll] = useState(false);
@@ -55,24 +54,23 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
 
       {list.length === 0 ? (
         <div className="text-center py-10 text-sm text-ink-soft">
-          ✅ Semua pegawai patuh &amp; tanpa punishment — tak ada yang perlu ditindak.
+          ✅ Semua pegawai patuh — tak ada yang perlu ditindak.
           {rows.length > 0 && (
             <div className="text-[11px] mt-1 text-ink-faint">
-              Ingin memberi punishment manual? Centang <strong className="font-semibold text-ink-soft">&quot;Tampilkan semua pegawai&quot;</strong> di atas.
+              Ingin melihat atau mengubah potongan pegawai lain? Centang <strong className="font-semibold text-ink-soft">&quot;Tampilkan semua pegawai&quot;</strong> di atas.
             </div>
           )}
         </div>
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[720px]">
+            <table className="w-full text-left text-sm min-w-[600px]">
               <thead>
                 <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
                   <th className="py-2 pr-3 font-semibold">Pegawai</th>
                   <th className="py-2 px-3 text-center font-semibold">Belum Kirim</th>
                   <th className="py-2 px-3 text-center font-semibold">Kirim Terlambat</th>
-                  <th className="py-2 px-3 text-center font-semibold">Potongan 360°</th>
-                  <th className="py-2 pl-3 text-right font-semibold">Punishment (poin)</th>
+                  <th className="py-2 pl-3 text-center font-semibold">Potongan 360°</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line-soft">
@@ -102,14 +100,9 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
                         </span>
                       ) : <span className="text-[11px] text-ink-faint">—</span>}
                     </td>
-                    <td className="py-3 px-3 text-center">
+                    <td className="py-3 pl-3 text-center">
                       <LateWaiver employeeId={r.id} penalty={r.latePenalty} auto={r.lateAuto} override={r.lateOverride}
                         reason={r.lateWaiveReason} lateWajib={r.lateWajib} lateAjuan={r.lateAjuan} readOnly={readOnly} />
-                    </td>
-                    <td className="py-3 pl-3 text-right">
-                      {readOnly
-                        ? <span className={`text-sm font-bold data-value ${r.points > 0 ? 'text-danger-ink' : 'text-ink-faint'}`}>{r.points > 0 ? `${r.points} poin` : '—'}</span>
-                        : <PenaltyInput employeeId={r.id} initial={r.points} />}
                     </td>
                   </tr>
                 ))}

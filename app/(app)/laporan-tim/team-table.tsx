@@ -81,7 +81,7 @@ function TrendBadge({ t, months }: { t: Trend; months: (number | null)[] }) {
  * `linkNames` (default true) — nama jadi tautan Tinjau (laporan). false → teks biasa (Monitor).
  * `showStatus`/`showAcc` (default true) — sembunyikan kolom Status/ACC untuk Monitor Kinerja.
  * `scoreBasis` (default 'stored') — sumber angka Skor Akhir: 'stored' = nilai finalisasi tersimpan
- *   (Laporan Kinerja Tim, dari final_reports); 'live' = dihitung langsung dari KPI+360°−punishment
+ *   (Laporan Kinerja Tim, dari final_reports); 'live' = dihitung langsung dari KPI+360°
  *   (Monitor Kinerja) → bisa berbeda dari angka tersimpan. Hanya memengaruhi keterangan, bukan angka.
  * `showSearch` (default true) — tampilkan kotak cari nama sisi-klien.
  * `pageSize` (opsional) — bila diisi, tabel dipaginasi SISI-KLIEN (mis. 10/halaman) dengan pager
@@ -146,8 +146,8 @@ export function TeamTable({
                 <th className="py-2 px-3 text-center whitespace-nowrap">
                   Skor Akhir <span className="normal-case font-normal text-gray-400">({scoreBasis === 'live' ? 'live' : 'tersimpan'})</span>
                   <InfoTip text={scoreBasis === 'live'
-                    ? 'Dihitung langsung (live): 50% KPI + 50% Skor 360°, dikurangi punishment. Bila 360° nonaktif = 100% KPI.'
-                    : 'Angka finalisasi tersimpan dari laporan: 50% KPI + 50% Skor 360° − punishment (100% KPI bila 360° nonaktif).'} />
+                    ? 'Dihitung langsung (live): 50% KPI + 50% Skor 360°. Bila 360° nonaktif = 100% KPI.'
+                    : 'Angka finalisasi tersimpan dari laporan: 50% KPI + 50% Skor 360° (100% KPI bila 360° nonaktif).'} />
                 </th>
                 <th className="py-2 px-3 text-center whitespace-nowrap">
                   4-Box <InfoTip text="Klasifikasi talenta KPI×360° (ambang 80): A (keduanya ≥80), B-Culture (360°≥80), B-KPI (KPI≥80), C (keduanya <80). KPI atau 360° kosong → HRD Review." />
@@ -262,7 +262,7 @@ export function TeamTable({
 
       <p className="text-[10px] text-gray-500 italic mt-3">
         {scoreBasis === 'live' ? (
-          <>Kolom <strong>Skor Akhir (live)</strong> dihitung langsung dari KPI + 360° − punishment periode ini —
+          <>Kolom <strong>Skor Akhir (live)</strong> dihitung langsung dari KPI + 360° periode ini —
           bisa berbeda dari angka <strong>finalisasi tersimpan</strong> di Laporan Kinerja Tim (yang mengikuti saat laporan difinalisasi).</>
         ) : (
           <>Kolom <strong>Skor Akhir (tersimpan)</strong> = angka finalisasi dari laporan; kosong (—) bila laporan belum dibuat/difinalisasi.

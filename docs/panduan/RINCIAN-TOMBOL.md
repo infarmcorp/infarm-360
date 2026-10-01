@@ -195,7 +195,7 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **Sub-tab** Kompilasi / Analisis KPI / Analisis 360 / Tabel Hasil | Ganti tampilan dashboard | HRD/Direksi | Selalu | — |
 | **Cari nama/divisi + Dropdown Player** (tab Tabel) | Filter baris tabel (klien) | HRD/Direksi | Hanya tab Tabel | — |
 
-> Murni pelaporan — tak ada aksi tulis. Skor Akhir = rumus resmi tunggal (dikurangi punishment; laporan Final = angka tersimpan); pegawai "KPI belum terbaca" dikecualikan dari rerata/distribusi/ranking KPI.
+> Murni pelaporan — tak ada aksi tulis. Skor Akhir = rumus resmi tunggal (laporan Final = angka tersimpan); pegawai "KPI belum terbaca" dikecualikan dari rerata/distribusi/ranking KPI.
 
 ### Kelola Pegawai (`/admin/pegawai`)
 
@@ -315,7 +315,7 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **Tinjau →** (kolom Aksi) | Buka detail `/laporan/{id}` (state-machine ada di detail) | HRD Admin | Teks **"KPI & 360° kosong"** bila keduanya kosong; badge **"Tanpa KPI"** bila Skor Akhir dari 360° saja (nama **tidak** bisa diklik) | — |
 
 > Tabel = **kokpit** read-only: kolom KPI ("X/Y bln" amber bila kurang) · 360° ("belum"/"N/A"/
-> "⚠ perlu hitung") · Punish. · Skor Akhir (baris Final = angka **tersimpan** + badge "berubah → N"
+> "⚠ perlu hitung") · Skor Akhir (baris Final = angka **tersimpan** + badge "berubah → N"
 > bila skor terkini beda) · Dinilai oleh X/Y · ACC · Status. Aksi Simpan/Finalisasi/Rilis kini
 > **hanya di halaman detail** (Panel Aksi di bawah). Membuka halaman ini (HRD penuh) **menerapkan potongan
 > keterlambatan otomatis**; bila gagal, kokpit menautkan ke Flag Kepatuhan.
@@ -344,8 +344,7 @@ hanya ada untuk **periode aktif** (laporan periode tidak aktif = read-only).
 
 | Tombol | Fungsi | Peran | Kondisi | Konfirmasi |
 |--------|--------|-------|---------|------------|
-| **Input Punishment + Simpan** (per baris) | `setPenalty` (potong Skor Akhir, min 0; kolom **kosong** bila belum ada — placeholder "0") | HRD Admin | Nonaktif saat busy | — |
-| **Tampilkan semua pegawai** (centang) | Tampilkan seluruh pegawai (default hanya yang **perlu perhatian**: belum kirim / kirim terlambat / ajuan tertunda / potongan diubah HRD / sudah ada punishment) | HRD Admin | Selalu | — |
+| **Tampilkan semua pegawai** (centang) | Tampilkan seluruh pegawai (default hanya yang **perlu perhatian**: belum kirim / kirim terlambat / ajuan tertunda / potongan diubah HRD) | HRD Admin | Selalu | — |
 | **Centang multi-pilih Divisi** | Filter baris | HRD Admin | Selalu | — |
 | **Ubah** (kolom Potongan 360°) | `setLateWaiver` — tetapkan nilai potongan keterlambatan pegawai (menggantikan −3 otomatis; **0 = dikecualikan**); alasan wajib ≥3 karakter; tampil badge "diubah HRD" | HRD Admin | Ada potongan otomatis / penetapan HRD. Nilai selain 0 butuh migrasi 0043 | — |
 | **Kembalikan otomatis** | `setLateWaiver` (alasan kosong) — hapus penetapan HRD → kembali −3 otomatis | HRD Admin | Ada penetapan HRD | — |
@@ -358,7 +357,7 @@ hanya ada untuk **periode aktif** (laporan periode tidak aktif = read-only).
 | **Dropdown Periode** (atau Semua Periode) | Set scope dataset ber-periode | HRD Admin | Selalu | — |
 | **Unduh — Pegawai (Master)** | 1 lembar, lintas periode | HRD Admin | Nonaktif saat ada unduhan lain | — |
 | **Unduh — Konfigurasi Periode Lengkap** | 6 lembar: Ringkasan · Bobot Penilai · Bulan KPI · Aspek & Indikator · Pertanyaan Esai · Pemetaan 360° | HRD Admin | idem | — |
-| **Unduh — Kinerja Lengkap per Periode** | 4 lembar: Rekap · KPI Bulanan · Audit KPI · Punishment | HRD Admin | idem | — |
+| **Unduh — Kinerja Lengkap per Periode** | 3 lembar: Rekap · KPI Bulanan · Audit KPI | HRD Admin | idem | — |
 | **Unduh — Penilaian 360° Lengkap** | 5 lembar, **anonim penilai**: Ringkasan per Pegawai · Rekap Aspek · Kuantitatif · Kualitatif · Ringkasan Naratif | HRD Admin | idem | — |
 | **Unduh — Log Aktivitas HRD** | 1 lembar, lintas periode | HRD Admin | idem | — |
 

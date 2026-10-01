@@ -64,8 +64,7 @@ Buat → Aktivasi → Set Tanpa 360° → Pertanyaan → Bobot → Pemetaan → 
    (me-reset sandi semua). Periode berikutnya cukup **Kirim Pengingat**.
 7. **Pantau pengisian** — *Progress 360*: kejar yang belum lengkap dengan **Kirim Pengingat**;
    *Flag Kepatuhan*: pantau **Belum Kirim / Kirim Terlambat / ajuan tertunda**, tinjau **potongan
-   keterlambatan** (bisa **Ubah** nilainya dengan alasan; 0 = dikecualikan) + input **punishment** bila
-   perlu (memotong Skor Akhir).
+   keterlambatan** (bisa **Ubah** nilainya dengan alasan; 0 = dikecualikan).
 8. **① Hitung Ulang Skor 360°** — *Review & Finalisasi* (kokpit "Sinkronkan Skor"; tombol ini **hanya ada
    di sana**). Menulis `result_360` (termasuk potongan keterlambatan, yang juga diterapkan otomatis saat
    halaman dibuka). **Wajib sebelum finalisasi** — sebelum ditekan, Skor Akhir = 100% KPI.

@@ -53,7 +53,7 @@ Empat peran pengguna (kolom `employees.role`; logika kewenangan di `lib/auth/rol
 - **SPV (Supervisor)** — input KPI bulanan tim (+ KPI dirinya sendiri), ACC laporan tim,
   monitor kinerja bawahan.
 - **HRD Admin** — kelola siklus periode, pertanyaan (+ aspek), bobot penilai, mapping (termasuk
-  **sifat wajib/opsional**), flag kepatuhan + **punishment** (pengurangan poin per kuartal),
+  **sifat wajib/opsional**), flag kepatuhan + **potongan keterlambatan** (−3 Skor 360°),
   finalisasi Final Report, dashboard. Punya **mode ganda**: bisa bertindak sesuai posisi aslinya.
   > **PENTING (per 2026-06-19):** "HRD Admin" kini **IZIN (grant `is_hrd_admin`), bukan posisi**.
   > Seseorang berposisi `employee`/`spv` bisa **diberi izin HRD** tanpa kehilangan posisinya. Cek
@@ -131,7 +131,7 @@ app/                          # Next.js App Router
     ├── akun/                 # Akun Saya
     └── admin/                # area HRD Admin (canAdmin)
         ├── periode/ pertanyaan/ pemetaan/ bobot/   # konfigurasi siklus
-        ├── progress/ kepatuhan/                     # progress 360° + flag/punishment
+        ├── progress/ kepatuhan/                     # progress 360° + flag kepatuhan
         ├── 360/                                     # aktivasi & hitung skor 360°
         ├── laporan/ dashboard/ ekspor/             # finalisasi · dashboard talenta · ekspor
         ├── pegawai/                                 # Kelola Pegawai (CRUD via service_role)
@@ -344,7 +344,9 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
   "Final Report", "Garis Hubungan") agar konsisten dengan dokumen pengguna.
 - Domain types: skema DB di `lib/database.types.ts`; tipe per-fitur inline/di lib terkait
   (arsip `src/types.ts` sudah dihapus). Jangan duplikasi — perluas di lib yang relevan.
-- **Skor Akhir** = blend KPI+360 **dikurangi** punishment kepatuhan per kuartal (min 0). Rumus
+- **Skor Akhir** = blend KPI+360 (tanpa pengurangan lain). **Fitur Punishment manual DIHAPUS (2026-10-01,
+  keputusan HRD)** — satu-satunya sanksi = potongan keterlambatan −3 yang sudah ada di Skor 360°; tabel
+  `compliance_penalties` dibiarkan dorman (0 baris di prod, tak dibaca/ditulis app). Rumus
   murni terkunci di `lib/scoring.ts` & `lib/score360.ts` (lihat Pengujian); kalau mengubah,
   sinkronkan semua tempat + perbarui tesnya.
   > **SATU rumus untuk SEMUA halaman (2026-09-29, keputusan HRD):** `finalScoreOf` (tanpa KPI → 360°
@@ -352,7 +354,7 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
   > penuh — bulatkan hanya di akhir), klasifikasi atas nilai TERBULAT (`roundScore`). Angka yang
   > DITAMPILKAN = `displayedFinalOf`: laporan **final** → `final_reports.final_score` tersimpan (yang
   > dilihat pegawai), selain itu angka hidup. Hanya Review Hasil Akhir menampilkan selisihnya
-  > (`hasScoreDrift`, ≥0.01). Dashboard selalu memotong punishment; mode "semua kuartal" = rata-rata
+  > (`hasScoreDrift`, ≥0.01). Mode Dashboard "semua kuartal" = rata-rata
   > Skor Akhir PER KUARTAL. **Jangan** hitung Skor Akhir/rerata KPI manual di halaman — pakai helper ini.
 - **Bobot 360° 2 kelas OTOMATIS (BR-10, Q3 2026 dst. — keputusan HRD 2026-10-01):** periode mulai ≥
   `AUTO_WEIGHT_FROM` (2026-07-01) yang memakai model **2 kelas** → bobot dari jumlah penilai Internal
@@ -392,7 +394,7 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
 ## Pengujian (Vitest — logika skor & parsing impor) + Verifikasi RLS
 
 > **Kenapa ada:** rumus skor (Skor Akhir, 9-Box, A/B/C/D, bobot 360°) menentukan keputusan
-> SDM nyata (promosi, punishment, kategori talenta). Kesalahan rumus **tidak memunculkan
+> SDM nyata (promosi, potongan keterlambatan, kategori talenta). Kesalahan rumus **tidak memunculkan
 > error** — aplikasi tetap jalan, angkanya saja yang salah ("salah diam-diam"). Tes mengunci
 > rumus: bila ada perubahan tak sengaja, `npm test` langsung **gagal merah** sebelum sampai
 > ke pengguna. **Bukan** aktivitas kuartalan — dijalankan saat **kode disentuh**.
@@ -400,7 +402,7 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
 - **Jalankan:** `npm test` (sekali) atau `npm run test:watch` (mode pantau).
 - **Cakupan (99 tes):**
   - `tests/scoring.test.ts` → `lib/scoring.ts`: `finalScoreOf` (blend 50/50, KPI-only, 360°-only,
-    punishment, floor 0, pembulatan 2 desimal), `roundScore`/`kpiAvgOf`/`displayedFinalOf`, `playerClassOf` (KPI×360° ambang 80 → A / B-Culture / B-KPI / C,
+    pembulatan 2 desimal), `roundScore`/`kpiAvgOf`/`displayedFinalOf`, `playerClassOf` (KPI×360° ambang 80 → A / B-Culture / B-KPI / C,
     null bila keduanya kosong, satu sumbu kosong → HRD_REVIEW; **tanpa D**), `kpiBandOf`/`s360BandOf`, `talentBoxOf` (9 kotak).
   - `tests/score360.test.ts` → `lib/score360.ts`: `weightedScore360` **4class** (semua kelas,
     normalisasi bobot, **kelas Bawahan**, **Self dikecualikan**) & **2class** (Internal = rerata
@@ -421,7 +423,7 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
     (`setSpvAcc` 3 jalur SPV/Koordinator/Direksi — carve-out koordinator, gating rilis, batas kewenangan),
     `tests/roles.test.ts` (`canAdmin`/`canCoordinate`/`isHrdDept`).
 - **Rumus inti ada di KODE, bukan UI.** Yang bisa diubah HRD lewat aplikasi = *input* (bobot %,
-  360° aktif/nonaktif, KPI, punishment). Cara blend & ambang terkunci di kode.
+  360° aktif/nonaktif, KPI, potongan keterlambatan). Cara blend & ambang terkunci di kode.
 - **Kalau sengaja mengubah rumus:** perbarui tes terkait. `lib/score360.ts` diekstrak dari
   `app/(app)/admin/360/actions.ts` — jaga sinkron.
 - **CI** menjalankan `npm test` + typecheck + build tiap push/PR (tab Actions GitHub).
@@ -451,7 +453,6 @@ pra-rilis (tak di CI — perlu kredensial).
 ### Skor Akhir (prasyarat 4-Box) — `finalScoreOf`
 - **360° aktif & ada:** `Skor Akhir = KPI×0.5 + 360×0.5` (blend 50/50).
 - **360° nonaktif / null:** `Skor Akhir = KPI` murni (100% KPI).
-- Lalu **dikurangi punishment** kepatuhan kuartal; **lantai 0** (`max(0, base − penalty)`).
 - KPI `null` → Skor Akhir `null` (belum bisa diklasifikasi).
 
 ### 9-Box — KPI × 360° (`talentBoxOf`, `kpiBandOf`, `s360BandOf`)

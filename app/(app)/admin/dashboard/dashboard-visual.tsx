@@ -279,7 +279,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
       {/* Distribusi Kategori Kinerja + Rencana Tindak Lanjut */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="📊 Distribusi Kategori Kinerja — Skor Akhir">
-          <p className="text-[10px] text-gray-500 mb-3 -mt-1">Skor Akhir = blend KPI 50% + 360° 50% − punishment (KPI murni bila 360° nonaktif). Berbeda dari tab <strong>Analisis Hasil KPI</strong> (KPI saja).{aggregate && <span className="text-indigo-700 font-semibold"> Mode agregat: rata-rata antar-kuartal, tanpa punishment.</span>}</p>
+          <p className="text-[10px] text-gray-500 mb-3 -mt-1">Skor Akhir = blend KPI 50% + 360° 50% (KPI murni bila 360° nonaktif). Berbeda dari tab <strong>Analisis Hasil KPI</strong> (KPI saja).{aggregate && <span className="text-indigo-700 font-semibold"> Mode agregat: rata-rata Skor Akhir per kuartal.</span>}</p>
           <CountBars items={categories} denom={denom} />
         </Card>
         <Card title="🎯 Rencana Tindak Lanjut Organisasi — Skor Akhir"><CountBars items={recommendations} denom={denom} /></Card>
@@ -741,7 +741,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
               <th className="py-2 px-3 text-center">Rerata KPI</th>
               <th className="py-2 px-3 text-center">Trend KPI</th>
               <th className="py-2 px-3 text-center">Skor 360°</th>
-              <th className="py-2 px-3 text-center" title="Dihitung langsung (live) dari KPI + 360° − punishment periode ini">
+              <th className="py-2 px-3 text-center" title="Dihitung langsung (live) dari KPI + 360° periode ini">
                 Skor Akhir <span className="normal-case font-normal text-gray-400">(live)</span>
               </th>
               <th className="py-2 pl-3 text-center">Player</th>
@@ -792,7 +792,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
         </div>
       )}
       <p className="text-[10px] text-gray-500 italic mt-3">
-        Skor Akhir <strong>(live)</strong> = blend KPI+360 (50/50) − punishment, dihitung langsung dari data periode aktif —
+        Skor Akhir <strong>(live)</strong> = blend KPI+360 (50/50), dihitung langsung dari data periode aktif —
         bisa berbeda dari angka <strong>finalisasi tersimpan</strong> di Laporan Kinerja Tim.
         Player (A/B/C) berbasis KPI × 360° (ambang 80); <strong>HRD Review</strong> = KPI atau Skor 360° kosong → tidak diklasifikasi otomatis.{!has360 && ' Periode tanpa 360° → semua pegawai berstatus HRD Review.'}
       </p>

@@ -143,41 +143,12 @@ export async function exportKpiAudit(periodId?: string | null): Promise<ExportRe
   return { ok: true, rows };
 }
 
-/** Dataset Kepatuhan / Punishment: periode, kode, nama, divisi, poin, alasan, ditetapkan_oleh. */
-export async function exportPenalties(periodId?: string | null): Promise<ExportResult> {
-  if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
-  const admin = createAdminClient();
-  const { data: emps } = await admin.from('employees').select('id, emp_code, name, dept');
-  const byId = new Map((emps ?? []).map((e) => [e.id, e]));
-  const { data: periods } = await admin.from('periods').select('id, label');
-  const plabel = new Map((periods ?? []).map((p) => [p.id, p.label]));
-  const pen = await fetchAllPaged<{ employee_id: string; period_id: string; points: number; reason: string | null; set_by: string | null }>((from, to) => {
-    let q = admin.from('compliance_penalties').select('employee_id, period_id, points, reason, set_by');
-    if (periodId) q = q.eq('period_id', periodId);
-    return q.order('period_id').order('employee_id').range(from, to);
-  });
-  const setterIds = [...new Set(pen.map((p) => p.set_by).filter(Boolean) as string[])];
-  const setterName = new Map<string, string>();
-  if (setterIds.length) {
-    const { data: s } = await admin.from('employees').select('id, name').in('id', setterIds);
-    (s ?? []).forEach((c) => setterName.set(c.id, c.name));
-  }
-  const rows: Row[] = pen.map((p) => {
-    const e = byId.get(p.employee_id);
-    return {
-      periode: plabel.get(p.period_id) ?? '', kode: e?.emp_code ?? '', nama: e?.name ?? '', divisi: e?.dept ?? '',
-      poin_punishment: p.points, alasan: p.reason ?? '', ditetapkan_oleh: p.set_by ? (setterName.get(p.set_by) ?? '—') : '—',
-    };
-  });
-  return { ok: true, rows };
-}
-
-/** Dataset Rekap Kinerja per Periode: KPI rerata, 360, punishment, Skor Akhir, kategori, player. */
+/** Dataset Rekap Kinerja per Periode: KPI rerata, 360, Skor Akhir, kategori, player. */
 export async function exportRekap(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
-  // kpi_scores/result_360/penalties LINTAS periode → bisa >1000; ambil penuh.
-  const [{ data: emps }, { data: periodsAll }, { data: pmonths }, kpi, r360, pen, reps] = await Promise.all([
+  // kpi_scores/result_360 LINTAS periode → bisa >1000; ambil penuh.
+  const [{ data: emps }, { data: periodsAll }, { data: pmonths }, kpi, r360, reps] = await Promise.all([
     // Direksi SENGAJA IKUT (subjek 360° — keputusan 2026-07-08): guard `kpiAvg==null && s360==null`
     // di bawah memastikan hanya yang PUNYA data (mis. Direksi ber-360°) yang muncul.
     admin.from('employees').select('id, emp_code, name, dept'),
@@ -187,8 +158,6 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
       admin.from('kpi_scores').select('employee_id, ym, score').order('employee_id').order('ym').range(from, to)),
     fetchAllPaged<{ employee_id: string; period_id: string; score: number | null }>((from, to) =>
       admin.from('result_360').select('employee_id, period_id, score').order('employee_id').order('period_id').range(from, to)),
-    fetchAllPaged<{ employee_id: string; period_id: string; points: number }>((from, to) =>
-      admin.from('compliance_penalties').select('employee_id, period_id, points').order('employee_id').order('period_id').range(from, to)),
     fetchAllPaged<{ employee_id: string; period_id: string; status: string; final_score: number | null }>((from, to) =>
       admin.from('final_reports').select('employee_id, period_id, status, final_score').order('employee_id').order('period_id').range(from, to)),
   ]);
@@ -199,7 +168,6 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
   const kpiByCell = new Map<string, { s: number; n: number }>();
   kpi.forEach((k) => { const key = `${k.employee_id}|${k.ym}`; const a = kpiByCell.get(key) ?? { s: 0, n: 0 }; a.s += k.score; a.n++; kpiByCell.set(key, a); });
   const s360By = new Map(r360.map((r) => [`${r.employee_id}|${r.period_id}`, r.score]));
-  const penBy = new Map(pen.map((p) => [`${p.employee_id}|${p.period_id}`, p.points]));
 
   const rows: Row[] = [];
   for (const p of periods) {
@@ -207,15 +175,14 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
     for (const e of emps ?? []) {
       const kpiAvg = kpiAvgOf(yms.map((ym) => { const a = kpiByCell.get(`${e.id}|${ym}`); return a ? a.s / a.n : null; }));
       const s360 = p.has_360 ? (s360By.get(`${e.id}|${p.id}`) ?? null) : null;
-      const penalty = penBy.get(`${e.id}|${p.id}`) ?? 0;
       if (kpiAvg == null && s360 == null) continue;
       // Rumus resmi tunggal (tanpa KPI → 360° saja); laporan FINAL → angka tersimpan (yang dilihat pegawai).
-      const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, p.has_360, penalty), repBy.get(`${e.id}|${p.id}`));
+      const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, p.has_360), repBy.get(`${e.id}|${p.id}`));
       const player = playerClassOf(kpiAvg, s360); // s360 sudah null bila 360 nonaktif
       rows.push({
         periode: p.label, kode: e.emp_code, nama: e.name, divisi: e.dept,
         kpi_rerata: kpiAvg != null ? r2(kpiAvg) : null, skor_360: s360 != null ? r2(s360) : null,
-        punishment: penalty, skor_akhir: final != null ? r2(final) : null,
+        skor_akhir: final != null ? r2(final) : null,
         kategori: KAT(final), player: playerLabelOf(player),
       });
     }
@@ -603,18 +570,18 @@ function weightsSummary(model: string | null, w: Record<string, number> | null):
 /**
  * Rekap Konfigurasi Periode (HRD) — "potret" SEMUA pengaturan yang diterapkan HRD per kuartal:
  * status & tanggal, pakai 360° atau tidak, bulan KPI (sumber data KPI), model & bobot penilai,
- * aspek + indikator, pertanyaan esai, serta jumlah pemetaan/punishment/skor 360 terhitung.
+ * aspek + indikator, pertanyaan esai, serta jumlah pemetaan/skor 360 terhitung.
  * Multi-sheet: Ringkasan · Bobot Penilai · Bulan KPI · Aspek & Indikator · Pertanyaan Esai.
  * Bila periodId null → mencakup seluruh periode (satu baris per periode di tiap sheet).
  */
 export async function exportPeriodConfig(periodId?: string | null): Promise<ConfigResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
-  // mappings/penalties/result_360 lintas periode → bisa >1000; ambil penuh (dipakai untuk hitung
-  // jumlah per periode — kalau terpotong, angka "jumlah pemetaan/punishment/skor 360" jadi salah).
+  // mappings/result_360 lintas periode → bisa >1000; ambil penuh (dipakai untuk hitung
+  // jumlah per periode — kalau terpotong, angka "jumlah pemetaan/skor 360" jadi salah).
   const [
     { data: periodsAll }, { data: pmonths }, { data: weights },
-    { data: aspectsAll }, { data: qualsAll }, mapsAll, penAll, r360,
+    { data: aspectsAll }, { data: qualsAll }, mapsAll, r360,
   ] = await Promise.all([
     admin.from('periods').select('id, code, label, status, start_date, end_date, has_360').order('start_date'),
     admin.from('period_months').select('period_id, ym'),
@@ -623,8 +590,6 @@ export async function exportPeriodConfig(periodId?: string | null): Promise<Conf
     admin.from('qualitative_questions').select('id, period_id, text, order_idx').order('order_idx'),
     fetchAllPaged<{ period_id: string; is_active: boolean }>((from, to) =>
       admin.from('mappings').select('period_id, is_active').order('period_id').range(from, to)),
-    fetchAllPaged<{ period_id: string }>((from, to) =>
-      admin.from('compliance_penalties').select('period_id').order('period_id').range(from, to)),
     fetchAllPaged<{ period_id: string; score: number | null }>((from, to) =>
       admin.from('result_360').select('period_id, score').order('period_id').range(from, to)),
   ]);
@@ -658,8 +623,6 @@ export async function exportPeriodConfig(periodId?: string | null): Promise<Conf
   (qualsAll ?? []).forEach((q) => { if (pids.has(q.period_id)) qualCountByP.set(q.period_id, (qualCountByP.get(q.period_id) ?? 0) + 1); });
   const mapCountByP = new Map<string, number>();
   mapsAll.forEach((m) => { if (pids.has(m.period_id) && m.is_active) mapCountByP.set(m.period_id, (mapCountByP.get(m.period_id) ?? 0) + 1); });
-  const penCountByP = new Map<string, number>();
-  penAll.forEach((p) => { if (pids.has(p.period_id)) penCountByP.set(p.period_id, (penCountByP.get(p.period_id) ?? 0) + 1); });
   const r360CountByP = new Map<string, number>();
   r360.forEach((r) => { if (pids.has(r.period_id) && r.score != null) r360CountByP.set(r.period_id, (r360CountByP.get(r.period_id) ?? 0) + 1); });
 
@@ -681,7 +644,6 @@ export async function exportPeriodConfig(periodId?: string | null): Promise<Conf
       indikator_total: indTotalByP.get(p.id) ?? 0,
       pertanyaan_esai: qualCountByP.get(p.id) ?? 0,
       jumlah_pemetaan: mapCountByP.get(p.id) ?? 0,
-      jumlah_punishment: penCountByP.get(p.id) ?? 0,
       skor_360_terhitung: p.has_360 ? (r360CountByP.get(p.id) ?? 0) : '—',
     };
   });

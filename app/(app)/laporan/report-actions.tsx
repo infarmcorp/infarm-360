@@ -22,7 +22,7 @@ export function ReportActions({
   employeeId: string;
   status: string | null;
   finalScore: number | null;   // Skor Akhir TERSIMPAN (yang dilihat pegawai bila final)
-  liveFinal: number | null;    // Skor Akhir TERKINI (dihitung dari KPI/360/punishment sekarang)
+  liveFinal: number | null;    // Skor Akhir TERKINI (dihitung dari KPI/360 sekarang)
   canCompute: boolean;
   totalMonths: number;         // jumlah bulan periode
   missingMonths: string[];     // bulan KPI yang belum terisi
@@ -50,7 +50,7 @@ export function ReportActions({
     if (finalIssues.length > 0) setConfirmFinal(true);
     else run(true, 'final');
   }
-  // Baris FINAL: data dasar (KPI/360/punishment) berubah sejak difinalisasi?
+  // Baris FINAL: data dasar (KPI/360) berubah sejak difinalisasi?
   const drift = isFinal && hasScoreDrift(liveFinal, finalScore); // ambang sama dgn tabel (≥0.01)
 
   async function run(finalize: boolean, mode: 'draft' | 'final' | 'revert') {
@@ -91,7 +91,7 @@ export function ReportActions({
           : <span className="text-[10px] text-ink-faint">belum disimpan</span>}
         {finalScore != null && <span className="text-[11px] data-value font-bold text-ink">Skor Akhir {fmt2(finalScore)}</span>}
         {drift && (
-          <span title={`Skor terkini ${fmt2(liveFinal!)} berbeda dari yang difinalisasi (${fmt2(finalScore!)}) — KPI/360°/punishment berubah. Tekan ② Perbarui Laporan Final yang Berubah di Review & Finalisasi (atau Kembalikan ke Draf lalu Finalisasi ulang) untuk memperbarui.`}
+          <span title={`Skor terkini ${fmt2(liveFinal!)} berbeda dari yang difinalisasi (${fmt2(finalScore!)}) — KPI/360° berubah. Tekan ② Perbarui Laporan Final yang Berubah di Review & Finalisasi (atau Kembalikan ke Draf lalu Finalisasi ulang) untuk memperbarui.`}
             className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink border border-warn-ink/25">
             berubah → {fmt2(liveFinal!)}
           </span>

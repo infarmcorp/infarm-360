@@ -43,8 +43,6 @@ export default async function ReviewHasilDireksiPage() {
 
   const { data: r360 } = await admin.from('result_360').select('employee_id, score').eq('period_id', ap.id);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
-  const { data: pen } = await admin.from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id);
-  const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
   const { data: reports } = await admin.from('final_reports').select('employee_id, status, spv_acc, final_score').eq('period_id', ap.id);
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
 
@@ -53,12 +51,11 @@ export default async function ReviewHasilDireksiPage() {
     .map((e) => {
       const kpiAvg = kpiAvgOf(kpiValsBy.get(e.id) ?? []);
       const s360 = s360By.get(e.id) ?? null;
-      const penalty = penBy.get(e.id) ?? 0;
-      const final = finalScoreOf(kpiAvg, s360, ap.has_360, penalty); // rumus resmi tunggal (selaras Review HRD)
+      const final = finalScoreOf(kpiAvg, s360, ap.has_360); // rumus resmi tunggal (selaras Review HRD)
       const rep = repBy.get(e.id);
       return {
         id: e.id, name: e.name, dept: e.dept,
-        kpiAvg, s360, penalty, needsRecompute: false,
+        kpiAvg, s360, needsRecompute: false,
         totalMonths: 0, missingMonths: [],
         final, storedFinal: rep?.final_score ?? null,
         status: rep?.status ?? null, spvAcc: !!rep?.spv_acc,

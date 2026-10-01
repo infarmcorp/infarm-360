@@ -11,7 +11,7 @@ bertahap dari HRD ke SPV lalu ke pegawai.
 
 - **Employee** — mengisi penilaian 360°, melihat laporan hasil sendiri (setelah difinalisasi).
 - **SPV** — input KPI bulanan tim (+ dirinya), ACC laporan tim, monitor kinerja bawahan.
-- **HRD Admin** — kelola periode, pertanyaan, bobot, pemetaan, kepatuhan/punishment, finalisasi
+- **HRD Admin** — kelola periode, pertanyaan, bobot, pemetaan, kepatuhan (potongan keterlambatan), finalisasi
   laporan, dashboard. Merupakan **izin** (`is_hrd_admin`), bukan jabatan — bisa diberikan ke
   Employee/SPV; punya **mode ganda** (Mode Admin ↔ Mode posisi-asli).
 - **Direksi** — dashboard eksekutif, ACC promosi/suksesi.

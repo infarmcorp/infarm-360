@@ -297,7 +297,7 @@ describe('Progress 360 Feedback — grant halaman (pemantauan, lihat-saja berlin
   });
 });
 
-describe('Flag Kepatuhan — grant halaman (pemantauan/lihat-saja; punishment tetap HRD-only)', () => {
+describe('Flag Kepatuhan — grant halaman (pemantauan/lihat-saja; ubah potongan tetap HRD-only)', () => {
   it("'kepatuhan' ada di katalog grant, berjenis pemantauan (lihat-saja)", () => {
     expect(GRANTABLE_PAGES).toContain('kepatuhan');
     expect(GRANTABLE_PAGE_KIND.kepatuhan).toBe('pemantauan');

@@ -35,7 +35,6 @@ function computeTablesNonNull(): Record<string, QResult[]> {
     period_months: [{ data: [{ ym: '2026-01' }] }],
     kpi_scores: [{ data: [{ score: 90 }] }],
     result_360: [{ data: { score: 70 } }],
-    compliance_penalties: [{ data: null }],
   };
 }
 
@@ -72,7 +71,6 @@ describe('saveOrFinalizeReport — otorisasi & prasyarat skor', () => {
       periods: [ACTIVE],
       period_months: [{ data: [] }],   // tak ada bulan → KPI tak di-query, kpiAvg null
       result_360: [{ data: null }],    // 360 null
-      compliance_penalties: [{ data: null }],
     } }));
     const r = await saveOrFinalizeReport(EMP, true);
     expect(r.ok).toBe(false);

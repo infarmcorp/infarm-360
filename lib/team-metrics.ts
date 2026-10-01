@@ -48,16 +48,6 @@ export async function scoreMaps(periodId: string, ids: string[]): Promise<ScoreM
   return { kpiBy, s360By, monthlyBy };
 }
 
-/** Punishment (poin kepatuhan) per pegawai pada satu periode. */
-export async function penaltyMap(periodId: string, ids: string[]): Promise<Map<string, number>> {
-  const penBy = new Map<string, number>();
-  if (!ids.length) return penBy;
-  const admin = createAdminClient();
-  const { data: pen } = await admin.from('compliance_penalties').select('employee_id, points').eq('period_id', periodId).in('employee_id', ids);
-  (pen ?? []).forEach((p) => penBy.set(p.employee_id, p.points));
-  return penBy;
-}
-
 /** KPI "belum terbaca" = trend 3 bulan pertama 'unread' (2 dari 3 bulan kosong). Dikecualikan dari
  *  rerata KPI (selaras Dashboard) — belum menggambarkan kuartal, bukan berkinerja rendah. 360° tetap dihitung. */
 const isUnreadMonths = (months: (number | null)[] | undefined): boolean =>

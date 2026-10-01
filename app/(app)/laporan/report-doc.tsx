@@ -46,9 +46,6 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
       {data.has360 && data.latePenalty360 > 0 && data.s360 != null && (
         <p className="text-[11px] text-warn-ink mt-2">Evaluasi 360° termasuk potongan keterlambatan menilai −{fmt2(data.latePenalty360)}.</p>
       )}
-      {data.penalty > 0 && (
-        <p className="text-[11px] text-danger-ink mt-2">Termasuk pengurangan punishment kepatuhan −{fmt2(data.penalty)}.</p>
-      )}
 
       {/* Radar aspek 360 */}
       {data.has360 && aspectsWith.length >= 3 && (

@@ -9,7 +9,7 @@ import { trendOf } from '@/lib/trend';
  * Agregasi Dashboard LINTAS-PERIODE (mode "Semua Kuartal" = 1 tahun · "Semua Tahun" = all-time).
  * Menjalankan pipeline dashboard atas SEKUMPULAN periode, bukan satu kuartal:
  *  - KPI & 360° per pegawai = RATA-RATA ANTAR-KUARTAL (rata bulan tiap kuartal → rata antar-kuartal).
- *  - Skor Akhir tahunan TANPA punishment (punishment per-kuartal, tak diagregasi).
+ *  - Skor Akhir tahunan = rata-rata Skor Akhir per kuartal (rumus resmi finalScoreOf).
  *  - 4-Box pakai playerClassOf (RUMUS TAK BERUBAH, ambang 80/80).
  *  - Aspek budaya 360° dihitung per-periode (bobot/mapping per-periode) lalu DIRATA-RATA PER NAMA aspek.
  * Dipanggil ON-DEMAND (hanya saat scope agregat dipilih di filter) → tak membebani muat harian.
@@ -150,7 +150,7 @@ export async function computeDashboardAggregate(
   const ymToPeriod = new Map((pmRows ?? []).map((m) => [m.ym, m.period_id]));
   const yms = [...new Set((pmRows ?? []).map((m) => m.ym))].sort();
   // Lintas kuartal × seluruh pegawai → mudah >1000 baris & daftar id panjang → chunk + paginasi.
-  const [kpiRows, r360Rows, penRows, repRows] = await Promise.all([
+  const [kpiRows, r360Rows, repRows] = await Promise.all([
     yms.length
       ? fetchAllByIds<{ employee_id: string; ym: string; score: number }>(empIds, (chunk, from, to) =>
           admin.from('kpi_scores').select('employee_id, ym, score').in('ym', yms).in('employee_id', chunk)
@@ -159,15 +159,11 @@ export async function computeDashboardAggregate(
     fetchAllByIds<{ employee_id: string; period_id: string; score: number | null }>(empIds, (chunk, from, to) =>
       admin.from('result_360').select('employee_id, period_id, score').in('period_id', periodIds).in('employee_id', chunk)
         .order('employee_id').order('period_id').range(from, to)),
-    // Punishment & laporan per (pegawai, kuartal) → Skor Akhir resmi per kuartal (displayedFinalOf).
-    fetchAllByIds<{ employee_id: string; period_id: string; points: number }>(empIds, (chunk, from, to) =>
-      admin.from('compliance_penalties').select('employee_id, period_id, points').in('period_id', periodIds).in('employee_id', chunk)
-        .order('employee_id').order('period_id').range(from, to)),
+    // Laporan per (pegawai, kuartal) → Skor Akhir resmi per kuartal (displayedFinalOf).
     fetchAllByIds<{ employee_id: string; period_id: string; status: string; final_score: number | null }>(empIds, (chunk, from, to) =>
       admin.from('final_reports').select('employee_id, period_id, status, final_score').in('period_id', periodIds).in('employee_id', chunk)
         .order('employee_id').order('period_id').range(from, to)),
   ]);
-  const penOf = new Map(penRows.map((p) => [`${p.employee_id}|${p.period_id}`, Number(p.points)]));
   const repOf = new Map(repRows.map((r) => [`${r.employee_id}|${r.period_id}`, r]));
   const periodMeta = new Map(periods.map((p) => [p.id, p]));
 
@@ -228,7 +224,7 @@ export async function computeDashboardAggregate(
     const player = playerClassOf(kpiAvg, has360 ? s360 : null);
     const axisIncomplete = player === 'HRD_REVIEW';
     // Skor Akhir "semua kuartal" (keputusan HRD 2026-09-29) = rata-rata Skor Akhir PER KUARTAL,
-    // tiap kuartal = rumus resmi − punishment kuartal itu, atau angka TERSIMPAN bila laporannya final.
+    // tiap kuartal = rumus resmi, atau angka TERSIMPAN bila laporannya final.
     // Kuartal "belum terbaca" dilewati (kecuali SEMUA kuartalnya belum terbaca → pakai semuanya).
     const quarterFinals: number[] = [];
     const pids = new Set([...(kmAll?.keys() ?? []), ...(sm?.keys() ?? [])]);
@@ -238,7 +234,7 @@ export async function computeDashboardAggregate(
       const qa = kmAll?.get(pid);
       const kpiQ = qa ? kpiAvgOf([qa.sum / qa.n]) : null;
       const key = `${e.id}|${pid}`;
-      const fq = displayedFinalOf(finalScoreOf(kpiQ, sm?.get(pid) ?? null, p.has_360, penOf.get(key) ?? 0), repOf.get(key));
+      const fq = displayedFinalOf(finalScoreOf(kpiQ, sm?.get(pid) ?? null, p.has_360), repOf.get(key));
       if (fq != null) quarterFinals.push(fq);
     }
     const final = quarterFinals.length ? roundScore(mean(quarterFinals)) : null;

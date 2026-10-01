@@ -5,7 +5,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection, grantedAccess, employeeInScopes, allowedDeptsForMulti, PAGE_SCOPE_LABELS, type PageScope } from '@/lib/auth/roles';
 import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf, fmt2 } from '@/lib/scoring';
 import { trendOf } from '@/lib/trend';
-import { scoreMaps, penaltyMap, teamAverages, companyAverages } from '@/lib/team-metrics';
+import { scoreMaps, teamAverages, companyAverages } from '@/lib/team-metrics';
 import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
 import { aspectScoresByEmployee, heatDataFromAspect, orgAspectAverages } from '@/lib/aspect360';
 import { ExtremesHeatmap } from '@/app/(app)/monitor/extremes-heatmap';
@@ -21,7 +21,7 @@ import { MonitorFilters } from './monitor-filters';
  * Monitor Kinerja Pegawai (HRD Admin) — SAMA seperti Monitor Kinerja SPV/Koordinator (scorecard ·
  * distribusi kategori · tabel KPI/360°/Skor Akhir/4-Box/Trend · grafik tren lintas periode ·
  * Pergerakan KPI & 360° per-aspek · Sorotan penyebab Δ), tetapi lingkupnya SELURUH pegawai internal
- * atau SATU DIVISI (filter). Skor Akhir dihitung LIVE (KPI + 360° − punishment).
+ * atau SATU DIVISI (filter). Skor Akhir dihitung LIVE (KPI + 360°).
  *
  * FILTER: Periode + Divisi, keduanya DI SERVER lewat URL (`?period=&dept=`). SELURUH kartu mengikuti
  * filter (bukan hanya tabel). "Seluruh Divisi" = semua pegawai internal. Memilih satu divisi
@@ -103,7 +103,6 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
 
   // ── Snapshot periode terpilih → scorecard + tabel ──────────────────────────
   const { kpiBy, s360By, monthlyBy } = await scoreMaps(sel.id, ids);
-  const penBy = await penaltyMap(sel.id, ids);
   // Laporan per (pegawai, periode) — laporan FINAL → Skor Akhir tersimpan (displayedFinalOf).
   const repAll = await fetchAllByIds<{ employee_id: string; period_id: string; status: string; final_score: number | null }>(ids, (chunk, from, to) =>
     admin.from('final_reports').select('employee_id, period_id, status, final_score').in('employee_id', chunk)
@@ -114,11 +113,10 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
     const kpiAvg = kpiBy.get(e.id) ?? null;
     const s360 = s360By.get(e.id) ?? null;
     const kpiMonths = (monthlyBy.get(e.id) ?? []).slice(0, 3);
-    const penalty = penBy.get(e.id) ?? 0;
     return {
       id: e.id, name: e.name, nickname: e.nickname, dept: e.dept,
       kpiAvg, s360,
-      finalScore: displayedFinalOf(finalScoreOf(kpiAvg, s360, sel.has_360, penalty), repOf.get(`${e.id}|${sel.id}`)),
+      finalScore: displayedFinalOf(finalScoreOf(kpiAvg, s360, sel.has_360), repOf.get(`${e.id}|${sel.id}`)),
       player: playerClassOf(kpiAvg, sel.has_360 ? s360 : null),
       trend: trendOf(kpiMonths),
       kpiMonths,
@@ -132,15 +130,13 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   const sAvg = teamAverages(rows);
 
   // ── Data tren LINTAS periode/bulan (org-wide → PAGINASI wajib, cegah potong 1000 baris) ──
-  const [kpiAll, r360All, pmAll, penAll] = await Promise.all([
+  const [kpiAll, r360All, pmAll] = await Promise.all([
     fetchAllByIds<{ employee_id: string; ym: string; score: number }>(ids, (chunk, from, to) =>
       admin.from('kpi_scores').select('employee_id, ym, score').in('employee_id', chunk).order('employee_id').order('ym').range(from, to)),
     fetchAllByIds<{ employee_id: string; period_id: string; score: number | null }>(ids, (chunk, from, to) =>
       admin.from('result_360').select('employee_id, period_id, score').in('employee_id', chunk).order('employee_id').order('period_id').range(from, to)),
     fetchAllPaged<{ period_id: string; ym: string }>((from, to) =>
       admin.from('period_months').select('period_id, ym').order('period_id').order('ym').range(from, to)),
-    fetchAllByIds<{ employee_id: string; period_id: string; points: number }>(ids, (chunk, from, to) =>
-      admin.from('compliance_penalties').select('employee_id, period_id, points').in('employee_id', chunk).order('employee_id').order('period_id').range(from, to)),
   ]);
   const kpiAgg = new Map<string, { s: number; n: number }>(); // `${emp}|${ym}`
   kpiAll.forEach((r) => { const k = `${r.employee_id}|${r.ym}`; const a = kpiAgg.get(k) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; kpiAgg.set(k, a); });
@@ -156,12 +152,11 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   // Skor Akhir per (pegawai,periode) untuk grafik "Tren Tim per Periode" (Avg Skor Akhir).
   // Rumus resmi tunggal (lib/scoring); laporan FINAL → angka tersimpan (displayedFinalOf).
   const periodById = new Map(periodList.map((p) => [p.id, p]));
-  const penOf = new Map(penAll.map((p) => [`${p.employee_id}|${p.period_id}`, p.points]));
   const perPeriodKpi = (id: string, pid: string): number | null =>
     kpiAvgOf((monthsByPeriod.get(pid) ?? []).map((ym) => kpiOf(id, ym)));
   const finalOf = (id: string, pid: string): number | null => {
     const p = periodById.get(pid); if (!p) return null;
-    const live = finalScoreOf(perPeriodKpi(id, pid), s360Of.get(`${id}|${pid}`) ?? null, p.has_360, penOf.get(`${id}|${pid}`) ?? 0);
+    const live = finalScoreOf(perPeriodKpi(id, pid), s360Of.get(`${id}|${pid}`) ?? null, p.has_360);
     return displayedFinalOf(live, repOf.get(`${id}|${pid}`));
   };
 

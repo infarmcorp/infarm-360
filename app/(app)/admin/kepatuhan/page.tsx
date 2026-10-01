@@ -11,19 +11,19 @@ import { ApplyLateButton } from './apply-late-button';
 import { formatWib, LATE_PENALTY_360 } from '@/lib/late';
 
 /**
- * Flag Kepatuhan Penilaian & Punishment (HRD).
+ * Flag Kepatuhan Penilaian (HRD).
  * - Belum Kirim: penilaian WAJIB (mapping mandatory) yang belum terkirim.
  * - Kirim Terlambat (migrasi 0036): penilaian wajib yang KIRIM PERTAMA-nya sesudah deadline →
  *   potongan flat −3 pada Skor 360° penilai (otomatis; HRD bisa mengecualikan, alasan wajib).
- * - Punishment: input poin pengurangan → compliance_penalties (memotong Skor Akhir).
+ * Satu-satunya sanksi = potongan Skor 360° tsb. Punishment manual (pengurang Skor Akhir) DIHAPUS 2026-10-01.
  */
 export default async function KepatuhanPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections, dept').eq('id', user.id).maybeSingle();
-  // Akses SADAR-MODE: PENUH (+punishment) hanya HRD di Mode Admin; selain itu → jalur GRANT 'kepatuhan'
-  // LIHAT-SAJA berlingkup (baca via service_role; input punishment disembunyikan → tetap HRD-only).
+  // Akses SADAR-MODE: PENUH (+ubah potongan) hanya HRD di Mode Admin; selain itu → jalur GRANT 'kepatuhan'
+  // LIHAT-SAJA berlingkup (baca via service_role; tombol ubah potongan disembunyikan → tetap HRD-only).
   const jar = await cookies();
   const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   const isHrdFull = canSection(me, 'kepatuhan') && hrdMode === 'admin';
@@ -53,7 +53,7 @@ export default async function KepatuhanPage() {
   const nameById = new Map(employees.map((e) => [e.id, e.name]));
 
   // Mapping wajib per penilai. SELURUH pegawai → bisa >1000; ambil penuh (hitung telat/self
-  // harus lengkap agar keputusan punishment tak keliru).
+  // harus lengkap agar potongan keterlambatan tak keliru).
   const maps = await fetchAllPaged<{ assessor_id: string; target_id: string; mandatory: boolean }>((from, to) =>
     db.from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', ap.id).eq('is_active', true).order('assessor_id').order('target_id').range(from, to));
   // Assessment terkirim → set "assessor:target". 'invalidated' (dibatalkan HRD, 0046) = kewajiban gugur.
@@ -63,10 +63,6 @@ export default async function KepatuhanPage() {
   // Siapa-menilai-siapa HANYA untuk HRD (keputusan 2026-09-29): pemegang grant non-HRD hanya melihat
   // JUMLAH, bukan nama target — nama dikosongkan di SERVER agar tak ikut terkirim ke browser.
   const targetName = (id: string) => (viaGrant ? '' : nameById.get(id) ?? '—');
-
-  const { data: pen } = await db
-    .from('compliance_penalties').select('employee_id, points').eq('period_id', ap.id);
-  const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
 
   // Keterlambatan kirim (service_role; halaman ini sudah terotorisasi di atas).
   // Potongan diterapkan OTOMATIS saat HRD membuka halaman ini (pengganti cron nonaktif, 2026-09-29).
@@ -85,7 +81,6 @@ export default async function KepatuhanPage() {
     return {
       id: e.id, name: e.name, dept: e.dept,
       lateCount: lateTargets.length, lateTargets,
-      points: penBy.get(e.id) ?? 0,
       // Tampilan "Kirim Terlambat" HANYA yang benar-benar sudah kirim (telat) — yang belum
       // kirim sama sekali sudah tampil di kartu "Belum Kirim" di atas. Potongan (latePenalty)
       // tetap MENCAKUP KEDUANYA (2026-09-28) — cuma daftar nama di sini yang dipisah agar tak
@@ -106,7 +101,6 @@ export default async function KepatuhanPage() {
   }).sort((a, b) => b.lateCount - a.lateCount || a.name.localeCompare(b.name));
 
   const totalLate = rows.filter((r) => r.lateCount > 0).length;
-  const totalPunished = rows.filter((r) => r.points > 0).length;
   const totalLateSubmit = rows.filter((r) => r.lateSubmitted.length > 0).length;
   const totalAjuan = rows.filter((r) => r.lateAjuan > 0).length;
 
@@ -134,7 +128,7 @@ export default async function KepatuhanPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
         <div className="border border-line rounded-panel bg-surface p-3 text-center">
           <div className="text-xl font-bold data-value text-danger-ink">{totalLate}</div>
           <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Belum kirim (penilaian wajib)</div>
@@ -148,10 +142,6 @@ export default async function KepatuhanPage() {
           <div className="text-xl font-bold data-value text-warn-ink">{totalAjuan}</div>
           <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Kena potongan krn ajuan</div>
         </div>
-        <div className="border border-line rounded-panel bg-surface p-3 text-center">
-          <div className="text-xl font-bold data-value text-ink">{totalPunished}</div>
-          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Dengan punishment</div>
-        </div>
       </div>
 
       <Panel>
@@ -159,7 +149,7 @@ export default async function KepatuhanPage() {
       </Panel>
       <p className="text-[11px] text-ink-faint mt-5 leading-relaxed">
         Default menampilkan pegawai yang <strong className="font-semibold text-ink-soft">perlu perhatian</strong> (penilaian wajib/ajuan belum
-        selesai, terlambat, atau sudah punya potongan/punishment). &quot;Belum Kirim&quot; = penilaian bersifat Wajib (mapping)
+        selesai, terlambat, atau sudah punya penetapan potongan HRD). &quot;Belum Kirim&quot; = penilaian bersifat Wajib (mapping)
         yang belum dikirim{viaGrant ? '' : ' (arahkan kursor untuk daftar nama)'}. &quot;Kirim Terlambat&quot; = penilaian Wajib yang pertama kali
         dikirim sesudah deadline{viaGrant ? '' : ' (arahkan kursor untuk nama & waktu kirim)'}.
         <strong className="font-semibold text-ink-soft"> Potongan Skor 360° {LATE_PENALTY_360} poin (otomatis, sekali per periode)</strong> berlaku
@@ -169,7 +159,7 @@ export default async function KepatuhanPage() {
         <strong className="font-semibold text-ink-soft">Ajuan</strong> (penilaian Opsional yang diajukan pegawai sendiri &amp; disetujui HRD) ikut dihitung
         mulai periode Q3 2026 dan ditandai terpisah. Opsional biasa, Ad-Hoc Mandiri lama, Paksa Selesai HRD, dan pemetaan yang dibuat sesudah deadline tidak dihitung.
         Nilai potongan bisa <strong className="font-semibold text-ink-soft">diubah HRD</strong> per pegawai (tombol Ubah, alasan wajib; 0 = dikecualikan).
-        Punishment memotong Skor Akhir pegawai di periode ini (min 0).
+        Potongan ini satu-satunya sanksi kepatuhan — Skor Akhir tidak dipotong lagi secara terpisah.
       </p>
     </Shell>
   );

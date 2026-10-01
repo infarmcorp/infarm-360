@@ -66,15 +66,13 @@ async function HrdView({
   kpiRows.forEach((r) => kpiValsBy.set(r.employee_id, [...(kpiValsBy.get(r.employee_id) ?? []), Number(r.score)]));
   const { data: r360 } = await supabase.from('result_360').select('employee_id, score').eq('period_id', period.id);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
-  const { data: pen } = await supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', period.id);
-  const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
   // Laporan FINAL → Skor Akhir tersimpan (yang dilihat pegawai) — displayedFinalOf.
   const { data: reps } = await supabase.from('final_reports').select('employee_id, status, final_score').eq('period_id', period.id);
   const repBy = new Map((reps ?? []).map((r) => [r.employee_id, r]));
 
   const rows: SuksesiRow[] = employees.map((e) => {
     const kpiAvg = kpiAvgOf(kpiValsBy.get(e.id) ?? []);
-    const live = finalScoreOf(kpiAvg, s360By.get(e.id) ?? null, period.has_360, penBy.get(e.id) ?? 0);
+    const live = finalScoreOf(kpiAvg, s360By.get(e.id) ?? null, period.has_360);
     const final = displayedFinalOf(live, repBy.get(e.id));
     return { id: e.id, name: e.name, dept: e.dept, final, plan: planBy.get(e.id) ?? null };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));

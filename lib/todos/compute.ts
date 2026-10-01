@@ -96,7 +96,7 @@ async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): P
   if ((corrCount ?? 0) > 0) out.push({ id: 'hrd-corr', tone: 'rose', href: '/admin/pemetaan', label: `${corrCount} permohonan pemetaan menunggu` });
   const pendingReports = (empCount ?? 0) - (finalCount ?? 0);
   if (pendingReports > 0) out.push({ id: 'hrd-final', tone: 'blue', href: '/admin/laporan', label: `${pendingReports} laporan belum difinalisasi` });
-  // Laporan FINAL yang skornya sudah usang (KPI/360°/punishment berubah sejak difinalisasi).
+  // Laporan FINAL yang skornya sudah usang (KPI/360° berubah sejak difinalisasi).
   const stale = await countStaleFinalReports(supabase, periodId, has360);
   if (stale > 0) out.push({ id: 'hrd-stale', tone: 'amber', href: '/admin/laporan', label: `${stale} laporan Final skornya berubah — perbarui di Review & Finalisasi` });
   return out;
@@ -104,8 +104,8 @@ async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): P
 
 /**
  * Hitung laporan FINAL yang Skor Akhir TERSIMPAN-nya beda dari skor TERKINI — artinya
- * KPI/360°/punishment berubah setelah finalisasi (pegawai masih melihat angka lama).
- * Bandingkan final_score tersimpan vs finalScoreOf(KPI,360,punishment) terkini.
+ * KPI/360° berubah setelah finalisasi (pegawai masih melihat angka lama).
+ * Bandingkan final_score tersimpan vs finalScoreOf(KPI,360) terkini.
  */
 async function countStaleFinalReports(supabase: SB, periodId: string, has360: boolean): Promise<number> {
   const { data: reports } = await supabase.from('final_reports')
@@ -123,13 +123,11 @@ async function countStaleFinalReports(supabase: SB, periodId: string, has360: bo
 
   const { data: r360 } = await supabase.from('result_360').select('employee_id, score').eq('period_id', periodId);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));
-  const { data: pen } = await supabase.from('compliance_penalties').select('employee_id, points').eq('period_id', periodId);
-  const penBy = new Map((pen ?? []).map((p) => [p.employee_id, p.points]));
 
   let n = 0;
   for (const rep of reports) {
     const kpiAvg = kpiAvgOf(kpiValsBy.get(rep.employee_id) ?? []);
-    const live = finalScoreOf(kpiAvg, s360By.get(rep.employee_id) ?? null, has360, penBy.get(rep.employee_id) ?? 0);
+    const live = finalScoreOf(kpiAvg, s360By.get(rep.employee_id) ?? null, has360);
     if (hasScoreDrift(live, rep.final_score)) n++;
   }
   return n;

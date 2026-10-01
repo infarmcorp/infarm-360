@@ -256,7 +256,7 @@ export function PeriodActions({
               {del && del.counts.finalReports > 0 && <li>{del.counts.finalReports} laporan final</li>}
               {del && del.counts.mappings > 0 && <li>{del.counts.mappings} pemetaan penilai→target</li>}
             </ul>
-            <p>Juga aspek, indikator/pertanyaan, bobot, koreksi relasi, hasil 360°, dan punishment periode ini.</p>
+            <p>Juga aspek, indikator/pertanyaan, bobot, koreksi relasi, dan hasil 360° periode ini.</p>
           </>
         )}
         <p className="font-semibold text-rose-700">Tindakan ini tidak bisa dibatalkan.</p>

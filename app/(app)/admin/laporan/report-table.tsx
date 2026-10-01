@@ -13,8 +13,7 @@ export type ReportRow = {
   missingMonths: string[];     // bulan yang BELUM ada KPI (mis. ['2026-06'])
   s360: number | null;         // Skor 360° terhitung (result_360); null = belum dihitung
   needsRecompute: boolean;     // penilaian berubah sejak 360° terakhir dihitung → perlu Hitung Ulang
-  penalty: number;             // poin punishment (Flag Kepatuhan)
-  final: number | null;        // Skor Akhir LIVE (dihitung dari KPI/360/punishment terkini)
+  final: number | null;        // Skor Akhir LIVE (dihitung dari KPI/360 terkini)
   storedFinal: number | null;  // Skor Akhir TERSIMPAN (snapshot final_reports) — yang dilihat pegawai
   status: ReportStatus | null; spvAcc: boolean;
   isSpvSubject: boolean;       // subjek berperan SPV → ACC oleh Direksi (bukan SPV)
@@ -118,7 +117,6 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
               <th className="py-2 px-3 font-semibold">Divisi</th>
               <th className="py-2 px-3 text-center font-semibold">KPI</th>
               <th className="py-2 px-3 text-center font-semibold">360°</th>
-              <th className="py-2 px-3 text-center font-semibold">Punish.</th>
               <th className="py-2 px-3 text-center font-semibold">Skor Akhir</th>
               {has360 && <th className="py-2 px-3 text-center font-semibold">Dinilai oleh</th>}
               <th className="py-2 px-3 text-center font-semibold">ACC</th>
@@ -128,7 +126,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
           </thead>
           <tbody className="divide-y divide-line-soft">
             {shown.length === 0 && (
-              <tr><td colSpan={has360 ? 10 : 9} className="py-6 text-center text-ink-faint italic">Tidak ada pegawai sesuai filter.</td></tr>
+              <tr><td colSpan={has360 ? 9 : 8} className="py-6 text-center text-ink-faint italic">Tidak ada pegawai sesuai filter.</td></tr>
             )}
             {paged.map((r) => (
               <tr key={r.id}>
@@ -162,13 +160,10 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                       </div>
                     )}
                 </td>
-                <td className="py-3 px-3 text-center data-value">
-                  {r.penalty > 0 ? <span className="text-danger-ink font-bold">−{r.penalty}</span> : <span className="text-ink-faint">0</span>}
-                </td>
                 <td className="py-3 px-3 text-center data-value font-bold text-ink">
                   {(() => {
                     // Baris FINAL: tampilkan angka TERSIMPAN (beku) yang dilihat pegawai.
-                    // Bila skor LIVE berbeda (KPI/360/punishment berubah sejak final) → badge "berubah".
+                    // Bila skor LIVE berbeda (KPI/360 berubah sejak final) → badge "berubah".
                     if (r.status === 'finalized') {
                       const stored = r.storedFinal;
                       const drift = hasScoreDrift(r.final, stored);

@@ -5,6 +5,12 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **Fitur Punishment manual DIHAPUS (2026-10-01, keputusan HRD):** "punishment" = potongan keterlambatan
+  menilai −3 pada **Skor 360°** penilai (bukan KPI, bukan Skor Akhir) — satu-satunya sanksi. Input poin
+  manual di Flag Kepatuhan (`setPenalty`, `penalty-input.tsx`), kolom "Punish." (Review/Kepatuhan), lembar
+  ekspor Punishment & kolom `punishment` di Rekap dibuang; `finalScoreOf(kpi, s360, has360)` tanpa
+  parameter penalty (lantai 0 ikut hilang — tak ada lagi pengurang). Tabel `compliance_penalties`
+  **dibiarkan dorman** (0 baris di prod; tanpa migrasi), riwayat log lama tetap tampil.
 - **Kerapian 360° & alur HRD (audit 2026-09-29, Prioritas 4):**
   (1) **Bobot wajib total 100%** (tanpa Self) — `saveWeights`/`saveEmployeeWeightOverride` menolak di server
   (Zod), tombol simpan nonaktif di form; dulu total bebas & semua-0 membuat pegawai hilang dari `result_360`.

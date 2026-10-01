@@ -162,3 +162,12 @@ describe('progressStatusOf (BR-07)', () => {
     expect(progressStatusOf('submitted', '2026-10-05T00:00:00Z', DL, true)).toBe('on_time');
   });
 });
+
+describe('penilaian dibatalkan validitasnya (0046)', () => {
+  it('progressStatusOf → invalidated', () => {
+    expect(progressStatusOf('invalidated', '2026-10-05T00:00:00Z', DL)).toBe('invalidated');
+  });
+  it('tak pernah terhitung terlambat', () => {
+    expect(isPenalizableLate({ ...base, status: 'invalidated' }, DL, Date.parse('2026-10-10T00:00:00Z'))).toBe(false);
+  });
+});

@@ -54,14 +54,17 @@ export function submitTimingOf(firstSubmittedAt: string | null | undefined, dead
  *  on_time     = terkirim, kirim pertama ≤ deadline (atau periode tanpa deadline / Paksa Selesai HRD)
  *  late        = terkirim, kirim pertama > deadline
  * Berdasar WAKTU KIRIM PERTAMA — tak berubah bila penilaian diedit sesudahnya.
+ *  invalidated = penilaian terkirim yang DIBATALKAN validitasnya oleh HRD (migrasi 0046) — kewajiban
+ *                gugur, keluar dari skor (status ke-5, di luar 4 status BR-07).
  */
-export type ProgressStatus = 'not_started' | 'in_progress' | 'on_time' | 'late';
+export type ProgressStatus = 'not_started' | 'in_progress' | 'on_time' | 'late' | 'invalidated';
 
 export const PROGRESS_STATUS_LABEL: Record<ProgressStatus, string> = {
   not_started: 'Belum Mulai',
   in_progress: 'Sedang Diisi',
   on_time: 'Selesai – Tepat Waktu',
   late: 'Selesai – Terlambat',
+  invalidated: 'Dibatalkan – Tidak Valid',
 };
 
 export function progressStatusOf(
@@ -70,6 +73,7 @@ export function progressStatusOf(
   deadline: string | null | undefined,
   forcedByHrd = false,
 ): ProgressStatus {
+  if (status === 'invalidated') return 'invalidated';
   if (status === 'submitted') {
     if (forcedByHrd) return 'on_time';
     return submitTimingOf(firstSubmittedAt, deadline) === 'late' ? 'late' : 'on_time';
@@ -103,7 +107,8 @@ export type LateCandidate = {
  * berubah seiring jam berjalan di dalam fungsi murni ini.
  */
 export function isPenalizableLate(a: LateCandidate, deadline: string | null | undefined, nowMs: number): boolean {
-  if (a.isAdhoc || a.forcedByHrd) return false;
+  // Dibatalkan validitasnya oleh HRD (0046) → kewajiban gugur, tak pernah memicu potongan.
+  if (a.isAdhoc || a.forcedByHrd || a.status === 'invalidated') return false;
   if (!a.mandatory && !a.requested) return false; // Opsional biasa tak ditagih
   const d = ts(deadline);
   if (d == null) return false; // tanpa deadline → tak ada yang "terlambat"

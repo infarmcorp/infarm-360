@@ -2,18 +2,28 @@
 
 import { useMemo, useState } from 'react';
 import { DeleteButton } from './delete-button';
+import type { PairStatus } from './actions';
 import { SearchableSelect } from '@/components/searchable-select';
 import { usePager, Pager } from '@/components/table-controls';
 
 export type MapRow = {
   id: string; assessorId: string; assessor: string; targetId: string; target: string;
   relation: string; mandatory: boolean;
+  /** Status penilaian pasangan ini (Screen 07). */
+  status: PairStatus;
+};
+
+const STATUS_LABEL: Record<PairStatus, string> = { none: 'Belum Mulai', draft: 'Draft', submitted: 'Terkirim', invalidated: 'Dibatalkan' };
+const STATUS_CLS: Record<PairStatus, string> = {
+  none: 'bg-neutral-tint text-ink-soft', draft: 'bg-warn-tint text-warn-ink',
+  submitted: 'bg-brand-tint text-brand-ink', invalidated: 'bg-neutral-tint text-ink-faint',
 };
 
 /** Daftar pemetaan + filter Penilai & Target (ala legacy). */
 export function MappingTable({ rows }: { rows: MapRow[] }) {
   const [fAssessor, setFAssessor] = useState('all');
   const [fTarget, setFTarget] = useState('all');
+  const [fStatus, setFStatus] = useState<'all' | PairStatus>('all');
 
   const assessors = useMemo(() => {
     const m = new Map<string, string>();
@@ -26,8 +36,9 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
     return [...m.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
   }, [rows]);
 
-  const shown = rows.filter((r) => (fAssessor === 'all' || r.assessorId === fAssessor) && (fTarget === 'all' || r.targetId === fTarget));
-  const active = fAssessor !== 'all' || fTarget !== 'all';
+  const shown = rows.filter((r) => (fAssessor === 'all' || r.assessorId === fAssessor) && (fTarget === 'all' || r.targetId === fTarget)
+    && (fStatus === 'all' || r.status === fStatus));
+  const active = fAssessor !== 'all' || fTarget !== 'all' || fStatus !== 'all';
   // Paginasi 5-baris (komponen bersama) → pemetaan bisa ratusan pasangan.
   const { page, setPage, pageCount, shown: paged, total, rangeFrom, rangeTo } = usePager(shown);
 
@@ -49,7 +60,8 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
     ? `Total ${rows.length} pasangan penilaian`
     : aName && tName ? `${shown.length} pasangan · ${aName} → ${tName}`
     : aName ? `${shown.length} pasangan dinilai oleh ${aName}`
-    : `${shown.length} pasangan menilai ${tName}`;
+    : tName ? `${shown.length} pasangan menilai ${tName}`
+    : `${shown.length} pasangan · ${STATUS_LABEL[fStatus as PairStatus]}`;
 
   return (
     <div className="space-y-3">
@@ -78,8 +90,13 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
             className="text-xs px-3 py-2 border border-line rounded-control bg-surface focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
           />
         </div>
+        <select value={fStatus} onChange={(e) => { setFStatus(e.target.value as typeof fStatus); setPage(0); }}
+          className="text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
+          <option value="all">Semua Status</option>
+          {(Object.keys(STATUS_LABEL) as PairStatus[]).map((k) => <option key={k} value={k}>{STATUS_LABEL[k]}</option>)}
+        </select>
         {active && (
-          <button type="button" onClick={() => { setFAssessor('all'); setFTarget('all'); setPage(0); }}
+          <button type="button" onClick={() => { setFAssessor('all'); setFTarget('all'); setFStatus('all'); setPage(0); }}
             className="text-[11px] font-semibold px-2.5 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">Bersihkan</button>
         )}
       </div>
@@ -88,11 +105,12 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
         <p className="text-sm text-ink-soft">Tidak ada pemetaan sesuai filter.</p>
       ) : (
         <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm min-w-[560px]">
+        <table className="w-full text-left text-sm min-w-[640px]">
           <thead>
             <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
               <th className="py-2 pr-3 font-semibold">Penilai</th><th className="py-2 px-3 font-semibold">Yang Dinilai</th><th className="py-2 px-3 font-semibold">Relasi</th>
-              <th className="py-2 px-3 text-center font-semibold">Sifat</th><th className="py-2 pl-3 text-right font-semibold">Aksi</th>
+              <th className="py-2 px-3 text-center font-semibold">Sifat</th><th className="py-2 px-3 text-center font-semibold">Status</th>
+              <th className="py-2 pl-3 text-right font-semibold">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line-soft">
@@ -106,7 +124,10 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
                     {r.mandatory ? 'Wajib' : 'Opsional'}
                   </span>
                 </td>
-                <td className="py-3 pl-3 text-right"><DeleteButton mappingId={r.id} /></td>
+                <td className="py-3 px-3 text-center">
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_CLS[r.status]}`}>{STATUS_LABEL[r.status]}</span>
+                </td>
+                <td className="py-3 pl-3 text-right"><DeleteButton mappingId={r.id} status={r.status} /></td>
               </tr>
             ))}
           </tbody>
@@ -116,6 +137,9 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pasangan" />
       <p className="text-[11px] text-ink-faint leading-relaxed">
         Relasi menentukan kelas bobot 360 (Atasan/Peer/Cross/Self). Sifat Wajib jadi dasar Flag Kepatuhan.
+        Hapus hanya untuk status Belum Mulai &amp; Draft (alasan wajib). Penilaian Terkirim tidak dapat dihapus —
+        gunakan <strong className="font-semibold text-ink-soft">Periksa Validitas</strong> untuk membatalkan validitasnya
+        (dikeluarkan dari Skor 360°, jawaban tetap tersimpan sebagai arsip). Semua tindakan tercatat di Log Aktivitas.
       </p>
     </div>
   );

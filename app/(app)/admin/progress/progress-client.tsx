@@ -46,8 +46,8 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
     const done = rows.filter(isComplete).length;
     const tasks = rows.reduce((s, r) => s + r.mandatoryTotal, 0);
     const doneTasks = rows.reduce((s, r) => s + r.mandatoryDone, 0);
-    const byStatus: Record<ProgressStatus, number> = { not_started: 0, in_progress: 0, on_time: 0, late: 0 };
-    rows.forEach((r) => STATUS_ORDER.forEach((k) => { byStatus[k] += r.statusCounts[k]; }));
+    const byStatus: Record<ProgressStatus, number> = { not_started: 0, in_progress: 0, on_time: 0, late: 0, invalidated: 0 };
+    rows.forEach((r) => CHIP_ORDER.forEach((k) => { byStatus[k] += r.statusCounts[k]; }));
     return { total, done, pending: total - done, pct: tasks ? Math.round((doneTasks / tasks) * 100) : 0, byStatus };
   }, [rows]);
 
@@ -86,6 +86,12 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
           <Stat key={k} label={PROGRESS_STATUS_LABEL[k]} value={stats.byStatus[k]} c={STATUS_TEXT[k]} />
         ))}
       </div>
+      {stats.byStatus.invalidated > 0 && (
+        <p className="text-[11px] text-ink-faint">
+          <span className="data-value font-semibold text-ink-soft">{stats.byStatus.invalidated}</span> penilaian wajib
+          dibatalkan validitasnya oleh HRD — dikeluarkan dari kewajiban &amp; perhitungan skor.
+        </p>
+      )}
 
       {/* Controls */}
       <div className="flex flex-wrap gap-2 items-center">
@@ -199,7 +205,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                     <div className={`h-full rounded-full ${complete ? 'bg-brand' : 'bg-warn-ink'}`} style={{ width: `${pct}%` }} />
                   </div>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {STATUS_ORDER.filter((k) => r.statusCounts[k] > 0).map((k) => (
+                    {CHIP_ORDER.filter((k) => r.statusCounts[k] > 0).map((k) => (
                       <span key={k} className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_CHIP[k]}`}>
                         {PROGRESS_STATUS_LABEL[k]} <span className="data-value">{r.statusCounts[k]}</span>
                       </span>
@@ -275,12 +281,14 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
 }
 
 const STATUS_ORDER: ProgressStatus[] = ['not_started', 'in_progress', 'on_time', 'late'];
+/** Chip per penilai: 4 status BR-07 + "Dibatalkan" (0046) bila ada. */
+const CHIP_ORDER: ProgressStatus[] = [...STATUS_ORDER, 'invalidated'];
 const STATUS_TEXT: Record<ProgressStatus, string> = {
-  not_started: 'text-ink-soft', in_progress: 'text-warn-ink', on_time: 'text-brand-ink', late: 'text-danger-ink',
+  not_started: 'text-ink-soft', in_progress: 'text-warn-ink', on_time: 'text-brand-ink', late: 'text-danger-ink', invalidated: 'text-ink-faint',
 };
 const STATUS_CHIP: Record<ProgressStatus, string> = {
   not_started: 'bg-neutral-tint text-ink-soft', in_progress: 'bg-warn-tint text-warn-ink',
-  on_time: 'bg-brand-tint text-brand-ink', late: 'bg-danger-tint text-danger-ink',
+  on_time: 'bg-brand-tint text-brand-ink', late: 'bg-danger-tint text-danger-ink', invalidated: 'bg-neutral-tint text-ink-faint',
 };
 
 function Stat({ label, value, c }: { label: string; value: number | string; c: string }) {

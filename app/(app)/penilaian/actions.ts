@@ -64,6 +64,10 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
   const { data: exExisting } = await supabase
     .from('assessments').select('status')
     .eq('assessor_id', auth.user.id).eq('target_id', targetId).eq('period_id', ap.id).maybeSingle();
+  // Dibatalkan validitasnya oleh HRD (0046) → arsip, tak bisa diubah (DB juga menolak lewat trigger).
+  if (exExisting?.status === 'invalidated') {
+    return { ok: false, error: 'Penilaian ini telah dibatalkan validitasnya oleh HRD dan tidak dapat diubah' };
+  }
   // Decision 01 (Screen 01/04): penilaian TERKIRIM hanya bisa diedit sampai deadline; sesudahnya read-only.
   // Yang belum terkirim tetap boleh dikirim sesudah deadline (tercatat Terlambat). DB juga menolak (0047).
   if (exExisting?.status === 'submitted' && isPastDeadline(ap.assessment_deadline)) {

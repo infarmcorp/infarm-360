@@ -6,6 +6,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { computeResult360 } from '@/app/(app)/admin/360/actions';
+import { isBackfilledPeriod } from '@/lib/backfill-guard';
 
 /**
  * Pemetaan (Mapping) penilai→target untuk periode aktif (HRD).
@@ -212,6 +213,7 @@ const Reason = z.string().trim().min(5, 'Alasan minimal 5 karakter').max(300, 'A
  */
 async function reconcileTarget360(periodId: string, targetId: string) {
   const admin = createAdminClient();
+  if (await isBackfilledPeriod(admin, periodId)) return; // skor impor Looker: jangan disentuh
   const { count: remaining } = await admin.from('assessments').select('*', { count: 'exact', head: true })
     .eq('period_id', periodId).eq('target_id', targetId).eq('status', 'submitted');
   if ((remaining ?? 0) === 0) {

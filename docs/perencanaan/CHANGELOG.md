@@ -5,6 +5,16 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **Persiapan tutup Q3 (2026-10-02, audit rencana):** (1) Panel Kesiapan & kokpit Review tak lagi menulis
+  "bobot pakai default" — tanpa skema bobot TERSIMPAN, ① Hitung Ulang ditolak server (pesan kini mengarahkan
+  ke "Simpan & Terapkan Bobot"). (2) **Pengaman Q1:** periode yang skor 360°-nya hasil impor Looker
+  (`hrd_audit_log.action='score360.backfill'`, kini hanya Q1 2026) ditolak `computeResult360` & dilewati
+  `reconcileTarget360` (`lib/backfill-guard.ts`) — periode boleh dibuka kembali, angka resminya tak boleh
+  tertimpa. (3) Sidebar penilai: "N ajuan Anda disetujui HRD — wajib dinilai sebelum deadline" (sampai
+  terkirim) & "N permohonan Anda sudah diputuskan HRD" (7 hari). (4) **Backup otomatis harian** (GitHub
+  Actions `backup.yml`, 02:00 WIB) — **dienkripsi AES-256** sebelum diunggah (repo PUBLIK), artifact 30 hari;
+  butuh secret `SUPABASE_DB_URL` + `BACKUP_PASSPHRASE` (lihat CARA-BACKUP.md §1b). (5) PDF panduan belum
+  direvisi → daftar revisi tambahan di REVISI-PANDUAN-PDF.md §6.
 - **Progress 360 — panel "Penilaian Ajuan" (2026-10-01, keputusan HRD):** Ajuan (Opsional hasil permohonan
   "tambah" yang disetujui, dikenali dari `relation_correction_requests` kind='add' approved) **TETAP Opsional**
   (nanti N/A berlaku juga untuk Ajuan) — tak masuk kartu/kelengkapan Wajib; dipantau di panel terpisah + chip +

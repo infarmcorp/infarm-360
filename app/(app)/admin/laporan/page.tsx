@@ -249,6 +249,14 @@ export default async function AdminLaporanPage() {
           {' '}<strong className="text-warn-ink">Berubah → N</strong> = laporan sudah Final tapi angkanya ketinggalan → tekan <strong>②</strong> agar pegawai melihat Skor Akhir terbaru.
         </p>
 
+        {/* Tanpa skema bobot tersimpan, ① ditolak server — beri tahu SEBELUM HRD menekannya. */}
+        {ap.has_360 && !wsRow && (
+          <p className="text-[12px] font-semibold text-warn-ink">
+            ⚠ Bobot penilai periode ini belum disimpan — tombol ① akan gagal.{' '}
+            <Link href="/admin/bobot" className="underline">Buka Bobot &amp; Kalkulasi 360°</Link> lalu tekan “Simpan &amp; Terapkan Bobot”.
+          </p>
+        )}
+
         {/* Baris aksi utama: ① Hitung Ulang · ② Finalisasi Ulang Berubah. */}
         <div className="flex flex-wrap items-center gap-2">
           {ap.has_360 && <Recompute360Button />}

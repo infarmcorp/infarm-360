@@ -9,6 +9,7 @@ import { classOf, avg, round2, weightedScore360, schemeFor, type Groups360, type
 import { fetchAllPaged, fetchAllByIds } from '@/lib/supabase/paginate';
 import { apply360Penalty } from '@/lib/late';
 import { loadLateSummaries } from '@/lib/late-server';
+import { isBackfilledPeriod, BACKFILL_LOCK_MSG } from '@/lib/backfill-guard';
 
 /**
  * Kalkulasi skor 360 terbobot → tabel result_360 (PANDUAN: kalibrasi skor).
@@ -38,11 +39,14 @@ export async function computeResult360(): Promise<ComputeResult> {
   const { data: ap } = await admin
     .from('periods').select('id, label, start_date').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+  // Skor 360° hasil impor Looker (mis. Q1 2026) dilindungi — cek SEBELUM bobot agar HRD tak
+  // diarahkan menyimpan bobot untuk periode itu.
+  if (await isBackfilledPeriod(admin, ap.id)) return { ok: false, error: BACKFILL_LOCK_MSG };
 
   const { data: ws } = await admin
     .from('weight_schemes').select('model, weights')
     .eq('period_id', ap.id).eq('is_active', true).maybeSingle();
-  if (!ws) return { ok: false, error: 'Belum ada skema bobot aktif untuk periode ini' };
+  if (!ws) return { ok: false, error: 'Bobot penilai periode ini belum disimpan. Buka Bobot & Kalkulasi 360° lalu tekan "Simpan & Terapkan Bobot", kemudian ulangi Hitung Ulang.' };
   const defScheme: WeightScheme = { model: ws.model, weights: ws.weights as WeightValues };
 
   // Bobot KHUSUS per pegawai (migrasi 0031): baris ada → pakai model+weights ini untuk pegawai itu.

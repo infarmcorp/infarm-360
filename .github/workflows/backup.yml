@@ -1,0 +1,66 @@
+name: Backup Database
+
+# Backup otomatis harian database PRODUKSI → file terenkripsi di artifact GitHub Actions.
+# Repo ini PUBLIK: artifact bisa diunduh pengguna GitHub lain, jadi isi backup WAJIB dienkripsi
+# (AES-256, kata sandi dari secret BACKUP_PASSPHRASE) — data mentah tak pernah diunggah.
+#
+# Secret yang wajib diisi (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL     — connection string "Session pooler" Supabase (bukan direct; runner tanpa IPv6)
+#   BACKUP_PASSPHRASE   — kata sandi enkripsi (simpan juga di tempat aman milik HRD/IT; tanpanya
+#                         backup TIDAK bisa dibuka)
+# Cara memulihkan: lihat docs/panduan/CARA-BACKUP.md (bagian "Backup otomatis GitHub").
+on:
+  schedule:
+    - cron: '0 19 * * *'   # tiap hari 02:00 WIB
+  workflow_dispatch:        # bisa dijalankan manual dari tab Actions
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Cek secret
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Secret SUPABASE_DB_URL dan/atau BACKUP_PASSPHRASE belum diisi."
+            exit 1
+          fi
+
+      - name: Backup (hanya membaca database)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          npm install --no-save --no-package-lock pg
+          node scripts/backup.mjs
+
+      - name: Kemas & enkripsi
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          DIR=$(ls -d backups/backup-* | head -1)
+          NAME=$(basename "$DIR")
+          tar -czf "$NAME.tar.gz" -C backups "$NAME"
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+            -in "$NAME.tar.gz" -out "$NAME.tar.gz.enc" -pass env:BACKUP_PASSPHRASE
+          rm -rf backups "$NAME.tar.gz"
+          echo "NAME=$NAME" >> "$GITHUB_ENV"
+
+      - name: Simpan sebagai artifact (terenkripsi)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NAME }}
+          path: ${{ env.NAME }}.tar.gz.enc
+          retention-days: 30
+          if-no-files-found: error

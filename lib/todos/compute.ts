@@ -25,8 +25,9 @@ export async function getTodos(
     const assesses = role !== 'hrd' || hrdMode === 'spv';     // HRD murni tak punya "Penilaian Saya"
     const isSpvLike = role === 'spv' || (role === 'hrd' && hrdMode === 'spv');
 
-    const [assessPending, reportReady, kpiMissing, hrdTodos, direksiTodos] = await Promise.all([
+    const [assessPending, requestNews, reportReady, kpiMissing, hrdTodos, direksiTodos] = await Promise.all([
       assesses && ap.has_360 && ap.form_open ? countAssessPending(supabase, ap.id, userId) : Promise.resolve(0),
+      assesses && ap.has_360 ? myRequestNews(supabase, ap.id, userId) : Promise.resolve({ ajuanToDo: 0, decided: 0 }),
       (role === 'employee' || role === 'spv') ? countReportReady(supabase, ap.id, userId) : Promise.resolve(0),
       isSpvLike ? countKpiMissing(supabase, ap.id, userId) : Promise.resolve(null),
       role === 'hrd' && hrdMode === 'admin' ? hrdAdminTodos(supabase, ap.id, ap.has_360) : Promise.resolve([]),
@@ -35,6 +36,9 @@ export async function getTodos(
 
     const items: TodoItem[] = [];
     if (assessPending > 0) items.push({ id: 'assess', tone: 'amber', href: '/penilaian', label: `${assessPending} penilaian 360° menunggu diisi` });
+    // Keputusan HRD atas permohonan pegawai — dulu hanya terlihat di tab Pengajuan (audit 2026-10-02).
+    if (requestNews.ajuanToDo > 0) items.push({ id: 'ajuan-approved', tone: 'rose', href: '/penilaian', label: `${requestNews.ajuanToDo} ajuan Anda disetujui HRD — wajib dinilai sebelum deadline` });
+    if (requestNews.decided > 0) items.push({ id: 'request-decided', tone: 'blue', href: '/penilaian?tab=pengajuan', label: `${requestNews.decided} permohonan Anda sudah diputuskan HRD` });
     if (reportReady > 0) items.push({ id: 'report', tone: 'emerald', href: '/laporan', label: 'Laporan Hasil Anda sudah final' });
     if (kpiMissing && kpiMissing.missing > 0) items.push({ id: 'kpi', tone: 'indigo', href: '/kpi', label: `${kpiMissing.missing} anggota belum ada KPI ${kpiMissing.ym}` });
     items.push(...hrdTodos, ...direksiTodos);
@@ -55,6 +59,34 @@ async function countAssessPending(supabase: SB, periodId: string, userId: string
   if (!maps?.length) return 0;
   const done = new Set((subs ?? []).map((s) => s.target_id));
   return maps.filter((m) => !done.has(m.target_id)).length;
+}
+
+/**
+ * Kabar permohonan milik penilai (periode aktif):
+ *  - ajuanToDo: AJUAN ("tambah rekan") yang DISETUJUI HRD tapi belum dikirim — tetap tampil sampai
+ *    dinilai, karena Ajuan yang tak terkirim saat deadline kena potongan −3 (Q3 2026 dst.).
+ *  - decided: permohonan lain yang diputuskan HRD dalam 7 hari terakhir (ditolak, atau koreksi/hapus
+ *    disetujui) — pemberitahuan sementara, tanpa status "sudah dibaca".
+ */
+async function myRequestNews(supabase: SB, periodId: string, userId: string): Promise<{ ajuanToDo: number; decided: number }> {
+  const [{ data: reqs }, { data: done }, { data: maps }] = await Promise.all([
+    supabase.from('relation_correction_requests').select('kind, status, target_id, reviewed_at')
+      .eq('period_id', periodId).eq('assessor_id', userId).in('status', ['approved', 'rejected']),
+    supabase.from('assessments').select('target_id').eq('period_id', periodId).eq('assessor_id', userId).in('status', ['submitted', 'invalidated']),
+    supabase.from('mappings').select('target_id').eq('period_id', periodId).eq('assessor_id', userId).eq('is_active', true),
+  ]);
+  const activeTargets = new Set((maps ?? []).map((m) => m.target_id));
+  const doneSet = new Set((done ?? []).map((a) => a.target_id));
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  let ajuanToDo = 0, decided = 0;
+  for (const r of reqs ?? []) {
+    if (r.kind === 'add' && r.status === 'approved') {
+      if (activeTargets.has(r.target_id) && !doneSet.has(r.target_id)) ajuanToDo++;
+    } else if (r.reviewed_at && Date.parse(r.reviewed_at) >= weekAgo) {
+      decided++;
+    }
+  }
+  return { ajuanToDo, decided };
 }
 
 /** Laporan Hasil user yang sudah difinalisasi pada periode aktif. */

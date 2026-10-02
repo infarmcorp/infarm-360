@@ -47,6 +47,37 @@ Backup masih **hanya di laptop**. Kalau laptop rusak/hilang, backup ikut hilang.
 
 ---
 
+## 1b. Backup otomatis harian (GitHub Actions)
+
+Workflow `.github/workflows/backup.yml` menjalankan `scripts/backup.mjs` **tiap hari pukul 02:00 WIB**
+(bisa juga manual: tab **Actions → Backup Database → Run workflow**). Hasilnya disimpan **terenkripsi**
+(AES-256) sebagai *artifact* selama **30 hari** — jadi backup tidak lagi bergantung pada laptop menyala.
+
+**Sekali saja, isi 2 secret** di GitHub (repo → **Settings → Secrets and variables → Actions → New
+repository secret**):
+
+| Secret | Isi |
+|---|---|
+| `SUPABASE_DB_URL` | Connection string **Session pooler** dari Supabase (Project Settings → Database → Connect). Sama dengan `SUPABASE_DB_URL` di `.env.local`. |
+| `BACKUP_PASSPHRASE` | Kata sandi enkripsi yang panjang & acak. **Simpan juga di tempat aman tim HRD/IT** — tanpa ini backup **tidak bisa dibuka**. |
+
+> ⚠️ Repo ini **publik**, sehingga artifact bisa diunduh pengguna GitHub lain. Karena itu isi backup
+> **selalu dienkripsi** sebelum diunggah; tanpa `BACKUP_PASSPHRASE` file itu tak terbaca. Jangan
+> pernah mengubah workflow agar mengunggah folder `backups/` mentah.
+
+**Membuka backup otomatis** (saat perlu restore):
+1. Tab **Actions → Backup Database** → pilih run tanggal yang diinginkan → unduh artifact (file `.zip`
+   berisi `backup-<tanggal>.tar.gz.enc`), ekstrak zip-nya.
+2. Dekripsi & buka (Git Bash):
+   ```bash
+   BACKUP_PASSPHRASE='<kata sandi>' openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000      -in backup-<tanggal>.tar.gz.enc -out backup.tar.gz -pass env:BACKUP_PASSPHRASE
+   mkdir -p backups && tar --force-local -xzf backup.tar.gz -C backups
+   ```
+3. Lanjut seperti biasa: `node scripts/restore.mjs backups/backup-<tanggal> PULIHKAN` (bagian 3).
+
+Artifact hanya disimpan 30 hari — untuk arsip jangka panjang (mis. akhir tiap kuartal), unduh file
+`.enc` dan simpan di Drive tim.
+
 ## 2. Melihat Data dalam Excel (opsional, untuk dibaca)
 
 Folder backup berformat **JSON** (untuk pemulihan). Bila ingin **membaca** isinya di Excel:

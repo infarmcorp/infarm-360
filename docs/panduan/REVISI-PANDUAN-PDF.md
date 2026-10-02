@@ -1,4 +1,8 @@
-# Revisi Panduan PDF In-App (per 29 September 2026)
+# Revisi Panduan PDF In-App (per 29 September 2026, tambahan 2 Oktober 2026)
+
+> **Status 2 Oktober 2026:** PDF di `public/panduan/` **belum** memuat revisi di dokumen ini (teksnya masih
+> sama dengan versi 30 Juli — masih ada penilaian diri, punishment, dll.). Terapkan **bagian 0–4** lalu
+> **bagian 6** (perubahan 1–2 Oktober) sekaligus, baru naikkan versi & deploy (bagian 5).
 
 Dokumen ini berisi **daftar perubahan isi** untuk 4 panduan PDF yang bisa diunduh pegawai di halaman
 **Akun Saya** dan ikut terlampir di email Undangan:
@@ -162,8 +166,8 @@ dipakai di beberapa PDF ditulis sekali sebagai **Blok Bersama** (bagian 0) lalu 
 >   - Ada KPI dan Skor 360° → 50% KPI + 50% Skor 360°
 >   - Hanya KPI (periode tanpa 360°) → 100% KPI
 >   - Hanya Skor 360° (tidak ada KPI, misalnya Direksi) → 100% Skor 360°
->   - Lalu dikurangi pengurangan nilai (punishment) bila ada, paling rendah 0, dan dibulatkan 2 angka di
->     belakang koma.
+>   - Lalu dibulatkan 2 angka di belakang koma. **Tidak ada pengurangan lain** — fitur punishment sudah
+>     dihapus; satu-satunya sanksi adalah potongan keterlambatan pada Skor 360° (lihat di atas).
 > - Setelah laporan **Final**, semua halaman menampilkan **angka yang tersimpan saat finalisasi**.
 > - **Tren KPI** tiga bulan:
 >   - Baru 1 bulan terisi → **"Belum terbaca"**. Pegawai ini tidak dihitung dalam rata-rata, sebaran, dan
@@ -259,7 +263,7 @@ Ajukan Penilaian.
 | A.3 paragraf (hlm. 2) | "tak perlu **ditHRD Admini** 'sudah dibaca'" | "tak perlu **ditandai** 'sudah dibaca'" |
 | A.3 tabel notifikasi (hlm. 2) | "Jumlah penilaian yang belum **HRD Admin** selesaikan" / "laporan kinerja **HRD Admin**" | "Jumlah penilaian yang belum **Anda** selesaikan" / "laporan kinerja **Anda**". Tambahkan baris: "**X usulan suksesi menunggu ACC** — klik ke Promosi & Suksesi." |
 | B pembuka (hlm. 3) | "Bisa diakses lewat sidebar bagian **Pemantauan**." | "Bisa diakses lewat sidebar grup **Menu Direksi → Dashboard Organisasi**." |
-| B filter (hlm. 3) | "Di bagian atas ada filter Periode/Kuartal dan Divisi…" | Tambahkan: "Pilihan periode juga menyediakan **'Semua Kuartal'** (satu tahun) dan **'Semua kuartal (semua tahun)'**. Angkanya adalah rata-rata dari tiap kuartal. Skor Akhir di dashboard sudah dikurangi punishment; untuk laporan Final, yang dipakai adalah angka resmi yang tersimpan. Pegawai yang KPI-nya **'Belum terbaca'** (baru 1 dari 3 bulan terisi) tidak dihitung dalam rata-rata dan peringkat KPI." |
+| B filter (hlm. 3) | "Di bagian atas ada filter Periode/Kuartal dan Divisi…" | Tambahkan: "Pilihan periode juga menyediakan **'Semua Kuartal'** (satu tahun) dan **'Semua kuartal (semua tahun)'**. Angkanya adalah rata-rata dari tiap kuartal. Untuk laporan Final, yang dipakai adalah angka resmi yang tersimpan. Pegawai yang KPI-nya **'Belum terbaca'** (baru 1 dari 3 bulan terisi) tidak dihitung dalam rata-rata dan peringkat KPI." |
 | B tabel tab (hlm. 3) | "persentase pegawai di atas **stDireksir**" | "persentase pegawai di atas **standar**" |
 | C judul & langkah 1 (hlm. 3) | "C. Promosi & Penyesuaian … Buka Halaman Promosi & Penyesuaian" | "C. **Promosi & Suksesi** … Buka halaman **Promosi & Suksesi**" |
 | C langkah 2 (hlm. 4) | "Gunakan filter divisi untuk mempersempit daftar bila perlu." | "Gunakan kotak pencarian nama/divisi dan centang 'Fokus (kandidat & rencana berjalan)' untuk mempersempit daftar." |
@@ -267,7 +271,7 @@ Ajukan Penilaian.
 | D catatan (hlm. 4) | "Persetujuan Direksi tidak menghalangi HRD untuk tetap memfinalisasi…" | Tambahkan: "ACC Anda tercatat, dan **otomatis batal** bila HRD mengembalikan laporan ke Draf atau merilis ulang dengan Skor Akhir yang berbeda." |
 | E judul (hlm. 4) | "E. Review Hasil Akhir" | "E. **Tinjauan Hasil Akhir**" |
 | E isi (hlm. 4) | "…komentar penilai tanpa nama…" | Tambahkan: "Direksi tidak melihat siapa menilai siapa; informasi itu hanya untuk HRD." |
-| F daftar yang tercatat (hlm. 4) | "Tercatat otomatis: mengaktifkan/mengunci periode, … dan mengajukan rencana suksesi." | "Tercatat otomatis: mengaktifkan/mengunci periode, mengatur deadline, mengubah bobot, menghitung ulang skor 360°, memfinalisasi/merilis laporan, **ACC laporan (termasuk pembatalannya)**, memberi punishment dan mengubah potongan keterlambatan, mengelola data pegawai, mengatur pasangan penilaian dan permohonan pegawai, mengirim undangan/pengingat, mengelola pertanyaan, serta rencana suksesi dan keputusan Direksi." |
+| F daftar yang tercatat (hlm. 4) | "Tercatat otomatis: mengaktifkan/mengunci periode, … dan mengajukan rencana suksesi." | "Tercatat otomatis: mengaktifkan/mengunci periode, mengatur deadline, mengubah bobot, menghitung ulang skor 360°, memfinalisasi/merilis laporan, **ACC laporan (termasuk pembatalannya)**, mengubah potongan keterlambatan, mengelola data pegawai, mengatur pasangan penilaian dan permohonan pegawai, mengirim undangan/pengingat, mengelola pertanyaan, serta rencana suksesi dan keputusan Direksi." |
 | G langkah 4 (hlm. 4–5) | "Beri nilai 1–5 untuk tiap pertanyaan dan tulis komentar singkat sebagai bukti…" | **Ganti G langkah 1–5 dengan Blok B-1** |
 | G kotak "ARTI ANGKA PENILAIAN" (hlm. 5) | "1 = Hampir Tidak Pernah…" | **Ganti dengan Blok B-3** |
 | G paragraf akhir (hlm. 5) | "gunakan tombol 'Hak Penilaian Ad-Hoc Mandiri' di halaman yang sama" | **Ganti dengan Blok B-4** |
@@ -306,7 +310,7 @@ Ajukan Penilaian.
 | Kotak "TENTANG SIFAT WAJIB/OPSIONAL" (hlm. 6) | "Penilaian Opsional hanya muncul bila pegawai menambahkan sendiri rekan kerja lewat fitur penilaian tambahan." | "Semua pasangan yang HRD buat bersifat **Wajib**. Penilaian **Opsional** hanya berasal dari **Ajuan**, yaitu permohonan 'Ajukan Penilaian' pegawai yang Anda setujui. Mulai Q3 2026 ajuan **wajib diselesaikan sebelum deadline** (ikut potongan keterlambatan)." |
 | F poin "Rincian" (hlm. 6) | "Klik 'Rincian' untuk melihat daftar siapa saja yang belum menilai…" | Tambahkan: "Rincian memperlihatkan siapa menilai siapa, sehingga **hanya tampil untuk HRD** — pemegang akses non-HRD hanya melihat jumlahnya." |
 | F tabel "Paksa Selesai" (hlm. 6) | "**MenHRD Admini** satu penilaian sebagai selesai…" | "**Menandai** satu penilaian sebagai selesai secara manual. Tidak mengubah skor, dan penilaian ini tidak dihitung terlambat." |
-| H poin 2–3 (hlm. 7) | "…yang telat mengisi penilaian wajib, belum mengisi penilaian diri sendiri, atau sudah punya pengurangan nilai … tiga kartu ringkasan: jumlah yang telat, jumlah yang belum mengisi penilaian diri, dan jumlah yang sudah punya pengurangan nilai." | "Secara bawaan tabel hanya menampilkan pegawai yang perlu perhatian: belum mengirim penilaian wajib, terlambat mengirim, punya ajuan yang belum selesai, potongannya diubah HRD, atau sudah punya pengurangan nilai. Centang 'Tampilkan semua pegawai' untuk melihat semuanya. Tersedia filter divisi dan kartu ringkasan: **Belum kirim (penilaian wajib)**, **Kirim terlambat**, **Kena potongan karena ajuan**, **Dengan punishment**." |
+| H poin 2–3 (hlm. 7) | "…yang telat mengisi penilaian wajib, belum mengisi penilaian diri sendiri, atau sudah punya pengurangan nilai … tiga kartu ringkasan: jumlah yang telat, jumlah yang belum mengisi penilaian diri, dan jumlah yang sudah punya pengurangan nilai." | "Secara bawaan tabel hanya menampilkan pegawai yang perlu perhatian: belum mengirim penilaian wajib, terlambat mengirim, punya ajuan yang belum selesai, atau potongannya diubah HRD. Centang 'Tampilkan semua pegawai' untuk melihat semuanya. Tersedia filter divisi dan kartu ringkasan: **Belum kirim (penilaian wajib)**, **Kirim terlambat**, **Kena potongan karena ajuan**." Lalu **hapus baris "Pengurangan Nilai (Punishment)"** di tabel fitur halaman ini (fitur sudah dihapus). |
 | H tabel fitur (hlm. 7–8) | "Flag Penilaian Diri — **MenHRD Admini** pegawai yang belum mengisi penilaian untuk dirinya sendiri." | **Hapus baris ini** (penilaian diri dinonaktifkan). |
 | H tabel fitur (hlm. 7–8) | "Flag Keterlambatan — Daftar pegawai dengan penilaian wajib yang belum selesai…" | "**Belum Kirim / Kirim Terlambat** — jumlah penilaian wajib yang belum dikirim, atau yang pertama kali dikirim setelah deadline (arahkan kursor untuk melihat nama)." |
 | H, bagian baru di tabel fitur | — | "**Potongan 360° (keterlambatan menilai)** — otomatis **−3 poin**, sekali per periode, pada Skor 360° milik penilai yang punya penilaian wajib (atau ajuan, mulai Q3 2026) yang belum selesai saat deadline. Tidak dihitung: penilaian opsional biasa, penilaian yang di-Paksa Selesai HRD, dan pasangan yang dibuat setelah deadline. HRD bisa klik **'Ubah'** untuk menetapkan nilai lain dengan alasan wajib (**0 = dikecualikan**), atau **'Kembalikan otomatis'**. Potongan diterapkan otomatis saat HRD membuka halaman ini atau Review & Finalisasi, dan sebelum laporan disimpan/dirilis/difinalisasi." |
@@ -323,10 +327,10 @@ Ajukan Penilaian.
 | J judul & isi (hlm. 10) | "J. Promosi & Penyesuaian … Tersedia filter berdasarkan sektor/divisi" | "J. **Promosi & Suksesi** … Pilih rencana, isi justifikasi, lalu 'Simpan Draf' atau **'Ajukan ke Direksi'**. Kandidat (Skor Akhir ≥ 90) ditandai. Tersedia pencarian nama/divisi dan centang 'Fokus (kandidat & rencana berjalan)'." |
 | L pembuka (hlm. 11) | "Kedua halaman ini berada di bagian sidebar Pemantauan. HRD dan Direksi bisa melihat semua divisi." | "Kedua halaman ini berada di grup sidebar **Pemantauan & Laporan**. Direksi hanya punya Dashboard Organisasi (tidak punya Monitor)." |
 | L.1 (hlm. 11), seluruh bagian | "L.1 Monitor Kinerja — Memantau kinerja pegawai lewat 3 filter: Divisi, Pegawai, dan Periode. Mode Bandingkan Semua … Lihat Tren Satu Orang…" | "**L.1 Monitor Kinerja Pegawai** — filter **Periode** dan **Divisi**. Tersusun dari **Ringkasan** (angka utama dan selisih divisi dibanding perusahaan) → **Komposisi** → **Arah** (tren dan penyebab perubahan: skor pegawai yang sama vs pegawai yang masuk/keluar) → **Rincian per Pegawai** (tabel 5 baris per halaman dan peta warna nilai per aspek/pertanyaan; klik potongan diagram lingkaran untuk menyaring)." |
-| L.2 (hlm. 11) | "Panel filter di atas (Periode dan Divisi) menentukan cakupan…" | Tambahkan: "Pilihan periode juga menyediakan **'Semua Kuartal'** (satu tahun) dan **'Semua kuartal (semua tahun)'** = rata-rata antar-kuartal. Skor Akhir memakai satu rumus resmi, dikurangi punishment, dan untuk laporan Final memakai angka tersimpan. Pegawai **'KPI belum terbaca'** (baru 1 dari 3 bulan terisi) tidak dihitung dalam rata-rata, sebaran, dan peringkat KPI." |
+| L.2 (hlm. 11) | "Panel filter di atas (Periode dan Divisi) menentukan cakupan…" | Tambahkan: "Pilihan periode juga menyediakan **'Semua Kuartal'** (satu tahun) dan **'Semua kuartal (semua tahun)'** = rata-rata antar-kuartal. Skor Akhir memakai satu rumus resmi, dan untuk laporan Final memakai angka tersimpan. Pegawai **'KPI belum terbaca'** (baru 1 dari 3 bulan terisi) tidak dihitung dalam rata-rata, sebaran, dan peringkat KPI." |
 | L.3 paragraf akhir (hlm. 12) | "ditampilkan dengan **penHRD Admin** 'nonaktif'" | "ditampilkan dengan **penanda** 'nonaktif'" |
 | N tabel (hlm. 12) | "Data Pegawai / Konfigurasi Periode / Hasil Kinerja per Periode / Data Penilaian 360° / Log Aktivitas HRD" | Nama file di layar: "**Pegawai (Master)** · **Konfigurasi Periode Lengkap** (6 lembar, termasuk daftar siapa menilai siapa; hanya untuk HRD) · **Kinerja Lengkap per Periode** (4 lembar) · **Penilaian 360° Lengkap** (5 lembar, tanpa nama penilai) · **Log Aktivitas HRD**" |
-| O daftar yang tercatat (hlm. 13) | "Tercatat otomatis: mengaktifkan/mengunci periode, … dan mengajukan rencana suksesi." | "Tercatat otomatis: periode (aktif/kunci/deadline/umumkan pemetaan/buka-tutup form), bobot, hitung ulang skor 360°, rilis/finalisasi/perbarui laporan, **ACC laporan dan pembatalannya**, punishment dan **perubahan potongan keterlambatan**, data pegawai, pasangan penilaian dan **keputusan permohonan**, undangan/pengingat/paksa selesai, pertanyaan, serta rencana suksesi dan keputusan Direksi." |
+| O daftar yang tercatat (hlm. 13) | "Tercatat otomatis: mengaktifkan/mengunci periode, … dan mengajukan rencana suksesi." | "Tercatat otomatis: periode (aktif/kunci/deadline/umumkan pemetaan/buka-tutup form), bobot, hitung ulang skor 360°, rilis/finalisasi/perbarui laporan, **ACC laporan dan pembatalannya**, **perubahan potongan keterlambatan**, data pegawai, pasangan penilaian dan **keputusan permohonan**, undangan/pengingat/paksa selesai, pertanyaan, serta rencana suksesi dan keputusan Direksi." |
 | P.1 langkah 2 (hlm. 13) | "…Email, dan Sandi Awal. Atasan/Supervisor bersifat opsional." | "…Email, Sandi Awal, dan **Tanggal Masuk** (bawaan hari ini). Atasan/Supervisor bersifat opsional." |
 | P.3 tabel "Ubah" (hlm. 13) | "Mengganti nama, nama panggilan, divisi, peran, kode, email, atau atasan pegawai." | "…atau atasan pegawai, serta **Tanggal Masuk/Keluar**." |
 | Q.2 (hlm. 14) | "misalnya **'Review Hasil Akhir'** atau 'Dashboard Organisasi'" | "misalnya **'Review & Finalisasi'** atau 'Dashboard Organisasi'" |
@@ -378,3 +382,23 @@ Ajukan Penilaian.
 5. **Commit & deploy.** Setelah itu, lampiran email Undangan dan tombol unduh di Akun Saya otomatis
    memakai versi baru.
 6. Periksa: buka Akun Saya dengan akun tiap peran, unduh PDF-nya, dan pastikan versinya yang baru.
+
+---
+
+## 6. Tambahan 1–2 Oktober 2026 (fitur yang baru live)
+
+Terapkan juga perubahan berikut. Kalimat di kolom kanan siap tempel.
+
+| PDF | Bagian | Ubah menjadi |
+|---|---|---|
+| Semua | Kotak **TENGGAT** (indikator sisa hari di sidebar) | "Di bawah label periode pada sidebar ada hitungan sisa hari menuju **Deadline 360°** (bila HRD belum mengisinya, menuju tanggal akhir periode). Warnanya berubah oranye saat tinggal 7 hari atau kurang, dan muncul label **'Berakhir hari ini'** / **'Lewat tenggat N hari'**." |
+| Pegawai, SPV-Koor | Langkah **Kirim Penilaian** ("Penilaian yang sudah terkirim masih bisa diubah bila diperlukan") | "Penilaian yang sudah terkirim **masih bisa diubah sampai deadline** (klik **Edit** → **Kirim Ulang**). **Setelah deadline, penilaian terkirim terkunci** — tombolnya menjadi **Lihat**. Bila ada yang perlu diperbaiki, hubungi HRD. Penilaian yang **belum** terkirim tetap bisa dikirim sesudah deadline, tetapi tercatat terlambat (Skor 360° Anda dipotong 3 poin)." |
+| Pegawai, SPV-Koor | Daftar Penilaian Saya | Tambahkan: "Di HP, daftar tampil sebagai **kartu** per rekan, berisi status, progres draf, dan satu tombol aksi." |
+| Pegawai, SPV-Koor | Tab Pengajuan / Ajukan Penilaian | Tambahkan: "Saat HRD **menyetujui** ajuan Anda, sidebar menampilkan **'N ajuan Anda disetujui HRD — wajib dinilai sebelum deadline'** sampai penilaiannya Anda kirim. Keputusan HRD lain atas permohonan Anda (koreksi, hapus, atau penolakan) muncul sebagai **'N permohonan Anda sudah diputuskan HRD'** selama 7 hari." |
+| Pegawai | Catatan "Rekan yang Anda tambahkan bisa dihapus lagi…" | Hapus catatan ini bila masih membahas Ad-Hoc lama; penambahan rekan kini lewat **Ajukan Penilaian** (Blok B-4). |
+| HRD | Bagian **Pemetaan 360°** | "Form **Tambah Pemetaan** dan daftar pemetaan tampil **berdampingan**. Daftar punya kolom & filter **Status** (Belum Mulai · Draft · Terkirim · Dibatalkan). **Hapus** hanya untuk pasangan yang **belum terkirim**, dengan alasan wajib. Untuk penilaian yang **sudah terkirim**, gunakan **Periksa Validitas → Batalkan Validitas** (alasan wajib): penilaian disimpan sebagai arsip, tidak dihitung dalam Skor 360° yang dinilai, dan kewajiban penilai dianggap tuntas. Bisa dikembalikan dengan **Pulihkan Validitas**." |
+| HRD | Bagian **Progress 360** | Tambahkan: "Di samping kartu Wajib ada panel **Penilaian Ajuan** (X / Y selesai + 4 status). Ajuan tetap **opsional** — tidak masuk kartu Wajib — tetapi tetap kena potongan bila belum terkirim saat deadline. Penilai yang punya ajuan diberi chip bergaris putus-putus, dan filter **Status Penilaian** punya pilihan **'Punya Ajuan'**." |
+| HRD, Direksi | Tabel **Review & Finalisasi** / **Tinjauan Hasil Akhir** ("…skor 360°, pengurangan nilai, skor akhir…") | "…KPI, skor 360°, **Potongan** (−3 bila pegawai itu terlambat menilai; sudah termasuk di skor 360°), skor akhir…". |
+| HRD | Bagian **Ekspor Dataset** | "**Kinerja Lengkap per Periode** berisi 4 lembar: Rekap (termasuk kolom potongan telat), KPI Bulanan, Audit KPI, dan **Potongan Keterlambatan** (siapa yang Skor 360°-nya dipotong, otomatis/diubah/dikecualikan HRD, beserta alasannya)." |
+| HRD | Panel **Kesiapan** di Kelola Periode | "Bila tertulis **'Bobot penilai belum disimpan'**, buka Bobot & Kalkulasi 360° dan tekan **Simpan & Terapkan Bobot** — tanpa itu **① Hitung Ulang Skor 360°** akan gagal." |
+| HRD, Direksi | Log Aktivitas | Hapus kata "punishment" dari daftar yang tercatat (entri lama tetap tampil). |

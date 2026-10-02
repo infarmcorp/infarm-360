@@ -7,13 +7,15 @@ import { StatusChip } from '@/components/status-chip';
  * yang nested + microcopy panjang.
  */
 export function ReadinessPanel({
-  periodLabel, indCount, mapCount, hasWeights, has360,
+  periodLabel, indCount, mapCount, hasWeights, has360, backfilled = false,
 }: {
   periodLabel: string;
   indCount: number;
   mapCount: number;
   hasWeights: boolean;
   has360: boolean;
+  /** Skor 360° hasil impor Looker (mis. Q1 2026) — bobot tak diperlukan, ① dikunci. */
+  backfilled?: boolean;
 }) {
   const ready = indCount > 0 && mapCount > 0;
 
@@ -51,7 +53,11 @@ export function ReadinessPanel({
         <div className="flex flex-col gap-2.5">
           <Item ok={indCount > 0} value={`${indCount}`} label="pertanyaan aktif" href="/admin/pertanyaan" linkLabel="Kelola Pertanyaan" />
           <Item ok={mapCount > 0} value={`${mapCount}`} label="pasangan penilai → target" href="/admin/pemetaan" linkLabel="Kelola Pemetaan" />
-          <Item ok={hasWeights} label={hasWeights ? 'Bobot penilai tersimpan' : 'Bobot penilai (pakai default)'} href={hasWeights ? undefined : '/admin/bobot'} linkLabel="Atur Bobot" />
+          {/* Tanpa skema bobot TERSIMPAN, ① Hitung Ulang Skor 360° ditolak server — jadi ini WAJIB,
+              bukan "pakai default" (label lama menyesatkan; audit 2026-10-02). */}
+          {backfilled
+            ? <Item ok label="Skor 360° hasil impor resmi (Looker) — bobot tidak diperlukan, hitung ulang dikunci" linkLabel="" />
+            : <Item ok={hasWeights} label={hasWeights ? 'Bobot penilai tersimpan' : 'Bobot penilai belum disimpan — wajib sebelum Hitung Ulang Skor 360°'} href={hasWeights ? undefined : '/admin/bobot'} linkLabel="Simpan Bobot" />}
         </div>
 
         {/* Catatan alur (bukan link) — no-underline eksplisit + spasi terjamin agar tak

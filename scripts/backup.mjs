@@ -35,10 +35,15 @@ const PUBLIC_TABLES = [
 // Tabel sistem Auth (akun login). Disertakan agar restore memulihkan login + sandi.
 const AUTH_TABLES = ['users', 'identities'];
 
-const env = readFileSync('.env.local', 'utf8');
-const url = env.split(/\r?\n/).find((l) => l.startsWith('SUPABASE_DB_URL='))
-  ?.slice('SUPABASE_DB_URL='.length).trim().replace(/^["']|["']$/g, '');
-if (!url) { console.error('❌ SUPABASE_DB_URL tidak ditemukan di .env.local'); process.exit(1); }
+// Sumber koneksi: env proses (GitHub Actions — workflow backup terjadwal) → fallback .env.local (laptop).
+let url = process.env.SUPABASE_DB_URL?.trim();
+if (!url) {
+  let env = '';
+  try { env = readFileSync('.env.local', 'utf8'); } catch { /* tak ada .env.local */ }
+  url = env.split(/\r?\n/).find((l) => l.startsWith('SUPABASE_DB_URL='))
+    ?.slice('SUPABASE_DB_URL='.length).trim().replace(/^["']|["']$/g, '');
+}
+if (!url) { console.error('❌ SUPABASE_DB_URL tidak ditemukan (env proses / .env.local)'); process.exit(1); }
 
 const client = new pg.Client({ connectionString: url });
 await client.connect();

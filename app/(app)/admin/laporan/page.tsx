@@ -11,6 +11,7 @@ import { ResyncDriftButton } from './resync-drift-button';
 import { BulkFinalizeButton } from './bulk-finalize-button';
 import { Panel } from '@/components/panel';
 import { loadPendingLatePenalties, refreshLatePenalties } from '@/lib/late-server';
+import { isBackfilledPeriod } from '@/lib/backfill-guard';
 
 /**
  * Review Hasil Akhir (HRD): hitung Skor Akhir tiap pegawai, lihat ACC SPV & status,
@@ -151,6 +152,9 @@ export default async function AdminLaporanPage() {
     cfg.from('hrd_audit_log').select('target_id, created_at').eq('action', 'weights.override_remove'),
   ]);
   const weightsChangedAt = wsRow?.updated_at ?? null;
+  // Skor 360° hasil impor Looker (mis. Q1 2026): ① dikunci di server → jangan tampilkan peringatan
+  // "bobot belum disimpan" (periode ini memang tanpa bobot) & jangan tawarkan tombol ①.
+  const backfilled = await isBackfilledPeriod(cfg, ap.id);
   const ovrChangedBy = new Map<string, string>();
   const bumpOvr = (id: string | null, at: string | null) => {
     if (!id || !at) return;
@@ -249,10 +253,23 @@ export default async function AdminLaporanPage() {
           {' '}<strong className="text-warn-ink">Berubah → N</strong> = laporan sudah Final tapi angkanya ketinggalan → tekan <strong>②</strong> agar pegawai melihat Skor Akhir terbaru.
         </p>
 
+        {/* Tanpa skema bobot tersimpan, ① ditolak server — beri tahu SEBELUM HRD menekannya. */}
+        {ap.has_360 && backfilled && (
+          <p className="text-[12px] font-semibold text-ink-soft">
+            🔒 Skor 360° periode ini hasil impor resmi (Looker) dan dikunci — tidak perlu (dan tidak bisa) dihitung ulang dari aplikasi.
+          </p>
+        )}
+        {ap.has_360 && !backfilled && !wsRow && (
+          <p className="text-[12px] font-semibold text-warn-ink">
+            ⚠ Bobot penilai periode ini belum disimpan — tombol ① akan gagal.{' '}
+            <Link href="/admin/bobot" className="underline">Buka Bobot &amp; Kalkulasi 360°</Link> lalu tekan “Simpan &amp; Terapkan Bobot”.
+          </p>
+        )}
+
         {/* Baris aksi utama: ① Hitung Ulang · ② Finalisasi Ulang Berubah. */}
         <div className="flex flex-wrap items-center gap-2">
-          {ap.has_360 && <Recompute360Button />}
-          {ap.has_360 && staleCount > 0 && (
+          {ap.has_360 && !backfilled && <Recompute360Button />}
+          {ap.has_360 && !backfilled && staleCount > 0 && (
             <span className="text-[11px] text-warn-ink font-semibold">
               {neverCount > 0 && <>{neverCount} belum pernah dihitung{changedCount > 0 ? ' · ' : ''}</>}
               {changedCount > 0 && <>{changedCount} perlu dihitung ulang</>}

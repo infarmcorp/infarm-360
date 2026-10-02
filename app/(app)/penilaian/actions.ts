@@ -62,7 +62,7 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
 
 
   const { data: exExisting } = await supabase
-    .from('assessments').select('status')
+    .from('assessments').select('id, status')
     .eq('assessor_id', auth.user.id).eq('target_id', targetId).eq('period_id', ap.id).maybeSingle();
   // Dibatalkan validitasnya oleh HRD (0046) → arsip, tak bisa diubah (DB juga menolak lewat trigger).
   if (exExisting?.status === 'invalidated') {
@@ -122,23 +122,29 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
   const alreadySubmitted = exExisting?.status === 'submitted';
   const headerStatus = alreadySubmitted ? 'submitted' : 'draft';
 
-  // Header assessment (upsert → dapat id).
-  const { data: header, error: hErr } = await supabase
-    .from('assessments')
-    .upsert(
-      {
-        period_id: ap.id,
-        assessor_id: auth.user.id,
-        target_id: targetId,
-        status: headerStatus,
-        // Hanya kosmetik: trigger 0036 menimpa submitted_at & mengisi first_submitted_at dgn
-        // waktu SERVER DB (nilai klien diabaikan) — dasar status On Time / Late.
-        submitted_at: headerStatus === 'submitted' ? new Date().toISOString() : null,
-      },
-      { onConflict: 'period_id,assessor_id,target_id' },
-    )
-    .select('id')
-    .single();
+  // Header assessment. Baris yang sudah ada di-UPDATE, bukan di-upsert: pada INSERT … ON CONFLICT,
+  // trigger BEFORE INSERT (0045, cek kelengkapan saat status 'submitted') tetap jalan dengan id BARU
+  // yang belum punya skor → Kirim Ulang selalu ditolak "(N belum lengkap)".
+  // submitted_at hanya kosmetik: trigger 0036 menimpanya & mengisi first_submitted_at dgn waktu
+  // SERVER DB (nilai klien diabaikan) — dasar status On Time / Late.
+  const headerFields: { status: 'draft' | 'submitted'; submitted_at: string | null } = {
+    status: headerStatus,
+    submitted_at: headerStatus === 'submitted' ? new Date().toISOString() : null,
+  };
+  const updateHeader = (id: string) =>
+    supabase.from('assessments').update(headerFields).eq('id', id).select('id').single();
+  let { data: header, error: hErr } = exExisting
+    ? await updateHeader(exExisting.id)
+    : await supabase.from('assessments')
+        .insert({ period_id: ap.id, assessor_id: auth.user.id, target_id: targetId, ...headerFields })
+        .select('id')
+        .single();
+  // Balapan auto-simpan (dua kiriman pertama hampir bersamaan): baris sudah dibuat → perbarui saja.
+  if (hErr?.code === '23505') {
+    const { data: row } = await supabase.from('assessments').select('id')
+      .eq('assessor_id', auth.user.id).eq('target_id', targetId).eq('period_id', ap.id).maybeSingle();
+    if (row) ({ data: header, error: hErr } = await updateHeader(row.id));
+  }
   if (hErr || !header) {
     return { ok: false, error: 'Gagal menyimpan penilaian: ' + (hErr?.message ?? 'tak diketahui') };
   }

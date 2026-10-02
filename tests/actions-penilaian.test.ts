@@ -62,9 +62,23 @@ describe('submitAssessment — kelengkapan indikator (audit 2026-09-30)', () => 
     ], answers: [] });
     expect(r.ok).toBe(true);
     const writes = c.calls.filter((x) => x.table === 'assessments' && x.op !== 'select');
-    expect(writes[0]?.op).toBe('upsert');
+    expect(writes[0]?.op).toBe('insert');
     expect((writes[0]?.payload as { status: string }).status).toBe('draft');
     expect(writes[1]?.op).toBe('update');
     expect((writes[1]?.payload as { status: string }).status).toBe('submitted');
+  });
+
+  it('Kirim Ulang penilaian terkirim → header di-UPDATE (bukan upsert/insert yang memicu cek kelengkapan id baru)', async () => {
+    const c = use(base({
+      assessments: [{ data: { id: 'x1', status: 'submitted' } }, { data: { id: 'x1' } }],
+      assessment_indicator_scores: [{ error: null }],
+    }));
+    const r = await submitAssessment({ targetId: TARGET, status: 'submitted', scores: [
+      { indicatorId: I1, rating: 3, comment: EVID }, { indicatorId: I2, rating: 4, comment: EVID },
+    ], answers: [] });
+    expect(r.ok).toBe(true);
+    const writes = c.calls.filter((x) => x.table === 'assessments' && x.op !== 'select');
+    expect(writes.map((w) => w.op)).toEqual(['update']);
+    expect((writes[0]?.payload as { status: string }).status).toBe('submitted');
   });
 });

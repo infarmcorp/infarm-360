@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { CalendarRange, ListChecks } from 'lucide-react';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { isBackfilledPeriod } from '@/lib/backfill-guard';
 import { canSection } from '@/lib/auth/roles';
 import { PeriodForm } from './period-form';
 import { PeriodActions } from './period-actions';
@@ -48,7 +49,7 @@ export default async function PeriodePage({
 
   // Kesiapan peluncuran 360° untuk periode AKTIF (informatif, read-only).
   const active = list.find((p) => p.status === 'active') ?? null;
-  let readiness: { indCount: number; mapCount: number; hasWeights: boolean } | null = null;
+  let readiness: { indCount: number; mapCount: number; hasWeights: boolean; backfilled: boolean } | null = null;
   if (active) {
     const { data: aspects } = await supabase.from('culture_aspects').select('id').eq('period_id', active.id);
     const aspectIds = (aspects ?? []).map((a) => a.id);
@@ -59,7 +60,7 @@ export default async function PeriodePage({
       supabase.from('mappings').select('*', { count: 'exact', head: true }).eq('period_id', active.id).eq('is_active', true),
       supabase.from('weight_schemes').select('id').eq('period_id', active.id).eq('is_active', true).maybeSingle(),
     ]);
-    readiness = { indCount: ind.count ?? 0, mapCount: map.count ?? 0, hasWeights: !!wt.data };
+    readiness = { indCount: ind.count ?? 0, mapCount: map.count ?? 0, hasWeights: !!wt.data, backfilled: await isBackfilledPeriod(createAdminClient(), active.id) };
   }
 
   return (
@@ -95,6 +96,7 @@ export default async function PeriodePage({
           indCount={readiness.indCount}
           mapCount={readiness.mapCount}
           hasWeights={readiness.hasWeights}
+          backfilled={readiness.backfilled}
           has360={active.has_360}
         />
       )}

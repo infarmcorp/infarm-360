@@ -236,12 +236,17 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                 <td className="py-3 pl-3 text-right">
                   {readOnly
                     ? <span className="text-[10px] text-ink-faint">—</span>
-                    : r.final == null
+                    // Tinjau juga bila sudah ada penilaian masuk walau skor belum dihitung (①): detail tetap
+                    // berguna untuk membaca komentar & menulis ringkasan; rilis/finalisasi tetap butuh skor.
+                    : r.final == null && r.ratedDone === 0
                     ? <span className="text-[10px] text-ink-faint italic">KPI &amp; 360° kosong</span>
-                    : <span className="inline-flex items-center gap-1.5 justify-end">
+                    : <span className="inline-flex flex-wrap items-center gap-1.5 justify-end">
                         {/* Skor Akhir dari 360° saja (mis. Direksi) — beri konteks di samping tombol. */}
                         {r.kpiAvg == null && r.s360 != null && (
                           <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-warn-tint text-warn-ink" title="Skor Akhir dihitung dari 360° saja (belum/tak ada KPI)">Tanpa KPI</span>
+                        )}
+                        {r.final == null && (
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft" title="Sudah ada penilaian masuk, tetapi KPI kosong dan Skor 360° belum dihitung — tekan ① Hitung Ulang Skor 360°">Skor belum ada</span>
                         )}
                         <Link href={`${hrefBase}/${r.id}`}
                           className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-control border border-brand/30 text-brand-ink hover:bg-brand-tint">

@@ -36,7 +36,9 @@ const PUBLIC_TABLES = [
 const AUTH_TABLES = ['users', 'identities'];
 
 // Sumber koneksi: env proses (GitHub Actions — workflow backup terjadwal) → fallback .env.local (laptop).
-let url = process.env.SUPABASE_DB_URL?.trim();
+// Tanda kutip pembungkus dibuang: nilai yang disalin dari .env.local ("postgresql://…") ke GitHub
+// Secrets ikut membawa kutipnya → host terbaca salah (ENOTFOUND).
+let url = process.env.SUPABASE_DB_URL?.trim().replace(/^["']|["']$/g, '');
 if (!url) {
   let env = '';
   try { env = readFileSync('.env.local', 'utf8'); } catch { /* tak ada .env.local */ }

@@ -191,15 +191,19 @@ export default async function AdminLaporanPage() {
       status: rep?.status ?? null, spvAcc: !!rep?.spv_acc,
       isSpvSubject: e.role !== 'direksi' && (e.role === 'spv' || leaderIds.has(e.id)),
       ratedDone: ratedDone.get(e.id) ?? 0, ratedTotal: ratedTotal.get(e.id) ?? 0,
+      hasSubs: maxSubByTarget.has(e.id),
     };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1));
   // Tampilkan yang AKTIF atau PUNYA DATA periode (KPI/360°/sudah ada laporan); nonaktif tanpa
   // data disembunyikan. Pegawai nonaktif yang sudah dinilai/ber-KPI tetap bisa difinalisasi.
   // DIREKSI DIKECUALIKAN dari "tampil karena aktif": mereka tak pernah punya KPI, jadi tanpa ini
   // Direksi aktif akan muncul sbg baris kosong tiap kuartal. Direksi hanya tampil bila PUNYA DATA
-  // (skor 360°/laporan) — lewat cabang `r.s360 != null || r.status != null` di bawah.
+  // (skor 360°/laporan) — lewat cabang `r.s360 != null || r.status != null` di bawah — ATAU sudah
+  // ada penilaian 360° masuk walau skornya belum dihitung (`hasSubs`): tanpa ini Direksi yang baru
+  // dinilai hilang dari tabel, HRD tak tahu perlu ① Hitung Ulang & tak bisa Tinjau (selaras pegawai biasa).
   const activeIds = new Set(employees.filter((e) => e.is_active && e.role !== 'direksi').map((e) => e.id));
-  const shownRows = rows.filter((r) => activeIds.has(r.id) || r.kpiAvg != null || r.s360 != null || r.status != null);
+  const shownRows = rows.filter((r) => activeIds.has(r.id) || r.kpiAvg != null || r.s360 != null || r.status != null
+    || (ap.has_360 && r.hasSubs));
   const staleCount = shownRows.filter((r) => r.needsRecompute).length;
   // "Belum pernah dihitung" = ada penilaian masuk tapi result_360 masih kosong (subset staleCount)
   // → Skor Akhir mereka masih 100% KPI. Dibedakan agar pesan langkah lebih jelas.

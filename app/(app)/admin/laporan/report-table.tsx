@@ -20,6 +20,7 @@ export type ReportRow = {
   status: ReportStatus | null; spvAcc: boolean;
   isSpvSubject: boolean;       // subjek berperan SPV → ACC oleh Direksi (bukan SPV)
   ratedDone: number; ratedTotal: number; // penilai WAJIB yang sudah submit / total
+  hasSubs?: boolean;           // ada ≥1 penilaian 360° terkirim (Wajib/Opsional) — memunculkan Tinjau walau skor belum ada
 };
 
 /** Lengkap dinilai = semua penilai WAJIB sudah submit (≥1 penilai ditugaskan). */
@@ -238,7 +239,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                     ? <span className="text-[10px] text-ink-faint">—</span>
                     // Tinjau juga bila sudah ada penilaian masuk walau skor belum dihitung (①): detail tetap
                     // berguna untuk membaca komentar & menulis ringkasan; rilis/finalisasi tetap butuh skor.
-                    : r.final == null && r.ratedDone === 0
+                    : r.final == null && r.ratedDone === 0 && !r.hasSubs
                     ? <span className="text-[10px] text-ink-faint italic">KPI &amp; 360° kosong</span>
                     : <span className="inline-flex flex-wrap items-center gap-1.5 justify-end">
                         {/* Skor Akhir dari 360° saja (mis. Direksi) — beri konteks di samping tombol. */}

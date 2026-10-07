@@ -14,8 +14,13 @@ export type AssessorBlock = {
   comments: { indicator: string; rating: number | null; comment: string }[];
   answers: { question: string; answer: string }[];
 };
-/** Raw feedback ANONIM per indikator (untuk HRD): daftar rating mentah + komentar, tanpa nama penilai. */
-export type IndicatorRaw = { num: number; text: string; ratings: number[]; comments: string[] };
+/**
+ * Raw feedback ANONIM per indikator: daftar rating mentah + `entries` = pasangan rating↔komentar
+ * dari BARIS YANG SAMA (satu penilai), tanpa nama penilai. Dipasangkan agar HRD bisa mengkalibrasi
+ * apakah rating sesuai evidence-nya (dua daftar terpisah tak menjamin urutan cocok).
+ */
+export type RawEntry = { rating: number | null; comment: string | null };
+export type IndicatorRaw = { num: number; text: string; ratings: number[]; entries: RawEntry[] };
 export type AspectRaw = { name: string; indicators: IndicatorRaw[] };
 export type EssayGroup = { question: string; answers: string[] };
 export type ReportData = {
@@ -161,8 +166,10 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
       qnum += 1;
       const rows = (scoreRows ?? []).filter((s) => s.indicator_id === ind.id && !isSelfAsmt(s.assessment_id));
       const ratings = rows.filter((s) => s.rating != null).map((s) => s.rating as number);
-      const comments = rows.filter((s) => s.comment && s.comment.trim()).map((s) => s.comment!.trim());
-      return { num: qnum, text: ind.text, ratings, comments };
+      const entries: RawEntry[] = rows
+        .map((s) => ({ rating: s.rating, comment: s.comment?.trim() || null }))
+        .filter((e) => e.rating != null || e.comment != null);
+      return { num: qnum, text: ind.text, ratings, entries };
     });
     return { name: asp.name, indicators };
   });
@@ -203,20 +210,48 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
 }
 
 /**
+ * Buang umpan balik mentah (byAspect/essays) + blok per-penilai bernama (L3). Dipakai saat peninjau
+ * membuka laporan DIRINYA SENDIRI: skor, aspek & ringkasan HRD tetap tampil, komentar mentah tidak.
+ * (Pengecualian: HRD Mode Admin & Direksi boleh melihat raw miliknya — tak memanggil ini.)
+ * Dibuang di SERVER — bukan sekadar disembunyikan — karena ReportDoc komponen klien (data ikut terkirim).
+ */
+export function withoutRaw(data: ReportData): ReportData {
+  return { ...data, assessors: [], byAspect: [], essays: [] };
+}
+
+/**
+ * Lingkup SPV meninjau laporan (keputusan 2026-10-07): SPV menaungi SELURUH divisinya (1 divisi =
+ * 1 SPV; koordinator & timnya selalu sedivisi) → boleh = pegawai SEDIVISI, bukan Direksi.
+ * Diri sendiri ditangani pemanggil (boleh lihat laporan, tanpa raw).
+ */
+export function inSpvDivisionScope(
+  me: { dept: string | null } | null | undefined,
+  emp: { dept: string | null; role: string | null } | null | undefined,
+): boolean {
+  return !!emp && !!me?.dept && emp.role !== 'direksi' && emp.dept === me.dept;
+}
+
+/**
  * Laporan untuk SPV (Laporan Kinerja Tim) — detail AGREGAT (L1+L2) + umpan balik mentah
  * ANONIM (byAspect/essays). Hanya blok per-penilai BERNAMA (L3 `assessors`, dgn identitas)
  * yang DIBUANG. Dipakai menggantikan loadReport pada jalur SPV karena RLS mencabut akses SPV
  * ke tabel mentah 360° (migrasi 0012) — agregat + raw anonim dihitung server via service_role.
  *
- * Visibilitas (sama untuk anggota tim & diri sendiri):
+ * Lingkup = pegawai SEDIVISI (`inSpvDivisionScope`, keputusan 2026-10-07 — SPV menaungi seluruh
+ * divisinya, termasuk koordinator & tim koordinator), bukan lagi daftar `spv_team_members`.
+ * Hanya untuk tampilan laporan ini; KPI/Monitor/ACC/RLS masih memakai `spv_team_members`.
+ *
+ * Visibilitas:
  *  - Tampak bila HRD sudah merilis (status 'in_review') atau sudah 'finalized'.
  *  - SPV boleh meninjau detail agregat DIRINYA sendiri sejak 'in_review' (ACC diri tetap
- *    nonaktif). Halaman pegawai "Laporan Hasil Saya" tetap terpisah & final-only.
- *  - Di luar tim / status lebih awal (draft) → null (ditolak).
+ *    nonaktif), TETAPI tanpa umpan balik mentah (`withoutRaw`) — raw SPV hanya untuk atasannya
+ *    (Direksi) & HRD. Halaman pegawai "Laporan Hasil Saya" tetap terpisah & final-only.
+ *  - Di luar divisi / status lebih awal (draft) → null (ditolak).
  *
  * Mengembalikan ReportData dengan `assessors` DIKOSONGKAN (L3 bernama) tetapi byAspect/essays
- * DIPERTAHANKAN (raw anonim); pemanggil merender anonim (anonymize + hideAssessorComments +
- * RawFeedback). ⚠️ Umpan balik anonim tetap bisa ter-de-anonimisasi pada kelas penilai kecil.
+ * DIPERTAHANKAN (raw anonim) untuk pegawai lain; pemanggil merender anonim (anonymize +
+ * hideAssessorComments + RawFeedback). ⚠️ Umpan balik anonim tetap bisa ter-de-anonimisasi pada
+ * kelas penilai kecil.
  */
 export async function loadTeamReportForSpv(
   spvId: string,
@@ -227,9 +262,9 @@ export async function loadTeamReportForSpv(
 
   const isSelf = employeeId === spvId;
   if (!isSelf) {
-    const { data: mem } = await admin.from('spv_team_members')
-      .select('employee_id').eq('spv_id', spvId).eq('employee_id', employeeId).maybeSingle();
-    if (!mem) return null; // di luar tim formal
+    const { data: me } = await admin.from('employees').select('dept').eq('id', spvId).maybeSingle();
+    const { data: emp } = await admin.from('employees').select('dept, role').eq('id', employeeId).maybeSingle();
+    if (!inSpvDivisionScope(me, emp)) return null; // di luar divisi
   }
 
   const { data: fr } = await admin.from('final_reports')
@@ -240,8 +275,9 @@ export async function loadTeamReportForSpv(
 
   const full = await loadReport(admin, employeeId, period);
   if (!full) return null;
-  // Buang HANYA blok per-penilai BERNAMA (L3 `assessors`); pertahankan byAspect/essays
-  // (umpan balik mentah ANONIM) agar SPV bisa membaca komentar/rating tanpa identitas penilai.
+  // Diri sendiri → tanpa raw. Lainnya: buang HANYA blok per-penilai BERNAMA (L3 `assessors`);
+  // pertahankan byAspect/essays (umpan balik mentah ANONIM) tanpa identitas penilai.
+  if (isSelf) return withoutRaw(full);
   return { ...full, assessors: [] };
 }
 
@@ -293,7 +329,7 @@ export async function loadTeamReportForHrdSpv(
   if (!isSelf) {
     const { data: me } = await admin.from('employees').select('dept').eq('id', hrdId).maybeSingle();
     const { data: emp } = await admin.from('employees').select('dept, role').eq('id', employeeId).maybeSingle();
-    if (!emp || emp.role === 'direksi' || !me?.dept || emp.dept !== me.dept) return null; // di luar divisi
+    if (!inSpvDivisionScope(me, emp)) return null; // di luar divisi
   }
 
   const { data: fr } = await admin.from('final_reports')
@@ -304,6 +340,7 @@ export async function loadTeamReportForHrdSpv(
 
   const full = await loadReport(admin, employeeId, period);
   if (!full) return null;
+  if (isSelf) return withoutRaw(full); // paritas SPV: laporan diri sendiri tanpa raw
   return { ...full, assessors: [] }; // buang L3 bernama; pertahankan byAspect/essays (raw anonim)
 }
 

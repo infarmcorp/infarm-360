@@ -41,8 +41,13 @@ jobs:
       - name: Backup (hanya membaca database)
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        # pg dipasang di folder TERPISAH (bukan di root proyek): `npm install pg` di root memicu bug npm
+        # "Cannot read properties of null (reading 'edgesOut')" karena ikut membaca package.json proyek.
+        # node_modules hasilnya disambungkan (symlink) agar `import pg` di scripts/backup.mjs tetap ketemu.
         run: |
-          npm install --no-save --no-package-lock pg
+          mkdir -p "$RUNNER_TEMP/pgdep"
+          (cd "$RUNNER_TEMP/pgdep" && npm init -y > /dev/null && npm install --no-audit --no-fund pg@8)
+          ln -s "$RUNNER_TEMP/pgdep/node_modules" node_modules
           node scripts/backup.mjs
 
       - name: Kemas & enkripsi

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin, canCoordinate, canSection, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
-import { loadReport, loadTeamReportForSpv, loadTeamReportForHrdSpv, loadTeamReportForCoordinator, loadSpvReportForDireksi, isDireksiReviewSubject } from '@/lib/report';
+import { loadReport, withoutRaw, loadTeamReportForSpv, loadTeamReportForHrdSpv, loadTeamReportForCoordinator, loadSpvReportForDireksi, isDireksiReviewSubject } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
 import { ReportActions } from '../report-actions';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
@@ -101,13 +101,17 @@ export default async function LaporanDetailPage({
         <p className="text-sm text-ink-soft mt-3">Pegawai ini di luar lingkup akses yang diberikan kepada Anda.</p>
       </Shell>;
     }
-    const data = await loadReport(admin, employeeId, ap);
-    if (!data) {
+    const loaded = await loadReport(admin, employeeId, ap);
+    if (!loaded) {
       return <Shell>
         <Link href="/admin/laporan" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Review & Finalisasi</Link>
         <p className="text-sm text-ink-soft mt-3">Data tidak ditemukan.</p>
       </Shell>;
     }
+    // Laporan DIRI SENDIRI (mis. lingkup 'self'/'own_division'/'all') → tanpa umpan balik mentah;
+    // pengecualian Direksi (boleh melihat raw miliknya). HRD Mode Admin tak lewat cabang ini.
+    const hideOwnRaw = employeeId === user.id && role !== 'direksi';
+    const data = hideOwnRaw ? withoutRaw(loaded) : loaded;
     // Periode lampau → turunkan ke lihat-saja, apa pun tingkat izin grant-nya.
     const canEditReport = reviewGrant.canEdit && periodActive;       // Meringkas+ → boleh tulis Ringkasan Aspek
     const canFinalizeReport = reviewGrant.canFinalize && periodActive; // Finalisasi → boleh panel aksi (finalisasi/rilis)
@@ -190,7 +194,7 @@ export default async function LaporanDetailPage({
               <AspectSummaryView summaries={data.qualSummaries} title={QUAL_TITLE} intro={QUAL_INTRO} />
             </>
           ))}
-          {data.has360 && <RawFeedback byAspect={data.byAspect} essays={data.essays} badge="AKSES HRD" />}
+          {data.has360 && !hideOwnRaw && <RawFeedback byAspect={data.byAspect} essays={data.essays} badge="AKSES HRD" />}
         </div>
       </Shell>
     );
@@ -268,9 +272,9 @@ export default async function LaporanDetailPage({
     ? { href: `/laporan-tim${backQS}`, label: '← Laporan Kinerja Tim' }
     : { href: '/admin/laporan', label: '← Daftar Laporan' };
 
-  // Jalur "seperti SPV" (SPV biasa + HRD mode-SPV): HANYA detail agregat (radar/aspek +
-  // ringkasan aspek HRD), tanpa umpan balik mentah (lapis 3). Tampak hanya bila HRD sudah
-  // merilis ('in_review') / 'finalized'. SPV → lingkup tim formal; HRD mode-SPV → sedivisi.
+  // Jalur "seperti SPV" (SPV biasa + HRD mode-SPV): detail agregat (radar/aspek + ringkasan
+  // aspek HRD) + umpan balik mentah ANONIM (tanpa L3 bernama; laporan diri sendiri tanpa raw).
+  // Tampak hanya bila HRD sudah merilis ('in_review') / 'finalized'. Lingkup = sedivisi.
   if (asSpv) {
     const data = role === 'spv'
       ? await loadTeamReportForSpv(user.id, employeeId, ap)
@@ -292,7 +296,8 @@ export default async function LaporanDetailPage({
           <ReportDoc data={data} anonymize hideAssessorComments />
           {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
           {data.has360 && <AspectSummaryView summaries={data.qualSummaries} title={QUAL_TITLE} intro={QUAL_INTRO} />}
-          {data.has360 && <RawFeedback byAspect={data.byAspect} essays={data.essays} badge={role === 'spv' ? 'SPV' : 'HRD (MODE SPV)'} />}
+          {/* Laporan diri sendiri: raw sudah dibuang loader (withoutRaw) → jangan tampilkan seksinya. */}
+          {data.has360 && employeeId !== user.id && <RawFeedback byAspect={data.byAspect} essays={data.essays} badge={role === 'spv' ? 'SPV' : 'HRD (MODE SPV)'} />}
         </div>
       </Shell>
     );

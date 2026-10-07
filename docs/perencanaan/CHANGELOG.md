@@ -5,6 +5,15 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **Umpan balik mentah 360° — siapa melihat apa (2026-10-07, keputusan pengguna):** (1) **Tabel Rating |
+  Komentar** per pertanyaan (`IndicatorRaw.entries`, pasangan dari BARIS yang sama, urut rating) — dulu dua
+  daftar terpisah sehingga rating ke-n tak dijamin milik komentar ke-n (bergeser bila ada rating tanpa
+  komentar). (2) **Lingkup raw SPV = seluruh pegawai SEDIVISI** (`inSpvDivisionScope`; 1 divisi = 1 SPV,
+  koordinator & timnya selalu sedivisi) — hanya untuk detail laporan; KPI/Monitor/ACC/RLS `is_my_member` masih
+  `spv_team_members`. (3) **Laporan diri sendiri TANPA raw** (`withoutRaw`, dibuang di server) untuk SPV, HRD
+  Mode-SPV & pemegang grant Review; **dikecualikan** HRD Mode Admin & Direksi (boleh lihat raw miliknya).
+  (4) **Anggota tim koordinator wajib sedivisi** — `setCoordinatorTeam` menolak di server; dialog Manajemen
+  Akses hanya menawarkan pegawai sedivisi (anggota lama beda divisi ditandai untuk dilepas).
 - **Persiapan tutup Q3 (2026-10-02, audit rencana):** (1) Panel Kesiapan & kokpit Review tak lagi menulis
   "bobot pakai default" — tanpa skema bobot TERSIMPAN, ① Hitung Ulang ditolak server (pesan kini mengarahkan
   ke "Simpan & Terapkan Bobot"). (2) **Pengaman Q1:** periode yang skor 360°-nya hasil impor Looker

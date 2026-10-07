@@ -7,7 +7,7 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/audit/log', () => ({ logHrdAction: vi.fn(async () => {}) }));
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { setHrdAdmin, setCoordinator, setHrdSections, resetPassword } from '@/app/(app)/admin/pegawai/actions';
+import { setHrdAdmin, setCoordinator, setCoordinatorTeam, setHrdSections, resetPassword } from '@/app/(app)/admin/pegawai/actions';
 
 const mockCreate = vi.mocked(createClient);
 const mockAdmin = vi.mocked(createAdminClient);
@@ -154,6 +154,38 @@ describe('HRD terbatas (hrd_sections) — tak bisa menaikkan izin (audit 2026-09
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockAdmin.mockReturnValue({ auth: { admin: { updateUserById: async () => ({ error: null }) } } } as any);
     const r = await resetPassword(EMP, 'SandiBaru123');
+    expect(r.ok).toBe(true);
+  });
+});
+
+describe('setCoordinatorTeam — anggota wajib SEDIVISI dgn koordinator (2026-10-07)', () => {
+  const COORD = '22222222-2222-2222-2222-222222222222';
+  const A = '33333333-3333-3333-3333-333333333333';
+  const B = '44444444-4444-4444-4444-444444444444';
+
+  it('tolak bila ada anggota beda divisi (tanpa menghapus tim lama)', async () => {
+    const c = makeClient({ user: { id: UID }, tables: { employees: [
+      { data: HRD },
+      { data: { name: 'Andi', is_coordinator: true, dept: 'Sales' } },
+      { data: [{ id: A, name: 'Citra', dept: 'Sales' }, { id: B, name: 'Dodi', dept: 'Finance' }] },
+    ] } });
+    use(c);
+    const r = await setCoordinatorTeam(COORD, [A, B]);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/sedivisi.*Dodi/i);
+    expect(c.calls.some((x) => x.table === 'coordinator_team_members')).toBe(false);
+  });
+
+  it('IZINKAN bila semua anggota sedivisi', async () => {
+    use(makeClient({ user: { id: UID }, tables: {
+      employees: [
+        { data: HRD },
+        { data: { name: 'Andi', is_coordinator: true, dept: 'Sales' } },
+        { data: [{ id: A, name: 'Citra', dept: 'Sales' }, { id: B, name: 'Dodi', dept: 'Sales' }] },
+      ],
+      coordinator_team_members: [{ error: null }, { error: null }],
+    } }));
+    const r = await setCoordinatorTeam(COORD, [A, B]);
     expect(r.ok).toBe(true);
   });
 });

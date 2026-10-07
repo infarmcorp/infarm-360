@@ -720,16 +720,21 @@ export function AksesClient({
       <ConfirmDialog open={!!coordDlg} icon="👥" title={coordDlg ? `Tim Koordinasi — ${coordDlg.r.name}` : ''} tone="primary"
         confirmLabel={coordDlg ? `Simpan (${coordDlg.selected.size})` : 'Simpan'} busy={pending}
         onConfirm={submitCoord} onCancel={() => { if (!pending) setCoordDlg(null); }}>
-        <p>Pilih pegawai yang dinaungi koordinator ini. Koordinator hanya dapat <strong>melihat</strong> Laporan Kinerja Tim mereka.</p>
+        <p>Pilih pegawai yang dinaungi koordinator ini — hanya pegawai <strong>sedivisi</strong> ({coordDlg?.r.dept}).</p>
         <input value={coordDlg?.q ?? ''} onChange={(e) => setCoordDlg((c) => (c ? { ...c, q: e.target.value } : c))}
           placeholder="Cari nama / divisi…" className="w-full text-sm px-2.5 py-1.5 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
         <div className="max-h-64 overflow-y-auto border border-line rounded-control divide-y divide-line-soft">
           {coordDlg && (() => {
             const term = coordDlg.q.trim().toLowerCase();
-            const cands = rows.filter((r) => r.id !== coordDlg.r.id && !r.isExternal && r.role !== 'direksi' && (!term || `${r.name} ${r.dept}`.toLowerCase().includes(term)));
+            // Hanya pegawai SEDIVISI dgn koordinator (ditegakkan juga di server). Anggota lama beda
+            // divisi tetap ditampilkan (ditandai) agar bisa dilepas — simpan ditolak selama masih tercentang.
+            const cands = rows.filter((r) => r.id !== coordDlg.r.id && !r.isExternal && r.role !== 'direksi'
+              && (r.dept === coordDlg.r.dept || coordDlg.selected.has(r.id))
+              && (!term || `${r.name} ${r.dept}`.toLowerCase().includes(term)));
             if (cands.length === 0) return <p className="text-xs text-ink-soft italic p-3">Tidak ada pegawai cocok.</p>;
             return cands.map((r) => {
               const checked = coordDlg.selected.has(r.id);
+              const outside = r.dept !== coordDlg.r.dept;
               return (
                 <label key={r.id} className={`flex items-center gap-2 px-2.5 py-1.5 cursor-pointer hover:bg-neutral-tint ${checked ? 'bg-brand-tint/60' : ''}`}>
                   <input type="checkbox" checked={checked} onChange={() => setCoordDlg((c) => {
@@ -737,6 +742,7 @@ export function AksesClient({
                   })} className="accent-brand" />
                   <span className="text-xs text-ink font-semibold">{r.name}</span>
                   <span className="text-[10px] text-ink-faint">{r.dept}</span>
+                  {outside && <span className="ml-auto text-[10px] font-semibold text-danger-ink bg-danger-tint px-1.5 py-0.5 rounded-control">beda divisi — lepas</span>}
                 </label>
               );
             });

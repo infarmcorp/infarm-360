@@ -1,11 +1,14 @@
 import { fmt2 } from '@/lib/scoring';
-import type { AspectRaw, EssayGroup } from '@/lib/report';
+import type { AspectRaw, EssayGroup, RawEntry } from '@/lib/report';
 
 /**
- * Section 5 — RINCIAN KOMENTAR MURNI (RAW FEEDBACK) per Aspek & Indikator (HRD ONLY).
- * Anonim: TIDAK menampilkan nama/identitas penilai. Per aspek → per indikator, dengan
- * akumulasi rating mentah (mis. 4,5,2,3,4,1) + komentar. Esai dikelompokkan per pertanyaan.
+ * Section 5 — RINCIAN KOMENTAR MURNI (RAW FEEDBACK) per Aspek & Indikator.
+ * Anonim: TIDAK menampilkan nama/identitas penilai. Per aspek → per indikator, tabel pasangan
+ * Rating | Komentar per penilai (urut rating) untuk kalibrasi. Esai dikelompokkan per pertanyaan.
  */
+const sortEntries = (xs: RawEntry[]) =>
+  [...xs].sort((a, b) => (a.rating ?? 99) - (b.rating ?? 99)); // tanpa rating → paling bawah
+
 const RATING_COLOR = (r: number) =>
   r >= 4 ? 'bg-brand-tint text-brand-ink' : r === 3 ? 'bg-warn-tint text-warn-ink' : 'bg-danger-tint text-danger-ink';
 
@@ -39,26 +42,39 @@ export function RawFeedback({ byAspect, essays, badge = 'HRD VIEW' }: { byAspect
                   <div key={ind.num} className="p-3">
                     <p className="text-xs font-bold text-ink">Pertanyaan #{ind.num} <span className="font-normal text-ink-faint">({a.name})</span></p>
                     <p className="text-[11px] italic text-ink-faint mb-1.5">“{ind.text}”</p>
-                    {/* Akumulasi rating mentah */}
-                    <div className="flex flex-wrap items-center gap-1 mb-1.5">
-                      <span className="text-[10px] font-bold text-ink-faint uppercase mr-1">Rating:</span>
-                      {ind.ratings.length === 0
-                        ? <span className="text-[10px] text-ink-faint italic">belum ada</span>
-                        : ind.ratings.map((r, i) => (
-                            <span key={i} className={`text-[10px] data-value font-bold px-1.5 py-0.5 rounded-control ${RATING_COLOR(r)}`}>{r}</span>
+                    <p className="text-[10px] text-ink-faint mb-1.5">
+                      {m != null
+                        ? <>Rerata <strong className="data-value">{fmt2(m)}</strong> · {ind.ratings.length} penilai</>
+                        : <span className="italic">Belum ada rating</span>}
+                    </p>
+                    {/* Pasangan rating↔komentar per penilai (anonim), urut rating terendah → tertinggi
+                        untuk kalibrasi rating vs evidence. */}
+                    {ind.entries.length > 0 && (
+                      <table className="w-full text-xs border border-line-soft rounded-control overflow-hidden">
+                        <thead className="bg-neutral-tint text-[10px] uppercase tracking-wide text-ink-faint">
+                          <tr>
+                            <th className="text-left font-bold px-2 py-1 w-16">Rating</th>
+                            <th className="text-left font-bold px-2 py-1">Komentar</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-line-soft">
+                          {sortEntries(ind.entries).map((e, i) => (
+                            <tr key={i} className="align-top">
+                              <td className="px-2 py-1.5">
+                                {e.rating != null
+                                  ? <span className={`text-[10px] data-value font-bold px-1.5 py-0.5 rounded-control ${RATING_COLOR(e.rating)}`}>{e.rating}</span>
+                                  : <span className="text-[10px] text-ink-faint">—</span>}
+                              </td>
+                              <td className="px-2 py-1.5 text-ink-soft">
+                                {e.comment
+                                  ? <span className="italic">“{e.comment}”</span>
+                                  : <span className="text-[10px] text-ink-faint italic">tanpa komentar</span>}
+                              </td>
+                            </tr>
                           ))}
-                      {m != null && <span className="text-[10px] text-ink-faint ml-1">· rerata <strong>{fmt2(m)}</strong> ({ind.ratings.length} penilai)</span>}
-                    </div>
-                    {/* Komentar mentah (anonim) */}
-                    {ind.comments.length > 0 ? (
-                      <ul className="space-y-0.5">
-                        {ind.comments.map((c, i) => (
-                          <li key={i} className="text-xs text-ink-soft flex gap-1.5">
-                            <span className="text-ink-faint/50 shrink-0">•</span><span className="italic">“{c}”</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : <p className="text-[10px] text-ink-faint italic">Tidak ada komentar tertulis.</p>}
+                        </tbody>
+                      </table>
+                    )}
                   </div>
                 );
               })}

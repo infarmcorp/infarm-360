@@ -139,10 +139,20 @@ export async function setCoordinatorTeam(coordinatorId: string, employeeIds: unk
   if (!auth.ok) return auth;
 
   // Pastikan target memang koordinator (cegah salah pasang tim ke non-koordinator).
-  const { data: coord } = await supabase.from('employees').select('name, is_coordinator').eq('id', cid).maybeSingle();
+  const { data: coord } = await supabase.from('employees').select('name, is_coordinator, dept').eq('id', cid).maybeSingle();
   if (!coord?.is_coordinator) return { ok: false, error: 'Pegawai ini bukan Koordinator.' };
 
   const clean = [...new Set(ids)].filter((id) => id !== cid); // buang duplikat & diri sendiri
+  // Koordinator HANYA menaungi pegawai SEDIVISI (keputusan 2026-10-07) — lingkup raw SPV per divisi
+  // bergantung pada ini. Tolak seluruh simpanan bila ada anggota beda divisi.
+  if (clean.length) {
+    const { data: members } = await supabase.from('employees').select('id, name, dept').in('id', clean);
+    if ((members ?? []).length !== clean.length) return { ok: false, error: 'Sebagian pegawai tidak ditemukan.' };
+    const outside = (members ?? []).filter((m) => m.dept !== coord.dept);
+    if (outside.length) {
+      return { ok: false, error: `Anggota tim koordinator harus sedivisi (${coord.dept}). Di luar divisi: ${outside.map((m) => m.name).join(', ')}.` };
+    }
+  }
   await supabase.from('coordinator_team_members').delete().eq('coordinator_id', cid);
   if (clean.length) {
     const { error } = await supabase.from('coordinator_team_members')

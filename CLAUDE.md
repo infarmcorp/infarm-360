@@ -329,6 +329,8 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
     > paparan anonim murni app-level via `service_role`). ⚠️ **Risiko de-anonimisasi** pada kelas penilai
     > kecil (mis. hanya 1–2 Peer/Cross) — komentar "anonim" bisa tertebak; mudah dibalik (app-level,
     > tanpa migrasi). Pola sama dgn Review Hasil Akhir Direksi & Peninjau yang sudah lebih dulu begini.
+    > **2026-10-07:** lingkup raw SPV = seluruh pegawai **sedivisi**; **laporan diri sendiri TANPA raw**
+    > (`withoutRaw`) kecuali HRD Mode Admin & Direksi; anggota tim koordinator wajib sedivisi.
   - HRD Admin akses penuh; mode-SPV dibatasi seperti SPV.
   - Direksi read-only + ACC promosi.
 - Logika sensitif (kalibrasi skor akhir, finalisasi Final Report, aktivasi/kunci periode,

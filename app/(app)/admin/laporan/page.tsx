@@ -12,6 +12,7 @@ import { BulkFinalizeButton } from './bulk-finalize-button';
 import { Panel } from '@/components/panel';
 import { loadPendingLatePenalties, refreshLatePenalties } from '@/lib/late-server';
 import { isBackfilledPeriod } from '@/lib/backfill-guard';
+import { ratedCompletion, type RatedMapping } from '@/lib/rated-completeness';
 
 /**
  * Review Hasil Akhir (HRD): hitung Skor Akhir tiap pegawai, lihat ACC SPV & status,
@@ -104,14 +105,13 @@ export default async function AdminLaporanPage() {
   const { data: teamRows } = await createAdminClient().from('spv_team_members').select('spv_id');
   const leaderIds = new Set((teamRows ?? []).map((t) => t.spv_id));
 
-  // Kelengkapan "dinilai oleh": berapa penilai WAJIB yang sudah submit untuk tiap pegawai
-  // (selaras Progress 360 — kelengkapan berbasis penilaian wajib).
-  // CATATAN: TANPA filter is_active — pegawai nonaktif (resign) pemetaannya dimatikan, tapi
-  // penilaian terhadapnya tetap sah; tanpa ini kolom "Dinilai oleh" jadi "—" yang menyesatkan.
+  // Kelengkapan "dinilai oleh": berapa penilai WAJIB yang sudah submit untuk tiap pegawai —
+  // aturan kewajiban SAMA dgn Progress 360 (`ratedCompletion`): pemetaan nonaktif & penilaian
+  // dibatalkan tak dihitung; pengecualian pegawai yang DINILAI nonaktif (resign) tetap dihitung.
   // mappings & assessments SELURUH pegawai → bisa >1000; ambil penuh (kelengkapan & deteksi
   // "perlu hitung ulang" harus lengkap, kalau terpotong bisa gagal memicu peringatan).
-  const maps = await fetchAllPaged<{ assessor_id: string; target_id: string; mandatory: boolean }>((from, to) =>
-    db.from('mappings').select('assessor_id, target_id, mandatory').eq('period_id', ap.id).order('assessor_id').order('target_id').range(from, to));
+  const maps = await fetchAllPaged<RatedMapping>((from, to) =>
+    db.from('mappings').select('assessor_id, target_id, mandatory, is_active, is_adhoc').eq('period_id', ap.id).order('assessor_id').order('target_id').range(from, to));
   const subs = await fetchAllPaged<{ assessor_id: string; target_id: string; submitted_at: string | null }>((from, to) =>
     db.from('assessments').select('assessor_id, target_id, submitted_at').eq('period_id', ap.id).eq('status', 'submitted').order('assessor_id').order('target_id').range(from, to));
   const doneSet = new Set(subs.map((s) => `${s.assessor_id}|${s.target_id}`));
@@ -122,13 +122,11 @@ export default async function AdminLaporanPage() {
     const cur = maxSubByTarget.get(s.target_id);
     if (!cur || s.submitted_at > cur) maxSubByTarget.set(s.target_id, s.submitted_at);
   });
-  const ratedTotal = new Map<string, number>();
-  const ratedDone = new Map<string, number>();
-  maps.forEach((m) => {
-    if (!m.mandatory) return; // kelengkapan berbasis WAJIB
-    ratedTotal.set(m.target_id, (ratedTotal.get(m.target_id) ?? 0) + 1);
-    if (doneSet.has(`${m.assessor_id}|${m.target_id}`)) ratedDone.set(m.target_id, (ratedDone.get(m.target_id) ?? 0) + 1);
-  });
+  const { data: invalidRows } = await db.from('assessments').select('assessor_id, target_id')
+    .eq('period_id', ap.id).eq('status', 'invalidated');
+  const invalidSet = new Set((invalidRows ?? []).map((a) => `${a.assessor_id}|${a.target_id}`));
+  const inactiveTargets = new Set((emps ?? []).filter((e) => !e.is_active).map((e) => e.id));
+  const { total: ratedTotal, done: ratedDone } = ratedCompletion(maps, doneSet, invalidSet, inactiveTargets);
 
   // Koreksi Garis Hubungan yang DI-ACC (mengubah kelas bobot) → juga memicu "perlu hitung".
   // reviewed_at TERBARU per pegawai (target) dibandingkan dgn computed_at result_360.

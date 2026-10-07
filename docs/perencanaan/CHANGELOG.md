@@ -5,6 +5,10 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **"Dinilai oleh" (Review & Finalisasi) selaras Progress 360 (2026-10-08):** dulu menghitung SEMUA pemetaan
+  Wajib termasuk yang nonaktif & penilaian dibatalkan → "9/10" padahal Progress sudah 100%. Kini
+  `ratedCompletion` (`lib/rated-completeness.ts`): hanya Wajib non-ad-hoc, pemetaan nonaktif tak dihitung
+  (kecuali pegawai yang DINILAI sendiri nonaktif/resign), penilaian `invalidated` keluar dari total.
 - **Umpan balik mentah 360° — siapa melihat apa (2026-10-07, keputusan pengguna):** (1) **Tabel Rating |
   Komentar** per pertanyaan (`IndicatorRaw.entries`, pasangan dari BARIS yang sama, urut rating) — dulu dua
   daftar terpisah sehingga rating ke-n tak dijamin milik komentar ke-n (bergeser bila ada rating tanpa

@@ -802,3 +802,169 @@ export async function exportMappings(periodId?: string | null): Promise<ExportRe
   }));
   return { ok: true, rows };
 }
+
+const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+/** "Q2 2026 (April - Juni 2026)" dari label + tanggal mulai/akhir periode. */
+function periodRangeLabel(label: string, start: string, end: string): string {
+  const s = new Date(start + 'T00:00:00'), e = new Date(end + 'T00:00:00');
+  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return label;
+  const sy = s.getFullYear(), ey = e.getFullYear();
+  const from = sy === ey ? BULAN[s.getMonth()] : `${BULAN[s.getMonth()]} ${sy}`;
+  return `${label} (${from} - ${BULAN[e.getMonth()]} ${ey})`;
+}
+
+/**
+ * Bahan Laporan per Pegawai (2026-10-08) — 3 lembar untuk diringkas (mis. lewat Claude) menjadi
+ * dokumen laporan per pegawai seperti template PDF "Laporan Performance Appraisal":
+ *  1. Skor           — satu baris per (periode × pegawai): Skor Akhir · KPI · 360° · potongan telat ·
+ *                      skor tiap aspek budaya, masing-masing + kategori (perfLabelOf, pita PDF).
+ *  2. Komentar Aspek — raw komentar per aspek × indikator (rating + komentar + kelas penilai).
+ *  3. Komentar Esai  — raw jawaban umpan balik kualitatif per pertanyaan.
+ * ANONIM penilai (hanya kelas relasi, tanpa nama); penilaian Self DIKECUALIKAN dari lembar 2–3
+ * (selaras raw feedback di Laporan). Angka lembar 1 memakai ekspor resmi yang sama (exportRekap,
+ * exportAspectScores) agar identik dengan Rekap/Rekap Aspek.
+ */
+export async function exportReportMaterials(periodId?: string | null): Promise<ConfigResult> {
+  if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
+  const admin = createAdminClient();
+  const [rekap, aspek] = await Promise.all([exportRekap(periodId), exportAspectScores(periodId)]);
+  if (!rekap.ok) return rekap;
+  if (!aspek.ok) return aspek;
+
+  const [{ data: emps }, { data: periodsAll }, reps, asmts, mapsAll, { data: inds }, { data: aspects }, { data: quals }] = await Promise.all([
+    admin.from('employees').select('id, emp_code, name, dept'),
+    admin.from('periods').select('id, label, start_date, end_date').order('start_date'),
+    fetchAllPaged<{ employee_id: string; period_id: string; status: string }>((from, to) => {
+      let q = admin.from('final_reports').select('employee_id, period_id, status');
+      if (periodId) q = q.eq('period_id', periodId);
+      return q.order('employee_id').order('period_id').range(from, to);
+    }),
+    fetchAllPaged<{ id: string; period_id: string; assessor_id: string; target_id: string }>((from, to) => {
+      let q = admin.from('assessments').select('id, period_id, assessor_id, target_id').eq('status', 'submitted');
+      if (periodId) q = q.eq('period_id', periodId);
+      return q.order('id').range(from, to);
+    }),
+    fetchAllPaged<{ assessor_id: string; target_id: string; period_id: string; relation: RelationKind }>((from, to) => {
+      let q = admin.from('mappings').select('assessor_id, target_id, period_id, relation');
+      if (periodId) q = q.eq('period_id', periodId);
+      return q.order('assessor_id').order('target_id').range(from, to);
+    }),
+    admin.from('indicators').select('id, text, aspect_id, order_idx'),
+    admin.from('culture_aspects').select('id, name, order_idx'),
+    admin.from('qualitative_questions').select('id, text, order_idx'),
+  ]);
+  const empById = new Map((emps ?? []).map((e) => [e.id, e]));
+  const empByCode = new Map((emps ?? []).map((e) => [e.emp_code, e]));
+  const periodById = new Map((periodsAll ?? []).map((p) => [p.id, p]));
+  const periodByLabel = new Map((periodsAll ?? []).map((p) => [p.label, p]));
+  const rangeOf = (label: string) => {
+    const p = periodByLabel.get(label);
+    return p ? periodRangeLabel(p.label, p.start_date, p.end_date) : label;
+  };
+  const STATUS: Record<string, string> = { draft: 'Draf', in_review: 'Ditinjau SPV', finalized: 'Final' };
+  const statusBy = new Map(reps.map((r) => [`${r.employee_id}|${r.period_id}`, STATUS[r.status] ?? r.status]));
+
+  // ── Lembar 1: Skor — Rekap + skor per aspek dipivot jadi kolom (urutan aspek = urutan tampil). ──
+  const aspectCols: string[] = [];
+  const aspectBy = new Map<string, Map<string, number | null>>(); // `${periode}|${kode}` → aspek → skor
+  for (const r of aspek.rows) {
+    const name = String(r.aspek ?? '');
+    if (name && !aspectCols.includes(name)) aspectCols.push(name);
+    const k = `${r.periode}|${r.kode}`;
+    const m = aspectBy.get(k) ?? new Map<string, number | null>();
+    m.set(name, typeof r.skor_360 === 'number' ? r.skor_360 : null);
+    aspectBy.set(k, m);
+  }
+  const num = (v: unknown) => (typeof v === 'number' ? v : null);
+  const skor: Row[] = rekap.rows.map((r) => {
+    const e = empByCode.get(String(r.kode));
+    const p = periodByLabel.get(String(r.periode));
+    const final = num(r.skor_akhir), kpi = num(r.kpi_rerata), s360 = num(r.skor_360);
+    const row: Row = {
+      periode: rangeOf(String(r.periode)),
+      kode: r.kode, nama: r.nama, divisi: r.divisi,
+      status_laporan: e && p ? (statusBy.get(`${e.id}|${p.id}`) ?? 'Belum dibuat') : '',
+      skor_akhir: final, kategori_skor_akhir: final != null ? perfLabelOf(final) : '',
+      skor_kpi: kpi, kategori_kpi: kpi != null ? perfLabelOf(kpi) : '',
+      skor_360: s360, kategori_360: s360 != null ? perfLabelOf(s360) : '',
+      // Satu-satunya sanksi (Punishment manual dihapus 2026-10-01) — SUDAH termasuk di skor_360.
+      potongan_telat_360: r.potongan_telat_360,
+    };
+    const am = aspectBy.get(`${r.periode}|${r.kode}`);
+    for (const a of aspectCols) {
+      const v = am?.get(a) ?? null;
+      row[`aspek: ${a}`] = v;
+      row[`kategori: ${a}`] = v != null ? perfLabelOf(v) : '';
+    }
+    return row;
+  });
+
+  // ── Lembar 2 & 3: raw komentar (anonim, tanpa Self). ──
+  const relBy = new Map(mapsAll.map((m) => [`${m.assessor_id}|${m.target_id}|${m.period_id}`, m.relation]));
+  const others = asmts.filter((a) => a.assessor_id !== a.target_id);
+  const asmtById = new Map(others.map((a) => [a.id, a]));
+  const ids = others.map((a) => a.id);
+  const aspectMeta = new Map((aspects ?? []).map((a) => [a.id, { name: a.name, ord: a.order_idx ?? 0 }]));
+  const indMeta = new Map((inds ?? []).map((i) => [i.id, { text: i.text, ord: i.order_idx ?? 0, aspect: aspectMeta.get(i.aspect_id) }]));
+  const qMeta = new Map((quals ?? []).map((q) => [q.id, { text: q.text, ord: q.order_idx ?? 0 }]));
+  const head = (a: { period_id: string; target_id: string }) => {
+    const e = empById.get(a.target_id);
+    const p = periodById.get(a.period_id);
+    return { periode: p ? periodRangeLabel(p.label, p.start_date, p.end_date) : '', kode: e?.emp_code ?? '', nama: e?.name ?? '', divisi: e?.dept ?? '' };
+  };
+  const relOf = (a: { assessor_id: string; target_id: string; period_id: string }) =>
+    relBy.get(`${a.assessor_id}|${a.target_id}|${a.period_id}`) ?? '';
+
+  type Sorted = { key: (string | number)[]; row: Row };
+  const cmp = (x: Sorted, y: Sorted) => {
+    for (let i = 0; i < x.key.length; i++) {
+      const a = x.key[i], b = y.key[i];
+      const c = typeof a === 'number' && typeof b === 'number' ? a - b : String(a).localeCompare(String(b));
+      if (c) return c;
+    }
+    return 0;
+  };
+
+  const komentar: Sorted[] = [];
+  const esai: Sorted[] = [];
+  if (ids.length) {
+    const [sc, ans] = await Promise.all([
+      fetchAllChunked<{ assessment_id: string; indicator_id: string; rating: number | null; comment: string | null }>(ids, (chunk, from, to) =>
+        admin.from('assessment_indicator_scores').select('assessment_id, indicator_id, rating, comment')
+          .in('assessment_id', chunk).order('assessment_id').order('indicator_id').range(from, to)),
+      fetchAllChunked<{ assessment_id: string; question_id: string; answer: string | null }>(ids, (chunk, from, to) =>
+        admin.from('assessment_qual_answers').select('assessment_id, question_id, answer')
+          .in('assessment_id', chunk).order('assessment_id').order('question_id').range(from, to)),
+    ]);
+    for (const s of sc) {
+      const a = asmtById.get(s.assessment_id); const ind = indMeta.get(s.indicator_id);
+      if (!a || !ind) continue;
+      if (s.rating == null && !(s.comment ?? '').trim()) continue;
+      const h = head(a);
+      komentar.push({
+        key: [h.periode, h.nama, ind.aspect?.ord ?? 0, ind.ord, s.rating ?? 99],
+        row: { ...h, aspek: ind.aspect?.name ?? '', indikator: ind.text, relasi_penilai: relOf(a), rating: s.rating, komentar: (s.comment ?? '').trim() },
+      });
+    }
+    for (const x of ans) {
+      const a = asmtById.get(x.assessment_id); const q = qMeta.get(x.question_id);
+      if (!a || !q || !(x.answer ?? '').trim()) continue;
+      const h = head(a);
+      esai.push({
+        key: [h.periode, h.nama, q.ord],
+        row: { ...h, pertanyaan: q.text, relasi_penilai: relOf(a), jawaban: (x.answer ?? '').trim() },
+      });
+    }
+  }
+  komentar.sort(cmp);
+  esai.sort(cmp);
+
+  return {
+    ok: true,
+    sheets: [
+      { name: 'Skor', rows: skor },
+      { name: 'Komentar Aspek', rows: komentar.map((k) => k.row) },
+      { name: 'Komentar Esai', rows: esai.map((k) => k.row) },
+    ],
+  };
+}

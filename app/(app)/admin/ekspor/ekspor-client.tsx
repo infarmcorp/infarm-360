@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Users, Settings, BarChart3, MessageSquareText, ScrollText } from 'lucide-react';
+import { Download, Users, Settings, BarChart3, MessageSquareText, ScrollText, FileText } from 'lucide-react';
 import {
   exportEmployees, exportKpi, exportKpiAudit, exportRekap, exportLatePenalties,
   exportAssessments, exportQualAnswers, exportMappings, exportAspectSummaries,
-  exportSummary360, exportAspectScores, exportPeriodConfig, exportHrdAuditLog, type ExportResult, type Sheet,
+  exportSummary360, exportAspectScores, exportPeriodConfig, exportHrdAuditLog, exportReportMaterials,
+  type ExportResult, type Sheet,
 } from './actions';
 
 type PeriodOpt = { id: string; label: string; active: boolean };
@@ -20,6 +21,7 @@ const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').r
  *  2. Konfigurasi Periode Lengkap — Ringkasan/Bobot/Bulan KPI/Aspek & Indikator/Esai + Pemetaan.
  *  3. Kinerja Lengkap per Periode — Rekap/KPI Bulanan/Audit KPI/Potongan Keterlambatan.
  *  4. Penilaian 360° Lengkap      — Kuantitatif/Kualitatif/Ringkasan Naratif HRD (anonim penilai).
+ *  5. Bahan Laporan per Pegawai   — Skor/Komentar Aspek/Komentar Esai, untuk diringkas jadi laporan.
  */
 export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
   const [periodId, setPeriodId] = useState<string>(''); // '' = semua periode
@@ -108,6 +110,15 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
           { name: 'Ringkasan Naratif', rows: rowsOf(naratif) },
         ];
         return { sheets, filename: `penilaian-360-lengkap-${suffix}.xlsx` };
+      }),
+    },
+    {
+      key: 'bahan', title: 'Bahan Laporan per Pegawai', icon: FileText, tint: 'violet', scoped: true,
+      desc: <>Untuk diringkas menjadi laporan per pegawai — <strong>3 lembar</strong> (anonim penilai, tanpa Self): <strong>Skor</strong> (Skor Akhir · KPI · 360° · potongan telat · skor tiap aspek budaya + kategori) · <strong>Komentar Aspek</strong> (rating &amp; komentar per indikator) · <strong>Komentar Esai</strong>. Disertai divisi &amp; rentang periode.</>,
+      go: () => run('bahan', async () => {
+        const res = await exportReportMaterials(pid());
+        if (!res.ok) throw new Error(res.error);
+        return { sheets: res.sheets, filename: `bahan-laporan-per-pegawai-${suffix}.xlsx` };
       }),
     },
     {

@@ -8,7 +8,7 @@ name: Backup Database
 #   SUPABASE_DB_URL     — connection string "Session pooler" Supabase (bukan direct; runner tanpa IPv6)
 #   BACKUP_PASSPHRASE   — kata sandi enkripsi (simpan juga di tempat aman milik HRD/IT; tanpanya
 #                         backup TIDAK bisa dibuka)
-# Cara memulihkan: lihat docs/panduan/CARA-BACKUP.md (bagian "Backup otomatis GitHub").
+# Cara memulihkan: lihat docs/TEKNIS.md §8.2 (Backup otomatis harian).
 on:
   schedule:
     - cron: '0 19 * * *'   # tiap hari 02:00 WIB

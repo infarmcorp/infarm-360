@@ -15,6 +15,7 @@ import { PeriodFilter } from './period-filter';
 import { DistBars } from './dist-bars';
 import { TeamAspectProfile } from './team-aspect';
 import { SectionHeader } from './section-header';
+import { loadMonitorHistory } from '@/lib/monitor/history';
 
 /**
  * Monitor Kinerja (SPV / HRD mode-SPV) — dashboard kinerja tim, bergaya Laporan Kinerja Tim:
@@ -92,9 +93,11 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
 
   // ── Snapshot periode terpilih → scorecard + tabel ──────────────────────────
   const { kpiBy, s360By, monthlyBy } = await scoreMaps(sel.id, ids);
+  // Riwayat lintas periode (laporan, KPI semua bulan, Skor 360°) — dipaginasi: lingkup sedivisi ×
+  // puluhan bulan bisa > 1.000 baris; gagal baca = error, bukan data terpotong diam-diam.
+  const history = await loadMonitorHistory(dataClient, ids);
   // Laporan per (pegawai, periode) — laporan FINAL → Skor Akhir tersimpan (displayedFinalOf).
-  const { data: repAll } = await dataClient.from('final_reports').select('employee_id, period_id, status, final_score').in('employee_id', ids);
-  const repOf = new Map((repAll ?? []).map((r) => [`${r.employee_id}|${r.period_id}`, r]));
+  const repOf = new Map(history.reports.map((r) => [`${r.employee_id}|${r.period_id}`, r]));
   const activeIds = new Set(empRows.filter((e) => e.is_active).map((e) => e.id));
   const rows: TeamRow[] = empRows.map((e) => {
     const kpiAvg = kpiBy.get(e.id) ?? null;
@@ -116,20 +119,16 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   const tAvg = teamAverages(rows);
   const cAvg = await companyAverages(sel.id);
 
-  // ── Data tren LINTAS periode/bulan (RLS user-scoped; lingkup tim kecil → aman batas 1000) ──
-  const [kpiAllRes, r360AllRes, pmRes] = await Promise.all([
-    dataClient.from('kpi_scores').select('employee_id, ym, score').in('employee_id', ids),
-    dataClient.from('result_360').select('employee_id, period_id, score').in('employee_id', ids),
-    dataClient.from('period_months').select('period_id, ym'),
-  ]);
+  // ── Data tren LINTAS periode/bulan (KPI & Skor 360° dari `history` di atas) ──
+  const pmRes = await dataClient.from('period_months').select('period_id, ym');
   const kpiAgg = new Map<string, { s: number; n: number }>(); // `${emp}|${ym}`
-  (kpiAllRes.data ?? []).forEach((r) => { const k = `${r.employee_id}|${r.ym}`; const a = kpiAgg.get(k) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; kpiAgg.set(k, a); });
+  history.kpi.forEach((r) => { const k = `${r.employee_id}|${r.ym}`; const a = kpiAgg.get(k) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; kpiAgg.set(k, a); });
   const kpiOf = (id: string, ym: string) => { const a = kpiAgg.get(`${id}|${ym}`); return a ? a.s / a.n : null; };
-  const s360Of = new Map((r360AllRes.data ?? []).map((r) => [`${r.employee_id}|${r.period_id}`, r.score]));
+  const s360Of = new Map(history.r360.map((r) => [`${r.employee_id}|${r.period_id}`, r.score]));
   const monthsByPeriod = new Map<string, string[]>();
   (pmRes.data ?? []).forEach((m) => { const a = monthsByPeriod.get(m.period_id) ?? []; a.push(m.ym); monthsByPeriod.set(m.period_id, a); });
 
-  const allYms = [...new Set((kpiAllRes.data ?? []).map((r) => r.ym))].sort();
+  const allYms = [...new Set(history.kpi.map((r) => r.ym))].sort();
   const monthLabels = allYms.map(labelOf);
   const nn = (v: number | null): v is number => v != null;
 

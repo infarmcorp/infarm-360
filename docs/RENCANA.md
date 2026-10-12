@@ -57,9 +57,9 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
     = satu titik gagal);
   - tiap akhir kuartal, unduh file backup terenkripsi dari GitHub (hanya disimpan 30 hari) ke Drive tim;
   - ulangi backup manual di akhir periode dan sebelum perubahan database/reset.
-- 🔑⬜ **Izin HRD tidak tercabut saat pegawai pindah divisi.** Izin HRD hanya boleh diberikan ke pegawai divisi
-  HRD-GA, tetapi bila pemegangnya dipindah ke divisi lain lewat Ubah Pegawai, izinnya tetap melekat. Keputusan
-  menyusul: dicabut otomatis, atau HRD diberi peringatan saat memindahkan.
+- 🔄 **Izin HRD saat pegawai pindah divisi** — sudah di `dev` (audit gelombang 2): Ubah Pegawai menolak
+  memindahkan pemegang izin HRD ke luar divisi HRD sampai izinnya dicabut. 🔑 Sisa: cek apakah sekarang sudah ada
+  pemegang izin HRD di luar divisi HRD-GA (bila ada, cabut manual).
 - 🔑⬜ **SPV yang juga punya izin HRD** (temuan audit no. 11). Bila akun seperti ini ada, di Mode Admin ia tetap
   diperlakukan sebagai SPV: dari Review & Finalisasi ia hanya melihat laporan versi SPV, tanpa tombol
   Finalisasi, dan pegawai di luar divisinya tak bisa dibuka. Di Monitoring KPI, tab Riwayat menampilkan seluruh
@@ -83,16 +83,29 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   - Jalankan uji beban di staging sebelum dibuka ke ~100 pengguna ([TEKNIS.md](TEKNIS.md) §7.5).
   - Laporan "layar kosong di HP" belum dikejar. Dugaan: perangkat (jam/tanggal HP salah sehingga sertifikat
     HTTPS gagal, atau jaringan), bukan aplikasi.
-- ⬜ **Perbaikan audit kode gelombang 2** (setelah Q3 2026 ditutup, agar angka tidak bergeser di tengah periode):
-  - no. 3: kategori skor di grafik Dashboard dan Monitor disamakan dengan laporan untuk pegawai yang skornya tepat
-    di batas (mis. 79,996 kini tampil "Memenuhi" di mana-mana);
-  - no. 4 dan 6: daftar tugas HRD dan Monitor dibuat aman bila datanya lebih dari 1.000 baris (cek dulu jumlah
-    pegawai dan bulan di production);
-  - no. 7: ekspor Excel menampilkan pesan gagal bila pengambilan data terputus, bukan menghasilkan file yang
-    diam-diam tidak lengkap;
-  - no. 10: angka 360° di Monitor setelah laporan dirilis/Final harus sama dengan laporan;
-  - menambah tes untuk perhitungan dan finalisasi yang belum teruji (hitung ulang Skor 360°, potongan telat,
-    finalisasi massal, buka/tutup periode, pengelolaan akses).
+- 🔄 **Perbaikan audit kode gelombang 2** — sudah di `dev`: grafik Dashboard/Monitor memakai golongan yang sama
+  dengan laporan, daftar tugas HRD dan Monitor tak lagi terpotong di 1.000 baris, ekspor menolak membuat file
+  tidak lengkap, dan tes baru untuk hitung ulang Skor 360°, potongan telat, finalisasi, periode, dan akses.
+  Sisa: uji manual di Preview `dev`, lalu rilis.
+- 🔑⬜ **Laporan Final hanya membekukan Skor Akhir** (temuan no. 10, keputusan menyusul). Monitor dan laporan
+  membaca sumber yang sama, jadi angkanya selalu sama satu sama lain. Tetapi setelah Final, rerata KPI, Skor 360°,
+  dan skor per aspek di keduanya masih bisa bergeser bila KPI diubah, penilaian dibatalkan, Hitung Ulang
+  ditekan, atau potongan telat diubah. Skor Akhir tetap angka lama, dan HRD melihat tanda "skor basi".
+  Pilihan: bekukan semua angka saat finalisasi, atau tolak perubahan setelah Final kecuali lewat buka-kembali.
+- 🔑⬜ **Temuan dari tes gelombang 2** (dicatat, belum diperbaiki; keputusan menyusul):
+  - **Potongan telat yang diubah menjadi 0 tidak tersimpan.** Bila HRD sudah menetapkan potongan (mis. −7) lalu
+    menggantinya menjadi 0, nilai lama −7 tetap berlaku, padahal Log Aktivitas mencatat "Mengecualikan". Perlu
+    cek data production, lalu diperbaiki.
+  - **Pengaman Q1 2026 bisa lolos saat database bermasalah.** Bila pengecekan "periode hasil impor" gagal
+    dibaca, Hitung Ulang dianggap boleh. Penerapan potongan telat juga tidak dijaga pengaman ini bila Q1 dibuka
+    kembali.
+  - **Aktifkan dan Hapus Periode tidak berjalan sekaligus.** Bila gagal di tengah jalan, bisa tersisa keadaan
+    tanpa periode aktif, atau data KPI sudah terhapus sementara periodenya masih ada (tanpa catatan di Log).
+  - **Finalisasi massal** menganggap laporan "berhasil" walau perubahan diam-diam ditolak database, dan
+    menganggap daftar kosong bila gagal membaca.
+  - **Pengaturan akses**: HRD penuh bisa memberi akses halaman ke dirinya sendiri; isian "tidak" yang dikirim
+    sebagai teks terbaca sebagai "ya".
+  - **Batalkan/pulihkan penilaian** melapor "berhasil" walau Hitung Ulang Skor 360° sesudahnya gagal.
 
 ---
 

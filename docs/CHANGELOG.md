@@ -9,6 +9,21 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 ## Oktober 2026
 
 ### 2026-10-12 (di `dev`, belum di production)
+- **Perbaikan hasil audit kode, gelombang 2:**
+  - **Grafik Dashboard dan Monitor kini memakai golongan skor yang sama dengan laporan.** Dulu pegawai dengan
+    rerata KPI tepat di batas (mis. 79,996, tampil 80,00 "Memenuhi" di laporan) masuk irisan "Perlu Peningkatan"
+    di diagram lingkaran dan batang distribusi, dan warna badge peringkat bisa tidak cocok dengan labelnya. Angka
+    di tooltip dan kartu juga dibulatkan dengan cara yang sama seperti laporan. Laporan, skor tersimpan,
+    finalisasi, dan ekspor tidak berubah.
+  - **Daftar tugas HRD dan Monitor Kinerja tak lagi terpotong** bila datanya lebih dari 1.000 baris (mis. satu
+    divisi besar dengan data KPI bertahun-tahun). Dulu sisanya hilang tanpa peringatan.
+  - **Ekspor Excel tidak lagi menghasilkan file yang diam-diam tidak lengkap.** Bila pengambilan data gagal di
+    tengah jalan, HRD mendapat pesan "Gagal mengambil data dari database … File tidak dibuat …" dan bisa
+    mencoba lagi. Saat normal, isi file sama persis seperti sebelumnya.
+  - **Pemegang izin HRD tidak bisa dipindah ke divisi lain** sebelum izinnya dicabut, agar izin HRD tidak
+    tertinggal di luar divisi HRD-GA.
+  - Tes baru untuk hitung ulang Skor 360°, potongan telat, finalisasi, buka/tutup periode, dan pengaturan akses.
+    Beberapa perilaku yang tampak keliru ditemukan dan dicatat di RENCANA (belum diubah).
 - **Perbaikan hasil audit kode, gelombang 1:**
   - **Nama penilai tidak lagi terkirim ke pemegang akses "Review & Finalisasi"** yang bukan HRD. Dulu nama
     penilai memang tidak tampil di layar, tetapi datanya ikut terkirim ke browser dan bisa dibaca lewat alat

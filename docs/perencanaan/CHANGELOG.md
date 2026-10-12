@@ -5,6 +5,12 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **Perbaikan mendesak — potongan telat yang diubah ke 0 kini tersimpan (2026-10-12):** dulu, bila HRD sudah
+  menetapkan potongan seorang pegawai (mis. −7) lalu mengubahnya menjadi 0 ("dikecualikan"), nilai lama −7
+  tetap berlaku di Skor 360°, padahal Log Aktivitas mencatat "Mengecualikan". Penyebabnya: nilai 0 disimpan
+  tanpa menyertakan kolom nilainya, sehingga database mempertahankan angka lama. Kini nilai selalu disimpan,
+  dan Log Aktivitas mencatat angka yang benar-benar tersimpan. Menetapkan 0 pertama kali dan mengubah 0 ke
+  nilai lain tetap seperti biasa. Pegawai yang terdampak sebelum perbaikan perlu diatur ulang oleh HRD.
 - **Monitoring & Audit KPI — filter Divisi (2026-10-12, permintaan pengguna):** dropdown Divisi (`?dept=`,
   `app/(app)/kpi/dept-select.tsx`) untuk HRD Mode Admin & pemegang grant `kpi`; menyaring tab Rekapitulasi &
   Riwayat & Audit. **Menyaring DI DALAM lingkup** (`RekapView`/`RiwayatView` prop `dept`) — `?dept=` di luar

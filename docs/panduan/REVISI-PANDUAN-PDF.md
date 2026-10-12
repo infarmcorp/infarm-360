@@ -1,6 +1,9 @@
 # Revisi Panduan PDF In-App (per 29 September 2026, tambahan 2 Oktober 2026)
 
-> **Status 12 Oktober 2026:** working tree berisi 4 PDF baru + `PANDUAN_VERSION`=`2026-10-01` (belum di-commit),
+> **File sementara.** Hapus setelah keempat PDF direvisi dan dirilis (lihat [RENCANA.md](../RENCANA.md) §2).
+> Cara memperbarui PDF: [TEKNIS.md](../TEKNIS.md) §9.
+
+> **Status 12 Oktober 2026:** 4 PDF baru + `PANDUAN_VERSION`=`2026-10-01` sudah di-commit di `dev`,
 > tetapi ekstraksi teks menunjukkan **isinya masih sama dengan versi 30 Juli** (masih "Review Hasil Akhir",
 > "punishment", "4 karakter", salah ketik "ditHRD"). Revisi di bawah **belum diterapkan**.
 >
@@ -226,7 +229,7 @@ Ajukan Penilaian.
 | D.1 setelah langkah 5 (hlm. 5) | — | Tambahkan: "**6. Menghapus skor yang salah** — klik 'Hapus' di samping skor yang sudah tersimpan, tulis alasan (wajib), lalu 'Ya, hapus skor'. Penghapusan tercatat di Riwayat & Audit. **7. Ketikan aman** — angka yang sudah diketik tetapi belum disimpan tetap aman walau halaman ter-refresh, tetapi baru masuk sistem setelah Anda menekan 'Simpan Semua Skor'." |
 | D.2 langkah 1 (hlm. 5) | "Klik 'Format Template KPI StSupervisorrd.xlsx'" | "Pilih mode **'Impor Excel'**, lalu klik **'Unduh template'** (file bernama template-kpi-[bulan].xlsx, berkolom kode pegawai, skor, dan catatan)." |
 | D.2 langkah 4 (hlm. 5) | "…lalu klik 'Terapkan & Simpan'." | "…lalu klik **'Terapkan & Simpan (N baris)'**. Untuk skor yang menimpa nilai lama, isi kolom catatan sebagai alasan perubahan." |
-| E tabel filter (hlm. 5) | "Pilih Pegawai Tim — Melihat riwayat perubahan untuk satu anggota tim tertentu." | "**Cari nama/divisi** — ketik lalu tekan **Enter**. Riwayat tampil 10 baris per halaman, terbaru di atas, dan tidak bisa diubah atau dihapus." |
+| E tabel filter (hlm. 5) | "Pilih Pegawai Tim — Melihat riwayat perubahan untuk satu anggota tim tertentu." | "**Cari nama/divisi** — ketik lalu tekan **Enter**. Riwayat tampil 5 baris per halaman, terbaru di atas, dan tidak bisa diubah atau dihapus." |
 | F tabel status (hlm. 6) | "Ditinjau — … Tombol 'Beri ACC' sudah aktif." | Tambahkan kolom **Trend KPI** di keterangan: "Tabel juga menampilkan **Trend KPI** tiga bulan: Belum terbaca (baru 1 bulan terisi), Stabil, Naik, Turun, atau Fluktuatif (hanya bila ketiga bulan terisi)." |
 | Kotak "TENTANG ACC" (hlm. 6) | "Persetujuan (ACC) yang Supervisor berikan tidak menghalangi HRD…" | Tambahkan: "ACC Anda **tercatat** (siapa dan kapan). ACC **otomatis batal** bila HRD mengembalikan laporan ke Draf, atau merilis ulang laporan dengan Skor Akhir yang berbeda. Periksa lalu beri ACC lagi setelah rilis baru." |
 | G (hlm. 6), seluruh bagian | "Mode: Bandingkan Tim — Pilih 'Bandingkan Semua' … Lihat Tren Satu Orang — Pilih satu nama…" | "**G. Monitor Kinerja** — Pilih **periode** di bagian atas. Halaman tersusun dari atas ke bawah: **Ringkasan** (rata-rata KPI, 360°, Skor Akhir tim dan selisihnya dengan rata-rata perusahaan) → **Komposisi** (sebaran kategori dan profil aspek tim dibanding perusahaan) → **Arah** (tren lintas periode/bulan dan pegawai yang paling naik/turun) → **Rincian per Pegawai** (tabel dan peta warna/heatmap nilai per aspek; klik potongan diagram lingkaran untuk menyaring). Supervisor melihat anggota timnya dan dirinya sendiri; Koordinator melihat pegawai binaannya." |

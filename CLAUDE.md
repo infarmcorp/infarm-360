@@ -217,7 +217,13 @@ redeploy**. Dicek paling awal di `proxy.ts` (`lib/maintenance.ts`), **sebelum me
 walau DB sedang mati. **Hanya production** (`VERCEL_ENV=production`) — Preview branch `dev` & lokal tak pernah terkunci.
 Edge Config gagal dibaca / belum dihubungkan → dianggap **mati** (app tetap bisa dipakai).
 
-**Persiapan (SEKALI saja, setelah kode ini ada di `main`):**
+**Langkah aktivasi runut (pemilik app):** A. rilis kode → B. persiapan Edge Config → C. uji coba pertama →
+D. pakai saat maintenance. Progres dilacak di [TODO.md](docs/perencanaan/TODO.md) ("Aktivasi Mode Maintenance").
+
+**A. Rilis kode ke production (sekali):** buat PR `dev` → `main` di GitHub → merge (cek dulu isi PDF panduan yang ikut
+di `dev`). Tunggu deploy production Vercel selesai. Sebelum langkah ini, Edge Config belum berpengaruh apa pun.
+
+**B. Persiapan Edge Config (SEKALI saja, setelah A):**
 1. Vercel → project → tab **Storage** → **Create Database** → pilih **Edge Config** → beri nama (mis.
    `infarm-maintenance`) → **Create**.
 2. Saat ditanya, **Connect** ke project ini (centang minimal **Production**). Vercel otomatis menambah env `EDGE_CONFIG`.
@@ -227,7 +233,16 @@ Edge Config gagal dibaca / belum dihubungkan → dianggap **mati** (app tetap bi
    **≥ 16 karakter** (kosong/lebih pendek = tak ada yang bisa lolos). Simpan kodenya untuk developer saja.
 5. **Redeploy** production sekali (agar `EDGE_CONFIG` & token terbaca). Selanjutnya tak perlu redeploy lagi.
 
-**Saat maintenance:**
+**C. Uji coba pertama (sekali, sebaiknya di luar jam pengisian penilaian):**
+1. Edge Config → **Items** → `"maintenance": true` → **Save**.
+2. Buka domain app dari jendela **incognito** → harus tampil "Sedang Maintenance" (coba juga `/login` & `/penilaian`).
+3. Di browser biasa buka `https://<domain>/?bypass=<kode>` → app terbuka normal (diminta login).
+4. Buka URL Preview branch `dev` → harus tetap normal (tak ikut terkunci).
+5. Kembalikan `"maintenance": false` → **Save** → jendela incognito dimuat ulang → app terbuka lagi.
+   Tidak tampil sesuai harapan? Cek env `EDGE_CONFIG` ada di scope Production, nilai `true` tanpa tanda kutip, lalu
+   pastikan Redeploy di B.5 sudah dilakukan.
+
+**D. Saat maintenance:**
 1. **Nyalakan:** Storage → store Edge Config → **Items** → ubah `"maintenance": true` (opsional `"maintenance_until":
    "pukul 15.00 WIB"`, tampil sebagai "Perkiraan selesai") → **Save**. Berlaku dalam hitungan detik. ⚠️ Harus boolean
    `true` **tanpa tanda kutip** — `"true"` (teks) dianggap mati.

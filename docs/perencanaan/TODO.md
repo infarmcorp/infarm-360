@@ -39,6 +39,15 @@ dgn `npm run typecheck` + `npm run build`. Commit granular per kelompok halaman.
   - Mockup sebelum/sesudah: artifact "Token Redesign Infarm 360°" (2026-10-12).
 
 ### Operasional & rilis (dicek 2026-10-12)
+- 🔑⬜ **Aktivasi Mode Maintenance** (kode di `dev` sejak 2026-10-12, `f4f44c5`). Rincian tiap langkah → CLAUDE.md
+  "Mode Maintenance".
+  - ⬜ **A.** PR `dev` → `main` → merge (cek isi PDF panduan dulu) → tunggu deploy production.
+  - ⬜ **B.** Vercel → Storage → buat **Edge Config** → **Connect** ke project (Production) → Items
+    `{ "maintenance": false, "maintenance_until": "" }` → env `MAINTENANCE_BYPASS_TOKEN` (≥16 karakter, Production)
+    → **Redeploy** sekali.
+  - ⬜ **C.** Uji coba: `"maintenance": true` → incognito tampil "Sedang Maintenance" · `/?bypass=<kode>` masuk normal
+    · Preview `dev` tetap normal → kembalikan `"maintenance": false`.
+  - Setelah A–C ✅: pakai langkah **D** (nyala/mati dari Items, tanpa redeploy) setiap kali perlu maintenance.
 - 🔄 **Revisi 4 PDF panduan in-app** (`public/panduan/`) sesuai `docs/panduan/REVISI-PANDUAN-PDF.md` (bagian 0–4 + 6).
   Working tree sudah berisi 4 PDF baru + `PANDUAN_VERSION`=`2026-10-01` (**belum di-commit**), tetapi **teks PDF
   masih identik dgn versi 30 Juli** (masih "Review Hasil Akhir", "punishment", "4 karakter", salah ketik "ditHRD").

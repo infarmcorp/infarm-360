@@ -1,11 +1,18 @@
+import { getAll } from '@vercel/edge-config';
+
 /**
- * Mode maintenance — saklar = env Vercel `MAINTENANCE_MODE=true` (+ Redeploy). Sengaja TANPA DB:
- * maintenance sering justru karena Supabase sedang dirawat, jadi pengecekan tak boleh bergantung
- * padanya. `MAINTENANCE_UNTIL` (opsional, teks bebas mis. "pukul 15.00 WIB") = perkiraan selesai.
+ * Mode maintenance — saklar = item **`maintenance`** (boolean) di **Vercel Edge Config** yang terhubung ke
+ * project (env `EDGE_CONFIG` diisi otomatis oleh Vercel). Diubah dari dashboard → berlaku seketika, TANPA
+ * redeploy. Item opsional **`maintenance_until`** (teks bebas mis. "pukul 15.00 WIB") = perkiraan selesai.
+ * Sengaja TANPA Supabase: maintenance sering justru karena DB sedang dirawat.
  *
- * Pengecualian HANYA untuk developer uji coba (2026-10-12): buka `/?bypass=<MAINTENANCE_BYPASS_TOKEN>`
- * sekali → cookie httpOnly → browser itu lolos. `?bypass=off` menghapusnya. Token kosong / < 16 karakter
- * = tak ada yang bisa lolos. Semua orang lain (termasuk HRD) tetap melihat halaman maintenance.
+ * HANYA berlaku di deployment **production** (`VERCEL_ENV==='production'`): Edge Config dibaca bersama oleh
+ * production & Preview (`dev`), jadi tanpa pengaman ini Preview ikut terkunci. Lokal & Preview → selalu normal.
+ * Gagal membaca Edge Config (belum dihubungkan / gangguan) → dianggap MATI (app tetap bisa dipakai).
+ *
+ * Pengecualian HANYA untuk developer uji coba: buka `/?bypass=<MAINTENANCE_BYPASS_TOKEN>` (env) sekali →
+ * cookie httpOnly → browser itu lolos. `?bypass=off` menghapusnya. Token kosong / < 16 karakter = tak ada
+ * yang bisa lolos. Semua orang lain (termasuk HRD) tetap melihat halaman maintenance.
  */
 export const MAINTENANCE_PATH = '/maintenance';
 export const BYPASS_COOKIE = 'maintenance_bypass';
@@ -14,8 +21,26 @@ const MIN_TOKEN_LENGTH = 16;
 
 type Env = Record<string, string | undefined>;
 
-export function isMaintenanceOn(env: Env = process.env): boolean {
-  return env.MAINTENANCE_MODE?.trim().toLowerCase() === 'true';
+export type MaintenanceConfig = { on: boolean; until: string | null };
+const OFF: MaintenanceConfig = { on: false, until: null };
+
+/** Tafsirkan isi Edge Config + lingkungan deploy jadi status maintenance (murni, diuji). */
+export function resolveMaintenance(items: { maintenance?: unknown; maintenance_until?: unknown } | null | undefined, vercelEnv: string | undefined): MaintenanceConfig {
+  if (vercelEnv !== 'production' || !items) return OFF;
+  if (items.maintenance !== true) return OFF;
+  const until = typeof items.maintenance_until === 'string' ? items.maintenance_until.trim() : '';
+  return { on: true, until: until || null };
+}
+
+/** Baca status maintenance dari Edge Config. Tak pernah melempar — gagal = mati. */
+export async function readMaintenance(env: Env = process.env): Promise<MaintenanceConfig> {
+  if (env.VERCEL_ENV !== 'production' || !env.EDGE_CONFIG) return OFF;
+  try {
+    const items = await getAll(['maintenance', 'maintenance_until']);
+    return resolveMaintenance(items, env.VERCEL_ENV);
+  } catch {
+    return OFF;
+  }
 }
 
 /** Token bypass yang sah, atau null bila tak diset / terlalu pendek (= bypass mati). */

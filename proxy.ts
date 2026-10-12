@@ -1,14 +1,15 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 import {
-  isMaintenanceOn, maintenanceRoute, bypassToken, tokenMatches,
+  readMaintenance, maintenanceRoute, bypassToken, tokenMatches,
   MAINTENANCE_PATH, BYPASS_COOKIE, BYPASS_PARAM,
 } from '@/lib/maintenance';
 
 /** Next.js 16 "proxy" (pengganti konvensi "middleware"). */
 export async function proxy(request: NextRequest) {
   // Mode maintenance dicek PALING AWAL — sebelum menyentuh Supabase (bisa jadi sedang dirawat).
-  const on = isMaintenanceOn();
+  // Saklar = Edge Config (production saja); lihat lib/maintenance.ts.
+  const { on } = await readMaintenance();
   const path = request.nextUrl.pathname;
 
   // Tautan bypass developer: `?bypass=<token>` pasang cookie, `?bypass=off` hapus. Param dibuang dari URL.

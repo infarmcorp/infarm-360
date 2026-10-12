@@ -156,10 +156,10 @@ Vercel mendukung nilai berbeda untuk variabel nama sama, dibedakan per scope
 5. Verifikasi: buka URL Preview dari deployment `dev` terbaru → login → pastikan data yang
    muncul adalah data dev (bukan nama pegawai nyata) sebagai tanda environment sudah benar.
 
-**Mode Maintenance** (`MAINTENANCE_MODE`, `MAINTENANCE_UNTIL`, `MAINTENANCE_BYPASS_TOKEN`) — set di scope
-**Production** saja, dan hanya selama perawatan. Jangan isi `MAINTENANCE_MODE=true` di scope Preview kecuali
-sengaja ingin menguji halaman maintenance di sana. Cara nyala/mati & akses developer → `../../CLAUDE.md`
-"Mode Maintenance".
+**Mode Maintenance** — saklar di **Edge Config** (item `maintenance`), bukan env; env `EDGE_CONFIG` diisi otomatis
+saat store di-Connect, `MAINTENANCE_BYPASS_TOKEN` diisi di scope **Production**. Kode hanya menegakkan maintenance
+bila `VERCEL_ENV=production`, jadi meski Edge Config yang sama terhubung ke Preview, deployment branch `dev` **tak
+pernah terkunci**. Persiapan sekali & cara nyala/mati → `../../CLAUDE.md` "Mode Maintenance".
 
 ## 7. Checklist sebelum merge `dev` → `main`
 
@@ -171,7 +171,7 @@ sengaja ingin menguji halaman maintenance di sana. Cara nyala/mati & akses devel
 - [ ] Setelah merge & deploy ke production: terapkan migrasi baru (jika ada) ke project
       **production** secara manual (lihat §4), lalu verifikasi cepat di production.
 - [ ] Migrasi berisiko (ubah/hapus kolom, backfill data, RLS besar) saat pegawai sedang mengisi? Nyalakan
-      **Mode Maintenance** dulu (`MAINTENANCE_MODE=true` + `MAINTENANCE_BYPASS_TOKEN` → Redeploy), terapkan
-      migrasi, verifikasi lewat `/?bypass=<kode>`, lalu matikan (hapus `MAINTENANCE_MODE` → Redeploy).
+      **Mode Maintenance** dulu (Edge Config `"maintenance": true`), terapkan migrasi, verifikasi lewat
+      `/?bypass=<kode>`, lalu matikan (`"maintenance": false`). Tanpa redeploy.
 - [ ] Update `../perencanaan/STATUS.md` + `../perencanaan/TODO.md`/`BACKLOG.md`/`CHANGELOG.md` bila
       perubahan ini menggeser status fitur (dan `../../CLAUDE.md` bila menyentuh arsitektur/keputusan terkunci).

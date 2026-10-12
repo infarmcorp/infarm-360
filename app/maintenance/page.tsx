@@ -1,21 +1,22 @@
 import type { Metadata } from 'next';
 import { Wrench } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
+import { readMaintenance } from '@/lib/maintenance';
 
 export const metadata: Metadata = {
   title: 'Sedang Maintenance — Infarm 360°',
   robots: { index: false, follow: false },
 };
 
-// Dibaca saat request (bukan prerender) agar MAINTENANCE_UNTIL ikut nilai env terbaru.
+// Dibaca saat request (bukan prerender) agar `maintenance_until` ikut nilai Edge Config terbaru.
 export const dynamic = 'force-dynamic';
 
 /**
- * Halaman maintenance. Proxy me-rewrite SEMUA route ke sini (status 503) bila env
- * `MAINTENANCE_MODE=true` — lihat `lib/maintenance.ts`. Tanpa Supabase sama sekali.
+ * Halaman maintenance. Proxy me-rewrite SEMUA route ke sini (status 503) bila item Edge Config
+ * `maintenance` = true di production — lihat `lib/maintenance.ts`. Tanpa Supabase sama sekali.
  */
-export default function MaintenancePage() {
-  const until = process.env.MAINTENANCE_UNTIL?.trim();
+export default async function MaintenancePage() {
+  const { until } = await readMaintenance();
 
   return (
     <main className="min-h-[100dvh] flex items-center justify-center bg-bg p-4 sm:p-6">

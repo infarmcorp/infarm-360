@@ -68,9 +68,9 @@ Repo GitHub: **`infarmcorp/infarm-360`** (publik). Branch: `main` (production), 
 Alur: kerja di `dev` → PR ke `main`. Backup database otomatis harian lewat GitHub Actions
 (`.github/workflows/backup.yml`, terenkripsi).
 
-**Mode Maintenance:** set `MAINTENANCE_MODE=true` di Vercel lalu Redeploy → semua halaman menampilkan
-"Sedang Maintenance" (503). Developer tetap bisa masuk lewat `/?bypass=<MAINTENANCE_BYPASS_TOKEN>`.
-Rincian → CLAUDE.md "Mode Maintenance".
+**Mode Maintenance:** ubah item `maintenance` → `true` di **Vercel Edge Config** (seketika, tanpa redeploy) →
+semua halaman production menampilkan "Sedang Maintenance" (503); Preview `dev` tak terpengaruh. Developer tetap
+bisa masuk lewat `/?bypass=<MAINTENANCE_BYPASS_TOKEN>`. Persiapan sekali & langkah → CLAUDE.md "Mode Maintenance".
 
 ## Dokumentasi
 

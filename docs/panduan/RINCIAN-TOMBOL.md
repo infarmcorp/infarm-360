@@ -31,8 +31,8 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 
 ### Sedang Maintenance (`/maintenance`)
 
-Tanpa tombol. Muncul di **semua** halaman (status 503) bila env `MAINTENANCE_MODE=true`; menampilkan pesan
-perbaikan + "Perkiraan selesai" (bila `MAINTENANCE_UNTIL` diisi). Tak ada peran yang dikecualikan — hanya
+Tanpa tombol. Muncul di **semua** halaman production (status 503) bila item Edge Config `maintenance` = `true`;
+menampilkan pesan perbaikan + "Perkiraan selesai" (bila `maintenance_until` diisi). Preview `dev` & lokal tak terpengaruh. Tak ada peran yang dikecualikan — hanya
 developer lewat tautan `/?bypass=<kode>` (`?bypass=off` untuk keluar). Saat maintenance mati, `/maintenance` → `/`.
 
 ### Lupa Sandi (`/auth/lupa-sandi`)

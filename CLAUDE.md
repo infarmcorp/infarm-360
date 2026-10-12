@@ -74,7 +74,7 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`. Panduan pengguna: `do
 
 **Kondisi sekarang (`as-is`):**
 - **Stack:** Next.js 16 App Router (Turbopack, React 19, Tailwind v4, TS strict). Lib: `motion`,
-  `lucide-react`, `xlsx`, `zod`, `nodemailer`, `vitest` (dev).
+  `lucide-react`, `xlsx`, `zod`, `nodemailer`, `@vercel/edge-config`, `vitest` (dev).
 - **Supabase** (ref `beajoczjpywozavatzmf`): auth `@supabase/ssr`, **24 tabel publik** (migrasi
   `supabase/migrations/0001`–`0047`), RLS penuh per peran, seed idempoten (`scripts/seed.ts`).
   Ada juga project **staging** terpisah (lihat `docs/pengembangan/DEVELOPMENT.md`); cek migrasi mana
@@ -110,7 +110,7 @@ app/                          # Next.js App Router
 ├── layout.tsx · page.tsx     # root layout + gerbang auth (/) → redirect ke landing per peran (tak ada halaman Beranda; dihapus 2026-08-08)
 ├── globals.css · icon.png
 ├── login/                    # halaman login
-├── maintenance/              # halaman "Sedang Maintenance" (aktif via env MAINTENANCE_MODE, lihat Aktivasi)
+├── maintenance/              # halaman "Sedang Maintenance" (saklar Edge Config `maintenance`, lihat Aktivasi)
 ├── api/cron/late-penalty/    # route cron potongan telat (DINONAKTIFKAN — vercel.json sengaja tak ada)
 ├── auth/                     # alur Supabase auth
 │   ├── callback/route.ts     # OAuth/redirect callback (reset sandi)
@@ -210,18 +210,31 @@ tak dipakai jalur ini. Tiga langkah:
    `NEXT_PUBLIC_*` dibakukan saat build). Tautan "Lupa sandi?" lalu muncul di halaman login.
 
 ### Mode Maintenance
-Saat app dirawat (mis. migrasi DB, perbaikan darurat), **semua** route menampilkan halaman `/maintenance`
+Saat app dirawat (mis. migrasi DB, perbaikan darurat), **semua** route production menampilkan halaman `/maintenance`
 (status 503); route `/api/*` dapat 503 JSON. **Satu-satunya pengecualian = developer uji coba** lewat tautan rahasia
-(HRD pun ikut terkunci). Dicek paling awal di `proxy.ts` (`lib/maintenance.ts`), **sebelum menyentuh Supabase**, jadi
-tetap jalan walau DB sedang mati.
-- **Nyalakan:** Vercel → Environment Variables → `MAINTENANCE_MODE=true` (opsional `MAINTENANCE_UNTIL`, teks bebas
-  mis. `pukul 15.00 WIB`, tampil sebagai "Perkiraan selesai") → **Redeploy** (±1–2 menit).
-- **Akses developer:** set juga `MAINTENANCE_BYPASS_TOKEN` (kode acak **≥ 16 karakter**; kosong/lebih pendek = tak ada
-  yang bisa lolos). Buka `https://<domain>/?bypass=<kode>` **sekali** → browser itu dapat cookie httpOnly (12 jam) &
-  memakai app normal (tetap harus login). `https://<domain>/?bypass=off` = keluar dari bypass. Jangan sebar kodenya;
-  ganti kode (+ Redeploy) bila bocor.
-- **Matikan:** hapus `MAINTENANCE_MODE` atau ubah ke `false` → **Redeploy**. Pengguna yang masih di `/maintenance`
-  otomatis diarahkan ke `/`.
+(HRD pun ikut terkunci). Saklar = item **`maintenance`** di **Vercel Edge Config** → nyala/mati **seketika, tanpa
+redeploy**. Dicek paling awal di `proxy.ts` (`lib/maintenance.ts`), **sebelum menyentuh Supabase**, jadi tetap jalan
+walau DB sedang mati. **Hanya production** (`VERCEL_ENV=production`) — Preview branch `dev` & lokal tak pernah terkunci.
+Edge Config gagal dibaca / belum dihubungkan → dianggap **mati** (app tetap bisa dipakai).
+
+**Persiapan (SEKALI saja, setelah kode ini ada di `main`):**
+1. Vercel → project → tab **Storage** → **Create Database** → pilih **Edge Config** → beri nama (mis.
+   `infarm-maintenance`) → **Create**.
+2. Saat ditanya, **Connect** ke project ini (centang minimal **Production**). Vercel otomatis menambah env `EDGE_CONFIG`.
+3. Di store itu → **Items** → isi JSON berikut → **Save**:
+   `{ "maintenance": false, "maintenance_until": "" }`
+4. Vercel → **Settings → Environment Variables** → tambah `MAINTENANCE_BYPASS_TOKEN` (scope **Production**) = kode acak
+   **≥ 16 karakter** (kosong/lebih pendek = tak ada yang bisa lolos). Simpan kodenya untuk developer saja.
+5. **Redeploy** production sekali (agar `EDGE_CONFIG` & token terbaca). Selanjutnya tak perlu redeploy lagi.
+
+**Saat maintenance:**
+1. **Nyalakan:** Storage → store Edge Config → **Items** → ubah `"maintenance": true` (opsional `"maintenance_until":
+   "pukul 15.00 WIB"`, tampil sebagai "Perkiraan selesai") → **Save**. Berlaku dalam hitungan detik. ⚠️ Harus boolean
+   `true` **tanpa tanda kutip** — `"true"` (teks) dianggap mati.
+2. **Masuk sebagai developer:** buka `https://<domain>/?bypass=<kode>` **sekali** → browser itu dapat cookie httpOnly
+   (12 jam) & memakai app normal (tetap harus login). Uji coba langsung di production.
+3. **Matikan:** ubah `"maintenance": false` → **Save**. Pengguna yang masih di `/maintenance` otomatis diarahkan ke `/`.
+4. (Opsional) `https://<domain>/?bypass=off` = hapus cookie bypass. Kode bocor → ganti `MAINTENANCE_BYPASS_TOKEN` + Redeploy.
 
 ---
 
@@ -336,8 +349,7 @@ SMTP_USER                      # server-only — email Gmail (jalur SMTP, tanpa 
 SMTP_PASS                      # server-only — App Password Gmail (butuh 2FA)
 SMTP_FROM                      # server-only, opsional — mis. "Infarm 360 <infarmcorp@gmail.com>"
 NEXT_PUBLIC_ENABLE_PW_RESET    # 'true' utk aktifkan alur "Lupa Sandi via email"
-MAINTENANCE_MODE               # server-only — 'true' = SEMUA route → halaman /maintenance (503); hapus/'false' utk buka lagi; redeploy
-MAINTENANCE_UNTIL              # server-only, opsional — perkiraan selesai, teks bebas (mis. "pukul 15.00 WIB")
+EDGE_CONFIG                    # server-only — diisi OTOMATIS saat Edge Config di-Connect ke project; tempat saklar Mode Maintenance (item `maintenance`)
 MAINTENANCE_BYPASS_TOKEN       # server-only, opsional — kode ≥16 karakter; developer buka /?bypass=<kode> utk tetap masuk saat maintenance
 ONBOARDING_GMAIL_ONLY          # server-only — 'false' utk kirim undangan ke SEMUA domain (default: hanya @gmail.com, mode trial)
 CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api/cron/late-penalty (BR-08); cron DINONAKTIFKAN SEMENTARA (vercel.json sengaja tak ada, 2026-09-29) — tak dibutuhkan sampai diaktifkan lagi
@@ -435,7 +447,7 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
 > ke pengguna. **Bukan** aktivitas kuartalan — dijalankan saat **kode disentuh**.
 
 - **Jalankan:** `npm test` (sekali) atau `npm run test:watch` (mode pantau).
-- **Cakupan (300 tes, 18 file — per 2026-10-12):**
+- **Cakupan (307 tes, 18 file — per 2026-10-12):**
   - `tests/scoring.test.ts` → `lib/scoring.ts`: `finalScoreOf` (blend 50/50, KPI-only, 360°-only,
     pembulatan 2 desimal), `roundScore`/`kpiAvgOf`/`displayedFinalOf`, `playerClassOf` (KPI×360° ambang 80 → A / B-Culture / B-KPI / C,
     null bila keduanya kosong, satu sumbu kosong → HRD_REVIEW; **tanpa D**), `kpiBandOf`/`s360BandOf`, `talentBoxOf` (9 kotak).
@@ -465,7 +477,7 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
   - `tests/page-scope.test.ts` → lingkup grant halaman (`grantedScope`/`allowedDeptsFor`/`resolveDept`/
     `deptScopeFilter`/`isDeptInScope`); `tests/report-scope.test.ts` (`inSpvDivisionScope`/`withoutRaw`);
     `tests/rated-completeness.test.ts` (`ratedCompletion`); `tests/safe-next.test.ts` (cegah open redirect);
-    `tests/maintenance.test.ts` (saklar, rute & bypass developer mode maintenance).
+    `tests/maintenance.test.ts` (saklar Edge Config production-only, rute, bypass developer, alur `proxy`).
 - **Rumus inti ada di KODE, bukan UI.** Yang bisa diubah HRD lewat aplikasi = *input* (bobot %,
   360° aktif/nonaktif, KPI, potongan keterlambatan). Cara blend & ambang terkunci di kode.
 - **Kalau sengaja mengubah rumus:** perbarui tes terkait. `lib/score360.ts` diekstrak dari

@@ -25,7 +25,8 @@ hanya punya repo publik lain (`Infarm-Web`, proyek berbeda — bukan app ini).
 **sebelum PR `dev` → `main`**, kalau tidak badge "BARU" muncul tanpa isi baru.
 
 - **Sesi 2026-10-12 (di `dev`):** Screen 04 Review Penilaian dikembalikan (revert `3d02edf`); **Mode Maintenance**
-  (`MAINTENANCE_MODE` + bypass developer `MAINTENANCE_BYPASS_TOKEN`, `proxy.ts`/`lib/maintenance.ts`/`app/maintenance/`);
+  (saklar **Edge Config** `maintenance`, production saja + bypass developer `MAINTENANCE_BYPASS_TOKEN`,
+  `proxy.ts`/`lib/maintenance.ts`/`app/maintenance/`; 🔑 persiapan Edge Config di Vercel belum dilakukan);
   langkah aktivasi Lupa Sandi diperbaiki (email dikirim Supabase Auth → Custom SMTP di dashboard Supabase);
   #18 iPhone ditutup; akses Direksi ke Monitor = lewat Manajemen Akses (selesai).
 

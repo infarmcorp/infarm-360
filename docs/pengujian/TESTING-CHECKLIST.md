@@ -32,6 +32,11 @@ Legenda hasil: ✅ lolos · ⚠️ lolos dengan catatan · ❌ gagal.
 - [ ] Petunjuk "Lupa sandi? Hubungi HRD" tampil di login (atau tautan reset bila flag aktif).
 - [ ] Logout → sesi berakhir, kembali ke login.
 - [ ] **Akun Saya — ganti sandi:** sandi lama salah ditolak; sandi lama benar + sandi baru → sukses; login ulang pakai sandi baru berhasil.
+- [ ] **Mode Maintenance** (uji di Preview/lokal, bukan production): `MAINTENANCE_MODE=true` → semua halaman
+      (login, `/penilaian`, `/admin/*`) tampil "Sedang Maintenance" status 503; `/api/*` → 503 JSON;
+      `MAINTENANCE_UNTIL` tampil sebagai "Perkiraan selesai".
+- [ ] **Bypass developer:** `/?bypass=<kode salah>` tetap 503; `/?bypass=<MAINTENANCE_BYPASS_TOKEN>` → app normal
+      (diminta login); `/?bypass=off` → kembali 503. Matikan `MAINTENANCE_MODE` → `/maintenance` diarahkan ke `/`.
 
 ---
 

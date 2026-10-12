@@ -5,6 +5,12 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **Mode Maintenance (2026-10-12, permintaan pengguna):** env Vercel `MAINTENANCE_MODE=true` (+ Redeploy) → `proxy.ts`
+  me-rewrite SEMUA route ke `app/maintenance/page.tsx` (503 + `Retry-After`), `/api/*` → 503 JSON. Saklar sengaja
+  **env, bukan DB** (maintenance sering karena Supabase dirawat; dicek sebelum `updateSession`). **Pengecualian hanya
+  developer uji coba:** `/?bypass=<MAINTENANCE_BYPASS_TOKEN>` (≥16 karakter, banding waktu-konstan) → cookie httpOnly
+  12 jam; `?bypass=off` menghapus. HRD tetap terkunci. `MAINTENANCE_UNTIL` opsional = teks perkiraan selesai. Logika
+  murni `lib/maintenance.ts`, diuji `tests/maintenance.test.ts`. Langkah nyala/mati → CLAUDE.md "Mode Maintenance".
 - **Screen 04 "Review Penilaian" kembali ke `dev` (2026-10-12, keputusan pengguna):** revert dari `3d02edf` (kode
   asal `9028f00`, cabang `feature/review-penilaian`). Bila semua indikator lengkap, tombol utama form =
   **"Review Penilaian"** → `ReviewPanel` (`app/(app)/penilaian/[targetId]/assess-form.tsx`): ringkasan per aspek

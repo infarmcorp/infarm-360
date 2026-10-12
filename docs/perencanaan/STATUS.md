@@ -16,14 +16,18 @@ hanya punya repo publik lain (`Infarm-Web`, proyek berbeda — bukan app ini).
 | Branch | Isi | Status |
 |---|---|---|
 | `main` | production (Vercel auto-deploy) | tertinggal dari `dev` |
-| `dev` | branch kerja | di depan `main`: perbaikan Laporan Tim/Monitor (`f58d6b4`) + **Screen 04 Review Penilaian dikembalikan** (2026-10-12) |
+| `dev` | branch kerja | di depan `main`: perbaikan Laporan Tim/Monitor (`f58d6b4`) + **Screen 04 Review Penilaian dikembalikan** + **Mode Maintenance** (2026-10-12) |
 | `feature/review-penilaian` | Screen 04 "Review Penilaian" | Sudah tercakup `dev` — boleh dihapus |
 
-**Belum di-commit di working tree:** 4 PDF `public/panduan/` diganti + `PANDUAN_VERSION`→`2026-10-01`
-(`lib/panduan.ts`) + `scripts/check-migrations.sql` (kini cek 0001–0047). ⚠️ **Teks keempat PDF baru masih
-identik** dengan versi 30 Juli (ekstraksi teks 2026-10-12: masih "Review Hasil Akhir", "punishment",
-"4 karakter", salah ketik "ditHRD") → revisi `docs/panduan/REVISI-PANDUAN-PDF.md` **belum diterapkan**. Jangan
-commit kenaikan versi sebelum isi PDF benar-benar direvisi (badge "BARU" akan muncul tanpa isi baru).
+**PDF panduan:** 4 PDF `public/panduan/` baru + `PANDUAN_VERSION`→`2026-10-01` **sudah ter-commit di `dev`**
+(`f58d6b4`). ⚠️ Per cek 2026-10-12 pagi teksnya masih identik dgn versi 30 Juli (masih "Review Hasil Akhir",
+"punishment", "4 karakter", "ditHRD") → **pastikan isi PDF sudah direvisi** (`docs/panduan/REVISI-PANDUAN-PDF.md`)
+**sebelum PR `dev` → `main`**, kalau tidak badge "BARU" muncul tanpa isi baru.
+
+- **Sesi 2026-10-12 (di `dev`):** Screen 04 Review Penilaian dikembalikan (revert `3d02edf`); **Mode Maintenance**
+  (`MAINTENANCE_MODE` + bypass developer `MAINTENANCE_BYPASS_TOKEN`, `proxy.ts`/`lib/maintenance.ts`/`app/maintenance/`);
+  langkah aktivasi Lupa Sandi diperbaiki (email dikirim Supabase Auth → Custom SMTP di dashboard Supabase);
+  #18 iPhone ditutup; akses Direksi ke Monitor = lewat Manajemen Akses (selesai).
 
 - **Sesi 2026-10-05..08 (di `main`):** Review & Finalisasi — tombol Tinjau utk pegawai sudah dinilai tapi
   skor belum ada; Direksi tampil walau Skor 360° belum dihitung; **"Dinilai oleh" selaras Progress 360**

@@ -13,7 +13,7 @@ Panduan untuk Claude Code saat bekerja di repo ini.
 
 **Kondisi:** app **live & dipakai** (periode **Q3 2026** berjalan menuju tutup). Repo GitHub **`infarmcorp/infarm-360`**
 (publik) — branch: `main` (production), `dev` (kerja; **di depan `main`**: perbaikan Laporan Tim/Monitor + **Screen 04
-Review Penilaian dikembalikan 2026-10-12**). `feature/review-penilaian` sudah tercakup `dev` — boleh dihapus.
+Review Penilaian dikembalikan** + **Mode Maintenance**, 2026-10-12). `feature/review-penilaian` sudah tercakup `dev` — boleh dihapus.
 
 - **Gelombang Q3 2026 (2026-09-18 → 2026-10-08) — semua sudah di `main`:** deadline 360° + potongan
   telat −3 (0036/0043), BR-07 4 status penilaian, BR-09/10/11 (No Score, bobot 2 kelas otomatis, HRD Review),
@@ -110,6 +110,7 @@ app/                          # Next.js App Router
 ├── layout.tsx · page.tsx     # root layout + gerbang auth (/) → redirect ke landing per peran (tak ada halaman Beranda; dihapus 2026-08-08)
 ├── globals.css · icon.png
 ├── login/                    # halaman login
+├── maintenance/              # halaman "Sedang Maintenance" (aktif via env MAINTENANCE_MODE, lihat Aktivasi)
 ├── api/cron/late-penalty/    # route cron potongan telat (DINONAKTIFKAN — vercel.json sengaja tak ada)
 ├── auth/                     # alur Supabase auth
 │   ├── callback/route.ts     # OAuth/redirect callback (reset sandi)
@@ -143,7 +144,7 @@ lib/                          # logika bersama (server-first)
 ├── late.ts · late-server.ts  # potongan telat −3 & 4 status penilaian (late.ts murni, diuji)
 ├── aspect360.ts · rated-completeness.ts · backfill-guard.ts   # aspek per pegawai · "Dinilai oleh" · pengaman Q1
 ├── trend.ts · team-metrics.ts · score-color.ts · dashboard/aggregate.ts
-├── safe-next.ts · panduan.ts · datetime.ts · employee-name.ts · table-cols.ts · todos/compute.ts
+├── safe-next.ts · maintenance.ts · panduan.ts · datetime.ts · employee-name.ts · table-cols.ts · todos/compute.ts
 ├── report.ts                # loader laporan (raw anonim, buang L3 bernama)
 ├── database.types.ts        # tipe skema DB
 ├── auth/roles.ts            # canAdmin/canCoordinate/isHrdDept · grantedAccess (izin 3-tingkat)
@@ -207,6 +208,20 @@ tak dipakai jalur ini. Tiga langkah:
    `https://<domain>/auth/callback`.
 3. **Vercel → Environment Variables** (bukan Supabase): `NEXT_PUBLIC_ENABLE_PW_RESET=true` → **Redeploy** (variabel
    `NEXT_PUBLIC_*` dibakukan saat build). Tautan "Lupa sandi?" lalu muncul di halaman login.
+
+### Mode Maintenance
+Saat app dirawat (mis. migrasi DB, perbaikan darurat), **semua** route menampilkan halaman `/maintenance`
+(status 503); route `/api/*` dapat 503 JSON. **Satu-satunya pengecualian = developer uji coba** lewat tautan rahasia
+(HRD pun ikut terkunci). Dicek paling awal di `proxy.ts` (`lib/maintenance.ts`), **sebelum menyentuh Supabase**, jadi
+tetap jalan walau DB sedang mati.
+- **Nyalakan:** Vercel → Environment Variables → `MAINTENANCE_MODE=true` (opsional `MAINTENANCE_UNTIL`, teks bebas
+  mis. `pukul 15.00 WIB`, tampil sebagai "Perkiraan selesai") → **Redeploy** (±1–2 menit).
+- **Akses developer:** set juga `MAINTENANCE_BYPASS_TOKEN` (kode acak **≥ 16 karakter**; kosong/lebih pendek = tak ada
+  yang bisa lolos). Buka `https://<domain>/?bypass=<kode>` **sekali** → browser itu dapat cookie httpOnly (12 jam) &
+  memakai app normal (tetap harus login). `https://<domain>/?bypass=off` = keluar dari bypass. Jangan sebar kodenya;
+  ganti kode (+ Redeploy) bila bocor.
+- **Matikan:** hapus `MAINTENANCE_MODE` atau ubah ke `false` → **Redeploy**. Pengguna yang masih di `/maintenance`
+  otomatis diarahkan ke `/`.
 
 ---
 
@@ -321,6 +336,9 @@ SMTP_USER                      # server-only — email Gmail (jalur SMTP, tanpa 
 SMTP_PASS                      # server-only — App Password Gmail (butuh 2FA)
 SMTP_FROM                      # server-only, opsional — mis. "Infarm 360 <infarmcorp@gmail.com>"
 NEXT_PUBLIC_ENABLE_PW_RESET    # 'true' utk aktifkan alur "Lupa Sandi via email"
+MAINTENANCE_MODE               # server-only — 'true' = SEMUA route → halaman /maintenance (503); hapus/'false' utk buka lagi; redeploy
+MAINTENANCE_UNTIL              # server-only, opsional — perkiraan selesai, teks bebas (mis. "pukul 15.00 WIB")
+MAINTENANCE_BYPASS_TOKEN       # server-only, opsional — kode ≥16 karakter; developer buka /?bypass=<kode> utk tetap masuk saat maintenance
 ONBOARDING_GMAIL_ONLY          # server-only — 'false' utk kirim undangan ke SEMUA domain (default: hanya @gmail.com, mode trial)
 CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api/cron/late-penalty (BR-08); cron DINONAKTIFKAN SEMENTARA (vercel.json sengaja tak ada, 2026-09-29) — tak dibutuhkan sampai diaktifkan lagi
 ```
@@ -417,7 +435,7 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
 > ke pengguna. **Bukan** aktivitas kuartalan — dijalankan saat **kode disentuh**.
 
 - **Jalankan:** `npm test` (sekali) atau `npm run test:watch` (mode pantau).
-- **Cakupan (290 tes, 17 file — per 2026-10-12):**
+- **Cakupan (300 tes, 18 file — per 2026-10-12):**
   - `tests/scoring.test.ts` → `lib/scoring.ts`: `finalScoreOf` (blend 50/50, KPI-only, 360°-only,
     pembulatan 2 desimal), `roundScore`/`kpiAvgOf`/`displayedFinalOf`, `playerClassOf` (KPI×360° ambang 80 → A / B-Culture / B-KPI / C,
     null bila keduanya kosong, satu sumbu kosong → HRD_REVIEW; **tanpa D**), `kpiBandOf`/`s360BandOf`, `talentBoxOf` (9 kotak).
@@ -446,7 +464,8 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
     (flat −3 sekali per periode), `apply360Penalty`, WIB.
   - `tests/page-scope.test.ts` → lingkup grant halaman (`grantedScope`/`allowedDeptsFor`/`resolveDept`/
     `deptScopeFilter`/`isDeptInScope`); `tests/report-scope.test.ts` (`inSpvDivisionScope`/`withoutRaw`);
-    `tests/rated-completeness.test.ts` (`ratedCompletion`); `tests/safe-next.test.ts` (cegah open redirect).
+    `tests/rated-completeness.test.ts` (`ratedCompletion`); `tests/safe-next.test.ts` (cegah open redirect);
+    `tests/maintenance.test.ts` (saklar, rute & bypass developer mode maintenance).
 - **Rumus inti ada di KODE, bukan UI.** Yang bisa diubah HRD lewat aplikasi = *input* (bobot %,
   360° aktif/nonaktif, KPI, potongan keterlambatan). Cara blend & ambang terkunci di kode.
 - **Kalau sengaja mengubah rumus:** perbarui tes terkait. `lib/score360.ts` diekstrak dari

@@ -64,9 +64,13 @@ npm run verify:rls # verifikasi RLS per peran (butuh kredensial di .env.local)
 Live di **Vercel**, auto-deploy dari branch `main` (preview otomatis tiap PR). Environment
 variables diatur di dashboard Vercel.
 
-Repo GitHub: **`infarmcorp/infarm-360`** (publik). Branch: `main` (production), `dev` (kerja),
-`feature/review-penilaian` (fitur ditunda). Alur: kerja di `dev` → PR ke `main`. Backup database
-otomatis harian lewat GitHub Actions (`.github/workflows/backup.yml`, terenkripsi).
+Repo GitHub: **`infarmcorp/infarm-360`** (publik). Branch: `main` (production), `dev` (kerja).
+Alur: kerja di `dev` → PR ke `main`. Backup database otomatis harian lewat GitHub Actions
+(`.github/workflows/backup.yml`, terenkripsi).
+
+**Mode Maintenance:** set `MAINTENANCE_MODE=true` di Vercel lalu Redeploy → semua halaman menampilkan
+"Sedang Maintenance" (503). Developer tetap bisa masuk lewat `/?bypass=<MAINTENANCE_BYPASS_TOKEN>`.
+Rincian → CLAUDE.md "Mode Maintenance".
 
 ## Dokumentasi
 

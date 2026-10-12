@@ -47,6 +47,10 @@ Disusun dari `PANDUAN Infarm 360 Portal.pdf` dan disesuaikan dengan aplikasi saa
 > HRD Admin punya **2 mode**: bertindak sebagai **SPV** atau sebagai **HRD Admin**
 > (mengelola seluruh sistem).
 
+> **Muncul halaman "Sedang Maintenance"?** Aplikasi sedang dalam perbaikan oleh developer — semua
+> pengguna (termasuk HRD) tak bisa masuk sementara. Data tetap aman; coba lagi setelah "Perkiraan
+> selesai" yang tertera. Bila mendesak, hubungi HRD.
+
 ---
 
 ## Akun Saya — Ganti Sandi (semua peran)

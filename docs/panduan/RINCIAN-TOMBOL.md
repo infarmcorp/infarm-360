@@ -29,6 +29,12 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **Masuk dengan email manual / ← Pilih dari daftar** | Toggle antara input email manual & combobox peran+nama | Semua | — | — |
 | **Lupa sandi?** | Link ke `/auth/lupa-sandi` | Semua | Hanya bila `NEXT_PUBLIC_ENABLE_PW_RESET='true'`; jika mati → teks statis "Hubungi HRD" | — |
 
+### Sedang Maintenance (`/maintenance`)
+
+Tanpa tombol. Muncul di **semua** halaman (status 503) bila env `MAINTENANCE_MODE=true`; menampilkan pesan
+perbaikan + "Perkiraan selesai" (bila `MAINTENANCE_UNTIL` diisi). Tak ada peran yang dikecualikan — hanya
+developer lewat tautan `/?bypass=<kode>` (`?bypass=off` untuk keluar). Saat maintenance mati, `/maintenance` → `/`.
+
 ### Lupa Sandi (`/auth/lupa-sandi`)
 
 | Tombol | Fungsi | Peran | Kondisi | Konfirmasi |

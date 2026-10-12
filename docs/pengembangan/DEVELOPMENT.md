@@ -156,6 +156,11 @@ Vercel mendukung nilai berbeda untuk variabel nama sama, dibedakan per scope
 5. Verifikasi: buka URL Preview dari deployment `dev` terbaru → login → pastikan data yang
    muncul adalah data dev (bukan nama pegawai nyata) sebagai tanda environment sudah benar.
 
+**Mode Maintenance** (`MAINTENANCE_MODE`, `MAINTENANCE_UNTIL`, `MAINTENANCE_BYPASS_TOKEN`) — set di scope
+**Production** saja, dan hanya selama perawatan. Jangan isi `MAINTENANCE_MODE=true` di scope Preview kecuali
+sengaja ingin menguji halaman maintenance di sana. Cara nyala/mati & akses developer → `../../CLAUDE.md`
+"Mode Maintenance".
+
 ## 7. Checklist sebelum merge `dev` → `main`
 
 - [ ] `npm run build`, `npm test`, `npm run typecheck` semua hijau.
@@ -165,5 +170,8 @@ Vercel mendukung nilai berbeda untuk variabel nama sama, dibedakan per scope
       (`.gitignore` sudah mengecualikan `.env*` kecuali `.env.example`, tapi tetap cek).
 - [ ] Setelah merge & deploy ke production: terapkan migrasi baru (jika ada) ke project
       **production** secara manual (lihat §4), lalu verifikasi cepat di production.
+- [ ] Migrasi berisiko (ubah/hapus kolom, backfill data, RLS besar) saat pegawai sedang mengisi? Nyalakan
+      **Mode Maintenance** dulu (`MAINTENANCE_MODE=true` + `MAINTENANCE_BYPASS_TOKEN` → Redeploy), terapkan
+      migrasi, verifikasi lewat `/?bypass=<kode>`, lalu matikan (hapus `MAINTENANCE_MODE` → Redeploy).
 - [ ] Update `../perencanaan/STATUS.md` + `../perencanaan/TODO.md`/`BACKLOG.md`/`CHANGELOG.md` bila
       perubahan ini menggeser status fitur (dan `../../CLAUDE.md` bila menyentuh arsitektur/keputusan terkunci).

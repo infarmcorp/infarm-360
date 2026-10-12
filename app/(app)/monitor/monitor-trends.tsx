@@ -171,7 +171,7 @@ function DeltaMetric({ label, curr, prev }: { label: string; curr: number | null
       <div className="flex items-baseline gap-2 mt-0.5">
         <span className="text-xl font-black font-mono text-slate-800">{curr != null ? fmt2(curr) : '—'}</span>
         <span className={`text-xs font-bold ${cls}`}>
-          {d == null ? '—' : `${arrow} ${d >= 0 ? '+' : '−'}${Math.abs(d).toFixed(2)}`}
+          {d == null ? '—' : `${arrow} ${d >= 0 ? '+' : '−'}${fmt2(Math.abs(d))}`}
         </span>
       </div>
       <div className="text-[10px] text-gray-400">{prev != null ? `dari ${fmt2(prev)}` : 'periode pertama'}</div>
@@ -184,7 +184,7 @@ const INSIGHT_DOT: Record<'up' | 'down' | 'flat', string> = {
 };
 
 /** Format selisih bertanda 2-desimal: +5.30 / −1.82. */
-const sgn = (x: number) => `${x >= 0 ? '+' : '−'}${Math.abs(x).toFixed(2)}`;
+const sgn = (x: number) => `${x >= 0 ? '+' : '−'}${fmt2(Math.abs(x))}`;
 const toneOf = (d: number): 'up' | 'down' | 'flat' => (Math.abs(d) < 1.5 ? 'flat' : d > 0 ? 'up' : 'down');
 const CAUSE_NUM: Record<'up' | 'down' | 'flat', string> = {
   up: 'text-emerald-700', down: 'text-rose-600', flat: 'text-gray-500',
@@ -287,7 +287,7 @@ function MoverLine({ m, up }: { m: MoverRow; up: boolean }) {
       <span className={`font-bold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>{up ? '▲' : '▼'}</span>
       <span className="flex-1 min-w-0 truncate text-gray-700" title={m.name}>{displayName(m.nickname, m.name)}</span>
       <span className={`font-mono font-bold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>
-        {m.delta >= 0 ? '+' : '−'}{Math.abs(m.delta).toFixed(2)}
+        {m.delta >= 0 ? '+' : '−'}{fmt2(Math.abs(m.delta))}
       </span>
       <span className="font-mono text-[10px] text-gray-400 w-10 text-right">{m.curr.toFixed(1)}</span>
     </div>
@@ -370,7 +370,7 @@ function Mover360Line({ m, up }: { m: MoverRow360; up: boolean }) {
         <span className={`font-bold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>{up ? '▲' : '▼'}</span>
         <span className="flex-1 min-w-0 truncate text-gray-700" title={m.name}>{displayName(m.nickname, m.name)}</span>
         <span className={`font-mono font-bold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>
-          {m.delta >= 0 ? '+' : '−'}{Math.abs(m.delta).toFixed(2)}
+          {m.delta >= 0 ? '+' : '−'}{fmt2(Math.abs(m.delta))}
         </span>
         <span className="font-mono text-[10px] text-gray-400 w-10 text-right">{m.curr.toFixed(1)}</span>
       </div>

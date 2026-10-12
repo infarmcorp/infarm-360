@@ -5,7 +5,7 @@ import { colPercents } from '@/lib/table-cols';
 import { motion } from 'motion/react';
 import { Award, Target, Flame, TrendingUp, TrendingDown, Building2, Users, BarChart3 } from 'lucide-react';
 import {
-  PLAYER_BOXES, type PlayerClass, perfLabelOf, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
+  PLAYER_BOXES, type PlayerClass, perfLabelOf, perfCategoryOf, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
 import { heatColor, HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
 import { TREND_META, type Trend } from '@/lib/trend';
 import { displayName } from '@/lib/employee-name';
@@ -173,7 +173,7 @@ function Delta({ curr, prev, prevLabel, move }: { curr: number | null; prev: num
   const tip = moveTooltip(prevLabel ?? null, move ?? null);
   return (
     <span title={tip} className={`font-bold ${cls}${tip ? ' cursor-help underline decoration-dotted decoration-1 underline-offset-2' : ''}`}>
-      {arrow} {d >= 0 ? '+' : '−'}{Math.abs(d).toFixed(2)}{tip ? <span className="ml-0.5 opacity-60">ⓘ</span> : null}
+      {arrow} {d >= 0 ? '+' : '−'}{fmt2(Math.abs(d))}{tip ? <span className="ml-0.5 opacity-60">ⓘ</span> : null}
     </span>
   );
 }
@@ -187,7 +187,7 @@ function Delta({ curr, prev, prevLabel, move }: { curr: number | null; prev: num
 function moveTooltip(prevLabel: string | null, m: MoveBreakdown | null): string | undefined {
   if (!prevLabel || !m) return undefined;
   const fmt = (v: number | null) => (v != null ? fmt2(v) : '—');
-  const signed = (v: number | null) => (v == null ? '—' : `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}`);
+  const signed = (v: number | null) => (v == null ? '—' : `${v >= 0 ? '+' : '−'}${fmt2(Math.abs(v))}`);
   const lines = [`Penyebab perubahan vs ${prevLabel}`, ''];
   lines.push(`• Perubahan skor pegawai konsisten (${m.cohortN}): ${signed(m.cohortDelta)}`);
   const compos: string[] = [];
@@ -356,7 +356,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
                 <div className="mt-2 flex flex-wrap gap-1">
                   {emps.map((e) => (
                     <span key={e.id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
-                      title={`${e.name} · KPI ${e.kpiAvg?.toFixed(2)} · 360 ${e.s360 != null ? fmt2(e.s360) : 'N/A'}`}>{shortName(e)}</span>
+                      title={`${e.name} · KPI ${e.kpiAvg != null ? fmt2(e.kpiAvg) : 'N/A'} · 360 ${e.s360 != null ? fmt2(e.s360) : 'N/A'}`}>{shortName(e)}</span>
                   ))}
                 </div>
               </div>
@@ -512,7 +512,7 @@ function ScatterKpi360({ rows }: { rows: Row[] }) {
           {pts.map((r) => (
             <circle key={r.id} cx={x(r.kpiAvg as number)} cy={y(r.s360 as number)} r={4} fill={colorOf(r.player)}
               fillOpacity={0.75} stroke="#fff" strokeWidth={1}>
-              <title>{`${r.name} · KPI ${(r.kpiAvg as number).toFixed(2)} · 360° ${(r.s360 as number).toFixed(2)}`}</title>
+              <title>{`${r.name} · KPI ${fmt2(r.kpiAvg as number)} · 360° ${fmt2(r.s360 as number)}`}</title>
             </circle>
           ))}
           {/* Judul sumbu */}
@@ -890,12 +890,13 @@ function TrendLine({ points }: { points: { label: string; value: number }[] }) {
  *   70–79 Perlu Peningkatan (kuning #ffc107) · <70 Di Bawah (merah #b71c1c).
  * Klasifikasi memakai rerata KPI pegawai (rows.kpiAvg), bukan Skor Akhir — selaras tab KPI.
  */
-// Band skor 0–100 (dipakai donut KPI & 360°) — selaras perfCategoryOf & palet diskrit (CLAUDE.md).
-const SCORE_CATS = [
-  { key: 'exceed', label: 'Melampaui Ekspektasi', range: '≥ 90', color: '#183c6c', test: (v: number) => v >= 90 },
-  { key: 'meet', label: 'Memenuhi Ekspektasi', range: '80–89', color: '#388e3c', test: (v: number) => v >= 80 && v < 90 },
-  { key: 'improve', label: 'Perlu Peningkatan', range: '70–79', color: '#ffc107', test: (v: number) => v >= 70 && v < 80 },
-  { key: 'below', label: 'Di Bawah Ekspektasi', range: '< 70', color: '#b71c1c', test: (v: number) => v < 70 },
+// Band skor 0–100 (dipakai donut KPI & 360°) — golongan = perfCategoryOf (ambang atas nilai TERBULAT,
+// sama dengan laporan; rerata KPI mentah 79,996 = 80,00 → Memenuhi) & palet diskrit (CLAUDE.md).
+export const SCORE_CATS = [
+  { key: 'exceed', label: 'Melampaui Ekspektasi', range: '≥ 90', color: '#183c6c', test: (v: number) => perfCategoryOf(v) === 'exceed' },
+  { key: 'meet', label: 'Memenuhi Ekspektasi', range: '80–89', color: '#388e3c', test: (v: number) => perfCategoryOf(v) === 'meet' },
+  { key: 'improve', label: 'Perlu Peningkatan', range: '70–79', color: '#ffc107', test: (v: number) => perfCategoryOf(v) === 'improve' },
+  { key: 'below', label: 'Di Bawah Ekspektasi', range: '< 70', color: '#b71c1c', test: (v: number) => perfCategoryOf(v) === 'below' },
 ] as const;
 
 /** Donut distribusi pegawai per kelas skor (0–100). Dipakai untuk KPI & 360°. */
@@ -1129,12 +1130,21 @@ function Card({ title, tone, children }: { title: string; tone?: 'emerald' | 'ro
   );
 }
 
+// Warna badge dari golongan nilai TERBULAT — sama dengan labelnya (perfLabelOf), tak bisa tak cocok.
+const BAND_BADGE_CLS = {
+  exceed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  meet: 'bg-blue-50 text-blue-700 border-blue-200',
+  improve: 'bg-amber-50 text-amber-700 border-amber-200',
+  below: 'bg-rose-50 text-rose-700 border-rose-200',
+} as const;
+export function bandBadgeClass(v: number | null): string | null {
+  const c = perfCategoryOf(v);
+  return c ? BAND_BADGE_CLS[c] : null;
+}
+
 function bandBadge(v: number | null) {
-  if (v == null) return null;
-  const cls = v >= 90 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-    : v >= 80 ? 'bg-blue-50 text-blue-700 border-blue-200'
-    : v >= 70 ? 'bg-amber-50 text-amber-700 border-amber-200'
-    : 'bg-rose-50 text-rose-700 border-rose-200';
+  const cls = bandBadgeClass(v);
+  if (v == null || cls == null) return null;
   return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cls}`}>{perfLabelOf(v)}</span>;
 }
 

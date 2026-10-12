@@ -12,7 +12,7 @@ import { saveAspectSummaries } from '@/app/(app)/admin/laporan/actions';
  *
  * AUTO-SIMPAN (debounce 5s + saat blur) — tak ada tombol "Simpan" manual, kerja
  * tak hilang (pola sama dengan form penilaian). TERKUNCI bila laporan sudah
- * `finalized`: harus "Kembalikan ke Draf" dulu untuk mengedit (cegah ubah diam-diam
+ * `finalized`: harus "Buka Kembali (ke Draf)" dulu untuk mengedit (cegah ubah diam-diam
  * isi yang sudah dilihat pegawai).
  */
 type SaveState = 'idle' | 'pending' | 'saving' | 'saved' | 'error';
@@ -94,7 +94,7 @@ export function AspectSummaryEditor({
           <p className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-ink bg-brand-tint border border-brand-ink/20 rounded-control p-2 no-print">
             <Lock className="w-3.5 h-3.5 shrink-0" />
             Laporan sudah <strong>final</strong> &amp; terlihat pegawai. Untuk mengubah ringkasan,
-            klik <strong>&quot;Kembalikan ke Draf&quot;</strong> di panel atas.
+            klik <strong>&quot;Buka Kembali (ke Draf)&quot;</strong> di panel atas.
           </p>
         )}
         {aspects.map((a) => (

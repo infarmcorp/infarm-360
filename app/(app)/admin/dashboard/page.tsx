@@ -7,6 +7,7 @@ import {
   finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf,
 } from '@/lib/scoring';
 import { computeDashboardAggregate } from '@/lib/dashboard/aggregate';
+import { loadPrevPeriodScores } from '@/lib/dashboard/prev-period';
 import { classOf, avg as avg360, weightedScore360, effectiveModel, type Groups360, type Model360 } from '@/lib/score360';
 import { trendOf } from '@/lib/trend';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
@@ -470,13 +471,13 @@ export default async function DashboardPage({
   if (prevPeriod && empIds.length) {
     const { data: pMonths } = await db.from('period_months').select('ym').eq('period_id', prevPeriod.id);
     const pYms = (pMonths ?? []).map((m) => m.ym);
-    const [pKpiAll, pr360Res, pRepRes] = await Promise.all([
+    const [pKpiAll, prev] = await Promise.all([
       pYms.length
         ? fetchAllByIds<{ employee_id: string; ym: string; score: number }>(empIds, (chunk, from, to) =>
             db.from('kpi_scores').select('employee_id, ym, score').in('ym', pYms).in('employee_id', chunk).order('employee_id').order('ym').range(from, to))
         : Promise.resolve([] as { employee_id: string; ym: string; score: number }[]),
-      db.from('result_360').select('employee_id, score').eq('period_id', prevPeriod.id).in('employee_id', empIds),
-      db.from('final_reports').select('employee_id, status, final_score').eq('period_id', prevPeriod.id).in('employee_id', empIds),
+      // id SELURUH organisasi → dipecah per kelompok + paginasi (dulu satu .in() raksasa).
+      loadPrevPeriodScores(db, prevPeriod.id, empIds),
     ]);
     // Rerata KPI per pegawai + deteksi "belum terbaca" (trend unread 3 bulan pertama).
     const pEmpYm = new Map<string, Map<string, { s: number; n: number }>>();
@@ -484,14 +485,14 @@ export default async function DashboardPage({
       let m = pEmpYm.get(r.employee_id); if (!m) { m = new Map(); pEmpYm.set(r.employee_id, m); }
       const a = m.get(r.ym) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; m.set(r.ym, a);
     });
-    const pRepBy = new Map((pRepRes.data ?? []).map((r) => [r.employee_id, r]));
+    const pRepBy = new Map(prev.reports.map((r) => [r.employee_id, r]));
     const pYmFirst3 = [...pYms].sort().slice(0, 3);
     const pUnread = new Set<string>();
     for (const [id, m] of pEmpYm) {
       const months = pYmFirst3.map((ym) => (m.has(ym) ? m.get(ym)!.s / m.get(ym)!.n : null));
       if (trendOf(months) === 'unread') pUnread.add(id);
     }
-    const p360By = new Map((pr360Res.data ?? []).map((r) => [r.employee_id, r.score]));
+    const p360By = new Map(prev.r360.map((r) => [r.employee_id, r.score]));
     // Tiap rata-rata memakai POPULASI yang sama dgn kartunya masing-masing agar delta apel-ke-apel:
     //  - Skor Akhir (Kompilasi): readable (bukan unread) & final != null.
     //  - KPI (tab Analisis KPI): readable (bukan unread) & kpiAvg != null.

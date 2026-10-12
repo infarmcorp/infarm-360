@@ -243,21 +243,31 @@ describe('setPageGrant — penulisan & audit', () => {
     if (r.ok) expect(r.msg).toMatch(/boleh finalisasi/);
   });
 
-  it('canEdit/canFinalize dikoersi truthy (!!) — string "false" dianggap true (perilaku saat ini)', async () => {
+  it('izin harus boolean sungguhan: teks "false" / angka DITOLAK (dulu "false" terbaca true)', async () => {
+    for (const [e, f] of [['false', false], [true, 'true'], [1, false], [false, 0]] as [unknown, unknown][]) {
+      const r = await setPageGrant(EMP, 'review', ['all'], e, f);
+      expect(r).toEqual({ ok: false, error: 'Input tidak valid (pilih minimal satu lingkup).' });
+    }
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(mockAdmin).not.toHaveBeenCalled();
+  });
+
+  it('izin tak dikirim → default false (lihat-saja)', async () => {
     use(actor(FULL_HRD, { data: { name: 'Budi' } }));
     const admin = makeAdmin({ page_grants: [{ error: null }] });
     useAdmin(admin);
-    await setPageGrant(EMP, 'review', ['all'], 'false', 0);
-    expect(admin.calls[0].payload).toMatchObject({ can_edit: true, can_finalize: false });
+    expect((await setPageGrant(EMP, 'review', ['all'])).ok).toBe(true);
+    expect(admin.calls[0].payload).toMatchObject({ can_edit: false, can_finalize: false });
   });
 
-  it('TIDAK menolak grant untuk diri sendiri (perilaku saat ini — tak ada cek self)', async () => {
+  it('memberi/mengubah akses untuk DIRI SENDIRI ditolak, tanpa menulis apa pun', async () => {
     use(actor(FULL_HRD, { data: { name: 'Saya' } }));
     const admin = makeAdmin({ page_grants: [{ error: null }] });
     useAdmin(admin);
     const r = await setPageGrant(UID, 'review', ['all'], true, true);
-    expect(r.ok).toBe(true);
-    expect(admin.calls[0].payload).toMatchObject({ employee_id: UID, created_by: UID });
+    expect(r).toEqual({ ok: false, error: 'Anda tidak dapat memberi atau mengubah akses halaman untuk diri sendiri.' });
+    expect(admin.calls).toHaveLength(0);
+    expect(mockLog).not.toHaveBeenCalled();
   });
 
   it('nama target null → audit memakai id & targetLabel null', async () => {
@@ -297,6 +307,33 @@ describe('setPageGrantForRole — validasi input', () => {
       expect(mockAdmin).not.toHaveBeenCalled();
     });
   }
+});
+
+describe('setPageGrantForRole — pelaku tak pernah memberi akses ke dirinya sendiri', () => {
+  it('pelaku termasuk anggota peran → dikecualikan dari baris yang ditulis', async () => {
+    use(actor(FULL_HRD_GRANT));
+    const admin = makeAdmin({ employees: [{ data: [{ id: EMP }, { id: UID }, { id: EMP2 }] }], page_grants: [{ error: null }] });
+    useAdmin(admin);
+    const r = await setPageGrantForRole('pegawai', 'monitor', ['all']);
+    expect(r.ok).toBe(true);
+    const up = admin.calls.find((c) => c.table === 'page_grants' && c.op === 'upsert');
+    expect((up?.payload as { employee_id: string }[]).map((x) => x.employee_id)).toEqual([EMP, EMP2]);
+    if (r.ok) expect(r.msg).toMatch(/2 Pegawai.*Anda sendiri dikecualikan/);
+  });
+
+  it('satu-satunya anggota = pelaku → tak ada yang ditulis', async () => {
+    use(actor(FULL_HRD_GRANT));
+    const admin = makeAdmin({ employees: [{ data: [{ id: UID }] }], page_grants: [{ error: null }] });
+    useAdmin(admin);
+    const r = await setPageGrantForRole('pegawai', 'monitor', ['all']);
+    expect(r.ok).toBe(false);
+    expect(admin.calls.some((c) => c.table === 'page_grants')).toBe(false);
+  });
+
+  it('izin peran harus boolean sungguhan', async () => {
+    expect((await setPageGrantForRole('spv', 'review', ['all'], 'false', false)).ok).toBe(false);
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
 });
 
 describe('setPageGrantForRole — materialisasi ke anggota peran', () => {
@@ -375,13 +412,13 @@ describe('setPageGrantForRole — materialisasi ke anggota peran', () => {
     expect(mockRevalidate).not.toHaveBeenCalled();
   });
 
-  it('TIDAK mengecualikan pelaku sendiri dari daftar anggota (perilaku saat ini)', async () => {
+  it('pelaku sendiri DIKECUALIKAN dari daftar anggota (gelombang 2b; dulu ikut diberi akses)', async () => {
     use(actor(FULL_HRD_GRANT));
     const admin = makeAdmin({ employees: [{ data: [{ id: UID }, { id: EMP }] }], page_grants: [{ error: null }] });
     useAdmin(admin);
     const r = await setPageGrantForRole('pegawai', 'review', ['all'], false, true);
     expect(r.ok).toBe(true);
-    expect((admin.calls[1].payload as { employee_id: string }[]).map((x) => x.employee_id)).toEqual([UID, EMP]);
+    expect((admin.calls[1].payload as { employee_id: string }[]).map((x) => x.employee_id)).toEqual([EMP]);
   });
 });
 

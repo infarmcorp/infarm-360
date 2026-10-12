@@ -6,6 +6,8 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { refreshLatePenalties } from '@/lib/late-server';
+import { rpcMissing } from '@/lib/supabase/rpc';
+import { periodLockError } from '@/lib/final-lock';
 
 /**
  * Kelola Siklus Periode (HRD) — gerbang seluruh proses.
@@ -87,17 +89,27 @@ export async function activatePeriod(periodId: string): Promise<Result> {
   // CATATAN (keputusan pengguna 2026-09-29): periode yang sudah dikunci BOLEH dibuka kembali, termasuk
   // yang sudah punya laporan final. Laporan final tetap aman — Skor Akhir tersimpan tak berubah otomatis;
   // selisih akibat edit sesudah dibuka ditandai "berubah → N" di Review Hasil Akhir (hasScoreDrift).
-  // Akhiri semua periode lain → jaga hanya satu aktif.
-  const { error: e1 } = await supabase.from('periods').update({ status: 'ended' }).neq('id', periodId);
-  if (e1) return { ok: false, error: 'Gagal: ' + e1.message };
-  const { error: e2 } = await supabase.from('periods').update({ status: 'active' }).eq('id', periodId);
-  if (e2) return { ok: false, error: 'Gagal: ' + e2.message };
+  // Akhiri semua periode lain → jaga hanya satu aktif. SATU transaksi lewat fungsi database (0048):
+  // gagal di tengah → semua batal (dulu bisa tersisa keadaan TANPA periode aktif). Fungsi belum
+  // ada (migrasi belum diterapkan) → cara lama dua langkah.
+  let label: string | null = null;
+  const { data: rpcLabel, error: rpcErr } = await createAdminClient().rpc('period_activate', { p_period: periodId });
+  if (rpcErr && !rpcMissing(rpcErr)) return { ok: false, error: 'Gagal: ' + rpcErr.message };
+  if (!rpcErr) {
+    label = rpcLabel ?? null;
+  } else {
+    const { error: e1 } = await supabase.from('periods').update({ status: 'ended' }).neq('id', periodId);
+    if (e1) return { ok: false, error: 'Gagal: ' + e1.message };
+    const { error: e2 } = await supabase.from('periods').update({ status: 'active' }).eq('id', periodId);
+    if (e2) return { ok: false, error: 'Gagal: ' + e2.message };
+    const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();
+    label = pr?.label ?? null;
+  }
 
-  const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();
   await logHrdAction({
     action: 'period.activate', category: 'periode',
-    summary: `Mengaktifkan periode "${pr?.label ?? periodId}" (periode lain diakhiri)`,
-    targetType: 'period', targetId: periodId, targetLabel: pr?.label ?? null,
+    summary: `Mengaktifkan periode "${label ?? periodId}" (periode lain diakhiri)`,
+    targetType: 'period', targetId: periodId, targetLabel: label,
   });
   revalidatePath('/admin/periode');
   return { ok: true };
@@ -237,6 +249,10 @@ export async function toggleHas360(periodId: string, value: boolean): Promise<Re
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
+  // KUNCI LAPORAN FINAL: has_360 mengubah rumus Skor Akhir seluruh periode → ditolak bila sudah ada
+  // laporan Final di periode ini (gagal baca → ditolak).
+  const lock = await periodLockError(createAdminClient(), periodId, 'pengaturan 360° periode');
+  if (lock) return { ok: false, error: lock };
 
   // Validasi PRA-PELUNCURAN saat MENGAKTIFKAN 360°: harus sudah ada pertanyaan (indikator
   // aktif) & pemetaan — cegah form 360° kosong/rusak saat tampil ke pegawai.
@@ -380,23 +396,37 @@ export async function deletePeriod(periodId: string, confirmText: string): Promi
   const { data: p } = await admin.from('periods').select('label, status').eq('id', periodId).maybeSingle();
   if (!p) return { ok: false, error: 'Periode tidak ditemukan' };
   if (p.status === 'active') return { ok: false, error: 'Periode aktif tidak bisa dihapus. "Kunci & Akhiri" dulu.' };
+  // KUNCI LAPORAN FINAL: menghapus periode ikut menghapus laporan Final di dalamnya → ditolak selama
+  // masih ada laporan Final (gagal baca → ditolak). Pesan baku helper berbunyi "untuk mengubah …";
+  // untuk hapus diganti "untuk menghapus periode ini" agar kalimatnya wajar.
+  const lock = await periodLockError(admin, periodId, 'periode ini');
+  if (lock) return { ok: false, error: lock.replace('untuk mengubah periode ini', 'untuk menghapus periode ini') };
 
-  // KPI tak cascade dari periods → hapus manual, hanya bulan UNIK periode ini. Error DIPERIKSA (dulu
-  // diabaikan → periode bisa terhapus sementara KPI-nya tertinggal) & jumlah baris yang ikut terhapus
-  // (termasuk jejak audit KPI) DICATAT di Log Aktivitas agar penghapusan tetap bisa ditelusuri.
-  const uniqueYms = await uniqueMonthsOf(admin, periodId);
+  // KPI tak cascade dari periods → hapus manual, hanya bulan UNIK periode ini; jumlah baris yang ikut
+  // terhapus (termasuk jejak audit KPI) DICATAT di Log Aktivitas agar penghapusan tetap bisa ditelusuri.
+  // SATU transaksi lewat fungsi database (0048): gagal di tengah → semua batal (dulu KPI bisa sudah
+  // terhapus sementara periodenya masih ada). Fungsi belum ada → cara lama bertahap.
+  let uniqueYms: string[] = [];
   let kpiDeleted = 0, kpiAuditDeleted = 0;
-  if (uniqueYms.length) {
-    const { data: a, error: aErr } = await admin.from('kpi_audit').delete().in('ym', uniqueYms).select('id');
-    if (aErr) return { ok: false, error: 'Gagal menghapus jejak audit KPI periode: ' + aErr.message };
-    const { data: k, error: kErr } = await admin.from('kpi_scores').delete().in('ym', uniqueYms).select('employee_id');
-    if (kErr) return { ok: false, error: 'Gagal menghapus KPI periode: ' + kErr.message };
-    kpiAuditDeleted = a?.length ?? 0;
-    kpiDeleted = k?.length ?? 0;
+  const { data: del, error: rpcErr } = await admin.rpc('period_delete', { p_period: periodId });
+  if (rpcErr && !rpcMissing(rpcErr)) return { ok: false, error: 'Gagal menghapus periode: ' + rpcErr.message };
+  if (!rpcErr) {
+    uniqueYms = del?.months ?? [];
+    kpiDeleted = del?.kpi_deleted ?? 0;
+    kpiAuditDeleted = del?.kpi_audit_deleted ?? 0;
+  } else {
+    uniqueYms = await uniqueMonthsOf(admin, periodId);
+    if (uniqueYms.length) {
+      const { data: a, error: aErr } = await admin.from('kpi_audit').delete().in('ym', uniqueYms).select('id');
+      if (aErr) return { ok: false, error: 'Gagal menghapus jejak audit KPI periode: ' + aErr.message };
+      const { data: k, error: kErr } = await admin.from('kpi_scores').delete().in('ym', uniqueYms).select('employee_id');
+      if (kErr) return { ok: false, error: 'Gagal menghapus KPI periode: ' + kErr.message };
+      kpiAuditDeleted = a?.length ?? 0;
+      kpiDeleted = k?.length ?? 0;
+    }
+    const { error } = await admin.from('periods').delete().eq('id', periodId);
+    if (error) return { ok: false, error: 'Gagal menghapus periode: ' + error.message };
   }
-
-  const { error } = await admin.from('periods').delete().eq('id', periodId);
-  if (error) return { ok: false, error: 'Gagal menghapus periode: ' + error.message };
 
   await logHrdAction({
     action: 'period.delete', category: 'periode',

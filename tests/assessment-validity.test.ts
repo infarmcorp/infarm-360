@@ -12,20 +12,26 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/audit/log', () => ({ logHrdAction: vi.fn(async () => {}), logAuditAsService: vi.fn(async () => {}) }));
 vi.mock('next/headers', () => ({ cookies: vi.fn(async () => ({ get: () => ({ value: 'spv' }) })) }));
 vi.mock('@/app/(app)/admin/360/actions', () => ({ computeResult360: vi.fn(async () => ({ ok: true })) }));
-vi.mock('@/lib/backfill-guard', () => ({ isBackfilledPeriod: vi.fn(async () => false), BACKFILL_LOCK_MSG: 'x' }));
+vi.mock('@/lib/backfill-guard', () => ({ backfillLockReason: vi.fn(async () => null), BACKFILL_LOCK_MSG: 'x' }));
+// Kunci laporan Final (gelombang 2b): default = tak ada laporan Final → perilaku lama tak berubah.
+vi.mock('@/lib/final-lock', async (orig) => ({
+  ...(await orig<typeof import('@/lib/final-lock')>()),
+  finalLockError: vi.fn(async () => null),
+  finalizedEmployees: vi.fn(async () => new Set<string>()),
+}));
 
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logHrdAction } from '@/lib/audit/log';
 import { computeResult360 } from '@/app/(app)/admin/360/actions';
-import { isBackfilledPeriod } from '@/lib/backfill-guard';
+import { backfillLockReason } from '@/lib/backfill-guard';
 import { setAssessmentValidity } from '@/app/(app)/admin/pemetaan/actions';
 
 const mockCreate = vi.mocked(createClient);
 const mockAdmin = vi.mocked(createAdminClient);
 const mockCompute = vi.mocked(computeResult360);
-const mockBackfill = vi.mocked(isBackfilledPeriod);
+const mockBackfill = vi.mocked(backfillLockReason);
 const mockLog = vi.mocked(logHrdAction);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function use(c: MockClient) { mockCreate.mockResolvedValue(c as any); }
@@ -60,7 +66,7 @@ function adminFlow(status: string, remaining: number, extra: Record<string, QRes
 }
 const assessmentUpdates = (c: MockClient) => c.calls.filter((x) => x.table === 'assessments' && x.op === 'update');
 
-beforeEach(() => { vi.clearAllMocks(); mockBackfill.mockResolvedValue(false); mockCompute.mockResolvedValue({ ok: true } as never); });
+beforeEach(() => { vi.clearAllMocks(); mockBackfill.mockResolvedValue(null); mockCompute.mockResolvedValue({ ok: true } as never); });
 
 describe('setAssessmentValidity — otorisasi & validasi input', () => {
   it('tolak bila sesi berakhir', async () => {
@@ -221,7 +227,7 @@ describe('setAssessmentValidity — batalkan validitas (invalidate)', () => {
   });
 
   it('periode hasil impor (backfill) → status TETAP diubah, tetapi Skor 360° tak disentuh sama sekali', async () => {
-    mockBackfill.mockResolvedValue(true);
+    mockBackfill.mockResolvedValue('x'); // = BACKFILL_LOCK_MSG
     use(hrdClient());
     const admin = makeClient({ user: { id: UID }, tables: {
       mappings: [MAPPING], periods: [PERIOD_ACTIVE],
@@ -270,22 +276,51 @@ describe('setAssessmentValidity — batalkan validitas (invalidate)', () => {
     expect(mockLog).toHaveBeenCalledWith(expect.objectContaining({ summary: 'Membatalkan validitas penilaian — → —' }));
   });
 
-  it('hasil computeResult360 {ok:false} DIABAIKAN → aksi tetap ok:true', async () => {
+  it('Hitung Ulang gagal ({ok:false}) → status tersimpan, aksi memberi PERINGATAN (bukan "berhasil" polos)', async () => {
     mockCompute.mockResolvedValue({ ok: false, error: 'Tidak ada periode aktif' } as never);
     use(hrdClient());
     useAdmin(adminFlow('submitted', 1));
-    expect(await setAssessmentValidity(MAP, 'invalidate', REASON)).toEqual({ ok: true });
-    expect(mockLog).toHaveBeenCalled();
+    const r = await setAssessmentValidity(MAP, 'invalidate', REASON);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.warning).toMatch(/Validitas penilaian Budi → Andi sudah dibatalkan/);
+      expect(r.warning).toMatch(/BELUM diperbarui.*Hitung Ulang Skor 360°/);
+      expect(r.warning).toContain('Tidak ada periode aktif');
+    }
+    expect(mockLog).toHaveBeenCalledWith(expect.objectContaining({ meta: { reason: REASON, skor_360_belum_diperbarui: 'Tidak ada periode aktif' } }));
   });
 
-  it('computeResult360 melempar → aksi ikut melempar SETELAH status tersimpan (tanpa log)', async () => {
+  it('Hitung Ulang melempar → status tersimpan, peringatan + log tetap ditulis (dulu aksi ikut melempar)', async () => {
     mockCompute.mockRejectedValue(new Error('crash'));
     use(hrdClient());
     const admin = adminFlow('submitted', 1);
     useAdmin(admin);
-    await expect(setAssessmentValidity(MAP, 'invalidate', REASON)).rejects.toThrow('crash');
+    const r = await setAssessmentValidity(MAP, 'invalidate', REASON);
+    expect(r.ok && r.warning).toMatch(/BELUM diperbarui.*Hitung Ulang Skor 360°/);
     expect(assessmentUpdates(admin)).toHaveLength(1);
-    expect(mockLog).not.toHaveBeenCalled();
+    expect(mockLog).toHaveBeenCalled();
+  });
+
+  it('gagal menghapus Skor 360° target (tak ada penilaian tersisa) → peringatan', async () => {
+    use(hrdClient());
+    useAdmin(adminFlow('submitted', 0, { result_360: [{ error: { message: 'rls' } }] }));
+    const r = await setAssessmentValidity(MAP, 'invalidate', REASON);
+    expect(r.ok && r.warning).toMatch(/BELUM diperbarui.*Hitung Ulang Skor 360°/);
+  });
+
+  it('status "periode hasil impor" gagal dibaca → peringatan (bukan diam-diam dilewati)', async () => {
+    mockBackfill.mockResolvedValue('Tidak dapat memastikan …');
+    use(hrdClient());
+    useAdmin(adminFlow('submitted', 1));
+    const r = await setAssessmentValidity(MAP, 'invalidate', REASON);
+    expect(r.ok && r.warning).toMatch(/BELUM diperbarui.*Hitung Ulang Skor 360°/);
+    expect(mockCompute).not.toHaveBeenCalled();
+  });
+
+  it('Hitung Ulang berhasil → ok tanpa peringatan', async () => {
+    use(hrdClient());
+    useAdmin(adminFlow('submitted', 1));
+    expect(await setAssessmentValidity(MAP, 'invalidate', REASON)).toEqual({ ok: true });
   });
 });
 

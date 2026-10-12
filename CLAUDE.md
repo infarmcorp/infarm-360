@@ -39,7 +39,7 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
   typecheck + build). Backup harian `.github/workflows/backup.yml`. npm.
 - Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 24 tabel publik, migrasi
-  `supabase/migrations/0001`–`0047`.
+  `supabase/migrations/0001`–`0049`.
 - `app/` — `login/`, `maintenance/`, `auth/` (callback, lupa-sandi, perbarui-sandi, signout),
   `api/cron/late-penalty/` (nonaktif), `(app)/` = shell persisten (`layout.tsx`, `app-shell.tsx` menu,
   `mode-actions.ts`) dengan `penilaian/ kpi/ monitor/ laporan/ laporan-tim/ review-hasil/ suksesi/ akun/` dan
@@ -108,6 +108,9 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   `laporan/[employeeId]` (jalur `asSpv` + `loadTeamReportForHrdSpv`). Jangan tinggalkan cabang `role==='hrd'`.
   Paritas yang sama berlaku ke jalur grant halaman.
 - Pegawai berkoordinator: ACC & input KPI oleh **koordinator**; SPV/HRD Mode-SPV hanya lihat status.
+- **ACC (`setSpvAcc`) lingkupnya ditegakkan server** lalu ditulis via service_role (RLS tak cukup: `hrd_can('laporan')`
+  lolos untuk laporan siapa pun): tak ada yang meng-ACC laporannya sendiri (+ trigger 0049); SPV = `spv_team_members`;
+  HRD posisi = sedivisi (bukan Direksi/eksternal), juga HRD tanpa bagian Laporan (paritas). Log ACC dicatat app.
 - Izin HRD Admin (`is_hrd_admin`) hanya boleh diberikan ke pegawai divisi **HRD-GA** (`isHrdDept`); pencabutan
   selalu boleh. Ubah izin & akun HRD/Direksi
   hanya HRD penuh (`isFullHrd`); tak ada yang mengubah izin dirinya (`employees_guard_privileges`).
@@ -146,8 +149,14 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
   semua dashboard = pelaporan, bukan ambang rumus.
 - Direksi = subjek 360° terbatas: tampil di Review & Ekspor (Skor Akhir = 360°); `.neq('role','direksi')` di
   Dashboard/4-Box/KPI/kepatuhan/monitor/laporan-tim **sengaja dipertahankan**.
+- **Laporan Final terkunci** (keputusan 2026-10-12, `lib/final-lock.ts`): angka laporan Final tak boleh berubah
+  kecuali HRD menekan **Buka Kembali (ke Draf)** dulu. Jalur satu pegawai → tolak (`finalLockError`; KPI per bulan
+  lintas periode → `finalLockErrorForMonths`); proses massal (Hitung Ulang, `refreshLatePenalties`) → lewati pegawai
+  Final & laporkan jumlahnya; pengaturan seluruh periode (bobot, pertanyaan, `has_360`, hapus periode) → tolak bila
+  ada laporan Final (`periodLockError`). Gagal membaca status = tolak. Jalur baru yang mengubah angka WAJIB lewat sini.
 - Periode terkunci **boleh dibuka kembali** (laporan Final aman; selisih ditandai). Karena itu pengaman Q1 wajib
-  di server: `lib/backfill-guard.ts` menolak Hitung Ulang periode hasil impor (`score360.backfill`) — jangan
+  di server: `lib/backfill-guard.ts` (`backfillLockReason`, **gagal tertutup**) menolak Hitung Ulang & potongan telat
+  periode hasil impor (`score360.backfill`) — jangan
   Hitung Ulang Q1 2026.
 - `lib/score360.ts` diekstrak dari `app/(app)/admin/360/actions.ts` — jaga sinkron.
 - **Mengubah rumus atau ambang** = ubah kode + tes + tabel TEKNIS.md §4 sekaligus.
@@ -187,9 +196,11 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
   > 1000 baris — PostgREST memotong diam-diam (bug 2026-07-08: 51/52 Skor 360° salah).
 - **Jangan** `npm audit fix --force` (menurunkan Next 16 → 9). `xlsx@0.20.3` dari CDN SheetJS.
 - Rumus menentukan keputusan SDM nyata dan salahnya tak memunculkan error → `npm test` wajib hijau saat kode
-  disentuh (307 tes / 18 file). Server Action diuji dengan mock `tests/helpers/mock-supabase.ts`.
+  disentuh (±900 tes / 47 file). Server Action diuji dengan mock `tests/helpers/mock-supabase.ts`.
 - `npm run verify:rls` (56 pemeriksaan, fixture `RLSTEST-*` self-cleaning) manual pra-rilis & tiap ubah RLS.
-- Migrasi baru: idempoten, nomor urut, terapkan ke staging dulu; urutan rilis → TEKNIS.md §1.
+- Migrasi baru: idempoten, nomor urut, terapkan ke staging dulu; urutan rilis → TEKNIS.md §1. Kode yang memanggil
+  fungsi database baru WAJIB punya cadangan cara lama bila fungsinya belum ada (`rpcMissing`, `lib/supabase/rpc.ts`),
+  dan `scripts/check-migrations.sql` diperbarui.
 - Kerja di `dev` → PR ke `main`. Jangan push langsung ke `main`.
 
 ## 10. Perintah
@@ -198,7 +209,7 @@ npm install
 npm run dev        # Next.js dev :3000
 npm run build      # validasi tipe & prerender — jalankan sebelum push
 npm run typecheck  # tsc --noEmit
-npm run lint
+npm run lint       # eslint . (flat config) — temuan lama belum dibersihkan; belum di CI
 npm test           # vitest run
 npm run test:watch
 npm run verify:rls # butuh anon + service role key di .env.local

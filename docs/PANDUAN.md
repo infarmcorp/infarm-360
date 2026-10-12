@@ -630,13 +630,19 @@ ACC SPV · Status · Aksi**.
 **Dua label penanda:**
 - **"perlu dihitung ulang"** = Skor 360° tersimpan sudah usang → **① Hitung Ulang Skor 360°**.
 - **"berubah → N"** = laporan Final, tetapi angka terkini berbeda dari yang tersimpan → **② Perbarui Laporan
-  Final yang Berubah** (atau manual: Kembalikan ke Draf lalu Finalisasi ulang).
+  Final yang Berubah** (atau manual: Buka Kembali (ke Draf) lalu Finalisasi ulang).
 
 **Halaman detail pegawai.** Panel aksi menyesuaikan status, dengan label **Status** dan **Skor Akhir**. Panel
 hanya ada untuk periode aktif.
 - **Belum Final** (Draf / belum ada / Ditinjau): **Unduh PDF · Simpan Draf · Rilis ke SPV · Finalisasi Hasil**.
   "Rilis ke SPV" hilang setelah Ditinjau. Untuk laporan pegawai berperan SPV tombolnya **Rilis ke Direksi**.
-- **Final**: hanya **Unduh PDF** + **↩ Kembalikan ke Draf**. Untuk mengubah apa pun, kembalikan ke draf dulu.
+- **Final**: hanya **Unduh PDF** + **↩ Buka Kembali (ke Draf)**. Untuk mengubah apa pun, buka kembali dulu.
+- **Laporan Final terkunci.** Selama laporan seorang pegawai Final, angka di laporannya tidak bisa berubah:
+  KPI-nya tidak bisa diisi/diubah/dihapus, penilaian 360° untuknya tidak bisa dikirim atau dibatalkan, potongan
+  telat dan bobot khususnya tidak bisa diubah, dan Hitung Ulang Skor 360° / Terapkan Potongan **melewatinya**
+  (jumlah yang dilewati disebutkan). Pengaturan seluruh periode (bobot, pertanyaan & indikator, 360° periode,
+  hapus periode) terkunci begitu ada **satu** laporan Final di periode itu. Pesannya selalu menyebut apa yang
+  harus dilakukan: **Buka Kembali** laporannya dulu.
 - KPI dan 360° keduanya kosong → laporan belum bisa disimpan. Hanya KPI kosong → Skor Akhir = Skor 360°.
 - Banner kuning **"Skor 360° perlu dihitung ulang"** menyebut penyebabnya (penilaian dikirim/diubah, koreksi
   relasi disetujui, bobot berubah, atau belum pernah dihitung). Jalankan ① di kokpit, lalu simpan/rilis/finalisasi ulang.
@@ -654,7 +660,7 @@ hanya ada untuk periode aktif.
 | **Simpan Draf** | Simpan tanpa merilis; SPV hanya melihat angka Skor Akhir. ACC lama batal | Belum Final | — |
 | **Rilis ke SPV** / **Rilis ke Direksi** | Status Ditinjau; peninjau bisa membuka detail & memberi ACC. Rilis ulang dengan skor berbeda membatalkan ACC lama. Opsional | Belum Final & belum Ditinjau | — |
 | **Finalisasi Hasil** | Laporan tampil ke pegawai. Bisa dari Draf atau Ditinjau; **tidak** menunggu ACC | Belum Final | Bersyarat — bila Skor 360° perlu dihitung ulang atau KPI belum lengkap semua bulan (tidak memblokir) |
-| **↩ Kembalikan ke Draf** | Buka kunci & sembunyikan dari pegawai; ACC batal | Final | Ya |
+| **↩ Buka Kembali (ke Draf)** | Buka kunci & sembunyikan dari pegawai; ACC SPV/Direksi batal dan perlu diulang | Final | Ya |
 
 ### 5.10 Monitoring & Audit KPI
 - Dua tab: **Rekapitulasi Kuartal** dan **Riwayat & Audit Perubahan KPI**. Hanya tab yang dibuka yang memuat data.

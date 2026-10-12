@@ -16,7 +16,7 @@ export function BulkFinalizeButton({ count, staleCount }: { count: number; stale
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string; failed?: string } | null>(null);
 
   if (count === 0) return null; // tak ada yang siap difinalisasi → sembunyikan
 
@@ -26,7 +26,10 @@ export function BulkFinalizeButton({ count, staleCount }: { count: number; stale
     setBusy(false); setOpen(false);
     if (!res.ok) { setMsg({ ok: false, text: res.error }); return; }
     const skip = res.skipped.length ? ` · ${res.skipped.length} dilewati (${res.skipped.map((s) => s.name).join(', ')})` : '';
-    setMsg({ ok: true, text: `${res.finalized} laporan difinalisasi${skip}.` });
+    const failed = res.failed.length
+      ? `${res.failed.length} gagal disimpan: ${res.failed.map((f) => `${f.name} (${f.reason})`).join('; ')}`
+      : undefined;
+    setMsg({ ok: true, text: `${res.finalized} laporan difinalisasi${skip}.`, failed });
     router.refresh();
   }
 
@@ -37,6 +40,7 @@ export function BulkFinalizeButton({ count, staleCount }: { count: number; stale
         <CheckCheck className="w-3.5 h-3.5" /> Finalisasi Semua Ber-ACC ({count})
       </button>
       {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
+      {msg?.failed && <span className="text-[11px] font-semibold text-danger-ink">{msg.failed}</span>}
 
       <ConfirmDialog
         open={open} icon="✅" tone="primary"

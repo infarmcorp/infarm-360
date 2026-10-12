@@ -9,6 +9,34 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 ## Oktober 2026
 
 ### 2026-10-12 (di `dev`, belum di production)
+- **Laporan Final kini terkunci** (keputusan pemilik; dirilis ke production setelah finalisasi Q3). Dulu, setelah
+  laporan Final, rerata KPI, Skor 360°, dan skor aspek di laporan masih bisa bergeser bila ada yang mengubah data,
+  sementara Skor Akhir tetap angka lama. Kini, selama laporan seorang pegawai Final, data yang memengaruhi
+  laporannya tidak bisa diubah sampai HRD menekan **Buka Kembali (ke Draf)** (dulu "Kembalikan ke Draf"):
+  - ditolak dengan pesan: input/edit/impor/hapus KPI (juga bila bulannya dipakai periode lain tempat pegawai itu
+    Final), penilaian 360° untuknya (kirim/kirim ulang), Paksa Selesai, Batalkan/Pulihkan Validitas, koreksi
+    relasi/tambah penilai, potongan telat & bobot khususnya, serta finalisasi ulang tanpa membuka kembali;
+  - dilewati dan dihitung jumlahnya: Hitung Ulang Skor 360° dan Terapkan Potongan (termasuk penerapan otomatis);
+  - terkunci untuk seluruh periode begitu ada satu laporan Final: bobot periode, pertanyaan & indikator,
+    hidup/matikan 360° periode, dan hapus periode.
+  Konfirmasi Buka Kembali menjelaskan bahwa ACC SPV/Direksi dihapus dan perlu diulang, dan pegawai tidak bisa
+  melihat laporannya selama dibuka kembali. Tombol "Perbarui Laporan Final yang Berubah" dipertahankan sementara
+  untuk merapikan selisih lama.
+- **Perbaikan audit kode, gelombang 2b:**
+  - **Pengaman skor Q1 2026 (hasil impor) lebih ketat**: bila pengecekannya gagal dibaca, perubahan ditolak (dulu
+    dianggap boleh), dan potongan telat juga tak lagi bisa mengubah skor periode itu.
+  - **ACC hanya untuk yang berhak**: tak seorang pun bisa meng-ACC laporannya sendiri; SPV hanya anggota timnya;
+    HRD (Mode SPV) hanya pegawai sedivisi. HRD yang tak punya akses bagian Laporan kini bisa meng-ACC anggota
+    divisinya, sama seperti SPV (dulu tidak bisa).
+  - **Finalisasi massal jujur**: hanya laporan yang benar-benar tersimpan yang dihitung berhasil; yang gagal
+    disebutkan namanya.
+  - **Pengaturan Akses**: HRD tak bisa memberi akses halaman ke dirinya sendiri, dan isian izin tak bisa lagi
+    salah terbaca.
+  - **Batalkan/Pulihkan penilaian** kini memperingatkan bila Skor 360° belum ikut diperbarui, beserta langkahnya.
+  - **Aktifkan & Hapus Periode** kini berjalan sekaligus (tidak tertinggal setengah jalan) setelah pembaruan
+    database diterapkan; sebelum itu tetap memakai cara lama.
+  - Perbaikan kecil: data periode lalu di Dashboard tak lagi berisiko terpotong; input KPI tak lagi membocorkan nama
+    pegawai ke pengguna yang tak berwenang; `npm run lint` kembali berjalan (temuannya belum dibersihkan).
 - **Perbaikan hasil audit kode, gelombang 2:**
   - **Grafik Dashboard dan Monitor kini memakai golongan skor yang sama dengan laporan.** Dulu pegawai dengan
     rerata KPI tepat di batas (mis. 79,996, tampil 80,00 "Memenuhi" di laporan) masuk irisan "Perlu Peningkatan"

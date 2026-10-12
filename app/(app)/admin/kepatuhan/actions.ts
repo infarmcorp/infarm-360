@@ -2,10 +2,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
-import { refreshLatePenalties } from '@/lib/late-server';
+import { refreshLatePenalties, refreshLatePenaltiesDetailed } from '@/lib/late-server';
+import { backfillLockReason } from '@/lib/backfill-guard';
+import { finalLockError } from '@/lib/final-lock';
 
 /**
  * Flag Kepatuhan (HRD). Satu-satunya sanksi = potongan keterlambatan menilai pada Skor 360°
@@ -40,6 +42,13 @@ export async function setLateWaiver(raw: unknown): Promise<{ ok: true } | { ok: 
 
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+  // Periode hasil impor (Q1 2026): potongan tak boleh diubah — ditolak SEBELUM menyimpan penetapan.
+  const lock = await backfillLockReason(createAdminClient(), ap.id);
+  if (lock) return { ok: false, error: lock };
+  // Laporan pegawai sudah FINAL → potongannya tak boleh diubah sampai HRD menekan "Buka Kembali"
+  // (kunci laporan Final, gelombang 2b). Ditolak SEBELUM menyimpan; status tak terbaca = ditolak.
+  const finalLock = await finalLockError(createAdminClient(), ap.id, [employeeId]);
+  if (finalLock) return { ok: false, error: finalLock };
 
   // `points` SELALU ditulis (juga 0): upsert hanya menimpa kolom yang dikirim, jadi menghilangkan kolom
   // ini membuat nilai lama (mis. −7) tetap berlaku saat HRD mengubahnya ke 0 (bug 2026-10-12).
@@ -93,9 +102,10 @@ export async function setLateWaiver(raw: unknown): Promise<{ ok: true } | { ok: 
  * halaman Flag Kepatuhan (audit 2026-09-29). Pengganti cron yang dinonaktifkan: potongan bagi
  * penilai yang TAK PERNAH mengirim sampai deadline lewat baru masuk skor lewat aksi ini (atau
  * Hitung Ulang Skor 360°). Hanya memperbarui baris result_360 yang ada — tak menghitung ulang
- * rumus 360°. HRD-only.
+ * rumus 360°. HRD-only. Pegawai yang laporannya sudah FINAL dilewati & dihitung (`skippedFinal`);
+ * status Final tak terbaca → gagal (gagal tertutup).
  */
-export async function applyLatePenalties(): Promise<{ ok: true; changed: number } | { ok: false; error: string }> {
+export async function applyLatePenalties(): Promise<{ ok: true; changed: number; skippedFinal: number } | { ok: false; error: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
@@ -104,19 +114,21 @@ export async function applyLatePenalties(): Promise<{ ok: true; changed: number 
 
   const { data: ap } = await supabase.from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+  const lock = await backfillLockReason(createAdminClient(), ap.id);
+  if (lock) return { ok: false, error: lock };
 
-  let changed = 0;
-  try { changed = await refreshLatePenalties(ap.id); } catch (e) {
+  let changed = 0, skippedFinal = 0;
+  try { ({ changed, skippedFinal } = await refreshLatePenaltiesDetailed(ap.id)); } catch (e) {
     return { ok: false, error: 'Gagal menerapkan potongan: ' + (e instanceof Error ? e.message : String(e)) };
   }
 
   await logHrdAction({
     action: 'late_penalty.apply', category: 'kepatuhan',
-    summary: `Menerapkan potongan keterlambatan menilai ke Skor 360° periode "${ap.label}" (${changed} pegawai diperbarui)`,
-    targetType: 'period', targetId: ap.id, targetLabel: ap.label, meta: { changed },
+    summary: `Menerapkan potongan keterlambatan menilai ke Skor 360° periode "${ap.label}" (${changed} pegawai diperbarui${skippedFinal ? `; ${skippedFinal} pegawai dilewati karena laporannya sudah Final` : ''})`,
+    targetType: 'period', targetId: ap.id, targetLabel: ap.label, meta: { changed, ...(skippedFinal ? { skipped_final: skippedFinal } : {}) },
   });
   revalidatePath('/admin/kepatuhan');
   revalidatePath('/admin/laporan');
   revalidatePath('/admin/dashboard');
-  return { ok: true, changed };
+  return { ok: true, changed, skippedFinal };
 }

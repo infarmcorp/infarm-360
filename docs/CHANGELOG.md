@@ -9,6 +9,12 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 ## Oktober 2026
 
 ### 2026-10-12 (di `dev`, belum di production)
+- **Perbaikan mendesak: potongan telat yang diubah ke 0 kini tersimpan** (dirilis terpisah ke production
+  sebelum finalisasi Q3). Dulu, bila HRD sudah menetapkan potongan seorang pegawai (mis. −7) lalu mengubahnya
+  menjadi 0 ("dikecualikan"), nilai lama −7 tetap berlaku di Skor 360°, padahal Log Aktivitas mencatat
+  "Mengecualikan". Penyebabnya: nilai 0 disimpan tanpa menyertakan kolom nilainya, sehingga database
+  mempertahankan angka lama. Kini nilai selalu disimpan, dan Log Aktivitas mencatat angka yang benar-benar
+  tersimpan. Pegawai yang terdampak sebelum perbaikan perlu diatur ulang oleh HRD.
 - **Perbaikan hasil audit kode, gelombang 1:**
   - **Nama penilai tidak lagi terkirim ke pemegang akses "Review & Finalisasi"** yang bukan HRD. Dulu nama
     penilai memang tidak tampil di layar, tetapi datanya ikut terkirim ke browser dan bisa dibaca lewat alat

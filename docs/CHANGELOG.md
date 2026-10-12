@@ -28,7 +28,7 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   Q3 2026. Bila muncul lagi: dugaan iOS Safari memakai ketukan pertama untuk menutup keyboard; perbaikan kandidat
   = merespons saat jari menyentuh, menutup keyboard lebih dulu, atau bar navigasi menempel.
 - **Akses Direksi ke Monitor Kinerja Pegawai** tidak dibuat khusus; cukup diberikan lewat Manajemen Akses.
-- **Dokumentasi dirapikan**: 23 file digabung menjadi 6 file inti.
+- **Dokumentasi dirapikan**: 23 file digabung menjadi 6 file inti. Branch lama `feature/review-penilaian` (sudah tercakup di `dev`) dan `docs/rapikan` dihapus.
 
 ### 2026-10-05 s.d. 10-08
 - **Review & Finalisasi**: tombol Tinjau muncul untuk pegawai yang sudah dinilai walau skornya belum dihitung;

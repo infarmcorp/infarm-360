@@ -23,7 +23,6 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   masih sama dengan versi 30 Juli (masih ada "Review Hasil Akhir", "punishment", "4 karakter", salah ketik
   "ditHRD"). Jangan rilis `dev` ke production sebelum PDF benar-benar diperbarui; kalau tidak, tanda "BARU"
   muncul tanpa isi baru.
-- Branch lama `feature/review-penilaian` sudah tercakup di `dev` dan boleh dihapus.
 
 ---
 
@@ -46,7 +45,6 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   tambahkan ke [PANDUAN.md](PANDUAN.md) §2.2.
 - 🔑⬜ **Pastikan semua perubahan database Q3 2026 sudah terpasang di production** (dan staging). Kode di
   production sudah memakainya. Cara cek dan daftar perubahannya di [TEKNIS.md](TEKNIS.md) §1 dan §6.
-- ⬜ **Hapus branch `feature/review-penilaian`** (sudah tercakup di `dev`).
 
 ### Keamanan
 - 🔑⬜ **Ganti kunci rahasia database** (kunci admin Supabase dan lainnya) sebelum produksi penuh. Kunci admin

@@ -409,11 +409,11 @@ describe('setLateWaiver — penulisan & penerapan ke Skor 360°', () => {
     r360: [r360(EMP, 80, 77, 3), r360(OTHER, 50, 47, 3)],
   });
 
-  it('points 0 → upsert TANPA kolom points, skor EMP kembali ke score_raw; pegawai lain tak disentuh', async () => {
+  it('points 0 → upsert DENGAN points: 0, skor EMP kembali ke score_raw; pegawai lain tak disentuh', async () => {
     const db = setup({ data: base() });
     expect(await setLateWaiver({ employeeId: EMP, reason: '  Sakit  ', points: 0 })).toEqual({ ok: true });
     const up = db.calls.find((c) => c.table === 'late_penalty_waivers' && c.op === 'upsert');
-    expect(up?.payload).toEqual({ employee_id: EMP, period_id: 'p', reason: 'Sakit', set_by: UID });
+    expect(up?.payload).toEqual({ employee_id: EMP, period_id: 'p', reason: 'Sakit', set_by: UID, points: 0 });
     expect(up?.onConflict).toBe('employee_id,period_id');
     expect(rowOf(db, EMP)).toEqual({ raw: 80, pen: 0, score: 80 });
     expect(rowOf(db, OTHER)).toEqual({ raw: 50, pen: 3, score: 47 });
@@ -466,14 +466,16 @@ describe('setLateWaiver — penulisan & penerapan ke Skor 360°', () => {
     expect(db.calls.some((c) => c.table === 'late_penalty_waivers' && c.op === 'delete')).toBe(true);
   });
 
-  it('CATATAN: ubah penetapan −7 → 0 mengirim upsert tanpa points, sehingga nilai 7 LAMA tetap tersimpan', async () => {
-    // Upsert PostgREST hanya menimpa kolom yang dikirim; payload points=0 tak menyertakan `points`.
+  it('ubah penetapan −7 → 0 → 0 benar-benar tersimpan & berlaku (perbaikan 2026-10-12)', async () => {
+    // Upsert PostgREST hanya menimpa kolom yang dikirim → `points` kini SELALU dikirim (juga 0).
     const db = setup({ data: base([{ period_id: 'p', employee_id: EMP, reason: 'Berulang', points: 7 }]) });
     db.tables.result_360[0] = r360(EMP, 80, 73, 7);
     expect(await setLateWaiver({ employeeId: EMP, reason: 'Ternyata sakit', points: 0 })).toEqual({ ok: true });
-    expect(db.tables.late_penalty_waivers[0]).toMatchObject({ reason: 'Ternyata sakit', points: 7 });
-    expect(rowOf(db, EMP)).toEqual({ raw: 80, pen: 7, score: 73 }); // BUKAN 0 seperti yang dimaksud
-    expect(mockLog.mock.calls[0][0].action).toBe('late_penalty.waive'); // log menyebut "dikecualikan"
+    expect(db.tables.late_penalty_waivers[0]).toMatchObject({ reason: 'Ternyata sakit', points: 0 });
+    expect(rowOf(db, EMP)).toEqual({ raw: 80, pen: 0, score: 80 });
+    const log = mockLog.mock.calls[0][0];
+    expect(log.action).toBe('late_penalty.waive');
+    expect(log.meta).toEqual({ reason: 'Ternyata sakit', points: 0 });
   });
 
   it('error DB menyebut "points" → pesan perlu migrasi 0043; tanpa menerapkan ke skor', async () => {

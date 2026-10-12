@@ -93,9 +93,9 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   ditekan, atau potongan telat diubah. Skor Akhir tetap angka lama, dan HRD melihat tanda "skor basi".
   Pilihan: bekukan semua angka saat finalisasi, atau tolak perubahan setelah Final kecuali lewat buka-kembali.
 - 🔑⬜ **Temuan dari tes gelombang 2** (dicatat, belum diperbaiki; keputusan menyusul):
-  - **Potongan telat yang diubah menjadi 0 tidak tersimpan.** Bila HRD sudah menetapkan potongan (mis. −7) lalu
-    menggantinya menjadi 0, nilai lama −7 tetap berlaku, padahal Log Aktivitas mencatat "Mengecualikan". Perlu
-    cek data production, lalu diperbaiki.
+  - ✅ **Potongan telat yang diubah menjadi 0 tidak tersimpan** — sudah diperbaiki dan dirilis terpisah
+    (2026-10-12). 🔑 Sisa: jalankan query cek dampak; bila ada pegawai terdampak, HRD mengatur ulang potongannya
+    ke 0 lalu menekan Terapkan Potongan.
   - **Pengaman Q1 2026 bisa lolos saat database bermasalah.** Bila pengecekan "periode hasil impor" gagal
     dibaca, Hitung Ulang dianggap boleh. Penerapan potongan telat juga tidak dijaga pengaman ini bila Q1 dibuka
     kembali.

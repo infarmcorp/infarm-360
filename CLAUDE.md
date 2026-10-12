@@ -64,6 +64,8 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
 - **Aplikasi menegakkan kebijakan, bukan menambal kelalaian** (2026-06-25): jangan usulkan pengaman keteledoran
   (mis. penegasan "wajib tekan Kirim") tanpa permintaan eksplisit. Pengecualian yang sudah diminta: konfirmasi
   hapus Ad-Hoc = modal in-app `app/(app)/penilaian/modal.tsx` (alasan konsistensi design system).
+- **Progress 360** (`admin/progress`, pemantauan) dan **Flag Kepatuhan** (`admin/kepatuhan`, potongan
+  keterlambatan −3) **sengaja terpisah** — bukan duplikasi, jangan digabung.
 - **Kebijakan mutlak:** semua rating + evidence (≥ 20 karakter) + semua esai wajib sebelum Kirim.
 - **Jangan** dorong aksesibilitas ke pembaca layar (`aria-*`/`role`/uji NVDA) tanpa diminta — basis pengguna tak
   membutuhkannya; percobaan sebelumnya di-revert. Keterbacaan (kontras, ukuran ≥ 10px) tetap dijaga.
@@ -73,19 +75,26 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
 - Lapis informasi laporan (dipakai di kode & komentar): **L1** Skor Akhir · **L2** agregat (radar/aspek +
   ringkasan HRD) · **raw anonim** (`byAspect`/`essays`, komentar & rating verbatim tanpa identitas) ·
   **L3** `assessors` (umpan balik **bernama** per penilai).
-- **Jangan pernah** kirim L3 ke non-HRD; loader tim (`loadTeamReportForSpv`/`ForCoordinator`/
-  `loadSpvReportForDireksi`/`loadTeamReportForHrdSpv`) membuangnya. Di layar laporan mana pun komentar tampil
-  anonim (juga untuk HRD); siapa-menilai-siapa hanya di Pemetaan/Progress 360 (HRD).
+- **Jangan pernah** kirim L3 ke non-HRD — **buang di server**, bukan disembunyikan di layar (`ReportDoc` komponen
+  klien). Loader tim (`loadTeamReportForSpv`/`ForCoordinator`/`loadSpvReportForDireksi`/`loadTeamReportForHrdSpv`/
+  `loadReportForDireksiReview`) dan jalur grant Review (`reportForGrantViewer`) membuangnya. Di layar laporan mana
+  pun komentar tampil anonim (juga untuk HRD); siapa-menilai-siapa hanya di Pemetaan/Progress 360 (HRD).
 - RLS raw 360° (`asmt_read`/`ais_read`/`aqa_read`, `map_read`, `corr_read`) hanya HRD (+ penilai atas miliknya);
-  tanpa `is_my_member`, tanpa cabang target/Direksi. Paparan raw anonim ke SPV/Koordinator/Direksi/grant =
+  tanpa `is_my_member`, tanpa cabang target/Direksi. Paparan raw anonim ke SPV/Koordinator/Direksi =
   **app-level** via `service_role`, hanya saat laporan `in_review`/`finalized`. ⚠️ Risiko de-anonimisasi pada
-  kelas penilai kecil; mudah dibalik.
+  kelas penilai kecil; mudah dibalik. **Pengecualian tanpa gerbang status (disengaja):**
+  - Grant "Review & Finalisasi" melihat raw anonim **sejak draf** — tugasnya membantu menyusun ringkasan aspek.
+    L3 tetap dilarang.
+  - Tinjauan Hasil Akhir Direksi (`/review-hasil`, `loadReportForDireksiReview`): semua pegawai, semua status
+    termasuk draf, read-only; L3 dibuang.
+  - Monitor boleh menampilkan skor 360° **berjalan** sebelum laporan dirilis. Setelah dirilis/Final, angkanya
+    harus sama dengan laporan.
 - Lingkup raw SPV = seluruh pegawai **sedivisi** (`inSpvDivisionScope`) — hanya untuk detail laporan; KPI/Monitor/
   ACC/RLS `is_my_member` tetap `spv_team_members`. Laporan **diri sendiri tanpa raw** (`withoutRaw`) kecuali HRD
   Mode Admin & Direksi. Anggota tim koordinator wajib sedivisi.
 - Employee hanya membaca laporannya saat `finalized` (dimuat via service_role). Direksi read-only + ACC.
-- **KPI hanya lewat Server Action** (`kpi_write` RLS dicabut): lingkup `assertKpiScope` (HRD semua · SPV tim+diri
-  · Koordinator tim), tulis atomik `kpi_save_with_audit`/`kpi_delete_with_audit`. Audit KPI tak boleh
+- **KPI hanya lewat Server Action** (`kpi_write` RLS dicabut): lingkup `assertKpiScope` (HRD = divisinya sendiri
+  + diri, apa pun modenya · SPV tim+diri · Koordinator tim), tulis atomik `kpi_save_with_audit`/`kpi_delete_with_audit`. Audit KPI tak boleh
   diubah/dihapus dari client.
 - Periode terkunci & form tertutup ditolak server (`assessment_writable`, trigger). Kirim ulang hanya sampai
   deadline (`assessment_locked_after_deadline`).
@@ -99,7 +108,8 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   `laporan/[employeeId]` (jalur `asSpv` + `loadTeamReportForHrdSpv`). Jangan tinggalkan cabang `role==='hrd'`.
   Paritas yang sama berlaku ke jalur grant halaman.
 - Pegawai berkoordinator: ACC & input KPI oleh **koordinator**; SPV/HRD Mode-SPV hanya lihat status.
-- Izin HRD Admin hanya untuk divisi HRD (`isHrdDept`); pencabutan selalu boleh. Ubah izin & akun HRD/Direksi
+- Izin HRD Admin (`is_hrd_admin`) hanya boleh diberikan ke pegawai divisi **HRD-GA** (`isHrdDept`); pencabutan
+  selalu boleh. Ubah izin & akun HRD/Direksi
   hanya HRD penuh (`isFullHrd`); tak ada yang mengubah izin dirinya (`employees_guard_privileges`).
 - `hrd_sections` (Atur Akses): menu + **tulis** dibatasi (`canSection`, DB `hrd_can`); **baca** tetap `is_hrd()`.
 - **Grant halaman (`page_grants`) — model beku:** 1 grant = orang + halaman + lingkup (multi) + izin 3 tingkat

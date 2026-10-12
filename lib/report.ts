@@ -220,6 +220,17 @@ export function withoutRaw(data: ReportData): ReportData {
 }
 
 /**
+ * Data laporan untuk pemegang grant "Review & Finalisasi" (non-HRD-penuh). L3 `assessors` (umpan
+ * balik BERNAMA) SELALU dibuang di server — ReportDoc komponen klien, jadi menyembunyikan di layar
+ * saja tetap mengirim nama penilai ke browser. Raw anonim (byAspect/essays) dipertahankan, kecuali
+ * laporan diri sendiri (withoutRaw); Direksi boleh melihat raw miliknya.
+ */
+export function reportForGrantViewer(data: ReportData, opts: { isSelf: boolean; isDireksi: boolean }): ReportData {
+  if (opts.isSelf && !opts.isDireksi) return withoutRaw(data);
+  return { ...data, assessors: [] };
+}
+
+/**
  * Lingkup SPV meninjau laporan (keputusan 2026-10-07): SPV menaungi SELURUH divisinya (1 divisi =
  * 1 SPV; koordinator & timnya selalu sedivisi) → boleh = pegawai SEDIVISI, bukan Direksi.
  * Diri sendiri ditangani pemanggil (boleh lihat laporan, tanpa raw).

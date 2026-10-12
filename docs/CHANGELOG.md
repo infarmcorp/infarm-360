@@ -9,6 +9,19 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 ## Oktober 2026
 
 ### 2026-10-12 (di `dev`, belum di production)
+- **Perbaikan hasil audit kode, gelombang 1:**
+  - **Nama penilai tidak lagi terkirim ke pemegang akses "Review & Finalisasi"** yang bukan HRD. Dulu nama
+    penilai memang tidak tampil di layar, tetapi datanya ikut terkirim ke browser dan bisa dibaca lewat alat
+    developer. Kini dibuang sebelum dikirim. Tampilan tidak berubah; komentar anonim tetap terlihat.
+  - **Email pegawai tidak lagi ada di halaman login.** Halaman login bisa dibuka siapa saja, dan dulu memuat
+    email semua pegawai aktif untuk dropdown "Pilih dari daftar". Dropdown tetap sama (nama, divisi, peran);
+    email dicari oleh server saat pegawai menekan Masuk. Pesan gagal sengaja dibuat sama untuk semua sebab, agar
+    tidak ketahuan apakah nama atau sandinya yang salah. Masuk dengan email manual tidak berubah.
+  - **Menu "Monitoring & Audit KPI" langsung membuka Riwayat & Audit.** Dulu selalu jatuh ke Rekapitulasi.
+  - Keputusan yang dicatat: pemegang akses Review boleh membaca komentar anonim sejak laporan masih draf (untuk
+    menyusun ringkasan aspek); Monitor boleh menampilkan Skor 360° berjalan sebelum laporan dirilis; HRD hanya
+    menginput KPI divisinya sendiri dan dirinya; izin HRD hanya untuk pegawai divisi HRD-GA; Progress 360 dan
+    Flag Kepatuhan sengaja dipisah.
 - **Mode Maintenance.** Halaman "Sedang Maintenance" untuk semua pengguna saat aplikasi dirawat, dinyalakan
   dari dashboard Vercel **tanpa deploy ulang**. Versi pertama memakai pengaturan yang butuh deploy ulang; di hari
   yang sama diganti ke saklar Edge Config. Sengaja tidak bergantung pada database, karena maintenance sering

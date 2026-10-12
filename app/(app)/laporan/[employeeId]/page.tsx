@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin, canCoordinate, canSection, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
-import { loadReport, withoutRaw, loadTeamReportForSpv, loadTeamReportForHrdSpv, loadTeamReportForCoordinator, loadSpvReportForDireksi, isDireksiReviewSubject } from '@/lib/report';
+import { loadReport, reportForGrantViewer, loadTeamReportForSpv, loadTeamReportForHrdSpv, loadTeamReportForCoordinator, loadSpvReportForDireksi, isDireksiReviewSubject } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
 import { ReportActions } from '../report-actions';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
@@ -84,8 +84,9 @@ export default async function LaporanDetailPage({
   // ── Jalur GRANT "Review & Finalisasi" (Manajemen Akses, Tahap 2) ─────────────────────────────
   // Pemegang grant 'review' (non-HRD-penuh) membuka detail pegawai DALAM LINGKUP-nya. Diprioritaskan
   // di atas cabang peran (Direksi/Koordinator/SPV) — grant eksplisit & berlingkup. Baca via
-  // service_role (pemegang bukan is_hrd() → RLS memblokir). Umpan balik tetap ANONIM (L3 bernama
-  // sudah dibuang loadReport). READ-ONLY bila can_edit=false; panel aksi & editor hanya bila boleh-edit.
+  // service_role (pemegang bukan is_hrd() → RLS memblokir). loadReport memuat L3 bernama (`assessors`)
+  // → WAJIB dibuang di server via reportForGrantViewer sebelum dikirim ke ReportDoc (komponen klien).
+  // READ-ONLY bila can_edit=false; panel aksi & editor hanya bila boleh-edit.
   if (!isHrdFull && reviewGrant) {
     const admin = createAdminClient();
     const { data: tgt } = await admin.from('employees').select('dept').eq('id', employeeId).maybeSingle();
@@ -111,7 +112,7 @@ export default async function LaporanDetailPage({
     // Laporan DIRI SENDIRI (mis. lingkup 'self'/'own_division'/'all') → tanpa umpan balik mentah;
     // pengecualian Direksi (boleh melihat raw miliknya). HRD Mode Admin tak lewat cabang ini.
     const hideOwnRaw = employeeId === user.id && role !== 'direksi';
-    const data = hideOwnRaw ? withoutRaw(loaded) : loaded;
+    const data = reportForGrantViewer(loaded, { isSelf: employeeId === user.id, isDireksi: role === 'direksi' });
     // Periode lampau → turunkan ke lihat-saja, apa pun tingkat izin grant-nya.
     const canEditReport = reviewGrant.canEdit && periodActive;       // Meringkas+ → boleh tulis Ringkasan Aspek
     const canFinalizeReport = reviewGrant.canFinalize && periodActive; // Finalisasi → boleh panel aksi (finalisasi/rilis)

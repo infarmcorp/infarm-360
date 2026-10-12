@@ -57,6 +57,16 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
     = satu titik gagal);
   - tiap akhir kuartal, unduh file backup terenkripsi dari GitHub (hanya disimpan 30 hari) ke Drive tim;
   - ulangi backup manual di akhir periode dan sebelum perubahan database/reset.
+- 🔑⬜ **Izin HRD tidak tercabut saat pegawai pindah divisi.** Izin HRD hanya boleh diberikan ke pegawai divisi
+  HRD-GA, tetapi bila pemegangnya dipindah ke divisi lain lewat Ubah Pegawai, izinnya tetap melekat. Keputusan
+  menyusul: dicabut otomatis, atau HRD diberi peringatan saat memindahkan.
+- 🔑⬜ **SPV yang juga punya izin HRD** (temuan audit no. 11). Bila akun seperti ini ada, di Mode Admin ia tetap
+  diperlakukan sebagai SPV: dari Review & Finalisasi ia hanya melihat laporan versi SPV, tanpa tombol
+  Finalisasi, dan pegawai di luar divisinya tak bisa dibuka. Di Monitoring KPI, tab Riwayat menampilkan seluruh
+  organisasi sementara tab lain hanya timnya. **Menunggu cek:** adakah SPV divisi HRD-GA yang diberi izin HRD?
+  Bila tidak ada, cukup dicatat.
+- Catatan (risiko rendah): batas "HRD hanya menginput KPI divisinya sendiri" hanya dijaga aplikasi, tidak
+  dikunci di database. Pengguna tetap tidak bisa menulis KPI langsung ke database.
 
 ### Keandalan data
 - ⬜ **Seragamkan Skor 360° di Ekspor "Kinerja Lengkap".** Lembar Rekap memakai Skor 360° tersimpan (sesegar
@@ -73,6 +83,16 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   - Jalankan uji beban di staging sebelum dibuka ke ~100 pengguna ([TEKNIS.md](TEKNIS.md) §7.5).
   - Laporan "layar kosong di HP" belum dikejar. Dugaan: perangkat (jam/tanggal HP salah sehingga sertifikat
     HTTPS gagal, atau jaringan), bukan aplikasi.
+- ⬜ **Perbaikan audit kode gelombang 2** (setelah Q3 2026 ditutup, agar angka tidak bergeser di tengah periode):
+  - no. 3: kategori skor di grafik Dashboard dan Monitor disamakan dengan laporan untuk pegawai yang skornya tepat
+    di batas (mis. 79,996 kini tampil "Memenuhi" di mana-mana);
+  - no. 4 dan 6: daftar tugas HRD dan Monitor dibuat aman bila datanya lebih dari 1.000 baris (cek dulu jumlah
+    pegawai dan bulan di production);
+  - no. 7: ekspor Excel menampilkan pesan gagal bila pengambilan data terputus, bukan menghasilkan file yang
+    diam-diam tidak lengkap;
+  - no. 10: angka 360° di Monitor setelah laporan dirilis/Final harus sama dengan laporan;
+  - menambah tes untuk perhitungan dan finalisasi yang belum teruji (hitung ulang Skor 360°, potongan telat,
+    finalisasi massal, buka/tutup periode, pengelolaan akses).
 
 ---
 

@@ -20,6 +20,8 @@ import { logHrdAction } from '@/lib/audit/log';
  */
 type Result = { ok: true; msg?: string } | { ok: false; error: string };
 
+const SELF_GRANT_MSG = 'Anda tidak dapat memberi atau mengubah akses halaman untuk diri sendiri.';
+
 async function requireFullHrd(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: 'Sesi berakhir, silakan login ulang' };
@@ -43,7 +45,8 @@ const GrantInput = z.object({
  * tetap diisi (`scopes[0]`) demi kompatibilitas app yang belum di-deploy ulang.
  */
 export async function setPageGrant(employeeId: string, section: unknown, scopes: unknown, canEdit: unknown = false, canFinalize: unknown = false): Promise<Result> {
-  const parsed = GrantInput.safeParse({ employeeId, section, scopes, canEdit: !!canEdit, canFinalize: !!canFinalize });
+  // Izin divalidasi sebagai boolean SUNGGUHAN (Zod) — dulu `!!` membuat teks "false" terbaca true.
+  const parsed = GrantInput.safeParse({ employeeId, section, scopes, canEdit, canFinalize });
   if (!parsed.success) return { ok: false, error: 'Input tidak valid (pilih minimal satu lingkup).' };
   const { employeeId: id, section: sec } = parsed.data;
   // Normalisasi: buang duplikat; 'all' menyerap semua → simpan ['all'] saja (paling ringkas).
@@ -55,6 +58,8 @@ export async function setPageGrant(employeeId: string, section: unknown, scopes:
   const supabase = await createClient();
   const auth = await requireFullHrd(supabase);
   if (!auth.ok) return auth;
+  // Tak ada yang memberi/mengubah akses halamannya sendiri (selaras employees_guard_privileges).
+  if (id === auth.userId) return { ok: false, error: SELF_GRANT_MSG };
 
   const { data: target } = await supabase.from('employees').select('name').eq('id', id).maybeSingle();
   if (!target) return { ok: false, error: 'Pegawai tidak ditemukan.' };
@@ -108,7 +113,7 @@ const RoleGrantInput = z.object({
  * untuk Edit-ke-peran-luas ditangani di klien (konfirmasi) — di server tetap dibolehkan.
  */
 export async function setPageGrantForRole(roleTarget: unknown, section: unknown, scopes: unknown, canEdit: unknown = false, canFinalize: unknown = false): Promise<Result> {
-  const parsed = RoleGrantInput.safeParse({ roleTarget, section, scopes, canEdit: !!canEdit, canFinalize: !!canFinalize });
+  const parsed = RoleGrantInput.safeParse({ roleTarget, section, scopes, canEdit, canFinalize });
   if (!parsed.success) return { ok: false, error: 'Input tidak valid (pilih peran, halaman, & minimal satu lingkup).' };
   const { roleTarget: rt, section: sec } = parsed.data;
   let scps: PageScope[] = [...new Set(parsed.data.scopes)];
@@ -128,9 +133,12 @@ export async function setPageGrantForRole(roleTarget: unknown, section: unknown,
   else q = q.eq('role', 'direksi');
   const { data: members, error: mErr } = await q;
   if (mErr) return { ok: false, error: 'Gagal membaca anggota peran: ' + mErr.message };
-  if (!members || members.length === 0) return { ok: false, error: `Tak ada anggota ${GRANT_ROLE_TARGET_LABELS[rt]} saat ini.` };
+  // Pelaku sendiri (mis. HRD ber-izin yang juga Koordinator/Pegawai) DIKECUALIKAN dari hibah massal.
+  const selfExcluded = (members ?? []).some((m) => m.id === auth.userId);
+  const targets = (members ?? []).filter((m) => m.id !== auth.userId);
+  if (targets.length === 0) return { ok: false, error: `Tak ada anggota ${GRANT_ROLE_TARGET_LABELS[rt]} saat ini${selfExcluded ? ' selain Anda sendiri' : ''}.` };
 
-  const rows = members.map((m) => ({
+  const rows = targets.map((m) => ({
     employee_id: m.id, section: sec, scope: scps[0], scopes: scps, can_edit: edit, can_finalize: finalize, created_by: auth.userId,
   }));
   const { error } = await admin.from('page_grants').upsert(rows, { onConflict: 'employee_id,section' });
@@ -144,7 +152,7 @@ export async function setPageGrantForRole(roleTarget: unknown, section: unknown,
     targetType: 'role', targetId: rt, targetLabel: GRANT_ROLE_TARGET_LABELS[rt], meta: { section: sec, scopes: scps, can_edit: edit, can_finalize: finalize, count: rows.length },
   });
   revalidate();
-  return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" diberikan ke ${rows.length} ${GRANT_ROLE_TARGET_LABELS[rt]} (${scopeLabel}${izinNote}).` };
+  return { ok: true, msg: `Akses "${GRANTABLE_PAGE_LABELS[sec as GrantablePage]}" diberikan ke ${rows.length} ${GRANT_ROLE_TARGET_LABELS[rt]} (${scopeLabel}${izinNote})${selfExcluded ? ' — Anda sendiri dikecualikan' : ''}.` };
 }
 
 /** Cabut akses halaman untuk seorang pegawai. Ditulis via service_role. */

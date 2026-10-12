@@ -35,7 +35,7 @@ export function PerbaruiSandiForm() {
 
   if (done) {
     return (
-      <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-800">
+      <div className="rounded-control bg-brand-tint p-4 text-sm text-brand-ink">
         Sandi berhasil diperbarui. Mengalihkan…
       </div>
     );
@@ -44,18 +44,18 @@ export function PerbaruiSandiForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-1">Sandi Baru</label>
+        <label className="block text-xs font-semibold text-ink-soft mb-1">Sandi Baru</label>
         <PasswordInput autoComplete="new-password" value={password} onChange={setPassword} placeholder="Minimal 8 karakter" />
       </div>
       <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-1">Ulangi Sandi Baru</label>
+        <label className="block text-xs font-semibold text-ink-soft mb-1">Ulangi Sandi Baru</label>
         <PasswordInput autoComplete="new-password" value={confirm} onChange={setConfirm} />
       </div>
-      {error && <p className="text-xs text-rose-600 font-semibold">{error}</p>}
+      {error && <p className="text-xs text-danger-ink font-semibold">{error}</p>}
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white text-sm font-bold py-2 rounded-lg transition-colors"
+        className="w-full bg-brand hover:bg-brand-ink disabled:opacity-60 text-white text-sm font-bold py-2 rounded-control transition-colors"
       >
         {loading ? 'Menyimpan…' : 'Simpan Sandi Baru'}
       </button>

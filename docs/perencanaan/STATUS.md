@@ -44,8 +44,11 @@ commit kenaikan versi sebelum isi PDF benar-benar direvisi (badge "BARU" akan mu
 - **Sesi 2026-08-06..09-10:** lanjutan Token Redesign (palet & font, halaman Status Siklus, **Beranda dihapus**
   2026-08-08), koreksi pemetaan, periode di Laporan Tim, batas input KPI pegawai nonaktif per tanggal keluar.
 
-**Sisa (lihat [TODO.md](TODO.md)):** Token Redesign (Laporan Kinerja Tim, Tinjauan Hasil Akhir Direksi,
-form auth, `loading.tsx`) · revisi PDF panduan · ekspor Rekap 360° live · branch protection · 🔑 rotasi
+- **Sesi 2026-10-12 (di `dev`):** dokumen .md diselaraskan dgn kondisi app; **filter Divisi** di Monitoring &
+  Audit KPI; **Token Redesign tuntas** (Laporan Kinerja Tim + komponen bersama Monitor — opsi 2, Tinjauan Hasil
+  Akhir Direksi, form auth, `loading.tsx`).
+
+**Sisa (lihat [TODO.md](TODO.md)):** revisi PDF panduan · ekspor Rekap 360° live · branch protection · 🔑 rotasi
 kredensial · 🔑 cek migrasi 0036–0047 di production (`scripts/check-migrations.sql`) · 🔑 salin backup ke luar laptop.
 
 ---
@@ -221,8 +224,8 @@ Bagian ini hanya potret status; perincian tiap fitur ada di **[CHANGELOG.md](CHA
 **File paling relevan:**
 - **Token Redesign (lanjut):** acuan token `app/globals.css` (`@theme` + `.data-value`) & CLAUDE.md "Design
   System"; primitif `components/` (`panel.tsx`/`button.tsx`/`status-chip.tsx`/`overflow-menu.tsx`); halaman
-  acuan `app/(app)/admin/periode/` + `app-shell.tsx`. **Belum di-token:** `app/(app)/laporan-tim/` (⚠️ `team-table.tsx`/`scorecards.tsx` **dipakai Monitor**),
-  `app/(app)/review-hasil/`, form `app/auth/` (lupa/perbarui sandi), `app/(app)/loading.tsx`. (Login sudah ter-token; Beranda dihapus.)
+  acuan `app/(app)/admin/periode/` + `app-shell.tsx`. **Semua halaman sudah ter-token per 2026-10-12** (kecuali konten
+  chart Dashboard & analitik Monitor yang sengaja dibiarkan).
 - Manajemen Akses (RBAC page_grants): `app/(app)/admin/akses/`, `lib/auth/roles.ts` (`grantedScope`/`grantedAccess`/
   `deptScopeFilter`/`GRANTABLE_PAGES`/`GRANTABLE_PAGE_KIND`), `app/(app)/admin/laporan/page.tsx` (SADAR-MODE +
   jalur grant review), `report-table.tsx` (prop `readOnly`), `app/(app)/app-shell.tsx` ("Akses dari HRD"),

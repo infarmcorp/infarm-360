@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { Panel } from '@/components/panel';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllByIds } from '@/lib/supabase/paginate';
 import { finalScoreOf, kpiAvgOf } from '@/lib/scoring';
@@ -18,14 +19,14 @@ export default async function ReviewHasilDireksiPage() {
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
   if (me?.role !== 'direksi') {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk Direksi.</p>
-      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk Direksi.</p>
+      <Link href="/" className="text-xs text-brand-ink font-semibold hover:underline mt-3 inline-block">← Kembali ke halaman awal</Link></Shell>;
   }
 
   const admin = createAdminClient();
   const { data: ap } = await admin
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
   const { data: emps } = await admin.from('employees').select('id, name, dept, is_active').eq('is_external', false);
   const employees = emps ?? [];
@@ -69,25 +70,23 @@ export default async function ReviewHasilDireksiPage() {
 
   return (
     <Shell>
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">Tinjauan Hasil Akhir</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Tinjauan Hasil Akhir</h1>
+          <p className="mt-1 text-[13.5px] text-ink-soft">
             {ap.label} · tinjauan eksekutif (read-only) hasil akhir seluruh pegawai. Kalibrasi &amp;
             finalisasi tetap wewenang HRD.
           </p>
         </div>
-        <Link href="/" className="text-xs text-gray-500 hover:underline">← Beranda</Link>
       </div>
-      <ReportTable rows={rows} depts={depts} has360={ap.has_360} hrefBase="/review-hasil" />
+      <Panel><ReportTable rows={rows} depts={depts} has360={ap.has_360} hrefBase="/review-hasil" /></Panel>
     </Shell>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
-    </main>
+    // Kanvas ber-token tanpa wrapper putih besar (pola Review & Finalisasi HRD); tabel dibungkus Panel datar.
+    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>
   );
 }

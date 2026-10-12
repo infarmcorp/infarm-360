@@ -27,8 +27,8 @@ identik; terakhir di-merge `b5caa4c` "ekspor Bahan Laporan per Pegawai"). Repo G
   ⚠️ Teks PDF baru **masih sama** dengan versi 30 Juli (cek ekstraksi teks 2026-10-12: masih "Review Hasil
   Akhir", "punishment", "4 karakter") → revisi di `docs/panduan/REVISI-PANDUAN-PDF.md` **belum diterapkan**.
   Jangan naikkan versi/deploy sebelum isi PDF benar-benar direvisi.
-- **Tersisa:** Token Redesign (Laporan Kinerja Tim, Tinjauan Hasil Akhir Direksi, form auth, `loading.tsx`),
-  ekspor Rekap 360° live, branch protection, rotasi kredensial 🔑, cek status migrasi 0036–0047 di production
+- **2026-10-12:** filter Divisi di Monitoring & Audit KPI; **Token Redesign tuntas** (Monitor ikut — opsi 2).
+- **Tersisa:** ekspor Rekap 360° live, branch protection, rotasi kredensial 🔑, cek status migrasi 0036–0047 di production
   🔑 (`scripts/check-migrations.sql`). Daftar lengkap → [TODO.md](docs/perencanaan/TODO.md).
 
 **File paling relevan (Q3 2026):** `lib/late.ts`/`lib/late-server.ts` (potongan telat & 4 status),
@@ -264,7 +264,8 @@ di Supabase → Authentication → URL Configuration; set `NEXT_PUBLIC_ENABLE_PW
 > Diterapkan bertahap per halaman; acuan referensi end-to-end = **Kelola Siklus Periode**
 > (`app/(app)/admin/periode/`) + **sidebar** (`app-shell.tsx`). Halaman baru/di-restyle ikuti pola ini.
 
-- **Brand** hijau muted `--color-brand #33604A` (+ `brand-ink`, `brand-tint`): **HANYA** untuk
+- **Brand** hijau `--color-brand #00843b` (diganti dari #33604A pada 2026-08; + `brand-ink #006B31`,
+  `brand-tint #E4F3E9`): **HANYA** untuk
   **primary action & elemen aktif** (tombol utama, item sidebar aktif, ring fokus). Bukan hiasan.
 - **Status/badge = soft-tint** (bg pucat + teks warna), **BUKAN solid fill**. Pakai `StatusChip`
   (`components/status-chip.tsx`, tone `neutral|brand|warn|danger`). Solid hanya untuk primary button.
@@ -279,7 +280,7 @@ di Supabase → Authentication → URL Configuration; set `NEXT_PUBLIC_ENABLE_PW
   (dropdown/modal/overflow-menu).
 - **Kartu = `Panel`** (`components/panel.tsx`) — flat (border, no shadow); **kurangi nested card**
   (card hanya untuk container modul utama, bukan tiap grup info).
-- **Font:** sans-serif (Inter) untuk teks; **monospace (IBM Plex Mono) untuk SEMUA angka/data/ID**
+- **Font:** sans-serif (**Montserrat**, sejak 2026-08) untuk teks; **monospace (IBM Plex Mono) untuk SEMUA angka/data/ID**
   via utility **`.data-value`** (alias `.mono`, + `tabular-nums`). Jangan pakai `.data-value` untuk kalimat.
 - **Tombol = `Button`** (`components/button.tsx`, variant `primary|ghost|danger`); aksi
   sekunder/destruktif di tabel → **`OverflowMenu` (⋯)**, sisakan **satu** primary action visible per row.

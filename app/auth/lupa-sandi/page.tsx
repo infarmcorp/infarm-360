@@ -11,14 +11,14 @@ export default function LupaSandiPage() {
   if (process.env.NEXT_PUBLIC_ENABLE_PW_RESET !== 'true') redirect('/login');
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <div className="w-full max-w-sm bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
-        <h1 className="text-lg font-bold text-gray-800">Lupa Sandi</h1>
-        <p className="text-sm text-gray-500 mb-5">
+    <main className="min-h-screen flex items-center justify-center bg-bg p-4 sm:p-6">
+      <div className="w-full max-w-sm bg-surface border border-line rounded-panel p-5 sm:p-6">
+        <h1 className="text-lg font-bold text-ink">Lupa Sandi</h1>
+        <p className="text-sm text-ink-soft mb-5">
           Masukkan email Anda. Kami kirimkan tautan untuk membuat sandi baru.
         </p>
         <LupaSandiForm />
-        <Link href="/login" className="mt-4 block text-center text-[11px] text-gray-500 hover:text-gray-600 hover:underline">
+        <Link href="/login" className="mt-4 block text-center text-[11px] font-semibold text-brand-ink hover:underline">
           ← Kembali ke Masuk
         </Link>
       </div>

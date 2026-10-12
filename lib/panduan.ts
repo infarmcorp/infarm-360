@@ -43,7 +43,7 @@ export function panduanHref(def: PanduanDef): string {
  * Versi panduan terkini (tanggal terbit). NAIKKAN setiap kali PDF di public/panduan/ diganti agar
  * badge "BARU" muncul. Format bebas asalkan berubah tiap rilis; dipakai sebagai kunci "sudah dilihat".
  */
-export const PANDUAN_VERSION = '2026-07-30';
+export const PANDUAN_VERSION = '2026-10-01';
 
 /** Tanggal tampil (ID) untuk section Panduan. */
-export const PANDUAN_UPDATED_LABEL = '30 Juli 2026';
+export const PANDUAN_UPDATED_LABEL = '1 Oktober 2026';

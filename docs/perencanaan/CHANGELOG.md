@@ -5,6 +5,11 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **Token Redesign tuntas (2026-10-12):** Laporan Kinerja Tim, Tinjauan Hasil Akhir Direksi, form lupa/perbarui
+  sandi, `loading.tsx`. **Keputusan pengguna (opsi 2):** `team-table.tsx`/`scorecards.tsx` dipakai bersama Monitor →
+  kartu ringkasan & tabel pegawai **Monitor SPV & HRD ikut ber-token** (pengecualian "Ringkasan Monitor ke bawah"
+  kini hanya untuk chart/heatmap/`section-header`/`dist-bars`/`team-aspect`). Badge 4-Box & Trend KPI tetap memakai
+  warna dari `lib/scoring.ts`/`lib/trend.ts` (dipakai juga Dashboard). Murni presentasi.
 - **Monitoring & Audit KPI — filter Divisi (2026-10-12, permintaan pengguna):** dropdown Divisi (`?dept=`,
   `app/(app)/kpi/dept-select.tsx`) untuk HRD Mode Admin & pemegang grant `kpi`; menyaring tab Rekapitulasi &
   Riwayat & Audit. **Menyaring DI DALAM lingkup** (`RekapView`/`RiwayatView` prop `dept`) — `?dept=` di luar

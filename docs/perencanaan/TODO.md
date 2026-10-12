@@ -18,21 +18,25 @@ dgn `npm run typecheck` + `npm run build`. Commit granular per kelompok halaman.
 - ✅ **Dashboard Organisasi — CHROME saja** (`13fd383`): Shell/header/`dashboard-filters`. **Sengaja
   DIBIARKAN** (permintaan pengguna): `dashboard-visual.tsx` (sub-tab Kompilasi/KPI/360/Tabel + chart).
 - ✅ **Monitor Kinerja (SPV & HRD) — CHROME saja** (`77ffbd4`): Shell/header/filter. **Sengaja
-  DIBIARKAN** (permintaan): section **"Ringkasan" ke bawah** (scorecard, `section-header`, `dist-bars`,
-  `team-aspect`, `monitor-trends`, `extremes-heatmap`, `per-employee-heatmap`).
+  DIBIARKAN** (permintaan): section **"Ringkasan" ke bawah** (`section-header`, `dist-bars`,
+  `team-aspect`, `monitor-trends`, `extremes-heatmap`, `per-employee-heatmap`). **Pengecualian dicabut
+  sebagian 2026-10-12 (opsi 2):** kartu ringkasan & tabel pegawai (komponen bersama Laporan Kinerja Tim) +
+  kartu Monitor HRD + catatan kelengkapan kini ber-token.
 - ✅ **Isi 360° Feedback + Laporan Hasil Saya + Akun Saya** — `162bc8e` (17 file; termasuk komponen
   laporan bersama `report-doc`/`aspect-summary-view`/`raw-feedback`/`aspect-summary-editor`/`report-actions`).
 - ✅ **Login** (`app/login/`) — sudah ter-token (dicek 2026-10-12: tak ada palet Tailwind mentah).
 - ✅ **Beranda** — halaman **dihapus** (2026-08-08); `/` kini gerbang auth → landing per peran. `cycle-status.tsx`
   pindah ke `app/(app)/admin/periode/` (sudah ter-token bersama Kelola Periode).
-- 🔄 **Belum di-token (sisa, dicek 2026-10-12):**
-  - ⬜ **Laporan Kinerja Tim** (`app/(app)/laporan-tim/`: `page.tsx`, `team-table.tsx`, `scorecards.tsx`,
-    `acc-button.tsx`). ⚠️ **`team-table.tsx` & `scorecards.tsx` DIPAKAI BERSAMA Monitor** → perubahan
-    kena ke Monitor; **jangan langgar** "Ringkasan Monitor ke bawah jangan diubah".
-  - ⬜ **Tinjauan Hasil Akhir Direksi** (`app/(app)/review-hasil/page.tsx` + `[employeeId]/page.tsx`) — masih
-    `bg-white`/gray. (Halaman HRD "Review & Finalisasi" `admin/laporan/` sudah ter-token.)
-  - ⬜ **Form Auth** (`app/auth/lupa-sandi/*`, `app/auth/perbarui-sandi/*`).
-  - ⬜ **`app/(app)/loading.tsx`** (skeleton).
+- ✅ **Sisa terakhir SELESAI (2026-10-12)** — Token Redesign kini menyeluruh, kecuali konten chart yang sengaja dibiarkan:
+  - ✅ **Laporan Kinerja Tim** (`team-table.tsx`, `scorecards.tsx`, `acc-button.tsx`): kartu datar, tabel kepala
+    abu pucat, Status = chip (Final brand · Ditinjau netral · Draf warn), "Beri ACC" = tombol primary. **Opsi 2
+    (keputusan pengguna):** komponen bersama → **Monitor SPV & HRD ikut berubah** (+ `ScopeScorecards` Monitor HRD &
+    `FilledNote` diselaraskan). Badge 4-Box & Trend KPI **tidak** diubah (warna dari `lib/` bersama Dashboard).
+  - ✅ **Tinjauan Hasil Akhir Direksi** — kanvas ber-token; daftar dibungkus `Panel`, detail = panel datar; tautan
+    "← Beranda" (halaman sudah dihapus) dibuang/diganti "Kembali ke halaman awal".
+  - ✅ **Form Auth** (lupa/perbarui sandi) — disamakan dengan Login.
+  - ✅ **`loading.tsx`** — kerangka di kanvas meniru kartu, filter, & panel tabel (`motion-reduce` dihormati).
+  - Mockup sebelum/sesudah: artifact "Token Redesign Infarm 360°" (2026-10-12).
 
 ### Operasional & rilis (dicek 2026-10-12)
 - 🔄 **Revisi 4 PDF panduan in-app** (`public/panduan/`) sesuai `docs/panduan/REVISI-PANDUAN-PDF.md` (bagian 0–4 + 6).

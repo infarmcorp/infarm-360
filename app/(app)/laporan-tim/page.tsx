@@ -177,8 +177,7 @@ export default async function LaporanTimPage({
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
-          {/* Tabel diberi bingkai section (kartu) di halaman ini saja — komponennya sendiri
-              tidak disentuh agar Monitor Kinerja tetap seperti semula. */}
+          {/* Bingkai section (kartu) hanya di halaman ini; Monitor menaruh tabel langsung di kanvas. */}
           <div className="bg-surface border border-line rounded-panel p-5">
             <TeamTable rows={rows} pageSize={5} periodId={ap.id} has360={ap.has_360} />
           </div>
@@ -267,8 +266,7 @@ async function DireksiTeamReport({ periodParam }: { periodParam?: string }) {
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
-          {/* Tabel diberi bingkai section (kartu) di halaman ini saja — komponennya sendiri
-              tidak disentuh agar Monitor Kinerja tetap seperti semula. */}
+          {/* Bingkai section (kartu) hanya di halaman ini; Monitor menaruh tabel langsung di kanvas. */}
           <div className="bg-surface border border-line rounded-panel p-5">
             <TeamTable rows={rows} pageSize={5} periodId={ap.id} has360={ap.has_360} />
           </div>
@@ -360,8 +358,7 @@ async function CoordinatorTeamReport({ userId, periodParam }: { userId: string; 
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
-          {/* Tabel diberi bingkai section (kartu) di halaman ini saja — komponennya sendiri
-              tidak disentuh agar Monitor Kinerja tetap seperti semula. */}
+          {/* Bingkai section (kartu) hanya di halaman ini; Monitor menaruh tabel langsung di kanvas. */}
           <div className="bg-surface border border-line rounded-panel p-5">
             <TeamTable rows={rows} pageSize={5} periodId={ap.id} has360={ap.has_360} />
           </div>
@@ -387,7 +384,7 @@ function PastPeriodNote({ active }: { active: boolean }) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   // Kanvas ber-token (tanpa wrapper putih besar + shadow), sesuai pola redesign halaman lain.
-  // ⚠️ Warna DI DALAM scorecard & tabel sengaja TIDAK diubah — `scorecards.tsx`/`team-table.tsx`
-  // dipakai bersama Monitor Kinerja yang bagian "Ringkasan ke bawah"-nya dikunci apa adanya.
+  // `scorecards.tsx`/`team-table.tsx` dipakai bersama Monitor Kinerja (SPV & HRD) — sejak 2026-10-12
+  // ikut ber-token (keputusan pengguna: opsi 2), jadi perubahan gayanya terlihat di kedua halaman.
   return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
 }

@@ -10,8 +10,9 @@ di **[CHANGELOG.md](CHANGELOG.md)**; panduan durable di **[CLAUDE.md](../../CLAU
   Tailwind mentah (`emerald-*`/`gray-*`/`indigo-*`/`rounded-2xl`/`shadow-sm`) di `app/`/`components/`
   agar halaman baru tak diam-diam kembali ke gaya lama. Muncul dari sesi Token Redesign 2026-08.
 - ⬜ **Tinjau ulang konten berwarna yang sengaja dilewati (opsional).** Saat redesign selesai, evaluasi
-  apakah `dashboard-visual.tsx` (sub-tab) & analitik Monitor ("Ringkasan" ke bawah) mau diselaraskan ke
-  palet token — **sekarang sengaja dibiarkan** atas permintaan pengguna (warna chart/kategori dipertahankan).
+  apakah `dashboard-visual.tsx` (sub-tab) & analitik Monitor ("Ringkasan" ke bawah: chart, heatmap, `section-header`,
+  `dist-bars`, `team-aspect`) mau diselaraskan ke palet token — **sekarang sengaja dibiarkan** atas permintaan
+  pengguna. (Kartu ringkasan & tabel pegawai Monitor sudah ber-token sejak 2026-10-12.)
 - ⬜ **Dukungan tema gelap (dark mode).** Token `@theme` di `globals.css` mempermudah; belum diminta —
   perlu varian `--color-*` gelap + toggle. Catat sbg peluang, bukan komitmen.
 - ⬜ Ganti email mandiri (lanjutan Akun Saya).

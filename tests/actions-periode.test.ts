@@ -26,6 +26,7 @@ type Call = { table: string; op: 'select' | 'update' | 'insert' | 'delete'; payl
 type Client = {
   auth: { getUser: () => Promise<{ data: { user: { id: string } | null }; error: null }> };
   from: (table: string) => Builder;
+  rpc: (fn: string, args: unknown) => Promise<QResult>;
   calls: Call[];
 };
 type Builder = {
@@ -70,7 +71,10 @@ function mk(cfg: { user?: { id: string } | null; tables?: Record<string, QResult
     };
     return b;
   }
-  return { auth: { getUser: async () => ({ data: { user: cfg.user ?? null }, error: null }) }, from, calls };
+  // RPC 0048 (period_activate/period_delete) BELUM ada di mock ini → tes di file ini mengunci JALUR
+  // CADANGAN (cara lama). Jalur fungsi database diuji di tests/period-atomic.test.ts.
+  const rpc = async () => ({ data: null, error: { code: 'PGRST202', message: 'Could not find the function' } });
+  return { auth: { getUser: async () => ({ data: { user: cfg.user ?? null }, error: null }) }, from, rpc, calls };
 }
 
 const mockCreate = vi.mocked(createClient);
@@ -94,7 +98,8 @@ function hrd(tables: Record<string, QResult[]> = {}): Client {
 }
 const opsOn = (c: Client, table: string) => c.calls.filter((x) => x.table === table);
 
-beforeEach(() => { vi.clearAllMocks(); });
+// Klien service_role bawaan (tanpa antrean) — activatePeriod kini mencoba RPC lewat service_role dulu.
+beforeEach(() => { vi.clearAllMocks(); useAdmin(mk({})); });
 
 // ── Otorisasi bersama (requireHrd) ─────────────────────────────────────────────────────────────
 type Act = { name: string; run: () => Promise<{ ok: boolean; error?: string }> };
@@ -174,10 +179,14 @@ describe('activatePeriod — jadikan satu periode aktif', () => {
     expect(mockReval.mock.calls).toEqual([['/admin/periode']]);
   });
 
-  it('tak memakai service_role (RLS HRD cukup)', async () => {
-    use(hrd({ periods: [{ error: null }, { error: null }, LABEL] }));
+  it('service_role HANYA untuk fungsi database 0048; cara lama (cadangan) tetap lewat klien HRD (RLS)', async () => {
+    const admin = mk({});
+    useAdmin(admin);
+    const c = hrd({ periods: [{ error: null }, { error: null }, LABEL] });
+    use(c);
     await activatePeriod(PID);
-    expect(mockAdmin).not.toHaveBeenCalled();
+    expect(admin.calls).toHaveLength(0); // service_role tak menyentuh tabel
+    expect(c.calls.filter((x) => x.table === 'periods' && x.op === 'update')).toHaveLength(2);
   });
 
   it('periode terkunci (ended) BOLEH dibuka kembali — tak ada pengecekan status sebelumnya', async () => {

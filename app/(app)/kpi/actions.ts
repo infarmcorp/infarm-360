@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { rpcMissing } from '@/lib/supabase/rpc';
 
 /**
  * Input KPI bulanan (peran SPV). PANDUAN: "Pengisian Manual Apps".
@@ -44,9 +45,7 @@ async function assertKpiScope(svc: Svc, me: Me, userId: string, empIds: string[]
   return empIds.every((id) => allowed.has(id)) ? null : 'Sebagian pegawai berada di luar tim Anda.';
 }
 
-/** Fungsi DB belum ada (migrasi 0042 belum diterapkan) → pakai jalur lama 2-langkah via service_role. */
-const rpcMissing = (e: { code?: string; message?: string } | null) =>
-  !!e && (e.code === 'PGRST202' || e.code === '42883' || /could not find the function/i.test(e.message ?? ''));
+// Fungsi DB belum ada (migrasi 0042 belum diterapkan) → pakai jalur lama 2-langkah via service_role (rpcMissing).
 
 /** Simpan skor + audit (atomik bila 0042 sudah diterapkan). null = sukses. */
 async function writeKpi(svc: Svc, actorId: string, ym: string, rows: { employeeId: string; score: number; note?: string }[]): Promise<string | null> {

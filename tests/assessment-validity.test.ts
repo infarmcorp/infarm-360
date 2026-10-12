@@ -13,6 +13,12 @@ vi.mock('@/lib/audit/log', () => ({ logHrdAction: vi.fn(async () => {}), logAudi
 vi.mock('next/headers', () => ({ cookies: vi.fn(async () => ({ get: () => ({ value: 'spv' }) })) }));
 vi.mock('@/app/(app)/admin/360/actions', () => ({ computeResult360: vi.fn(async () => ({ ok: true })) }));
 vi.mock('@/lib/backfill-guard', () => ({ backfillLockReason: vi.fn(async () => null), BACKFILL_LOCK_MSG: 'x' }));
+// Kunci laporan Final (gelombang 2b): default = tak ada laporan Final → perilaku lama tak berubah.
+vi.mock('@/lib/final-lock', async (orig) => ({
+  ...(await orig<typeof import('@/lib/final-lock')>()),
+  finalLockError: vi.fn(async () => null),
+  finalizedEmployees: vi.fn(async () => new Set<string>()),
+}));
 
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';

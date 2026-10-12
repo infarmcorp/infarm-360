@@ -2,9 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { refreshLatePenalties } from '@/lib/late-server';
 import { isPastDeadline } from '@/lib/late';
+import { finalizedEmployees, FINAL_CHECK_FAILED_MSG } from '@/lib/final-lock';
 
 /**
  * Pengisian 360° (semua peran sebagai penilai). PANDUAN: "Mulai Nilai".
@@ -77,6 +78,25 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
   // dinilai. Sebelum deadline pegawai tetap boleh mengedit — lewat "Kirim Ulang" (status tetap 'submitted').
   if (exExisting?.status === 'submitted' && status === 'draft') {
     return { ok: false, error: 'Penilaian ini sudah terkirim — simpan perubahan dengan "Kirim Ulang", bukan Simpan Draf' };
+  }
+
+  // KUNCI LAPORAN FINAL (gelombang 2b): laporan target sudah Final → kiriman pertama & Kirim Ulang
+  // ditolak SEBELUM menulis apa pun (keduanya mengubah Skor 360° target). Simpan Draf atas penilaian
+  // yang belum pernah terkirim tetap boleh — draf tak masuk laporan dan tetap tertahan di kunci ini
+  // saat dikirim. Dibaca via service_role: penilai tak berhak membaca final_reports pegawai lain.
+  // Gagal membaca status → ditolak (gagal tertutup).
+  if (status === 'submitted') { // draf atas penilaian terkirim sudah ditolak di atas
+    try {
+      const admin = createAdminClient();
+      const fin = await finalizedEmployees(admin, ap.id, [targetId]);
+      if (fin.has(targetId)) {
+        const { data: tgt } = await admin.from('employees').select('name').eq('id', targetId).maybeSingle();
+        const targetName = tgt?.name ?? 'pegawai ini';
+        return { ok: false, error: `Laporan ${targetName} sudah Final, penilaian untuknya tidak dapat dikirim atau diubah lagi.` };
+      }
+    } catch {
+      return { ok: false, error: FINAL_CHECK_FAILED_MSG };
+    }
   }
 
   // Indikator AKTIF & pertanyaan esai periode ini = daftar resmi yang harus dinilai. Audit

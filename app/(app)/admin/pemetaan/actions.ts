@@ -7,6 +7,7 @@ import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { computeResult360 } from '@/app/(app)/admin/360/actions';
 import { backfillLockReason, BACKFILL_LOCK_MSG } from '@/lib/backfill-guard';
+import { finalLockError, finalizedEmployees } from '@/lib/final-lock';
 
 /**
  * Pemetaan (Mapping) penilai→target untuk periode aktif (HRD).
@@ -222,6 +223,8 @@ async function reconcileTarget360(periodId: string, targetId: string): Promise<s
     const { count: remaining } = await admin.from('assessments').select('*', { count: 'exact', head: true })
       .eq('period_id', periodId).eq('target_id', targetId).eq('status', 'submitted');
     if ((remaining ?? 0) === 0) {
+      // Laporan Final terkunci: Skor 360° pegawai Final tak dihapus (gagal baca status → melempar → alasan).
+      if ((await finalizedEmployees(admin, periodId, [targetId])).has(targetId)) return null;
       const { error } = await admin.from('result_360').delete().eq('period_id', periodId).eq('employee_id', targetId);
       return error ? 'gagal menghapus Skor 360° lama: ' + error.message : null;
     }
@@ -311,6 +314,10 @@ export async function setAssessmentValidity(mappingId: string, action: 'invalida
   if (!m) return { ok: false, error: 'Pemetaan tidak ditemukan' };
   const { data: per } = await admin.from('periods').select('status').eq('id', m.period_id).maybeSingle();
   if (per?.status !== 'active') return { ok: false, error: 'Hanya penilaian pada periode aktif yang dapat diubah validitasnya' };
+  // KUNCI LAPORAN FINAL (gelombang 2b): batalkan/pulihkan validitas mengubah Skor 360° target →
+  // ditolak bila laporan target sudah Final (Buka Kembali dulu). Gagal membaca status → ditolak.
+  const lock = await finalLockError(admin, m.period_id, [m.target_id]);
+  if (lock) return { ok: false, error: lock };
   const { data: a } = await admin.from('assessments').select('id, status')
     .eq('period_id', m.period_id).eq('assessor_id', m.assessor_id).eq('target_id', m.target_id).maybeSingle();
 
@@ -399,6 +406,13 @@ export async function reviewCorrection(
     if (period?.status !== 'active') return { ok: false, error: 'Periode permohonan ini sudah tidak aktif — tolak permohonan ini' };
     if (req.new_relation === 'Self' || (kind !== 'remove' && req.assessor_id === req.target_id)) {
       return { ok: false, error: 'Permohonan tidak sah (menilai diri sendiri diatur HRD lewat pemetaan) — tolak permohonan ini' };
+    }
+    // KUNCI LAPORAN FINAL (gelombang 2b): ubah relasi (= kelas bobot) & tambah penilai mengubah
+    // laporan target → ditolak bila sudah Final (Buka Kembali dulu). 'remove' sudah menolak penilaian
+    // terkirim sendiri (hanya membuang draf) dan penolakan permohonan tak menulis apa pun → tetap boleh.
+    if (kind === 'relation' || kind === 'add') {
+      const lock = await finalLockError(createAdminClient(), req.period_id, [req.target_id]);
+      if (lock) return { ok: false, error: lock };
     }
     const { data: pairMap } = await supabase.from('mappings').select('id, relation, is_active, mandatory, is_adhoc')
       .eq('period_id', req.period_id).eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).maybeSingle();

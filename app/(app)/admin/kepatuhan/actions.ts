@@ -41,14 +41,25 @@ export async function setLateWaiver(raw: unknown): Promise<{ ok: true } | { ok: 
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
-  const { error } = reason
-    ? await supabase.from('late_penalty_waivers').upsert(
-        // Nilai 0 ditulis TANPA kolom points agar tetap jalan sebelum migrasi 0043 (default kolom = 0).
-        points > 0
-          ? { employee_id: employeeId, period_id: ap.id, reason, points, set_by: user.id }
-          : { employee_id: employeeId, period_id: ap.id, reason, set_by: user.id },
-        { onConflict: 'employee_id,period_id' })
-    : await supabase.from('late_penalty_waivers').delete().eq('employee_id', employeeId).eq('period_id', ap.id);
+  // `points` SELALU ditulis (juga 0): upsert hanya menimpa kolom yang dikirim, jadi menghilangkan kolom
+  // ini membuat nilai lama (mis. −7) tetap berlaku saat HRD mengubahnya ke 0 (bug 2026-10-12).
+  // Nilai yang dicatat ke Log = nilai yang benar-benar tersimpan (dibaca balik dari upsert).
+  let stored = points;
+  let error: { message: string } | null = null;
+  if (reason) {
+    const base = { employee_id: employeeId, period_id: ap.id, reason, set_by: user.id };
+    const res = await supabase.from('late_penalty_waivers')
+      .upsert({ ...base, points }, { onConflict: 'employee_id,period_id' }).select('points').maybeSingle();
+    error = res.error;
+    if (!error) stored = Number(res.data?.points ?? points);
+    else if (points === 0 && /points/i.test(error.message)) {
+      // Sebelum migrasi 0043 kolom points belum ada → penetapan = pengecualian penuh (0).
+      ({ error } = await supabase.from('late_penalty_waivers').upsert(base, { onConflict: 'employee_id,period_id' }));
+      stored = 0;
+    }
+  } else {
+    ({ error } = await supabase.from('late_penalty_waivers').delete().eq('employee_id', employeeId).eq('period_id', ap.id));
+  }
   if (error) {
     const needMigration = /points/i.test(error.message);
     return { ok: false, error: needMigration
@@ -62,13 +73,13 @@ export async function setLateWaiver(raw: unknown): Promise<{ ok: true } | { ok: 
 
   const { data: emp } = await supabase.from('employees').select('name').eq('id', employeeId).maybeSingle();
   await logHrdAction({
-    action: reason ? (points > 0 ? 'late_penalty.set' : 'late_penalty.waive') : 'late_penalty.unwaive', category: 'kepatuhan',
+    action: reason ? (stored > 0 ? 'late_penalty.set' : 'late_penalty.waive') : 'late_penalty.unwaive', category: 'kepatuhan',
     summary: reason
-      ? (points > 0
-          ? `Menetapkan potongan keterlambatan menilai ${emp?.name ?? employeeId} menjadi −${points} — alasan: ${reason}`
+      ? (stored > 0
+          ? `Menetapkan potongan keterlambatan menilai ${emp?.name ?? employeeId} menjadi −${stored} — alasan: ${reason}`
           : `Mengecualikan potongan keterlambatan menilai untuk ${emp?.name ?? employeeId} — alasan: ${reason}`)
       : `Mengembalikan potongan keterlambatan menilai ${emp?.name ?? employeeId} ke otomatis`,
-    targetType: 'employee', targetId: employeeId, targetLabel: emp?.name ?? null, meta: { reason, points: reason ? points : null },
+    targetType: 'employee', targetId: employeeId, targetLabel: emp?.name ?? null, meta: { reason, points: reason ? stored : null },
   });
   revalidatePath('/admin/kepatuhan');
   revalidatePath('/admin/dashboard');

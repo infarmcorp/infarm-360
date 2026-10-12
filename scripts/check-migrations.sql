@@ -1,6 +1,6 @@
 -- ============================================================================
 -- CEK STATUS MIGRASI — jalankan di Supabase SQL Editor project mana pun
--- (production ATAU staging) untuk melihat migrasi 0001–0048 mana yang SUDAH
+-- (production ATAU staging) untuk melihat migrasi 0001–0049 mana yang SUDAH
 -- diterapkan ke database tsb, tanpa perlu mengingat riwayatnya secara manual.
 --
 -- Cara pakai: copy-paste seluruh isi file ini ke SQL Editor → Run. Kolom
@@ -60,7 +60,8 @@ select * from (values
   ('0045', 'fungsi hrd_can',                                   exists(select 1 from pg_proc where proname='hrd_can')),
   ('0046', 'kolom assessments.invalidated_at',                 exists(select 1 from information_schema.columns where table_name='assessments' and column_name='invalidated_at')),
   ('0047', 'fungsi assessment_locked_after_deadline',         exists(select 1 from pg_proc where proname='assessment_locked_after_deadline')),
-  ('0048', 'fungsi period_activate & period_delete',       exists(select 1 from pg_proc where proname='period_activate') and exists(select 1 from pg_proc where proname='period_delete'))
+  ('0048', 'fungsi period_activate & period_delete',       exists(select 1 from pg_proc where proname='period_activate') and exists(select 1 from pg_proc where proname='period_delete')),
+  ('0049', 'trigger trg_final_reports_block_self_acc',        exists(select 1 from pg_trigger where tgname='trg_final_reports_block_self_acc'))
 ) as t(migrasi, penanda_skema, applied)
 order by migrasi;
 

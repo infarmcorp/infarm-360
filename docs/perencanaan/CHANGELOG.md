@@ -5,6 +5,12 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **Screen 04 "Review Penilaian" kembali ke `dev` (2026-10-12, keputusan pengguna):** revert dari `3d02edf` (kode
+  asal `9028f00`, cabang `feature/review-penilaian`). Bila semua indikator lengkap, tombol utama form =
+  **"Review Penilaian"** → `ReviewPanel` (`app/(app)/penilaian/[targetId]/assess-form.tsx`): ringkasan per aspek
+  (skor + key point, evidence bisa dibuka), jawaban esai, tombol **Edit** ke item terkait, lalu **Kirim Penilaian**
+  → konfirmasi → sukses. Tak menampilkan rata-rata/skor. Murni UI klien — tanpa migrasi; validasi & kunci
+  setelah deadline (0047) tetap di Server Action. Kartu HP + progres draf sudah lebih dulu rilis.
 - **Token Redesign tuntas (2026-10-12):** Laporan Kinerja Tim, Tinjauan Hasil Akhir Direksi, form lupa/perbarui
   sandi, `loading.tsx`. **Keputusan pengguna (opsi 2):** `team-table.tsx`/`scorecards.tsx` dipakai bersama Monitor →
   kartu ringkasan & tabel pegawai **Monitor SPV & HRD ikut ber-token** (pengecualian "Ringkasan Monitor ke bawah"

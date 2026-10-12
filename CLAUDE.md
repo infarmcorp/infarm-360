@@ -11,10 +11,9 @@ Panduan untuk Claude Code saat bekerja di repo ini.
 
 ## Sedang Dikerjakan (per 2026-10-12)
 
-**Kondisi:** app **live & dipakai** (periode **Q3 2026** berjalan menuju tutup). `main` = `dev` (isi kode
-identik; terakhir di-merge `b5caa4c` "ekspor Bahan Laporan per Pegawai"). Repo GitHub **`infarmcorp/infarm-360`**
-(publik) — branch: `main` (production), `dev` (kerja), `feature/review-penilaian` (Screen 04 Review Penilaian,
-**ditunda** — menunggu simulasi ke pegawai; sudah dikeluarkan dari `dev` lewat `3d02edf`).
+**Kondisi:** app **live & dipakai** (periode **Q3 2026** berjalan menuju tutup). Repo GitHub **`infarmcorp/infarm-360`**
+(publik) — branch: `main` (production), `dev` (kerja; **di depan `main`**: perbaikan Laporan Tim/Monitor + **Screen 04
+Review Penilaian dikembalikan 2026-10-12**). `feature/review-penilaian` sudah tercakup `dev` — boleh dihapus.
 
 - **Gelombang Q3 2026 (2026-09-18 → 2026-10-08) — semua sudah di `main`:** deadline 360° + potongan
   telat −3 (0036/0043), BR-07 4 status penilaian, BR-09/10/11 (No Score, bobot 2 kelas otomatis, HRD Review),
@@ -89,8 +88,7 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`. Panduan pengguna: `do
   roster login dari DB.
 - **CI aktif** (`.github/workflows/ci.yml`): test + typecheck + build tiap push/PR.
   **Backup otomatis harian** (`.github/workflows/backup.yml`, 02:00 WIB, terenkripsi AES-256, artifact 30 hari).
-- **Repo GitHub:** `infarmcorp/infarm-360` (**publik**) — `main` (production) · `dev` (kerja) ·
-  `feature/review-penilaian` (fitur ditunda). Jangan pernah commit data pegawai/backup mentah.
+- **Repo GitHub:** `infarmcorp/infarm-360` (**publik**) — `main` (production) · `dev` (kerja). Jangan pernah commit data pegawai/backup mentah.
 - Login: lihat `lib/auth/demo-users.ts` (= sumber seed). Akun live sudah punya **sandi unik per orang**
   (Undangan Massal 2026-07-01) & email `@gmail.com` asli.
 
@@ -199,8 +197,16 @@ ber-domain: beli domain → verifikasi di Resend → set `RESEND_API_KEY` (+ `RE
 otomatis pakai Resend bila SMTP tak diset. (Tanpa domain, Resend hanya kirim ke email pemilik akun.)
 
 ### Lupa Sandi via email
-Setelah email asli + SMTP/Resend di atas: daftarkan **Redirect URL** `https://<domain>/auth/callback`
-di Supabase → Authentication → URL Configuration; set `NEXT_PUBLIC_ENABLE_PW_RESET=true`; redeploy.
+Kode sudah dibangun & **dorman** — aktifkan hanya bila Reset Sandi oleh HRD mulai merepotkan. ⚠️ Email reset
+dikirim **Supabase Auth** (`resetPasswordForEmail`), **bukan** `lib/email/mailer.ts` — env `SMTP_*` di Vercel
+tak dipakai jalur ini. Tiga langkah:
+1. **Supabase → Authentication → SMTP Settings:** aktifkan Custom SMTP (Gmail: host `smtp.gmail.com`, port `465`,
+   user = email Gmail, password = App Password). Tanpa ini, mailer bawaan Supabase hanya mengirim ke anggota tim
+   project & dibatasi beberapa email/jam.
+2. **Supabase → Authentication → URL Configuration:** Site URL = domain produksi; tambah Redirect URL
+   `https://<domain>/auth/callback`.
+3. **Vercel → Environment Variables** (bukan Supabase): `NEXT_PUBLIC_ENABLE_PW_RESET=true` → **Redeploy** (variabel
+   `NEXT_PUBLIC_*` dibakukan saat build). Tautan "Lupa sandi?" lalu muncul di halaman login.
 
 ---
 

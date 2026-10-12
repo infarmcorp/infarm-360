@@ -15,9 +15,9 @@ hanya punya repo publik lain (`Infarm-Web`, proyek berbeda — bukan app ini).
 
 | Branch | Isi | Status |
 |---|---|---|
-| `main` | production (Vercel auto-deploy) | = `dev` |
-| `dev` | branch kerja | = `main` (tak ada commit yang belum di-merge) |
-| `feature/review-penilaian` | Screen 04 "Review Penilaian" (pegawai meninjau ulang penilaian sebelum kirim) | **Ditunda** — dikeluarkan dari `dev` (`3d02edf`), menunggu simulasi ke pegawai |
+| `main` | production (Vercel auto-deploy) | tertinggal dari `dev` |
+| `dev` | branch kerja | di depan `main`: perbaikan Laporan Tim/Monitor (`f58d6b4`) + **Screen 04 Review Penilaian dikembalikan** (2026-10-12) |
+| `feature/review-penilaian` | Screen 04 "Review Penilaian" | Sudah tercakup `dev` — boleh dihapus |
 
 **Belum di-commit di working tree:** 4 PDF `public/panduan/` diganti + `PANDUAN_VERSION`→`2026-10-01`
 (`lib/panduan.ts`) + `scripts/check-migrations.sql` (kini cek 0001–0047). ⚠️ **Teks keempat PDF baru masih

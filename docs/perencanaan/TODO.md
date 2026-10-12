@@ -46,8 +46,9 @@ dgn `npm run typecheck` + `npm run build`. Commit granular per kelompok halaman.
 - 🔑⬜ **Pastikan migrasi 0036–0047 sudah diterapkan di production** — jalankan `scripts/check-migrations.sql`
   di SQL Editor production (dan staging). Kode di `main` sudah memakai fitur 0041–0047; CHANGELOG hanya mencatat
   0046/0047 eksplisit "sudah diterapkan".
-- ⏸️ **Screen 04 "Review Penilaian"** — kode di branch `feature/review-penilaian`, dikeluarkan dari `dev`
-  (`3d02edf`, 2026-10-01). Menunggu simulasi ke pegawai sebelum di-merge.
+- 🔄 **Screen 04 "Review Penilaian"** — **dikembalikan ke `dev` (2026-10-12)** lewat revert `3d02edf`. Sisa:
+  cek di staging/HP (alur Review → Edit → Kirim, juga setelah deadline = Lihat), lalu PR `dev` → `main`.
+  Branch `feature/review-penilaian` kini sudah tercakup `dev` — boleh dihapus.
 
 ### Keamanan pra-go-live
 - ✅ **Sandi awal seragam — TERATASI (2026-07-01):** **Kirim Undangan Massal sudah dijalankan** →
@@ -55,9 +56,11 @@ dgn `npm run typecheck` + `npm run build`. Commit granular per kelompok halaman.
   berjalan**. Celah impersonasi (inti integritas 360°) tertutup. (Tiap pegawai tetap bisa ganti sandi
   sendiri via Akun Saya.)
 - ✅ **Self-service ganti sandi** (Akun Saya) — menutup risiko sandi bersama tanpa email.
-- 🔑⏸️ **Lupa Sandi via email** (dormant) — kode siap (`app/auth/lupa-sandi`, `/auth/callback`,
-  `/auth/perbarui-sandi`); aktifkan dgn email asli + SMTP/Resend + `NEXT_PUBLIC_ENABLE_PW_RESET=true`.
-  **Ditunda — belum perlu** (keputusan pengguna 2026-07-16); sandi diatur HRD via Reset Sandi.
+- ✅🔑 **Lupa Sandi via email — SUDAH DIBANGUN, dorman** (`app/auth/lupa-sandi`, `/auth/callback`,
+  `/auth/perbarui-sandi`). Diaktifkan **hanya bila Reset Sandi oleh HRD mulai merepotkan** (keputusan pengguna
+  2026-10-12). Langkah aktivasi (3 tempat, bukan hanya env) → CLAUDE.md "Lupa Sandi via email". ⚠️ Email reset
+  dikirim **oleh Supabase Auth** (`resetPasswordForEmail`), bukan `lib/email/mailer.ts` → wajib isi **Custom SMTP
+  di dashboard Supabase**; env `SMTP_*` di Vercel tidak dipakai jalur ini.
 - ✅ **Email seed `nama@infarm.test` → asli — SELESAI (2026-07-16).** Semua akun placeholder sudah
   diganti ke **akun `@gmail.com`** (konfirmasi pengguna). Undangan/pengingat kini sampai ke semua.
   (Untuk produksi penuh non-gmail, set `ONBOARDING_GMAIL_ONLY=false`.)
@@ -162,8 +165,8 @@ dgn `npm run typecheck` + `npm run build`. Commit granular per kelompok halaman.
   - 🔄 **SISA (aksi pengguna):** **verifikasi visual di browser** (data live) untuk Monitor Kinerja
     (SPV/Koordinator/HRD) & Dashboard Organisasi — cek donut/heatmap/scatter/section tampil benar
     (fix hydration donut sudah diterapkan).
-  - ⏸️ **Ditunda:** **akses Direksi ke Monitor Kinerja Pegawai** — sengaja belum di-hardcode; menunggu
-    fitur **atur-akses halaman oleh HRD** dibangun lebih dulu (keputusan pengguna 2026-07-17), lalu grant ke Direksi.
+  - ✅ **Akses Direksi ke Monitor Kinerja Pegawai — SELESAI dibangun (2026-10-12).** Tak di-hardcode; lewat
+    **Manajemen Akses** (`monitor` ada di `GRANTABLE_PAGES`, lihat-saja berlingkup). Tinggal HRD memberi grant bila perlu.
 - 🔄 **Manajemen Akses — grant halaman berlingkup (RBAC `page_grants`).** Konsol `/admin/akses` + migrasi
   0024/0025 **sudah LIVE** (lihat [BACKLOG.md](BACKLOG.md) "Akses HRD granular"). Progres halaman yang di-grant:
   - ✅ **Monitor Kinerja Pegawai** (pemantauan, lihat-saja berlingkup) — LIVE di `main`.
@@ -259,14 +262,9 @@ dgn `npm run typecheck` + `npm run build`. Commit granular per kelompok halaman.
   - **#11 Aktivasi periode baru** saat periode lama belum lengkap → peringatan konfirmasi muncul.
   - **#13 Uji beban k6** (`scripts/loadtest/`) sebelum buka ke ~100 pengguna (belum dijalankan).
   - **#14 Blank di HP** (URL Vercel) — di-skip pengguna; dugaan browser/OS HP lama; belum dikejar.
-  - **#18 "Selanjutnya" macet di iPhone (MENUNGGU REPRODUKSI, 2026-06-26)** — saat mengisi 360° di
-    iPhone, tombol **Selanjutnya** tak memindah indikator sampai user **Simpan Draf → keluar → masuk
-    lagi**. Logika React benar (`goNext` = `curPos+1`, tak ber-gate, tombol tak disabled; jalan setelah
-    reload) → **bukan bug logika**, melainkan **interaksi iOS Safari + keyboard**. Hipotesis: (1)
-    keyboard menutupi tombol nav di bawah editor → tap tak kena; (2) tap pertama "dimakan" untuk menutup
-    keyboard (blur). Saat kembali fresh tak ada kolom fokus → bisa. **Belum diperbaiki** (user tunggu
-    pengguna coba lagi). Fix kandidat bila terkonfirmasi: nav pakai `onPointerDown` + blur proaktif,
-    atau bar nav sticky di atas keyboard. Hanya bisa diverifikasi di iPhone fisik.
+  - ✅ **#18 "Selanjutnya" macet di iPhone — DITUTUP (2026-10-12, keputusan pengguna).** Laporan 2026-06-26
+    tak terulang; pengisian 360° Q3 2026 berjalan baik. Bila muncul lagi: dugaan iOS Safari + keyboard (tap
+    pertama dipakai menutup keyboard) → fix kandidat `onPointerDown` + blur proaktif / bar nav sticky.
   - ✅ **#15 `npm run verify:rls`** pra-Q2 — **DIJALANKAN 2026-06-25, 21/21 lolos** (RLS utuh pasca
     migrasi 0015/0016; lapis 3 tetap tertutup utk SPV). Ulangi bila ada migrasi/perubahan RLS baru.
   - **#16 Dependensi KPI utk finalisasi** — `saveOrFinalizeReport` menolak bila KPI pegawai kosong

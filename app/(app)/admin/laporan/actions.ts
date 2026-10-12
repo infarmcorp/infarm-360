@@ -8,6 +8,7 @@ import { canSection, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
 import { logHrdAction, logAuditAsService, type AuditEntry } from '@/lib/audit/log';
 import { finalScoreOf, kpiAvgOf, hasScoreDrift, fmt2 } from '@/lib/scoring';
 import { refreshLatePenalties } from '@/lib/late-server';
+import { finalLockError } from '@/lib/final-lock';
 
 /**
  * Review Hasil Akhir: hitung Skor Akhir kalibrasi & tulis final_reports.
@@ -133,6 +134,14 @@ export async function saveOrFinalizeReport(employeeId: string, finalize: boolean
   const { data: ap } = await db
     .from('periods').select('id, has_360, status').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+  // KUNCI LAPORAN FINAL: memfinalisasi ULANG laporan yang sudah Final (mis. memperbarui Skor Akhir
+  // diam-diam) ditolak — HRD harus "Buka Kembali (ke Draf)" dulu. Dicek SEBELUM computeFinal karena
+  // computeFinal juga menerapkan potongan telat ke Skor 360° pegawai. finalize=false pada laporan
+  // Final = jalur Buka Kembali itu sendiri → tetap boleh. Gagal baca → ditolak (gagal tertutup).
+  if (finalize) {
+    const lock = await finalLockError(createAdminClient(), ap.id, [employeeId]);
+    if (lock) return { ok: false, error: lock };
+  }
 
   const cf = await computeFinalSafe(db, ap.id, ap.has_360, employeeId);
   if (!cf.ok) return { ok: false, error: cf.error };
@@ -404,7 +413,7 @@ export async function saveAspectSummaries(employeeId: string, raw: unknown): Pro
   // Laporan FINAL terkunci: ringkasan tak bisa diubah sampai dikembalikan ke draf
   // (selaras penguncian editor di UI — sumber kebenaran yang dilihat pegawai tak berubah diam-diam).
   if (existing?.status === 'finalized') {
-    return { ok: false, error: 'Laporan sudah final — kembalikan ke draf dulu untuk mengedit ringkasan.' };
+    return { ok: false, error: 'Laporan sudah final — Buka Kembali (ke Draf) dulu untuk mengedit ringkasan.' };
   }
 
   if (existing) {
@@ -460,7 +469,7 @@ export async function saveQualSummaries(employeeId: string, raw: unknown): Promi
     .select('id, content, status').eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
 
   if (existing?.status === 'finalized') {
-    return { ok: false, error: 'Laporan sudah final — kembalikan ke draf dulu untuk mengedit ringkasan.' };
+    return { ok: false, error: 'Laporan sudah final — Buka Kembali (ke Draf) dulu untuk mengedit ringkasan.' };
   }
 
   if (existing) {

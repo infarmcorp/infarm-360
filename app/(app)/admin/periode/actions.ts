@@ -7,6 +7,7 @@ import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { refreshLatePenalties } from '@/lib/late-server';
 import { rpcMissing } from '@/lib/supabase/rpc';
+import { periodLockError } from '@/lib/final-lock';
 
 /**
  * Kelola Siklus Periode (HRD) — gerbang seluruh proses.
@@ -248,6 +249,10 @@ export async function toggleHas360(periodId: string, value: boolean): Promise<Re
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
+  // KUNCI LAPORAN FINAL: has_360 mengubah rumus Skor Akhir seluruh periode → ditolak bila sudah ada
+  // laporan Final di periode ini (gagal baca → ditolak).
+  const lock = await periodLockError(createAdminClient(), periodId, 'pengaturan 360° periode');
+  if (lock) return { ok: false, error: lock };
 
   // Validasi PRA-PELUNCURAN saat MENGAKTIFKAN 360°: harus sudah ada pertanyaan (indikator
   // aktif) & pemetaan — cegah form 360° kosong/rusak saat tampil ke pegawai.
@@ -391,6 +396,11 @@ export async function deletePeriod(periodId: string, confirmText: string): Promi
   const { data: p } = await admin.from('periods').select('label, status').eq('id', periodId).maybeSingle();
   if (!p) return { ok: false, error: 'Periode tidak ditemukan' };
   if (p.status === 'active') return { ok: false, error: 'Periode aktif tidak bisa dihapus. "Kunci & Akhiri" dulu.' };
+  // KUNCI LAPORAN FINAL: menghapus periode ikut menghapus laporan Final di dalamnya → ditolak selama
+  // masih ada laporan Final (gagal baca → ditolak). Pesan baku helper berbunyi "untuk mengubah …";
+  // untuk hapus diganti "untuk menghapus periode ini" agar kalimatnya wajar.
+  const lock = await periodLockError(admin, periodId, 'periode ini');
+  if (lock) return { ok: false, error: lock.replace('untuk mengubah periode ini', 'untuk menghapus periode ini') };
 
   // KPI tak cascade dari periods → hapus manual, hanya bulan UNIK periode ini; jumlah baris yang ikut
   // terhapus (termasuk jejak audit KPI) DICATAT di Log Aktivitas agar penghapusan tetap bisa ditelusuri.

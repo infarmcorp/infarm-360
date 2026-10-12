@@ -58,7 +58,7 @@ dgn `npm run typecheck` + `npm run build`. Commit granular per kelompok halaman.
 - ✅ **Self-service ganti sandi** (Akun Saya) — menutup risiko sandi bersama tanpa email.
 - ✅🔑 **Lupa Sandi via email — SUDAH DIBANGUN, dorman** (`app/auth/lupa-sandi`, `/auth/callback`,
   `/auth/perbarui-sandi`). Diaktifkan **hanya bila Reset Sandi oleh HRD mulai merepotkan** (keputusan pengguna
-  2026-10-12). Langkah aktivasi (3 tempat, bukan hanya env) → CLAUDE.md "Lupa Sandi via email". ⚠️ Email reset
+  2026-10-12). Langkah aktivasi (3 tempat, bukan hanya env) → `docs/panduan/sop/SOP-RESET-SANDI.md` & CLAUDE.md "Lupa Sandi via email". ⚠️ Email reset
   dikirim **oleh Supabase Auth** (`resetPasswordForEmail`), bukan `lib/email/mailer.ts` → wajib isi **Custom SMTP
   di dashboard Supabase**; env `SMTP_*` di Vercel tidak dipakai jalur ini.
 - ✅ **Email seed `nama@infarm.test` → asli — SELESAI (2026-07-16).** Semua akun placeholder sudah

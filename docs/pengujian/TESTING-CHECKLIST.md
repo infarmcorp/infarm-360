@@ -237,7 +237,9 @@ Legenda hasil: ✅ lolos · ⚠️ lolos dengan catatan · ❌ gagal.
 
 - [ ] Email seed `@infarm.test` → email asli (prasyarat pengingat & reset).
 - [ ] Set `SMTP_USER`/`SMTP_PASS` (atau Resend) di Vercel → tombol pengingat 360° benar-benar mengirim.
-- [ ] `NEXT_PUBLIC_ENABLE_PW_RESET=true` + Redirect URL Supabase → alur Lupa Sandi aktif.
+- [ ] Lupa Sandi: Custom SMTP di Supabase (Authentication → SMTP Settings) + Redirect URL `/auth/callback`
+      + `NEXT_PUBLIC_ENABLE_PW_RESET=true` di Vercel & redeploy → uji kirim tautan ke akun uji
+      (langkah → `docs/panduan/sop/SOP-RESET-SANDI.md`).
 - [ ] Sandi awal berbeda per orang (bukan seragam) → imbau ganti via Akun Saya.
 - [ ] Rotasi kredensial (`SUPABASE_SERVICE_ROLE_KEY` dll) sebelum go-live.
 - [ ] Branch protection GitHub: PR ke `main` wajib CI hijau.

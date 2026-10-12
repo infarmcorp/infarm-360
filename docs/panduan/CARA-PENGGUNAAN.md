@@ -382,12 +382,13 @@ Mengelola akun & data pegawai (tambah/ubah/nonaktif), tanpa edit file/reseed.
 > Tips data asli: sandi **berbeda per orang** kini otomatis terpenuhi lewat **Progress 360 →
 > Kirim Undangan** (men-set sandi acak unik per orang). Tak perlu menyetel sandi manual satu-satu.
 
-> **Lupa Sandi via email (belum aktif).** Alur reset sandi mandiri lewat email sudah siap
-> tapi sengaja disembunyikan. Untuk mengaktifkannya (agar pegawai bisa "Lupa sandi?" sendiri
-> di halaman login): (1) isi **email asli** tiap pegawai di sini; (2) aktifkan **SMTP/Resend**
-> di Supabase → *Authentication → Emails*; (3) daftarkan **Redirect URL**
-> `https://<domain>/auth/callback` di *Authentication → URL Configuration*; (4) set env Vercel
-> `NEXT_PUBLIC_ENABLE_PW_RESET=true` lalu redeploy. Sebelum itu, sandi diatur HRD lewat **Reset Sandi**.
+> **Lupa Sandi via email (belum aktif).** Alur reset sandi mandiri lewat email sudah dibangun
+> tapi sengaja disembunyikan; diaktifkan bila Reset Sandi oleh HRD mulai merepotkan. Email reset
+> dikirim **Supabase** (bukan SMTP app di Vercel). Tiga langkah: (1) Supabase → *Authentication →
+> SMTP Settings*: Custom SMTP Gmail (`smtp.gmail.com`, port 465, App Password); (2) Supabase →
+> *Authentication → URL Configuration*: Redirect URL `https://<domain>/auth/callback`; (3) **Vercel**:
+> `NEXT_PUBLIC_ENABLE_PW_RESET=true` lalu redeploy. Rincian → `docs/panduan/sop/SOP-RESET-SANDI.md`.
+> Sebelum itu, sandi diatur HRD lewat **Reset Sandi**.
 
 ### Manajemen Akses — *satu konsol pemberian akses (alur "penerima-dulu")*
 

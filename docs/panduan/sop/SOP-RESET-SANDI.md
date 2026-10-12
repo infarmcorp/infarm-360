@@ -55,10 +55,22 @@ flowchart TD
 - Akun **nonaktif** memang tak bisa login — bukan masalah sandi (lihat SOP-PEGAWAI-KELUAR).
 
 ## "Lupa Sandi" mandiri (via email) — status
-Alur "Lupa sandi?" di halaman login **dormant** sampai diaktifkan. Untuk mengaktifkan (agar pegawai
-reset sendiri tanpa HRD): (1) isi **email asli** tiap pegawai; (2) aktifkan **SMTP/Resend** di Supabase;
-(3) daftarkan **Redirect URL** `https://<domain>/auth/callback`; (4) set env `NEXT_PUBLIC_ENABLE_PW_RESET=true`
-lalu redeploy. Sebelum itu, reset sandi lewat **Reset Sandi** (HRD).
+Alur "Lupa sandi?" di halaman login **sudah dibangun tapi dorman**. Aktifkan **hanya bila Reset Sandi oleh
+HRD mulai merepotkan** (keputusan 2026-10-12). Sebelum itu, reset sandi lewat **Reset Sandi** (HRD).
+
+**Cara mengaktifkan.** Mengubah `NEXT_PUBLIC_ENABLE_PW_RESET` saja **tidak cukup**. Email reset dikirim oleh
+**Supabase**, bukan oleh pengirim email app, jadi isian `SMTP_*` di Vercel **tidak terpakai** di sini. Prasyarat:
+tiap pegawai punya **email asli** (sudah, sejak 2026-07-16). Lalu tiga langkah:
+
+1. **Supabase → Authentication → SMTP Settings:** aktifkan **Custom SMTP** Gmail: host `smtp.gmail.com`,
+   port `465`, username = alamat Gmail, password = **App Password** Gmail (16 karakter, butuh 2-Step
+   Verification). Tanpa langkah ini, Supabase hanya mengirim ke anggota tim project, dan hanya beberapa email per jam.
+2. **Supabase → Authentication → URL Configuration:** Site URL = domain produksi; tambahkan **Redirect URL**
+   `https://<domain>/auth/callback`.
+3. **Vercel → Settings → Environment Variables** (bukan Supabase): isi `NEXT_PUBLIC_ENABLE_PW_RESET=true`, lalu
+   **Redeploy**. Setelah itu tautan "Lupa sandi?" muncul di halaman login.
+
+**Uji setelah aktif:** klik "Lupa sandi?" → masukkan email akun uji → buka tautan di email → set sandi baru → login.
 
 ## Checklist ringkas
 ```

@@ -26,7 +26,7 @@ Hasil tersimpan di folder baru:
 ```
 backups/backup-<tanggal-jam>/
 ├── _manifest.json            (ringkasan: tanggal + jumlah baris per tabel)
-├── <tabel>.json              (20 tabel aplikasi)
+├── <tabel>.json              (semua tabel publik aplikasi, ±24 tabel)
 ├── auth.users.json           (akun login + sandi TER-HASH)
 └── auth.identities.json
 ```

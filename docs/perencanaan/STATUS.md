@@ -4,7 +4,53 @@ Potret status & catatan sesi (cepat-basi — perbarui tiap sesi). Panduan tahan-
 **CLAUDE.md**; rincian tiap fitur di **[CHANGELOG.md](CHANGELOG.md)**; sisa pekerjaan di **[TODO.md](TODO.md)** / **[BACKLOG.md](BACKLOG.md)**
 (CLAUDE.md); catatan operasional trial/Q2 di **REKOMENDASI.md**.
 
-## Sedang Dikerjakan (per 2026-08-06)
+## Sedang Dikerjakan (per 2026-10-12)
+
+**Kondisi:** app **live & dipakai** — periode **Q3 2026** berjalan menuju tutup. Semua pekerjaan
+s/d 2026-10-08 **sudah di `main`** (isi kode `main` = `dev`; merge terakhir `b5caa4c`).
+
+**Repo & branch (dicek 2026-10-12):** GitHub **`infarmcorp/infarm-360`** (publik; PR #1–#13 dulu dari fork
+`infarmdataanalyst-lgtm/dev`, kini kerja langsung di repo `infarmcorp`). Akun `infarmdataanalyst-lgtm`
+hanya punya repo publik lain (`Infarm-Web`, proyek berbeda — bukan app ini).
+
+| Branch | Isi | Status |
+|---|---|---|
+| `main` | production (Vercel auto-deploy) | = `dev` |
+| `dev` | branch kerja | = `main` (tak ada commit yang belum di-merge) |
+| `feature/review-penilaian` | Screen 04 "Review Penilaian" (pegawai meninjau ulang penilaian sebelum kirim) | **Ditunda** — dikeluarkan dari `dev` (`3d02edf`), menunggu simulasi ke pegawai |
+
+**Belum di-commit di working tree:** 4 PDF `public/panduan/` diganti + `PANDUAN_VERSION`→`2026-10-01`
+(`lib/panduan.ts`) + `scripts/check-migrations.sql` (kini cek 0001–0047). ⚠️ **Teks keempat PDF baru masih
+identik** dengan versi 30 Juli (ekstraksi teks 2026-10-12: masih "Review Hasil Akhir", "punishment",
+"4 karakter", salah ketik "ditHRD") → revisi `docs/panduan/REVISI-PANDUAN-PDF.md` **belum diterapkan**. Jangan
+commit kenaikan versi sebelum isi PDF benar-benar direvisi (badge "BARU" akan muncul tanpa isi baru).
+
+- **Sesi 2026-10-05..08 (di `main`):** Review & Finalisasi — tombol Tinjau utk pegawai sudah dinilai tapi
+  skor belum ada; Direksi tampil walau Skor 360° belum dihitung; **"Dinilai oleh" selaras Progress 360**
+  (`lib/rated-completeness.ts`). **Raw feedback** jadi tabel Rating|Komentar, **lingkup raw SPV = sedivisi**,
+  **laporan diri tanpa raw** (`withoutRaw`), anggota tim koordinator wajib sedivisi. Ekspor **"Bahan Laporan
+  per Pegawai"** (3 lembar). Backup harian: `pg` dipasang di folder terpisah (bug npm "edgesOut").
+- **Sesi 2026-10-01..02 (di `main`):** BR-07 (4 status penilaian), BR-09/10/11 (No Score · bobot 2 kelas
+  otomatis · HRD Review), **0046** Pembatalan Validitas + hapus pemetaan ber-status, **0047** penilaian
+  terkirim terkunci setelah deadline, kartu HP + progres draf, Pemetaan berdampingan, sidebar tenggat =
+  deadline penilaian, panel **Penilaian Ajuan** di Progress 360, **hapus Punishment manual**, kolom Potongan
+  di Review/Ekspor, lebar kolom tabel tetap, **persiapan tutup Q3** (peringatan bobot, pengaman Q1
+  `lib/backfill-guard.ts`, notifikasi ajuan, **backup otomatis harian** `backup.yml`), perbaikan Kirim Ulang.
+- **Sesi 2026-09-18..30 (di `main`):** deadline 360° + potongan telat −3 (**0036**), Assessment Q3 Tahap 1–2
+  (BARS key point 0040; Exposure Check & N/A sempat dibangun lalu **dicabut** — 0044), audit menyeluruh:
+  pengetatan RLS (**0041**), anonimitas penilai + KPI hanya lewat UI (**0042**), nilai potongan diubah HRD
+  (**0043**), tutup celah server + akses HRD per bagian di DB (**0045**), **Skor Akhir seragam**
+  (`displayedFinalOf`), tren KPI berdasar jumlah bulan terisi, cron potongan dibuat lalu **dinonaktifkan**.
+- **Sesi 2026-08-06..09-10:** lanjutan Token Redesign (palet & font, halaman Status Siklus, **Beranda dihapus**
+  2026-08-08), koreksi pemetaan, periode di Laporan Tim, batas input KPI pegawai nonaktif per tanggal keluar.
+
+**Sisa (lihat [TODO.md](TODO.md)):** Token Redesign (Laporan Kinerja Tim, Tinjauan Hasil Akhir Direksi,
+form auth, `loading.tsx`) · revisi PDF panduan · ekspor Rekap 360° live · branch protection · 🔑 rotasi
+kredensial · 🔑 cek migrasi 0036–0047 di production (`scripts/check-migrations.sql`) · 🔑 salin backup ke luar laptop.
+
+---
+
+## Riwayat — Sedang Dikerjakan (per 2026-08-06)
 
 **Fokus aktif:** **Token Redesign UI (2026-08)** — restyle halaman **per-halaman** dari tampilan
 "template dashboard AI" ke **design system token** (acuan: Kelola Siklus Periode + sidebar; token di
@@ -29,7 +75,7 @@ menyentuh logika/state/RLS/rumus/parity**. Migrasi fungsional tetap **selesai & 
     ter-token. **`laporan-tim/team-table.tsx` & `scorecards.tsx` dipakai BERSAMA Monitor** → saat merestyle
     **Laporan Kinerja Tim** nanti, perubahannya kena ke Monitor juga → **jaga jangan langgar** "Ringkasan
     Monitor ke bawah jangan diubah".
-  - **Sisa halaman belum di-token (lihat [TODO.md](TODO.md) "Token Redesign"):** Beranda (`beranda/` + `cycle-status.tsx`),
+  - **Sisa halaman belum di-token saat itu (kondisi terkini → [TODO.md](TODO.md) "Token Redesign"):** Beranda (kini **dihapus**),
     **Laporan Kinerja Tim** (`laporan-tim/`), **Review Hasil Akhir** (`review-hasil/`), Login/Auth
     (`login/`, `auth/lupa-sandi`, `auth/perbarui-sandi`), `loading.tsx`.
 
@@ -175,16 +221,15 @@ Bagian ini hanya potret status; perincian tiap fitur ada di **[CHANGELOG.md](CHA
 **File paling relevan:**
 - **Token Redesign (lanjut):** acuan token `app/globals.css` (`@theme` + `.data-value`) & CLAUDE.md "Design
   System"; primitif `components/` (`panel.tsx`/`button.tsx`/`status-chip.tsx`/`overflow-menu.tsx`); halaman
-  acuan `app/(app)/admin/periode/` + `app-shell.tsx`. **Belum di-token:** `app/(app)/beranda/`
-  (`cycle-status.tsx`), `app/(app)/laporan-tim/` (⚠️ `team-table.tsx`/`scorecards.tsx` **dipakai Monitor**),
-  `app/(app)/review-hasil/`, `app/login/` + `app/auth/`, `app/(app)/loading.tsx`.
+  acuan `app/(app)/admin/periode/` + `app-shell.tsx`. **Belum di-token:** `app/(app)/laporan-tim/` (⚠️ `team-table.tsx`/`scorecards.tsx` **dipakai Monitor**),
+  `app/(app)/review-hasil/`, form `app/auth/` (lupa/perbarui sandi), `app/(app)/loading.tsx`. (Login sudah ter-token; Beranda dihapus.)
 - Manajemen Akses (RBAC page_grants): `app/(app)/admin/akses/`, `lib/auth/roles.ts` (`grantedScope`/`grantedAccess`/
   `deptScopeFilter`/`GRANTABLE_PAGES`/`GRANTABLE_PAGE_KIND`), `app/(app)/admin/laporan/page.tsx` (SADAR-MODE +
   jalur grant review), `report-table.tsx` (prop `readOnly`), `app/(app)/app-shell.tsx` ("Akses dari HRD"),
   migrasi 0024/0025, `tests/page-scope.test.ts`
 - Backfill 360° presisi tinggi: `scripts/import-360-backfill.mjs`, migrasi `0026_ais_rating_precision.sql`
 - Laporan Hasil Saya lintas periode: `app/(app)/laporan/page.tsx`
-- Peninjau lintas divisi: `app/(app)/peninjau/`, `lib/report.ts` (`loadCrossDivisionReport`), `lib/auth/roles.ts` (`canCrossReview`)
+- Peninjau lintas divisi: route `/peninjau` **dihapus** (migrasi 0033) → kini grant halaman Review & Finalisasi berlingkup "selain divisinya" (`app/(app)/admin/laporan/`)
 - Laporan & visibilitas: `lib/report.ts` (`loadReport`/`loadTeamReportForSpv`/`loadTeamReportForHrdSpv`),
   `app/(app)/laporan/`, `app/(app)/laporan-tim/`, `app/(app)/admin/laporan/` · RLS: migrasi 0012
 - Dashboard: `app/(app)/admin/dashboard/` (`page.tsx` + `dashboard-visual.tsx`)

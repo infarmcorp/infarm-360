@@ -9,37 +9,32 @@ Panduan untuk Claude Code saat bekerja di repo ini.
 
 ---
 
-## Sedang Dikerjakan (per 2026-07-18)
+## Sedang Dikerjakan (per 2026-10-12)
 
-**Fokus aktif:** pendalaman **analitik Monitor Kinerja & Dashboard Organisasi** (semua sudah di-push
-ke `main`, commit `2b01e93`). Migrasi fungsional **selesai & live**; **tanpa migrasi DB sesi ini** —
-seluruhnya lapisan penyajian dari data yang sudah dihitung. Sisa pra-produksi = **aktivasi env**
-(email/sandi) + **kebersihan akun** + **backup rutin** (lihat [TODO.md](docs/perencanaan/TODO.md)).
+**Kondisi:** app **live & dipakai** (periode **Q3 2026** berjalan menuju tutup). `main` = `dev` (isi kode
+identik; terakhir di-merge `b5caa4c` "ekspor Bahan Laporan per Pegawai"). Repo GitHub **`infarmcorp/infarm-360`**
+(publik) — branch: `main` (production), `dev` (kerja), `feature/review-penilaian` (Screen 04 Review Penilaian,
+**ditunda** — menunggu simulasi ke pegawai; sudah dikeluarkan dari `dev` lewat `3d02edf`).
 
-- **Monitor Kinerja Pegawai untuk HRD (BARU):** halaman `app/(app)/admin/monitor/` (gate `canSection
-  'dashboard'`) — cermin Monitor SPV untuk seluruh pegawai internal, filter periode+divisi, scorecard/
-  tren/movers ikut filter, tabel 5/hal, delta divisi-vs-org. Menu di `app-shell.tsx`.
-- **"Penyebab Perubahan" (Monitor) + tooltip Δ (Dashboard):** urai Δ rata-rata jadi **skor pegawai
-  konsisten** vs **perubahan komposisi** (masuk/keluar) — identitas eksak. Istilah diseragamkan lintas
-  halaman. Pergerakan 360° kini beserta **rincian per-aspek**.
-- **Heatmap + Donut aspek/indikator per pegawai** (`extremes-heatmap.tsx`, `per-employee-heatmap.tsx`,
-  `lib/aspect360.ts`): donut frekuensi **terlemah/terkuat** (4 teratas + Lainnya) **di atas** heatmap;
-  **klik irisan → heatmap tersaring**. Semua peran. Palet selaras Dashboard.
-- **Profil Aspek tim + pembanding "vs organisasi"** (`team-aspect.tsx`, `orgAspectAverages`): garis +
-  chip Δ tim-vs-perusahaan per aspek.
-- **Penataan section berhierarki** (`section-header.tsx`) di Monitor & tiap sub-tab Dashboard
-  (Ringkasan → Komposisi/Distribusi → Arah → Rincian). Dashboard: **Scatter KPI×360°** + **distribusi
-  per kuartal** + legenda ambang; hapus banner judul tab KPI/360; tabel 10/hal + pager.
-- **Menutup seluruh audit** (kesan per peran, janggal, kurang informatif, usulan chart 1–5). Rincian →
-  [CHANGELOG.md](docs/perencanaan/CHANGELOG.md); status → [STATUS.md](docs/perencanaan/STATUS.md).
-- **Tersisa (butuh aksi pengguna):** **verifikasi visual di browser** (data live) untuk kedua halaman;
-  **pencocokan eksak Looker** heatmap 360° Q1 (selisih ~0.04 akibat pembulatan CSV `numeric(3,2)`) —
-  menunggu konfirmasi metode agregasi Looker.
+- **Gelombang Q3 2026 (2026-09-18 → 2026-10-08) — semua sudah di `main`:** deadline 360° + potongan
+  telat −3 (0036/0043), BR-07 4 status penilaian, BR-09/10/11 (No Score, bobot 2 kelas otomatis, HRD Review),
+  kunci penilaian terkirim setelah deadline (0047), Pembatalan Validitas + hapus pemetaan ber-status (0046),
+  kartu HP + progres draf, panel Ajuan di Progress 360, **hapus Punishment manual**, Skor Akhir seragam
+  (`displayedFinalOf`), pengetatan RLS & anonimitas penilai (0041/0042/0045), Exposure Check & N/A **dicabut**
+  (0044), raw feedback tabel Rating|Komentar + lingkup SPV per divisi + laporan diri tanpa raw, "Dinilai oleh"
+  selaras Progress 360, Ekspor "Bahan Laporan per Pegawai", **backup otomatis harian** (GitHub Actions, terenkripsi).
+- **Belum di-commit (working tree):** 4 PDF `public/panduan/` diganti + `PANDUAN_VERSION`→`2026-10-01`.
+  ⚠️ Teks PDF baru **masih sama** dengan versi 30 Juli (cek ekstraksi teks 2026-10-12: masih "Review Hasil
+  Akhir", "punishment", "4 karakter") → revisi di `docs/panduan/REVISI-PANDUAN-PDF.md` **belum diterapkan**.
+  Jangan naikkan versi/deploy sebelum isi PDF benar-benar direvisi.
+- **Tersisa:** Token Redesign (Laporan Kinerja Tim, Tinjauan Hasil Akhir Direksi, form auth, `loading.tsx`),
+  ekspor Rekap 360° live, branch protection, rotasi kredensial 🔑, cek status migrasi 0036–0047 di production
+  🔑 (`scripts/check-migrations.sql`). Daftar lengkap → [TODO.md](docs/perencanaan/TODO.md).
 
-**File paling relevan sesi ini:** `app/(app)/monitor/` (`page.tsx`, `monitor-trends.tsx`,
-`extremes-heatmap.tsx`, `per-employee-heatmap.tsx`, `team-aspect.tsx`, `dist-bars.tsx`,
-`section-header.tsx`, `completeness.tsx`), `app/(app)/admin/monitor/` (`page.tsx`, `monitor-filters.tsx`),
-`app/(app)/admin/dashboard/` (`page.tsx`, `dashboard-visual.tsx`), `lib/aspect360.ts`, `lib/dashboard/aggregate.ts`.
+**File paling relevan (Q3 2026):** `lib/late.ts`/`lib/late-server.ts` (potongan telat & 4 status),
+`lib/score360.ts` (`schemeFor`/`effectiveModel`), `lib/scoring.ts` (`displayedFinalOf`/`HRD_REVIEW`),
+`lib/rated-completeness.ts`, `lib/backfill-guard.ts`, `app/(app)/penilaian/`, `app/(app)/admin/pemetaan/`,
+`app/(app)/admin/progress/`, `app/(app)/admin/kepatuhan/`, `app/(app)/admin/laporan/`, `app/(app)/admin/ekspor/`.
 
 ---
 
@@ -81,8 +76,10 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`. Panduan pengguna: `do
 **Kondisi sekarang (`as-is`):**
 - **Stack:** Next.js 16 App Router (Turbopack, React 19, Tailwind v4, TS strict). Lib: `motion`,
   `lucide-react`, `xlsx`, `zod`, `nodemailer`, `vitest` (dev).
-- **Supabase** (ref `beajoczjpywozavatzmf`): auth `@supabase/ssr`, **20 tabel** (migrasi
-  `supabase/migrations/0001`–`0013`), RLS penuh per peran, seed idempoten (`scripts/seed.ts`).
+- **Supabase** (ref `beajoczjpywozavatzmf`): auth `@supabase/ssr`, **24 tabel publik** (migrasi
+  `supabase/migrations/0001`–`0047`), RLS penuh per peran, seed idempoten (`scripts/seed.ts`).
+  Ada juga project **staging** terpisah (lihat `docs/pengembangan/DEVELOPMENT.md`); cek migrasi mana
+  yang sudah diterapkan di tiap DB dengan `scripts/check-migrations.sql`.
 - **Shell persisten** di route group `app/(app)/` — sidebar + landing per peran, sub-fitur
   sebagai tab (`?tab=`). Helper: `lib/supabase/server.ts` (`createClient` user-scoped/RLS vs
   `createAdminClient` service_role).
@@ -91,11 +88,14 @@ Acuan fungsional lengkap: `PANDUAN Infarm 360 Portal.pdf`. Panduan pengguna: `do
   impor Excel, ad-hoc, audit KPI, mode ganda HRD, Kelola Pegawai (CRUD via service_role),
   roster login dari DB.
 - **CI aktif** (`.github/workflows/ci.yml`): test + typecheck + build tiap push/PR.
-- Login: lihat `lib/auth/demo-users.ts` (= sumber seed). Sandi awal bersama (ganti per orang).
+  **Backup otomatis harian** (`.github/workflows/backup.yml`, 02:00 WIB, terenkripsi AES-256, artifact 30 hari).
+- **Repo GitHub:** `infarmcorp/infarm-360` (**publik**) — `main` (production) · `dev` (kerja) ·
+  `feature/review-penilaian` (fitur ditunda). Jangan pernah commit data pegawai/backup mentah.
+- Login: lihat `lib/auth/demo-users.ts` (= sumber seed). Akun live sudah punya **sandi unik per orang**
+  (Undangan Massal 2026-07-01) & email `@gmail.com` asli.
 
-**Sisa pra-produksi:** sebagian besar **aktivasi env** (email pengingat 360° + reset sandi) &
-kebersihan akun (email seed asli, sandi beda per orang, rotasi kredensial). Daftar lengkap +
-status di **[TODO.md](docs/perencanaan/TODO.md)**.
+**Sisa pra-produksi:** rotasi kredensial, salin backup ke luar laptop, branch protection, revisi PDF
+panduan. Daftar lengkap + status di **[TODO.md](docs/perencanaan/TODO.md)**.
 
 Saat mengerjakan fitur, ingat: kerjakan di route Next.js `app/(app)/` (arsip SPA legacy `src/`
 sudah dihapus).
@@ -109,9 +109,10 @@ sudah dihapus).
 
 ```
 app/                          # Next.js App Router
-├── layout.tsx · page.tsx     # root layout + gerbang auth (/)
+├── layout.tsx · page.tsx     # root layout + gerbang auth (/) → redirect ke landing per peran (tak ada halaman Beranda; dihapus 2026-08-08)
 ├── globals.css · icon.png
 ├── login/                    # halaman login
+├── api/cron/late-penalty/    # route cron potongan telat (DINONAKTIFKAN — vercel.json sengaja tak ada)
 ├── auth/                     # alur Supabase auth
 │   ├── callback/route.ts     # OAuth/redirect callback (reset sandi)
 │   ├── lupa-sandi/           # form "Lupa Sandi via email"
@@ -124,22 +125,27 @@ app/                          # Next.js App Router
     ├── monitor/              # monitor tren kinerja tim
     ├── laporan/             # laporan hasil (pegawai; [employeeId] detail + PDF)
     ├── laporan-tim/          # Laporan Kinerja Tim + ACC (SPV/Koordinator/Direksi)
-    ├── review-hasil/         # tinjau hasil akhir
+    ├── review-hasil/         # "Tinjauan Hasil Akhir" Direksi (read-only, L2 + raw anonim)
     │                         # (route /peninjau DIHAPUS 2026-07-24 — Peninjau Lintas Divisi kini =
-    │                         #  grant halaman "Review Hasil Akhir" berlingkup, migrasi 0033)
+    │                         #  grant halaman "Review & Finalisasi" berlingkup, migrasi 0033)
     ├── suksesi/              # suksesi/promosi (Direksi)
     ├── akun/                 # Akun Saya
-    └── admin/                # area HRD Admin (canAdmin)
-        ├── periode/ pertanyaan/ pemetaan/ bobot/   # konfigurasi siklus
+    └── admin/                # area HRD Admin (canSection per bagian) + halaman yang bisa di-grant
+        ├── periode/ pertanyaan/ pemetaan/ bobot/   # konfigurasi siklus (periode/ memuat cycle-status)
         ├── progress/ kepatuhan/                     # progress 360° + flag kepatuhan
         ├── 360/                                     # aktivasi & hitung skor 360°
-        ├── laporan/ dashboard/ ekspor/             # finalisasi · dashboard talenta · ekspor
+        ├── laporan/ dashboard/ ekspor/             # "Review & Finalisasi" · dashboard talenta · ekspor
+        ├── monitor/ struktur/                       # Monitor Kinerja Pegawai · Struktur Organisasi
+        ├── akses/                                   # Manajemen Akses (page_grants; HRD penuh saja)
         ├── pegawai/                                 # Kelola Pegawai (CRUD via service_role)
         └── audit/                                   # Log Aktivitas HRD + Audit KPI
 
 lib/                          # logika bersama (server-first)
 ├── scoring.ts · score360.ts # RUMUS SKOR TERKUNCI (diuji; jangan ubah tanpa sinkron tes)
-├── trend.ts · team-metrics.ts · score-color.ts
+├── late.ts · late-server.ts  # potongan telat −3 & 4 status penilaian (late.ts murni, diuji)
+├── aspect360.ts · rated-completeness.ts · backfill-guard.ts   # aspek per pegawai · "Dinilai oleh" · pengaman Q1
+├── trend.ts · team-metrics.ts · score-color.ts · dashboard/aggregate.ts
+├── safe-next.ts · panduan.ts · datetime.ts · employee-name.ts · table-cols.ts · todos/compute.ts
 ├── report.ts                # loader laporan (raw anonim, buang L3 bernama)
 ├── database.types.ts        # tipe skema DB
 ├── auth/roles.ts            # canAdmin/canCoordinate/isHrdDept · grantedAccess (izin 3-tingkat)
@@ -149,11 +155,13 @@ lib/                          # logika bersama (server-first)
 ├── email/mailer.ts          # SMTP/Resend (dorman sampai env diset)
 └── audit/log.ts             # tulis hrd_audit_log
 
-supabase/migrations/         # 0001–0022 (skema + RLS + seed idempoten)
+supabase/migrations/         # 0001–0047 (skema + RLS); status per DB → scripts/check-migrations.sql
 components/                  # UI bersama (confirm-dialog, searchable-select, dll.)
 scripts/                     # seed, backup/restore, verify-rls, reset, diagnostik
 tests/                       # Vitest — logika skor & otorisasi Server Action (mock Supabase)
-docs/                        # panduan/ · perencanaan/ · pengujian/ · pengembangan/
+docs/                        # panduan/ (+ sop/) · perencanaan/ · pengujian/ · pengembangan/
+public/panduan/              # 4 PDF panduan per peran (lampiran Undangan + unduhan Akun Saya)
+.github/workflows/           # ci.yml (test+typecheck+build) · backup.yml (backup harian terenkripsi)
 ```
 
 > Logika sensitif WAJIB di Server Action / Route Handler + Zod (bukan client). RLS ditegakkan di DB.
@@ -395,14 +403,14 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
 
 ## Pengujian (Vitest — logika skor & parsing impor) + Verifikasi RLS
 
-> **Kenapa ada:** rumus skor (Skor Akhir, 9-Box, A/B/C/D, bobot 360°) menentukan keputusan
+> **Kenapa ada:** rumus skor (Skor Akhir, 4-Box A/B/C + HRD Review, 9-Box, bobot 360°, potongan telat) menentukan keputusan
 > SDM nyata (promosi, potongan keterlambatan, kategori talenta). Kesalahan rumus **tidak memunculkan
 > error** — aplikasi tetap jalan, angkanya saja yang salah ("salah diam-diam"). Tes mengunci
 > rumus: bila ada perubahan tak sengaja, `npm test` langsung **gagal merah** sebelum sampai
 > ke pengguna. **Bukan** aktivitas kuartalan — dijalankan saat **kode disentuh**.
 
 - **Jalankan:** `npm test` (sekali) atau `npm run test:watch` (mode pantau).
-- **Cakupan (99 tes):**
+- **Cakupan (290 tes, 17 file — per 2026-10-12):**
   - `tests/scoring.test.ts` → `lib/scoring.ts`: `finalScoreOf` (blend 50/50, KPI-only, 360°-only,
     pembulatan 2 desimal), `roundScore`/`kpiAvgOf`/`displayedFinalOf`, `playerClassOf` (KPI×360° ambang 80 → A / B-Culture / B-KPI / C,
     null bila keduanya kosong, satu sumbu kosong → HRD_REVIEW; **tanpa D**), `kpiBandOf`/`s360BandOf`, `talentBoxOf` (9 kotak).
@@ -423,7 +431,15 @@ CRON_SECRET                    # server-only — autentikasi Vercel Cron ke /api
     `tests/actions-laporan.test.ts` (`saveOrFinalizeReport`/`releaseToSpv` — tolak non-HRD/periode
     nonaktif/skor null, tolak turunkan laporan final; `finalScoreOf` asli), `tests/actions-acc.test.ts`
     (`setSpvAcc` 3 jalur SPV/Koordinator/Direksi — carve-out koordinator, gating rilis, batas kewenangan),
-    `tests/roles.test.ts` (`canAdmin`/`canCoordinate`/`isHrdDept`).
+    `tests/roles.test.ts` (`canAdmin`/`canCoordinate`/`isHrdDept`), `tests/actions-bobot.test.ts`
+    (total bobot wajib 100%, termasuk bobot khusus pegawai), `tests/actions-kpi.test.ts` (batas masa kerja
+    pegawai nonaktif), `tests/actions-penilaian.test.ts` (`submitAssessment` wajib lengkap),
+    `tests/actions-permohonan.test.ts` (Ajukan Hapus / Ajukan Penilaian / `reviewCorrection`).
+  - `tests/late.test.ts` → `lib/late.ts`: waktu kirim vs deadline, `isPenalizableLate`, `latePenaltyOf`
+    (flat −3 sekali per periode), `apply360Penalty`, WIB.
+  - `tests/page-scope.test.ts` → lingkup grant halaman (`grantedScope`/`allowedDeptsFor`/`resolveDept`/
+    `deptScopeFilter`/`isDeptInScope`); `tests/report-scope.test.ts` (`inSpvDivisionScope`/`withoutRaw`);
+    `tests/rated-completeness.test.ts` (`ratedCompletion`); `tests/safe-next.test.ts` (cegah open redirect).
 - **Rumus inti ada di KODE, bukan UI.** Yang bisa diubah HRD lewat aplikasi = *input* (bobot %,
   360° aktif/nonaktif, KPI, potongan keterlambatan). Cara blend & ambang terkunci di kode.
 - **Kalau sengaja mengubah rumus:** perbarui tes terkait. `lib/score360.ts` diekstrak dari

@@ -1,5 +1,9 @@
 # Revisi Panduan PDF In-App (per 29 September 2026, tambahan 2 Oktober 2026)
 
+> **Status 12 Oktober 2026:** working tree berisi 4 PDF baru + `PANDUAN_VERSION`=`2026-10-01` (belum di-commit),
+> tetapi ekstraksi teks menunjukkan **isinya masih sama dengan versi 30 Juli** (masih "Review Hasil Akhir",
+> "punishment", "4 karakter", salah ketik "ditHRD"). Revisi di bawah **belum diterapkan**.
+>
 > **Status 2 Oktober 2026:** PDF di `public/panduan/` **belum** memuat revisi di dokumen ini (teksnya masih
 > sama dengan versi 30 Juli — masih ada penilaian diri, punishment, dll.). Terapkan **bagian 0–4** lalu
 > **bagian 6** (perubahan 1–2 Oktober) sekaligus, baru naikkan versi & deploy (bagian 5).

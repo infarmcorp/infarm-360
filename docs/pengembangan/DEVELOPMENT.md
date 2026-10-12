@@ -19,6 +19,9 @@ Supabase terpisah untuk dev/staging.
 - **`dev`** = branch kerja utama untuk fitur baru. Vercel otomatis membuat **Preview
   deployment** untuk setiap push ke branch non-`main` (termasuk `dev` dan branch turunan
   seperti `dev/nama-fitur`).
+- **Kondisi per 2026-10-12:** repo `infarmcorp/infarm-360` (publik) punya 3 branch — `main`, `dev`
+  (isi kode identik dgn `main`), dan `feature/review-penilaian` (Screen 04, ditunda; jangan di-merge
+  sebelum disimulasikan ke pegawai). Project Supabase **staging** sudah ada (dipakai Preview).
 - Alur: kerja di `dev` (atau feature branch dari `dev`) → push → cek di URL Preview Vercel
   → setelah yakin benar → buka **Pull Request `dev` → `main`** → review → merge → Vercel
   deploy ke production.

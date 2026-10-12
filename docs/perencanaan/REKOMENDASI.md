@@ -88,10 +88,11 @@ konkurensi. Kekhawatiran "tak bisa menghimpun" tidak berdasar dari sisi data (vo
 ### Beban per penilai (risiko nyata, bukan kapasitas)
 Rata-rata 600 ÷ 55 ≈ **~11 penilaian/orang** (rentang 10–20). Yang kebagian **20** menulis
 ~**260.000 karakter** dalam 7 hari. Dengan aturan **semua wajib**, ini beban berat → andalkan
-**auto-simpan**, **stagger**, **pengingat**, dan **enforcement punishment** untuk yang tak selesai.
+**auto-simpan**, **stagger**, **pengingat**, dan **potongan keterlambatan −3** (otomatis pada Skor 360°
+penilai) untuk yang tak selesai.
 
 > **Keputusan terkunci:** aturan **semua komentar + semua esai WAJIB** bersifat **mutlak**
-> (kebijakan penilaian). Tidak dilonggarkan. Ketidakselesaian ditangani lewat **punishment**.
+> (kebijakan penilaian). Tidak dilonggarkan. Ketidakselesaian ditangani lewat **potongan keterlambatan −3** pada Skor 360° (Punishment manual dihapus 2026-10-01).
 
 ---
 
@@ -125,13 +126,14 @@ terjadwal (GitHub Actions) hanya bila ingin backup otomatis tanpa bergantung lap
 ## 6. Checklist HRD pasca-deadline (enforcement & finalisasi)
 
 1. **Progress 360** → identifikasi pegawai yang **belum selesai** (berbasis Wajib).
-2. **Flag Kepatuhan / Punishment** → terapkan poin ke yang tak selesai (mengurangi Skor Akhir).
-   *Aplikasi tidak menghukum otomatis — HRD yang menetapkan.*
+2. **Flag Kepatuhan** → potongan keterlambatan −3 pada Skor 360° **diterapkan otomatis** (saat halaman
+   dibuka & sebelum simpan/rilis/finalisasi). HRD bisa mengubah nilainya per orang (0 = dikecualikan,
+   alasan wajib). *(Punishment manual pada Skor Akhir sudah dihapus 2026-10-01.)*
 3. **Pemetaan → Koreksi Relasi** → proses ACC permohonan koreksi (bisa banyak, karena pegawai
    diminta cek relasi).
-4. Setelah koreksi di-ACC → **Bobot & Kalkulasi → "Hitung Ulang Skor 360°"** (banner "skor basi"
+4. Setelah koreksi di-ACC → **Review & Finalisasi → "① Hitung Ulang Skor 360°"** (tombol kini hanya di sana) (banner "skor basi"
    mengingatkan bila ada perubahan setelah hitung terakhir).
-5. **Review Hasil Akhir** → Simpan Draf → **Rilis ke SPV** → **Finalisasi** (lihat alur visibilitas
+5. **Review & Finalisasi** → Simpan Draf → **Rilis ke SPV** → **Finalisasi** (lihat alur visibilitas
    bertahap di CARA-PENGGUNAAN.md).
 
 ---
@@ -158,8 +160,8 @@ update relasi → verifikasi). Periode trial ini **akan dibuang** setelah demo (
 - ✅ Distribusi email/sandi — **selesai**: Undangan Massal terkirim, sandi unik per orang (2026-07-01).
 - 🔑 Demo penggunaan ke pegawai (tunjukkan: transisi ke esai, layar sukses, Minta Koreksi).
 - 🔑 Stagger gelombang + pengingat harian.
-- 🔑 Prosedur backup rutin (dump penuh `scripts/backup.mjs` + **salin ke luar laptop**) selama
-  periode aktif; ekspor Excel sebagai cadangan parsial.
+- ✅ Backup otomatis harian sudah jalan (GitHub Actions `backup.yml`, terenkripsi, artifact 30 hari).
+  🔑 Sisa: unduh `.enc` akhir tiap kuartal ke Drive tim untuk arsip jangka panjang.
 - 🔑 Rotasi `SUPABASE_SERVICE_ROLE_KEY` bila pernah ter-share saat dev (lihat [TODO.md](TODO.md)).
-- 🔑 Ganti email placeholder (`@infarm.test`/non-gmail) → email asli lalu kirim undangan lagi.
-- 🔑 Pertimbangan Supabase Pro / cron backup terjadwal untuk Q2 asli (backup otomatis) — opsional.
+- ✅ Email placeholder sudah diganti ke akun `@gmail.com` asli (2026-07-16).
+- 🔑 Pertimbangan Supabase Pro (backup bawaan + tanpa auto-pause) — opsional; cron backup sudah ada.

@@ -142,7 +142,7 @@ Pelengkap [CARA-PENGGUNAAN.md](CARA-PENGGUNAAN.md). Untuk tiap tombol: **Fungsi 
 | **Terapkan & Simpan (N baris)** | `saveKpiScores` dari Excel (note default "Impor Excel") | SPV / HRD mode-SPV | Mode Excel; setelah parse; tolak 0 baris | — |
 | **Batal** (Excel) | Buang hasil parse | SPV / HRD mode-SPV | Setelah parse | — |
 
-> HRD **Mode Admin** melihat "Monitoring & Audit KPI" = **dua tab** (Rekapitulasi Kuartal · Riwayat & Audit; hanya tab aktif yang memuat data), tanpa tab Input. Koordinator hanya melihat tab Input. Direksi tak punya akses.
+> HRD **Mode Admin** melihat "Monitoring & Audit KPI" = **dua tab** (Rekapitulasi Kuartal · Riwayat & Audit; hanya tab aktif yang memuat data), tanpa tab Input. Dropdown **Divisi** di bawah judul menyaring kedua tab (`?dept=`; "Seluruh Divisi" = semua; pemegang grant hanya divisi dalam lingkupnya). Koordinator hanya melihat tab Input. Direksi tak punya akses.
 
 ### Riwayat & Audit (`/kpi?tab=riwayat`) · Rekapitulasi (`/kpi?tab=rekap`)
 

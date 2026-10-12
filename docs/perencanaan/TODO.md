@@ -22,15 +22,28 @@ dgn `npm run typecheck` + `npm run build`. Commit granular per kelompok halaman.
   `team-aspect`, `monitor-trends`, `extremes-heatmap`, `per-employee-heatmap`).
 - ✅ **Isi 360° Feedback + Laporan Hasil Saya + Akun Saya** — `162bc8e` (17 file; termasuk komponen
   laporan bersama `report-doc`/`aspect-summary-view`/`raw-feedback`/`aspect-summary-editor`/`report-actions`).
-- 🔄 **Belum di-token (sisa):**
+- ✅ **Login** (`app/login/`) — sudah ter-token (dicek 2026-10-12: tak ada palet Tailwind mentah).
+- ✅ **Beranda** — halaman **dihapus** (2026-08-08); `/` kini gerbang auth → landing per peran. `cycle-status.tsx`
+  pindah ke `app/(app)/admin/periode/` (sudah ter-token bersama Kelola Periode).
+- 🔄 **Belum di-token (sisa, dicek 2026-10-12):**
   - ⬜ **Laporan Kinerja Tim** (`app/(app)/laporan-tim/`: `page.tsx`, `team-table.tsx`, `scorecards.tsx`,
     `acc-button.tsx`). ⚠️ **`team-table.tsx` & `scorecards.tsx` DIPAKAI BERSAMA Monitor** → perubahan
     kena ke Monitor; **jangan langgar** "Ringkasan Monitor ke bawah jangan diubah".
-  - ⬜ **Review Hasil Akhir** (`app/(app)/review-hasil/page.tsx` + `[employeeId]/page.tsx`) — masih
-    `bg-white`/gray (belum ter-token walau disebut di commit lama).
-  - ⬜ **Beranda / landing per peran** (`app/(app)/beranda/page.tsx`, `cycle-status.tsx`).
-  - ⬜ **Login & Auth** (`app/login/page.tsx`+`login-form.tsx`, `app/auth/lupa-sandi/*`, `app/auth/perbarui-sandi/*`).
+  - ⬜ **Tinjauan Hasil Akhir Direksi** (`app/(app)/review-hasil/page.tsx` + `[employeeId]/page.tsx`) — masih
+    `bg-white`/gray. (Halaman HRD "Review & Finalisasi" `admin/laporan/` sudah ter-token.)
+  - ⬜ **Form Auth** (`app/auth/lupa-sandi/*`, `app/auth/perbarui-sandi/*`).
   - ⬜ **`app/(app)/loading.tsx`** (skeleton).
+
+### Operasional & rilis (dicek 2026-10-12)
+- 🔄 **Revisi 4 PDF panduan in-app** (`public/panduan/`) sesuai `docs/panduan/REVISI-PANDUAN-PDF.md` (bagian 0–4 + 6).
+  Working tree sudah berisi 4 PDF baru + `PANDUAN_VERSION`=`2026-10-01` (**belum di-commit**), tetapi **teks PDF
+  masih identik dgn versi 30 Juli** (masih "Review Hasil Akhir", "punishment", "4 karakter", salah ketik "ditHRD").
+  Sunting dokumen sumber Word → ekspor ulang → baru commit + deploy.
+- 🔑⬜ **Pastikan migrasi 0036–0047 sudah diterapkan di production** — jalankan `scripts/check-migrations.sql`
+  di SQL Editor production (dan staging). Kode di `main` sudah memakai fitur 0041–0047; CHANGELOG hanya mencatat
+  0046/0047 eksplisit "sudah diterapkan".
+- ⏸️ **Screen 04 "Review Penilaian"** — kode di branch `feature/review-penilaian`, dikeluarkan dari `dev`
+  (`3d02edf`, 2026-10-01). Menunggu simulasi ke pegawai sebelum di-merge.
 
 ### Keamanan pra-go-live
 - ✅ **Sandi awal seragam — TERATASI (2026-07-01):** **Kirim Undangan Massal sudah dijalankan** →
@@ -57,6 +70,9 @@ dgn `npm run typecheck` + `npm run build`. Commit granular per kelompok halaman.
     wajib argumen folder + kata `PULIHKAN`; flag `--no-auth`). Pakai pola `npm install --no-save pg`
     → jalankan → `npm uninstall --no-save pg` (sama spt skrip reset). **Restore diuji idempoten** ke DB
     nyata: 2593 baris, jumlah baris cocok 100% (tanpa duplikat).
+  - ✅ **Backup otomatis harian SELESAI (2026-10-02):** GitHub Actions `backup.yml` (02:00 WIB), isi
+    **dienkripsi AES-256** (repo publik), artifact 30 hari; butuh secret `SUPABASE_DB_URL` + `BACKUP_PASSPHRASE`
+    (lihat `docs/panduan/CARA-BACKUP.md` §1b). Menuntaskan butir (c) di bawah.
   - 🔑🔄 **SISA (aksi pengguna):** (a) ✅ **dijalankan** — backup terbaru dibuat via terminal
     (`scripts/backup.mjs`, konfirmasi pengguna **2026-07-16**); ulangi rutin (akhir periode + sebelum
     migrasi/reset); (b) ⬜ **salin hasil ke luar laptop** (Google Drive/eksternal) — aturan 3-2-1,
@@ -147,13 +163,18 @@ dgn `npm run typecheck` + `npm run build`. Commit granular per kelompok halaman.
 - 🔄 **Manajemen Akses — grant halaman berlingkup (RBAC `page_grants`).** Konsol `/admin/akses` + migrasi
   0024/0025 **sudah LIVE** (lihat [BACKLOG.md](BACKLOG.md) "Akses HRD granular"). Progres halaman yang di-grant:
   - ✅ **Monitor Kinerja Pegawai** (pemantauan, lihat-saja berlingkup) — LIVE di `main`.
-  - 🔄 **Review Hasil Akhir — Tahap 1 (lihat-saja berlingkup) SELESAI di `dev` (`a42d6ee`), BELUM PUSH.**
+  - ✅ **Katalog grant kini 7 halaman** (`GRANTABLE_PAGES`): Monitor Kinerja Pegawai, Review & Finalisasi,
+    Dashboard Organisasi, Struktur Organisasi, Progress 360, Flag Kepatuhan, Monitoring & Audit KPI — semua LIVE.
+  - ✅ **Review & Finalisasi — Tahap 2 AKTIF & LIVE** (izin 3-tingkat Lihat/Meringkas/Finalisasi, migrasi 0032;
+    `resolveReportWriteActor` tulis via service_role berlingkup; Peninjau Lintas Divisi dipensiunkan ke grant ini,
+    migrasi 0033). Catatan Tahap 1 di bawah = riwayat.
+  - ✅ (riwayat) **Review Hasil Akhir — Tahap 1 (lihat-saja berlingkup)** (`a42d6ee`).
     Halaman **administrator pertama** yang di-grant. `'review'` di `GRANTABLE_PAGES` (kind administrator,
     Tahap 1 read-only; `can_edit` default false); `admin/laporan/page.tsx` SADAR-MODE + jalur grant
     (service_role scoped read, `deptScopeFilter`, tombol tulis+"Tinjau" disembunyikan, detail diblok);
     aksi tulis TAK diubah = HRD-only. +4 tes (120 hijau, build hijau). Terverifikasi localhost (tak bisa
     edit/Tinjau via grant). Detail: [[page-access-rbac]].
-    - ⬜ **Tahap 2 (ditunda — besar/sensitif):** finalisasi/edit oleh non-HRD (guard tulis service_role
+    - ✅ **Tahap 2 (kini selesai, lihat atas):** finalisasi/edit oleh non-HRD (guard tulis service_role
       per-aksi cek grant+`can_edit`+lingkup di `saveOrFinalizeReport`/`releaseToSpv`/`bulkFinalizeAccepted`/
       `saveAspectSummaries`/`saveQualSummaries`) + detail page branch read-only utk grant holder + konsol
       toggle boleh-edit/hanya-lihat + precedence `hrd_sections`. Sulit diuji penuh (user hanya bisa login Ulfa).
@@ -181,7 +202,7 @@ dgn `npm run typecheck` + `npm run build`. Commit granular per kelompok halaman.
     melatih model pada data bisnis. Perlu persetujuan kebijakan internal.
 
 ### Keandalan teknis
-- ⬜ **Seragamkan skor 360° di Ekspor Dataset — sheet "Rekap Kinerja" hitung LIVE (diminta 2026-07-20).**
+- ⬜ **(masih berlaku 2026-10-12)** **Seragamkan skor 360° di Ekspor Dataset — sheet "Rekap Kinerja" hitung LIVE (diminta 2026-07-20).**
   Saat ini `exportRekap` (`app/(app)/admin/ekspor/actions.ts`) membaca **`result_360` tersimpan** (hanya
   sesegar "Hitung Ulang" terakhir), sedangkan `exportSummary360` & `exportAspectScores` **menghitung fresh**
   dari rating mentah + bobot aktif. Akibat: bila ada penilaian 360° diubah **setelah** hitung-ulang terakhir,
@@ -224,7 +245,8 @@ dgn `npm run typecheck` + `npm run build`. Commit granular per kelompok halaman.
   diri, wajib-komentar edit KPI, L3 aman). **Sisa yang BELUM dicek:**
   - **#8 Kelengkapan 360°** — baru ~3 pegawai submit; **jangan finalisasi periode** sebelum
     pengisian cukup (cek Progress 360 / dorong via pengingat). Data sesedikit ini → skor tak representatif.
-  - **#9 Sanity Skor Akhir di data nyata** — verifikasi `Skor Akhir = blend(KPI,360) − punishment` untuk
+  - **#9 Sanity Skor Akhir di data nyata** — verifikasi `Skor Akhir = blend(KPI,360)` (Punishment manual dihapus
+    2026-10-01; potongan telat sudah ada di Skor 360°) untuk
     beberapa pegawai nyata.
   - **#10 Kunci & Akhiri Periode** — ✅ **ditegakkan**: semua aksi tulis (KPI `saveKpiScores`,
     360° `submitAssessment`/`discardAssessment`/`addAdhocTarget`/`requestCorrection`) keys ke
@@ -248,8 +270,9 @@ dgn `npm run typecheck` + `npm run build`. Commit granular per kelompok halaman.
   - ❌ **#17 Penegasan "Wajib tekan Kirim" — TIDAK DIKERJAKAN** (keputusan 2026-06-25): berhenti di
     draf = **kelalaian pegawai**, bukan tanggung jawab app. Lihat "Keputusan terkunci" di CLAUDE.md.
   - (Pra-go-live email/sandi/rotasi kredensial/**backup rutin**/branch-protection tetap di bagian Keamanan & item bawah.)
-- 🔄 **Tes unit** — Vitest **99 tes** (logika skor + trend KPI + parsing impor Excel KPI & pemetaan
-  360° + **otorisasi/guard Server Action & roles**).
+- ✅ **Tes unit** — Vitest **290 tes / 17 file** (dicek 2026-10-12, semua hijau): skor, bobot 360°, potongan
+  telat & 4 status, trend KPI, impor Excel, lingkup grant halaman, lingkup raw laporan, "Dinilai oleh", safe-next,
+  **otorisasi/guard Server Action** (pegawai, laporan, ACC, bobot, KPI, penilaian, permohonan).
 - ✅ **Tes Server Action — SELESAI (2026-07-16).** 33 tes otorisasi/guard via **mock Supabase**
   (`tests/helpers/mock-supabase.ts`, antrean respons per-tabel): `setHrdAdmin`/`setCoordinator`
   (`tests/actions-pegawai.test.ts`), `saveOrFinalizeReport`/`releaseToSpv` (`tests/actions-laporan.test.ts`),
@@ -259,7 +282,7 @@ dgn `npm run typecheck` + `npm run build`. Commit granular per kelompok halaman.
 - ⬜ **Branch protection GitHub** — PR ke `main` belum wajib CI hijau (push langsung bisa lolos
   walau build merah). Setting GitHub, ~5 menit. **Task baru (diskusi 2026-06-19).**
 - ✅ **Verifikasi RLS terprogram per peran** — `npm run verify:rls` (`scripts/verify-rls.ts`):
-  fixture uji mandiri (`RLSTEST-*`) → **21 assertion** `kpi_scores` (baca/tulis, termasuk **SPV
+  fixture uji mandiri (`RLSTEST-*`) → kini **56 pemeriksaan** (awalnya 21; diperluas 0041/0042/0045) `kpi_scores` (baca/tulis, termasuk **SPV
   tulis KPI rekan SPV → DITOLAK**) **+ 360° mentah lapis 3** (SPV ditolak baca `assessments`/AIS/AQA
   anggota tim [0012]; kontrol positif HRD/penilai/target). Self-cleaning, aman ke data nyata.
 - 🔄 **Aksesibilitas & mobile** — dropdown keyboard-nav/ARIA + tabel lebar wrapped.

@@ -649,10 +649,14 @@ Dataset dirangkai jadi beberapa **file multi-lembar** (bukan banyak unduhan terp
   Perubahan KPI**. Saat halaman dibuka, **hanya tab aktif yang menarik data** — audit tak ditarik
   sama sekali sampai tabnya dibuka (penghematan **egress**; tab "Input KPI" tak muncul di mode admin —
   input adalah tugas SPV).
-- **Riwayat & Audit dipaginasi & dicari DI SERVER** — hanya **10 baris/halaman** yang ditarik per
+- **Riwayat & Audit dipaginasi & dicari DI SERVER** — hanya **5 baris/halaman** yang ditarik per
   render (bukan seluruh riwayat lalu dipotong di klien). **Pencarian nama/divisi** dijalankan saat
   **Enter** (bukan tiap ketikan); navigasi halaman & pencarian lewat URL. Jejak **append-only** —
   tak bisa diubah/dihapus, urut **terbaru di atas**.
+- **Filter Divisi** (di bawah judul halaman, 2026-10-12) menyaring **kedua tab** sekaligus — Rekapitulasi
+  Kuartal & Riwayat & Audit. Pilihan "Seluruh Divisi" = semua pegawai. Pilihan divisi tetap terbawa saat
+  berganti tab atau periode; halaman audit kembali ke awal. Pemegang grant hanya melihat divisi dalam
+  lingkupnya (filter tak muncul bila lingkupnya hanya satu divisi).
 - **Filter periode** (dropdown di Rekapitulasi Kuartal) menyaring Rekapitulasi; tab Riwayat & Audit
   menampilkan seluruh periode.
 - Memantau input & perubahan KPI yang dilakukan SPV/Koordinator.

@@ -5,6 +5,11 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **Monitoring & Audit KPI — filter Divisi (2026-10-12, permintaan pengguna):** dropdown Divisi (`?dept=`,
+  `app/(app)/kpi/dept-select.tsx`) untuk HRD Mode Admin & pemegang grant `kpi`; menyaring tab Rekapitulasi &
+  Riwayat & Audit. **Menyaring DI DALAM lingkup** (`RekapView`/`RiwayatView` prop `dept`) — `?dept=` di luar
+  pilihan diabaikan, jadi tak bisa menembus lingkup grant. `PeriodSelect` kini mempertahankan parameter URL lain.
+  Tab SPV/HRD Mode-SPV (Kinerja Tim) tak berubah. Tanpa migrasi.
 - **"Dinilai oleh" (Review & Finalisasi) selaras Progress 360 (2026-10-08):** dulu menghitung SEMUA pemetaan
   Wajib termasuk yang nonaktif & penilaian dibatalkan → "9/10" padahal Progress sudah 100%. Kini
   `ratedCompletion` (`lib/rated-completeness.ts`): hanya Wajib non-ad-hoc, pemetaan nonaktif tak dihitung
@@ -334,9 +339,19 @@
   `0025` `page_grants.can_edit boolean default false` (dimensi EDIT utk halaman administrator; pemantauan
   selalu false) · `0026` `assessment_indicator_scores.rating` numeric(3,2) → **numeric(8,6)** (aditif/aman;
   presisi tinggi backfill Looker Q1 — mendukung desimal berulang mis. `4.727273`). Semua diterapkan ke DB live.
+- `0027` lingkup grant `self` (Diri sendiri) · `0028` `page_grants.scopes text[]` (MULTI-lingkup, mis. "Selain
+  divisi + Diri sendiri") · `0029` lingkup `coordinator_team` (koordinator hanya tim naungannya) · `0030`
+  `employees.access_reviewed_at` (section "Pegawai Baru" di konsol akses) · `0031` tabel
+  `employee_weight_overrides` (bobot 360° khusus per pegawai) · `0032` `page_grants.can_finalize` (izin 3-tingkat
+  Lihat/Meringkas/Finalisasi) · `0033` **migrasi DATA** pensiun `is_cross_reviewer` → grant Review lingkup
+  "selain divisinya" + Meringkas (route `/peninjau` dihapus) · `0034` `employees.nickname` (nama ringkas di
+  tampilan padat) · `0035` `periods.mapping_published` (fase Tinjau Pemetaan oleh pegawai sebelum form dibuka).
+- `0037`/`0038`/`0039` Exposure Check (BR-03) + N/A (BR-05) + kolom alasannya — **fiturnya kemudian dicabut**
+  (N/A 2026-09-29 tanpa migrasi; Exposure Check via `0044`); kolom dibiarkan dorman · `0040`
+  `indicators.rating_key_points` (key point per level BARS, Screen 03).
 - `0036` `periods.assessment_deadline` · `assessments.first_submitted_at`/`forced_by_hrd` + trigger
   `assessments_stamp_submit` · `result_360.score_raw`/`late_penalty` · tabel `late_penalty_waivers` (RLS
-  baca berjenjang, tulis HRD). ⚠️ **Belum diterapkan** ke DB (terapkan sebelum merge ke `main`).
+  baca berjenjang, tulis HRD). (Kode yang memakainya sudah di `main`; status penerapan per DB → `scripts/check-migrations.sql`.)
 - `0041` **Pengetatan RLS hasil audit (2026-09-29)** — celah "lewat API langsung" (anon key + JWT
   sendiri melewati Server Action): (1) `asmt_write` kini **wajib pemetaan aktif** (termasuk Ad-Hoc
   disetujui) — sebelumnya pegawai bisa menyuntik nilai untuk rekan mana pun (dihitung sbg 'Peer');
@@ -349,7 +364,7 @@
   tak lagi membaca baris mentah + identitas penilai (Laporan Hasil Saya kini dimuat via service_role,
   tetap dibatasi laporan FINAL miliknya). `verify:rls` diperluas untuk tiap poin. Data historis Q1 2026
   (51 penilaian sintetis backfill, tanpa pemetaan) tak terdampak (periode tutup, jalur service_role).
-  ⚠️ **Belum diterapkan** ke DB.
+  (Catatan saat ditulis: belum diterapkan. Status terkini per DB → `scripts/check-migrations.sql`.)
 - `0042` **Anonimitas penilai + KPI hanya lewat UI (2026-09-29, keputusan HRD).** (A) Siapa-menilai-siapa
   hanya untuk HRD: `asmt_read`/`ais_read`/`aqa_read` cabut cabang **Direksi**; `map_read` hanya HRD + penilai
   (pegawai tahu SIAPA YANG IA NILAI, bukan siapa yang menilainya; SPV/Direksi/target tak lagi membaca
@@ -360,7 +375,7 @@
   atomik oleh fungsi `kpi_save_with_audit`/`kpi_delete_with_audit` (hanya service_role; tolak bulan di luar
   periode aktif). Kode punya **fallback** 2-langkah bila fungsi belum ada → aman dideploy SEBELUM migrasi.
   `verify:rls` diperluas. ⚠️ **Urutan rilis: deploy kode dulu, baru terapkan 0041 → 0042** (kode lama di
-  `main` bergantung pada izin yang dicabut). Belum diterapkan ke DB.
+  `main` bergantung pada izin yang dicabut). (Status penerapan per DB → `scripts/check-migrations.sql`.)
 - **Potongan keterlambatan tertunda** (2026-09-29): halaman Flag Kepatuhan menampilkan jumlah pegawai yang
   potongannya belum masuk Skor 360° tersimpan + tombol **"Terapkan Potongan ke Skor 360°"**
   (`applyLatePenalties` → `refreshLatePenalties`, tanpa hitung ulang penuh); Review Hasil Akhir memberi
@@ -371,7 +386,7 @@
   kini ikut potongan bila tak selesai saat deadline & ditandai terpisah di Kepatuhan + di daftar penilaian
   pegawai ("Ajuan · wajib selesai"); potongan **diterapkan otomatis** saat HRD membuka Kepatuhan/Review &
   sebelum simpan/rilis/finalisasi. **Batas input KPI di server disamakan dengan UI** (HRD posisi → divisinya;
-  SPV → tim + diri; Koordinator → timnya). Belum diterapkan ke DB.
+  SPV → tim + diri; Koordinator → timnya). (Status penerapan per DB → `scripts/check-migrations.sql`.)
 - `0044` **Exposure Check (BR-03) DICABUT TOTAL** (2026-09-29, permintaan pengguna): Server Action
   `setExposureStatus` & `resetExposureStatus`, form Exposure, notice/badge/kartu/filter Not Eligible (Penilaian,
   Progress 360, Kepatuhan), pengecekan not_eligible di `submitAssessment`, dan daftar alasan (`lib/assessment-reasons.ts`)
@@ -399,7 +414,7 @@
   menilai diri sendiri. "Maksimal satu periode aktif" sengaja TIDAK dijadikan batasan (verify:rls membuat
   periode uji aktif). (10) `?next=` login/callback lewat `safeNext` (tolak `//…`, backslash) — cegah open
   redirect. (11) Pemegang grant Review tak bisa mengubah/memfinalisasi **laporannya sendiri**.
-  `verify:rls` +15 pemeriksaan (56 total, fixture HRD terbatas). Terapkan **setelah 0044**. Belum diterapkan ke DB.
+  `verify:rls` +15 pemeriksaan (56 total, fixture HRD terbatas). Terapkan **setelah 0044**. (Status penerapan per DB → `scripts/check-migrations.sql`.)
 - **Bersih-bersih aturan lama di UI (2026-09-29):** Flag Kepatuhan tak lagi menandai "Belum self-assessment"
   (Self Assessment nonaktif sejak Q3 2026 → dulu SEMUA pegawai tertandai); kartu "Not Eligible" di Progress 360
   hanya tampil bila ada datanya; pemegang grant non-HRD di Progress 360 & Kepatuhan hanya melihat JUMLAH —
@@ -429,7 +444,12 @@
   mengisi pembatalan lewat API. Pemetaan 360°: kolom & filter **Status** (Belum Mulai/Draft/Terkirim/Dibatalkan);
   **Hapus hanya Belum Mulai/Draft + alasan wajib** (dialog beda per status); Terkirim → **Periksa Validitas** →
   `setAssessmentValidity` (Batalkan / Pulihkan, alasan wajib, Log Aktivitas `assessment.invalidate|restore`, Skor 360°
-  target direkonsiliasi). Penilai melihat "dibatalkan HRD" (form terkunci). **Terapkan 0046 SEBELUM merge ke main.**
+  target direkonsiliasi). Penilai melihat "dibatalkan HRD" (form terkunci). **Sudah diterapkan ke staging & produksi**
+  (rilis 2026-10-02).
+- `0047` **Penilaian terkirim terkunci setelah deadline** (Decision 01, 2026-10-01): `assessment_locked_after_deadline`
+  + trigger `assessments_guard_deadline_lock`; `assessment_writable` diperbarui. Penilai hanya bisa mengedit/kirim ulang
+  sampai deadline; sesudahnya tombol "Lihat" (baca-saja). Penilaian yang BELUM terkirim tetap boleh dikirim (tercatat
+  telat). **Sudah diterapkan ke staging & produksi.**
 - **BR-09/10/11 — skor & klasifikasi Q3 2026 (2026-10-01, Tahap 2; keputusan HRD 2026-10-01):**
   (BR-10) model **2 kelas** pada periode mulai ≥ 2026-07-01 → bobot OTOMATIS menurut jumlah penilai Internal yang
   mengirim (≥2 → Atasan 40/Internal 60; 1 → 60/40; satu sisi → 100%); `Model360` + `effectiveModel`/`schemeFor`/
@@ -468,11 +488,16 @@
   AMAN** (assessments/rating utuh); hanya `result_360` (turunan) yang salah → sembuh dgn Hitung Ulang.
   Deteksi "skor basi" hanya cek WAKTU (`submitted_at`>`computed_at`), **bukan kebenaran** skor → bug ini lolos
   tanpa badge. **Pelajaran:** query enumerasi apa pun yg bisa tumbuh >1000 baris WAJIB paginasi.
-- **Vitest 99 tes** (skor `lib/scoring.ts`/`lib/score360.ts` + trend `lib/trend.ts` + parsing impor
+- **Vitest 290 tes / 17 file** (per 2026-10-12; awalnya 99 per 2026-07-16 — skor `lib/scoring.ts`/`lib/score360.ts` + trend `lib/trend.ts` + parsing impor
   `lib/import/parse.ts` + **otorisasi/guard Server Action & `roles.ts`** via mock Supabase
   `tests/helpers/mock-supabase.ts`, 2026-07-16); **CI** (test+typecheck+build tiap push/PR). Rincian di **Pengujian**.
-- **`npm run verify:rls`** — 21 assertion (kpi_scores + L3 tertutup untuk SPV); manual, tak di CI.
-- Skrip operasional: `backup.mjs`/`restore.mjs` (dump 22 tabel), `reset-*.mjs`, `apply-migration.mjs`
+- **`npm run verify:rls`** — **56 pemeriksaan** (awalnya 21; diperluas 0041/0042/0045: kpi_scores, L3 tertutup untuk
+  SPV, HRD terbatas, isi penilaian saat form ditutup, permohonan palsu, bobot ≠ 100, dll.); manual, tak di CI.
+- **Backup otomatis harian** (`.github/workflows/backup.yml`, 2026-10-02) — 02:00 WIB, terenkripsi AES-256 karena
+  repo publik, artifact 30 hari. `scripts/check-migrations.sql` mengecek status migrasi 0001–0047 per DB.
+- **Repo GitHub `infarmcorp/infarm-360`** (dijadikan publik 2026-09-29). PR #1–#13 dulu dari fork
+  `infarmdataanalyst-lgtm/dev`. Branch per 2026-10-12: `main`, `dev`, `feature/review-penilaian` (ditunda).
+- Skrip operasional: `backup.mjs`/`restore.mjs` (dump semua tabel publik + auth), `reset-*.mjs`, `apply-migration.mjs`
   (pola `npm install --no-save pg`). `xlsx@0.20.3` (CDN, tutup advisory high). Arsip legacy `src/` dihapus.
 - **⚠️ Backfill 360° Q1 2026 (dinilai eksternal, di LIVE 2026-07-15) — data, bukan kode.** Migrasi **0022**
   (`rating`→numeric(3,2)) → set `has_360=true` Q1 + `result_360` headline eksak + **penilaian sintetis**

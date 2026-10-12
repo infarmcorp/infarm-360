@@ -18,7 +18,7 @@ Legenda hasil: ✅ lolos · ⚠️ lolos dengan catatan · ❌ gagal.
 - [ ] `npm run build` hijau (validasi tipe + prerender).
 - [ ] `npm run typecheck` bersih.
 - [ ] `npm test` → **55 tes hijau** (kunci rumus skor/impor).
-- [ ] `npm run verify:rls` → **21 assertion lolos** (kebijakan RLS per peran utuh).
+- [ ] `npm run verify:rls` → **56 pemeriksaan lolos** (kebijakan RLS per peran utuh).
 - [ ] Ada minimal 1 **periode aktif** + data uji (pegawai, mapping, KPI) yang cukup.
 
 ---
@@ -55,7 +55,7 @@ Legenda hasil: ✅ lolos · ⚠️ lolos dengan catatan · ❌ gagal.
 ### HRD Admin — Mode Admin
 - [ ] Default login = **mode base** (posisi asli), masuk Admin disengaja via toggle.
 - [ ] Toggle **Mode Admin ↔ Mode posisi-asli** tampil.
-- [ ] Akses penuh: Kelola Siklus Periode, Pertanyaan/Aspek, Bobot, Mapping, Punishment, Finalisasi, Dashboard, Kelola Pegawai, Ekspor.
+- [ ] Akses penuh: Kelola Siklus Periode, Pertanyaan/Aspek, Bobot, Mapping, Flag Kepatuhan (potongan telat), Review & Finalisasi, Dashboard, Kelola Pegawai, Ekspor.
 - [ ] Melihat 360° mentah **anonim** + panel finalisasi (raw & finalisasi hanya di Mode Admin).
 - [ ] **Monitor Kinerja TIDAK ada** di Mode Admin (menu hilang + akses `/monitor` ditolak).
 
@@ -140,9 +140,9 @@ Legenda hasil: ✅ lolos · ⚠️ lolos dengan catatan · ❌ gagal.
 - [ ] **Trendline "Tren 360° per Kuartal {tahun}"** (hanya kuartal ber-360°) + kartu rerata tahun.
 - [ ] "Evaluasi Budaya 360°" warna `heatColor`.
 
-### Tab Talenta (9-Box & A/B/C/D)
+### Tab Talenta (4-Box A/B/C + HRD Review; Matriks 9-Box sudah dihapus dari tampilan)
 - [ ] 9-Box & 4-Box **dikunci ke satu kuartal** (`getTalentQuarterKey`).
-- [ ] Kuartal **tanpa 360°** (`has360=false`): 9-Box **tidak diplot**, kolom tabel `N/A`, **A Player nonaktif** (Skor Akhir = 100% KPI).
+- [ ] Kuartal **tanpa 360°** (`has360=false`): pegawai ber-KPI masuk **HRD Review**; Skor 360° tampil **"No Score"** pada periode ber-360° tanpa skor (BR-09).
 - [ ] Penempatan box sesuai ambang (lihat tabel CLAUDE.md): uji minimal 1 pegawai per band.
 
 ### Distribusi/RTL
@@ -175,8 +175,8 @@ Legenda hasil: ✅ lolos · ⚠️ lolos dengan catatan · ❌ gagal.
 - [ ] **Kelola Pertanyaan**: tambah/kelola **aspek** + indikator (deskripsi + panduan rating).
 - [ ] **Bobot Penilai**: ubah bobot per relasi → memengaruhi `weightedScore360` (cek angka berubah).
 - [ ] **Mapping**: buat/edit pasangan penilai-target + sifat **Wajib/Opsional**; impor mapping (pratinjau menyebut pasangan dilewati + alasan: self/dup/invalid).
-- [ ] **Punishment/Kepatuhan**: set pengurangan poin per kuartal → Skor Akhir berkurang (lantai 0).
-- [ ] **Hitung Ulang Skor 360°**: jalankan → `result_360` terisi; angka sesuai `lib/score360.ts`.
+- [ ] **Flag Kepatuhan / potongan telat**: penilai yang belum menuntaskan penilaian Wajib/Ajuan saat deadline → Skor 360°-nya −3 (otomatis saat halaman dibuka); HRD bisa ubah nilai potongan per orang (0 = dikecualikan, alasan wajib). (Punishment manual pada Skor Akhir **dihapus** 2026-10-01.)
+- [ ] **Hitung Ulang Skor 360°** (hanya di kokpit Review & Finalisasi): jalankan → `result_360` terisi; angka sesuai `lib/score360.ts` (Q3+ model 2 kelas → bobot otomatis 40/60 · 60/40 · 100%). Periode Q1 (impor Looker) **ditolak**.
 - [ ] **Finalisasi Final Report** menulis status & skor (hanya `service_role` dari server).
 - [ ] **Progress 360**: dua progres per baris ("Menilai orang lain" + "Dinilai oleh X/Y").
 - [ ] **Kirim Pengingat / Pengingat Massal** (dormant bila env email kosong — tombol ada, tak error).
@@ -190,17 +190,17 @@ Legenda hasil: ✅ lolos · ⚠️ lolos dengan catatan · ❌ gagal.
 
 ## 10. Ekspor Dataset
 
-- [ ] Ekspor: Pegawai, KPI, Audit KPI, Punishment, Rekap, 360° **anonim**, Pemetaan, Rekap Konfigurasi Periode → file Excel valid, kolom benar.
+- [ ] Ekspor: Pegawai (Master), Konfigurasi Periode Lengkap, Kinerja Lengkap (Rekap/KPI Bulanan/Audit KPI/**Potongan Keterlambatan**), Penilaian 360° Lengkap **anonim**, Bahan Laporan per Pegawai, Log Aktivitas HRD → file Excel valid, kolom benar.
 - [ ] Data 360° hasil ekspor **anonim** (tak ada identitas penilai).
 
 ---
 
 ## 11. Rumus Skor (verifikasi angka — "salah diam-diam")
 
-- [ ] `npm test` hijau (mengunci `finalScoreOf`, `playerClassOf`, `weightedScore360`, band, 9-Box).
-- [ ] Cek manual 1 kasus **360° aktif**: Skor Akhir = KPI×0.5 + 360×0.5 − punishment (lantai 0).
-- [ ] Cek manual 1 kasus **360° nonaktif**: Skor Akhir = KPI murni; kelas maks **B**.
-- [ ] Cek **A Player**: hanya bila 360 aktif & Final≥90 & KPI≥90 & 360≥80.
+- [ ] `npm test` hijau (290 tes — mengunci `finalScoreOf`, `playerClassOf`, `weightedScore360`/`schemeFor`, potongan telat, band, 9-Box).
+- [ ] Cek manual 1 kasus **360° aktif**: Skor Akhir = KPI×0.5 + 360×0.5 (360° sudah termasuk potongan telat), dibulatkan 2 desimal.
+- [ ] Cek manual 1 kasus **tanpa 360°**: Skor Akhir = KPI murni; kelas = **HRD Review** (BR-11). Tanpa KPI tapi ada 360° → Skor Akhir = 360°.
+- [ ] Cek **A Player**: KPI ≥ 80 **dan** 360° ≥ 80 (4-Box A / B-Culture / B-KPI / C, tanpa D).
 - [ ] **Self dikecualikan** dari skor 360° (cek pengisian Self tak menaikkan/menurunkan hasil).
 
 ---

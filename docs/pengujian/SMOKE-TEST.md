@@ -28,7 +28,7 @@ rollback / perbaiki dulu.
 ## D. PENTING — Tampilan & angka
 - [ ] **Dashboard** terbuka; ganti filter Periode/Divisi/Tahun → chart berubah tanpa error.
 - [ ] Heatmap, donut kategori KPI, & trendline ter-render (bukan kosong/rusak).
-- [ ] **Skor Akhir** 1 pegawai masuk akal (cek silang: 360 aktif → blend 50/50 − punishment).
+- [ ] **Skor Akhir** 1 pegawai masuk akal (cek silang: 360 aktif → blend 50/50; potongan telat −3 sudah termasuk di Skor 360°).
 - [ ] Logo Infarm tampil benar (sidebar + mobile).
 
 ## E. PENTING — Admin esensial (Mode Admin)

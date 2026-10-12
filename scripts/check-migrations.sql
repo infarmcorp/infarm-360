@@ -1,6 +1,6 @@
 -- ============================================================================
 -- CEK STATUS MIGRASI — jalankan di Supabase SQL Editor project mana pun
--- (production ATAU staging) untuk melihat migrasi 0001–0040 mana yang SUDAH
+-- (production ATAU staging) untuk melihat migrasi 0001–0047 mana yang SUDAH
 -- diterapkan ke database tsb, tanpa perlu mengingat riwayatnya secara manual.
 --
 -- Cara pakai: copy-paste seluruh isi file ini ke SQL Editor → Run. Kolom
@@ -52,7 +52,14 @@ select * from (values
   ('0037', 'kolom assessments.exposure_status',               exists(select 1 from information_schema.columns where table_name='assessments' and column_name='exposure_status')),
   ('0038', 'kolom assessments.exposure_reason',                exists(select 1 from information_schema.columns where table_name='assessments' and column_name='exposure_reason')),
   ('0039', 'kolom assessment_indicator_scores.na_reason',      exists(select 1 from information_schema.columns where table_name='assessment_indicator_scores' and column_name='na_reason')),
-  ('0040', 'kolom indicators.rating_key_points',               exists(select 1 from information_schema.columns where table_name='indicators' and column_name='rating_key_points'))
+  ('0040', 'kolom indicators.rating_key_points',               exists(select 1 from information_schema.columns where table_name='indicators' and column_name='rating_key_points')),
+  ('0041', 'trigger trg_assessments_keep_submitted',           exists(select 1 from pg_trigger where tgname='trg_assessments_keep_submitted')),
+  ('0042', 'fungsi kpi_assert_active_month',                   exists(select 1 from pg_proc where proname='kpi_assert_active_month')),
+  ('0043', 'kolom late_penalty_waivers.points',                exists(select 1 from information_schema.columns where table_name='late_penalty_waivers' and column_name='points')),
+  ('0044', 'trigger trg_assessments_block_exposure',           exists(select 1 from pg_trigger where tgname='trg_assessments_block_exposure')),
+  ('0045', 'fungsi hrd_can',                                   exists(select 1 from pg_proc where proname='hrd_can')),
+  ('0046', 'kolom assessments.invalidated_at',                 exists(select 1 from information_schema.columns where table_name='assessments' and column_name='invalidated_at')),
+  ('0047', 'fungsi assessment_locked_after_deadline',         exists(select 1 from pg_proc where proname='assessment_locked_after_deadline'))
 ) as t(migrasi, penanda_skema, applied)
 order by migrasi;
 

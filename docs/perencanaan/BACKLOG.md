@@ -38,7 +38,8 @@ di **[CHANGELOG.md](CHANGELOG.md)**; panduan durable di **[CLAUDE.md](../../CLAU
     banyak koordinator, pertimbangkan menurunkan lingkup dari mapping Atasan (tanpa efek skor) agar HRD tak
     input dua kali. Untuk sekarang pakai daftar eksplisit `coordinator_team_members`.
 - ✅ **"Peninjau Hasil Lintas Divisi" (grant `is_cross_reviewer`, migrasi 0018)** — **SELESAI
-  (2026-06-30).** Pegawai (mis. divisi HRD) yang diberi izin dapat **meringkas Hasil Akhir 360°
+  (2026-06-30); DIPENSIUNKAN 2026-07-24 (migrasi 0033)** → kini grant halaman Review & Finalisasi lingkup
+  "selain divisinya" + izin Meringkas; route `/peninjau` dihapus. Catatan di bawah = riwayat desain awal. Pegawai (mis. divisi HRD) yang diberi izin dapat **meringkas Hasil Akhir 360°
   pegawai di SEMUA divisi KECUALI divisinya sendiri** (membantu HRD menulis Ringkasan Aspek tanpa
   melihat hasil rekan sedivisinya). Kewenangan: **lihat (L2 + komentar anonim) + tulis Ringkasan
   Aspek** — TANPA rilis/finalisasi/hitung-ulang (tetap milik HRD).

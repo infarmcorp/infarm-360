@@ -19,11 +19,12 @@ export function DeleteButton({ mappingId, status }: { mappingId: string; status:
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [warn, setWarn] = useState<string | null>(null);
   const [info, setInfo] = useState<Info | null>(null);
   const [reason, setReason] = useState('');
 
   async function open() {
-    setBusy(true); setErr(null); setReason('');
+    setBusy(true); setErr(null); setWarn(null); setReason('');
     const res = await mappingDeleteInfo(mappingId);
     setBusy(false);
     if (!res.ok) { setErr(res.error); return; }
@@ -38,6 +39,9 @@ export function DeleteButton({ mappingId, status }: { mappingId: string; status:
       : await deleteMapping(mappingId, reason);
     setBusy(false);
     if (!res.ok) { setErr(res.error); return; }
+    // Status sudah berubah, tetapi Skor 360° mungkin belum diperbarui → tampilkan peringatannya.
+    const warning = (res as { warning?: string }).warning;
+    if (warning) setWarn(warning);
     setInfo(null);
     router.refresh();
   }
@@ -63,6 +67,7 @@ export function DeleteButton({ mappingId, status }: { mappingId: string; status:
         {busy && !info ? '…' : label}
       </button>
       {err && !info && <span className="text-[10px] text-danger-ink">{err}</span>}
+      {warn && !info && <span className="text-[10px] text-warn-ink font-semibold max-w-[280px] text-right">{warn}</span>}
 
       <ConfirmDialog
         open={!!info}

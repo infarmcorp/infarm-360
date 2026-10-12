@@ -27,12 +27,18 @@ function useAdmin(c: MockClient) { mockAdmin.mockReturnValue(c as any); return c
 const UID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const EMP = '11111111-1111-1111-1111-111111111111';
 /** Pelaku HRD (bukan koordinator) → melewati percabangan koordinator & SPV. */
-const HRD = { role: 'hrd', is_coordinator: false };
+const HRD = { role: 'hrd', is_coordinator: false, dept: 'Ops' };
 const ROWS = [{ employeeId: EMP, score: 90 }];
 
-/** Status pegawai yang dikembalikan lookup service_role sebelum penyimpanan. */
+/**
+ * Lookup service_role sebelum penyimpanan: (1) cek lingkup HRD — pegawai sedivisi (dijalankan PALING
+ * AWAL sejak gelombang 2b), lalu (2) status pegawai untuk gembok masa kerja.
+ */
 function status(rows: { is_active: boolean; left_on: string | null }[]) {
-  return { employees: [{ data: rows.map((r) => ({ id: EMP, name: 'Budi', ...r })) }] };
+  return { employees: [
+    { data: [{ id: EMP, dept: 'Ops', role: 'employee' }] },
+    { data: rows.map((r) => ({ id: EMP, name: 'Budi', ...r })) },
+  ] };
 }
 
 beforeEach(() => { vi.clearAllMocks(); });

@@ -93,13 +93,30 @@ export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
   if (!auth.user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
   const { data: me } = await supabase.from('employees').select('role, is_coordinator, is_hrd_admin, dept').eq('id', auth.user.id).maybeSingle();
   const empIds = rows.map((r) => r.employeeId);
+  const isPureCoordinator = !!me?.is_coordinator && me.role !== 'spv' && me.role !== 'hrd' && me.role !== 'direksi';
+
+  // PERAN & LINGKUP DULU — sebelum membaca data pegawai via service_role, agar pemanggil tak
+  // berwenang (mis. memanggil action langsung dgn UUID acak) tak bisa mengetahui nama pegawai dari
+  // pesan error di bawah (temuan audit no. 8). Koordinator: tim koordinasinya; SPV/HRD: assertKpiScope.
+  const svc = createAdminClient();
+  if (isPureCoordinator) {
+    const { data: team } = await svc.from('coordinator_team_members')
+      .select('employee_id').eq('coordinator_id', auth.user.id).in('employee_id', empIds);
+    const allowed = new Set((team ?? []).map((t) => t.employee_id));
+    if (empIds.some((id) => !allowed.has(id))) {
+      return { ok: false, error: 'Sebagian pegawai berada di luar tim koordinasi Anda.' };
+    }
+  } else {
+    const scopeErr = await assertKpiScope(svc, me, auth.user.id, empIds);
+    if (scopeErr) return { ok: false, error: scopeErr };
+  }
 
   // PEGAWAI NONAKTIF: hanya boleh diberi KPI untuk bulan yang masih ia kerjakan (ym ≤ bulan
   // `left_on`). Daftar di UI sudah menyaring per bulan, tapi itu TAMPILAN — gembok sesungguhnya
   // di sini (impor Excel, tab yang terbuka lama, atau pemanggilan langsung tak lewat daftar).
   // Ditaruh SEBELUM percabangan koordinator agar berlaku untuk semua jalur (SPV/HRD/Koordinator).
   // Nonaktif tanpa `left_on` (deaktivasi lama) ditolak untuk semua bulan — tak ada acuan batas.
-  const { data: empStatus } = await createAdminClient()
+  const { data: empStatus } = await svc
     .from('employees').select('id, name, is_active, left_on, is_external').in('id', empIds);
   // Penilai EKSTERNAL (vendor/freelance) tak punya KPI — hanya menjadi penilai 360°.
   const external = (empStatus ?? []).filter((e) => e.is_external);
@@ -116,7 +133,7 @@ export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
 
   // KOORDINATOR "murni" (grant is_coordinator, bukan SPV/HRD/Direksi): input KPI HANYA pegawai
   // naungannya. RLS kpi_write menolak koordinator → tulis lewat service_role dgn scoping server.
-  if (me?.is_coordinator && me.role !== 'spv' && me.role !== 'hrd' && me.role !== 'direksi') {
+  if (isPureCoordinator) {
     return saveKpiAsCoordinator(auth.user.id, ym, rows, empIds);
   }
 
@@ -160,11 +177,7 @@ export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
     };
   }
 
-  // Lingkup (dulu ditegakkan RLS kpi_write; kini di server karena tulis lewat service_role).
-  const svc = createAdminClient();
-  const scopeErr = await assertKpiScope(svc, me, auth.user.id, empIds);
-  if (scopeErr) return { ok: false, error: scopeErr };
-
+  // Lingkup sudah ditegakkan di awal (assertKpiScope) — dulu oleh RLS kpi_write.
   // Skor + jejak audit (append-only) dalam satu transaksi.
   const writeErr = await writeKpi(svc, auth.user.id, ym, rows);
   if (writeErr) return { ok: false, error: writeErr };
@@ -186,14 +199,8 @@ async function saveKpiAsCoordinator(
   empIds: string[],
 ): Promise<SaveKpiResult> {
   const svc = createAdminClient();
-
-  // Scoping NYATA: semua pegawai target wajib di bawah koordinasi pelaku.
-  const { data: team } = await svc.from('coordinator_team_members')
-    .select('employee_id').eq('coordinator_id', coordId).in('employee_id', empIds);
-  const allowed = new Set((team ?? []).map((t) => t.employee_id));
-  if (empIds.some((id) => !allowed.has(id))) {
-    return { ok: false, error: 'Sebagian pegawai berada di luar tim koordinasi Anda.' };
-  }
+  // Scoping NYATA (semua pegawai target di bawah koordinasi pelaku) sudah dicek di saveKpiScores
+  // SEBELUM data pegawai dibaca — fungsi ini hanya dipanggil dari sana.
 
   // Tolak periode terkunci.
   const { data: openMonth } = await svc

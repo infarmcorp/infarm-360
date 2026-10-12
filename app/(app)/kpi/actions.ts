@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { rpcMissing } from '@/lib/supabase/rpc';
+import { finalLockErrorForMonths } from '@/lib/final-lock';
 
 /**
  * Input KPI bulanan (peran SPV). PANDUAN: "Pengisian Manual Apps".
@@ -129,6 +130,13 @@ export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
       error: `Pegawai nonaktif tidak dapat diberi KPI bulan ${ym} (di luar masa kerjanya): ${blocked.map((e) => e.name).join(', ')}.`,
     };
   }
+
+  // KUNCI LAPORAN FINAL: KPI bulan ini ikut membentuk laporan periode yang memuatnya → bila laporan
+  // pegawai mana pun di baris ini sudah Final (di periode mana pun yang memuat bulan ini), SELURUH
+  // penyimpanan ditolak sampai HRD menekan "Buka Kembali". Ditaruh sebelum percabangan koordinator
+  // agar berlaku untuk semua jalur (SPV/HRD/Koordinator); gagal membaca → ditolak (gagal tertutup).
+  const lockErr = await finalLockErrorForMonths(svc, empIds, [ym]);
+  if (lockErr) return { ok: false, error: lockErr };
 
   // KOORDINATOR "murni" (grant is_coordinator, bukan SPV/HRD/Direksi): input KPI HANYA pegawai
   // naungannya. RLS kpi_write menolak koordinator → tulis lewat service_role dgn scoping server.
@@ -272,6 +280,11 @@ export async function deleteKpiScore(raw: unknown): Promise<DeleteKpiResult> {
     const scopeErr = await assertKpiScope(svc, me, auth.user.id, [employeeId]);
     if (scopeErr) return { ok: false, error: scopeErr };
   }
+
+  // KUNCI LAPORAN FINAL: menghapus KPI mengubah angka laporan → tolak bila laporan pegawai ini sudah
+  // Final di periode mana pun yang memuat bulan ini (Buka Kembali dulu). Gagal membaca → ditolak.
+  const lockErr = await finalLockErrorForMonths(svc, [employeeId], [ym]);
+  if (lockErr) return { ok: false, error: lockErr };
   const db = isCoord ? svc : supabase; // baca (periode & skor lama)
 
   // Tolak penghapusan di bulan luar periode aktif (konsisten dgn saveKpiScores).

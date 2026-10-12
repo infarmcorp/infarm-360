@@ -13,6 +13,13 @@ import { makeClient, type MockClient } from './helpers/mock-supabase';
  */
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn(), createAdminClient: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
+// Kunci laporan Final diuji di final-lock-kpi-bobot.test.ts — di sini selalu "belum Final".
+vi.mock('@/lib/final-lock', async (orig) => ({
+  ...(await orig<typeof import('@/lib/final-lock')>()),
+  finalLockError: vi.fn(async () => null),
+  finalLockErrorForMonths: vi.fn(async () => null),
+  periodLockError: vi.fn(async () => null),
+}));
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { saveKpiScores } from '@/app/(app)/kpi/actions';

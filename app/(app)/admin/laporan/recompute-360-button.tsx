@@ -19,7 +19,9 @@ export function Recompute360Button() {
     setBusy(true); setMsg(null);
     const res = await computeResult360();
     setBusy(false);
-    setMsg(res.ok ? { ok: true, text: `Skor 360° dihitung ulang untuk ${res.computed} pegawai.` } : { ok: false, text: res.error });
+    // Pegawai yang laporannya sudah Final tak dihitung ulang (kunci laporan Final) — disebutkan jumlahnya.
+    const skipped = res.ok && res.skippedFinal > 0 ? ` ${res.skippedFinal} pegawai dilewati karena laporannya sudah Final.` : '';
+    setMsg(res.ok ? { ok: true, text: `Skor 360° dihitung ulang untuk ${res.computed} pegawai.${skipped}` } : { ok: false, text: res.error });
     if (res.ok) router.refresh();
   }
 

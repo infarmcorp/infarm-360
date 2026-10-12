@@ -536,7 +536,8 @@ describe('applyLatePenalties', () => {
 
   it('menerapkan ke seluruh baris periode aktif & melaporkan jumlah berubah', async () => {
     const db = setup({ me: { id: UID, role: 'hrd', is_hrd_admin: false, hrd_sections: ['kepatuhan'] } });
-    expect(await applyLatePenalties()).toEqual({ ok: true, changed: 6 });
+    // skippedFinal = pegawai dilewati karena laporannya Final (kunci laporan Final; tak ada di fixture ini).
+    expect(await applyLatePenalties()).toEqual({ ok: true, changed: 6, skippedFinal: 0 });
     expect(rowOf(db, 'L')).toEqual({ raw: 80, pen: 3, score: 77 });
     expect(rowOf(db, 'L', 'p0')).toEqual({ raw: 66, pen: 0, score: 66 });
     expect(mockLog).toHaveBeenCalledTimes(1);
@@ -555,7 +556,7 @@ describe('applyLatePenalties', () => {
     mockCreate.mockResolvedValue(memClient(db, { id: UID }) as any);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockAdmin.mockReturnValue(memClient(db) as any);
-    expect(await applyLatePenalties()).toEqual({ ok: true, changed: 0 });
+    expect(await applyLatePenalties()).toEqual({ ok: true, changed: 0, skippedFinal: 0 });
     expect(mockLog).toHaveBeenCalledTimes(1);
   });
 

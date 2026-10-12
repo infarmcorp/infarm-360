@@ -384,7 +384,8 @@ describe('computeResult360 — angka result_360 (Q3 2026, 2 kelas → bobot otom
   it('menulis score_raw / late_penalty / score per pegawai sesuai rumus', async () => {
     const db = setup({});
     const r = await computeResult360();
-    expect(r).toEqual({ ok: true, computed: 3, periodLabel: 'Q3 2026' });
+    // skippedFinal = pegawai dilewati karena laporannya Final (kunci laporan Final; tak ada di fixture ini).
+    expect(r).toEqual({ ok: true, computed: 3, periodLabel: 'Q3 2026', skippedFinal: 0 });
     expect(pick(upsertRows(db))).toEqual([
       // T1: 2 Internal (Peer 80, Cross 70 → rerata 75) → Atasan 40 / Internal 60 (isian 70/30 DIABAIKAN):
       //     (90×40 + 75×60)/100 = 81. Self 100, draft & invalidated tak ikut. Terlambat → −3 = 78.

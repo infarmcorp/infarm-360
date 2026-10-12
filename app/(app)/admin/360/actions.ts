@@ -10,6 +10,7 @@ import { fetchAllPaged, fetchAllByIds } from '@/lib/supabase/paginate';
 import { apply360Penalty } from '@/lib/late';
 import { loadLateSummaries } from '@/lib/late-server';
 import { backfillLockReason } from '@/lib/backfill-guard';
+import { finalizedEmployees, FINAL_CHECK_FAILED_MSG } from '@/lib/final-lock';
 
 /**
  * Kalkulasi skor 360 terbobot → tabel result_360 (PANDUAN: kalibrasi skor).
@@ -20,7 +21,8 @@ import { backfillLockReason } from '@/lib/backfill-guard';
  *  - Rumus murni (rata-rata ×20, pembobotan per kelas, Self dikecualikan) ada di
  *    `lib/score360.ts` agar bisa diuji unit; di sini hanya I/O DB + otorisasi.
  */
-export type ComputeResult = { ok: true; computed: number; periodLabel: string } | { ok: false; error: string };
+/** `skippedFinal` = pegawai yang dilewati karena laporannya sudah Final (kunci laporan Final). */
+export type ComputeResult = { ok: true; computed: number; periodLabel: string; skippedFinal: number } | { ok: false; error: string };
 
 // Helper paginasi/chunking (menembus batas 1000-baris & URL `.in()`) → lib/supabase/paginate.
 
@@ -132,18 +134,45 @@ export async function computeResult360(): Promise<ComputeResult> {
 
   if (rows.length === 0) return { ok: false, error: 'Tidak ada skor yang dapat dihitung' };
 
-  const { error } = await admin.from('result_360').upsert(rows, { onConflict: 'employee_id,period_id' });
-  if (error) return { ok: false, error: 'Gagal menulis result_360: ' + error.message };
+  // KUNCI LAPORAN FINAL (gelombang 2b): Skor 360° pegawai yang laporannya Final tak diubah — tak
+  // di-upsert & tak dihapus sebagai yatim — sampai HRD menekan "Buka Kembali (ke Draf)". Status tak
+  // terbaca → DITOLAK (gagal tertutup). `skippedFinal` = pegawai Final yang angkanya SEHARUSNYA
+  // berubah (baris baru, angka beda, atau yatim); yang sudah sesuai tak dihitung.
+  let finals: Set<string>;
+  let skippedFinal = 0;
+  try {
+    finals = await finalizedEmployees(admin, ap.id);
+    if (finals.size) {
+      const stored = await fetchAllByIds<{ employee_id: string; score: number | null; score_raw: number | null; late_penalty: number | null }>([...finals], (chunk, from, to) =>
+        admin.from('result_360').select('employee_id, score, score_raw, late_penalty')
+          .eq('period_id', ap.id).in('employee_id', chunk).order('employee_id').range(from, to));
+      const storedBy = new Map(stored.map((s) => [s.employee_id, s]));
+      const computedBy = new Map(rows.map((r) => [r.employee_id, r]));
+      for (const id of finals) {
+        const s = storedBy.get(id), c = computedBy.get(id);
+        if (!s && !c) continue;
+        if (!s || !c || Number(s.score) !== c.score || Number(s.score_raw) !== c.score_raw || Number(s.late_penalty) !== c.late_penalty) skippedFinal++;
+      }
+    }
+  } catch {
+    return { ok: false, error: FINAL_CHECK_FAILED_MSG };
+  }
+  const writable = rows.filter((r) => !finals.has(r.employee_id));
+
+  if (writable.length) {
+    const { error } = await admin.from('result_360').upsert(writable, { onConflict: 'employee_id,period_id' });
+    if (error) return { ok: false, error: 'Gagal menulis result_360: ' + error.message };
+  }
 
   // Buang Skor 360° YATIM: pegawai yang punya baris result_360 periode ini tetapi kini tak punya
   // penilaian terkirim yang bisa dihitung (mis. semua penilaiannya dihapus/pemetaannya dicabut).
-  // Tanpa ini angka lama bertahan & terus dipakai Skor Akhir (audit 2026-09-29).
+  // Tanpa ini angka lama bertahan & terus dipakai Skor Akhir (audit 2026-09-29). Pegawai Final tidak.
   let removed = 0;
   try {
     const computedIds = new Set(rows.map((r) => r.employee_id));
     const existing = await fetchAllPaged<{ employee_id: string }>((from, to) =>
       admin.from('result_360').select('employee_id').eq('period_id', ap.id).order('employee_id').range(from, to));
-    const orphanIds = existing.map((r) => r.employee_id).filter((id) => !computedIds.has(id));
+    const orphanIds = existing.map((r) => r.employee_id).filter((id) => !computedIds.has(id) && !finals.has(id));
     for (let i = 0; i < orphanIds.length; i += 150) {
       const chunk = orphanIds.slice(i, i + 150);
       const { error: dErr } = await admin.from('result_360').delete().eq('period_id', ap.id).in('employee_id', chunk);
@@ -156,11 +185,15 @@ export async function computeResult360(): Promise<ComputeResult> {
 
   await logHrdAction({
     action: 'score360.recompute', category: 'skor',
-    summary: `Menghitung ulang Skor 360° periode "${ap.label}" (${rows.length} pegawai, model ${ws.model === '4class' ? '4-Kelas' : '2-Kelas'})${removed ? ` · ${removed} skor lama tanpa penilaian dihapus` : ''}`,
-    targetType: 'period', targetId: ap.id, targetLabel: ap.label, meta: { computed: rows.length, removed_orphans: removed, model: ws.model, late_penalized: rows.filter((r) => r.late_penalty > 0).length },
+    summary: `Menghitung ulang Skor 360° periode "${ap.label}" (${writable.length} pegawai, model ${ws.model === '4class' ? '4-Kelas' : '2-Kelas'})${removed ? ` · ${removed} skor lama tanpa penilaian dihapus` : ''}${skippedFinal ? ` · ${skippedFinal} pegawai dilewati karena laporannya sudah Final` : ''}`,
+    targetType: 'period', targetId: ap.id, targetLabel: ap.label,
+    meta: {
+      computed: writable.length, removed_orphans: removed, model: ws.model, late_penalized: writable.filter((r) => r.late_penalty > 0).length,
+      ...(skippedFinal ? { skipped_final: skippedFinal } : {}),
+    },
   });
   revalidatePath('/admin/bobot');
   revalidatePath('/admin/dashboard');
   revalidatePath('/admin/laporan');
-  return { ok: true, computed: rows.length, periodLabel: ap.label };
+  return { ok: true, computed: writable.length, periodLabel: ap.label, skippedFinal };
 }

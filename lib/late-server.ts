@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { isPenalizableLate, latePenaltyOf, apply360Penalty, ajuanPenaltyApplies } from '@/lib/late';
 import { backfillLockReason, BACKFILL_LOCK_MSG } from '@/lib/backfill-guard';
+import { finalizedEmployees } from '@/lib/final-lock';
 
 /**
  * I/O keterlambatan penilaian 360° (migrasi 0036). Rumus murni ada di `lib/late.ts`.
@@ -123,7 +124,11 @@ export async function loadPendingLatePenalties(
   const by = byAssessor ?? (await loadLateSummaries(periodId)).byAssessor;
   const rows = await fetchAllPaged<{ employee_id: string; late_penalty: number }>((from, to) =>
     admin.from('result_360').select('employee_id, late_penalty').eq('period_id', periodId).order('employee_id').range(from, to));
+  // Pegawai FINAL sengaja tak diterapkan potongannya (laporan terkunci) → bukan "tertunda". Status tak
+  // terbaca → tampilkan semua (ini hanya peringatan; perubahan data tetap gagal tertutup).
+  const finals = await finalizedEmployees(admin, periodId).catch(() => new Set<string>());
   return rows
+    .filter((r) => !finals.has(r.employee_id))
     .map((r) => ({ employeeId: r.employee_id, stored: Number(r.late_penalty ?? 0), due: by.get(r.employee_id)?.penalty ?? 0 }))
     .filter((r) => r.stored !== r.due);
 }
@@ -133,37 +138,58 @@ export async function loadPendingLatePenalties(
  * rumus 360°): score = max(0, score_raw − penalty). Dipanggil saat deadline diubah, pengecualian
  * diberi/dicabut, atau penilai mengirim terlambat. `onlyIds` membatasi pegawai yang disentuh.
  * Pegawai tanpa baris result_360 → diabaikan (kebijakan: tak punya Skor 360° → potongan gugur).
- * Mengembalikan jumlah baris yang berubah.
+ * Mengembalikan jumlah baris yang berubah (rincian + jumlah pegawai Final yang dilewati →
+ * {@link refreshLatePenaltiesDetailed}).
  */
 export async function refreshLatePenalties(periodId: string, onlyIds?: string[]): Promise<number> {
+  return (await refreshLatePenaltiesDetailed(periodId, onlyIds)).changed;
+}
+
+/**
+ * Sama dengan {@link refreshLatePenalties}, plus jumlah pegawai yang DILEWATI karena laporannya
+ * sudah FINAL di periode ini (kunci laporan Final, gelombang 2b): Skor 360° mereka tak diubah
+ * sampai HRD menekan "Buka Kembali (ke Draf)". `skippedFinal` hanya menghitung pegawai Final yang
+ * angkanya SEHARUSNYA berubah (yang sudah sesuai tak dihitung). Status Final tak terbaca → melempar
+ * (gagal tertutup), bukan dianggap belum ada yang Final.
+ */
+export async function refreshLatePenaltiesDetailed(
+  periodId: string,
+  onlyIds?: string[],
+): Promise<{ changed: number; skippedFinal: number }> {
   const admin = createAdminClient();
   // Skor 360° hasil impor (Q1 2026) tak pernah disentuh — termasuk pemanggilan otomatis (buka halaman,
   // finalisasi, cron, ubah deadline). Status tak terbaca → lempar (gagal tertutup), bukan menerapkan.
   const lock = await backfillLockReason(admin, periodId);
-  if (lock === BACKFILL_LOCK_MSG) return 0;
+  if (lock === BACKFILL_LOCK_MSG) return { changed: 0, skippedFinal: 0 };
   if (lock) throw new Error(lock);
   const { byAssessor } = await loadLateSummaries(periodId);
   let q = admin.from('result_360').select('employee_id, score, score_raw, late_penalty').eq('period_id', periodId);
   if (onlyIds) {
-    if (onlyIds.length === 0) return 0;
+    if (onlyIds.length === 0) return { changed: 0, skippedFinal: 0 };
     q = q.in('employee_id', onlyIds);
   }
   const rows = onlyIds
     ? ((await q).data ?? [])
     : await fetchAllPaged<{ employee_id: string; score: number | null; score_raw: number | null; late_penalty: number }>((from, to) =>
         admin.from('result_360').select('employee_id, score, score_raw, late_penalty').eq('period_id', periodId).order('employee_id').range(from, to));
+  if (rows.length === 0) return { changed: 0, skippedFinal: 0 };
+
+  // Pegawai yang laporannya FINAL dilewati. finalizedEmployees MELEMPAR bila gagal dibaca.
+  const finals = await finalizedEmployees(admin, periodId, onlyIds);
 
   let changed = 0;
+  let skippedFinal = 0;
   for (const r of rows) {
     const raw = r.score_raw ?? r.score;
     const pen = byAssessor.get(r.employee_id)?.penalty ?? 0;
     const score = apply360Penalty(raw, pen);
     if (Number(r.late_penalty) === pen && r.score === score && r.score_raw === raw) continue;
+    if (finals.has(r.employee_id)) { skippedFinal++; continue; }
     const { error } = await admin.from('result_360')
       .update({ score, score_raw: raw, late_penalty: pen })
       .eq('period_id', periodId).eq('employee_id', r.employee_id);
     if (error) throw new Error('Gagal memperbarui potongan 360°: ' + error.message);
     changed++;
   }
-  return changed;
+  return { changed, skippedFinal };
 }

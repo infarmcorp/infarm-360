@@ -7,7 +7,7 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/audit/log', () => ({ logHrdAction: vi.fn(async () => {}) }));
 vi.mock('@/lib/late-server', () => ({ refreshLatePenalties: vi.fn(async () => 1) }));
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logHrdAction } from '@/lib/audit/log';
 import { refreshLatePenalties } from '@/lib/late-server';
 import { setLateWaiver } from '@/app/(app)/admin/kepatuhan/actions';
@@ -62,6 +62,10 @@ function db(opts: { existing?: Waiver; noPointsColumn?: boolean } = {}) {
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   vi.mocked(createClient).mockResolvedValue(client as any);
+  // Pengaman periode hasil impor (service_role): periode biasa → boleh.
+  const audit = { select: () => audit, eq: () => audit, then: (f: (v: unknown) => unknown) => Promise.resolve({ count: 0, error: null }).then(f) };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  vi.mocked(createAdminClient).mockReturnValue({ from: () => audit } as any);
   return { stored: () => waivers.get(`${EMP}|${P}`) };
 }
 

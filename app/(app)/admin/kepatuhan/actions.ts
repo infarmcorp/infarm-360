@@ -2,10 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { refreshLatePenalties } from '@/lib/late-server';
+import { backfillLockReason } from '@/lib/backfill-guard';
 
 /**
  * Flag Kepatuhan (HRD). Satu-satunya sanksi = potongan keterlambatan menilai pada Skor 360°
@@ -40,6 +41,9 @@ export async function setLateWaiver(raw: unknown): Promise<{ ok: true } | { ok: 
 
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+  // Periode hasil impor (Q1 2026): potongan tak boleh diubah — ditolak SEBELUM menyimpan penetapan.
+  const lock = await backfillLockReason(createAdminClient(), ap.id);
+  if (lock) return { ok: false, error: lock };
 
   // `points` SELALU ditulis (juga 0): upsert hanya menimpa kolom yang dikirim, jadi menghilangkan kolom
   // ini membuat nilai lama (mis. −7) tetap berlaku saat HRD mengubahnya ke 0 (bug 2026-10-12).
@@ -104,6 +108,8 @@ export async function applyLatePenalties(): Promise<{ ok: true; changed: number 
 
   const { data: ap } = await supabase.from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+  const lock = await backfillLockReason(createAdminClient(), ap.id);
+  if (lock) return { ok: false, error: lock };
 
   let changed = 0;
   try { changed = await refreshLatePenalties(ap.id); } catch (e) {

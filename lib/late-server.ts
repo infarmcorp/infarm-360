@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { isPenalizableLate, latePenaltyOf, apply360Penalty, ajuanPenaltyApplies } from '@/lib/late';
+import { backfillLockReason, BACKFILL_LOCK_MSG } from '@/lib/backfill-guard';
 
 /**
  * I/O keterlambatan penilaian 360° (migrasi 0036). Rumus murni ada di `lib/late.ts`.
@@ -136,6 +137,11 @@ export async function loadPendingLatePenalties(
  */
 export async function refreshLatePenalties(periodId: string, onlyIds?: string[]): Promise<number> {
   const admin = createAdminClient();
+  // Skor 360° hasil impor (Q1 2026) tak pernah disentuh — termasuk pemanggilan otomatis (buka halaman,
+  // finalisasi, cron, ubah deadline). Status tak terbaca → lempar (gagal tertutup), bukan menerapkan.
+  const lock = await backfillLockReason(admin, periodId);
+  if (lock === BACKFILL_LOCK_MSG) return 0;
+  if (lock) throw new Error(lock);
   const { byAssessor } = await loadLateSummaries(periodId);
   let q = admin.from('result_360').select('employee_id, score, score_raw, late_penalty').eq('period_id', periodId);
   if (onlyIds) {

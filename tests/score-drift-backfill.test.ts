@@ -86,9 +86,9 @@ describe('isBackfilledPeriod — periode hasil impor (score360.backfill) dikunci
     await expect(isBackfilledPeriod(admin, 'p')).resolves.toBe(false);
   });
 
-  it('KARAKTERISASI: count null (mis. query error) → false (fail-open, error tidak diperiksa)', async () => {
+  it('count null (mis. query error) → true: gagal tertutup (gelombang 2b; dulu fail-open)', async () => {
     const { admin } = adminWithCount(null);
-    await expect(isBackfilledPeriod(admin, 'p')).resolves.toBe(false);
+    await expect(isBackfilledPeriod(admin, 'p')).resolves.toBe(true);
   });
 
   it('pesan kunci baku menyebut impor resmi', () => {

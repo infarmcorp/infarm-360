@@ -87,25 +87,24 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   dengan laporan, daftar tugas HRD dan Monitor tak lagi terpotong di 1.000 baris, ekspor menolak membuat file
   tidak lengkap, dan tes baru untuk hitung ulang Skor 360°, potongan telat, finalisasi, periode, dan akses.
   Sisa: uji manual di Preview `dev`, lalu rilis.
-- 🔑⬜ **Laporan Final hanya membekukan Skor Akhir** (temuan no. 10, keputusan menyusul). Monitor dan laporan
-  membaca sumber yang sama, jadi angkanya selalu sama satu sama lain. Tetapi setelah Final, rerata KPI, Skor 360°,
-  dan skor per aspek di keduanya masih bisa bergeser bila KPI diubah, penilaian dibatalkan, Hitung Ulang
-  ditekan, atau potongan telat diubah. Skor Akhir tetap angka lama, dan HRD melihat tanda "skor basi".
-  Pilihan: bekukan semua angka saat finalisasi, atau tolak perubahan setelah Final kecuali lewat buka-kembali.
-- 🔑⬜ **Temuan dari tes gelombang 2** (dicatat, belum diperbaiki; keputusan menyusul):
-  - ✅ **Potongan telat yang diubah menjadi 0 tidak tersimpan** — sudah diperbaiki dan dirilis terpisah
-    (2026-10-12). 🔑 Sisa: jalankan query cek dampak; bila ada pegawai terdampak, HRD mengatur ulang potongannya
-    ke 0 lalu menekan Terapkan Potongan.
-  - **Pengaman Q1 2026 bisa lolos saat database bermasalah.** Bila pengecekan "periode hasil impor" gagal
-    dibaca, Hitung Ulang dianggap boleh. Penerapan potongan telat juga tidak dijaga pengaman ini bila Q1 dibuka
-    kembali.
-  - **Aktifkan dan Hapus Periode tidak berjalan sekaligus.** Bila gagal di tengah jalan, bisa tersisa keadaan
-    tanpa periode aktif, atau data KPI sudah terhapus sementara periodenya masih ada (tanpa catatan di Log).
-  - **Finalisasi massal** menganggap laporan "berhasil" walau perubahan diam-diam ditolak database, dan
-    menganggap daftar kosong bila gagal membaca.
-  - **Pengaturan akses**: HRD penuh bisa memberi akses halaman ke dirinya sendiri; isian "tidak" yang dikirim
-    sebagai teks terbaca sebagai "ya".
-  - **Batalkan/pulihkan penilaian** melapor "berhasil" walau Hitung Ulang Skor 360° sesudahnya gagal.
+- 🔑🔄 **Kunci laporan Final + perbaikan audit gelombang 2b** — sudah di `dev`, **dirilis ke production SETELAH
+  finalisasi Q3** (keputusan pemilik). Isinya: laporan Final terkunci sampai HRD menekan "Buka Kembali (ke Draf)";
+  pengaman Q1 2026 kini menolak bila gagal dibaca dan juga melindungi potongan telat; finalisasi massal hanya
+  menghitung yang benar-benar tersimpan; HRD tak bisa memberi akses halaman ke dirinya sendiri; batalkan/pulihkan
+  penilaian memberi peringatan bila skor gagal diperbarui; ACC hanya untuk anggota tim/divisi sendiri dan bukan
+  laporan sendiri. Sisa:
+  - 🔑 terapkan migrasi **0048** lalu **0049** ke staging, uji, lalu production (langkah di TEKNIS.md §1; cek
+    dengan `scripts/check-migrations.sql`). Aplikasi tetap jalan walau belum diterapkan;
+  - 🔑 uji manual di Preview `dev`; sampaikan perilaku baru ke HRD sebelum rilis;
+  - catatan: Ubah deadline & cron melewati pegawai Final tanpa menyebut jumlahnya (proses otomatis).
+- ⬜ **Gelombang 3: hapus tombol "Perbarui Laporan Final yang Berubah"** (Finalisasi Ulang Laporan Berubah) setelah
+  jumlah laporan berlabel "berubah → N" = 0. Dengan kunci laporan Final, label itu tak akan muncul lagi; tombol
+  sementara dipertahankan hanya untuk merapikan selisih lama (keputusan 2026-10-12).
+- ⬜ **Rapikan temuan lint** (`npm run lint` kembali jalan, 2026-10-12): 49 temuan lama (34 error, 15 peringatan),
+  terutama pola React (setState di effect, komponen dibuat saat render), teks tanpa escape, dan variabel tak
+  terpakai. Belum dimasukkan ke CI — masukkan setelah bersih.
+- 🔑⬜ **Cek dampak bug potongan telat ke 0** (diperbaiki & dirilis 2026-10-12): jalankan query cek dampak; bila ada
+  pegawai terdampak, HRD mengatur ulang potongannya ke 0 lalu menekan Terapkan Potongan.
 
 ---
 

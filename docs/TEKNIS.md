@@ -10,7 +10,7 @@ Status & pekerjaan terbuka di [RENCANA.md](RENCANA.md). Riwayat di [CHANGELOG.md
 3. [Aktivasi fitur dorman & Mode Maintenance](#3-aktivasi-fitur-dorman--mode-maintenance)
 4. [Rumus skor & klasifikasi](#4-rumus-skor--klasifikasi)
 5. [Manajemen Akses — model & penegakan](#5-manajemen-akses--model--penegakan)
-6. [Daftar migrasi 0001–0047](#6-daftar-migrasi-00010047)
+6. [Daftar migrasi 0001–0049](#6-daftar-migrasi-00010049)
 7. [Pengujian](#7-pengujian)
 8. [Backup & restore](#8-backup--restore)
 9. [PDF panduan in-app](#9-pdf-panduan-in-app)
@@ -329,7 +329,7 @@ hanya HRD berakses penuh; tak ada yang bisa mengubah izin dirinya sendiri (trigg
 
 ---
 
-## 6. Daftar migrasi 0001–0047
+## 6. Daftar migrasi 0001–0049
 
 Status penerapan per DB → `scripts/check-migrations.sql`.
 
@@ -380,6 +380,8 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0045 | tutup celah server: `assessments_guard_submit`, `assessment_writable`, validasi permohonan, `hrd_can(bagian)`, `employees_guard_privileges`, log ACC via trigger, invarian bobot = 100 & Self, dll. ("maks. satu periode aktif" sengaja **tidak** jadi constraint) |
 | 0046 | `assessment_status` + `invalidated` (+ `invalidated_at/by`, `invalid_reason`), trigger `assessments_guard_invalidation` |
 | 0047 | `assessment_locked_after_deadline` + trigger `assessments_guard_deadline_lock` |
+| 0048 | fungsi `period_activate` & `period_delete` (Aktifkan/Hapus Periode dalam satu transaksi; service_role saja; app jatuh ke cara lama bila belum diterapkan) |
+| 0049 | trigger `trg_final_reports_block_self_acc` (tolak menyalakan ACC atas laporan milik pengguna yang login) |
 
 ---
 
@@ -571,7 +573,7 @@ Akun Saya. Pemetaan peran → file di `lib/panduan.ts` (sumber tunggal; nama tam
 |---|---|
 | `seed.ts` / `seed-data.ts` | seed idempoten (roster = `lib/auth/demo-users.ts`) |
 | `apply-migration.mjs` | terapkan satu file migrasi (`SUPABASE_DB_URL`) |
-| `check-migrations.sql` | cek migrasi 0001–0047 yang terpasang di sebuah DB |
+| `check-migrations.sql` | cek migrasi 0001–0049 yang terpasang di sebuah DB |
 | `backup.mjs` · `restore.mjs` · `backup-to-excel.mjs` | §8 |
 | `verify-rls.ts` | §7.2 |
 | `import-360-backfill.mjs` | impor skor 360° eksternal (dry-run default; `--apply`, `--create-missing`, `--period=`); CSV `BACKFILL-*.csv` di-gitignore |

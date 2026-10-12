@@ -42,7 +42,9 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   `supabase/migrations/0001`–`0047`.
 - `app/` — `login/`, `maintenance/`, `auth/` (callback, lupa-sandi, perbarui-sandi, signout),
   `api/cron/late-penalty/` (nonaktif), `(app)/` = shell persisten (`layout.tsx`, `app-shell.tsx` menu,
-  `mode-actions.ts`) dengan `penilaian/ kpi/ monitor/ laporan/ laporan-tim/ review-hasil/ suksesi/ akun/ admin/*`.
+  `mode-actions.ts`) dengan `penilaian/ kpi/ monitor/ laporan/ laporan-tim/ review-hasil/ suksesi/ akun/` dan
+  `admin/` (`periode/ pertanyaan/ pemetaan/ bobot/ 360/ progress/ kepatuhan/ laporan/ dashboard/ monitor/
+  struktur/ ekspor/ akses/ pegawai/ audit/`; gate per bagian `canSection`).
   `/` = gerbang auth → landing per peran (tak ada Beranda). **Tak ada `src/`** (SPA legacy sudah dihapus).
 - `lib/` — rumus (`scoring.ts`, `score360.ts`, `late.ts`, `trend.ts`), `report.ts` (loader laporan),
   `auth/roles.ts`, `supabase/` (`server.ts`: `createClient` user/RLS vs `createAdminClient` service_role;

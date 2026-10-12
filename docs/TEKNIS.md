@@ -242,7 +242,7 @@ tersimpan; selain itu angka hidup. Selisih hanya ditampilkan di Review & Finalis
 Mode Dashboard "semua kuartal" = rerata Skor Akhir **per kuartal**.
 
 ### 4.5 Klasifikasi talenta
-Input dikunci ke **satu kuartal** (`getTalentQuarterKey()`); klasifikasi atas nilai **terbulat**.
+Input dikunci ke **satu kuartal** lewat filter periode Dashboard (KPI, 360°, Skor Akhir dari periode yang sama); klasifikasi atas nilai **terbulat**.
 
 **4-Box — `playerClassOf(kpi, s360)`** (KPI × 360° langsung, ambang 80, **bukan** Skor Akhir, **tanpa D**):
 
@@ -371,7 +371,7 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0034 | `employees.nickname` |
 | 0035 | `periods.mapping_published` (fase tinjau pemetaan) |
 | 0036 | `periods.assessment_deadline`, `assessments.first_submitted_at`/`forced_by_hrd` + trigger, `result_360.score_raw`/`late_penalty`, `late_penalty_waivers` |
-| 0037–0039 | Exposure Check + N/A + alasannya — fitur **dicabut**, kolom dorman |
+| 0037 · 0038 · 0039 | Exposure Check + N/A (0037), alasan exposure (0038), alasan N/A (0039) — fitur **dicabut**, kolom dorman |
 | 0040 | `indicators.rating_key_points` (BARS) |
 | 0041 | pengetatan RLS: `asmt_write` wajib pemetaan aktif; trigger `assessments_keep_submitted`, `final_reports_guard_non_hrd`; `kpi_write` hanya bulan periode aktif; cabut cabang target di raw read |
 | 0042 | anonimitas: raw read & `map_read`/`corr_read` hanya HRD (+ penilai); cabut `kpi_write`/`kpiaudit_insert` → fungsi atomik `kpi_save_with_audit`/`kpi_delete_with_audit` (service_role; kode punya fallback) |
@@ -389,7 +389,7 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 Kenapa: kesalahan rumus tidak memunculkan error ("salah diam-diam"). Tes mengunci rumus; dijalankan
 saat kode disentuh, bukan per kuartal. **307 tes / 18 file** (per 2026-10-12). CI menjalankan test +
 typecheck + build tiap push/PR.
-- Rumus: `scoring`, `score360`, `late`, `trend`, `rated-completeness`.
+- Rumus: `scoring`, `score360`, `late`, `trend`, `rated-completeness` (`ratedCompletion` = "Dinilai oleh", selaras Progress 360).
 - Impor Excel: `import` (`parseKpiRows`/`isValidKpiRow`/`parseMappingRows`/`classifyMappingRows` + round-trip `xlsx`).
 - Akses & keamanan: `roles`, `page-scope`, `report-scope` (`inSpvDivisionScope`/`withoutRaw`), `safe-next`, `maintenance`.
 - Server Action (mock Supabase `tests/helpers/mock-supabase.ts`, antrean respons per tabel, tanpa DB):

@@ -105,7 +105,7 @@ describe('bulkFinalizeAccepted — otorisasi (HRD penuh, sadar-mode)', () => {
       final_reports: [{ data: [] }],
     } }));
     const r = await bulkFinalizeAccepted();
-    expect(r).toEqual({ ok: true, finalized: 0, skipped: [] });
+    expect(r).toEqual({ ok: true, finalized: 0, skipped: [], failed: [] });
   });
 
   it('pemegang grant Review tingkat Finalisasi TETAP ditolak (page_grants tak dibaca sama sekali)', async () => {
@@ -142,18 +142,18 @@ describe('bulkFinalizeAccepted — pemilihan laporan & periode', () => {
   it('tanpa kandidat → ok 0, TANPA potongan telat & TANPA log aktivitas (return lebih awal)', async () => {
     use(makeClient({ user: { id: UID }, tables: { employees: [{ data: HRD }], periods: [ACTIVE], final_reports: [{ data: [] }] } }));
     const r = await bulkFinalizeAccepted();
-    expect(r).toEqual({ ok: true, finalized: 0, skipped: [] });
+    expect(r).toEqual({ ok: true, finalized: 0, skipped: [], failed: [] });
     expect(mockRefresh).not.toHaveBeenCalled();
     expect(mockLog).not.toHaveBeenCalled();
     expect(vi.mocked(revalidatePath)).not.toHaveBeenCalled();
   });
 
-  it('error baca kandidat ditelan → diperlakukan kosong (ok, 0 difinalisasi)', async () => {
+  it('error baca kandidat → pesan gagal (dulu ditelan sebagai kosong; diperbaiki gelombang 2b)', async () => {
     use(makeClient({ user: { id: UID }, tables: {
       employees: [{ data: HRD }], periods: [ACTIVE], final_reports: [{ data: null, error: { message: 'boom' } }],
     } }));
     const r = await bulkFinalizeAccepted();
-    expect(r).toEqual({ ok: true, finalized: 0, skipped: [] });
+    expect(r).toEqual({ ok: false, error: 'Gagal membaca daftar laporan: boom' });
   });
 });
 
@@ -163,26 +163,26 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
       { employees: [{ data: HRD }, { data: [{ id: E1, name: 'Andi' }] }], periods: [ACTIVE] },
       { final_reports: [{ data: [{ id: 'r1', employee_id: E1, final_score: 80 }] }] },
       compute([90], 70),                       // (90 + 70) / 2 = 80
-      { final_reports: [{ error: null }] },
+      { final_reports: [{ data: [{ id: 'saved' }], error: null }] },
     ) });
     use(c);
     const r = await bulkFinalizeAccepted();
-    expect(r).toEqual({ ok: true, finalized: 1, skipped: [] });
+    expect(r).toEqual({ ok: true, finalized: 1, skipped: [], failed: [] });
     const u = updates(c);
     expect(u).toHaveLength(1);
     expect(u[0].payload).toEqual({ final_score: 80, status: 'finalized', finalized_by: UID });
-    expect(u[0].filters).toEqual([['eq', 'id', 'r1']]);
+    expect(u[0].filters).toEqual([['eq', 'id', 'r1'], ['eq', 'status', 'in_review']]);
   });
 
   it('potongan telat diterapkan SEKALI untuk seluruh periode (tanpa daftar id), bukan per pegawai', async () => {
     use(makeClient({ user: { id: UID }, tables: merge(
       { employees: [{ data: HRD }, { data: [{ id: E1, name: 'Andi' }, { id: E2, name: 'Budi' }] }], periods: [ACTIVE] },
       { final_reports: [{ data: [{ id: 'r1', employee_id: E1, final_score: 80 }, { id: 'r2', employee_id: E2, final_score: 80 }] }] },
-      compute([90], 70), { final_reports: [{ error: null }] },
-      compute([90], 70), { final_reports: [{ error: null }] },
+      compute([90], 70), { final_reports: [{ data: [{ id: 'saved' }], error: null }] },
+      compute([90], 70), { final_reports: [{ data: [{ id: 'saved' }], error: null }] },
     ) }));
     const r = await bulkFinalizeAccepted();
-    expect(r).toEqual({ ok: true, finalized: 2, skipped: [] });
+    expect(r).toEqual({ ok: true, finalized: 2, skipped: [], failed: [] });
     expect(mockRefresh).toHaveBeenCalledTimes(1);
     expect(mockRefresh).toHaveBeenCalledWith('p1');
   });
@@ -192,7 +192,7 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
       { employees: [{ data: HRD }, { data: [{ id: E1, name: 'Andi' }] }], periods: [ACTIVE] },
       { final_reports: [{ data: [{ id: 'r1', employee_id: E1, final_score: 80.42 }] }] },
       { period_months: [{ data: [{ ym: '2026-07' }, { ym: '2026-08' }] }], kpi_scores: [{ data: [{ score: 90 }, { score: 91 }] }], result_360: [{ data: { score: 70.333 } }] },
-      { final_reports: [{ error: null }] },
+      { final_reports: [{ data: [{ id: 'saved' }], error: null }] },
     ) });
     use(c);
     const r = await bulkFinalizeAccepted();
@@ -205,11 +205,11 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
       { employees: [{ data: HRD }, { data: [{ id: E1, name: 'Andi' }] }], periods: [ACTIVE_NO360] },
       { final_reports: [{ data: [{ id: 'r1', employee_id: E1, final_score: 90 }] }] },
       compute([90], 70),
-      { final_reports: [{ error: null }] },
+      { final_reports: [{ data: [{ id: 'saved' }], error: null }] },
     ) });
     use(c);
     const r = await bulkFinalizeAccepted();
-    expect(r).toEqual({ ok: true, finalized: 1, skipped: [] });
+    expect(r).toEqual({ ok: true, finalized: 1, skipped: [], failed: [] });
     expect((updates(c)[0].payload as { final_score: number }).final_score).toBe(90);
     expect(mockRefresh).not.toHaveBeenCalled();
   });
@@ -219,11 +219,11 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
       { employees: [{ data: HRD }, { data: [{ id: E1, name: 'Dir' }] }], periods: [ACTIVE] },
       { final_reports: [{ data: [{ id: 'r1', employee_id: E1, final_score: 77 }] }] },
       compute(null, 77),
-      { final_reports: [{ error: null }] },
+      { final_reports: [{ data: [{ id: 'saved' }], error: null }] },
     ) });
     use(c);
     const r = await bulkFinalizeAccepted();
-    expect(r).toEqual({ ok: true, finalized: 1, skipped: [] });
+    expect(r).toEqual({ ok: true, finalized: 1, skipped: [], failed: [] });
     // Tanpa bulan periode → kpi_scores TIDAK di-query.
     expect(c.calls.some((x) => x.table === 'kpi_scores')).toBe(false);
   });
@@ -238,7 +238,7 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
     const r = await bulkFinalizeAccepted();
     expect(r).toEqual({ ok: true, finalized: 0, skipped: [
       { name: 'Andi', reason: 'Skor Akhir berubah sejak di-ACC (75.00 → 80.00) — rilis ulang ke SPV untuk ACC baru' },
-    ] });
+    ], failed: [] });
     expect(updates(c)).toHaveLength(0);
   });
 
@@ -247,7 +247,7 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
       { employees: [{ data: HRD }, { data: [{ id: E1, name: 'Andi' }] }], periods: [ACTIVE] },
       { final_reports: [{ data: [{ id: 'r1', employee_id: E1, final_score: 80.004 }] }] },
       compute([90], 70),
-      { final_reports: [{ error: null }] },
+      { final_reports: [{ data: [{ id: 'saved' }], error: null }] },
     ) });
     use(c);
     const r = await bulkFinalizeAccepted();
@@ -260,11 +260,11 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
       { employees: [{ data: HRD }, { data: [{ id: E1, name: 'Andi' }] }], periods: [ACTIVE] },
       { final_reports: [{ data: [{ id: 'r1', employee_id: E1, final_score: null }] }] },
       compute([90], 70),
-      { final_reports: [{ error: null }] },
+      { final_reports: [{ data: [{ id: 'saved' }], error: null }] },
     ) });
     use(c);
     const r = await bulkFinalizeAccepted();
-    expect(r).toEqual({ ok: true, finalized: 1, skipped: [] });
+    expect(r).toEqual({ ok: true, finalized: 1, skipped: [], failed: [] });
   });
 
   it('KPI & 360° kosong → dilewati "Skor Akhir belum bisa dihitung"', async () => {
@@ -274,7 +274,7 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
       compute(null, null),
     ) }));
     const r = await bulkFinalizeAccepted();
-    expect(r).toEqual({ ok: true, finalized: 0, skipped: [{ name: 'Andi', reason: 'Skor Akhir belum bisa dihitung (KPI & 360° kosong)' }] });
+    expect(r).toEqual({ ok: true, finalized: 0, skipped: [{ name: 'Andi', reason: 'Skor Akhir belum bisa dihitung (KPI & 360° kosong)' }], failed: [] });
   });
 
   it('gagal baca KPI → dilewati dgn pesan error (tidak jatuh ke "360° saja")', async () => {
@@ -285,11 +285,11 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
     ) });
     use(c);
     const r = await bulkFinalizeAccepted();
-    expect(r).toEqual({ ok: true, finalized: 0, skipped: [{ name: 'Andi', reason: 'Gagal membaca KPI: timeout' }] });
+    expect(r).toEqual({ ok: true, finalized: 0, skipped: [{ name: 'Andi', reason: 'Gagal membaca KPI: timeout' }], failed: [] });
     expect(updates(c)).toHaveLength(0);
   });
 
-  it('error saat update → dilewati dgn pesan DB; nama tak ditemukan → label = employee_id', async () => {
+  it('error saat update → masuk daftar GAGAL dgn pesan DB; nama tak ditemukan → label = employee_id', async () => {
     use(makeClient({ user: { id: UID }, tables: merge(
       { employees: [{ data: HRD }, { data: [] }], periods: [ACTIVE] },
       { final_reports: [{ data: [{ id: 'r1', employee_id: E1, final_score: 80 }] }] },
@@ -297,7 +297,7 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
       { final_reports: [{ error: { message: 'RLS menolak' } }] },
     ) }));
     const r = await bulkFinalizeAccepted();
-    expect(r).toEqual({ ok: true, finalized: 0, skipped: [{ name: E1, reason: 'RLS menolak' }] });
+    expect(r).toEqual({ ok: true, finalized: 0, skipped: [], failed: [{ name: E1, reason: 'Gagal disimpan: RLS menolak' }] });
   });
 
   it('gagal menerapkan potongan telat → seluruh aksi dibatalkan sebelum menulis apa pun', async () => {
@@ -317,7 +317,7 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
     use(makeClient({ user: { id: UID }, tables: merge(
       { employees: [{ data: HRD }, { data: [{ id: E1, name: 'Andi' }, { id: E2, name: 'Budi' }] }], periods: [ACTIVE] },
       { final_reports: [{ data: [{ id: 'r1', employee_id: E1, final_score: 80 }, { id: 'r2', employee_id: E2, final_score: 60 }] }] },
-      compute([90], 70), { final_reports: [{ error: null }] },
+      compute([90], 70), { final_reports: [{ data: [{ id: 'saved' }], error: null }] },
       compute([90], 70),                       // r2: 80 vs 60 → drift → dilewati
     ) }));
     const r = await bulkFinalizeAccepted();
@@ -326,7 +326,7 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
     expect(mockLog).toHaveBeenCalledWith({
       action: 'report.bulk_finalize', category: 'laporan',
       summary: 'Finalisasi massal 1 laporan ber-ACC (1 dilewati)',
-      meta: { finalized: 1, skipped: 1, period_id: 'p1' },
+      meta: { finalized: 1, skipped: 1, failed: 0, period_id: 'p1' },
     });
     expect(vi.mocked(logAuditAsService)).not.toHaveBeenCalled();
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([['/admin/laporan'], ['/laporan']]);
@@ -346,7 +346,7 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
     use(makeClient({ user: { id: UID }, tables: merge(
       { employees: [{ data: HRD }, { data: [{ id: E1, name: 'Andi' }] }], periods: [ACTIVE] },
       { final_reports: [{ data: [{ id: 'r1', employee_id: E1, final_score: 80 }] }] },
-      compute([90], 70), { final_reports: [{ error: null }] },
+      compute([90], 70), { final_reports: [{ data: [{ id: 'saved' }], error: null }] },
     ) }));
     const r = await bulkFinalizeAccepted();
     expect(r.ok && r.finalized).toBe(1);

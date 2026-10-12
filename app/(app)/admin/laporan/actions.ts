@@ -236,7 +236,8 @@ export async function releaseToSpv(employeeId: string): Promise<FinalizeResult> 
 }
 
 export type BulkFinalizeResult =
-  | { ok: true; finalized: number; skipped: { name: string; reason: string }[] }
+  // skipped = sengaja dilewati (skor berubah sejak ACC, belum bisa dihitung); failed = GAGAL disimpan.
+  | { ok: true; finalized: number; skipped: { name: string; reason: string }[]; failed: { name: string; reason: string }[] }
   | { ok: false; error: string };
 
 /**
@@ -262,21 +263,23 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
     .from('periods').select('id, has_360, status').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
-  const { data: candidates } = await supabase.from('final_reports')
+  const { data: candidates, error: cErr } = await supabase.from('final_reports')
     .select('id, employee_id, final_score').eq('period_id', ap.id).eq('spv_acc', true).eq('status', 'in_review');
+  if (cErr) return { ok: false, error: 'Gagal membaca daftar laporan: ' + cErr.message };
   const list = candidates ?? [];
   if (ap.has_360 && list.length) {
     try { await refreshLatePenalties(ap.id); } catch (e) {
       return { ok: false, error: 'Gagal menerapkan potongan keterlambatan: ' + (e instanceof Error ? e.message : String(e)) };
     }
   }
-  if (!list.length) return { ok: true, finalized: 0, skipped: [] };
+  if (!list.length) return { ok: true, finalized: 0, skipped: [], failed: [] };
 
   const { data: emps } = await supabase.from('employees').select('id, name').in('id', list.map((r) => r.employee_id));
   const nameById = new Map((emps ?? []).map((e) => [e.id, e.name]));
 
   let finalized = 0;
   const skipped: { name: string; reason: string }[] = [];
+  const failed: { name: string; reason: string }[] = [];
   for (const r of list) {
     const label = nameById.get(r.employee_id) ?? r.employee_id;
     const cf = await computeFinalSafe(supabase, ap.id, ap.has_360, r.employee_id, { skipLateRefresh: true });
@@ -288,20 +291,29 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
       skipped.push({ name: label, reason: `Skor Akhir berubah sejak di-ACC (${Number(r.final_score).toFixed(2)} → ${fmt2(final)}) — rilis ulang ke SPV untuk ACC baru` });
       continue;
     }
-    const { error } = await supabase.from('final_reports')
-      .update({ final_score: final, status: 'finalized', finalized_by: user.id }).eq('id', r.id);
-    if (error) { skipped.push({ name: label, reason: error.message }); continue; }
+    // Baca balik baris yang benar-benar berubah: update yang ditolak RLS/trigger secara diam-diam
+    // (0 baris, tanpa error) atau laporan yang statusnya sudah berubah TIDAK dihitung berhasil.
+    const { data: saved, error } = await supabase.from('final_reports')
+      .update({ final_score: final, status: 'finalized', finalized_by: user.id }).eq('id', r.id).eq('status', 'in_review')
+      .select('id');
+    if (error) { failed.push({ name: label, reason: 'Gagal disimpan: ' + error.message }); continue; }
+    if (!saved?.length) {
+      failed.push({ name: label, reason: 'Tidak tersimpan — laporan sudah berubah atau ditolak database. Muat ulang halaman lalu coba lagi.' });
+      continue;
+    }
     finalized++;
   }
 
   await logHrdAction({
     action: 'report.bulk_finalize', category: 'laporan',
-    summary: `Finalisasi massal ${finalized} laporan ber-ACC${skipped.length ? ` (${skipped.length} dilewati)` : ''}`,
-    meta: { finalized, skipped: skipped.length, period_id: ap.id },
+    summary: `Finalisasi massal ${finalized} laporan ber-ACC${[
+      skipped.length ? `${skipped.length} dilewati` : '', failed.length ? `${failed.length} gagal disimpan` : '',
+    ].filter(Boolean).map((x, i, a) => (i === 0 ? ' (' : '') + x + (i === a.length - 1 ? ')' : '')).join(', ')}`,
+    meta: { finalized, skipped: skipped.length, failed: failed.length, period_id: ap.id },
   });
   revalidatePath('/admin/laporan');
   revalidatePath('/laporan');
-  return { ok: true, finalized, skipped };
+  return { ok: true, finalized, skipped, failed };
 }
 
 export type ResyncResult =

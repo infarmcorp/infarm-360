@@ -340,7 +340,7 @@ function OrgDelta({ scope, org }: { scope: number | null; org: number | null }) 
   const up = d >= 0;
   return (
     <span className={`text-[11px] font-semibold ${up ? 'text-brand-ink' : 'text-danger-ink'}`}>
-      {up ? '▲' : '▼'} <span className="data-value">{Math.abs(d).toFixed(2)}</span> vs rata-rata organisasi
+      {up ? '▲' : '▼'} <span className="data-value">{fmt2(Math.abs(d))}</span> vs rata-rata organisasi
     </span>
   );
 }

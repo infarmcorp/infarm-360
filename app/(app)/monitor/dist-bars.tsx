@@ -1,6 +1,6 @@
 'use client';
 
-import { fmt2 } from '@/lib/scoring';
+import { fmt2, perfCategoryOf } from '@/lib/scoring';
 
 import { useState } from 'react';
 import { displayName } from '@/lib/employee-name';
@@ -21,15 +21,15 @@ import { displayName } from '@/lib/employee-name';
  */
 export type Person = { name: string; nickname?: string | null; value: number };
 
-// Selaras SCORE_CATS di dashboard-visual.tsx (palet & ambang sama).
+// Selaras SCORE_CATS di dashboard-visual.tsx (palet sama; golongan = perfCategoryOf atas nilai terbulat).
 const CATS = [
-  { key: 'exceed', label: 'Melampaui (≥90)', color: '#183c6c', dark: false, test: (v: number) => v >= 90 },
-  { key: 'meet', label: 'Memenuhi (80–89)', color: '#388e3c', dark: false, test: (v: number) => v >= 80 && v < 90 },
-  { key: 'improve', label: 'Perlu Peningkatan (70–79)', color: '#ffc107', dark: true, test: (v: number) => v >= 70 && v < 80 },
-  { key: 'below', label: 'Di Bawah (<70)', color: '#b71c1c', dark: false, test: (v: number) => v < 70 },
+  { key: 'exceed', label: 'Melampaui (≥90)', color: '#183c6c', dark: false, test: (v: number) => perfCategoryOf(v) === 'exceed' },
+  { key: 'meet', label: 'Memenuhi (80–89)', color: '#388e3c', dark: false, test: (v: number) => perfCategoryOf(v) === 'meet' },
+  { key: 'improve', label: 'Perlu Peningkatan (70–79)', color: '#ffc107', dark: true, test: (v: number) => perfCategoryOf(v) === 'improve' },
+  { key: 'below', label: 'Di Bawah (<70)', color: '#b71c1c', dark: false, test: (v: number) => perfCategoryOf(v) === 'below' },
 ] as const;
 type CatKey = (typeof CATS)[number]['key'];
-const catOf = (v: number): CatKey => (CATS.find((c) => c.test(v)) ?? CATS[CATS.length - 1]).key;
+export const catOf = (v: number): CatKey => (CATS.find((c) => c.test(v)) ?? CATS[CATS.length - 1]).key;
 const labelOfCat = (k: CatKey) => CATS.find((c) => c.key === k)!.label;
 
 function SegBar({ title, people }: { title: string; people: Person[] }) {

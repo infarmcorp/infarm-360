@@ -45,7 +45,7 @@ export function TeamAspectProfile({ aspects, scopeLabel }: { aspects: AspectScor
                     <span className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded ${
                       d >= 0 ? 'text-emerald-700 bg-emerald-50' : 'text-rose-600 bg-rose-50'}`}
                       title={`Rata-rata organisasi: ${fmt2(org!)}`}>
-                      {d >= 0 ? '▲ +' : '▼ −'}{Math.abs(d).toFixed(2)}
+                      {d >= 0 ? '▲ +' : '▼ −'}{fmt2(Math.abs(d))}
                     </span>
                   )}
                   <span className="font-bold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{fmt2(a.score)} / 100</span>

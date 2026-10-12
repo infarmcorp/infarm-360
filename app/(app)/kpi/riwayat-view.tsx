@@ -22,11 +22,11 @@ const fmt = (iso: string) => formatDateTimeWib(iso);
 
 export async function RiwayatView({
   role, canAdmin = false, userId, hrdMode = 'admin', byPeriod = false, periodParam, scopedIds,
-  page = 0, query = '',
+  page = 0, query = '', dept = null,
 }: {
   role: string; canAdmin?: boolean; userId: string; hrdMode?: 'admin' | 'spv';
   byPeriod?: boolean; periodParam?: string; scopedIds?: string[] | null;
-  page?: number; query?: string;
+  page?: number; query?: string; dept?: string | null;
 }) {
   // Jalur GRANT non-HRD (Manajemen Akses): pemegang grant diblokir RLS → baca via service_role,
   // dibatasi ke daftar id yang SUDAH disaring per-lingkup di page.tsx (employeeInScopes).
@@ -69,7 +69,12 @@ export async function RiwayatView({
     const { data } = await supabase.from('employees').select('id, name, dept').in('id', ids);
     empRows = data ?? [];
   }
-  if (empRows.length === 0) return <p className="text-sm text-ink-soft">Belum ada anggota tim dalam lingkup Anda.</p>;
+  // Filter Divisi (halaman Monitoring, ?dept=): menyaring DI DALAM lingkup di atas — tak pernah
+  // memperluasnya (pemegang grant tetap terbatas ke scopedIds-nya).
+  if (dept) empRows = empRows.filter((e) => e.dept === dept);
+  if (empRows.length === 0) {
+    return <p className="text-sm text-ink-soft">{dept ? `Tidak ada pegawai divisi ${dept} dalam lingkup Anda.` : 'Belum ada anggota tim dalam lingkup Anda.'}</p>;
+  }
   const empById = new Map(empRows.map((e) => [e.id, e]));
 
   // Pencarian DI SERVER: saring pegawai dalam lingkup dulu (nama/divisi), lalu batasi query audit

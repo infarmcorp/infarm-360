@@ -20,7 +20,7 @@ const KAT = (f: number | null) => {
   return { t: perfLabelOf(f), c: c ? KAT_COLOR[c] : 'text-ink-faint' };
 };
 
-export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', scopedIds }: { role: string; userId: string; periodParam?: string; hrdMode?: 'admin' | 'spv'; scopedIds?: string[] | null }) {
+export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', scopedIds, dept = null }: { role: string; userId: string; periodParam?: string; hrdMode?: 'admin' | 'spv'; scopedIds?: string[] | null; dept?: string | null }) {
   // Jalur GRANT non-HRD (Manajemen Akses): pemegang grant diblokir RLS → baca via service_role,
   // dibatasi ke daftar id yang SUDAH disaring per-lingkup di page.tsx (employeeInScopes).
   const supabase = scopedIds ? createAdminClient() : await createClient();
@@ -59,6 +59,9 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', 
     const { data } = await supabase.from('employees').select('id, name, dept, is_active').neq('role', 'direksi').eq('is_external', false);
     empRows = data ?? [];
   }
+  // Filter Divisi (halaman Monitoring, ?dept=): menyaring DI DALAM lingkup yang sudah dihitung di
+  // atas — tak pernah memperluas lingkup (pemegang grant tetap terbatas ke scopedIds-nya).
+  if (dept) empRows = empRows.filter((e) => e.dept === dept);
   empRows.sort((a, b) => a.name.localeCompare(b.name));
 
   const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', sel.id).order('ym');

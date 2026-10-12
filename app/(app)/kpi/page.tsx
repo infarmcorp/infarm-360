@@ -8,6 +8,7 @@ import { TabBar, Tab } from '@/components/tab-nav';
 import { KpiForm } from './kpi-form';
 import { RekapView } from './rekap-view';
 import { RiwayatView } from './riwayat-view';
+import { DeptSelect } from './dept-select';
 
 /**
  * Kinerja Tim / Monitoring KPI (SPV/HRD/Direksi). Tab via ?tab=input|riwayat|rekap.
@@ -19,9 +20,9 @@ import { RiwayatView } from './riwayat-view';
 export default async function KpiPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; period?: string; view?: string; auditPage?: string; auditQ?: string }>;
+  searchParams: Promise<{ tab?: string; period?: string; view?: string; auditPage?: string; auditQ?: string; dept?: string }>;
 }) {
-  const { tab: tabParam, period, view: viewParam, auditPage: auditPageParam, auditQ: auditQParam } = await searchParams;
+  const { tab: tabParam, period, view: viewParam, auditPage: auditPageParam, auditQ: auditQParam, dept: deptParam } = await searchParams;
   // Monitoring: tab Rekap|Riwayat (default rekap) → HANYA tab aktif yang query (hemat egress:
   // audit kpi_audit yang append-only tak ditarik saat landing). Paginasi/pencarian audit di server.
   const view = viewParam === 'riwayat' ? 'riwayat' : 'rekap';
@@ -64,25 +65,30 @@ export default async function KpiPage({
       teamIds = new Set((team ?? []).map((r) => r.employee_id));
     }
     const { data: allEmps } = await svc.from('employees').select('id, dept').neq('role', 'direksi').eq('is_external', false);
-    const scopedIds = (allEmps ?? [])
-      .filter((e) => employeeInScopes(kpiGrant.scopes, ownDept, user.id, e, teamIds))
-      .map((e) => e.id);
+    const scopedEmps = (allEmps ?? [])
+      .filter((e) => employeeInScopes(kpiGrant.scopes, ownDept, user.id, e, teamIds));
+    const scopedIds = scopedEmps.map((e) => e.id);
+    // Filter Divisi: pilihan HANYA divisi dalam lingkup grant; ?dept= di luar pilihan diabaikan
+    // (fallback "Seluruh Divisi"), dan view tetap menyaring di dalam scopedIds → tak tembus lingkup.
+    const deptOptions = uniqueDepts(scopedEmps);
+    const dept = resolveDeptParam(deptParam, deptOptions);
 
     return (
       <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
         <div className="mb-5">
           <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Monitoring &amp; Audit KPI</h1>
           <p className="mt-1 text-[13.5px] text-ink-soft">Rekapitulasi kuartal &amp; jejak audit perubahan KPI dalam lingkup akses Anda (lihat-saja).</p>
+          {deptOptions.length > 1 && <div className="mt-3"><DeptSelect depts={deptOptions} current={dept} /></div>}
         </div>
-        <MonitoringTabs view={view} period={period} />
+        <MonitoringTabs view={view} period={period} dept={dept} />
         <div className="mt-4">
           {view === 'riwayat' ? (
             <Panel title="Riwayat &amp; Audit Perubahan KPI">
-              <RiwayatView role={role} userId={user.id} scopedIds={scopedIds} page={auditPage} query={auditQ} />
+              <RiwayatView role={role} userId={user.id} scopedIds={scopedIds} page={auditPage} query={auditQ} dept={dept} />
             </Panel>
           ) : (
             <Panel title="Rekapitulasi Kuartal">
-              <RekapView role={role} userId={user.id} periodParam={period} scopedIds={scopedIds} />
+              <RekapView role={role} userId={user.id} periodParam={period} scopedIds={scopedIds} dept={dept} />
             </Panel>
           )}
         </div>
@@ -93,21 +99,26 @@ export default async function KpiPage({
   // Mode INPUT (SPV / HRD-SPV): berfitur tab. Mode MONITORING (HRD admin):
   // satu halaman — Rekapitulasi + Riwayat & Audit berdampingan (ala legacy), tanpa tab.
   if (!canInput) {
+    // Filter Divisi: pilihan = divisi seluruh pegawai internal non-Direksi (lingkup Monitoring HRD).
+    const { data: deptRows } = await supabase.from('employees').select('dept').neq('role', 'direksi').eq('is_external', false);
+    const deptOptions = uniqueDepts(deptRows ?? []);
+    const dept = resolveDeptParam(deptParam, deptOptions);
     return (
       <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
         <div className="mb-5">
           <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Monitoring &amp; Audit KPI</h1>
           <p className="mt-1 text-[13.5px] text-ink-soft">Rekapitulasi kuartal &amp; jejak audit perubahan KPI seluruh pegawai.</p>
+          {deptOptions.length > 1 && <div className="mt-3"><DeptSelect depts={deptOptions} current={dept} /></div>}
         </div>
-        <MonitoringTabs view={view} period={period} />
+        <MonitoringTabs view={view} period={period} dept={dept} />
         <div className="mt-4">
           {view === 'riwayat' ? (
             <Panel title="Riwayat &amp; Audit Perubahan KPI">
-              <RiwayatView role={role} canAdmin={admin} userId={user.id} page={auditPage} query={auditQ} />
+              <RiwayatView role={role} canAdmin={admin} userId={user.id} page={auditPage} query={auditQ} dept={dept} />
             </Panel>
           ) : (
             <Panel title="Rekapitulasi Kuartal">
-              <RekapView role={role} userId={user.id} periodParam={period} />
+              <RekapView role={role} userId={user.id} periodParam={period} dept={dept} />
             </Panel>
           )}
         </div>
@@ -161,9 +172,19 @@ export default async function KpiPage({
   );
 }
 
-/** Tab Monitoring: Rekap | Riwayat & Audit. Hanya tab aktif yang query (hemat egress). */
-function MonitoringTabs({ view, period }: { view: 'rekap' | 'riwayat'; period?: string }) {
-  const suffix = period ? `&period=${period}` : '';
+/** Divisi unik (terurut) dari daftar pegawai — sumber pilihan filter Divisi. */
+function uniqueDepts(rows: { dept: string | null }[]): string[] {
+  return [...new Set(rows.map((r) => r.dept).filter((d): d is string => !!d))].sort((a, b) => a.localeCompare(b));
+}
+
+/** ?dept= hanya sah bila ada di pilihan (lingkup penonton); selain itu = Seluruh Divisi (null). */
+function resolveDeptParam(param: string | undefined, options: string[]): string | null {
+  return param && options.includes(param) ? param : null;
+}
+
+/** Tab Monitoring: Rekap | Riwayat & Audit. Hanya tab aktif yang query (hemat egress). Filter Divisi ikut terbawa. */
+function MonitoringTabs({ view, period, dept }: { view: 'rekap' | 'riwayat'; period?: string; dept?: string | null }) {
+  const suffix = (period ? `&period=${encodeURIComponent(period)}` : '') + (dept ? `&dept=${encodeURIComponent(dept)}` : '');
   return (
     <TabBar>
       <Tab href={`/kpi?view=rekap${suffix}`} active={view === 'rekap'} icon={LayoutList}>Rekapitulasi Kuartal</Tab>

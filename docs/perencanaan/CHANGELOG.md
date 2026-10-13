@@ -5,6 +5,13 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **Impor Ringkasan dari Excel di Review & Finalisasi (2026-10-13, permintaan pengguna):** Ringkasan Aspek &
+  Pertanyaan Kualitatif banyak pegawai diisi sekaligus dari Excel (format = lembar "Ringkasan Naratif" Ekspor,
+  jadi bisa unduh → sunting → unggah). Keputusan pengguna: isi file **menimpa** ringkasan jenis yang sama (item
+  tak tercantum terhapus), sel kosong dilewati, boleh HRD & grant Review Meringkas/Finalisasi berlingkup.
+  Pengaman: baris bermasalah memblokir grup pegawai × jenis-nya (salah ketik nama aspek tak menghapus ringkasan
+  yang benar); laporan Final dilewati; skor tak tersentuh. Logika murni `lib/import/summaries.ts`; server
+  menegakkan ulang lingkup per pegawai (`resolveReportWriter` + `checkTarget`). Tanpa migrasi.
 - **Perbaikan mendesak — potongan telat yang diubah ke 0 kini tersimpan (2026-10-12):** dulu, bila HRD sudah
   menetapkan potongan seorang pegawai (mis. −7) lalu mengubahnya menjadi 0 ("dikecualikan"), nilai lama −7
   tetap berlaku di Skor 360°, padahal Log Aktivitas mencatat "Mengecualikan". Penyebabnya: nilai 0 disimpan

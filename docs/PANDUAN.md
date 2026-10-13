@@ -279,7 +279,7 @@ ini ditegakkan sistem, bukan sekadar menyembunyikan tombol.
 - **Lingkup**: *Seluruh pegawai* · *Hanya divisinya* · *Selain divisinya* · *Diri sendiri* · *Tim naungannya*
   (khusus koordinator). Boleh lebih dari satu. Mengubah alamat halaman tidak bisa menembus lingkup.
 - **Izin** (untuk halaman **Review & Finalisasi**): **Lihat** (baca Skor Akhir, radar/aspek, komentar tanpa
-  nama) → **Meringkas** (+ menulis Ringkasan Aspek, tersimpan otomatis) → **Finalisasi** (+ memfinalisasi,
+  nama) → **Meringkas** (+ menulis Ringkasan Aspek, tersimpan otomatis, atau mengimpornya dari Excel) → **Finalisasi** (+ memfinalisasi,
   merilis, mengembalikan ke draf dalam lingkupnya). Halaman lain selalu **Lihat**. Bila izin hanya Lihat,
   menu bertanda **"Lihat-saja"**.
 - **Peninjau Lintas Divisi** = akses **Review & Finalisasi** + lingkup **Selain divisinya** + izin **Meringkas**
@@ -625,7 +625,27 @@ ACC SPV · Status · Aksi**.
 | **② Perbarui Laporan Final yang Berubah (N)** | Segarkan angka laporan Final | Bila N > 0 | Ya |
 | **Finalisasi Semua Ber-ACC (N)** | Finalisasi massal | Ada kandidat | Ya (+ peringatan bila 360° perlu dihitung) |
 | **⚖ Atur Bobot** / **⚑ Flag Kepatuhan** | Pintasan | Kokpit | — |
+| **Impor Ringkasan dari Excel** | Isi ringkasan aspek & kualitatif banyak pegawai sekaligus | Periode dengan 360°; HRD dan penerima akses Meringkas/Finalisasi | Pratinjau dulu |
 | **Tinjau →** | Buka detail laporan | Per baris | — |
+
+**Impor Ringkasan dari Excel** (di atas daftar pegawai) — mengisi **Evaluasi Aspek Budaya & Perilaku 360°** dan
+**Ringkasan Umpan Balik Kualitatif 360°** banyak pegawai sekaligus.
+- Formatnya sama dengan lembar **Ringkasan Naratif** di Ekspor (Penilaian 360° Lengkap): kolom **kode** (kode
+  pegawai), **jenis** (Aspek / Pertanyaan Kualitatif), **aspek_atau_pertanyaan** (persis nama aspek atau teks
+  pertanyaan periode aktif), **ringkasan**. Cara termudah: tekan **Unduh template** (sudah berisi ringkasan
+  yang ada sekarang), isi atau sunting di Excel, lalu unggah. File Ekspor lengkap juga bisa langsung diunggah.
+- Sebelum disimpan, muncul **pratinjau** per baris: ✓ akan diimpor, kosong, dilewati, atau bermasalah beserta
+  alasannya.
+- **Aturan menimpa:** untuk tiap pegawai, ringkasan jenis yang ada di file **menggantikan seluruh** ringkasan
+  jenis itu. Aspek/pertanyaan yang **tidak tercantum** di file akan **terhapus**. Sel ringkasan **kosong** tidak
+  menghapus apa pun (isi lama tetap).
+- Bila satu baris bermasalah (kode/nama aspek salah ketik, duplikat, lebih dari 2000 karakter), seluruh baris
+  pegawai itu untuk jenis yang sama **tidak diimpor**, supaya ringkasan yang benar tidak ikut terhapus.
+- Tidak diimpor: laporan **Final** (Buka Kembali dulu), baris periode lain, pegawai di luar lingkup akses, dan
+  laporan diri sendiri (penerima akses). Skor dan status laporan tidak berubah. Tiap pegawai tercatat di Log
+  Aktivitas.
+- Format teks di dalam sel sama dengan format ringkasan (lihat di bawah). Pindah baris di sel = **Alt+Enter**.
+  Bila sel **diawali** poin, pakai `* ` (Excel menganggap sel berawalan `-` sebagai rumus).
 
 **Dua label penanda:**
 - **"perlu dihitung ulang"** = Skor 360° tersimpan sudah usang → **① Hitung Ulang Skor 360°**.
@@ -653,6 +673,10 @@ hanya ada untuk periode aktif.
 - Kedua ringkasan **tersimpan otomatis** (sekitar 5 detik setelah berhenti mengetik dan saat pindah kotak),
   dengan status "belum disimpan / menyimpan… / ✓ tersimpan otomatis". Tidak ada tombol simpan manual. Saat
   Final, ringkasan terkunci.
+- **Format ringkasan:** `**teks**` = **tebal** · baris diawali `- ` atau `* ` = poin berindentasi · baris
+  berikutnya tanpa tanda = lanjutan poin (mis. judul poin tebal lalu penjelasannya) · baris kosong = paragraf
+  baru. Bila ada tanda format, di bawah kotak muncul **Pratinjau**. Laporan di layar dan PDF menampilkan versi
+  rapinya. Ringkasan tanpa tanda tampil seperti biasa.
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |
 |---|---|---|---|

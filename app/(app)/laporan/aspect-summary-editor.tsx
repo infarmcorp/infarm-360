@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Lock } from 'lucide-react';
 import { saveAspectSummaries } from '@/app/(app)/admin/laporan/actions';
+import { hasSummaryMarkup } from '@/lib/summary-format';
+import { SummaryText } from './summary-text';
 
 /**
  * Section 4 — EVALUASI ASPEK BUDAYA & PERILAKU 360° (HRD).
@@ -107,12 +109,26 @@ export function AspectSummaryEditor({
               disabled={locked}
               onChange={(e) => { setVals((v) => ({ ...v, [a]: e.target.value })); }}
               onBlur={() => { if (!locked && changed) void flush(); }} // simpan segera saat pindah fokus
-              rows={3}
+              rows={Math.min(14, Math.max(3, (vals[a] ?? '').split('\n').length + 1))}
               placeholder={`Ringkasan kalibrasi HRD untuk ${noun} "${a}"…`}
-              className="w-full text-xs p-3 outline-none resize-y text-ink-soft leading-relaxed disabled:bg-neutral-tint disabled:text-ink-faint"
+              className="w-full text-xs p-3 outline-none resize-y text-ink-soft leading-relaxed disabled:bg-neutral-tint disabled:text-ink-faint no-print"
             />
+            {/* Pratinjau berformat (tebal/poin) — selalu dipakai saat cetak/Unduh PDF. */}
+            {(vals[a] ?? '').trim() && (
+              <div className={`border-t border-line-soft bg-bg ${hasSummaryMarkup(vals[a] ?? '') ? '' : 'hidden print:block'} print:border-0 print:bg-transparent`}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-ink-faint px-3 pt-2 no-print">Pratinjau</p>
+                <SummaryText text={vals[a] ?? ''} className="text-xs p-3 text-ink-soft leading-relaxed" />
+              </div>
+            )}
           </div>
         ))}
+        {!locked && (
+          <p className="text-[11px] text-ink-faint no-print">
+            Format: <code className="data-value bg-neutral-tint px-1 rounded">**teks**</code> = tebal ·
+            baris diawali <code className="data-value bg-neutral-tint px-1 rounded">- </code> = poin (baris berikutnya tanpa “- ” = lanjutan poin) ·
+            baris kosong = paragraf baru.
+          </p>
+        )}
         {!locked && saveState !== 'idle' && (
           <p className={`text-[11px] font-semibold no-print ${
             saveState === 'error' ? 'text-danger-ink' : saveState === 'saved' ? 'text-brand-ink' : 'text-warn-ink'

@@ -1,4 +1,5 @@
 import { Sparkles } from 'lucide-react';
+import { SummaryText } from './summary-text';
 
 /**
  * Tampilan READ-ONLY ringkasan aspek 360° tulisan HRD (lapis 2) — dipakai di jalur
@@ -34,7 +35,7 @@ export function AspectSummaryView({
             <div className="px-3 py-2 bg-neutral-tint border-b border-line-soft">
               <span className="text-xs font-bold text-brand-ink flex items-center gap-1.5">★ {name}</span>
             </div>
-            <p className="text-xs p-3 text-ink-soft leading-relaxed whitespace-pre-wrap">{text}</p>
+            <SummaryText text={text} className="text-xs p-3 text-ink-soft leading-relaxed" />
           </div>
         ))}
       </div>

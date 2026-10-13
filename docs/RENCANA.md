@@ -19,6 +19,8 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   - filter **Divisi** di Monitoring & Audit KPI;
   - penyeragaman tampilan (warna, huruf, tombol) di semua halaman;
   - perapian dokumentasi ini.
+- **Impor Ringkasan dari Excel** dan **format ringkasan** (tebal/poin) sudah **langsung di production**
+  (2026-10-13, atas permintaan pengguna) dan sudah digabung ke `dev`. Belum dicoba dengan data nyata.
 - 4 PDF panduan dan nomor versinya (`2026-10-01`) sudah tersimpan di `dev`. **Isinya belum direvisi**: teksnya
   masih sama dengan versi 30 Juli (masih ada "Review Hasil Akhir", "punishment", "4 karakter", salah ketik
   "ditHRD"). Jangan rilis `dev` ke production sebelum PDF benar-benar diperbarui; kalau tidak, tanda "BARU"

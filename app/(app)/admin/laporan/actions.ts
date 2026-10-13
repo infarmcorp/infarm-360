@@ -9,6 +9,7 @@ import { logHrdAction, logAuditAsService, type AuditEntry } from '@/lib/audit/lo
 import { finalScoreOf, kpiAvgOf, hasScoreDrift, fmt2 } from '@/lib/scoring';
 import { refreshLatePenalties } from '@/lib/late-server';
 import { finalLockError } from '@/lib/final-lock';
+import { mergeSummaryOverwrite, SUMMARY_MAX_LEN } from '@/lib/import/summaries';
 
 /**
  * Review Hasil Akhir: hitung Skor Akhir kalibrasi & tulis final_reports.
@@ -34,6 +35,26 @@ async function resolveReportWriteActor(
   supabase: Awaited<ReturnType<typeof createClient>>,
   employeeId: string,
 ): Promise<ReportWriteActor> {
+  const writer = await resolveReportWriter(supabase);
+  if (!writer.ok) return writer;
+  const err = await writer.checkTarget(employeeId);
+  if (err) return { ok: false, error: err };
+  const { checkTarget: _unused, ...actor } = writer; void _unused;
+  return actor;
+}
+
+/**
+ * Bagian otorisasi yang TAK bergantung pada target (dipakai sekali untuk aksi massal, mis. impor
+ * ringkasan) + `checkTarget` untuk cek per pegawai (null = boleh; string = alasan ditolak).
+ * `known.dept` = dept target yang sudah dimuat pemanggil (hemat query di aksi massal).
+ */
+type ReportWriter =
+  | (Extract<ReportWriteActor, { ok: true }> & {
+      checkTarget: (employeeId: string, known?: { dept: string | null }) => Promise<string | null>;
+    })
+  | { ok: false; error: string };
+
+async function resolveReportWriter(supabase: Awaited<ReturnType<typeof createClient>>): Promise<ReportWriter> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
   const { data: me } = await supabase
@@ -43,7 +64,7 @@ async function resolveReportWriteActor(
   const jar = await cookies();
   const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   if (canSection(me, 'laporan') && hrdMode === 'admin') {
-    return { ok: true, userId: user.id, userName: me?.name ?? null, db: supabase, viaGrant: false, canFinalize: true };
+    return { ok: true, userId: user.id, userName: me?.name ?? null, db: supabase, viaGrant: false, canFinalize: true, checkTarget: async () => null };
   }
 
   // Jalur GRANT: pemegang akses "Review & Finalisasi" boleh-edit dgn target di dalam SALAH SATU lingkup.
@@ -52,26 +73,37 @@ async function resolveReportWriteActor(
   const access = grantedAccess(grantRows, 'review');
   if (!access) return { ok: false, error: 'Hanya HRD atau pemegang akses Review & Finalisasi yang dapat mengubah laporan.' };
   if (!access.canEdit) return { ok: false, error: 'Akses Anda ke Review & Finalisasi bersifat hanya-lihat.' };
-  // Konflik kepentingan (audit 2026-09-30): pemegang akses tak boleh meringkas/merilis/memfinalisasi
-  // laporannya SENDIRI, walau lingkupnya mencakup dirinya (mis. lingkup 'divisinya' / 'self').
-  if (employeeId === user.id) return { ok: false, error: 'Anda tidak dapat mengubah atau memfinalisasi laporan Anda sendiri.' };
 
   // dept target dibaca via service_role (pemegang grant bukan is_hrd() → RLS memblokir baca lintas-pegawai).
   const admin = createAdminClient();
-  const { data: target } = await admin.from('employees').select('dept').eq('id', employeeId).maybeSingle();
-  if (!target) return { ok: false, error: 'Pegawai tidak ditemukan.' };
-  // Tim naungan (hanya bila lingkup 'coordinator_team'): id anggota tim pemegang grant.
-  const teamIds = access.scopes.includes('coordinator_team')
-    ? new Set(((await admin.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id)).data ?? []).map((r) => r.employee_id))
-    : undefined;
-  // Target harus masuk SALAH SATU lingkup grant (employeeInScopes; 'self'/'coordinator_team' = per-ID).
-  if (!employeeInScopes(access.scopes, me?.dept ?? '', user.id, { id: employeeId, dept: target.dept ?? null }, teamIds)) {
-    return { ok: false, error: 'Pegawai ini di luar lingkup akses yang diberikan kepada Anda.' };
-  }
+  let teamIds: Set<string> | undefined | null = null; // null = belum dimuat (lazy, sekali)
+  const checkTarget = async (employeeId: string, known?: { dept: string | null }): Promise<string | null> => {
+    // Konflik kepentingan (audit 2026-09-30): pemegang akses tak boleh meringkas/merilis/memfinalisasi
+    // laporannya SENDIRI, walau lingkupnya mencakup dirinya (mis. lingkup 'divisinya' / 'self').
+    if (employeeId === user.id) return 'Anda tidak dapat mengubah atau memfinalisasi laporan Anda sendiri.';
+    let dept: string | null;
+    if (known) dept = known.dept;
+    else {
+      const { data: target } = await admin.from('employees').select('dept').eq('id', employeeId).maybeSingle();
+      if (!target) return 'Pegawai tidak ditemukan.';
+      dept = target.dept ?? null;
+    }
+    // Tim naungan (hanya bila lingkup 'coordinator_team'): id anggota tim pemegang grant.
+    if (teamIds === null) {
+      teamIds = access.scopes.includes('coordinator_team')
+        ? new Set(((await admin.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id)).data ?? []).map((r) => r.employee_id))
+        : undefined;
+    }
+    // Target harus masuk SALAH SATU lingkup grant (employeeInScopes; 'self'/'coordinator_team' = per-ID).
+    if (!employeeInScopes(access.scopes, me?.dept ?? '', user.id, { id: employeeId, dept }, teamIds)) {
+      return 'Pegawai ini di luar lingkup akses yang diberikan kepada Anda.';
+    }
+    return null;
+  };
   // Tulis via service_role: pemegang grant non-HRD ditolak RLS fr_hrd, jadi HANYA jalur ini (yang
   // sudah mengecek can_edit + lingkup) yang bisa menulis = gembok nyata untuk penulis non-HRD.
   // canFinalize dari grant → aksi finalisasi/rilis/kembalikan-draf digerbang terpisah di pemanggil.
-  return { ok: true, userId: user.id, userName: me?.name ?? null, db: admin as typeof supabase, viaGrant: true, canFinalize: access.canFinalize };
+  return { ok: true, userId: user.id, userName: me?.name ?? null, db: admin as typeof supabase, viaGrant: true, canFinalize: access.canFinalize, checkTarget };
 }
 
 /** Catat aksi laporan: HRD penuh → logHrdAction (RLS is_hrd); pemegang grant → service_role. */
@@ -498,4 +530,126 @@ export async function saveQualSummaries(employeeId: string, raw: unknown): Promi
   });
   revalidatePath(`/laporan/${employeeId}`);
   return { ok: true };
+}
+
+/**
+ * IMPOR RINGKASAN dari Excel (format = lembar "Ringkasan Naratif" hasil Ekspor) — HRD penuh atau
+ * pemegang grant Review tingkat Meringkas/Finalisasi, berlingkup. Parsing & pratinjau di klien
+ * (lib/import/summaries.ts); di sini SEMUA aturan ditegakkan ulang: otorisasi + lingkup per pegawai
+ * (resolveReportWriter), kunci laporan Final, kunci item = aspek/pertanyaan periode aktif, panjang.
+ * TIMPA per (pegawai × jenis) dgn sel kosong = pertahankan isi lama (mergeSummaryOverwrite).
+ * Hanya menulis teks naratif — status & skor tak tersentuh (baris baru = draf dgn Skor Akhir live,
+ * sama seperti saveAspectSummaries).
+ */
+const ImportItems = z.record(z.string(), z.string().max(SUMMARY_MAX_LEN).nullable());
+const ImportInput = z.array(z.object({
+  employeeId: z.string().uuid(),
+  aspect: ImportItems.optional(),
+  qual: ImportItems.optional(),
+})).min(1).max(2000);
+
+export type ImportSummariesResult =
+  | { ok: true; saved: number; skipped: { name: string; reason: string }[]; failed: { name: string; reason: string }[] }
+  | { ok: false; error: string };
+
+export async function importSummaries(raw: unknown): Promise<ImportSummariesResult> {
+  const parsed = ImportInput.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'Data impor tidak valid' };
+  const items = parsed.data;
+  if (new Set(items.map((i) => i.employeeId)).size !== items.length) return { ok: false, error: 'Data impor tidak valid (pegawai ganda)' };
+
+  const supabase = await createClient();
+  const writer = await resolveReportWriter(supabase);
+  if (!writer.ok) return { ok: false, error: writer.error };
+  const db = writer.db;
+
+  const { data: ap } = await db.from('periods').select('id, has_360').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+  if (!ap.has_360) return { ok: false, error: 'Periode aktif tanpa penilaian 360° — tidak ada ringkasan untuk diimpor.' };
+
+  const [{ data: aspRows, error: aspErr }, { data: qualRows, error: qualErr }] = await Promise.all([
+    db.from('culture_aspects').select('name').eq('period_id', ap.id),
+    db.from('qualitative_questions').select('text').eq('period_id', ap.id),
+  ]);
+  if (aspErr || qualErr) return { ok: false, error: 'Gagal membaca aspek/pertanyaan periode aktif' };
+  const aspectNames = new Set((aspRows ?? []).map((a) => a.name));
+  const questionTexts = new Set((qualRows ?? []).map((q) => q.text));
+
+  // Nama + dept + laporan periode aktif, per potongan id (cegah URL .in() kepanjangan; ≤150 baris/potongan).
+  const ids = items.map((i) => i.employeeId);
+  const empBy = new Map<string, { name: string; dept: string | null }>();
+  const repBy = new Map<string, { id: string; status: string; content: unknown }>();
+  for (let i = 0; i < ids.length; i += 150) {
+    const chunk = ids.slice(i, i + 150);
+    const [{ data: emps, error: e1 }, { data: reps, error: e2 }] = await Promise.all([
+      db.from('employees').select('id, name, dept').in('id', chunk),
+      db.from('final_reports').select('id, employee_id, status, content').eq('period_id', ap.id).in('employee_id', chunk),
+    ]);
+    // Gagal baca status = tolak (kunci Final gagal tertutup).
+    if (e1 || e2) return { ok: false, error: 'Gagal membaca data pegawai/laporan' };
+    (emps ?? []).forEach((e) => empBy.set(e.id, { name: e.name, dept: e.dept ?? null }));
+    (reps ?? []).forEach((r) => repBy.set(r.employee_id, r));
+  }
+
+  const skipped: { name: string; reason: string }[] = [];
+  const failed: { name: string; reason: string }[] = [];
+  const todo: typeof items = [];
+  for (const it of items) {
+    const emp = empBy.get(it.employeeId);
+    const name = emp?.name ?? it.employeeId;
+    if (!emp) { skipped.push({ name, reason: 'Pegawai tidak ditemukan' }); continue; }
+    const denied = await writer.checkTarget(it.employeeId, { dept: emp.dept });
+    if (denied) { skipped.push({ name, reason: denied }); continue; }
+    if (repBy.get(it.employeeId)?.status === 'finalized') { skipped.push({ name, reason: 'Laporan sudah Final' }); continue; }
+    const badKey = [...Object.keys(it.aspect ?? {}).filter((k) => !aspectNames.has(k)),
+      ...Object.keys(it.qual ?? {}).filter((k) => !questionTexts.has(k))][0];
+    if (badKey != null) { skipped.push({ name, reason: `"${badKey}" bukan aspek/pertanyaan periode aktif` }); continue; }
+    todo.push(it);
+  }
+
+  // Laporan baru (belum ada baris) butuh Skor Akhir live → potongan telat diterapkan SEKALI untuk
+  // semuanya (computeFinal per pegawai lalu melewatinya).
+  const newIds = todo.filter((it) => !repBy.has(it.employeeId)).map((it) => it.employeeId);
+  let lateErr: string | null = null;
+  if (newIds.length) {
+    try { await refreshLatePenalties(ap.id, newIds); } catch (e) { lateErr = e instanceof Error ? e.message : String(e); }
+  }
+
+  let saved = 0;
+  const one = async (it: (typeof items)[number]) => {
+    const name = empBy.get(it.employeeId)!.name;
+    const existing = repBy.get(it.employeeId);
+    const prev = ((existing?.content ?? {}) as Record<string, unknown>);
+    const next: Record<string, unknown> = { ...prev };
+    if (it.aspect) next.aspectSummaries = mergeSummaryOverwrite(prev.aspectSummaries as Record<string, string> | undefined, it.aspect);
+    if (it.qual) next.qualSummaries = mergeSummaryOverwrite(prev.qualSummaries as Record<string, string> | undefined, it.qual);
+
+    if (existing) {
+      const { data: upd, error } = await db.from('final_reports').update({ content: next }).eq('id', existing.id).select('id');
+      if (error) { failed.push({ name, reason: error.message }); return; }
+      if (!upd || upd.length === 0) { failed.push({ name, reason: 'akses ditolak / laporan tak ditemukan' }); return; }
+    } else {
+      if (lateErr) { failed.push({ name, reason: lateErr }); return; }
+      const cf = await computeFinalSafe(db, ap.id, ap.has_360, it.employeeId, { skipLateRefresh: true });
+      if (!cf.ok) { failed.push({ name, reason: cf.error }); return; }
+      const { error } = await db.from('final_reports').insert({
+        employee_id: it.employeeId, period_id: ap.id, final_score: cf.final, status: 'draft', content: next,
+      });
+      if (error) { failed.push({ name, reason: error.message }); return; }
+    }
+    saved += 1;
+    const kinds = [it.aspect && 'aspek', it.qual && 'pertanyaan kualitatif'].filter(Boolean).join(' & ');
+    await logReportAction(writer, {
+      action: 'report.import_summary', category: 'laporan',
+      summary: `Mengimpor ringkasan ${kinds} 360° dari Excel untuk ${name}`,
+      targetType: 'employee', targetId: it.employeeId, targetLabel: name,
+      meta: { via_grant: writer.viaGrant, aspect_items: Object.keys(it.aspect ?? {}).length, qual_items: Object.keys(it.qual ?? {}).length },
+    });
+  };
+  // Paralel terbatas (8) — ratusan pegawai tetap selesai dalam batas waktu Server Action.
+  for (let i = 0; i < todo.length; i += 8) await Promise.all(todo.slice(i, i + 8).map(one));
+
+  revalidatePath('/admin/laporan');
+  revalidatePath('/laporan/[employeeId]', 'page');
+  return { ok: true, saved, skipped, failed };
 }

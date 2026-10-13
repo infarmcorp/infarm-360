@@ -9,6 +9,7 @@ import { ReportTable, type ReportRow } from './report-table';
 import { Recompute360Button } from './recompute-360-button';
 import { ResyncDriftButton } from './resync-drift-button';
 import { BulkFinalizeButton } from './bulk-finalize-button';
+import { ImportSummaries, type ImportSummaryEmp } from './import-summaries';
 import { Panel } from '@/components/panel';
 import { loadPendingLatePenalties, refreshLatePenalties } from '@/lib/late-server';
 import { isBackfilledPeriod } from '@/lib/backfill-guard';
@@ -69,7 +70,7 @@ export default async function AdminLaporanPage() {
   const teamIds = reviewScopes?.includes('coordinator_team')
     ? new Set(((await db.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id)).data ?? []).map((r) => r.employee_id))
     : undefined;
-  const { data: emps } = await db.from('employees').select('id, name, dept, is_active, role').eq('is_external', false);
+  const { data: emps } = await db.from('employees').select('id, emp_code, name, dept, is_active, role').eq('is_external', false);
   const employees = (emps ?? []).filter((e) =>
     !reviewScopes || employeeInScopes(reviewScopes, me?.dept ?? '', user.id, e, teamIds));
 
@@ -98,7 +99,7 @@ export default async function AdminLaporanPage() {
   // computed_at per pegawai → deteksi "perlu hitung ulang" (penilaian berubah setelah hitung).
   const computedAtBy = new Map((r360 ?? []).map((r) => [r.employee_id, r.computed_at]));
   const { data: reports } = await db
-    .from('final_reports').select('employee_id, status, spv_acc, final_score').eq('period_id', ap.id);
+    .from('final_reports').select('employee_id, status, spv_acc, final_score, content').eq('period_id', ap.id);
   const repBy = new Map((reports ?? []).map((r) => [r.employee_id, r]));
 
   // Pemimpin tim (untuk hint "ACC oleh Direksi"): laporan SPV/pemimpin tim di-ACC Direksi, bukan SPV.
@@ -221,6 +222,30 @@ export default async function AdminLaporanPage() {
   // halaman Flag Kepatuhan. Diperingatkan di sini agar tak terlanjur difinalisasi tanpa potongan.
   const pendingLate = isHrdFull && ap.has_360 ? (await loadPendingLatePenalties(ap.id)).length : 0;
 
+  // Impor Ringkasan dari Excel: HRD penuh atau grant boleh-meringkas, hanya saat 360° aktif. Daftar
+  // pegawai = yang dalam lingkup (server menegakkan ulang lingkup & kunci Final).
+  const canImport = ap.has_360 && (isHrdFull || grantCanEdit);
+  let importProps: { employees: ImportSummaryEmp[]; aspects: string[]; questions: string[] } | null = null;
+  if (canImport) {
+    const [{ data: aspRows }, { data: qualRows }] = await Promise.all([
+      db.from('culture_aspects').select('name').eq('period_id', ap.id).order('order_idx'),
+      db.from('qualitative_questions').select('text').eq('period_id', ap.id).order('order_idx'),
+    ]);
+    importProps = {
+      aspects: (aspRows ?? []).map((a) => a.name),
+      questions: (qualRows ?? []).map((q) => q.text),
+      employees: employees.flatMap((e) => {
+        if (!e.emp_code) return [];
+        const rep = repBy.get(e.id);
+        const content = (rep?.content ?? {}) as { aspectSummaries?: Record<string, string>; qualSummaries?: Record<string, string> };
+        return [{
+          id: e.id, code: e.emp_code, name: e.name, dept: e.dept, status: rep?.status ?? null,
+          aspectSummaries: content.aspectSummaries ?? {}, qualSummaries: content.qualSummaries ?? {},
+        }];
+      }),
+    };
+  }
+
   return (
     <Shell>
       <div className="flex items-start justify-between mb-5">
@@ -295,6 +320,12 @@ export default async function AdminLaporanPage() {
           </div>
         </div>
       </div>
+      )}
+
+      {importProps && (
+        <div className="mb-5">
+          <ImportSummaries {...importProps} periodLabel={ap.label} selfId={isHrdFull ? null : user.id} />
+        </div>
       )}
 
       <Panel><ReportTable rows={shownRows} depts={depts} has360={ap.has_360} readOnly={readOnly} /></Panel>

@@ -8,6 +8,21 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
+### 2026-10-13 (langsung ke production atas permintaan pengguna, lalu digabung ke `dev`)
+- **Impor Ringkasan dari Excel** di halaman Review & Finalisasi (permintaan pengguna). Ringkasan aspek dan
+  ringkasan pertanyaan kualitatif banyak pegawai bisa diisi sekaligus dari Excel, tidak perlu diketik satu per
+  satu di tiap laporan. Formatnya sama dengan lembar Ringkasan Naratif di Ekspor, jadi bisa unduh, sunting,
+  lalu unggah lagi. Keputusan pengguna:
+  - isi file **menimpa** ringkasan jenis yang sama, dan item yang tidak tercantum terhapus;
+  - sel kosong dilewati (isi lama tetap);
+  - boleh dipakai HRD dan penerima akses Review & Finalisasi (Meringkas/Finalisasi), sesuai lingkupnya.
+  Pengaman tambahan: baris bermasalah memblokir baris lain milik pegawai dan jenis yang sama, supaya salah ketik
+  nama aspek tidak menghapus ringkasan yang benar. Laporan Final tidak diubah, skor tidak tersentuh.
+- **Ringkasan tampil rapi** (permintaan pengguna, mengikuti contoh laporan PDF): huruf tebal, poin berindentasi,
+  dan paragraf, dengan tanda sederhana di teks (`**tebal**`, baris diawali `- ` atau `* ` = poin). Berlaku untuk
+  hasil impor maupun ketikan, di layar dan di PDF. Ringkasan lama tanpa tanda tampil seperti dulu. Skor dan label
+  kategori di judul aspek sengaja tidak ditambahkan (keputusan pengguna: teks saja).
+
 ### 2026-10-12 (di `dev`, belum di production)
 - **Laporan Final kini terkunci** (keputusan pemilik; dirilis ke production setelah finalisasi Q3). Dulu, setelah
   laporan Final, rerata KPI, Skor 360°, dan skor aspek di laporan masih bisa bergeser bila ada yang mengubah data,

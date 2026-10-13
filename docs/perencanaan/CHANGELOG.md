@@ -5,6 +5,13 @@
 > daftar migrasi. Status/sesi terkini → `STATUS.md`; sisa pekerjaan → **[TODO.md](TODO.md)** & **[BACKLOG.md](BACKLOG.md)**.
 
 ### Invariant & fitur inti (yang wajib dijaga)
+- **Format Ringkasan Aspek & Kualitatif (2026-10-13, permintaan pengguna):** ringkasan kini tampil rapi —
+  `**teks**` = tebal, baris diawali `- ` / `* ` / `• ` = poin dengan indentasi menggantung, baris berikutnya tanpa
+  tanda = lanjutan poin, baris kosong = paragraf baru. Berlaku di semua layar laporan & PDF (cetak), untuk hasil
+  impor Excel maupun ketikan di editor (editor menampilkan Pratinjau + petunjuk). Teks tetap disimpan polos;
+  ringkasan lama tanpa tanda tampil seperti dulu. Di Excel, sel yang diawali poin pakai `* ` (sel berawalan `-`
+  dianggap rumus). Pengurai `lib/summary-format.ts`, render `app/(app)/laporan/summary-text.tsx` (elemen React,
+  tanpa HTML mentah). Skor per aspek di judul ringkasan sengaja TIDAK ditambahkan (keputusan pengguna: teks saja).
 - **Impor Ringkasan dari Excel di Review & Finalisasi (2026-10-13, permintaan pengguna):** Ringkasan Aspek &
   Pertanyaan Kualitatif banyak pegawai diisi sekaligus dari Excel (format = lembar "Ringkasan Naratif" Ekspor,
   jadi bisa unduh → sunting → unggah). Keputusan pengguna: isi file **menimpa** ringkasan jenis yang sama (item

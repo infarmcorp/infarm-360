@@ -118,6 +118,11 @@ export function ImportSummaries({ employees, aspects, questions, periodLabel, se
         Per pegawai, ringkasan jenis yang ada di file <strong>menggantikan</strong> seluruh ringkasan jenis itu — item yang tidak tercantum akan terhapus.
         Sel ringkasan kosong dilewati (isi lama tetap). Laporan Final tidak diubah.
       </p>
+      <p className="text-[11px] text-ink-faint leading-relaxed">
+        Format di dalam sel (pindah baris = Alt+Enter): {code('**teks**')} = tebal · baris diawali {code('- ')} atau {code('* ')} = poin
+        (baris berikutnya tanpa tanda = lanjutan poin) · baris kosong = paragraf baru. Bila sel <strong>diawali</strong> poin,
+        pakai {code('* ')} — Excel menganggap sel berawalan “-” sebagai rumus.
+      </p>
       <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile}
         className="block text-xs file:mr-3 file:rounded-control file:border-0 file:bg-brand file:px-3 file:py-1.5 file:text-white file:font-semibold" />
       {parseErr && <p className="text-xs text-danger-ink font-semibold">{parseErr}</p>}

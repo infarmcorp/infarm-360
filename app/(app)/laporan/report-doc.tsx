@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
 
 import { Download } from 'lucide-react';
@@ -10,9 +11,13 @@ const RELATION_LABEL: Record<string, string> = {
 };
 
 /** Dokumen Laporan rinci: radar aspek, ringkasan skor, komentar mentah per penilai.
- * `anonymize`=true (pegawai melihat laporannya sendiri) menyamarkan nama penilai. */
-export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: { data: ReportData; anonymize: boolean; hideAssessorComments?: boolean; hidePrint?: boolean }) {
+ * `anonymize`=true (pegawai melihat laporannya sendiri) menyamarkan nama penilai.
+ * `pdfFolder` (Laporan Hasil Saya): "Unduh PDF" membuka Folder Laporan Drive pegawai, bukan mencetak;
+ * url null → pesan "PDF belum tersedia". Tanpa prop ini tombol tetap mencetak (HRD/SPV/Direksi). */
+export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint, pdfFolder }: { data: ReportData; anonymize: boolean; hideAssessorComments?: boolean; hidePrint?: boolean; pdfFolder?: { url: string | null } }) {
   const aspectsWith = data.aspects.filter((a) => a.score != null);
+  const [noPdf, setNoPdf] = useState(false);
+  const btnCls = 'shrink-0 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-control bg-brand hover:bg-brand-ink text-white';
   return (
     <div>
       <div className="flex items-start justify-between gap-3 no-print">
@@ -20,16 +25,27 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint }: 
           <h1 className="text-xl font-bold text-ink">Dokumen Laporan Kinerja</h1>
           <p className="text-sm text-ink-soft">{data.emp.name} · {data.emp.dept} · {data.periodLabel}</p>
         </div>
-        {!hidePrint && (
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="shrink-0 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-control bg-brand hover:bg-brand-ink text-white"
-          >
+        {!hidePrint && (pdfFolder ? (
+          pdfFolder.url ? (
+            <a href={pdfFolder.url} target="_blank" rel="noopener noreferrer" className={btnCls}>
+              <Download className="w-3.5 h-3.5" /> Unduh PDF
+            </a>
+          ) : (
+            <button type="button" onClick={() => setNoPdf(true)} className={btnCls}>
+              <Download className="w-3.5 h-3.5" /> Unduh PDF
+            </button>
+          )
+        ) : (
+          <button type="button" onClick={() => window.print()} className={btnCls}>
             <Download className="w-3.5 h-3.5" /> Unduh PDF
           </button>
-        )}
+        ))}
       </div>
+      {noPdf && (
+        <p className="no-print mt-2 text-xs font-semibold text-warn-ink bg-warn-tint rounded-control px-3 py-2">
+          PDF belum tersedia, hubungi HRD.
+        </p>
+      )}
 
       {/* Kop cetak (hanya saat print) */}
       <div className="hidden print:block mb-4">

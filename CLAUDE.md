@@ -29,6 +29,7 @@ Acuan fungsional: `PANDUAN Infarm 360 Portal.pdf` dan [docs/PANDUAN.md](docs/PAN
 | [docs/PANDUAN.md](docs/PANDUAN.md) | panduan pengguna per peran + tombol + SOP HRD (bahasa awam) |
 | `docs/pengembangan/DESAIN-MANAJEMEN-AKSES.md` | catatan keputusan izin 3 tingkat (dirujuk migrasi 0032/0033) |
 | `docs/panduan/REVISI-PANDUAN-PDF.md` | sementara — teks revisi 4 PDF; hapus setelah PDF direvisi |
+| [docs/UJI-RILIS-Q3.md](docs/UJI-RILIS-Q3.md) | sementara — daftar uji manual rilis Q3 (gelombang 1, 2, 2b); hapus setelah rilis |
 
 Selalu perbarui RENCANA/CHANGELOG saat status fitur bergeser, dan file ini hanya bila aturan berubah.
 PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fungsi, path, nomor migrasi).
@@ -201,7 +202,12 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
 - Migrasi baru: idempoten, nomor urut, terapkan ke staging dulu; urutan rilis → TEKNIS.md §1. Kode yang memanggil
   fungsi database baru WAJIB punya cadangan cara lama bila fungsinya belum ada (`rpcMissing`, `lib/supabase/rpc.ts`),
   dan `scripts/check-migrations.sql` diperbarui.
-- Kerja di `dev` → PR ke `main`. Jangan push langsung ke `main`.
+- **Aturan merge (pemilik, 2026-10-14):**
+  - Claude Code **TIDAK BOLEH** merge PR atau push langsung ke `dev`/`main`. Merge hanya dilakukan pemilik.
+    Claude Code bekerja di branch sendiri, push branch itu, lalu menyiapkan PR.
+  - Semua perubahan masuk lewat **PR ke `dev`** dulu; `dev` → `main` hanya saat rilis yang **disetujui pemilik**.
+  - PR yang membawa migrasi **wajib** mencantumkan nomor migrasinya dan bahwa migrasi itu harus dijalankan di
+    **staging & production** sebelum fiturnya dipakai.
 
 ## 10. Perintah
 ```bash

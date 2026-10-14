@@ -73,10 +73,13 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 - ⬜ **Gelombang 3 (prioritas rendah): pegawai ber-izin HRD melihat tampilan HRD penuh di detail laporan walau
   sedang di mode posisi-asli.** Berlaku untuk pemegang izin HRD berposisi Pegawai (saat ini satu orang). Menu
   posisi-asli tidak menautkan ke halaman itu, jadi hanya terjadi bila alamatnya dibuka langsung.
-- 🔑⬜ **Laporan diri sendiri untuk pemegang izin HRD** (cek 2026-10-14, menunggu keputusan): bila HRD membuka
-  halaman detail laporan **dirinya sendiri** lewat tampilan HRD, komentar mentah (anonim) tampil di layar dan
-  nama penilai ikut terkirim ke browser walau tak tampil. Usulan perbaikan dan pilihannya ada di laporan cek
-  tanggal itu; perlu keputusan sebelum dikerjakan.
+- ⬜ **Laporan diri sendiri untuk pemegang izin HRD** (cek 2026-10-14). Bila HRD membuka detail laporan
+  **dirinya sendiri** lewat Review & Finalisasi:
+  - **Komentar mentah (anonim) tetap tampil — disengaja** (keputusan pemilik 2026-10-14): HRD bertugas meringkas
+    laporannya sendiri, jadi butuh komentar itu. Bukan masalah.
+  - **Sisa: nama penilai ikut terkirim ke browser** walau tak pernah tampil di layar (terbaca lewat alat
+    developer). Perbaikan: buang nama penilai di server untuk tampilan HRD — tampilan tak berubah. Kerjakan di
+    gelombang 3 (atau bersama rilis Q3 bila sempat).
 - Catatan (risiko rendah): batas "HRD hanya menginput KPI divisinya sendiri" hanya dijaga aplikasi, tidak
   dikunci di database. Pengguna tetap tidak bisa menulis KPI langsung ke database.
 

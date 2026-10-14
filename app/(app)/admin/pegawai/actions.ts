@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin, canSection, isFullHrd, isHrdDept, HRD_SECTIONS } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
+import { ReportFolderUrl, tableMissing } from '@/lib/report-folder';
 
 /**
  * Kelola Pegawai (HRD): kelola akun + baris employees + keanggotaan tim SPV.
@@ -493,6 +494,44 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
   });
   revalidate();
   return { ok: true, msg: active ? 'Pegawai diaktifkan.' : 'Pegawai dinonaktifkan (akun dikunci).' };
+}
+
+/**
+ * Tetapkan/hapus Folder Laporan (Google Drive) pegawai — dibuka tombol "Unduh PDF" di Laporan Hasil
+ * Saya (migrasi 0050). URL kosong = hapus. Hanya tautan drive.google.com (Zod + CHECK DB). Akun
+ * HRD/Direksi hanya oleh HRD berakses penuh (selaras aksi Kelola Pegawai lain). Tak menyentuh skor.
+ */
+export async function setReportFolder(employeeId: string, url: string): Promise<Result> {
+  const parsed = z.object({ employeeId: z.string().uuid(), url: ReportFolderUrl }).safeParse({ employeeId, url });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  const { employeeId: id, url: value } = parsed.data;
+
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!auth.full && await isPrivileged(supabase, id)) return { ok: false, error: PRIVILEGED_MSG };
+
+  const { data: emp } = await supabase.from('employees').select('name').eq('id', id).maybeSingle();
+  if (!emp) return { ok: false, error: 'Pegawai tidak ditemukan.' };
+
+  const { error } = value
+    ? await supabase.from('employee_report_folders')
+        .upsert({ employee_id: id, url: value, updated_by: auth.userId, updated_at: new Date().toISOString() }, { onConflict: 'employee_id' })
+    : await supabase.from('employee_report_folders').delete().eq('employee_id', id);
+  if (error) {
+    return { ok: false, error: tableMissing(error)
+      ? 'Fitur Folder Laporan belum aktif di database (migrasi 0050 belum diterapkan).'
+      : 'Gagal menyimpan folder: ' + error.message };
+  }
+
+  await logHrdAction({
+    action: value ? 'employee.set_report_folder' : 'employee.clear_report_folder', category: 'pegawai',
+    summary: `${value ? 'Menetapkan' : 'Menghapus'} Folder Laporan (Drive) untuk ${emp.name ?? id}`,
+    targetType: 'employee', targetId: id, targetLabel: emp.name ?? null, meta: { url: value },
+  });
+  revalidatePath('/admin/pegawai');
+  revalidatePath('/laporan');
+  return { ok: true, msg: value ? 'Folder Laporan disimpan.' : 'Folder Laporan dihapus.' };
 }
 
 /** Reset sandi pegawai (HRD). Pegawai sebaiknya menggantinya sendiri setelah login. */

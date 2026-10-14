@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { colPercents } from '@/lib/table-cols';
-import { UserPlus, Pencil, KeyRound, Power, X } from 'lucide-react';
-import { createEmployee, updateEmployee, setEmployeeActive, resetPassword } from './actions';
+import { UserPlus, Pencil, KeyRound, Power, X, FolderOpen } from 'lucide-react';
+import { createEmployee, updateEmployee, setEmployeeActive, resetPassword, setReportFolder } from './actions';
+import { isDriveUrl } from '@/lib/report-folder';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { usePager, Pager } from '@/components/table-controls';
 import { Panel } from '@/components/panel';
@@ -15,6 +16,7 @@ export type EmpRow = {
   id: string; empCode: string; name: string; nickname: string | null; dept: string; role: Role;
   isHrdAdmin: boolean; isExternal: boolean; isCoordinator: boolean; hrdSections: string[] | null; active: boolean; email: string; spvId: string | null; spvName: string | null;
   joinedOn: string | null; leftOn: string | null; // tgl masuk/aktif & tgl nonaktif (YYYY-MM-DD)
+  reportFolderUrl: string | null; // Folder Laporan (Google Drive) — dibuka tombol "Unduh PDF" pegawai
 };
 export type SpvOpt = { id: string; name: string; dept: string; role: Role };
 
@@ -64,6 +66,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
   const [form, setForm] = useState<FormState | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [reset, setReset] = useState<{ r: EmpRow; pw: string } | null>(null); // dialog reset sandi
+  const [folder, setFolder] = useState<{ r: EmpRow; url: string } | null>(null); // dialog Folder Laporan
   const [pending, start] = useTransition();
   // Gulir ke form saat dibuka (tambah/edit) — form dirender di atas, jadi tanpa ini
   // edit baris bawah membuat form muncul di luar layar. openTick memicu efek tiap buka.
@@ -163,6 +166,14 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
     const { r, pw } = reset;
     setReset(null);
     act(() => resetPassword(r.id, pw.trim()));
+  }
+
+  const folderInvalid = !!folder && folder.url.trim() !== '' && !isDriveUrl(folder.url.trim());
+  function submitFolder() {
+    if (!folder || folderInvalid) return;
+    const { r, url } = folder;
+    setFolder(null);
+    act(() => setReportFolder(r.id, url.trim()));
   }
 
   return (
@@ -299,7 +310,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
               135, // Atasan
               136, // Masa Aktif (dd/mm/yyyy, tak dibungkus)
               104, // Status ("Nonaktif")
-              130, // Aksi (3 ikon, tak dibungkus)
+              160, // Aksi (4 ikon, tak dibungkus)
             ]).map((w, i) => <col key={i} style={{ width: w }} />)}
           </colgroup>
           <thead>
@@ -343,6 +354,10 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                     className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-control text-ink-soft hover:bg-neutral-tint disabled:opacity-60"><Pencil className="w-3.5 h-3.5" /></button>
                   <button type="button" onClick={() => doReset(r)} disabled={pending} title="Reset sandi"
                     className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-control text-brand-ink hover:bg-brand-tint disabled:opacity-60"><KeyRound className="w-3.5 h-3.5" /></button>
+                  {/* Folder Laporan (Drive): hijau = sudah diisi, pudar = belum. */}
+                  <button type="button" onClick={() => { setToast(null); setFolder({ r, url: r.reportFolderUrl ?? '' }); }} disabled={pending}
+                    title={r.reportFolderUrl ? 'Folder Laporan (Drive) — sudah diisi' : 'Folder Laporan (Drive) — belum diisi'}
+                    className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-control disabled:opacity-60 ${r.reportFolderUrl ? 'text-brand-ink hover:bg-brand-tint' : 'text-ink-faint hover:bg-neutral-tint'}`}><FolderOpen className="w-3.5 h-3.5" /></button>
                   <button type="button" onClick={() => act(() => setEmployeeActive(r.id, !r.active))} disabled={pending}
                     title={r.active ? 'Nonaktifkan' : 'Aktifkan'}
                     className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-control disabled:opacity-60 ${r.active ? 'text-danger-ink hover:bg-danger-tint' : 'text-brand-ink hover:bg-brand-tint'}`}><Power className="w-3.5 h-3.5" /></button>
@@ -381,6 +396,33 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
           <button type="button" onClick={() => setReset((s) => (s ? { ...s, pw: randPass() } : s))}
             className="text-[11px] font-semibold px-2 rounded-control bg-surface border border-line text-ink-soft hover:text-ink hover:border-line-strong shrink-0">Acak</button>
         </div>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={!!folder}
+        icon="📁"
+        title={folder ? `Folder Laporan — ${folder.r.name}` : ''}
+        tone="primary"
+        confirmLabel={folder && folder.url.trim() === '' && folder.r.reportFolderUrl ? 'Hapus Tautan' : 'Simpan'}
+        confirmDisabled={folderInvalid}
+        busy={pending}
+        onConfirm={submitFolder}
+        onCancel={() => { if (!pending) setFolder(null); }}
+      >
+        <p>
+          Tempel tautan folder Google Drive pegawai ini. Tombol <strong>Unduh PDF</strong> di Laporan Hasil Saya
+          akan membuka folder tersebut. Kosongkan untuk menghapus tautan.
+        </p>
+        <input
+          value={folder?.url ?? ''}
+          onChange={(e) => setFolder((s) => (s ? { ...s, url: e.target.value } : s))}
+          placeholder="https://drive.google.com/drive/folders/…"
+          className={`w-full text-sm px-2.5 py-1.5 border rounded-control data-value focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint ${folderInvalid ? 'border-danger-ink' : 'border-line'}`}
+        />
+        {folderInvalid && <p className="text-[11px] text-danger-ink font-semibold">Tautan harus diawali https://drive.google.com/</p>}
+        <p className="text-[11px] text-ink-faint">
+          Bagikan folder di Drive ke email Google pegawai sebagai <strong>Pelihat</strong>, dengan Akses umum <strong>Dibatasi</strong>.
+        </p>
       </ConfirmDialog>
 
       <style>{`.inp{width:100%;font-size:.8rem;padding:.5rem .65rem;border:1px solid var(--color-line);border-radius:var(--radius-control);background:var(--color-surface);color:var(--color-ink);outline:none}.inp:focus{border-color:var(--color-brand);box-shadow:0 0 0 2px var(--color-brand-tint)}`}</style>

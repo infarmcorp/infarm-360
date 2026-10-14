@@ -123,6 +123,12 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['employee_weight_overrides']['Insert']>;
         Relationships: [];
       };
+      employee_report_folders: {
+        Row: { employee_id: string; url: string; updated_by: string | null; updated_at: string };
+        Insert: { employee_id: string; url: string; updated_by?: string | null; updated_at?: string };
+        Update: Partial<Database['public']['Tables']['employee_report_folders']['Insert']>;
+        Relationships: [];
+      };
       result_360: {
         Row: { employee_id: string; period_id: string; score: number | null; score_raw: number | null; late_penalty: number; computed_at: string };
         Insert: { employee_id: string; period_id: string; score?: number | null; score_raw?: number | null; late_penalty?: number; computed_at?: string };

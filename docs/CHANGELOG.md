@@ -8,6 +8,18 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
+### 2026-10-14 (di `dev`, belum di production)
+- **"Unduh PDF" pegawai membuka folder Google Drive** (permintaan pengguna). PDF hasil cetak aplikasi kurang rapi
+  dibanding PDF yang disusun HRD. Kini HRD menyimpan tautan **satu folder Drive per pegawai** di Kelola Pegawai.
+  Folder itu dipakai terus untuk semua kuartal (isi mis. *Nama - Q3 2026*). Tombol **Unduh PDF** di Laporan Hasil
+  Saya membuka folder tersebut. Keputusan pengguna:
+  - satu folder per pegawai, bukan per periode, dan tautan diisi lewat Kelola Pegawai (bukan impor Excel);
+  - pegawai hanya bisa melihat dan mengunduh, diatur dengan berbagi **Pelihat** dan akses **Dibatasi** di Drive;
+  - bila tautan belum diisi, tombol menampilkan "PDF belum tersedia, hubungi HRD".
+  Tautan hanya dikirim ke pemiliknya, dan hanya bila ia sudah punya laporan Final. Tombol Unduh PDF di laporan
+  yang dibuka HRD/SPV/Direksi tetap mencetak dari aplikasi. Isi PDF di Drive tidak diperiksa aplikasi, jadi HRD
+  wajib memastikan tak ada nama penilai dan PDF diganti bila laporan dibuka kembali.
+
 ### 2026-10-13 (langsung ke production atas permintaan pengguna, lalu digabung ke `dev`)
 - **Impor Ringkasan dari Excel** di halaman Review & Finalisasi (permintaan pengguna). Ringkasan aspek dan
   ringkasan pertanyaan kualitatif banyak pegawai bisa diisi sekaligus dari Excel, tidak perlu diketik satu per

@@ -17,6 +17,8 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   - layar **Review Penilaian** sebelum mengirim penilaian (lihat §2);
   - **Mode Maintenance** (halaman "Sedang Maintenance" yang bisa dinyalakan tanpa deploy ulang);
   - filter **Divisi** di Monitoring & Audit KPI;
+  - **Unduh PDF pegawai membuka folder Google Drive** (tautan diisi HRD di Kelola Pegawai). Butuh perubahan
+    database baru (lihat §2) dan HRD perlu menyiapkan folder + berbagi per pegawai (SOP di PANDUAN §5.1);
   - penyeragaman tampilan (warna, huruf, tombol) di semua halaman;
   - perapian dokumentasi ini.
 - **Impor Ringkasan dari Excel** dan **format ringkasan** (tebal/poin) sudah **langsung di production**
@@ -45,6 +47,9 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   **Kirim Penilaian** → konfirmasi → sukses. Rata-rata skor tidak ditampilkan. Sisa: uji di staging dan HP
   (termasuk setelah deadline, saat tombolnya menjadi Lihat), lalu rilis ke production. Setelah rilis,
   tambahkan ke [PANDUAN.md](PANDUAN.md) §2.2.
+- 🔑⬜ **Folder Laporan (Drive).** Pasang perubahan database Folder Laporan di staging lalu production
+  **sebelum** merilis kodenya. Tanpa itu, menyimpan tautan menampilkan pesan "belum aktif", sedangkan pegawai
+  hanya melihat "PDF belum tersedia". HRD menyiapkan folder + berbagi per pegawai dan mengisi tautannya.
 - 🔑⬜ **Pastikan semua perubahan database Q3 2026 sudah terpasang di production** (dan staging). Kode di
   production sudah memakainya. Cara cek dan daftar perubahannya di [TEKNIS.md](TEKNIS.md) §1 dan §6.
 

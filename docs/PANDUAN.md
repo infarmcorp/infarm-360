@@ -175,7 +175,11 @@ menampilkan semua pengajuan (koreksi, hapus, tambah) beserta status dan alasan p
 ### 2.3 Laporan Hasil Saya
 Muncul **hanya setelah HRD memfinalisasi** laporan Anda. Sebelum itu tertulis "belum difinalisasi".
 1. Pilih laporan di baris **Pilih periode**. Laporan final periode lama tetap bisa dibuka.
-2. Klik **Unduh PDF** untuk menyimpan salinan.
+2. Klik **Unduh PDF**: folder Google Drive Anda terbuka di tab baru. Folder ini berisi laporan PDF semua kuartal
+   yang disiapkan HRD (mis. *Nama - Q3 2026*). Pilih laporan yang dibutuhkan, lalu unduh. Anda hanya bisa
+   melihat dan mengunduh, tidak bisa menghapus atau mengubah isinya.
+   - Buka dengan akun Google yang didaftarkan ke HRD. Bila muncul "Anda memerlukan akses", ganti ke akun itu.
+   - Bila muncul pesan **"PDF belum tersedia, hubungi HRD"**, folder Anda belum disiapkan HRD.
 3. Isi laporan:
    - **Ringkasan skor**: Rerata KPI · Evaluasi 360° · Skor Akhir. Angkanya adalah angka resmi saat finalisasi.
    - **Radar Aspek 360°**: garis hijau = penilaian rekan. Garis oranye putus-putus (penilaian diri) hanya ada
@@ -326,6 +330,22 @@ Mengelola akun dan data pegawai. Pemberian izin dan akses **tidak** di sini, tet
   dan pratinjau (✓ valid · ↷ dilewati karena duplikat · ✗ tidak valid + alasan). Duplikat dilewati, tidak
   ditimpa. Impor baris SPV/atasan lebih dulu agar kolom `atasan` langsung tertaut.
 - Email boleh sementara berupa alamat contoh, lalu diganti kapan saja lewat **Ubah**.
+- **Folder Laporan (Drive)** (ikon folder per baris; hijau = sudah diisi, pudar = belum): tautan folder Google
+  Drive pegawai, berisi PDF laporan semua kuartal. Tombol **Unduh PDF** di Laporan Hasil Saya pegawai membuka
+  folder ini. Tautan hanya terlihat oleh HRD dan pemiliknya, dan pemilik baru melihatnya setelah punya laporan
+  Final. Langkah menyiapkan folder → SOP "Menyiapkan Folder Laporan (Drive)" di bawah.
+
+**SOP — Menyiapkan Folder Laporan (Drive)** (sekali per pegawai):
+1. Kumpulkan **email Google** pegawai (mis. Gmail pribadi). Email kantor hanya bisa dipakai bila sudah
+   didaftarkan sebagai akun Google.
+2. Buat satu folder per pegawai (nama = nama pegawai) di dalam folder induk yang Akses umumnya **Dibatasi** dan
+   hanya bisa dibuka tim HRD. Folder pegawai mewarisi akses folder induknya.
+3. Klik kanan folder → **Bagikan** → ketik email Google pegawai → peran **Pelihat** → Akses umum **Dibatasi**
+   (bukan "Siapa saja yang memiliki link") → **Kirim**. Pegawai tidak perlu menyetujui apa pun.
+4. Salin tautan folder → **Kelola Pegawai → ikon folder** → tempel → **Simpan**.
+5. Tiap kuartal cukup taruh PDF baru (mis. *Nama - Q4 2026*) di folder yang sama, tanpa membagikan ulang.
+- Bila ada email **"Minta akses"** dari Google, setujui **hanya** bila emailnya milik pegawai pemilik folder.
+- PDF tidak boleh memuat nama penilai. Bila laporan dibuka kembali dan angkanya berubah, ganti juga PDF-nya.
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |
 |---|---|---|---|
@@ -334,6 +354,7 @@ Mengelola akun dan data pegawai. Pemberian izin dan akses **tidak** di sini, tet
 | **Ubah** → **Simpan Perubahan** | Ubah data | Per baris | — |
 | **Reset sandi** | Setel sandi baru | Per baris | Ya — "Reset sandi — {nama}" |
 | **Nonaktifkan** / **Aktifkan** | Kunci/buka akun | Per baris | — |
+| **Folder Laporan** (ikon folder) → **Simpan** / **Hapus Tautan** | Isi/ganti/hapus tautan folder Drive pegawai | Per baris | Dialog "Folder Laporan — {nama}" |
 | **Impor dari Excel** | Tambah banyak pegawai | Kanan atas | Pratinjau |
 | Cari + filter **Peran**, **Divisi**, **Status** | Saring tabel | Selalu | — |
 

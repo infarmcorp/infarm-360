@@ -220,6 +220,15 @@ export function withoutRaw(data: ReportData): ReportData {
 }
 
 /**
+ * Buang HANYA umpan balik BERNAMA per penilai (L3 `assessors`); komentar mentah anonim (byAspect/essays)
+ * tetap. Dipakai tampilan HRD di detail laporan: blok bernama tak pernah ditampilkan di sana, jadi tak
+ * boleh ikut terkirim ke browser (ReportDoc komponen klien).
+ */
+export function withoutNamedFeedback(data: ReportData): ReportData {
+  return { ...data, assessors: [] };
+}
+
+/**
  * Data laporan untuk pemegang grant "Review & Finalisasi" (non-HRD-penuh). L3 `assessors` (umpan
  * balik BERNAMA) SELALU dibuang di server — ReportDoc komponen klien, jadi menyembunyikan di layar
  * saja tetap mengirim nama penilai ke browser. Raw anonim (byAspect/essays) dipertahankan, kecuali

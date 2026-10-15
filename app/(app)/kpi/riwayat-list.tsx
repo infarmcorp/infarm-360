@@ -2,6 +2,7 @@
 
 import { fmt2 } from '@/lib/scoring';
 import { colPercents } from '@/lib/table-cols';
+import { StableHeight } from '@/components/table-controls';
 
 import { useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -56,12 +57,13 @@ export function RiwayatList({ entries, page, total, pageSize, query }: { entries
         </form>
       </div>
 
+      <StableHeight>
       {entries.length === 0 ? (
         <p className="text-sm text-ink-soft">{query ? 'Tidak ada jejak audit yang cocok dengan pencarian.' : 'Belum ada jejak audit KPI. Riwayat tercatat otomatis setiap input skor.'}</p>
       ) : (
         <div className="overflow-x-auto">
           {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}
-          <table className="w-full table-fixed text-left text-xs min-w-[730px]">
+          <table className="w-full table-fixed table-1line text-left text-xs min-w-[730px]">
             <colgroup>
               {colPercents([
                 200, // Pegawai + divisi
@@ -106,7 +108,7 @@ export function RiwayatList({ entries, page, total, pageSize, query }: { entries
       )}
 
       {(total > pageSize || page > 0) && (
-        <div className="flex items-center justify-between text-xs text-ink-soft">
+        <div className="mt-auto flex items-center justify-between text-xs text-ink-soft">
           <button type="button" disabled={page === 0} onClick={() => nav({ auditPage: String(page - 1) })}
             className="px-3 py-1.5 rounded-control border border-line disabled:opacity-40 hover:border-line-strong">← Sebelumnya</button>
           <span className="text-center">
@@ -117,6 +119,7 @@ export function RiwayatList({ entries, page, total, pageSize, query }: { entries
             className="px-3 py-1.5 rounded-control border border-line disabled:opacity-40 hover:border-line-strong">Berikutnya →</button>
         </div>
       )}
+      </StableHeight>
     </div>
   );
 }

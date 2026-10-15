@@ -5,7 +5,7 @@ import { colPercents } from '@/lib/table-cols';
 import { DeleteButton } from './delete-button';
 import type { PairStatus } from './actions';
 import { SearchableSelect } from '@/components/searchable-select';
-import { usePager, Pager } from '@/components/table-controls';
+import { usePager, StableHeight, Pager } from '@/components/table-controls';
 
 export type MapRow = {
   id: string; assessorId: string; assessor: string; targetId: string; target: string;
@@ -102,12 +102,13 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
         )}
       </div>
 
+      <StableHeight>
       {shown.length === 0 ? (
         <p className="text-sm text-ink-soft">Tidak ada pemetaan sesuai filter.</p>
       ) : (
         <div className="overflow-x-auto">
         {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
-        <table className="w-full table-fixed text-left text-sm min-w-[530px]">
+        <table className="w-full table-fixed table-1line text-left text-sm min-w-[530px]">
           <colgroup>
             {colPercents([
               18, // Penilai (%)
@@ -147,6 +148,7 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
         </div>
       )}
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pasangan" />
+      </StableHeight>
       <p className="text-[11px] text-ink-faint leading-relaxed">
         Relasi menentukan kelas bobot 360 (Atasan/Peer/Cross/Self). Sifat Wajib jadi dasar Flag Kepatuhan.
         Hapus hanya untuk status Belum Mulai &amp; Draft (alasan wajib). Penilaian Terkirim tidak dapat dihapus —

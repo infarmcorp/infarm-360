@@ -3,7 +3,7 @@
 import { fmt2 } from '@/lib/scoring';
 
 import { useMemo, useState } from 'react';
-import { usePager, Pager, CheckboxFilter } from '@/components/table-controls';
+import { usePager, Pager, CheckboxFilter, StableHeight } from '@/components/table-controls';
 import { PlanForm } from './plan-form';
 
 /**
@@ -68,6 +68,7 @@ export function SuksesiList({ rows }: { rows: SuksesiRow[] }) {
         <p className="text-[11px] text-ink-faint italic">{hiddenCount} pegawai lain disembunyikan — hilangkan centang <strong>“Fokus”</strong> untuk melihat semua.</p>
       )}
 
+      <StableHeight>
       {filtered.length === 0 ? (
         <p className="text-sm text-ink-soft">Tidak ada pegawai sesuai filter.</p>
       ) : (
@@ -99,6 +100,7 @@ export function SuksesiList({ rows }: { rows: SuksesiRow[] }) {
         </div>
       )}
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
+      </StableHeight>
     </div>
   );
 }

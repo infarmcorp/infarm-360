@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { colPercents } from '@/lib/table-cols';
 import { LateWaiver } from './late-waiver';
-import { usePager, Pager, CheckboxFilter, MultiCheckFilter } from '@/components/table-controls';
+import { usePager, StableHeight, Pager, CheckboxFilter, MultiCheckFilter } from '@/components/table-controls';
 
 export type KepatuhanRow = {
   id: string; name: string; dept: string;
@@ -64,9 +64,10 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
         </div>
       ) : (
         <>
+          <StableHeight>
           <div className="overflow-x-auto">
             {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}
-            <table className="w-full table-fixed text-left text-sm min-w-[580px]">
+            <table className="w-full table-fixed table-1line text-left text-sm min-w-[580px]">
               <colgroup>
                 {colPercents([
                   220, // Pegawai + divisi
@@ -120,6 +121,7 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
             </table>
           </div>
           <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
+          </StableHeight>
           {!showAll && hiddenCount > 0 && (
             <p className="text-[11px] text-ink-faint italic">
               {hiddenCount} pegawai patuh disembunyikan — centang &quot;Tampilkan semua pegawai&quot; untuk melihat.

@@ -3,6 +3,7 @@
 import { fmt2 } from '@/lib/scoring';
 
 import { useMemo, useState } from 'react';
+import { StableHeight } from '@/components/table-controls';
 import { heatColor, HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
 import { displayName } from '@/lib/employee-name';
 
@@ -76,8 +77,9 @@ export function PerEmployeeHeatmap({
         </div>
       </div>
       {subtitle && <p className="text-xs text-gray-500 mb-4">{subtitle}</p>}
+      <StableHeight className="">
       <div className="overflow-x-auto">
-        <table className="table-fixed border-separate border-spacing-1 text-xs"
+        <table className="table-fixed table-1line border-separate border-spacing-1 text-xs"
           style={{ width: NAME_W + columns.length * CELL_W + WEAK_W + STRONG_W + (columns.length + 4) * SPACING }}>
           <colgroup>
             <col style={{ width: NAME_W }} />{/* Pegawai */}
@@ -141,7 +143,7 @@ export function PerEmployeeHeatmap({
           </tbody>
         </table>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 mt-3">
+      <div className="mt-auto pt-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-[10px] text-gray-500 italic">
           Sel = skor 360° pegawai pada aspek/indikator itu (rendah → tinggi mengikuti gradien). Kolom <span className="text-rose-600 font-semibold not-italic">Terlemah</span> / <span className="text-emerald-700 font-semibold not-italic">Terkuat</span> menyebut yang terendah &amp; tertinggi tiap orang. &ldquo;—&rdquo; = tanpa data.
         </p>
@@ -155,6 +157,7 @@ export function PerEmployeeHeatmap({
           </div>
         )}
       </div>
+      </StableHeight>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { colPercents } from '@/lib/table-cols';
 import Link from 'next/link';
 import type { ReportStatus } from '@/lib/database.types';
 import { hasScoreDrift, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
-import { usePager, Pager, MultiCheckFilter, CheckboxFilter } from '@/components/table-controls';
+import { usePager, StableHeight, Pager, MultiCheckFilter, CheckboxFilter } from '@/components/table-controls';
 
 export type ReportRow = {
   id: string; name: string; dept: string;
@@ -112,9 +112,10 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
         <p className="text-[11px] text-ink-faint italic">{rows.length - sum.actionable} laporan selesai (Final) disembunyikan — hilangkan centang <strong>“Hanya perlu tindakan”</strong> untuk melihat semua.</p>
       )}
 
+      <StableHeight>
       <div className="overflow-x-auto">
         {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
-        <table className={`w-full table-fixed text-left text-sm ${has360 ? 'min-w-[800px]' : 'min-w-[670px]'}`}>
+        <table className={`w-full table-fixed table-1line text-left text-sm ${has360 ? 'min-w-[800px]' : 'min-w-[670px]'}`}>
           <colgroup>
             {colPercents([
               170, // Pegawai
@@ -261,6 +262,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
         </table>
       </div>
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
+      </StableHeight>
     </div>
   );
 }

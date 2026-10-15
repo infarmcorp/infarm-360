@@ -1,5 +1,7 @@
-@import "tailwindcss";
+/* Font eksternal WAJIB paling atas: @import "tailwindcss" dikembangkan jadi ratusan aturan, sehingga
+   @import font di bawahnya melanggar aturan CSS (build: peringatan; `next dev` Turbopack: error). */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap');
+@import "tailwindcss";
 
 /*
  * DESIGN TOKENS (redesign 2026-08) — sumber tunggal warna/radius/font. Komponen memakai utilitas

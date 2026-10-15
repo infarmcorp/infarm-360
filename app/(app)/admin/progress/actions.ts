@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
+import { appBaseUrl } from '@/lib/app-url';
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
@@ -9,25 +9,6 @@ import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { randomBytes } from 'crypto';
 import { emailConfigured, sendEmail, reminderHtml, onboardingHtml, panduanAttachment, type EmailAttachment } from '@/lib/email/mailer';
-
-/**
- * URL dasar aplikasi untuk tautan di email — selalu domain PRODUKSI yang stabil,
- * BUKAN host tempat HRD membuka portal (mis. preview deploy/localhost). Prioritas:
- *   1) env eksplisit NEXT_PUBLIC_APP_URL / NEXT_PUBLIC_SITE_URL (override penuh),
- *   2) VERCEL_PROJECT_PRODUCTION_URL (domain produksi kanonik yang diisi Vercel),
- *   3) fallback host permintaan (hanya untuk dev lokal).
- * Mengembalikan '' bila tak terdeteksi (tombol disembunyikan).
- */
-async function appBaseUrl(): Promise<string> {
-  const env = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL;
-  if (env && /^https?:\/\//i.test(env)) return env.replace(/\/+$/, '');
-  const prod = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  if (prod) return `https://${prod.replace(/\/+$/, '')}`;
-  const h = await headers();
-  const host = h.get('x-forwarded-host') ?? h.get('host');
-  const proto = h.get('x-forwarded-proto') ?? 'https';
-  return host ? `${proto}://${host}` : '';
-}
 
 /**
  * Cek PDF panduan benar-benar ada di URL publik sebelum dilampirkan — cegah file

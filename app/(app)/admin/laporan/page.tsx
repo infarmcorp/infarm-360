@@ -9,8 +9,8 @@ import { ReportTable, type ReportRow } from './report-table';
 import { Recompute360Button } from './recompute-360-button';
 import { ResyncDriftButton } from './resync-drift-button';
 import { BulkFinalizeButton } from './bulk-finalize-button';
-import { ReleaseEmailButton, type ReleaseRecipient } from './release-email-button';
-import { loadReleasePeriod, defaultCycle, loadReleaseSentIds } from '@/lib/report-release';
+import { ReleaseEmailButton, type ReleaseProps } from './release-email-button';
+import { loadReleasePeriod, defaultCycle, loadReleaseSentIds, loadReleaseImages } from '@/lib/report-release';
 import { appBaseUrl } from '@/lib/app-url';
 import { ImportSummaries, type ImportSummaryEmp } from './import-summaries';
 import { Panel } from '@/components/panel';
@@ -227,17 +227,18 @@ export default async function AdminLaporanPage() {
 
   // Email Rilis Laporan (HRD penuh): penerima = pegawai ber-laporan Final; Folder Laporan & status
   // "sudah dikirimi" ditampilkan di dialog. Server menegakkan ulang semua syarat saat mengirim.
-  let release: { period: NonNullable<Awaited<ReturnType<typeof loadReleasePeriod>>>; cycle: string; recipients: ReleaseRecipient[]; appUrl: string } | null = null;
+  let release: ReleaseProps | null = null;
   if (isHrdFull) {
     const finalRows = shownRows.filter((r) => r.status === 'finalized');
-    const [relPeriod, cycle, sentIds, { data: folders }, base] = await Promise.all([
+    const [relPeriod, cycle, sentIds, { data: folders }, base, imgs] = await Promise.all([
       loadReleasePeriod(cfg, ap.id), defaultCycle(cfg, ap.id), loadReleaseSentIds(cfg, ap.id),
-      cfg.from('employee_report_folders').select('employee_id, url'), appBaseUrl(),
+      cfg.from('employee_report_folders').select('employee_id, url'), appBaseUrl(), loadReleaseImages(cfg, ap.id),
     ]);
     const folderSet = new Set((folders ?? []).filter((f) => f.url).map((f) => f.employee_id));
     if (relPeriod) release = {
-      period: relPeriod, cycle, appUrl: base ? `${base}/laporan` : '',
+      period: relPeriod, defaultCycle: cycle, appUrl: base ? `${base}/laporan` : '',
       recipients: finalRows.map((r) => ({ id: r.id, name: r.name, dept: r.dept, hasFolder: folderSet.has(r.id), sent: sentIds.has(r.id) })),
+      images: Object.fromEntries(Object.entries(imgs.images).map(([k, v]) => [k, v.url])), storageOk: imgs.ok,
     };
   }
 
@@ -333,7 +334,7 @@ export default async function AdminLaporanPage() {
         {/* Baris sekunder: finalisasi massal ber-ACC + pintasan Bobot/Flag. */}
         <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-line">
           <BulkFinalizeButton count={accReadyCount} staleCount={accStaleCount} />
-          {release && <ReleaseEmailButton period={release.period} defaultCycle={release.cycle} recipients={release.recipients} appUrl={release.appUrl} />}
+          {release && <ReleaseEmailButton release={release} />}
           <div className="flex items-center gap-2 ml-auto">
             <Link href="/admin/bobot" className="text-[11px] font-semibold px-3 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">⚖ Atur Bobot</Link>
             <Link href="/admin/kepatuhan" className="text-[11px] font-semibold px-3 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">⚑ Flag Kepatuhan</Link>
@@ -348,7 +349,7 @@ export default async function AdminLaporanPage() {
         </div>
       )}
 
-      <Panel><ReportTable rows={shownRows} depts={depts} has360={ap.has_360} readOnly={readOnly} /></Panel>
+      <Panel><ReportTable rows={shownRows} depts={depts} has360={ap.has_360} readOnly={readOnly} release={release ?? undefined} /></Panel>
       {isHrdFull ? (
         <p className="text-[11px] text-ink-faint mt-4 leading-relaxed">
           Klik <strong>Tinjau</strong> untuk membuka & mengelola laporan pegawai (Simpan Draf → Rilis ke SPV →

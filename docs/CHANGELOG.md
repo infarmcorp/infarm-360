@@ -8,6 +8,21 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
+### 2026-10-15 — Email Rilis Laporan
+- **Email Rilis Laporan dari Review & Finalisasi** (permintaan pengguna). HRD bisa mengabarkan pegawai bahwa PDF
+  laporannya sudah bisa diunduh di Laporan Hasil Saya, **massal** (tombol di kokpit) atau **per pegawai** (ikon ✉
+  di baris tabel). Isi email mengikuti dokumen HRD "Komunikasi Rilis Laporan PA Q3 2026", dibuat berlaku untuk
+  periode mana pun. Keputusan pengguna:
+  - email mengarahkan ke **portal** (bukan tautan Drive langsung), jadi "kami sampaikan melalui email ini"
+    diganti "dapat Anda unduh melalui portal";
+  - bagian yang berubah tiap kuartal (urutan siklus, Tahapan Selanjutnya) **diisi HRD saat kirim**; periode,
+    bulan, aspek budaya, dan kategori skor otomatis dari data;
+  - dua gambar (panduan setelah menerima laporan, cara mengunduh PDF) disisipkan **setelah isi email**, dengan
+    kalimat cara mengunduh di antaranya. Gambar diunggah HRD per periode karena isinya bertuliskan kuartal.
+  Hanya pegawai yang laporannya Final dan Folder Laporannya terisi yang dikirimi. Ada tombol kirim uji ke email
+  sendiri, dan tiap pengiriman tercatat agar tidak terkirim dua kali tanpa sengaja. Butuh perubahan database
+  0051 untuk gambar; tanpa itu email tetap terkirim tanpa gambar.
+
 ### 2026-10-14 (di `dev`, belum di production)
 - **"Unduh PDF" pegawai membuka folder Google Drive** (permintaan pengguna). PDF hasil cetak aplikasi kurang rapi
   dibanding PDF yang disusun HRD. Kini HRD menyimpan tautan **satu folder Drive per pegawai** di Kelola Pegawai.

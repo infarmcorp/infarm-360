@@ -9,6 +9,9 @@ import { ReportTable, type ReportRow } from './report-table';
 import { Recompute360Button } from './recompute-360-button';
 import { ResyncDriftButton } from './resync-drift-button';
 import { BulkFinalizeButton } from './bulk-finalize-button';
+import { ReleaseEmailButton, type ReleaseRecipient } from './release-email-button';
+import { loadReleasePeriod, defaultCycle, loadReleaseSentIds } from '@/lib/report-release';
+import { appBaseUrl } from '@/lib/app-url';
 import { ImportSummaries, type ImportSummaryEmp } from './import-summaries';
 import { Panel } from '@/components/panel';
 import { loadPendingLatePenalties, refreshLatePenalties } from '@/lib/late-server';
@@ -222,6 +225,22 @@ export default async function AdminLaporanPage() {
   // halaman Flag Kepatuhan. Diperingatkan di sini agar tak terlanjur difinalisasi tanpa potongan.
   const pendingLate = isHrdFull && ap.has_360 ? (await loadPendingLatePenalties(ap.id)).length : 0;
 
+  // Email Rilis Laporan (HRD penuh): penerima = pegawai ber-laporan Final; Folder Laporan & status
+  // "sudah dikirimi" ditampilkan di dialog. Server menegakkan ulang semua syarat saat mengirim.
+  let release: { period: NonNullable<Awaited<ReturnType<typeof loadReleasePeriod>>>; cycle: string; recipients: ReleaseRecipient[]; appUrl: string } | null = null;
+  if (isHrdFull) {
+    const finalRows = shownRows.filter((r) => r.status === 'finalized');
+    const [relPeriod, cycle, sentIds, { data: folders }, base] = await Promise.all([
+      loadReleasePeriod(cfg, ap.id), defaultCycle(cfg, ap.id), loadReleaseSentIds(cfg, ap.id),
+      cfg.from('employee_report_folders').select('employee_id, url'), appBaseUrl(),
+    ]);
+    const folderSet = new Set((folders ?? []).filter((f) => f.url).map((f) => f.employee_id));
+    if (relPeriod) release = {
+      period: relPeriod, cycle, appUrl: base ? `${base}/laporan` : '',
+      recipients: finalRows.map((r) => ({ id: r.id, name: r.name, dept: r.dept, hasFolder: folderSet.has(r.id), sent: sentIds.has(r.id) })),
+    };
+  }
+
   // Impor Ringkasan dari Excel: HRD penuh atau grant boleh-meringkas, hanya saat 360° aktif. Daftar
   // pegawai = yang dalam lingkup (server menegakkan ulang lingkup & kunci Final).
   const canImport = ap.has_360 && (isHrdFull || grantCanEdit);
@@ -314,6 +333,7 @@ export default async function AdminLaporanPage() {
         {/* Baris sekunder: finalisasi massal ber-ACC + pintasan Bobot/Flag. */}
         <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-line">
           <BulkFinalizeButton count={accReadyCount} staleCount={accStaleCount} />
+          {release && <ReleaseEmailButton period={release.period} defaultCycle={release.cycle} recipients={release.recipients} appUrl={release.appUrl} />}
           <div className="flex items-center gap-2 ml-auto">
             <Link href="/admin/bobot" className="text-[11px] font-semibold px-3 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">⚖ Atur Bobot</Link>
             <Link href="/admin/kepatuhan" className="text-[11px] font-semibold px-3 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">⚑ Flag Kepatuhan</Link>

@@ -6,7 +6,7 @@ import { UserPlus, Pencil, KeyRound, Power, X, FolderOpen } from 'lucide-react';
 import { createEmployee, updateEmployee, setEmployeeActive, resetPassword, setReportFolder } from './actions';
 import { isDriveUrl } from '@/lib/report-folder';
 import { ConfirmDialog } from '@/components/confirm-dialog';
-import { usePager, Pager } from '@/components/table-controls';
+import { usePager, StableHeight, Pager } from '@/components/table-controls';
 import { Panel } from '@/components/panel';
 import { Button } from '@/components/button';
 import { DatePicker } from '@/components/date-picker';
@@ -299,9 +299,10 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
 
       {/* Tabel */}
       <Panel padded={false} className="p-4">
+      <StableHeight>
       <div className="overflow-x-auto">
         {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
-        <table className="w-full table-fixed text-left text-sm min-w-[780px]">
+        <table className="w-full table-fixed table-1line text-left text-sm min-w-[780px]">
           <colgroup>
             {colPercents([
               190, // Pegawai (+ kode · email)
@@ -368,6 +369,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
         </table>
       </div>
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
+      </StableHeight>
       </Panel>
 
       <p className="text-[11px] text-ink-faint italic">

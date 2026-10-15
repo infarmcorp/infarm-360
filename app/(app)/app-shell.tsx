@@ -381,7 +381,9 @@ export function AppShell({
           <BrandLogo className="w-8 h-8 shrink-0" />
           <span className="text-sm font-extrabold text-ink">Infarm 360°</span>
         </header>
-        <div className="flex-1 overflow-y-auto">{children}</div>
+        {/* scrollbar-gutter: tempat scrollbar selalu disediakan → lebar konten (dan kolom tabel ber-persen)
+            tak berubah saat halaman/tab berganti antara pendek (tanpa scrollbar) dan panjang. */}
+        <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">{children}</div>
       </div>
     </div>
   );

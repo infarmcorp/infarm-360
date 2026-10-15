@@ -26,16 +26,18 @@ export type ReleaseProps = {
 const BATCH = 20; // selaras MAX_BATCH di server
 const MAX_STEPS = 8;
 
-/** Tombol massal di kokpit Review & Finalisasi. Tersembunyi bila belum ada laporan Final. */
-export function ReleaseEmailButton({ release }: { release: ReleaseProps }) {
+/**
+ * Tombol massal — langkah ③ kokpit Review & Finalisasi. Hijau bila `primary` (langkah yang sedang perlu
+ * dikerjakan); nonaktif bila belum ada laporan Final. Ringkasan jumlah ditampilkan oleh kartu langkahnya.
+ */
+export function ReleaseEmailButton({ release, primary }: { release: ReleaseProps; primary: boolean }) {
   const [open, setOpen] = useState(false);
-  if (release.recipients.length === 0) return null;
-  const unsent = release.recipients.filter((r) => r.hasFolder && !r.sent).length;
+  const none = release.recipients.length === 0;
   return (
     <>
-      <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(true)}>
-        <Mail className="w-3.5 h-3.5" /> Email Rilis Laporan
-        <span className="data-value text-ink-faint">({unsent} belum)</span>
+      <Button type="button" variant={primary && !none ? 'primary' : 'ghost'} size="sm" onClick={() => setOpen(true)}
+        disabled={none} title={none ? 'Belum ada laporan Final' : undefined}>
+        <Mail className="w-3.5 h-3.5" /> Kirim Email Rilis
       </Button>
       {open && <ReleaseEmailDialog release={release} onClose={() => setOpen(false)} />}
     </>

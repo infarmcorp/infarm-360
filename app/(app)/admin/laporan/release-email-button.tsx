@@ -1,73 +1,85 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Plus, X } from 'lucide-react';
+import { ImageUp, Mail, Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/button';
 import {
   defaultSteps, releaseEmailHtml, releaseSubject,
-  type ReleaseContent, type ReleasePeriod, type ReleaseStep,
+  type ReleaseContent, type ReleaseImageSrc, type ReleasePeriod, type ReleaseStep,
 } from '@/lib/email/release-template';
-import { sendReleaseEmails, sendReleaseEmailTest } from './release-email-actions';
+import { RELEASE_IMAGES, type ReleaseImageKey } from '@/lib/report-release';
+import { sendReleaseEmails, sendReleaseEmailTest, uploadReleaseImage, removeReleaseImage } from './release-email-actions';
 
 export type ReleaseRecipient = { id: string; name: string; dept: string; hasFolder: boolean; sent: boolean };
+
+/** Data email rilis dari server (Review & Finalisasi, HRD Mode Admin). */
+export type ReleaseProps = {
+  period: ReleasePeriod & { id: string };
+  defaultCycle: string;
+  recipients: ReleaseRecipient[];          // pegawai ber-laporan Final periode ini
+  appUrl: string;                          // tautan tombol "Buka Laporan Saya" (sama dengan server)
+  images: Partial<Record<ReleaseImageKey, string>>; // URL publik gambar pendamping yang sudah diunggah
+  storageOk: boolean;                      // false = bucket gambar belum ada (migrasi 0051)
+};
 
 const BATCH = 20; // selaras MAX_BATCH di server
 const MAX_STEPS = 8;
 
+/** Tombol massal di kokpit Review & Finalisasi. Tersembunyi bila belum ada laporan Final. */
+export function ReleaseEmailButton({ release }: { release: ReleaseProps }) {
+  const [open, setOpen] = useState(false);
+  if (release.recipients.length === 0) return null;
+  const unsent = release.recipients.filter((r) => r.hasFolder && !r.sent).length;
+  return (
+    <>
+      <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(true)}>
+        <Mail className="w-3.5 h-3.5" /> Email Rilis Laporan
+        <span className="data-value text-ink-faint">({unsent} belum)</span>
+      </Button>
+      {open && <ReleaseEmailDialog release={release} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
 /**
- * Tombol + dialog "Email Rilis Laporan" (Review & Finalisasi, HRD Mode Admin). HRD mengisi bagian
- * yang berubah tiap kuartal (urutan siklus, potongan keterlambatan, Tahapan Selanjutnya), melihat
- * pratinjau, mengirim uji ke email sendiri, lalu mengirim ke pegawai ber-laporan Final yang Folder
- * Laporannya sudah diisi. Pengiriman per gelombang (BATCH) agar progres terlihat & tak kena batas waktu.
- * Isian disimpan di browser per periode (kenyamanan saja; server tak bergantung padanya).
+ * Dialog Email Rilis Laporan — massal (tanpa `onlyId`) atau satu pegawai (`onlyId`, dari tabel).
+ * HRD mengisi bagian yang berubah tiap kuartal (urutan siklus, potongan keterlambatan, Tahapan
+ * Selanjutnya), mengelola gambar pendamping periode, melihat pratinjau, mengirim uji ke email
+ * sendiri, lalu mengirim. Massal dikirim per gelombang (BATCH) agar progres terlihat & tak kena
+ * batas waktu. Isian disimpan di browser per periode (kenyamanan saja; server tak bergantung padanya).
  */
-export function ReleaseEmailButton({ period, defaultCycle, recipients, appUrl }: {
-  period: ReleasePeriod & { id: string };
-  defaultCycle: string;
-  appUrl: string; // tautan tombol "Buka Laporan Saya" (sama dengan yang dikirim server)
-  recipients: ReleaseRecipient[]; // pegawai ber-laporan Final periode ini
-}) {
+export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: ReleaseProps; onlyId?: string; onClose: () => void }) {
+  const { period, recipients, appUrl, images, storageOk } = release;
   const router = useRouter();
   const storeKey = `release-email:${period.id}`;
-  const [open, setOpen] = useState(false);
-  const [content, setContent] = useState<ReleaseContent>(() => ({
-    cycle: defaultCycle, includeLate: period.has360, steps: defaultSteps(tomorrow(), period.label),
-  }));
+  const [content, setContent] = useState<ReleaseContent>(() => initialContent(storeKey, release));
   const [onlyUnsent, setOnlyUnsent] = useState(true);
   const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState<null | 'test' | 'send'>(null);
+  const [busy, setBusy] = useState<null | 'test' | 'send' | 'image'>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string; details?: string[] } | null>(null);
 
-  // Buka dialog + pulihkan isian terakhir periode ini (bila ada).
-  function openDialog() {
-    try {
-      const raw = localStorage.getItem(storeKey);
-      if (raw) {
-        const v = JSON.parse(raw) as ReleaseContent;
-        if (Array.isArray(v.steps) && typeof v.cycle === 'string') setContent({ ...v, includeLate: !!v.includeLate });
-      }
-    } catch { /* penyimpanan browser tak tersedia → pakai isian bawaan */ }
-    setMsg(null); setOpen(true);
-  }
   useEffect(() => {
-    if (!open) return;
     try { localStorage.setItem(storeKey, JSON.stringify(content)); } catch { /* abaikan */ }
-  }, [open, storeKey, content]);
+  }, [storeKey, content]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !busy) onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [busy, onClose]);
 
+  const single = onlyId ? recipients.find((r) => r.id === onlyId) ?? null : null;
   const ready = recipients.filter((r) => r.hasFolder);
   const noFolder = recipients.filter((r) => !r.hasFolder);
   const unsent = ready.filter((r) => !r.sent);
-  const targets = onlyUnsent ? unsent : ready;
-  const sample = targets[0]?.name ?? ready[0]?.name ?? '[Nama Pegawai]';
+  const targets = onlyId ? (single?.hasFolder ? [single] : []) : onlyUnsent ? unsent : ready;
+  const sample = single?.name ?? targets[0]?.name ?? ready[0]?.name ?? '[Nama Pegawai]';
 
   const previewHtml = useMemo(
-    () => releaseEmailHtml({ name: sample, period, content, appUrl }),
-    [sample, period, content, appUrl],
+    () => releaseEmailHtml({ name: sample, period, content, appUrl, images: images as ReleaseImageSrc }),
+    [sample, period, content, appUrl, images],
   );
-
-  if (recipients.length === 0) return null; // belum ada laporan Final → tak ada yang dikabari
 
   const setStep = (i: number, patch: Partial<ReleaseStep>) =>
     setContent((c) => ({ ...c, steps: c.steps.map((s, j) => (j === i ? { ...s, ...patch } : s)) }));
@@ -98,37 +110,60 @@ export function ReleaseEmailButton({ period, defaultCycle, recipients, appUrl }:
     router.refresh();
   }
 
+  async function upload(key: ReleaseImageKey, file: File) {
+    setBusy('image'); setMsg(null);
+    const fd = new FormData();
+    fd.set('periodId', period.id); fd.set('key', key); fd.set('file', file);
+    const res = await uploadReleaseImage(fd);
+    setBusy(null);
+    setMsg(res.ok ? { ok: true, text: res.msg } : { ok: false, text: res.error });
+    if (res.ok) router.refresh();
+  }
+
+  async function removeImage(key: ReleaseImageKey) {
+    setBusy('image'); setMsg(null);
+    const res = await removeReleaseImage({ periodId: period.id, key });
+    setBusy(null);
+    setMsg(res.ok ? { ok: true, text: res.msg } : { ok: false, text: res.error });
+    if (res.ok) router.refresh();
+  }
+
   const inputCls = 'w-full rounded-control border border-line bg-surface px-2.5 py-1.5 text-[12.5px] text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-tint';
+  const labelCls = 'text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-faint';
 
   return (
-    <>
-      <Button type="button" variant="ghost" size="sm" onClick={openDialog}>
-        <Mail className="w-3.5 h-3.5" /> Email Rilis Laporan
-        <span className="data-value text-ink-faint">({unsent.length} belum)</span>
-      </Button>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4"
+      onClick={() => { if (!busy) onClose(); }}>
+      <div className="my-6 w-full max-w-5xl rounded-panel border border-line bg-surface p-5 text-left shadow-[0_8px_32px_rgba(0,0,0,0.18)]"
+        onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-[17px] font-bold text-ink">
+              Email Rilis Laporan — <span className="data-value">{period.label}</span>
+              {single && <span className="text-ink-soft font-semibold"> · {single.name}</span>}
+            </h2>
+            <p className="mt-0.5 text-[12.5px] text-ink-soft">
+              Mengabarkan pegawai bahwa PDF laporannya sudah bisa diunduh di <strong>Laporan Hasil Saya</strong>.
+              Email tidak memuat skor atau isi laporan.
+            </p>
+          </div>
+          <button type="button" onClick={onClose} disabled={!!busy} className="text-ink-faint hover:text-ink disabled:opacity-40">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4"
-          onClick={() => { if (!busy) setOpen(false); }}>
-          <div className="my-6 w-full max-w-5xl rounded-panel border border-line bg-surface p-5 shadow-[0_8px_32px_rgba(0,0,0,0.18)]"
-            onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-[17px] font-bold text-ink">Email Rilis Laporan — <span className="data-value">{period.label}</span></h2>
-                <p className="mt-0.5 text-[12.5px] text-ink-soft">
-                  Mengabarkan pegawai bahwa PDF laporannya sudah bisa diunduh di <strong>Laporan Hasil Saya</strong>.
-                  Email tidak memuat skor atau isi laporan.
-                </p>
-              </div>
-              <button type="button" onClick={() => setOpen(false)} disabled={!!busy} className="text-ink-faint hover:text-ink disabled:opacity-40">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-              {/* Kiri: penerima & isian kuartal */}
-              <div className="space-y-4">
-                <section className="rounded-panel border border-line bg-neutral-tint p-3 text-[12.5px] text-ink-soft space-y-1.5">
+        <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+          {/* Kiri: penerima, gambar, isian kuartal */}
+          <div className="space-y-4">
+            <section className="rounded-panel border border-line bg-neutral-tint p-3 text-[12.5px] text-ink-soft space-y-1.5">
+              {single ? (
+                <>
+                  <p>Penerima: <strong className="text-ink">{single.name}</strong> · {single.dept}</p>
+                  {!single.hasFolder && <p className="font-semibold text-danger-ink">Folder Laporan pegawai ini belum diisi — isi dulu di Kelola Pegawai.</p>}
+                  {single.hasFolder && single.sent && <p className="font-semibold text-warn-ink">Pegawai ini sudah pernah dikirimi email rilis periode ini — mengirim lagi = kirim ulang.</p>}
+                </>
+              ) : (
+                <>
                   <p>
                     <span className="data-value font-semibold text-ink">{recipients.length}</span> laporan Final ·{' '}
                     <span className="data-value font-semibold text-ink">{ready.length}</span> Folder PDF terisi ·{' '}
@@ -150,102 +185,161 @@ export function ReleaseEmailButton({ period, defaultCycle, recipients, appUrl }:
                       <p className="mt-1 text-ink-soft">{noFolder.map((r) => r.name).join(', ')}. Isi tautannya di Kelola Pegawai.</p>
                     </details>
                   )}
-                </section>
+                </>
+              )}
+            </section>
 
-                <label className="block">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-faint">Urutan siklus</span>
-                  <input value={content.cycle} onChange={(e) => setContent((c) => ({ ...c, cycle: e.target.value }))}
-                    maxLength={40} placeholder="mis. ketiga — kosongkan untuk menghilangkan kalimat" className={`${inputCls} mt-1`} />
-                </label>
-
-                {period.has360 && (
-                  <label className="flex items-start gap-2 text-[12.5px] text-ink-soft cursor-pointer">
-                    <input type="checkbox" checked={content.includeLate}
-                      onChange={(e) => setContent((c) => ({ ...c, includeLate: e.target.checked }))} className="mt-0.5 accent-brand" />
-                    Sertakan paragraf potongan keterlambatan pengisian 360° pada periode ini
-                  </label>
-                )}
-
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-faint">Tahapan Selanjutnya</span>
-                    <button type="button" onClick={() => setContent((c) => ({ ...c, steps: defaultSteps(tomorrow(), period.label) }))}
-                      className="text-[11px] font-semibold text-brand-ink hover:underline">Isi ulang bawaan</button>
-                  </div>
-                  <div className="mt-1.5 space-y-2">
-                    {content.steps.map((s, i) => (
-                      <div key={i} className="flex gap-2">
-                        <span className="data-value pt-1.5 text-[12px] text-ink-faint">{i + 1}.</span>
-                        <div className="flex-1 space-y-1">
-                          <input value={s.when} onChange={(e) => setStep(i, { when: e.target.value })} maxLength={80}
-                            placeholder="Tanggal, mis. 16–20 Oktober 2026" className={`${inputCls} font-semibold`} />
-                          <textarea value={s.text} onChange={(e) => setStep(i, { text: e.target.value })} maxLength={600} rows={2}
-                            placeholder="Kegiatan" className={inputCls} />
-                        </div>
-                        <button type="button" title="Hapus tahap" onClick={() => setContent((c) => ({ ...c, steps: c.steps.filter((_, j) => j !== i) }))}
-                          className="self-start pt-1.5 text-ink-faint hover:text-danger-ink"><X className="w-4 h-4" /></button>
-                      </div>
-                    ))}
-                  </div>
-                  {content.steps.length < MAX_STEPS && (
-                    <button type="button" onClick={() => setContent((c) => ({ ...c, steps: [...c.steps, { when: '', text: '' }] }))}
-                      className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-brand-ink hover:underline">
-                      <Plus className="w-3.5 h-3.5" /> Tambah tahap
-                    </button>
-                  )}
+            <section>
+              <span className={labelCls}>Gambar pendamping periode ini</span>
+              {!storageOk ? (
+                <p className="mt-1 text-[12px] text-warn-ink">Penyimpanan gambar belum aktif (perubahan database 0051 belum dijalankan). Email tetap bisa dikirim tanpa gambar.</p>
+              ) : (
+                <div className="mt-1.5 grid grid-cols-2 gap-2">
+                  {RELEASE_IMAGES.map((def) => (
+                    <ImageSlot key={def.key} label={def.label} url={images[def.key]} disabled={!!busy}
+                      onPick={(f) => upload(def.key, f)} onRemove={() => removeImage(def.key)} />
+                  ))}
                 </div>
-              </div>
+              )}
+              <p className="mt-1 text-[11px] text-ink-faint">JPG/PNG/WebP, maks. 2 MB. Gambar hanya berlaku untuk periode {period.label} — ganti tiap periode.</p>
+            </section>
 
-              {/* Kanan: pratinjau */}
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-faint">Pratinjau</p>
-                <p className="mt-1 text-[12px] text-ink-soft">
-                  Subjek: <span className="font-semibold text-ink">{releaseSubject(period.label, sample)}</span>
-                </p>
-                <iframe title="Pratinjau email" srcDoc={previewHtml} sandbox=""
-                  className="mt-2 h-[560px] w-full rounded-control border border-line bg-white" />
-              </div>
-            </div>
+            <label className="block">
+              <span className={labelCls}>Urutan siklus</span>
+              <input value={content.cycle} onChange={(e) => setContent((c) => ({ ...c, cycle: e.target.value }))}
+                maxLength={40} placeholder="mis. ketiga — kosongkan untuk menghilangkan kalimat" className={`${inputCls} mt-1`} />
+            </label>
 
-            {msg && (
-              <div className={`mt-4 rounded-control border px-3 py-2 text-[12.5px] ${msg.ok ? 'border-brand/25 bg-brand-tint text-brand-ink' : 'border-danger-ink/25 bg-danger-tint text-danger-ink'}`}>
-                <p className="font-semibold">{msg.text}</p>
-                {msg.details && msg.details.length > 0 && (
-                  <ul className="mt-1 list-disc pl-5 text-ink-soft">{msg.details.map((d, i) => <li key={i}>{d}</li>)}</ul>
-                )}
-              </div>
+            {period.has360 && (
+              <label className="flex items-start gap-2 text-[12.5px] text-ink-soft cursor-pointer">
+                <input type="checkbox" checked={content.includeLate}
+                  onChange={(e) => setContent((c) => ({ ...c, includeLate: e.target.checked }))} className="mt-0.5 accent-brand" />
+                Sertakan paragraf potongan keterlambatan pengisian 360° pada periode ini
+              </label>
             )}
 
-            <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
-              {progress && (
-                <span className="mr-auto text-[12px] text-ink-soft">
-                  Mengirim… <span className="data-value">{progress.done}/{progress.total}</span>
-                </span>
-              )}
-              {confirming ? (
-                <>
-                  <span className="mr-auto text-[12.5px] font-semibold text-ink">
-                    Kirim email ke <span className="data-value">{targets.length}</span> pegawai sekarang?
-                  </span>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setConfirming(false)}>Batal</Button>
-                  <Button type="button" size="sm" onClick={sendAll}>Ya, kirim</Button>
-                </>
-              ) : (
-                <>
-                  <Button type="button" variant="ghost" size="sm" onClick={sendTest} disabled={!!busy}>
-                    {busy === 'test' ? 'Mengirim uji…' : 'Kirim Uji ke Email Saya'}
-                  </Button>
-                  <Button type="button" size="sm" onClick={() => setConfirming(true)} disabled={!!busy || targets.length === 0}>
-                    {busy === 'send' ? 'Mengirim…' : `Kirim ke ${targets.length} pegawai`}
-                  </Button>
-                </>
+            <div>
+              <div className="flex items-center justify-between">
+                <span className={labelCls}>Tahapan Selanjutnya</span>
+                <button type="button" onClick={() => setContent((c) => ({ ...c, steps: defaultSteps(tomorrow(), period.label) }))}
+                  className="text-[11px] font-semibold text-brand-ink hover:underline">Isi ulang bawaan</button>
+              </div>
+              <div className="mt-1.5 space-y-2">
+                {content.steps.map((s, i) => (
+                  <div key={i} className="flex gap-2">
+                    <span className="data-value pt-1.5 text-[12px] text-ink-faint">{i + 1}.</span>
+                    <div className="flex-1 space-y-1">
+                      <input value={s.when} onChange={(e) => setStep(i, { when: e.target.value })} maxLength={80}
+                        placeholder="Tanggal, mis. 16–20 Oktober 2026" className={`${inputCls} font-semibold`} />
+                      <textarea value={s.text} onChange={(e) => setStep(i, { text: e.target.value })} maxLength={600} rows={2}
+                        placeholder="Kegiatan" className={inputCls} />
+                    </div>
+                    <button type="button" title="Hapus tahap" onClick={() => setContent((c) => ({ ...c, steps: c.steps.filter((_, j) => j !== i) }))}
+                      className="self-start pt-1.5 text-ink-faint hover:text-danger-ink"><X className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
+              {content.steps.length < MAX_STEPS && (
+                <button type="button" onClick={() => setContent((c) => ({ ...c, steps: [...c.steps, { when: '', text: '' }] }))}
+                  className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-brand-ink hover:underline">
+                  <Plus className="w-3.5 h-3.5" /> Tambah tahap
+                </button>
               )}
             </div>
           </div>
+
+          {/* Kanan: pratinjau */}
+          <div className="min-w-0">
+            <p className={labelCls}>Pratinjau</p>
+            <p className="mt-1 text-[12px] text-ink-soft">
+              Subjek: <span className="font-semibold text-ink">{releaseSubject(period.label, sample)}</span>
+            </p>
+            <iframe title="Pratinjau email" srcDoc={previewHtml} sandbox=""
+              className="mt-2 h-[620px] w-full rounded-control border border-line bg-white" />
+          </div>
         </div>
-      )}
-    </>
+
+        {msg && (
+          <div className={`mt-4 rounded-control border px-3 py-2 text-[12.5px] ${msg.ok ? 'border-brand/25 bg-brand-tint text-brand-ink' : 'border-danger-ink/25 bg-danger-tint text-danger-ink'}`}>
+            <p className="font-semibold">{msg.text}</p>
+            {msg.details && msg.details.length > 0 && (
+              <ul className="mt-1 list-disc pl-5 text-ink-soft">{msg.details.map((d, i) => <li key={i}>{d}</li>)}</ul>
+            )}
+          </div>
+        )}
+
+        <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
+          {progress && (
+            <span className="mr-auto text-[12px] text-ink-soft">
+              Mengirim… <span className="data-value">{progress.done}/{progress.total}</span>
+            </span>
+          )}
+          {confirming ? (
+            <>
+              <span className="mr-auto text-[12.5px] font-semibold text-ink">
+                {single ? <>Kirim email ke {single.name} sekarang?</> : <>Kirim email ke <span className="data-value">{targets.length}</span> pegawai sekarang?</>}
+              </span>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setConfirming(false)}>Batal</Button>
+              <Button type="button" size="sm" onClick={sendAll}>Ya, kirim</Button>
+            </>
+          ) : (
+            <>
+              <Button type="button" variant="ghost" size="sm" onClick={sendTest} disabled={!!busy}>
+                {busy === 'test' ? 'Mengirim uji…' : 'Kirim Uji ke Email Saya'}
+              </Button>
+              <Button type="button" size="sm" onClick={() => setConfirming(true)} disabled={!!busy || targets.length === 0}>
+                {busy === 'send' ? 'Mengirim…' : single ? `Kirim ke ${single.name}` : `Kirim ke ${targets.length} pegawai`}
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
+}
+
+/** Satu slot gambar: pratinjau kecil + Unggah/Ganti + Hapus. */
+function ImageSlot({ label, url, disabled, onPick, onRemove }: {
+  label: string; url?: string; disabled: boolean; onPick: (f: File) => void; onRemove: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <div className="rounded-control border border-line p-2">
+      <p className="text-[11.5px] font-semibold text-ink leading-tight">{label}</p>
+      <div className="mt-1.5 flex h-24 items-center justify-center overflow-hidden rounded-control bg-neutral-tint">
+        {url
+          // eslint-disable-next-line @next/next/no-img-element -- gambar dari Storage (URL publik), bukan aset build
+          ? <img src={url} alt={label} className="h-full w-full object-cover object-top" />
+          : <span className="text-[11px] text-ink-faint">Belum diunggah</span>}
+      </div>
+      <input ref={ref} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) onPick(f); }} />
+      <div className="mt-1.5 flex items-center gap-2">
+        <button type="button" disabled={disabled} onClick={() => ref.current?.click()}
+          className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-brand-ink hover:underline disabled:opacity-50">
+          <ImageUp className="w-3.5 h-3.5" /> {url ? 'Ganti' : 'Unggah'}
+        </button>
+        {url && (
+          <button type="button" disabled={disabled} onClick={onRemove}
+            className="ml-auto inline-flex items-center gap-1 text-[11.5px] font-semibold text-danger-ink hover:underline disabled:opacity-50">
+            <Trash2 className="w-3.5 h-3.5" /> Hapus
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Isian awal: yang terakhir disimpan di browser untuk periode ini, atau bawaan. */
+function initialContent(storeKey: string, release: ReleaseProps): ReleaseContent {
+  try {
+    const raw = localStorage.getItem(storeKey);
+    if (raw) {
+      const v = JSON.parse(raw) as ReleaseContent;
+      if (Array.isArray(v.steps) && typeof v.cycle === 'string') return { ...v, includeLate: !!v.includeLate };
+    }
+  } catch { /* penyimpanan browser tak tersedia → pakai bawaan */ }
+  return { cycle: release.defaultCycle, includeLate: release.period.has360, steps: defaultSteps(tomorrow(), release.period.label) };
 }
 
 /** Tanggal rilis bawaan = besok (email biasanya disiapkan sehari sebelum rilis). */

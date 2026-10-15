@@ -14,8 +14,9 @@ import { panduanFor } from '@/lib/panduan';
 
 export type SendResult = { ok: true } | { ok: false; reason: 'not_configured' | 'error'; detail?: string };
 
-/** Lampiran email: file diambil provider dari URL publik (mis. /panduan/x.pdf). */
-export type EmailAttachment = { filename: string; path: string };
+/** Lampiran email: file diambil provider dari URL publik (mis. /panduan/x.pdf). `cid` diisi → gambar
+ *  ditampilkan INLINE di badan email lewat `<img src="cid:…">` (email rilis laporan). */
+export type EmailAttachment = { filename: string; path: string; cid?: string };
 
 type Provider = 'smtp' | 'resend' | null;
 
@@ -53,7 +54,7 @@ async function sendViaSmtp({ to, subject, html, text, attachments }: { to: strin
     await transporter.sendMail({
       from, to: Array.isArray(to) ? to.join(',') : to, subject, html, text,
       // nodemailer mengunduh sendiri tiap `path` (URL) → jadikan lampiran.
-      ...(attachments?.length ? { attachments: attachments.map((a) => ({ filename: a.filename, path: a.path })) } : {}),
+      ...(attachments?.length ? { attachments: attachments.map((a) => ({ filename: a.filename, path: a.path, ...(a.cid ? { cid: a.cid } : {}) })) } : {}),
     });
     return { ok: true };
   } catch (e) {
@@ -72,7 +73,7 @@ async function sendViaResend({ to, subject, html, text, attachments }: { to: str
       // Resend mengunduh tiap `path` (URL) menjadi lampiran.
       body: JSON.stringify({
         from, to: Array.isArray(to) ? to : [to], subject, html, text,
-        ...(attachments?.length ? { attachments: attachments.map((a) => ({ filename: a.filename, path: a.path })) } : {}),
+        ...(attachments?.length ? { attachments: attachments.map((a) => ({ filename: a.filename, path: a.path, ...(a.cid ? { content_id: a.cid } : {}) })) } : {}),
       }),
     });
     if (!res.ok) {

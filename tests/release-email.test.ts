@@ -14,13 +14,15 @@ vi.mock('@/lib/email/mailer', () => ({ emailConfigured: vi.fn(() => true), sendE
 vi.mock('@/lib/report-release', async (orig) => ({
   ...(await orig<typeof import('@/lib/report-release')>()),
   loadReleasePeriod: vi.fn(async () => ({ id: PID, label: 'Q3 2026', monthRange: 'Juli–September 2026', has360: true, aspects: ['Jujur & Tanggung Jawab'] })),
+  loadReleaseImages: vi.fn(async () => ({ ok: true, images: {} })),
 }));
 
 import { cookies } from 'next/headers';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/email/mailer';
 import { logHrdAction } from '@/lib/audit/log';
-import { sendReleaseEmails, sendReleaseEmailTest } from '@/app/(app)/admin/laporan/release-email-actions';
+import { loadReleaseImages } from '@/lib/report-release';
+import { sendReleaseEmails, sendReleaseEmailTest, uploadReleaseImage } from '@/app/(app)/admin/laporan/release-email-actions';
 
 const PID = '11111111-1111-4111-8111-111111111111';
 const UID = '22222222-2222-4222-8222-222222222222';
@@ -64,7 +66,23 @@ describe('template email rilis', () => {
     expect(html).toContain('href="https://portal.test/laporan"');
     expect(html).toContain('Budi &lt;b&gt;');
     expect(html).not.toContain('<script>');
+    expect(html).toContain('Cara Mengunduh Laporan PDF');
     expect(releaseSubject('Q3 2026', 'Budi')).toBe('[Konfidensial] Laporan Performance Appraisal Q3 2026 – Budi');
+  });
+
+  it('gambar: panduan setelah body, lalu kalimat cara unduh, lalu gambar cara unduh; sumber tak sah dibuang', () => {
+    const html = releaseEmailHtml({ name: 'Budi', period: PERIOD, content: CONTENT,
+      images: { panduan: 'cid:rilis-panduan@infarm360', 'cara-unduh': 'javascript:alert(1)' } });
+    const iSign = html.indexOf('Tim HRD-GA INFARM');
+    const iImg = html.indexOf('src="cid:rilis-panduan@infarm360"');
+    const iHow = html.indexOf('Cara Mengunduh Laporan PDF');
+    expect(iSign).toBeGreaterThan(0);
+    expect(iImg).toBeGreaterThan(iSign);
+    expect(iHow).toBeGreaterThan(iImg);
+    expect(html).not.toContain('javascript:');
+    const both = releaseEmailHtml({ name: 'Budi', period: PERIOD, content: CONTENT,
+      images: { panduan: 'https://x.test/a.jpg', 'cara-unduh': 'https://x.test/b.jpg' } });
+    expect(both.indexOf('https://x.test/b.jpg')).toBeGreaterThan(both.indexOf('Cara Mengunduh Laporan PDF'));
   });
 
   it('periode tanpa 360° & tanpa siklus/potongan → paragraf terkait hilang', () => {
@@ -127,6 +145,37 @@ describe('sendReleaseEmails', () => {
     });
     expect(vi.mocked(sendEmail).mock.calls[0][0].html).toContain('https://portal.test/laporan');
     expect(logHrdAction).toHaveBeenCalledWith(expect.objectContaining({ action: 'laporan.release_email', targetId: PID, meta: expect.objectContaining({ sent_ids: [A] }) }));
+  });
+
+  it('gambar periode disisipkan inline (CID); gambar yang URL-nya tak terjangkau dilewati', async () => {
+    vi.mocked(createClient).mockResolvedValue(hrdClient(HRD) as never);
+    vi.mocked(createAdminClient).mockReturnValue(adminClient({
+      employees: [{ data: [{ id: A, name: 'Ani' }] }],
+      final_reports: [{ data: [{ employee_id: A }] }],
+      employee_report_folders: [{ data: [{ employee_id: A, url: 'https://drive.google.com/x' }] }],
+    }, { [A]: 'ani@infarm.co.id' }) as never);
+    vi.mocked(loadReleaseImages).mockResolvedValueOnce({ ok: true, images: {
+      panduan: { url: 'https://s.test/panduan.jpg?v=1', path: `release/${PID}/panduan.jpg`, contentType: 'image/jpeg' },
+      'cara-unduh': { url: 'https://s.test/hilang.jpg?v=1', path: `release/${PID}/cara-unduh.jpg`, contentType: 'image/jpeg' },
+    } });
+    const fetchMock = vi.fn(async (url: string) => ({ ok: !url.includes('hilang') }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const r = await sendReleaseEmails({ periodId: PID, employeeIds: [A], content: CONTENT });
+      expect(r.ok && r.sent).toEqual([A]);
+      const msg = vi.mocked(sendEmail).mock.calls[0][0];
+      expect(msg.attachments).toEqual([{ filename: 'Panduan setelah menerima laporan.jpg', path: 'https://s.test/panduan.jpg?v=1', cid: 'rilis-panduan@infarm360' }]);
+      expect(msg.html).toContain('src="cid:rilis-panduan@infarm360"');
+      expect(msg.html).not.toContain('hilang');
+    } finally { vi.unstubAllGlobals(); }
+  });
+
+  it('unggah gambar: format & ukuran ditolak sebelum menyentuh penyimpanan', async () => {
+    const form = (file: File, key = 'panduan') => { const f = new FormData(); f.set('periodId', PID); f.set('key', key); f.set('file', file); return f; };
+    expect(await uploadReleaseImage(form(new File(['x'], 'a.gif', { type: 'image/gif' })))).toEqual({ ok: false, error: 'Format gambar harus JPG, PNG, atau WebP.' });
+    expect(await uploadReleaseImage(form(new File([new Uint8Array(2 * 1024 * 1024 + 1)], 'a.jpg', { type: 'image/jpeg' })))).toEqual({ ok: false, error: 'Ukuran gambar maksimal 2 MB.' });
+    expect(await uploadReleaseImage(form(new File(['x'], 'a.jpg', { type: 'image/jpeg' }), 'lain'))).toEqual({ ok: false, error: 'Input tidak valid' });
+    expect(createAdminClient).not.toHaveBeenCalled();
   });
 
   it('batas gelombang 20 pegawai per panggilan', async () => {

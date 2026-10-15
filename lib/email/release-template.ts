@@ -27,6 +27,9 @@ export type ReleasePeriod = {
 
 export const RELEASE_SIGNATURE = 'Tim HRD-GA INFARM';
 
+/** Sumber gambar pendamping per kunci (RELEASE_IMAGES di lib/report-release.ts): https:// atau cid:. */
+export type ReleaseImageSrc = { panduan?: string; 'cara-unduh'?: string };
+
 const MONTHS_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 const NUM_WORD_ID = ['nol', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh'];
 const ORDINAL_ID = ['pertama', 'kedua', 'ketiga', 'keempat', 'kelima', 'keenam', 'ketujuh', 'kedelapan', 'kesembilan', 'kesepuluh'];
@@ -112,20 +115,21 @@ const TD = 'border:1px solid #C9CEC7;padding:7px 12px;text-align:left';
 
 /**
  * HTML email rilis untuk satu penerima. `appUrl` = tautan tombol "Buka Laporan Saya" (mis.
- * https://…/laporan); kosong/tak sah → tombol tak dirender. `imageUrl` opsional (gambar dari HRD).
+ * https://…/laporan); kosong/tak sah → tombol tak dirender. `images` = sumber gambar pendamping (CID saat
+ * kirim, URL publik untuk pratinjau): "panduan" disisipkan setelah body, lalu kalimat cara mengunduh PDF
+ * diikuti gambar "cara-unduh". Tanpa gambar, kalimat cara mengunduh tetap ada.
  */
 export function releaseEmailHtml(args: {
-  name: string; period: ReleasePeriod; content: ReleaseContent; appUrl?: string; imageUrl?: string;
+  name: string; period: ReleasePeriod; content: ReleaseContent; appUrl?: string; images?: ReleaseImageSrc;
 }): string {
-  const { name, period, content, appUrl, imageUrl } = args;
+  const { name, period, content, appUrl, images = {} } = args;
   const safeUrl = appUrl && /^https?:\/\//i.test(appUrl) ? appUrl : '';
-  const safeImg = imageUrl && /^https?:\/\//i.test(imageUrl) ? imageUrl : '';
   const periodText = period.monthRange ? `${esc(period.label)} (${esc(period.monthRange)})` : esc(period.label);
   const cycle = content.cycle.trim();
   const steps = content.steps.filter((s) => s.when.trim() || s.text.trim());
 
-  const image = safeImg
-    ? `<p style="${P}"><img src="${esc(safeImg)}" alt="Laporan Performance Appraisal ${esc(period.label)}" style="display:block;max-width:100%;height:auto;border:0"></p>`
+  const img = (src: string | undefined, alt: string) => src && /^(https?:\/\/|cid:)/i.test(src)
+    ? `<p style="${P}"><img src="${esc(src)}" alt="${esc(alt)}" width="620" style="display:block;width:100%;max-width:620px;height:auto;border:0"></p>`
     : '';
   const button = safeUrl
     ? `<p style="margin:4px 0 18px">
@@ -151,9 +155,8 @@ export function releaseEmailHtml(args: {
 
   return `
   <div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#1B1F1C;font-size:14px;line-height:1.55">
-    ${image}
     <p style="${P}">Yth. ${esc(name)},</p>
-    <p style="${P}">Laporan Performance Appraisal periode ${periodText} telah selesai disusun dan kini dapat Anda unduh dalam bentuk PDF melalui portal Infarm 360°, pada menu <strong>Laporan Hasil Saya</strong> → <strong>Unduh PDF</strong>. Laporan ini bersifat konfidensial dan hanya dapat diakses oleh Anda serta atasan langsung.</p>
+    <p style="${P}">Laporan Performance Appraisal periode ${periodText} telah selesai disusun dan kini dapat Anda unduh dalam bentuk PDF melalui portal Infarm 360° (cara mengunduhnya ada di bagian bawah email ini). Laporan ini bersifat konfidensial dan hanya dapat diakses oleh Anda serta atasan langsung.</p>
     ${button}
     <p style="${P}">${cycle ? `Ini adalah siklus ${esc(cycle)} penerapan penilaian KPI${period.has360 ? ' + 360' : ''} di Infarm. ` : ''}Sebelum dirilis, hasil penilaian telah dikalibrasi bersama para leader untuk memastikan isi laporan sesuai dengan kondisi kerja di lapangan.</p>
     ${period.has360 ? `<p style="${P}">Tujuan penilaian 360 adalah mengumpulkan masukan dari orang-orang yang bekerja langsung dengan Anda, yaitu atasan, rekan setim, rekan lintas divisi, dan bawahan, agar penilaian kinerja tidak hanya berasal dari satu sudut pandang. Hasil ini digunakan untuk menyusun rencana pengembangan, bukan sebagai dasar sanksi maupun pembanding antarpegawai.</p>` : ''}
@@ -169,5 +172,10 @@ export function releaseEmailHtml(args: {
     <p style="${P}">Apabila ada pertanyaan mengenai laporan maupun proses Performance Appraisal ini, jangan ragu untuk menghubungi Tim HRD.</p>
     <p style="margin:0">Hormat kami,</p>
     <p style="margin:0;font-weight:bold">${RELEASE_SIGNATURE}</p>
+    <hr style="border:0;border-top:1px solid #E4E6E2;margin:26px 0 18px">
+    ${img(images.panduan, `Panduan Performance Appraisal ${period.label}`)}
+    <h3 style="${H}">Cara Mengunduh Laporan PDF</h3>
+    <p style="${P}">Buka portal Infarm 360°, masuk ke menu <strong>Laporan Hasil Saya</strong>, pastikan periode <strong>${esc(period.label)}</strong> terpilih, lalu klik <strong>Unduh PDF</strong>. Anda akan diarahkan ke folder Google Drive berisi laporan PA Anda; klik file untuk membuka atau mengunduhnya. Jika folder masih kosong atau ada kendala, hubungi Tim HRD.</p>
+    ${img(images['cara-unduh'], `Cara mengunduh laporan PA ${period.label}`)}
   </div>`;
 }

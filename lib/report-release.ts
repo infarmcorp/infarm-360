@@ -38,6 +38,44 @@ export async function defaultCycle(db: Db, periodId: string): Promise<string> {
   return ordinalId(n);
 }
 
+/**
+ * Gambar pendamping email rilis — diunggah HRD per periode (isinya bertuliskan kuartal, mis. "Q3 2026"),
+ * disimpan di bucket publik `email-assets` (migrasi 0051) dan disisipkan inline (CID) ke email.
+ * Urutan di email = urutan di sini.
+ */
+export const RELEASE_BUCKET = 'email-assets';
+export const RELEASE_IMAGES = [
+  { key: 'panduan', label: 'Panduan setelah menerima laporan' },
+  { key: 'cara-unduh', label: 'Cara mengunduh laporan PDF' },
+] as const;
+export type ReleaseImageKey = (typeof RELEASE_IMAGES)[number]['key'];
+export type ReleaseImages = Partial<Record<ReleaseImageKey, { url: string; path: string; contentType: string }>>;
+
+export const releaseImageFolder = (periodId: string) => `release/${periodId}`;
+
+const EXT_TYPE: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+
+/**
+ * Gambar yang sudah diunggah untuk periode ini. `ok=false` = penyimpanan belum aktif (bucket belum
+ * dibuat/migrasi 0051 belum dijalankan) → email tetap bisa dikirim tanpa gambar.
+ * URL diberi `?v=<waktu ubah>` agar gambar yang diganti tak tertahan cache.
+ */
+export async function loadReleaseImages(db: Db, periodId: string): Promise<{ ok: boolean; images: ReleaseImages }> {
+  const store = db.storage.from(RELEASE_BUCKET);
+  const { data, error } = await store.list(releaseImageFolder(periodId));
+  if (error) return { ok: false, images: {} };
+  const images: ReleaseImages = {};
+  for (const img of RELEASE_IMAGES) {
+    const f = (data ?? []).find((o) => o.name.replace(/\.[^.]+$/, '') === img.key);
+    if (!f) continue;
+    const path = `${releaseImageFolder(periodId)}/${f.name}`;
+    const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
+    const v = encodeURIComponent(f.updated_at ?? f.created_at ?? '');
+    images[img.key] = { path, contentType: EXT_TYPE[ext] ?? 'image/jpeg', url: `${store.getPublicUrl(path).data.publicUrl}?v=${v}` };
+  }
+  return { ok: true, images };
+}
+
 /** Pegawai yang sudah pernah dikirimi email rilis untuk periode ini (gabungan semua gelombang). */
 export async function loadReleaseSentIds(db: Db, periodId: string): Promise<Set<string>> {
   const { data } = await db.from('hrd_audit_log').select('meta')

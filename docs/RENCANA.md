@@ -67,11 +67,19 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 - 🔄 **Izin HRD saat pegawai pindah divisi** — sudah di `dev` (audit gelombang 2): Ubah Pegawai menolak
   memindahkan pemegang izin HRD ke luar divisi HRD sampai izinnya dicabut. 🔑 Sisa: cek apakah sekarang sudah ada
   pemegang izin HRD di luar divisi HRD-GA (bila ada, cabut manual).
-- 🔑⬜ **SPV yang juga punya izin HRD** (temuan audit no. 11). Bila akun seperti ini ada, di Mode Admin ia tetap
-  diperlakukan sebagai SPV: dari Review & Finalisasi ia hanya melihat laporan versi SPV, tanpa tombol
-  Finalisasi, dan pegawai di luar divisinya tak bisa dibuka. Di Monitoring KPI, tab Riwayat menampilkan seluruh
-  organisasi sementara tab lain hanya timnya. **Menunggu cek:** adakah SPV divisi HRD-GA yang diberi izin HRD?
-  Bila tidak ada, cukup dicatat.
+- ✅ **SPV yang juga punya izin HRD** (temuan audit no. 11) — **ditutup 2026-10-14**: dicek di production, tidak
+  ada SPV ber-izin HRD (hanya satu pegawai berposisi Pegawai di HRD-GA yang punya izin HRD). Masalah "SPV tak bisa
+  memfinalisasi di Mode Admin" tidak berlaku.
+- ⬜ **Gelombang 3 (prioritas rendah): pegawai ber-izin HRD melihat tampilan HRD penuh di detail laporan walau
+  sedang di mode posisi-asli.** Berlaku untuk pemegang izin HRD berposisi Pegawai (saat ini satu orang). Menu
+  posisi-asli tidak menautkan ke halaman itu, jadi hanya terjadi bila alamatnya dibuka langsung.
+- ⬜ **Laporan diri sendiri untuk pemegang izin HRD** (cek 2026-10-14). Bila HRD membuka detail laporan
+  **dirinya sendiri** lewat Review & Finalisasi:
+  - **Komentar mentah (anonim) tetap tampil — disengaja** (keputusan pemilik 2026-10-14): HRD bertugas meringkas
+    laporannya sendiri, jadi butuh komentar itu. Bukan masalah.
+  - **Sisa: nama penilai ikut terkirim ke browser** walau tak pernah tampil di layar (terbaca lewat alat
+    developer). Perbaikan: buang nama penilai di server untuk tampilan HRD — tampilan tak berubah. Kerjakan di
+    gelombang 3 (atau bersama rilis Q3 bila sempat).
 - Catatan (risiko rendah): batas "HRD hanya menginput KPI divisinya sendiri" hanya dijaga aplikasi, tidak
   dikunci di database. Pengguna tetap tidak bisa menulis KPI langsung ke database.
 
@@ -102,7 +110,8 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   laporan sendiri. Sisa:
   - 🔑 terapkan migrasi **0048** lalu **0049** ke staging, uji, lalu production (langkah di TEKNIS.md §1; cek
     dengan `scripts/check-migrations.sql`). Aplikasi tetap jalan walau belum diterapkan;
-  - 🔑 uji manual di Preview `dev`; sampaikan perilaku baru ke HRD sebelum rilis;
+  - 🔑 uji manual di Preview `dev` (daftar: [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md); Preview dipastikan memakai
+    database staging, dicek 2026-10-14); sampaikan perilaku baru ke HRD sebelum rilis;
   - catatan: Ubah deadline & cron melewati pegawai Final tanpa menyebut jumlahnya (proses otomatis).
 - ⬜ **Gelombang 3: hapus tombol "Perbarui Laporan Final yang Berubah"** (Finalisasi Ulang Laporan Berubah) setelah
   jumlah laporan berlabel "berubah → N" = 0. Dengan kunci laporan Final, label itu tak akan muncul lagi; tombol
@@ -110,8 +119,8 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 - ⬜ **Rapikan temuan lint** (`npm run lint` kembali jalan, 2026-10-12): 49 temuan lama (34 error, 15 peringatan),
   terutama pola React (setState di effect, komponen dibuat saat render), teks tanpa escape, dan variabel tak
   terpakai. Belum dimasukkan ke CI — masukkan setelah bersih.
-- 🔑⬜ **Cek dampak bug potongan telat ke 0** (diperbaiki & dirilis 2026-10-12): jalankan query cek dampak; bila ada
-  pegawai terdampak, HRD mengatur ulang potongannya ke 0 lalu menekan Terapkan Potongan.
+- ✅ **Cek dampak bug potongan telat ke 0** — **ditutup 2026-10-14**: query cek dampak dijalankan di production,
+  hasilnya kosong. Tidak ada pegawai yang terdampak.
 
 ---
 

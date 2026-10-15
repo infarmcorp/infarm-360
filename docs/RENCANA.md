@@ -8,7 +8,7 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 
 ---
 
-## 1. Status terkini (per 2026-10-12)
+## 1. Status terkini (per 2026-10-15)
 
 - Aplikasi **live dan dipakai**. Periode **Q3 2026** berjalan menuju tutup.
 - Production berjalan dari branch `main`. Pekerjaan baru ada di branch `dev`.
@@ -20,7 +20,10 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   - **Unduh PDF pegawai membuka folder Google Drive** (tautan diisi HRD di Kelola Pegawai). Butuh perubahan
     database baru (lihat §2) dan HRD perlu menyiapkan folder + berbagi per pegawai (SOP di PANDUAN §5.1);
   - penyeragaman tampilan (warna, huruf, tombol) di semua halaman;
+  - perbaikan audit kode gelombang 1, 2, dan 2b, termasuk **kunci laporan Final** (lihat §2);
   - perapian dokumentasi ini.
+- **Uji rilis Q3 sudah dijalankan 2026-10-15** di database staging: 53 langkah lulus, 0 gagal. Hasil dan
+  catatannya ada di [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md). Rilis `dev` → `main` tetap menunggu Q3 Final (±20 Oktober).
 - **Impor Ringkasan dari Excel** dan **format ringkasan** (tebal/poin) sudah **langsung di production**
   (2026-10-13, atas permintaan pengguna) dan sudah digabung ke `dev`. Belum dicoba dengan data nyata.
 - 4 PDF panduan dan nomor versinya (`2026-10-01`) sudah tersimpan di `dev`. **Isinya belum direvisi**: teksnya
@@ -73,13 +76,11 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 - ⬜ **Gelombang 3 (prioritas rendah): pegawai ber-izin HRD melihat tampilan HRD penuh di detail laporan walau
   sedang di mode posisi-asli.** Berlaku untuk pemegang izin HRD berposisi Pegawai (saat ini satu orang). Menu
   posisi-asli tidak menautkan ke halaman itu, jadi hanya terjadi bila alamatnya dibuka langsung.
-- ⬜ **Laporan diri sendiri untuk pemegang izin HRD** (cek 2026-10-14). Bila HRD membuka detail laporan
-  **dirinya sendiri** lewat Review & Finalisasi:
+- ✅ **Laporan diri sendiri untuk pemegang izin HRD** (cek 2026-10-14) — **selesai di `dev`**:
   - **Komentar mentah (anonim) tetap tampil — disengaja** (keputusan pemilik 2026-10-14): HRD bertugas meringkas
     laporannya sendiri, jadi butuh komentar itu. Bukan masalah.
-  - **Sisa: nama penilai ikut terkirim ke browser** walau tak pernah tampil di layar (terbaca lewat alat
-    developer). Perbaikan: buang nama penilai di server untuk tampilan HRD — tampilan tak berubah. Kerjakan di
-    gelombang 3 (atau bersama rilis Q3 bila sempat).
+  - Nama penilai **tidak lagi terkirim ke browser** di tampilan HRD mana pun (2026-10-14). Tampilan tak berubah.
+    Ikut rilis Q3.
 - Catatan (risiko rendah): batas "HRD hanya menginput KPI divisinya sendiri" hanya dijaga aplikasi, tidak
   dikunci di database. Pengguna tetap tidak bisa menulis KPI langsung ke database.
 
@@ -101,18 +102,26 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 - 🔄 **Perbaikan audit kode gelombang 2** — sudah di `dev`: grafik Dashboard/Monitor memakai golongan yang sama
   dengan laporan, daftar tugas HRD dan Monitor tak lagi terpotong di 1.000 baris, ekspor menolak membuat file
   tidak lengkap, dan tes baru untuk hitung ulang Skor 360°, potongan telat, finalisasi, periode, dan akses.
-  Sisa: uji manual di Preview `dev`, lalu rilis.
+  Uji manual **lulus** 2026-10-15. Sisa: rilis.
 - 🔑🔄 **Kunci laporan Final + perbaikan audit gelombang 2b** — sudah di `dev`, **dirilis ke production SETELAH
   finalisasi Q3** (keputusan pemilik). Isinya: laporan Final terkunci sampai HRD menekan "Buka Kembali (ke Draf)";
   pengaman Q1 2026 kini menolak bila gagal dibaca dan juga melindungi potongan telat; finalisasi massal hanya
   menghitung yang benar-benar tersimpan; HRD tak bisa memberi akses halaman ke dirinya sendiri; batalkan/pulihkan
   penilaian memberi peringatan bila skor gagal diperbarui; ACC hanya untuk anggota tim/divisi sendiri dan bukan
   laporan sendiri. Sisa:
-  - 🔑 terapkan migrasi **0048** lalu **0049** ke staging, uji, lalu production (langkah di TEKNIS.md §1; cek
-    dengan `scripts/check-migrations.sql`). Aplikasi tetap jalan walau belum diterapkan;
-  - 🔑 uji manual di Preview `dev` (daftar: [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md); Preview dipastikan memakai
-    database staging, dicek 2026-10-14); sampaikan perilaku baru ke HRD sebelum rilis;
+  - ✅ migrasi **0048** dan **0049** sudah terpasang di staging (2026-10-14);
+  - ✅ uji manual **lulus** 2026-10-15 (53 langkah, 0 gagal; hasil di [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md)). Data
+    uji di staging sudah dikembalikan;
+  - 🔑 saat rilis: terapkan **0048** lalu **0049** ke production (langkah di TEKNIS.md §1; cek dengan
+    `scripts/check-migrations.sql`). Aplikasi tetap jalan walau belum diterapkan;
+  - 🔑 sampaikan perilaku baru ke HRD sebelum rilis, termasuk: **Skor Akhir bisa berubah saat laporan dibuka
+    kembali lalu difinalisasi ulang**, karena potongan telat yang masih tertunda ikut diterapkan (di uji:
+    74,00 → 72,50);
   - catatan: Ubah deadline & cron melewati pegawai Final tanpa menyebut jumlahnya (proses otomatis).
+- ⬜ **Gelombang 3 (kecil): pesan di Manajemen Akses saat memberi akses per peran.** Setelah disimpan, panel
+  langsung tertutup sehingga pesan berhasil tak terlihat; pratinjau sebelum simpan menulis jumlah penerima
+  termasuk pemberi akses sendiri (mis. "51 Pegawai"), padahal yang diberi 50. Data tersimpan sudah benar
+  (temuan uji rilis 2026-10-15).
 - ⬜ **Gelombang 3: hapus tombol "Perbarui Laporan Final yang Berubah"** (Finalisasi Ulang Laporan Berubah) setelah
   jumlah laporan berlabel "berubah → N" = 0. Dengan kunci laporan Final, label itu tak akan muncul lagi; tombol
   sementara dipertahankan hanya untuk merapikan selisih lama (keputusan 2026-10-12).

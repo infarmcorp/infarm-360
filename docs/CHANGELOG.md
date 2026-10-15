@@ -8,6 +8,16 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
+### 2026-10-15 (di `dev`, belum di production)
+- **Uji rilis Q3 dijalankan** di database staging dengan daftar [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md): 53 langkah lulus,
+  0 gagal. Kunci laporan Final, Buka Kembali, ACC, Pemetaan, potongan telat, Manajemen Akses, Kelola Pegawai,
+  Ekspor, dan aktivasi periode bekerja sesuai rencana. Temuan: Skor Akhir bisa berubah saat laporan dibuka kembali
+  lalu difinalisasi ulang (potongan telat tertunda ikut diterapkan; benar, tetapi perlu diketahui HRD), dan pesan
+  kecil di Manajemen Akses (dicatat untuk gelombang 3). Data uji di staging sudah dikembalikan.
+- **Nama penilai tidak lagi terkirim ke browser di tampilan HRD** (2026-10-14). Sebelumnya nama itu ikut terkirim
+  walau tak pernah tampil di layar (terbaca lewat alat developer). Kini dibuang di server; tampilan tak berubah,
+  komentar anonim tetap ada. Ikut diperbaiki: aplikasi bisa dijalankan lagi di mode pengembangan.
+
 ### 2026-10-14 (di `dev`, belum di production)
 - **"Unduh PDF" pegawai membuka folder Google Drive** (permintaan pengguna). PDF hasil cetak aplikasi kurang rapi
   dibanding PDF yang disusun HRD. Kini HRD menyimpan tautan **satu folder Drive per pegawai** di Kelola Pegawai.

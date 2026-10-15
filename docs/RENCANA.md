@@ -50,6 +50,10 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 - 🔑⬜ **Folder Laporan (Drive).** Pasang perubahan database Folder Laporan di staging lalu production
   **sebelum** merilis kodenya. Tanpa itu, menyimpan tautan menampilkan pesan "belum aktif", sedangkan pegawai
   hanya melihat "PDF belum tersedia". HRD menyiapkan folder + berbagi per pegawai dan mengisi tautannya.
+- 🔑⬜ **Email Rilis Laporan.** Jalankan perubahan database **0051** (penyimpanan gambar email) di staging lalu
+  production. Lalu, per periode: unggah dua gambar pendamping di dialog Email Rilis Laporan, kirim uji ke email
+  sendiri, baru kirim ke pegawai (SOP di [PANDUAN.md](PANDUAN.md) §5.9). Butuh Folder Laporan (0050) terpasang
+  dan tautan folder tiap pegawai terisi.
 - 🔑⬜ **Pastikan semua perubahan database Q3 2026 sudah terpasang di production** (dan staging). Kode di
   production sudah memakainya. Cara cek dan daftar perubahannya di [TEKNIS.md](TEKNIS.md) §1 dan §6.
 

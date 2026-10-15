@@ -638,6 +638,28 @@ ACC SPV · Status · Aksi**.
 - **Finalisasi Semua Ber-ACC (N)** — memfinalisasi semua laporan yang sudah di-ACC dan masih Ditinjau. Dilewati:
   laporan yang skornya belum bisa dihitung, dan laporan yang **Skor Akhirnya berubah sejak di-ACC** (perlu
   rilis ulang).
+- **Email Rilis Laporan (N belum)** — mengirim email ke pegawai bahwa PDF laporannya sudah bisa diunduh di
+  Laporan Hasil Saya. Hanya HRD di Mode Admin. Lihat SOP di bawah.
+
+**SOP — Email Rilis Laporan** (sekali per periode, setelah laporan Final dan PDF ada di folder Drive):
+1. Pastikan laporan pegawai sudah **Final** dan **Folder Laporan**-nya sudah diisi di Kelola Pegawai. Pegawai
+   tanpa folder tidak akan dikirimi.
+2. Klik **Email Rilis Laporan**. Di **Gambar pendamping periode ini**, unggah dua gambar periode itu:
+   *Panduan setelah menerima laporan* dan *Cara mengunduh laporan PDF* (JPG/PNG/WebP, maks. 2 MB). Gambar
+   tersimpan untuk periode itu saja, jadi tiap periode perlu gambar baru.
+3. Isi **Urutan siklus** (mis. "ketiga"), centang/hapus centang paragraf **potongan keterlambatan**, dan periksa
+   **Tahapan Selanjutnya** (tanggal terisi otomatis mulai besok; sunting sesuai rencana). Periode, bulan, lima
+   aspek budaya, dan tabel kategori skor terisi otomatis.
+4. Periksa **Pratinjau**, lalu klik **Kirim Uji ke Email Saya** dan buka email ujinya.
+5. Pilih **Hanya yang belum pernah dikirimi** (bawaan) atau **Semua**, klik **Kirim ke N pegawai** → **Ya, kirim**.
+   Pengiriman berjalan bertahap; jangan tutup dialog sampai muncul "N dari N email terkirim". Pegawai yang
+   dilewati atau gagal tercantum beserta alasannya.
+6. Untuk satu pegawai saja (mis. folder baru diisi, atau kirim ulang), klik ikon **✉** di kolom Aksi baris
+   pegawai itu. Ikon **✉✓** = sudah pernah dikirimi. Laporan Final yang tidak berubah tersembunyi bila **Hanya
+   perlu tindakan** dicentang — hapus centangnya untuk melihat ikon itu.
+
+Isian (siklus, tahapan) tersimpan di browser untuk periode itu, jadi tidak perlu diketik ulang saat kirim
+berikutnya. Email tidak memuat skor atau isi laporan.
 - Pintasan **⚖ Atur Bobot** dan **⚑ Flag Kepatuhan**.
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |

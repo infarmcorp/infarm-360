@@ -5,7 +5,7 @@ import { colPercents } from '@/lib/table-cols';
 import Link from 'next/link';
 import type { ReportStatus } from '@/lib/database.types';
 import { hasScoreDrift, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
-import { usePager, Pager, MultiCheckFilter, CheckboxFilter } from '@/components/table-controls';
+import { usePager, StableHeight, Pager, MultiCheckFilter, CheckboxFilter } from '@/components/table-controls';
 import { Mail } from 'lucide-react';
 import { ReleaseEmailDialog, type ReleaseProps } from './release-email-button';
 
@@ -117,9 +117,10 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
         <p className="text-[11px] text-ink-faint italic">{rows.length - sum.actionable} laporan selesai (Final) disembunyikan — hilangkan centang <strong>“Hanya perlu tindakan”</strong> untuk melihat semua.</p>
       )}
 
+      <StableHeight>
       <div className="overflow-x-auto">
         {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
-        <table className={`w-full table-fixed text-left text-sm ${has360 ? 'min-w-[800px]' : 'min-w-[670px]'}`}>
+        <table className={`w-full table-fixed table-1line text-left text-sm ${has360 ? 'min-w-[840px]' : 'min-w-[710px]'}`}>
           <colgroup>
             {colPercents([
               170, // Pegawai
@@ -131,7 +132,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
               has360 && 92, // Dinilai oleh
               64, // ACC
               110, // Status ("Ditinjau Direksi")
-              130, // Aksi ("Tanpa KPI" + Tinjau)
+              165, // Aksi ("Tanpa KPI" / ✉ email rilis + Tinjau)
             ]).map((w, i) => <col key={i} style={{ width: w }} />)}
           </colgroup>
           <thead>
@@ -276,6 +277,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
         </table>
       </div>
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
+      </StableHeight>
       {release && releaseFor && <ReleaseEmailDialog release={release} onlyId={releaseFor} onClose={() => setReleaseFor(null)} />}
     </div>
   );

@@ -6,6 +6,7 @@ import { CorrectionButton } from './correction-button';
 import { AdhocDeleteButton } from './adhoc-delete-button';
 import { RequestRemoveButton } from './request-remove-button';
 import { EmptyState } from '@/components/empty-state';
+import { colPercents } from '@/lib/table-cols';
 import { TabBar, Tab } from '@/components/tab-nav';
 import { RequestAssessmentButton } from './request-assessment-form';
 import { MyRequests, type MyRequest } from './my-requests';
@@ -367,7 +368,17 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
             ))}
           </ul>
           <div className="hidden sm:block overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          {/* table-fixed + colgroup: lebar kolom TETAP antar tab (tak bergeser saat berpindah tab). */}
+          <table className="w-full table-fixed text-left text-sm min-w-[720px]">
+            <colgroup>
+              {colPercents([
+                230, // Yang Dinilai + divisi
+                140, // Garis Hubungan
+                110, // Sifat (+ "Ajuan · wajib selesai")
+                150, // Status (+ progres draf)
+                230, // Aksi (sekunder + utama)
+              ]).map((w, i) => <col key={i} style={{ width: w }} />)}
+            </colgroup>
             <thead>
               <tr className="text-[10px] uppercase tracking-[0.05em] text-ink-faint font-semibold border-b border-line">
                 <th className="py-2 pr-3">Yang Dinilai</th>

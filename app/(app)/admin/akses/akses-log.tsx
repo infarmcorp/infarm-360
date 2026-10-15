@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { colPercents } from '@/lib/table-cols';
+import { StableHeight } from '@/components/table-controls';
 import { formatDateTimeWib } from '@/lib/datetime';
 
 /**
@@ -33,6 +34,7 @@ export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[];
         Terpisah dari <span className="font-semibold text-ink-soft">Log Aktivitas HRD</span> umum yang mencatat semua kategori.
       </p>
 
+      <StableHeight>
       {rows.length === 0 ? (
         <div className="rounded-panel border border-dashed border-line-strong py-8 text-center text-sm text-ink-faint">
           Belum ada perubahan akses tercatat.
@@ -40,7 +42,7 @@ export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[];
       ) : (
         <div className="overflow-x-auto rounded-panel border border-line">
           {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}
-          <table className="w-full table-fixed text-sm min-w-[570px]">
+          <table className="w-full table-fixed table-1line text-sm min-w-[570px]">
             <colgroup>
               {colPercents([
                 180, // Waktu ("01 Okt 2026 14:30 WIB")
@@ -69,7 +71,7 @@ export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[];
       )}
 
       {(total > pageSize || page > 0) && (
-        <div className="flex items-center justify-between mt-3 text-xs text-ink-soft">
+        <div className="mt-auto flex items-center justify-between text-xs text-ink-soft">
           {page > 0 ? (
             <Link href={link(page - 1)} className="px-3 py-1.5 rounded-control border border-line hover:border-line-strong">← Sebelumnya</Link>
           ) : (
@@ -83,6 +85,7 @@ export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[];
           )}
         </div>
       )}
+      </StableHeight>
     </section>
   );
 }

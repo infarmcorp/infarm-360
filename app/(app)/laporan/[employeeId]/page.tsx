@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin, canCoordinate, canSection, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
-import { loadReport, reportForGrantViewer, loadTeamReportForSpv, loadTeamReportForHrdSpv, loadTeamReportForCoordinator, loadSpvReportForDireksi, isDireksiReviewSubject } from '@/lib/report';
+import { loadReport, reportForGrantViewer, withoutNamedFeedback, loadTeamReportForSpv, loadTeamReportForHrdSpv, loadTeamReportForCoordinator, loadSpvReportForDireksi, isDireksiReviewSubject } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
 import { ReportActions } from '../report-actions';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
@@ -306,7 +306,10 @@ export default async function LaporanDetailPage({
 
   // Jalur HRD (mode admin): laporan penuh (tunduk RLS; raw 360° untuk HRD anonim).
   // Direksi tak sampai di sini (diblok di atas); asSpv sudah ditangani → sisanya = HRD admin.
-  const data = await loadReport(supabase, employeeId, ap);
+  // L3 bernama (`assessors`) DIBUANG di server: tak pernah ditampilkan di jalur ini (hideAssessorComments),
+  // jadi tak boleh ikut terkirim ke browser. Komentar mentah ANONIM tetap (HRD meringkas, termasuk laporannya sendiri).
+  const loadedFull = await loadReport(supabase, employeeId, ap);
+  const data = loadedFull ? withoutNamedFeedback(loadedFull) : null;
   if (!data) {
     return <Shell><p className="text-sm text-ink-soft">Data tidak ditemukan atau di luar lingkup akses Anda.</p>
       <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;

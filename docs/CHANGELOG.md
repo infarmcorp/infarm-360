@@ -8,6 +8,17 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
+### 2026-10-15 — Kokpit Review & Finalisasi jadi 3 langkah
+- **Kokpit Review & Finalisasi disederhanakan** (permintaan pengguna: "terlalu banyak tombol, membingungkan"). Lima tombol
+  yang dulu tersebar kini menjadi **tiga langkah berjajar**: ① Hitung Skor 360° → ② Finalisasi Laporan → ③ Kabari
+  Pegawai. Tiap langkah menampilkan ringkasan singkat, dan hanya langkah yang sedang perlu dikerjakan yang
+  tombolnya hijau. Keputusan pengguna:
+  - tombol **Hitung Ulang** mati ("✓ Mutakhir") bila tak ada perubahan, supaya tidak ditekan tanpa alasan; jalan
+    darurat "Hitung ulang paksa" tetap ada di menu ⋯;
+  - kotak langkah berjajar ke samping, bukan bertumpuk (di HP otomatis bertumpuk);
+  - penjelasan panjang dipindah ke ikon ⓘ, Atur Bobot dan Flag Kepatuhan jadi tautan kecil.
+  Tidak ada fungsi yang dihapus.
+
 ### 2026-10-15 — Email Rilis Laporan
 - **Email Rilis Laporan dari Review & Finalisasi** (permintaan pengguna). HRD bisa mengabarkan pegawai bahwa PDF
   laporannya sudah bisa diunduh di Laporan Hasil Saya, **massal** (tombol di kokpit) atau **per pegawai** (ikon ✉

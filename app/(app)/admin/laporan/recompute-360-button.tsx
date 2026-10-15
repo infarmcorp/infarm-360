@@ -63,8 +63,8 @@ export function Recompute360Button({ stale, primary, blocked = false }: { stale:
         onConfirm={run} onCancel={() => setConfirmForce(false)}
       >
         <p>Aplikasi tidak mendeteksi perubahan sejak Skor 360° terakhir dihitung, jadi biasanya ini <strong>tidak perlu</strong>.</p>
-        <p>Pakai hanya bila Anda yakin ada perubahan yang belum masuk. Laporan Final tidak ikut berubah — bila angkanya
-          berbeda, akan muncul di langkah ② sebagai &quot;laporan Final yang berubah&quot;.</p>
+        <p>Pakai hanya bila Anda yakin ada perubahan yang belum masuk. Pegawai yang laporannya sudah Final dilewati
+          (laporan Final terkunci; Buka Kembali dulu bila angkanya memang harus berubah).</p>
       </ConfirmDialog>
     </div>
   );

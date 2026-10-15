@@ -186,6 +186,9 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
   `section-header`) **tetap berwarna** — jangan di-token-kan. Palet diskrit skor dashboard: ≥90 biru · 80–89
   hijau · 70–79 kuning · <70 merah (selaras `perfCategoryOf`); badge 4-Box & Trend memakai warna dari `lib/`.
 - ⚠️ `laporan-tim/team-table.tsx` & `scorecards.tsx` dipakai bersama Monitor — mengubahnya mengubah Monitor.
+- **Tabel berpager wajib stabil** (2026-10-15): `table-fixed` + `<colgroup>` (`colPercents`), kelas `table-1line`
+  (isi sel 1 baris, keputusan pengguna), dan tabel + pager dibungkus `StableHeight` (`components/table-controls.tsx`)
+  — ukuran tak boleh bergeser saat paging/filter/tab. Daftar yang barisnya bisa dibuka-tutup (Progress 360) dikecualikan.
 - Audit kontras (2026-06-19): teks harus lulus WCAG AA (dulu `text-gray-400` → `gray-500`) dan ≥ 10px; label di dalam SVG chart (radar `report-doc`,
   `monitor-chart`) dikecualikan agar grafik tak berdesakan.
 

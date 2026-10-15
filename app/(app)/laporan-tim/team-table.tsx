@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { colPercents } from '@/lib/table-cols';
+import { StableHeight } from '@/components/table-controls';
 import Link from 'next/link';
 import { AccButton } from './acc-button';
 import { PLAYER_BOXES, playerLabelOf, type PlayerClass, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
@@ -130,12 +131,13 @@ export function TeamTable({
         </div>
       )}
 
+      <StableHeight>
       {filtered.length === 0 ? (
         <p className="text-sm text-ink-soft">Tidak ada pegawai cocok dengan "{q}".</p>
       ) : (
         <div className="overflow-x-auto">
           {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/pencarian (tak bergeser saat paging). */}
-          <table className="w-full table-fixed text-left text-sm"
+          <table className="w-full table-fixed table-1line text-left text-sm"
             style={{ minWidth: Math.round((810 + (showStatus ? 96 : 0) + (showAcc ? 170 : 0)) * 0.78) }}>
             <colgroup>
               {colPercents([
@@ -260,7 +262,7 @@ export function TeamTable({
 
       {/* Pager sisi-klien (hanya bila pageSize diisi & hasil melebihi 1 halaman). */}
       {pageSize && filtered.length > pageSize && (
-        <div className="mt-3 flex items-center justify-between gap-2">
+        <div className="mt-auto flex items-center justify-between gap-2">
           <button type="button" disabled={safePage <= 0} onClick={() => setPage(safePage - 1)}
             className="text-xs font-bold px-3 py-2 rounded-control border border-line bg-surface text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-40 disabled:cursor-not-allowed">
             ← {pageSize} sebelumnya
@@ -274,6 +276,7 @@ export function TeamTable({
           </button>
         </div>
       )}
+      </StableHeight>
 
       <p className="text-[10px] text-ink-faint italic mt-3">
         {scoreBasis === 'live' ? (

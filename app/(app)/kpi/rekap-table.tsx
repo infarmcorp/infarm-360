@@ -1,6 +1,6 @@
 'use client';
 
-import { usePager, Pager } from '@/components/table-controls';
+import { usePager, StableHeight, Pager } from '@/components/table-controls';
 import { colPercents } from '@/lib/table-cols';
 import { playerLabelOf, type PlayerClass, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
 
@@ -27,9 +27,10 @@ export function RekapTable({ rows, monthLabels, has360 }: {
 
   return (
     <div className="space-y-3">
+      <StableHeight>
       <div className="overflow-x-auto">
         {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}
-        <table className="w-full table-fixed text-left text-xs"
+        <table className="w-full table-fixed table-1line text-left text-xs"
           style={{ minWidth: Math.round((200 + monthLabels.length * 76 + 96 + (has360 ? 100 : 0) + 96 + 210) * 0.78) }}>
           <colgroup>
             {colPercents([
@@ -74,6 +75,7 @@ export function RekapTable({ rows, monthLabels, has360 }: {
         </table>
       </div>
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
+      </StableHeight>
     </div>
   );
 }

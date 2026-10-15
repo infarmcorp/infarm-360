@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { colPercents } from '@/lib/table-cols';
+import { StableHeight } from '@/components/table-controls';
 import { useRouter } from 'next/navigation';
 import { formatDateTimeWib } from '@/lib/datetime';
 
@@ -115,6 +116,7 @@ export function AuditClient({
         </span>
       </div>
 
+      <StableHeight className="">
       {rows.length === 0 ? (
         <p className="p-6 text-sm text-ink-soft">
           {total === 0 && !active ? 'Belum ada aktivitas tercatat.' : 'Tidak ada entri sesuai filter.'}
@@ -122,7 +124,7 @@ export function AuditClient({
       ) : (
         <div className="overflow-x-auto">
           {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}
-          <table className="w-full table-fixed text-left text-sm min-w-[680px]">
+          <table className="w-full table-fixed table-1line text-left text-sm min-w-[680px]">
             <colgroup>
               {colPercents([
                 180, // Waktu ("01 Okt 2026 14:30 WIB")
@@ -158,7 +160,7 @@ export function AuditClient({
       )}
 
       {/* Pager: geser 10 sebelumnya / berikutnya (fetch server per klik). */}
-      <div className="p-4 border-t border-line-soft flex items-center justify-between gap-2">
+      <div className="mt-auto p-4 border-t border-line-soft flex items-center justify-between gap-2">
         <button type="button" disabled={!hasPrev} onClick={() => go({ page: page - 1 })}
           className="text-xs font-bold px-3 py-2 rounded-control border border-line text-ink-soft hover:bg-neutral-tint disabled:opacity-40 disabled:cursor-not-allowed">
           ← {pageSize} sebelumnya
@@ -169,6 +171,7 @@ export function AuditClient({
           {pageSize} berikutnya →
         </button>
       </div>
+      </StableHeight>
     </div>
   );
 }

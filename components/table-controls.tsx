@@ -35,7 +35,8 @@ export function Pager({
 }) {
   if (pageCount <= 1) return null;
   return (
-    <div className="flex items-center justify-between gap-2 text-xs text-gray-600">
+    // mt-auto: di dalam StableHeight pager menempel di dasar bingkai (posisinya tetap).
+    <div className="mt-auto flex items-center justify-between gap-2 text-xs text-gray-600">
       <button
         onClick={() => setPage(Math.max(0, page - 1))}
         disabled={page === 0}
@@ -54,6 +55,52 @@ export function Pager({
       >Berikutnya →</button>
     </div>
   );
+}
+
+/**
+ * Bingkai tabel/daftar berpager yang TINGGINYA TETAP: tinggi hanya boleh naik (dicatat dari tinggi
+ * terbesar yang pernah tampil), jadi halaman terakhir yang barisnya lebih sedikit, hasil filter yang
+ * menyusut, atau pager yang hilang tak membuat konten di bawahnya melompat. Letakkan tabel lalu
+ * <Pager> di dalamnya — pager menempel di dasar bingkai. Diukur ulang dari nol bila LEBAR bingkai
+ * berubah (jendela diubah ukurannya) atau `resetKey` berubah (mis. ganti periode).
+ *
+ * Sekaligus: sel yang terpotong "…" oleh kelas `.table-1line` diberi tooltip teks lengkap saat disorot.
+ */
+export function StableHeight({ children, className = 'gap-3', resetKey }: {
+  children: React.ReactNode; className?: string; resetKey?: string | number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    let max = 0;
+    let width = el.clientWidth;
+    el.style.minHeight = '';
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth !== width) { width = el.clientWidth; max = 0; el.style.minHeight = ''; }
+      const h = el.offsetHeight;
+      if (h > max) { max = h; el.style.minHeight = `${h}px`; }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [resetKey]);
+
+  // Tooltip teks lengkap untuk isi sel yang terpotong (dicek saat disorot, bukan tiap render).
+  const onMouseOver = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest('.table-1line td')) return;
+    for (let n: HTMLElement | null = target; n && n !== ref.current; n = n.parentElement) {
+      if (n.scrollWidth > n.clientWidth + 1) {
+        if (!n.title || n.dataset.autoTitle) { n.title = n.textContent?.trim() ?? ''; n.dataset.autoTitle = '1'; }
+        return;
+      }
+      if (n.dataset.autoTitle) { n.removeAttribute('title'); delete n.dataset.autoTitle; }
+      if (n.tagName === 'TD') return;
+    }
+  };
+
+  return <div ref={ref} onMouseOver={onMouseOver} className={`flex flex-col ${className}`}>{children}</div>;
 }
 
 export function CheckboxFilter({

@@ -4,7 +4,7 @@ import { fmt2 } from '@/lib/scoring';
 import { colPercents } from '@/lib/table-cols';
 
 import { useMemo, useState } from 'react';
-import { usePager, Pager, CheckboxFilter } from '@/components/table-controls';
+import { usePager, StableHeight, Pager, CheckboxFilter } from '@/components/table-controls';
 
 /**
  * Tabel Kalkulasi Skor 360° — SATU tabel fokus bobot, dengan grup kolom "Perbandingan Model"
@@ -56,9 +56,10 @@ export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
         )}
       </div>
 
+      <StableHeight>
       <div className="overflow-x-auto">
         {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
-        <table className="w-full table-fixed text-left text-sm min-w-[660px]">
+        <table className="w-full table-fixed table-1line text-left text-sm min-w-[660px]">
           <colgroup>
             {colPercents([
               230, // Pegawai + divisi
@@ -121,6 +122,7 @@ export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
       </div>
 
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
+      </StableHeight>
 
       <p className="text-[11px] text-ink-faint leading-relaxed">
         <strong className="font-semibold text-ink-soft">Skor Resmi</strong> = hasil tersimpan (result_360) dari Hitung Ulang terakhir — dipakai dashboard/laporan.

@@ -7,7 +7,7 @@ import { setHrdAdmin, setCoordinator, setCoordinatorTeam, setHrdSections } from 
 import { isHrdDept, HRD_SECTIONS, HRD_SECTION_LABELS, GRANT_ROLE_TARGETS, GRANT_ROLE_TARGET_LABELS, type HrdSection, type GrantRoleTarget } from '@/lib/auth/roles';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { SearchableSelect } from '@/components/searchable-select';
-import { usePager, Pager, MultiCheckFilter } from '@/components/table-controls';
+import { usePager, Pager, MultiCheckFilter, StableHeight } from '@/components/table-controls';
 import { AksesLog, type AksesLogRow } from './akses-log';
 
 export type AksesEmployee = {
@@ -678,7 +678,7 @@ export function AksesClient({
 
                 {filteredHolders.length === 0 ? (
                   <p className="text-[12px] text-ink-faint italic py-4 text-center">Tak ada pemegang cocok dengan filter.</p>
-                ) : (<>
+                ) : (<StableHeight>
                 <div className="space-y-1.5">
                   {holdersPager.shown.map((emp) => {
                     const g = emp.grants[selPage];
@@ -703,7 +703,7 @@ export function AksesClient({
                 </div>
                 <Pager page={holdersPager.page} pageCount={holdersPager.pageCount} setPage={holdersPager.setPage}
                   total={holdersPager.total} rangeFrom={holdersPager.rangeFrom} rangeTo={holdersPager.rangeTo} unit="pemegang" />
-                </>)}
+                </StableHeight>)}
               </div>
             )}
           </div>

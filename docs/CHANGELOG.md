@@ -8,6 +8,21 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
+### 2026-10-15
+- **Ukuran tabel tidak lagi berubah-ubah** (permintaan pengguna). Saat pindah halaman tabel, menyaring, mencari,
+  atau berganti tab, kolom dan tinggi tabel dulu ikut bergeser. Penyebabnya: scrollbar halaman yang muncul-hilang
+  mengubah lebar layar; halaman terakhir yang barisnya lebih sedikit membuat tabel memendek dan tombol halaman
+  melompat; dan teks panjang yang terlipat membuat baris lebih tinggi. Kini:
+  - tempat scrollbar selalu disediakan, jadi lebar layar tetap;
+  - tinggi area tabel hanya bisa bertambah (mengikuti halaman terpanjang yang pernah tampil) dan tombol
+    halaman tetap di bawahnya, jadi tak ada yang melompat;
+  - isi sel dibatasi **satu baris** (keputusan pengguna); teks yang terpotong "…" tampil utuh saat kursor
+    diarahkan ke situ;
+  - kolom daftar Penilaian dikunci agar tidak bergeser saat berpindah tab.
+  Berlaku di semua tabel berhalaman, termasuk heatmap Monitor, Dashboard, Laporan Tim, Audit, dan Log Akses.
+  Lebar heatmap tetap mengikuti jumlah aspek periode yang dipilih. Progress 360 tidak diubah karena barisnya
+  bisa dibuka-tutup.
+
 ### 2026-10-14 (di `dev`, belum di production)
 - **"Unduh PDF" pegawai membuka folder Google Drive** (permintaan pengguna). PDF hasil cetak aplikasi kurang rapi
   dibanding PDF yang disusun HRD. Kini HRD menyimpan tautan **satu folder Drive per pegawai** di Kelola Pegawai.

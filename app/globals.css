@@ -76,6 +76,27 @@ select:not([multiple]) {
 }
 select:not([multiple])::-ms-expand { display: none; }
 
+/*
+ * .table-1line — isi sel badan tabel SATU baris; kelebihan dipotong "…" (teks lengkap muncul sebagai
+ * tooltip lewat StableHeight, components/table-controls.tsx). Tujuannya tinggi baris seragam antar
+ * halaman/filter. Kepala tabel tak ikut (kolomnya sama di tiap halaman). Sel yang sedang membuka menu
+ * ⋯ (OverflowMenu, posisi absolut) dibiarkan overflow agar menunya tak terpotong. Di @layer components
+ * supaya utilitas per sel (mis. `whitespace-normal`) tetap bisa mengalahkannya.
+ */
+@layer components {
+  .table-1line tbody td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .table-1line tbody td :where(div, p, a):not(:has([role="menu"])) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .table-1line tbody td:has([role="menu"]) { overflow: visible; }
+}
+
 /* Cetak / Unduh PDF: sembunyikan kerangka aplikasi, tampilkan hanya dokumen. */
 @media print {
   .app-sidebar,

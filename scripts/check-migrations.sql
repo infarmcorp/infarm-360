@@ -61,7 +61,8 @@ select * from (values
   ('0046', 'kolom assessments.invalidated_at',                 exists(select 1 from information_schema.columns where table_name='assessments' and column_name='invalidated_at')),
   ('0047', 'fungsi assessment_locked_after_deadline',         exists(select 1 from pg_proc where proname='assessment_locked_after_deadline')),
   ('0050', 'tabel employee_report_folders',                  to_regclass('public.employee_report_folders') is not null),
-  ('0051', 'bucket storage email-assets',                    exists(select 1 from storage.buckets where id = 'email-assets'))
+  ('0051', 'bucket storage email-assets',                    exists(select 1 from storage.buckets where id = 'email-assets')),
+  ('0052', 'tabel final_report_history (riwayat laporan)',    to_regclass('public.final_report_history') is not null)
 ) as t(migrasi, penanda_skema, applied)
 order by migrasi;
 

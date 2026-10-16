@@ -249,6 +249,12 @@ export default async function AdminLaporanPage() {
   const finalCount = shownRows.filter((r) => r.status === 'finalized').length;
   const waitingAccCount = shownRows.filter((r) => r.status === 'in_review' && !r.spvAcc).length;
   const draftCount = shownRows.filter((r) => r.status === 'draft').length;
+  const noReportCount = shownRows.filter((r) => r.status == null).length;
+  // Tulisan tombol ② saat tak ada yang bisa difinalisasi massal — sebut sebabnya, bukan "belum siap".
+  const finalizeIdleLabel = waitingAccCount > 0 ? `Menunggu ACC (${waitingAccCount})`
+    : draftCount > 0 ? `Masih ada draf (${draftCount})`
+    : noReportCount > 0 ? `Laporan belum dibuat (${noReportCount})`
+    : finalCount > 0 ? '✓ Semua sudah Final' : 'Belum ada laporan';
   const releaseReady = release?.recipients.filter((r) => r.hasFolder).length ?? 0;
   const releaseSent = release?.recipients.filter((r) => r.hasFolder && r.sent).length ?? 0;
   const releaseNoFolder = release?.recipients.filter((r) => !r.hasFolder).length ?? 0;
@@ -346,7 +352,7 @@ export default async function AdminLaporanPage() {
               <p className="font-semibold text-warn-ink"><span className="data-value">{driftCount}</span> laporan Final angkanya berubah — perbarui agar pegawai melihat skor terbaru.</p>
             )}
             <StepActions>
-              <BulkFinalizeButton count={accReadyCount} staleCount={accStaleCount} primary={activeStep === 2} />
+              <BulkFinalizeButton count={accReadyCount} staleCount={accStaleCount} primary={activeStep === 2} idleLabel={finalizeIdleLabel} />
               <ResyncDriftButton count={driftCount} />
             </StepActions>
           </StepCard>

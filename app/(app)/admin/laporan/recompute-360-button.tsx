@@ -7,6 +7,7 @@ import { Button } from '@/components/button';
 import { OverflowMenu } from '@/components/overflow-menu';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { computeResult360 } from '@/app/(app)/admin/360/actions';
+import { callAction } from '@/lib/call-action';
 
 /**
  * Langkah ① "Hitung Ulang Skor 360°" (kokpit Review & Finalisasi). Memakai action yang sama dengan
@@ -24,7 +25,7 @@ export function Recompute360Button({ stale, primary, blocked = false }: { stale:
 
   async function run() {
     setBusy(true); setMsg(null); setConfirmForce(false);
-    const res = await computeResult360();
+    const res = await callAction(() => computeResult360());
     setBusy(false);
     setMsg(res.ok ? { ok: true, text: `Skor 360° dihitung ulang untuk ${res.computed} pegawai.` } : { ok: false, text: res.error });
     if (res.ok) router.refresh();

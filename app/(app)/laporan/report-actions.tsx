@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Download, Save, CheckCircle2, Send, Undo2, AlertTriangle } from 'lucide-react';
 import { saveOrFinalizeReport, releaseToSpv } from '@/app/(app)/admin/laporan/actions';
+import { callAction } from '@/lib/call-action';
 
 /**
  * Panel aksi HRD di halaman detail Review Hasil Akhir — berbasis STATUS (state machine):
@@ -56,7 +57,7 @@ export function ReportActions({
   async function run(finalize: boolean, mode: 'draft' | 'final' | 'revert') {
     setBusy(mode);
     setMsg(null);
-    const res = await saveOrFinalizeReport(employeeId, finalize);
+    const res = await callAction(() => saveOrFinalizeReport(employeeId, finalize));
     setBusy(null);
     if (!res.ok) { setMsg({ ok: false, text: res.error }); return; }
     setMsg({
@@ -71,7 +72,7 @@ export function ReportActions({
   async function release() {
     setBusy('release');
     setMsg(null);
-    const res = await releaseToSpv(employeeId);
+    const res = await callAction(() => releaseToSpv(employeeId));
     setBusy(null);
     if (!res.ok) { setMsg({ ok: false, text: res.error }); return; }
     setMsg({ ok: true, text: `Dirilis ke ${reviewer} untuk ditinjau (Skor Akhir ${res.finalScore}).` });

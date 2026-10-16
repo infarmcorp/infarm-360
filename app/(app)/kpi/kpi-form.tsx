@@ -119,6 +119,8 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
       Object.fromEntries(Object.entries(o).filter(([k, v]) => v?.trim() && mine.has(k.split('|')[0])));
     const s = keep(d.scores), n = keep(d.notes);
     if (Object.keys(s).length === 0 && Object.keys(n).length === 0) return;
+    // Disengaja: memulihkan draf dari localStorage (sistem luar) sekali setelah hydrate — tak bisa saat render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setScores(s); setNotes(n); setDraftState('restored');
   }, [members]);
 

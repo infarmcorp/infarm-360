@@ -1,6 +1,28 @@
 import Link from 'next/link';
 import { StatusChip } from '@/components/status-chip';
 
+// Komponen kecil di tingkat modul (bukan di dalam ReadinessPanel) agar tak dibuat ulang tiap render.
+const Check = ({ ok }: { ok: boolean }) => (
+  ok
+    ? <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] bg-brand text-[10px] text-white">✓</span>
+    : <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] border border-line-strong text-[10px] text-ink-faint">·</span>
+);
+
+const Item = ({ ok, value, label, href, linkLabel }: {
+  ok: boolean; value?: string; label: string; href?: string; linkLabel: string;
+}) => (
+  <div className="flex items-center gap-2.5 text-[13px]">
+    <Check ok={ok} />
+    {value && <span className="data-value font-semibold text-ink">{value}</span>}
+    <span className="text-ink-soft">{label}</span>
+    {href && (
+      <Link href={href} className="ml-auto text-[12px] text-ink-faint border-b border-dotted border-ink-faint hover:text-ink-soft">
+        {linkLabel}
+      </Link>
+    )}
+  </div>
+);
+
 /**
  * Kesiapan Peluncuran 360° — strip terbagi (signature): area utama (checklist prasyarat + urutan
  * tutup) + panel samping "Aksi Periode" (bedakan 2 saklar). Read-only. Menggantikan panel lama
@@ -18,27 +40,6 @@ export function ReadinessPanel({
   backfilled?: boolean;
 }) {
   const ready = indCount > 0 && mapCount > 0;
-
-  const Check = ({ ok }: { ok: boolean }) => (
-    ok
-      ? <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] bg-brand text-[10px] text-white">✓</span>
-      : <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] border border-line-strong text-[10px] text-ink-faint">·</span>
-  );
-
-  const Item = ({ ok, value, label, href, linkLabel }: {
-    ok: boolean; value?: string; label: string; href?: string; linkLabel: string;
-  }) => (
-    <div className="flex items-center gap-2.5 text-[13px]">
-      <Check ok={ok} />
-      {value && <span className="data-value font-semibold text-ink">{value}</span>}
-      <span className="text-ink-soft">{label}</span>
-      {href && (
-        <Link href={href} className="ml-auto text-[12px] text-ink-faint border-b border-dotted border-ink-faint hover:text-ink-soft">
-          {linkLabel}
-        </Link>
-      )}
-    </div>
-  );
 
   return (
     <div className="mb-5 flex flex-col lg:flex-row items-stretch overflow-hidden rounded-panel border border-line bg-surface">

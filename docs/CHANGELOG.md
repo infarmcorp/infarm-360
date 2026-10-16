@@ -8,6 +8,14 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
+### 2026-10-16 — Pemeriksaan kode otomatis bersih (belum di production)
+- Semua 49 temuan pemeriksaan gaya kode (lint) dibereskan, dan pemeriksaan ini kini ikut berjalan otomatis di setiap
+  PR. Tampilan dan perilaku tidak dimaksudkan berubah. Yang terasa sedikit berbeda (lebih baik):
+  - isian di panel Manajemen Akses tidak lagi berisiko hilang/kehilangan fokus saat halaman memperbarui diri;
+  - kalender pemilih tanggal, daftar pilihan bercari, dan tabel bercari me-reset tampilan tepat saat dibuka/diketik,
+    tanpa kedip render ganda.
+  Simpan otomatis penilaian 360° dan ringkasan sengaja tidak diubah.
+
 ### 2026-10-16 — Gelombang 3: detail laporan sadar mode, pesan Manajemen Akses (di `dev`, belum di production)
 - **Detail laporan pegawai lain kini mengikuti mode HRD.** Dulu pemegang izin HRD berposisi Pegawai yang membuka
   alamat detail laporan saat di mode posisi asli tetap mendapat tampilan HRD penuh. Kini tampil pesan "hanya

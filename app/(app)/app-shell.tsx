@@ -200,9 +200,14 @@ export function AppShell({
   const activeSectionTitle = sections.find((s) => s.items.some((it) => isActive(it.href)))?.title ?? null;
   const firstTitle = sections.find((s) => s.title)?.title ?? null;
   const [openTitle, setOpenTitle] = useState<string | null>(activeSectionTitle ?? firstTitle);
-  useEffect(() => {
+  // Pindah halaman/mode → buka section halaman aktif. Pola resmi React "sesuaikan state saat nilai
+  // berubah" (dibandingkan saat render, bukan lewat effect yang memicu render berantai).
+  const navKey = `${accordion}|${activeSectionTitle}|${firstTitle}`;
+  const [prevNavKey, setPrevNavKey] = useState(navKey);
+  if (navKey !== prevNavKey) {
+    setPrevNavKey(navKey);
     if (accordion) setOpenTitle(activeSectionTitle ?? firstTitle);
-  }, [accordion, activeSectionTitle, firstTitle]);
+  }
 
   const Sidebar = (
     <aside className="app-sidebar w-64 shrink-0 bg-sidebar text-sidebar-soft border-r border-black/30 flex flex-col h-full">

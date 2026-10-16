@@ -257,10 +257,12 @@ export function AksesClient({
   }
 
   // ── Pegawai Baru: joined_on dalam jendela & belum ditinjau. ──
-  const newEmployees = useMemo(() => {
-    const cutoff = new Date(Date.now() - NEW_WINDOW_DAYS * 86400000).toISOString().slice(0, 10);
-    return rows.filter((r) => !r.isExternal && r.accessReviewedAt == null && r.joinedOn != null && r.joinedOn >= cutoff);
-  }, [rows]);
+  // Batas jendela dihitung SEKALI saat komponen dibuat (Date.now() tak murni → jangan di tiap render).
+  const [newCutoff] = useState(() => new Date(Date.now() - NEW_WINDOW_DAYS * 86400000).toISOString().slice(0, 10));
+  const newEmployees = useMemo(
+    () => rows.filter((r) => !r.isExternal && r.accessReviewedAt == null && r.joinedOn != null && r.joinedOn >= newCutoff),
+    [rows, newCutoff],
+  );
   function markReviewed(r: AksesEmployee) {
     run(r.id, () => markAccessReviewed(r.id), () => patchRow(r.id, { accessReviewedAt: new Date().toISOString() }));
   }
@@ -306,8 +308,9 @@ export function AksesClient({
     : g.canEdit ? { t: '✎ meringkas', c: 'bg-brand-tint text-brand-ink border-brand/25' }
     : { t: '👁 lihat', c: 'bg-surface text-ink-soft border-line' };
 
-  /** Kartu Lingkup & Izin (dipakai mode pegawai & peran). */
-  function PanelCard() {
+  /** Kartu Lingkup & Izin (dipakai mode pegawai & peran). Fungsi render biasa, BUKAN komponen: komponen yang
+   *  didefinisikan di dalam render dibuat ulang tiap render (state & fokus input hilang). */
+  function renderPanelCard() {
     if (!panel || !panelPage) return null;
     return (
       <div className="mt-3 rounded-panel border border-brand/30 bg-brand-tint/40 p-4">
@@ -542,7 +545,7 @@ export function AksesClient({
                     <SlidersHorizontal className="w-4 h-4" /> Atur →
                   </button>
                 </div>
-                {panel && !panel.roleTarget && panel.empId === emp.id && <PanelCard />}
+                {panel && !panel.roleTarget && panel.empId === emp.id && renderPanelCard()}
               </div>
 
               {/* (C) Kapabilitas */}
@@ -624,7 +627,7 @@ export function AksesClient({
               </button>
             </div>
             {msg && msg.id === `role:${selRole}` && <p className={`text-[11px] mt-2 ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
-            {panel && panel.roleTarget === selRole && <PanelCard />}
+            {panel && panel.roleTarget === selRole && renderPanelCard()}
           </div>
         )}
 

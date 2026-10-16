@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { colPercents } from '@/lib/table-cols';
 import { StableHeight } from '@/components/table-controls';
 import Link from 'next/link';
@@ -111,7 +111,7 @@ export function TeamTable({
       (r) => r.name.toLowerCase().includes(term) || (r.nickname ?? '').toLowerCase().includes(term) || (r.dept ?? '').toLowerCase().includes(term),
     );
   }, [q, rows]);
-  useEffect(() => { setPage(0); }, [q]);
+  // Halaman kembali ke awal saat kata cari berubah — di handler input (bukan effect, yang memicu render berantai).
 
   // Paginasi sisi-klien (opsional): potong hasil terfilter ke halaman aktif.
   const pageCount = pageSize ? Math.max(1, Math.ceil(filtered.length / pageSize)) : 1;
@@ -127,7 +127,7 @@ export function TeamTable({
           <input
             type="search"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => { setQ(e.target.value); setPage(0); }}
             placeholder="Cari nama pegawai…"
             aria-label="Cari nama pegawai"
             className="w-full sm:max-w-xs rounded-control border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-tint"

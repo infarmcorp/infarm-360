@@ -30,6 +30,7 @@ Acuan fungsional: `PANDUAN Infarm 360 Portal.pdf` dan [docs/PANDUAN.md](docs/PAN
 | `docs/pengembangan/DESAIN-MANAJEMEN-AKSES.md` | catatan keputusan izin 3 tingkat (dirujuk migrasi 0032/0033) |
 | `docs/panduan/REVISI-PANDUAN-PDF.md` | sementara — teks revisi 4 PDF; hapus setelah PDF direvisi |
 | [docs/UJI-RILIS-Q3.md](docs/UJI-RILIS-Q3.md) | sementara — daftar uji manual rilis Q3 (gelombang 1, 2, 2b); hapus setelah rilis |
+| [docs/PESAN-HRD-RILIS-Q3.md](docs/PESAN-HRD-RILIS-Q3.md) | sementara — pesan siap kirim ke HRD tentang perubahan rilis Q3; hapus setelah rilis |
 
 Selalu perbarui RENCANA/CHANGELOG saat status fitur bergeser, dan file ini hanya bila aturan berubah.
 PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fungsi, path, nomor migrasi).
@@ -93,6 +94,13 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
 - Lingkup raw SPV = seluruh pegawai **sedivisi** (`inSpvDivisionScope`) — hanya untuk detail laporan; KPI/Monitor/
   ACC/RLS `is_my_member` tetap `spv_team_members`. Laporan **diri sendiri tanpa raw** (`withoutRaw`) kecuali HRD
   Mode Admin & Direksi. Anggota tim koordinator wajib sedivisi.
+- **RISIKO YANG DITERIMA SECARA SADAR (pemilik, 2026-10-16) — laporan diri sendiri pemegang izin HRD:** HRD Mode
+  Admin melihat komentar mentah anonim di laporannya sendiri **dan** boleh meringkas, merilis, serta memfinalisasi
+  laporannya sendiri (`resolveReportWriter` jalur HRD tanpa cek diri sendiri). Alasan: tidak ada orang lain yang
+  mengurus laporan HRD admin. **Jangan tandai lagi sebagai temuan audit** dan jangan tambahkan penolakan tanpa
+  permintaan. Yang tetap berlaku: L3 (nama penilai) dibuang di server untuk tampilan HRD (`withoutNamedFeedback`);
+  pemegang grant Review non-HRD tetap ditolak untuk laporannya sendiri; ACC laporan sendiri tetap ditolak (0049).
+  Aturan database yang melarang membaca penilaian atas diri sendiri **tidak** dibuat (keputusan yang sama).
 - Employee hanya membaca laporannya saat `finalized` (dimuat via service_role). Direksi read-only + ACC.
 - **KPI hanya lewat Server Action** (`kpi_write` RLS dicabut): lingkup `assertKpiScope` (HRD = divisinya sendiri
   + diri, apa pun modenya · SPV tim+diri · Koordinator tim), tulis atomik `kpi_save_with_audit`/`kpi_delete_with_audit`. Audit KPI tak boleh
@@ -216,6 +224,11 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
   - Semua perubahan masuk lewat **PR ke `dev`** dulu; `dev` → `main` hanya saat rilis yang **disetujui pemilik**.
   - PR yang membawa migrasi **wajib** mencantumkan nomor migrasinya dan bahwa migrasi itu harus dijalankan di
     **staging & production** sebelum fiturnya dipakai.
+  - **Sinkron `main` → `dev` (pemilik, 2026-10-16):** setiap kali ada PR masuk `main` (rilis, fitur yang dirilis
+    lebih awal, atau perbaikan mendesak), **segera** buat PR "sinkron main → dev" agar kedua branch tak bercabang.
+  - **Satu fitur dibuat SEKALI.** Tidak ada lagi branch versi `-main` terpisah (dulu fitur yang sama dibuat dua
+    kali → 4 bentrokan saat rilis Q3). Fitur yang dirilis lebih awal: satu branch, PR ke `main`, lalu sinkron ke `dev`.
+  - `main` **dilindungi** di GitHub (sejak 2026-10-16): semua perubahan lewat PR yang lulus pemeriksaan otomatis.
 
 ## 10. Perintah
 ```bash

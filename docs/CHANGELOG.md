@@ -15,6 +15,17 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 - **Pemberitahuan "Aplikasi baru saja diperbarui" dan "Perubahan TIDAK tersimpan" pindah ke atas tengah layar**
   (permintaan pengguna), agar tidak menutupi tabel dan tombol di bagian bawah.
 
+### 2026-10-16 — Rilis Q3 ke production
+- **Isi `dev` dirilis ke production** (keputusan pemilik), lebih awal dari rencana "setelah Q3 Final" dan di
+  tengah finalisasi Q3: perbaikan audit gelombang 1, 2, 2b, **kunci laporan Final** (berlaku juga untuk laporan
+  Q3 yang sudah Final), nama penilai tak terkirim di tampilan HRD, layar Review Penilaian, Mode Maintenance (belum
+  diaktifkan), filter Divisi, dan PDF panduan versi 1 Oktober apa adanya. Perubahan database 0048 dan 0049
+  dijalankan di production hari yang sama.
+- Fitur yang sama sempat dibuat dua kali sehingga penggabungan bentrok di 4 tempat (finalisasi massal, tombol
+  Hitung Ulang, dan daftar cek database); diselesaikan dengan mempertahankan perilaku kedua versi.
+- Langkah uji tambahan (nama penilai, bagian yang bentrok, Review Penilaian, filter Divisi) belum dijalankan;
+  pesan perubahan untuk HRD, SPV/Koordinator, dan pegawai disiapkan.
+
 ### 2026-10-16 — Keputusan menjelang rilis Q3
 - **Fitur 13–16 Oktober sudah langsung di production** (rilis lebih awal, keputusan pemilik): Impor & format
   Ringkasan, Folder Laporan, ukuran tabel tetap, Email Rilis Laporan, kokpit 3 langkah, sebab tombol Finalisasi

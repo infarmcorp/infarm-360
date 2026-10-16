@@ -1,21 +1,21 @@
 # Pesan untuk HRD — Rilis Q3 2026
 
-> **File sementara.** Pesan siap kirim untuk tim HRD tentang perubahan yang mulai berlaku setelah rilis Q3
-> (setelah Q3 difinalisasi, ±20 Oktober 2026). Isi **[tanggal]** sebelum dikirim. Hapus file ini setelah rilis.
+> **File sementara.** Pesan siap kirim untuk tim HRD tentang perubahan rilis Q3, yang **sudah berlaku sejak
+> 16 Oktober 2026** (di tengah finalisasi Q3). Kirim segera. Hapus file ini setelah terkirim.
 >
 > Catatan pengirim:
 > - Fitur 13–16 Oktober (Impor Ringkasan, Folder Laporan, Email Rilis Laporan, kokpit 3 langkah, Riwayat Laporan,
 >   pesan bila aksi gagal tersimpan) **sudah berjalan** sebelum rilis ini, jadi tidak dimasukkan lagi.
-> - Bagian "Untuk disampaikan ke pegawai" boleh diteruskan HRD ke seluruh pegawai.
+> - Bagian "Untuk disampaikan ke SPV & Koordinator" dan "Untuk disampaikan ke pegawai" boleh diteruskan HRD.
 
 ---
 
-**Perihal: Pembaruan Infarm 360° Portal — berlaku mulai [tanggal]**
+**Perihal: Pembaruan Infarm 360° Portal — berlaku sejak 16 Oktober 2026**
 
 Halo Tim HRD,
 
-Mulai **[tanggal]**, Infarm 360° Portal diperbarui. Sebagian besar perubahan ada di sisi HRD. Berikut yang perlu
-diketahui.
+Sejak **16 Oktober 2026**, Infarm 360° Portal sudah diperbarui. Karena finalisasi Q3 sedang berjalan, beberapa
+perubahan di bawah ini langsung terasa, terutama butir 1. Berikut yang perlu diketahui.
 
 **1. Laporan yang sudah Final kini terkunci**
 
@@ -33,8 +33,12 @@ dilewati, dan jumlahnya disebutkan.
 Begitu ada **satu** laporan Final di sebuah periode, pengaturan seluruh periode itu juga terkunci: bobot periode,
 pertanyaan dan indikator, menghidupkan/mematikan 360°, dan hapus periode.
 
-**Bila memang perlu mengubah:** buka detail laporan → tekan **Buka Kembali (ke Draf)** (dulu bernama "Kembalikan
-ke Draf"). Perlu diingat:
+Aturan ini juga berlaku untuk laporan Q3 yang **sudah Final sebelum pembaruan**.
+
+**Bila memang perlu mengubah:** buka detail laporan pegawai itu → tekan **Buka Kembali (ke Draf)** (dulu bernama
+"Kembalikan ke Draf"). Tombol ini berlaku **per pegawai**: hanya laporan orang itu yang terbuka, pegawai lain
+tetap Final. Untuk pengaturan seluruh periode (bobot periode, pertanyaan, 360°), semua laporan Final di periode
+itu harus dibuka kembali dulu, jadi pastikan pengaturan periode sudah benar sebelum memfinalisasi. Perlu diingat:
 - ACC dari SPV/Direksi **terhapus** dan perlu diulang;
 - selama dibuka kembali, pegawai **tidak bisa** melihat laporannya;
 - **Skor Akhir bisa berubah** saat difinalisasi ulang, karena potongan keterlambatan yang masih tertunda ikut
@@ -99,13 +103,31 @@ pengisian penilaian. Setelah selesai, aplikasi otomatis bisa dipakai lagi.
 
 **13. Panduan**
 
-Tanda **BARU** akan muncul di menu Panduan (versi 1 Oktober 2026). Pembaruan isi panduan menyusul.
+Tanda **BARU** muncul di menu Panduan (versi 1 Oktober 2026). Pembaruan isi panduan menyusul.
+
+**14. Tampilan**
+
+Huruf di aplikasi sempat terlihat lebih lebar sesaat setelah pembaruan; kini sudah kembali seperti semula.
+Pemberitahuan "Aplikasi baru saja diperbarui" muncul di **atas tengah** layar. Bila muncul, tekan **Muat ulang**
+sebelum menyimpan apa pun.
+
+---
+
+**Untuk disampaikan ke SPV & Koordinator**
+
+Sejak **16 Oktober 2026**, KPI pegawai yang laporan kuartalnya sudah **Final** terkunci:
+- KPI bulan-bulan kuartal itu (untuk Q3: Juli, Agustus, September) tidak bisa diisi, diubah, diimpor, atau dihapus.
+  Pesannya: "Laporan [nama] sudah Final. Buka Kembali laporannya dulu untuk mengubah data ini."
+- Bila di antara pegawai yang disimpan sekaligus ada **satu saja** yang sudah Final, **seluruh** simpanan
+  ditolak. Simpan tanpa pegawai itu, atau minta HRD membuka kembali laporannya bila KPI-nya memang perlu diubah.
+- KPI bulan Oktober dan seterusnya (Q4) tetap bisa diisi seperti biasa.
+- ACC hanya untuk anggota tim sendiri, dan laporan sendiri tidak bisa di-ACC.
 
 ---
 
 **Untuk disampaikan ke pegawai**
 
-Mulai **[tanggal]**, saat mengisi penilaian 360°:
+Sejak **16 Oktober 2026**, saat mengisi penilaian 360°:
 - Setelah semua pertanyaan lengkap, tombol utama berubah menjadi **Review Penilaian**.
 - Layar Review menampilkan ringkasan semua jawaban per aspek (nilai, key point, dan bukti perilaku bila diklik)
   serta jawaban esai. Tekan **Edit** untuk memperbaiki jawaban tertentu.

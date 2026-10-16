@@ -10,10 +10,28 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 
 ## 1. Status terkini (per 2026-10-16)
 
-- Aplikasi **live dan dipakai**. Periode **Q3 2026** menuju Final **±20 Oktober** (jadwal tetap).
+- Aplikasi **live dan dipakai**. Periode **Q3 2026** sedang difinalisasi (target Final **±20 Oktober**).
 - Production berjalan dari branch `main`. Sejak 2026-10-16 `main` **dilindungi**: perubahan hanya lewat PR yang
   lulus pemeriksaan otomatis. Setiap PR yang masuk `main` langsung disusul PR "sinkron main → dev".
-- **Sudah langsung di production** (dirilis lebih awal, keputusan pemilik):
+- **Rilis Q3 sudah di production sejak 2026-10-16** (lebih awal dari rencana "setelah Q3 Final"; pemilik
+  memutuskan merge), **sebelum** finalisasi Q3 selesai. Isinya:
+  - perbaikan audit kode gelombang 1, 2, dan 2b, termasuk **kunci laporan Final** (lihat §2). Berlaku juga untuk
+    laporan Q3 yang sudah Final: mengubah datanya harus lewat **Buka Kembali (ke Draf)** per pegawai;
+  - nama penilai tidak lagi terkirim ke browser di tampilan HRD;
+  - layar **Review Penilaian** sebelum mengirim penilaian;
+  - **Mode Maintenance** (belum diaktifkan, lihat §2);
+  - filter **Divisi** di Monitoring & Audit KPI;
+  - perbaikan halaman Laporan Kinerja Tim dan Monitor, penyeragaman tampilan;
+  - 4 PDF panduan dengan nomor versi `2026-10-01` (**apa adanya**, lihat §2).
+  Semua perubahan database **0001–0052** terpasang di staging dan production (0048 & 0049 dijalankan pemilik
+  2026-10-16).
+- Setelah rilis (2026-10-16): huruf **kembali ke font bawaan perangkat** (rilis sempat membuat huruf rancangan
+  Montserrat termuat sehingga teks melebar) dan pemberitahuan "Aplikasi baru saja diperbarui" pindah ke atas tengah.
+- Langkah uji tambahan rilis (bagian 16–21 [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md)) **belum dijalankan**. Kini diuji
+  di Preview `dev` (isinya sama dengan production, memakai database staging).
+- 🔑 Pesan perubahan untuk HRD **belum dikirim**: [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md). Kirim segera,
+  karena HRD sedang memfinalisasi Q3 dengan aturan baru.
+- **Sudah langsung di production sebelum rilis Q3** (dirilis lebih awal, keputusan pemilik):
   - 2026-10-13: **Impor Ringkasan dari Excel** dan **format ringkasan** (tebal/poin). Belum dicoba dengan data nyata.
   - 2026-10-14: **Unduh PDF pegawai membuka folder Google Drive** (Folder Laporan).
   - 2026-10-15: **ukuran tabel tetap**, **Email Rilis Laporan**, **kokpit Review & Finalisasi 3 langkah**.
@@ -21,20 +39,7 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
     (dan nama pegawai di log finalisasi massal), **Riwayat Laporan**.
   - Perubahan database **0050, 0051, 0052** sudah terpasang di **staging dan production** (2026-10-16).
   - Fitur 15–16 Oktober **belum diuji di staging**; sudah berjalan di production.
-- **Rilis Q3 = isi `dev` yang belum di production**, dirilis setelah Q3 Final:
-  - perbaikan audit kode gelombang 1, 2, dan 2b, termasuk **kunci laporan Final** (lihat §2);
-  - nama penilai tidak lagi terkirim ke browser di tampilan HRD;
-  - layar **Review Penilaian** sebelum mengirim penilaian (lihat §2);
-  - **Mode Maintenance** (halaman "Sedang Maintenance" yang bisa dinyalakan tanpa deploy ulang);
-  - filter **Divisi** di Monitoring & Audit KPI;
-  - perbaikan halaman Laporan Kinerja Tim dan Monitor, penyeragaman tampilan, perapian dokumentasi;
-  - 4 PDF panduan dengan nomor versi `2026-10-01` (**apa adanya**, lihat §2);
-  - perubahan database **0048** dan **0049** (sudah di staging; production saat rilis).
-  Branch rilis dan PR ke `main` sudah disiapkan (2026-10-16); menunggu Q3 Final dan persetujuan pemilik.
-- **Uji rilis Q3 sudah dijalankan 2026-10-15** di database staging: 53 langkah lulus, 0 gagal. Langkah tambahan
-  (2026-10-16: nama penilai di tampilan HRD, bagian yang bentrok saat penggabungan, Mode Maintenance, Review
-  Penilaian, filter Divisi) **belum dijalankan**. Semuanya di [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md).
-- Pesan perubahan untuk HRD siap kirim: [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md).
+- **Uji rilis Q3 dijalankan 2026-10-15** di database staging: 53 langkah lulus, 0 gagal.
 
 ---
 
@@ -46,20 +51,17 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   30 Juli (masih ada "Review Hasil Akhir", "punishment", "4 karakter", salah ketik "ditHRD"). Revisi menyusul:
   sunting dokumen Word sumber sesuai [panduan/REVISI-PANDUAN-PDF.md](panduan/REVISI-PANDUAN-PDF.md) (bagian 0–4
   dan 6), ekspor ulang, naikkan nomor versi, lalu rilis. Langkahnya di [TEKNIS.md](TEKNIS.md) §9.
-- 🔑⬜ **Rilis Q3** (`dev` → `main`) setelah Q3 Final ±20 Oktober: uji langkah tambahan di
-  [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md), merge PR rilis, jalankan **0048** lalu **0049** di production, kirim
-  [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md) ke HRD, lalu buat PR sinkron `main` → `dev`.
+- 🔑🔄 **Rilis Q3** — sudah di production (2026-10-16), 0048 & 0049 terpasang. Sisa:
+  - 🔑 kirim [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md) ke HRD (dan bagian untuk SPV/Koordinator & pegawai);
+  - 🔑 jalankan bagian 16–21 [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md) di Preview `dev` (staging);
+  - setelah selesai: hapus UJI-RILIS-Q3.md dan PESAN-HRD-RILIS-Q3.md, catat hasilnya di CHANGELOG.
 - 🔑⬜ **Aktifkan Mode Maintenance.** Langkah A–C di [TEKNIS.md](TEKNIS.md) §3.3:
-  - ⬜ A. Rilis Q3 (`dev` → `main`) dan tunggu deploy production.
+  - ✅ A. Rilis Q3 (`dev` → `main`) — 2026-10-16.
   - ⬜ B. Siapkan saklar di dashboard Vercel dan kode rahasia developer, lalu deploy ulang sekali.
   - ⬜ C. Uji coba sekali di luar jam pengisian penilaian.
   - Setelah A–C beres, langkah D dipakai setiap kali perlu maintenance.
-- 🔄 **Layar "Review Penilaian" sebelum kirim.** Bila semua pertanyaan sudah lengkap, tombol utama formulir
-  menjadi **Review Penilaian**. Layar ini menampilkan ringkasan jawaban per aspek (nilai dan key point,
-  bukti perilaku bisa dibuka), jawaban esai, dan tombol **Edit** ke pertanyaan terkait. Setelah itu baru
-  **Kirim Penilaian** → konfirmasi → sukses. Rata-rata skor tidak ditampilkan. Sisa: uji di staging dan HP
-  (termasuk setelah deadline, saat tombolnya menjadi Lihat), lalu rilis ke production. Setelah rilis,
-  tambahkan ke [PANDUAN.md](PANDUAN.md) §2.2.
+- 🔄 **Layar "Review Penilaian" sebelum kirim** — sudah di production (2026-10-16) dan tercatat di
+  [PANDUAN.md](PANDUAN.md) §2.2. Sisa: uji di staging dan HP (bagian 19 UJI-RILIS-Q3).
 - 🔑🔄 **Folder Laporan (Drive).** Perubahan database **0050** sudah terpasang di staging dan production
   (2026-10-16) dan kodenya sudah di production. Sisa: HRD menyiapkan folder + berbagi per pegawai dan mengisi
   tautannya (SOP di [PANDUAN.md](PANDUAN.md) §5.1). Tanpa tautan, pegawai melihat "PDF belum tersedia".
@@ -69,8 +71,8 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 - 🔑🔄 **Email Rilis Laporan.** Perubahan database **0051** terpasang di staging dan production (2026-10-16).
   Sisa, per periode: unggah dua gambar pendamping di dialog Email Rilis Laporan, kirim uji ke email sendiri, baru
   kirim ke pegawai (SOP di [PANDUAN.md](PANDUAN.md) §5.9). Butuh tautan folder tiap pegawai terisi.
-- 🔑🔄 **Perubahan database production.** 0001–0047 dan 0050–0052 terpasang. Sisa **0048** lalu **0049** saat
-  rilis Q3 (sudah di staging). Cara cek: `scripts/check-migrations.sql` ([TEKNIS.md](TEKNIS.md) §1 dan §6).
+- ✅ **Perubahan database production** — 0001–0052 terpasang di staging dan production (dicek pemilik
+  2026-10-16 dengan `scripts/check-migrations.sql`).
 
 ### Keamanan
 - 🔑⬜ **Ganti kunci rahasia database** (kunci admin Supabase dan lainnya) sebelum produksi penuh. Kunci admin
@@ -83,7 +85,7 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
     = satu titik gagal);
   - tiap akhir kuartal, unduh file backup terenkripsi dari GitHub (hanya disimpan 30 hari) ke Drive tim;
   - ulangi backup manual di akhir periode dan sebelum perubahan database/reset.
-- 🔄 **Izin HRD saat pegawai pindah divisi** — sudah di `dev` (audit gelombang 2): Ubah Pegawai menolak
+- 🔄 **Izin HRD saat pegawai pindah divisi** — sudah di production (audit gelombang 2): Ubah Pegawai menolak
   memindahkan pemegang izin HRD ke luar divisi HRD sampai izinnya dicabut. 🔑 Sisa: cek apakah sekarang sudah ada
   pemegang izin HRD di luar divisi HRD-GA (bila ada, cabut manual).
 - ✅ **SPV yang juga punya izin HRD** (temuan audit no. 11) — **ditutup 2026-10-14**: dicek di production, tidak
@@ -99,8 +101,8 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
     mengurus laporan HRD admin. Komentar mentah (anonim) di laporannya sendiri **tetap tampil**. Tidak ada rencana
     menolak HRD memfinalisasi laporannya sendiri.
   - Aturan database yang melarang membaca penilaian atas diri sendiri **tidak** dibuat.
-  - Nama penilai **tidak lagi terkirim ke browser** di tampilan HRD mana pun (2026-10-14). Tampilan tak berubah.
-    Ikut rilis Q3.
+  - Nama penilai **tidak lagi terkirim ke browser** di tampilan HRD mana pun (di production sejak 2026-10-16).
+    Tampilan tak berubah.
   - Tetap berlaku: pemegang akses Review non-HRD tidak bisa mengubah atau memfinalisasi laporannya sendiri, dan
     tidak ada yang bisa meng-ACC laporannya sendiri.
 - Catatan (risiko rendah): batas "HRD hanya menginput KPI divisinya sendiri" hanya dijaga aplikasi, tidak
@@ -121,24 +123,23 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   - Jalankan uji beban di staging sebelum dibuka ke ~100 pengguna ([TEKNIS.md](TEKNIS.md) §7.5).
   - Laporan "layar kosong di HP" belum dikejar. Dugaan: perangkat (jam/tanggal HP salah sehingga sertifikat
     HTTPS gagal, atau jaringan), bukan aplikasi.
-- 🔄 **Perbaikan audit kode gelombang 2** — sudah di `dev`: grafik Dashboard/Monitor memakai golongan yang sama
-  dengan laporan, daftar tugas HRD dan Monitor tak lagi terpotong di 1.000 baris, ekspor menolak membuat file
-  tidak lengkap, dan tes baru untuk hitung ulang Skor 360°, potongan telat, finalisasi, periode, dan akses.
-  Uji manual **lulus** 2026-10-15. Sisa: rilis.
-- 🔑🔄 **Kunci laporan Final + perbaikan audit gelombang 2b** — sudah di `dev`, **dirilis ke production SETELAH
-  finalisasi Q3** (keputusan pemilik). Isinya: laporan Final terkunci sampai HRD menekan "Buka Kembali (ke Draf)";
+- ✅ **Perbaikan audit kode gelombang 2** — di production sejak 2026-10-16: grafik Dashboard/Monitor memakai
+  golongan yang sama dengan laporan, daftar tugas HRD dan Monitor tak lagi terpotong di 1.000 baris, ekspor menolak
+  membuat file tidak lengkap, dan tes baru untuk hitung ulang Skor 360°, potongan telat, finalisasi, periode, dan
+  akses. Uji manual **lulus** 2026-10-15.
+- 🔑🔄 **Kunci laporan Final + perbaikan audit gelombang 2b** — **di production sejak 2026-10-16**, di tengah
+  finalisasi Q3 (semula direncanakan setelahnya). Isinya: laporan Final terkunci sampai HRD menekan "Buka Kembali (ke Draf)";
   pengaman Q1 2026 kini menolak bila gagal dibaca dan juga melindungi potongan telat; finalisasi massal hanya
   menghitung yang benar-benar tersimpan; HRD tak bisa memberi akses halaman ke dirinya sendiri; batalkan/pulihkan
   penilaian memberi peringatan bila skor gagal diperbarui; ACC hanya untuk anggota tim/divisi sendiri dan bukan
   laporan sendiri. Sisa:
-  - ✅ migrasi **0048** dan **0049** sudah terpasang di staging (2026-10-14);
+  - ✅ migrasi **0048** dan **0049** terpasang di staging (2026-10-14) dan production (2026-10-16);
   - ✅ uji manual **lulus** 2026-10-15 (53 langkah, 0 gagal; hasil di [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md)). Data
     uji di staging sudah dikembalikan;
-  - 🔑 saat rilis: terapkan **0048** lalu **0049** ke production (langkah di TEKNIS.md §1; cek dengan
-    `scripts/check-migrations.sql`). Aplikasi tetap jalan walau belum diterapkan;
-  - 🔑 sampaikan perilaku baru ke HRD sebelum rilis, termasuk: **Skor Akhir bisa berubah saat laporan dibuka
-    kembali lalu difinalisasi ulang**, karena potongan telat yang masih tertunda ikut diterapkan (di uji:
-    74,00 → 72,50). Pesan siap kirim: [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md);
+  - 🔑 sampaikan perilaku baru ke HRD **segera** (sudah berlaku), termasuk: **Skor Akhir bisa berubah saat laporan
+    dibuka kembali lalu difinalisasi ulang**, karena potongan telat yang masih tertunda ikut diterapkan (di uji:
+    74,00 → 72,50), dan **KPI pegawai Final terkunci** untuk SPV/Koordinator. Pesan siap kirim:
+    [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md);
   - catatan: Ubah deadline & cron melewati pegawai Final tanpa menyebut jumlahnya (proses otomatis).
 - ⬜ **Gelombang 3 (kecil): pesan di Manajemen Akses saat memberi akses per peran.** Setelah disimpan, panel
   langsung tertutup sehingga pesan berhasil tak terlihat; pratinjau sebelum simpan menulis jumlah penerima

@@ -308,6 +308,7 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
   const nameById = new Map((emps ?? []).map((e) => [e.id, e.name]));
 
   let finalized = 0;
+  const finalizedNames: string[] = [];
   const skipped: { name: string; reason: string }[] = [];
   for (const r of list) {
     const label = nameById.get(r.employee_id) ?? r.employee_id;
@@ -324,12 +325,15 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
       .update({ final_score: final, status: 'finalized', finalized_by: user.id }).eq('id', r.id);
     if (error) { skipped.push({ name: label, reason: error.message }); continue; }
     finalized++;
+    finalizedNames.push(label);
   }
 
+  // Nama yang difinalisasi & yang dilewati (+ alasannya) ikut dicatat — dulu hanya jumlah, sehingga
+  // "1 dilewati" tak bisa dilacak siapa (kasus 2026-10-16).
   await logHrdAction({
     action: 'report.bulk_finalize', category: 'laporan',
-    summary: `Finalisasi massal ${finalized} laporan ber-ACC${skipped.length ? ` (${skipped.length} dilewati)` : ''}`,
-    meta: { finalized, skipped: skipped.length, period_id: ap.id },
+    summary: `Finalisasi massal ${finalized} laporan ber-ACC${skipped.length ? ` (${skipped.length} dilewati: ${skipped.map((x) => x.name).join(', ')})` : ''}`,
+    meta: { finalized, skipped: skipped.length, period_id: ap.id, finalized_names: finalizedNames, skipped_list: skipped },
   });
   revalidatePath('/admin/laporan');
   revalidatePath('/laporan');

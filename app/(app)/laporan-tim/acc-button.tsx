@@ -3,18 +3,22 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { setSpvAcc } from './actions';
+import { callAction, savedAtLabel } from '@/lib/call-action';
 
 export function AccButton({ employeeId, acc, hasReport, canAcc }: { employeeId: string; acc: boolean; hasReport: boolean; canAcc: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // Konfirmasi eksplisit "tersimpan pukul …" — bukti di layar bahwa server menerima ACC (lihat lib/call-action.ts).
+  const [saved, setSaved] = useState<string | null>(null);
 
   async function toggle() {
     setBusy(true);
-    setErr(null);
-    const res = await setSpvAcc(employeeId, !acc);
+    setErr(null); setSaved(null);
+    const res = await callAction(() => setSpvAcc(employeeId, !acc));
     setBusy(false);
     if (!res.ok) { setErr(res.error); return; }
+    setSaved(`${res.acc ? 'ACC tersimpan' : 'ACC dibatalkan'} pukul ${savedAtLabel()}`);
     router.refresh();
   }
 
@@ -31,7 +35,8 @@ export function AccButton({ employeeId, acc, hasReport, canAcc }: { employeeId: 
         }`}>
         {busy ? '…' : acc ? '✔ ACC (batalkan)' : 'Beri ACC'}
       </button>
-      {err && <span className="text-[10px] text-rose-600 max-w-[150px] text-right">{err}</span>}
+      {err && <span className="text-[10px] font-semibold text-danger-ink max-w-[170px] text-right">{err}</span>}
+      {saved && <span className="text-[10px] text-brand-ink max-w-[170px] text-right">✓ {saved}</span>}
     </div>
   );
 }

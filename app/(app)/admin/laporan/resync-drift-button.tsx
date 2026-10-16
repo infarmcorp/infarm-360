@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { RefreshCcwDot } from 'lucide-react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { resyncDriftedFinals } from './actions';
+import { callAction } from '@/lib/call-action';
 
 /**
  * "Finalisasi Ulang Laporan Berubah (N)" — satu klik untuk menyinkronkan skor tersimpan pada laporan
@@ -22,7 +23,7 @@ export function ResyncDriftButton({ count }: { count: number }) {
 
   async function run() {
     setBusy(true); setMsg(null);
-    const res = await resyncDriftedFinals();
+    const res = await callAction(() => resyncDriftedFinals());
     setBusy(false); setOpen(false);
     if (!res.ok) { setMsg({ ok: false, text: res.error }); return; }
     const skip = res.skipped ? ` · ${res.skipped} dilewati` : '';

@@ -10,6 +10,7 @@ import {
 } from '@/lib/email/release-template';
 import { RELEASE_IMAGES, type ReleaseImageKey } from '@/lib/report-release';
 import { sendReleaseEmails, sendReleaseEmailTest, uploadReleaseImage, removeReleaseImage } from './release-email-actions';
+import { callAction } from '@/lib/call-action';
 
 export type ReleaseRecipient = { id: string; name: string; dept: string; hasFolder: boolean; sent: boolean };
 
@@ -88,7 +89,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
 
   async function sendTest() {
     setBusy('test'); setMsg(null);
-    const res = await sendReleaseEmailTest({ periodId: period.id, content });
+    const res = await callAction(() => sendReleaseEmailTest({ periodId: period.id, content }));
     setBusy(null);
     setMsg(res.ok ? { ok: true, text: res.msg } : { ok: false, text: res.error });
   }
@@ -100,7 +101,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
     const details: string[] = [];
     setProgress({ done: 0, total: ids.length });
     for (let i = 0; i < ids.length; i += BATCH) {
-      const res = await sendReleaseEmails({ periodId: period.id, employeeIds: ids.slice(i, i + BATCH), content });
+      const res = await callAction(() => sendReleaseEmails({ periodId: period.id, employeeIds: ids.slice(i, i + BATCH), content }));
       if (!res.ok) { details.push(`Gelombang ${i / BATCH + 1}: ${res.error}`); break; }
       sent += res.sent.length;
       res.skipped.forEach((s) => details.push(`${s.name}: dilewati — ${s.reason}`));
@@ -116,7 +117,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
     setBusy('image'); setMsg(null);
     const fd = new FormData();
     fd.set('periodId', period.id); fd.set('key', key); fd.set('file', file);
-    const res = await uploadReleaseImage(fd);
+    const res = await callAction(() => uploadReleaseImage(fd));
     setBusy(null);
     setMsg(res.ok ? { ok: true, text: res.msg } : { ok: false, text: res.error });
     if (res.ok) router.refresh();
@@ -124,7 +125,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
 
   async function removeImage(key: ReleaseImageKey) {
     setBusy('image'); setMsg(null);
-    const res = await removeReleaseImage({ periodId: period.id, key });
+    const res = await callAction(() => removeReleaseImage({ periodId: period.id, key }));
     setBusy(null);
     setMsg(res.ok ? { ok: true, text: res.msg } : { ok: false, text: res.error });
     if (res.ok) router.refresh();

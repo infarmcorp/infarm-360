@@ -8,6 +8,16 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
+### 2026-10-16 — Keterangan "Belum Terbaca" diseragamkan
+- **Tabel Hasil Seluruh Pegawai (Dashboard) dan Rekapitulasi Kuartal kini mengikuti Kompilasi.** Pegawai yang KPI-nya
+  baru 1 dari 3 bulan kuartal terisi ditulis **Belum Terbaca**, bukan A/B/C atau kategori Skor Akhir. Dulu
+  Kompilasi sudah mengeluarkan mereka dari klasifikasi, tetapi kedua tabel tetap memberi kelas sehingga jumlahnya
+  tidak cocok. Angka KPI, 360°, dan Skor Akhir tetap tampil. Filter Player di Tabel Hasil mendapat pilihan
+  "Belum Terbaca".
+- Di Kompilasi, kotak **HRD Review** dan **Belum Terbaca** kini berdampingan kiri-kanan.
+- Keterangan "Skor Akhir (live)" di Tabel Hasil dihapus karena keliru: laporan Final memang sudah memakai angka
+  tersimpannya.
+
 ### 2026-10-16 — Keputusan menjelang rilis Q3
 - **Fitur 13–16 Oktober sudah langsung di production** (rilis lebih awal, keputusan pemilik): Impor & format
   Ringkasan, Folder Laporan, ukuran tabel tetap, Email Rilis Laporan, kokpit 3 langkah, sebab tombol Finalisasi

@@ -4,13 +4,16 @@
 > rilis selesai dan hasilnya dicatat di [CHANGELOG.md](CHANGELOG.md).
 
 Isi rilis ini: perbaikan audit **gelombang 1**, **gelombang 2**, dan **gelombang 2b** (termasuk **kunci laporan
-Final**), ditambah Mode Maintenance, layar Review Penilaian, dan PDF panduan yang sudah lebih dulu ada di `dev`.
+Final**), nama penilai tak terkirim di tampilan HRD, Mode Maintenance, layar Review Penilaian, filter Divisi, dan
+PDF panduan (apa adanya), ditambah perubahan database 0048 dan 0049. Fitur 13–16 Oktober sudah di production.
 
 **Cara pakai**
-- Uji di **URL Preview `dev`**, yang seharusnya memakai **database staging** (data uji, boleh diubah).
-  Pastikan dulu lewat langkah 0.2 — jangan pernah menjalankan langkah bertanda ✏️ di production.
+- Bagian 0–15 dijalankan **2026-10-15** di **URL Preview `dev`** (53 lulus, 0 gagal).
+- Bagian **16–21** (tambahan 2026-10-16) dijalankan di **URL Preview branch `release/q3-2026`**, yaitu kode yang
+  benar-benar akan dirilis (gabungan `main` + `dev`). Preview memakai **database staging** (langkah 0.2) — jangan
+  pernah menjalankan langkah bertanda ✏️ di production.
 - ✏️ = langkah **mengubah data**. Pakai **pegawai uji**, bukan orang sungguhan. Kembalikan seperti semula
-  setelah selesai (bagian 15).
+  setelah selesai (bagian 22).
 - Centang `[x]` tiap langkah yang lulus. Bila gagal, tulis catatan singkat di bawah langkahnya.
 
 ---
@@ -147,7 +150,74 @@ Pakai **pegawai uji A**.
       punya laporan Final → ditolak "… untuk menghapus periode ini."
       > Dilewati: tidak bisa dibatalkan dan tak ada periode uji kosong.
 
-## 15. Penutup
+## 15. Penutup (putaran 2026-10-15)
 - [x] ✏️ Kembalikan data uji: buka kembali/finalisasi ulang seperlunya, potongan & akses ke semula.
 - [x] Catat hasil (lulus/gagal + catatan) dan sampaikan sebelum PR rilis `dev` → `main` dibuat.
-- [ ] Saat rilis: jalankan 0048 & 0049 di **production** (cara sama dengan 0.1) dan kirim pesan perubahan ke HRD.
+
+---
+
+**Tambahan 2026-10-16 — jalankan di URL Preview `release/q3-2026`.**
+
+## 16. Nama penilai tidak terkirim di tampilan HRD (anonimitas, butir A)
+Cari dulu nama 1–2 penilai pegawai uji A di **Pemetaan** (satu-satunya tempat siapa-menilai-siapa tampil).
+- [ ] HRD Mode Admin → Review & Finalisasi → detail laporan **pegawai uji A** → komentar anonim tampil seperti
+      biasa; tidak ada blok umpan balik per penilai bernama.
+- [ ] DevTools → tab **Network** → muat ulang halaman → cari nama penilai tadi di respons halaman → **tidak ditemukan**.
+- [ ] Buka detail laporan **akun HRD itu sendiri** → komentar anonim **tetap tampil** (disengaja); nama penilainya
+      di respons halaman → **tidak ditemukan**.
+
+## 17. Bagian yang bentrok saat penggabungan (kokpit, finalisasi massal, Hitung Ulang)
+Tiga bagian ini dibuat dua kali (versi production dan versi `dev`) lalu digabung. Pastikan perilaku keduanya ada.
+- [ ] Review & Finalisasi tampil sebagai **3 langkah berjajar** (① Hitung Skor 360° → ② Finalisasi Laporan → ③ Kabari
+      Pegawai). Tombol Finalisasi yang nonaktif menyebut sebabnya ("Menunggu ACC (N)", "Masih ada draf (N)",
+      "✓ Semua sudah Final").
+- [ ] ✏️ Siapkan minimal satu pegawai uji **Final** dan satu yang **belum Final**, lalu ubah satu penilaian untuk
+      pegawai yang belum Final (supaya ① aktif) → **Hitung Ulang** → pesan "Skor 360° dihitung ulang untuk N
+      pegawai." disertai "M pegawai dilewati karena laporannya sudah Final" bila angka pegawai Final seharusnya berubah.
+- [ ] Menu **⋯ → Hitung ulang paksa** → dialog berbunyi "… Pegawai yang laporannya sudah Final dilewati (laporan
+      Final terkunci; Buka Kembali dulu bila angkanya memang harus berubah)." → **Batal**.
+- [ ] ✏️ Siapkan 2 pegawai uji yang laporannya dirilis dan sudah di-ACC → **Finalisasi N Laporan** → pesan
+      "N laporan difinalisasi." (bila ada, menyebut yang dilewati, dan yang **gagal disimpan** dengan teks merah).
+- [ ] Log Aktivitas HRD → entri finalisasi massal **menyebut nama** pegawai yang difinalisasi (dan yang dilewati/gagal).
+- [ ] Detail laporan salah satu pegawai tadi → panel **Riwayat Laporan** mencatat finalisasinya beserta jamnya.
+- [ ] ✏️ DevTools → Network → **Offline** → klik **ACC** (Laporan Kinerja Tim, akun SPV) atau **Simpan Draf** →
+      muncul pesan "Gagal terhubung ke server — perubahan TIDAK tersimpan. Muat ulang halaman lalu coba lagi."
+      Kembalikan ke **Online**.
+- [ ] `scripts/check-migrations.sql` (versi branch rilis) di staging → baris **0048–0052** semuanya `applied = true`.
+
+## 18. Mode Maintenance
+Mode Maintenance **hanya berlaku di production**; Preview dan staging tidak pernah terkunci.
+- [ ] Buka `<URL Preview>/maintenance` → otomatis diarahkan ke halaman awal; aplikasi berjalan normal.
+- [ ] Setelah rilis (di production, di luar jam pengisian): jalankan langkah **B** dan **C** di TEKNIS.md §3.3
+      (siapkan saklar, uji nyala → halaman "Sedang Maintenance", uji tautan developer, matikan lagi).
+
+## 19. Layar Review Penilaian (sebelum kirim)
+Pakai **akun penilai uji** dan penilaian untuk **pegawai uji yang belum Final**.
+- [ ] Buka penilaian yang belum lengkap → tombol utama "**Lengkapi Penilaian (N tersisa)**".
+- [ ] ✏️ Lengkapi semua nilai, bukti perilaku (≥ 20 karakter), dan esai → tombol berubah menjadi "**Review Penilaian**".
+- [ ] Klik → layar ringkasan per aspek (nilai + key point); klik baris → bukti perilaku tampil; jawaban esai tampil;
+      **tidak ada** rata-rata skor.
+- [ ] Klik **Edit** → kembali ke pertanyaan terkait; ✏️ ubah satu jawaban → Review lagi → perubahan terlihat.
+- [ ] ✏️ **Kirim Penilaian 360°** → konfirmasi → layar sukses.
+- [ ] Ulangi alur di **HP** → tampilan rapi, tombol terjangkau.
+- [ ] (Bila ada periode uji yang deadlinenya lewat) di daftar Penilaian, penilaian terkirim bertombol **Lihat**;
+      dibuka → judul "Lihat Penilaian", tidak bisa dikirim ulang.
+
+## 20. Filter Divisi di Monitoring & Audit KPI
+- [ ] HRD Mode Admin → Monitoring & Audit KPI → filter **Divisi** di bawah judul → pilih satu divisi → tab
+      **Rekapitulasi Kuartal** dan **Riwayat & Audit** hanya berisi divisi itu.
+- [ ] Pindah tab dan ganti periode → pilihan divisi tetap terbawa. "Seluruh Divisi" → semua kembali.
+- [ ] Akun pemegang akses halaman Monitoring berlingkup **satu** divisi → filter tidak muncul, hanya divisinya.
+      Ubah `?dept=` di alamat ke divisi lain → data divisi lain **tidak** tampil.
+
+## 21. Fitur yang sudah di production tetap jalan setelah digabung
+- [ ] Kelola Pegawai → ikon folder per baris (Folder Laporan) bisa dibuka.
+- [ ] Review & Finalisasi → dialog **Email Rilis Laporan** terbuka; ✏️ **kirim uji ke email sendiri** → email masuk.
+- [ ] Tabel berhalaman (mis. Review & Finalisasi, Laporan Kinerja Tim) → pindah halaman/filter → ukuran tabel tidak bergeser.
+
+## 22. Penutup
+- [ ] ✏️ Kembalikan data uji (bagian 16–21): buka kembali/finalisasi ulang seperlunya, penilaian & ACC ke semula.
+- [ ] Catat hasil bagian 16–21 di file ini.
+- [ ] Saat rilis: merge PR rilis → jalankan **0048** lalu **0049** di **production** (cara sama dengan 0.1, lalu
+      `scripts/check-migrations.sql`) → kirim [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md) ke HRD.
+- [ ] Setelah merge: buat PR **sinkron `main` → `dev`**.

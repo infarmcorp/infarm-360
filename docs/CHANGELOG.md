@@ -8,7 +8,25 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
-### 2026-10-16 — Riwayat Laporan
+### 2026-10-16 — Keputusan menjelang rilis Q3
+- **Fitur 13–16 Oktober sudah langsung di production** (rilis lebih awal, keputusan pemilik): Impor & format
+  Ringkasan, Folder Laporan, ukuran tabel tetap, Email Rilis Laporan, kokpit 3 langkah, sebab tombol Finalisasi
+  nonaktif, pesan aksi gagal, dan Riwayat Laporan. Perubahan database **0050, 0051, 0052** sudah dijalankan di
+  staging dan production. Rilis Q3 kini berisi sisa `dev` yang belum di production (perbaikan audit gelombang 1,
+  2, 2b, kunci laporan Final, Mode Maintenance, Review Penilaian, filter Divisi, PDF panduan, 0048 dan 0049).
+- **Satu fitur dibuat sekali.** Fitur-fitur di atas sempat dibuat dua kali (versi untuk production dan versi
+  untuk `dev`), sehingga penggabungan rilis Q3 bentrok di 4 file. Mulai sekarang setiap perubahan yang masuk
+  production langsung disinkronkan kembali ke `dev`. Branch `main` kini dilindungi: wajib lewat PR yang lulus
+  pemeriksaan otomatis.
+- **Laporan diri sendiri pemegang izin HRD — risiko diterima secara sadar.** HRD tetap mengurus laporannya sendiri
+  (meringkas, merilis, memfinalisasi) dan tetap melihat komentar anonim di laporannya, karena tidak ada orang lain
+  yang mengurus laporan HRD admin. Usulan aturan database yang melarang membaca penilaian atas diri sendiri tidak
+  dikerjakan. Nama penilai tetap tidak dikirim ke browser.
+- **PDF panduan ikut rilis Q3 apa adanya.** Isinya belum direvisi; revisi menyusul dan belum menjadi prioritas.
+- **Riwayat Laporan dipakai mulai kuartal berikutnya.** Usulan menampilkan kejadian lama dari Log Aktivitas di
+  panel itu dibatalkan karena tidak diperlukan.
+
+### 2026-10-16 — Riwayat Laporan (langsung ke production)
 - **Setiap perubahan ACC, status, dan Skor Akhir kini tercatat oleh database** (permintaan pengguna, setelah kasus
   "sudah ACC tanggal 15" yang tidak bisa dibuktikan). Dulu jejaknya hanya di Log Aktivitas yang dicatat aplikasi
   dan harus dibaca lewat SQL. Kini:
@@ -18,7 +36,7 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   - di tabel Review & Finalisasi, tanda **✔ ACC** menampilkan siapa dan kapan saat kursor diarahkan.
   Butuh perubahan database 0052. Riwayat dimulai sejak perubahan itu dijalankan.
 
-### 2026-10-16 — Aksi yang gagal tersimpan kini terlihat
+### 2026-10-16 — Aksi yang gagal tersimpan kini terlihat (langsung ke production)
 - **Kasus ACC 15–16 Okt:** HRD yakin sudah memberi ACC sejak 15 Okt, tetapi database dan log tidak pernah menerimanya.
   Penyebab paling mungkin: tombol gagal terhubung ke server (mis. halaman sudah terbuka sebelum aplikasi
   diperbarui pukul 16.52/16.56/20.42) dan tidak menampilkan pesan apa pun. Perbaikan:
@@ -29,7 +47,7 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
     dan peringatan merah bila aksi di tombol mana pun gagal terkirim;
   - Log Aktivitas finalisasi massal mencatat **nama** pegawai yang difinalisasi, dilewati, dan gagal (dulu hanya jumlah).
 
-### 2026-10-15 — Kokpit Review & Finalisasi jadi 3 langkah
+### 2026-10-15 — Kokpit Review & Finalisasi jadi 3 langkah (langsung ke production)
 - **Kokpit Review & Finalisasi disederhanakan** (permintaan pengguna: "terlalu banyak tombol, membingungkan"). Lima tombol
   yang dulu tersebar kini menjadi **tiga langkah berjajar**: ① Hitung Skor 360° → ② Finalisasi Laporan → ③ Kabari
   Pegawai. Tiap langkah menampilkan ringkasan singkat, dan hanya langkah yang sedang perlu dikerjakan yang
@@ -41,7 +59,7 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   Tombol Finalisasi yang nonaktif menyebut sebabnya ("Menunggu ACC (N)", "Masih ada draf (N)", "✓ Semua sudah
   Final"), bukan "Belum ada yang siap" yang menyesatkan saat semua laporan sudah Final. Tidak ada fungsi yang dihapus.
 
-### 2026-10-15 — Email Rilis Laporan
+### 2026-10-15 — Email Rilis Laporan (langsung ke production)
 - **Email Rilis Laporan dari Review & Finalisasi** (permintaan pengguna). HRD bisa mengabarkan pegawai bahwa PDF
   laporannya sudah bisa diunduh di Laporan Hasil Saya, **massal** (tombol di kokpit) atau **per pegawai** (ikon ✉
   di baris tabel). Isi email mengikuti dokumen HRD "Komunikasi Rilis Laporan PA Q3 2026", dibuat berlaku untuk
@@ -55,7 +73,8 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   Hanya pegawai yang laporannya Final dan Folder Laporannya terisi yang dikirimi. Ada tombol kirim uji ke email
   sendiri, dan tiap pengiriman tercatat agar tidak terkirim dua kali tanpa sengaja. Butuh perubahan database
   0051 untuk gambar; tanpa itu email tetap terkirim tanpa gambar.
-### 2026-10-15 — Ukuran tabel tetap
+
+### 2026-10-15 — Ukuran tabel tetap (langsung ke production)
 - **Ukuran tabel tidak lagi berubah-ubah** (permintaan pengguna). Saat pindah halaman tabel, menyaring, mencari,
   atau berganti tab, kolom dan tinggi tabel dulu ikut bergeser. Penyebabnya: scrollbar halaman yang muncul-hilang
   mengubah lebar layar; halaman terakhir yang barisnya lebih sedikit membuat tabel memendek dan tombol halaman
@@ -80,7 +99,7 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   walau tak pernah tampil di layar (terbaca lewat alat developer). Kini dibuang di server; tampilan tak berubah,
   komentar anonim tetap ada. Ikut diperbaiki: aplikasi bisa dijalankan lagi di mode pengembangan.
 
-### 2026-10-14 (di `dev`, belum di production)
+### 2026-10-14 (langsung ke production atas keputusan pemilik, juga di `dev`)
 - **"Unduh PDF" pegawai membuka folder Google Drive** (permintaan pengguna). PDF hasil cetak aplikasi kurang rapi
   dibanding PDF yang disusun HRD. Kini HRD menyimpan tautan **satu folder Drive per pegawai** di Kelola Pegawai.
   Folder itu dipakai terus untuk semua kuartal (isi mis. *Nama - Q3 2026*). Tombol **Unduh PDF** di Laporan Hasil

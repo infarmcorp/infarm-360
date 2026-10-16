@@ -8,39 +8,49 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 
 ---
 
-## 1. Status terkini (per 2026-10-15)
+## 1. Status terkini (per 2026-10-16)
 
-- Aplikasi **live dan dipakai**. Periode **Q3 2026** berjalan menuju tutup.
-- Production berjalan dari branch `main`. Pekerjaan baru ada di branch `dev`.
-- Yang **sudah ada di `dev` tetapi belum di production**:
-  - perbaikan halaman Laporan Kinerja Tim dan Monitor;
+- Aplikasi **live dan dipakai**. Periode **Q3 2026** menuju Final **±20 Oktober** (jadwal tetap).
+- Production berjalan dari branch `main`. Sejak 2026-10-16 `main` **dilindungi**: perubahan hanya lewat PR yang
+  lulus pemeriksaan otomatis. Setiap PR yang masuk `main` langsung disusul PR "sinkron main → dev".
+- **Sudah langsung di production** (dirilis lebih awal, keputusan pemilik):
+  - 2026-10-13: **Impor Ringkasan dari Excel** dan **format ringkasan** (tebal/poin). Belum dicoba dengan data nyata.
+  - 2026-10-14: **Unduh PDF pegawai membuka folder Google Drive** (Folder Laporan).
+  - 2026-10-15: **ukuran tabel tetap**, **Email Rilis Laporan**, **kokpit Review & Finalisasi 3 langkah**.
+  - 2026-10-16: tombol Finalisasi yang nonaktif **menyebut sebabnya**, **pesan bila aksi gagal tersimpan**
+    (dan nama pegawai di log finalisasi massal), **Riwayat Laporan**.
+  - Perubahan database **0050, 0051, 0052** sudah terpasang di **staging dan production** (2026-10-16).
+  - Fitur 15–16 Oktober **belum diuji di staging**; sudah berjalan di production.
+- **Rilis Q3 = isi `dev` yang belum di production**, dirilis setelah Q3 Final:
+  - perbaikan audit kode gelombang 1, 2, dan 2b, termasuk **kunci laporan Final** (lihat §2);
+  - nama penilai tidak lagi terkirim ke browser di tampilan HRD;
   - layar **Review Penilaian** sebelum mengirim penilaian (lihat §2);
   - **Mode Maintenance** (halaman "Sedang Maintenance" yang bisa dinyalakan tanpa deploy ulang);
   - filter **Divisi** di Monitoring & Audit KPI;
-  - **Unduh PDF pegawai membuka folder Google Drive** (tautan diisi HRD di Kelola Pegawai). Butuh perubahan
-    database baru (lihat §2) dan HRD perlu menyiapkan folder + berbagi per pegawai (SOP di PANDUAN §5.1);
-  - penyeragaman tampilan (warna, huruf, tombol) di semua halaman;
-  - perbaikan audit kode gelombang 1, 2, dan 2b, termasuk **kunci laporan Final** (lihat §2);
-  - perapian dokumentasi ini.
-- **Uji rilis Q3 sudah dijalankan 2026-10-15** di database staging: 53 langkah lulus, 0 gagal. Hasil dan
-  catatannya ada di [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md). Rilis `dev` → `main` tetap menunggu Q3 Final (±20 Oktober).
-- **Impor Ringkasan dari Excel** dan **format ringkasan** (tebal/poin) sudah **langsung di production**
-  (2026-10-13, atas permintaan pengguna) dan sudah digabung ke `dev`. Belum dicoba dengan data nyata.
-- 4 PDF panduan dan nomor versinya (`2026-10-01`) sudah tersimpan di `dev`. **Isinya belum direvisi**: teksnya
-  masih sama dengan versi 30 Juli (masih ada "Review Hasil Akhir", "punishment", "4 karakter", salah ketik
-  "ditHRD"). Jangan rilis `dev` ke production sebelum PDF benar-benar diperbarui; kalau tidak, tanda "BARU"
-  muncul tanpa isi baru.
+  - perbaikan halaman Laporan Kinerja Tim dan Monitor, penyeragaman tampilan, perapian dokumentasi;
+  - 4 PDF panduan dengan nomor versi `2026-10-01` (**apa adanya**, lihat §2);
+  - perubahan database **0048** dan **0049** (sudah di staging; production saat rilis).
+  Branch rilis dan PR ke `main` sudah disiapkan (2026-10-16); menunggu Q3 Final dan persetujuan pemilik.
+- **Uji rilis Q3 sudah dijalankan 2026-10-15** di database staging: 53 langkah lulus, 0 gagal. Langkah tambahan
+  (2026-10-16: nama penilai di tampilan HRD, bagian yang bentrok saat penggabungan, Mode Maintenance, Review
+  Penilaian, filter Divisi) **belum dijalankan**. Semuanya di [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md).
+- Pesan perubahan untuk HRD siap kirim: [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md).
 
 ---
 
 ## 2. Harus dikerjakan
 
 ### Rilis & operasional
-- 🔄 **Revisi 4 PDF panduan.** Sunting dokumen Word sumber sesuai daftar di
-  [panduan/REVISI-PANDUAN-PDF.md](panduan/REVISI-PANDUAN-PDF.md) (bagian 0–4 dan 6), ekspor ulang, lalu simpan
-  dan rilis. Langkahnya di [TEKNIS.md](TEKNIS.md) §9.
+- 🔄 **Revisi 4 PDF panduan (belum prioritas).** Keputusan pemilik 2026-10-16: 4 PDF dan nomor versinya
+  (`2026-10-01`) **ikut rilis Q3 apa adanya**. Akibatnya tanda "BARU" muncul walau isinya masih sama dengan versi
+  30 Juli (masih ada "Review Hasil Akhir", "punishment", "4 karakter", salah ketik "ditHRD"). Revisi menyusul:
+  sunting dokumen Word sumber sesuai [panduan/REVISI-PANDUAN-PDF.md](panduan/REVISI-PANDUAN-PDF.md) (bagian 0–4
+  dan 6), ekspor ulang, naikkan nomor versi, lalu rilis. Langkahnya di [TEKNIS.md](TEKNIS.md) §9.
+- 🔑⬜ **Rilis Q3** (`dev` → `main`) setelah Q3 Final ±20 Oktober: uji langkah tambahan di
+  [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md), merge PR rilis, jalankan **0048** lalu **0049** di production, kirim
+  [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md) ke HRD, lalu buat PR sinkron `main` → `dev`.
 - 🔑⬜ **Aktifkan Mode Maintenance.** Langkah A–C di [TEKNIS.md](TEKNIS.md) §3.3:
-  - ⬜ A. Rilis `dev` → `main` (setelah PDF beres) dan tunggu deploy production.
+  - ⬜ A. Rilis Q3 (`dev` → `main`) dan tunggu deploy production.
   - ⬜ B. Siapkan saklar di dashboard Vercel dan kode rahasia developer, lalu deploy ulang sekali.
   - ⬜ C. Uji coba sekali di luar jam pengisian penilaian.
   - Setelah A–C beres, langkah D dipakai setiap kali perlu maintenance.
@@ -50,25 +60,24 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   **Kirim Penilaian** → konfirmasi → sukses. Rata-rata skor tidak ditampilkan. Sisa: uji di staging dan HP
   (termasuk setelah deadline, saat tombolnya menjadi Lihat), lalu rilis ke production. Setelah rilis,
   tambahkan ke [PANDUAN.md](PANDUAN.md) §2.2.
-- 🔑⬜ **Folder Laporan (Drive).** Pasang perubahan database Folder Laporan di staging lalu production
-  **sebelum** merilis kodenya. Tanpa itu, menyimpan tautan menampilkan pesan "belum aktif", sedangkan pegawai
-  hanya melihat "PDF belum tersedia". HRD menyiapkan folder + berbagi per pegawai dan mengisi tautannya.
-- 🔑⬜ **Riwayat Laporan.** Jalankan perubahan database **0052** di staging lalu production. Sesudahnya, setiap
-  perubahan ACC, status, dan Skor Akhir tercatat dan bisa dilihat HRD di panel Riwayat Laporan. Riwayat baru
-  berisi perubahan sejak 0052 dijalankan (ditambah satu catatan keadaan awal).
-- 🔑⬜ **Email Rilis Laporan.** Jalankan perubahan database **0051** (penyimpanan gambar email) di staging lalu
-  production. Lalu, per periode: unggah dua gambar pendamping di dialog Email Rilis Laporan, kirim uji ke email
-  sendiri, baru kirim ke pegawai (SOP di [PANDUAN.md](PANDUAN.md) §5.9). Butuh Folder Laporan (0050) terpasang
-  dan tautan folder tiap pegawai terisi.
-- 🔑⬜ **Pastikan semua perubahan database Q3 2026 sudah terpasang di production** (dan staging). Kode di
-  production sudah memakainya. Cara cek dan daftar perubahannya di [TEKNIS.md](TEKNIS.md) §1 dan §6.
+- 🔑🔄 **Folder Laporan (Drive).** Perubahan database **0050** sudah terpasang di staging dan production
+  (2026-10-16) dan kodenya sudah di production. Sisa: HRD menyiapkan folder + berbagi per pegawai dan mengisi
+  tautannya (SOP di [PANDUAN.md](PANDUAN.md) §5.1). Tanpa tautan, pegawai melihat "PDF belum tersedia".
+- ✅ **Riwayat Laporan** — perubahan database **0052** terpasang di staging dan production (2026-10-16). Setiap
+  perubahan ACC, status, dan Skor Akhir sejak itu tercatat dan bisa dilihat HRD di panel Riwayat Laporan.
+  Dipakai mulai kuartal berikutnya; kejadian sebelum 0052 tidak ditampilkan (keputusan pemilik 2026-10-16).
+- 🔑🔄 **Email Rilis Laporan.** Perubahan database **0051** terpasang di staging dan production (2026-10-16).
+  Sisa, per periode: unggah dua gambar pendamping di dialog Email Rilis Laporan, kirim uji ke email sendiri, baru
+  kirim ke pegawai (SOP di [PANDUAN.md](PANDUAN.md) §5.9). Butuh tautan folder tiap pegawai terisi.
+- 🔑🔄 **Perubahan database production.** 0001–0047 dan 0050–0052 terpasang. Sisa **0048** lalu **0049** saat
+  rilis Q3 (sudah di staging). Cara cek: `scripts/check-migrations.sql` ([TEKNIS.md](TEKNIS.md) §1 dan §6).
 
 ### Keamanan
 - 🔑⬜ **Ganti kunci rahasia database** (kunci admin Supabase dan lainnya) sebelum produksi penuh. Kunci admin
   bisa membuka seluruh data; bila pernah dibagikan saat pengembangan, anggap bocor. **Ditunda** sampai ada
   waktu sepi (luar jam kerja atau akhir periode), agar pengguna yang sedang login tidak terputus.
-- ⬜ **Lindungi branch `main` di GitHub**: perubahan ke production wajib lewat PR dengan pengecekan otomatis
-  yang hijau. Sekitar 5 menit di pengaturan GitHub.
+- ✅ **Lindungi branch `main` di GitHub** — aktif 2026-10-16: perubahan ke production wajib lewat PR dengan
+  pemeriksaan otomatis yang lulus.
 - 🔑🔄 **Cadangan data di luar laptop.** Backup otomatis harian sudah berjalan. Sisa:
   - salin hasil backup manual ke Google Drive atau hard disk eksternal (aturan 3-2-1: backup di laptop saja
     = satu titik gagal);
@@ -81,13 +90,19 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   ada SPV ber-izin HRD (hanya satu pegawai berposisi Pegawai di HRD-GA yang punya izin HRD). Masalah "SPV tak bisa
   memfinalisasi di Mode Admin" tidak berlaku.
 - ⬜ **Gelombang 3 (prioritas rendah): pegawai ber-izin HRD melihat tampilan HRD penuh di detail laporan walau
-  sedang di mode posisi-asli.** Berlaku untuk pemegang izin HRD berposisi Pegawai (saat ini satu orang). Menu
-  posisi-asli tidak menautkan ke halaman itu, jadi hanya terjadi bila alamatnya dibuka langsung.
-- ✅ **Laporan diri sendiri untuk pemegang izin HRD** (cek 2026-10-14) — **selesai di `dev`**:
-  - **Komentar mentah (anonim) tetap tampil — disengaja** (keputusan pemilik 2026-10-14): HRD bertugas meringkas
-    laporannya sendiri, jadi butuh komentar itu. Bukan masalah.
+  sedang di mode posisi-asli** (halaman detail laporan belum mengikuti mode; sisa temuan no. 11). Berlaku untuk
+  pemegang izin HRD berposisi Pegawai (saat ini satu orang). Menu posisi-asli tidak menautkan ke halaman itu, jadi
+  hanya terjadi bila alamatnya dibuka langsung.
+- ✅ **Laporan diri sendiri untuk pemegang izin HRD** — **diputuskan** (pemilik, 2026-10-16), dicatat di CLAUDE.md
+  sebagai **risiko yang diterima secara sadar**:
+  - HRD mengurus laporannya sendiri (meringkas, merilis, **memfinalisasi**), karena tidak ada orang lain yang
+    mengurus laporan HRD admin. Komentar mentah (anonim) di laporannya sendiri **tetap tampil**. Tidak ada rencana
+    menolak HRD memfinalisasi laporannya sendiri.
+  - Aturan database yang melarang membaca penilaian atas diri sendiri **tidak** dibuat.
   - Nama penilai **tidak lagi terkirim ke browser** di tampilan HRD mana pun (2026-10-14). Tampilan tak berubah.
     Ikut rilis Q3.
+  - Tetap berlaku: pemegang akses Review non-HRD tidak bisa mengubah atau memfinalisasi laporannya sendiri, dan
+    tidak ada yang bisa meng-ACC laporannya sendiri.
 - Catatan (risiko rendah): batas "HRD hanya menginput KPI divisinya sendiri" hanya dijaga aplikasi, tidak
   dikunci di database. Pengguna tetap tidak bisa menulis KPI langsung ke database.
 
@@ -123,7 +138,7 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
     `scripts/check-migrations.sql`). Aplikasi tetap jalan walau belum diterapkan;
   - 🔑 sampaikan perilaku baru ke HRD sebelum rilis, termasuk: **Skor Akhir bisa berubah saat laporan dibuka
     kembali lalu difinalisasi ulang**, karena potongan telat yang masih tertunda ikut diterapkan (di uji:
-    74,00 → 72,50);
+    74,00 → 72,50). Pesan siap kirim: [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md);
   - catatan: Ubah deadline & cron melewati pegawai Final tanpa menyebut jumlahnya (proses otomatis).
 - ⬜ **Gelombang 3 (kecil): pesan di Manajemen Akses saat memberi akses per peran.** Setelah disimpan, panel
   langsung tertutup sehingga pesan berhasil tak terlihat; pratinjau sebelum simpan menulis jumlah penerima

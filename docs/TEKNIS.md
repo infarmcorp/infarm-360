@@ -29,7 +29,10 @@ berisiko mengubah skema, menjalankan reset ke data nyata, atau menampilkan fitur
   (termasuk `dev` dan turunan seperti `dev/nama-fitur`).
 - Alur: kerja di `dev` (atau feature branch dari `dev`) → push → cek URL Preview → **PR `dev` → `main`**
   → review → merge → Vercel deploy production. Selalu lewat PR, walau kecil — PR adalah titik terakhir
-  memastikan CI (test + typecheck + build, `.github/workflows/ci.yml`) hijau.
+  memastikan CI (test + typecheck + build, `.github/workflows/ci.yml`) hijau. `main` dilindungi di GitHub
+  (sejak 2026-10-16): wajib PR + status check lulus.
+- **Sinkron `main` → `dev`:** setiap PR yang masuk `main` (rilis, fitur dirilis lebih awal, hotfix) langsung disusul
+  PR "sinkron main → dev". Satu fitur = satu branch; jangan membuat versi `-main` terpisah.
 - Repo `infarmcorp/infarm-360` **publik**. Jangan pernah commit data pegawai, backup mentah, atau `.env*`.
 
 ### Dua environment Supabase

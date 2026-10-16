@@ -37,8 +37,8 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   (permintaan pengguna), agar tidak menutupi tabel dan tombol di bagian bawah.
 
 ### 2026-10-16 — Rilis Q3 ke production
-- **Isi `dev` dirilis ke production** (keputusan pemilik), lebih awal dari rencana "setelah Q3 Final" dan di
-  tengah finalisasi Q3: perbaikan audit gelombang 1, 2, 2b, **kunci laporan Final** (berlaku juga untuk laporan
+- **Isi `dev` dirilis ke production** (keputusan pemilik), setelah laporan Q3 Final (53 pegawai) dan email rilis
+  laporan terkirim ke pegawai: perbaikan audit gelombang 1, 2, 2b, **kunci laporan Final** (berlaku juga untuk laporan
   Q3 yang sudah Final), nama penilai tak terkirim di tampilan HRD, layar Review Penilaian, Mode Maintenance (belum
   diaktifkan), filter Divisi, dan PDF panduan versi 1 Oktober apa adanya. Perubahan database 0048 dan 0049
   dijalankan di production hari yang sama.

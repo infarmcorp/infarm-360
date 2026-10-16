@@ -1,7 +1,8 @@
 # Pesan untuk HRD — Rilis Q3 2026
 
 > **File sementara.** Pesan siap kirim untuk tim HRD tentang perubahan rilis Q3, yang **sudah berlaku sejak
-> 16 Oktober 2026** (di tengah finalisasi Q3). Kirim segera. Hapus file ini setelah terkirim.
+> 16 Oktober 2026** (setelah laporan Q3 Final dan diumumkan). Kirim sebelum HRD perlu mengoreksi laporan Q3 atau
+> memulai siklus Q4. Hapus file ini setelah terkirim.
 >
 > Catatan pengirim:
 > - Fitur 13–16 Oktober (Impor Ringkasan, Folder Laporan, Email Rilis Laporan, kokpit 3 langkah, Riwayat Laporan,
@@ -14,8 +15,8 @@
 
 Halo Tim HRD,
 
-Sejak **16 Oktober 2026**, Infarm 360° Portal sudah diperbarui. Karena finalisasi Q3 sedang berjalan, beberapa
-perubahan di bawah ini langsung terasa, terutama butir 1. Berikut yang perlu diketahui.
+Sejak **16 Oktober 2026**, Infarm 360° Portal sudah diperbarui. Laporan Q3 yang sudah Final ikut terkunci
+(butir 1): bila ada yang perlu dikoreksi, gunakan **Buka Kembali (ke Draf)**. Berikut yang perlu diketahui.
 
 **1. Laporan yang sudah Final kini terkunci**
 

@@ -325,8 +325,11 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
     expect(mockLog).toHaveBeenCalledTimes(1);
     expect(mockLog).toHaveBeenCalledWith({
       action: 'report.bulk_finalize', category: 'laporan',
-      summary: 'Finalisasi massal 1 laporan ber-ACC (1 dilewati)',
-      meta: { finalized: 1, skipped: 1, failed: 0, period_id: 'p1' },
+      summary: 'Finalisasi massal 1 laporan ber-ACC (1 dilewati: Budi)',
+      meta: {
+        finalized: 1, skipped: 1, failed: 0, period_id: 'p1',
+        finalized_names: ['Andi'], skipped_list: [{ name: 'Budi', reason: expect.stringContaining('berubah sejak di-ACC') }], failed_list: [],
+      },
     });
     expect(vi.mocked(logAuditAsService)).not.toHaveBeenCalled();
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([['/admin/laporan'], ['/laporan']]);
@@ -339,7 +342,7 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
       compute(null, null),
     ) }));
     await bulkFinalizeAccepted();
-    expect(mockLog).toHaveBeenCalledWith(expect.objectContaining({ summary: 'Finalisasi massal 0 laporan ber-ACC (1 dilewati)' }));
+    expect(mockLog).toHaveBeenCalledWith(expect.objectContaining({ summary: 'Finalisasi massal 0 laporan ber-ACC (1 dilewati: Andi)' }));
   });
 
   it('TIDAK memeriksa pengaman backfill (tak memanggil isBackfilledPeriod)', async () => {

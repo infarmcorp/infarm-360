@@ -196,6 +196,9 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
 - TS strict; hindari `any`. Komentar & label UI bahasa Indonesia mengikuti istilah PANDUAN ("Mulai Nilai",
   "Final Report", "Garis Hubungan").
 - Tipe skema di `lib/database.types.ts`; tipe per-fitur inline/di lib terkait — jangan duplikasi.
+- **Aksi dari tombol wajib lewat `callAction`** (`lib/call-action.ts`, 2026-10-16): Server Action yang gagal terkirim
+  (koneksi, sesi habis, deploy saat halaman terbuka) tak boleh membuat tombol diam — tampilkan pesan gagal. Penjaga
+  global `components/action-guard.tsx` (banner versi baru + peringatan aksi gagal) hanya jaring pengaman.
 - **Selalu** paginasi (`.range()` / `fetchAllPaged`/`fetchAllByIds`, chunk id ~150) untuk query yang bisa
   > 1000 baris — PostgREST memotong diam-diam (bug 2026-07-08: 51/52 Skor 360° salah).
 - **Jangan** `npm audit fix --force` (menurunkan Next 16 → 9). `xlsx@0.20.3` dari CDN SheetJS.

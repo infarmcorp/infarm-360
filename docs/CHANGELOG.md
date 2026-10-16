@@ -8,6 +8,17 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
+### 2026-10-16 — Aksi yang gagal tersimpan kini terlihat
+- **Kasus ACC 15–16 Okt:** HRD yakin sudah memberi ACC sejak 15 Okt, tetapi database dan log tidak pernah menerimanya.
+  Penyebab paling mungkin: tombol gagal terhubung ke server (mis. halaman sudah terbuka sebelum aplikasi
+  diperbarui pukul 16.52/16.56/20.42) dan tidak menampilkan pesan apa pun. Perbaikan:
+  - tombol penting (ACC, Simpan Draf, Rilis, Finalisasi, finalisasi massal, Hitung Ulang, email rilis) menampilkan
+    pesan **"perubahan TIDAK tersimpan, muat ulang halaman"** bila gagal terhubung;
+  - ACC menampilkan **"ACC tersimpan pukul HH.MM"** setelah berhasil;
+  - muncul banner **"Aplikasi baru saja diperbarui, muat ulang"** bila halaman sudah lama terbuka saat ada pembaruan,
+    dan peringatan merah bila aksi di tombol mana pun gagal terkirim;
+  - Log Aktivitas finalisasi massal mencatat **nama** pegawai yang difinalisasi, dilewati, dan gagal (dulu hanya jumlah).
+
 ### 2026-10-15 — Kokpit Review & Finalisasi jadi 3 langkah
 - **Kokpit Review & Finalisasi disederhanakan** (permintaan pengguna: "terlalu banyak tombol, membingungkan"). Lima tombol
   yang dulu tersebar kini menjadi **tiga langkah berjajar**: ① Hitung Skor 360° → ② Finalisasi Laporan → ③ Kabari

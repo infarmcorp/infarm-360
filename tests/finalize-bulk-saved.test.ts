@@ -79,7 +79,7 @@ describe('bulkFinalizeAccepted — hitung hanya yang tersimpan', () => {
     expect(await bulkFinalizeAccepted()).toEqual({ ok: false, error: 'Gagal membaca daftar laporan: timeout' });
   });
 
-  it('Log Aktivitas mencatat jumlah berhasil & gagal', async () => {
+  it('Log Aktivitas mencatat jumlah & NAMA yang berhasil/gagal', async () => {
     use(makeClient({ user: { id: UID }, tables: merge(
       { employees: [{ data: HRD }, { data: [{ id: E1, name: 'Andi' }, { id: E2, name: 'Budi' }] }], periods: [ACTIVE] },
       { final_reports: [twoCandidates] },
@@ -88,7 +88,7 @@ describe('bulkFinalizeAccepted — hitung hanya yang tersimpan', () => {
     ) }));
     await bulkFinalizeAccepted();
     const log = vi.mocked(logHrdAction).mock.calls[0][0];
-    expect(log.summary).toBe('Finalisasi massal 1 laporan ber-ACC (1 gagal disimpan)');
-    expect(log.meta).toMatchObject({ finalized: 1, skipped: 0, failed: 1 });
+    expect(log.summary).toBe('Finalisasi massal 1 laporan ber-ACC (1 gagal disimpan: Budi)');
+    expect(log.meta).toMatchObject({ finalized: 1, skipped: 0, failed: 1, finalized_names: ['Andi'], failed_list: [{ name: 'Budi' }] });
   });
 });

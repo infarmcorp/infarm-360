@@ -629,23 +629,53 @@ ACC SPV · Status · Aksi**.
 - Membuka halaman ini menerapkan **potongan keterlambatan** otomatis ke Skor 360° tersimpan. Bila gagal,
   kokpit menampilkan peringatan dengan tautan ke **Flag Kepatuhan**.
 
-**Kokpit "Sinkronkan Skor"**:
-- **① Hitung Ulang Skor 360°** — satu-satunya tempat tombol ini. Menghitung dan menyimpan Skor 360° semua
-  pegawai (sudah termasuk potongan). **Wajib sebelum finalisasi**; sebelum ditekan, komponen 360° dianggap kosong.
-  Gagal bila bobot periode belum disimpan. Periode Q1 2026 (hasil impor) tidak bisa dihitung ulang.
-- **② Perbarui Laporan Final yang Berubah (N)** — menyegarkan angka semua laporan Final yang ketinggalan,
-  sekaligus. Laporan tetap Final dan ringkasannya tidak berubah.
-- **Finalisasi Semua Ber-ACC (N)** — memfinalisasi semua laporan yang sudah di-ACC dan masih Ditinjau. Dilewati:
-  laporan yang skornya belum bisa dihitung, dan laporan yang **Skor Akhirnya berubah sejak di-ACC** (perlu
-  rilis ulang).
+**Kokpit "Langkah Rilis Laporan"** — tiga kartu berjajar sesuai urutan kerja. Tiap kartu berisi ringkasan
+singkat dan tombolnya. Hanya langkah yang **sedang perlu dikerjakan** yang tombolnya hijau; langkah yang sudah
+beres bertanda ✓. Penjelasan lengkap ada di ikon ⓘ di samping judul.
+- **① Hitung Skor 360°** — tombol **Hitung Ulang Skor 360°** menghitung dan menyimpan Skor 360° semua pegawai
+  (sudah termasuk potongan). **Wajib sebelum finalisasi**; sebelum ditekan, komponen 360° dianggap kosong. Bila
+  tak ada perubahan sejak terakhir dihitung, tombol menjadi abu-abu **✓ Mutakhir**. Jalan darurat: menu **⋯** →
+  **Hitung ulang paksa** (dengan konfirmasi). Tombol mati bila bobot periode belum disimpan. Periode tanpa 360°
+  dan Q1 2026 (hasil impor) tidak perlu langkah ini. Kartu ini juga mengingatkan potongan keterlambatan yang
+  belum diterapkan.
+- **② Finalisasi Laporan** — ringkasan jumlah Final, siap difinalisasi (sudah ACC), menunggu ACC, dan draf.
+  **Finalisasi N Laporan** memfinalisasi semua laporan yang sudah di-ACC dan masih Ditinjau. Dilewati: laporan
+  yang skornya belum bisa dihitung, dan laporan yang **Skor Akhirnya berubah sejak di-ACC** (perlu rilis ulang).
+  Bila ada laporan Final yang angkanya ketinggalan, muncul **Perbarui Laporan Final yang Berubah (N)**: angka
+  disegarkan sekaligus, laporan tetap Final dan ringkasannya tidak berubah.
+- **③ Kabari Pegawai** — ringkasan jumlah siap dikirim, sudah dikirimi, dan Final yang belum punya Folder
+  Laporan. **Kirim Email Rilis** mengirim email bahwa PDF laporan sudah bisa diunduh di Laporan Hasil Saya.
+  Hanya HRD di Mode Admin. Lihat SOP di bawah.
+- **Atur Bobot · Flag Kepatuhan** — tautan kecil di kanan bawah kokpit.
+
+**SOP — Email Rilis Laporan** (sekali per periode, setelah laporan Final dan PDF ada di folder Drive):
+1. Pastikan laporan pegawai sudah **Final** dan **Folder Laporan**-nya sudah diisi di Kelola Pegawai. Pegawai
+   tanpa folder tidak akan dikirimi.
+2. Klik **Kirim Email Rilis** (langkah ③). Di **Gambar pendamping periode ini**, unggah dua gambar periode itu:
+   *Panduan setelah menerima laporan* dan *Cara mengunduh laporan PDF* (JPG/PNG/WebP, maks. 2 MB). Gambar
+   tersimpan untuk periode itu saja, jadi tiap periode perlu gambar baru.
+3. Isi **Urutan siklus** (mis. "ketiga"), centang/hapus centang paragraf **potongan keterlambatan**, dan periksa
+   **Tahapan Selanjutnya** (tanggal terisi otomatis mulai besok; sunting sesuai rencana). Periode, bulan, lima
+   aspek budaya, dan tabel kategori skor terisi otomatis.
+4. Periksa **Pratinjau**, lalu klik **Kirim Uji ke Email Saya** dan buka email ujinya.
+5. Pilih **Hanya yang belum pernah dikirimi** (bawaan) atau **Semua**, klik **Kirim ke N pegawai** → **Ya, kirim**.
+   Pengiriman berjalan bertahap; jangan tutup dialog sampai muncul "N dari N email terkirim". Pegawai yang
+   dilewati atau gagal tercantum beserta alasannya.
+6. Untuk satu pegawai saja (mis. folder baru diisi, atau kirim ulang), klik ikon **✉** di kolom Aksi baris
+   pegawai itu. Ikon **✉✓** = sudah pernah dikirimi. Laporan Final yang tidak berubah tersembunyi bila **Hanya
+   perlu tindakan** dicentang — hapus centangnya untuk melihat ikon itu.
+
+Isian (siklus, tahapan) tersimpan di browser untuk periode itu, jadi tidak perlu diketik ulang saat kirim
+berikutnya. Email tidak memuat skor atau isi laporan.
 - Pintasan **⚖ Atur Bobot** dan **⚑ Flag Kepatuhan**.
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |
 |---|---|---|---|
-| **① Hitung Ulang Skor 360°** | Hitung & simpan Skor 360° | Kokpit | — |
-| **② Perbarui Laporan Final yang Berubah (N)** | Segarkan angka laporan Final | Bila N > 0 | Ya |
-| **Finalisasi Semua Ber-ACC (N)** | Finalisasi massal | Ada kandidat | Ya (+ peringatan bila 360° perlu dihitung) |
-| **⚖ Atur Bobot** / **⚑ Flag Kepatuhan** | Pintasan | Kokpit | — |
+| **Hitung Ulang Skor 360°** (langkah ①) | Hitung & simpan Skor 360° | Aktif bila ada yang perlu dihitung; selain itu "✓ Mutakhir" + ⋯ **Hitung ulang paksa** | Hanya untuk "paksa" |
+| **Perbarui Laporan Final yang Berubah (N)** (langkah ②) | Segarkan angka laporan Final | Bila N > 0 | Ya |
+| **Finalisasi N Laporan** (langkah ②) | Finalisasi semua yang sudah di-ACC & masih Ditinjau | Selalu; saat mati, tulisannya menyebut sebab: "Menunggu ACC (N)", "Masih ada draf (N)", "Laporan belum dibuat (N)", atau "✓ Semua sudah Final" | Ya (+ peringatan bila 360° perlu dihitung) |
+| **Kirim Email Rilis** (langkah ③) | Buka dialog Email Rilis Laporan | Selalu; mati bila belum ada laporan Final | Ya, sebelum kirim |
+| **Atur Bobot** / **Flag Kepatuhan** | Pintasan (tautan kecil) | Kanan bawah kokpit | — |
 | **Impor Ringkasan dari Excel** | Isi ringkasan aspek & kualitatif banyak pegawai sekaligus | Periode dengan 360°; HRD dan penerima akses Meringkas/Finalisasi | Pratinjau dulu |
 | **Tinjau →** | Buka detail laporan | Per baris | — |
 
@@ -669,9 +699,9 @@ ACC SPV · Status · Aksi**.
   Bila sel **diawali** poin, pakai `* ` (Excel menganggap sel berawalan `-` sebagai rumus).
 
 **Dua label penanda:**
-- **"perlu dihitung ulang"** = Skor 360° tersimpan sudah usang → **① Hitung Ulang Skor 360°**.
-- **"berubah → N"** = laporan Final, tetapi angka terkini berbeda dari yang tersimpan → **② Perbarui Laporan
-  Final yang Berubah** (atau manual: Buka Kembali (ke Draf) lalu Finalisasi ulang).
+- **"perlu dihitung ulang"** = Skor 360° tersimpan sudah usang → **Hitung Ulang Skor 360°** (langkah ①).
+- **"berubah → N"** = laporan Final, tetapi angka terkini berbeda dari yang tersimpan → **Perbarui Laporan
+  Final yang Berubah** di langkah ② (atau manual: Buka Kembali (ke Draf) lalu Finalisasi ulang).
 
 **Halaman detail pegawai.** Panel aksi menyesuaikan status, dengan label **Status** dan **Skor Akhir**. Panel
 hanya ada untuk periode aktif.
@@ -1030,7 +1060,7 @@ Buat → Aktivasi → Set Tanpa 360° → Pertanyaan → Bobot → Pemetaan → 
 | 6 | Pantau **Progress 360** & **Flag Kepatuhan** | Kejar yang belum; tinjau potongan |
 | 7 | **① Hitung Ulang Skor 360°** | Skor 360° tersimpan (dengan potongan) |
 | 8 | **Tinjau** tiap pegawai → tulis ringkasan → **Rilis ke SPV** (opsional) | SPV/Koordinator melihat detail & ACC |
-| 9 | **Finalisasi** (per pegawai atau **Finalisasi Semua Ber-ACC**) | Pegawai bisa melihat laporan |
+| 9 | **Finalisasi** (per pegawai atau **Finalisasi N Laporan** di langkah ②) | Pegawai bisa melihat laporan |
 | 10 | **Kunci & Akhiri Periode** | Semua isian ditolak; bisa dibuka lagi lewat Aktivasi |
 | 11 | **Ekspor Dataset** + backup | Arsip kuartal |
 

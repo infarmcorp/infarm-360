@@ -10,7 +10,7 @@ import { heatColor, HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
 import { TREND_META, type Trend } from '@/lib/trend';
 import { displayName } from '@/lib/employee-name';
 import { SectionHeader } from '../../monitor/section-header';
-import { usePager, Pager } from '@/components/table-controls';
+import { usePager, Pager, StableHeight } from '@/components/table-controls';
 
 /** Baris pegawai (primitif, serializable) yang dihitung di server. */
 export type Row = {
@@ -734,9 +734,10 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
           </select>
         </div>
       </div>
+      <StableHeight className="">
       <div className="overflow-x-auto">
         {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
-        <table className="w-full table-fixed text-left text-sm min-w-[660px]">
+        <table className="w-full table-fixed table-1line text-left text-sm min-w-[660px]">
           <colgroup>
             {colPercents([
               240, // Pegawai (+ chip nonaktif) + divisi
@@ -792,7 +793,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
         </table>
       </div>
       {shown.length > TABLE_PAGE && (
-        <div className="flex flex-wrap items-center justify-between gap-2 mt-3">
+        <div className="mt-auto pt-3 flex flex-wrap items-center justify-between gap-2">
           <span className="text-[11px] text-gray-500">{safePage * TABLE_PAGE + 1}–{Math.min(shown.length, safePage * TABLE_PAGE + paged.length)} / {shown.length} pegawai</span>
           <div className="flex items-center gap-2 shrink-0">
             <button type="button" disabled={safePage <= 0} onClick={() => setPage(safePage - 1)}
@@ -803,6 +804,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
           </div>
         </div>
       )}
+      </StableHeight>
       <p className="text-[10px] text-gray-500 italic mt-3">
         Skor Akhir <strong>(live)</strong> = blend KPI+360 (50/50), dihitung langsung dari data periode aktif —
         bisa berbeda dari angka <strong>finalisasi tersimpan</strong> di Laporan Kinerja Tim.
@@ -1210,8 +1212,10 @@ function LeaderboardToggle({ metric, top, bottom, valueOf, topTone = 'emerald' }
           Pegawai dengan {metric} {isTop ? 'tertinggi.' : 'terendah (prioritas mentoring/coaching).'}
         </p>
       </div>
-      <LeaderboardRows items={shown} valueOf={valueOf} tone={tone} startIndex={rangeFrom > 0 ? rangeFrom - 1 : 0} />
-      <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
+      <StableHeight>
+        <LeaderboardRows items={shown} valueOf={valueOf} tone={tone} startIndex={rangeFrom > 0 ? rangeFrom - 1 : 0} />
+        <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
+      </StableHeight>
     </div>
   );
 }

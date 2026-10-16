@@ -8,6 +8,57 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
+### 2026-10-15 — Kokpit Review & Finalisasi jadi 3 langkah
+- **Kokpit Review & Finalisasi disederhanakan** (permintaan pengguna: "terlalu banyak tombol, membingungkan"). Lima tombol
+  yang dulu tersebar kini menjadi **tiga langkah berjajar**: ① Hitung Skor 360° → ② Finalisasi Laporan → ③ Kabari
+  Pegawai. Tiap langkah menampilkan ringkasan singkat, dan hanya langkah yang sedang perlu dikerjakan yang
+  tombolnya hijau. Keputusan pengguna:
+  - tombol **Hitung Ulang** mati ("✓ Mutakhir") bila tak ada perubahan, supaya tidak ditekan tanpa alasan; jalan
+    darurat "Hitung ulang paksa" tetap ada di menu ⋯;
+  - kotak langkah berjajar ke samping, bukan bertumpuk (di HP otomatis bertumpuk);
+  - penjelasan panjang dipindah ke ikon ⓘ, Atur Bobot dan Flag Kepatuhan jadi tautan kecil.
+  Tombol Finalisasi yang nonaktif menyebut sebabnya ("Menunggu ACC (N)", "Masih ada draf (N)", "✓ Semua sudah
+  Final"), bukan "Belum ada yang siap" yang menyesatkan saat semua laporan sudah Final. Tidak ada fungsi yang dihapus.
+
+### 2026-10-15 — Email Rilis Laporan
+- **Email Rilis Laporan dari Review & Finalisasi** (permintaan pengguna). HRD bisa mengabarkan pegawai bahwa PDF
+  laporannya sudah bisa diunduh di Laporan Hasil Saya, **massal** (tombol di kokpit) atau **per pegawai** (ikon ✉
+  di baris tabel). Isi email mengikuti dokumen HRD "Komunikasi Rilis Laporan PA Q3 2026", dibuat berlaku untuk
+  periode mana pun. Keputusan pengguna:
+  - email mengarahkan ke **portal** (bukan tautan Drive langsung), jadi "kami sampaikan melalui email ini"
+    diganti "dapat Anda unduh melalui portal";
+  - bagian yang berubah tiap kuartal (urutan siklus, Tahapan Selanjutnya) **diisi HRD saat kirim**; periode,
+    bulan, aspek budaya, dan kategori skor otomatis dari data;
+  - dua gambar (panduan setelah menerima laporan, cara mengunduh PDF) disisipkan **setelah isi email**, dengan
+    kalimat cara mengunduh di antaranya. Gambar diunggah HRD per periode karena isinya bertuliskan kuartal.
+  Hanya pegawai yang laporannya Final dan Folder Laporannya terisi yang dikirimi. Ada tombol kirim uji ke email
+  sendiri, dan tiap pengiriman tercatat agar tidak terkirim dua kali tanpa sengaja. Butuh perubahan database
+  0051 untuk gambar; tanpa itu email tetap terkirim tanpa gambar.
+### 2026-10-15 — Ukuran tabel tetap
+- **Ukuran tabel tidak lagi berubah-ubah** (permintaan pengguna). Saat pindah halaman tabel, menyaring, mencari,
+  atau berganti tab, kolom dan tinggi tabel dulu ikut bergeser. Penyebabnya: scrollbar halaman yang muncul-hilang
+  mengubah lebar layar; halaman terakhir yang barisnya lebih sedikit membuat tabel memendek dan tombol halaman
+  melompat; dan teks panjang yang terlipat membuat baris lebih tinggi. Kini:
+  - tempat scrollbar selalu disediakan, jadi lebar layar tetap;
+  - tinggi area tabel hanya bisa bertambah (mengikuti halaman terpanjang yang pernah tampil) dan tombol
+    halaman tetap di bawahnya, jadi tak ada yang melompat;
+  - isi sel dibatasi **satu baris** (keputusan pengguna); teks yang terpotong "…" tampil utuh saat kursor
+    diarahkan ke situ;
+  - kolom daftar Penilaian dikunci agar tidak bergeser saat berpindah tab.
+  Berlaku di semua tabel berhalaman, termasuk heatmap Monitor, Dashboard, Laporan Tim, Audit, dan Log Akses.
+  Lebar heatmap tetap mengikuti jumlah aspek periode yang dipilih. Progress 360 tidak diubah karena barisnya
+  bisa dibuka-tutup.
+
+### 2026-10-15 (di `dev`, belum di production)
+- **Uji rilis Q3 dijalankan** di database staging dengan daftar [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md): 53 langkah lulus,
+  0 gagal. Kunci laporan Final, Buka Kembali, ACC, Pemetaan, potongan telat, Manajemen Akses, Kelola Pegawai,
+  Ekspor, dan aktivasi periode bekerja sesuai rencana. Temuan: Skor Akhir bisa berubah saat laporan dibuka kembali
+  lalu difinalisasi ulang (potongan telat tertunda ikut diterapkan; benar, tetapi perlu diketahui HRD), dan pesan
+  kecil di Manajemen Akses (dicatat untuk gelombang 3). Data uji di staging sudah dikembalikan.
+- **Nama penilai tidak lagi terkirim ke browser di tampilan HRD** (2026-10-14). Sebelumnya nama itu ikut terkirim
+  walau tak pernah tampil di layar (terbaca lewat alat developer). Kini dibuang di server; tampilan tak berubah,
+  komentar anonim tetap ada. Ikut diperbaiki: aplikasi bisa dijalankan lagi di mode pengembangan.
+
 ### 2026-10-14 (di `dev`, belum di production)
 - **"Unduh PDF" pegawai membuka folder Google Drive** (permintaan pengguna). PDF hasil cetak aplikasi kurang rapi
   dibanding PDF yang disusun HRD. Kini HRD menyimpan tautan **satu folder Drive per pegawai** di Kelola Pegawai.

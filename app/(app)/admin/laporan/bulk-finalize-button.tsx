@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCheck } from 'lucide-react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Button } from '@/components/button';
 import { bulkFinalizeAccepted } from './actions';
 
 /**
@@ -11,14 +12,15 @@ import { bulkFinalizeAccepted } from './actions';
  * (SPV/Koordinator/Direksi) & masih `in_review`, agar HRD tak finalisasi satu per satu.
  * `count` = jumlah kandidat (spv_acc & in_review); `staleCount` = di antaranya yang skor 360°-nya
  * perlu dihitung ulang (peringatan agar HRD Hitung Ulang dulu supaya skor tersimpan benar).
+ * Langkah ② kokpit: hijau bila `primary` (langkah yang sedang perlu dikerjakan); tanpa kandidat →
+ * tombol tetap tampil tetapi nonaktif dengan `idleLabel` yang menjelaskan sebabnya (mis. "Menunggu ACC (3)"
+ * atau "✓ Semua sudah Final"), agar susunan langkah tak berubah-ubah.
  */
-export function BulkFinalizeButton({ count, staleCount }: { count: number; staleCount: number }) {
+export function BulkFinalizeButton({ count, staleCount, primary, idleLabel }: { count: number; staleCount: number; primary: boolean; idleLabel: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string; failed?: string } | null>(null);
-
-  if (count === 0) return null; // tak ada yang siap difinalisasi → sembunyikan
 
   async function run() {
     setBusy(true); setMsg(null);
@@ -35,10 +37,10 @@ export function BulkFinalizeButton({ count, staleCount }: { count: number; stale
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <button type="button" onClick={() => setOpen(true)} disabled={busy}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
-        <CheckCheck className="w-3.5 h-3.5" /> Finalisasi Semua Ber-ACC ({count})
-      </button>
+      <Button type="button" size="sm" variant={primary && count > 0 ? 'primary' : 'ghost'} onClick={() => setOpen(true)}
+        disabled={busy || count === 0} title={count === 0 ? 'Tombol ini memfinalisasi laporan yang sudah di-ACC dan masih Ditinjau — saat ini tidak ada' : undefined}>
+        <CheckCheck className="w-3.5 h-3.5" /> {count > 0 ? <>Finalisasi <span className="data-value">{count}</span> Laporan</> : idleLabel}
+      </Button>
       {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
       {msg?.failed && <span className="text-[11px] font-semibold text-danger-ink">{msg.failed}</span>}
 

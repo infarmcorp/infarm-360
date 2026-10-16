@@ -9,8 +9,12 @@ import { ReportTable, type ReportRow } from './report-table';
 import { Recompute360Button } from './recompute-360-button';
 import { ResyncDriftButton } from './resync-drift-button';
 import { BulkFinalizeButton } from './bulk-finalize-button';
+import { ReleaseEmailButton, type ReleaseProps } from './release-email-button';
+import { loadReleasePeriod, defaultCycle, loadReleaseSentIds, loadReleaseImages } from '@/lib/report-release';
+import { appBaseUrl } from '@/lib/app-url';
 import { ImportSummaries, type ImportSummaryEmp } from './import-summaries';
 import { Panel } from '@/components/panel';
+import { InfoTip } from '@/components/info-tip';
 import { loadPendingLatePenalties, refreshLatePenalties } from '@/lib/late-server';
 import { isBackfilledPeriod } from '@/lib/backfill-guard';
 import { ratedCompletion, type RatedMapping } from '@/lib/rated-completeness';
@@ -222,6 +226,49 @@ export default async function AdminLaporanPage() {
   // halaman Flag Kepatuhan. Diperingatkan di sini agar tak terlanjur difinalisasi tanpa potongan.
   const pendingLate = isHrdFull && ap.has_360 ? (await loadPendingLatePenalties(ap.id)).length : 0;
 
+  // Email Rilis Laporan (HRD penuh): penerima = pegawai ber-laporan Final; Folder Laporan & status
+  // "sudah dikirimi" ditampilkan di dialog. Server menegakkan ulang semua syarat saat mengirim.
+  let release: ReleaseProps | null = null;
+  if (isHrdFull) {
+    const finalRows = shownRows.filter((r) => r.status === 'finalized');
+    const [relPeriod, cycle, sentIds, { data: folders }, base, imgs] = await Promise.all([
+      loadReleasePeriod(cfg, ap.id), defaultCycle(cfg, ap.id), loadReleaseSentIds(cfg, ap.id),
+      cfg.from('employee_report_folders').select('employee_id, url'), appBaseUrl(), loadReleaseImages(cfg, ap.id),
+    ]);
+    const folderSet = new Set((folders ?? []).filter((f) => f.url).map((f) => f.employee_id));
+    if (relPeriod) release = {
+      period: relPeriod, defaultCycle: cycle, appUrl: base ? `${base}/laporan` : '',
+      recipients: finalRows.map((r) => ({ id: r.id, name: r.name, dept: r.dept, hasFolder: folderSet.has(r.id), sent: sentIds.has(r.id) })),
+      images: Object.fromEntries(Object.entries(imgs.images).map(([k, v]) => [k, v.url])), storageOk: imgs.ok,
+    };
+  }
+
+  // Ringkasan per langkah kokpit + langkah yang SEDANG perlu dikerjakan (satu-satunya tombol hijau):
+  // ① bila ada Skor 360° usang/potongan telat tertunda → ② bila ada yang siap difinalisasi/berubah →
+  // ③ bila ada laporan Final ber-folder yang belum dikabari. 0 = tak ada yang perlu dikerjakan.
+  const finalCount = shownRows.filter((r) => r.status === 'finalized').length;
+  const waitingAccCount = shownRows.filter((r) => r.status === 'in_review' && !r.spvAcc).length;
+  const draftCount = shownRows.filter((r) => r.status === 'draft').length;
+  const noReportCount = shownRows.filter((r) => r.status == null).length;
+  // Tulisan tombol ② saat tak ada yang bisa difinalisasi massal — sebut sebabnya, bukan "belum siap".
+  const finalizeIdleLabel = waitingAccCount > 0 ? `Menunggu ACC (${waitingAccCount})`
+    : draftCount > 0 ? `Masih ada draf (${draftCount})`
+    : noReportCount > 0 ? `Laporan belum dibuat (${noReportCount})`
+    : finalCount > 0 ? '✓ Semua sudah Final' : 'Belum ada laporan';
+  const releaseReady = release?.recipients.filter((r) => r.hasFolder).length ?? 0;
+  const releaseSent = release?.recipients.filter((r) => r.hasFolder && r.sent).length ?? 0;
+  const releaseNoFolder = release?.recipients.filter((r) => !r.hasFolder).length ?? 0;
+  const step1Need = ap.has_360 && !backfilled && (staleCount > 0 || pendingLate > 0);
+  const step2Need = accReadyCount > 0 || driftCount > 0;
+  const step3Need = releaseReady - releaseSent > 0;
+  const activeStep = step1Need ? 1 : step2Need ? 2 : step3Need ? 3 : 0;
+  const stepState = (n: 1 | 2 | 3): StepState => {
+    if (n === activeStep) return 'active';
+    if (n === 1) return step1Need ? 'idle' : 'done';
+    if (n === 2) return !step2Need && finalCount > 0 && waitingAccCount + draftCount === 0 ? 'done' : 'idle';
+    return releaseReady > 0 && !step3Need && releaseNoFolder === 0 ? 'done' : 'idle';
+  };
+
   // Impor Ringkasan dari Excel: HRD penuh atau grant boleh-meringkas, hanya saat 360° aktif. Daftar
   // pegawai = yang dalam lingkup (server menegakkan ulang lingkup & kunci Final).
   const canImport = ap.has_360 && (isHrdFull || grantCanEdit);
@@ -261,64 +308,75 @@ export default async function AdminLaporanPage() {
         <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
       </div>
 
-      {/* Kokpit "Sinkronkan Skor" — HANYA HRD penuh (pemegang grant = read-only). Menyatukan dua
-          aksi yang dulu terpisah/membingungkan: ① Hitung Ulang Skor 360° (result_360 usang) dan
-          ② Finalisasi Ulang laporan yang skornya berubah (final_score tersimpan ketinggalan). */}
+      {/* Kokpit "Langkah Rilis Laporan" — HANYA HRD penuh (pemegang grant = read-only). Tiga langkah
+          berjajar sesuai alur kerja: ① Hitung Skor 360° → ② Finalisasi → ③ Kabari Pegawai. Hanya langkah
+          yang SEDANG perlu dikerjakan (`activeStep`) yang tombolnya hijau; langkah lain bergaris/nonaktif. */}
       {isHrdFull && (
-      <div className="mb-5 rounded-panel border border-line bg-neutral-tint p-3 space-y-2.5">
-        <div className="flex items-center gap-2">
-          <h2 className="text-[11px] font-semibold text-ink-soft uppercase tracking-[0.05em]">Sinkronkan Skor</h2>
-          {ap.has_360 && staleCount === 0 && driftCount === 0 && pendingLate === 0 && (
-            <span className="text-[11px] font-semibold text-brand-ink">✓ semua skor mutakhir</span>
-          )}
+      <div className="mb-5 rounded-panel border border-line bg-neutral-tint p-3">
+        <div className="mb-2.5 flex items-center gap-1.5">
+          <h2 className="text-[11px] font-semibold text-ink-soft uppercase tracking-[0.05em]">Langkah Rilis Laporan</h2>
+          <InfoTip label="Penjelasan langkah rilis" text={'Skor hanya diperbarui saat Anda menekan tombolnya di sini. ① Hitung Ulang: penilaian 360°, koreksi Garis Hubungan, atau bobot berubah sejak terakhir dihitung. ② Finalisasi: laporan yang sudah di-ACC dikunci dan tampil ke pegawai; "laporan Final berubah" = angka tersimpan ketinggalan dari data terkini. ③ Kabari Pegawai: email bahwa PDF sudah bisa diunduh — hanya untuk laporan Final yang Folder Laporan-nya terisi.'} />
         </div>
 
-        {/* Penjelasan singkat 2 keadaan — mengganti dua badge yang dulu perlu dijelaskan panjang. */}
-        <p className="text-[11px] text-ink-faint leading-relaxed max-w-3xl">
-          Skor hanya diperbarui saat Anda menekannya di sini.
-          {ap.has_360 && <> <strong className="text-warn-ink">Perlu hitung</strong> = penilaian 360° berubah sejak terakhir dihitung → tekan <strong>①</strong>.</>}
-          {' '}<strong className="text-warn-ink">Berubah → N</strong> = laporan sudah Final tapi angkanya ketinggalan → tekan <strong>②</strong> agar pegawai melihat Skor Akhir terbaru.
+        <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-stretch">
+          <StepCard n={1} title="Hitung Skor 360°" state={stepState(1)}>
+            {!ap.has_360 ? (
+              <p>Periode ini tanpa 360° — langkah ini tidak diperlukan.</p>
+            ) : backfilled ? (
+              <p>🔒 Skor 360° hasil impor resmi (Looker) dan dikunci — tidak perlu dihitung ulang.</p>
+            ) : (
+              <>
+                {staleCount === 0
+                  ? <p className="font-semibold text-brand-ink">✓ Semua skor sudah mutakhir</p>
+                  : <p className="font-semibold text-warn-ink">
+                      {neverCount > 0 && <><span className="data-value">{neverCount}</span> belum pernah dihitung{changedCount > 0 ? ' · ' : ''}</>}
+                      {changedCount > 0 && <><span className="data-value">{changedCount}</span> perlu dihitung ulang</>}
+                    </p>}
+                {!wsRow && (
+                  <p className="text-warn-ink">⚠ Bobot penilai belum disimpan — <Link href="/admin/bobot" className="underline">simpan di Atur Bobot</Link> dulu.</p>
+                )}
+                {pendingLate > 0 && (
+                  <p className="text-warn-ink">⚠ <span className="data-value">{pendingLate}</span> potongan keterlambatan belum masuk — <Link href="/admin/kepatuhan" className="underline">terapkan di Flag Kepatuhan</Link>.</p>
+                )}
+              </>
+            )}
+            {ap.has_360 && !backfilled && (
+              <StepActions><Recompute360Button stale={staleCount} primary={activeStep === 1} blocked={!wsRow} /></StepActions>
+            )}
+          </StepCard>
+          <StepArrow />
+          <StepCard n={2} title="Finalisasi Laporan" state={stepState(2)}>
+            <p><span className="data-value font-semibold text-ink">{finalCount}</span> Final · <span className="data-value font-semibold text-ink">{accReadyCount}</span> siap difinalisasi (sudah ACC)</p>
+            <p><span className="data-value">{waitingAccCount}</span> menunggu ACC · <span className="data-value">{draftCount}</span> draf</p>
+            {driftCount > 0 && (
+              <p className="font-semibold text-warn-ink"><span className="data-value">{driftCount}</span> laporan Final angkanya berubah — perbarui agar pegawai melihat skor terbaru.</p>
+            )}
+            <StepActions>
+              <BulkFinalizeButton count={accReadyCount} staleCount={accStaleCount} primary={activeStep === 2} idleLabel={finalizeIdleLabel} />
+              <ResyncDriftButton count={driftCount} />
+            </StepActions>
+          </StepCard>
+          <StepArrow />
+          <StepCard n={3} title="Kabari Pegawai" state={stepState(3)}>
+            {release && release.recipients.length > 0 ? (
+              <>
+                <p><span className="data-value font-semibold text-ink">{releaseReady - releaseSent}</span> siap dikirim · <span className="data-value font-semibold text-ink">{releaseSent}</span> sudah dikirimi</p>
+                {releaseNoFolder > 0 && (
+                  <p className="text-warn-ink"><span className="data-value">{releaseNoFolder}</span> Final belum punya Folder Laporan — <Link href="/admin/pegawai" className="underline">isi di Kelola Pegawai</Link>.</p>
+                )}
+              </>
+            ) : (
+              <p>Aktif setelah ada laporan Final.</p>
+            )}
+            {release && <StepActions><ReleaseEmailButton release={release} primary={activeStep === 3} /></StepActions>}
+          </StepCard>
+        </div>
+
+        <p className="mt-2.5 text-right text-[11px] text-ink-faint">
+          <Link href="/admin/bobot" className="hover:text-ink-soft hover:underline">Atur Bobot</Link>
+          {' · '}
+          <Link href="/admin/kepatuhan" className="hover:text-ink-soft hover:underline">Flag Kepatuhan</Link>
         </p>
-
-        {/* Tanpa skema bobot tersimpan, ① ditolak server — beri tahu SEBELUM HRD menekannya. */}
-        {ap.has_360 && backfilled && (
-          <p className="text-[12px] font-semibold text-ink-soft">
-            🔒 Skor 360° periode ini hasil impor resmi (Looker) dan dikunci — tidak perlu (dan tidak bisa) dihitung ulang dari aplikasi.
-          </p>
-        )}
-        {ap.has_360 && !backfilled && !wsRow && (
-          <p className="text-[12px] font-semibold text-warn-ink">
-            ⚠ Bobot penilai periode ini belum disimpan — tombol ① akan gagal.{' '}
-            <Link href="/admin/bobot" className="underline">Buka Bobot &amp; Kalkulasi 360°</Link> lalu tekan “Simpan &amp; Terapkan Bobot”.
-          </p>
-        )}
-
-        {/* Baris aksi utama: ① Hitung Ulang · ② Finalisasi Ulang Berubah. */}
-        <div className="flex flex-wrap items-center gap-2">
-          {ap.has_360 && !backfilled && <Recompute360Button />}
-          {ap.has_360 && !backfilled && staleCount > 0 && (
-            <span className="text-[11px] text-warn-ink font-semibold">
-              {neverCount > 0 && <>{neverCount} belum pernah dihitung{changedCount > 0 ? ' · ' : ''}</>}
-              {changedCount > 0 && <>{changedCount} perlu dihitung ulang</>}
-            </span>
-          )}
-          <ResyncDriftButton count={driftCount} />
-        </div>
-        {pendingLate > 0 && (
-          <p className="text-[11px] text-warn-ink font-semibold">
-            ⚠ {pendingLate} pegawai: potongan keterlambatan menilai belum masuk Skor 360° —{' '}
-            <Link href="/admin/kepatuhan" className="underline hover:no-underline">terapkan di Flag Kepatuhan</Link> sebelum finalisasi.
-          </p>
-        )}
-
-        {/* Baris sekunder: finalisasi massal ber-ACC + pintasan Bobot/Flag. */}
-        <div className="flex flex-wrap items-center gap-2 pt-1.5 border-t border-line">
-          <BulkFinalizeButton count={accReadyCount} staleCount={accStaleCount} />
-          <div className="flex items-center gap-2 ml-auto">
-            <Link href="/admin/bobot" className="text-[11px] font-semibold px-3 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">⚖ Atur Bobot</Link>
-            <Link href="/admin/kepatuhan" className="text-[11px] font-semibold px-3 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">⚑ Flag Kepatuhan</Link>
-          </div>
-        </div>
       </div>
       )}
 
@@ -328,7 +386,7 @@ export default async function AdminLaporanPage() {
         </div>
       )}
 
-      <Panel><ReportTable rows={shownRows} depts={depts} has360={ap.has_360} readOnly={readOnly} /></Panel>
+      <Panel><ReportTable rows={shownRows} depts={depts} has360={ap.has_360} readOnly={readOnly} release={release ?? undefined} /></Panel>
       {isHrdFull ? (
         <p className="text-[11px] text-ink-faint mt-4 leading-relaxed">
           Klik <strong>Tinjau</strong> untuk membuka & mengelola laporan pegawai (Simpan Draf → Rilis ke SPV →
@@ -355,6 +413,34 @@ export default async function AdminLaporanPage() {
       )}
     </Shell>
   );
+}
+
+type StepState = 'active' | 'done' | 'idle';
+
+/** Kartu satu langkah kokpit: nomor + judul, ringkasan status, lalu tombol di dasar kartu. */
+function StepCard({ n, title, state, children }: { n: number; title: string; state: StepState; children: React.ReactNode }) {
+  const badge = state === 'active' ? 'bg-brand text-white' : state === 'done' ? 'bg-brand-tint text-brand-ink' : 'bg-neutral-tint text-ink-soft';
+  return (
+    <section className={`flex flex-col rounded-panel border bg-surface p-3 ${state === 'active' ? 'border-brand/50' : 'border-line'}`}>
+      <div className="flex items-center gap-2">
+        <span className={`data-value flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold ${badge}`}>
+          {state === 'done' ? '✓' : n}
+        </span>
+        <h3 className="text-[13.5px] font-bold text-ink">{title}</h3>
+      </div>
+      <div className="mt-2 flex flex-1 flex-col gap-1 text-[12px] leading-snug text-ink-soft">{children}</div>
+    </section>
+  );
+}
+
+/** Deretan tombol di dasar kartu langkah (mt-auto → sejajar antar kartu). */
+function StepActions({ children }: { children: React.ReactNode }) {
+  return <div className="mt-auto flex flex-wrap items-start gap-2 pt-2.5">{children}</div>;
+}
+
+/** Panah antar kartu (hanya di layar lebar; di HP kartu bertumpuk). */
+function StepArrow() {
+  return <div className="hidden items-center text-ink-faint lg:flex" aria-hidden>→</div>;
 }
 
 function Shell({ children }: { children: React.ReactNode }) {

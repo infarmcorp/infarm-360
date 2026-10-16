@@ -5,7 +5,9 @@ import { colPercents } from '@/lib/table-cols';
 import Link from 'next/link';
 import type { ReportStatus } from '@/lib/database.types';
 import { hasScoreDrift, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
-import { usePager, Pager, MultiCheckFilter, CheckboxFilter } from '@/components/table-controls';
+import { usePager, StableHeight, Pager, MultiCheckFilter, CheckboxFilter } from '@/components/table-controls';
+import { Mail } from 'lucide-react';
+import { ReleaseEmailDialog, type ReleaseProps } from './release-email-button';
 
 export type ReportRow = {
   id: string; name: string; dept: string;
@@ -33,8 +35,11 @@ const isDone = (r: ReportRow) => r.status === 'finalized' && !r.needsRecompute &
 
 /** Tabel Review Hasil Akhir + pencarian, filter Divisi & Kelengkapan 360° (client).
  * `hrefBase` = basis tautan "Tinjau" (default '/laporan' untuk HRD; '/review-hasil' utk Direksi read-only).
- * `readOnly` = pemegang grant lihat-saja: sembunyikan tautan "Tinjau" (tanpa akses detail; Tahap 1). */
-export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOnly = false }: { rows: ReportRow[]; depts: string[]; has360: boolean; hrefBase?: string; readOnly?: boolean }) {
+ * `readOnly` = pemegang grant lihat-saja: sembunyikan tautan "Tinjau" (tanpa akses detail; Tahap 1).
+ * `release` = data Email Rilis Laporan (HRD Mode Admin) → tombol ✉ kirim per pegawai pada laporan Final. */
+export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOnly = false, release }: { rows: ReportRow[]; depts: string[]; has360: boolean; hrefBase?: string; readOnly?: boolean; release?: ReleaseProps }) {
+  const [releaseFor, setReleaseFor] = useState<string | null>(null);
+  const releaseBy = useMemo(() => new Map((release?.recipients ?? []).map((r) => [r.id, r])), [release]);
   const [q, setQ] = useState('');
   const [deptSel, setDeptSel] = useState<Set<string>>(new Set());   // kosong = semua divisi
   const [ratedSel, setRatedSel] = useState<Set<string>>(new Set()); // kosong = semua kelengkapan
@@ -112,9 +117,10 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
         <p className="text-[11px] text-ink-faint italic">{rows.length - sum.actionable} laporan selesai (Final) disembunyikan — hilangkan centang <strong>“Hanya perlu tindakan”</strong> untuk melihat semua.</p>
       )}
 
+      <StableHeight>
       <div className="overflow-x-auto">
         {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
-        <table className={`w-full table-fixed text-left text-sm ${has360 ? 'min-w-[800px]' : 'min-w-[670px]'}`}>
+        <table className={`w-full table-fixed table-1line text-left text-sm ${has360 ? 'min-w-[840px]' : 'min-w-[710px]'}`}>
           <colgroup>
             {colPercents([
               170, // Pegawai
@@ -126,7 +132,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
               has360 && 92, // Dinilai oleh
               64, // ACC
               110, // Status ("Ditinjau Direksi")
-              130, // Aksi ("Tanpa KPI" + Tinjau)
+              165, // Aksi ("Tanpa KPI" / ✉ email rilis + Tinjau)
             ]).map((w, i) => <col key={i} style={{ width: w }} />)}
           </colgroup>
           <thead>
@@ -249,6 +255,16 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                         {r.final == null && (
                           <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft" title="Sudah ada penilaian masuk, tetapi KPI kosong dan Skor 360° belum dihitung — tekan ① Hitung Ulang Skor 360°">Skor belum ada</span>
                         )}
+                        {releaseBy.has(r.id) && (() => {
+                          const rc = releaseBy.get(r.id)!;
+                          return (
+                            <button type="button" onClick={() => setReleaseFor(r.id)}
+                              title={!rc.hasFolder ? 'Email rilis: Folder Laporan belum diisi' : rc.sent ? 'Email rilis sudah dikirim — klik untuk kirim ulang' : 'Kirim email rilis laporan ke pegawai ini'}
+                              className={`inline-flex items-center gap-0.5 rounded-control border px-1.5 py-1 text-[10px] font-semibold ${rc.sent ? 'border-line text-ink-faint hover:text-ink' : rc.hasFolder ? 'border-brand/30 text-brand-ink hover:bg-brand-tint' : 'border-line text-warn-ink'}`}>
+                              <Mail className="w-3.5 h-3.5" />{rc.sent && '✓'}
+                            </button>
+                          );
+                        })()}
                         <Link href={`${hrefBase}/${r.id}`}
                           className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-control border border-brand/30 text-brand-ink hover:bg-brand-tint">
                           Tinjau →
@@ -261,6 +277,8 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
         </table>
       </div>
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
+      </StableHeight>
+      {release && releaseFor && <ReleaseEmailDialog release={release} onlyId={releaseFor} onClose={() => setReleaseFor(null)} />}
     </div>
   );
 }

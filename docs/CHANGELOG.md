@@ -14,6 +14,8 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   Kompilasi sudah mengeluarkan mereka dari klasifikasi, tetapi kedua tabel tetap memberi kelas sehingga jumlahnya
   tidak cocok. Angka KPI, 360°, dan Skor Akhir tetap tampil. Filter Player di Tabel Hasil mendapat pilihan
   "Belum Terbaca".
+- Lanjutannya, **Monitor Kinerja, Laporan Kinerja Tim, dan Ekspor Rekap** juga menulis **Belum Terbaca** untuk
+  pegawai yang sama (kolom Player; di Ekspor juga kolom kategori). Kini semua halaman sepakat.
 - Di Kompilasi, kotak **HRD Review** dan **Belum Terbaca** kini berdampingan kiri-kanan.
 - Keterangan "Skor Akhir (live)" di Tabel Hasil dihapus karena keliru: laporan Final memang sudah memakai angka
   tersimpannya.

@@ -59,7 +59,7 @@ export function StrukturView({
   const shownDireksi = direksi.filter(match);
   const shownOrphans = orphans.filter(match);
 
-  const toggle = (id: string) => setCollapsed((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggle = (id: string) => setCollapsed((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   return (
     <div className="space-y-5">

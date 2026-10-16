@@ -137,7 +137,7 @@ export function TeamTable({
 
       <StableHeight>
       {filtered.length === 0 ? (
-        <p className="text-sm text-ink-soft">Tidak ada pegawai cocok dengan "{q}".</p>
+        <p className="text-sm text-ink-soft">Tidak ada pegawai cocok dengan &quot;{q}&quot;.</p>
       ) : (
         <div className="overflow-x-auto">
           {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/pencarian (tak bergeser saat paging). */}

@@ -24,7 +24,7 @@ const ROLE_BOX: Record<Person['role'], string> = {
  */
 export function OrgChart({ roots }: { roots: OrgNode[] }) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const toggle = (id: string) => setCollapsed((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggle = (id: string) => setCollapsed((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   const Node = ({ n }: { n: OrgNode }) => {
     const kids = n.children;

@@ -52,10 +52,10 @@ export function BulkFinalizeButton({ count, staleCount, primary, idleLabel }: { 
         onConfirm={run} onCancel={() => setOpen(false)}
       >
         <p>Semua laporan yang <strong>sudah di-ACC</strong> (SPV/Koordinator/Direksi) & masih Ditinjau akan
-          <strong> difinalisasi</strong> — langsung <strong>terlihat oleh pegawai</strong> di "Laporan Hasil Saya".</p>
+          <strong> difinalisasi</strong> — langsung <strong>terlihat oleh pegawai</strong> di &quot;Laporan Hasil Saya&quot;.</p>
         {staleCount > 0 && (
           <p className="text-warn-ink font-semibold">⚠️ {staleCount} di antaranya Skor 360°-nya <strong>perlu dihitung ulang</strong>.
-            Sebaiknya klik "Hitung Ulang Skor 360°" dulu agar skor tersimpan yang dilihat pegawai sudah benar.</p>
+            Sebaiknya klik &quot;Hitung Ulang Skor 360°&quot; dulu agar skor tersimpan yang dilihat pegawai sudah benar.</p>
         )}
         <p className="text-ink-soft">Laporan yang skornya belum bisa dihitung (KPI &amp; 360° kosong) akan dilewati.</p>
       </ConfirmDialog>

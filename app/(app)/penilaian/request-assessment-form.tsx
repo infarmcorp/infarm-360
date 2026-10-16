@@ -107,7 +107,7 @@ export function RequestAssessmentButton({ candidates }: { candidates: Candidate[
               <textarea value={reasonOther} onChange={(e) => setReasonOther(e.target.value)} disabled={busy} rows={3}
                 placeholder="Jelaskan alasan Anda mengajukan penilaian ini."
                 className="w-full text-xs p-2.5 mt-1.5 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
-              <p className="text-[10px] text-ink-faint mt-1">Wajib diisi (minimal 5 karakter) untuk pilihan "Lainnya".</p>
+              <p className="text-[10px] text-ink-faint mt-1">Wajib diisi (minimal 5 karakter) untuk pilihan &quot;Lainnya&quot;.</p>
             </>
           )}
           <p className="text-[10px] text-ink-faint mt-1">Alasan ini yang dibaca HRD saat memutuskan.</p>

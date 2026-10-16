@@ -286,7 +286,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
       </div>
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="penilai" />
       <p className="text-[11px] text-ink-faint leading-relaxed">
-        <strong className="font-semibold text-ink-soft">Status "Lengkap"</strong> dihitung dari penilaian <strong className="font-semibold text-ink-soft">WAJIB</strong> saja — penilaian
+        <strong className="font-semibold text-ink-soft">Status &quot;Lengkap&quot;</strong> dihitung dari penilaian <strong className="font-semibold text-ink-soft">WAJIB</strong> saja — penilaian
         opsional tak memengaruhi status/kartu (tetap ditampilkan di Rincian untuk dipantau). Penilaian
         <strong className="font-semibold text-ink-soft"> Ajuan</strong> (opsional yang diajukan pegawai &amp; disetujui HRD) dipantau di panel
         <strong> Penilaian Ajuan</strong> &amp; chip bergaris putus-putus. Tiap baris:

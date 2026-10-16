@@ -14,8 +14,6 @@ const mockAdmin = vi.mocked(createAdminClient);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function use(c: MockClient) { mockCreate.mockResolvedValue(c as any); }
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function useAdmin(c: MockClient) { mockAdmin.mockReturnValue(c as any); }
 
 const HRD = { role: 'hrd', is_hrd_admin: false };
 const UID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';

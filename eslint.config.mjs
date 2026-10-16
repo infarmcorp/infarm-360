@@ -7,6 +7,12 @@ import nextTs from 'eslint-config-next/typescript';
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    // Konvensi: parameter/variabel berawalan `_` = sengaja tak dipakai (mis. tanda tangan fungsi tiruan di tes).
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
+    },
+  },
   globalIgnores([
     '.next/**', 'out/**', 'build/**', 'coverage/**', 'next-env.d.ts',
     // Folder lokal yang di-gitignore (backup & berkas kerja) — bukan kode aplikasi.

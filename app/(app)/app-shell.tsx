@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 import { BrandLogo } from '@/components/brand-logo';
+import { ActionGuard } from '@/components/action-guard';
 import type { TodoItem, TodoTone } from '@/lib/todos/compute';
 
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
@@ -385,6 +386,7 @@ export function AppShell({
         {/* scrollbar-gutter: tempat scrollbar selalu disediakan → lebar konten (dan kolom tabel ber-persen)
             tak berubah saat halaman/tab berganti antara pendek (tanpa scrollbar) dan panjang. */}
         <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">{children}</div>
+        <ActionGuard />
       </div>
     </div>
   );

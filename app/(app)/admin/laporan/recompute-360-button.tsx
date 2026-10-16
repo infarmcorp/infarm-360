@@ -7,6 +7,7 @@ import { Button } from '@/components/button';
 import { OverflowMenu } from '@/components/overflow-menu';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { computeResult360 } from '@/app/(app)/admin/360/actions';
+import { callAction } from '@/lib/call-action';
 
 /**
  * Langkah ① "Hitung Ulang Skor 360°" (kokpit Review & Finalisasi). Memakai action yang sama dengan
@@ -24,7 +25,7 @@ export function Recompute360Button({ stale, primary, blocked = false }: { stale:
 
   async function run() {
     setBusy(true); setMsg(null); setConfirmForce(false);
-    const res = await computeResult360();
+    const res = await callAction(() => computeResult360());
     setBusy(false);
     // Pegawai yang laporannya sudah Final tak dihitung ulang (kunci laporan Final) — disebutkan jumlahnya.
     const skipped = res.ok && res.skippedFinal > 0 ? ` ${res.skippedFinal} pegawai dilewati karena laporannya sudah Final.` : '';

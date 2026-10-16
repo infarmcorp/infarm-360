@@ -322,6 +322,8 @@ tanpa kehilangan posisi dan timnya. Izin hanya untuk pegawai **divisi HRD**.
   lingkup divisinya).
 - **Mode Admin**: grup **Persiapan Siklus · Pelaksanaan · Hasil & Tindak Lanjut · Pemantauan & Laporan · Administrasi**.
 - Tombol mode hanya mengubah tampilan. Untuk finalisasi, kembali ke Mode Admin.
+- Detail laporan pegawai lain (dari Review & Finalisasi) hanya terbuka di **Mode Admin**. Pemegang izin berposisi
+  Pegawai yang membuka alamatnya di mode posisi asli melihat pesan "hanya tersedia di Mode Admin".
 - Komentar penilai di layar laporan **selalu tanpa nama**, juga bagi HRD. Informasi siapa menilai siapa hanya
   ada di **Pemetaan** dan **Progress 360**.
 
@@ -1104,7 +1106,9 @@ Beri akses **seperlunya** dan cabut tepat waktu. **Pelaku:** HRD berakses penuh.
 1. Tentukan: halaman apa · lingkup apa · izin tingkat berapa. Mulai dari lingkup **sesempit** mungkin
    (mis. Hanya divisinya / Diri sendiri) dan izin **Lihat**.
 2. **Manajemen Akses → Kelola Akses** → pilih penerima (Seorang pegawai / Sebuah peran) → beri (§5.2).
-   Akses per peran hanya untuk anggota **saat ini**.
+   Akses per peran hanya untuk anggota **saat ini**, dan **tidak termasuk Anda sendiri** (jumlah penerima yang
+   tampil sudah tanpa Anda). Setelah **Simpan akses**, panel tertutup dan pesan hasilnya tampil di bawah pilihan
+   halaman (per peran) atau di bawah nama pegawai.
 3. Peninjau lintas divisi = **Review & Finalisasi** + **Selain divisinya** + **Meringkas**.
 4. Tinjau kartu **Pegawai Baru** → **Tandai selesai**.
 5. **Wajib cabut** saat pegawai resign/keluar (§9.2) atau mutasi.

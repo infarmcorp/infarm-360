@@ -8,6 +8,15 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
+### 2026-10-16 — Gelombang 3: detail laporan sadar mode, pesan Manajemen Akses (di `dev`, belum di production)
+- **Detail laporan pegawai lain kini mengikuti mode HRD.** Dulu pemegang izin HRD berposisi Pegawai yang membuka
+  alamat detail laporan saat di mode posisi asli tetap mendapat tampilan HRD penuh. Kini tampil pesan "hanya
+  tersedia di Mode Admin"; di Mode Admin tidak berubah. Koordinator yang juga ber-izin HRD mendapat tampilan
+  Koordinator saat di mode posisi asli.
+- **Manajemen Akses:** setelah memberi akses (per peran atau per pegawai), pesan hasilnya tetap terlihat walau
+  panelnya tertutup. Jumlah penerima per peran tidak lagi ikut menghitung pemberi akses sendiri, yang memang
+  tidak pernah diberi (temuan uji rilis 15 Oktober).
+
 ### 2026-10-16 — Skor 360° resmi di Ekspor Ringkasan per Pegawai; aturan kerja `dev`
 - **Ekspor "Penilaian 360° Lengkap" → lembar Ringkasan per Pegawai** kini juga berisi **Skor 360° resmi**
   (angka yang dipakai Rekap, Dashboard, dan laporan), potongan telat, dan **selisih**. Lembar ini menghitung Skor

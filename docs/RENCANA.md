@@ -92,10 +92,10 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 - ✅ **SPV yang juga punya izin HRD** (temuan audit no. 11) — **ditutup 2026-10-14**: dicek di production, tidak
   ada SPV ber-izin HRD (hanya satu pegawai berposisi Pegawai di HRD-GA yang punya izin HRD). Masalah "SPV tak bisa
   memfinalisasi di Mode Admin" tidak berlaku.
-- ⬜ **Gelombang 3 (prioritas rendah): pegawai ber-izin HRD melihat tampilan HRD penuh di detail laporan walau
-  sedang di mode posisi-asli** (halaman detail laporan belum mengikuti mode; sisa temuan no. 11). Berlaku untuk
-  pemegang izin HRD berposisi Pegawai (saat ini satu orang). Menu posisi-asli tidak menautkan ke halaman itu, jadi
-  hanya terjadi bila alamatnya dibuka langsung.
+- 🔄 **Gelombang 3: detail laporan kini mengikuti mode** (sisa temuan no. 11) — sudah di `dev` (2026-10-16), belum
+  di production. Pegawai ber-izin HRD di mode posisi-asli tak lagi mendapat tampilan HRD penuh; muncul pesan
+  "hanya tersedia di Mode Admin". Koordinator ber-izin HRD di mode posisi-asli mendapat tampilan Koordinator.
+  🔑 Sisa: uji di Preview `dev` dengan akun pemegang izin HRD berposisi Pegawai (mode posisi-asli vs Mode Admin).
 - ✅ **Laporan diri sendiri untuk pemegang izin HRD** — **diputuskan** (pemilik, 2026-10-16), dicatat di CLAUDE.md
   sebagai **risiko yang diterima secara sadar**:
   - HRD mengurus laporannya sendiri (meringkas, merilis, **memfinalisasi**), karena tidak ada orang lain yang
@@ -141,10 +141,10 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
     74,00 → 72,50), dan **KPI pegawai Final terkunci** untuk SPV/Koordinator. Pesan siap kirim:
     [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md);
   - catatan: Ubah deadline & cron melewati pegawai Final tanpa menyebut jumlahnya (proses otomatis).
-- ⬜ **Gelombang 3 (kecil): pesan di Manajemen Akses saat memberi akses per peran.** Setelah disimpan, panel
-  langsung tertutup sehingga pesan berhasil tak terlihat; pratinjau sebelum simpan menulis jumlah penerima
-  termasuk pemberi akses sendiri (mis. "51 Pegawai"), padahal yang diberi 50. Data tersimpan sudah benar
-  (temuan uji rilis 2026-10-15).
+- 🔄 **Gelombang 3 (kecil): pesan di Manajemen Akses** — sudah di `dev` (2026-10-16), belum di production. Pesan
+  berhasil kini tetap terlihat setelah panel tertutup (per peran dan per pegawai), dan jumlah penerima per peran
+  tidak lagi menghitung pemberi akses sendiri (mis. "50 Pegawai (Anda sendiri tidak termasuk)"). 🔑 Sisa: uji di
+  Preview `dev`.
 - ⬜ **Gelombang 3: hapus tombol "Perbarui Laporan Final yang Berubah"** (Finalisasi Ulang Laporan Berubah) setelah
   jumlah laporan berlabel "berubah → N" = 0. Dengan kunci laporan Final, label itu tak akan muncul lagi; tombol
   sementara dipertahankan hanya untuk merapikan selisih lama (keputusan 2026-10-12).

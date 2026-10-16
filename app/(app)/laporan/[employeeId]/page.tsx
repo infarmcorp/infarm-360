@@ -51,6 +51,9 @@ export default async function LaporanDetailPage({
   const jarEarly = await cookies();
   const hrdModeEarly = jarEarly.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   const isHrdFull = canSection(me, 'laporan') && hrdModeEarly === 'admin';
+  // Pemegang izin HRD yang SEDANG di Mode Admin. Di mode posisi-asli, izin HRD tak dipakai di halaman ini
+  // (sisa temuan no. 11, Gelombang 3): pegawai ber-izin HRD tak lagi mendapat tampilan HRD penuh.
+  const actsAsAdmin = isAdmin && hrdModeEarly === 'admin';
   let reviewGrant: { scopes: import('@/lib/auth/roles').PageScope[]; canEdit: boolean; canFinalize: boolean } | null = null;
   if (!isHrdFull) {
     const { data: grantRows } = await supabase.from('page_grants').select('section, scope, scopes, can_edit, can_finalize').eq('employee_id', user.id);
@@ -243,7 +246,7 @@ export default async function LaporanDetailPage({
   // Jalur KOORDINATOR (grant is_coordinator, role bukan SPV/HRD/Direksi): detail agregat L2
   // (radar/aspek + ringkasan), TANPA umpan balik mentah (L3), hanya bila HRD sudah merilis &
   // pegawai ada di tim koordinasinya. Baca via service_role berlingkup (loadTeamReportForCoordinator).
-  if (isCoordinator && !isAdmin && role !== 'spv') {
+  if (isCoordinator && !actsAsAdmin && !asSpv) {
     const data = await loadTeamReportForCoordinator(user.id, employeeId, ap);
     if (!data) {
       return (
@@ -304,6 +307,14 @@ export default async function LaporanDetailPage({
         </div>
       </Shell>
     );
+  }
+
+  // Sisa di luar Mode Admin = pegawai ber-izin HRD di mode posisi-asli (bukan SPV/Koordinator, tanpa grant
+  // Review) → tak ada tampilan untuknya di sini; tampilan HRD penuh hanya di Mode Admin.
+  if (!actsAsAdmin) {
+    return <Shell><p className="text-sm text-ink-soft">Detail laporan pegawai lain hanya tersedia di <strong>Mode Admin</strong>.
+      Pindah ke Mode Admin lewat tombol di sidebar, lalu buka lagi dari Review &amp; Finalisasi.</p>
+      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
   // Jalur HRD (mode admin): laporan penuh (tunduk RLS; raw 360° untuk HRD anonim).

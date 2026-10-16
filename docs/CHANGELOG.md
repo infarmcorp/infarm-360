@@ -8,6 +8,13 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
+### 2026-10-16 — Setelah rilis Q3: huruf kembali seperti semula, pemberitahuan di atas
+- **Huruf kembali seperti sebelum rilis** (permintaan pengguna). Rilis Q3 ikut membetulkan cara aplikasi memuat
+  huruf rancangan (Montserrat), yang ternyata selama ini tidak pernah termuat. Akibatnya huruf tiba-tiba terlihat
+  lebih lebar. Kini aplikasi kembali memakai huruf bawaan perangkat yang sudah biasa dilihat pengguna.
+- **Pemberitahuan "Aplikasi baru saja diperbarui" dan "Perubahan TIDAK tersimpan" pindah ke atas tengah layar**
+  (permintaan pengguna), agar tidak menutupi tabel dan tombol di bagian bawah.
+
 ### 2026-10-16 — Keputusan menjelang rilis Q3
 - **Fitur 13–16 Oktober sudah langsung di production** (rilis lebih awal, keputusan pemilik): Impor & format
   Ringkasan, Folder Laporan, ukuran tabel tetap, Email Rilis Laporan, kokpit 3 langkah, sebab tombol Finalisasi

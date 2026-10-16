@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { ShieldCheck, Users, ListChecks, SlidersHorizontal, X, UserPlus, ScrollText, FileStack } from 'lucide-react';
 import { setPageGrant, setPageGrantForRole, removePageGrant, removePageGrantForAll, removeAllPageGrantsForEmployee, markAccessReviewed } from './actions';
 import { setHrdAdmin, setCoordinator, setCoordinatorTeam, setHrdSections } from '../pegawai/actions';
-import { isHrdDept, HRD_SECTIONS, HRD_SECTION_LABELS, GRANT_ROLE_TARGETS, GRANT_ROLE_TARGET_LABELS, type HrdSection, type GrantRoleTarget } from '@/lib/auth/roles';
+import { isHrdDept, roleGrantRecipients, HRD_SECTIONS, HRD_SECTION_LABELS, GRANT_ROLE_TARGETS, GRANT_ROLE_TARGET_LABELS, type HrdSection, type GrantRoleTarget } from '@/lib/auth/roles';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { SearchableSelect } from '@/components/searchable-select';
 import { usePager, Pager, MultiCheckFilter, StableHeight } from '@/components/table-controls';
@@ -181,7 +181,7 @@ export function AksesClient({
   }
   /** Penerima hibah massal per peran = anggota peran KECUALI pelaku sendiri (server mengecualikannya). */
   function roleTargetRows(roleTarget: string) {
-    return roleMemberRows(roleTarget).filter((r) => r.id !== meId);
+    return roleGrantRecipients(rows, roleTarget, meId);
   }
   function doRoleSave(roleTarget: string, section: string, scps: string[], canEdit: boolean, canFinalize: boolean) {
     setRoleConfirm(null);

@@ -58,7 +58,8 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   - setelah selesai: hapus UJI-RILIS-Q3.md dan PESAN-HRD-RILIS-Q3.md, catat hasilnya di CHANGELOG.
 - 🔑⬜ **Aktifkan Mode Maintenance.** Langkah A–C di [TEKNIS.md](TEKNIS.md) §3.3:
   - ✅ A. Rilis Q3 (`dev` → `main`) — 2026-10-16.
-  - ⬜ B. Siapkan saklar di dashboard Vercel dan kode rahasia developer, lalu deploy ulang sekali.
+  - ⬜ B. Siapkan saklar di dashboard Vercel dan kode rahasia developer, lalu deploy ulang sekali. **Dijadwalkan
+    pemilik setelah 20 Oktober 2026.**
   - ⬜ C. Uji coba sekali di luar jam pengisian penilaian.
   - Setelah A–C beres, langkah D dipakai setiap kali perlu maintenance.
 - 🔄 **Layar "Review Penilaian" sebelum kirim** — sudah di production (2026-10-16) dan tercatat di
@@ -95,7 +96,9 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 - 🔄 **Gelombang 3: detail laporan kini mengikuti mode** (sisa temuan no. 11) — sudah di `dev` (2026-10-16), belum
   di production. Pegawai ber-izin HRD di mode posisi-asli tak lagi mendapat tampilan HRD penuh; muncul pesan
   "hanya tersedia di Mode Admin". Koordinator ber-izin HRD di mode posisi-asli mendapat tampilan Koordinator.
-  🔑 Sisa: uji di Preview `dev` dengan akun pemegang izin HRD berposisi Pegawai (mode posisi-asli vs Mode Admin).
+  Pilihan tampilan untuk semua kombinasi peran × mode × akses kini dikunci tes otomatis (2026-10-16). Catatan: SPV
+  yang ber-izin HRD tetap mendapat tampilan SPV walau di Mode Admin (perilaku lama; temuan no. 11 ditutup karena
+  kasusnya tidak ada). 🔑 Sisa: uji tampilan di Preview `dev` dengan akun pemegang izin HRD berposisi Pegawai.
 - ✅ **Laporan diri sendiri untuk pemegang izin HRD** — **diputuskan** (pemilik, 2026-10-16), dicatat di CLAUDE.md
   sebagai **risiko yang diterima secara sadar**:
   - HRD mengurus laporannya sendiri (meringkas, merilis, **memfinalisasi**), karena tidak ada orang lain yang

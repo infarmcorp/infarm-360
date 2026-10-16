@@ -309,3 +309,46 @@ export function canCoordinate(m: ActorRow | null | undefined): boolean {
 export function isHrdDept(dept: string | null | undefined): boolean {
   return !!dept && dept.trim().toUpperCase().startsWith('HRD');
 }
+
+/**
+ * Jalur tampilan halaman detail laporan (`/laporan/[employeeId]`) — keputusan sadar-mode, URUTAN sama dengan
+ * halaman (yang pertama cocok menang):
+ *   denied      bukan HRD/SPV/Direksi/Koordinator & tanpa grant Review
+ *   grant       pemegang grant Review yang BUKAN HRD penuh di Mode Admin (berlingkup, L3 dibuang)
+ *   direksi     Direksi (laporan SPV saja; selain itu ditolak di halaman)
+ *   coordinator Koordinator yang tak sedang bertindak sebagai HRD Admin / SPV
+ *   spv         SPV, atau HRD-posisi di mode posisi-asli (paritas SPV ↔ HRD Mode-SPV)
+ *   need-admin  pemegang izin HRD di mode posisi-asli tanpa jalur lain (Gelombang 3, sisa temuan no. 11)
+ *   hrd         pemegang izin HRD di Mode Admin → tampilan HRD penuh
+ * `hrdMode` = cookie `hrd_mode` ('admin' hanya bila persis 'admin'; selain itu posisi-asli).
+ */
+export type ReportDetailRoute = 'denied' | 'grant' | 'direksi' | 'coordinator' | 'spv' | 'need-admin' | 'hrd';
+export function reportDetailRoute(m: ActorRow | null | undefined, hrdMode: 'admin' | 'spv', hasReviewGrant: boolean): ReportDetailRoute {
+  const role = m?.role;
+  const isAdmin = canAdmin(m);
+  const adminMode = hrdMode === 'admin';
+  const isHrdFull = canSection(m, 'laporan') && adminMode;
+  const reviewGrant = !isHrdFull && hasReviewGrant; // grant hanya dibaca bila bukan HRD penuh
+  if (!isAdmin && role !== 'direksi' && role !== 'spv' && !canCoordinate(m) && !reviewGrant) return 'denied';
+  if (reviewGrant) return 'grant';
+  if (role === 'direksi') return 'direksi';
+  const asSpv = role === 'spv' || (role === 'hrd' && !adminMode);
+  const actsAsAdmin = isAdmin && adminMode;
+  if (canCoordinate(m) && !actsAsAdmin && !asSpv) return 'coordinator';
+  if (asSpv) return 'spv';
+  if (!actsAsAdmin) return 'need-admin';
+  return 'hrd';
+}
+
+/**
+ * Penerima hibah akses massal per peran (Manajemen Akses): anggota peran internal SAAT INI, kecuali pelaku
+ * sendiri — selaras `setPageGrantForRole` di server (pelaku dikecualikan). Dipakai pratinjau jumlah di layar.
+ */
+export type RoleMemberRow = { id: string; role: string; isExternal: boolean; isCoordinator: boolean };
+export function roleGrantRecipients<T extends RoleMemberRow>(rows: T[], roleTarget: string, actorId: string): T[] {
+  return rows.filter((r) => !r.isExternal && r.id !== actorId && (
+    roleTarget === 'koordinator' ? r.isCoordinator :
+    roleTarget === 'pegawai' ? r.role === 'employee' :
+    roleTarget === 'spv' ? r.role === 'spv' :
+    roleTarget === 'direksi' ? r.role === 'direksi' : false));
+}

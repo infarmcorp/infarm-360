@@ -21,27 +21,27 @@ export default async function ReviewHasilDetailPage({ params }: { params: Promis
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
   if (me?.role !== 'direksi') {
-    return <Shell><p className="text-sm text-gray-600">Halaman ini untuk Direksi.</p>
-      <Link href="/" className="text-xs text-emerald-700 hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk Direksi.</p>
+      <Link href="/" className="text-xs text-brand-ink font-semibold hover:underline mt-3 inline-block">← Kembali ke halaman awal</Link></Shell>;
   }
 
   const { data: ap } = await supabase
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-gray-500">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
   const data = await loadReportForDireksiReview(user.id, employeeId, ap);
   if (!data) {
     return (
       <Shell>
-        <Link href="/review-hasil" className="text-xs text-gray-500 hover:underline no-print">← Tinjauan Hasil Akhir</Link>
-        <p className="text-sm text-gray-500 mt-3">Data tidak ditemukan.</p>
+        <Link href="/review-hasil" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Tinjauan Hasil Akhir</Link>
+        <p className="text-sm text-ink-soft mt-3">Data tidak ditemukan.</p>
       </Shell>
     );
   }
 
   return (
     <Shell>
-      <Link href="/review-hasil" className="text-xs text-gray-500 hover:underline no-print">← Tinjauan Hasil Akhir</Link>
+      <Link href="/review-hasil" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Tinjauan Hasil Akhir</Link>
       <div className="mt-2">
         {/* Anonim + sembunyikan blok per-penilai bernama (L3 sudah dibuang di loader). */}
         <ReportDoc data={data} anonymize hideAssessorComments />
@@ -55,8 +55,9 @@ export default async function ReviewHasilDetailPage({ params }: { params: Promis
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full p-4 sm:p-5 lg:p-6">
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">{children}</div>
+    // Kanvas ber-token + satu panel datar (pola detail laporan /laporan/[employeeId]).
+    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
+      <div className="bg-surface border border-line rounded-panel p-5">{children}</div>
     </main>
   );
 }

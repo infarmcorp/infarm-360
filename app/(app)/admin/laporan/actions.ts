@@ -8,6 +8,7 @@ import { canSection, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
 import { logHrdAction, logAuditAsService, type AuditEntry } from '@/lib/audit/log';
 import { finalScoreOf, kpiAvgOf, hasScoreDrift, fmt2 } from '@/lib/scoring';
 import { refreshLatePenalties } from '@/lib/late-server';
+import { finalLockError } from '@/lib/final-lock';
 import { mergeSummaryOverwrite, SUMMARY_MAX_LEN } from '@/lib/import/summaries';
 
 /**
@@ -165,6 +166,14 @@ export async function saveOrFinalizeReport(employeeId: string, finalize: boolean
   const { data: ap } = await db
     .from('periods').select('id, has_360, status').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+  // KUNCI LAPORAN FINAL: memfinalisasi ULANG laporan yang sudah Final (mis. memperbarui Skor Akhir
+  // diam-diam) ditolak — HRD harus "Buka Kembali (ke Draf)" dulu. Dicek SEBELUM computeFinal karena
+  // computeFinal juga menerapkan potongan telat ke Skor 360° pegawai. finalize=false pada laporan
+  // Final = jalur Buka Kembali itu sendiri → tetap boleh. Gagal baca → ditolak (gagal tertutup).
+  if (finalize) {
+    const lock = await finalLockError(createAdminClient(), ap.id, [employeeId]);
+    if (lock) return { ok: false, error: lock };
+  }
 
   const cf = await computeFinalSafe(db, ap.id, ap.has_360, employeeId);
   if (!cf.ok) return { ok: false, error: cf.error };
@@ -268,7 +277,8 @@ export async function releaseToSpv(employeeId: string): Promise<FinalizeResult> 
 }
 
 export type BulkFinalizeResult =
-  | { ok: true; finalized: number; skipped: { name: string; reason: string }[] }
+  // skipped = sengaja dilewati (skor berubah sejak ACC, belum bisa dihitung); failed = GAGAL disimpan.
+  | { ok: true; finalized: number; skipped: { name: string; reason: string }[]; failed: { name: string; reason: string }[] }
   | { ok: false; error: string };
 
 /**
@@ -294,15 +304,16 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
     .from('periods').select('id, has_360, status').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
-  const { data: candidates } = await supabase.from('final_reports')
+  const { data: candidates, error: cErr } = await supabase.from('final_reports')
     .select('id, employee_id, final_score').eq('period_id', ap.id).eq('spv_acc', true).eq('status', 'in_review');
+  if (cErr) return { ok: false, error: 'Gagal membaca daftar laporan: ' + cErr.message };
   const list = candidates ?? [];
   if (ap.has_360 && list.length) {
     try { await refreshLatePenalties(ap.id); } catch (e) {
       return { ok: false, error: 'Gagal menerapkan potongan keterlambatan: ' + (e instanceof Error ? e.message : String(e)) };
     }
   }
-  if (!list.length) return { ok: true, finalized: 0, skipped: [] };
+  if (!list.length) return { ok: true, finalized: 0, skipped: [], failed: [] };
 
   const { data: emps } = await supabase.from('employees').select('id, name').in('id', list.map((r) => r.employee_id));
   const nameById = new Map((emps ?? []).map((e) => [e.id, e.name]));
@@ -310,6 +321,7 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
   let finalized = 0;
   const finalizedNames: string[] = [];
   const skipped: { name: string; reason: string }[] = [];
+  const failed: { name: string; reason: string }[] = [];
   for (const r of list) {
     const label = nameById.get(r.employee_id) ?? r.employee_id;
     const cf = await computeFinalSafe(supabase, ap.id, ap.has_360, r.employee_id, { skipLateRefresh: true });
@@ -321,9 +333,16 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
       skipped.push({ name: label, reason: `Skor Akhir berubah sejak di-ACC (${Number(r.final_score).toFixed(2)} → ${fmt2(final)}) — rilis ulang ke SPV untuk ACC baru` });
       continue;
     }
-    const { error } = await supabase.from('final_reports')
-      .update({ final_score: final, status: 'finalized', finalized_by: user.id }).eq('id', r.id);
-    if (error) { skipped.push({ name: label, reason: error.message }); continue; }
+    // Baca balik baris yang benar-benar berubah: update yang ditolak RLS/trigger secara diam-diam
+    // (0 baris, tanpa error) atau laporan yang statusnya sudah berubah TIDAK dihitung berhasil.
+    const { data: saved, error } = await supabase.from('final_reports')
+      .update({ final_score: final, status: 'finalized', finalized_by: user.id }).eq('id', r.id).eq('status', 'in_review')
+      .select('id');
+    if (error) { failed.push({ name: label, reason: 'Gagal disimpan: ' + error.message }); continue; }
+    if (!saved?.length) {
+      failed.push({ name: label, reason: 'Tidak tersimpan — laporan sudah berubah atau ditolak database. Muat ulang halaman lalu coba lagi.' });
+      continue;
+    }
     finalized++;
     finalizedNames.push(label);
   }
@@ -332,12 +351,15 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
   // "1 dilewati" tak bisa dilacak siapa (kasus 2026-10-16).
   await logHrdAction({
     action: 'report.bulk_finalize', category: 'laporan',
-    summary: `Finalisasi massal ${finalized} laporan ber-ACC${skipped.length ? ` (${skipped.length} dilewati: ${skipped.map((x) => x.name).join(', ')})` : ''}`,
-    meta: { finalized, skipped: skipped.length, period_id: ap.id, finalized_names: finalizedNames, skipped_list: skipped },
+    summary: `Finalisasi massal ${finalized} laporan ber-ACC${[
+      skipped.length ? `${skipped.length} dilewati: ${skipped.map((x) => x.name).join(', ')}` : '',
+      failed.length ? `${failed.length} gagal disimpan: ${failed.map((x) => x.name).join(', ')}` : '',
+    ].filter(Boolean).map((x, i, a) => (i === 0 ? ' (' : '') + x + (i === a.length - 1 ? ')' : '')).join('; ')}`,
+    meta: { finalized, skipped: skipped.length, failed: failed.length, period_id: ap.id, finalized_names: finalizedNames, skipped_list: skipped, failed_list: failed },
   });
   revalidatePath('/admin/laporan');
   revalidatePath('/laporan');
-  return { ok: true, finalized, skipped };
+  return { ok: true, finalized, skipped, failed };
 }
 
 export type ResyncResult =
@@ -428,7 +450,7 @@ export async function saveAspectSummaries(employeeId: string, raw: unknown): Pro
   // Laporan FINAL terkunci: ringkasan tak bisa diubah sampai dikembalikan ke draf
   // (selaras penguncian editor di UI — sumber kebenaran yang dilihat pegawai tak berubah diam-diam).
   if (existing?.status === 'finalized') {
-    return { ok: false, error: 'Laporan sudah final — kembalikan ke draf dulu untuk mengedit ringkasan.' };
+    return { ok: false, error: 'Laporan sudah final — Buka Kembali (ke Draf) dulu untuk mengedit ringkasan.' };
   }
 
   if (existing) {
@@ -484,7 +506,7 @@ export async function saveQualSummaries(employeeId: string, raw: unknown): Promi
     .select('id, content, status').eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
 
   if (existing?.status === 'finalized') {
-    return { ok: false, error: 'Laporan sudah final — kembalikan ke draf dulu untuk mengedit ringkasan.' };
+    return { ok: false, error: 'Laporan sudah final — Buka Kembali (ke Draf) dulu untuk mengedit ringkasan.' };
   }
 
   if (existing) {

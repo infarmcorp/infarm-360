@@ -339,8 +339,8 @@ function OrgDelta({ scope, org }: { scope: number | null; org: number | null }) 
   const d = scope - org;
   const up = d >= 0;
   return (
-    <span className={`text-[11px] font-semibold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>
-      {up ? '▲' : '▼'} {Math.abs(d).toFixed(2)} vs rata-rata organisasi
+    <span className={`text-[11px] font-semibold ${up ? 'text-brand-ink' : 'text-danger-ink'}`}>
+      {up ? '▲' : '▼'} <span className="data-value">{fmt2(Math.abs(d))}</span> vs rata-rata organisasi
     </span>
   );
 }
@@ -352,11 +352,11 @@ function ScopeScorecards({
 }: { total: number; kpi: number | null; s360: number | null; has360: boolean; scopeLabel: string; periodLabel: string; kpiUnread?: number; orgKpi?: number | null; orgS360?: number | null; fillTotal?: number; kpiFilled?: number; s360Filled?: number }) {
   const sub = `${scopeLabel} · ${periodLabel}`;
   const Card = ({ label, value, subtext, delta, note }: { label: string; value: React.ReactNode; subtext?: string; delta?: React.ReactNode; note?: React.ReactNode }) => (
-    <div className="flex-1 min-w-[150px] rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3">
-      <div className="text-[11px] font-bold uppercase tracking-wide text-gray-500">{label}</div>
-      <div className="text-2xl font-black font-mono text-slate-800 mt-0.5">{value}</div>
+    <div className="flex-1 min-w-[150px] rounded-panel border border-line bg-surface px-4 py-3">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-faint">{label}</div>
+      <div className="text-2xl font-semibold data-value text-ink mt-1">{value}</div>
       {delta && <div className="mt-1">{delta}</div>}
-      {subtext && <div className="text-[11px] text-gray-500 mt-1">{subtext}</div>}
+      {subtext && <div className="text-[11px] text-ink-faint mt-1">{subtext}</div>}
       {note}
     </div>
   );

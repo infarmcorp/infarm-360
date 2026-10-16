@@ -1,6 +1,6 @@
 import type { createClient } from '@/lib/supabase/server';
 import { finalScoreOf, kpiAvgOf, hasScoreDrift } from '@/lib/scoring';
-import { fetchAllPaged } from '@/lib/supabase/paginate';
+import { fetchAllPaged, fetchAllByIds } from '@/lib/supabase/paginate';
 
 /**
  * Tugas & Notifikasi in-app — DITURUNKAN dari data yang sudah ada (tanpa tabel baru).
@@ -146,7 +146,8 @@ async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): P
   const pendingReports = (empCount ?? 0) - (finalCount ?? 0);
   if (pendingReports > 0) out.push({ id: 'hrd-final', tone: 'blue', href: '/admin/laporan', label: `${pendingReports} laporan belum difinalisasi` });
   // Laporan FINAL yang skornya sudah usang (KPI/360° berubah sejak difinalisasi).
-  const stale = await countStaleFinalReports(supabase, periodId, has360);
+  // Gagal baca → tanpa notifikasi ini (bukan angka salah), tugas HRD lain tetap tampil.
+  const stale = await countStaleFinalReports(supabase, periodId, has360).catch(() => 0);
   if (stale > 0) out.push({ id: 'hrd-stale', tone: 'amber', href: '/admin/laporan', label: `${stale} laporan Final skornya berubah — perbarui di Review & Finalisasi` });
   return out;
 }
@@ -156,7 +157,7 @@ async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): P
  * KPI/360° berubah setelah finalisasi (pegawai masih melihat angka lama).
  * Bandingkan final_score tersimpan vs finalScoreOf(KPI,360) terkini.
  */
-async function countStaleFinalReports(supabase: SB, periodId: string, has360: boolean): Promise<number> {
+export async function countStaleFinalReports(supabase: SB, periodId: string, has360: boolean): Promise<number> {
   const { data: reports } = await supabase.from('final_reports')
     .select('employee_id, final_score').eq('period_id', periodId).eq('status', 'finalized');
   if (!reports?.length) return 0;
@@ -164,11 +165,14 @@ async function countStaleFinalReports(supabase: SB, periodId: string, has360: bo
 
   const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', periodId);
   const yms = (months ?? []).map((m) => m.ym);
-  const { data: kpi } = yms.length
-    ? await supabase.from('kpi_scores').select('employee_id, score').in('employee_id', ids).in('ym', yms)
-    : { data: [] as { employee_id: string; score: number }[] };
+  // Semua pegawai Final × bulan periode bisa > 1.000 baris → chunk id + paginasi (gagal = lempar).
+  const kpi = yms.length
+    ? await fetchAllByIds<{ employee_id: string; score: number }>(ids, (chunk, from, to) =>
+        supabase.from('kpi_scores').select('employee_id, ym, score').in('employee_id', chunk).in('ym', yms)
+          .order('employee_id').order('ym').range(from, to))
+    : [];
   const kpiValsBy = new Map<string, number[]>();
-  (kpi ?? []).forEach((r) => kpiValsBy.set(r.employee_id, [...(kpiValsBy.get(r.employee_id) ?? []), Number(r.score)]));
+  kpi.forEach((r) => kpiValsBy.set(r.employee_id, [...(kpiValsBy.get(r.employee_id) ?? []), Number(r.score)]));
 
   const { data: r360 } = await supabase.from('result_360').select('employee_id, score').eq('period_id', periodId);
   const s360By = new Map((r360 ?? []).map((r) => [r.employee_id, r.score]));

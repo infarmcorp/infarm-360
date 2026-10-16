@@ -204,7 +204,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                         <div className="flex flex-col items-center gap-0.5">
                           <span>{stored != null ? fmt2(stored) : '—'}</span>
                           {drift && (
-                            <span title={`Skor terkini ${fmt2(r.final!)} berbeda dari yang difinalisasi — Kembalikan ke Draf lalu Finalisasi ulang untuk memperbarui.`}
+                            <span title={`Skor terkini ${fmt2(r.final!)} berbeda dari yang difinalisasi — Buka Kembali (ke Draf) lalu Finalisasi ulang untuk memperbarui.`}
                               className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-warn-tint text-warn-ink">
                               berubah → {fmt2(r.final!)}
                             </span>

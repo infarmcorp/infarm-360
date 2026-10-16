@@ -2,9 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
+import { finalLockError, periodLockError } from '@/lib/final-lock';
 import type { WeightValues } from '@/lib/database.types';
 
 /**
@@ -50,6 +51,11 @@ export async function saveWeights(raw: unknown): Promise<SaveResult> {
   const { data: ap } = await supabase
     .from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  // KUNCI LAPORAN FINAL: bobot periode memengaruhi Skor 360° SEMUA pegawai → tolak bila sudah ada
+  // laporan Final di periode ini (Buka Kembali dulu). Dibaca via service_role; gagal → ditolak.
+  const lockErr = await periodLockError(createAdminClient(), ap.id, 'bobot penilai');
+  if (lockErr) return { ok: false, error: lockErr };
 
   const weights: WeightValues = v.model === '4class'
     ? { atasan: v.atasan, peer: v.peer, cross: v.cross, bawahan: v.bawahan, self: v.self }
@@ -103,6 +109,10 @@ export async function saveEmployeeWeightOverride(raw: unknown): Promise<SaveResu
   const { data: target } = await supabase.from('employees').select('name').eq('id', v.employeeId).maybeSingle();
   if (!target) return { ok: false, error: 'Pegawai tidak ditemukan' };
 
+  // KUNCI LAPORAN FINAL: bobot khusus mengubah Skor 360° pegawai ini → tolak bila laporannya Final.
+  const lockErr = await finalLockError(createAdminClient(), ap.id, [v.employeeId]);
+  if (lockErr) return { ok: false, error: lockErr };
+
   const weights: WeightValues = v.model === '4class'
     ? { atasan: v.atasan, peer: v.peer, cross: v.cross, bawahan: v.bawahan, self: v.self }
     : { atasan: v.atasan, internal: v.internal };
@@ -136,6 +146,10 @@ export async function removeEmployeeWeightOverride(employeeId: unknown): Promise
 
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+
+  // KUNCI LAPORAN FINAL: kembali ke skema periode juga mengubah Skor 360° pegawai ini.
+  const lockErr = await finalLockError(createAdminClient(), ap.id, [id]);
+  if (lockErr) return { ok: false, error: lockErr };
 
   const { data: target } = await supabase.from('employees').select('name').eq('id', id).maybeSingle();
   const { error } = await supabase.from('employee_weight_overrides').delete().eq('period_id', ap.id).eq('employee_id', id);

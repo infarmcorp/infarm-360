@@ -7,6 +7,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
+import { finalLockError } from '@/lib/final-lock';
 import { randomBytes } from 'crypto';
 import { emailConfigured, sendEmail, reminderHtml, onboardingHtml, panduanAttachment, type EmailAttachment } from '@/lib/email/mailer';
 
@@ -112,6 +113,11 @@ export async function forceComplete(assessorId: string, targetId: string): Promi
   const { data: mapping } = await supabase.from('mappings').select('id')
     .eq('period_id', ap.id).eq('assessor_id', assessorId).eq('target_id', targetId).eq('is_active', true).maybeSingle();
   if (!mapping) return { ok: false, error: 'Pasangan ini tidak punya pemetaan aktif di periode berjalan' };
+
+  // KUNCI LAPORAN FINAL (gelombang 2b): memaksa-selesai mengubah komposisi penilai target → ditolak
+  // bila laporan target sudah Final (Buka Kembali dulu). Gagal membaca status → ditolak.
+  const lock = await finalLockError(createAdminClient(), ap.id, [targetId]);
+  if (lock) return { ok: false, error: lock };
 
   const { error } = await supabase.from('assessments').upsert(
     { period_id: ap.id, assessor_id: assessorId, target_id: targetId, status: 'submitted', submitted_at: new Date().toISOString() },

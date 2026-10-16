@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { fetchAllPaged } from '@/lib/supabase/paginate';
+import { fetchAllPaged, fetchAllByIds } from '@/lib/supabase/paginate';
 import { canSection } from '@/lib/auth/roles';
 import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf, playerLabelOf, perfLabelOf } from '@/lib/scoring';
 import { classOf, avg, weightedScore360, effectiveModel, type Groups360, type Model360 } from '@/lib/score360';
@@ -20,31 +20,6 @@ export type ExportResult = { ok: true; rows: Row[] } | { ok: false; error: strin
 export type Sheet = { name: string; rows: Row[] };
 export type ConfigResult = { ok: true; sheets: Sheet[] } | { ok: false; error: string };
 type Admin = ReturnType<typeof createAdminClient>;
-
-/**
- * Ambil SELURUH baris tabel anak yang difilter `.in(col, ids)`, menembus DUA batas Supabase:
- *  - CHUNK: `.in()` menaruh tiap id di URL → daftar id terlalu panjang (~16KB header) ditolak
- *    total. Pecah ids jadi kelompok kecil dulu.
- *  - PAGE: PostgREST membatasi 1000 baris/request (db.max_rows) → paginasi `.range()` tiap chunk.
- * `run` harus menyertakan `.order(...)` deterministik agar paginasi antar-halaman tak bocor/dobel.
- */
-async function fetchAllChunked<T>(
-  ids: string[],
-  run: (chunk: string[], from: number, to: number) => PromiseLike<{ data: T[] | null }>,
-): Promise<T[]> {
-  const CHUNK = 150;  // ~150 uuid × ~40 char ≈ 6KB — jauh di bawah batas header
-  const PAGE = 1000;  // batas baris/request PostgREST
-  const out: T[] = [];
-  for (let i = 0; i < ids.length; i += CHUNK) {
-    const chunk = ids.slice(i, i + CHUNK);
-    for (let from = 0; ; from += PAGE) {
-      const { data } = await run(chunk, from, from + PAGE - 1);
-      if (data?.length) out.push(...data);
-      if (!data || data.length < PAGE) break;
-    }
-  }
-  return out;
-}
 
 async function requireHrd(): Promise<boolean> {
   const supabase = await createClient();
@@ -71,7 +46,7 @@ async function periodMaps(admin: Admin, periodId?: string | null) {
 }
 
 /** Dataset Pegawai (master, lintas periode): kode, nama, divisi, peran, status, atasan, email. */
-export async function exportEmployees(): Promise<ExportResult> {
+async function exportEmployeesImpl(): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   const { data: emps } = await admin.from('employees').select('id, emp_code, name, dept, role, is_active').order('emp_code');
@@ -100,7 +75,7 @@ export async function exportEmployees(): Promise<ExportResult> {
 }
 
 /** Dataset KPI Bulanan (long): periode, kode, nama, divisi, bulan, skor. */
-export async function exportKpi(periodId?: string | null): Promise<ExportResult> {
+async function exportKpiImpl(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   const { plabel, ymToPid, allowYm } = await periodMaps(admin, periodId);
@@ -116,7 +91,7 @@ export async function exportKpi(periodId?: string | null): Promise<ExportResult>
 }
 
 /** Dataset Log Audit KPI: periode, kode, nama, divisi, bulan, skor, diubah_oleh, waktu, catatan. */
-export async function exportKpiAudit(periodId?: string | null): Promise<ExportResult> {
+async function exportKpiAuditImpl(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   const { plabel, ymToPid, allowYm } = await periodMaps(admin, periodId);
@@ -144,7 +119,7 @@ export async function exportKpiAudit(periodId?: string | null): Promise<ExportRe
 }
 
 /** Dataset Rekap Kinerja per Periode: KPI rerata, 360, Skor Akhir, kategori, player. */
-export async function exportRekap(periodId?: string | null): Promise<ExportResult> {
+async function exportRekapImpl(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   // kpi_scores/result_360 LINTAS periode → bisa >1000; ambil penuh.
@@ -198,7 +173,7 @@ export async function exportRekap(periodId?: string | null): Promise<ExportResul
  * Satu baris per (pegawai × periode) yang potongannya > 0 ATAU nilai potongannya diubah HRD
  * (termasuk dikecualikan = 0), agar jejak keputusan HRD ikut tercatat.
  */
-export async function exportLatePenalties(periodId?: string | null): Promise<ExportResult> {
+async function exportLatePenaltiesImpl(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   const [{ data: emps }, { data: periods }, r360, { data: waivers }] = await Promise.all([
@@ -250,7 +225,7 @@ export async function exportLatePenalties(periodId?: string | null): Promise<Exp
  * ringkasan PERTANYAAN KUALITATIF (qualSummaries). Satu baris per (pegawai × item) yang punya
  * ringkasan; entri kosong dilewati. Kolom `jenis` membedakan Aspek vs Pertanyaan Kualitatif.
  */
-export async function exportAspectSummaries(periodId?: string | null): Promise<ExportResult> {
+async function exportAspectSummariesImpl(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   const [{ data: emps }, { data: periods }, reports] = await Promise.all([
@@ -295,7 +270,7 @@ export async function exportAspectSummaries(periodId?: string | null): Promise<E
 }
 
 /** Dataset Penilaian 360 Detail (ANONIM penilai): periode, target, divisi, relasi, aspek, indikator, rating, komentar. */
-export async function exportAssessments(periodId?: string | null): Promise<ExportResult> {
+async function exportAssessmentsImpl(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   // assessments & mappings lintas periode → bisa >1000; ambil penuh.
@@ -321,9 +296,9 @@ export async function exportAssessments(periodId?: string | null): Promise<Expor
   const scoresByAsmt = new Map<string, { indicator_id: string; rating: number | null; comment: string | null }[]>();
   if (asmtIds.length) {
     // Tarik SEMUA skor per-indikator, menembus batas 1000-baris/request & panjang URL .in()
-    // (lihat fetchAllChunked) — di kuartal penuh baris (assessment × indikator) mudah > 1000
+    // (lihat fetchAllByIds) — di kuartal penuh baris (assessment × indikator) mudah > 1000
     // dan jumlah id mudah membuat URL .in() kepanjangan.
-    const sc = await fetchAllChunked(asmtIds, (chunk, from, to) =>
+    const sc = await fetchAllByIds(asmtIds, (chunk, from, to) =>
       admin.from('assessment_indicator_scores')
         .select('assessment_id, indicator_id, rating, comment')
         .in('assessment_id', chunk)
@@ -353,7 +328,7 @@ export async function exportAssessments(periodId?: string | null): Promise<Expor
  * relasi, pertanyaan, jawaban. Sumber `assessment_qual_answers` → `qualitative_questions`
  * (jawaban esai terpisah, beda dari komentar per-indikator di exportAssessments).
  */
-export async function exportQualAnswers(periodId?: string | null): Promise<ExportResult> {
+async function exportQualAnswersImpl(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   // assessments & mappings lintas periode → bisa >1000; ambil penuh.
@@ -377,8 +352,8 @@ export async function exportQualAnswers(periodId?: string | null): Promise<Expor
   const asmtIds = asmts.map((a) => a.id);
   const ansByAsmt = new Map<string, { question_id: string; answer: string | null }[]>();
   if (asmtIds.length) {
-    // Tarik SEMUA jawaban esai — lihat catatan di fetchAllChunked (batas 1000-baris & panjang URL .in()).
-    const ans = await fetchAllChunked(asmtIds, (chunk, from, to) =>
+    // Tarik SEMUA jawaban esai — lihat catatan di fetchAllByIds (batas 1000-baris & panjang URL .in()).
+    const ans = await fetchAllByIds(asmtIds, (chunk, from, to) =>
       admin.from('assessment_qual_answers')
         .select('assessment_id, question_id, answer')
         .in('assessment_id', chunk)
@@ -428,7 +403,7 @@ async function loadWeightOverrides(admin: ReturnType<typeof createAdminClient>, 
  * Dihitung LIVE dari rating agar sheet konsisten internal (nilai_360×20 = skala_100) & selaras
  * cara hitung manual HRD — bisa beda dari result_360 tersimpan yang basi sampai "Hitung Ulang".
  */
-export async function exportSummary360(periodId?: string | null): Promise<ExportResult> {
+async function exportSummary360Impl(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   // assessments & mappings lintas periode → bisa >1000; ambil penuh. weight_schemes 1/periode (kecil).
@@ -472,7 +447,7 @@ export async function exportSummary360(periodId?: string | null): Promise<Export
   const asmtIds = asmts.map((a) => a.id);
   const ratingsByAsmt = new Map<string, number[]>();
   if (asmtIds.length) {
-    const sc = await fetchAllChunked<{ assessment_id: string; rating: number | null }>(asmtIds, (chunk, from, to) =>
+    const sc = await fetchAllByIds<{ assessment_id: string; rating: number | null }>(asmtIds, (chunk, from, to) =>
       admin.from('assessment_indicator_scores').select('assessment_id, rating')
         .in('assessment_id', chunk).order('assessment_id').order('indicator_id').range(from, to));
     sc.forEach((s) => { if (s.rating == null) return; const a = ratingsByAsmt.get(s.assessment_id) ?? []; a.push(s.rating); ratingsByAsmt.set(s.assessment_id, a); });
@@ -524,7 +499,7 @@ export async function exportSummary360(periodId?: string | null): Promise<Export
  * (others per kelas via weightedScore360, konsisten dgn radar/laporan) + Nilai Diri (self) +
  * Gap. Bulk memakai primitif TERKUNCI lib/score360 (bukan 52× loadReport). Skala 0–100.
  */
-export async function exportAspectScores(periodId?: string | null): Promise<ExportResult> {
+async function exportAspectScoresImpl(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   // assessments & mappings lintas periode → bisa >1000; ambil penuh.
@@ -560,7 +535,7 @@ export async function exportAspectScores(periodId?: string | null): Promise<Expo
   // rating per (assessment|aspek) → mean ×20 = skor penilai utk aspek itu (meniru loadReport).
   const ratByAsmtAspect = new Map<string, number[]>();
   if (asmtIds.length) {
-    const sc = await fetchAllChunked<{ assessment_id: string; indicator_id: string; rating: number | null }>(asmtIds, (chunk, from, to) =>
+    const sc = await fetchAllByIds<{ assessment_id: string; indicator_id: string; rating: number | null }>(asmtIds, (chunk, from, to) =>
       admin.from('assessment_indicator_scores').select('assessment_id, indicator_id, rating')
         .in('assessment_id', chunk).order('assessment_id').order('indicator_id').range(from, to));
     sc.forEach((s) => {
@@ -628,7 +603,7 @@ function weightsSummary(model: string | null, w: Record<string, number> | null):
  * Multi-sheet: Ringkasan · Bobot Penilai · Bulan KPI · Aspek & Indikator · Pertanyaan Esai.
  * Bila periodId null → mencakup seluruh periode (satu baris per periode di tiap sheet).
  */
-export async function exportPeriodConfig(periodId?: string | null): Promise<ConfigResult> {
+async function exportPeriodConfigImpl(periodId?: string | null): Promise<ConfigResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   // mappings/result_360 lintas periode → bisa >1000; ambil penuh (dipakai untuk hitung
@@ -754,7 +729,7 @@ export async function exportPeriodConfig(periodId?: string | null): Promise<Conf
  * Jejak aksi sensitif HRD dari `hrd_audit_log`: waktu, pelaku, kategori, aksi, ringkasan, target,
  * + detail meta (JSON). Terbaru di atas. Paginasi `.range()` karena log tumbuh > 1000 baris.
  */
-export async function exportHrdAuditLog(): Promise<ExportResult> {
+async function exportHrdAuditLogImpl(): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   const PAGE = 1000;
@@ -762,10 +737,11 @@ export async function exportHrdAuditLog(): Promise<ExportResult> {
     summary: string; target_type: string | null; target_label: string | null; meta: Record<string, unknown> | null }[] = [];
   for (let from = 0; ; from += PAGE) {
     // Urut created_at + id (deterministik antar-halaman agar paginasi tak bocor/dobel).
-    const { data } = await admin.from('hrd_audit_log')
+    const { data, error } = await admin.from('hrd_audit_log')
       .select('created_at, actor_name, category, action, summary, target_type, target_label, meta')
       .order('created_at', { ascending: false }).order('id', { ascending: false })
       .range(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
     if (data?.length) list.push(...data);
     if (!data || data.length < PAGE) break;
   }
@@ -778,7 +754,7 @@ export async function exportHrdAuditLog(): Promise<ExportResult> {
 }
 
 /** Dataset Pemetaan: periode, penilai, target, relasi, sifat. */
-export async function exportMappings(periodId?: string | null): Promise<ExportResult> {
+async function exportMappingsImpl(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   const [{ data: emps }, { data: periods }] = await Promise.all([
@@ -824,7 +800,7 @@ function periodRangeLabel(label: string, start: string, end: string): string {
  * (selaras raw feedback di Laporan). Angka lembar 1 memakai ekspor resmi yang sama (exportRekap,
  * exportAspectScores) agar identik dengan Rekap/Rekap Aspek.
  */
-export async function exportReportMaterials(periodId?: string | null): Promise<ConfigResult> {
+async function exportReportMaterialsImpl(periodId?: string | null): Promise<ConfigResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   const [rekap, aspek] = await Promise.all([exportRekap(periodId), exportAspectScores(periodId)]);
@@ -929,10 +905,10 @@ export async function exportReportMaterials(periodId?: string | null): Promise<C
   const esai: Sorted[] = [];
   if (ids.length) {
     const [sc, ans] = await Promise.all([
-      fetchAllChunked<{ assessment_id: string; indicator_id: string; rating: number | null; comment: string | null }>(ids, (chunk, from, to) =>
+      fetchAllByIds<{ assessment_id: string; indicator_id: string; rating: number | null; comment: string | null }>(ids, (chunk, from, to) =>
         admin.from('assessment_indicator_scores').select('assessment_id, indicator_id, rating, comment')
           .in('assessment_id', chunk).order('assessment_id').order('indicator_id').range(from, to)),
-      fetchAllChunked<{ assessment_id: string; question_id: string; answer: string | null }>(ids, (chunk, from, to) =>
+      fetchAllByIds<{ assessment_id: string; question_id: string; answer: string | null }>(ids, (chunk, from, to) =>
         admin.from('assessment_qual_answers').select('assessment_id, question_id, answer')
           .in('assessment_id', chunk).order('assessment_id').order('question_id').range(from, to)),
     ]);
@@ -968,3 +944,34 @@ export async function exportReportMaterials(periodId?: string | null): Promise<C
     ],
   };
 }
+
+// ── Action ekspor yang dipanggil klien ───────────────────────────────────────────────────────
+// Tiap ekspor dibungkus `guarded`: bila ada pengambilan data yang gagal (koneksi putus, database
+// sibuk), HRD menerima pesan jelas & TIDAK ada file yang dibuat — lebih aman daripada file yang
+// diam-diam tidak lengkap. (Error yang dilempar dari Server Action disamarkan Next di production.)
+async function guarded<R>(run: () => Promise<R>): Promise<R | { ok: false; error: string }> {
+  try {
+    return await run();
+  } catch (e) {
+    const detail = e instanceof Error && e.message ? ` (${e.message})` : '';
+    return {
+      ok: false,
+      error: `Gagal mengambil data dari database${detail}. File tidak dibuat agar tidak ada data yang terpotong. Silakan coba lagi beberapa saat lagi.`,
+    };
+  }
+}
+
+export async function exportEmployees(...args: Parameters<typeof exportEmployeesImpl>) { return guarded(() => exportEmployeesImpl(...args)); }
+export async function exportKpi(...args: Parameters<typeof exportKpiImpl>) { return guarded(() => exportKpiImpl(...args)); }
+export async function exportKpiAudit(...args: Parameters<typeof exportKpiAuditImpl>) { return guarded(() => exportKpiAuditImpl(...args)); }
+export async function exportRekap(...args: Parameters<typeof exportRekapImpl>) { return guarded(() => exportRekapImpl(...args)); }
+export async function exportLatePenalties(...args: Parameters<typeof exportLatePenaltiesImpl>) { return guarded(() => exportLatePenaltiesImpl(...args)); }
+export async function exportAspectSummaries(...args: Parameters<typeof exportAspectSummariesImpl>) { return guarded(() => exportAspectSummariesImpl(...args)); }
+export async function exportAssessments(...args: Parameters<typeof exportAssessmentsImpl>) { return guarded(() => exportAssessmentsImpl(...args)); }
+export async function exportQualAnswers(...args: Parameters<typeof exportQualAnswersImpl>) { return guarded(() => exportQualAnswersImpl(...args)); }
+export async function exportSummary360(...args: Parameters<typeof exportSummary360Impl>) { return guarded(() => exportSummary360Impl(...args)); }
+export async function exportAspectScores(...args: Parameters<typeof exportAspectScoresImpl>) { return guarded(() => exportAspectScoresImpl(...args)); }
+export async function exportPeriodConfig(...args: Parameters<typeof exportPeriodConfigImpl>) { return guarded(() => exportPeriodConfigImpl(...args)); }
+export async function exportHrdAuditLog(...args: Parameters<typeof exportHrdAuditLogImpl>) { return guarded(() => exportHrdAuditLogImpl(...args)); }
+export async function exportMappings(...args: Parameters<typeof exportMappingsImpl>) { return guarded(() => exportMappingsImpl(...args)); }
+export async function exportReportMaterials(...args: Parameters<typeof exportReportMaterialsImpl>) { return guarded(() => exportReportMaterialsImpl(...args)); }

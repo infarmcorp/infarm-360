@@ -19,7 +19,9 @@ export function ApplyLateButton({ pending }: { pending: number }) {
     setBusy(true); setMsg(null);
     const res = await applyLatePenalties();
     setBusy(false);
-    setMsg(res.ok ? { ok: true, text: `Potongan diterapkan — ${res.changed} Skor 360° diperbarui.` } : { ok: false, text: res.error });
+    // Pegawai yang laporannya sudah Final tak diubah (kunci laporan Final) — disebutkan jumlahnya.
+    const skipped = res.ok && res.skippedFinal > 0 ? ` ${res.skippedFinal} pegawai dilewati karena laporannya sudah Final.` : '';
+    setMsg(res.ok ? { ok: true, text: `Potongan diterapkan — ${res.changed} Skor 360° diperbarui.${skipped}` } : { ok: false, text: res.error });
     if (res.ok) router.refresh();
   }
 

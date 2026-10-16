@@ -13,6 +13,13 @@ import { makeClient, type MockClient } from './helpers/mock-supabase';
  */
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn(), createAdminClient: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
+// Kunci laporan Final diuji di final-lock-kpi-bobot.test.ts — di sini selalu "belum Final".
+vi.mock('@/lib/final-lock', async (orig) => ({
+  ...(await orig<typeof import('@/lib/final-lock')>()),
+  finalLockError: vi.fn(async () => null),
+  finalLockErrorForMonths: vi.fn(async () => null),
+  periodLockError: vi.fn(async () => null),
+}));
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { saveKpiScores } from '@/app/(app)/kpi/actions';
@@ -27,12 +34,18 @@ function useAdmin(c: MockClient) { mockAdmin.mockReturnValue(c as any); return c
 const UID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const EMP = '11111111-1111-1111-1111-111111111111';
 /** Pelaku HRD (bukan koordinator) → melewati percabangan koordinator & SPV. */
-const HRD = { role: 'hrd', is_coordinator: false };
+const HRD = { role: 'hrd', is_coordinator: false, dept: 'Ops' };
 const ROWS = [{ employeeId: EMP, score: 90 }];
 
-/** Status pegawai yang dikembalikan lookup service_role sebelum penyimpanan. */
+/**
+ * Lookup service_role sebelum penyimpanan: (1) cek lingkup HRD — pegawai sedivisi (dijalankan PALING
+ * AWAL sejak gelombang 2b), lalu (2) status pegawai untuk gembok masa kerja.
+ */
 function status(rows: { is_active: boolean; left_on: string | null }[]) {
-  return { employees: [{ data: rows.map((r) => ({ id: EMP, name: 'Budi', ...r })) }] };
+  return { employees: [
+    { data: [{ id: EMP, dept: 'Ops', role: 'employee' }] },
+    { data: rows.map((r) => ({ id: EMP, name: 'Budi', ...r })) },
+  ] };
 }
 
 beforeEach(() => { vi.clearAllMocks(); });

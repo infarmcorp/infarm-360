@@ -6,7 +6,8 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { computeResult360 } from '@/app/(app)/admin/360/actions';
-import { isBackfilledPeriod } from '@/lib/backfill-guard';
+import { backfillLockReason, BACKFILL_LOCK_MSG } from '@/lib/backfill-guard';
+import { finalLockError, finalizedEmployees } from '@/lib/final-lock';
 
 /**
  * Pemetaan (Mapping) penilai→target untuk periode aktif (HRD).
@@ -208,18 +209,29 @@ const Reason = z.string().trim().min(5, 'Alasan minimal 5 karakter').max(300, 'A
 
 /**
  * Rekonsiliasi Skor 360° target setelah pemetaan/penilaiannya berubah: tanpa penilaian terkirim
- * tersisa → buang result_360 (tak ada yang dihitung); masih ada → hitung ulang (best-effort).
+ * tersisa → buang result_360 (tak ada yang dihitung); masih ada → hitung ulang.
  * Sinyal "perlu hitung ulang" TIDAK mendeteksi penghapusan/pembatalan, jadi dilakukan di sini.
+ * Mengembalikan null bila beres (atau sengaja dilewati: periode hasil impor), selain itu ALASAN
+ * Skor 360° belum diperbarui — pemanggil wajib memberi tahu HRD (status sudah terlanjur berubah).
  */
-async function reconcileTarget360(periodId: string, targetId: string) {
-  const admin = createAdminClient();
-  if (await isBackfilledPeriod(admin, periodId)) return; // skor impor Looker: jangan disentuh
-  const { count: remaining } = await admin.from('assessments').select('*', { count: 'exact', head: true })
-    .eq('period_id', periodId).eq('target_id', targetId).eq('status', 'submitted');
-  if ((remaining ?? 0) === 0) {
-    await admin.from('result_360').delete().eq('period_id', periodId).eq('employee_id', targetId);
-  } else {
-    await computeResult360();
+async function reconcileTarget360(periodId: string, targetId: string): Promise<string | null> {
+  try {
+    const admin = createAdminClient();
+    const lock = await backfillLockReason(admin, periodId);
+    if (lock === BACKFILL_LOCK_MSG) return null; // skor impor Looker: sengaja tak disentuh
+    if (lock) return lock;                       // status impor tak terbaca → tak berani mengubah
+    const { count: remaining } = await admin.from('assessments').select('*', { count: 'exact', head: true })
+      .eq('period_id', periodId).eq('target_id', targetId).eq('status', 'submitted');
+    if ((remaining ?? 0) === 0) {
+      // Laporan Final terkunci: Skor 360° pegawai Final tak dihapus (gagal baca status → melempar → alasan).
+      if ((await finalizedEmployees(admin, periodId, [targetId])).has(targetId)) return null;
+      const { error } = await admin.from('result_360').delete().eq('period_id', periodId).eq('employee_id', targetId);
+      return error ? 'gagal menghapus Skor 360° lama: ' + error.message : null;
+    }
+    const res = await computeResult360();
+    return res.ok ? null : res.error;
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e);
   }
 }
 
@@ -288,7 +300,7 @@ export async function deleteMapping(mappingId: string, rawReason: string): Promi
  * jawaban & evidence tetap tersimpan sebagai arsip, kewajiban rater gugur (tak ditagih / tak kena
  * potongan telat). Alasan wajib; dicatat di Log Aktivitas. Ditulis via service_role.
  */
-export async function setAssessmentValidity(mappingId: string, action: 'invalidate' | 'restore', rawReason: string): Promise<Result> {
+export async function setAssessmentValidity(mappingId: string, action: 'invalidate' | 'restore', rawReason: string): Promise<{ ok: true; warning?: string } | { ok: false; error: string }> {
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
@@ -302,6 +314,10 @@ export async function setAssessmentValidity(mappingId: string, action: 'invalida
   if (!m) return { ok: false, error: 'Pemetaan tidak ditemukan' };
   const { data: per } = await admin.from('periods').select('status').eq('id', m.period_id).maybeSingle();
   if (per?.status !== 'active') return { ok: false, error: 'Hanya penilaian pada periode aktif yang dapat diubah validitasnya' };
+  // KUNCI LAPORAN FINAL (gelombang 2b): batalkan/pulihkan validitas mengubah Skor 360° target →
+  // ditolak bila laporan target sudah Final (Buka Kembali dulu). Gagal membaca status → ditolak.
+  const lock = await finalLockError(admin, m.period_id, [m.target_id]);
+  if (lock) return { ok: false, error: lock };
   const { data: a } = await admin.from('assessments').select('id, status')
     .eq('period_id', m.period_id).eq('assessor_id', m.assessor_id).eq('target_id', m.target_id).maybeSingle();
 
@@ -319,20 +335,29 @@ export async function setAssessmentValidity(mappingId: string, action: 'invalida
     if (error) return { ok: false, error: 'Gagal memulihkan validitas: ' + error.message };
   }
 
-  await reconcileTarget360(m.period_id, m.target_id);
+  // Status SUDAH berubah di atas. Bila Skor 360° gagal diperbarui, jangan melapor "berhasil" polos:
+  // beri peringatan jelas agar HRD menekan Hitung Ulang (status tak dibatalkan otomatis).
+  const recalcErr = await reconcileTarget360(m.period_id, m.target_id);
   const { data: emps } = await admin.from('employees').select('id, name').in('id', [m.assessor_id, m.target_id]);
   const nm = new Map((emps ?? []).map((e) => [e.id, e.name]));
+  const pair = `${nm.get(m.assessor_id) ?? '—'} → ${nm.get(m.target_id) ?? '—'}`;
   await logHrdAction({
     action: action === 'invalidate' ? 'assessment.invalidate' : 'assessment.restore', category: 'pemetaan',
-    summary: `${action === 'invalidate' ? 'Membatalkan' : 'Memulihkan'} validitas penilaian ${nm.get(m.assessor_id) ?? '—'} → ${nm.get(m.target_id) ?? '—'}`,
+    summary: `${action === 'invalidate' ? 'Membatalkan' : 'Memulihkan'} validitas penilaian ${pair}`,
     targetType: 'mapping', targetId: mappingId,
-    meta: { reason: reason.data },
+    meta: recalcErr ? { reason: reason.data, skor_360_belum_diperbarui: recalcErr } : { reason: reason.data },
   });
   revalidatePath('/admin/pemetaan');
   revalidatePath('/admin/progress');
   revalidatePath('/penilaian');
   revalidatePath('/admin/laporan');
   revalidatePath('/', 'layout');
+  if (recalcErr) {
+    return {
+      ok: true,
+      warning: `Validitas penilaian ${pair} sudah ${action === 'invalidate' ? 'dibatalkan' : 'dipulihkan'}, tetapi Skor 360° ${nm.get(m.target_id) ?? 'pegawai'} BELUM diperbarui (${recalcErr}). Buka Review & Finalisasi lalu tekan "Hitung Ulang Skor 360°".`,
+    };
+  }
   return { ok: true };
 }
 
@@ -381,6 +406,13 @@ export async function reviewCorrection(
     if (period?.status !== 'active') return { ok: false, error: 'Periode permohonan ini sudah tidak aktif — tolak permohonan ini' };
     if (req.new_relation === 'Self' || (kind !== 'remove' && req.assessor_id === req.target_id)) {
       return { ok: false, error: 'Permohonan tidak sah (menilai diri sendiri diatur HRD lewat pemetaan) — tolak permohonan ini' };
+    }
+    // KUNCI LAPORAN FINAL (gelombang 2b): ubah relasi (= kelas bobot) & tambah penilai mengubah
+    // laporan target → ditolak bila sudah Final (Buka Kembali dulu). 'remove' sudah menolak penilaian
+    // terkirim sendiri (hanya membuang draf) dan penolakan permohonan tak menulis apa pun → tetap boleh.
+    if (kind === 'relation' || kind === 'add') {
+      const lock = await finalLockError(createAdminClient(), req.period_id, [req.target_id]);
+      if (lock) return { ok: false, error: lock };
     }
     const { data: pairMap } = await supabase.from('mappings').select('id, relation, is_active, mandatory, is_adhoc')
       .eq('period_id', req.period_id).eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).maybeSingle();

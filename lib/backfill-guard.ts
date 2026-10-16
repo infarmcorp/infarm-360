@@ -6,14 +6,32 @@ type Admin = ReturnType<typeof createAdminClient>;
 export const BACKFILL_LOCK_MSG =
   'Skor 360° periode ini hasil impor resmi (Looker) dan dikunci — tidak boleh dihitung ulang dari aplikasi agar angkanya tidak tertimpa.';
 
+/** Pesan saat status "hasil impor" tak bisa dipastikan (gagal baca) — ditolak demi keamanan. */
+export const BACKFILL_CHECK_FAILED_MSG =
+  'Tidak dapat memastikan apakah Skor 360° periode ini hasil impor resmi (gagal membaca data). Demi keamanan, perubahan Skor 360° ditolak — coba lagi beberapa saat lagi.';
+
 /**
  * Periode yang Skor 360°-nya DI-IMPOR (skrip `import-360-backfill`, tercatat sebagai
  * `hrd_audit_log.action = 'score360.backfill'`, mis. Q1 2026) tidak boleh dihitung ulang dari
  * aplikasi: struktur penilaiannya sintetis, sehingga `computeResult360` akan menimpa angka resmi.
  * Periode lama boleh dibuka kembali (lihat CLAUDE.md), jadi pengaman ini wajib di sisi server.
+ *
+ * GAGAL TERTUTUP: bila pengecekan gagal dibaca, periode DIANGGAP terkunci (pesan berbeda), agar
+ * gangguan database tak pernah meloloskan Hitung Ulang / potongan atas skor impor.
+ * Mengembalikan alasan penolakan, atau null bila boleh diubah.
  */
+export async function backfillLockReason(admin: Admin, periodId: string): Promise<string | null> {
+  try {
+    const { count, error } = await admin.from('hrd_audit_log').select('*', { count: 'exact', head: true })
+      .eq('action', 'score360.backfill').eq('target_id', periodId);
+    if (error || count == null) return BACKFILL_CHECK_FAILED_MSG;
+    return count > 0 ? BACKFILL_LOCK_MSG : null;
+  } catch {
+    return BACKFILL_CHECK_FAILED_MSG;
+  }
+}
+
+/** true = Skor 360° periode ini tak boleh diubah aplikasi (hasil impor, ATAU status tak terbaca). */
 export async function isBackfilledPeriod(admin: Admin, periodId: string): Promise<boolean> {
-  const { count } = await admin.from('hrd_audit_log').select('*', { count: 'exact', head: true })
-    .eq('action', 'score360.backfill').eq('target_id', periodId);
-  return (count ?? 0) > 0;
+  return (await backfillLockReason(admin, periodId)) !== null;
 }

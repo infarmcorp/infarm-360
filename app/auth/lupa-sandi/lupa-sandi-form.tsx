@@ -29,7 +29,7 @@ export function LupaSandiForm() {
 
   if (sent) {
     return (
-      <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 text-sm text-emerald-800">
+      <div className="rounded-control bg-brand-tint p-4 text-sm text-brand-ink">
         Jika email <strong>{email}</strong> terdaftar, tautan untuk membuat sandi baru telah dikirim.
         Periksa kotak masuk (dan folder spam).
       </div>
@@ -39,7 +39,7 @@ export function LupaSandiForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
+        <label className="block text-xs font-semibold text-ink-soft mb-1">Email</label>
         <input
           type="email"
           required
@@ -47,14 +47,14 @@ export function LupaSandiForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="nama@infarm.test"
-          className="w-full text-sm px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
+          className="w-full text-sm px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
         />
       </div>
-      {error && <p className="text-xs text-rose-600 font-semibold">{error}</p>}
+      {error && <p className="text-xs text-danger-ink font-semibold">{error}</p>}
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white text-sm font-bold py-2 rounded-lg transition-colors"
+        className="w-full bg-brand hover:bg-brand-ink disabled:opacity-60 text-white text-sm font-bold py-2 rounded-control transition-colors"
       >
         {loading ? 'Mengirim…' : 'Kirim Tautan Reset'}
       </button>

@@ -40,37 +40,39 @@ describe('setSpvAcc — guard umum', () => {
   });
 });
 
-describe('setSpvAcc — jalur SPV', () => {
+describe('setSpvAcc — jalur SPV (lingkup dicek di server, simpan via service_role)', () => {
+  const SPV_ME = { data: { role: 'spv', is_coordinator: false, dept: 'Ops' } };
+  const TEAM = { data: { employee_id: EMP } };
+
   it('tolak ACC pegawai yang punya koordinator (di-ACC koordinatornya)', async () => {
-    use(makeClient({ user: { id: UID }, tables: { employees: [{ data: { role: 'spv', is_coordinator: false } }], periods: [AP] } }));
-    useAdmin(makeClient({ tables: { coordinator_team_members: [{ data: { employee_id: EMP } }] } }));
+    use(makeClient({ user: { id: UID }, tables: { employees: [SPV_ME], periods: [AP] } }));
+    useAdmin(makeClient({ tables: { spv_team_members: [TEAM], coordinator_team_members: [{ data: { employee_id: EMP } }] } }));
     const r = await setSpvAcc(EMP, true);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toMatch(/koordinatornya/i);
   });
 
   it('tolak bila laporan belum dirilis (status draft)', async () => {
-    use(makeClient({ user: { id: UID }, tables: {
-      employees: [{ data: { role: 'spv', is_coordinator: false } }],
-      periods: [AP],
-      final_reports: [{ data: { status: 'draft' } }],
+    use(makeClient({ user: { id: UID }, tables: { employees: [SPV_ME], periods: [AP] } }));
+    useAdmin(makeClient({ tables: {
+      spv_team_members: [TEAM], coordinator_team_members: [{ data: null }], final_reports: [{ data: { status: 'draft' } }],
     } }));
-    useAdmin(makeClient({ tables: { coordinator_team_members: [{ data: null }] } }));
     const r = await setSpvAcc(EMP, true);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toMatch(/belum dirilis/i);
   });
 
-  it('ACC sukses (in_review, bukan pegawai berkoordinator)', async () => {
-    use(makeClient({ user: { id: UID }, tables: {
-      employees: [{ data: { role: 'spv', is_coordinator: false } }],
-      periods: [AP],
+  it('ACC sukses (anggota tim, in_review, bukan pegawai berkoordinator) — ditulis via service_role', async () => {
+    use(makeClient({ user: { id: UID }, tables: { employees: [SPV_ME], periods: [AP] } }));
+    const admin = makeClient({ tables: {
+      spv_team_members: [TEAM], coordinator_team_members: [{ data: null }],
       final_reports: [{ data: { status: 'in_review' } }, { data: [{ employee_id: EMP }] }],
-    } }));
-    useAdmin(makeClient({ tables: { coordinator_team_members: [{ data: null }] } }));
+    } });
+    useAdmin(admin);
     const r = await setSpvAcc(EMP, true);
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.acc).toBe(true);
+    expect(admin.calls.find((c) => c.table === 'final_reports' && c.op === 'update')?.payload).toEqual({ spv_acc: true });
   });
 });
 

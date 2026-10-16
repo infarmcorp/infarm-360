@@ -3,6 +3,8 @@ import { makeClient, type MockClient, type QResult } from './helpers/mock-supaba
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn(), createAdminClient: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
+// KUNCI LAPORAN FINAL diuji terpisah (tests/final-lock-periode-laporan.test.ts) — di sini default: belum ada yang Final.
+vi.mock('@/lib/final-lock', async (orig) => ({ ...(await orig<typeof import('@/lib/final-lock')>()), periodLockError: vi.fn(async () => null), finalLockError: vi.fn(async () => null) }));
 vi.mock('@/lib/audit/log', () => ({ logHrdAction: vi.fn(async () => {}), logAuditAsService: vi.fn(async () => {}) }));
 // Penerapan otomatis potongan keterlambatan (lib/late-server) diuji terpisah — di sini dipantau saja.
 vi.mock('@/lib/late-server', () => ({ refreshLatePenalties: vi.fn(async () => 0) }));

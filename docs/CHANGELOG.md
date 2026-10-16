@@ -8,6 +8,15 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
+### 2026-10-16 — Riwayat Laporan
+- **Setiap perubahan ACC, status, dan Skor Akhir kini tercatat oleh database** (permintaan pengguna, setelah kasus
+  "sudah ACC tanggal 15" yang tidak bisa dibuktikan). Dulu jejaknya hanya di Log Aktivitas yang dicatat aplikasi
+  dan harus dibaca lewat SQL. Kini:
+  - database mencatat sendiri setiap perubahan (nilai lama, nilai baru, jam, pelaku), apa pun jalurnya;
+  - HRD bisa membukanya di panel **Riwayat Laporan** pada halaman detail laporan, dalam kalimat biasa
+    (mis. "ACC dibatalkan — karena laporan disimpan sebagai Draf");
+  - di tabel Review & Finalisasi, tanda **✔ ACC** menampilkan siapa dan kapan saat kursor diarahkan.
+  Butuh perubahan database 0052. Riwayat dimulai sejak perubahan itu dijalankan.
 ### 2026-10-16 — Aksi yang gagal tersimpan kini terlihat
 - **Kasus ACC 15–16 Okt:** HRD yakin sudah memberi ACC sejak 15 Okt, tetapi database dan log tidak pernah menerimanya.
   Penyebab paling mungkin: tombol gagal terhubung ke server (mis. halaman sudah terbuka sebelum aplikasi

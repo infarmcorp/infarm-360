@@ -40,7 +40,7 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
   typecheck + build). Backup harian `.github/workflows/backup.yml`. npm.
 - Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 25 tabel publik, migrasi
-  `supabase/migrations/0001`–`0051`.
+  `supabase/migrations/0001`–`0052`.
 - `app/` — `login/`, `maintenance/`, `auth/` (callback, lupa-sandi, perbarui-sandi, signout),
   `api/cron/late-penalty/` (nonaktif), `(app)/` = shell persisten (`layout.tsx`, `app-shell.tsx` menu,
   `mode-actions.ts`) dengan `penilaian/ kpi/ monitor/ laporan/ laporan-tim/ review-hasil/ suksesi/ akun/` dan
@@ -112,6 +112,8 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
 - **ACC (`setSpvAcc`) lingkupnya ditegakkan server** lalu ditulis via service_role (RLS tak cukup: `hrd_can('laporan')`
   lolos untuk laporan siapa pun): tak ada yang meng-ACC laporannya sendiri (+ trigger 0049); SPV = `spv_team_members`;
   HRD posisi = sedivisi (bukan Direksi/eksternal), juga HRD tanpa bagian Laporan (paritas). Log ACC dicatat app.
+- **Riwayat laporan = bukti** (2026-10-16): perubahan ACC/status/Skor Akhir `final_reports` dicatat trigger DB ke
+  `final_report_history` (0052) — jangan tulis tabel itu dari app; jalur baru yang menulis `final_reports` otomatis tercatat.
 - Izin HRD Admin (`is_hrd_admin`) hanya boleh diberikan ke pegawai divisi **HRD-GA** (`isHrdDept`); pencabutan
   selalu boleh. Ubah izin & akun HRD/Direksi
   hanya HRD penuh (`isFullHrd`); tak ada yang mengubah izin dirinya (`employees_guard_privileges`).

@@ -737,6 +737,13 @@ hanya ada untuk periode aktif.
 | **Finalisasi Hasil** | Laporan tampil ke pegawai. Bisa dari Draf atau Ditinjau; **tidak** menunggu ACC | Belum Final | Bersyarat — bila Skor 360° perlu dihitung ulang atau KPI belum lengkap semua bulan (tidak memblokir) |
 | **↩ Buka Kembali (ke Draf)** | Buka kunci & sembunyikan dari pegawai; ACC SPV/Direksi batal dan perlu diulang | Final | Ya |
 
+**Riwayat Laporan** (di bawah panel tombol, klik untuk membuka): daftar kapan ACC diberikan atau dibatalkan
+(beserta sebabnya, mis. "karena laporan disimpan sebagai Draf"), perubahan status, dan perubahan Skor Akhir,
+lengkap dengan tanggal, jam, dan siapa pelakunya. Dicatat otomatis setiap ada perubahan. Pakai ini untuk menjawab
+pertanyaan seperti "sudah di-ACC tanggal berapa?" atau "sejak kapan ACC-nya hilang?". Bila sebuah ACC tidak ada
+di riwayat, artinya ACC itu memang tidak pernah tersimpan. Di tabel Review & Finalisasi, arahkan kursor ke
+**✔ ACC** untuk melihat siapa yang memberi ACC dan kapan.
+
 ### 5.10 Monitoring & Audit KPI
 - Dua tab: **Rekapitulasi Kuartal** dan **Riwayat & Audit Perubahan KPI**. Hanya tab yang dibuka yang memuat data.
   Tidak ada tab Input (input adalah tugas SPV/Koordinator).

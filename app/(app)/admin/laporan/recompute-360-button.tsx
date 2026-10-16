@@ -27,7 +27,9 @@ export function Recompute360Button({ stale, primary, blocked = false }: { stale:
     setBusy(true); setMsg(null); setConfirmForce(false);
     const res = await callAction(() => computeResult360());
     setBusy(false);
-    setMsg(res.ok ? { ok: true, text: `Skor 360° dihitung ulang untuk ${res.computed} pegawai.` } : { ok: false, text: res.error });
+    // Pegawai yang laporannya sudah Final tak dihitung ulang (kunci laporan Final) — disebutkan jumlahnya.
+    const skipped = res.ok && res.skippedFinal > 0 ? ` ${res.skippedFinal} pegawai dilewati karena laporannya sudah Final.` : '';
+    setMsg(res.ok ? { ok: true, text: `Skor 360° dihitung ulang untuk ${res.computed} pegawai.${skipped}` } : { ok: false, text: res.error });
     if (res.ok) router.refresh();
   }
 
@@ -62,8 +64,8 @@ export function Recompute360Button({ stale, primary, blocked = false }: { stale:
         onConfirm={run} onCancel={() => setConfirmForce(false)}
       >
         <p>Aplikasi tidak mendeteksi perubahan sejak Skor 360° terakhir dihitung, jadi biasanya ini <strong>tidak perlu</strong>.</p>
-        <p>Pakai hanya bila Anda yakin ada perubahan yang belum masuk. Laporan Final tidak ikut berubah — bila angkanya
-          berbeda, akan muncul di langkah ② sebagai &quot;laporan Final yang berubah&quot;.</p>
+        <p>Pakai hanya bila Anda yakin ada perubahan yang belum masuk. Pegawai yang laporannya sudah Final dilewati
+          (laporan Final terkunci; Buka Kembali dulu bila angkanya memang harus berubah).</p>
       </ConfirmDialog>
     </div>
   );

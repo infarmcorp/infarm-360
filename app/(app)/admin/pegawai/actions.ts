@@ -403,6 +403,13 @@ export async function updateEmployee(raw: unknown): Promise<Result> {
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
   if (!auth.full && (isPrivilegedRole(role) || await isPrivileged(supabase, id))) return { ok: false, error: PRIVILEGED_MSG };
+
+  // Izin HRD hanya untuk pegawai divisi HRD-GA (isHrdDept) → pemegangnya tak boleh dipindah ke divisi
+  // lain sebelum izinnya dicabut (agar izin tak tertinggal melekat di luar HRD).
+  const { data: current } = await supabase.from('employees').select('is_hrd_admin, dept').eq('id', id).maybeSingle();
+  if (current?.is_hrd_admin && !isHrdDept(dept)) {
+    return { ok: false, error: 'Cabut izin HRD pegawai ini terlebih dahulu sebelum memindahkan divisinya.' };
+  }
   const admin = createAdminClient();
 
   const { error: eErr } = await supabase.from('employees')

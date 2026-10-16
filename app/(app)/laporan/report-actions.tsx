@@ -11,8 +11,9 @@ import { callAction } from '@/lib/call-action';
 /**
  * Panel aksi HRD di halaman detail Review Hasil Akhir — berbasis STATUS (state machine):
  *  - draft / in_review (atau belum ada): bisa diedit → Simpan Draf · Rilis ke SPV · Finalisasi.
- *  - finalized: READ-ONLY (terlihat pegawai) → hanya Unduh PDF + "Kembalikan ke Draf"
- *    (amber + konfirmasi) untuk membuka kunci & merevisi.
+ *  - finalized: READ-ONLY (terlihat pegawai) → hanya Unduh PDF + "Buka Kembali (ke Draf)"
+ *    (amber + konfirmasi) untuk membuka kunci & merevisi. Finalisasi ulang tanpa membuka kembali
+ *    ditolak server (KUNCI LAPORAN FINAL, lib/final-lock).
  * Ringkasan aspek kini AUTO-SIMPAN (lihat AspectSummaryEditor) → tak perlu guard "belum disimpan".
  * `canCompute`=false bila KPI & Skor 360° pegawai sama-sama kosong (Skor Akhir belum bisa dihitung).
  */
@@ -63,7 +64,7 @@ export function ReportActions({
     setMsg({
       ok: true,
       text: mode === 'final' ? `Hasil difinalisasi (Skor Akhir ${res.finalScore}) — dirilis ke pegawai.`
-        : mode === 'revert' ? `Dikembalikan ke draf — disembunyikan dari pegawai (Skor Akhir ${res.finalScore}).`
+        : mode === 'revert' ? `Laporan dibuka kembali (ke draf) — disembunyikan dari pegawai (Skor Akhir ${res.finalScore}).`
         : `Draf tersimpan (Skor Akhir ${res.finalScore}).`,
     });
     router.refresh();
@@ -92,7 +93,7 @@ export function ReportActions({
           : <span className="text-[10px] text-ink-faint">belum disimpan</span>}
         {finalScore != null && <span className="text-[11px] data-value font-bold text-ink">Skor Akhir {fmt2(finalScore)}</span>}
         {drift && (
-          <span title={`Skor terkini ${fmt2(liveFinal!)} berbeda dari yang difinalisasi (${fmt2(finalScore!)}) — KPI/360° berubah. Tekan ② Perbarui Laporan Final yang Berubah di Review & Finalisasi (atau Kembalikan ke Draf lalu Finalisasi ulang) untuk memperbarui.`}
+          <span title={`Skor terkini ${fmt2(liveFinal!)} berbeda dari yang difinalisasi (${fmt2(finalScore!)}) — KPI/360° berubah. Tekan ② Perbarui Laporan Final yang Berubah di Review & Finalisasi (atau Buka Kembali (ke Draf) lalu Finalisasi ulang) untuk memperbarui.`}
             className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink border border-warn-ink/25">
             berubah → {fmt2(liveFinal!)}
           </span>
@@ -110,7 +111,7 @@ export function ReportActions({
         // FINAL: terkunci. Satu-satunya jalan edit = kembalikan ke draf (dgn konfirmasi).
         <button type="button" disabled={busy !== null} onClick={() => setConfirmRevert(true)}
           className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-control border border-warn-ink/40 text-warn-ink bg-warn-tint hover:bg-warn-tint/70 disabled:opacity-50">
-          <Undo2 className="w-3.5 h-3.5" /> {busy === 'revert' ? 'Mengembalikan…' : 'Kembalikan ke Draf'}
+          <Undo2 className="w-3.5 h-3.5" /> {busy === 'revert' ? 'Membuka kembali…' : 'Buka Kembali (ke Draf)'}
         </button>
       ) : (
         // DRAF / DITINJAU SPV: bisa diedit.
@@ -138,8 +139,10 @@ export function ReportActions({
         <div className="w-full mt-1 flex flex-wrap items-center gap-2 bg-warn-tint border border-warn-ink/25 rounded-control p-2.5">
           <span className="flex items-center gap-1.5 text-[11px] font-semibold text-warn-ink mr-auto">
             <AlertTriangle className="w-4 h-4 shrink-0" />
-            Laporan ini <strong>sudah final &amp; terlihat pegawai</strong>. Mengembalikan ke draf akan
-            <strong> menyembunyikannya kembali</strong> dari &quot;Laporan Hasil Saya&quot; sampai difinalisasi ulang. Lanjut?
+            <span>
+              Laporan ini <strong>sudah final</strong>. ACC SPV/Direksi akan dihapus dan perlu diulang.
+              Selama dibuka kembali, pegawai tidak bisa melihat laporannya. Lanjut?
+            </span>
           </span>
           <button type="button" disabled={busy !== null} onClick={() => setConfirmRevert(false)}
             className="text-[11px] font-bold px-3 py-1.5 rounded-control border border-warn-ink/40 text-warn-ink hover:bg-warn-tint/70">
@@ -148,7 +151,7 @@ export function ReportActions({
           <button type="button" disabled={busy !== null}
             onClick={async () => { setConfirmRevert(false); await run(false, 'revert'); }}
             className="text-[11px] font-bold px-3 py-1.5 rounded-control bg-warn-ink hover:opacity-90 text-white">
-            Ya, kembalikan ke draf
+            Ya, buka kembali
           </button>
         </div>
       )}

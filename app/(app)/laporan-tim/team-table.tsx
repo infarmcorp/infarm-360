@@ -38,7 +38,7 @@ export type TeamRow = {
 function SelfBadge({ show }: { show: boolean }) {
   if (!show) return null;
   return (
-    <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1 py-0.5">
+    <span className="text-[10px] font-bold uppercase tracking-wide text-brand-ink bg-brand-tint rounded px-1.5 py-0.5">
       Anda
     </span>
   );
@@ -50,7 +50,7 @@ const playerColor = (p: PlayerClass) => p === 'HRD_REVIEW' ? '#B45309' : PLAYER_
 
 /** Badge kategori 4-Box (KPI×360). */
 function PlayerBadge({ p }: { p: PlayerClass | null }) {
-  if (!p) return <span className="text-[10px] text-gray-400">—</span>;
+  if (!p) return <span className="text-[10px] text-ink-faint">—</span>;
   const c = playerColor(p);
   return (
     <span title={p === 'HRD_REVIEW' ? 'HRD Review — KPI atau Skor 360° belum tersedia; tidak diklasifikasi otomatis' : playerLabelOf(p)}
@@ -63,7 +63,7 @@ function PlayerBadge({ p }: { p: PlayerClass | null }) {
 
 /** Badge trend KPI 3 bulan. */
 function TrendBadge({ t, months }: { t: Trend; months: (number | null)[] }) {
-  if (t === 'empty') return <span className="text-[10px] text-gray-400">—</span>;
+  if (t === 'empty') return <span className="text-[10px] text-ink-faint">—</span>;
   const m = TREND_META[t];
   const tip = months.map((v, i) => `Bln ${i + 1}: ${v == null ? '—' : v}`).join(' · ');
   return (
@@ -126,14 +126,14 @@ export function TeamTable({
             onChange={(e) => setQ(e.target.value)}
             placeholder="Cari nama pegawai…"
             aria-label="Cari nama pegawai"
-            className="w-full sm:max-w-xs rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="w-full sm:max-w-xs rounded-control border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-tint"
           />
         </div>
       )}
 
       <StableHeight>
       {filtered.length === 0 ? (
-        <p className="text-sm text-gray-500">Tidak ada pegawai cocok dengan "{q}".</p>
+        <p className="text-sm text-ink-soft">Tidak ada pegawai cocok dengan "{q}".</p>
       ) : (
         <div className="overflow-x-auto">
           {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/pencarian (tak bergeser saat paging). */}
@@ -152,63 +152,63 @@ export function TeamTable({
               ]).map((w, i) => <col key={i} style={{ width: w }} />)}
             </colgroup>
             <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
-                <th className="py-2 pr-3">Anggota</th>
-                <th className="py-2 px-3 text-center whitespace-nowrap">
+              <tr className="text-[10px] uppercase tracking-[0.05em] text-ink-faint font-semibold bg-neutral-tint border-b border-line">
+                <th className="py-2.5 px-3">Anggota</th>
+                <th className="py-2.5 px-3 text-center whitespace-nowrap">
                   KPI <InfoTip text="Rata-rata capaian KPI bulanan pegawai pada kuartal ini (0–100)." />
                 </th>
-                <th className="py-2 px-3 text-center whitespace-nowrap">
+                <th className="py-2.5 px-3 text-center whitespace-nowrap">
                   360° <InfoTip text="Skor umpan balik 360° kuartal ini — gabungan berbobot penilaian rekan/atasan/bawahan/lintas divisi (Self dikecualikan)." />
                 </th>
-                <th className="py-2 px-3 text-center">
-                  Skor Akhir <span className="normal-case font-normal text-gray-400">({scoreBasis === 'live' ? 'live' : 'tersimpan'})</span>
+                <th className="py-2.5 px-3 text-center">
+                  Skor Akhir <span className="normal-case font-normal text-ink-faint">({scoreBasis === 'live' ? 'live' : 'tersimpan'})</span>
                   <InfoTip text={scoreBasis === 'live'
                     ? 'Dihitung langsung (live): 50% KPI + 50% Skor 360°. Bila 360° nonaktif = 100% KPI.'
                     : 'Angka finalisasi tersimpan dari laporan: 50% KPI + 50% Skor 360° (100% KPI bila 360° nonaktif).'} />
                 </th>
-                <th className="py-2 px-3 text-center whitespace-nowrap">
+                <th className="py-2.5 px-3 text-center whitespace-nowrap">
                   4-Box <InfoTip text="Klasifikasi talenta KPI×360° (ambang 80): A (keduanya ≥80), B-Culture (360°≥80), B-KPI (KPI≥80), C (keduanya <80). KPI atau 360° kosong → HRD Review." />
                 </th>
                 <th className={`py-2 px-3 text-center ${showStatus || showAcc ? '' : 'pr-0'}`}>Trend KPI</th>
-                {showStatus && <th className="py-2 px-3 text-center">Status</th>}
-                {showAcc && <th className="py-2 pl-3 text-right">ACC</th>}
+                {showStatus && <th className="py-2.5 px-3 text-center">Status</th>}
+                {showAcc && <th className="py-2.5 px-3 text-right">ACC</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line-soft">
               {paged.map((r) => (
-                <tr key={r.id}>
-                  <td className="py-3 pr-3 break-words">
+                <tr key={r.id} className="hover:bg-neutral-tint/40">
+                  <td className="py-3 px-3 break-words">
                     {linkNames && r.detailOpen ? (
                       <Link
                         href={periodId ? `/laporan/${r.id}?period=${periodId}` : `/laporan/${r.id}`}
                         title={r.name}
-                        className="font-bold text-gray-800 inline-flex items-center gap-1.5 hover:text-emerald-700 hover:underline"
+                        className="font-bold text-ink inline-flex items-center gap-1.5 hover:text-brand-ink hover:underline"
                       >
                         {displayName(r.nickname, r.name)}
                         <SelfBadge show={r.isSelf} />
                       </Link>
                     ) : (
-                      <span className="font-bold text-gray-800 inline-flex items-center gap-1.5" title={r.name}>
+                      <span className="font-bold text-ink inline-flex items-center gap-1.5" title={r.name}>
                         {displayName(r.nickname, r.name)}
                         <SelfBadge show={r.isSelf} />
                       </span>
                     )}
-                    <span className="text-[11px] text-gray-500 block">
+                    <span className="text-[11px] text-ink-faint block">
                       {r.dept}
                       {linkNames && !r.detailOpen && !r.isSelf && (
-                        <span className="ml-1 italic text-gray-400">· detail menunggu rilis HRD</span>
+                        <span className="ml-1 italic">· detail menunggu rilis HRD</span>
                       )}
                     </span>
                   </td>
-                  <td className="py-3 px-3 text-center font-mono text-slate-600">
+                  <td className="py-3 px-3 text-center data-value text-ink-soft">
                     {r.kpiAvg != null ? fmt2(r.kpiAvg) : '—'}
                   </td>
-                  <td className="py-3 px-3 text-center font-mono text-slate-600">
+                  <td className="py-3 px-3 text-center data-value text-ink-soft">
                     {r.s360 != null ? fmt2(r.s360) : has360
-                      ? <span className="text-[10px] font-semibold text-amber-700 font-sans" title={NO_SCORE_TITLE}>{NO_SCORE_LABEL}</span>
+                      ? <span className="text-[10px] font-semibold text-warn-ink font-sans" title={NO_SCORE_TITLE}>{NO_SCORE_LABEL}</span>
                       : '—'}
                   </td>
-                  <td className="py-3 px-3 text-center font-mono font-black text-slate-800">
+                  <td className="py-3 px-3 text-center data-value font-semibold text-ink">
                     {r.finalScore != null ? fmt2(r.finalScore) : '—'}
                   </td>
                   <td className="py-3 px-3 text-center"><PlayerBadge p={r.player} /></td>
@@ -216,37 +216,37 @@ export function TeamTable({
                   {showStatus && (
                     <td className="py-3 px-3 text-center">
                       {r.status === 'finalized' ? (
-                        <span className="text-[10px] font-bold text-emerald-700">Final</span>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand-tint text-brand-ink">Final</span>
                       ) : r.status === 'in_review' ? (
-                        <span className="text-[10px] font-bold text-indigo-700">Ditinjau</span>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-tint text-ink-soft">Ditinjau</span>
                       ) : r.status === 'draft' ? (
-                        <span className="text-[10px] font-bold text-amber-700">Draf</span>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink">Draf</span>
                       ) : (
-                        <span className="text-[10px] text-gray-500">—</span>
+                        <span className="text-[10px] text-ink-faint">—</span>
                       )}
                     </td>
                   )}
                   {showAcc && (
-                    <td className="py-3 pl-3 text-right">
+                    <td className="py-3 px-3 text-right">
                       {r.isSelf ? (
-                        <span className="text-[10px] text-gray-500 italic">laporan Anda</span>
+                        <span className="text-[10px] text-ink-faint italic">laporan Anda</span>
                       ) : r.accLocked ? (
                         // Periode lampau: status ACC tetap terbaca, tapi tak bisa diubah.
                         !r.hasReport ? (
-                          <span className="text-[10px] text-gray-500 italic">tanpa laporan</span>
+                          <span className="text-[10px] text-ink-faint italic">tanpa laporan</span>
                         ) : r.spvAcc ? (
-                          <span className="text-[10px] font-bold text-emerald-700">✔ Di-ACC</span>
+                          <span className="text-[10px] font-semibold text-brand-ink">✔ Di-ACC</span>
                         ) : (
-                          <span className="text-[10px] text-gray-500 italic">tidak di-ACC</span>
+                          <span className="text-[10px] text-ink-faint italic">tidak di-ACC</span>
                         )
                       ) : r.accReadonly ? (
                         // Pegawai berkoordinator: ACC dilakukan koordinatornya → SPV lihat status saja.
                         !r.hasReport ? (
-                          <span className="text-[10px] text-gray-500 italic">menunggu HRD</span>
+                          <span className="text-[10px] text-ink-faint italic">menunggu HRD</span>
                         ) : r.spvAcc ? (
-                          <span className="text-[10px] font-bold text-emerald-700">✔ Di-ACC koordinator</span>
+                          <span className="text-[10px] font-semibold text-brand-ink">✔ Di-ACC koordinator</span>
                         ) : (
-                          <span className="text-[10px] text-gray-500 italic">belum di-ACC koordinator</span>
+                          <span className="text-[10px] text-ink-faint italic">belum di-ACC koordinator</span>
                         )
                       ) : (
                         <AccButton employeeId={r.id} acc={r.spvAcc} hasReport={r.hasReport} canAcc={r.canAcc} />
@@ -264,21 +264,21 @@ export function TeamTable({
       {pageSize && filtered.length > pageSize && (
         <div className="mt-auto flex items-center justify-between gap-2">
           <button type="button" disabled={safePage <= 0} onClick={() => setPage(safePage - 1)}
-            className="text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+            className="text-xs font-bold px-3 py-2 rounded-control border border-line bg-surface text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-40 disabled:cursor-not-allowed">
             ← {pageSize} sebelumnya
           </button>
-          <span className="text-[11px] text-gray-500">
-            {from}–{to} dari {filtered.length} · Halaman {safePage + 1}/{pageCount}
+          <span className="text-[11px] text-ink-soft">
+            <span className="data-value">{from}–{to}</span> dari <span className="data-value">{filtered.length}</span> · Halaman <span className="data-value">{safePage + 1}/{pageCount}</span>
           </span>
           <button type="button" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}
-            className="text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+            className="text-xs font-bold px-3 py-2 rounded-control border border-line bg-surface text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-40 disabled:cursor-not-allowed">
             {pageSize} berikutnya →
           </button>
         </div>
       )}
       </StableHeight>
 
-      <p className="text-[10px] text-gray-500 italic mt-3">
+      <p className="text-[10px] text-ink-faint italic mt-3">
         {scoreBasis === 'live' ? (
           <>Kolom <strong>Skor Akhir (live)</strong> dihitung langsung dari KPI + 360° periode ini —
           bisa berbeda dari angka <strong>finalisasi tersimpan</strong> di Laporan Kinerja Tim (yang mengikuti saat laporan difinalisasi).</>

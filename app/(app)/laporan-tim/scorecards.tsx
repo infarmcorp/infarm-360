@@ -8,21 +8,21 @@ import { fmt2 } from '@/lib/scoring';
 import { FilledNote } from '@/app/(app)/monitor/completeness';
 
 function Delta({ team, company }: { team: number | null; company: number | null }) {
-  if (team == null || company == null) return <span className="text-[11px] text-gray-400">— vs rata-rata perusahaan</span>;
+  if (team == null || company == null) return <span className="text-[11px] text-ink-faint">— vs rata-rata perusahaan</span>;
   const d = team - company;
   const up = d >= 0;
   return (
-    <span className={`text-[11px] font-semibold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>
-      {up ? '▲' : '▼'} {Math.abs(d).toFixed(2)} vs rata-rata perusahaan
+    <span className={`text-[11px] font-semibold ${up ? 'text-brand-ink' : 'text-danger-ink'}`}>
+      {up ? '▲' : '▼'} <span className="data-value">{Math.abs(d).toFixed(2)}</span> vs rata-rata perusahaan
     </span>
   );
 }
 
 function Card({ label, value, sub }: { label: string; value: React.ReactNode; sub?: React.ReactNode }) {
   return (
-    <div className="flex-1 min-w-[150px] rounded-xl border border-gray-200 bg-gray-50/60 px-4 py-3">
-      <div className="text-[11px] font-bold uppercase tracking-wide text-gray-500">{label}</div>
-      <div className="text-2xl font-black font-mono text-slate-800 mt-0.5">{value}</div>
+    <div className="flex-1 min-w-[150px] rounded-panel border border-line bg-surface px-4 py-3">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-faint">{label}</div>
+      <div className="text-2xl font-semibold data-value text-ink mt-1">{value}</div>
       {sub && <div className="mt-1">{sub}</div>}
     </div>
   );
@@ -48,7 +48,7 @@ export function TeamScorecards({
         value={teamKpi != null ? fmt2(teamKpi) : '—'}
         sub={<>
           <Delta team={teamKpi} company={companyKpi} />
-          {kpiUnread > 0 && <div className="text-[10px] text-gray-500">· {kpiUnread} belum terbaca (dikecualikan)</div>}
+          {kpiUnread > 0 && <div className="text-[10px] text-ink-faint">· <span className="data-value">{kpiUnread}</span> belum terbaca (dikecualikan)</div>}
           {fillTotal != null && kpiFilled != null && <FilledNote n={kpiFilled} total={fillTotal} />}
         </>}
       />

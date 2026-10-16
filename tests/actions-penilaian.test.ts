@@ -4,6 +4,12 @@ import { makeClient, type MockClient } from './helpers/mock-supabase';
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn(), createAdminClient: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/late-server', () => ({ refreshLatePenalties: vi.fn(async () => {}) }));
+// Kunci laporan Final (gelombang 2b): default = tak ada laporan Final → perilaku lama tak berubah.
+vi.mock('@/lib/final-lock', async (orig) => ({
+  ...(await orig<typeof import('@/lib/final-lock')>()),
+  finalLockError: vi.fn(async () => null),
+  finalizedEmployees: vi.fn(async () => new Set<string>()),
+}));
 
 import { createClient } from '@/lib/supabase/server';
 import { submitAssessment } from '@/app/(app)/penilaian/actions';

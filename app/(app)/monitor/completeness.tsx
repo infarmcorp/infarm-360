@@ -8,9 +8,9 @@ export function FilledNote({ n, total }: { n: number; total: number }) {
   const pct = Math.round((n / total) * 100);
   const full = n >= total;
   return (
-    <div className="text-[10px] text-gray-500 mt-0.5">
-      Terisi <span className="font-mono font-bold text-slate-600">{n}/{total}</span> <span className="text-gray-400">({pct}%)</span>
-      {!full && <span className="text-amber-600 font-semibold"> · {total - n} belum</span>}
+    <div className="text-[10px] text-ink-faint mt-0.5">
+      Terisi <span className="data-value font-semibold text-ink-soft">{n}/{total}</span> <span className="data-value">({pct}%)</span>
+      {!full && <span className="text-warn-ink font-semibold"> · <span className="data-value">{total - n}</span> belum</span>}
     </div>
   );
 }

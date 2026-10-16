@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
+import { periodLockError } from '@/lib/final-lock';
 
 /**
  * Kelola Pertanyaan (HRD): indikator kuantitatif (per aspek) & pertanyaan kualitatif
@@ -21,6 +22,11 @@ async function ctx(): Promise<
   if (!canSection(me, 'pertanyaan')) return { ok: false, error: 'Hanya HRD yang dapat mengelola pertanyaan' };
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+  // KUNCI LAPORAN FINAL: SEMUA pemanggil ctx() adalah aksi TULIS atas pertanyaan/indikator periode
+  // aktif → sekali ada laporan Final di periode ini, instrumen penilaian dikunci sampai HRD membuka
+  // kembali laporan-laporan itu (gagal baca → ditolak, gagal tertutup).
+  const lock = await periodLockError(createAdminClient(), ap.id, 'pertanyaan & indikator');
+  if (lock) return { ok: false, error: lock };
   return { ok: true, supabase, periodId: ap.id };
 }
 

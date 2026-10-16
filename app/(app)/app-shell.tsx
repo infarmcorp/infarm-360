@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { PANDUAN_VERSION } from '@/lib/panduan';
+import { KPI_AUDIT_HREF } from '@/lib/kpi-links';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck,
@@ -99,7 +100,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
       { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard, section: 'dashboard' },
       { href: '/admin/monitor', label: 'Monitor Kinerja Pegawai', icon: TrendingUp, section: 'dashboard' },
       { href: '/admin/struktur', label: 'Struktur Organisasi', icon: Building2, section: 'struktur' },
-      { href: '/kpi?tab=riwayat', label: 'Monitoring & Audit KPI', icon: Clock, section: 'audit' },
+      { href: KPI_AUDIT_HREF, label: 'Monitoring & Audit KPI', icon: Clock, section: 'audit' },
       { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText, section: 'audit' },
       { href: '/admin/ekspor', label: 'Ekspor Dataset', icon: Download, section: 'ekspor' },
     ]);
@@ -152,7 +153,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
       grantItems.push({ href: '/admin/kepatuhan', label: 'Flag Kepatuhan', icon: ShieldAlert });
     }
     if (pageGrants.some((g) => g.section === 'kpi')) {
-      grantItems.push({ href: '/kpi?tab=riwayat', label: 'Monitoring & Audit KPI', icon: Clock });
+      grantItems.push({ href: KPI_AUDIT_HREF, label: 'Monitoring & Audit KPI', icon: Clock });
     }
     if (grantItems.length) sections.push({ title: 'Akses dari HRD', items: grantItems });
   }

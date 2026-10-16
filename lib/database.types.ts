@@ -183,6 +183,15 @@ export interface Database {
         Args: { p_actor: string; p_employee: string; p_ym: string; p_note: string };
         Returns: number | null;
       };
+      // 0048: Aktifkan/Hapus Periode dalam satu transaksi (service_role saja).
+      period_activate: {
+        Args: { p_period: string };
+        Returns: string;
+      };
+      period_delete: {
+        Args: { p_period: string };
+        Returns: { label: string; months: string[]; kpi_deleted: number; kpi_audit_deleted: number };
+      };
     };
     Enums: { user_role: UserRole; relation_kind: RelationKind; assessment_status: AssessmentStatus };
     CompositeTypes: Record<string, never>;

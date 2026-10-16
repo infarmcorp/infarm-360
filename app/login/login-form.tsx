@@ -6,21 +6,23 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { SearchableSelect } from '@/components/searchable-select';
 import { PasswordInput } from '@/components/password-input';
+import { LOGIN_FAILED } from '@/lib/auth/login-messages';
+import type { LoginOption } from '@/lib/auth/login-roster';
+import { signInWithLoginId } from './actions';
 
 // Fitur "Lupa Sandi" (Opsi 2) dormant sampai email aktif — tampil hanya bila flag 'true'.
 const PW_RESET_ON = process.env.NEXT_PUBLIC_ENABLE_PW_RESET === 'true';
-
-type RosterUser = { email: string; name: string; role: string; dept: string };
 
 const ROLE_LABEL: Record<string, string> = {
   employee: 'Pegawai', spv: 'Supervisor (SPV)', hrd: 'HRD Admin', direksi: 'Direktur',
 };
 const ROLE_ORDER = ['employee', 'spv', 'hrd', 'direksi'];
 
-export function LoginForm({ next, users }: { next: string; users: RosterUser[] }) {
+export function LoginForm({ next, users }: { next: string; users: LoginOption[] }) {
   const router = useRouter();
   const [role, setRole] = useState('');
-  const [email, setEmail] = useState(''); // email user terpilih (atau input manual)
+  const [loginId, setLoginId] = useState(''); // id pegawai terpilih dari daftar (email dicari server)
+  const [email, setEmail] = useState(''); // input email manual
   const [manual, setManual] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -36,23 +38,33 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
     () =>
       (role ? users.filter((u) => u.role === role) : [...users])
         .sort((a, b) => a.name.localeCompare(b.name))
-        .map((u) => ({ value: u.email, label: `${u.name} · ${u.dept} — ${ROLE_LABEL[u.role] ?? u.role}` })),
+        .map((u) => ({ value: u.id, label:`${u.name} · ${u.dept} — ${ROLE_LABEL[u.role] ?? u.role}` })),
     [users, role],
   );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email) {
+    if (manual ? !email : !loginId) {
       setError(manual ? 'Masukkan email.' : 'Pilih peran dan nama Anda dahulu.');
       return;
     }
     setLoading(true);
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
+    // Dari daftar: id + sandi ke server (email tak pernah dikirim ke browser). Manual: seperti biasa.
+    let failed: boolean;
+    if (manual) {
+      const { error } = await createClient().auth.signInWithPassword({ email, password });
+      failed = !!error;
+    } else {
+      try {
+        failed = !(await signInWithLoginId(loginId, password)).ok;
+      } catch {
+        failed = true;
+      }
+    }
+    if (failed) {
       setLoading(false);
-      setError('Sandi salah atau akun tidak ditemukan.');
+      setError(LOGIN_FAILED);
       return;
     }
     // Reset mode tampilan: tiap login mulai dari Mode posisi-asli (base) — cegah cookie
@@ -75,7 +87,7 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
             <label className="block text-xs font-semibold text-ink-soft mb-1">Peran (opsional)</label>
             <select
               value={role}
-              onChange={(e) => { setRole(e.target.value); setEmail(''); }}
+              onChange={(e) => { setRole(e.target.value); setLoginId(''); }}
               className="w-full text-sm px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
             >
               <option value="">— Semua Peran —</option>
@@ -88,11 +100,11 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
           <div>
             <label className="block text-xs font-semibold text-ink-soft mb-1">Nama Pegawai</label>
             <SearchableSelect
-              value={email}
+              value={loginId}
               onChange={(val) => {
-                setEmail(val);
+                setLoginId(val);
                 // Auto-isi Peran dari nama terpilih → konfirmasi peran sebelum sandi.
-                const u = users.find((x) => x.email === val);
+                const u = users.find((x) => x.id === val);
                 if (u) setRole(u.role);
               }}
               options={nameOptions}
@@ -134,7 +146,7 @@ export function LoginForm({ next, users }: { next: string; users: RosterUser[] }
 
       <button
         type="button"
-        onClick={() => { setManual((v) => !v); setEmail(''); setRole(''); setError(null); }}
+        onClick={() => { setManual((v) => !v); setEmail(''); setLoginId(''); setRole(''); setError(null); }}
         className="w-full text-[11px] text-ink-faint hover:text-ink-soft hover:underline"
       >
         {manual ? '← Pilih dari daftar' : 'Masuk dengan email manual'}

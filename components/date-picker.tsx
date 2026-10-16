@@ -58,19 +58,22 @@ export function DatePicker({
 }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<'day' | 'month'>('day');
-  const today = useMemo(todayYmd, []);
+  const today = useMemo(() => todayYmd(), []);
   // Bulan yang sedang ditampilkan (bukan nilai terpilih) — awalnya ikut nilai, atau bulan ini.
   const initial = parseYmd(value) ?? parseYmd(today)!;
   const [view, setView] = useState({ y: initial.y, m: initial.m });
   const boxRef = useRef<HTMLDivElement>(null);
 
-  // Saat dibuka: selalu mulai dari bulan nilai terpilih (atau bulan ini bila kosong).
-  useEffect(() => {
-    if (!open) return;
-    const p = parseYmd(value) ?? parseYmd(today)!;
-    setView({ y: p.y, m: p.m });
-    setMode('day');
-  }, [open, value, today]);
+  // Saat dibuka: selalu mulai dari bulan nilai terpilih (atau bulan ini bila kosong) — di handler
+  // pemicu (bukan effect, yang memicu render berantai).
+  const toggleOpen = () => {
+    if (!open) {
+      const p = parseYmd(value) ?? parseYmd(today)!;
+      setView({ y: p.y, m: p.m });
+      setMode('day');
+    }
+    setOpen(!open);
+  };
 
   // Tutup saat klik di luar atau tekan Escape.
   useEffect(() => {
@@ -129,7 +132,7 @@ export function DatePicker({
         type="button"
         aria-label={ariaLabel ?? placeholder}
         aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggleOpen}
         className={`w-full flex items-center gap-2 rounded-control border bg-[#FDFDFC] px-3 py-2 text-left transition-colors ${
           open ? 'border-brand ring-2 ring-brand-tint' : 'border-line hover:border-line-strong'
         }`}

@@ -39,7 +39,7 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
 - Next.js 16 App Router (Turbopack, React 19, TS strict), Tailwind v4, Supabase (Postgres + Auth `@supabase/ssr`
   + RLS), Zod, `xlsx` (parse di klien), `nodemailer`/Resend, `@vercel/edge-config`, `motion`, `lucide-react`,
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
-  typecheck + build). Backup harian `.github/workflows/backup.yml`. npm.
+  typecheck + lint + build; lint bersih sejak 2026-10-16 — jangan tambah temuan baru). Backup harian `.github/workflows/backup.yml`. npm.
 - Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 25 tabel publik, migrasi
   `supabase/migrations/0001`–`0052`.
 - `app/` — `login/`, `maintenance/`, `auth/` (callback, lupa-sandi, perbarui-sandi, signout),
@@ -207,6 +207,10 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
 - TS strict; hindari `any`. Komentar & label UI bahasa Indonesia mengikuti istilah PANDUAN ("Mulai Nilai",
   "Final Report", "Garis Hubungan").
 - Tipe skema di `lib/database.types.ts`; tipe per-fitur inline/di lib terkait — jangan duplikasi.
+- **Lint React hooks:** jangan definisikan komponen di dalam komponen (pakai tingkat modul atau fungsi render
+  biasa); jangan `setState` di effect untuk "reset saat nilai berubah" — lakukan di handler atau pola "bandingkan
+  nilai sebelumnya saat render". Effect yang memang sinkron dengan sistem luar (localStorage, timer simpan otomatis)
+  boleh, dengan `eslint-disable-next-line` + alasan.
 - **Aksi dari tombol wajib lewat `callAction`** (`lib/call-action.ts`, 2026-10-16): Server Action yang gagal terkirim
   (koneksi, sesi habis, deploy saat halaman terbuka) tak boleh membuat tombol diam — tampilkan pesan gagal. Penjaga
   global `components/action-guard.tsx` (banner versi baru + peringatan aksi gagal) hanya jaring pengaman.
@@ -239,7 +243,7 @@ npm install
 npm run dev        # Next.js dev :3000
 npm run build      # validasi tipe & prerender — jalankan sebelum push
 npm run typecheck  # tsc --noEmit
-npm run lint       # eslint . (flat config) — temuan lama belum dibersihkan; belum di CI
+npm run lint       # eslint . (flat config) — wajib 0 error (ikut CI sejak 2026-10-16)
 npm test           # vitest run
 npm run test:watch
 npm run verify:rls # butuh anon + service role key di .env.local

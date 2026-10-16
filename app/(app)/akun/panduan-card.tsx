@@ -19,6 +19,8 @@ export function PanduanCard({
   // Default: anggap SUDAH dilihat (hindari kedip "BARU" saat hydrate); dikoreksi di efek.
   const [isNew, setIsNew] = useState(false);
   useEffect(() => {
+    // Disengaja: membaca localStorage (sistem luar) setelah hydrate agar tak beda dengan HTML server.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     try { setIsNew(localStorage.getItem(SEEN_KEY) !== version); } catch { /* localStorage tak tersedia */ }
   }, [version]);
 

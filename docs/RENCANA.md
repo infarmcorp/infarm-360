@@ -151,10 +151,9 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 - ⬜ **Gelombang 3: hapus tombol "Perbarui Laporan Final yang Berubah"** (Finalisasi Ulang Laporan Berubah) setelah
   jumlah laporan berlabel "berubah → N" = 0. Dengan kunci laporan Final, label itu tak akan muncul lagi; tombol
   sementara dipertahankan hanya untuk merapikan selisih lama (keputusan 2026-10-12).
-- 🔄 **Rapikan temuan lint** (`npm run lint` kembali jalan, 2026-10-12): dari 49 temuan, **27 dibereskan**
-  2026-10-16 (teks tanpa escape, variabel tak terpakai, dan sejenisnya; tampilan tak berubah). **Sisa 22**, semuanya
-  pola React (setState di effect, komponen dibuat saat render, dll.) yang mengubah alur komponen → dikerjakan di
-  branch terpisah + uji tampilan di Preview. Belum dimasukkan ke CI — masukkan setelah bersih.
+- 🔄 **Rapikan temuan lint** — **bersih (0 temuan)** 2026-10-16 dan kini ikut pemeriksaan otomatis. 27 temuan
+  mekanis sudah di `dev`; 22 temuan pola React ada di PR terpisah (`chore/lint-react-hooks`). 🔑 Sisa: cek tampilan
+  di Preview PR itu lalu merge (daftar cek di deskripsi PR).
 - ✅ **Cek dampak bug potongan telat ke 0** — **ditutup 2026-10-14**: query cek dampak dijalankan di production,
   hasilnya kosong. Tidak ada pegawai yang terdampak.
 

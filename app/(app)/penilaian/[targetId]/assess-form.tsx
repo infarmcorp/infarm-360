@@ -147,6 +147,9 @@ export function AssessForm({
       questions.some((q) => (answers[q.id] ?? '').trim().length > 0);
     if (!hasContent) return;                                               // jangan buat draf kosong
 
+    // Disengaja: status "menunggu simpan" menyertai timer simpan otomatis draf (jalur kritis — jangan diubah
+    // demi lint).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSaveState('pending');
     const t = setTimeout(async () => {
       if (lockRef.current || savingRef.current) return;

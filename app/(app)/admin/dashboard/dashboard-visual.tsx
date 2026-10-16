@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { colPercents } from '@/lib/table-cols';
 import { motion } from 'motion/react';
 import { Award, Target, Flame, TrendingUp, TrendingDown, Building2, Users, BarChart3 } from 'lucide-react';
@@ -721,8 +721,8 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
     if (player !== 'all' && classOfRow(r) !== player) return false;
     return true;
   });
-  // Reset ke halaman awal saat filter (cari/player) berubah agar tak "nyangkut" di halaman kosong.
-  useEffect(() => { setPage(0); }, [q, player]);
+  // Reset ke halaman awal saat filter (cari/player) berubah agar tak "nyangkut" di halaman kosong —
+  // dilakukan di handler perubahan filter (bukan effect, yang memicu render berantai).
   const pageCount = Math.max(1, Math.ceil(shown.length / TABLE_PAGE));
   const safePage = Math.min(page, pageCount - 1);
   const paged = shown.slice(safePage * TABLE_PAGE, safePage * TABLE_PAGE + TABLE_PAGE);
@@ -731,9 +731,9 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Tabel Hasil Seluruh Pegawai</h3>
         <div className="flex gap-2">
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama / divisi…"
+          <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama / divisi…"
             className="text-xs px-3 py-2 border border-gray-200 rounded-lg w-44 focus:outline-none focus:ring-1 focus:ring-emerald-600" />
-          <select value={player} onChange={(e) => setPlayer(e.target.value as typeof player)}
+          <select value={player} onChange={(e) => { setPlayer(e.target.value as typeof player); setPage(0); }}
             className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
             <option value="all">Semua Player</option>
             {PLAYER_BOXES.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
@@ -914,7 +914,9 @@ function CategoryPie({ title, subtitle, unit, values }: { title: string; subtitl
   const total = values.length;
   const counts = SCORE_CATS.map((c) => ({ ...c, n: values.filter((v) => c.test(v)).length }));
   const R = 52, SW = 22, C = 2 * Math.PI * R;
-  let acc = 0;
+  // Posisi awal tiap irisan = jumlah panjang irisan sebelumnya (dihitung di muka, bukan dimutasi saat render).
+  const segs = counts.filter((c) => c.n > 0).map((c) => ({ ...c, len: (c.n / total) * C }));
+  const offsets = segs.map((_, i) => segs.slice(0, i).reduce((s, x) => s + x.len, 0));
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs flex flex-col">
       <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">{title}</h3>
@@ -925,16 +927,10 @@ function CategoryPie({ title, subtitle, unit, values }: { title: string; subtitl
         <div className="flex flex-col items-center gap-4">
           <svg viewBox="0 0 140 140" className="w-40 h-40 shrink-0">
             <g transform="rotate(-90 70 70)">
-              {counts.map((c) => {
-                if (c.n === 0) return null;
-                const len = (c.n / total) * C;
-                const seg = (
-                  <circle key={c.key} cx={70} cy={70} r={R} fill="none" stroke={c.color}
-                    strokeWidth={SW} strokeDasharray={`${fmt2(len)} ${(C - len).toFixed(2)}`} strokeDashoffset={-acc} />
-                );
-                acc += len;
-                return seg;
-              })}
+              {segs.map((c, i) => (
+                <circle key={c.key} cx={70} cy={70} r={R} fill="none" stroke={c.color}
+                  strokeWidth={SW} strokeDasharray={`${fmt2(c.len)} ${(C - c.len).toFixed(2)}`} strokeDashoffset={-offsets[i]} />
+              ))}
             </g>
             <text x={70} y={66} textAnchor="middle" fill="#1f2937" fontSize={24} fontWeight={800}>{total}</text>
             <text x={70} y={84} textAnchor="middle" fill="#6b7280" fontSize={9}>Pegawai</text>

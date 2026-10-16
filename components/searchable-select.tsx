@@ -36,8 +36,7 @@ export function SearchableSelect({
     return t ? options.filter((o) => o.label.toLowerCase().includes(t)) : options;
   }, [q, options]);
 
-  // Reset sorotan saat hasil filter berubah / dibuka.
-  useEffect(() => { setActive(0); }, [q, open]);
+  // Sorotan kembali ke opsi pertama saat kata cari berubah / daftar dibuka — di handler-nya (bukan effect).
 
   useEffect(() => {
     if (!open) return;
@@ -73,7 +72,7 @@ export function SearchableSelect({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => { setOpen((o) => !o); setActive(0); }}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel}
@@ -91,7 +90,7 @@ export function SearchableSelect({
               <input
                 autoFocus
                 value={q}
-                onChange={(e) => setQ(e.target.value)}
+                onChange={(e) => { setQ(e.target.value); setActive(0); }}
                 onKeyDown={onKeyDown}
                 placeholder={searchPlaceholder}
                 role="combobox"

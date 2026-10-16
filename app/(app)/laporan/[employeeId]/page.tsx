@@ -7,6 +7,8 @@ import { finalScoreOf } from '@/lib/scoring';
 import { loadReport, reportForGrantViewer, withoutNamedFeedback, loadTeamReportForSpv, loadTeamReportForHrdSpv, loadTeamReportForCoordinator, loadSpvReportForDireksi, isDireksiReviewSubject } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
 import { ReportActions } from '../report-actions';
+import { ReportHistoryPanel } from '../report-history-panel';
+import { loadReportHistory } from '@/lib/report-history';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
 import { AspectSummaryView } from '../aspect-summary-view';
 import { RawFeedback } from '../raw-feedback';
@@ -362,6 +364,10 @@ export default async function LaporanDetailPage({
     kpiMissingMonths = allMonths.filter((m) => !have.has(m));
   }
 
+  // Riwayat Laporan (migrasi 0052): kapan ACC diberikan/dibatalkan, perubahan status & Skor Akhir.
+  // HRD saja; dibaca via service_role (pemanggil sudah lolos gerbang HRD di atas).
+  const history = isAdmin ? await loadReportHistory(createAdminClient(), employeeId, ap.id) : null;
+
   // isAdmin (pemegang izin HRD, bukan asSpv) → tampilan admin penuh (panel aksi + raw
   // feedback anonim). Direksi tak sampai di sini (hanya laporan SPV L2, diblok di atas).
   return (
@@ -404,6 +410,7 @@ export default async function LaporanDetailPage({
               subjectIsSpv={subjectIsSpv}
             />
           )}
+          {history && <ReportHistoryPanel history={history} />}
           {/* HRD: sembunyikan blok komentar-per-penilai (bernama) → diganti raw feedback anonim;
               tombol Unduh PDF bawaan disembunyikan karena sudah ada di panel aksi. */}
           <ReportDoc data={data} anonymize={false} hideAssessorComments={isAdmin} hidePrint={isAdmin} />

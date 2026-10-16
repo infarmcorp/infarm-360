@@ -8,6 +8,27 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
+### 2026-10-16 — Riwayat Laporan
+- **Setiap perubahan ACC, status, dan Skor Akhir kini tercatat oleh database** (permintaan pengguna, setelah kasus
+  "sudah ACC tanggal 15" yang tidak bisa dibuktikan). Dulu jejaknya hanya di Log Aktivitas yang dicatat aplikasi
+  dan harus dibaca lewat SQL. Kini:
+  - database mencatat sendiri setiap perubahan (nilai lama, nilai baru, jam, pelaku), apa pun jalurnya;
+  - HRD bisa membukanya di panel **Riwayat Laporan** pada halaman detail laporan, dalam kalimat biasa
+    (mis. "ACC dibatalkan — karena laporan disimpan sebagai Draf");
+  - di tabel Review & Finalisasi, tanda **✔ ACC** menampilkan siapa dan kapan saat kursor diarahkan.
+  Butuh perubahan database 0052. Riwayat dimulai sejak perubahan itu dijalankan.
+
+### 2026-10-16 — Aksi yang gagal tersimpan kini terlihat
+- **Kasus ACC 15–16 Okt:** HRD yakin sudah memberi ACC sejak 15 Okt, tetapi database dan log tidak pernah menerimanya.
+  Penyebab paling mungkin: tombol gagal terhubung ke server (mis. halaman sudah terbuka sebelum aplikasi
+  diperbarui pukul 16.52/16.56/20.42) dan tidak menampilkan pesan apa pun. Perbaikan:
+  - tombol penting (ACC, Simpan Draf, Rilis, Finalisasi, finalisasi massal, Hitung Ulang, email rilis) menampilkan
+    pesan **"perubahan TIDAK tersimpan, muat ulang halaman"** bila gagal terhubung;
+  - ACC menampilkan **"ACC tersimpan pukul HH.MM"** setelah berhasil;
+  - muncul banner **"Aplikasi baru saja diperbarui, muat ulang"** bila halaman sudah lama terbuka saat ada pembaruan,
+    dan peringatan merah bila aksi di tombol mana pun gagal terkirim;
+  - Log Aktivitas finalisasi massal mencatat **nama** pegawai yang difinalisasi, dilewati, dan gagal (dulu hanya jumlah).
+
 ### 2026-10-15 — Kokpit Review & Finalisasi jadi 3 langkah
 - **Kokpit Review & Finalisasi disederhanakan** (permintaan pengguna: "terlalu banyak tombol, membingungkan"). Lima tombol
   yang dulu tersebar kini menjadi **tiga langkah berjajar**: ① Hitung Skor 360° → ② Finalisasi Laporan → ③ Kabari

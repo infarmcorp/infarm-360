@@ -20,6 +20,7 @@ export type ReportRow = {
   final: number | null;       // Skor Akhir LIVE (dihitung dari KPI/360 terkini)
   storedFinal: number | null;  // Skor Akhir TERSIMPAN (snapshot final_reports) — yang dilihat pegawai
   status: ReportStatus | null; spvAcc: boolean;
+  accInfo?: string | null;     // tooltip ACC: "ACC oleh … · tanggal jam WIB" (riwayat laporan, migrasi 0052)
   isSpvSubject: boolean;       // subjek berperan SPV → ACC oleh Direksi (bukan SPV)
   ratedDone: number; ratedTotal: number; // penilai WAJIB yang sudah submit / total
   hasSubs?: boolean;           // ada ≥1 penilaian 360° terkirim (Wajib/Opsional) — memunculkan Tinjau walau skor belum ada
@@ -226,7 +227,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                 <td className="py-3 px-3 text-center">
                   <div className="flex flex-col items-center gap-0.5">
                     {r.spvAcc
-                      ? <span className="text-[10px] font-bold text-brand-ink">✔ ACC</span>
+                      ? <span className="text-[10px] font-bold text-brand-ink" title={r.accInfo ?? undefined}>✔ ACC</span>
                       : <span className="text-[10px] text-ink-faint">belum</span>}
                     {r.isSpvSubject && <span className="text-[9px] text-ink-faint" title="Laporan SPV di-ACC oleh Direksi">oleh Direksi</span>}
                   </div>

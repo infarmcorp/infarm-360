@@ -6,6 +6,7 @@ import { CheckCheck } from 'lucide-react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Button } from '@/components/button';
 import { bulkFinalizeAccepted } from './actions';
+import { callAction } from '@/lib/call-action';
 
 /**
  * "Finalisasi Semua yang Ber-ACC" — memfinalisasi sekaligus laporan yang sudah di-ACC
@@ -24,7 +25,7 @@ export function BulkFinalizeButton({ count, staleCount, primary, idleLabel }: { 
 
   async function run() {
     setBusy(true); setMsg(null);
-    const res = await bulkFinalizeAccepted();
+    const res = await callAction(() => bulkFinalizeAccepted());
     setBusy(false); setOpen(false);
     if (!res.ok) { setMsg({ ok: false, text: res.error }); return; }
     const skip = res.skipped.length ? ` · ${res.skipped.length} dilewati (${res.skipped.map((s) => s.name).join(', ')})` : '';

@@ -10,7 +10,7 @@ Status & pekerjaan terbuka di [RENCANA.md](RENCANA.md). Riwayat di [CHANGELOG.md
 3. [Aktivasi fitur dorman & Mode Maintenance](#3-aktivasi-fitur-dorman--mode-maintenance)
 4. [Rumus skor & klasifikasi](#4-rumus-skor--klasifikasi)
 5. [Manajemen Akses — model & penegakan](#5-manajemen-akses--model--penegakan)
-6. [Daftar migrasi 0001–0051](#6-daftar-migrasi-00010051)
+6. [Daftar migrasi 0001–0052](#6-daftar-migrasi-00010052)
 7. [Pengujian](#7-pengujian)
 8. [Backup & restore](#8-backup--restore)
 9. [PDF panduan in-app](#9-pdf-panduan-in-app)
@@ -335,7 +335,7 @@ hanya HRD berakses penuh; tak ada yang bisa mengubah izin dirinya sendiri (trigg
 
 ---
 
-## 6. Daftar migrasi 0001–0051
+## 6. Daftar migrasi 0001–0052
 
 Status penerapan per DB → `scripts/check-migrations.sql`.
 
@@ -390,6 +390,7 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0049 | trigger `trg_final_reports_block_self_acc` (tolak menyalakan ACC atas laporan milik pengguna yang login) |
 | 0050 | tabel `employee_report_folders` (Folder Laporan Drive per pegawai; baca `is_hrd()`, tulis `hrd_can('pegawai')`; pegawai membaca miliknya via service_role di Laporan Hasil Saya hanya bila punya laporan Final; app menampilkan "belum aktif"/"PDF belum tersedia" bila tabel belum ada) |
 | 0051 | bucket Storage `email-assets` (publik baca, 2 MB, JPG/PNG/WebP) untuk gambar Email Rilis Laporan per periode (`release/<period_id>/<kunci>.<ext>`); tulis/hapus hanya Server Action via service_role; tanpa bucket, dialog menampilkan "penyimpanan gambar belum aktif" dan email terkirim tanpa gambar |
+| 0052 | tabel `final_report_history` + trigger `trg_final_reports_history` (after insert/update `final_reports`): catat tiap perubahan `spv_acc`/`status`/`final_score` (lama→baru, waktu, `auth.uid()`; NULL untuk service_role → app melengkapi dari `hrd_audit_log` ±15 detik, `lib/report-history.ts`); baca `is_hrd()`, tanpa policy tulis (append-only); snapshot awal saat migrasi. Dipakai panel Riwayat Laporan & tooltip ACC; tanpa tabel → panel "belum aktif" |
 
 ---
 
@@ -581,7 +582,7 @@ Akun Saya. Pemetaan peran → file di `lib/panduan.ts` (sumber tunggal; nama tam
 |---|---|
 | `seed.ts` / `seed-data.ts` | seed idempoten (roster = `lib/auth/demo-users.ts`) |
 | `apply-migration.mjs` | terapkan satu file migrasi (`SUPABASE_DB_URL`) |
-| `check-migrations.sql` | cek migrasi 0001–0051 yang terpasang di sebuah DB |
+| `check-migrations.sql` | cek migrasi 0001–0052 yang terpasang di sebuah DB |
 | `backup.mjs` · `restore.mjs` · `backup-to-excel.mjs` | §8 |
 | `verify-rls.ts` | §7.2 |
 | `import-360-backfill.mjs` | impor skor 360° eksternal (dry-run default; `--apply`, `--create-missing`, `--period=`); CSV `BACKFILL-*.csv` di-gitignore |

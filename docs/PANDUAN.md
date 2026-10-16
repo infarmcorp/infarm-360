@@ -158,6 +158,11 @@ menampilkan semua pengajuan (koreksi, hapus, tambah) beserta status dan alasan p
   Untuk penilaian terkirim **tidak ada Simpan Draf dan tidak ada simpan otomatis**. Setelah deadline,
   penilaian terkirim terkunci (tombol **Lihat**). Penilaian yang belum terkirim tetap bisa dikirim sesudah
   deadline (tercatat Terlambat), lalu ikut terkunci.
+- **Review Penilaian sebelum kirim.** Bila semua nilai, bukti perilaku, dan esai sudah lengkap, tombol utama
+  berubah menjadi **Review Penilaian**. Layar Review menampilkan ringkasan semua jawaban per aspek (nilai dan key
+  point; klik baris untuk melihat bukti perilakunya) serta jawaban esai. Rata-rata skor tidak ditampilkan. Tekan
+  **Edit** pada baris mana pun untuk kembali ke pertanyaan itu, atau **Kembali ke Form**. Bila sudah yakin, tekan
+  **Kirim Penilaian 360°** → konfirmasi → tunggu sampai muncul **layar sukses**.
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |
 |---|---|---|---|
@@ -169,7 +174,10 @@ menampilkan semua pengajuan (koreksi, hapus, tambah) beserta status dan alasan p
 | **Buang Draf** | Hapus draf beserta nilai dan komentarnya | Hanya bila ada draf | Ya — "Buang draf penilaian?" |
 | **Batal** | Kembali ke daftar tanpa menyimpan | Selalu | — |
 | **Lengkapi Penilaian (N tersisa)** | Melompat ke bagian yang belum lengkap (nilai, evidence, atau esai) | Bila belum lengkap | — |
-| **Kirim Penilaian 360°** / **Kirim Ulang Penilaian 360°** | Kirim. Kirim Ulang untuk penilaian yang sudah pernah dikirim | Bila lengkap | Ya — "Kirim penilaian untuk <Nama>?" → **Ya, Kirim Sekarang** |
+| **Review Penilaian** | Membuka layar ringkasan semua jawaban sebelum kirim | Bila lengkap | — |
+| **Edit** (di layar Review) | Kembali ke indikator atau esai baris itu | Di layar Review | — |
+| **Kembali ke Form** | Menutup layar Review tanpa mengirim | Di layar Review | — |
+| **Kirim Penilaian 360°** / **Kirim Ulang Penilaian 360°** | Kirim. Kirim Ulang untuk penilaian yang sudah pernah dikirim | Di layar Review | Ya — "Kirim penilaian untuk <Nama>?" → **Ya, Kirim Sekarang** |
 | **Lanjut ke Penilaian Berikutnya** / **Kembali ke Daftar Penilaian** | Setelah layar sukses; menyebut sisa penilaian wajib | Di layar sukses | — |
 
 ### 2.3 Laporan Hasil Saya
@@ -203,6 +211,11 @@ pengalaman yang sama persis, dengan lingkup pegawai sedivisinya (termasuk diriny
 - Kosongkan bila pegawai belum punya capaian. **Angka 0 dihitung sebagai nilai sungguhan.**
 - Ketikan yang belum disimpan aman walau halaman ter-refresh, tetapi baru masuk sistem setelah **Simpan Semua Skor**.
 - KPI penilai eksternal tidak bisa diisi.
+- **Laporan Final mengunci KPI.** Bila laporan kuartal seorang pegawai sudah **Final**, KPI-nya pada bulan-bulan
+  kuartal itu tidak bisa diisi, diubah, diimpor, atau dihapus: "Laporan [nama] sudah Final. Buka Kembali
+  laporannya dulu untuk mengubah data ini." Bila di antara pegawai yang disimpan ada **satu saja** yang Final,
+  **seluruh** simpanan ditolak. Simpan tanpa pegawai itu, atau minta HRD menekan **Buka Kembali (ke Draf)** pada
+  laporannya dulu.
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |
 |---|---|---|---|
@@ -269,7 +282,10 @@ Koordinator adalah pegawai yang diberi tugas oleh HRD membina beberapa rekan sec
 tetap langsung di bawah SPV. Koordinator tetap pegawai biasa: bukan HRD, bukan SPV, dan **tidak dihitung
 sebagai "Atasan"** dalam bobot 360°. Menu ada di grup **"Menu Koordinator"**, khusus pegawai binaannya:
 - **Laporan Kinerja Tim** — sama seperti SPV, termasuk detail setelah rilis HRD dan **Beri ACC**.
-- **Input KPI Anggota** (tab Input saja) — aturan sama dengan SPV; tercatat atas nama koordinator.
+- **Input KPI Anggota** (tab Input saja) — aturan sama dengan SPV; tercatat atas nama koordinator. Bila laporan
+  kuartal seorang binaan sudah **Final**, KPI-nya pada bulan-bulan kuartal itu tidak bisa diisi atau diubah; bila
+  di antara binaan yang disimpan ada satu saja yang Final, **seluruh** simpanan ditolak. Simpan tanpa binaan itu,
+  atau minta HRD menekan **Buka Kembali (ke Draf)** pada laporannya dulu.
 - **Monitor Kinerja** — memantau binaan (tanpa dirinya).
 
 Koordinator **tidak bisa** memfinalisasi laporan, melihat pegawai di luar binaannya, atau mengatur 360°.

@@ -189,8 +189,9 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
   elemen mengambang. Kartu = `Panel` (flat, kurangi nested card). Tombol = `Button` (`primary|ghost|danger`);
   aksi sekunder di tabel → `OverflowMenu` (⋯), satu primary per baris. Microcopy panjang → footnote/tooltip.
   Kanvas `bg-bg` + `px-5 py-7`, tanpa wrapper putih besar.
-- Font Montserrat untuk teks; IBM Plex Mono via `.data-value` (alias `.mono`, `tabular-nums`) untuk **semua**
-  angka/data/ID — jangan untuk kalimat.
+- Font = **font bawaan sistem** (keputusan pengguna 2026-10-16; Google Fonts Montserrat/Plex **tidak** diunduh —
+  saat sempat termuat, teks terlalu lebar). Monospace via `.data-value` (alias `.mono`, `tabular-nums`) untuk
+  **semua** angka/data/ID — jangan untuk kalimat. Jangan tambahkan font eksternal tanpa permintaan.
 - **Pengecualian (permintaan pengguna):** `admin/dashboard/dashboard-visual.tsx` (sub-tab + chart) dan analitik
   Monitor (`monitor-trends`, `extremes-heatmap`, `per-employee-heatmap`, `dist-bars`, `team-aspect`,
   `section-header`) **tetap berwarna** — jangan di-token-kan. Palet diskrit skor dashboard: ≥90 biru · 80–89

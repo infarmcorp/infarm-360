@@ -1,6 +1,6 @@
 -- ============================================================================
 -- CEK STATUS MIGRASI — jalankan di Supabase SQL Editor project mana pun
--- (production ATAU staging) untuk melihat migrasi 0001–0051 mana yang SUDAH
+-- (production ATAU staging) untuk melihat migrasi 0001–0052 mana yang SUDAH
 -- diterapkan ke database tsb, tanpa perlu mengingat riwayatnya secara manual.
 --
 -- Cara pakai: copy-paste seluruh isi file ini ke SQL Editor → Run. Kolom

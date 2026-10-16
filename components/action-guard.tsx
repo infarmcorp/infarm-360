@@ -49,8 +49,8 @@ export function ActionGuard() {
 
   if (!updated && !failed) return null;
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[60] flex justify-center p-3 pointer-events-none"
-      style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom, 0px))' }}>
+    <div className="fixed inset-x-0 top-0 z-[60] flex justify-center p-3 pointer-events-none"
+      style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 0px))' }}>
       <div className={`pointer-events-auto flex max-w-xl items-start gap-3 rounded-panel border px-4 py-3 text-[13px] shadow-[0_8px_24px_rgba(0,0,0,0.15)] ${
         failed ? 'border-danger-ink/30 bg-danger-tint text-danger-ink' : 'border-warn-ink/30 bg-warn-tint text-warn-ink'}`}>
         <div className="min-w-0">

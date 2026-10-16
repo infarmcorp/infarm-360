@@ -1,13 +1,14 @@
-/* Font eksternal WAJIB paling atas: @import "tailwindcss" dikembangkan jadi ratusan aturan, sehingga
-   @import font di bawahnya melanggar aturan CSS (build: peringatan; `next dev` Turbopack: error). */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap');
+/* Font = font bawaan sistem (keputusan pengguna 2026-10-16). Montserrat & IBM Plex Mono dari Google Fonts
+   sempat diimpor, tetapi @import-nya terletak SETELAH tailwindcss sehingga diabaikan browser; pengguna
+   terbiasa dengan font sistem. Saat urutannya dibetulkan (rilis Q3), teks menjadi lebar → impor
+   dicabut. Bila kelak memakai font eksternal lagi: @import url(...) WAJIB di atas @import "tailwindcss". */
 @import "tailwindcss";
 
 /*
  * DESIGN TOKENS (redesign 2026-08) — sumber tunggal warna/radius/font. Komponen memakai utilitas
  * dari token ini (bg-surface, text-ink-soft, border-line, bg-brand-tint, rounded-panel, font-mono),
  * BUKAN hex mentah. Diterapkan bertahap per halaman; halaman lama tetap pakai palet default Tailwind
- * sampai dimigrasikan. Untuk membatalkan font: hapus @import di atas + --font-* di bawah.
+ * sampai dimigrasikan.
  */
 @theme {
   --color-bg: #F6F7F5;
@@ -38,6 +39,8 @@
   --color-sidebar-soft: #8FA096;
   --radius-panel: 10px;
   --radius-control: 7px;
+  /* Nama font pertama sengaja dipertahankan (tak diunduh → jatuh ke font sistem) agar tampilan persis seperti
+     sebelumnya; `monospace` sendirian membuat browser memperkecil ukuran huruf. */
   --font-sans: 'Montserrat', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
 }

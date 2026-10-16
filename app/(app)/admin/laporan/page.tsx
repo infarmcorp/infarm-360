@@ -15,6 +15,7 @@ import { appBaseUrl } from '@/lib/app-url';
 import { ImportSummaries, type ImportSummaryEmp } from './import-summaries';
 import { Panel } from '@/components/panel';
 import { InfoTip } from '@/components/info-tip';
+import { loadLastAccGiven } from '@/lib/report-history';
 import { loadPendingLatePenalties, refreshLatePenalties } from '@/lib/late-server';
 import { isBackfilledPeriod } from '@/lib/backfill-guard';
 import { ratedCompletion, type RatedMapping } from '@/lib/rated-completeness';
@@ -168,6 +169,15 @@ export default async function AdminLaporanPage() {
   (ovrRemoved ?? []).forEach((l) => bumpOvr(l.target_id, l.created_at));
   const after = (a: string | null, b: string | null) => a != null && b != null && Date.parse(a) > Date.parse(b);
 
+  // Tooltip kolom ACC: siapa & kapan ACC terakhir diberikan (riwayat laporan 0052; kosong bila belum aktif).
+  const lastAcc = isHrdFull ? await loadLastAccGiven(cfg, ap.id) : new Map<string, { at: string; actor: string | null }>();
+  const accInfoOf = (id: string): string | null => {
+    const a = lastAcc.get(id);
+    if (!a) return null;
+    const when = new Date(a.at).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
+    return `ACC oleh ${a.actor ?? 'pelaku tak tercatat'} · ${when} WIB`;
+  };
+
   const rows: ReportRow[] = employees.map((e) => {
     const kpiAvg = kpiAvgOf(kpiValsBy.get(e.id) ?? []);
     const s360 = s360By.get(e.id) ?? null;
@@ -191,7 +201,7 @@ export default async function AdminLaporanPage() {
       kpiAvg, s360, needsRecompute, latePenalty: lateBy.get(e.id) ?? 0,
       totalMonths: sortedMonths.length, missingMonths,
       final, storedFinal: rep?.final_score ?? null,
-      status: rep?.status ?? null, spvAcc: !!rep?.spv_acc,
+      status: rep?.status ?? null, spvAcc: !!rep?.spv_acc, accInfo: rep?.spv_acc ? accInfoOf(e.id) : null,
       isSpvSubject: e.role !== 'direksi' && (e.role === 'spv' || leaderIds.has(e.id)),
       ratedDone: ratedDone.get(e.id) ?? 0, ratedTotal: ratedTotal.get(e.id) ?? 0,
       hasSubs: maxSubByTarget.has(e.id),

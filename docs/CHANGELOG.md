@@ -17,6 +17,7 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
     (mis. "ACC dibatalkan — karena laporan disimpan sebagai Draf");
   - di tabel Review & Finalisasi, tanda **✔ ACC** menampilkan siapa dan kapan saat kursor diarahkan.
   Butuh perubahan database 0052. Riwayat dimulai sejak perubahan itu dijalankan.
+
 ### 2026-10-16 — Aksi yang gagal tersimpan kini terlihat
 - **Kasus ACC 15–16 Okt:** HRD yakin sudah memberi ACC sejak 15 Okt, tetapi database dan log tidak pernah menerimanya.
   Penyebab paling mungkin: tombol gagal terhubung ke server (mis. halaman sudah terbuka sebelum aplikasi

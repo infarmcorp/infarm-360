@@ -109,11 +109,10 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   dikunci di database. Pengguna tetap tidak bisa menulis KPI langsung ke database.
 
 ### Keandalan data
-- ⬜ **Seragamkan Skor 360° di Ekspor "Kinerja Lengkap".** Lembar Rekap memakai Skor 360° tersimpan (sesegar
-  Hitung Ulang terakhir), sedangkan lembar Penilaian 360° menghitung langsung dari nilai terbaru. Bila ada
-  penilaian yang berubah setelah Hitung Ulang, satu file bisa menampilkan angka berbeda. Rencana: Rekap juga
-  menghitung langsung dengan rumus resmi, tanpa mengubah skor tersimpan yang dipakai Dashboard/Monitor.
-  Dalam praktik, menekan ① Hitung Ulang sebelum ekspor sudah mencegah selisih ini.
+- ✅ **Skor 360° di Ekspor** (2026-10-16): Rekap (file Kinerja Lengkap) tetap memakai Skor 360° resmi, sama dengan
+  Dashboard dan laporan. Ringkasan per Pegawai (file Penilaian 360° Lengkap) yang menghitung langsung kini juga
+  menampilkan Skor 360° resmi, potongan telat, dan selisihnya. Rencana lama "Rekap ikut menghitung langsung"
+  dibatalkan: Rekap jadi berbeda dari Dashboard/laporan dan akan menghitung ulang skor Q1 hasil impor.
 - 🔑🔄 **Cek tampilan di browser dengan data asli**: Monitor Kinerja (SPV, Koordinator, HRD), Dashboard
   Organisasi (diagram lingkaran, peta warna, scatter), dan peta warna aspek 360° Q1 2026.
 - ⬜ **Pengecekan sebelum finalisasi periode:**

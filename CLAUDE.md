@@ -220,9 +220,11 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
   fungsi database baru WAJIB punya cadangan cara lama bila fungsinya belum ada (`rpcMissing`, `lib/supabase/rpc.ts`),
   dan `scripts/check-migrations.sql` diperbarui.
 - **Aturan merge (pemilik, 2026-10-14):**
-  - Claude Code **TIDAK BOLEH** merge PR atau push langsung ke `dev`/`main`. Merge hanya dilakukan pemilik.
-    Claude Code bekerja di branch sendiri, push branch itu, lalu menyiapkan PR.
-  - Semua perubahan masuk lewat **PR ke `dev`** dulu; `dev` → `main` hanya saat rilis yang **disetujui pemilik**.
+  - **`dev` (diubah pemilik, 2026-10-16):** Claude Code **boleh commit & push langsung ke `dev`** setelah
+    `npm test`, `npm run typecheck`, dan `npm run build` hijau di lokal. Branch + PR ke `dev` tetap boleh bila
+    perubahannya besar/berisiko atau pemilik memintanya.
+  - **`main`:** Claude Code **TIDAK BOLEH** merge PR atau push langsung ke `main`. `dev` → `main` hanya lewat PR
+    saat rilis yang **disetujui pemilik**; merge dilakukan pemilik.
   - PR yang membawa migrasi **wajib** mencantumkan nomor migrasinya dan bahwa migrasi itu harus dijalankan di
     **staging & production** sebelum fiturnya dipakai.
   - **Sinkron `main` → `dev` (pemilik, 2026-10-16):** setiap kali ada PR masuk `main` (rilis, fitur yang dirilis

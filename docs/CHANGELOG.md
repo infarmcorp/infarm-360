@@ -8,6 +8,15 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## Oktober 2026
 
+### 2026-10-16 — Skor 360° resmi di Ekspor Ringkasan per Pegawai; aturan kerja `dev`
+- **Ekspor "Penilaian 360° Lengkap" → lembar Ringkasan per Pegawai** kini juga berisi **Skor 360° resmi**
+  (angka yang dipakai Rekap, Dashboard, dan laporan), potongan telat, dan **selisih**. Lembar ini menghitung Skor
+  360° langsung dari nilai terbaru, sehingga bisa berbeda dari skor resmi bila ada penilaian berubah setelah
+  Hitung Ulang. Selisih bukan 0 = perlu Hitung Ulang (kecuali Q1 2026 hasil impor, yang memang tidak dihitung ulang).
+  Rencana lama agar Rekap ikut menghitung langsung dibatalkan, karena Rekap akan berbeda dari Dashboard dan laporan.
+- **Perubahan kecil kini boleh langsung masuk `dev`** (keputusan pemilik) setelah tes, pemeriksaan tipe, dan build
+  lulus. `main` tetap hanya lewat PR yang disetujui pemilik.
+
 ### 2026-10-16 — Keterangan "Belum Terbaca" diseragamkan
 - **Tabel Hasil Seluruh Pegawai (Dashboard) dan Rekapitulasi Kuartal kini mengikuti Kompilasi.** Pegawai yang KPI-nya
   baru 1 dari 3 bulan kuartal terisi ditulis **Belum Terbaca**, bukan A/B/C atau kategori Skor Akhir. Dulu

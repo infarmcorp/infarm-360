@@ -99,7 +99,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
     },
     {
       key: 'f360', title: 'Penilaian 360° Lengkap', icon: MessageSquareText, tint: 'violet', scoped: true,
-      desc: <><strong>5 lembar</strong> (semua <strong>anonim penilai</strong>): <strong>Ringkasan per Pegawai</strong> (jml penilai per kelas · Nilai Atasan/Internal/Self · Nilai 360° · Gap · Skala 100) · <strong>Rekap Aspek</strong> (Skor 360° terbobot &amp; Nilai Diri per aspek budaya) · Kuantitatif (rating per indikator) · Kualitatif (esai) · Ringkasan Naratif HRD.</>,
+      desc: <><strong>5 lembar</strong> (semua <strong>anonim penilai</strong>): <strong>Ringkasan per Pegawai</strong> (jml penilai per kelas · Nilai Atasan/Internal/Self · Nilai 360° · Gap · Skala 100 · <strong>Skor 360° resmi</strong> &amp; selisihnya — selisih ≠ 0 berarti ada penilaian berubah sejak Hitung Ulang terakhir) · <strong>Rekap Aspek</strong> (Skor 360° terbobot &amp; Nilai Diri per aspek budaya) · Kuantitatif (rating per indikator) · Kualitatif (esai) · Ringkasan Naratif HRD.</>,
       go: () => run('f360', async () => {
         const [ringkas, aspek, quant, qual, naratif] = await Promise.all([exportSummary360(pid()), exportAspectScores(pid()), exportAssessments(pid()), exportQualAnswers(pid()), exportAspectSummaries(pid())]);
         const sheets: Sheet[] = [

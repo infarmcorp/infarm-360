@@ -403,15 +403,18 @@ async function loadWeightOverrides(admin: ReturnType<typeof createAdminClient>, 
  *  - Nilai per kelas = rata-rata skor per-penilai (mean rating ×20 → dibagi 20 utk skala 1–5),
  *    Internal = gabungan Peer+Cross+Bawahan (selaras weightedScore360 2-kelas).
  *  - Nilai 360° (1–5) = weightedScore360 (model/bobot aktif periode) ÷ 20; Self DIKECUALIKAN.
- *  - Skala 100 = weightedScore360 (skor resmi, dihitung fresh dari rating saat ini).
+ *  - Skala 100 = weightedScore360 (dihitung fresh dari rating saat ini, SEBELUM potongan telat).
  * Dihitung LIVE dari rating agar sheet konsisten internal (nilai_360×20 = skala_100) & selaras
  * cara hitung manual HRD — bisa beda dari result_360 tersimpan yang basi sampai "Hitung Ulang".
+ * Karena itu disertakan juga Skor 360° RESMI (result_360.score = yang dipakai Rekap, Dashboard &
+ * laporan; sudah dipotong telat), potongannya, dan selisih (skala_100 − potongan − resmi). Selisih
+ * ≠ 0 = ada penilaian berubah sejak Hitung Ulang terakhir (atau skor hasil impor Q1 — JANGAN Hitung Ulang).
  */
 async function exportSummary360Impl(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   // assessments & mappings lintas periode → bisa >1000; ambil penuh. weight_schemes 1/periode (kecil).
-  const [{ data: emps }, { data: periodsAll }, asmts, mapsAll, { data: ws }] = await Promise.all([
+  const [{ data: emps }, { data: periodsAll }, asmts, mapsAll, { data: ws }, r360] = await Promise.all([
     admin.from('employees').select('id, emp_code, name, dept'),
     admin.from('periods').select('id, label, start_date').order('start_date'),
     fetchAllPaged<{ id: string; period_id: string; assessor_id: string; target_id: string }>((from, to) => {
@@ -427,9 +430,15 @@ async function exportSummary360Impl(periodId?: string | null): Promise<ExportRes
     (periodId
       ? admin.from('weight_schemes').select('period_id, model, weights').eq('is_active', true).eq('period_id', periodId)
       : admin.from('weight_schemes').select('period_id, model, weights').eq('is_active', true)),
+    fetchAllPaged<{ employee_id: string; period_id: string; score: number | null; late_penalty: number | null }>((from, to) => {
+      let q = admin.from('result_360').select('employee_id, period_id, score, late_penalty');
+      if (periodId) q = q.eq('period_id', periodId);
+      return q.order('period_id').order('employee_id').range(from, to);
+    }),
   ]);
   const empById = new Map((emps ?? []).map((e) => [e.id, e]));
   const periodLabel = new Map((periodsAll ?? []).map((p) => [p.id, p.label]));
+  const officialBy = new Map(r360.map((r) => [`${r.period_id}|${r.employee_id}`, r]));
   // 2 kelas Q3 2026 dst. → bobot otomatis BR-10 (effectiveModel); bobot khusus pegawai apa adanya.
   const startBy = new Map((periodsAll ?? []).map((p) => [p.id, p.start_date as string]));
   const wsByPeriod = new Map((ws ?? []).map((w) => [w.period_id, { model: effectiveModel(w.model as Model360, startBy.get(w.period_id)), weights: w.weights as WeightValues }]));
@@ -482,6 +491,9 @@ async function exportSummary360Impl(periodId?: string | null): Promise<ExportRes
     const s100 = wsp ? weightedScore360(g, wsp.model, wsp.weights) : null;
     const nilai360 = to5(s100);
     const nilaiSelf = to5(avg(g.self));
+    const off = officialBy.get(key);
+    const resmi = off?.score != null ? Number(off.score) : null;
+    const potongan = off ? Number(off.late_penalty ?? 0) : null;
     rows.push({
       periode: periodLabel.get(c.periodId) ?? '',
       kode: emp.emp_code, nama: emp.name, divisi: emp.dept,
@@ -492,6 +504,9 @@ async function exportSummary360Impl(periodId?: string | null): Promise<ExportRes
       nilai_360: nilai360,
       gap_self_vs_others: nilaiSelf != null && nilai360 != null ? r2(nilaiSelf - nilai360) : null,
       skala_100: s100 != null ? r2(s100) : null,
+      potongan_telat_360: potongan,
+      skor_360_resmi: resmi != null ? r2(resmi) : null,
+      selisih_vs_resmi: s100 != null && resmi != null ? r2(Math.max(0, r2(s100) - (potongan ?? 0)) - resmi) : null,
     });
   }
   rows.sort((a, b) => String(a.periode).localeCompare(String(b.periode)) || String(a.nama).localeCompare(String(b.nama)));

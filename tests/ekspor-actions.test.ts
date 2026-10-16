@@ -133,3 +133,42 @@ describe('Ekspor Rekap — KPI "belum terbaca" selaras Dashboard', () => {
     expect(byName.get('Baru')).toMatchObject({ kategori: 'Belum Terbaca', player: 'Belum Terbaca', kpi_rerata: 85, skor_akhir: 83.5 });
   });
 });
+
+describe('Ekspor Ringkasan 360° — Skor 360° resmi & selisih', () => {
+  function db(resmi: number, potongan: number) {
+    const t = tables(2);
+    return fakeDb({
+      ...t,
+      periods: [{ id: 'p1', label: 'Q3 2026', start_date: '2026-07-01' }],
+      weight_schemes: [{ period_id: 'p1', model: '2class', weights: { atasan: 40, internal: 60 }, is_active: true }],
+      employee_weight_overrides: [],
+      result_360: [{ employee_id: id('e', 0), period_id: 'p1', score: resmi, late_penalty: potongan }],
+    });
+  }
+
+  it('skor resmi sesuai hitungan (setelah potongan) → selisih 0', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockAdmin.mockReturnValue(db(0, 0) as any);
+    const { exportSummary360 } = await import('@/app/(app)/admin/ekspor/actions');
+    const first = await exportSummary360('p1');
+    if (!first.ok) throw new Error(first.error);
+    const s100 = first.rows[0].skala_100 as number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockAdmin.mockReturnValue(db(s100 - 3, 3) as any);
+    const r = await exportSummary360('p1');
+    if (!r.ok) throw new Error(r.error);
+    expect(r.rows[0]).toMatchObject({ potongan_telat_360: 3, skor_360_resmi: s100 - 3, selisih_vs_resmi: 0 });
+  });
+
+  it('skor resmi basi (belum Hitung Ulang) → selisih terlihat', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockAdmin.mockReturnValue(db(50, 0) as any);
+    const { exportSummary360 } = await import('@/app/(app)/admin/ekspor/actions');
+    const r = await exportSummary360('p1');
+    if (!r.ok) throw new Error(r.error);
+    const row = r.rows[0];
+    expect(row.skor_360_resmi).toBe(50);
+    expect(row.selisih_vs_resmi).toBeCloseTo((row.skala_100 as number) - 50, 2);
+    expect(row.selisih_vs_resmi).not.toBe(0);
+  });
+});

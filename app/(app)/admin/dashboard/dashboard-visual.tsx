@@ -280,7 +280,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
       {/* Distribusi Kategori Kinerja + Rencana Tindak Lanjut */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="📊 Distribusi Kategori Kinerja — Skor Akhir">
-          <p className="text-[10px] text-gray-500 mb-3 -mt-1">Skor Akhir = blend KPI 50% + 360° 50% (KPI murni bila 360° nonaktif). Berbeda dari tab <strong>Analisis Hasil KPI</strong> (KPI saja).{aggregate && <span className="text-indigo-700 font-semibold"> Mode agregat: rata-rata Skor Akhir per kuartal.</span>}</p>
+          <p className="text-[10px] text-gray-500 mb-3 -mt-1">Skor Akhir = blend KPI 50% + 360° 50% (KPI murni bila 360° nonaktif; 360° saja bila KPI kosong). Berbeda dari tab <strong>Analisis Hasil KPI</strong> (KPI saja).{aggregate && <span className="text-indigo-700 font-semibold"> Mode agregat: rata-rata Skor Akhir per kuartal.</span>}</p>
           <CountBars items={categories} denom={denom} />
         </Card>
         <Card title="🎯 Rencana Tindak Lanjut Organisasi — Skor Akhir"><CountBars items={recommendations} denom={denom} /></Card>
@@ -363,8 +363,11 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
             );
           })}
         </div>
+        {/* HRD Review & Belum Terbaca berdampingan kiri-kanan (bertumpuk di layar sempit). */}
+        {(incomplete.length > 0 || unread.length > 0) && (
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
         {incomplete.length > 0 && (
-          <div className="mt-3 border border-gray-200 border-t-4 border-t-amber-400 rounded-xl p-3 bg-amber-50/50">
+          <div className="border border-gray-200 border-t-4 border-t-amber-400 rounded-xl p-3 bg-amber-50/50">
             <div className="flex items-start justify-between gap-1">
               <span className="text-[13px] font-black text-slate-700 leading-tight">HRD Review</span>
               <span className="text-lg font-black font-mono shrink-0 text-amber-600">{incomplete.length}</span>
@@ -379,7 +382,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
           </div>
         )}
         {unread.length > 0 && (
-          <div className="mt-3 border border-gray-200 border-t-4 border-t-gray-400 rounded-xl p-3 bg-gray-50/60">
+          <div className="border border-gray-200 border-t-4 border-t-gray-400 rounded-xl p-3 bg-gray-50/60">
             <div className="flex items-start justify-between gap-1">
               <span className="text-[13px] font-black text-slate-700 leading-tight">Belum Terbaca (Tak Terkategori)</span>
               <span className="text-lg font-black font-mono shrink-0 text-gray-500">{unread.length}</span>
@@ -392,6 +395,8 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
               ))}
             </div>
           </div>
+        )}
+        </div>
         )}
         <p className="text-[10px] text-gray-500 italic mt-2">
           Berbasis KPI × 360° (ambang 80): A = KPI≥80 &amp; 360°≥80 · B Culture = KPI&lt;80 &amp; 360°≥80 ·
@@ -707,11 +712,13 @@ function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, has360
 const TABLE_PAGE = 5;
 function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
   const [q, setQ] = useState('');
-  const [player, setPlayer] = useState<'all' | PlayerClass>('all');
+  const [player, setPlayer] = useState<'all' | PlayerClass | 'UNREAD'>('all');
   const [page, setPage] = useState(0);
+  // Keterangan Player SAMA dengan Kompilasi: KPI "belum terbaca" tak diklasifikasi (bukan A/B/C/HRD Review).
+  const classOfRow = (r: Row): PlayerClass | 'UNREAD' | null => (r.kpiUnread ? 'UNREAD' : r.player);
   const shown = rows.filter((r) => {
     if (q.trim() && !`${r.name} ${r.nickname ?? ''} ${r.dept}`.toLowerCase().includes(q.toLowerCase())) return false;
-    if (player !== 'all' && r.player !== player) return false;
+    if (player !== 'all' && classOfRow(r) !== player) return false;
     return true;
   });
   // Reset ke halaman awal saat filter (cari/player) berubah agar tak "nyangkut" di halaman kosong.
@@ -731,6 +738,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
             <option value="all">Semua Player</option>
             {PLAYER_BOXES.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
             <option value="HRD_REVIEW">HRD Review</option>
+            <option value="UNREAD">Belum Terbaca</option>
           </select>
         </div>
       </div>
@@ -754,9 +762,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
               <th className="py-2 px-3 text-center">Rerata KPI</th>
               <th className="py-2 px-3 text-center">Trend KPI</th>
               <th className="py-2 px-3 text-center">Skor 360°</th>
-              <th className="py-2 px-3 text-center" title="Dihitung langsung (live) dari KPI + 360° periode ini">
-                Skor Akhir <span className="normal-case font-normal text-gray-400">(live)</span>
-              </th>
+              <th className="py-2 px-3 text-center" title="Laporan Final → angka tersimpan; selain itu dihitung dari KPI + 360° periode ini">Skor Akhir</th>
               <th className="py-2 pl-3 text-center">Player</th>
             </tr>
           </thead>
@@ -780,7 +786,9 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
                     ? <span className="text-[10px] font-semibold text-amber-700 font-sans" title={NO_SCORE_TITLE}>{NO_SCORE_LABEL}</span> : '—'}</td>
                   <td className="py-3 px-3 text-center font-mono font-black text-slate-800">{r.final != null ? fmt2(r.final) : '—'}</td>
                   <td className="py-3 pl-3 text-center">
-                    {r.player ? (
+                    {r.kpiUnread ? (
+                      <span className="text-[11px] font-black px-2 py-0.5 rounded border bg-gray-100 text-gray-600 border-gray-300" title="KPI baru 1 dari 3 bulan kuartal terisi → tidak diklasifikasi">Belum Terbaca</span>
+                    ) : r.player ? (
                       <span className={`text-[11px] font-black px-2 py-0.5 rounded border ${PLAYER_COLOR[r.player]}`}>{PLAYER_BADGE[r.player]}</span>
                     ) : (
                       <span className="text-gray-500 text-xs">—</span>
@@ -806,9 +814,9 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
       )}
       </StableHeight>
       <p className="text-[10px] text-gray-500 italic mt-3">
-        Skor Akhir <strong>(live)</strong> = blend KPI+360 (50/50), dihitung langsung dari data periode aktif —
-        bisa berbeda dari angka <strong>finalisasi tersimpan</strong> di Laporan Kinerja Tim.
-        Player (A/B/C) berbasis KPI × 360° (ambang 80); <strong>HRD Review</strong> = KPI atau Skor 360° kosong → tidak diklasifikasi otomatis.{!has360 && ' Periode tanpa 360° → semua pegawai berstatus HRD Review.'}
+        Skor Akhir = blend KPI+360 (50/50); laporan yang sudah Final memakai angka tersimpannya.
+        Player (A/B/C) berbasis KPI × 360° (ambang 80); <strong>HRD Review</strong> = KPI atau Skor 360° kosong → tidak diklasifikasi otomatis;
+        <strong> Belum Terbaca</strong> = KPI baru 1 dari 3 bulan kuartal terisi → tidak diklasifikasi (sama dengan Kompilasi).{!has360 && ' Periode tanpa 360° → semua pegawai berstatus HRD Review.'}
       </p>
     </div>
   );

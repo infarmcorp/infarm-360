@@ -17,7 +17,8 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
     darurat "Hitung ulang paksa" tetap ada di menu ⋯;
   - kotak langkah berjajar ke samping, bukan bertumpuk (di HP otomatis bertumpuk);
   - penjelasan panjang dipindah ke ikon ⓘ, Atur Bobot dan Flag Kepatuhan jadi tautan kecil.
-  Tidak ada fungsi yang dihapus.
+  Tombol Finalisasi yang nonaktif menyebut sebabnya ("Menunggu ACC (N)", "Masih ada draf (N)", "✓ Semua sudah
+  Final"), bukan "Belum ada yang siap" yang menyesatkan saat semua laporan sudah Final. Tidak ada fungsi yang dihapus.
 
 ### 2026-10-15 — Email Rilis Laporan
 - **Email Rilis Laporan dari Review & Finalisasi** (permintaan pengguna). HRD bisa mengabarkan pegawai bahwa PDF
@@ -47,6 +48,16 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   Berlaku di semua tabel berhalaman, termasuk heatmap Monitor, Dashboard, Laporan Tim, Audit, dan Log Akses.
   Lebar heatmap tetap mengikuti jumlah aspek periode yang dipilih. Progress 360 tidak diubah karena barisnya
   bisa dibuka-tutup.
+
+### 2026-10-15 (di `dev`, belum di production)
+- **Uji rilis Q3 dijalankan** di database staging dengan daftar [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md): 53 langkah lulus,
+  0 gagal. Kunci laporan Final, Buka Kembali, ACC, Pemetaan, potongan telat, Manajemen Akses, Kelola Pegawai,
+  Ekspor, dan aktivasi periode bekerja sesuai rencana. Temuan: Skor Akhir bisa berubah saat laporan dibuka kembali
+  lalu difinalisasi ulang (potongan telat tertunda ikut diterapkan; benar, tetapi perlu diketahui HRD), dan pesan
+  kecil di Manajemen Akses (dicatat untuk gelombang 3). Data uji di staging sudah dikembalikan.
+- **Nama penilai tidak lagi terkirim ke browser di tampilan HRD** (2026-10-14). Sebelumnya nama itu ikut terkirim
+  walau tak pernah tampil di layar (terbaca lewat alat developer). Kini dibuang di server; tampilan tak berubah,
+  komentar anonim tetap ada. Ikut diperbaiki: aplikasi bisa dijalankan lagi di mode pengembangan.
 
 ### 2026-10-14 (di `dev`, belum di production)
 - **"Unduh PDF" pegawai membuka folder Google Drive** (permintaan pengguna). PDF hasil cetak aplikasi kurang rapi

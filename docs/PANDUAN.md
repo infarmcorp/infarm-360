@@ -673,7 +673,7 @@ berikutnya. Email tidak memuat skor atau isi laporan.
 |---|---|---|---|
 | **Hitung Ulang Skor 360°** (langkah ①) | Hitung & simpan Skor 360° | Aktif bila ada yang perlu dihitung; selain itu "✓ Mutakhir" + ⋯ **Hitung ulang paksa** | Hanya untuk "paksa" |
 | **Perbarui Laporan Final yang Berubah (N)** (langkah ②) | Segarkan angka laporan Final | Bila N > 0 | Ya |
-| **Finalisasi N Laporan** (langkah ②) | Finalisasi semua yang sudah di-ACC & masih Ditinjau | Selalu; mati bila belum ada yang siap | Ya (+ peringatan bila 360° perlu dihitung) |
+| **Finalisasi N Laporan** (langkah ②) | Finalisasi semua yang sudah di-ACC & masih Ditinjau | Selalu; saat mati, tulisannya menyebut sebab: "Menunggu ACC (N)", "Masih ada draf (N)", "Laporan belum dibuat (N)", atau "✓ Semua sudah Final" | Ya (+ peringatan bila 360° perlu dihitung) |
 | **Kirim Email Rilis** (langkah ③) | Buka dialog Email Rilis Laporan | Selalu; mati bila belum ada laporan Final | Ya, sebelum kirim |
 | **Atur Bobot** / **Flag Kepatuhan** | Pintasan (tautan kecil) | Kanan bawah kokpit | — |
 | **Impor Ringkasan dari Excel** | Isi ringkasan aspek & kualitatif banyak pegawai sekaligus | Periode dengan 360°; HRD dan penerima akses Meringkas/Finalisasi | Pratinjau dulu |

@@ -13,9 +13,10 @@ import { bulkFinalizeAccepted } from './actions';
  * `count` = jumlah kandidat (spv_acc & in_review); `staleCount` = di antaranya yang skor 360°-nya
  * perlu dihitung ulang (peringatan agar HRD Hitung Ulang dulu supaya skor tersimpan benar).
  * Langkah ② kokpit: hijau bila `primary` (langkah yang sedang perlu dikerjakan); tanpa kandidat →
- * tombol tetap tampil tetapi nonaktif, agar susunan langkah tak berubah-ubah.
+ * tombol tetap tampil tetapi nonaktif dengan `idleLabel` yang menjelaskan sebabnya (mis. "Menunggu ACC (3)"
+ * atau "✓ Semua sudah Final"), agar susunan langkah tak berubah-ubah.
  */
-export function BulkFinalizeButton({ count, staleCount, primary }: { count: number; staleCount: number; primary: boolean }) {
+export function BulkFinalizeButton({ count, staleCount, primary, idleLabel }: { count: number; staleCount: number; primary: boolean; idleLabel: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -37,8 +38,8 @@ export function BulkFinalizeButton({ count, staleCount, primary }: { count: numb
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <Button type="button" size="sm" variant={primary && count > 0 ? 'primary' : 'ghost'} onClick={() => setOpen(true)}
-        disabled={busy || count === 0} title={count === 0 ? 'Belum ada laporan yang sudah di-ACC dan masih Ditinjau' : undefined}>
-        <CheckCheck className="w-3.5 h-3.5" /> {count > 0 ? <>Finalisasi <span className="data-value">{count}</span> Laporan</> : 'Belum ada yang siap'}
+        disabled={busy || count === 0} title={count === 0 ? 'Tombol ini memfinalisasi laporan yang sudah di-ACC dan masih Ditinjau — saat ini tidak ada' : undefined}>
+        <CheckCheck className="w-3.5 h-3.5" /> {count > 0 ? <>Finalisasi <span className="data-value">{count}</span> Laporan</> : idleLabel}
       </Button>
       {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
       {msg?.failed && <span className="text-[11px] font-semibold text-danger-ink">{msg.failed}</span>}

@@ -77,8 +77,12 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   tanggal & jam di dialog Email Rilis; email terkirim sendiri (±30 menit). Penerima dan isi dikunci saat
   menjadwalkan; bisa diubah/dibatalkan sebelum mulai terkirim. Sisa:
   - 🔑 jalankan perubahan database **0053** di staging, lalu production;
-  - 🔑 pasang kode rahasia sekali di Vercel dan GitHub (langkah di [TEKNIS.md](TEKNIS.md) §3.5);
-  - 🔑 uji di staging ([TEKNIS.md](TEKNIS.md) §3.5), lalu ikut rilis `dev` → `main` berikutnya.
+  - ✅ kode rahasia sudah dipasang pemilik di Vercel (Production & Preview) dan GitHub (2026-11-03);
+  - 🔑 di Preview: uji isi & syarat email lewat **Kirim sekarang** (inti pengiriman sama dengan jadwal). Jadwal di
+    Preview tidak berjalan sendiri — pemicu GitHub hanya memanggil production dan hanya dari `main` (keputusan pemilik:
+    tidak menambah pemicu untuk Preview);
+  - 🔑 setelah rilis `dev` → `main` + 0053 di production: uji pemicu sekali (Actions → Email Rilis Terjadwal → Run
+    workflow), lalu jadwalkan ke akun sendiri dari UI untuk memastikan terkirim otomatis.
 - 🔑🔄 **Catatan di Luar Pemetaan** (untuk Q4 2026) — sudah di `dev` (2026-11-03), belum
   di production. Pegawai bisa menulis catatan anonim kepada HRD tentang rekan yang tidak ada di daftar
   penilaiannya (pilih rekan + aspek budaya, tanpa nilai). Hanya HRD di Mode Admin yang membacanya, di rincian

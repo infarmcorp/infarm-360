@@ -9,6 +9,10 @@ import type { RelationKind, WeightValues } from '@/lib/database.types';
 import { trendOf } from '@/lib/trend';
 import { cookies } from 'next/headers';
 import { outsideNotesForExport } from '@/lib/outside-notes';
+import { tableMissing } from '@/lib/report-folder';
+import { formatDateTimeWib } from '@/lib/datetime';
+import { planTitle, planStatusLabel, ITEM_PROGRESS_LABEL, SESSION_KIND_LABEL, OVERALL_LABEL } from '@/lib/dev-plan';
+import type { PlanRow as DevPlanRow, PlanItemRow as DevItemRow, SessionRow as DevSessionRow } from '@/lib/dev-plan-server';
 
 /**
  * Ekspor dataset untuk olah data lanjutan (HRD). Halaman ini hanya untuk HRD; setelah
@@ -983,6 +987,110 @@ async function exportReportMaterialsImpl(periodId?: string | null): Promise<Conf
   };
 }
 
+/**
+ * Rencana Pengembangan & 1-on-1 (migrasi 0055–0056) — BERNAMA (rencana milik pegawai, bukan data anonim).
+ * Filter periode = periode LAPORAN asal rencana. 3 lembar:
+ *  1. Rencana              — satu baris per prioritas (rencana tanpa prioritas tetap satu baris).
+ *  2. Komentar & Persetujuan — satu baris per rencana: komentar atasan, alasan perbaikan, siapa menyetujui & kapan.
+ *  3. Sesi & Tinjauan      — satu baris per catatan sesi 1-on-1 / tinjauan bulanan HRD (+ kemajuan per prioritas
+ *                            & tanggapan pegawai). Tabel belum ada → lembar kosong.
+ */
+async function exportDevPlansImpl(periodId?: string | null): Promise<ConfigResult> {
+  if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
+  const admin = createAdminClient();
+  let plans: DevPlanRow[] = [];
+  try {
+    plans = await fetchAllPaged<DevPlanRow>((from, to) => {
+      let q = admin.from('development_plans').select('*');
+      if (periodId) q = q.eq('source_period_id', periodId);
+      return q.order('id').range(from, to);
+    });
+  } catch (e) {
+    if (tableMissing({ message: e instanceof Error ? e.message : '' })) return { ok: false, error: 'Fitur Rencana Pengembangan belum aktif' };
+    throw e;
+  }
+  const planIds = plans.map((p) => p.id);
+  const [{ data: emps }, { data: periodsAll }, items, sessions] = await Promise.all([
+    admin.from('employees').select('id, emp_code, name, dept, role'),
+    admin.from('periods').select('id, label, start_date, end_date'),
+    planIds.length
+      ? fetchAllByIds<DevItemRow>(planIds, (chunk, from, to) => admin.from('development_plan_items').select('*')
+        .in('plan_id', chunk).order('plan_id').order('order_idx').range(from, to))
+      : Promise.resolve([] as DevItemRow[]),
+    planIds.length
+      ? fetchAllByIds<DevSessionRow>(planIds, (chunk, from, to) => admin.from('development_plan_sessions').select('*')
+        .in('plan_id', chunk).order('plan_id').order('session_date').range(from, to)).catch((e: unknown) => {
+          if (tableMissing({ message: e instanceof Error ? e.message : '' })) return [] as DevSessionRow[];
+          throw e;
+        })
+      : Promise.resolve([] as DevSessionRow[]),
+  ]);
+  const empById = new Map((emps ?? []).map((e) => [e.id, e]));
+  const periodById = new Map((periodsAll ?? []).map((p) => [p.id, p]));
+  const planById = new Map(plans.map((p) => [p.id, p]));
+  const itemsBy = new Map<string, DevItemRow[]>();
+  for (const it of items) itemsBy.set(it.plan_id, [...(itemsBy.get(it.plan_id) ?? []), it]);
+  const dt = (v: string | null) => (v ? formatDateTimeWib(v) : '');
+  const head = (p: DevPlanRow) => {
+    const e = empById.get(p.employee_id);
+    const per = periodById.get(p.source_period_id);
+    return {
+      periode_laporan: per ? periodRangeLabel(per.label, per.start_date, per.end_date) : '',
+      rencana: per ? planTitle(per.label) : '',
+      kode: e?.emp_code ?? '', nama: e?.name ?? '', divisi: e?.dept ?? '',
+      status: planStatusLabel(p.status, e?.role ?? null),
+    };
+  };
+  const byName = (a: DevPlanRow, b: DevPlanRow) => {
+    const ha = head(a), hb = head(b);
+    return ha.periode_laporan.localeCompare(hb.periode_laporan) || ha.nama.localeCompare(hb.nama);
+  };
+  const sorted = [...plans].sort(byName);
+
+  const rencana: Row[] = sorted.flatMap((p): Row[] => {
+    const its = itemsBy.get(p.id) ?? [];
+    if (!its.length) return [{ ...head(p), prioritas_ke: null, area: '', target_terukur: '', langkah_aksi: '', tenggat: '', pendamping: '', indikator_berhasil: '' }];
+    return its.map((it, i) => ({
+      ...head(p), prioritas_ke: i + 1, area: it.area, target_terukur: it.target, langkah_aksi: it.actions,
+      tenggat: it.due_text, pendamping: it.companion, indikator_berhasil: it.success_indicator,
+    }));
+  });
+  const persetujuan: Row[] = sorted.map((p) => ({
+    ...head(p),
+    konfirmasi_kinerja: p.sup_confirmation ?? '', konteks_tambahan: p.sup_context ?? '',
+    dukungan_diberikan: p.sup_support ?? '', harapan: p.sup_hope ?? '', alasan_perbaikan: p.revision_reason ?? '',
+    disetujui_pegawai_pada: dt(p.employee_signed_at),
+    disetujui_atasan_oleh: p.supervisor_name ?? '', disetujui_atasan_pada: dt(p.supervisor_signed_at),
+    disetujui_hrd_oleh: p.hrd_name ?? '', disetujui_hrd_pada: dt(p.hrd_signed_at),
+  }));
+  const sesi: Row[] = sessions
+    .filter((s) => planById.has(s.plan_id))
+    .map((s) => {
+      const p = planById.get(s.plan_id)!;
+      const its = itemsBy.get(p.id) ?? [];
+      const progress = (s.item_progress ?? []).map((x) => {
+        const n = its.findIndex((it) => it.id === x.item_id);
+        return `P${n >= 0 ? n + 1 : '?'} ${ITEM_PROGRESS_LABEL[x.status]}${x.note ? `: ${x.note}` : ''}`;
+      }).join('; ');
+      return {
+        ...head(p), jenis: SESSION_KIND_LABEL[s.kind], tanggal_sesi: s.session_date, dicatat_oleh: s.author_name ?? '',
+        status_umum: s.overall_status ? OVERALL_LABEL[s.overall_status] : '', catatan: s.summary,
+        kemajuan_per_prioritas: progress, tanggapan_pegawai: s.employee_note ?? '',
+      };
+    })
+    .sort((a, b) => String(a.periode_laporan).localeCompare(String(b.periode_laporan))
+      || String(a.nama).localeCompare(String(b.nama)) || String(a.tanggal_sesi).localeCompare(String(b.tanggal_sesi)));
+
+  return {
+    ok: true,
+    sheets: [
+      { name: 'Rencana', rows: rencana },
+      { name: 'Komentar & Persetujuan', rows: persetujuan },
+      { name: 'Sesi & Tinjauan', rows: sesi },
+    ],
+  };
+}
+
 // ── Action ekspor yang dipanggil klien ───────────────────────────────────────────────────────
 // Tiap ekspor dibungkus `guarded`: bila ada pengambilan data yang gagal (koneksi putus, database
 // sibuk), HRD menerima pesan jelas & TIDAK ada file yang dibuat — lebih aman daripada file yang
@@ -1013,3 +1121,4 @@ export async function exportPeriodConfig(...args: Parameters<typeof exportPeriod
 export async function exportHrdAuditLog(...args: Parameters<typeof exportHrdAuditLogImpl>) { return guarded(() => exportHrdAuditLogImpl(...args)); }
 export async function exportMappings(...args: Parameters<typeof exportMappingsImpl>) { return guarded(() => exportMappingsImpl(...args)); }
 export async function exportReportMaterials(...args: Parameters<typeof exportReportMaterialsImpl>) { return guarded(() => exportReportMaterialsImpl(...args)); }
+export async function exportDevPlans(...args: Parameters<typeof exportDevPlansImpl>) { return guarded(() => exportDevPlansImpl(...args)); }

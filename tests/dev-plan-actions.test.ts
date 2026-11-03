@@ -12,7 +12,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn(), createAdminClie
 vi.mock('@/lib/audit/log', () => ({ logHrdAction: vi.fn(async () => {}), logAuditAsService: vi.fn(async () => {}) }));
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { saveMyPlan, submitMyPlan, decideAsSupervisor, approveAsHrd, reopenPlan, setPlanWindow } from '@/app/(app)/pengembangan/actions';
+import { saveMyPlan, submitMyPlan, decideAsSupervisor, approveAsHrd, reopenPlan, setPlanWindow, saveSession, saveSessionResponse } from '@/app/(app)/pengembangan/actions';
 
 const mockCreate = vi.mocked(createClient);
 const mockAdmin = vi.mocked(createAdminClient);
@@ -199,5 +199,70 @@ describe('approveAsHrd / reopenPlan / setPlanWindow', () => {
     const u = a.calls.find((x) => x.table === 'periods' && x.op === 'update')!.payload as Record<string, unknown>;
     expect(u.dev_plan_due).toBe('2026-11-30');
     expect(u.dev_plan_closed_at).toBeTruthy();
+  });
+});
+
+describe('Tahap 2 — saveSession / saveSessionResponse', () => {
+  const ITEM = '33333333-3333-3333-3333-333333333333';
+  const SESS = '44444444-4444-4444-4444-444444444444';
+  const IN = { kind: 'one_on_one', date: '2026-11-10', summary: 'Membahas cara konfirmasi informasi.', overall: 'on_track',
+    progress: [{ item_id: ITEM, status: 'on_track', note: 'Mulai jalan' }] };
+  const ctxTables = (status = 'agreed', extra: Record<string, QResult[]> = {}) => ({
+    development_plans: [plan({ status })],
+    employees: [{ data: { id: EMP, role: 'employee', name: 'Pegawai' } }],
+    periods: [OPEN], final_reports: [FINAL], ...TEAM, ...extra,
+  });
+
+  it('tolak bila rencana belum Disepakati', async () => {
+    asUser(COORD, { role: 'employee', is_coordinator: true });
+    adminWith(ctxTables('waiting_hrd'));
+    expect(await saveSession(PLAN, null, IN)).toEqual({ ok: false, error: expect.stringMatching(/Disepakati/) });
+  });
+
+  it('SPV-pengamat tidak bisa mencatat 1-on-1', async () => {
+    asUser(SPV, { role: 'spv' });
+    const a = adminWith(ctxTables());
+    expect((await saveSession(PLAN, null, IN)).ok).toBe(false);
+    expect(a.calls.filter((x) => x.op === 'insert')).toHaveLength(0);
+  });
+
+  it('tolak kemajuan untuk prioritas di luar rencana', async () => {
+    asUser(COORD, { role: 'employee', is_coordinator: true });
+    adminWith(ctxTables('agreed', { development_plan_items: [{ data: [{ id: 'lain' }] }] }));
+    expect(await saveSession(PLAN, null, IN)).toEqual({ ok: false, error: 'Prioritas tidak dikenal' });
+  });
+
+  it('koordinator mencatat 1-on-1: pencatat tercatat, tanpa kolom terlambat', async () => {
+    asUser(COORD, { role: 'employee', is_coordinator: true, name: 'Koordinator A' });
+    const a = adminWith(ctxTables('agreed', { development_plan_items: [{ data: [{ id: ITEM }] }], development_plan_sessions: [{ data: null }] }));
+    expect(await saveSession(PLAN, null, IN)).toEqual({ ok: true });
+    const ins = a.calls.find((x) => x.table === 'development_plan_sessions' && x.op === 'insert')!.payload as Record<string, unknown>;
+    expect(ins).toMatchObject({ plan_id: PLAN, kind: 'one_on_one', author_id: COORD, author_name: 'Koordinator A', overall_status: 'on_track' });
+    expect(Object.keys(ins).some((k) => /late|terlambat|overdue/i.test(k))).toBe(false);
+  });
+
+  it('tinjauan bulanan oleh non-HRD ditolak', async () => {
+    asUser(COORD, { role: 'employee', is_coordinator: true });
+    adminWith(ctxTables());
+    expect((await saveSession(PLAN, null, { ...IN, kind: 'hrd_monthly', overall: null, progress: [] })).ok).toBe(false);
+  });
+
+  it('ubah catatan orang lain ditolak', async () => {
+    asUser(COORD, { role: 'employee', is_coordinator: true });
+    adminWith(ctxTables('agreed', {
+      development_plan_items: [{ data: [{ id: ITEM }] }],
+      development_plan_sessions: [{ data: { id: SESS, plan_id: PLAN, kind: 'one_on_one', author_id: SPV } }],
+    }));
+    expect(await saveSession(PLAN, SESS, IN)).toEqual({ ok: false, error: expect.stringMatching(/pencatatnya/) });
+  });
+
+  it('tanggapan hanya oleh pemilik rencana', async () => {
+    asUser(COORD, { role: 'employee', is_coordinator: true });
+    adminWith(ctxTables('agreed', { development_plan_sessions: [{ data: { id: SESS, plan_id: PLAN, kind: 'one_on_one' } }] }));
+    expect((await saveSessionResponse(SESS, 'Siap')).ok).toBe(false);
+    asUser(EMP, { role: 'employee' });
+    const a = adminWith(ctxTables('agreed', { development_plan_sessions: [{ data: { id: SESS, plan_id: PLAN, kind: 'one_on_one' } }, { data: null }] }));
+    expect(await saveSessionResponse(SESS, 'Saya sepakat dengan langkahnya')).toEqual({ ok: true });
+    expect(a.calls.find((x) => x.op === 'update')!.payload).toMatchObject({ employee_note: 'Saya sepakat dengan langkahnya' });
   });
 });

@@ -83,8 +83,8 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   di production. Pegawai bisa menulis catatan anonim kepada HRD tentang rekan yang tidak ada di daftar
   penilaiannya (pilih rekan + aspek budaya, tanpa nilai). Hanya HRD di Mode Admin yang membacanya, di rincian
   komentar laporan. Sisa:
-  - 🔑 jalankan perubahan database **0054** di staging (pemilik menempelkannya di halaman database staging);
-  - 🔑 uji per peran di Preview `dev` (setelah 0054 terpasang di staging);
+  - ✅ perubahan database **0054** terpasang di staging (2026-11-03, `verify:rls` lolos);
+  - 🔑 uji per peran di Preview `dev`;
   - 🔑 sebelum Q4 dibuka: jalankan 0054 di production dan umumkan fiturnya ke pegawai.
 - ✅ **Perubahan database production** — 0001–0052 terpasang di staging dan production (dicek pemilik
   2026-10-16 dengan `scripts/check-migrations.sql`).
@@ -173,12 +173,16 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 ---
 
 ### Rencana Pengembangan & 1-on-1
-- 🔑🔄 **Tahap 1 sudah di `dev`** (2026-11-03), belum di production: isi rencana, komentar atasan, persetujuan
-  (pegawai → atasan → HRD), pantauan HRD + Direksi, batas rencana disepakati (informasi saja), tutup/buka per periode,
-  pengingat di Tugas & Notifikasi. Sisa:
-  - 🔑 jalankan perubahan database **0055** di staging (setelah 0054), uji per peran di Preview `dev`;
-  - 🔑 sebelum dipakai: 0055 di production, lalu HRD menetapkan batas rencana disepakati untuk laporan Q3 2026.
-- ⬜ Tahap 2 (sesi 1-on-1 dua mingguan, tinjauan bulanan HRD) dan Tahap 3 (ekspor bernama) belum dibuat.
+- 🔑🔄 **Tahap 1–3 sudah di `dev`** (2026-11-03), belum di production:
+  - Tahap 1: isi rencana, komentar atasan, persetujuan (pegawai → atasan → HRD), pantauan HRD + Direksi, batas rencana
+    disepakati (informasi saja), tutup/buka per periode, pengingat;
+  - Tahap 2: catatan Sesi 1-on-1 (atasan) dan Tinjauan Bulanan HRD setelah rencana Disepakati, tanggapan pegawai —
+    hanya mencatat, tanpa penanda terlambat;
+  - Tahap 3: Ekspor Dataset → Rencana Pengembangan & 1-on-1 (bernama).
+  - Perubahan database 0054 dan 0055 sudah terpasang di staging (2026-11-03; `verify:rls` 74 lolos). Sisa:
+  - 🔑 jalankan **0056** di staging;
+  - 🔑 uji end-to-end per peran di Preview `dev` (Catatan di Luar Pemetaan + Rencana Pengembangan bersamaan);
+  - 🔑 sebelum dipakai: 0054–0056 di production, lalu HRD menetapkan batas rencana disepakati untuk laporan Q3 2026.
 - Keputusan pemilik (diskusi 2026-11-03), sebagai acuan tahap berikutnya:
   - Rencana **melekat ke periode laporan** (mis. laporan Q3 → "Rencana Pengembangan Q4"), terbuka setelah laporan Final
     dan tetap bisa diisi walau periode aktif sudah pindah atau periode laporan sudah dikunci. HRD menutupnya manual.

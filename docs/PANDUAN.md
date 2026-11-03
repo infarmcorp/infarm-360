@@ -244,6 +244,12 @@ lalu kirim lagi. Setelah dikirim, isi tidak bisa diubah sampai atasan meminta pe
 kembali. Di bawah rencana tampil **Komentar Atasan Langsung** dan kotak **Persetujuan** (Pegawai · Atasan · HRD).
 Rencana tidak memengaruhi skor atau laporan Anda.
 
+**Catatan Sesi & Tinjauan** (setelah rencana **Disepakati**). Di bawah rencana, atasan mencatat setiap **Sesi 1-on-1**
+(tanggal, catatan, status umum Sesuai rencana/Tertinggal, dan kemajuan tiap prioritas: Berjalan/Tertinggal/Selesai), dan
+HRD mencatat **Tinjauan Bulanan HRD**. Pada tiap sesi 1-on-1 Anda bisa menekan **Tulis tanggapan** untuk menambahkan
+pendapat Anda; tanggapan bisa diubah lewat **Ubah tanggapan**. Catatan yang belum Anda tanggapi muncul di Tugas &
+Notifikasi. Aplikasi hanya mencatat: tidak ada penanda terlambat.
+
 ---
 
 ## 3. Supervisor (SPV)
@@ -341,6 +347,12 @@ Menu **Rencana Pengembangan** → tab **Tim Saya**. Tab ini juga berlaku untuk H
 | **Setujui** | Menyimpan komentar dan memberi persetujuan Anda (nama dan waktu tercatat); rencana lanjut ke HRD |
 | **Minta Perbaikan** → **Kirim Permintaan Perbaikan** | Mengembalikan rencana ke pegawai dengan alasan (wajib); persetujuan pegawai batal dan pegawai mengirim ulang |
 
+**Catatan sesi 1-on-1.** Setelah rencana anggota **Disepakati**, buka rencananya lalu tekan **Catat Sesi 1-on-1** setiap
+selesai sesi: isi **Tanggal sesi**, **Status umum** (Sesuai rencana / Tertinggal), **Catatan sesi**, dan **Kemajuan per
+prioritas** (Berjalan / Tertinggal / Selesai + catatan singkat), lalu **Simpan Catatan**. Catatan Anda sendiri bisa
+**Ubah** atau **Hapus**; catatan orang lain tidak. Pegawai bisa menambahkan tanggapan di tiap sesi. Aplikasi hanya
+mencatat, tanpa penanda terlambat.
+
 Rencana pengembangan **Anda sendiri** ada di tab **Rencana Saya** dan dikomentari serta disetujui **Direksi**.
 
 ---
@@ -367,7 +379,9 @@ sudah Final. Koordinator adalah **atasan** rencana binaannya: buka rencana yang 
 **Komentar Atasan Langsung** (Konfirmasi Kinerja dan Dukungan yang Diberikan wajib; Konteks Tambahan dan Harapan ke
 Depan opsional), lalu tekan **Setujui** (rencana lanjut ke HRD) atau **Minta Perbaikan** dengan alasan (rencana
 kembali ke binaan). SPV binaan Anda hanya bisa melihat. Rencana Anda sendiri ada di tab **Rencana Saya** dan
-disetujui oleh **SPV** Anda.
+disetujui oleh **SPV** Anda. Setelah rencana binaan **Disepakati**, Anda juga yang mencatat **Sesi 1-on-1** (tombol
+**Catat Sesi 1-on-1** di halaman rencananya: tanggal, catatan, status umum, kemajuan per prioritas); binaan bisa
+menanggapi tiap sesi.
 
 ### 4.2 Akses halaman dari HRD
 HRD bisa memberi seseorang akses ke halaman yang **sudah ada** (lihat §5.2). Menu yang diberikan muncul di
@@ -894,6 +908,12 @@ Pegawai yang tidak punya SPV maupun koordinator dikomentari dan disetujui atasan
 (form Komentar Atasan Langsung muncul di halaman rencana pegawai itu). Semua langkah tercatat di Log Aktivitas
 (kategori Rencana Pengembangan).
 
+**Catatan Sesi & Tinjauan** (setelah rencana Disepakati). Atasan mencatat Sesi 1-on-1; HRD di Mode Admin menekan
+**Catat Tinjauan HRD** di halaman rencana untuk tinjauan bulanan (tanggal + catatan). Catatan hanya bisa diubah atau
+dihapus pencatatnya. Tabel pantauan menampilkan kolom **Sesi 1-on-1** dan **Tinjauan HRD** berisi jumlah dan tanggal
+terakhir, sekadar informasi (aplikasi tidak menandai keterlambatan). Seluruh isi rencana, komentar, persetujuan, dan
+catatan sesi bisa diunduh lewat Ekspor Dataset → **Rencana Pengembangan & 1-on-1**.
+
 ### 5.10 Monitoring & Audit KPI
 - Dua tab: **Rekapitulasi Kuartal** dan **Riwayat & Audit Perubahan KPI**. Hanya tab yang dibuka yang memuat data.
   Tidak ada tab Input (input adalah tugas SPV/Koordinator).
@@ -968,6 +988,7 @@ berperiode. Nama file menyertakan periode. Data ini sensitif — simpan dan bagi
 | **Kinerja Lengkap per Periode** | 4 lembar: Rekap (KPI rerata · Skor 360° · potongan telat · Skor Akhir · kategori · 4-Box) · KPI Bulanan · Audit KPI · Potongan Keterlambatan (nilai, otomatis/diubah/dikecualikan, skor sebelum & sesudah, alasan) |
 | **Penilaian 360° Lengkap** | 5 lembar, tanpa nama penilai: Ringkasan per Pegawai (per kelas penilai + nilai 360° & selisih) · Rekap Aspek (skor terbobot per aspek, cocok dengan radar) · Kuantitatif · Kualitatif · Ringkasan Naratif HRD |
 | **Bahan Laporan per Pegawai** | 4 lembar, tanpa nama penilai dan tanpa penilaian diri: Skor (Skor Akhir · KPI · 360° · potongan · skor tiap aspek + kategori) · Komentar Aspek (nilai & komentar per indikator) · Komentar Esai · **Catatan di Luar Pemetaan** (isi catatan per aspek, tanpa nama, hubungan kerja, atau tanggal penulis; hanya ikut bila diekspor dari Mode Admin). Disertai divisi & rentang periode |
+| **Rencana Pengembangan & 1-on-1** | 3 lembar, **bernama**, disaring menurut periode laporan asal rencana: Rencana (per prioritas) · Komentar & Persetujuan (komentar atasan, alasan perbaikan, siapa menyetujui dan kapan) · Sesi & Tinjauan (sesi 1-on-1, tinjauan bulanan HRD, kemajuan per prioritas, tanggapan pegawai) |
 | **Log Aktivitas HRD** | 1 lembar, lintas periode: waktu · pelaku · kategori · aksi · ringkasan · target · detail, terbaru di atas |
 
 Angka 2 desimal. Selama ada penilaian yang diubah setelah Hitung Ulang terakhir, lembar Rekap bisa berbeda dari
@@ -1032,7 +1053,8 @@ flowchart TD
   ke Depan opsional), lalu **Setujui** (lanjut ke HRD) atau **Minta Perbaikan** dengan alasan. Menu **Pantauan
   Rencana Pengembangan** (Menu Direksi) menampilkan status rencana **semua pegawai**, hanya baca. Direksi juga punya
   rencana sendiri di tab **Rencana Saya**: cukup diisi dan disimpan (label "Tersimpan"), tanpa komentar atasan
-  maupun persetujuan.
+  maupun persetujuan. Setelah rencana SPV **Disepakati**, Direksi mencatat **Sesi 1-on-1** di halaman rencananya
+  (**Catat Sesi 1-on-1**: tanggal, catatan, status umum, kemajuan per prioritas).
 - Direksi **boleh dinilai** 360°. Hasilnya tampil di Review & Finalisasi dan Ekspor HRD dengan Skor Akhir =
   Skor 360° (Direksi tidak punya KPI). Direksi tidak masuk Dashboard, 4-Box, KPI, kepatuhan, dan monitor.
 - Direksi tidak punya Monitor Kinerja atau Rekapitulasi Kuartal (kecuali diberi akses), dan tidak melihat

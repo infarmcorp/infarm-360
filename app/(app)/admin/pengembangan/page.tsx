@@ -54,6 +54,20 @@ export default async function PantauanRencanaPage({ searchParams }: { searchPara
   const { data: itemRows } = planIds.length
     ? await admin.from('development_plan_items').select('plan_id').in('plan_id', planIds)
     : { data: [] as { plan_id: string }[] };
+  // Catatan sesi (0056): jumlah & tanggal terakhir per jenis — informasi saja, tanpa penanda terlambat.
+  const { data: sessRows } = planIds.length
+    ? await admin.from('development_plan_sessions').select('plan_id, kind, session_date').in('plan_id', planIds)
+    : { data: [] as { plan_id: string; kind: string; session_date: string }[] };
+  const sessBy = new Map<string, { n: number; last: string }>();
+  for (const r of sessRows ?? []) {
+    const k = `${r.plan_id}|${r.kind}`;
+    const cur = sessBy.get(k);
+    sessBy.set(k, { n: (cur?.n ?? 0) + 1, last: !cur || r.session_date > cur.last ? r.session_date : cur.last });
+  }
+  const sessLabel = (planId: string | undefined, kind: string) => {
+    const v = planId ? sessBy.get(`${planId}|${kind}`) : undefined;
+    return v ? `${v.n} · ${formatDateWib(v.last)}` : '—';
+  };
   const itemCount = new Map<string, number>();
   for (const r of itemRows ?? []) itemCount.set(r.plan_id, (itemCount.get(r.plan_id) ?? 0) + 1);
   const nameById = new Map(people.map((p) => [p.id, p.name]));
@@ -68,6 +82,8 @@ export default async function PantauanRencanaPage({ searchParams }: { searchPara
         : info.ids.length ? `${info.ids.map((id) => nameById.get(id) ?? '—').join(', ')} (${SUPERVISOR_KIND_LABEL[info.kind]})`
         : SUPERVISOR_KIND_LABEL[info.kind],
       items: plan ? itemCount.get(plan.id) ?? 0 : 0,
+      oneOnOne: sessLabel(plan?.id, 'one_on_one'),
+      hrdReview: sessLabel(plan?.id, 'hrd_monthly'),
     };
   }).sort((a, b) => (a.dept ?? '').localeCompare(b.dept ?? '') || a.name.localeCompare(b.name));
 
@@ -99,12 +115,13 @@ export default async function PantauanRencanaPage({ searchParams }: { searchPara
         </Panel>
 
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed table-1line text-left text-sm min-w-[860px]">
-            <colgroup>{colPercents([200, 120, 210, 140, 80, 110, 70]).map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
+          <table className="w-full table-fixed table-1line text-left text-sm min-w-[1060px]">
+            <colgroup>{colPercents([190, 110, 200, 130, 70, 120, 120, 100, 60]).map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
             <thead>
               <tr className="text-[10px] uppercase tracking-[0.05em] text-ink-faint font-semibold border-b border-line">
                 <th className="py-2 pr-3">Pegawai</th><th className="py-2 px-3">Divisi</th><th className="py-2 px-3">Atasan</th>
                 <th className="py-2 px-3">Status</th><th className="py-2 px-3 text-right">Prioritas</th>
+                <th className="py-2 px-3">Sesi 1-on-1</th><th className="py-2 px-3">Tinjauan HRD</th>
                 <th className="py-2 px-3">Diperbarui</th><th className="py-2 pl-3 text-right">Aksi</th>
               </tr>
             </thead>
@@ -116,6 +133,8 @@ export default async function PantauanRencanaPage({ searchParams }: { searchPara
                   <td className="py-2.5 px-3 text-ink-soft" title={r.supervisor}>{r.supervisor}</td>
                   <td className="py-2.5 px-3"><StatusChip tone={PLAN_STATUS_TONE[r.status ?? 'none']}>{planStatusLabel(r.status, r.role)}</StatusChip></td>
                   <td className="py-2.5 px-3 text-right data-value">{r.items}</td>
+                  <td className="py-2.5 px-3 text-ink-soft data-value">{r.oneOnOne}</td>
+                  <td className="py-2.5 px-3 text-ink-soft data-value">{r.hrdReview}</td>
                   <td className="py-2.5 px-3 text-ink-soft data-value">{r.plan ? formatDateWib(r.plan.updated_at) : '—'}</td>
                   <td className="py-2.5 pl-3 text-right">
                     <Link href={`/pengembangan/${r.id}?period=${sel.id}&from=admin`} className="text-xs font-bold text-brand-ink hover:underline">Buka</Link>

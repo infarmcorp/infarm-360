@@ -10,6 +10,8 @@ import { PlanCommentsView, PlanHeader, PlanItemsView, PlanSignatures, RevisionNo
 import { SupervisorForm } from '../supervisor-form';
 import { HrdBar } from '../hrd-bar';
 import { PeriodPicker } from '../period-picker';
+import { SessionsSection } from '../sessions-section';
+import { sessionsPanelData } from '../sessions-data';
 
 type SB = Awaited<ReturnType<typeof createClient>>;
 
@@ -60,6 +62,7 @@ export default async function PlanDetailPage({ params, searchParams }: {
   const supervises = canActAsSupervisor(info, actor, emp.id, mode);
   const hrd = canHrdSign(actor, mode);
   const isDireksiPlan = emp.role === 'direksi';
+  const sessionsPanel = await sessionsPanelData(admin, { plan, items, ownerId: emp.id, ownerRole: emp.role, info, actor, mode, closed });
 
   return (
     <Shell back={back}>
@@ -80,6 +83,7 @@ export default async function PlanDetailPage({ params, searchParams }: {
           }} />
         ) : plan && <PlanCommentsView plan={plan} />}
         {plan && !isDireksiPlan && <PlanSignatures plan={plan} ownerName={emp.name} />}
+        {sessionsPanel && <SessionsSection {...sessionsPanel} />}
       </div>
     </Shell>
   );

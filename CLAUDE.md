@@ -40,8 +40,8 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   + RLS), Zod, `xlsx` (parse di klien), `nodemailer`/Resend, `@vercel/edge-config`, `motion`, `lucide-react`,
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
   typecheck + lint + build; lint bersih sejak 2026-10-16 — jangan tambah temuan baru). Backup harian `.github/workflows/backup.yml`. npm.
-- Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 29 tabel publik, migrasi
-  `supabase/migrations/0001`–`0055`. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
+- Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 30 tabel publik, migrasi
+  `supabase/migrations/0001`–`0056`. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
   → **wajib** cek `Bearer $CRON_SECRET` sendiri, gagal tertutup. Email Rilis terjadwal dipicu GitHub Actions
   (`release-email-cron.yml`); inti kirim email rilis satu-satunya = `lib/release-delivery.ts` (manual & jadwal).
 - `app/` — `login/`, `maintenance/`, `auth/` (callback, lupa-sandi, perbarui-sandi, signout),
@@ -123,6 +123,8 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   **posisi** `role='hrd'` di Mode Admin (`canHrdSign`, pengecualian sadar dari aturan `is_hrd()`); boleh atas rencana
   sendiri. Tulis hanya `pengembangan/actions.ts` (service_role); isi berubah hanya di Draf/Perlu Perbaikan sehingga
   persetujuan selalu atas isi yang sama. Tidak menyentuh skor/`final_reports`. Batas disepakati = informasi saja.
+  Catatan sesi 1-on-1 / tinjauan HRD (0056) hanya setelah Disepakati; aplikasi **hanya mencatat** — jangan tambahkan
+  hitungan atau penanda terlambat tanpa permintaan. Ekspor rencana bernama (`exportDevPlans`).
 - **KPI hanya lewat Server Action** (`kpi_write` RLS dicabut): lingkup `assertKpiScope` (HRD = divisinya sendiri
   + diri, apa pun modenya · SPV tim+diri · Koordinator tim), tulis atomik `kpi_save_with_audit`/`kpi_delete_with_audit`. Audit KPI tak boleh
   diubah/dihapus dari client.
@@ -239,8 +241,8 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
   > 1000 baris — PostgREST memotong diam-diam (bug 2026-07-08: 51/52 Skor 360° salah).
 - **Jangan** `npm audit fix --force` (menurunkan Next 16 → 9). `xlsx@0.20.3` dari CDN SheetJS.
 - Rumus menentukan keputusan SDM nyata dan salahnya tak memunculkan error → `npm test` wajib hijau saat kode
-  disentuh (±1090 tes / 62 file). Server Action diuji dengan mock `tests/helpers/mock-supabase.ts`.
-- `npm run verify:rls` (74 pemeriksaan, fixture `RLSTEST-*` self-cleaning) manual pra-rilis & tiap ubah RLS.
+  disentuh (±1100 tes / 63 file). Server Action diuji dengan mock `tests/helpers/mock-supabase.ts`.
+- `npm run verify:rls` (78 pemeriksaan, fixture `RLSTEST-*` self-cleaning) manual pra-rilis & tiap ubah RLS.
 - Migrasi baru: idempoten, nomor urut, terapkan ke staging dulu; urutan rilis → TEKNIS.md §1. Kode yang memanggil
   fungsi database baru WAJIB punya cadangan cara lama bila fungsinya belum ada (`rpcMissing`, `lib/supabase/rpc.ts`),
   dan `scripts/check-migrations.sql` diperbarui.

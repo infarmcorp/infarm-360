@@ -8,6 +8,14 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-03 — Rencana Pengembangan Tahap 2 & 3: catatan sesi 1-on-1 dan ekspor (di `dev`, belum di production)
+- Setelah rencana **Disepakati**, atasan mencatat **Sesi 1-on-1** (tanggal, catatan, status umum, kemajuan tiap prioritas)
+  dan HRD mencatat **Tinjauan Bulanan HRD** — pengganti baris 3 dan 4 tabel "Tindak Lanjut" di PDF. Pegawai bisa
+  menanggapi tiap sesi. Sesuai keputusan pemilik, aplikasi **hanya mencatat**: tidak ada hitungan atau penanda terlambat.
+- Pantauan HRD menampilkan jumlah dan tanggal terakhir sesi serta tinjauan per pegawai.
+- Ekspor Dataset baru **Rencana Pengembangan & 1-on-1** (bernama, 3 lembar).
+- Butuh perubahan database **0056** (sesudah 0055).
+
 ### 2026-11-03 — Rencana Pengembangan Tahap 1 (di `dev`, belum di production)
 - **Bagian 5, 7, dan 8 PDF laporan kini diisi di aplikasi** (permintaan pemilik), supaya HRD bisa memantau tindak
   lanjut 1-on-1. Menu baru **Rencana Pengembangan** untuk semua peran, dan **Pantauan Rencana Pengembangan** untuk HRD

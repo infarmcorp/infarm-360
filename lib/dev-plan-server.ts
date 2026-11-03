@@ -83,3 +83,12 @@ export async function loadPlanPeople(admin: SB): Promise<PlanPerson[]> {
   return fetchAllPaged<PlanPerson>((from, to) => admin.from('employees').select('id, name, dept, role')
     .eq('is_active', true).eq('is_external', false).order('id').range(from, to));
 }
+
+export type SessionRow = Database['public']['Tables']['development_plan_sessions']['Row'];
+/** Catatan sesi satu rencana, terbaru dulu. `missing` = tabel belum ada (migrasi 0056 belum dijalankan). */
+export async function loadSessions(admin: SB, planId: string): Promise<{ missing: boolean; sessions: SessionRow[] }> {
+  const { data, error } = await admin.from('development_plan_sessions').select('*').eq('plan_id', planId)
+    .order('session_date', { ascending: false }).order('created_at', { ascending: false });
+  if (error) return { missing: tableMissing(error), sessions: [] };
+  return { missing: false, sessions: (data ?? []) as SessionRow[] };
+}

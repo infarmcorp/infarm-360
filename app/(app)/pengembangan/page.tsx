@@ -8,12 +8,14 @@ import { StatusChip } from '@/components/status-chip';
 import { colPercents } from '@/lib/table-cols';
 import {
   canActAsSupervisor, ownerCanEdit, planStatusLabel, planTitle, PLAN_STATUS_TONE, SUPERVISOR_KIND_LABEL,
-  type HrdMode, type PlanItem,
+  type HrdMode, type PlanItem, type PlanActor,
 } from '@/lib/dev-plan';
 import { finalizedPeriods, loadPlan, loadSupervisorResolver, loadPlanPeople } from '@/lib/dev-plan-server';
 import { PlanCommentsView, PlanHeader, PlanItemsView, PlanSignatures, RevisionNotice } from './plan-view';
 import { PlanEditor } from './plan-editor';
 import { PeriodPicker } from './period-picker';
+import { SessionsSection } from './sessions-section';
+import { sessionsPanelData } from './sessions-data';
 
 type SB = Awaited<ReturnType<typeof createClient>>;
 
@@ -61,15 +63,15 @@ export default async function PengembanganPage({ searchParams }: { searchParams:
       </TabBar>
       <div className="pt-5">
         {tab === 'saya'
-          ? await MyPlan({ admin, userId: user.id, role: me?.role ?? null, name: me?.name ?? '', periodParam, resolve, people })
+          ? await MyPlan({ admin, userId: user.id, role: me?.role ?? null, name: me?.name ?? '', periodParam, resolve, people, actor, mode })
           : await TeamPlans({ admin, team, periodParam })}
       </div>
     </Shell>
   );
 }
 
-async function MyPlan({ admin, userId, role, name, periodParam, resolve, people }: {
-  admin: SB; userId: string; role: string | null; name: string; periodParam?: string;
+async function MyPlan({ admin, userId, role, name, periodParam, resolve, people, actor, mode }: {
+  admin: SB; userId: string; role: string | null; name: string; periodParam?: string; actor: PlanActor; mode: HrdMode;
   resolve: Awaited<ReturnType<typeof loadSupervisorResolver>>; people: Awaited<ReturnType<typeof loadPlanPeople>>;
 }) {
   const periods = await finalizedPeriods(admin, userId);
@@ -82,6 +84,7 @@ async function MyPlan({ admin, userId, role, name, periodParam, resolve, people 
   const status = plan?.status ?? null;
   const editable = !closed && ownerCanEdit(status, role);
   const info = resolve({ id: userId, role });
+  const sessionsPanel = await sessionsPanelData(admin, { plan, items, ownerId: userId, ownerRole: role, info, actor, mode, closed });
   const nameById = new Map(people.map((p) => [p.id, p.name]));
   const supLabel = info.kind === 'none' ? null
     : info.ids.length ? `${info.ids.map((id) => nameById.get(id) ?? '—').join(', ')} (${SUPERVISOR_KIND_LABEL[info.kind]})`
@@ -106,6 +109,7 @@ async function MyPlan({ admin, userId, role, name, periodParam, resolve, people 
         : <PlanItemsView items={plainItems} />}
       {plan && <PlanCommentsView plan={plan} />}
       {plan && role !== 'direksi' && <PlanSignatures plan={plan} ownerName={name} />}
+      {sessionsPanel && <SessionsSection {...sessionsPanel} />}
     </div>
   );
 }

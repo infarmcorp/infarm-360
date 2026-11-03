@@ -148,3 +148,31 @@ export function nextQuarterLabel(label: string): string {
 export function planTitle(sourceLabel: string): string {
   return `Rencana Pengembangan ${nextQuarterLabel(sourceLabel)}`;
 }
+
+// ── Tahap 2 (migrasi 0056): catatan sesi 1-on-1 & tinjauan bulanan HRD ─────────────────────────────────────────
+// Aplikasi HANYA mencatat (keputusan pemilik 2026-11-03): tak ada hitungan/penanda terlambat terhadap jadwal.
+
+export type SessionKind = 'one_on_one' | 'hrd_monthly';
+export const SESSION_KIND_LABEL: Record<SessionKind, string> = { one_on_one: 'Sesi 1-on-1', hrd_monthly: 'Tinjauan Bulanan HRD' };
+export const OVERALL_LABEL: Record<'on_track' | 'behind', string> = { on_track: 'Sesuai rencana', behind: 'Tertinggal' };
+export const ITEM_PROGRESS_LABEL: Record<'on_track' | 'behind' | 'done', string> = { on_track: 'Berjalan', behind: 'Tertinggal', done: 'Selesai' };
+
+/** Sesi hanya dicatat untuk rencana yang sudah DISEPAKATI (bukan rencana Direksi — tanpa atasan & alur). */
+export function sessionsOpen(status: DevPlanStatus | null, ownerRole: string | null | undefined): boolean {
+  return status === 'agreed' && ownerRole !== 'direksi';
+}
+
+/** Pencatat sesi: 1-on-1 = atasan rencana (termasuk HRD cadangan); tinjauan bulanan = HRD Mode Admin berbagian Rencana. */
+export function canRecordSession(
+  kind: SessionKind, info: SupervisorInfo, actor: PlanActor | null | undefined, employeeId: string, mode: HrdMode,
+): boolean {
+  return kind === 'one_on_one' ? canActAsSupervisor(info, actor, employeeId, mode) : canHrdManage(actor, mode);
+}
+
+/** Ubah / hapus catatan: hanya pencatatnya, dan selama ia masih berwenang mencatat jenis itu. */
+export function canEditSession(
+  session: { kind: SessionKind; author_id: string | null }, info: SupervisorInfo, actor: PlanActor | null | undefined,
+  employeeId: string, mode: HrdMode,
+): boolean {
+  return !!actor && session.author_id === actor.id && canRecordSession(session.kind, info, actor, employeeId, mode);
+}

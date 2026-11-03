@@ -488,6 +488,26 @@ async function main() {
         { const { error } = await c.from('development_plan_items').insert({ plan_id: dp.id, area: 'Disisipkan lewat API' });
           check('Pemilik MENYISIPKAN prioritas lewat API DITOLAK [0055]', !!error); }
         await c.auth.signOut();
+
+        // 0056 — catatan sesi: baca mengikuti rencana; tulis hanya server.
+        const { error: sErr } = await admin.from('development_plan_sessions')
+          .insert({ plan_id: dp.id, kind: 'one_on_one', session_date: '2099-01-15', summary: 'RLS sesi' });
+        check('Server MENCATAT sesi DIIZINKAN (kontrol positif) [0056]', !sErr, sErr?.message ?? '');
+        const sessSeen = async (key: keyof typeof FIX) => {
+          const x = await loginAs(FIX[key].email);
+          const { data } = await x.from('development_plan_sessions').select('id').eq('plan_id', dp.id);
+          await x.auth.signOut();
+          return data?.length ?? 0;
+        };
+        check('Pemilik BACA catatan sesi rencananya DIIZINKAN [0056]', (await sessSeen('EMP')) === 1);
+        check('Pegawai lain BACA catatan sesi DITOLAK [0056]', (await sessSeen('OTH')) === 0);
+        {
+          const x = await loginAs(FIX.EMP.email);
+          const { error } = await x.from('development_plan_sessions')
+            .insert({ plan_id: dp.id, kind: 'one_on_one', session_date: '2099-01-16', summary: 'Disisipkan lewat API' });
+          check('Pemilik MENCATAT sesi lewat API DITOLAK [0056]', !!error);
+          await x.auth.signOut();
+        }
       }
     }
 

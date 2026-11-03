@@ -225,6 +225,13 @@ async function devPlanTodos(userId: string, hrdMode: 'admin' | 'spv'): Promise<T
         if (st === 'revision') out.push({ id: 'devplan-revise', tone: 'rose', href: `/pengembangan?tab=saya&period=${latest.id}`, label: 'Rencana Pengembangan Anda perlu perbaikan' });
         else if (st === null || st === 'draft') out.push({ id: 'devplan-fill', tone: 'amber', href: `/pengembangan?tab=saya&period=${latest.id}`, label: `Isi ${planTitle(latest.label)}` });
       }
+      // Catatan sesi 1-on-1 (0056) yang belum ditanggapi pemilik rencana.
+      const { data: myPlans } = await admin.from('development_plans').select('id').eq('employee_id', userId).in('source_period_id', openIds);
+      if (myPlans?.length) {
+        const { data: open } = await admin.from('development_plan_sessions').select('id')
+          .in('plan_id', myPlans.map((p) => p.id)).eq('kind', 'one_on_one').is('employee_note', null);
+        if (open?.length) out.push({ id: 'devplan-respond', tone: 'blue', href: '/pengembangan?tab=saya', label: `${open.length} catatan sesi 1-on-1 menunggu tanggapan Anda` });
+      }
     }
 
     const { data: waiting } = await admin.from('development_plans').select('employee_id, status')

@@ -8,7 +8,8 @@ import { logAuditAsService } from '@/lib/audit/log';
 import { tableMissing } from '@/lib/report-folder';
 import {
   canActAsSupervisor, canHrdManage, canHrdSign, ownerCanEdit, submitBlocker, supervisorApproveBlocker,
-  planTitle, PLAN_MAX_ITEMS, SUP_MIN, type PlanActor, type HrdMode,
+  planTitle, PLAN_MAX_ITEMS, SUP_MIN, sessionsOpen, canRecordSession, canEditSession, SESSION_KIND_LABEL,
+  type PlanActor, type HrdMode,
 } from '@/lib/dev-plan';
 import { loadPlan, loadSupervisorResolver, planWindow, type PlanRow } from '@/lib/dev-plan-server';
 
@@ -267,6 +268,119 @@ export async function setPlanWindow(rawPeriodId: string, closed: boolean, rawDue
     summary: `${planTitle(cur.label)}: ${closed ? 'ditutup' : 'dibuka'}${due.data ? ` · batas disepakati ${due.data}` : ''}`,
     targetType: 'period', targetId: pid.data, targetLabel: cur.label,
   }, { id: actor.id, name: actor.name });
+  revalidate();
+  return { ok: true };
+}
+
+// ── Tahap 2 (migrasi 0056): catatan sesi 1-on-1 & tinjauan bulanan HRD ─────────────────────────────────────────
+const SESSION_OFF = 'Catatan sesi belum aktif';
+const Progress = z.array(z.object({
+  item_id: z.string().uuid(),
+  status: z.enum(['on_track', 'behind', 'done']),
+  note: z.string().trim().max(1000),
+})).max(PLAN_MAX_ITEMS);
+const SessionInput = z.object({
+  kind: z.enum(['one_on_one', 'hrd_monthly']),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal sesi wajib diisi'),
+  summary: z.string().trim().min(SUP_MIN, `Catatan sesi minimal ${SUP_MIN} karakter`).max(4000),
+  overall: z.enum(['on_track', 'behind']).nullable(),
+  progress: Progress,
+});
+
+/** Konteks bersama aksi sesi: rencana disepakati + periode terbuka + atasan/HRD dihitung ulang. */
+type Ctx = Extract<Awaited<ReturnType<typeof ctx>>, { ok: true }>;
+async function sessionCtx(c: Ctx, planId: string) {
+  const p = await planById(c.admin, planId); if (!p.ok) return p;
+  const win = await planWindow(c.admin, p.emp.id, p.plan.source_period_id);
+  if (!win.ok) return win;
+  if (!sessionsOpen(p.plan.status, p.emp.role)) return { ok: false as const, error: 'Catatan sesi hanya untuk rencana yang sudah Disepakati' };
+  const resolve = await loadSupervisorResolver(c.admin);
+  return { ...c, ...p, ok: true as const, period: win.period, info: resolve(p.emp) };
+}
+
+/** Atasan (1-on-1) / HRD (tinjauan bulanan) menambah atau mengubah catatan sesinya sendiri. */
+export async function saveSession(rawPlanId: string, rawSessionId: string | null, raw: unknown): Promise<Result> {
+  const planId = Uuid.safeParse(rawPlanId);
+  if (!planId.success) return { ok: false, error: 'Rencana tidak valid' };
+  const input = SessionInput.safeParse(raw);
+  if (!input.success) return { ok: false, error: input.error.issues[0].message };
+  const c = await ctx(); if (!c.ok) return c;
+  const s = await sessionCtx(c, planId.data); if (!s.ok) return s;
+  const { actor, admin, mode, plan, emp, info } = s;
+  const v = input.data;
+  if (!canRecordSession(v.kind, info, actor, emp.id, mode)) {
+    return { ok: false, error: v.kind === 'one_on_one' ? 'Sesi 1-on-1 dicatat oleh atasan rencana ini' : 'Tinjauan bulanan dicatat oleh HRD di Mode Admin' };
+  }
+  // Kemajuan hanya untuk prioritas milik rencana ini; tinjauan HRD tanpa status/kemajuan.
+  const { data: items } = await admin.from('development_plan_items').select('id').eq('plan_id', plan.id);
+  const own = new Set((items ?? []).map((i) => i.id));
+  if (v.progress.some((x) => !own.has(x.item_id))) return { ok: false, error: 'Prioritas tidak dikenal' };
+  const row = {
+    kind: v.kind, session_date: v.date, summary: v.summary,
+    overall_status: v.kind === 'one_on_one' ? v.overall : null,
+    item_progress: v.kind === 'one_on_one' ? v.progress : [],
+    updated_at: new Date().toISOString(),
+  };
+
+  if (rawSessionId) {
+    const sid = Uuid.safeParse(rawSessionId);
+    if (!sid.success) return { ok: false, error: 'Catatan tidak valid' };
+    const { data: cur, error } = await admin.from('development_plan_sessions').select('id, plan_id, kind, author_id').eq('id', sid.data).maybeSingle();
+    if (error) return { ok: false, error: tableMissing(error) ? SESSION_OFF : 'Gagal membaca catatan' };
+    if (!cur || cur.plan_id !== plan.id || cur.kind !== v.kind) return { ok: false, error: 'Catatan tidak ditemukan' };
+    if (!canEditSession(cur, info, actor, emp.id, mode)) return { ok: false, error: 'Hanya pencatatnya yang bisa mengubah catatan ini' };
+    const { error: upErr } = await admin.from('development_plan_sessions').update(row).eq('id', cur.id);
+    if (upErr) return { ok: false, error: 'Gagal menyimpan: ' + upErr.message };
+  } else {
+    const { error } = await admin.from('development_plan_sessions')
+      .insert({ ...row, plan_id: plan.id, author_id: actor.id, author_name: actor.name });
+    if (error) return { ok: false, error: tableMissing(error) ? SESSION_OFF : 'Gagal menyimpan: ' + error.message };
+  }
+  await logAuditAsService({
+    action: rawSessionId ? 'devplan.session_update' : 'devplan.session_add', category: 'pengembangan',
+    summary: `${rawSessionId ? 'Mengubah' : 'Mencatat'} ${SESSION_KIND_LABEL[v.kind]} ${v.date} — ${planTitle(s.period.label)}`,
+    targetType: 'employee', targetId: emp.id, targetLabel: emp.name,
+  }, { id: actor.id, name: actor.name });
+  revalidate();
+  return { ok: true };
+}
+
+/** Hapus catatan sesi — hanya pencatatnya (mis. salah tanggal / salah pegawai). */
+export async function deleteSession(rawSessionId: string): Promise<Result> {
+  const sid = Uuid.safeParse(rawSessionId);
+  if (!sid.success) return { ok: false, error: 'Catatan tidak valid' };
+  const c = await ctx(); if (!c.ok) return c;
+  const { data: cur, error } = await c.admin.from('development_plan_sessions').select('id, plan_id, kind, author_id, session_date').eq('id', sid.data).maybeSingle();
+  if (error) return { ok: false, error: tableMissing(error) ? SESSION_OFF : 'Gagal membaca catatan' };
+  if (!cur) return { ok: false, error: 'Catatan tidak ditemukan' };
+  const s = await sessionCtx(c, cur.plan_id); if (!s.ok) return s;
+  if (!canEditSession(cur, s.info, s.actor, s.emp.id, s.mode)) return { ok: false, error: 'Hanya pencatatnya yang bisa menghapus catatan ini' };
+  const { error: delErr } = await s.admin.from('development_plan_sessions').delete().eq('id', cur.id);
+  if (delErr) return { ok: false, error: 'Gagal menghapus: ' + delErr.message };
+  await logAuditAsService({
+    action: 'devplan.session_delete', category: 'pengembangan',
+    summary: `Menghapus ${SESSION_KIND_LABEL[cur.kind]} ${cur.session_date} — ${planTitle(s.period.label)}`,
+    targetType: 'employee', targetId: s.emp.id, targetLabel: s.emp.name,
+  }, { id: s.actor.id, name: s.actor.name });
+  revalidate();
+  return { ok: true };
+}
+
+/** Pegawai menulis / mengubah tanggapannya atas satu sesi 1-on-1. */
+export async function saveSessionResponse(rawSessionId: string, rawNote: string): Promise<Result> {
+  const sid = Uuid.safeParse(rawSessionId);
+  if (!sid.success) return { ok: false, error: 'Catatan tidak valid' };
+  const note = z.string().trim().max(2000).safeParse(rawNote ?? '');
+  if (!note.success) return { ok: false, error: 'Tanggapan terlalu panjang' };
+  const c = await ctx(); if (!c.ok) return c;
+  const { data: cur, error } = await c.admin.from('development_plan_sessions').select('id, plan_id, kind').eq('id', sid.data).maybeSingle();
+  if (error) return { ok: false, error: tableMissing(error) ? SESSION_OFF : 'Gagal membaca catatan' };
+  if (!cur || cur.kind !== 'one_on_one') return { ok: false, error: 'Catatan tidak ditemukan' };
+  const s = await sessionCtx(c, cur.plan_id); if (!s.ok) return s;
+  if (s.emp.id !== s.actor.id) return { ok: false, error: 'Tanggapan hanya ditulis pemilik rencana' };
+  const { error: upErr } = await s.admin.from('development_plan_sessions')
+    .update({ employee_note: note.data || null, employee_note_at: note.data ? new Date().toISOString() : null }).eq('id', cur.id);
+  if (upErr) return { ok: false, error: 'Gagal menyimpan: ' + upErr.message };
   revalidate();
   return { ok: true };
 }

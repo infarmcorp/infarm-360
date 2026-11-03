@@ -14,6 +14,8 @@ export type ExposureStatus = 'eligible' | 'partially_eligible' | 'not_eligible';
 export type WeightValues = { atasan?: number; peer?: number; cross?: number; bawahan?: number; self?: number; internal?: number };
 export type ReportStatus = 'draft' | 'in_review' | 'finalized';
 export type DevPlanStatus = 'draft' | 'waiting_supervisor' | 'revision' | 'waiting_hrd' | 'agreed';
+export type DevSessionKind = 'one_on_one' | 'hrd_monthly';
+export type DevItemProgress = { item_id: string; status: 'on_track' | 'behind' | 'done'; note: string };
 export type SuccessionStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
 export type CorrectionStatus = 'pending' | 'approved' | 'rejected';
 /** Jenis permohonan pemetaan yang diajukan pegawai (migrasi 0035). */
@@ -171,6 +173,21 @@ export interface Database {
         Row: { id: string; plan_id: string; order_idx: number; area: string; target: string; actions: string; due_text: string; companion: string; success_indicator: string };
         Insert: { plan_id: string; order_idx?: number; area?: string; target?: string; actions?: string; due_text?: string; companion?: string; success_indicator?: string };
         Update: Partial<Database['public']['Tables']['development_plan_items']['Insert']>;
+        Relationships: [];
+      };
+      development_plan_sessions: {
+        // Catatan sesi 1-on-1 (atasan) & tinjauan bulanan HRD (0056).
+        Row: {
+          id: string; plan_id: string; kind: DevSessionKind; session_date: string; author_id: string | null; author_name: string | null;
+          summary: string; overall_status: 'on_track' | 'behind' | null; item_progress: DevItemProgress[];
+          employee_note: string | null; employee_note_at: string | null; created_at: string; updated_at: string;
+        };
+        Insert: {
+          plan_id: string; kind: DevSessionKind; session_date: string; author_id?: string | null; author_name?: string | null;
+          summary: string; overall_status?: 'on_track' | 'behind' | null; item_progress?: DevItemProgress[];
+          employee_note?: string | null; employee_note_at?: string | null; updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['development_plan_sessions']['Insert']>;
         Relationships: [];
       };
       outside_mapping_notes: {

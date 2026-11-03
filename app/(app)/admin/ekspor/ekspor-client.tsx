@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Users, Settings, BarChart3, MessageSquareText, ScrollText, FileText } from 'lucide-react';
+import { Download, Users, Settings, BarChart3, MessageSquareText, ScrollText, FileText, Sprout } from 'lucide-react';
 import {
   exportEmployees, exportKpi, exportKpiAudit, exportRekap, exportLatePenalties,
   exportAssessments, exportQualAnswers, exportMappings, exportAspectSummaries,
-  exportSummary360, exportAspectScores, exportPeriodConfig, exportHrdAuditLog, exportReportMaterials,
+  exportSummary360, exportAspectScores, exportPeriodConfig, exportHrdAuditLog, exportReportMaterials, exportDevPlans,
   type ExportResult, type Sheet,
 } from './actions';
 
@@ -119,6 +119,15 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
         const res = await exportReportMaterials(pid());
         if (!res.ok) throw new Error(res.error);
         return { sheets: res.sheets, filename: `bahan-laporan-per-pegawai-${suffix}.xlsx` };
+      }),
+    },
+    {
+      key: 'idp', title: 'Rencana Pengembangan & 1-on-1', icon: Sprout, tint: 'emerald', scoped: true,
+      desc: <>Rencana pengembangan pegawai (<strong>bernama</strong>), disaring menurut periode <strong>laporan</strong> asalnya — <strong>3 lembar</strong>: <strong>Rencana</strong> (per prioritas) · <strong>Komentar &amp; Persetujuan</strong> (komentar atasan, siapa menyetujui &amp; kapan) · <strong>Sesi &amp; Tinjauan</strong> (sesi 1-on-1, tinjauan bulanan HRD, kemajuan per prioritas, tanggapan pegawai).</>,
+      go: () => run('idp', async () => {
+        const res = await exportDevPlans(pid());
+        if (!res.ok) throw new Error(res.error);
+        return { sheets: res.sheets, filename: `rencana-pengembangan-${suffix}.xlsx` };
       }),
     },
     {

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   resolveSupervisor, canActAsSupervisor, canHrdSign, canHrdManage, canViewPlan, submitBlocker, ownerCanEdit,
-  supervisorApproveBlocker, nextQuarterLabel, planTitle, planStatusLabel, type PlanItem, type PlanActor,
+  supervisorApproveBlocker, nextQuarterLabel, planTitle, planStatusLabel, sessionsOpen, canRecordSession, canEditSession,
+  type PlanItem, type PlanActor,
 } from '@/lib/dev-plan';
 
 /**
@@ -112,5 +113,28 @@ describe('kelengkapan & status', () => {
   it('rencana Direksi berlabel Tersimpan', () => {
     expect(planStatusLabel('draft', 'direksi')).toBe('Tersimpan');
     expect(planStatusLabel(null, 'employee')).toBe('Belum diisi');
+  });
+});
+
+describe('Tahap 2 — catatan sesi', () => {
+  const info = { kind: 'coordinator' as const, ids: [C], viewerIds: [S] };
+  it('sesi hanya untuk rencana Disepakati, bukan rencana Direksi', () => {
+    expect(sessionsOpen('agreed', 'employee')).toBe(true);
+    expect(sessionsOpen('waiting_hrd', 'employee')).toBe(false);
+    expect(sessionsOpen('agreed', 'direksi')).toBe(false);
+  });
+  it('1-on-1 dicatat atasan; SPV-pengamat & HRD (bukan atasan) tidak', () => {
+    expect(canRecordSession('one_on_one', info, actor(C, { role: 'employee', is_coordinator: true }), E, 'spv')).toBe(true);
+    expect(canRecordSession('one_on_one', info, actor(S, { role: 'spv' }), E, 'spv')).toBe(false);
+    expect(canRecordSession('one_on_one', info, actor(H, { role: 'hrd' }), E, 'admin')).toBe(false);
+  });
+  it('tinjauan bulanan dicatat HRD Mode Admin (termasuk izin HRD Admin)', () => {
+    expect(canRecordSession('hrd_monthly', info, actor('x', { role: 'employee', is_hrd_admin: true }), E, 'admin')).toBe(true);
+    expect(canRecordSession('hrd_monthly', info, actor(C, { role: 'employee', is_coordinator: true }), E, 'spv')).toBe(false);
+  });
+  it('ubah/hapus hanya oleh pencatatnya', () => {
+    const coord = actor(C, { role: 'employee', is_coordinator: true });
+    expect(canEditSession({ kind: 'one_on_one', author_id: C }, info, coord, E, 'spv')).toBe(true);
+    expect(canEditSession({ kind: 'one_on_one', author_id: 'lain' }, info, coord, E, 'spv')).toBe(false);
   });
 });

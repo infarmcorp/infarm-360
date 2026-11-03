@@ -10,7 +10,7 @@ Status & pekerjaan terbuka di [RENCANA.md](RENCANA.md). Riwayat di [CHANGELOG.md
 3. [Aktivasi fitur dorman & Mode Maintenance](#3-aktivasi-fitur-dorman--mode-maintenance)
 4. [Rumus skor & klasifikasi](#4-rumus-skor--klasifikasi)
 5. [Manajemen Akses — model & penegakan](#5-manajemen-akses--model--penegakan)
-6. [Daftar migrasi 0001–0054](#6-daftar-migrasi-00010054)
+6. [Daftar migrasi 0001–0055](#6-daftar-migrasi-00010055)
 7. [Pengujian](#7-pengujian)
 8. [Backup & restore](#8-backup--restore)
 9. [PDF panduan in-app](#9-pdf-panduan-in-app)
@@ -392,9 +392,33 @@ hanya HRD berakses penuh; tak ada yang bisa mengubah izin dirinya sendiri (trigg
   pihak berakses infrastruktur secara teori bisa mencocokkan waktu kirim. Isi catatan sendiri bisa mengungkap
   penulis — pegawai diingatkan di modal.
 
+### 5.5 Rencana Pengembangan (0055, Tahap 1) — alur & akses
+- **Tabel** `development_plans` (unik per `employee_id` + `source_period_id`; status `draft` → `waiting_supervisor` →
+  `waiting_hrd` → `agreed`, cabang `revision`; 4 komentar atasan; persetujuan pegawai/atasan/HRD = id + nama + waktu)
+  dan `development_plan_items` (prioritas berurutan). `periods.dev_plan_closed_at` (tutup rencana periode) &
+  `dev_plan_due` (batas disepakati, **informasi saja** — keterlambatan tak dicatat).
+- **Melekat ke periode LAPORAN**: terbuka bila `final_reports` pegawai di periode itu `finalized` dan
+  `dev_plan_closed_at` kosong (`planWindow`, `lib/dev-plan-server.ts`). Periode aktif / terkunci tak berpengaruh.
+  Judul = kuartal sesudahnya (`planTitle`: laporan Q3 → "Rencana Pengembangan Q4").
+- **Atasan** (`resolveSupervisor`, `lib/dev-plan.ts`): Direksi → tanpa atasan (tanpa alur, label "Tersimpan") · SPV /
+  pemimpin tim `spv_team_members` → Direksi · anggota `coordinator_team_members` → koordinator (SPV-nya
+  `viewerIds`, lihat saja) · anggota `spv_team_members` → SPV (termasuk HRD Mode SPV) · lainnya → HRD. Dihitung ulang
+  saat dibuka. Tak ada yang bertindak atas rencananya sendiri sebagai atasan.
+- **Tulis** hanya `app/(app)/pengembangan/actions.ts` (Zod + service_role; tabel tanpa policy tulis): `saveMyPlan`
+  (isi hanya di draft/revision; sisip baru dulu lalu hapus lama), `submitMyPlan` (= persetujuan pegawai; semua
+  prioritas lengkap), `decideAsSupervisor` (Setujui butuh Konfirmasi Kinerja & Dukungan; Minta Perbaikan butuh alasan
+  & membatalkan persetujuan), `approveAsHrd` & `reopenPlan` (`canHrdSign` = **posisi** `role='hrd'` + Mode Admin +
+  bagian `pengembangan`; boleh atas rencana sendiri — keputusan pemilik), `setPlanWindow` (`canHrdManage` = bagian
+  `pengembangan` + Mode Admin). Ganti status bersyarat status lama. Semua tercatat di Log Aktivitas (kategori
+  `pengembangan`, `logAuditAsService`).
+- **Baca**: RLS `dp_read`/`dpi_read` = pemilik, `is_hrd()`, `is_direksi()`; atasan & SPV-pengamat via service_role
+  setelah `canViewPlan`. Halaman: `/pengembangan` (Rencana Saya / Tim Saya), `/pengembangan/[employeeId]`,
+  `/admin/pengembangan` (pantauan HRD + Direksi baca). Tugas & Notifikasi: `devPlanTodos` (`lib/todos/compute.ts`).
+- Tidak menyentuh skor, `final_reports`, kunci laporan Final. Diuji `tests/dev-plan.test.ts`, `tests/dev-plan-actions.test.ts`.
+
 ---
 
-## 6. Daftar migrasi 0001–0054
+## 6. Daftar migrasi 0001–0055
 
 Status penerapan per DB → `scripts/check-migrations.sql`.
 
@@ -452,6 +476,7 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0052 | tabel `final_report_history` + trigger `trg_final_reports_history` (after insert/update `final_reports`): catat tiap perubahan `spv_acc`/`status`/`final_score` (lama→baru, waktu, `auth.uid()`; NULL untuk service_role → app melengkapi dari `hrd_audit_log` ±15 detik, `lib/report-history.ts`); baca `is_hrd()`, tanpa policy tulis (append-only); snapshot awal saat migrasi. Dipakai panel Riwayat Laporan & tooltip ACC; tanpa tabel → panel "belum aktif" |
 | 0053 | tabel `release_email_schedules` (jadwal Email Rilis: `send_at`, `content`, `recipient_ids` terkunci, `status` scheduled/sending/done/cancelled, hasil `sent_ids`/`skipped`/`failed`); unik satu jadwal aktif per periode; baca `is_hrd()`, tulis hanya service_role (Server Action & route cron, §3.5). Tanpa tabel → pilihan Jadwalkan "belum aktif", kirim manual tak terpengaruh |
 | 0054 | tabel `outside_mapping_notes` (Catatan di Luar Pemetaan): tanpa kolom penulis & waktu kirim; check isi 20–2000; trigger `trg_outside_note_aspect_in_period`; RLS tanpa policy + `revoke all` anon/authenticated (hanya service_role). Rincian §5.4. Tanpa tabel → kirim "belum aktif", laporan tampil tanpa catatan |
+| 0055 | Rencana Pengembangan: tabel `development_plans` + `development_plan_items`, kolom `periods.dev_plan_closed_at`/`dev_plan_due`; RLS baca pemilik/`is_hrd()`/`is_direksi()`, tulis hanya service_role. Rincian §5.5. Tanpa tabel → halaman "belum aktif" |
 
 ---
 
@@ -472,7 +497,7 @@ Skrip integrasi `scripts/verify-rls.ts` (bukan unit test): membuat fixture `RLST
 login per peran (anon key), menguji `kpi_scores` (SPV → tim+diri, Employee → diri, HRD/Direksi → semua;
 tulis lintas-SPV ditolak; SPV tulis diri diizinkan) dan raw 360° (SPV ditolak; HRD, penilai, target sesuai
 aturan), plus celah 0045 (HRD terbatas, isi penilaian saat form ditutup, permohonan palsu, bobot ≠ 100,
-respons suksesi draf, log ACC, Catatan di Luar Pemetaan hanya service_role). **66 pemeriksaan.** Menghapus seluruh fixture di `finally`; tulis memakai
+respons suksesi draf, log ACC, Catatan di Luar Pemetaan hanya service_role, Rencana Pengembangan baca pemilik/HRD/Direksi). **74 pemeriksaan.** Menghapus seluruh fixture di `finally`; tulis memakai
 `UPDATE score=score`. Butuh anon + service role key di `.env.local`. Manual pra-rilis, tak di CI.
 Ulangi tiap ada migrasi/perubahan RLS.
 

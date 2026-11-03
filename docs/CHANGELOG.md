@@ -8,6 +8,20 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-03 — Rencana Pengembangan Tahap 1 (di `dev`, belum di production)
+- **Bagian 5, 7, dan 8 PDF laporan kini diisi di aplikasi** (permintaan pemilik), supaya HRD bisa memantau tindak
+  lanjut 1-on-1. Menu baru **Rencana Pengembangan** untuk semua peran, dan **Pantauan Rencana Pengembangan** untuk HRD
+  dan Direksi.
+- Pegawai mengisi prioritas (bisa lebih dari satu) setelah laporannya Final, lalu **Kirim ke Atasan**. Atasan menulis
+  komentar dan **Setujui** atau **Minta Perbaikan**; terakhir pegawai **berposisi HRD** menekan **Setujui (HRD)** →
+  **Disepakati**. Setiap persetujuan mencatat nama dan waktu, menggantikan tanda tangan di PDF.
+- Rencana melekat ke **periode laporan**, bukan periode aktif: laporan Q3 2026 menghasilkan Rencana Pengembangan
+  Q4 2026 yang tetap bisa diisi walau periode aktif sudah Q4. HRD menetapkan batas "rencana disepakati" (informasi
+  saja) dan menutup rencana per periode.
+- Atasan: koordinator untuk binaannya, SPV untuk anggota lain dan koordinator, Direksi untuk SPV dan pemimpin tim,
+  HRD untuk pegawai tanpa SPV/koordinator. Rencana Direksi tanpa persetujuan. Tidak memengaruhi skor maupun laporan.
+- Butuh perubahan database **0055** (sesudah 0054). Sesi 1-on-1 dua mingguan dan ekspor menyusul (Tahap 2–3).
+
 ### 2026-11-03 — Catatan di Luar Pemetaan masuk ekspor Bahan Laporan (di `dev`, belum di production)
 - Ekspor **Bahan Laporan per Pegawai** kini punya lembar ke-4 **Catatan di Luar Pemetaan** (permintaan pemilik), sebagai
   bahan bagian "Masukan Lain dari Penilai" di PDF laporan. Isinya periode, pegawai, divisi, aspek, dan isi catatan saja,

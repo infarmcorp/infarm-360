@@ -29,13 +29,14 @@ function setup(tables: Record<string, Record<string, unknown>[]>) {
   const me = fakeDb({ employees: [{ id: U, role: 'hrd', is_hrd_admin: false, hrd_sections: null }] });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mockCreate.mockResolvedValue(Object.assign(me, { auth: { getUser: async () => ({ data: { user: { id: U } } }) } }) as any);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mockAdmin.mockReturnValue(fakeDb({
+  const db = fakeDb({
     employees: [{ id: T, emp_code: 'E1', name: 'Target', dept: 'Gudang', role: 'employee' }],
     periods: [{ id: 'p1', label: 'Q4 2026', start_date: '2026-10-01', end_date: '2026-12-31' }],
     culture_aspects: [{ id: 'asp1', name: 'Jujur & Tanggung Jawab', order_idx: 0 }, { id: 'asp2', name: 'Berusaha Semaksimal Mungkin', order_idx: 1 }],
     ...tables,
-  }) as any);
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mockAdmin.mockReturnValue(db as any);
 }
 
 const notesSheet = (r: Awaited<ReturnType<typeof exportReportMaterials>>) =>

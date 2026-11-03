@@ -19,7 +19,7 @@ export type AuditRow = {
 const CAT_LABEL: Record<string, string> = {
   periode: 'Periode', bobot: 'Bobot', skor: 'Skor 360°', laporan: 'Laporan',
   kepatuhan: 'Kepatuhan', pegawai: 'Pegawai', pemetaan: 'Pemetaan',
-  pertanyaan: 'Pertanyaan', progress: 'Progress', suksesi: 'Suksesi', lain: 'Lain',
+  pertanyaan: 'Pertanyaan', progress: 'Progress', suksesi: 'Suksesi', pengembangan: 'Rencana Pengembangan', lain: 'Lain',
 };
 // Soft-tint monokrom: kategori dibedakan lewat LABEL, bukan pelangi warna. Aksi
 // berlingkup-skor/kepatuhan (berkonsekuensi) diberi aksen warn; sisanya netral/brand.
@@ -34,6 +34,7 @@ const CAT_COLOR: Record<string, string> = {
   pertanyaan: 'bg-neutral-tint text-ink-soft border-line',
   progress: 'bg-neutral-tint text-ink-soft border-line',
   suksesi: 'bg-neutral-tint text-ink-soft border-line',
+  pengembangan: 'bg-neutral-tint text-ink-soft border-line',
   lain: 'bg-neutral-tint text-ink-faint border-line',
 };
 

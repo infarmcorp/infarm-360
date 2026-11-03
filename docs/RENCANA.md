@@ -172,9 +172,14 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 
 ---
 
-### Fitur berikutnya (sudah didiskusikan, belum dibuat)
-- ⬜ **Rencana Pengembangan & 1-on-1** (dari PDF laporan bagian 5, 7, 8 — diskusi pemilik 2026-11-03). Tujuan: HRD
-  memantau 1-on-1 pegawai dengan atasan. Keputusan sejauh ini:
+### Rencana Pengembangan & 1-on-1
+- 🔑🔄 **Tahap 1 sudah di `dev`** (2026-11-03), belum di production: isi rencana, komentar atasan, persetujuan
+  (pegawai → atasan → HRD), pantauan HRD + Direksi, batas rencana disepakati (informasi saja), tutup/buka per periode,
+  pengingat di Tugas & Notifikasi. Sisa:
+  - 🔑 jalankan perubahan database **0055** di staging (setelah 0054), uji per peran di Preview `dev`;
+  - 🔑 sebelum dipakai: 0055 di production, lalu HRD menetapkan batas rencana disepakati untuk laporan Q3 2026.
+- ⬜ Tahap 2 (sesi 1-on-1 dua mingguan, tinjauan bulanan HRD) dan Tahap 3 (ekspor bernama) belum dibuat.
+- Keputusan pemilik (diskusi 2026-11-03), sebagai acuan tahap berikutnya:
   - Rencana **melekat ke periode laporan** (mis. laporan Q3 → "Rencana Pengembangan Q4"), terbuka setelah laporan Final
     dan tetap bisa diisi walau periode aktif sudah pindah atau periode laporan sudah dikunci. HRD menutupnya manual.
   - Pegawai mengisi prioritas (mulai 1, bisa ditambah): area, target terukur, langkah aksi, tenggat, pendamping,
@@ -184,6 +189,9 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
     Direksi (saat ini satu orang); pegawai tanpa SPV/koordinator → HRD. SPV dari pegawai berkoordinator hanya melihat.
   - Persetujuan berupa tombol (nama + tanggal tercatat), urutan pegawai → atasan → HRD. Persetujuan HRD hanya oleh
     pegawai berposisi HRD Admin, bukan pegawai lain yang diberi izin HRD. Isi berubah → persetujuan diulang.
+    HRD boleh menyetujui (sebagai HRD) rencananya sendiri, setelah atasannya menyetujui.
+  - Komentar atasan wajib sebelum Setujui: Konfirmasi Kinerja dan Dukungan; Konteks dan Harapan opsional.
+  - Batas "rencana disepakati" per periode diatur HRD; terlambat atau tidak **tidak** dicatat di aplikasi.
   - Direksi juga punya rencana, tanpa wajib komentar dan persetujuan. Direksi bisa melihat semua rencana.
   - Tahap: (1) rencana + komentar + persetujuan + pantauan HRD · (2) sesi 1-on-1 dua mingguan, tinjauan bulanan HRD,
     pengingat · (3) ekspor "Rencana Pengembangan & 1-on-1" (bernama).

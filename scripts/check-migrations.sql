@@ -66,7 +66,8 @@ select * from (values
   ('0051', 'bucket storage email-assets',                    exists(select 1 from storage.buckets where id = 'email-assets')),
   ('0052', 'tabel final_report_history (riwayat laporan)',    to_regclass('public.final_report_history') is not null),
   ('0053', 'tabel release_email_schedules (jadwal email rilis)', to_regclass('public.release_email_schedules') is not null),
-  ('0054', 'tabel outside_mapping_notes (catatan di luar pemetaan)', to_regclass('public.outside_mapping_notes') is not null)
+  ('0054', 'tabel outside_mapping_notes (catatan di luar pemetaan)', to_regclass('public.outside_mapping_notes') is not null),
+  ('0055', 'tabel development_plans (rencana pengembangan)', to_regclass('public.development_plans') is not null)
 ) as t(migrasi, penanda_skema, applied)
 order by migrasi;
 

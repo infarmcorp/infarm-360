@@ -460,6 +460,37 @@ async function main() {
         check('Isi catatan < 20 karakter DITOLAK database [0054]', !!error); }
     }
 
+    console.log('\n0055 — Rencana Pengembangan (baca: pemilik/HRD/Direksi; tulis hanya server):');
+    {
+      const { data: dp, error: dpErr } = await admin.from('development_plans')
+        .insert({ employee_id: id.EMP, source_period_id: aid.periodId }).select('id').single();
+      check('Server (service_role) MEMBUAT rencana DIIZINKAN (kontrol positif)', !dpErr && !!dp, dpErr?.message ?? '');
+      if (dp) {
+        await admin.from('development_plan_items').insert({ plan_id: dp.id, area: 'RLS area' });
+        const seen = async (key: keyof typeof FIX) => {
+          const c = await loginAs(FIX[key].email);
+          const { data } = await c.from('development_plans').select('id').eq('id', dp.id);
+          const { data: it } = await c.from('development_plan_items').select('id').eq('plan_id', dp.id);
+          await c.auth.signOut();
+          return { plan: data?.length ?? 0, items: it?.length ?? 0 };
+        };
+        const emp = await seen('EMP');
+        check('Pemilik (EMP) BACA rencananya sendiri DIIZINKAN', emp.plan === 1 && emp.items === 1);
+        const oth = await seen('OTH');
+        check('Pegawai lain (OTH) BACA rencana EMP DITOLAK [0055]', oth.plan === 0 && oth.items === 0);
+        const spv = await seen('SPV');
+        check('SPV BACA rencana anggota lewat API DITOLAK (atasan baca lewat server) [0055]', spv.plan === 0);
+        check('HRD BACA rencana DIIZINKAN', (await seen('HRD')).plan === 1);
+        check('Direksi BACA rencana DIIZINKAN', (await seen('DIR')).plan === 1);
+        const c = await loginAs(FIX.EMP.email);
+        { const { data, error } = await c.from('development_plans').update({ status: 'agreed' }).eq('id', dp.id).select('id');
+          check('Pemilik MENGUBAH status rencana lewat API DITOLAK [0055]', !!error || (data?.length ?? 0) === 0); }
+        { const { error } = await c.from('development_plan_items').insert({ plan_id: dp.id, area: 'Disisipkan lewat API' });
+          check('Pemilik MENYISIPKAN prioritas lewat API DITOLAK [0055]', !!error); }
+        await c.auth.signOut();
+      }
+    }
+
     console.log(`\n== HASIL: ${pass} lolos, ${fail} gagal ==`);
   } finally {
     await cleanup();

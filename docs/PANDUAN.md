@@ -221,6 +221,29 @@ Muncul **hanya setelah HRD memfinalisasi** laporan Anda. Sebelum itu tertulis "b
 
 Komentar asli per penilai **tidak** ditampilkan ke pegawai, demi menjaga kerahasiaan penilai.
 
+### 2.4 Rencana Pengembangan
+Menu **Rencana Pengembangan** (juga tombol **Buka Rencana →** di Laporan Hasil Saya). Rencana ini adalah Rencana
+Pengembangan Individu Anda untuk kuartal **sesudah** laporan: laporan Q3 2026 → **Rencana Pengembangan Q4 2026**.
+- Bisa diisi begitu laporan Anda **Final**, walau periode penilaian di aplikasi sudah berganti. Rencana tetap
+  terbuka sampai HRD menutupnya. Di atas rencana tertulis **Batas rencana disepakati** bila HRD sudah menetapkannya.
+- Isi setelah sesi empat mata dengan atasan. Tiap **prioritas** berisi: Area yang dikembangkan, Target terukur,
+  Langkah aksi, Tenggat, Pendamping, Indikator berhasil. Mulai dari satu prioritas; tambah lewat **+ Tambah
+  Prioritas** atau buang lewat **Hapus prioritas**. Prioritas 1 sebaiknya mengacu pada "Prioritas utama" di
+  bagian Perlu Dikembangkan pada laporan Anda.
+- Atasan Anda tertulis di atas rencana: **koordinator** bila Anda punya koordinator; bila tidak, **SPV** Anda;
+  bila Anda tidak punya keduanya, **HRD**.
+
+| Tombol | Fungsi | Kapan muncul |
+|---|---|---|
+| **Simpan Draf** | Menyimpan isi apa adanya | Status Draf atau Perlu Perbaikan |
+| **Kirim ke Atasan** | Mengirim rencana; sekaligus menjadi **persetujuan Anda** (nama dan waktu tercatat). Semua prioritas wajib lengkap | Status Draf atau Perlu Perbaikan |
+
+**Status:** **Belum diisi** → **Draf** → **Menunggu Atasan** → **Menunggu HRD** → **Disepakati** (terkunci). Bila
+atasan menekan **Minta Perbaikan**, status menjadi **Perlu Perbaikan** dengan alasannya di kotak merah; perbaiki
+lalu kirim lagi. Setelah dikirim, isi tidak bisa diubah sampai atasan meminta perbaikan atau HRD membukanya
+kembali. Di bawah rencana tampil **Komentar Atasan Langsung** dan kotak **Persetujuan** (Pegawai · Atasan · HRD).
+Rencana tidak memengaruhi skor atau laporan Anda.
+
 ---
 
 ## 3. Supervisor (SPV)
@@ -303,6 +326,23 @@ belum bisa dihitung tertulis **"No Score"**. Pegawai dengan KPI atau 360° koson
   untuk menyaring peta warna).
 - Skor Akhir memakai rumus resmi tunggal; laporan Final memakai angka tersimpan.
 
+### 3.6 Rencana Pengembangan tim
+Menu **Rencana Pengembangan** → tab **Tim Saya**. Tab ini juga berlaku untuk HRD yang sedang di **Mode SPV**.
+- Daftar berisi anggota tim yang laporannya sudah **Final** pada periode terpilih, dengan status rencananya.
+  Kolom **Peran Anda**: **Atasan** (Anda yang berkomentar dan menyetujui) atau **Hanya melihat** (anggota yang
+  punya koordinator; koordinatornya yang berkomentar dan menyetujui).
+- Anda juga menjadi atasan bagi **koordinator** di tim Anda.
+- Klik **Buka** untuk melihat rencana. Saat statusnya **Menunggu Atasan**, isi **Komentar Atasan Langsung** setelah
+  sesi empat mata: **Konfirmasi Kinerja** dan **Dukungan yang Diberikan** wajib; **Konteks Tambahan** dan
+  **Harapan ke Depan** opsional.
+
+| Tombol | Fungsi |
+|---|---|
+| **Setujui** | Menyimpan komentar dan memberi persetujuan Anda (nama dan waktu tercatat); rencana lanjut ke HRD |
+| **Minta Perbaikan** → **Kirim Permintaan Perbaikan** | Mengembalikan rencana ke pegawai dengan alasan (wajib); persetujuan pegawai batal dan pegawai mengirim ulang |
+
+Rencana pengembangan **Anda sendiri** ada di tab **Rencana Saya** dan dikomentari serta disetujui **Direksi**.
+
 ---
 
 ## 4. Koordinator & akses tambahan dari HRD
@@ -321,6 +361,13 @@ sebagai "Atasan"** dalam bobot 360°. Menu ada di grup **"Menu Koordinator"**, k
 Koordinator **tidak bisa** memfinalisasi laporan, melihat pegawai di luar binaannya, atau mengatur 360°.
 Daftar binaan diatur HRD (Manajemen Akses → **Kelola Tim**) dan harus sedivisi dengan koordinatornya.
 Untuk pegawai berkoordinator, SPV **tidak** lagi meng-ACC maupun menginput KPI.
+
+**Rencana Pengembangan binaan.** Menu **Rencana Pengembangan** → tab **Tim Saya** memuat binaan Anda yang laporannya
+sudah Final. Koordinator adalah **atasan** rencana binaannya: buka rencana yang berstatus **Menunggu Atasan**, isi
+**Komentar Atasan Langsung** (Konfirmasi Kinerja dan Dukungan yang Diberikan wajib; Konteks Tambahan dan Harapan ke
+Depan opsional), lalu tekan **Setujui** (rencana lanjut ke HRD) atau **Minta Perbaikan** dengan alasan (rencana
+kembali ke binaan). SPV binaan Anda hanya bisa melihat. Rencana Anda sendiri ada di tab **Rencana Saya** dan
+disetujui oleh **SPV** Anda.
 
 ### 4.2 Akses halaman dari HRD
 HRD bisa memberi seseorang akses ke halaman yang **sudah ada** (lihat §5.2). Menu yang diberikan muncul di
@@ -821,6 +868,32 @@ pertanyaan seperti "sudah di-ACC tanggal berapa?" atau "sejak kapan ACC-nya hila
 di riwayat, artinya ACC itu memang tidak pernah tersimpan. Di tabel Review & Finalisasi, arahkan kursor ke
 **✔ ACC** untuk melihat siapa yang memberi ACC dan kapan.
 
+### 5.9b Pantauan Rencana Pengembangan
+Menu **Pantauan Rencana Pengembangan** (grup Hasil & Tindak Lanjut; bagian akses "Rencana Pengembangan" di Atur
+Akses). Rencana pengembangan melekat ke **periode laporan**: laporan Q3 2026 → Rencana Pengembangan Q4 2026, dan
+bisa diisi pegawai begitu laporannya Final, walau periode aktif sudah berganti.
+- Pilih periode laporan di atas. Kartu ringkasan menampilkan jumlah per status: Belum diisi · Draf · Menunggu
+  Atasan · Perlu Perbaikan · Menunggu HRD · Disepakati.
+- Tabel per pegawai yang laporannya Final: atasan (koordinator / SPV / Direksi / HRD), status, jumlah prioritas,
+  terakhir diperbarui, dan **Buka**.
+- **Batas rencana disepakati** — tanggal informasi untuk pegawai dan atasan. Aplikasi tidak menandai keterlambatan.
+  Tekan **Simpan Batas** setelah memilih tanggal.
+- **Tutup Rencana Periode Ini** — semua rencana periode itu menjadi hanya-baca (misalnya di akhir kuartal).
+  **Buka Rencana Periode Ini** membukanya lagi.
+
+Di halaman rencana satu pegawai, pegawai **berposisi HRD** di Mode Admin mendapat panel **Aksi HRD**:
+
+| Tombol | Fungsi | Kapan muncul |
+|---|---|---|
+| **Setujui (HRD)** | Persetujuan terakhir → **Disepakati** (terkunci); nama dan waktu tercatat | Status Menunggu HRD |
+| **Buka Kembali (ke Draf)** | Mengembalikan rencana ke Draf; semua persetujuan batal, komentar atasan tetap | Selain Draf |
+
+Pegawai lain yang diberi izin HRD Admin bisa membuka pantauan dan rencana, tetapi **tidak** bisa Setujui (HRD)
+atau Buka Kembali. HRD berposisi HRD juga menyetujui rencananya sendiri setelah atasannya (Direksi) menyetujui.
+Pegawai yang tidak punya SPV maupun koordinator dikomentari dan disetujui atasannya oleh **HRD** dari halaman ini
+(form Komentar Atasan Langsung muncul di halaman rencana pegawai itu). Semua langkah tercatat di Log Aktivitas
+(kategori Rencana Pengembangan).
+
 ### 5.10 Monitoring & Audit KPI
 - Dua tab: **Rekapitulasi Kuartal** dan **Riwayat & Audit Perubahan KPI**. Hanya tab yang dibuka yang memuat data.
   Tidak ada tab Input (input adalah tugas SPV/Koordinator).
@@ -953,6 +1026,13 @@ flowchart TD
   ada di daftar penilaiannya (tab Pengajuan di Daftar Penilaian Saya; nama pengirim tidak tersimpan). Catatan
   semacam ini **tidak** tampil di Laporan Kinerja Tim maupun Tinjauan Hasil Akhir; hanya HRD di Mode Admin yang
   membacanya.
+- **Rencana Pengembangan** — Direksi adalah **atasan** rencana pengembangan para **SPV** dan HRD/pegawai yang
+  memimpin tim: menu **Rencana Pengembangan** → tab **Tim Saya** → **Buka**. Saat status **Menunggu Atasan**, isi
+  **Komentar Atasan Langsung** (Konfirmasi Kinerja dan Dukungan yang Diberikan wajib; Konteks Tambahan dan Harapan
+  ke Depan opsional), lalu **Setujui** (lanjut ke HRD) atau **Minta Perbaikan** dengan alasan. Menu **Pantauan
+  Rencana Pengembangan** (Menu Direksi) menampilkan status rencana **semua pegawai**, hanya baca. Direksi juga punya
+  rencana sendiri di tab **Rencana Saya**: cukup diisi dan disimpan (label "Tersimpan"), tanpa komentar atasan
+  maupun persetujuan.
 - Direksi **boleh dinilai** 360°. Hasilnya tampil di Review & Finalisasi dan Ekspor HRD dengan Skor Akhir =
   Skor 360° (Direksi tidak punya KPI). Direksi tidak masuk Dashboard, 4-Box, KPI, kepatuhan, dan monitor.
 - Direksi tidak punya Monitor Kinerja atau Rekapitulasi Kuartal (kecuali diberi akses), dan tidak melihat

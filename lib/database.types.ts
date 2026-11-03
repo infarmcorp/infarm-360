@@ -13,6 +13,7 @@ export type AssessmentStatus = 'draft' | 'submitted' | 'invalidated';
 export type ExposureStatus = 'eligible' | 'partially_eligible' | 'not_eligible'; // BR-03 Exposure Check
 export type WeightValues = { atasan?: number; peer?: number; cross?: number; bawahan?: number; self?: number; internal?: number };
 export type ReportStatus = 'draft' | 'in_review' | 'finalized';
+export type DevPlanStatus = 'draft' | 'waiting_supervisor' | 'revision' | 'waiting_hrd' | 'agreed';
 export type SuccessionStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
 export type CorrectionStatus = 'pending' | 'approved' | 'rejected';
 /** Jenis permohonan pemetaan yang diajukan pegawai (migrasi 0035). */
@@ -46,8 +47,8 @@ export interface Database {
         Relationships: [];
       };
       periods: {
-        Row: { id: string; code: string; label: string; start_date: string; end_date: string; status: 'active' | 'ended'; has_360: boolean; form_open: boolean; mapping_published: boolean; kpi_standard: number; assessment_deadline: string | null; created_at: string };
-        Insert: { code: string; label: string; start_date: string; end_date: string; status?: 'active' | 'ended'; has_360?: boolean; form_open?: boolean; mapping_published?: boolean; kpi_standard?: number; assessment_deadline?: string | null };
+        Row: { id: string; code: string; label: string; start_date: string; end_date: string; status: 'active' | 'ended'; has_360: boolean; form_open: boolean; mapping_published: boolean; kpi_standard: number; assessment_deadline: string | null; dev_plan_closed_at: string | null; dev_plan_due: string | null; created_at: string };
+        Insert: { code: string; label: string; start_date: string; end_date: string; status?: 'active' | 'ended'; has_360?: boolean; form_open?: boolean; mapping_published?: boolean; kpi_standard?: number; assessment_deadline?: string | null; dev_plan_closed_at?: string | null; dev_plan_due?: string | null };
         Update: Partial<Database['public']['Tables']['periods']['Insert']>;
         Relationships: [];
       };
@@ -144,6 +145,32 @@ export interface Database {
           skipped?: { id: string; name: string; reason: string }[]; failed?: { id: string; name: string; reason: string }[];
         };
         Update: Partial<Database['public']['Tables']['release_email_schedules']['Insert']>;
+        Relationships: [];
+      };
+      development_plans: {
+        // Rencana Pengembangan (0055) — melekat ke periode LAPORAN (source_period_id).
+        Row: {
+          id: string; employee_id: string; source_period_id: string; status: DevPlanStatus;
+          sup_confirmation: string | null; sup_context: string | null; sup_support: string | null; sup_hope: string | null;
+          revision_reason: string | null; employee_signed_at: string | null;
+          supervisor_id: string | null; supervisor_name: string | null; supervisor_signed_at: string | null;
+          hrd_id: string | null; hrd_name: string | null; hrd_signed_at: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          employee_id: string; source_period_id: string; status?: DevPlanStatus;
+          sup_confirmation?: string | null; sup_context?: string | null; sup_support?: string | null; sup_hope?: string | null;
+          revision_reason?: string | null; employee_signed_at?: string | null;
+          supervisor_id?: string | null; supervisor_name?: string | null; supervisor_signed_at?: string | null;
+          hrd_id?: string | null; hrd_name?: string | null; hrd_signed_at?: string | null; updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['development_plans']['Insert']>;
+        Relationships: [];
+      };
+      development_plan_items: {
+        Row: { id: string; plan_id: string; order_idx: number; area: string; target: string; actions: string; due_text: string; companion: string; success_indicator: string };
+        Insert: { plan_id: string; order_idx?: number; area?: string; target?: string; actions?: string; due_text?: string; companion?: string; success_indicator?: string };
+        Update: Partial<Database['public']['Tables']['development_plan_items']['Insert']>;
         Relationships: [];
       };
       outside_mapping_notes: {

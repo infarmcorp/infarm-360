@@ -129,6 +129,23 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['employee_report_folders']['Insert']>;
         Relationships: [];
       };
+      release_email_schedules: {
+        Row: {
+          id: string; period_id: string; send_at: string; content: Record<string, unknown>; recipient_ids: string[];
+          status: 'scheduled' | 'sending' | 'done' | 'cancelled';
+          created_by: string | null; created_by_name: string | null; created_at: string; updated_at: string;
+          started_at: string | null; finished_at: string | null; sent_ids: string[];
+          skipped: { id: string; name: string; reason: string }[]; failed: { id: string; name: string; reason: string }[];
+        };
+        Insert: {
+          period_id: string; send_at: string; content: Record<string, unknown>; recipient_ids: string[];
+          status?: 'scheduled' | 'sending' | 'done' | 'cancelled'; created_by?: string | null; created_by_name?: string | null;
+          updated_at?: string; started_at?: string | null; finished_at?: string | null; sent_ids?: string[];
+          skipped?: { id: string; name: string; reason: string }[]; failed?: { id: string; name: string; reason: string }[];
+        };
+        Update: Partial<Database['public']['Tables']['release_email_schedules']['Insert']>;
+        Relationships: [];
+      };
       result_360: {
         Row: { employee_id: string; period_id: string; score: number | null; score_raw: number | null; late_penalty: number; computed_at: string };
         Insert: { employee_id: string; period_id: string; score?: number | null; score_raw?: number | null; late_penalty?: number; computed_at?: string };

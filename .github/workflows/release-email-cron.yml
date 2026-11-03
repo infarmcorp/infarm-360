@@ -1,0 +1,34 @@
+name: Email Rilis Terjadwal
+
+# "Alarm" jadwal Email Rilis Laporan: tiap ±10 menit memanggil aplikasi PRODUKSI untuk mengirim email rilis
+# yang jadwalnya sudah tiba (HRD mengatur jadwal di Review & Finalisasi → ③ Kabari Pegawai). Tanpa jadwal
+# yang jatuh tempo, panggilan ini tidak melakukan apa pun. Jadwal GitHub bisa terlambat 5–30 menit saat ramai.
+#
+# Secret yang wajib diisi (Settings → Secrets and variables → Actions):
+#   APP_URL      — alamat production, mis. https://<domain-aplikasi> (tanpa garis miring di akhir)
+#   CRON_SECRET  — kode rahasia acak ≥ 32 karakter; nilai SAMA juga diisi di Vercel → Environment Variables
+#                  (scope Production) lalu Redeploy. Tanpa keduanya, aplikasi menolak (401) dan tak ada email.
+# Langkah lengkap: docs/TEKNIS.md §3.5. GitHub menonaktifkan jadwal di repo yang 60 hari tanpa commit —
+# bila itu terjadi, aktifkan lagi di tab Actions.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:        # bisa dijalankan manual dari tab Actions (uji)
+
+permissions:
+  contents: read
+
+jobs:
+  kirim-terjadwal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Panggil pengirim jadwal
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "Secret APP_URL / CRON_SECRET belum diisi — lewati."; exit 0
+          fi
+          curl -fsS --max-time 90 -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/release-email"

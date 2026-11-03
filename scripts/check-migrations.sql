@@ -1,6 +1,6 @@
 -- ============================================================================
 -- CEK STATUS MIGRASI — jalankan di Supabase SQL Editor project mana pun
--- (production ATAU staging) untuk melihat migrasi 0001–0052 mana yang SUDAH
+-- (production ATAU staging) untuk melihat migrasi 0001–0053 mana yang SUDAH
 -- diterapkan ke database tsb, tanpa perlu mengingat riwayatnya secara manual.
 --
 -- Cara pakai: copy-paste seluruh isi file ini ke SQL Editor → Run. Kolom
@@ -64,7 +64,8 @@ select * from (values
   ('0049', 'trigger trg_final_reports_block_self_acc',        exists(select 1 from pg_trigger where tgname='trg_final_reports_block_self_acc')),
   ('0050', 'tabel employee_report_folders',                  to_regclass('public.employee_report_folders') is not null),
   ('0051', 'bucket storage email-assets',                    exists(select 1 from storage.buckets where id = 'email-assets')),
-  ('0052', 'tabel final_report_history (riwayat laporan)',    to_regclass('public.final_report_history') is not null)
+  ('0052', 'tabel final_report_history (riwayat laporan)',    to_regclass('public.final_report_history') is not null),
+  ('0053', 'tabel release_email_schedules (jadwal email rilis)', to_regclass('public.release_email_schedules') is not null)
 ) as t(migrasi, penanda_skema, applied)
 order by migrasi;
 

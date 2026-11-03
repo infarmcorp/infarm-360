@@ -12,8 +12,12 @@ import type { Database } from '@/lib/database.types';
  * `/panduan` (PDF panduan per peran di public/) WAJIB publik: dilampirkan ke email
  * onboarding & diunduh provider email (Gmail/Resend) tanpa sesi — bila digate, provider
  * hanya mendapat halaman login, bukan PDF.
+ *
+ * `/api/cron/` dipanggil server-ke-server (GitHub Actions/penjadwal) TANPA sesi pengguna — bila digate,
+ * pemanggil hanya mendapat redirect ke /login. Tiap route di bawahnya WAJIB memeriksa sendiri
+ * `Authorization: Bearer $CRON_SECRET` dan menolak bila CRON_SECRET kosong (gagal tertutup).
  */
-const PUBLIC_PREFIXES = ['/login', '/auth', '/legacy', '/panduan'];
+const PUBLIC_PREFIXES = ['/login', '/auth', '/legacy', '/panduan', '/api/cron/'];
 
 export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;

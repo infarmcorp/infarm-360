@@ -73,6 +73,12 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 - 🔑🔄 **Email Rilis Laporan.** Perubahan database **0051** terpasang di staging dan production (2026-10-16).
   Sisa, per periode: unggah dua gambar pendamping di dialog Email Rilis Laporan, kirim uji ke email sendiri, baru
   kirim ke pegawai (SOP di [PANDUAN.md](PANDUAN.md) §5.9). Butuh tautan folder tiap pegawai terisi.
+- 🔑🔄 **Email Rilis terjadwal** (permintaan HRD) — sudah di `dev` (2026-11-03), belum di production. HRD mengatur
+  tanggal & jam di dialog Email Rilis; email terkirim sendiri (±30 menit). Penerima dan isi dikunci saat
+  menjadwalkan; bisa diubah/dibatalkan sebelum mulai terkirim. Sisa:
+  - 🔑 jalankan perubahan database **0053** di staging, lalu production;
+  - 🔑 pasang kode rahasia sekali di Vercel dan GitHub (langkah di [TEKNIS.md](TEKNIS.md) §3.5);
+  - 🔑 uji di staging ([TEKNIS.md](TEKNIS.md) §3.5), lalu ikut rilis `dev` → `main` berikutnya.
 - ✅ **Perubahan database production** — 0001–0052 terpasang di staging dan production (dicek pemilik
   2026-10-16 dengan `scripts/check-migrations.sql`).
 

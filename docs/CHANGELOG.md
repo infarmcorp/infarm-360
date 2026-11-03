@@ -6,6 +6,22 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ---
 
+## November 2026
+
+### 2026-11-03 — Email Rilis Laporan bisa dijadwalkan (di `dev`, belum di production)
+- **HRD bisa menjadwalkan Email Rilis Laporan** (permintaan HRD). Di dialog Email Rilis ada pilihan **Kirim
+  sekarang** atau **Jadwalkan** (tanggal + jam WIB). Pada jam itu email terkirim sendiri, bertahap, sampai ±30
+  menit sesudahnya. Keputusan pemilik (dari diskusi 2026-10-16):
+  - **penerima dikunci** saat menjadwalkan, dan daftar penerima bisa dicentang sehingga pegawai tertentu bisa
+    ditahan dulu;
+  - **isi email dikunci** bersama jadwal; HRD bisa melihat, mengubah, atau membatalkan selama belum mulai terkirim;
+  - saat jam tiba, syarat dicek ulang (laporan Final, folder terisi, punya email); yang sudah pernah dikirimi
+    tidak dikirimi lagi;
+  - hasil ("N terkirim · N dilewati · N gagal" beserta nama) tampil di dialog dan tercatat di Log Aktivitas.
+- Pemicu jadwal berjalan otomatis lewat GitHub setiap ±10 menit (paket Vercel gratis tidak mendukung jadwal per
+  menit). Butuh perubahan database 0053 dan satu kode rahasia yang dipasang sekali oleh pemilik.
+- Kirim manual tidak berubah, hanya caranya kini berbagi satu inti dengan jadwal.
+
 ## Oktober 2026
 
 ### 2026-10-16 — Pemeriksaan kode otomatis bersih (belum di production)

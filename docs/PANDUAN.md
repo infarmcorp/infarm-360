@@ -685,6 +685,26 @@ beres bertanda ✓. Penjelasan lengkap ada di ikon ⓘ di samping judul.
 
 Isian (siklus, tahapan) tersimpan di browser untuk periode itu, jadi tidak perlu diketik ulang saat kirim
 berikutnya. Email tidak memuat skor atau isi laporan.
+
+**Menahan pegawai tertentu.** Buka **Lihat / pilih penerima** di bagian penerima, lalu hapus centang pegawai yang
+belum ingin dikabari. Mereka bisa dikirimi menyusul (ikon ✉ per pegawai, atau jadwal berikutnya).
+
+**SOP — Jadwalkan Email Rilis** (email terkirim sendiri pada tanggal & jam yang diatur):
+1. Siapkan seperti langkah 1–4 di atas (laporan Final, Folder Laporan, gambar, isian, pratinjau, kirim uji).
+2. Periksa daftar penerima (**Lihat / pilih penerima**). Daftar ini **dikunci** bersama jadwal: pegawai yang
+   tidak dicentang tidak akan dikirimi, walau laporannya siap saat jam tiba.
+3. Di bagian bawah dialog pilih **Jadwalkan**, isi **tanggal** dan **jam (WIB)**, klik **Jadwalkan ke N pegawai**
+   → **Ya, jadwalkan**. Jam minimal 5 menit dari sekarang, maksimal 4 bulan ke depan.
+4. Kartu ③ menampilkan **Terjadwal: … · N pegawai**. Email terkirim mulai jam itu sampai **±30 menit
+   sesudahnya**, bertahap. Dialog tidak perlu dibuka.
+5. **Mengubah** (jam, penerima, isi) atau **membatalkan**: buka dialog → **Lihat / ubah jadwal** (lalu **Simpan
+   perubahan jadwal**) atau **Batalkan jadwal**. Hanya bisa selama belum mulai terkirim. Hanya ada **satu**
+   jadwal aktif per periode.
+6. Setelah selesai, dialog menampilkan **Jadwal terakhir … selesai: N terkirim · N dilewati · N gagal** beserta
+   nama dan alasan. Yang dilewati (mis. laporan dibuka kembali, folder kosong, sudah pernah dikirimi) atau gagal
+   bisa dikirimi manual. Setiap pengiriman tercatat di Log Aktivitas dengan nama pembuat jadwal "(terjadwal)".
+
+Isi email yang terkirim = isi **saat dijadwalkan** (atau saat terakhir diubah), bukan isian terbaru di browser.
 - Pintasan **⚖ Atur Bobot** dan **⚑ Flag Kepatuhan**.
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |
@@ -693,6 +713,8 @@ berikutnya. Email tidak memuat skor atau isi laporan.
 | **Perbarui Laporan Final yang Berubah (N)** (langkah ②) | Segarkan angka laporan Final | Bila N > 0 | Ya |
 | **Finalisasi N Laporan** (langkah ②) | Finalisasi semua yang sudah di-ACC & masih Ditinjau | Selalu; saat mati, tulisannya menyebut sebab: "Menunggu ACC (N)", "Masih ada draf (N)", "Laporan belum dibuat (N)", atau "✓ Semua sudah Final" | Ya (+ peringatan bila 360° perlu dihitung) |
 | **Kirim Email Rilis** (langkah ③) | Buka dialog Email Rilis Laporan | Selalu; mati bila belum ada laporan Final | Ya, sebelum kirim |
+| **Kirim sekarang / Jadwalkan** (dialog Email Rilis) | Pilih kirim langsung atau pada tanggal & jam (WIB) | Massal; Jadwalkan mati bila sudah ada jadwal aktif | Ya, sebelum kirim/jadwalkan |
+| **Lihat / ubah jadwal** · **Batalkan jadwal** | Ubah jam, penerima, isi; atau hentikan jadwal | Ada jadwal yang belum mulai terkirim | — |
 | **Atur Bobot** / **Flag Kepatuhan** | Pintasan (tautan kecil) | Kanan bawah kokpit | — |
 | **Impor Ringkasan dari Excel** | Isi ringkasan aspek & kualitatif banyak pegawai sekaligus | Periode dengan 360°; HRD dan penerima akses Meringkas/Finalisasi | Pratinjau dulu |
 | **Tinjau →** | Buka detail laporan | Per baris | — |

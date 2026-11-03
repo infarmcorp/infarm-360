@@ -1,16 +1,22 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ImageUp, Mail, Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/button';
+import { DatePicker } from '@/components/date-picker';
 import {
   defaultSteps, releaseEmailHtml, releaseSubject,
   type ReleaseContent, type ReleaseImageSrc, type ReleasePeriod, type ReleaseStep,
 } from '@/lib/email/release-template';
 import { RELEASE_IMAGES, type ReleaseImageKey } from '@/lib/report-release';
-import { sendReleaseEmails, sendReleaseEmailTest, uploadReleaseImage, removeReleaseImage } from './release-email-actions';
+import {
+  sendReleaseEmails, sendReleaseEmailTest, uploadReleaseImage, removeReleaseImage,
+  scheduleReleaseEmail, updateReleaseSchedule, cancelReleaseSchedule,
+} from './release-email-actions';
 import { callAction } from '@/lib/call-action';
+import type { ReleaseSchedule } from '@/lib/release-schedule';
+import { fmtScheduleWib, isoToWibParts, sendAtError, wibToIso } from '@/lib/release-schedule-time';
 
 export type ReleaseRecipient = { id: string; name: string; dept: string; hasFolder: boolean; sent: boolean };
 
@@ -22,6 +28,8 @@ export type ReleaseProps = {
   appUrl: string;                          // tautan tombol "Buka Laporan Saya" (sama dengan server)
   images: Partial<Record<ReleaseImageKey, string>>; // URL publik gambar pendamping yang sudah diunggah
   storageOk: boolean;                      // false = bucket gambar belum ada (migrasi 0051)
+  /** Jadwal kirim (migrasi 0053): ok=false = fitur jadwal belum aktif. */
+  schedule: { ok: boolean; active: ReleaseSchedule | null; last: ReleaseSchedule | null };
 };
 
 const BATCH = 20; // selaras MAX_BATCH di server
@@ -53,13 +61,19 @@ export function ReleaseEmailButton({ release, primary }: { release: ReleaseProps
  * batas waktu. Isian disimpan di browser per periode (kenyamanan saja; server tak bergantung padanya).
  */
 export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: ReleaseProps; onlyId?: string; onClose: () => void }) {
-  const { period, recipients, appUrl, images, storageOk } = release;
+  const { period, recipients, appUrl, images, storageOk, schedule } = release;
   const router = useRouter();
   const storeKey = `release-email:${period.id}`;
   const [content, setContent] = useState<ReleaseContent>(() => initialContent(storeKey, release));
   const [onlyUnsent, setOnlyUnsent] = useState(true);
   const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState<null | 'test' | 'send' | 'image'>(null);
+  const [busy, setBusy] = useState<null | 'test' | 'send' | 'image' | 'schedule'>(null);
+  // Kirim sekarang vs Jadwalkan (massal saja). Penerima & isi DIKUNCI bersama jadwal (keputusan 2026-10-16).
+  const [mode, setMode] = useState<'now' | 'schedule'>('now');
+  const [picked, setPicked] = useState<Set<string> | null>(null); // null = semua sesuai pilihan radio
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [schedDate, setSchedDate] = useState(() => isoToWibParts(tomorrow().toISOString()).date);
+  const [schedTime, setSchedTime] = useState('09:00');
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string; details?: string[] } | null>(null);
 
@@ -76,13 +90,20 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
   const ready = recipients.filter((r) => r.hasFolder);
   const noFolder = recipients.filter((r) => !r.hasFolder);
   const unsent = ready.filter((r) => !r.sent);
-  const targets = onlyId ? (single?.hasFolder ? [single] : []) : onlyUnsent ? unsent : ready;
+  const base = onlyId ? (single?.hasFolder ? [single] : []) : onlyUnsent ? unsent : ready;
+  const targets = picked && !onlyId ? base.filter((r) => picked.has(r.id)) : base;
+  const togglePick = (id: string) => setPicked((p) => {
+    const n = new Set(p ?? base.map((r) => r.id));
+    if (n.has(id)) n.delete(id); else n.add(id);
+    return n;
+  });
+  const active = schedule.active;
+  const activeLocked = !!active && (active.status === 'sending' || active.sentIds.length > 0);
+  const sendAtIso = wibToIso(schedDate, schedTime);
   const sample = single?.name ?? targets[0]?.name ?? ready[0]?.name ?? '[Nama Pegawai]';
 
-  const previewHtml = useMemo(
-    () => releaseEmailHtml({ name: sample, period, content, appUrl, images: images as ReleaseImageSrc }),
-    [sample, period, content, appUrl, images],
-  );
+  // Dihitung tiap render (murah; srcDoc yang sama tak memuat ulang iframe).
+  const previewHtml = releaseEmailHtml({ name: sample, period, content, appUrl, images: images as ReleaseImageSrc });
 
   const setStep = (i: number, patch: Partial<ReleaseStep>) =>
     setContent((c) => ({ ...c, steps: c.steps.map((s, j) => (j === i ? { ...s, ...patch } : s)) }));
@@ -111,6 +132,36 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
     setBusy(null); setProgress(null);
     setMsg({ ok: details.length === 0, text: `${sent} dari ${ids.length} email terkirim.`, details });
     router.refresh();
+  }
+
+  /** Muat isi jadwal aktif ke formulir untuk diubah (penerima, isi, jam). */
+  function startEdit(s: ReleaseSchedule) {
+    setEditingId(s.id); setContent(s.content); setOnlyUnsent(false); setPicked(new Set(s.recipientIds));
+    const p = isoToWibParts(s.sendAt); setSchedDate(p.date); setSchedTime(p.time);
+    setMode('schedule'); setConfirming(false); setMsg(null);
+  }
+
+  async function saveSchedule() {
+    setConfirming(false);
+    if (!sendAtIso) { setMsg({ ok: false, text: 'Tanggal/jam tidak sah.' }); return; }
+    const err = sendAtErrorNow(sendAtIso);
+    if (err) { setMsg({ ok: false, text: err }); return; }
+    setBusy('schedule'); setMsg(null);
+    const ids = targets.map((t) => t.id);
+    const res = await callAction(() => editingId
+      ? updateReleaseSchedule({ id: editingId, sendAt: sendAtIso, employeeIds: ids, content })
+      : scheduleReleaseEmail({ periodId: period.id, sendAt: sendAtIso, employeeIds: ids, content }));
+    setBusy(null);
+    setMsg(res.ok ? { ok: true, text: res.msg } : { ok: false, text: res.error });
+    if (res.ok) { setEditingId(null); setMode('now'); setPicked(null); setOnlyUnsent(true); router.refresh(); }
+  }
+
+  async function cancelSchedule(id: string) {
+    setBusy('schedule'); setMsg(null);
+    const res = await callAction(() => cancelReleaseSchedule({ id }));
+    setBusy(null);
+    setMsg(res.ok ? { ok: true, text: res.msg } : { ok: false, text: res.error });
+    if (res.ok) { setEditingId(null); setMode('now'); setPicked(null); router.refresh(); }
   }
 
   async function upload(key: ReleaseImageKey, file: File) {
@@ -158,6 +209,33 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
         <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
           {/* Kiri: penerima, gambar, isian kuartal */}
           <div className="space-y-4">
+            {!single && active && (
+              <section className="rounded-panel border border-brand/30 bg-brand-tint p-3 text-[12.5px] text-ink-soft space-y-1.5">
+                <p className="font-semibold text-brand-ink">
+                  {activeLocked ? 'Sedang dikirim terjadwal' : 'Terjadwal'}: {fmtScheduleWib(active.sendAt)}
+                </p>
+                <p>
+                  <span className="data-value">{active.recipientIds.length}</span> pegawai
+                  {activeLocked && <> · <span className="data-value">{active.sentIds.length}</span> sudah terkirim</>}
+                  {' '}· dibuat oleh {active.createdByName ?? 'HRD'}
+                </p>
+                {!activeLocked && !editingId && (
+                  <div className="flex gap-4">
+                    <button type="button" onClick={() => startEdit(active)} disabled={!!busy}
+                      className="font-semibold text-brand-ink hover:underline disabled:opacity-50">Lihat / ubah jadwal</button>
+                    <button type="button" onClick={() => cancelSchedule(active.id)} disabled={!!busy}
+                      className="font-semibold text-danger-ink hover:underline disabled:opacity-50">Batalkan jadwal</button>
+                  </div>
+                )}
+                {editingId && (
+                  <p className="font-semibold text-warn-ink">
+                    Sedang mengubah jadwal ini — penerima, isi, dan jam di formulir adalah isi jadwal. Simpan dengan tombol di bawah.
+                  </p>
+                )}
+              </section>
+            )}
+            {!single && !active && schedule.last && <ScheduleResult s={schedule.last} />}
+
             <section className="rounded-panel border border-line bg-neutral-tint p-3 text-[12.5px] text-ink-soft space-y-1.5">
               {single ? (
                 <>
@@ -173,13 +251,31 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
                     <span className="data-value font-semibold text-ink">{ready.length - unsent.length}</span> sudah dikirimi
                   </p>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" checked={onlyUnsent} onChange={() => setOnlyUnsent(true)} className="accent-brand" />
+                    <input type="radio" checked={onlyUnsent} onChange={() => { setOnlyUnsent(true); setPicked(null); }} className="accent-brand" />
                     Hanya yang belum pernah dikirimi (<span className="data-value">{unsent.length}</span>)
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="radio" checked={!onlyUnsent} onChange={() => setOnlyUnsent(false)} className="accent-brand" />
+                    <input type="radio" checked={!onlyUnsent} onChange={() => { setOnlyUnsent(false); setPicked(null); }} className="accent-brand" />
                     Semua yang siap, termasuk kirim ulang (<span className="data-value">{ready.length}</span>)
                   </label>
+                  {base.length > 0 && (
+                    <details>
+                      <summary className="cursor-pointer font-semibold text-ink">
+                        Lihat / pilih penerima (<span className="data-value">{targets.length}</span> dari <span className="data-value">{base.length}</span>)
+                      </summary>
+                      <div className="mt-1.5 max-h-48 space-y-1 overflow-y-auto rounded-control border border-line bg-surface p-2">
+                        {base.map((r) => (
+                          <label key={r.id} className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={picked ? picked.has(r.id) : true} onChange={() => togglePick(r.id)} className="accent-brand" />
+                            <span className="text-ink">{r.name}</span>
+                            <span className="text-ink-faint">· {r.dept}</span>
+                            {r.sent && <span className="text-warn-ink">· sudah dikirimi</span>}
+                          </label>
+                        ))}
+                      </div>
+                      <p className="mt-1 text-[11px] text-ink-faint">Hapus centang untuk menahan pegawai tertentu (dikirimi menyusul).</p>
+                    </details>
+                  )}
                   {noFolder.length > 0 && (
                     <details className="text-warn-ink">
                       <summary className="cursor-pointer font-semibold">
@@ -271,13 +367,56 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
           </div>
         )}
 
+        {!single && (
+          <section className="mt-4 rounded-panel border border-line p-3 text-[12.5px] text-ink-soft">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" checked={mode === 'now'} disabled={!!editingId || !!busy}
+                  onChange={() => { setMode('now'); setConfirming(false); }} className="accent-brand" />
+                Kirim sekarang
+              </label>
+              <label className={`flex items-center gap-2 ${!schedule.ok || (!!active && !editingId) ? 'opacity-50' : 'cursor-pointer'}`}>
+                <input type="radio" checked={mode === 'schedule'} disabled={!schedule.ok || (!!active && !editingId) || !!busy}
+                  onChange={() => { setMode('schedule'); setConfirming(false); }} className="accent-brand" />
+                Jadwalkan
+              </label>
+              {mode === 'schedule' && (
+                <div className="flex items-center gap-2">
+                  <DatePicker value={schedDate} onChange={setSchedDate} ariaLabel="Tanggal kirim" className="w-44" />
+                  <input type="time" value={schedTime} onChange={(e) => setSchedTime(e.target.value)} aria-label="Jam kirim"
+                    className="rounded-control border border-line bg-surface px-2.5 py-1.5 text-[12.5px] text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-tint" />
+                  <span className="font-semibold text-ink">WIB</span>
+                </div>
+              )}
+            </div>
+            {!schedule.ok && <p className="mt-1.5 text-ink-faint">Jadwal belum aktif — perubahan database 0053 belum dijalankan.</p>}
+            {schedule.ok && active && !editingId && <p className="mt-1.5 text-ink-faint">Sudah ada jadwal aktif (di atas) — ubah atau batalkan dulu untuk membuat jadwal baru.</p>}
+            {mode === 'schedule' && (
+              <p className="mt-1.5 text-ink-faint">
+                Penerima dan isi email di atas <strong>dikunci</strong> bersama jadwal. Email terkirim mulai jam itu sampai ±30 menit
+                sesudahnya. Jadwal bisa diubah atau dibatalkan sebelum mulai terkirim. Saat jam tiba, yang laporannya sudah tidak Final,
+                foldernya kosong, atau sudah pernah dikirimi akan dilewati.
+              </p>
+            )}
+          </section>
+        )}
+
         <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
           {progress && (
             <span className="mr-auto text-[12px] text-ink-soft">
               Mengirim… <span className="data-value">{progress.done}/{progress.total}</span>
             </span>
           )}
-          {confirming ? (
+          {confirming && mode === 'schedule' && !single ? (
+            <>
+              <span className="mr-auto text-[12.5px] font-semibold text-ink">
+                {editingId ? 'Simpan perubahan: kirim' : 'Jadwalkan email'} ke <span className="data-value">{targets.length}</span> pegawai
+                pada {sendAtIso ? fmtScheduleWib(sendAtIso) : '—'}?
+              </span>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setConfirming(false)}>Batal</Button>
+              <Button type="button" size="sm" onClick={saveSchedule}>{editingId ? 'Ya, simpan' : 'Ya, jadwalkan'}</Button>
+            </>
+          ) : confirming ? (
             <>
               <span className="mr-auto text-[12.5px] font-semibold text-ink">
                 {single ? <>Kirim email ke {single.name} sekarang?</> : <>Kirim email ke <span className="data-value">{targets.length}</span> pegawai sekarang?</>}
@@ -287,17 +426,56 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
             </>
           ) : (
             <>
+              {editingId && (
+                <Button type="button" variant="ghost" size="sm" disabled={!!busy}
+                  onClick={() => { setEditingId(null); setMode('now'); setPicked(null); setOnlyUnsent(true); setMsg(null); }}>
+                  Batal ubah
+                </Button>
+              )}
               <Button type="button" variant="ghost" size="sm" onClick={sendTest} disabled={!!busy}>
                 {busy === 'test' ? 'Mengirim uji…' : 'Kirim Uji ke Email Saya'}
               </Button>
-              <Button type="button" size="sm" onClick={() => setConfirming(true)} disabled={!!busy || targets.length === 0}>
-                {busy === 'send' ? 'Mengirim…' : single ? `Kirim ke ${single.name}` : `Kirim ke ${targets.length} pegawai`}
-              </Button>
+              {mode === 'schedule' && !single ? (
+                <Button type="button" size="sm" onClick={() => setConfirming(true)} disabled={!!busy || targets.length === 0 || !sendAtIso}>
+                  {busy === 'schedule' ? 'Menyimpan…' : editingId ? 'Simpan perubahan jadwal' : `Jadwalkan ke ${targets.length} pegawai`}
+                </Button>
+              ) : (
+                <Button type="button" size="sm" onClick={() => setConfirming(true)} disabled={!!busy || targets.length === 0}>
+                  {busy === 'send' ? 'Mengirim…' : single ? `Kirim ke ${single.name}` : `Kirim ke ${targets.length} pegawai`}
+                </Button>
+              )}
             </>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+/** Validasi jam kirim terhadap waktu SEKARANG (dipanggil di handler klik, bukan saat render). */
+function sendAtErrorNow(iso: string): string | null {
+  return sendAtError(iso, Date.now());
+}
+
+/** Hasil jadwal terakhir yang sudah selesai: jumlah terkirim/dilewati/gagal + nama & alasan. */
+function ScheduleResult({ s }: { s: ReleaseSchedule }) {
+  const problems = [...s.failed.map((f) => `${f.name}: gagal — ${f.reason}`), ...s.skipped.map((x) => `${x.name}: dilewati — ${x.reason}`)];
+  return (
+    <section className="rounded-panel border border-line bg-neutral-tint p-3 text-[12.5px] text-ink-soft space-y-1">
+      <p className="font-semibold text-ink">Jadwal terakhir ({fmtScheduleWib(s.sendAt)}) selesai</p>
+      <p>
+        <span className="data-value font-semibold text-brand-ink">{s.sentIds.length}</span> terkirim ·{' '}
+        <span className="data-value font-semibold text-warn-ink">{s.skipped.length}</span> dilewati ·{' '}
+        <span className="data-value font-semibold text-danger-ink">{s.failed.length}</span> gagal
+      </p>
+      {problems.length > 0 && (
+        <details>
+          <summary className="cursor-pointer font-semibold">Lihat yang tidak terkirim</summary>
+          <ul className="mt-1 list-disc pl-5">{problems.map((p, i) => <li key={i}>{p}</li>)}</ul>
+          <p className="mt-1 text-[11px] text-ink-faint">Perbaiki penyebabnya (mis. isi Folder Laporan), lalu kirim manual atau buat jadwal baru.</p>
+        </details>
+      )}
+    </section>
   );
 }
 

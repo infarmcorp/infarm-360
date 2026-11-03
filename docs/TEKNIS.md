@@ -10,7 +10,7 @@ Status & pekerjaan terbuka di [RENCANA.md](RENCANA.md). Riwayat di [CHANGELOG.md
 3. [Aktivasi fitur dorman & Mode Maintenance](#3-aktivasi-fitur-dorman--mode-maintenance)
 4. [Rumus skor & klasifikasi](#4-rumus-skor--klasifikasi)
 5. [Manajemen Akses — model & penegakan](#5-manajemen-akses--model--penegakan)
-6. [Daftar migrasi 0001–0052](#6-daftar-migrasi-00010052)
+6. [Daftar migrasi 0001–0053](#6-daftar-migrasi-00010053)
 7. [Pengujian](#7-pengujian)
 8. [Backup & restore](#8-backup--restore)
 9. [PDF panduan in-app](#9-pdf-panduan-in-app)
@@ -114,7 +114,8 @@ Semua di Vercel Dashboard (jangan commit). Hanya `NEXT_PUBLIC_*` yang boleh samp
 | `ONBOARDING_GMAIL_ONLY` | server | `'false'` = undangan ke semua domain. Default: hanya `@gmail.com` (alamat lain dilewati **tanpa** mengubah sandi) |
 | `EDGE_CONFIG` | server | diisi **otomatis** saat Edge Config di-Connect; tempat saklar `maintenance` |
 | `MAINTENANCE_BYPASS_TOKEN` | server, opsional | kode ≥ 16 karakter untuk developer masuk saat maintenance. Kosong/pendek = tak ada yang lolos |
-| `CRON_SECRET` | server | autentikasi Vercel Cron ke `/api/cron/late-penalty`. **Cron dinonaktifkan** — tak dibutuhkan sampai diaktifkan (§3.4) |
+| `CRON_SECRET` | server + secret GitHub | kode rahasia pemanggil `/api/cron/*`. **Wajib** untuk Email Rilis terjadwal (§3.5): nilai sama di Vercel (Production) & secret GitHub. Kosong = semua route cron menolak |
+| `APP_URL` | secret GitHub | alamat production untuk workflow Email Rilis terjadwal (§3.5), tanpa `/` di akhir |
 | `VERCEL_ENV` · `VERCEL_PROJECT_PRODUCTION_URL` | otomatis Vercel | `VERCEL_ENV=production` = satu-satunya kondisi maintenance ditegakkan |
 | `BACKUP_PASSPHRASE` | secret GitHub | kata sandi enkripsi backup harian (§8.2) |
 | `ALLOW_PROD`, `VU`, dll. | skrip uji beban | lihat §7.5 |
@@ -192,6 +193,32 @@ Route `app/api/cron/late-penalty/route.ts` memanggil `refreshLatePenalties` (han
 Gantinya: potongan diterapkan otomatis saat HRD membuka Flag Kepatuhan / Review & Finalisasi dan sebelum
 `computeFinal` (simpan/rilis/finalisasi); cadangan tombol "Terapkan Potongan ke Skor 360°".
 **Aktifkan lagi:** buat ulang `vercel.json` berisi cron `late-penalty` + set `CRON_SECRET`.
+Catatan: `/api/cron/` kini dikecualikan dari cek sesi (`lib/supabase/middleware.ts`), jadi route ini juga
+benar-benar bisa dipanggil penjadwal (dulu akan dibelokkan ke /login).
+
+### 3.5 Email Rilis terjadwal (GitHub Actions, migrasi 0053)
+HRD menjadwalkan Email Rilis di dialog langkah ③ (penerima & isi dikunci bersama jadwal; `release_email_schedules`).
+Pengirim = route `app/api/cron/release-email/route.ts` → `processDueReleaseSchedules` (`lib/release-schedule.ts`):
+klaim atomik `scheduled → sending`, kirim ≤ 25 pegawai per panggilan lewat inti yang sama dengan tombol manual
+(`lib/release-delivery.ts`), sisanya panggilan berikutnya; `sending` macet > 15 menit diambil ulang; tiap tahap
+dicatat ke `hrd_audit_log` (`laporan.release_email`, `meta.sent_ids`) → tak ada kiriman ganda. Pemicu =
+`.github/workflows/release-email-cron.yml` tiap 10 menit (GitHub bisa telat 5–30 menit; paket Vercel Hobby tak
+mendukung cron per menit). Route menolak tanpa `Authorization: Bearer $CRON_SECRET` (gagal tertutup).
+
+**Aktivasi (sekali):**
+1. Jalankan migrasi **0053** di staging lalu production; cek `scripts/check-migrations.sql`.
+2. Buat kode acak ≥ 32 karakter (mis. PowerShell:
+   `-join ((48..57)+(65..90)+(97..122) | Get-Random -Count 40 | % {[char]$_})`).
+3. Vercel → Settings → Environment Variables → `CRON_SECRET` = kode itu, scope **Production** (dan **Preview**
+   bila ingin menguji jadwal di Preview) → **Redeploy**.
+4. GitHub → repo → Settings → Secrets and variables → Actions → **New repository secret**: `CRON_SECRET` (kode
+   yang sama) dan `APP_URL` (alamat production, tanpa `/` di akhir).
+5. Uji: tab **Actions** → **Email Rilis Terjadwal** → **Run workflow** → log berisi `{"ok":true,...}`. `401` =
+   kode beda/belum Redeploy; `{"ok":false,"error":"... 0053"}` = migrasi belum dijalankan.
+
+Tanpa langkah 2–4 HRD tetap bisa membuat jadwal, tetapi email tidak terkirim (jadwal tetap "Terjadwal"). Uji di
+staging tanpa GitHub: jalankan lokal (`npm run dev`, `.env.local` staging + `CRON_SECRET`), buat jadwal 5 menit
+ke depan, lalu panggil `curl -H "Authorization: Bearer <kode>" http://localhost:3000/api/cron/release-email`.
 
 ---
 
@@ -338,7 +365,7 @@ hanya HRD berakses penuh; tak ada yang bisa mengubah izin dirinya sendiri (trigg
 
 ---
 
-## 6. Daftar migrasi 0001–0052
+## 6. Daftar migrasi 0001–0053
 
 Status penerapan per DB → `scripts/check-migrations.sql`.
 
@@ -394,6 +421,7 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0050 | tabel `employee_report_folders` (Folder Laporan Drive per pegawai; baca `is_hrd()`, tulis `hrd_can('pegawai')`; pegawai membaca miliknya via service_role di Laporan Hasil Saya hanya bila punya laporan Final; app menampilkan "belum aktif"/"PDF belum tersedia" bila tabel belum ada) |
 | 0051 | bucket Storage `email-assets` (publik baca, 2 MB, JPG/PNG/WebP) untuk gambar Email Rilis Laporan per periode (`release/<period_id>/<kunci>.<ext>`); tulis/hapus hanya Server Action via service_role; tanpa bucket, dialog menampilkan "penyimpanan gambar belum aktif" dan email terkirim tanpa gambar |
 | 0052 | tabel `final_report_history` + trigger `trg_final_reports_history` (after insert/update `final_reports`): catat tiap perubahan `spv_acc`/`status`/`final_score` (lama→baru, waktu, `auth.uid()`; NULL untuk service_role → app melengkapi dari `hrd_audit_log` ±15 detik, `lib/report-history.ts`); baca `is_hrd()`, tanpa policy tulis (append-only); snapshot awal saat migrasi. Dipakai panel Riwayat Laporan & tooltip ACC; tanpa tabel → panel "belum aktif" |
+| 0053 | tabel `release_email_schedules` (jadwal Email Rilis: `send_at`, `content`, `recipient_ids` terkunci, `status` scheduled/sending/done/cancelled, hasil `sent_ids`/`skipped`/`failed`); unik satu jadwal aktif per periode; baca `is_hrd()`, tulis hanya service_role (Server Action & route cron, §3.5). Tanpa tabel → pilihan Jadwalkan "belum aktif", kirim manual tak terpengaruh |
 
 ---
 
@@ -585,7 +613,7 @@ Akun Saya. Pemetaan peran → file di `lib/panduan.ts` (sumber tunggal; nama tam
 |---|---|
 | `seed.ts` / `seed-data.ts` | seed idempoten (roster = `lib/auth/demo-users.ts`) |
 | `apply-migration.mjs` | terapkan satu file migrasi (`SUPABASE_DB_URL`) |
-| `check-migrations.sql` | cek migrasi 0001–0052 yang terpasang di sebuah DB |
+| `check-migrations.sql` | cek migrasi 0001–0053 yang terpasang di sebuah DB |
 | `backup.mjs` · `restore.mjs` · `backup-to-excel.mjs` | §8 |
 | `verify-rls.ts` | §7.2 |
 | `import-360-backfill.mjs` | impor skor 360° eksternal (dry-run default; `--apply`, `--create-missing`, `--period=`); CSV `BACKFILL-*.csv` di-gitignore |

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { colPercents } from '@/lib/table-cols';
 import { StableHeight } from '@/components/table-controls';
 import Link from 'next/link';
@@ -48,8 +48,12 @@ const PLAYER_SHORT: Record<PlayerClass, string> = { A: 'A', B_CULTURE: 'B-Cul', 
 // HRD Review (BR-11): KPI atau 360° kosong → warna peringatan (warn), bukan warna kelas.
 const playerColor = (p: PlayerClass) => p === 'HRD_REVIEW' ? '#B45309' : PLAYER_BOXES.find((b) => b.key === p)?.color ?? '#6b7280';
 
-/** Badge kategori 4-Box (KPI×360). */
-function PlayerBadge({ p }: { p: PlayerClass | null }) {
+/** Badge kategori 4-Box (KPI×360). KPI "belum terbaca" tak diklasifikasi — selaras Dashboard. */
+function PlayerBadge({ p, unread }: { p: PlayerClass | null; unread?: boolean }) {
+  if (unread) return (
+    <span title="KPI baru 1 dari 3 bulan kuartal terisi — tidak diklasifikasi"
+      className="text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap bg-neutral-tint text-ink-soft">Belum Terbaca</span>
+  );
   if (!p) return <span className="text-[10px] text-ink-faint">—</span>;
   const c = playerColor(p);
   return (
@@ -107,7 +111,7 @@ export function TeamTable({
       (r) => r.name.toLowerCase().includes(term) || (r.nickname ?? '').toLowerCase().includes(term) || (r.dept ?? '').toLowerCase().includes(term),
     );
   }, [q, rows]);
-  useEffect(() => { setPage(0); }, [q]);
+  // Halaman kembali ke awal saat kata cari berubah — di handler input (bukan effect, yang memicu render berantai).
 
   // Paginasi sisi-klien (opsional): potong hasil terfilter ke halaman aktif.
   const pageCount = pageSize ? Math.max(1, Math.ceil(filtered.length / pageSize)) : 1;
@@ -123,7 +127,7 @@ export function TeamTable({
           <input
             type="search"
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => { setQ(e.target.value); setPage(0); }}
             placeholder="Cari nama pegawai…"
             aria-label="Cari nama pegawai"
             className="w-full sm:max-w-xs rounded-control border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-tint"
@@ -133,7 +137,7 @@ export function TeamTable({
 
       <StableHeight>
       {filtered.length === 0 ? (
-        <p className="text-sm text-ink-soft">Tidak ada pegawai cocok dengan "{q}".</p>
+        <p className="text-sm text-ink-soft">Tidak ada pegawai cocok dengan &quot;{q}&quot;.</p>
       ) : (
         <div className="overflow-x-auto">
           {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/pencarian (tak bergeser saat paging). */}
@@ -211,7 +215,7 @@ export function TeamTable({
                   <td className="py-3 px-3 text-center data-value font-semibold text-ink">
                     {r.finalScore != null ? fmt2(r.finalScore) : '—'}
                   </td>
-                  <td className="py-3 px-3 text-center"><PlayerBadge p={r.player} /></td>
+                  <td className="py-3 px-3 text-center"><PlayerBadge p={r.player} unread={r.trend === 'unread'} /></td>
                   <td className="py-3 px-3 text-center"><TrendBadge t={r.trend} months={r.kpiMonths} /></td>
                   {showStatus && (
                     <td className="py-3 px-3 text-center">

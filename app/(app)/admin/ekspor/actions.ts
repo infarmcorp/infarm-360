@@ -6,6 +6,13 @@ import { canSection } from '@/lib/auth/roles';
 import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf, playerLabelOf, perfLabelOf } from '@/lib/scoring';
 import { classOf, avg, weightedScore360, effectiveModel, type Groups360, type Model360 } from '@/lib/score360';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
+import { trendOf } from '@/lib/trend';
+import { cookies } from 'next/headers';
+import { outsideNotesForExport } from '@/lib/outside-notes';
+import { tableMissing } from '@/lib/report-folder';
+import { formatDateTimeWib } from '@/lib/datetime';
+import { planTitle, planStatusLabel, ITEM_PROGRESS_LABEL, SESSION_KIND_LABEL, OVERALL_LABEL } from '@/lib/dev-plan';
+import type { PlanRow as DevPlanRow, PlanItemRow as DevItemRow, SessionRow as DevSessionRow } from '@/lib/dev-plan-server';
 
 /**
  * Ekspor dataset untuk olah data lanjutan (HRD). Halaman ini hanya untuk HRD; setelah
@@ -30,6 +37,7 @@ async function requireHrd(): Promise<boolean> {
 }
 
 const KAT = (f: number | null) => perfLabelOf(f);
+const UNREAD_LABEL = 'Belum Terbaca';
 // 2 desimal — selaras tampilan app (round2) & perhitungan manual HRD dari ekspor.
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -155,13 +163,15 @@ async function exportRekapImpl(periodId?: string | null): Promise<ExportResult> 
       // Rumus resmi tunggal (tanpa KPI → 360° saja); laporan FINAL → angka tersimpan (yang dilihat pegawai).
       const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, p.has_360), repBy.get(`${e.id}|${p.id}`));
       const player = playerClassOf(kpiAvg, s360); // s360 sudah null bila 360 nonaktif
+      // KPI "belum terbaca" (1 dari 3 bulan pertama terisi) → tak dikategorikan & tak berkelas, selaras Dashboard.
+      const unread = trendOf([...yms].sort().slice(0, 3).map((ym) => { const a = kpiByCell.get(`${e.id}|${ym}`); return a ? a.s / a.n : null; })) === 'unread';
       rows.push({
         periode: p.label, kode: e.emp_code, nama: e.name, divisi: e.dept,
         kpi_rerata: kpiAvg != null ? r2(kpiAvg) : null, skor_360: s360 != null ? r2(s360) : null,
         // Potongan keterlambatan menilai — SUDAH termasuk di skor_360 (bukan pengurang tambahan).
         potongan_telat_360: p.has_360 ? (lateBy.get(`${e.id}|${p.id}`) ?? 0) : null,
         skor_akhir: final != null ? r2(final) : null,
-        kategori: KAT(final), player: playerLabelOf(player),
+        kategori: unread ? UNREAD_LABEL : KAT(final), player: unread ? UNREAD_LABEL : playerLabelOf(player),
       });
     }
   }
@@ -399,15 +409,18 @@ async function loadWeightOverrides(admin: ReturnType<typeof createAdminClient>, 
  *  - Nilai per kelas = rata-rata skor per-penilai (mean rating ×20 → dibagi 20 utk skala 1–5),
  *    Internal = gabungan Peer+Cross+Bawahan (selaras weightedScore360 2-kelas).
  *  - Nilai 360° (1–5) = weightedScore360 (model/bobot aktif periode) ÷ 20; Self DIKECUALIKAN.
- *  - Skala 100 = weightedScore360 (skor resmi, dihitung fresh dari rating saat ini).
+ *  - Skala 100 = weightedScore360 (dihitung fresh dari rating saat ini, SEBELUM potongan telat).
  * Dihitung LIVE dari rating agar sheet konsisten internal (nilai_360×20 = skala_100) & selaras
  * cara hitung manual HRD — bisa beda dari result_360 tersimpan yang basi sampai "Hitung Ulang".
+ * Karena itu disertakan juga Skor 360° RESMI (result_360.score = yang dipakai Rekap, Dashboard &
+ * laporan; sudah dipotong telat), potongannya, dan selisih (skala_100 − potongan − resmi). Selisih
+ * ≠ 0 = ada penilaian berubah sejak Hitung Ulang terakhir (atau skor hasil impor Q1 — JANGAN Hitung Ulang).
  */
 async function exportSummary360Impl(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
   const admin = createAdminClient();
   // assessments & mappings lintas periode → bisa >1000; ambil penuh. weight_schemes 1/periode (kecil).
-  const [{ data: emps }, { data: periodsAll }, asmts, mapsAll, { data: ws }] = await Promise.all([
+  const [{ data: emps }, { data: periodsAll }, asmts, mapsAll, { data: ws }, r360] = await Promise.all([
     admin.from('employees').select('id, emp_code, name, dept'),
     admin.from('periods').select('id, label, start_date').order('start_date'),
     fetchAllPaged<{ id: string; period_id: string; assessor_id: string; target_id: string }>((from, to) => {
@@ -423,9 +436,15 @@ async function exportSummary360Impl(periodId?: string | null): Promise<ExportRes
     (periodId
       ? admin.from('weight_schemes').select('period_id, model, weights').eq('is_active', true).eq('period_id', periodId)
       : admin.from('weight_schemes').select('period_id, model, weights').eq('is_active', true)),
+    fetchAllPaged<{ employee_id: string; period_id: string; score: number | null; late_penalty: number | null }>((from, to) => {
+      let q = admin.from('result_360').select('employee_id, period_id, score, late_penalty');
+      if (periodId) q = q.eq('period_id', periodId);
+      return q.order('period_id').order('employee_id').range(from, to);
+    }),
   ]);
   const empById = new Map((emps ?? []).map((e) => [e.id, e]));
   const periodLabel = new Map((periodsAll ?? []).map((p) => [p.id, p.label]));
+  const officialBy = new Map(r360.map((r) => [`${r.period_id}|${r.employee_id}`, r]));
   // 2 kelas Q3 2026 dst. → bobot otomatis BR-10 (effectiveModel); bobot khusus pegawai apa adanya.
   const startBy = new Map((periodsAll ?? []).map((p) => [p.id, p.start_date as string]));
   const wsByPeriod = new Map((ws ?? []).map((w) => [w.period_id, { model: effectiveModel(w.model as Model360, startBy.get(w.period_id)), weights: w.weights as WeightValues }]));
@@ -478,6 +497,9 @@ async function exportSummary360Impl(periodId?: string | null): Promise<ExportRes
     const s100 = wsp ? weightedScore360(g, wsp.model, wsp.weights) : null;
     const nilai360 = to5(s100);
     const nilaiSelf = to5(avg(g.self));
+    const off = officialBy.get(key);
+    const resmi = off?.score != null ? Number(off.score) : null;
+    const potongan = off ? Number(off.late_penalty ?? 0) : null;
     rows.push({
       periode: periodLabel.get(c.periodId) ?? '',
       kode: emp.emp_code, nama: emp.name, divisi: emp.dept,
@@ -488,6 +510,9 @@ async function exportSummary360Impl(periodId?: string | null): Promise<ExportRes
       nilai_360: nilai360,
       gap_self_vs_others: nilaiSelf != null && nilai360 != null ? r2(nilaiSelf - nilai360) : null,
       skala_100: s100 != null ? r2(s100) : null,
+      potongan_telat_360: potongan,
+      skor_360_resmi: resmi != null ? r2(resmi) : null,
+      selisih_vs_resmi: s100 != null && resmi != null ? r2(Math.max(0, r2(s100) - (potongan ?? 0)) - resmi) : null,
     });
   }
   rows.sort((a, b) => String(a.periode).localeCompare(String(b.periode)) || String(a.nama).localeCompare(String(b.nama)));
@@ -796,6 +821,8 @@ function periodRangeLabel(label: string, start: string, end: string): string {
  *                      skor tiap aspek budaya, masing-masing + kategori (perfLabelOf, pita PDF).
  *  2. Komentar Aspek — raw komentar per aspek × indikator (rating + komentar + kelas penilai).
  *  3. Komentar Esai  — raw jawaban umpan balik kualitatif per pertanyaan.
+ *  4. Catatan di Luar Pemetaan (0054) — isi catatan per aspek, tanpa relasi/nama/tanggal. Hanya bila pengekspor
+ *     di Mode Admin (aturan baca catatan); bahan bagian "Masukan Lain dari Penilai" di PDF.
  * ANONIM penilai (hanya kelas relasi, tanpa nama); penilaian Self DIKECUALIKAN dari lembar 2–3
  * (selaras raw feedback di Laporan). Angka lembar 1 memakai ekspor resmi yang sama (exportRekap,
  * exportAspectScores) agar identik dengan Rekap/Rekap Aspek.
@@ -935,12 +962,133 @@ async function exportReportMaterialsImpl(periodId?: string | null): Promise<Conf
   komentar.sort(cmp);
   esai.sort(cmp);
 
+  // ── Lembar 4: Catatan di Luar Pemetaan (0054) — hanya HRD di Mode Admin (aturan baca catatan). Isi saja:
+  // tanpa relasi/nama/tanggal (tabel tak menyimpannya). Urut periode → pegawai → aspek → abjad isi.
+  const jar = await cookies();
+  const catatan: Sorted[] = [];
+  const withNotes = jar.get('hrd_mode')?.value === 'admin';
+  if (withNotes) {
+    for (const n of await outsideNotesForExport(admin as unknown as Parameters<typeof outsideNotesForExport>[0], periodId)) {
+      const asp = aspectMeta.get(n.aspect_id);
+      const h = head(n);
+      catatan.push({ key: [h.periode, h.nama, asp?.ord ?? 0, n.body.trim()], row: { ...h, aspek: asp?.name ?? '', catatan: n.body.trim() } });
+    }
+    catatan.sort(cmp);
+  }
+
   return {
     ok: true,
     sheets: [
       { name: 'Skor', rows: skor },
       { name: 'Komentar Aspek', rows: komentar.map((k) => k.row) },
       { name: 'Komentar Esai', rows: esai.map((k) => k.row) },
+      ...(withNotes ? [{ name: 'Catatan di Luar Pemetaan', rows: catatan.map((k) => k.row) }] : []),
+    ],
+  };
+}
+
+/**
+ * Rencana Pengembangan & 1-on-1 (migrasi 0055–0056) — BERNAMA (rencana milik pegawai, bukan data anonim).
+ * Filter periode = periode LAPORAN asal rencana. 3 lembar:
+ *  1. Rencana              — satu baris per prioritas (rencana tanpa prioritas tetap satu baris).
+ *  2. Komentar & Persetujuan — satu baris per rencana: komentar atasan, alasan perbaikan, siapa menyetujui & kapan.
+ *  3. Sesi & Tinjauan      — satu baris per catatan sesi 1-on-1 / tinjauan bulanan HRD (+ kemajuan per prioritas
+ *                            & tanggapan pegawai). Tabel belum ada → lembar kosong.
+ */
+async function exportDevPlansImpl(periodId?: string | null): Promise<ConfigResult> {
+  if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
+  // Pemisahan mode (Rencana Pengembangan): data rencana untuk HRD hanya dari Mode Admin, juga bila dipanggil langsung.
+  if ((await cookies()).get('hrd_mode')?.value !== 'admin') return { ok: false, error: 'Ekspor ini hanya dari Mode Admin' };
+  const admin = createAdminClient();
+  let plans: DevPlanRow[] = [];
+  try {
+    plans = await fetchAllPaged<DevPlanRow>((from, to) => {
+      let q = admin.from('development_plans').select('*');
+      if (periodId) q = q.eq('source_period_id', periodId);
+      return q.order('id').range(from, to);
+    });
+  } catch (e) {
+    if (tableMissing({ message: e instanceof Error ? e.message : '' })) return { ok: false, error: 'Fitur Rencana Pengembangan belum aktif' };
+    throw e;
+  }
+  const planIds = plans.map((p) => p.id);
+  const [{ data: emps }, { data: periodsAll }, items, sessions] = await Promise.all([
+    admin.from('employees').select('id, emp_code, name, dept, role'),
+    admin.from('periods').select('id, label, start_date, end_date'),
+    planIds.length
+      ? fetchAllByIds<DevItemRow>(planIds, (chunk, from, to) => admin.from('development_plan_items').select('*')
+        .in('plan_id', chunk).order('plan_id').order('order_idx').range(from, to))
+      : Promise.resolve([] as DevItemRow[]),
+    planIds.length
+      ? fetchAllByIds<DevSessionRow>(planIds, (chunk, from, to) => admin.from('development_plan_sessions').select('*')
+        .in('plan_id', chunk).order('plan_id').order('session_date').range(from, to)).catch((e: unknown) => {
+          if (tableMissing({ message: e instanceof Error ? e.message : '' })) return [] as DevSessionRow[];
+          throw e;
+        })
+      : Promise.resolve([] as DevSessionRow[]),
+  ]);
+  const empById = new Map((emps ?? []).map((e) => [e.id, e]));
+  const periodById = new Map((periodsAll ?? []).map((p) => [p.id, p]));
+  const planById = new Map(plans.map((p) => [p.id, p]));
+  const itemsBy = new Map<string, DevItemRow[]>();
+  for (const it of items) itemsBy.set(it.plan_id, [...(itemsBy.get(it.plan_id) ?? []), it]);
+  const dt = (v: string | null) => (v ? formatDateTimeWib(v) : '');
+  const head = (p: DevPlanRow) => {
+    const e = empById.get(p.employee_id);
+    const per = periodById.get(p.source_period_id);
+    return {
+      periode_laporan: per ? periodRangeLabel(per.label, per.start_date, per.end_date) : '',
+      rencana: per ? planTitle(per.label) : '',
+      kode: e?.emp_code ?? '', nama: e?.name ?? '', divisi: e?.dept ?? '',
+      status: planStatusLabel(p.status, e?.role ?? null),
+    };
+  };
+  const byName = (a: DevPlanRow, b: DevPlanRow) => {
+    const ha = head(a), hb = head(b);
+    return ha.periode_laporan.localeCompare(hb.periode_laporan) || ha.nama.localeCompare(hb.nama);
+  };
+  const sorted = [...plans].sort(byName);
+
+  const rencana: Row[] = sorted.flatMap((p): Row[] => {
+    const its = itemsBy.get(p.id) ?? [];
+    if (!its.length) return [{ ...head(p), prioritas_ke: null, area: '', target_terukur: '', langkah_aksi: '', tenggat: '', pendamping: '', indikator_berhasil: '' }];
+    return its.map((it, i) => ({
+      ...head(p), prioritas_ke: i + 1, area: it.area, target_terukur: it.target, langkah_aksi: it.actions,
+      tenggat: it.due_text, pendamping: it.companion, indikator_berhasil: it.success_indicator,
+    }));
+  });
+  const persetujuan: Row[] = sorted.map((p) => ({
+    ...head(p),
+    konfirmasi_kinerja: p.sup_confirmation ?? '', konteks_tambahan: p.sup_context ?? '',
+    dukungan_diberikan: p.sup_support ?? '', harapan: p.sup_hope ?? '', alasan_perbaikan: p.revision_reason ?? '',
+    disetujui_pegawai_pada: dt(p.employee_signed_at),
+    disetujui_atasan_oleh: p.supervisor_name ?? '', disetujui_atasan_pada: dt(p.supervisor_signed_at),
+    disetujui_hrd_oleh: p.hrd_name ?? '', disetujui_hrd_pada: dt(p.hrd_signed_at),
+  }));
+  const sesi: Row[] = sessions
+    .filter((s) => planById.has(s.plan_id))
+    .map((s) => {
+      const p = planById.get(s.plan_id)!;
+      const its = itemsBy.get(p.id) ?? [];
+      const progress = (s.item_progress ?? []).map((x) => {
+        const n = its.findIndex((it) => it.id === x.item_id);
+        return `P${n >= 0 ? n + 1 : '?'} ${ITEM_PROGRESS_LABEL[x.status]}${x.note ? `: ${x.note}` : ''}`;
+      }).join('; ');
+      return {
+        ...head(p), jenis: SESSION_KIND_LABEL[s.kind], tanggal_sesi: s.session_date, dicatat_oleh: s.author_name ?? '',
+        status_umum: s.overall_status ? OVERALL_LABEL[s.overall_status] : '', catatan: s.summary,
+        kemajuan_per_prioritas: progress, tanggapan_pegawai: s.employee_note ?? '',
+      };
+    })
+    .sort((a, b) => String(a.periode_laporan).localeCompare(String(b.periode_laporan))
+      || String(a.nama).localeCompare(String(b.nama)) || String(a.tanggal_sesi).localeCompare(String(b.tanggal_sesi)));
+
+  return {
+    ok: true,
+    sheets: [
+      { name: 'Rencana', rows: rencana },
+      { name: 'Komentar & Persetujuan', rows: persetujuan },
+      { name: 'Sesi & Tinjauan', rows: sesi },
     ],
   };
 }
@@ -975,3 +1123,4 @@ export async function exportPeriodConfig(...args: Parameters<typeof exportPeriod
 export async function exportHrdAuditLog(...args: Parameters<typeof exportHrdAuditLogImpl>) { return guarded(() => exportHrdAuditLogImpl(...args)); }
 export async function exportMappings(...args: Parameters<typeof exportMappingsImpl>) { return guarded(() => exportMappingsImpl(...args)); }
 export async function exportReportMaterials(...args: Parameters<typeof exportReportMaterialsImpl>) { return guarded(() => exportReportMaterialsImpl(...args)); }
+export async function exportDevPlans(...args: Parameters<typeof exportDevPlansImpl>) { return guarded(() => exportDevPlansImpl(...args)); }

@@ -1,7 +1,7 @@
-# Uji Rilis Q3 2026 — daftar centang sebelum `dev` → `main`
+# Uji Rilis Q3 2026 — daftar centang rilis `dev` → `main`
 
-> **File sementara.** Dipakai sekali untuk rilis setelah Q3 difinalisasi (±20 Oktober 2026). Hapus setelah
-> rilis selesai dan hasilnya dicatat di [CHANGELOG.md](CHANGELOG.md).
+> **File sementara.** Rilis Q3 **sudah di production sejak 2026-10-16** (PR #35). Hapus file ini setelah bagian
+> 16–21 selesai diuji dan hasilnya dicatat di [CHANGELOG.md](CHANGELOG.md).
 
 Isi rilis ini: perbaikan audit **gelombang 1**, **gelombang 2**, dan **gelombang 2b** (termasuk **kunci laporan
 Final**), nama penilai tak terkirim di tampilan HRD, Mode Maintenance, layar Review Penilaian, filter Divisi, dan
@@ -9,9 +9,9 @@ PDF panduan (apa adanya), ditambah perubahan database 0048 dan 0049. Fitur 13–
 
 **Cara pakai**
 - Bagian 0–15 dijalankan **2026-10-15** di **URL Preview `dev`** (53 lulus, 0 gagal).
-- Bagian **16–21** (tambahan 2026-10-16) dijalankan di **URL Preview branch `release/q3-2026`**, yaitu kode yang
-  benar-benar akan dirilis (gabungan `main` + `dev`). Preview memakai **database staging** (langkah 0.2) — jangan
-  pernah menjalankan langkah bertanda ✏️ di production.
+- Bagian **16–21** (tambahan 2026-10-16) dijalankan di **URL Preview `dev`**. Setelah rilis dan sinkron, isi `dev`
+  sama dengan production, tetapi Preview memakai **database staging** (langkah 0.2). Langkah tanpa ✏️ boleh
+  dicek langsung di production; langkah bertanda ✏️ **jangan pernah** dijalankan di production.
 - ✏️ = langkah **mengubah data**. Pakai **pegawai uji**, bukan orang sungguhan. Kembalikan seperti semula
   setelah selesai (bagian 22).
 - Centang `[x]` tiap langkah yang lulus. Bila gagal, tulis catatan singkat di bawah langkahnya.
@@ -156,7 +156,7 @@ Pakai **pegawai uji A**.
 
 ---
 
-**Tambahan 2026-10-16 — jalankan di URL Preview `release/q3-2026`.**
+**Tambahan 2026-10-16 — jalankan di URL Preview `dev` (database staging).**
 
 ## 16. Nama penilai tidak terkirim di tampilan HRD (anonimitas, butir A)
 Cari dulu nama 1–2 penilai pegawai uji A di **Pemetaan** (satu-satunya tempat siapa-menilai-siapa tampil).
@@ -218,6 +218,7 @@ Pakai **akun penilai uji** dan penilaian untuk **pegawai uji yang belum Final**.
 ## 22. Penutup
 - [ ] ✏️ Kembalikan data uji (bagian 16–21): buka kembali/finalisasi ulang seperlunya, penilaian & ACC ke semula.
 - [ ] Catat hasil bagian 16–21 di file ini.
-- [ ] Saat rilis: merge PR rilis → jalankan **0048** lalu **0049** di **production** (cara sama dengan 0.1, lalu
-      `scripts/check-migrations.sql`) → kirim [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md) ke HRD.
-- [ ] Setelah merge: buat PR **sinkron `main` → `dev`**.
+- [x] Rilis: PR rilis di-merge (#35, 2026-10-16); **0048** & **0049** terpasang di production
+      (`scripts/check-migrations.sql` semua `true`).
+- [ ] Kirim [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md) ke HRD.
+- [x] PR **sinkron `main` → `dev`** dibuat setelah merge.

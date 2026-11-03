@@ -141,6 +141,29 @@ Bila disetujui, rekan itu masuk daftar sebagai **Opsional** berlabel **"Ajuan ·
 sendiri yang meminta, mulai Q3 2026 penilaian ini wajib dikirim sebelum deadline. Panel **Permohonan Saya**
 menampilkan semua pengajuan (koreksi, hapus, tambah) beserta status dan alasan penolakan HRD.
 
+**Tab Pengajuan — Catatan di Luar Pemetaan** (mulai Q4 2026)
+Kartu ini ada di samping kartu "Menambah Rekan yang Anda Nilai" (di HP: di bawahnya). Gunanya: memberi tahu HRD
+tentang kejadian atau informasi mengenai rekan yang **tidak ada** di daftar penilaian Anda, tanpa memberi nilai.
+1. Klik **Tulis Catatan**.
+2. Pilih rekan (pegawai aktif, bukan Direksi, bukan penilai eksternal, bukan Anda sendiri, dan belum ada di
+   daftar penilaian Anda).
+3. Pilih **satu aspek budaya** yang paling sesuai. Pilihannya mengikuti aspek periode berjalan.
+4. Tulis isinya, minimal 20 karakter. Penghitung karakter ada di bawah kotak. Hanya teks, tanpa lampiran.
+5. Klik **Kirim Catatan**. Muncul "Catatan terkirim ke HRD" dengan tombol **Tutup** dan **Tulis Catatan Lain**.
+
+Yang perlu diketahui:
+- **Nama Anda tidak ikut tersimpan**, begitu juga waktu kirimnya. Hanya HRD yang membaca catatan ini. Hindari
+  menulis detail yang bisa menunjukkan siapa Anda.
+- Catatan **tanpa nilai** dan **tidak memengaruhi** Skor 360°, Skor Akhir, maupun hitungan "X dari Y" penilaian
+  wajib Anda. Tidak ada potongan keterlambatan untuk fitur ini.
+- Catatan **tidak bisa diubah atau dihapus** setelah dikirim. Anda boleh mengirim lebih dari satu catatan.
+- Catatan **tidak muncul** di Permohonan Saya atau di mana pun untuk Anda, karena tidak tersimpan dengan nama Anda.
+- Bisa dikirim selama HRD membuka form penilaian, termasuk sesudah deadline. Saat masa tinjau pemetaan atau saat
+  form ditutup, kartu hanya berisi penjelasan.
+- Untuk rekan yang **sudah** ada di daftar Anda, sampaikan lewat formulir penilaiannya. Catatan ini bukan pengganti
+  **Ajukan Penilaian** dan bukan penilaian Ad-Hoc.
+- Penilai eksternal (vendor/freelance) belum bisa memakai fitur ini.
+
 ### 2.2 Formulir penilaian (Mulai Nilai)
 - **Panduan Penilaian Umum** (bisa dibuka/tutup) berlaku untuk semua soal.
 - **Rail aspek** di kiri (di HP jadi strip yang bisa digeser) menampilkan progres tiap aspek (✓ bila lengkap).
@@ -150,6 +173,8 @@ menampilkan semua pengajuan (koreksi, hapus, tambah) beserta status dan alasan p
   paling kuat. Nilai berdasarkan perilaku nyata selama periode ini, bukan kedekatan pribadi.
 - Pilih chip **Q1…Qn**, beri nilai **1–5** (di HP tampil "Pilihan Anda: N"), lalu tulis **Komentar / Bukti
   Perilaku (evidence) minimal 20 karakter** (penghitung karakter di bawah kotak). **Tidak ada pilihan N/A.**
+  Di atas kotak ada sorotan kuning berisi rentang tanggal periode berjalan (mis. "Tulis kejadian selama periode
+  Q4 2026 saja: 01 Okt 2026 – 31 Des 2026."). Tulis hanya kejadian dalam rentang itu.
 - **Bar progres** mencakup indikator dan esai (mis. 13/13).
 - **Tersimpan otomatis** (hanya selama penilaian belum dikirim): jawaban tersimpan sekitar 5 detik setelah
   berhenti mengetik ("Tersimpan otomatis"). Bisa dilanjutkan dari perangkat mana pun. Bila gagal (tulisan merah
@@ -158,6 +183,11 @@ menampilkan semua pengajuan (koreksi, hapus, tambah) beserta status dan alasan p
   Untuk penilaian terkirim **tidak ada Simpan Draf dan tidak ada simpan otomatis**. Setelah deadline,
   penilaian terkirim terkunci (tombol **Lihat**). Penilaian yang belum terkirim tetap bisa dikirim sesudah
   deadline (tercatat Terlambat), lalu ikut terkunci.
+- **Review Penilaian sebelum kirim.** Bila semua nilai, bukti perilaku, dan esai sudah lengkap, tombol utama
+  berubah menjadi **Review Penilaian**. Layar Review menampilkan ringkasan semua jawaban per aspek (nilai dan key
+  point; klik baris untuk melihat bukti perilakunya) serta jawaban esai. Rata-rata skor tidak ditampilkan. Tekan
+  **Edit** pada baris mana pun untuk kembali ke pertanyaan itu, atau **Kembali ke Form**. Bila sudah yakin, tekan
+  **Kirim Penilaian 360°** → konfirmasi → tunggu sampai muncul **layar sukses**.
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |
 |---|---|---|---|
@@ -169,7 +199,10 @@ menampilkan semua pengajuan (koreksi, hapus, tambah) beserta status dan alasan p
 | **Buang Draf** | Hapus draf beserta nilai dan komentarnya | Hanya bila ada draf | Ya — "Buang draf penilaian?" |
 | **Batal** | Kembali ke daftar tanpa menyimpan | Selalu | — |
 | **Lengkapi Penilaian (N tersisa)** | Melompat ke bagian yang belum lengkap (nilai, evidence, atau esai) | Bila belum lengkap | — |
-| **Kirim Penilaian 360°** / **Kirim Ulang Penilaian 360°** | Kirim. Kirim Ulang untuk penilaian yang sudah pernah dikirim | Bila lengkap | Ya — "Kirim penilaian untuk <Nama>?" → **Ya, Kirim Sekarang** |
+| **Review Penilaian** | Membuka layar ringkasan semua jawaban sebelum kirim | Bila lengkap | — |
+| **Edit** (di layar Review) | Kembali ke indikator atau esai baris itu | Di layar Review | — |
+| **Kembali ke Form** | Menutup layar Review tanpa mengirim | Di layar Review | — |
+| **Kirim Penilaian 360°** / **Kirim Ulang Penilaian 360°** | Kirim. Kirim Ulang untuk penilaian yang sudah pernah dikirim | Di layar Review | Ya — "Kirim penilaian untuk <Nama>?" → **Ya, Kirim Sekarang** |
 | **Lanjut ke Penilaian Berikutnya** / **Kembali ke Daftar Penilaian** | Setelah layar sukses; menyebut sisa penilaian wajib | Di layar sukses | — |
 
 ### 2.3 Laporan Hasil Saya
@@ -188,12 +221,49 @@ Muncul **hanya setelah HRD memfinalisasi** laporan Anda. Sebelum itu tertulis "b
 
 Komentar asli per penilai **tidak** ditampilkan ke pegawai, demi menjaga kerahasiaan penilai.
 
+### 2.4 Rencana Pengembangan
+Menu **Rencana Pengembangan** (juga tombol **Buka Rencana →** di Laporan Hasil Saya). Rencana ini adalah Rencana
+Pengembangan Individu Anda untuk kuartal **sesudah** laporan: laporan Q3 2026 → **Rencana Pengembangan Q4 2026**.
+- Bisa diisi begitu laporan Anda **Final**, walau periode penilaian di aplikasi sudah berganti. Rencana tetap
+  terbuka sampai HRD menutupnya. Di atas rencana tertulis **Batas rencana disepakati** bila HRD sudah menetapkannya.
+- Isi setelah sesi empat mata dengan atasan. Tiap **prioritas** berisi: Area yang dikembangkan, Target terukur,
+  Langkah aksi, Tenggat, Pendamping, Indikator berhasil. Mulai dari satu prioritas; tambah lewat **+ Tambah
+  Prioritas** atau buang lewat **Hapus prioritas**. Prioritas 1 sebaiknya mengacu pada "Prioritas utama" di
+  bagian Perlu Dikembangkan pada laporan Anda.
+- Atasan Anda tertulis di atas rencana: **koordinator** bila Anda punya koordinator; bila tidak, **SPV** Anda;
+  bila Anda tidak punya keduanya, **HRD**.
+
+| Tombol | Fungsi | Kapan muncul |
+|---|---|---|
+| **Simpan Draf** | Menyimpan isi apa adanya | Status Draf atau Perlu Perbaikan |
+| **Kirim ke Atasan** | Mengirim rencana; sekaligus menjadi **persetujuan Anda** (nama dan waktu tercatat). Semua prioritas wajib lengkap | Status Draf atau Perlu Perbaikan |
+| **Tarik Kembali** | Mengembalikan rencana ke Draf, mis. untuk menambah prioritas; persetujuan Anda batal dan rencana perlu dikirim lagi | Hanya selama **Menunggu Atasan** |
+
+**Status:** **Belum diisi** → **Draf** → **Menunggu Atasan** → **Menunggu HRD** → **Disepakati** (terkunci). Bila
+atasan menekan **Minta Perbaikan**, status menjadi **Perlu Perbaikan** dengan alasannya di kotak merah; perbaiki
+lalu kirim lagi. Setelah dikirim, isi tidak bisa diubah kecuali Anda menekan **Tarik Kembali** (selama atasan
+belum memutuskan) atau atasan meminta perbaikan. **Setelah atasan menyetujui, rencana tidak bisa ditarik atau dibuka
+kembali oleh siapa pun**; perubahan di tengah kuartal dicatat lewat catatan Sesi 1-on-1. Belum yakin? Simpan sebagai
+Draf dulu sampai semua prioritas lengkap. Di bawah rencana tampil **Komentar Atasan Langsung** dan kotak **Persetujuan** (Pegawai · Atasan · HRD).
+Rencana tidak memengaruhi skor atau laporan Anda.
+
+**Catatan Sesi & Tinjauan** (setelah rencana **Disepakati**). Di bawah rencana, atasan mencatat setiap **Sesi 1-on-1**
+(tanggal, catatan, status umum Sesuai rencana/Tertinggal, dan kemajuan tiap prioritas: Berjalan/Tertinggal/Selesai), dan
+HRD mencatat **Tinjauan Bulanan HRD**. Pada tiap sesi 1-on-1 Anda bisa menekan **Tulis tanggapan** untuk menambahkan
+pendapat Anda; tanggapan bisa diubah lewat **Ubah tanggapan**. Catatan yang belum Anda tanggapi muncul di Tugas &
+Notifikasi. Aplikasi hanya mencatat: tidak ada penanda terlambat.
+
 ---
 
 ## 3. Supervisor (SPV)
 
 SPV memakai semua menu Pegawai, ditambah menu di bawah ini. HRD yang sedang di **Mode SPV** mendapat
 pengalaman yang sama persis, dengan lingkup pegawai sedivisinya (termasuk dirinya).
+
+SPV juga bisa menulis **Catatan di Luar Pemetaan** di tab Pengajuan pada Daftar Penilaian Saya: catatan tanpa
+nilai kepada HRD tentang rekan yang tidak ada di daftar penilaian SPV. Nama pengirim tidak tersimpan. Catatan
+yang ditulis orang lain tentang anggota tim **tidak** tampil di Laporan Kinerja Tim maupun Monitor; hanya HRD di
+Mode Admin yang membacanya.
 
 ### 3.1 Input KPI Anggota (bulanan)
 - Daftar berisi anggota tim **dan SPV sendiri**. SPV hanya bisa menulis KPI timnya dan dirinya, bukan KPI tim SPV lain.
@@ -203,6 +273,11 @@ pengalaman yang sama persis, dengan lingkup pegawai sedivisinya (termasuk diriny
 - Kosongkan bila pegawai belum punya capaian. **Angka 0 dihitung sebagai nilai sungguhan.**
 - Ketikan yang belum disimpan aman walau halaman ter-refresh, tetapi baru masuk sistem setelah **Simpan Semua Skor**.
 - KPI penilai eksternal tidak bisa diisi.
+- **Laporan Final mengunci KPI.** Bila laporan kuartal seorang pegawai sudah **Final**, KPI-nya pada bulan-bulan
+  kuartal itu tidak bisa diisi, diubah, diimpor, atau dihapus: "Laporan [nama] sudah Final. Buka Kembali
+  laporannya dulu untuk mengubah data ini." Bila di antara pegawai yang disimpan ada **satu saja** yang Final,
+  **seluruh** simpanan ditolak. Simpan tanpa pegawai itu, atau minta HRD menekan **Buka Kembali (ke Draf)** pada
+  laporannya dulu.
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |
 |---|---|---|---|
@@ -260,6 +335,31 @@ belum bisa dihitung tertulis **"No Score"**. Pegawai dengan KPI atau 360° koson
   untuk menyaring peta warna).
 - Skor Akhir memakai rumus resmi tunggal; laporan Final memakai angka tersimpan.
 
+### 3.6 Rencana Pengembangan tim
+Menu **Rencana Pengembangan** → tab **Tim Saya**. Tab ini juga berlaku untuk HRD yang sedang di **Mode SPV**. HRD yang
+menjadi SPV tim hanya bisa berkomentar, menyetujui, dan mencatat Sesi 1-on-1 dari **Mode SPV**; di Mode Admin rencana
+timnya hanya bisa dilihat lewat Pantauan.
+- Daftar berisi anggota tim yang laporannya sudah **Final** pada periode terpilih, dengan status rencananya.
+  Kolom **Peran Anda**: **Atasan** (Anda yang berkomentar dan menyetujui) atau **Hanya melihat** (anggota yang
+  punya koordinator; koordinatornya yang berkomentar dan menyetujui).
+- Anda juga menjadi atasan bagi **koordinator** di tim Anda.
+- Klik **Buka** untuk melihat rencana. Saat statusnya **Menunggu Atasan**, isi **Komentar Atasan Langsung** setelah
+  sesi empat mata: **Konfirmasi Kinerja** dan **Dukungan yang Diberikan** wajib; **Konteks Tambahan** dan
+  **Harapan ke Depan** opsional.
+
+| Tombol | Fungsi |
+|---|---|
+| **Setujui** | Menyimpan komentar dan memberi persetujuan Anda (nama dan waktu tercatat); rencana lanjut ke HRD |
+| **Minta Perbaikan** → **Kirim Permintaan Perbaikan** | Mengembalikan rencana ke pegawai dengan alasan (wajib); persetujuan pegawai batal dan pegawai mengirim ulang |
+
+**Catatan sesi 1-on-1.** Setelah rencana anggota **Disepakati**, buka rencananya lalu tekan **Catat Sesi 1-on-1** setiap
+selesai sesi: isi **Tanggal sesi**, **Status umum** (Sesuai rencana / Tertinggal), **Catatan sesi**, dan **Kemajuan per
+prioritas** (Berjalan / Tertinggal / Selesai + catatan singkat), lalu **Simpan Catatan**. Catatan Anda sendiri bisa
+**Ubah** atau **Hapus**; catatan orang lain tidak. Pegawai bisa menambahkan tanggapan di tiap sesi. Aplikasi hanya
+mencatat, tanpa penanda terlambat.
+
+Rencana pengembangan **Anda sendiri** ada di tab **Rencana Saya** dan dikomentari serta disetujui **Direksi**.
+
 ---
 
 ## 4. Koordinator & akses tambahan dari HRD
@@ -269,12 +369,24 @@ Koordinator adalah pegawai yang diberi tugas oleh HRD membina beberapa rekan sec
 tetap langsung di bawah SPV. Koordinator tetap pegawai biasa: bukan HRD, bukan SPV, dan **tidak dihitung
 sebagai "Atasan"** dalam bobot 360°. Menu ada di grup **"Menu Koordinator"**, khusus pegawai binaannya:
 - **Laporan Kinerja Tim** — sama seperti SPV, termasuk detail setelah rilis HRD dan **Beri ACC**.
-- **Input KPI Anggota** (tab Input saja) — aturan sama dengan SPV; tercatat atas nama koordinator.
+- **Input KPI Anggota** (tab Input saja) — aturan sama dengan SPV; tercatat atas nama koordinator. Bila laporan
+  kuartal seorang binaan sudah **Final**, KPI-nya pada bulan-bulan kuartal itu tidak bisa diisi atau diubah; bila
+  di antara binaan yang disimpan ada satu saja yang Final, **seluruh** simpanan ditolak. Simpan tanpa binaan itu,
+  atau minta HRD menekan **Buka Kembali (ke Draf)** pada laporannya dulu.
 - **Monitor Kinerja** — memantau binaan (tanpa dirinya).
 
 Koordinator **tidak bisa** memfinalisasi laporan, melihat pegawai di luar binaannya, atau mengatur 360°.
 Daftar binaan diatur HRD (Manajemen Akses → **Kelola Tim**) dan harus sedivisi dengan koordinatornya.
 Untuk pegawai berkoordinator, SPV **tidak** lagi meng-ACC maupun menginput KPI.
+
+**Rencana Pengembangan binaan.** Menu **Rencana Pengembangan** → tab **Tim Saya** memuat binaan Anda yang laporannya
+sudah Final. Koordinator adalah **atasan** rencana binaannya: buka rencana yang berstatus **Menunggu Atasan**, isi
+**Komentar Atasan Langsung** (Konfirmasi Kinerja dan Dukungan yang Diberikan wajib; Konteks Tambahan dan Harapan ke
+Depan opsional), lalu tekan **Setujui** (rencana lanjut ke HRD) atau **Minta Perbaikan** dengan alasan (rencana
+kembali ke binaan). SPV binaan Anda hanya bisa melihat. Rencana Anda sendiri ada di tab **Rencana Saya** dan
+disetujui oleh **SPV** Anda. Setelah rencana binaan **Disepakati**, Anda juga yang mencatat **Sesi 1-on-1** (tombol
+**Catat Sesi 1-on-1** di halaman rencananya: tanggal, catatan, status umum, kemajuan per prioritas); binaan bisa
+menanggapi tiap sesi.
 
 ### 4.2 Akses halaman dari HRD
 HRD bisa memberi seseorang akses ke halaman yang **sudah ada** (lihat §5.2). Menu yang diberikan muncul di
@@ -306,6 +418,8 @@ tanpa kehilangan posisi dan timnya. Izin hanya untuk pegawai **divisi HRD**.
   lingkup divisinya).
 - **Mode Admin**: grup **Persiapan Siklus · Pelaksanaan · Hasil & Tindak Lanjut · Pemantauan & Laporan · Administrasi**.
 - Tombol mode hanya mengubah tampilan. Untuk finalisasi, kembali ke Mode Admin.
+- Detail laporan pegawai lain (dari Review & Finalisasi) hanya terbuka di **Mode Admin**. Pemegang izin berposisi
+  Pegawai yang membuka alamatnya di mode posisi asli melihat pesan "hanya tersedia di Mode Admin".
 - Komentar penilai di layar laporan **selalu tanpa nama**, juga bagi HRD. Informasi siapa menilai siapa hanya
   ada di **Pemetaan** dan **Progress 360**.
 
@@ -667,6 +781,26 @@ beres bertanda ✓. Penjelasan lengkap ada di ikon ⓘ di samping judul.
 
 Isian (siklus, tahapan) tersimpan di browser untuk periode itu, jadi tidak perlu diketik ulang saat kirim
 berikutnya. Email tidak memuat skor atau isi laporan.
+
+**Menahan pegawai tertentu.** Buka **Lihat / pilih penerima** di bagian penerima, lalu hapus centang pegawai yang
+belum ingin dikabari. Mereka bisa dikirimi menyusul (ikon ✉ per pegawai, atau jadwal berikutnya).
+
+**SOP — Jadwalkan Email Rilis** (email terkirim sendiri pada tanggal & jam yang diatur):
+1. Siapkan seperti langkah 1–4 di atas (laporan Final, Folder Laporan, gambar, isian, pratinjau, kirim uji).
+2. Periksa daftar penerima (**Lihat / pilih penerima**). Daftar ini **dikunci** bersama jadwal: pegawai yang
+   tidak dicentang tidak akan dikirimi, walau laporannya siap saat jam tiba.
+3. Di bagian bawah dialog pilih **Jadwalkan**, isi **tanggal** dan **jam (WIB)**, klik **Jadwalkan ke N pegawai**
+   → **Ya, jadwalkan**. Jam minimal 5 menit dari sekarang, maksimal 4 bulan ke depan.
+4. Kartu ③ menampilkan **Terjadwal: … · N pegawai**. Email terkirim mulai jam itu sampai **±30 menit
+   sesudahnya**, bertahap. Dialog tidak perlu dibuka.
+5. **Mengubah** (jam, penerima, isi) atau **membatalkan**: buka dialog → **Lihat / ubah jadwal** (lalu **Simpan
+   perubahan jadwal**) atau **Batalkan jadwal**. Hanya bisa selama belum mulai terkirim. Hanya ada **satu**
+   jadwal aktif per periode.
+6. Setelah selesai, dialog menampilkan **Jadwal terakhir … selesai: N terkirim · N dilewati · N gagal** beserta
+   nama dan alasan. Yang dilewati (mis. laporan dibuka kembali, folder kosong, sudah pernah dikirimi) atau gagal
+   bisa dikirimi manual. Setiap pengiriman tercatat di Log Aktivitas dengan nama pembuat jadwal "(terjadwal)".
+
+Isi email yang terkirim = isi **saat dijadwalkan** (atau saat terakhir diubah), bukan isian terbaru di browser.
 - Pintasan **⚖ Atur Bobot** dan **⚑ Flag Kepatuhan**.
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |
@@ -675,6 +809,8 @@ berikutnya. Email tidak memuat skor atau isi laporan.
 | **Perbarui Laporan Final yang Berubah (N)** (langkah ②) | Segarkan angka laporan Final | Bila N > 0 | Ya |
 | **Finalisasi N Laporan** (langkah ②) | Finalisasi semua yang sudah di-ACC & masih Ditinjau | Selalu; saat mati, tulisannya menyebut sebab: "Menunggu ACC (N)", "Masih ada draf (N)", "Laporan belum dibuat (N)", atau "✓ Semua sudah Final" | Ya (+ peringatan bila 360° perlu dihitung) |
 | **Kirim Email Rilis** (langkah ③) | Buka dialog Email Rilis Laporan | Selalu; mati bila belum ada laporan Final | Ya, sebelum kirim |
+| **Kirim sekarang / Jadwalkan** (dialog Email Rilis) | Pilih kirim langsung atau pada tanggal & jam (WIB) | Massal; Jadwalkan mati bila sudah ada jadwal aktif | Ya, sebelum kirim/jadwalkan |
+| **Lihat / ubah jadwal** · **Batalkan jadwal** | Ubah jam, penerima, isi; atau hentikan jadwal | Ada jadwal yang belum mulai terkirim | — |
 | **Atur Bobot** / **Flag Kepatuhan** | Pintasan (tautan kecil) | Kanan bawah kokpit | — |
 | **Impor Ringkasan dari Excel** | Isi ringkasan aspek & kualitatif banyak pegawai sekaligus | Periode dengan 360°; HRD dan penerima akses Meringkas/Finalisasi | Pratinjau dulu |
 | **Tinjau →** | Buka detail laporan | Per baris | — |
@@ -721,6 +857,13 @@ hanya ada untuk periode aktif.
   Perilaku 360°** (ringkasan HRD per aspek) · **Ringkasan Umpan Balik Kualitatif 360°** (per pertanyaan esai) ·
   **Rincian Komentar Murni** (semua nilai dan komentar tanpa nama penilai, per aspek → indikator, tabel
   Rating | Komentar + rerata; esai per pertanyaan; penilaian diri tidak disertakan).
+- **Catatan di Luar Pemetaan** (mulai Q4 2026, hanya di Mode Admin): di Rincian Komentar Murni, kartu tiap aspek
+  bisa memuat blok **"Catatan di Luar Pemetaan · n catatan · tanpa rating · hanya HRD"** setelah semua indikator.
+  Isinya catatan dari pegawai yang tidak memetakan orang ini. Yang tampil hanya isi catatan, tanpa nama,
+  tanggal, hubungan kerja, atau divisi penulis, dan diurutkan menurut abjad (bukan urutan kirim). Aspek tanpa
+  catatan tidak menampilkan blok ini. Catatan tidak memengaruhi angka apa pun, **tidak ikut tercetak** saat Unduh
+  PDF, dan tidak terlihat oleh SPV, Koordinator, Direksi, pemegang akses Review, maupun HRD di Mode SPV. HRD juga
+  melihat catatan tentang dirinya sendiri di laporannya (tetap tanpa nama penulis).
 - Kedua ringkasan **tersimpan otomatis** (sekitar 5 detik setelah berhenti mengetik dan saat pindah kotak),
   dengan status "belum disimpan / menyimpan… / ✓ tersimpan otomatis". Tidak ada tombol simpan manual. Saat
   Final, ringkasan terkunci.
@@ -743,6 +886,46 @@ lengkap dengan tanggal, jam, dan siapa pelakunya. Dicatat otomatis setiap ada pe
 pertanyaan seperti "sudah di-ACC tanggal berapa?" atau "sejak kapan ACC-nya hilang?". Bila sebuah ACC tidak ada
 di riwayat, artinya ACC itu memang tidak pernah tersimpan. Di tabel Review & Finalisasi, arahkan kursor ke
 **✔ ACC** untuk melihat siapa yang memberi ACC dan kapan.
+
+### 5.9b Pantauan Rencana Pengembangan
+Menu **Pantauan Rencana Pengembangan** (grup Hasil & Tindak Lanjut; bagian akses "Rencana Pengembangan" di Atur
+Akses). Rencana pengembangan melekat ke **periode laporan**: laporan Q3 2026 → Rencana Pengembangan Q4 2026, dan
+bisa diisi pegawai begitu laporannya Final, walau periode aktif sudah berganti.
+- Pilih periode laporan di atas. Kartu ringkasan menampilkan jumlah per status: Belum diisi · Draf · Menunggu
+  Atasan · Perlu Perbaikan · Menunggu HRD · Disepakati.
+- Tabel per pegawai yang laporannya Final: atasan (koordinator / SPV / Direksi / HRD), status, jumlah prioritas,
+  terakhir diperbarui, dan **Buka**.
+- **Batas rencana disepakati** — tanggal informasi untuk pegawai dan atasan. Aplikasi tidak menandai keterlambatan.
+  Berlaku **per periode laporan** yang sedang dipilih (bukan semua kuartal). Pilih tanggal lalu tekan **Simpan Batas**
+  (tombol aktif setelah tanggal diubah); pesan konfirmasi menyebut rencana dan tanggalnya.
+- **Tutup Rencana Periode Ini** — semua rencana periode itu menjadi hanya-baca (misalnya di akhir kuartal).
+  **Buka Rencana Periode Ini** membukanya lagi.
+
+Di halaman rencana satu pegawai, pegawai **berposisi HRD** di Mode Admin mendapat panel **Aksi HRD**:
+
+| Tombol | Fungsi | Kapan muncul |
+|---|---|---|
+| **Setujui (HRD)** | Persetujuan terakhir → **Disepakati** (terkunci); nama dan waktu tercatat | Status Menunggu HRD |
+
+Tidak ada tombol untuk mengembalikan rencana yang sudah disetujui atasan (keputusan pemilik): rencana yang Menunggu
+HRD hanya bisa disetujui, dan rencana Disepakati tidak bisa diubah. Pegawai lain yang diberi izin HRD Admin bisa membuka
+pantauan dan rencana, tetapi **tidak** bisa Setujui (HRD).
+
+**Pemisahan mode.** Di **Mode Admin** Anda hanya memakai wewenang HRD: Pantauan, Setujui (HRD), Catat Tinjauan HRD,
+batas dan tutup/buka periode, serta atasan cadangan bagi pegawai tanpa SPV/koordinator. Rencana Anda sendiri dan
+rencana tim Anda (bila Anda juga SPV) **hanya dilihat** dari Pantauan. Mengisi, mengirim, menarik kembali rencana
+sendiri, menanggapi sesi, dan bertindak sebagai SPV (komentar, Setujui/Minta Perbaikan, Catat Sesi 1-on-1) dilakukan
+dari **Mode SPV** lewat menu Rencana Pengembangan. HRD berposisi HRD menyetujui rencananya sendiri (Setujui (HRD))
+dari Mode Admin, setelah atasannya (Direksi) menyetujui.
+Pegawai yang tidak punya SPV maupun koordinator dikomentari dan disetujui atasannya oleh **HRD** dari halaman ini
+(form Komentar Atasan Langsung muncul di halaman rencana pegawai itu). Semua langkah tercatat di Log Aktivitas
+(kategori Rencana Pengembangan).
+
+**Catatan Sesi & Tinjauan** (setelah rencana Disepakati). Atasan mencatat Sesi 1-on-1; HRD di Mode Admin menekan
+**Catat Tinjauan HRD** di halaman rencana untuk tinjauan bulanan (tanggal + catatan). Catatan hanya bisa diubah atau
+dihapus pencatatnya. Tabel pantauan menampilkan kolom **Sesi 1-on-1** dan **Tinjauan HRD** berisi jumlah dan tanggal
+terakhir, sekadar informasi (aplikasi tidak menandai keterlambatan). Seluruh isi rencana, komentar, persetujuan, dan
+catatan sesi bisa diunduh lewat Ekspor Dataset → **Rencana Pengembangan & 1-on-1**.
 
 ### 5.10 Monitoring & Audit KPI
 - Dua tab: **Rekapitulasi Kuartal** dan **Riwayat & Audit Perubahan KPI**. Hanya tab yang dibuka yang memuat data.
@@ -817,7 +1000,8 @@ berperiode. Nama file menyertakan periode. Data ini sensitif — simpan dan bagi
 | **Konfigurasi Periode Lengkap** | 6 lembar: Ringkasan · Bobot Penilai · Bulan KPI · Aspek & Indikator · Pertanyaan Esai · Pemetaan 360° (siapa menilai siapa — hanya untuk HRD) |
 | **Kinerja Lengkap per Periode** | 4 lembar: Rekap (KPI rerata · Skor 360° · potongan telat · Skor Akhir · kategori · 4-Box) · KPI Bulanan · Audit KPI · Potongan Keterlambatan (nilai, otomatis/diubah/dikecualikan, skor sebelum & sesudah, alasan) |
 | **Penilaian 360° Lengkap** | 5 lembar, tanpa nama penilai: Ringkasan per Pegawai (per kelas penilai + nilai 360° & selisih) · Rekap Aspek (skor terbobot per aspek, cocok dengan radar) · Kuantitatif · Kualitatif · Ringkasan Naratif HRD |
-| **Bahan Laporan per Pegawai** | 3 lembar, tanpa nama penilai dan tanpa penilaian diri: Skor (Skor Akhir · KPI · 360° · potongan · skor tiap aspek + kategori) · Komentar Aspek (nilai & komentar per indikator) · Komentar Esai. Disertai divisi & rentang periode |
+| **Bahan Laporan per Pegawai** | 4 lembar, tanpa nama penilai dan tanpa penilaian diri: Skor (Skor Akhir · KPI · 360° · potongan · skor tiap aspek + kategori) · Komentar Aspek (nilai & komentar per indikator) · Komentar Esai · **Catatan di Luar Pemetaan** (isi catatan per aspek, tanpa nama, hubungan kerja, atau tanggal penulis; hanya ikut bila diekspor dari Mode Admin). Disertai divisi & rentang periode |
+| **Rencana Pengembangan & 1-on-1** | 3 lembar, **bernama**, disaring menurut periode laporan asal rencana: Rencana (per prioritas) · Komentar & Persetujuan (komentar atasan, alasan perbaikan, siapa menyetujui dan kapan) · Sesi & Tinjauan (sesi 1-on-1, tinjauan bulanan HRD, kemajuan per prioritas, tanggapan pegawai) |
 | **Log Aktivitas HRD** | 1 lembar, lintas periode: waktu · pelaku · kategori · aksi · ringkasan · target · detail, terbaru di atas |
 
 Angka 2 desimal. Selama ada penilaian yang diubah setelah Hitung Ulang terakhir, lembar Rekap bisa berbeda dari
@@ -872,6 +1056,18 @@ flowchart TD
   ulang dengan skor berbeda.
 - **Tinjauan Hasil Akhir** — hanya baca: hasil **semua pegawai** (termasuk yang masih draf) dengan umpan balik
   tanpa nama, tanpa Hitung Ulang / Rilis / Finalisasi / ACC / edit ringkasan.
+- **Catatan di Luar Pemetaan** — Direksi bisa menulis catatan tanpa nilai kepada HRD tentang pegawai yang tidak
+  ada di daftar penilaiannya (tab Pengajuan di Daftar Penilaian Saya; nama pengirim tidak tersimpan). Catatan
+  semacam ini **tidak** tampil di Laporan Kinerja Tim maupun Tinjauan Hasil Akhir; hanya HRD di Mode Admin yang
+  membacanya.
+- **Rencana Pengembangan** — Direksi adalah **atasan** rencana pengembangan para **SPV** dan HRD/pegawai yang
+  memimpin tim: menu **Rencana Pengembangan** → tab **Tim Saya** → **Buka**. Saat status **Menunggu Atasan**, isi
+  **Komentar Atasan Langsung** (Konfirmasi Kinerja dan Dukungan yang Diberikan wajib; Konteks Tambahan dan Harapan
+  ke Depan opsional), lalu **Setujui** (lanjut ke HRD) atau **Minta Perbaikan** dengan alasan. Menu **Pantauan
+  Rencana Pengembangan** (Menu Direksi) menampilkan status rencana **semua pegawai**, hanya baca. Direksi juga punya
+  rencana sendiri di tab **Rencana Saya**: cukup diisi dan disimpan (label "Tersimpan"), tanpa komentar atasan
+  maupun persetujuan. Setelah rencana SPV **Disepakati**, Direksi mencatat **Sesi 1-on-1** di halaman rencananya
+  (**Catat Sesi 1-on-1**: tanggal, catatan, status umum, kemajuan per prioritas).
 - Direksi **boleh dinilai** 360°. Hasilnya tampil di Review & Finalisasi dan Ekspor HRD dengan Skor Akhir =
   Skor 360° (Direksi tidak punya KPI). Direksi tidak masuk Dashboard, 4-Box, KPI, kepatuhan, dan monitor.
 - Direksi tidak punya Monitor Kinerja atau Rekapitulasi Kuartal (kecuali diberi akses), dan tidak melihat
@@ -973,6 +1169,9 @@ flowchart TD
    Pegawai **tidak** (hanya ringkasan). Laporan diri sendiri tidak memuatnya, kecuali untuk HRD Mode Admin & Direksi.
 4. **Siapa menilai siapa** — **hanya HRD**, lewat Pemetaan dan Progress 360. Tidak pernah ke SPV, Koordinator,
    Direksi, atau pegawai. Komentar bernama per penilai tidak ditampilkan di layar laporan mana pun.
+
+**Catatan di Luar Pemetaan** berada di luar empat lapis ini: hanya **HRD di Mode Admin** yang membacanya, di
+tahap laporan apa pun. Penulisnya tidak tersimpan, jadi tidak ada yang bisa melihat siapa penulisnya, termasuk HRD.
 
 ---
 
@@ -1088,7 +1287,9 @@ Beri akses **seperlunya** dan cabut tepat waktu. **Pelaku:** HRD berakses penuh.
 1. Tentukan: halaman apa · lingkup apa · izin tingkat berapa. Mulai dari lingkup **sesempit** mungkin
    (mis. Hanya divisinya / Diri sendiri) dan izin **Lihat**.
 2. **Manajemen Akses → Kelola Akses** → pilih penerima (Seorang pegawai / Sebuah peran) → beri (§5.2).
-   Akses per peran hanya untuk anggota **saat ini**.
+   Akses per peran hanya untuk anggota **saat ini**, dan **tidak termasuk Anda sendiri** (jumlah penerima yang
+   tampil sudah tanpa Anda). Setelah **Simpan akses**, panel tertutup dan pesan hasilnya tampil di bawah pilihan
+   halaman (per peran) atau di bawah nama pegawai.
 3. Peninjau lintas divisi = **Review & Finalisasi** + **Selain divisinya** + **Meringkas**.
 4. Tinjau kartu **Pegawai Baru** → **Tandai selesai**.
 5. **Wajib cabut** saat pegawai resign/keluar (§9.2) atau mutasi.

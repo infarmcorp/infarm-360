@@ -1,7 +1,7 @@
 name: CI
 
 # Jalan otomatis tiap push ke main & tiap Pull Request.
-# Mengecek: unit test (logika skor) → typecheck → build. Kalau ada yang gagal,
+# Mengecek: unit test (logika skor) → typecheck → lint → build. Kalau ada yang gagal,
 # tab "Actions" / cek PR jadi merah dan pengirim diberi tahu.
 on:
   push:
@@ -27,6 +27,9 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Lint (bersih sejak 2026-10-16 — temuan baru menggagalkan CI)
+        run: npm run lint
 
       - name: Build
         run: npm run build

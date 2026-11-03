@@ -82,7 +82,7 @@ function H(extra) {
   );
 }
 
-export default function () {
+export default function vu() {
   if (!token && !login()) { submitErr.add(1); sleep(1); return; }
 
   const t0 = Date.now();

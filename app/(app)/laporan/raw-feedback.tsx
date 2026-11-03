@@ -5,7 +5,10 @@ import type { AspectRaw, EssayGroup, RawEntry } from '@/lib/report';
  * Section 5 — RINCIAN KOMENTAR MURNI (RAW FEEDBACK) per Aspek & Indikator.
  * Anonim: TIDAK menampilkan nama/identitas penilai. Per aspek → per indikator, tabel pasangan
  * Rating | Komentar per penilai (urut rating) untuk kalibrasi. Esai dikelompokkan per pertanyaan.
+ * Catatan di Luar Pemetaan (`outsideNotes`, 0054) tampil di akhir kartu aspeknya — hanya ada bila loader
+ * jalur HRD Mode Admin memuatnya; isi saja (tanpa nama/tanggal/relasi/divisi), tak ikut dicetak (`no-print`).
  */
+const notesOf = (a: AspectRaw) => a.outsideNotes ?? [];
 const sortEntries = (xs: RawEntry[]) =>
   [...xs].sort((a, b) => (a.rating ?? 99) - (b.rating ?? 99)); // tanpa rating → paling bawah
 
@@ -15,7 +18,7 @@ const RATING_COLOR = (r: number) =>
 const avg = (xs: number[]) => (xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length) : null);
 
 export function RawFeedback({ byAspect, essays, badge = 'HRD VIEW' }: { byAspect: AspectRaw[]; essays: EssayGroup[]; badge?: string }) {
-  const hasAny = byAspect.some((a) => a.indicators.length > 0) || essays.length > 0;
+  const hasAny = byAspect.some((a) => a.indicators.length > 0 || notesOf(a).length > 0) || essays.length > 0;
   return (
     <section className="mt-6 break-inside-avoid">
       <div className="bg-sidebar text-white rounded-t-panel px-4 py-2.5 flex items-center justify-between">
@@ -29,11 +32,13 @@ export function RawFeedback({ byAspect, essays, badge = 'HRD VIEW' }: { byAspect
           Raw text &amp; rating
         </p>
 
-        {byAspect.filter((a) => a.indicators.length > 0).map((a) => (
+        {byAspect.filter((a) => a.indicators.length > 0 || notesOf(a).length > 0).map((a) => (
           <div key={a.name} className="border border-line rounded-panel overflow-hidden">
             <div className="px-3 py-2 bg-brand-tint/60 border-b border-line-soft flex items-center justify-between">
               <span className="text-xs font-extrabold text-brand-ink flex items-center gap-1.5">★ {a.name}</span>
-              <span className="text-[10px] font-bold text-ink-faint uppercase">{a.indicators.length} indikator</span>
+              {a.indicators.length > 0 && (
+                <span className="text-[10px] font-bold text-ink-faint uppercase">{a.indicators.length} indikator</span>
+              )}
             </div>
             <div className="divide-y divide-line-soft">
               {a.indicators.map((ind) => {
@@ -79,6 +84,23 @@ export function RawFeedback({ byAspect, essays, badge = 'HRD VIEW' }: { byAspect
                 );
               })}
             </div>
+            {notesOf(a).length > 0 && (
+              <div className="no-print border-t border-line-soft bg-neutral-tint p-3">
+                <p className="text-xs font-bold text-ink">
+                  Catatan di Luar Pemetaan{' '}
+                  <span className="text-[10px] font-semibold text-ink-faint">
+                    <span className="data-value">{notesOf(a).length}</span> catatan · tanpa rating · hanya HRD
+                  </span>
+                </p>
+                <ul className="mt-1.5 space-y-1">
+                  {notesOf(a).map((n, i) => (
+                    <li key={i} className="text-xs text-ink-soft flex gap-1.5">
+                      <span className="text-ink-faint/50 shrink-0">•</span><span className="italic">“{n}”</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         ))}
 

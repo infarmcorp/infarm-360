@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Users, Settings, BarChart3, MessageSquareText, ScrollText, FileText } from 'lucide-react';
+import { Download, Users, Settings, BarChart3, MessageSquareText, ScrollText, FileText, Sprout } from 'lucide-react';
 import {
   exportEmployees, exportKpi, exportKpiAudit, exportRekap, exportLatePenalties,
   exportAssessments, exportQualAnswers, exportMappings, exportAspectSummaries,
-  exportSummary360, exportAspectScores, exportPeriodConfig, exportHrdAuditLog, exportReportMaterials,
+  exportSummary360, exportAspectScores, exportPeriodConfig, exportHrdAuditLog, exportReportMaterials, exportDevPlans,
   type ExportResult, type Sheet,
 } from './actions';
 
@@ -21,7 +21,7 @@ const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').r
  *  2. Konfigurasi Periode Lengkap — Ringkasan/Bobot/Bulan KPI/Aspek & Indikator/Esai + Pemetaan.
  *  3. Kinerja Lengkap per Periode — Rekap/KPI Bulanan/Audit KPI/Potongan Keterlambatan.
  *  4. Penilaian 360° Lengkap      — Kuantitatif/Kualitatif/Ringkasan Naratif HRD (anonim penilai).
- *  5. Bahan Laporan per Pegawai   — Skor/Komentar Aspek/Komentar Esai, untuk diringkas jadi laporan.
+ *  5. Bahan Laporan per Pegawai   — Skor/Komentar Aspek/Komentar Esai/Catatan di Luar Pemetaan, untuk diringkas jadi laporan.
  */
 export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
   const [periodId, setPeriodId] = useState<string>(''); // '' = semua periode
@@ -99,7 +99,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
     },
     {
       key: 'f360', title: 'Penilaian 360° Lengkap', icon: MessageSquareText, tint: 'violet', scoped: true,
-      desc: <><strong>5 lembar</strong> (semua <strong>anonim penilai</strong>): <strong>Ringkasan per Pegawai</strong> (jml penilai per kelas · Nilai Atasan/Internal/Self · Nilai 360° · Gap · Skala 100) · <strong>Rekap Aspek</strong> (Skor 360° terbobot &amp; Nilai Diri per aspek budaya) · Kuantitatif (rating per indikator) · Kualitatif (esai) · Ringkasan Naratif HRD.</>,
+      desc: <><strong>5 lembar</strong> (semua <strong>anonim penilai</strong>): <strong>Ringkasan per Pegawai</strong> (jml penilai per kelas · Nilai Atasan/Internal/Self · Nilai 360° · Gap · Skala 100 · <strong>Skor 360° resmi</strong> &amp; selisihnya — selisih ≠ 0 berarti ada penilaian berubah sejak Hitung Ulang terakhir) · <strong>Rekap Aspek</strong> (Skor 360° terbobot &amp; Nilai Diri per aspek budaya) · Kuantitatif (rating per indikator) · Kualitatif (esai) · Ringkasan Naratif HRD.</>,
       go: () => run('f360', async () => {
         const [ringkas, aspek, quant, qual, naratif] = await Promise.all([exportSummary360(pid()), exportAspectScores(pid()), exportAssessments(pid()), exportQualAnswers(pid()), exportAspectSummaries(pid())]);
         const sheets: Sheet[] = [
@@ -114,11 +114,20 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
     },
     {
       key: 'bahan', title: 'Bahan Laporan per Pegawai', icon: FileText, tint: 'violet', scoped: true,
-      desc: <>Untuk diringkas menjadi laporan per pegawai — <strong>3 lembar</strong> (anonim penilai, tanpa Self): <strong>Skor</strong> (Skor Akhir · KPI · 360° · potongan telat · skor tiap aspek budaya + kategori) · <strong>Komentar Aspek</strong> (rating &amp; komentar per indikator) · <strong>Komentar Esai</strong>. Disertai divisi &amp; rentang periode.</>,
+      desc: <>Untuk diringkas menjadi laporan per pegawai — <strong>4 lembar</strong> (anonim penilai, tanpa Self): <strong>Skor</strong> (Skor Akhir · KPI · 360° · potongan telat · skor tiap aspek budaya + kategori) · <strong>Komentar Aspek</strong> (rating &amp; komentar per indikator) · <strong>Komentar Esai</strong> · <strong>Catatan di Luar Pemetaan</strong> (isi saja, tanpa penulis). Disertai divisi &amp; rentang periode.</>,
       go: () => run('bahan', async () => {
         const res = await exportReportMaterials(pid());
         if (!res.ok) throw new Error(res.error);
         return { sheets: res.sheets, filename: `bahan-laporan-per-pegawai-${suffix}.xlsx` };
+      }),
+    },
+    {
+      key: 'idp', title: 'Rencana Pengembangan & 1-on-1', icon: Sprout, tint: 'emerald', scoped: true,
+      desc: <>Rencana pengembangan pegawai (<strong>bernama</strong>), disaring menurut periode <strong>laporan</strong> asalnya — <strong>3 lembar</strong>: <strong>Rencana</strong> (per prioritas) · <strong>Komentar &amp; Persetujuan</strong> (komentar atasan, siapa menyetujui &amp; kapan) · <strong>Sesi &amp; Tinjauan</strong> (sesi 1-on-1, tinjauan bulanan HRD, kemajuan per prioritas, tanggapan pegawai).</>,
+      go: () => run('idp', async () => {
+        const res = await exportDevPlans(pid());
+        if (!res.ok) throw new Error(res.error);
+        return { sheets: res.sheets, filename: `rencana-pengembangan-${suffix}.xlsx` };
       }),
     },
     {

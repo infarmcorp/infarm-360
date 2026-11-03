@@ -11,7 +11,8 @@
  *   page_grants. UUID non-auth (periode/aspek/indikator/mapping/dll) dipertahankan apa adanya.
  * DISAMARKAN (privasi): nama → "Pegawai NNN"; email auth → pseudonim; SEMUA teks bebas
  *   (komentar 360°, esai, narasi laporan, justifikasi, alasan/catatan) → placeholder.
- * DILEWATI: hrd_audit_log (log; snapshot nama = PII, tak perlu untuk uji).
+ * DILEWATI: hrd_audit_log (log; snapshot nama = PII, tak perlu untuk uji); outside_mapping_notes
+ *   (Catatan di Luar Pemetaan, teks anonim sensitif — staging dikosongkan, tak disalin).
  *
  * KEAMANAN:
  *  - PROD dipakai HANYA untuk .select() (baca). Tak ada satupun tulisan ke prod.
@@ -115,6 +116,9 @@ const TABLES: TableCfg[] = [
 const UUID_MIN = '00000000-0000-0000-0000-000000000000';
 const WIPE_ORDER: { t: string; col: string; int?: boolean }[] = [
   { t: 'hrd_audit_log', col: 'id', int: true },
+  // Catatan di Luar Pemetaan (0054): dikosongkan, TIDAK disalin dari production (isinya teks anonim
+  // yang sensitif). Wajib sebelum culture_aspects — FK aspek NO ACTION menolak hapus aspek bercatatan.
+  { t: 'outside_mapping_notes', col: 'id' },
   { t: 'page_grants', col: 'id' },
   { t: 'succession_plans', col: 'id' },
   { t: 'compliance_penalties', col: 'employee_id' },

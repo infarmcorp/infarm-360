@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { ShieldCheck, Users, ListChecks, SlidersHorizontal, X, UserPlus, ScrollText, FileStack } from 'lucide-react';
 import { setPageGrant, setPageGrantForRole, removePageGrant, removePageGrantForAll, removeAllPageGrantsForEmployee, markAccessReviewed } from './actions';
 import { setHrdAdmin, setCoordinator, setCoordinatorTeam, setHrdSections } from '../pegawai/actions';
-import { isHrdDept, HRD_SECTIONS, HRD_SECTION_LABELS, GRANT_ROLE_TARGETS, GRANT_ROLE_TARGET_LABELS, type HrdSection, type GrantRoleTarget } from '@/lib/auth/roles';
+import { isHrdDept, roleGrantRecipients, HRD_SECTIONS, HRD_SECTION_LABELS, GRANT_ROLE_TARGETS, GRANT_ROLE_TARGET_LABELS, type HrdSection, type GrantRoleTarget } from '@/lib/auth/roles';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { SearchableSelect } from '@/components/searchable-select';
 import { usePager, Pager, MultiCheckFilter, StableHeight } from '@/components/table-controls';
@@ -179,14 +179,20 @@ export function AksesClient({
       roleTarget === 'spv' ? r.role === 'spv' :
       roleTarget === 'direksi' ? r.role === 'direksi' : false));
   }
+  /** Penerima hibah massal per peran = anggota peran KECUALI pelaku sendiri (server mengecualikannya). */
+  function roleTargetRows(roleTarget: string) {
+    return roleGrantRecipients(rows, roleTarget, meId);
+  }
   function doRoleSave(roleTarget: string, section: string, scps: string[], canEdit: boolean, canFinalize: boolean) {
     setRoleConfirm(null);
     startTransition(async () => {
       const res = await setPageGrantForRole(roleTarget, section, scps, canEdit, canFinalize);
       if (res.ok) {
-        const memberIds = new Set(roleMemberRows(roleTarget).map((r) => r.id));
+        const memberIds = new Set(roleTargetRows(roleTarget).map((r) => r.id));
         setRows((prev) => prev.map((r) => (memberIds.has(r.id) ? { ...r, grants: { ...r.grants, [section]: { scopes: scps, canEdit, canFinalize: canEdit && canFinalize } } } : r)));
-        setPanelMsg({ ok: true, text: res.msg ?? 'Akses massal tersimpan.' });
+        // Panel ditutup → pesan ditaruh di luar panel (bagian peran) agar tetap terbaca.
+        setMsg({ id: `role:${roleTarget}`, text: res.msg ?? 'Akses massal tersimpan.', ok: true });
+        setPanelMsg(null);
         setPanel(null);
       } else setPanelMsg({ ok: false, text: res.error ?? 'Gagal menyimpan.' });
     });
@@ -209,8 +215,8 @@ export function AksesClient({
     const canFinalize = kind === 'administrator' ? (panel.canEdit && panel.canFinalize) : false;
     if (panel.roleTarget) {
       const rt = panel.roleTarget;
-      const count = roleMemberRows(rt).length;
-      if (count === 0) { setPanelMsg({ ok: false, text: `Tak ada anggota ${GRANT_ROLE_TARGET_LABELS[rt as GrantRoleTarget]} saat ini.` }); return; }
+      const count = roleTargetRows(rt).length;
+      if (count === 0) { setPanelMsg({ ok: false, text: `Tak ada anggota ${GRANT_ROLE_TARGET_LABELS[rt as GrantRoleTarget]} saat ini selain Anda sendiri.` }); return; }
       if (canFinalize) { setRoleConfirm({ roleTarget: rt, section, scopes: scps, canEdit, canFinalize, count }); return; }
       doRoleSave(rt, section, scps, canEdit, canFinalize);
       return;
@@ -221,7 +227,9 @@ export function AksesClient({
       const res = await setPageGrant(emp.id, section, scps, canEdit, canFinalize);
       if (res.ok) {
         patchRow(emp.id, { grants: { ...emp.grants, [section]: { scopes: scps, canEdit, canFinalize } } });
-        setPanelMsg({ ok: true, text: res.msg ?? 'Akses tersimpan.' });
+        // Panel ditutup → pesan ditaruh di baris pegawai (di luar panel) agar tetap terbaca.
+        setMsg({ id: emp.id, text: res.msg ?? 'Akses tersimpan.', ok: true });
+        setPanelMsg(null);
         setPanel(null);
       } else setPanelMsg({ ok: false, text: res.error ?? 'Gagal menyimpan.' });
     });
@@ -249,10 +257,12 @@ export function AksesClient({
   }
 
   // ── Pegawai Baru: joined_on dalam jendela & belum ditinjau. ──
-  const newEmployees = useMemo(() => {
-    const cutoff = new Date(Date.now() - NEW_WINDOW_DAYS * 86400000).toISOString().slice(0, 10);
-    return rows.filter((r) => !r.isExternal && r.accessReviewedAt == null && r.joinedOn != null && r.joinedOn >= cutoff);
-  }, [rows]);
+  // Batas jendela dihitung SEKALI saat komponen dibuat (Date.now() tak murni → jangan di tiap render).
+  const [newCutoff] = useState(() => new Date(Date.now() - NEW_WINDOW_DAYS * 86400000).toISOString().slice(0, 10));
+  const newEmployees = useMemo(
+    () => rows.filter((r) => !r.isExternal && r.accessReviewedAt == null && r.joinedOn != null && r.joinedOn >= newCutoff),
+    [rows, newCutoff],
+  );
   function markReviewed(r: AksesEmployee) {
     run(r.id, () => markAccessReviewed(r.id), () => patchRow(r.id, { accessReviewedAt: new Date().toISOString() }));
   }
@@ -298,8 +308,9 @@ export function AksesClient({
     : g.canEdit ? { t: '✎ meringkas', c: 'bg-brand-tint text-brand-ink border-brand/25' }
     : { t: '👁 lihat', c: 'bg-surface text-ink-soft border-line' };
 
-  /** Kartu Lingkup & Izin (dipakai mode pegawai & peran). */
-  function PanelCard() {
+  /** Kartu Lingkup & Izin (dipakai mode pegawai & peran). Fungsi render biasa, BUKAN komponen: komponen yang
+   *  didefinisikan di dalam render dibuat ulang tiap render (state & fokus input hilang). */
+  function renderPanelCard() {
     if (!panel || !panelPage) return null;
     return (
       <div className="mt-3 rounded-panel border border-brand/30 bg-brand-tint/40 p-4">
@@ -307,7 +318,7 @@ export function AksesClient({
           <div>
             <h4 className="text-sm font-bold text-ink">Atur: {panelPage.label}</h4>
             {panel.roleTarget
-              ? <p className="text-[11px] text-brand-ink font-semibold">Semua {GRANT_ROLE_TARGET_LABELS[panel.roleTarget as GrantRoleTarget]} · {roleMemberRows(panel.roleTarget).length} orang</p>
+              ? <p className="text-[11px] text-brand-ink font-semibold">Semua {GRANT_ROLE_TARGET_LABELS[panel.roleTarget as GrantRoleTarget]} · {roleTargetRows(panel.roleTarget).length} orang</p>
               : <p className="text-[11px] text-ink-faint">{panelEmp?.name} · {panelEmp?.dept}</p>}
           </div>
           <button type="button" onClick={() => { setPanel(null); setPanelMsg(null); }} className="text-[11px] text-ink-faint hover:text-ink-soft">Tutup</button>
@@ -534,7 +545,7 @@ export function AksesClient({
                     <SlidersHorizontal className="w-4 h-4" /> Atur →
                   </button>
                 </div>
-                {panel && !panel.roleTarget && panel.empId === emp.id && <PanelCard />}
+                {panel && !panel.roleTarget && panel.empId === emp.id && renderPanelCard()}
               </div>
 
               {/* (C) Kapabilitas */}
@@ -578,7 +589,8 @@ export function AksesClient({
         {recipient === 'role' && (
           <div className="rounded-panel border border-line bg-surface p-4">
             <p className="text-[12px] text-ink-soft mb-2">
-              Diterapkan ke <strong className="data-value">{roleMemberRows(selRole).length}</strong> {GRANT_ROLE_TARGET_LABELS[selRole as GrantRoleTarget]} saat ini.
+              Diterapkan ke <strong className="data-value">{roleTargetRows(selRole).length}</strong> {GRANT_ROLE_TARGET_LABELS[selRole as GrantRoleTarget]} saat ini
+              {roleMemberRows(selRole).some((r) => r.id === meId) && <span className="text-ink-faint"> (Anda sendiri tidak termasuk)</span>}.
               Pegawai baru tak otomatis ikut. <span className="text-ink-faint">Izin khusus (HRD/Koordinator) diberikan per-orang, bukan per-peran.</span>
             </p>
 
@@ -614,7 +626,8 @@ export function AksesClient({
                 <SlidersHorizontal className="w-4 h-4" /> Atur →
               </button>
             </div>
-            {panel && panel.roleTarget === selRole && <PanelCard />}
+            {msg && msg.id === `role:${selRole}` && <p className={`text-[11px] mt-2 ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
+            {panel && panel.roleTarget === selRole && renderPanelCard()}
           </div>
         )}
 

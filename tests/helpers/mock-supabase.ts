@@ -41,6 +41,7 @@ type QueryBuilder = {
   or: (expr: string) => QueryBuilder;
   in: (col: string, vals: unknown[]) => QueryBuilder;
   limit: (n: number) => QueryBuilder;
+  range: (from: number, to: number) => QueryBuilder;
   order: (...args: unknown[]) => QueryBuilder;
   maybeSingle: () => Promise<QResult>;
   single: () => Promise<QResult>;
@@ -79,6 +80,7 @@ export function makeClient(cfg: { user?: MockUser; tables?: Record<string, QResu
       or: (expr) => { state.filters.push(['or', expr]); return builder; },
       in: (col, vals) => { state.filters.push(['in', col, vals]); return builder; },
       limit: () => builder,
+      range: () => builder,
       order: () => builder,
       maybeSingle: () => Promise.resolve(settle()),
       single: () => Promise.resolve(settle()),

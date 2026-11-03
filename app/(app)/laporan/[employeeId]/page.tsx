@@ -2,13 +2,14 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { canAdmin, canCoordinate, canSection, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
+import { canAdmin, canSection, grantedAccess, employeeInScopes, reportDetailRoute } from '@/lib/auth/roles';
 import { finalScoreOf } from '@/lib/scoring';
 import { loadReport, reportForGrantViewer, withoutNamedFeedback, loadTeamReportForSpv, loadTeamReportForHrdSpv, loadTeamReportForCoordinator, loadSpvReportForDireksi, isDireksiReviewSubject } from '@/lib/report';
 import { ReportDoc } from '../report-doc';
 import { ReportActions } from '../report-actions';
 import { ReportHistoryPanel } from '../report-history-panel';
 import { loadReportHistory } from '@/lib/report-history';
+import { withOutsideNotes, outsideNotesAllowed } from '@/lib/outside-notes';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
 import { AspectSummaryView } from '../aspect-summary-view';
 import { RawFeedback } from '../raw-feedback';
@@ -44,7 +45,6 @@ export default async function LaporanDetailPage({
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, is_coordinator, hrd_sections, dept').eq('id', user.id).maybeSingle();
   const role = me?.role;
   const isAdmin = canAdmin(me);
-  const isCoordinator = canCoordinate(me);
   // Pemegang grant "Review & Finalisasi" (Manajemen Akses) juga boleh membuka detail dalam lingkupnya
   // (dicek di cabang grant di bawah). Tanpa itu, gate kasar tetap: SPV / HRD / Direksi / Koordinator.
   // SADAR-MODE: HRD "penuh" HANYA di Mode Admin; di Mode-SPV, akses detail lewat grant (bila ada).
@@ -56,17 +56,17 @@ export default async function LaporanDetailPage({
     const { data: grantRows } = await supabase.from('page_grants').select('section, scope, scopes, can_edit, can_finalize').eq('employee_id', user.id);
     reviewGrant = grantedAccess(grantRows, 'review');
   }
-  if (!isAdmin && role !== 'direksi' && role !== 'spv' && !isCoordinator && !reviewGrant) {
+  // Jalur tampilan (sadar-mode; diuji di tests/report-detail-route.test.ts). Pemegang izin HRD di mode
+  // posisi-asli tak lagi mendapat tampilan HRD penuh (sisa temuan no. 11, Gelombang 3).
+  const route = reportDetailRoute(me, hrdModeEarly, !!reviewGrant);
+  if (route === 'denied') {
     return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk SPV / HRD / Direksi.</p>
       <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
   }
 
-  // Mode HRD (dual-mode): HRD-posisi mode-SPV dibatasi setara SPV (tanpa raw 360°).
-  // Cookie absen = base/SPV (konsisten dgn layout.tsx; login mereset ke base) → bukan hanya 'spv'.
-  const jar = await cookies();
-  const hrdSpvMode = role === 'hrd' && jar.get('hrd_mode')?.value !== 'admin';
-  // Jalur "seperti SPV": SPV biasa ATAU HRD-posisi yang sedang bertindak sebagai SPV.
-  const asSpv = role === 'spv' || hrdSpvMode;
+  // Jalur "seperti SPV": SPV biasa ATAU HRD-posisi di mode posisi-asli (dibatasi setara SPV, tanpa raw 360°).
+  // Cookie absen = base/SPV (konsisten dgn layout.tsx; login mereset ke base) — lihat reportDetailRoute.
+  const asSpv = route === 'spv';
 
   // Periode: `?period=` bila dikenal, selain itu periode AKTIF. Id tak dikenal diabaikan
   // (tak boleh memaksa halaman membaca periode yang tak ada).
@@ -89,7 +89,7 @@ export default async function LaporanDetailPage({
   // service_role (pemegang bukan is_hrd() → RLS memblokir). loadReport memuat L3 bernama (`assessors`)
   // → WAJIB dibuang di server via reportForGrantViewer sebelum dikirim ke ReportDoc (komponen klien).
   // READ-ONLY bila can_edit=false; panel aksi & editor hanya bila boleh-edit.
-  if (!isHrdFull && reviewGrant) {
+  if (route === 'grant' && reviewGrant) {
     const admin = createAdminClient();
     const { data: tgt } = await admin.from('employees').select('dept').eq('id', employeeId).maybeSingle();
     // Tim naungan (hanya bila lingkup 'coordinator_team'): id anggota tim pemegang grant.
@@ -243,7 +243,7 @@ export default async function LaporanDetailPage({
   // Jalur KOORDINATOR (grant is_coordinator, role bukan SPV/HRD/Direksi): detail agregat L2
   // (radar/aspek + ringkasan), TANPA umpan balik mentah (L3), hanya bila HRD sudah merilis &
   // pegawai ada di tim koordinasinya. Baca via service_role berlingkup (loadTeamReportForCoordinator).
-  if (isCoordinator && !isAdmin && role !== 'spv') {
+  if (route === 'coordinator') {
     const data = await loadTeamReportForCoordinator(user.id, employeeId, ap);
     if (!data) {
       return (
@@ -278,7 +278,7 @@ export default async function LaporanDetailPage({
   // Jalur "seperti SPV" (SPV biasa + HRD mode-SPV): detail agregat (radar/aspek + ringkasan
   // aspek HRD) + umpan balik mentah ANONIM (tanpa L3 bernama; laporan diri sendiri tanpa raw).
   // Tampak hanya bila HRD sudah merilis ('in_review') / 'finalized'. Lingkup = sedivisi.
-  if (asSpv) {
+  if (route === 'spv') {
     const data = role === 'spv'
       ? await loadTeamReportForSpv(user.id, employeeId, ap)
       : await loadTeamReportForHrdSpv(user.id, employeeId, ap);
@@ -306,12 +306,26 @@ export default async function LaporanDetailPage({
     );
   }
 
+  // Sisa di luar Mode Admin = pegawai ber-izin HRD di mode posisi-asli (bukan SPV/Koordinator, tanpa grant
+  // Review) → tak ada tampilan untuknya di sini; tampilan HRD penuh hanya di Mode Admin.
+  if (route === 'need-admin') {
+    return <Shell><p className="text-sm text-ink-soft">Detail laporan pegawai lain hanya tersedia di <strong>Mode Admin</strong>.
+      Pindah ke Mode Admin lewat tombol di sidebar, lalu buka lagi dari Review &amp; Finalisasi.</p>
+      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+  }
+
   // Jalur HRD (mode admin): laporan penuh (tunduk RLS; raw 360° untuk HRD anonim).
   // Direksi tak sampai di sini (diblok di atas); asSpv sudah ditangani → sisanya = HRD admin.
   // L3 bernama (`assessors`) DIBUANG di server: tak pernah ditampilkan di jalur ini (hideAssessorComments),
   // jadi tak boleh ikut terkirim ke browser. Komentar mentah ANONIM tetap (HRD meringkas, termasuk laporannya sendiri).
   const loadedFull = await loadReport(supabase, employeeId, ap);
-  const data = loadedFull ? withoutNamedFeedback(loadedFull) : null;
+  // Catatan di Luar Pemetaan (0054): OPT-IN, hanya di jalur ini (route 'hrd' = izin HRD + Mode Admin),
+  // termasuk laporan HRD sendiri (anonim; keputusan pemilik 2026-11-03). Jalur lain tak pernah memuatnya.
+  const data = loadedFull
+    ? (outsideNotesAllowed(route) && loadedFull.has360
+      ? await withOutsideNotes(createAdminClient() as unknown as typeof supabase, withoutNamedFeedback(loadedFull), employeeId, ap.id)
+      : withoutNamedFeedback(loadedFull))
+    : null;
   if (!data) {
     return <Shell><p className="text-sm text-ink-soft">Data tidak ditemukan atau di luar lingkup akses Anda.</p>
       <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;

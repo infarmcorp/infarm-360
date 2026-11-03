@@ -1,6 +1,8 @@
-import type { createClient } from '@/lib/supabase/server';
+import { createAdminClient, type createClient } from '@/lib/supabase/server';
 import { finalScoreOf, kpiAvgOf, hasScoreDrift } from '@/lib/scoring';
 import { fetchAllPaged, fetchAllByIds } from '@/lib/supabase/paginate';
+import { canActAsSupervisor, canHrdSign, planTitle } from '@/lib/dev-plan';
+import { loadSupervisorResolver } from '@/lib/dev-plan-server';
 
 /**
  * Tugas & Notifikasi in-app — DITURUNKAN dari data yang sudah ada (tanpa tabel baru).
@@ -42,6 +44,7 @@ export async function getTodos(
     if (reportReady > 0) items.push({ id: 'report', tone: 'emerald', href: '/laporan', label: 'Laporan Hasil Anda sudah final' });
     if (kpiMissing && kpiMissing.missing > 0) items.push({ id: 'kpi', tone: 'indigo', href: '/kpi', label: `${kpiMissing.missing} anggota belum ada KPI ${kpiMissing.ym}` });
     items.push(...hrdTodos, ...direksiTodos);
+    items.push(...(await devPlanTodos(userId, hrdMode)));
     return items;
   } catch {
     return [];
@@ -193,4 +196,63 @@ async function direksiSuksesi(supabase: SB): Promise<TodoItem[]> {
   return (count ?? 0) > 0
     ? [{ id: 'dir-suksesi', tone: 'indigo', href: '/suksesi', label: `${count} usulan suksesi menunggu ACC` }]
     : [];
+}
+
+/**
+ * Rencana Pengembangan (0055) — dibaca service_role (atasan tak punya RLS baca rencana tim). Hanya periode laporan
+ * yang rencananya belum ditutup HRD. Tabel belum ada / gagal → tanpa item (best-effort).
+ *   Pemilik (mode base, bukan Direksi): rencana periode Final terbaru belum dikirim / perlu perbaikan.
+ *   Atasan (mode base): rencana tim Menunggu Atasan. HRD posisi (Mode Admin): Menunggu HRD + atasan cadangan HRD.
+ */
+async function devPlanTodos(userId: string, hrdMode: 'admin' | 'spv'): Promise<TodoItem[]> {
+  try {
+    const admin = createAdminClient() as unknown as SB;
+    const { data: me } = await admin.from('employees').select('role, is_hrd_admin, is_coordinator, hrd_sections').eq('id', userId).maybeSingle();
+    if (!me) return [];
+    const actor = { id: userId, ...me };
+    const out: TodoItem[] = [];
+    const { data: openPeriods, error } = await admin.from('periods').select('id, label, start_date').is('dev_plan_closed_at', null);
+    if (error || !openPeriods?.length) return [];
+    const openIds = openPeriods.map((p) => p.id);
+
+    if (hrdMode !== 'admin' && me.role !== 'direksi') {
+      const { data: mine } = await admin.from('final_reports').select('period_id').eq('employee_id', userId).eq('status', 'finalized').in('period_id', openIds);
+      const latest = openPeriods.filter((p) => (mine ?? []).some((m) => m.period_id === p.id))
+        .sort((a, b) => b.start_date.localeCompare(a.start_date))[0];
+      if (latest) {
+        const { data: plan } = await admin.from('development_plans').select('status').eq('employee_id', userId).eq('source_period_id', latest.id).maybeSingle();
+        const st = plan?.status ?? null;
+        if (st === 'revision') out.push({ id: 'devplan-revise', tone: 'rose', href: `/pengembangan?tab=saya&period=${latest.id}`, label: 'Rencana Pengembangan Anda perlu perbaikan' });
+        else if (st === null || st === 'draft') out.push({ id: 'devplan-fill', tone: 'amber', href: `/pengembangan?tab=saya&period=${latest.id}`, label: `Isi ${planTitle(latest.label)}` });
+      }
+      // Catatan sesi 1-on-1 (0056) yang belum ditanggapi pemilik rencana.
+      const { data: myPlans } = await admin.from('development_plans').select('id').eq('employee_id', userId).in('source_period_id', openIds);
+      if (myPlans?.length) {
+        const { data: open } = await admin.from('development_plan_sessions').select('id')
+          .in('plan_id', myPlans.map((p) => p.id)).eq('kind', 'one_on_one').is('employee_note', null);
+        if (open?.length) out.push({ id: 'devplan-respond', tone: 'blue', href: '/pengembangan?tab=saya', label: `${open.length} catatan sesi 1-on-1 menunggu tanggapan Anda` });
+      }
+    }
+
+    const { data: waiting } = await admin.from('development_plans').select('employee_id, status')
+      .in('source_period_id', openIds).in('status', ['waiting_supervisor', 'waiting_hrd']);
+    if (waiting?.length) {
+      const resolve = await loadSupervisorResolver(admin);
+      const { data: emps } = await admin.from('employees').select('id, role').in('id', [...new Set(waiting.map((w) => w.employee_id))]);
+      const roleBy = new Map((emps ?? []).map((e) => [e.id, e.role]));
+      let asSup = 0, asHrd = 0;
+      for (const w of waiting) {
+        const info = resolve({ id: w.employee_id, role: roleBy.get(w.employee_id) ?? null });
+        if (w.status === 'waiting_supervisor' && canActAsSupervisor(info, actor, w.employee_id, hrdMode)) {
+          if (info.kind === 'hrd') asHrd++; else if (hrdMode !== 'admin') asSup++;
+        }
+        if (w.status === 'waiting_hrd' && canHrdSign(actor, hrdMode)) asHrd++;
+      }
+      if (asSup > 0) out.push({ id: 'devplan-sup', tone: 'indigo', href: '/pengembangan?tab=tim', label: `${asSup} rencana pengembangan tim menunggu komentar Anda` });
+      if (asHrd > 0) out.push({ id: 'devplan-hrd', tone: 'indigo', href: '/admin/pengembangan', label: `${asHrd} rencana pengembangan menunggu keputusan HRD` });
+    }
+    return out;
+  } catch {
+    return [];
+  }
 }

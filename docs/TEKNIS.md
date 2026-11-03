@@ -10,7 +10,7 @@ Status & pekerjaan terbuka di [RENCANA.md](RENCANA.md). Riwayat di [CHANGELOG.md
 3. [Aktivasi fitur dorman & Mode Maintenance](#3-aktivasi-fitur-dorman--mode-maintenance)
 4. [Rumus skor & klasifikasi](#4-rumus-skor--klasifikasi)
 5. [Manajemen Akses — model & penegakan](#5-manajemen-akses--model--penegakan)
-6. [Daftar migrasi 0001–0052](#6-daftar-migrasi-00010052)
+6. [Daftar migrasi 0001–0057](#6-daftar-migrasi-00010057)
 7. [Pengujian](#7-pengujian)
 8. [Backup & restore](#8-backup--restore)
 9. [PDF panduan in-app](#9-pdf-panduan-in-app)
@@ -114,7 +114,8 @@ Semua di Vercel Dashboard (jangan commit). Hanya `NEXT_PUBLIC_*` yang boleh samp
 | `ONBOARDING_GMAIL_ONLY` | server | `'false'` = undangan ke semua domain. Default: hanya `@gmail.com` (alamat lain dilewati **tanpa** mengubah sandi) |
 | `EDGE_CONFIG` | server | diisi **otomatis** saat Edge Config di-Connect; tempat saklar `maintenance` |
 | `MAINTENANCE_BYPASS_TOKEN` | server, opsional | kode ≥ 16 karakter untuk developer masuk saat maintenance. Kosong/pendek = tak ada yang lolos |
-| `CRON_SECRET` | server | autentikasi Vercel Cron ke `/api/cron/late-penalty`. **Cron dinonaktifkan** — tak dibutuhkan sampai diaktifkan (§3.4) |
+| `CRON_SECRET` | server + secret GitHub | kode rahasia pemanggil `/api/cron/*`. **Wajib** untuk Email Rilis terjadwal (§3.5): nilai sama di Vercel (Production) & secret GitHub. Kosong = semua route cron menolak |
+| `APP_URL` | secret GitHub | alamat production untuk workflow Email Rilis terjadwal (§3.5), tanpa `/` di akhir |
 | `VERCEL_ENV` · `VERCEL_PROJECT_PRODUCTION_URL` | otomatis Vercel | `VERCEL_ENV=production` = satu-satunya kondisi maintenance ditegakkan |
 | `BACKUP_PASSPHRASE` | secret GitHub | kata sandi enkripsi backup harian (§8.2) |
 | `ALLOW_PROD`, `VU`, dll. | skrip uji beban | lihat §7.5 |
@@ -192,6 +193,32 @@ Route `app/api/cron/late-penalty/route.ts` memanggil `refreshLatePenalties` (han
 Gantinya: potongan diterapkan otomatis saat HRD membuka Flag Kepatuhan / Review & Finalisasi dan sebelum
 `computeFinal` (simpan/rilis/finalisasi); cadangan tombol "Terapkan Potongan ke Skor 360°".
 **Aktifkan lagi:** buat ulang `vercel.json` berisi cron `late-penalty` + set `CRON_SECRET`.
+Catatan: `/api/cron/` kini dikecualikan dari cek sesi (`lib/supabase/middleware.ts`), jadi route ini juga
+benar-benar bisa dipanggil penjadwal (dulu akan dibelokkan ke /login).
+
+### 3.5 Email Rilis terjadwal (GitHub Actions, migrasi 0053)
+HRD menjadwalkan Email Rilis di dialog langkah ③ (penerima & isi dikunci bersama jadwal; `release_email_schedules`).
+Pengirim = route `app/api/cron/release-email/route.ts` → `processDueReleaseSchedules` (`lib/release-schedule.ts`):
+klaim atomik `scheduled → sending`, kirim ≤ 25 pegawai per panggilan lewat inti yang sama dengan tombol manual
+(`lib/release-delivery.ts`), sisanya panggilan berikutnya; `sending` macet > 15 menit diambil ulang; tiap tahap
+dicatat ke `hrd_audit_log` (`laporan.release_email`, `meta.sent_ids`) → tak ada kiriman ganda. Pemicu =
+`.github/workflows/release-email-cron.yml` tiap 10 menit (GitHub bisa telat 5–30 menit; paket Vercel Hobby tak
+mendukung cron per menit). Route menolak tanpa `Authorization: Bearer $CRON_SECRET` (gagal tertutup).
+
+**Aktivasi (sekali):**
+1. Jalankan migrasi **0053** di staging lalu production; cek `scripts/check-migrations.sql`.
+2. Buat kode acak ≥ 32 karakter (mis. PowerShell:
+   `-join ((48..57)+(65..90)+(97..122) | Get-Random -Count 40 | % {[char]$_})`).
+3. Vercel → Settings → Environment Variables → `CRON_SECRET` = kode itu, scope **Production** (dan **Preview**
+   bila ingin menguji jadwal di Preview) → **Redeploy**.
+4. GitHub → repo → Settings → Secrets and variables → Actions → **New repository secret**: `CRON_SECRET` (kode
+   yang sama) dan `APP_URL` (alamat production, tanpa `/` di akhir).
+5. Uji: tab **Actions** → **Email Rilis Terjadwal** → **Run workflow** → log berisi `{"ok":true,...}`. `401` =
+   kode beda/belum Redeploy; `{"ok":false,"error":"... 0053"}` = migrasi belum dijalankan.
+
+Tanpa langkah 2–4 HRD tetap bisa membuat jadwal, tetapi email tidak terkirim (jadwal tetap "Terjadwal"). Uji di
+staging tanpa GitHub: jalankan lokal (`npm run dev`, `.env.local` staging + `CRON_SECRET`), buat jadwal 5 menit
+ke depan, lalu panggil `curl -H "Authorization: Bearer <kode>" http://localhost:3000/api/cron/release-email`.
 
 ---
 
@@ -336,9 +363,78 @@ hanya HRD berakses penuh; tak ada yang bisa mengubah izin dirinya sendiri (trigg
 7. Data sensitif (laporan/dashboard/ekspor/raw 360°) tidak boleh hanya disembunyikan di menu — wajib
    penyaringan server/RLS. Konfigurasi (pertanyaan/bobot/periode/pemetaan) cukup `canSection`.
 
+### 5.4 Catatan di Luar Pemetaan (0054) — anonimitas & akses
+- **Tabel** `outside_mapping_notes` = `id` (uuid acak) · `period_id` · `target_id` · `aspect_id` · `body`. **Tanpa**
+  kolom penulis (id/email/hash/token) dan **tanpa** waktu kirim. Check `char_length(btrim(body))` 20–2000; trigger
+  `trg_outside_note_aspect_in_period` (aspek wajib milik periode catatan); FK aspek `NO ACTION` (aspek bercatatan
+  tak bisa terhapus diam-diam), periode & target `cascade`. RLS aktif **tanpa policy** + `revoke all` dari
+  `anon`/`authenticated` → hanya `service_role`.
+- **Tulis** `submitOutsideNote` (`penilaian/outside-note-actions.ts`): Zod → login → periode aktif + `has_360` +
+  `form_open` (tahap tinjau ditolak; deadline tidak dicek) → pengirim bukan eksternal → target bukan diri/Direksi/
+  eksternal/nonaktif & tak ada di `mappings` aktif penilai → aspek milik periode aktif → insert service_role.
+  Identitas pengirim **hanya** untuk validasi: tak ditulis ke tabel, `hrd_audit_log`, `console`, pesan error, atau
+  notifikasi. Tanpa `revalidatePath` (tak ada tampilan yang berubah).
+- **Baca** opt-in `withOutsideNotes` (`lib/outside-notes.ts`) → `AspectRaw.outsideNotes`. Dipanggil **hanya** di
+  `laporan/[employeeId]` saat `outsideNotesAllowed(route)` (= rute `hrd`: izin HRD + Mode Admin), termasuk laporan
+  HRD sendiri (keputusan pemilik 2026-11-03). `loadReport` & semua loader turunan tak memuatnya — jangan
+  mengandalkan `withoutRaw`. Urutan tampil = abjad isi (`sortOutsideNotes`), bukan urutan kirim / id.
+  Blok di `RawFeedback` diberi `no-print` (tak ikut Unduh PDF → tak terbawa ke PDF di Folder Laporan).
+- **Ekspor** (permintaan pemilik 2026-11-03): Bahan Laporan per Pegawai lembar 4 "Catatan di Luar Pemetaan" via
+  `outsideNotesForExport` — kolom periode · kode · nama · divisi · aspek · catatan (tanpa penulis/relasi/waktu), urut
+  periode → pegawai → aspek → abjad isi. Hanya bila cookie `hrd_mode='admin'` (di luar itu lembarnya tak ada); tabel
+  belum ada → lembar kosong. Diuji `tests/ekspor-outside-notes.test.ts`. File Excel bisa beredar di luar aplikasi.
+- **Isolasi** (diuji `tests/outside-notes.test.ts`): hanya dua file yang menyebut tabelnya; `withOutsideNotes` hanya
+  dipanggil detail laporan, `outsideNotesForExport` hanya ekspor → skor 360°, Skor Akhir, Progress 360, Kepatuhan,
+  potongan telat, tugas, ekspor lain, `final_reports`/`final_report_history` tak terpengaruh.
+  `clone-anon-to-staging` mengosongkan tabel di staging dan **tidak** menyalinnya dari production. Backup harian
+  ikut mencakupnya (terenkripsi).
+- **Sisa risiko (diterima, tanpa pengaman tambahan):** log permintaan Vercel/Supabase mencatat waktu & sesi pengirim;
+  pihak berakses infrastruktur secara teori bisa mencocokkan waktu kirim. Isi catatan sendiri bisa mengungkap
+  penulis — pegawai diingatkan di modal.
+
+### 5.5 Rencana Pengembangan (0055–0056) — alur & akses
+- **Tabel** `development_plans` (unik per `employee_id` + `source_period_id`; status `draft` → `waiting_supervisor` →
+  `waiting_hrd` → `agreed`, cabang `revision`; 4 komentar atasan; persetujuan pegawai/atasan/HRD = id + nama + waktu)
+  dan `development_plan_items` (prioritas berurutan). `periods.dev_plan_closed_at` (tutup rencana periode) &
+  `dev_plan_due` (batas disepakati, **informasi saja** — keterlambatan tak dicatat).
+- **Melekat ke periode LAPORAN**: terbuka bila `final_reports` pegawai di periode itu `finalized` dan
+  `dev_plan_closed_at` kosong (`planWindow`, `lib/dev-plan-server.ts`). Periode aktif / terkunci tak berpengaruh.
+  Judul = kuartal sesudahnya (`planTitle`: laporan Q3 → "Rencana Pengembangan Q4").
+- **Atasan** (`resolveSupervisor`, `lib/dev-plan.ts`): Direksi → tanpa atasan (tanpa alur, label "Tersimpan") · SPV /
+  pemimpin tim `spv_team_members` → Direksi · anggota `coordinator_team_members` → koordinator (SPV-nya
+  `viewerIds`, lihat saja) · anggota `spv_team_members` → SPV (termasuk HRD Mode SPV) · lainnya → HRD. Dihitung ulang
+  saat dibuka. Tak ada yang bertindak atas rencananya sendiri sebagai atasan.
+- **Tulis** hanya `app/(app)/pengembangan/actions.ts` (Zod + service_role; tabel tanpa policy tulis): `saveMyPlan`
+  (isi hanya di draft/revision; sisip baru dulu lalu hapus lama), `submitMyPlan` (= persetujuan pegawai; semua
+  prioritas lengkap), `decideAsSupervisor` (Setujui butuh Konfirmasi Kinerja & Dukungan; Minta Perbaikan butuh alasan
+  & membatalkan persetujuan), `withdrawMyPlan` (Tarik Kembali, pemilik, hanya `waiting_supervisor`), `approveAsHrd` (`canHrdSign` = **posisi**
+  `role='hrd'` + Mode Admin + bagian `pengembangan`; boleh atas rencana sendiri setelah atasan — keputusan pemilik).
+  **Tidak ada Buka Kembali**: setelah atasan menyetujui, rencana tak bisa dikembalikan siapa pun. **Pemisahan mode**
+  (`inAdminView`): pemegang izin HRD di Mode Admin ditolak untuk aksi pemilik (simpan/kirim/tarik/tanggapan) dan
+  bukan atasan SPV/Koordinator (`canActAsSupervisor`); `/pengembangan` di Mode Admin dialihkan ke Pantauan, rencana
+  sendiri dibuka hanya-baca di `/pengembangan/[id]`. `setPlanWindow` (`canHrdManage` = bagian
+  `pengembangan` + Mode Admin). Ganti status bersyarat status lama. Semua tercatat di Log Aktivitas (kategori
+  `pengembangan`, `logAuditAsService`).
+- **Baca**: RLS `dp_read`/`dpi_read` = pemilik, `is_hrd()`, `is_direksi()`; atasan & SPV-pengamat via service_role
+  setelah `canViewPlan`. Halaman: `/pengembangan` (Rencana Saya / Tim Saya), `/pengembangan/[employeeId]`,
+  `/admin/pengembangan` (pantauan HRD + Direksi baca). Tugas & Notifikasi: `devPlanTodos` (`lib/todos/compute.ts`).
+- **Tahap 2 (0056) — catatan sesi** `development_plan_sessions` (`kind` `one_on_one` | `hrd_monthly`, tanggal, catatan,
+  `overall_status`, `item_progress` jsonb divalidasi Zod, `employee_note`). Hanya untuk rencana `agreed` & bukan Direksi
+  (`sessionsOpen`), selama periode terbuka. 1-on-1 dicatat atasan (`canRecordSession` = `canActAsSupervisor`, termasuk
+  HRD cadangan); tinjauan bulanan = `canHrdManage`. Ubah/hapus hanya pencatatnya (`canEditSession`); tanggapan hanya
+  pemilik (`saveSessionResponse`). **Hanya mencatat** — tak ada hitungan/penanda terlambat (keputusan pemilik). Pantauan
+  menampilkan jumlah + tanggal terakhir per jenis. RLS `dps_read` mengikuti rencana; tulis hanya service_role.
+- **Pengaman DB (0057)**: `saveMyPlan` memanggil `dev_plan_replace_items` (atomik, `FOR UPDATE` → Kirim dari tab lain
+  menunggu; tanpa isi setengah-tersimpan); trigger menolak perubahan prioritas di luar Draf/Perlu Perbaikan dan perubahan
+  kolom `periods.dev_plan_*` dari pengguna mana pun (hanya server). Cadangan tanpa 0057: sisip baru lalu hapus lama.
+- **Tahap 3 — ekspor** `exportDevPlans` (Ekspor Dataset, gerbang `ekspor` + **Mode Admin**): Rencana (per prioritas) · Komentar &
+  Persetujuan · Sesi & Tinjauan. **Bernama**; filter = periode laporan asal.
+- Tidak menyentuh skor, `final_reports`, kunci laporan Final. Diuji `tests/dev-plan.test.ts`, `tests/dev-plan-actions.test.ts`,
+  `tests/ekspor-dev-plans.test.ts`.
+
 ---
 
-## 6. Daftar migrasi 0001–0052
+## 6. Daftar migrasi 0001–0057
 
 Status penerapan per DB → `scripts/check-migrations.sql`.
 
@@ -394,6 +490,11 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0050 | tabel `employee_report_folders` (Folder Laporan Drive per pegawai; baca `is_hrd()`, tulis `hrd_can('pegawai')`; pegawai membaca miliknya via service_role di Laporan Hasil Saya hanya bila punya laporan Final; app menampilkan "belum aktif"/"PDF belum tersedia" bila tabel belum ada) |
 | 0051 | bucket Storage `email-assets` (publik baca, 2 MB, JPG/PNG/WebP) untuk gambar Email Rilis Laporan per periode (`release/<period_id>/<kunci>.<ext>`); tulis/hapus hanya Server Action via service_role; tanpa bucket, dialog menampilkan "penyimpanan gambar belum aktif" dan email terkirim tanpa gambar |
 | 0052 | tabel `final_report_history` + trigger `trg_final_reports_history` (after insert/update `final_reports`): catat tiap perubahan `spv_acc`/`status`/`final_score` (lama→baru, waktu, `auth.uid()`; NULL untuk service_role → app melengkapi dari `hrd_audit_log` ±15 detik, `lib/report-history.ts`); baca `is_hrd()`, tanpa policy tulis (append-only); snapshot awal saat migrasi. Dipakai panel Riwayat Laporan & tooltip ACC; tanpa tabel → panel "belum aktif" |
+| 0053 | tabel `release_email_schedules` (jadwal Email Rilis: `send_at`, `content`, `recipient_ids` terkunci, `status` scheduled/sending/done/cancelled, hasil `sent_ids`/`skipped`/`failed`); unik satu jadwal aktif per periode; baca `is_hrd()`, tulis hanya service_role (Server Action & route cron, §3.5). Tanpa tabel → pilihan Jadwalkan "belum aktif", kirim manual tak terpengaruh |
+| 0054 | tabel `outside_mapping_notes` (Catatan di Luar Pemetaan): tanpa kolom penulis & waktu kirim; check isi 20–2000; trigger `trg_outside_note_aspect_in_period`; RLS tanpa policy + `revoke all` anon/authenticated (hanya service_role). Rincian §5.4. Tanpa tabel → kirim "belum aktif", laporan tampil tanpa catatan |
+| 0055 | Rencana Pengembangan: tabel `development_plans` + `development_plan_items`, kolom `periods.dev_plan_closed_at`/`dev_plan_due`; RLS baca pemilik/`is_hrd()`/`is_direksi()`, tulis hanya service_role. Rincian §5.5. Tanpa tabel → halaman "belum aktif" |
+| 0056 | Rencana Pengembangan Tahap 2: tabel `development_plan_sessions` (sesi 1-on-1 & tinjauan bulanan HRD, kemajuan per prioritas, tanggapan pegawai); RLS baca mengikuti rencana, tulis hanya service_role. Rincian §5.5. Tanpa tabel → panel sesi tak tampil |
+| 0057 | Pengaman Rencana Pengembangan: trigger `trg_periods_guard_dev_plan_cols` (kolom `dev_plan_*` hanya diubah server — tutup celah `periods_write`), trigger `trg_dev_plan_items_guard` (prioritas hanya berubah saat `draft`/`revision`, Direksi bebas; berlaku juga untuk service_role), fungsi `dev_plan_replace_items` (ganti prioritas atomik, kunci baris rencana; service_role; kode punya cadangan `rpcMissing`) |
 
 ---
 
@@ -414,7 +515,7 @@ Skrip integrasi `scripts/verify-rls.ts` (bukan unit test): membuat fixture `RLST
 login per peran (anon key), menguji `kpi_scores` (SPV → tim+diri, Employee → diri, HRD/Direksi → semua;
 tulis lintas-SPV ditolak; SPV tulis diri diizinkan) dan raw 360° (SPV ditolak; HRD, penilai, target sesuai
 aturan), plus celah 0045 (HRD terbatas, isi penilaian saat form ditutup, permohonan palsu, bobot ≠ 100,
-respons suksesi draf, log ACC). **56 pemeriksaan.** Menghapus seluruh fixture di `finally`; tulis memakai
+respons suksesi draf, log ACC, Catatan di Luar Pemetaan hanya service_role, Rencana Pengembangan & catatan sesi baca pemilik/HRD/Direksi). **83 pemeriksaan.** Menghapus seluruh fixture di `finally`; tulis memakai
 `UPDATE score=score`. Butuh anon + service role key di `.env.local`. Manual pra-rilis, tak di CI.
 Ulangi tiap ada migrasi/perubahan RLS.
 
@@ -585,7 +686,7 @@ Akun Saya. Pemetaan peran → file di `lib/panduan.ts` (sumber tunggal; nama tam
 |---|---|
 | `seed.ts` / `seed-data.ts` | seed idempoten (roster = `lib/auth/demo-users.ts`) |
 | `apply-migration.mjs` | terapkan satu file migrasi (`SUPABASE_DB_URL`) |
-| `check-migrations.sql` | cek migrasi 0001–0052 yang terpasang di sebuah DB |
+| `check-migrations.sql` | cek migrasi 0001–0053 yang terpasang di sebuah DB |
 | `backup.mjs` · `restore.mjs` · `backup-to-excel.mjs` | §8 |
 | `verify-rls.ts` | §7.2 |
 | `import-360-backfill.mjs` | impor skor 360° eksternal (dry-run default; `--apply`, `--create-missing`, `--period=`); CSV `BACKFILL-*.csv` di-gitignore |

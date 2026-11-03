@@ -8,7 +8,7 @@ import { KPI_AUDIT_HREF } from '@/lib/kpi-links';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, ChevronDown,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, ChevronDown, Sprout,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 import { BrandLogo } from '@/components/brand-logo';
@@ -40,6 +40,8 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
   // Tampil untuk semua peran di mode base (termasuk Direksi); hanya disembunyikan di Mode Admin.
   if (!adminView) main.push({ href: '/penilaian', label: 'Daftar Penilaian Saya', icon: Star });
   if (!adminView) main.push({ href: '/laporan', label: 'Laporan Hasil Saya', icon: FileText });
+  // Rencana Pengembangan (0055): rencana sendiri + tab Tim Saya bagi atasan — semua peran di mode base.
+  if (!adminView) main.push({ href: '/pengembangan', label: 'Rencana Pengembangan', icon: Sprout });
   // Peninjau Hasil Lintas Divisi kini = GRANT halaman "Review Hasil Akhir" (lingkup selain divisinya) —
   // tampil di section "Akses dari HRD" di bawah, bukan menu khusus. (is_cross_reviewer dipensiunkan, migrasi 0033.)
   const sections: Section[] = main.length ? [{ title: 'Menu Utama', items: main }] : [];
@@ -92,6 +94,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
 
     const hasil = filterAdmin([
       { href: '/admin/laporan', label: 'Review & Finalisasi', icon: ClipboardCheck, section: 'laporan' },
+      { href: '/admin/pengembangan', label: 'Pantauan Rencana Pengembangan', icon: Sprout, section: 'pengembangan' },
       { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award, section: 'suksesi' },
     ]);
     if (hasil.length) sections.push({ title: 'Hasil & Tindak Lanjut', items: hasil });
@@ -123,6 +126,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
         { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
         { href: '/laporan-tim', label: 'Laporan Kinerja Tim', icon: Users },
         { href: '/review-hasil', label: 'Tinjauan Hasil Akhir', icon: ClipboardCheck },
+        { href: '/admin/pengembangan', label: 'Pantauan Rencana Pengembangan', icon: Sprout },
         { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText },
         { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award },
       ],
@@ -200,9 +204,14 @@ export function AppShell({
   const activeSectionTitle = sections.find((s) => s.items.some((it) => isActive(it.href)))?.title ?? null;
   const firstTitle = sections.find((s) => s.title)?.title ?? null;
   const [openTitle, setOpenTitle] = useState<string | null>(activeSectionTitle ?? firstTitle);
-  useEffect(() => {
+  // Pindah halaman/mode → buka section halaman aktif. Pola resmi React "sesuaikan state saat nilai
+  // berubah" (dibandingkan saat render, bukan lewat effect yang memicu render berantai).
+  const navKey = `${accordion}|${activeSectionTitle}|${firstTitle}`;
+  const [prevNavKey, setPrevNavKey] = useState(navKey);
+  if (navKey !== prevNavKey) {
+    setPrevNavKey(navKey);
     if (accordion) setOpenTitle(activeSectionTitle ?? firstTitle);
-  }, [accordion, activeSectionTitle, firstTitle]);
+  }
 
   const Sidebar = (
     <aside className="app-sidebar w-64 shrink-0 bg-sidebar text-sidebar-soft border-r border-black/30 flex flex-col h-full">

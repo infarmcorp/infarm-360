@@ -62,6 +62,8 @@ export function AspectSummaryEditor({
   useEffect(() => {
     if (!hydratedRef.current) { hydratedRef.current = true; return; }
     if (locked || !changed) return;
+    // Disengaja: status "menunggu simpan" menyertai timer simpan otomatis (sistem luar = timer + server).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSaveState('pending');
     const t = setTimeout(() => { void flush(); }, 5000);
     return () => clearTimeout(t);

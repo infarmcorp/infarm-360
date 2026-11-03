@@ -1,6 +1,6 @@
 -- ============================================================================
 -- CEK STATUS MIGRASI — jalankan di Supabase SQL Editor project mana pun
--- (production ATAU staging) untuk melihat migrasi 0001–0052 mana yang SUDAH
+-- (production ATAU staging) untuk melihat migrasi 0001–0053 mana yang SUDAH
 -- diterapkan ke database tsb, tanpa perlu mengingat riwayatnya secara manual.
 --
 -- Cara pakai: copy-paste seluruh isi file ini ke SQL Editor → Run. Kolom
@@ -64,7 +64,12 @@ select * from (values
   ('0049', 'trigger trg_final_reports_block_self_acc',        exists(select 1 from pg_trigger where tgname='trg_final_reports_block_self_acc')),
   ('0050', 'tabel employee_report_folders',                  to_regclass('public.employee_report_folders') is not null),
   ('0051', 'bucket storage email-assets',                    exists(select 1 from storage.buckets where id = 'email-assets')),
-  ('0052', 'tabel final_report_history (riwayat laporan)',    to_regclass('public.final_report_history') is not null)
+  ('0052', 'tabel final_report_history (riwayat laporan)',    to_regclass('public.final_report_history') is not null),
+  ('0053', 'tabel release_email_schedules (jadwal email rilis)', to_regclass('public.release_email_schedules') is not null),
+  ('0054', 'tabel outside_mapping_notes (catatan di luar pemetaan)', to_regclass('public.outside_mapping_notes') is not null),
+  ('0055', 'tabel development_plans (rencana pengembangan)', to_regclass('public.development_plans') is not null),
+  ('0056', 'tabel development_plan_sessions (sesi 1-on-1)', to_regclass('public.development_plan_sessions') is not null),
+  ('0057', 'fungsi dev_plan_replace_items & pengaman rencana', exists(select 1 from pg_proc where proname='dev_plan_replace_items') and exists(select 1 from pg_trigger where tgname='trg_dev_plan_items_guard'))
 ) as t(migrasi, penanda_skema, applied)
 order by migrasi;
 

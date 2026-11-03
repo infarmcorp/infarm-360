@@ -11,6 +11,8 @@ import { ResyncDriftButton } from './resync-drift-button';
 import { BulkFinalizeButton } from './bulk-finalize-button';
 import { ReleaseEmailButton, type ReleaseProps } from './release-email-button';
 import { loadReleasePeriod, defaultCycle, loadReleaseSentIds, loadReleaseImages } from '@/lib/report-release';
+import { loadReleaseSchedules } from '@/lib/release-schedule';
+import { fmtScheduleWib } from '@/lib/release-schedule-time';
 import { appBaseUrl } from '@/lib/app-url';
 import { ImportSummaries, type ImportSummaryEmp } from './import-summaries';
 import { Panel } from '@/components/panel';
@@ -241,15 +243,17 @@ export default async function AdminLaporanPage() {
   let release: ReleaseProps | null = null;
   if (isHrdFull) {
     const finalRows = shownRows.filter((r) => r.status === 'finalized');
-    const [relPeriod, cycle, sentIds, { data: folders }, base, imgs] = await Promise.all([
+    const [relPeriod, cycle, sentIds, { data: folders }, base, imgs, schedule] = await Promise.all([
       loadReleasePeriod(cfg, ap.id), defaultCycle(cfg, ap.id), loadReleaseSentIds(cfg, ap.id),
       cfg.from('employee_report_folders').select('employee_id, url'), appBaseUrl(), loadReleaseImages(cfg, ap.id),
+      loadReleaseSchedules(cfg, ap.id),
     ]);
     const folderSet = new Set((folders ?? []).filter((f) => f.url).map((f) => f.employee_id));
     if (relPeriod) release = {
       period: relPeriod, defaultCycle: cycle, appUrl: base ? `${base}/laporan` : '',
       recipients: finalRows.map((r) => ({ id: r.id, name: r.name, dept: r.dept, hasFolder: folderSet.has(r.id), sent: sentIds.has(r.id) })),
       images: Object.fromEntries(Object.entries(imgs.images).map(([k, v]) => [k, v.url])), storageOk: imgs.ok,
+      schedule,
     };
   }
 
@@ -373,6 +377,12 @@ export default async function AdminLaporanPage() {
                 <p><span className="data-value font-semibold text-ink">{releaseReady - releaseSent}</span> siap dikirim · <span className="data-value font-semibold text-ink">{releaseSent}</span> sudah dikirimi</p>
                 {releaseNoFolder > 0 && (
                   <p className="text-warn-ink"><span className="data-value">{releaseNoFolder}</span> Final belum punya Folder Laporan — <Link href="/admin/pegawai" className="underline">isi di Kelola Pegawai</Link>.</p>
+                )}
+                {release.schedule.active && (
+                  <p className="font-semibold text-brand-ink">
+                    {release.schedule.active.status === 'sending' || release.schedule.active.sentIds.length > 0 ? 'Sedang dikirim terjadwal' : 'Terjadwal'}:{' '}
+                    {fmtScheduleWib(release.schedule.active.sendAt)} · <span className="data-value">{release.schedule.active.recipientIds.length}</span> pegawai
+                  </p>
                 )}
               </>
             ) : (

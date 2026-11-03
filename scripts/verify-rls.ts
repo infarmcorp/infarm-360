@@ -431,6 +431,104 @@ async function main() {
       check('ACC oleh SPV TERCATAT di Log Aktivitas [0045]', (data?.length ?? 0) >= 1);
     }
 
+    console.log('\n0054 — Catatan di Luar Pemetaan (hanya service_role):');
+    {
+      // Catatan tentang EMP ditulis server (service_role). Tak ada peran — termasuk HRD — yang boleh membaca
+      // atau menulis tabelnya langsung lewat API; HRD membacanya lewat server (detail laporan Mode Admin).
+      const { error: seedErr } = await admin.from('outside_mapping_notes').insert({
+        period_id: aid.periodId, target_id: id.EMP, aspect_id: aid.aspectId, body: 'CATATAN RAHASIA RLS — uji anonim',
+      });
+      check('Server (service_role) MENULIS catatan DIIZINKAN (kontrol positif)', !seedErr, seedErr?.message ?? '');
+      const { data: seen } = await admin.from('outside_mapping_notes').select('id').eq('period_id', aid.periodId);
+      check('Server (service_role) BACA catatan DIIZINKAN (kontrol positif)', (seen?.length ?? 0) === 1);
+      for (const key of ['HRD', 'HRL', 'SPV', 'DIR', 'EMP', 'OTH'] as const) {
+        const c = await loginAs(FIX[key].email);
+        const { data, error } = await c.from('outside_mapping_notes').select('body').eq('period_id', aid.periodId);
+        check(`${FIX[key].code} BACA catatan lewat API DITOLAK [0054]`, !!error || (data?.length ?? 0) === 0);
+        await c.auth.signOut();
+      }
+      {
+        const c = await loginAs(FIX.OTH.email);
+        const { error } = await c.from('outside_mapping_notes').insert({
+          period_id: aid.periodId, target_id: id.EMP, aspect_id: aid.aspectId, body: 'Disisipkan langsung lewat API anon',
+        });
+        check('Pegawai MENULIS catatan langsung lewat API DITOLAK [0054]', !!error);
+        await c.auth.signOut();
+      }
+      { const { error } = await admin.from('outside_mapping_notes').insert({
+          period_id: aid.periodId, target_id: id.EMP, aspect_id: aid.aspectId, body: '   pendek   ' });
+        check('Isi catatan < 20 karakter DITOLAK database [0054]', !!error); }
+    }
+
+    console.log('\n0055 — Rencana Pengembangan (baca: pemilik/HRD/Direksi; tulis hanya server):');
+    {
+      const { data: dp, error: dpErr } = await admin.from('development_plans')
+        .insert({ employee_id: id.EMP, source_period_id: aid.periodId }).select('id').single();
+      check('Server (service_role) MEMBUAT rencana DIIZINKAN (kontrol positif)', !dpErr && !!dp, dpErr?.message ?? '');
+      if (dp) {
+        await admin.from('development_plan_items').insert({ plan_id: dp.id, area: 'RLS area' });
+        const seen = async (key: keyof typeof FIX) => {
+          const c = await loginAs(FIX[key].email);
+          const { data } = await c.from('development_plans').select('id').eq('id', dp.id);
+          const { data: it } = await c.from('development_plan_items').select('id').eq('plan_id', dp.id);
+          await c.auth.signOut();
+          return { plan: data?.length ?? 0, items: it?.length ?? 0 };
+        };
+        const emp = await seen('EMP');
+        check('Pemilik (EMP) BACA rencananya sendiri DIIZINKAN', emp.plan === 1 && emp.items === 1);
+        const oth = await seen('OTH');
+        check('Pegawai lain (OTH) BACA rencana EMP DITOLAK [0055]', oth.plan === 0 && oth.items === 0);
+        const spv = await seen('SPV');
+        check('SPV BACA rencana anggota lewat API DITOLAK (atasan baca lewat server) [0055]', spv.plan === 0);
+        check('HRD BACA rencana DIIZINKAN', (await seen('HRD')).plan === 1);
+        check('Direksi BACA rencana DIIZINKAN', (await seen('DIR')).plan === 1);
+        const c = await loginAs(FIX.EMP.email);
+        { const { data, error } = await c.from('development_plans').update({ status: 'agreed' }).eq('id', dp.id).select('id');
+          check('Pemilik MENGUBAH status rencana lewat API DITOLAK [0055]', !!error || (data?.length ?? 0) === 0); }
+        { const { error } = await c.from('development_plan_items').insert({ plan_id: dp.id, area: 'Disisipkan lewat API' });
+          check('Pemilik MENYISIPKAN prioritas lewat API DITOLAK [0055]', !!error); }
+        await c.auth.signOut();
+
+        // 0056 — catatan sesi: baca mengikuti rencana; tulis hanya server.
+        const { error: sErr } = await admin.from('development_plan_sessions')
+          .insert({ plan_id: dp.id, kind: 'one_on_one', session_date: '2099-01-15', summary: 'RLS sesi' });
+        check('Server MENCATAT sesi DIIZINKAN (kontrol positif) [0056]', !sErr, sErr?.message ?? '');
+        const sessSeen = async (key: keyof typeof FIX) => {
+          const x = await loginAs(FIX[key].email);
+          const { data } = await x.from('development_plan_sessions').select('id').eq('plan_id', dp.id);
+          await x.auth.signOut();
+          return data?.length ?? 0;
+        };
+        check('Pemilik BACA catatan sesi rencananya DIIZINKAN [0056]', (await sessSeen('EMP')) === 1);
+        check('Pegawai lain BACA catatan sesi DITOLAK [0056]', (await sessSeen('OTH')) === 0);
+        {
+          const x = await loginAs(FIX.EMP.email);
+          const { error } = await x.from('development_plan_sessions')
+            .insert({ plan_id: dp.id, kind: 'one_on_one', session_date: '2099-01-16', summary: 'Disisipkan lewat API' });
+          check('Pemilik MENCATAT sesi lewat API DITOLAK [0056]', !!error);
+          { const { error: rpcErr } = await x.rpc('dev_plan_replace_items', { p_plan: dp.id, p_items: [] });
+            check('Pemilik MEMANGGIL dev_plan_replace_items lewat API DITOLAK [0057]', !!rpcErr); }
+          await x.auth.signOut();
+        }
+
+        // 0057 — pengaman database: prioritas terkunci di luar Draf/Perlu Perbaikan (juga untuk server),
+        // dan kolom pengaturan rencana di periods tak bisa diubah lewat API walau oleh HRD.
+        await admin.from('development_plans').update({ status: 'waiting_supervisor' }).eq('id', dp.id);
+        { const { error } = await admin.from('development_plan_items').insert({ plan_id: dp.id, area: 'Sisip setelah dikirim' });
+          check('Menambah prioritas saat Menunggu Atasan DITOLAK database (juga server) [0057]', !!error); }
+        { const { error } = await admin.rpc('dev_plan_replace_items', { p_plan: dp.id, p_items: [{ area: 'x' }] });
+          check('Ganti prioritas saat Menunggu Atasan DITOLAK fungsi database [0057]', !!error); }
+        {
+          const h = await loginAs(FIX.HRD.email);
+          const { data, error } = await h.from('periods').update({ dev_plan_due: '2099-02-01' }).eq('id', aid.periodId).select('id');
+          check('HRD MENGUBAH batas rencana lewat API DITOLAK (hanya lewat aplikasi) [0057]', !!error || (data?.length ?? 0) === 0);
+          await h.auth.signOut();
+        }
+        { const { error } = await admin.from('periods').update({ dev_plan_due: '2099-02-01' }).eq('id', aid.periodId);
+          check('Server MENGUBAH batas rencana DIIZINKAN (kontrol positif) [0057]', !error, error?.message ?? ''); }
+      }
+    }
+
     console.log(`\n== HASIL: ${pass} lolos, ${fail} gagal ==`);
   } finally {
     await cleanup();

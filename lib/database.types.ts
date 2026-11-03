@@ -13,6 +13,9 @@ export type AssessmentStatus = 'draft' | 'submitted' | 'invalidated';
 export type ExposureStatus = 'eligible' | 'partially_eligible' | 'not_eligible'; // BR-03 Exposure Check
 export type WeightValues = { atasan?: number; peer?: number; cross?: number; bawahan?: number; self?: number; internal?: number };
 export type ReportStatus = 'draft' | 'in_review' | 'finalized';
+export type DevPlanStatus = 'draft' | 'waiting_supervisor' | 'revision' | 'waiting_hrd' | 'agreed';
+export type DevSessionKind = 'one_on_one' | 'hrd_monthly';
+export type DevItemProgress = { item_id: string; status: 'on_track' | 'behind' | 'done'; note: string };
 export type SuccessionStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
 export type CorrectionStatus = 'pending' | 'approved' | 'rejected';
 /** Jenis permohonan pemetaan yang diajukan pegawai (migrasi 0035). */
@@ -46,8 +49,8 @@ export interface Database {
         Relationships: [];
       };
       periods: {
-        Row: { id: string; code: string; label: string; start_date: string; end_date: string; status: 'active' | 'ended'; has_360: boolean; form_open: boolean; mapping_published: boolean; kpi_standard: number; assessment_deadline: string | null; created_at: string };
-        Insert: { code: string; label: string; start_date: string; end_date: string; status?: 'active' | 'ended'; has_360?: boolean; form_open?: boolean; mapping_published?: boolean; kpi_standard?: number; assessment_deadline?: string | null };
+        Row: { id: string; code: string; label: string; start_date: string; end_date: string; status: 'active' | 'ended'; has_360: boolean; form_open: boolean; mapping_published: boolean; kpi_standard: number; assessment_deadline: string | null; dev_plan_closed_at: string | null; dev_plan_due: string | null; created_at: string };
+        Insert: { code: string; label: string; start_date: string; end_date: string; status?: 'active' | 'ended'; has_360?: boolean; form_open?: boolean; mapping_published?: boolean; kpi_standard?: number; assessment_deadline?: string | null; dev_plan_closed_at?: string | null; dev_plan_due?: string | null };
         Update: Partial<Database['public']['Tables']['periods']['Insert']>;
         Relationships: [];
       };
@@ -129,6 +132,71 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['employee_report_folders']['Insert']>;
         Relationships: [];
       };
+      release_email_schedules: {
+        Row: {
+          id: string; period_id: string; send_at: string; content: Record<string, unknown>; recipient_ids: string[];
+          status: 'scheduled' | 'sending' | 'done' | 'cancelled';
+          created_by: string | null; created_by_name: string | null; created_at: string; updated_at: string;
+          started_at: string | null; finished_at: string | null; sent_ids: string[];
+          skipped: { id: string; name: string; reason: string }[]; failed: { id: string; name: string; reason: string }[];
+        };
+        Insert: {
+          period_id: string; send_at: string; content: Record<string, unknown>; recipient_ids: string[];
+          status?: 'scheduled' | 'sending' | 'done' | 'cancelled'; created_by?: string | null; created_by_name?: string | null;
+          updated_at?: string; started_at?: string | null; finished_at?: string | null; sent_ids?: string[];
+          skipped?: { id: string; name: string; reason: string }[]; failed?: { id: string; name: string; reason: string }[];
+        };
+        Update: Partial<Database['public']['Tables']['release_email_schedules']['Insert']>;
+        Relationships: [];
+      };
+      development_plans: {
+        // Rencana Pengembangan (0055) — melekat ke periode LAPORAN (source_period_id).
+        Row: {
+          id: string; employee_id: string; source_period_id: string; status: DevPlanStatus;
+          sup_confirmation: string | null; sup_context: string | null; sup_support: string | null; sup_hope: string | null;
+          revision_reason: string | null; employee_signed_at: string | null;
+          supervisor_id: string | null; supervisor_name: string | null; supervisor_signed_at: string | null;
+          hrd_id: string | null; hrd_name: string | null; hrd_signed_at: string | null;
+          created_at: string; updated_at: string;
+        };
+        Insert: {
+          employee_id: string; source_period_id: string; status?: DevPlanStatus;
+          sup_confirmation?: string | null; sup_context?: string | null; sup_support?: string | null; sup_hope?: string | null;
+          revision_reason?: string | null; employee_signed_at?: string | null;
+          supervisor_id?: string | null; supervisor_name?: string | null; supervisor_signed_at?: string | null;
+          hrd_id?: string | null; hrd_name?: string | null; hrd_signed_at?: string | null; updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['development_plans']['Insert']>;
+        Relationships: [];
+      };
+      development_plan_items: {
+        Row: { id: string; plan_id: string; order_idx: number; area: string; target: string; actions: string; due_text: string; companion: string; success_indicator: string };
+        Insert: { plan_id: string; order_idx?: number; area?: string; target?: string; actions?: string; due_text?: string; companion?: string; success_indicator?: string };
+        Update: Partial<Database['public']['Tables']['development_plan_items']['Insert']>;
+        Relationships: [];
+      };
+      development_plan_sessions: {
+        // Catatan sesi 1-on-1 (atasan) & tinjauan bulanan HRD (0056).
+        Row: {
+          id: string; plan_id: string; kind: DevSessionKind; session_date: string; author_id: string | null; author_name: string | null;
+          summary: string; overall_status: 'on_track' | 'behind' | null; item_progress: DevItemProgress[];
+          employee_note: string | null; employee_note_at: string | null; created_at: string; updated_at: string;
+        };
+        Insert: {
+          plan_id: string; kind: DevSessionKind; session_date: string; author_id?: string | null; author_name?: string | null;
+          summary: string; overall_status?: 'on_track' | 'behind' | null; item_progress?: DevItemProgress[];
+          employee_note?: string | null; employee_note_at?: string | null; updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['development_plan_sessions']['Insert']>;
+        Relationships: [];
+      };
+      outside_mapping_notes: {
+        // Catatan di Luar Pemetaan (0054) — anonim secara skema: tanpa kolom penulis & tanpa waktu kirim.
+        Row: { id: string; period_id: string; target_id: string; aspect_id: string; body: string };
+        Insert: { period_id: string; target_id: string; aspect_id: string; body: string };
+        Update: never;
+        Relationships: [];
+      };
       result_360: {
         Row: { employee_id: string; period_id: string; score: number | null; score_raw: number | null; late_penalty: number; computed_at: string };
         Insert: { employee_id: string; period_id: string; score?: number | null; score_raw?: number | null; late_penalty?: number; computed_at?: string };
@@ -182,6 +250,11 @@ export interface Database {
       kpi_delete_with_audit: {
         Args: { p_actor: string; p_employee: string; p_ym: string; p_note: string };
         Returns: number | null;
+      };
+      // 0057: ganti seluruh prioritas Rencana Pengembangan dalam satu transaksi (service_role saja).
+      dev_plan_replace_items: {
+        Args: { p_plan: string; p_items: { area: string; target: string; actions: string; due_text: string; companion: string; success_indicator: string }[] };
+        Returns: undefined;
       };
       // 0048: Aktifkan/Hapus Periode dalam satu transaksi (service_role saja).
       period_activate: {

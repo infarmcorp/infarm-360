@@ -45,7 +45,7 @@ const GENERAL_GUIDE = [
  */
 export function AssessForm({
   targetId, targetName, groups, questions, initialScores, initialAnswers, hasDraft = false, initialStatus = null,
-  mandatoryTotal = 0, mandatoryDoneOthers = 0, thisMandatory = false, deadlinePassed = false,
+  mandatoryTotal = 0, mandatoryDoneOthers = 0, thisMandatory = false, deadlinePassed = false, evidencePeriod,
 }: {
   targetId: string;
   targetName: string;
@@ -60,6 +60,8 @@ export function AssessForm({
   thisMandatory?: boolean;
   /** Deadline periode sudah lewat → setelah dikirim penilaian terkunci (Decision 01). */
   deadlinePassed?: boolean;
+  /** Rentang periode berjalan (mis. "01 Okt 2026 – 31 Des 2026") — evidence wajib dari kejadian dalam rentang ini. */
+  evidencePeriod?: { label: string; range: string };
 }) {
   const router = useRouter();
   const aspectGroups = useMemo(() => groups.filter((g) => g.indicators.length > 0), [groups]);
@@ -147,6 +149,9 @@ export function AssessForm({
       questions.some((q) => (answers[q.id] ?? '').trim().length > 0);
     if (!hasContent) return;                                               // jangan buat draf kosong
 
+    // Disengaja: status "menunggu simpan" menyertai timer simpan otomatis draf (jalur kritis — jangan diubah
+    // demi lint).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSaveState('pending');
     const t = setTimeout(async () => {
       if (lockRef.current || savingRef.current) return;
@@ -511,9 +516,17 @@ export function AssessForm({
                   <label className="text-[11px] font-extrabold text-brand-ink uppercase tracking-wider flex items-center gap-1">
                     Komentar / Bukti Perilaku (Evidence) <span className="text-danger-ink">*</span>
                   </label>
+                  {evidencePeriod && (
+                    <p className="inline-block text-[12px] text-warn-ink bg-warn-tint border border-warn-ink/25 rounded-control px-2.5 py-1">
+                      Tulis kejadian selama periode <strong>{evidencePeriod.label}</strong> saja:{' '}
+                      <strong className="data-value">{evidencePeriod.range}</strong>.
+                    </p>
+                  )}
                   <textarea rows={3} value={comments[cur.id] ?? ''} onChange={(e) => setComments((p) => ({ ...p, [cur.id]: e.target.value }))}
                     onKeyDown={onCommentKeyDown}
-                    placeholder="Jelaskan rating dengan contoh konkret (situasi nyata, perilaku yang terlihat, frekuensi)."
+                    placeholder={evidencePeriod
+                      ? `Jelaskan rating dengan contoh konkret selama ${evidencePeriod.range} (situasi nyata, perilaku yang terlihat, frekuensi).`
+                      : 'Jelaskan rating dengan contoh konkret (situasi nyata, perilaku yang terlihat, frekuensi).'}
                     className="w-full text-sm p-3 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint resize-y" />
                   <div className="flex flex-wrap justify-between items-center gap-2 text-[11px]">
                     <span className="text-ink-faint">

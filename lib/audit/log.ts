@@ -9,7 +9,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
  */
 export type AuditCategory =
   | 'periode' | 'bobot' | 'skor' | 'laporan' | 'kepatuhan'
-  | 'pegawai' | 'pemetaan' | 'pertanyaan' | 'progress' | 'suksesi';
+  | 'pegawai' | 'pemetaan' | 'pertanyaan' | 'progress' | 'suksesi' | 'pengembangan';
 
 /**
  * Kode aksi yang tergolong "perubahan AKSES" (grant halaman ber-lingkup + izin peran/HRD). Dipakai

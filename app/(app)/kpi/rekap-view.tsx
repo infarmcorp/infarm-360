@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllByIds } from '@/lib/supabase/paginate';
 import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf, perfCategoryOf, perfLabelOf } from '@/lib/scoring';
+import { trendOf } from '@/lib/trend';
 import { PeriodSelect } from './period-select';
 import { RekapTable, type RekapRow } from './rekap-table';
 
@@ -99,6 +100,11 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', 
     const kpiAvg = kpiAvgOf(monthly);
     const s360 = s360By.get(e.id) ?? null;
     const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, sel.has_360), repBy.get(e.id));
+    // KPI "belum terbaca" (1 dari 3 bulan pertama terisi) → tak dikategorikan & tak diberi kelas Player,
+    // sama dengan Kompilasi Dashboard. Angka tetap tampil.
+    if (trendOf(monthly.slice(0, 3)) === 'unread') {
+      return { id: e.id, name: e.name, dept: e.dept, is_active: e.is_active, monthly, kpiAvg, s360, final, player: null, katText: 'Belum Terbaca', katClass: 'text-ink-faint' };
+    }
     const player = playerClassOf(kpiAvg, sel.has_360 ? s360 : null);
     const kat = KAT(final);
     return { id: e.id, name: e.name, dept: e.dept, is_active: e.is_active, monthly, kpiAvg, s360, final, player, katText: kat.t, katClass: kat.c };
@@ -122,6 +128,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', 
       <p className="text-[11px] text-ink-faint mt-3 leading-relaxed">
         Rataan KPI = rerata bulan ber-skor di kuartal ini. Skor Akhir = blend KPI+360 (50/50)
         {sel.has_360 ? '' : ' (kuartal KPI saja → 100% KPI)'}. Kategori: ≥90 Melampaui · ≥80 Memenuhi · ≥70 Perlu Peningkatan · &lt;70 Di Bawah Ekspektasi.
+        Belum Terbaca = KPI baru 1 dari 3 bulan kuartal terisi → belum dikategorikan (sama dengan Dashboard).
       </p>
     </div>
   );

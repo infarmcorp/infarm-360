@@ -10,6 +10,7 @@ import { colPercents } from '@/lib/table-cols';
 import { TabBar, Tab } from '@/components/tab-nav';
 import { RequestAssessmentButton } from './request-assessment-form';
 import { MyRequests, type MyRequest } from './my-requests';
+import { OutsideNoteButton } from './outside-note-form';
 import { LATE_PENALTY_360, formatWib, isPastDeadline, ajuanPenaltyApplies, progressStatusOf, PROGRESS_STATUS_LABEL, type ProgressStatus } from '@/lib/late';
 
 const REL_LABEL: Record<string, string> = {
@@ -149,6 +150,15 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
     .map((e) => ({ id: e.id, name: e.name, dept: e.dept }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  // Catatan di Luar Pemetaan (0054): kandidat = daftar yang sama dengan Ajukan Penilaian; aspek dari
+  // culture_aspects periode aktif. Penilai eksternal tak melihat kartunya.
+  const { data: meRow } = await supabase.from('employees').select('is_external').eq('id', user.id).maybeSingle();
+  const showNoteCard = !!meRow && !meRow.is_external;
+  const { data: aspRows } = showNoteCard && ap.form_open
+    ? await supabase.from('culture_aspects').select('id, name').eq('period_id', ap.id).order('order_idx')
+    : { data: [] as { id: string; name: string }[] };
+  const noteAspects = (aspRows ?? []).map((a) => ({ id: a.id, name: a.name }));
+
   // Nama untuk SEMUA target permohonan: target 'add' belum jadi mapping, jadi tak ada di empById.
   const nameByAny = new Map<string, string>([
     ...[...empById.entries()].map(([id, e]) => [id, e.name] as const),
@@ -277,7 +287,10 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
         <>
           {/* Satu jalur menambah rekan yang dinilai (BR-04, Q3 2026): Ad-Hoc instan
               dinonaktifkan — semua penambahan wajib alasan + ACC HRD. */}
-          <section className="mb-5 rounded-panel border border-line bg-surface p-4">
+          {/* Berdampingan di layar lebar, bertumpuk di HP. Kartu catatan disembunyikan untuk penilai
+              eksternal (belum boleh mengirim — keputusan pemilik 2026-11-03; server juga menolak). */}
+          <div className={`mb-5 grid gap-3 ${showNoteCard ? 'sm:grid-cols-2' : ''}`}>
+          <section className="rounded-panel border border-line bg-surface p-4">
             <h3 className="text-xs font-bold text-ink uppercase tracking-wide">Menambah Rekan yang Anda Nilai</h3>
             <p className="text-[11.5px] text-ink-soft mt-1 leading-relaxed">
               Ada rekan yang seharusnya Anda nilai tapi belum tercantum? Ajukan lewat{' '}
@@ -287,7 +300,34 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
               <RequestAssessmentButton candidates={candidates} />
             </div>
           </section>
+          {showNoteCard && (
+            <section className="rounded-panel border border-line bg-surface p-4">
+              <h3 className="text-xs font-bold text-ink uppercase tracking-wide">Catatan di Luar Pemetaan</h3>
+              <p className="text-[11.5px] text-ink-soft mt-1 leading-relaxed">
+                Ada kejadian yang perlu HRD ketahui tentang rekan di luar daftar penilaian Anda? Tulis di sini
+                tanpa rating dan tanpa nama Anda.
+              </p>
+              {ap.form_open ? (
+                <>
+                  <p className="text-[11px] text-ink-faint mt-1">Bisa dikirim selama penilaian {ap.label} berlangsung.</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <OutsideNoteButton candidates={candidates} aspects={noteAspects} />
+                  </div>
+                </>
+              ) : (
+                <p className="text-[11px] text-ink-faint mt-2 leading-relaxed">
+                  Belum bisa dikirim — catatan dibuka bersamaan dengan form penilaian oleh HRD.
+                </p>
+              )}
+            </section>
+          )}
+          </div>
 
+          {showNoteCard && (
+            <p className="mb-2 text-[11px] text-ink-faint">
+              Catatan di luar pemetaan tidak tercantum di sini, karena tidak tersimpan dengan nama Anda.
+            </p>
+          )}
           {myRequestRows.length === 0 ? (
             <p className="text-sm text-ink-soft">Belum ada permohonan. Pengajuan Anda beserta keputusan HRD akan tampil di sini.</p>
           ) : (

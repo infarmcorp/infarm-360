@@ -136,10 +136,12 @@ function PieBlock({ heading, kind, slices, activeId, onPick, tone }: {
     );
   }
   const R = 62, RIN = 38, CX = 70, CY = 70;
-  let acc = -Math.PI / 2;
-  const arcs = slices.map((s) => {
-    const frac = s.n / total;
-    const a0 = acc, a1 = acc + frac * Math.PI * 2; acc = a1;
+  // Sudut awal tiap irisan = jumlah porsi irisan sebelumnya (dihitung di muka, tanpa variabel yang dimutasi).
+  const fracs = slices.map((s) => s.n / total);
+  const arcs = slices.map((s, i) => {
+    const frac = fracs[i];
+    const a0 = -Math.PI / 2 + fracs.slice(0, i).reduce((x, y) => x + y, 0) * Math.PI * 2;
+    const a1 = a0 + frac * Math.PI * 2;
     return { s, a0, a1, frac, id: selId(kind, s.keys) };
   });
   const single = slices.length === 1;

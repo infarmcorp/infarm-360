@@ -6,7 +6,135 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ---
 
+## November 2026
+
+### 2026-11-03 — Rencana Pengembangan: pengaman server & database (di `dev`, belum di production)
+- Hasil pemeriksaan "apakah aturan di layar bisa dibobol lewat jalur teknis" (permintaan pemilik). Semua tombol sudah
+  diperiksa ulang di server; tiga celah kecil ditutup:
+  - tutup/buka rencana dan batas tanggal kini hanya bisa diubah lewat aplikasi (sebelumnya HRD berakses Kelola Periode
+    bisa mengubahnya langsung ke database tanpa akses Rencana Pengembangan);
+  - menyimpan prioritas kini satu langkah utuh di database, dan database menolak perubahan prioritas setelah rencana
+    dikirim — menutup celah Simpan dan Kirim dari dua tab sekaligus;
+  - ekspor Rencana Pengembangan hanya dari Mode Admin, juga bila dipanggil langsung.
+- Sisa kode yang tidak dipakai dirapikan. Butuh perubahan database **0057** (sesudah 0056).
+
+### 2026-11-03 — Rencana Pengembangan: Tarik Kembali & pemisahan mode HRD (di `dev`, belum di production)
+- **Tarik Kembali** untuk pemilik rencana selama **Menunggu Atasan** — mis. untuk menambah prioritas, tanpa meminta
+  atasan atau HRD.
+- **Buka Kembali (ke Draf) dihapus** dari HRD (keputusan pemilik): setelah atasan menyetujui, rencana tidak bisa
+  dikembalikan siapa pun. Perubahan di tengah kuartal dicatat lewat Sesi 1-on-1.
+- **Pemisahan mode HRD diperketat** (temuan uji pemilik): di Mode Admin HRD hanya memakai wewenang HRD. Sebelumnya HRD
+  yang menjadi SPV tim bisa berkomentar dan menyetujui rencana anggotanya dari Mode Admin, dan membuka rencana sendiri
+  dari Pantauan malah membawa ke halaman isian (lengkap dengan tab Tim Saya). Kini rencana sendiri dan rencana tim
+  hanya dilihat di Mode Admin; mengisi, menarik kembali, dan bertindak sebagai SPV dilakukan dari Mode SPV. HRD tetap
+  menyetujui rencananya sendiri (Setujui (HRD)) dari Mode Admin setelah atasannya menyetujui.
+
+### 2026-11-03 — Rencana Pengembangan Tahap 2 & 3: catatan sesi 1-on-1 dan ekspor (di `dev`, belum di production)
+- Setelah rencana **Disepakati**, atasan mencatat **Sesi 1-on-1** (tanggal, catatan, status umum, kemajuan tiap prioritas)
+  dan HRD mencatat **Tinjauan Bulanan HRD** — pengganti baris 3 dan 4 tabel "Tindak Lanjut" di PDF. Pegawai bisa
+  menanggapi tiap sesi. Sesuai keputusan pemilik, aplikasi **hanya mencatat**: tidak ada hitungan atau penanda terlambat.
+- Pantauan HRD menampilkan jumlah dan tanggal terakhir sesi serta tinjauan per pegawai.
+- Ekspor Dataset baru **Rencana Pengembangan & 1-on-1** (bernama, 3 lembar).
+- Butuh perubahan database **0056** (sesudah 0055).
+
+### 2026-11-03 — Rencana Pengembangan Tahap 1 (di `dev`, belum di production)
+- **Bagian 5, 7, dan 8 PDF laporan kini diisi di aplikasi** (permintaan pemilik), supaya HRD bisa memantau tindak
+  lanjut 1-on-1. Menu baru **Rencana Pengembangan** untuk semua peran, dan **Pantauan Rencana Pengembangan** untuk HRD
+  dan Direksi.
+- Pegawai mengisi prioritas (bisa lebih dari satu) setelah laporannya Final, lalu **Kirim ke Atasan**. Atasan menulis
+  komentar dan **Setujui** atau **Minta Perbaikan**; terakhir pegawai **berposisi HRD** menekan **Setujui (HRD)** →
+  **Disepakati**. Setiap persetujuan mencatat nama dan waktu, menggantikan tanda tangan di PDF.
+- Rencana melekat ke **periode laporan**, bukan periode aktif: laporan Q3 2026 menghasilkan Rencana Pengembangan
+  Q4 2026 yang tetap bisa diisi walau periode aktif sudah Q4. HRD menetapkan batas "rencana disepakati" (informasi
+  saja) dan menutup rencana per periode.
+- Atasan: koordinator untuk binaannya, SPV untuk anggota lain dan koordinator, Direksi untuk SPV dan pemimpin tim,
+  HRD untuk pegawai tanpa SPV/koordinator. Rencana Direksi tanpa persetujuan. Tidak memengaruhi skor maupun laporan.
+- Butuh perubahan database **0055** (sesudah 0054). Sesi 1-on-1 dua mingguan dan ekspor menyusul (Tahap 2–3).
+
+### 2026-11-03 — Catatan di Luar Pemetaan masuk ekspor Bahan Laporan (di `dev`, belum di production)
+- Ekspor **Bahan Laporan per Pegawai** kini punya lembar ke-4 **Catatan di Luar Pemetaan** (permintaan pemilik), sebagai
+  bahan bagian "Masukan Lain dari Penilai" di PDF laporan. Isinya periode, pegawai, divisi, aspek, dan isi catatan saja,
+  tanpa nama, hubungan kerja, atau tanggal penulis. Lembar ini hanya ikut bila diekspor dari Mode Admin.
+
+### 2026-11-03 — Rentang tanggal periode di kotak evidence (di `dev`, belum di production)
+- Di formulir penilaian, di atas kotak **Komentar / Bukti Perilaku (Evidence)** kini tertulis rentang tanggal
+  periode berjalan (mis. Q4 2026: 01 Okt 2026 – 31 Des 2026), dan contoh isian di dalam kotak ikut menyebutnya.
+  Tujuannya (permintaan pemilik): penilai menulis bukti dari kejadian kuartal itu saja. Hanya petunjuk; isi
+  evidence tidak diperiksa tanggalnya.
+
+### 2026-11-03 — Catatan di Luar Pemetaan (di `dev`, belum di production)
+- **Pegawai bisa mengirim catatan anonim kepada HRD tentang rekan di luar daftar penilaiannya** (permintaan
+  pemilik, untuk Q4 2026). Di tab Pengajuan ada kartu baru **Catatan di Luar Pemetaan**: pilih rekan, pilih satu
+  aspek budaya, tulis kejadiannya (minimal 20 karakter). Tanpa nilai, tanpa pertanyaan dari HRD.
+- **Ini bukan Ad-Hoc.** Penambahan rekan Ad-Hoc instan **tetap dicabut** sejak Q3 2026, dan **Ajukan Penilaian**
+  tetap berjalan seperti biasa. Catatan tidak menambah pemetaan, tidak menjadi penilaian, dan **tidak memengaruhi**
+  Skor 360°, Skor Akhir, rerata nilai, Progress 360, Kepatuhan, potongan keterlambatan, tugas, maupun angka
+  "x dari y" penilaian wajib.
+- **Anonim sejak penyimpanan:** nama pengirim dan waktu kirim tidak disimpan sama sekali, catatan tidak masuk Log
+  Aktivitas, dan urutan tampil mengikuti abjad isi (bukan urutan kirim). Pegawai tidak punya riwayat catatan;
+  sesudah kirim hanya muncul konfirmasi. Catatan tidak bisa diubah atau dihapus.
+- **Hanya HRD di Mode Admin yang membaca**, di Rincian Komentar laporan pegawai, di dalam kartu tiap aspek.
+  Keputusan pemilik: HRD Admin **juga** melihat catatan tentang dirinya sendiri (tetap anonim), karena kalau tidak,
+  catatan tentang HRD Admin tidak terbaca siapa pun. SPV, Koordinator, Direksi, Tinjauan Hasil Akhir, pemegang akses
+  Review, HRD Mode SPV, dan pegawai yang dinilai tidak menerimanya. Catatan **tidak ikut tercetak** saat Unduh PDF,
+  supaya tidak terbawa ke PDF yang dibagikan ke pegawai.
+- Dibuka bersama form penilaian: bisa dikirim selama form dibuka HRD (deadline tidak menutupnya), tidak bisa saat
+  tahap tinjau pemetaan. Penilai eksternal (vendor/freelance) **belum** boleh mengirim (keputusan pemilik).
+- Butuh perubahan database **0054**.
+
+### 2026-11-03 — Email Rilis Laporan bisa dijadwalkan (di `dev`, belum di production)
+- **HRD bisa menjadwalkan Email Rilis Laporan** (permintaan HRD). Di dialog Email Rilis ada pilihan **Kirim
+  sekarang** atau **Jadwalkan** (tanggal + jam WIB). Pada jam itu email terkirim sendiri, bertahap, sampai ±30
+  menit sesudahnya. Keputusan pemilik (dari diskusi 2026-10-16):
+  - **penerima dikunci** saat menjadwalkan, dan daftar penerima bisa dicentang sehingga pegawai tertentu bisa
+    ditahan dulu;
+  - **isi email dikunci** bersama jadwal; HRD bisa melihat, mengubah, atau membatalkan selama belum mulai terkirim;
+  - saat jam tiba, syarat dicek ulang (laporan Final, folder terisi, punya email); yang sudah pernah dikirimi
+    tidak dikirimi lagi;
+  - hasil ("N terkirim · N dilewati · N gagal" beserta nama) tampil di dialog dan tercatat di Log Aktivitas.
+- Pemicu jadwal berjalan otomatis lewat GitHub setiap ±10 menit (paket Vercel gratis tidak mendukung jadwal per
+  menit). Butuh perubahan database 0053 dan satu kode rahasia yang dipasang sekali oleh pemilik.
+- Kirim manual tidak berubah, hanya caranya kini berbagi satu inti dengan jadwal.
+
 ## Oktober 2026
+
+### 2026-10-16 — Pemeriksaan kode otomatis bersih (belum di production)
+- Semua 49 temuan pemeriksaan gaya kode (lint) dibereskan, dan pemeriksaan ini kini ikut berjalan otomatis di setiap
+  PR. Tampilan dan perilaku tidak dimaksudkan berubah. Yang terasa sedikit berbeda (lebih baik):
+  - isian di panel Manajemen Akses tidak lagi berisiko hilang/kehilangan fokus saat halaman memperbarui diri;
+  - kalender pemilih tanggal, daftar pilihan bercari, dan tabel bercari me-reset tampilan tepat saat dibuka/diketik,
+    tanpa kedip render ganda.
+  Simpan otomatis penilaian 360° dan ringkasan sengaja tidak diubah.
+
+### 2026-10-16 — Gelombang 3: detail laporan sadar mode, pesan Manajemen Akses (di `dev`, belum di production)
+- **Detail laporan pegawai lain kini mengikuti mode HRD.** Dulu pemegang izin HRD berposisi Pegawai yang membuka
+  alamat detail laporan saat di mode posisi asli tetap mendapat tampilan HRD penuh. Kini tampil pesan "hanya
+  tersedia di Mode Admin"; di Mode Admin tidak berubah. Koordinator yang juga ber-izin HRD mendapat tampilan
+  Koordinator saat di mode posisi asli.
+- **Manajemen Akses:** setelah memberi akses (per peran atau per pegawai), pesan hasilnya tetap terlihat walau
+  panelnya tertutup. Jumlah penerima per peran tidak lagi ikut menghitung pemberi akses sendiri, yang memang
+  tidak pernah diberi (temuan uji rilis 15 Oktober).
+
+### 2026-10-16 — Skor 360° resmi di Ekspor Ringkasan per Pegawai; aturan kerja `dev`
+- **Ekspor "Penilaian 360° Lengkap" → lembar Ringkasan per Pegawai** kini juga berisi **Skor 360° resmi**
+  (angka yang dipakai Rekap, Dashboard, dan laporan), potongan telat, dan **selisih**. Lembar ini menghitung Skor
+  360° langsung dari nilai terbaru, sehingga bisa berbeda dari skor resmi bila ada penilaian berubah setelah
+  Hitung Ulang. Selisih bukan 0 = perlu Hitung Ulang (kecuali Q1 2026 hasil impor, yang memang tidak dihitung ulang).
+  Rencana lama agar Rekap ikut menghitung langsung dibatalkan, karena Rekap akan berbeda dari Dashboard dan laporan.
+- **Perubahan kecil kini boleh langsung masuk `dev`** (keputusan pemilik) setelah tes, pemeriksaan tipe, dan build
+  lulus. `main` tetap hanya lewat PR yang disetujui pemilik.
+
+### 2026-10-16 — Keterangan "Belum Terbaca" diseragamkan
+- **Tabel Hasil Seluruh Pegawai (Dashboard) dan Rekapitulasi Kuartal kini mengikuti Kompilasi.** Pegawai yang KPI-nya
+  baru 1 dari 3 bulan kuartal terisi ditulis **Belum Terbaca**, bukan A/B/C atau kategori Skor Akhir. Dulu
+  Kompilasi sudah mengeluarkan mereka dari klasifikasi, tetapi kedua tabel tetap memberi kelas sehingga jumlahnya
+  tidak cocok. Angka KPI, 360°, dan Skor Akhir tetap tampil. Filter Player di Tabel Hasil mendapat pilihan
+  "Belum Terbaca".
+- Lanjutannya, **Monitor Kinerja, Laporan Kinerja Tim, dan Ekspor Rekap** juga menulis **Belum Terbaca** untuk
+  pegawai yang sama (kolom Player; di Ekspor juga kolom kategori). Kini semua halaman sepakat.
+- Di Kompilasi, kotak **HRD Review** dan **Belum Terbaca** kini berdampingan kiri-kanan.
+- Keterangan "Skor Akhir (live)" di Tabel Hasil dihapus karena keliru: laporan Final memang sudah memakai angka
+  tersimpannya.
 
 ### 2026-10-16 — Setelah rilis Q3: huruf kembali seperti semula, pemberitahuan di atas
 - **Huruf kembali seperti sebelum rilis** (permintaan pengguna). Rilis Q3 ikut membetulkan cara aplikasi memuat
@@ -14,6 +142,17 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   lebih lebar. Kini aplikasi kembali memakai huruf bawaan perangkat yang sudah biasa dilihat pengguna.
 - **Pemberitahuan "Aplikasi baru saja diperbarui" dan "Perubahan TIDAK tersimpan" pindah ke atas tengah layar**
   (permintaan pengguna), agar tidak menutupi tabel dan tombol di bagian bawah.
+
+### 2026-10-16 — Rilis Q3 ke production
+- **Isi `dev` dirilis ke production** (keputusan pemilik), setelah laporan Q3 Final (53 pegawai) dan email rilis
+  laporan terkirim ke pegawai: perbaikan audit gelombang 1, 2, 2b, **kunci laporan Final** (berlaku juga untuk laporan
+  Q3 yang sudah Final), nama penilai tak terkirim di tampilan HRD, layar Review Penilaian, Mode Maintenance (belum
+  diaktifkan), filter Divisi, dan PDF panduan versi 1 Oktober apa adanya. Perubahan database 0048 dan 0049
+  dijalankan di production hari yang sama.
+- Fitur yang sama sempat dibuat dua kali sehingga penggabungan bentrok di 4 tempat (finalisasi massal, tombol
+  Hitung Ulang, dan daftar cek database); diselesaikan dengan mempertahankan perilaku kedua versi.
+- Langkah uji tambahan (nama penilai, bagian yang bentrok, Review Penilaian, filter Divisi) belum dijalankan;
+  pesan perubahan untuk HRD, SPV/Koordinator, dan pegawai disiapkan.
 
 ### 2026-10-16 — Keputusan menjelang rilis Q3
 - **Fitur 13–16 Oktober sudah langsung di production** (rilis lebih awal, keputusan pemilik): Impor & format

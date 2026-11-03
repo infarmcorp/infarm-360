@@ -39,9 +39,11 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
 - Next.js 16 App Router (Turbopack, React 19, TS strict), Tailwind v4, Supabase (Postgres + Auth `@supabase/ssr`
   + RLS), Zod, `xlsx` (parse di klien), `nodemailer`/Resend, `@vercel/edge-config`, `motion`, `lucide-react`,
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
-  typecheck + build). Backup harian `.github/workflows/backup.yml`. npm.
-- Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 25 tabel publik, migrasi
-  `supabase/migrations/0001`–`0052`.
+  typecheck + lint + build; lint bersih sejak 2026-10-16 — jangan tambah temuan baru). Backup harian `.github/workflows/backup.yml`. npm.
+- Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 30 tabel publik, migrasi
+  `supabase/migrations/0001`–`0057`. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
+  → **wajib** cek `Bearer $CRON_SECRET` sendiri, gagal tertutup. Email Rilis terjadwal dipicu GitHub Actions
+  (`release-email-cron.yml`); inti kirim email rilis satu-satunya = `lib/release-delivery.ts` (manual & jadwal).
 - `app/` — `login/`, `maintenance/`, `auth/` (callback, lupa-sandi, perbarui-sandi, signout),
   `api/cron/late-penalty/` (nonaktif), `(app)/` = shell persisten (`layout.tsx`, `app-shell.tsx` menu,
   `mode-actions.ts`) dengan `penilaian/ kpi/ monitor/ laporan/ laporan-tim/ review-hasil/ suksesi/ akun/` dan
@@ -102,6 +104,31 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   pemegang grant Review non-HRD tetap ditolak untuk laporannya sendiri; ACC laporan sendiri tetap ditolak (0049).
   Aturan database yang melarang membaca penilaian atas diri sendiri **tidak** dibuat (keputusan yang sama).
 - Employee hanya membaca laporannya saat `finalized` (dimuat via service_role). Direksi read-only + ACC.
+- **Catatan di Luar Pemetaan** (`outside_mapping_notes`, 0054, keputusan pemilik 2026-11-03) — rincian TEKNIS.md §5.4:
+  - **Anonim secara skema:** tabel **tanpa** kolom penulis (id/email/hash/token) dan **tanpa** waktu kirim; jangan
+    tambahkan. Identitas pengirim di `submitOutsideNote` hanya untuk validasi — **jangan** tulis ke tabel, audit log,
+    `console`, pesan error, atau notifikasi. Urutan tampil = abjad isi (`sortOutsideNotes`), bukan id/urutan masuk.
+    Tanpa riwayat untuk pengirim; tak bisa diubah/dihapus pegawai.
+  - **Baca hanya HRD Mode Admin**, termasuk catatan tentang dirinya sendiri (tetap anonim): opt-in `withOutsideNotes`
+    di `laporan/[employeeId]` saat `outsideNotesAllowed(route)`. `loadReport` & loader lain **tak** memuatnya —
+    jangan mengandalkan `withoutRaw`. Blok `RawFeedback` `no-print`. Akses DB hanya service_role (RLS tanpa policy).
+    Satu jalur baca lain: ekspor **Bahan Laporan per Pegawai** lembar 4 (`outsideNotesForExport`), hanya bila
+    cookie `hrd_mode='admin'`; kolom = periode/pegawai/divisi/aspek/isi, tanpa penulis/relasi/waktu.
+  - **Bukan Ad-Hoc:** tak menyentuh `mappings`/`assessments`/skor; tak masuk Skor 360°, Skor Akhir, Progress,
+    Kepatuhan, potongan telat, tugas. Hanya `outside-note-actions.ts` & `lib/outside-notes.ts` yang menyebut
+    tabelnya (dikunci `tests/outside-notes.test.ts`). Pengirim eksternal ditolak (sementara).
+- **Rencana Pengembangan** (0055, TEKNIS.md §5.5): melekat ke periode **laporan** (terbuka bila laporan Final & HRD
+  belum menutup; periode aktif tak berpengaruh). Atasan = `resolveSupervisor` (koordinator → SPV → Direksi untuk SPV/
+  pemimpin tim → HRD cadangan); SPV dari pegawai berkoordinator hanya melihat. Persetujuan HRD hanya
+  **posisi** `role='hrd'` di Mode Admin (`canHrdSign`, pengecualian sadar dari aturan `is_hrd()`); boleh atas rencana
+  sendiri setelah atasan. **Tak ada Buka Kembali** (pemilik 2026-11-03): pemilik hanya bisa Tarik Kembali selama
+  Menunggu Atasan; sesudah atasan menyetujui rencana terkunci. **Pemisahan mode ketat** (`inAdminView`): Mode Admin =
+  wewenang HRD saja (bukan pemilik rencana / atasan SPV); Mode SPV = wewenang posisi asli. Tulis hanya `pengembangan/actions.ts` (service_role); isi berubah hanya di Draf/Perlu Perbaikan sehingga
+  persetujuan selalu atas isi yang sama. Tidak menyentuh skor/`final_reports`. Batas disepakati = informasi saja.
+  Catatan sesi 1-on-1 / tinjauan HRD (0056) hanya setelah Disepakati; aplikasi **hanya mencatat** — jangan tambahkan
+  hitungan atau penanda terlambat tanpa permintaan. Ekspor rencana bernama (`exportDevPlans`, Mode Admin saja).
+  Pengaman DB 0057: prioritas hanya berubah di Draf/Perlu Perbaikan (trigger, juga untuk service_role), simpan lewat
+  `dev_plan_replace_items` (atomik), kolom `periods.dev_plan_*` hanya diubah server — jangan tulis langsung dari app.
 - **KPI hanya lewat Server Action** (`kpi_write` RLS dicabut): lingkup `assertKpiScope` (HRD = divisinya sendiri
   + diri, apa pun modenya · SPV tim+diri · Koordinator tim), tulis atomik `kpi_save_with_audit`/`kpi_delete_with_audit`. Audit KPI tak boleh
   diubah/dihapus dari client.
@@ -207,6 +234,10 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
 - TS strict; hindari `any`. Komentar & label UI bahasa Indonesia mengikuti istilah PANDUAN ("Mulai Nilai",
   "Final Report", "Garis Hubungan").
 - Tipe skema di `lib/database.types.ts`; tipe per-fitur inline/di lib terkait — jangan duplikasi.
+- **Lint React hooks:** jangan definisikan komponen di dalam komponen (pakai tingkat modul atau fungsi render
+  biasa); jangan `setState` di effect untuk "reset saat nilai berubah" — lakukan di handler atau pola "bandingkan
+  nilai sebelumnya saat render". Effect yang memang sinkron dengan sistem luar (localStorage, timer simpan otomatis)
+  boleh, dengan `eslint-disable-next-line` + alasan.
 - **Aksi dari tombol wajib lewat `callAction`** (`lib/call-action.ts`, 2026-10-16): Server Action yang gagal terkirim
   (koneksi, sesi habis, deploy saat halaman terbuka) tak boleh membuat tombol diam — tampilkan pesan gagal. Penjaga
   global `components/action-guard.tsx` (banner versi baru + peringatan aksi gagal) hanya jaring pengaman.
@@ -214,15 +245,17 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
   > 1000 baris — PostgREST memotong diam-diam (bug 2026-07-08: 51/52 Skor 360° salah).
 - **Jangan** `npm audit fix --force` (menurunkan Next 16 → 9). `xlsx@0.20.3` dari CDN SheetJS.
 - Rumus menentukan keputusan SDM nyata dan salahnya tak memunculkan error → `npm test` wajib hijau saat kode
-  disentuh (±900 tes / 47 file). Server Action diuji dengan mock `tests/helpers/mock-supabase.ts`.
-- `npm run verify:rls` (56 pemeriksaan, fixture `RLSTEST-*` self-cleaning) manual pra-rilis & tiap ubah RLS.
+  disentuh (±1100 tes / 63 file). Server Action diuji dengan mock `tests/helpers/mock-supabase.ts`.
+- `npm run verify:rls` (83 pemeriksaan, fixture `RLSTEST-*` self-cleaning) manual pra-rilis & tiap ubah RLS.
 - Migrasi baru: idempoten, nomor urut, terapkan ke staging dulu; urutan rilis → TEKNIS.md §1. Kode yang memanggil
   fungsi database baru WAJIB punya cadangan cara lama bila fungsinya belum ada (`rpcMissing`, `lib/supabase/rpc.ts`),
   dan `scripts/check-migrations.sql` diperbarui.
 - **Aturan merge (pemilik, 2026-10-14):**
-  - Claude Code **TIDAK BOLEH** merge PR atau push langsung ke `dev`/`main`. Merge hanya dilakukan pemilik.
-    Claude Code bekerja di branch sendiri, push branch itu, lalu menyiapkan PR.
-  - Semua perubahan masuk lewat **PR ke `dev`** dulu; `dev` → `main` hanya saat rilis yang **disetujui pemilik**.
+  - **`dev` (diubah pemilik, 2026-10-16):** Claude Code **boleh commit & push langsung ke `dev`** setelah
+    `npm test`, `npm run typecheck`, dan `npm run build` hijau di lokal. Branch + PR ke `dev` tetap boleh bila
+    perubahannya besar/berisiko atau pemilik memintanya.
+  - **`main`:** Claude Code **TIDAK BOLEH** merge PR atau push langsung ke `main`. `dev` → `main` hanya lewat PR
+    saat rilis yang **disetujui pemilik**; merge dilakukan pemilik.
   - PR yang membawa migrasi **wajib** mencantumkan nomor migrasinya dan bahwa migrasi itu harus dijalankan di
     **staging & production** sebelum fiturnya dipakai.
   - **Sinkron `main` → `dev` (pemilik, 2026-10-16):** setiap kali ada PR masuk `main` (rilis, fitur yang dirilis
@@ -237,7 +270,7 @@ npm install
 npm run dev        # Next.js dev :3000
 npm run build      # validasi tipe & prerender — jalankan sebelum push
 npm run typecheck  # tsc --noEmit
-npm run lint       # eslint . (flat config) — temuan lama belum dibersihkan; belum di CI
+npm run lint       # eslint . (flat config) — wajib 0 error (ikut CI sejak 2026-10-16)
 npm test           # vitest run
 npm run test:watch
 npm run verify:rls # butuh anon + service role key di .env.local

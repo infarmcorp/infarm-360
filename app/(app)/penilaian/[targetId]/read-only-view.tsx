@@ -13,7 +13,8 @@ export function ReadOnlyView({ groups, questions, scores, answers, deadline }: {
   answers: Record<string, string>;
   deadline: string | null;
 }) {
-  let n = 0;
+  // Nomor soal berurutan lintas aspek: nomor awal tiap aspek = jumlah indikator aspek sebelumnya.
+  const startNo = groups.map((_, gi) => groups.slice(0, gi).reduce((s, g) => s + g.indicators.length, 0));
   return (
     <div className="space-y-4">
       <div className="rounded-panel border border-line bg-neutral-tint p-3.5">
@@ -24,12 +25,12 @@ export function ReadOnlyView({ groups, questions, scores, answers, deadline }: {
         </p>
       </div>
 
-      {groups.map((g) => (
+      {groups.map((g, gi) => (
         <section key={g.id} className="rounded-panel border border-line">
           <h2 className="px-4 py-2.5 border-b border-line text-[12.5px] font-bold text-ink bg-neutral-tint rounded-t-panel">{g.name}</h2>
           <ul className="divide-y divide-line-soft">
-            {g.indicators.map((ind) => {
-              n += 1;
+            {g.indicators.map((ind, ii) => {
+              const n = startNo[gi] + ii + 1;
               const s = scores[ind.id];
               const kp = s?.rating != null ? ind.ratingKeyPoints?.[String(s.rating)] : null;
               return (

@@ -49,11 +49,10 @@ beforeEach(() => { vi.clearAllMocks(); });
 
 describe('loadLoginRoster — data yang dikirim ke halaman login', () => {
   it('TIDAK mengandung email; hanya id, nama, peran, divisi', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockAdmin.mockReturnValue(adminWith({ employees: [{ data: [
       { id: ID_A, name: 'Andi', role: 'employee', dept: 'Ops' },
       { id: ID_B, name: 'Budi', role: 'spv', dept: 'Ops' },
-    ] }] }, [{ id: ID_A, email: 'andi@x.id' }, { id: ID_B, email: 'budi@x.id' }]) as any);
+    ] }] }, [{ id: ID_A, email: 'andi@x.id' }, { id: ID_B, email: 'budi@x.id' }]) as never);
     const roster = await loadLoginRoster();
     expect(roster).toEqual([
       { id: ID_A, name: 'Andi', role: 'employee', dept: 'Ops' },
@@ -65,11 +64,10 @@ describe('loadLoginRoster — data yang dikirim ke halaman login', () => {
   });
 
   it('pegawai tanpa akun auth (tanpa email) tetap disaring seperti sebelumnya', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockAdmin.mockReturnValue(adminWith({ employees: [{ data: [
       { id: ID_A, name: 'Andi', role: 'employee', dept: 'Ops' },
       { id: ID_B, name: 'Budi', role: 'spv', dept: 'Ops' },
-    ] }] }, [{ id: ID_A, email: 'andi@x.id' }]) as any);
+    ] }] }, [{ id: ID_A, email: 'andi@x.id' }]) as never);
     expect((await loadLoginRoster()).map((u) => u.id)).toEqual([ID_A]);
   });
 

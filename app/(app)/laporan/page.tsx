@@ -4,6 +4,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { loadReport } from '@/lib/report';
 import { ReportDoc } from './report-doc';
 import { AspectSummaryView } from './aspect-summary-view';
+import { planTitle } from '@/lib/dev-plan';
 
 /**
  * Laporan Hasil Saya (pegawai). Tampil bila HRD sudah FINALISASI (RLS fr_read:
@@ -106,6 +107,13 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
           )}
         </div>
       )}
+      {/* Rencana Pengembangan (0055): diisi setelah sesi empat mata, melekat ke periode laporan ini. */}
+      <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-2 rounded-panel border border-line bg-neutral-tint px-3.5 py-2.5">
+        <p className="text-[12.5px] text-ink-soft">
+          <strong className="text-ink">{planTitle(selected.label)}</strong> — isi setelah sesi empat mata dengan atasan Anda.
+        </p>
+        <Link href={`/pengembangan?tab=saya&period=${selected.id}`} className="text-xs font-bold text-brand-ink hover:underline">Buka Rencana →</Link>
+      </div>
       <ReportDoc data={safe} anonymize hideAssessorComments pdfFolder={{ url: folder?.url ?? null }} />
       {safe.has360 && <AspectSummaryView summaries={safe.aspectSummaries} />}
       {safe.has360 && (

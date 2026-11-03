@@ -345,13 +345,9 @@ function OrgDelta({ scope, org }: { scope: number | null; org: number | null }) 
   );
 }
 
-/** Kartu ringkas lingkup terpilih: Total Pegawai · Avg KPI · Avg 360° (org atau divisi). */
-function ScopeScorecards({
-  total, kpi, s360, has360, scopeLabel, periodLabel, kpiUnread = 0, orgKpi = null, orgS360 = null,
-  fillTotal, kpiFilled, s360Filled,
-}: { total: number; kpi: number | null; s360: number | null; has360: boolean; scopeLabel: string; periodLabel: string; kpiUnread?: number; orgKpi?: number | null; orgS360?: number | null; fillTotal?: number; kpiFilled?: number; s360Filled?: number }) {
-  const sub = `${scopeLabel} · ${periodLabel}`;
-  const Card = ({ label, value, subtext, delta, note }: { label: string; value: React.ReactNode; subtext?: string; delta?: React.ReactNode; note?: React.ReactNode }) => (
+/** Satu kartu ringkas (tingkat modul, bukan di dalam ScopeScorecards, agar tak dibuat ulang tiap render). */
+function Card({ label, value, subtext, delta, note }: { label: string; value: React.ReactNode; subtext?: string; delta?: React.ReactNode; note?: React.ReactNode }) {
+  return (
     <div className="flex-1 min-w-[150px] rounded-panel border border-line bg-surface px-4 py-3">
       <div className="text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-faint">{label}</div>
       <div className="text-2xl font-semibold data-value text-ink mt-1">{value}</div>
@@ -360,6 +356,14 @@ function ScopeScorecards({
       {note}
     </div>
   );
+}
+
+/** Kartu ringkas lingkup terpilih: Total Pegawai · Avg KPI · Avg 360° (org atau divisi). */
+function ScopeScorecards({
+  total, kpi, s360, has360, scopeLabel, periodLabel, kpiUnread = 0, orgKpi = null, orgS360 = null,
+  fillTotal, kpiFilled, s360Filled,
+}: { total: number; kpi: number | null; s360: number | null; has360: boolean; scopeLabel: string; periodLabel: string; kpiUnread?: number; orgKpi?: number | null; orgS360?: number | null; fillTotal?: number; kpiFilled?: number; s360Filled?: number }) {
+  const sub = `${scopeLabel} · ${periodLabel}`;
   return (
     <div className="flex flex-wrap gap-3 mb-4">
       <Card label="Total Pegawai" value={total} subtext={scopeLabel} />

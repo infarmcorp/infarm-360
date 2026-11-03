@@ -8,7 +8,7 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
-### 2026-11-03 — Catatan di Luar Pemetaan (branch fitur, belum di `dev` maupun production)
+### 2026-11-03 — Catatan di Luar Pemetaan (di `dev`, belum di production)
 - **Pegawai bisa mengirim catatan anonim kepada HRD tentang rekan di luar daftar penilaiannya** (permintaan
   pemilik, untuk Q4 2026). Di tab Pengajuan ada kartu baru **Catatan di Luar Pemetaan**: pilih rekan, pilih satu
   aspek budaya, tulis kejadiannya (minimal 20 karakter). Tanpa nilai, tanpa pertanyaan dari HRD.

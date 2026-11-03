@@ -111,7 +111,7 @@ export default async function PantauanRencanaPage({ searchParams }: { searchPara
               </StatusChip>
             ))}
           </div>
-          {manage && <div className="mt-4"><WindowForm periodId={sel.id} due={sel.dev_plan_due} closed={closed} /></div>}
+          {manage && <div className="mt-4"><WindowForm key={sel.id} periodId={sel.id} title={planTitle(sel.label)} due={sel.dev_plan_due} closed={closed} /></div>}
         </Panel>
 
         <div className="overflow-x-auto">

@@ -896,7 +896,8 @@ bisa diisi pegawai begitu laporannya Final, walau periode aktif sudah berganti.
 - Tabel per pegawai yang laporannya Final: atasan (koordinator / SPV / Direksi / HRD), status, jumlah prioritas,
   terakhir diperbarui, dan **Buka**.
 - **Batas rencana disepakati** — tanggal informasi untuk pegawai dan atasan. Aplikasi tidak menandai keterlambatan.
-  Tekan **Simpan Batas** setelah memilih tanggal.
+  Berlaku **per periode laporan** yang sedang dipilih (bukan semua kuartal). Pilih tanggal lalu tekan **Simpan Batas**
+  (tombol aktif setelah tanggal diubah); pesan konfirmasi menyebut rencana dan tanggalnya.
 - **Tutup Rencana Periode Ini** — semua rencana periode itu menjadi hanya-baca (misalnya di akhir kuartal).
   **Buka Rencana Periode Ini** membukanya lagi.
 

@@ -173,6 +173,8 @@ Yang perlu diketahui:
   paling kuat. Nilai berdasarkan perilaku nyata selama periode ini, bukan kedekatan pribadi.
 - Pilih chip **Q1…Qn**, beri nilai **1–5** (di HP tampil "Pilihan Anda: N"), lalu tulis **Komentar / Bukti
   Perilaku (evidence) minimal 20 karakter** (penghitung karakter di bawah kotak). **Tidak ada pilihan N/A.**
+  Di atas kotak tertulis rentang tanggal periode berjalan (mis. Q4 2026 = **01 Okt 2026 – 31 Des 2026**). Tulis
+  hanya kejadian dalam rentang itu; kejadian kuartal sebelumnya jangan dipakai sebagai bukti.
 - **Bar progres** mencakup indikator dan esai (mis. 13/13).
 - **Tersimpan otomatis** (hanya selama penilaian belum dikirim): jawaban tersimpan sekitar 5 detik setelah
   berhenti mengetik ("Tersimpan otomatis"). Bisa dilanjutkan dari perangkat mana pun. Bila gagal (tulisan merah

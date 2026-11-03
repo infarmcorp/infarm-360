@@ -8,6 +8,12 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-03 — Rentang tanggal periode di kotak evidence (di `dev`, belum di production)
+- Di formulir penilaian, di atas kotak **Komentar / Bukti Perilaku (Evidence)** kini tertulis rentang tanggal
+  periode berjalan (mis. Q4 2026: 01 Okt 2026 – 31 Des 2026), dan contoh isian di dalam kotak ikut menyebutnya.
+  Tujuannya (permintaan pemilik): penilai menulis bukti dari kejadian kuartal itu saja. Hanya petunjuk; isi
+  evidence tidak diperiksa tanggalnya.
+
 ### 2026-11-03 — Catatan di Luar Pemetaan (di `dev`, belum di production)
 - **Pegawai bisa mengirim catatan anonim kepada HRD tentang rekan di luar daftar penilaiannya** (permintaan
   pemilik, untuk Q4 2026). Di tab Pengajuan ada kartu baru **Catatan di Luar Pemetaan**: pilih rekan, pilih satu

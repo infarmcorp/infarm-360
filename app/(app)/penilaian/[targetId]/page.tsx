@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { AssessForm } from './assess-form';
 import { ReadOnlyView } from './read-only-view';
 import { isPastDeadline } from '@/lib/late';
+import { formatDateWib } from '@/lib/datetime';
 
 /**
  * Form Pengisian 360° untuk satu target (read + prefill draf).
@@ -20,7 +21,7 @@ export default async function AssessPage({
   if (!user) redirect('/login');
 
   const { data: ap } = await supabase
-    .from('periods').select('id, label, has_360, form_open, assessment_deadline').eq('status', 'active').limit(1).maybeSingle();
+    .from('periods').select('id, label, has_360, form_open, assessment_deadline, start_date, end_date').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Notice>Tidak ada periode aktif.</Notice>;
   // Komponen 360° belum dibuka HRD → form penilaian tidak tersedia.
   if (!ap.has_360) return <Notice>Penilaian 360° untuk periode ini belum dibuka oleh HRD.</Notice>;
@@ -162,6 +163,7 @@ export default async function AssessPage({
           mandatoryDoneOthers={mandatoryDoneOthers}
           thisMandatory={thisMandatory}
           deadlinePassed={isPastDeadline(ap.assessment_deadline)}
+          evidencePeriod={{ label: ap.label, range: `${formatDateWib(ap.start_date)} – ${formatDateWib(ap.end_date)}` }}
         />
         )}
       </div>

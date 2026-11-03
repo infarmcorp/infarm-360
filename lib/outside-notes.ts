@@ -2,6 +2,7 @@ import type { createClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import type { ReportData } from '@/lib/report';
 import type { ReportDetailRoute } from '@/lib/auth/roles';
+import { tableMissing } from '@/lib/report-folder';
 
 type SB = Awaited<ReturnType<typeof createClient>>;
 
@@ -35,6 +36,26 @@ export const OUTSIDE_NOTE_MAX = 2000;
  */
 export function sortOutsideNotes(bodies: string[]): string[] {
   return [...bodies].sort((a, b) => a.localeCompare(b, 'id', { sensitivity: 'base' }) || (a < b ? -1 : a > b ? 1 : 0));
+}
+
+export type OutsideNoteRow = { period_id: string; target_id: string; aspect_id: string; body: string };
+
+/**
+ * Semua catatan (opsional satu periode) untuk ekspor Bahan Laporan per Pegawai — HANYA isi + periode + target +
+ * aspek (tabel memang tak menyimpan penulis/waktu). Dipanggil ekspor setelah gerbang HRD Mode Admin.
+ * Tabel belum ada (migrasi 0054 belum dijalankan) → kosong; gangguan baca lain dilempar (ekspor gagal utuh).
+ */
+export async function outsideNotesForExport(admin: SB, periodId?: string | null): Promise<OutsideNoteRow[]> {
+  try {
+    return await fetchAllPaged<OutsideNoteRow>((from, to) => {
+      let q = admin.from('outside_mapping_notes').select('period_id, target_id, aspect_id, body');
+      if (periodId) q = q.eq('period_id', periodId);
+      return q.order('id').range(from, to); // id hanya untuk paginasi stabil; ekspor mengurutkan ulang
+    });
+  } catch (e) {
+    if (tableMissing({ message: e instanceof Error ? e.message : '' })) return [];
+    throw e;
+  }
 }
 
 /**

@@ -894,7 +894,7 @@ berperiode. Nama file menyertakan periode. Data ini sensitif — simpan dan bagi
 | **Konfigurasi Periode Lengkap** | 6 lembar: Ringkasan · Bobot Penilai · Bulan KPI · Aspek & Indikator · Pertanyaan Esai · Pemetaan 360° (siapa menilai siapa — hanya untuk HRD) |
 | **Kinerja Lengkap per Periode** | 4 lembar: Rekap (KPI rerata · Skor 360° · potongan telat · Skor Akhir · kategori · 4-Box) · KPI Bulanan · Audit KPI · Potongan Keterlambatan (nilai, otomatis/diubah/dikecualikan, skor sebelum & sesudah, alasan) |
 | **Penilaian 360° Lengkap** | 5 lembar, tanpa nama penilai: Ringkasan per Pegawai (per kelas penilai + nilai 360° & selisih) · Rekap Aspek (skor terbobot per aspek, cocok dengan radar) · Kuantitatif · Kualitatif · Ringkasan Naratif HRD |
-| **Bahan Laporan per Pegawai** | 3 lembar, tanpa nama penilai dan tanpa penilaian diri: Skor (Skor Akhir · KPI · 360° · potongan · skor tiap aspek + kategori) · Komentar Aspek (nilai & komentar per indikator) · Komentar Esai. Disertai divisi & rentang periode |
+| **Bahan Laporan per Pegawai** | 4 lembar, tanpa nama penilai dan tanpa penilaian diri: Skor (Skor Akhir · KPI · 360° · potongan · skor tiap aspek + kategori) · Komentar Aspek (nilai & komentar per indikator) · Komentar Esai · **Catatan di Luar Pemetaan** (isi catatan per aspek, tanpa nama, hubungan kerja, atau tanggal penulis; hanya ikut bila diekspor dari Mode Admin). Disertai divisi & rentang periode |
 | **Log Aktivitas HRD** | 1 lembar, lintas periode: waktu · pelaku · kategori · aksi · ringkasan · target · detail, terbaru di atas |
 
 Angka 2 desimal. Selama ada penilaian yang diubah setelah Hitung Ulang terakhir, lembar Rekap bisa berbeda dari

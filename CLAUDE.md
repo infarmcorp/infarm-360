@@ -112,6 +112,8 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   - **Baca hanya HRD Mode Admin**, termasuk catatan tentang dirinya sendiri (tetap anonim): opt-in `withOutsideNotes`
     di `laporan/[employeeId]` saat `outsideNotesAllowed(route)`. `loadReport` & loader lain **tak** memuatnya —
     jangan mengandalkan `withoutRaw`. Blok `RawFeedback` `no-print`. Akses DB hanya service_role (RLS tanpa policy).
+    Satu jalur baca lain: ekspor **Bahan Laporan per Pegawai** lembar 4 (`outsideNotesForExport`), hanya bila
+    cookie `hrd_mode='admin'`; kolom = periode/pegawai/divisi/aspek/isi, tanpa penulis/relasi/waktu.
   - **Bukan Ad-Hoc:** tak menyentuh `mappings`/`assessments`/skor; tak masuk Skor 360°, Skor Akhir, Progress,
     Kepatuhan, potongan telat, tugas. Hanya `outside-note-actions.ts` & `lib/outside-notes.ts` yang menyebut
     tabelnya (dikunci `tests/outside-notes.test.ts`). Pengirim eksternal ditolak (sementara).

@@ -206,6 +206,12 @@ describe('tabel catatan terisolasi dari skor, progress, kepatuhan, potongan tela
       .map((p) => relative(ROOT, p).replace(/\\/g, '/'));
     expect(callers).toEqual(['app/(app)/laporan/[employeeId]/page.tsx']);
   });
+  it('outsideNotesForExport hanya dipanggil ekspor Bahan Laporan (gerbang Mode Admin di sana)', () => {
+    const callers = [...walk(join(ROOT, 'app')), ...walk(join(ROOT, 'lib'))]
+      .filter((p) => !p.endsWith('outside-notes.ts') && readFileSync(p, 'utf8').includes('outsideNotesForExport('))
+      .map((p) => relative(ROOT, p).replace(/\\/g, '/'));
+    expect(callers).toEqual(['app/(app)/admin/ekspor/actions.ts']);
+  });
 });
 
 // ── 5. Tampilan RawFeedback ───────────────────────────────────────────────────────────────────

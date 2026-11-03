@@ -7,6 +7,8 @@ import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf, playerLabelOf,
 import { classOf, avg, weightedScore360, effectiveModel, type Groups360, type Model360 } from '@/lib/score360';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 import { trendOf } from '@/lib/trend';
+import { cookies } from 'next/headers';
+import { outsideNotesForExport } from '@/lib/outside-notes';
 
 /**
  * Ekspor dataset untuk olah data lanjutan (HRD). Halaman ini hanya untuk HRD; setelah
@@ -815,6 +817,8 @@ function periodRangeLabel(label: string, start: string, end: string): string {
  *                      skor tiap aspek budaya, masing-masing + kategori (perfLabelOf, pita PDF).
  *  2. Komentar Aspek — raw komentar per aspek × indikator (rating + komentar + kelas penilai).
  *  3. Komentar Esai  — raw jawaban umpan balik kualitatif per pertanyaan.
+ *  4. Catatan di Luar Pemetaan (0054) — isi catatan per aspek, tanpa relasi/nama/tanggal. Hanya bila pengekspor
+ *     di Mode Admin (aturan baca catatan); bahan bagian "Masukan Lain dari Penilai" di PDF.
  * ANONIM penilai (hanya kelas relasi, tanpa nama); penilaian Self DIKECUALIKAN dari lembar 2–3
  * (selaras raw feedback di Laporan). Angka lembar 1 memakai ekspor resmi yang sama (exportRekap,
  * exportAspectScores) agar identik dengan Rekap/Rekap Aspek.
@@ -954,12 +958,27 @@ async function exportReportMaterialsImpl(periodId?: string | null): Promise<Conf
   komentar.sort(cmp);
   esai.sort(cmp);
 
+  // ── Lembar 4: Catatan di Luar Pemetaan (0054) — hanya HRD di Mode Admin (aturan baca catatan). Isi saja:
+  // tanpa relasi/nama/tanggal (tabel tak menyimpannya). Urut periode → pegawai → aspek → abjad isi.
+  const jar = await cookies();
+  const catatan: Sorted[] = [];
+  const withNotes = jar.get('hrd_mode')?.value === 'admin';
+  if (withNotes) {
+    for (const n of await outsideNotesForExport(admin as unknown as Parameters<typeof outsideNotesForExport>[0], periodId)) {
+      const asp = aspectMeta.get(n.aspect_id);
+      const h = head(n);
+      catatan.push({ key: [h.periode, h.nama, asp?.ord ?? 0, n.body.trim()], row: { ...h, aspek: asp?.name ?? '', catatan: n.body.trim() } });
+    }
+    catatan.sort(cmp);
+  }
+
   return {
     ok: true,
     sheets: [
       { name: 'Skor', rows: skor },
       { name: 'Komentar Aspek', rows: komentar.map((k) => k.row) },
       { name: 'Komentar Esai', rows: esai.map((k) => k.row) },
+      ...(withNotes ? [{ name: 'Catatan di Luar Pemetaan', rows: catatan.map((k) => k.row) }] : []),
     ],
   };
 }

@@ -379,8 +379,13 @@ hanya HRD berakses penuh; tak ada yang bisa mengubah izin dirinya sendiri (trigg
   HRD sendiri (keputusan pemilik 2026-11-03). `loadReport` & semua loader turunan tak memuatnya — jangan
   mengandalkan `withoutRaw`. Urutan tampil = abjad isi (`sortOutsideNotes`), bukan urutan kirim / id.
   Blok di `RawFeedback` diberi `no-print` (tak ikut Unduh PDF → tak terbawa ke PDF di Folder Laporan).
-- **Isolasi** (diuji `tests/outside-notes.test.ts`): hanya dua file yang menyebut tabelnya → skor 360°, Skor Akhir,
-  Progress 360, Kepatuhan, potongan telat, tugas, Ekspor, `final_reports`/`final_report_history` tak terpengaruh.
+- **Ekspor** (permintaan pemilik 2026-11-03): Bahan Laporan per Pegawai lembar 4 "Catatan di Luar Pemetaan" via
+  `outsideNotesForExport` — kolom periode · kode · nama · divisi · aspek · catatan (tanpa penulis/relasi/waktu), urut
+  periode → pegawai → aspek → abjad isi. Hanya bila cookie `hrd_mode='admin'` (di luar itu lembarnya tak ada); tabel
+  belum ada → lembar kosong. Diuji `tests/ekspor-outside-notes.test.ts`. File Excel bisa beredar di luar aplikasi.
+- **Isolasi** (diuji `tests/outside-notes.test.ts`): hanya dua file yang menyebut tabelnya; `withOutsideNotes` hanya
+  dipanggil detail laporan, `outsideNotesForExport` hanya ekspor → skor 360°, Skor Akhir, Progress 360, Kepatuhan,
+  potongan telat, tugas, ekspor lain, `final_reports`/`final_report_history` tak terpengaruh.
   `clone-anon-to-staging` mengosongkan tabel di staging dan **tidak** menyalinnya dari production. Backup harian
   ikut mencakupnya (terenkripsi).
 - **Sisa risiko (diterima, tanpa pengaman tambahan):** log permintaan Vercel/Supabase mencatat waktu & sesi pengirim;

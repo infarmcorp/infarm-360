@@ -172,6 +172,22 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 
 ---
 
+### Fitur berikutnya (sudah didiskusikan, belum dibuat)
+- ⬜ **Rencana Pengembangan & 1-on-1** (dari PDF laporan bagian 5, 7, 8 — diskusi pemilik 2026-11-03). Tujuan: HRD
+  memantau 1-on-1 pegawai dengan atasan. Keputusan sejauh ini:
+  - Rencana **melekat ke periode laporan** (mis. laporan Q3 → "Rencana Pengembangan Q4"), terbuka setelah laporan Final
+    dan tetap bisa diisi walau periode aktif sudah pindah atau periode laporan sudah dikunci. HRD menutupnya manual.
+  - Pegawai mengisi prioritas (mulai 1, bisa ditambah): area, target terukur, langkah aksi, tenggat, pendamping,
+    indikator berhasil. Tersimpan di aplikasi saja, tanpa PDF.
+  - Komentar atasan (Konfirmasi Kinerja, Konteks Tambahan, Dukungan, Harapan) + Setujui / Minta Perbaikan. Atasan:
+    pegawai berkoordinator → koordinator; pegawai lain → SPV; koordinator → SPV; SPV dan HRD yang memimpin tim →
+    Direksi (saat ini satu orang); pegawai tanpa SPV/koordinator → HRD. SPV dari pegawai berkoordinator hanya melihat.
+  - Persetujuan berupa tombol (nama + tanggal tercatat), urutan pegawai → atasan → HRD. Persetujuan HRD hanya oleh
+    pegawai berposisi HRD Admin, bukan pegawai lain yang diberi izin HRD. Isi berubah → persetujuan diulang.
+  - Direksi juga punya rencana, tanpa wajib komentar dan persetujuan. Direksi bisa melihat semua rencana.
+  - Tahap: (1) rencana + komentar + persetujuan + pantauan HRD · (2) sesi 1-on-1 dua mingguan, tinjauan bulanan HRD,
+    pengingat · (3) ekspor "Rencana Pengembangan & 1-on-1" (bernama).
+
 ## 3. Ide opsional (belum jadi komitmen)
 
 Dipindah ke §2 bila diputuskan dikerjakan.

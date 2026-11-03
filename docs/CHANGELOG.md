@@ -8,6 +8,11 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-03 — Catatan di Luar Pemetaan masuk ekspor Bahan Laporan (di `dev`, belum di production)
+- Ekspor **Bahan Laporan per Pegawai** kini punya lembar ke-4 **Catatan di Luar Pemetaan** (permintaan pemilik), sebagai
+  bahan bagian "Masukan Lain dari Penilai" di PDF laporan. Isinya periode, pegawai, divisi, aspek, dan isi catatan saja,
+  tanpa nama, hubungan kerja, atau tanggal penulis. Lembar ini hanya ikut bila diekspor dari Mode Admin.
+
 ### 2026-11-03 — Rentang tanggal periode di kotak evidence (di `dev`, belum di production)
 - Di formulir penilaian, di atas kotak **Komentar / Bukti Perilaku (Evidence)** kini tertulis rentang tanggal
   periode berjalan (mis. Q4 2026: 01 Okt 2026 – 31 Des 2026), dan contoh isian di dalam kotak ikut menyebutnya.

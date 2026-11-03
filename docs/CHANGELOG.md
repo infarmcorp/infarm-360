@@ -8,6 +8,26 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-03 — Catatan di Luar Pemetaan (branch fitur, belum di `dev` maupun production)
+- **Pegawai bisa mengirim catatan anonim kepada HRD tentang rekan di luar daftar penilaiannya** (permintaan
+  pemilik, untuk Q4 2026). Di tab Pengajuan ada kartu baru **Catatan di Luar Pemetaan**: pilih rekan, pilih satu
+  aspek budaya, tulis kejadiannya (minimal 20 karakter). Tanpa nilai, tanpa pertanyaan dari HRD.
+- **Ini bukan Ad-Hoc.** Penambahan rekan Ad-Hoc instan **tetap dicabut** sejak Q3 2026, dan **Ajukan Penilaian**
+  tetap berjalan seperti biasa. Catatan tidak menambah pemetaan, tidak menjadi penilaian, dan **tidak memengaruhi**
+  Skor 360°, Skor Akhir, rerata nilai, Progress 360, Kepatuhan, potongan keterlambatan, tugas, maupun angka
+  "x dari y" penilaian wajib.
+- **Anonim sejak penyimpanan:** nama pengirim dan waktu kirim tidak disimpan sama sekali, catatan tidak masuk Log
+  Aktivitas, dan urutan tampil mengikuti abjad isi (bukan urutan kirim). Pegawai tidak punya riwayat catatan;
+  sesudah kirim hanya muncul konfirmasi. Catatan tidak bisa diubah atau dihapus.
+- **Hanya HRD di Mode Admin yang membaca**, di Rincian Komentar laporan pegawai, di dalam kartu tiap aspek.
+  Keputusan pemilik: HRD Admin **juga** melihat catatan tentang dirinya sendiri (tetap anonim), karena kalau tidak,
+  catatan tentang HRD Admin tidak terbaca siapa pun. SPV, Koordinator, Direksi, Tinjauan Hasil Akhir, pemegang akses
+  Review, HRD Mode SPV, dan pegawai yang dinilai tidak menerimanya. Catatan **tidak ikut tercetak** saat Unduh PDF,
+  supaya tidak terbawa ke PDF yang dibagikan ke pegawai.
+- Dibuka bersama form penilaian: bisa dikirim selama form dibuka HRD (deadline tidak menutupnya), tidak bisa saat
+  tahap tinjau pemetaan. Penilai eksternal (vendor/freelance) **belum** boleh mengirim (keputusan pemilik).
+- Butuh perubahan database **0054**.
+
 ### 2026-11-03 — Email Rilis Laporan bisa dijadwalkan (di `dev`, belum di production)
 - **HRD bisa menjadwalkan Email Rilis Laporan** (permintaan HRD). Di dialog Email Rilis ada pilihan **Kirim
   sekarang** atau **Jadwalkan** (tanggal + jam WIB). Pada jam itu email terkirim sendiri, bertahap, sampai ±30

@@ -40,8 +40,8 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   + RLS), Zod, `xlsx` (parse di klien), `nodemailer`/Resend, `@vercel/edge-config`, `motion`, `lucide-react`,
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
   typecheck + lint + build; lint bersih sejak 2026-10-16 — jangan tambah temuan baru). Backup harian `.github/workflows/backup.yml`. npm.
-- Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 26 tabel publik, migrasi
-  `supabase/migrations/0001`–`0053`. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
+- Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 27 tabel publik, migrasi
+  `supabase/migrations/0001`–`0054`. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
   → **wajib** cek `Bearer $CRON_SECRET` sendiri, gagal tertutup. Email Rilis terjadwal dipicu GitHub Actions
   (`release-email-cron.yml`); inti kirim email rilis satu-satunya = `lib/release-delivery.ts` (manual & jadwal).
 - `app/` — `login/`, `maintenance/`, `auth/` (callback, lupa-sandi, perbarui-sandi, signout),
@@ -104,6 +104,17 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   pemegang grant Review non-HRD tetap ditolak untuk laporannya sendiri; ACC laporan sendiri tetap ditolak (0049).
   Aturan database yang melarang membaca penilaian atas diri sendiri **tidak** dibuat (keputusan yang sama).
 - Employee hanya membaca laporannya saat `finalized` (dimuat via service_role). Direksi read-only + ACC.
+- **Catatan di Luar Pemetaan** (`outside_mapping_notes`, 0054, keputusan pemilik 2026-11-03) — rincian TEKNIS.md §5.4:
+  - **Anonim secara skema:** tabel **tanpa** kolom penulis (id/email/hash/token) dan **tanpa** waktu kirim; jangan
+    tambahkan. Identitas pengirim di `submitOutsideNote` hanya untuk validasi — **jangan** tulis ke tabel, audit log,
+    `console`, pesan error, atau notifikasi. Urutan tampil = abjad isi (`sortOutsideNotes`), bukan id/urutan masuk.
+    Tanpa riwayat untuk pengirim; tak bisa diubah/dihapus pegawai.
+  - **Baca hanya HRD Mode Admin**, termasuk catatan tentang dirinya sendiri (tetap anonim): opt-in `withOutsideNotes`
+    di `laporan/[employeeId]` saat `outsideNotesAllowed(route)`. `loadReport` & loader lain **tak** memuatnya —
+    jangan mengandalkan `withoutRaw`. Blok `RawFeedback` `no-print`. Akses DB hanya service_role (RLS tanpa policy).
+  - **Bukan Ad-Hoc:** tak menyentuh `mappings`/`assessments`/skor; tak masuk Skor 360°, Skor Akhir, Progress,
+    Kepatuhan, potongan telat, tugas. Hanya `outside-note-actions.ts` & `lib/outside-notes.ts` yang menyebut
+    tabelnya (dikunci `tests/outside-notes.test.ts`). Pengirim eksternal ditolak (sementara).
 - **KPI hanya lewat Server Action** (`kpi_write` RLS dicabut): lingkup `assertKpiScope` (HRD = divisinya sendiri
   + diri, apa pun modenya · SPV tim+diri · Koordinator tim), tulis atomik `kpi_save_with_audit`/`kpi_delete_with_audit`. Audit KPI tak boleh
   diubah/dihapus dari client.
@@ -220,8 +231,8 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
   > 1000 baris — PostgREST memotong diam-diam (bug 2026-07-08: 51/52 Skor 360° salah).
 - **Jangan** `npm audit fix --force` (menurunkan Next 16 → 9). `xlsx@0.20.3` dari CDN SheetJS.
 - Rumus menentukan keputusan SDM nyata dan salahnya tak memunculkan error → `npm test` wajib hijau saat kode
-  disentuh (±900 tes / 47 file). Server Action diuji dengan mock `tests/helpers/mock-supabase.ts`.
-- `npm run verify:rls` (56 pemeriksaan, fixture `RLSTEST-*` self-cleaning) manual pra-rilis & tiap ubah RLS.
+  disentuh (±1050 tes / 59 file). Server Action diuji dengan mock `tests/helpers/mock-supabase.ts`.
+- `npm run verify:rls` (66 pemeriksaan, fixture `RLSTEST-*` self-cleaning) manual pra-rilis & tiap ubah RLS.
 - Migrasi baru: idempoten, nomor urut, terapkan ke staging dulu; urutan rilis → TEKNIS.md §1. Kode yang memanggil
   fungsi database baru WAJIB punya cadangan cara lama bila fungsinya belum ada (`rpcMissing`, `lib/supabase/rpc.ts`),
   dan `scripts/check-migrations.sql` diperbarui.

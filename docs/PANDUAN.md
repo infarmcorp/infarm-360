@@ -141,6 +141,29 @@ Bila disetujui, rekan itu masuk daftar sebagai **Opsional** berlabel **"Ajuan ·
 sendiri yang meminta, mulai Q3 2026 penilaian ini wajib dikirim sebelum deadline. Panel **Permohonan Saya**
 menampilkan semua pengajuan (koreksi, hapus, tambah) beserta status dan alasan penolakan HRD.
 
+**Tab Pengajuan — Catatan di Luar Pemetaan** (mulai Q4 2026)
+Kartu ini ada di samping kartu "Menambah Rekan yang Anda Nilai" (di HP: di bawahnya). Gunanya: memberi tahu HRD
+tentang kejadian atau informasi mengenai rekan yang **tidak ada** di daftar penilaian Anda, tanpa memberi nilai.
+1. Klik **Tulis Catatan**.
+2. Pilih rekan (pegawai aktif, bukan Direksi, bukan penilai eksternal, bukan Anda sendiri, dan belum ada di
+   daftar penilaian Anda).
+3. Pilih **satu aspek budaya** yang paling sesuai. Pilihannya mengikuti aspek periode berjalan.
+4. Tulis isinya, minimal 20 karakter. Penghitung karakter ada di bawah kotak. Hanya teks, tanpa lampiran.
+5. Klik **Kirim Catatan**. Muncul "Catatan terkirim ke HRD" dengan tombol **Tutup** dan **Tulis Catatan Lain**.
+
+Yang perlu diketahui:
+- **Nama Anda tidak ikut tersimpan**, begitu juga waktu kirimnya. Hanya HRD yang membaca catatan ini. Hindari
+  menulis detail yang bisa menunjukkan siapa Anda.
+- Catatan **tanpa nilai** dan **tidak memengaruhi** Skor 360°, Skor Akhir, maupun hitungan "X dari Y" penilaian
+  wajib Anda. Tidak ada potongan keterlambatan untuk fitur ini.
+- Catatan **tidak bisa diubah atau dihapus** setelah dikirim. Anda boleh mengirim lebih dari satu catatan.
+- Catatan **tidak muncul** di Permohonan Saya atau di mana pun untuk Anda, karena tidak tersimpan dengan nama Anda.
+- Bisa dikirim selama HRD membuka form penilaian, termasuk sesudah deadline. Saat masa tinjau pemetaan atau saat
+  form ditutup, kartu hanya berisi penjelasan.
+- Untuk rekan yang **sudah** ada di daftar Anda, sampaikan lewat formulir penilaiannya. Catatan ini bukan pengganti
+  **Ajukan Penilaian** dan bukan penilaian Ad-Hoc.
+- Penilai eksternal (vendor/freelance) belum bisa memakai fitur ini.
+
 ### 2.2 Formulir penilaian (Mulai Nilai)
 - **Panduan Penilaian Umum** (bisa dibuka/tutup) berlaku untuk semua soal.
 - **Rail aspek** di kiri (di HP jadi strip yang bisa digeser) menampilkan progres tiap aspek (✓ bila lengkap).
@@ -202,6 +225,11 @@ Komentar asli per penilai **tidak** ditampilkan ke pegawai, demi menjaga kerahas
 
 SPV memakai semua menu Pegawai, ditambah menu di bawah ini. HRD yang sedang di **Mode SPV** mendapat
 pengalaman yang sama persis, dengan lingkup pegawai sedivisinya (termasuk dirinya).
+
+SPV juga bisa menulis **Catatan di Luar Pemetaan** di tab Pengajuan pada Daftar Penilaian Saya: catatan tanpa
+nilai kepada HRD tentang rekan yang tidak ada di daftar penilaian SPV. Nama pengirim tidak tersimpan. Catatan
+yang ditulis orang lain tentang anggota tim **tidak** tampil di Laporan Kinerja Tim maupun Monitor; hanya HRD di
+Mode Admin yang membacanya.
 
 ### 3.1 Input KPI Anggota (bulanan)
 - Daftar berisi anggota tim **dan SPV sendiri**. SPV hanya bisa menulis KPI timnya dan dirinya, bukan KPI tim SPV lain.
@@ -761,6 +789,13 @@ hanya ada untuk periode aktif.
   Perilaku 360°** (ringkasan HRD per aspek) · **Ringkasan Umpan Balik Kualitatif 360°** (per pertanyaan esai) ·
   **Rincian Komentar Murni** (semua nilai dan komentar tanpa nama penilai, per aspek → indikator, tabel
   Rating | Komentar + rerata; esai per pertanyaan; penilaian diri tidak disertakan).
+- **Catatan di Luar Pemetaan** (mulai Q4 2026, hanya di Mode Admin): di Rincian Komentar Murni, kartu tiap aspek
+  bisa memuat blok **"Catatan di Luar Pemetaan · n catatan · tanpa rating · hanya HRD"** setelah semua indikator.
+  Isinya catatan dari pegawai yang tidak memetakan orang ini. Yang tampil hanya isi catatan, tanpa nama,
+  tanggal, hubungan kerja, atau divisi penulis, dan diurutkan menurut abjad (bukan urutan kirim). Aspek tanpa
+  catatan tidak menampilkan blok ini. Catatan tidak memengaruhi angka apa pun, **tidak ikut tercetak** saat Unduh
+  PDF, dan tidak terlihat oleh SPV, Koordinator, Direksi, pemegang akses Review, maupun HRD di Mode SPV. HRD juga
+  melihat catatan tentang dirinya sendiri di laporannya (tetap tanpa nama penulis).
 - Kedua ringkasan **tersimpan otomatis** (sekitar 5 detik setelah berhenti mengetik dan saat pindah kotak),
   dengan status "belum disimpan / menyimpan… / ✓ tersimpan otomatis". Tidak ada tombol simpan manual. Saat
   Final, ringkasan terkunci.
@@ -912,6 +947,10 @@ flowchart TD
   ulang dengan skor berbeda.
 - **Tinjauan Hasil Akhir** — hanya baca: hasil **semua pegawai** (termasuk yang masih draf) dengan umpan balik
   tanpa nama, tanpa Hitung Ulang / Rilis / Finalisasi / ACC / edit ringkasan.
+- **Catatan di Luar Pemetaan** — Direksi bisa menulis catatan tanpa nilai kepada HRD tentang pegawai yang tidak
+  ada di daftar penilaiannya (tab Pengajuan di Daftar Penilaian Saya; nama pengirim tidak tersimpan). Catatan
+  semacam ini **tidak** tampil di Laporan Kinerja Tim maupun Tinjauan Hasil Akhir; hanya HRD di Mode Admin yang
+  membacanya.
 - Direksi **boleh dinilai** 360°. Hasilnya tampil di Review & Finalisasi dan Ekspor HRD dengan Skor Akhir =
   Skor 360° (Direksi tidak punya KPI). Direksi tidak masuk Dashboard, 4-Box, KPI, kepatuhan, dan monitor.
 - Direksi tidak punya Monitor Kinerja atau Rekapitulasi Kuartal (kecuali diberi akses), dan tidak melihat
@@ -1013,6 +1052,9 @@ flowchart TD
    Pegawai **tidak** (hanya ringkasan). Laporan diri sendiri tidak memuatnya, kecuali untuk HRD Mode Admin & Direksi.
 4. **Siapa menilai siapa** — **hanya HRD**, lewat Pemetaan dan Progress 360. Tidak pernah ke SPV, Koordinator,
    Direksi, atau pegawai. Komentar bernama per penilai tidak ditampilkan di layar laporan mana pun.
+
+**Catatan di Luar Pemetaan** berada di luar empat lapis ini: hanya **HRD di Mode Admin** yang membacanya, di
+tahap laporan apa pun. Penulisnya tidak tersimpan, jadi tidak ada yang bisa melihat siapa penulisnya, termasuk HRD.
 
 ---
 

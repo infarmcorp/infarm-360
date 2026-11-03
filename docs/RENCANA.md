@@ -79,6 +79,13 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   - 🔑 jalankan perubahan database **0053** di staging, lalu production;
   - 🔑 pasang kode rahasia sekali di Vercel dan GitHub (langkah di [TEKNIS.md](TEKNIS.md) §3.5);
   - 🔑 uji di staging ([TEKNIS.md](TEKNIS.md) §3.5), lalu ikut rilis `dev` → `main` berikutnya.
+- 🔑🔄 **Catatan di Luar Pemetaan** (untuk Q4 2026) — sudah dibuat di branch fitur (2026-11-03), belum di `dev`
+  dan belum di production. Pegawai bisa menulis catatan anonim kepada HRD tentang rekan yang tidak ada di daftar
+  penilaiannya (pilih rekan + aspek budaya, tanpa nilai). Hanya HRD di Mode Admin yang membacanya, di rincian
+  komentar laporan. Sisa:
+  - 🔑 jalankan perubahan database **0054** di staging (pemilik menempelkannya di halaman database staging);
+  - 🔑 uji per peran di Preview (daftar uji di catatan serah terima fitur), lalu masukkan ke `dev`;
+  - 🔑 sebelum Q4 dibuka: jalankan 0054 di production dan umumkan fiturnya ke pegawai.
 - ✅ **Perubahan database production** — 0001–0052 terpasang di staging dan production (dicek pemilik
   2026-10-16 dengan `scripts/check-migrations.sql`).
 

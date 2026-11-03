@@ -21,7 +21,11 @@ export type AssessorBlock = {
  */
 export type RawEntry = { rating: number | null; comment: string | null };
 export type IndicatorRaw = { num: number; text: string; ratings: number[]; entries: RawEntry[] };
-export type AspectRaw = { name: string; indicators: IndicatorRaw[] };
+/**
+ * `outsideNotes` = Catatan di Luar Pemetaan (0054), OPT-IN: loadReport TIDAK mengisinya. Hanya jalur HRD Mode
+ * Admin yang menambahkannya di server (lib/outside-notes.ts → withOutsideNotes). Isi saja, tanpa identitas/waktu.
+ */
+export type AspectRaw = { name: string; indicators: IndicatorRaw[]; outsideNotes?: string[] };
 export type EssayGroup = { question: string; answers: string[] };
 export type ReportData = {
   emp: { id: string; name: string; dept: string };

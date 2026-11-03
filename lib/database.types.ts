@@ -146,6 +146,13 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['release_email_schedules']['Insert']>;
         Relationships: [];
       };
+      outside_mapping_notes: {
+        // Catatan di Luar Pemetaan (0054) — anonim secara skema: tanpa kolom penulis & tanpa waktu kirim.
+        Row: { id: string; period_id: string; target_id: string; aspect_id: string; body: string };
+        Insert: { period_id: string; target_id: string; aspect_id: string; body: string };
+        Update: never;
+        Relationships: [];
+      };
       result_360: {
         Row: { employee_id: string; period_id: string; score: number | null; score_raw: number | null; late_penalty: number; computed_at: string };
         Insert: { employee_id: string; period_id: string; score?: number | null; score_raw?: number | null; late_penalty?: number; computed_at?: string };

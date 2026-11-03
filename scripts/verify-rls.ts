@@ -431,6 +431,35 @@ async function main() {
       check('ACC oleh SPV TERCATAT di Log Aktivitas [0045]', (data?.length ?? 0) >= 1);
     }
 
+    console.log('\n0054 — Catatan di Luar Pemetaan (hanya service_role):');
+    {
+      // Catatan tentang EMP ditulis server (service_role). Tak ada peran — termasuk HRD — yang boleh membaca
+      // atau menulis tabelnya langsung lewat API; HRD membacanya lewat server (detail laporan Mode Admin).
+      const { error: seedErr } = await admin.from('outside_mapping_notes').insert({
+        period_id: aid.periodId, target_id: id.EMP, aspect_id: aid.aspectId, body: 'CATATAN RAHASIA RLS — uji anonim',
+      });
+      check('Server (service_role) MENULIS catatan DIIZINKAN (kontrol positif)', !seedErr, seedErr?.message ?? '');
+      const { data: seen } = await admin.from('outside_mapping_notes').select('id').eq('period_id', aid.periodId);
+      check('Server (service_role) BACA catatan DIIZINKAN (kontrol positif)', (seen?.length ?? 0) === 1);
+      for (const key of ['HRD', 'HRL', 'SPV', 'DIR', 'EMP', 'OTH'] as const) {
+        const c = await loginAs(FIX[key].email);
+        const { data, error } = await c.from('outside_mapping_notes').select('body').eq('period_id', aid.periodId);
+        check(`${FIX[key].code} BACA catatan lewat API DITOLAK [0054]`, !!error || (data?.length ?? 0) === 0);
+        await c.auth.signOut();
+      }
+      {
+        const c = await loginAs(FIX.OTH.email);
+        const { error } = await c.from('outside_mapping_notes').insert({
+          period_id: aid.periodId, target_id: id.EMP, aspect_id: aid.aspectId, body: 'Disisipkan langsung lewat API anon',
+        });
+        check('Pegawai MENULIS catatan langsung lewat API DITOLAK [0054]', !!error);
+        await c.auth.signOut();
+      }
+      { const { error } = await admin.from('outside_mapping_notes').insert({
+          period_id: aid.periodId, target_id: id.EMP, aspect_id: aid.aspectId, body: '   pendek   ' });
+        check('Isi catatan < 20 karakter DITOLAK database [0054]', !!error); }
+    }
+
     console.log(`\n== HASIL: ${pass} lolos, ${fail} gagal ==`);
   } finally {
     await cleanup();

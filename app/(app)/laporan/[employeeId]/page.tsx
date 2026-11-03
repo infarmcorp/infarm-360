@@ -9,6 +9,7 @@ import { ReportDoc } from '../report-doc';
 import { ReportActions } from '../report-actions';
 import { ReportHistoryPanel } from '../report-history-panel';
 import { loadReportHistory } from '@/lib/report-history';
+import { withOutsideNotes, outsideNotesAllowed } from '@/lib/outside-notes';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
 import { AspectSummaryView } from '../aspect-summary-view';
 import { RawFeedback } from '../raw-feedback';
@@ -318,7 +319,13 @@ export default async function LaporanDetailPage({
   // L3 bernama (`assessors`) DIBUANG di server: tak pernah ditampilkan di jalur ini (hideAssessorComments),
   // jadi tak boleh ikut terkirim ke browser. Komentar mentah ANONIM tetap (HRD meringkas, termasuk laporannya sendiri).
   const loadedFull = await loadReport(supabase, employeeId, ap);
-  const data = loadedFull ? withoutNamedFeedback(loadedFull) : null;
+  // Catatan di Luar Pemetaan (0054): OPT-IN, hanya di jalur ini (route 'hrd' = izin HRD + Mode Admin),
+  // termasuk laporan HRD sendiri (anonim; keputusan pemilik 2026-11-03). Jalur lain tak pernah memuatnya.
+  const data = loadedFull
+    ? (outsideNotesAllowed(route) && loadedFull.has360
+      ? await withOutsideNotes(createAdminClient() as unknown as typeof supabase, withoutNamedFeedback(loadedFull), employeeId, ap.id)
+      : withoutNamedFeedback(loadedFull))
+    : null;
   if (!data) {
     return <Shell><p className="text-sm text-ink-soft">Data tidak ditemukan atau di luar lingkup akses Anda.</p>
       <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;

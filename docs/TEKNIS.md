@@ -407,8 +407,12 @@ hanya HRD berakses penuh; tak ada yang bisa mengubah izin dirinya sendiri (trigg
 - **Tulis** hanya `app/(app)/pengembangan/actions.ts` (Zod + service_role; tabel tanpa policy tulis): `saveMyPlan`
   (isi hanya di draft/revision; sisip baru dulu lalu hapus lama), `submitMyPlan` (= persetujuan pegawai; semua
   prioritas lengkap), `decideAsSupervisor` (Setujui butuh Konfirmasi Kinerja & Dukungan; Minta Perbaikan butuh alasan
-  & membatalkan persetujuan), `approveAsHrd` & `reopenPlan` (`canHrdSign` = **posisi** `role='hrd'` + Mode Admin +
-  bagian `pengembangan`; boleh atas rencana sendiri — keputusan pemilik), `setPlanWindow` (`canHrdManage` = bagian
+  & membatalkan persetujuan), `withdrawMyPlan` (Tarik Kembali, pemilik, hanya `waiting_supervisor`), `approveAsHrd` (`canHrdSign` = **posisi**
+  `role='hrd'` + Mode Admin + bagian `pengembangan`; boleh atas rencana sendiri setelah atasan — keputusan pemilik).
+  **Tidak ada Buka Kembali**: setelah atasan menyetujui, rencana tak bisa dikembalikan siapa pun. **Pemisahan mode**
+  (`inAdminView`): pemegang izin HRD di Mode Admin ditolak untuk aksi pemilik (simpan/kirim/tarik/tanggapan) dan
+  bukan atasan SPV/Koordinator (`canActAsSupervisor`); `/pengembangan` di Mode Admin dialihkan ke Pantauan, rencana
+  sendiri dibuka hanya-baca di `/pengembangan/[id]`. `setPlanWindow` (`canHrdManage` = bagian
   `pengembangan` + Mode Admin). Ganti status bersyarat status lama. Semua tercatat di Log Aktivitas (kategori
   `pengembangan`, `logAuditAsService`).
 - **Baca**: RLS `dp_read`/`dpi_read` = pemilik, `is_hrd()`, `is_direksi()`; atasan & SPV-pengamat via service_role

@@ -8,6 +8,17 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-03 — Rencana Pengembangan: Tarik Kembali & pemisahan mode HRD (di `dev`, belum di production)
+- **Tarik Kembali** untuk pemilik rencana selama **Menunggu Atasan** — mis. untuk menambah prioritas, tanpa meminta
+  atasan atau HRD.
+- **Buka Kembali (ke Draf) dihapus** dari HRD (keputusan pemilik): setelah atasan menyetujui, rencana tidak bisa
+  dikembalikan siapa pun. Perubahan di tengah kuartal dicatat lewat Sesi 1-on-1.
+- **Pemisahan mode HRD diperketat** (temuan uji pemilik): di Mode Admin HRD hanya memakai wewenang HRD. Sebelumnya HRD
+  yang menjadi SPV tim bisa berkomentar dan menyetujui rencana anggotanya dari Mode Admin, dan membuka rencana sendiri
+  dari Pantauan malah membawa ke halaman isian (lengkap dengan tab Tim Saya). Kini rencana sendiri dan rencana tim
+  hanya dilihat di Mode Admin; mengisi, menarik kembali, dan bertindak sebagai SPV dilakukan dari Mode SPV. HRD tetap
+  menyetujui rencananya sendiri (Setujui (HRD)) dari Mode Admin setelah atasannya menyetujui.
+
 ### 2026-11-03 — Rencana Pengembangan Tahap 2 & 3: catatan sesi 1-on-1 dan ekspor (di `dev`, belum di production)
 - Setelah rencana **Disepakati**, atasan mencatat **Sesi 1-on-1** (tanggal, catatan, status umum, kemajuan tiap prioritas)
   dan HRD mencatat **Tinjauan Bulanan HRD** — pengganti baris 3 dan 4 tabel "Tindak Lanjut" di PDF. Pegawai bisa

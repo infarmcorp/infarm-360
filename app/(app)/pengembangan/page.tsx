@@ -7,13 +7,14 @@ import { TabBar, Tab } from '@/components/tab-nav';
 import { StatusChip } from '@/components/status-chip';
 import { colPercents } from '@/lib/table-cols';
 import {
-  canActAsSupervisor, ownerCanEdit, planStatusLabel, planTitle, PLAN_STATUS_TONE, SUPERVISOR_KIND_LABEL,
+  canActAsSupervisor, ownerCanEdit, ownerCanWithdraw, inAdminView, planStatusLabel, planTitle, PLAN_STATUS_TONE, SUPERVISOR_KIND_LABEL,
   type HrdMode, type PlanItem, type PlanActor,
 } from '@/lib/dev-plan';
 import { finalizedPeriods, loadPlan, loadSupervisorResolver, loadPlanPeople } from '@/lib/dev-plan-server';
 import { PlanCommentsView, PlanHeader, PlanItemsView, PlanSignatures, RevisionNotice } from './plan-view';
 import { PlanEditor } from './plan-editor';
 import { PeriodPicker } from './period-picker';
+import { WithdrawButton } from './withdraw-button';
 import { SessionsSection } from './sessions-section';
 import { sessionsPanelData } from './sessions-data';
 
@@ -37,6 +38,8 @@ export default async function PengembanganPage({ searchParams }: { searchParams:
   const jar = await cookies();
   const mode: HrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   const actor = { id: user.id, ...(me ?? {}) };
+  // Pemisahan mode: halaman ini milik mode posisi asli. Di Mode Admin HRD memakai Pantauan.
+  if (inAdminView(actor, mode)) redirect('/admin/pengembangan');
   const admin = createAdminClient() as unknown as SB;
 
   const probe = await loadPlan(admin, user.id, '00000000-0000-0000-0000-000000000000');
@@ -104,6 +107,7 @@ async function MyPlan({ admin, userId, role, name, periodParam, resolve, people,
         </p>
       )}
       {plan && <RevisionNotice plan={plan} />}
+      {plan && !closed && ownerCanWithdraw(status, role) && <WithdrawButton periodId={sel.id} />}
       {editable
         ? <PlanEditor periodId={sel.id} initialItems={plainItems} canSubmit={role !== 'direksi'} />
         : <PlanItemsView items={plainItems} />}

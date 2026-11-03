@@ -237,11 +237,14 @@ Pengembangan Individu Anda untuk kuartal **sesudah** laporan: laporan Q3 2026 �
 |---|---|---|
 | **Simpan Draf** | Menyimpan isi apa adanya | Status Draf atau Perlu Perbaikan |
 | **Kirim ke Atasan** | Mengirim rencana; sekaligus menjadi **persetujuan Anda** (nama dan waktu tercatat). Semua prioritas wajib lengkap | Status Draf atau Perlu Perbaikan |
+| **Tarik Kembali** | Mengembalikan rencana ke Draf, mis. untuk menambah prioritas; persetujuan Anda batal dan rencana perlu dikirim lagi | Hanya selama **Menunggu Atasan** |
 
 **Status:** **Belum diisi** → **Draf** → **Menunggu Atasan** → **Menunggu HRD** → **Disepakati** (terkunci). Bila
 atasan menekan **Minta Perbaikan**, status menjadi **Perlu Perbaikan** dengan alasannya di kotak merah; perbaiki
-lalu kirim lagi. Setelah dikirim, isi tidak bisa diubah sampai atasan meminta perbaikan atau HRD membukanya
-kembali. Di bawah rencana tampil **Komentar Atasan Langsung** dan kotak **Persetujuan** (Pegawai · Atasan · HRD).
+lalu kirim lagi. Setelah dikirim, isi tidak bisa diubah kecuali Anda menekan **Tarik Kembali** (selama atasan
+belum memutuskan) atau atasan meminta perbaikan. **Setelah atasan menyetujui, rencana tidak bisa ditarik atau dibuka
+kembali oleh siapa pun**; perubahan di tengah kuartal dicatat lewat catatan Sesi 1-on-1. Belum yakin? Simpan sebagai
+Draf dulu sampai semua prioritas lengkap. Di bawah rencana tampil **Komentar Atasan Langsung** dan kotak **Persetujuan** (Pegawai · Atasan · HRD).
 Rencana tidak memengaruhi skor atau laporan Anda.
 
 **Catatan Sesi & Tinjauan** (setelah rencana **Disepakati**). Di bawah rencana, atasan mencatat setiap **Sesi 1-on-1**
@@ -333,7 +336,9 @@ belum bisa dihitung tertulis **"No Score"**. Pegawai dengan KPI atau 360° koson
 - Skor Akhir memakai rumus resmi tunggal; laporan Final memakai angka tersimpan.
 
 ### 3.6 Rencana Pengembangan tim
-Menu **Rencana Pengembangan** → tab **Tim Saya**. Tab ini juga berlaku untuk HRD yang sedang di **Mode SPV**.
+Menu **Rencana Pengembangan** → tab **Tim Saya**. Tab ini juga berlaku untuk HRD yang sedang di **Mode SPV**. HRD yang
+menjadi SPV tim hanya bisa berkomentar, menyetujui, dan mencatat Sesi 1-on-1 dari **Mode SPV**; di Mode Admin rencana
+timnya hanya bisa dilihat lewat Pantauan.
 - Daftar berisi anggota tim yang laporannya sudah **Final** pada periode terpilih, dengan status rencananya.
   Kolom **Peran Anda**: **Atasan** (Anda yang berkomentar dan menyetujui) atau **Hanya melihat** (anggota yang
   punya koordinator; koordinatornya yang berkomentar dan menyetujui).
@@ -900,10 +905,17 @@ Di halaman rencana satu pegawai, pegawai **berposisi HRD** di Mode Admin mendapa
 | Tombol | Fungsi | Kapan muncul |
 |---|---|---|
 | **Setujui (HRD)** | Persetujuan terakhir → **Disepakati** (terkunci); nama dan waktu tercatat | Status Menunggu HRD |
-| **Buka Kembali (ke Draf)** | Mengembalikan rencana ke Draf; semua persetujuan batal, komentar atasan tetap | Selain Draf |
 
-Pegawai lain yang diberi izin HRD Admin bisa membuka pantauan dan rencana, tetapi **tidak** bisa Setujui (HRD)
-atau Buka Kembali. HRD berposisi HRD juga menyetujui rencananya sendiri setelah atasannya (Direksi) menyetujui.
+Tidak ada tombol untuk mengembalikan rencana yang sudah disetujui atasan (keputusan pemilik): rencana yang Menunggu
+HRD hanya bisa disetujui, dan rencana Disepakati tidak bisa diubah. Pegawai lain yang diberi izin HRD Admin bisa membuka
+pantauan dan rencana, tetapi **tidak** bisa Setujui (HRD).
+
+**Pemisahan mode.** Di **Mode Admin** Anda hanya memakai wewenang HRD: Pantauan, Setujui (HRD), Catat Tinjauan HRD,
+batas dan tutup/buka periode, serta atasan cadangan bagi pegawai tanpa SPV/koordinator. Rencana Anda sendiri dan
+rencana tim Anda (bila Anda juga SPV) **hanya dilihat** dari Pantauan. Mengisi, mengirim, menarik kembali rencana
+sendiri, menanggapi sesi, dan bertindak sebagai SPV (komentar, Setujui/Minta Perbaikan, Catat Sesi 1-on-1) dilakukan
+dari **Mode SPV** lewat menu Rencana Pengembangan. HRD berposisi HRD menyetujui rencananya sendiri (Setujui (HRD))
+dari Mode Admin, setelah atasannya (Direksi) menyetujui.
 Pegawai yang tidak punya SPV maupun koordinator dikomentari dan disetujui atasannya oleh **HRD** dari halaman ini
 (form Komentar Atasan Langsung muncul di halaman rencana pegawai itu). Semua langkah tercatat di Log Aktivitas
 (kategori Rencana Pengembangan).

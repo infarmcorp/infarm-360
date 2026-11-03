@@ -12,7 +12,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn(), createAdminClie
 vi.mock('@/lib/audit/log', () => ({ logHrdAction: vi.fn(async () => {}), logAuditAsService: vi.fn(async () => {}) }));
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { saveMyPlan, submitMyPlan, decideAsSupervisor, approveAsHrd, reopenPlan, setPlanWindow, saveSession, saveSessionResponse } from '@/app/(app)/pengembangan/actions';
+import { saveMyPlan, submitMyPlan, decideAsSupervisor, approveAsHrd, withdrawMyPlan, setPlanWindow, saveSession, saveSessionResponse } from '@/app/(app)/pengembangan/actions';
 
 const mockCreate = vi.mocked(createClient);
 const mockAdmin = vi.mocked(createAdminClient);
@@ -148,7 +148,7 @@ describe('decideAsSupervisor', () => {
   });
 });
 
-describe('approveAsHrd / reopenPlan / setPlanWindow', () => {
+describe('approveAsHrd / setPlanWindow', () => {
   const hrdBase = (status: string) => ({
     development_plans: [plan({ status }), { data: [{ id: PLAN }] }],
     employees: [{ data: { id: EMP, role: 'employee', name: 'Pegawai' } }],
@@ -179,14 +179,13 @@ describe('approveAsHrd / reopenPlan / setPlanWindow', () => {
     expect(updates(a)[0].payload).toMatchObject({ status: 'agreed', hrd_id: HRD, hrd_name: 'HRD Satu' });
   });
 
-  it('Buka Kembali → Draf, semua persetujuan batal', async () => {
+  it('HRD menyetujui rencananya SENDIRI dari Mode Admin setelah atasan menyetujui', async () => {
     mode = 'admin';
-    asUser(HRD, { role: 'hrd' });
-    const a = adminWith(hrdBase('agreed'));
-    expect(await reopenPlan(PLAN)).toEqual({ ok: true });
-    expect(updates(a)[0].payload).toMatchObject({
-      status: 'draft', employee_signed_at: null, supervisor_signed_at: null, hrd_signed_at: null, supervisor_id: null, hrd_id: null,
-    });
+    asUser(HRD, { role: 'hrd', name: 'HRD Satu' });
+    const a = adminWith({ ...hrdBase('waiting_hrd'), development_plans: [plan({ status: 'waiting_hrd', employee_id: HRD }), { data: [{ id: PLAN }] }],
+      employees: [{ data: { id: HRD, role: 'hrd', name: 'HRD Satu' } }] });
+    expect(await approveAsHrd(PLAN)).toEqual({ ok: true });
+    expect(updates(a)[0].payload).toMatchObject({ status: 'agreed', hrd_id: HRD });
   });
 
   it('atur periode: bukan HRD ditolak; HRD Mode Admin menyimpan batas & tutup', async () => {
@@ -264,5 +263,45 @@ describe('Tahap 2 — saveSession / saveSessionResponse', () => {
     const a = adminWith(ctxTables('agreed', { development_plan_sessions: [{ data: { id: SESS, plan_id: PLAN, kind: 'one_on_one' } }, { data: null }] }));
     expect(await saveSessionResponse(SESS, 'Saya sepakat dengan langkahnya')).toEqual({ ok: true });
     expect(a.calls.find((x) => x.op === 'update')!.payload).toMatchObject({ employee_note: 'Saya sepakat dengan langkahnya' });
+  });
+});
+
+describe('Tarik Kembali & pemisahan mode', () => {
+  it('pemilik menarik kembali saat Menunggu Atasan → Draf, persetujuan pegawai batal', async () => {
+    asUser(EMP, { role: 'employee' });
+    const a = adminWith({ periods: [OPEN], final_reports: [FINAL], development_plans: [plan({ status: 'waiting_supervisor' }), { data: [{ id: PLAN }] }], development_plan_items: [{ data: [FULL] }] });
+    expect(await withdrawMyPlan(P)).toEqual({ ok: true });
+    expect(updates(a)[0].payload).toMatchObject({ status: 'draft', employee_signed_at: null });
+    expect(updates(a)[0].filters).toEqual(expect.arrayContaining([['eq', 'status', 'waiting_supervisor']]));
+  });
+
+  it.each(['waiting_hrd', 'agreed', 'revision'])('tidak bisa ditarik saat %s', async (status) => {
+    asUser(EMP, { role: 'employee' });
+    const a = adminWith({ periods: [OPEN], final_reports: [FINAL], development_plans: [plan({ status })], development_plan_items: [{ data: [FULL] }] });
+    expect((await withdrawMyPlan(P)).ok).toBe(false);
+    expect(updates(a)).toHaveLength(0);
+  });
+
+  it('HRD di Mode Admin tidak bisa mengubah / mengirim / menarik rencananya sendiri', async () => {
+    mode = 'admin';
+    for (const run of [() => saveMyPlan(P, [FULL]), () => submitMyPlan(P), () => withdrawMyPlan(P)]) {
+      asUser(HRD, { role: 'hrd' });
+      const a = adminWith({});
+      expect(await run()).toEqual({ ok: false, error: expect.stringMatching(/Mode SPV/) });
+      expect(a.calls).toHaveLength(0);
+    }
+  });
+
+  it('HRD yang SPV tim tidak bisa bertindak sebagai atasan dari Mode Admin', async () => {
+    mode = 'admin';
+    asUser(SPV, { role: 'hrd' });
+    const a = adminWith({
+      development_plans: [plan({ status: 'waiting_supervisor', employee_id: COORD })],
+      employees: [{ data: { id: COORD, role: 'employee', name: 'Koordinator' } }],
+      ...TEAM, periods: [OPEN], final_reports: [FINAL],
+    });
+    const r = await decideAsSupervisor(PLAN, 'approve', { confirmation: 'Sesuai pengamatan', context: '', support: 'Coaching rutin', hope: '' }, '');
+    expect(r).toEqual({ ok: false, error: expect.stringMatching(/bukan atasan/) });
+    expect(updates(a)).toHaveLength(0);
   });
 });

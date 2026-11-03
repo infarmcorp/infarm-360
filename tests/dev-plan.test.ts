@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   resolveSupervisor, canActAsSupervisor, canHrdSign, canHrdManage, canViewPlan, submitBlocker, ownerCanEdit,
   supervisorApproveBlocker, nextQuarterLabel, planTitle, planStatusLabel, sessionsOpen, canRecordSession, canEditSession,
+  ownerCanWithdraw, inAdminView,
   type PlanItem, type PlanActor,
 } from '@/lib/dev-plan';
 
@@ -136,5 +137,29 @@ describe('Tahap 2 — catatan sesi', () => {
     const coord = actor(C, { role: 'employee', is_coordinator: true });
     expect(canEditSession({ kind: 'one_on_one', author_id: C }, info, coord, E, 'spv')).toBe(true);
     expect(canEditSession({ kind: 'one_on_one', author_id: 'lain' }, info, coord, E, 'spv')).toBe(false);
+  });
+});
+
+describe('pemisahan mode (keputusan pemilik 2026-11-03)', () => {
+  const spvInfo = { kind: 'spv' as const, ids: [H], viewerIds: [] };
+  it('HRD yang menjadi SPV tim bertindak sebagai atasan hanya di Mode SPV', () => {
+    expect(canActAsSupervisor(spvInfo, actor(H, { role: 'hrd' }), E, 'spv')).toBe(true);
+    expect(canActAsSupervisor(spvInfo, actor(H, { role: 'hrd' }), E, 'admin')).toBe(false);
+    expect(canRecordSession('one_on_one', spvInfo, actor(H, { role: 'hrd' }), E, 'admin')).toBe(false);
+  });
+  it('koordinator ber-izin HRD di Mode Admin bukan atasan', () => {
+    const info = { kind: 'coordinator' as const, ids: [C], viewerIds: [] };
+    expect(canActAsSupervisor(info, actor(C, { role: 'employee', is_coordinator: true, is_hrd_admin: true }), E, 'admin')).toBe(false);
+  });
+  it('Tarik Kembali hanya saat Menunggu Atasan, bukan untuk Direksi', () => {
+    expect(ownerCanWithdraw('waiting_supervisor', 'employee')).toBe(true);
+    expect(ownerCanWithdraw('waiting_hrd', 'employee')).toBe(false);
+    expect(ownerCanWithdraw('agreed', 'employee')).toBe(false);
+    expect(ownerCanWithdraw('waiting_supervisor', 'direksi')).toBe(false);
+  });
+  it('inAdminView = pemegang izin HRD di Mode Admin', () => {
+    expect(inAdminView(actor(H, { role: 'hrd' }), 'admin')).toBe(true);
+    expect(inAdminView(actor(H, { role: 'hrd' }), 'spv')).toBe(false);
+    expect(inAdminView(actor(S, { role: 'spv' }), 'admin')).toBe(false);
   });
 });

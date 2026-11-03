@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import {
-  canActAsSupervisor, canHrdSign, canViewPlan, planTitle, SUPERVISOR_KIND_LABEL, type HrdMode, type PlanItem,
+  canActAsSupervisor, canHrdSign, canViewPlan, inAdminView, planTitle, SUPERVISOR_KIND_LABEL, type HrdMode, type PlanItem,
 } from '@/lib/dev-plan';
 import { finalizedPeriods, loadPlan, loadSupervisorResolver, loadPlanPeople } from '@/lib/dev-plan-server';
 import { PlanCommentsView, PlanHeader, PlanItemsView, PlanSignatures, RevisionNotice } from '../plan-view';
@@ -29,12 +29,14 @@ export default async function PlanDetailPage({ params, searchParams }: {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
-  if (employeeId === user.id) redirect(`/pengembangan?tab=saya${periodParam ? `&period=${periodParam}` : ''}`);
   const { data: me } = await supabase.from('employees')
     .select('role, is_hrd_admin, is_coordinator, hrd_sections, name').eq('id', user.id).maybeSingle();
   const jar = await cookies();
   const mode: HrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   const actor = { id: user.id, ...(me ?? {}) };
+  // Pemilik di mode posisi asli → halaman isian (Rencana Saya). Di Mode Admin rencana sendiri hanya DILIHAT di sini
+  // (+ Setujui (HRD) bila berwenang) — pemisahan mode, keputusan pemilik 2026-11-03.
+  if (employeeId === user.id && !inAdminView(actor, mode)) redirect(`/pengembangan?tab=saya${periodParam ? `&period=${periodParam}` : ''}`);
   const admin = createAdminClient() as unknown as SB;
   const back = from === 'admin'
     ? { href: `/admin/pengembangan${periodParam ? `?period=${periodParam}` : ''}`, label: '← Pantauan Rencana Pengembangan' }
@@ -73,9 +75,7 @@ export default async function PlanDetailPage({ params, searchParams }: {
           due={sel.dev_plan_due} closed={closed} supervisorLabel={supLabel} />
         {plan && <RevisionNotice plan={plan} />}
         {!plan ? <p className="text-sm text-ink-soft">Pegawai belum mengisi rencana.</p> : <PlanItemsView items={plainItems} />}
-        {plan && !closed && hrd && !isDireksiPlan && (
-          <HrdBar planId={plan.id} canApprove={plan.status === 'waiting_hrd'} canReopen={plan.status !== 'draft'} />
-        )}
+        {plan && !closed && hrd && !isDireksiPlan && plan.status === 'waiting_hrd' && <HrdBar planId={plan.id} />}
         {plan && !closed && supervises && plan.status === 'waiting_supervisor' ? (
           <SupervisorForm planId={plan.id} initial={{
             confirmation: plan.sup_confirmation ?? '', context: plan.sup_context ?? '',

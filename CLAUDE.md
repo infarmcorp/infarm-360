@@ -119,9 +119,11 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
     tabelnya (dikunci `tests/outside-notes.test.ts`). Pengirim eksternal ditolak (sementara).
 - **Rencana Pengembangan** (0055, TEKNIS.md §5.5): melekat ke periode **laporan** (terbuka bila laporan Final & HRD
   belum menutup; periode aktif tak berpengaruh). Atasan = `resolveSupervisor` (koordinator → SPV → Direksi untuk SPV/
-  pemimpin tim → HRD cadangan); SPV dari pegawai berkoordinator hanya melihat. Persetujuan HRD & Buka Kembali hanya
+  pemimpin tim → HRD cadangan); SPV dari pegawai berkoordinator hanya melihat. Persetujuan HRD hanya
   **posisi** `role='hrd'` di Mode Admin (`canHrdSign`, pengecualian sadar dari aturan `is_hrd()`); boleh atas rencana
-  sendiri. Tulis hanya `pengembangan/actions.ts` (service_role); isi berubah hanya di Draf/Perlu Perbaikan sehingga
+  sendiri setelah atasan. **Tak ada Buka Kembali** (pemilik 2026-11-03): pemilik hanya bisa Tarik Kembali selama
+  Menunggu Atasan; sesudah atasan menyetujui rencana terkunci. **Pemisahan mode ketat** (`inAdminView`): Mode Admin =
+  wewenang HRD saja (bukan pemilik rencana / atasan SPV); Mode SPV = wewenang posisi asli. Tulis hanya `pengembangan/actions.ts` (service_role); isi berubah hanya di Draf/Perlu Perbaikan sehingga
   persetujuan selalu atas isi yang sama. Tidak menyentuh skor/`final_reports`. Batas disepakati = informasi saja.
   Catatan sesi 1-on-1 / tinjauan HRD (0056) hanya setelah Disepakati; aplikasi **hanya mencatat** — jangan tambahkan
   hitungan atau penanda terlambat tanpa permintaan. Ekspor rencana bernama (`exportDevPlans`).

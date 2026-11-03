@@ -8,7 +8,7 @@ import { logAuditAsService } from '@/lib/audit/log';
 import { tableMissing } from '@/lib/report-folder';
 import {
   canActAsSupervisor, canHrdManage, canHrdSign, ownerCanEdit, submitBlocker, supervisorApproveBlocker,
-  planTitle, PLAN_MAX_ITEMS, SUP_MIN, sessionsOpen, canRecordSession, canEditSession, SESSION_KIND_LABEL,
+  planTitle, PLAN_MAX_ITEMS, SUP_MIN, inAdminView, ownerCanWithdraw, sessionsOpen, canRecordSession, canEditSession, SESSION_KIND_LABEL,
   type PlanActor, type HrdMode,
 } from '@/lib/dev-plan';
 import { loadPlan, loadSupervisorResolver, planWindow, type PlanRow } from '@/lib/dev-plan-server';
@@ -23,6 +23,8 @@ type Result = { ok: true } | { ok: false; error: string };
 type SB = Awaited<ReturnType<typeof createClient>>;
 
 const OFF = 'Fitur Rencana Pengembangan belum aktif';
+// Pemisahan mode: rencana SENDIRI hanya diubah dari mode posisi asli (Mode SPV), bukan Mode Admin.
+const OWNER_IN_ADMIN = 'Pindah ke Mode SPV untuk mengubah rencana Anda sendiri';
 const Uuid = z.string().uuid('Data tidak valid');
 const Item = z.object({
   area: z.string().trim().max(500),
@@ -88,7 +90,8 @@ export async function saveMyPlan(rawPeriodId: string, rawItems: unknown): Promis
   const items = Items.safeParse(rawItems);
   if (!items.success) return { ok: false, error: items.error.issues[0].message };
   const c = await ctx(); if (!c.ok) return c;
-  const { actor, admin } = c;
+  const { actor, admin, mode } = c;
+  if (inAdminView(actor, mode)) return { ok: false, error: OWNER_IN_ADMIN };
 
   const win = await planWindow(admin, actor.id, pid.data);
   if (!win.ok) return win;
@@ -124,7 +127,8 @@ export async function submitMyPlan(rawPeriodId: string): Promise<Result> {
   const pid = Uuid.safeParse(rawPeriodId);
   if (!pid.success) return { ok: false, error: 'Periode tidak valid' };
   const c = await ctx(); if (!c.ok) return c;
-  const { actor, admin } = c;
+  const { actor, admin, mode } = c;
+  if (inAdminView(actor, mode)) return { ok: false, error: OWNER_IN_ADMIN };
   if (actor.role === 'direksi') return { ok: false, error: 'Rencana Direksi tidak memerlukan persetujuan' };
 
   const win = await planWindow(admin, actor.id, pid.data);
@@ -198,7 +202,8 @@ export async function decideAsSupervisor(
   return { ok: true };
 }
 
-/** HRD (posisi HRD, Mode Admin) menyetujui terakhir → Disepakati. Boleh atas rencananya sendiri (keputusan pemilik). */
+/** HRD (posisi HRD, Mode Admin) menyetujui terakhir → Disepakati. Boleh atas rencananya sendiri, setelah atasannya
+ *  menyetujui & dari Mode Admin (keputusan pemilik 2026-11-03). */
 export async function approveAsHrd(rawPlanId: string): Promise<Result> {
   const planId = Uuid.safeParse(rawPlanId);
   if (!planId.success) return { ok: false, error: 'Rencana tidak valid' };
@@ -223,25 +228,28 @@ export async function approveAsHrd(rawPlanId: string): Promise<Result> {
   return { ok: true };
 }
 
-/** HRD Buka Kembali → Draf; semua persetujuan batal (komentar atasan tetap tersimpan sebagai riwayat). */
-export async function reopenPlan(rawPlanId: string): Promise<Result> {
-  const planId = Uuid.safeParse(rawPlanId);
-  if (!planId.success) return { ok: false, error: 'Rencana tidak valid' };
+/**
+ * Pemilik menarik kembali rencana yang masih MENUNGGU ATASAN → Draf (mis. ingin menambah prioritas). Setelah atasan
+ * menyetujui, tak ada jalur kembali (keputusan pemilik 2026-11-03 — HRD tak punya "Buka Kembali").
+ */
+export async function withdrawMyPlan(rawPeriodId: string): Promise<Result> {
+  const pid = Uuid.safeParse(rawPeriodId);
+  if (!pid.success) return { ok: false, error: 'Periode tidak valid' };
   const c = await ctx(); if (!c.ok) return c;
   const { actor, admin, mode } = c;
-  if (!canHrdSign(actor, mode)) return { ok: false, error: 'Buka Kembali hanya oleh pegawai berposisi HRD di Mode Admin' };
-
-  const p = await planById(admin, planId.data); if (!p.ok) return p;
-  const { plan, emp } = p;
-  if (emp.role === 'direksi') return { ok: false, error: 'Rencana Direksi tidak memakai alur persetujuan' };
-  const win = await planWindow(admin, emp.id, plan.source_period_id);
+  if (inAdminView(actor, mode)) return { ok: false, error: OWNER_IN_ADMIN };
+  const win = await planWindow(admin, actor.id, pid.data);
   if (!win.ok) return win;
-  if (plan.status === 'draft') return { ok: false, error: 'Rencana sudah berstatus Draf' };
-  const r = await transition(admin, plan, { ...CLEAR_SIGNS, status: 'draft', revision_reason: null });
+  const cur = await loadPlan(admin, actor.id, pid.data);
+  if (cur.missing) return { ok: false, error: OFF };
+  if (!cur.plan || !ownerCanWithdraw(cur.plan.status, actor.role)) {
+    return { ok: false, error: 'Rencana hanya bisa ditarik kembali selama masih menunggu atasan' };
+  }
+  const r = await transition(admin, cur.plan, { ...CLEAR_SIGNS, status: 'draft', revision_reason: null });
   if (!r.ok) return r;
   await logAuditAsService({
-    action: 'devplan.reopen', category: 'pengembangan', summary: `Membuka kembali ${planTitle(win.period.label)} ke Draf`,
-    targetType: 'employee', targetId: emp.id, targetLabel: emp.name,
+    action: 'devplan.withdraw', category: 'pengembangan', summary: `Menarik kembali ${planTitle(win.period.label)} ke Draf`,
+    targetType: 'employee', targetId: actor.id, targetLabel: actor.name,
   }, { id: actor.id, name: actor.name });
   revalidate();
   return { ok: true };
@@ -378,6 +386,7 @@ export async function saveSessionResponse(rawSessionId: string, rawNote: string)
   if (!cur || cur.kind !== 'one_on_one') return { ok: false, error: 'Catatan tidak ditemukan' };
   const s = await sessionCtx(c, cur.plan_id); if (!s.ok) return s;
   if (s.emp.id !== s.actor.id) return { ok: false, error: 'Tanggapan hanya ditulis pemilik rencana' };
+  if (inAdminView(s.actor, s.mode)) return { ok: false, error: OWNER_IN_ADMIN };
   const { error: upErr } = await s.admin.from('development_plan_sessions')
     .update({ employee_note: note.data || null, employee_note_at: note.data ? new Date().toISOString() : null }).eq('id', cur.id);
   if (upErr) return { ok: false, error: 'Gagal menyimpan: ' + upErr.message };

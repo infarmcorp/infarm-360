@@ -1,5 +1,5 @@
 import type { createClient } from '@/lib/supabase/server';
-import { canEditSession, canRecordSession, sessionsOpen, type HrdMode, type PlanActor, type SupervisorInfo } from '@/lib/dev-plan';
+import { canEditSession, canRecordSession, inAdminView, sessionsOpen, type HrdMode, type PlanActor, type SupervisorInfo } from '@/lib/dev-plan';
 import { loadSessions, type PlanItemRow, type PlanRow } from '@/lib/dev-plan-server';
 import type { SessionVM } from './sessions-section';
 
@@ -28,7 +28,7 @@ export async function sessionsPanelData(admin: SB, opts: {
     items: items.map((i) => ({ id: i.id, area: i.area })),
     canAddOneOnOne: canRecordSession('one_on_one', info, actor, ownerId, mode),
     canAddHrd: canRecordSession('hrd_monthly', info, actor, ownerId, mode),
-    isOwner: actor.id === ownerId,
+    isOwner: actor.id === ownerId && !inAdminView(actor, mode), // tanggapan hanya dari mode posisi asli
     locked: closed,
   };
 }

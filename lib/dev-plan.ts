@@ -7,7 +7,12 @@ import type { DevPlanStatus } from '@/lib/database.types';
  * Rencana melekat ke periode LAPORAN (laporan Q3 → "Rencana Pengembangan Q4"). Alur:
  *   draft → waiting_supervisor → waiting_hrd → agreed (terkunci)
  *           ↘ revision (Minta Perbaikan) → kirim ulang → waiting_supervisor
- * HRD "Buka Kembali" → draft (semua persetujuan batal). Rencana Direksi tanpa alur persetujuan (tetap draft).
+ * Pemilik "Tarik Kembali" → draft HANYA selama waiting_supervisor. Setelah atasan menyetujui rencana tak bisa
+ * dikembalikan siapa pun (HRD tak punya "Buka Kembali" — keputusan pemilik 2026-11-03). Rencana Direksi tanpa alur.
+ *
+ * PEMISAHAN MODE (keputusan pemilik 2026-11-03): pemegang izin HRD di Mode Admin HANYA memakai wewenang HRD
+ * (pantauan, Setujui (HRD), tinjauan bulanan, atasan cadangan, atur periode); tindakan pemilik rencana & atasan
+ * SPV/Koordinator hanya di mode posisi asli (Mode SPV). Lihat `inAdminView`.
  * Isi hanya bisa diubah di draft/revision — persetujuan selalu atas isi yang sama dengan yang dibaca.
  */
 
@@ -47,7 +52,12 @@ export function resolveSupervisor(input: {
 export type PlanActor = ActorRow & { id: string };
 export type HrdMode = 'admin' | 'spv';
 
-/** Persetujuan & Buka Kembali HRD: hanya pegawai berPOSISI HRD di Mode Admin (bukan pemegang izin HRD Admin). */
+/** Pemegang izin HRD yang sedang di Mode Admin — hanya wewenang HRD, bukan pemilik rencana / atasan SPV. */
+export function inAdminView(actor: PlanActor | null | undefined, mode: HrdMode): boolean {
+  return !!actor && canAdmin(actor) && mode === 'admin';
+}
+
+/** Persetujuan HRD: hanya pegawai berPOSISI HRD di Mode Admin (bukan pemegang izin HRD Admin). Boleh atas rencana sendiri. */
 export function canHrdSign(actor: PlanActor | null | undefined, mode: HrdMode): boolean {
   return !!actor && actor.role === 'hrd' && mode === 'admin' && canSection(actor, 'pengembangan');
 }
@@ -63,7 +73,7 @@ export function canActAsSupervisor(info: SupervisorInfo, actor: PlanActor | null
   switch (info.kind) {
     case 'direksi': return actor.role === 'direksi';
     case 'coordinator':
-    case 'spv': return info.ids.includes(actor.id);
+    case 'spv': return info.ids.includes(actor.id) && !inAdminView(actor, mode); // atasan SPV/Koordinator hanya di Mode SPV
     case 'hrd': return canHrdSign(actor, mode);
     default: return false;
   }
@@ -101,6 +111,11 @@ export function submitBlocker(items: PlanItem[]): string | null {
   if (items.length === 0) return 'Tambahkan minimal satu prioritas.';
   const bad = items.findIndex((it) => !isItemComplete(it));
   return bad >= 0 ? `Prioritas ${bad + 1} belum lengkap — semua kolom wajib diisi.` : null;
+}
+
+/** Pemilik boleh Tarik Kembali: hanya selama menunggu atasan (sebelum atasan Setujui / Minta Perbaikan). */
+export function ownerCanWithdraw(status: DevPlanStatus | null, ownerRole: string | null | undefined): boolean {
+  return ownerRole !== 'direksi' && status === 'waiting_supervisor';
 }
 
 /** Isi rencana bisa diubah pemilik? Direksi selalu (tanpa alur); lainnya hanya draft / perlu perbaikan. */

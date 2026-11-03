@@ -15,6 +15,7 @@ import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
 import { DashboardVisual, type MoveBreakdown } from './dashboard-visual';
 import { DashboardFilters } from './dashboard-filters';
 import { EmptyState } from '@/components/empty-state';
+import { infarmFontVars } from '@/app/infarm-fonts';
 
 /**
  * Dashboard Organisasi (HRD/Direksi) — versi termigrasi Supabase.
@@ -45,7 +46,7 @@ export default async function DashboardPage({
     grantScopes = grantedAccess(g, 'dashboard')?.scopes ?? null;
   }
   if (!isHrdFull && !isDireksi && !grantScopes) {
-    return <Shell><div className="bg-surface border border-line rounded-panel p-5">
+    return <Shell><div className="bg-surface rounded-card shadow-card p-5">
       <p className="text-sm text-ink-soft">Halaman ini untuk HRD / Direksi atau pemegang akses Dashboard.</p>
       <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></div></Shell>;
   }
@@ -117,16 +118,9 @@ export default async function DashboardPage({
     const kpiStd = aggPeriods[aggPeriods.length - 1]?.kpi_standard ?? ap.kpi_standard ?? 80;
     return (
       <Shell>
-        <div className="flex items-start justify-between mb-4 gap-3">
-          <div>
-            <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Dashboard Organisasi</h1>
-            <p className="text-[13.5px] text-ink-soft mt-1">
-              {scopeLabel} · {dept === 'all' ? 'semua divisi' : `divisi ${dept}`} · agregat rata-rata antar-kuartal
-            </p>
-            <PagePurpose canMonitor={canMonitor} />
-          </div>
-          <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
-        </div>
+        <PageHeader canMonitor={canMonitor}>
+          {scopeLabel} · {dept === 'all' ? 'semua divisi' : `divisi ${dept}`} · agregat rata-rata antar-kuartal
+        </PageHeader>
         <DashboardFilters
           periods={periodList.map((p) => ({ id: p.id, label: p.label, status: p.status, year: Number(String(p.start_date).slice(0, 4)) || 0 }))}
           depts={deptList}
@@ -537,16 +531,9 @@ export default async function DashboardPage({
 
   return (
     <Shell>
-      <div className="flex items-start justify-between mb-4 gap-3">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Dashboard Organisasi</h1>
-          <p className="text-[13.5px] text-ink-soft mt-1">
-            {ap.label}{ap.status === 'active' ? ' (aktif)' : ''} · {dept === 'all' ? 'semua divisi' : `divisi ${dept}`} · {ap.has_360 ? '360° aktif (blend 50/50)' : '360° nonaktif (KPI murni)'}
-          </p>
-          <PagePurpose canMonitor={canMonitor} />
-        </div>
-        <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
-      </div>
+      <PageHeader canMonitor={canMonitor}>
+        {ap.label}{ap.status === 'active' ? ' (aktif)' : ''} · {dept === 'all' ? 'semua divisi' : `divisi ${dept}`} · {ap.has_360 ? '360° aktif (blend 50/50)' : '360° nonaktif (KPI murni)'}
+      </PageHeader>
 
       <DashboardFilters
         periods={periodList.map((p) => ({
@@ -602,18 +589,30 @@ export default async function DashboardPage({
  */
 function PagePurpose({ canMonitor }: { canMonitor: boolean }) {
   return (
-    <p className="text-[11px] text-ink-faint mt-1">
-      <span className="font-semibold text-ink-soft">Fokus halaman ini:</span> klasifikasi talenta &amp; snapshot analitik organisasi.
+    <p className="text-xs text-ink-soft mt-1">
+      <span className="font-semibold">Fokus halaman ini:</span> klasifikasi talenta &amp; snapshot analitik organisasi.
       {canMonitor && (
-        <> · Butuh <span className="text-ink-soft">pergerakan &amp; pelacakan per-pegawai lintas waktu</span>?{' '}
+        <> · Butuh pergerakan &amp; pelacakan per-pegawai lintas waktu?{' '}
           <Link href="/admin/monitor" className="text-brand-ink hover:underline font-semibold">Monitor Kinerja Pegawai →</Link></>
       )}
     </p>
   );
 }
 
+/** Judul halaman (Design System Infarm: h1 Montserrat 30px, subjudul abu). */
+function PageHeader({ canMonitor, children }: { canMonitor: boolean; children: React.ReactNode }) {
+  return (
+    <div className="mb-5">
+      <h1 className="text-[30px] leading-tight font-bold tracking-[-0.01em] text-ink">Dashboard Organisasi</h1>
+      <p className="text-sm text-ink-soft mt-1.5">{children}</p>
+      <PagePurpose canMonitor={canMonitor} />
+    </div>
+  );
+}
+
+/** Kanvas Design System Infarm: latar hijau keputihan + font Geist/Montserrat (hanya halaman ini). */
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>
+    <main className={`infarm-ds ${infarmFontVars} w-full min-h-full bg-infarm-surface px-5 py-7 lg:px-7`}>{children}</main>
   );
 }

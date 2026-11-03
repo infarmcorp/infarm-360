@@ -219,10 +219,17 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
 - Font = **font bawaan sistem** (keputusan pengguna 2026-10-16; Google Fonts Montserrat/Plex **tidak** diunduh —
   saat sempat termuat, teks terlalu lebar). Monospace via `.data-value` (alias `.mono`, `tabular-nums`) untuk
   **semua** angka/data/ID — jangan untuk kalimat. Jangan tambahkan font eksternal tanpa permintaan.
-- **Pengecualian (permintaan pengguna):** `admin/dashboard/dashboard-visual.tsx` (sub-tab + chart) dan analitik
-  Monitor (`monitor-trends`, `extremes-heatmap`, `per-employee-heatmap`, `dist-bars`, `team-aspect`,
-  `section-header`) **tetap berwarna** — jangan di-token-kan. Palet diskrit skor dashboard: ≥90 biru · 80–89
-  hijau · 70–79 kuning · <70 merah (selaras `perfCategoryOf`); badge 4-Box & Trend memakai warna dari `lib/`.
+- **Pengecualian (permintaan pengguna):** analitik Monitor (`monitor-trends`, `extremes-heatmap`,
+  `per-employee-heatmap`, `dist-bars`, `team-aspect`, `section-header`) **tetap berwarna** — jangan di-token-kan.
+  Palet diskrit skor Monitor: ≥90 biru · 80–89 hijau · 70–79 kuning · <70 merah (selaras `perfCategoryOf`).
+- **Design System Infarm** (pemilik, 2026-11-03; artifact "Infarm" dari Infarm-Web) — dipakai **Dashboard
+  Organisasi** saja, menggantikan aturan token di atas untuk halaman itu: pembungkus `.infarm-ds` + `infarmFontVars`
+  (`app/infarm-fonts.ts`, next/font self-host) = Geist/Geist Mono/Montserrat h1–h4 (pengecualian sadar dari aturan font
+  sistem, hanya di halaman ber-`.infarm-ds`); token `infarm-*`, `rounded-card` 16px, `shadow-card`. Palet skor diskrit
+  `CAT_COLOR` (lokal `dashboard-visual.tsx`): ≥90 cokelat `#6b4e3d` · 80–89 hijau · 70–79 kuning · <70 merah; heatmap
+  `heatColorInfarm` (= `heatColor`, ujung biru → cokelat). Warna 4-Box/tren/judul bagian dipetakan lokal — **jangan**
+  ubah `PLAYER_BOXES`/`TREND_META`/`heatColor` di `lib/` untuk ini (masih dipakai Monitor & Laporan Tim).
+  Halaman lain menyusul hanya bila diminta.
 - ⚠️ `laporan-tim/team-table.tsx` & `scorecards.tsx` dipakai bersama Monitor — mengubahnya mengubah Monitor.
 - **Tabel berpager wajib stabil** (2026-10-15): `table-fixed` + `<colgroup>` (`colPercents`), kelas `table-1line`
   (isi sel 1 baris, keputusan pengguna), dan tabel + pager dibungkus `StableHeight` (`components/table-controls.tsx`)

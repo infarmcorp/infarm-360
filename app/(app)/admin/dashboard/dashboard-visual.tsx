@@ -3,14 +3,92 @@
 import { useState } from 'react';
 import { colPercents } from '@/lib/table-cols';
 import { motion } from 'motion/react';
-import { Award, Target, Flame, TrendingUp, TrendingDown, Building2, Users, BarChart3 } from 'lucide-react';
+import { Award, TrendingUp, Building2, Users } from 'lucide-react';
 import {
   PLAYER_BOXES, type PlayerClass, perfLabelOf, perfCategoryOf, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
-import { heatColor, HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
+import { heatColorInfarm as heatColor, HEAT_LEGEND_GRADIENT_INFARM as HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
 import { TREND_META, type Trend } from '@/lib/trend';
 import { displayName } from '@/lib/employee-name';
-import { SectionHeader } from '../../monitor/section-header';
 import { usePager, Pager, StableHeight } from '@/components/table-controls';
+
+/*
+ * Halaman ini memakai Design System Infarm (2026-11-03): kartu putih r-16 + bayangan tipis di atas latar
+ * hijau keputihan, pita ringkasan hijau brand, label eyebrow cokelat tanah, catatan berlatar krem.
+ * Palet skor diskrit = jangkar heatColorInfarm: ≥90 cokelat · 80–89 hijau · 70–79 kuning · <70 merah.
+ * Warna 4-Box, tren, & judul bagian dipetakan LOKAL di sini — lib/ & Monitor tetap palet lamanya.
+ */
+const CAT_COLOR = { exceed: '#6b4e3d', meet: '#388e3c', improve: '#ffc107', below: '#b71c1c' } as const;
+/** Teks di atas segmen berwarna kategori (kuning terang → teks gelap). */
+const CAT_TEXT = { exceed: '#ffffff', meet: '#ffffff', improve: '#1b1f1c', below: '#ffffff' } as const;
+
+const PLAYER_TONE: Record<PlayerClass, { color: string; chip: string }> = {
+  A: { color: '#00843b', chip: 'bg-brand text-white border-brand' },
+  B_CULTURE: { color: '#96d296', chip: 'bg-infarm-light text-ink border-infarm-light' },
+  B_KPI: { color: '#6b4e3d', chip: 'bg-infarm-cream text-infarm-soil border-infarm-cream' },
+  C: { color: '#a23c33', chip: 'bg-danger-tint text-danger-ink border-danger-tint' },
+  HRD_REVIEW: { color: '#f08c00', chip: 'bg-warn-tint text-warn-ink border-warn-tint' },
+};
+
+const TREND_CHIP: Record<Exclude<Trend, 'empty'>, string> = {
+  up: 'bg-brand-tint text-brand-ink',
+  down: 'bg-danger-tint text-danger-ink',
+  stable: 'bg-neutral-tint text-ink-soft',
+  volatile: 'bg-infarm-cream text-infarm-soil',
+  unread: 'bg-neutral-tint text-ink-soft',
+};
+
+/** Kartu standar Design System Infarm. */
+const CARD = 'bg-surface rounded-card shadow-card p-5';
+/** Judul kartu (Montserrat via .infarm-ds h3). */
+const CARD_TITLE = 'text-lg font-semibold text-ink leading-snug';
+
+/** Judul pengelompok bagian: label eyebrow cokelat tanah + petunjuk abu. */
+function SectionHeader({ label, hint }: { label: string; hint?: string; tone?: string }) {
+  return (
+    <div className="mt-6 mb-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+      <h2 className="text-[11px] font-bold uppercase tracking-[0.09em] text-infarm-soil">{label}</h2>
+      {hint && <span className="text-xs text-ink-soft">{hint}</span>}
+    </div>
+  );
+}
+
+/** Catatan penjelas berlatar krem (aksen hangat Design System Infarm). */
+function Note({ title, children }: { title?: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-infarm-cream rounded-xl px-4 py-3 text-[13px] text-ink">
+      {title && <span className="block text-[11px] font-bold uppercase tracking-[0.09em] text-infarm-soil mb-1">{title}</span>}
+      {children}
+    </div>
+  );
+}
+
+type StatItem = { value: string; label: string; sub?: React.ReactNode };
+/**
+ * Pita ringkasan hijau brand: satu angka utama besar (kiri) + kartu hijau muda berteks gelap.
+ * (Aturan Design System: jangan teks hijau brand di atas hijau muda — kontras 2,74:1.)
+ */
+function SummaryBand({ lead, items }: { lead: StatItem; items: StatItem[] }) {
+  return (
+    <section className="bg-brand text-white rounded-card shadow-card p-6 flex flex-wrap gap-5 items-stretch">
+      <div className="flex-[1_1_220px] flex flex-col justify-center gap-2">
+        <span className="text-[13px] font-semibold">{lead.label}</span>
+        <span className="font-mono text-[44px] leading-none font-bold">{lead.value}</span>
+        {lead.sub}
+      </div>
+      <div className="flex-[3_1_480px] grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
+        {items.map((it) => (
+          <div key={it.label} className="bg-infarm-light text-ink rounded-xl px-4 py-3.5 flex flex-col gap-1 min-w-0">
+            <span className="text-xs font-semibold">{it.label}</span>
+            <span className="font-mono text-2xl font-bold leading-tight truncate" title={it.value}>{it.value}</span>
+            {it.sub != null && (typeof it.sub === 'string'
+              ? <span className="text-xs truncate" title={it.sub}>{it.sub}</span>
+              : <span className="text-xs">{it.sub}</span>)}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 /** Baris pegawai (primitif, serializable) yang dihitung di server. */
 export type Row = {
@@ -94,13 +172,6 @@ const PLAYER_DESC: Record<PlayerClass, string> = {
 const PLAYER_BADGE: Record<PlayerClass, string> = {
   A: 'A', B_CULTURE: 'B · Culture', B_KPI: 'B · KPI', C: 'C', HRD_REVIEW: 'HRD Review',
 };
-const PLAYER_COLOR: Record<PlayerClass, string> = {
-  A: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  B_CULTURE: 'bg-blue-50 text-blue-700 border-blue-200',
-  B_KPI: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  C: 'bg-rose-50 text-rose-700 border-rose-200',
-  HRD_REVIEW: 'bg-amber-50 text-amber-700 border-amber-200',
-};
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const ymLabel = (ym: string) => {
@@ -113,12 +184,11 @@ const shortName = (r: { nickname?: string | null; name: string }) => r.nickname?
 
 /** Badge trend KPI 3 bulan (selaras Laporan Kinerja Tim). */
 function TrendBadge({ t, months }: { t?: Trend; months?: (number | null)[] }) {
-  if (!t || t === 'empty') return <span className="text-[10px] text-gray-400">—</span>;
+  if (!t || t === 'empty') return <span className="text-[11px] text-ink-faint">—</span>;
   const m = TREND_META[t];
   const tip = (months ?? []).map((v, i) => `Bln ${i + 1}: ${v == null ? '—' : fmt2(v)}`).join(' · ');
   return (
-    <span title={tip} className="text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-0.5"
-      style={{ color: m.color, backgroundColor: `${m.color}1a` }}>
+    <span title={tip} className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full inline-flex items-center gap-0.5 ${TREND_CHIP[t]}`}>
       <span aria-hidden>{m.arrow}</span> {m.label}
     </span>
   );
@@ -137,16 +207,16 @@ export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptM
 
   return (
     <div className="space-y-5">
-      {/* Sub-tab nav */}
-      <div className="flex border-b border-gray-200 gap-1.5 overflow-x-auto scrollbar-none">
+      {/* Sub-tab nav — pil; aktif = hijau brand solid */}
+      <div className="flex flex-wrap gap-2">
         {TABS.map((t) => {
           const Icon = t.icon;
           const active = tab === t.key;
           return (
             <button key={t.key} type="button" onClick={() => setTab(t.key)}
-              className={`flex items-center gap-2 py-2 px-4 text-xs font-bold border-b-2 transition-all shrink-0 ${
-                active ? 'border-emerald-700 text-emerald-950' : 'border-transparent text-gray-500 hover:text-gray-800'}`}>
-              <Icon className="w-4 h-4 text-emerald-700" />
+              className={`flex items-center gap-2 min-h-11 px-4 rounded-full border text-sm font-semibold transition-colors ${
+                active ? 'bg-brand border-brand text-white' : 'bg-surface border-line text-ink-soft hover:text-brand hover:border-infarm-light'}`}>
+              <Icon className="w-4 h-4" />
               <span>{t.label}</span>
             </button>
           );
@@ -168,12 +238,21 @@ export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptM
 function Delta({ curr, prev, prevLabel, move }: { curr: number | null; prev: number | null; prevLabel?: string | null; move?: MoveBreakdown | null }) {
   if (curr == null || prev == null) return null;
   const d = curr - prev;
-  const cls = d > 0 ? 'text-emerald-600' : d < 0 ? 'text-rose-600' : 'text-gray-400';
   const arrow = d > 0 ? '▲' : d < 0 ? '▼' : '▬';
   const tip = moveTooltip(prevLabel ?? null, move ?? null);
   return (
-    <span title={tip} className={`font-bold ${cls}${tip ? ' cursor-help underline decoration-dotted decoration-1 underline-offset-2' : ''}`}>
-      {arrow} {d >= 0 ? '+' : '−'}{fmt2(Math.abs(d))}{tip ? <span className="ml-0.5 opacity-60">ⓘ</span> : null}
+    <span title={tip} className={`font-mono font-semibold${tip ? ' cursor-help underline decoration-dotted decoration-1 underline-offset-2' : ''}`}>
+      {arrow} {d >= 0 ? '+' : '−'}{fmt2(Math.abs(d))}{tip ? <span className="ml-0.5 opacity-70">ⓘ</span> : null}
+    </span>
+  );
+}
+
+/** Pil "▲ +x.xx vs Q2" di atas pita hijau (Delta berwarna putih — arah dibaca dari panah). */
+function DeltaPill({ curr, prev, prevLabel, move }: { curr: number | null; prev: number | null; prevLabel: string | null; move: MoveBreakdown | null }) {
+  if (!prevLabel || curr == null || prev == null) return null;
+  return (
+    <span className="inline-flex self-start items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold text-white">
+      <Delta curr={curr} prev={prev} prevLabel={prevLabel} move={move} /> <span>vs {prevLabel}</span>
     </span>
   );
 }
@@ -220,16 +299,16 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
   // Distribusi Kategori Kinerja & Rencana Tindak Lanjut — band Skor Akhir (ala legacy).
   const band = (min: number, max: number) => scored.filter((r) => (r.final ?? -1) >= min && (r.final ?? -1) < max).length;
   const categories = [
-    { label: 'Melampaui Ekspektasi (Skor ≥ 90)', count: band(90, 1e9), color: '#183c6c' },
-    { label: 'Memenuhi Ekspektasi (Skor 80–89)', count: band(80, 90), color: '#388e3c' },
-    { label: 'Perlu Peningkatan (Skor 70–79)', count: band(70, 80), color: '#ffc107' },
-    { label: 'Di Bawah Ekspektasi (Skor < 70)', count: band(-1, 70), color: '#b71c1c' },
+    { label: 'Melampaui Ekspektasi (Skor ≥ 90)', count: band(90, 1e9), color: CAT_COLOR.exceed },
+    { label: 'Memenuhi Ekspektasi (Skor 80–89)', count: band(80, 90), color: CAT_COLOR.meet },
+    { label: 'Perlu Peningkatan (Skor 70–79)', count: band(70, 80), color: CAT_COLOR.improve },
+    { label: 'Di Bawah Ekspektasi (Skor < 70)', count: band(-1, 70), color: CAT_COLOR.below },
   ];
   const recommendations = [
-    { label: 'Promosi Akselerasi Jabatan', count: band(90, 1e9), color: '#183c6c' },
-    { label: 'Pertahankan Posisi & Jalur Bonus', count: band(80, 90), color: '#388e3c' },
-    { label: 'Program Workshop & Intervensi', count: band(70, 80), color: '#ffc107' },
-    { label: 'Pelatihan Intensif Mutu', count: band(-1, 70), color: '#b71c1c' },
+    { label: 'Promosi Akselerasi Jabatan', count: band(90, 1e9), color: CAT_COLOR.exceed },
+    { label: 'Pertahankan Posisi & Jalur Bonus', count: band(80, 90), color: CAT_COLOR.meet },
+    { label: 'Program Workshop & Intervensi', count: band(70, 80), color: CAT_COLOR.improve },
+    { label: 'Pelatihan Intensif Mutu', count: band(-1, 70), color: CAT_COLOR.below },
   ];
 
   // Papan Pertimbangan Suksesi & Promosi — pegawai Skor Akhir ≥ 90 + rencana suksesinya.
@@ -253,109 +332,73 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
 
   return (
     <div className="space-y-6">
-      <SectionHeader label="Ringkasan Talenta" hint="metrik utama organisasi" tone="emerald" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Stat icon={<Award className="w-6 h-6" />} tint="emerald" value={fmt2(orgAvg)} label="Rataan Skor Akhir Organisasi"
-          sub={prevLabel && prevFinalAvg != null
-            ? <span className="text-[11px] text-gray-500"><Delta curr={orgAvg} prev={prevFinalAvg} prevLabel={prevLabel} move={finalMove} /> <span className="text-gray-400">vs {prevLabel}</span></span>
-            : undefined} />
-        <Stat icon={<Target className="w-6 h-6" />} tint="emerald"
-          value={topEmp?.final != null ? fmt2(topEmp.final) : '—'} label="Skor Akhir Tertinggi" sub={topEmp ? displayName(topEmp.nickname, topEmp.name) : undefined} />
-        <Stat icon={<TrendingDown className="w-6 h-6" />} tint="rose"
-          value={lowEmp?.final != null ? fmt2(lowEmp.final) : '—'} label="Skor Akhir Terendah" sub={lowEmp ? displayName(lowEmp.nickname, lowEmp.name) : undefined} />
-        <Stat icon={<Target className="w-6 h-6" />} tint="blue" value={String(aPlayers)} label="A Player" />
-        <Stat icon={<Flame className="w-6 h-6" />} tint="amber" value={String(coaching)} label="Perlu Coaching (<80)" />
-        <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={dominant?.n ? dominant.label : '—'} label="Kategori Dominan" />
-      </div>
+      <SectionHeader label="Ringkasan Talenta" hint="metrik utama organisasi" />
+      <SummaryBand
+        lead={{ value: fmt2(orgAvg), label: 'Rataan Skor Akhir Organisasi',
+          sub: <DeltaPill curr={orgAvg} prev={prevFinalAvg} prevLabel={prevLabel} move={finalMove} /> }}
+        items={[
+          { value: topEmp?.final != null ? fmt2(topEmp.final) : '—', label: 'Skor Akhir Tertinggi', sub: topEmp ? displayName(topEmp.nickname, topEmp.name) : undefined },
+          { value: lowEmp?.final != null ? fmt2(lowEmp.final) : '—', label: 'Skor Akhir Terendah', sub: lowEmp ? displayName(lowEmp.nickname, lowEmp.name) : undefined },
+          { value: String(aPlayers), label: 'A Player' },
+          { value: String(coaching), label: 'Perlu Coaching (<80)' },
+          { value: dominant?.n ? dominant.label : '—', label: 'Kategori Dominan' },
+        ]} />
 
       {/* Legenda ambang — menjelaskan kenapa "A Player" bisa beda band dengan Skor Akhir. */}
-      <p className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 -mt-2">
-        <strong>Catatan ambang:</strong> <strong>4-Box &amp; scatter</strong> memakai ambang <strong>80</strong> pada KPI &amp; 360° sebagai <em>dua sumbu terpisah</em>;
+      <Note title="Catatan ambang">
+        <strong>4-Box &amp; scatter</strong> memakai ambang <strong>80</strong> pada KPI &amp; 360° sebagai <em>dua sumbu terpisah</em>;
         <strong> band kategori Skor Akhir</strong> (kartu distribusi &amp; tindak lanjut) memakai <strong>90 / 80 / 70</strong> atas <em>satu</em> angka Skor Akhir.
         Karena beda dasar, seorang pegawai bisa berkelas <strong>A</strong> (KPI &amp; 360° ≥80) tetapi Skor Akhirnya jatuh di band <strong>Memenuhi (80–89)</strong> — itu wajar, bukan inkonsistensi.
-      </p>
+      </Note>
 
-      <SectionHeader label="Distribusi Organisasi" hint="komposisi & tindak lanjut" tone="indigo" />
+      <SectionHeader label="Distribusi Organisasi" hint="komposisi & tindak lanjut" />
 
       {/* Distribusi Kategori Kinerja + Rencana Tindak Lanjut */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card title="📊 Distribusi Kategori Kinerja — Skor Akhir">
-          <p className="text-[10px] text-gray-500 mb-3 -mt-1">Skor Akhir = blend KPI 50% + 360° 50% (KPI murni bila 360° nonaktif; 360° saja bila KPI kosong). Berbeda dari tab <strong>Analisis Hasil KPI</strong> (KPI saja).{aggregate && <span className="text-indigo-700 font-semibold"> Mode agregat: rata-rata Skor Akhir per kuartal.</span>}</p>
+        <Card title="Distribusi Kategori Kinerja — Skor Akhir">
+          <p className="text-xs text-ink-soft mb-4 -mt-2">Skor Akhir = blend KPI 50% + 360° 50% (KPI murni bila 360° nonaktif; 360° saja bila KPI kosong). Berbeda dari tab <strong>Analisis Hasil KPI</strong> (KPI saja).{aggregate && <span className="text-infarm-soil font-semibold"> Mode agregat: rata-rata Skor Akhir per kuartal.</span>}</p>
           <CountBars items={categories} denom={denom} />
         </Card>
-        <Card title="🎯 Rencana Tindak Lanjut Organisasi — Skor Akhir"><CountBars items={recommendations} denom={denom} /></Card>
+        <Card title="Rencana Tindak Lanjut Organisasi — Skor Akhir"><CountBars items={recommendations} denom={denom} /></Card>
       </div>
 
       {/* Distribusi kategori kinerja PER KUARTAL — kesehatan talenta dari waktu ke waktu. */}
       {quarterlyDist.length >= 2 && <QuarterlyDist data={quarterlyDist} yearLabel={yearLabel} />}
 
-      <SectionHeader label="Per Divisi & Aspek" hint="skor KPI divisi · budaya 360°" tone="amber" />
+      <SectionHeader label="Per Divisi & Aspek" hint="skor KPI divisi · budaya 360°" />
 
       {/* Skor KPI per Divisi + Evaluasi Budaya 360° */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card title="🏢 Skor KPI Rata-rata per Divisi">
-          <div className="space-y-4">
-            {deptScores.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada data KPI.</p>}
-            {deptScores.map(([dept, score], i) => {
-              const hc = heatColor(score);
-              return (
-                <div key={dept} className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold text-gray-700">{dept}</span>
-                    <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{fmt2(score)}</span>
-                  </div>
-                  <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(score, 100)}%` }}
-                      transition={{ duration: 1, delay: i * 0.08 }} className="h-full rounded-md" style={{ backgroundColor: hc.bg }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <Card title="Skor KPI Rata-rata per Divisi">
+          <ScoreBars items={deptScores.map(([dept, score]) => ({ label: dept, score }))} empty="Belum ada data KPI." />
         </Card>
-        <Card title="✨ Evaluasi Budaya 360° (Skor Terbobot Sub-Aspek)">
-          {!has360 && <p className="text-[11px] text-amber-800 font-semibold mb-3 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2">360° nonaktif di {periodLabel} — aspek dari penilaian terkirim (bila ada).</p>}
-          <div className="space-y-4">
-            {aspectScores.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada skor 360° terkirim.</p>}
-            {aspectScores.map((asp, idx) => {
-              const hc = heatColor(asp.score);
-              return (
-                <div key={asp.aspek} className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-700">⭐ {asp.aspek}</span>
-                    <span className="text-xs font-semibold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{fmt2(asp.score)} / 100</span>
-                  </div>
-                  <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(asp.score, 100)}%` }}
-                      transition={{ duration: 1, delay: idx * 0.08 }} className="h-full rounded-md" style={{ backgroundColor: hc.bg }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <Card title="Evaluasi Budaya 360° (Skor Terbobot Sub-Aspek)">
+          {!has360 && <p className="text-xs text-warn-ink font-semibold mb-3 bg-warn-tint rounded-xl px-3 py-2">360° nonaktif di {periodLabel} — aspek dari penilaian terkirim (bila ada).</p>}
+          <ScoreBars items={aspectScores.map((a) => ({ label: a.aspek, score: a.score }))} suffix=" / 100" empty="Belum ada skor 360° terkirim." />
         </Card>
       </div>
 
-      <SectionHeader label="Klasifikasi & Individu" hint="4-Box · sebaran · peringkat pegawai" tone="slate" />
+      <SectionHeader label="Klasifikasi & Individu" hint="4-Box · sebaran · peringkat pegawai" />
 
       {/* 4-Box */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
-        <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Klasifikasi Pemain — Matriks 4-Box (A / B Culture / B KPI / C)</h3>
-        <p className="text-xs text-gray-500 mt-0.5 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan KPI × 360° (ambang 80){incomplete.length > 0 ? ` · ${incomplete.length} HRD Review (dikecualikan)` : ''}{unread.length > 0 ? ` · ${unread.length} belum terbaca (dikecualikan)` : ''}.</p>
+      <div className={CARD}>
+        <h3 className={CARD_TITLE}>Klasifikasi Pemain — Matriks 4-Box (A / B Culture / B KPI / C)</h3>
+        <p className="text-xs text-ink-soft mt-1 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan KPI × 360° (ambang 80){incomplete.length > 0 ? ` · ${incomplete.length} HRD Review (dikecualikan)` : ''}{unread.length > 0 ? ` · ${unread.length} belum terbaca (dikecualikan)` : ''}.</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {PLAYER_BOXES.map((box) => {
             const emps = playerGroups.get(box.key) ?? [];
+            const tone = PLAYER_TONE[box.key];
             return (
-              <div key={box.key} style={{ borderTopColor: box.color }}
-                className="border border-gray-200 border-t-4 rounded-xl p-3 bg-white min-h-[120px] flex flex-col">
+              <div key={box.key} style={{ borderTopColor: tone.color }}
+                className="border border-line border-t-4 rounded-xl p-3.5 bg-surface min-h-[130px] flex flex-col">
                 <div className="flex items-start justify-between gap-1">
-                  <span className="text-[13px] font-black text-slate-800 leading-tight">{box.label}</span>
-                  <span className="text-lg font-black font-mono shrink-0" style={{ color: box.color }}>{emps.length}</span>
+                  <span className="text-sm font-bold text-ink leading-tight">{box.label}</span>
+                  <span className="text-xl font-bold font-mono shrink-0 text-ink">{emps.length}</span>
                 </div>
-                <span className="text-[10px] text-gray-500 font-semibold mt-0.5 leading-tight">{PLAYER_DESC[box.key]}</span>
+                <span className="text-xs text-ink-soft mt-0.5 leading-tight">{PLAYER_DESC[box.key]}</span>
                 <div className="mt-2 flex flex-wrap gap-1">
                   {emps.map((e) => (
-                    <span key={e.id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
+                    <span key={e.id} className="text-[11px] bg-neutral-tint text-ink-soft px-2 py-0.5 rounded-full font-semibold"
                       title={`${e.name} · KPI ${e.kpiAvg != null ? fmt2(e.kpiAvg) : 'N/A'} · 360 ${e.s360 != null ? fmt2(e.s360) : 'N/A'}`}>{shortName(e)}</span>
                   ))}
                 </div>
@@ -367,30 +410,30 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
         {(incomplete.length > 0 || unread.length > 0) && (
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
         {incomplete.length > 0 && (
-          <div className="border border-gray-200 border-t-4 border-t-amber-400 rounded-xl p-3 bg-amber-50/50">
+          <div className="border border-line border-t-4 rounded-xl p-3.5 bg-warn-tint" style={{ borderTopColor: PLAYER_TONE.HRD_REVIEW.color }}>
             <div className="flex items-start justify-between gap-1">
-              <span className="text-[13px] font-black text-slate-700 leading-tight">HRD Review</span>
-              <span className="text-lg font-black font-mono shrink-0 text-amber-600">{incomplete.length}</span>
+              <span className="text-sm font-bold text-ink leading-tight">HRD Review</span>
+              <span className="text-xl font-bold font-mono shrink-0 text-warn-ink">{incomplete.length}</span>
             </div>
-            <span className="text-[10px] text-gray-500 font-semibold mt-0.5 leading-tight block">KPI atau Skor 360° belum tersedia (No Score / Insufficient Data) → tidak diklasifikasi otomatis (tidak dianggap di bawah 80). Diputuskan HRD, atau lengkapi datanya lalu Hitung Ulang.</span>
+            <span className="text-xs text-ink-soft mt-0.5 leading-tight block">KPI atau Skor 360° belum tersedia (No Score / Insufficient Data) → tidak diklasifikasi otomatis (tidak dianggap di bawah 80). Diputuskan HRD, atau lengkapi datanya lalu Hitung Ulang.</span>
             <div className="mt-2 flex flex-wrap gap-1">
               {incomplete.map((e) => (
-                <span key={e.id} className="text-[10px] bg-white/70 text-gray-600 px-1.5 py-0.5 rounded font-semibold border border-amber-200"
+                <span key={e.id} className="text-[11px] bg-surface text-ink-soft px-2 py-0.5 rounded-full font-semibold"
                   title={`${e.name} · KPI ${e.kpiAvg != null ? fmt2(e.kpiAvg) : 'kosong'} · 360 ${e.s360 != null ? fmt2(e.s360) : has360 ? NO_SCORE_LABEL : 'tanpa 360°'}`}>{shortName(e)}</span>
               ))}
             </div>
           </div>
         )}
         {unread.length > 0 && (
-          <div className="border border-gray-200 border-t-4 border-t-gray-400 rounded-xl p-3 bg-gray-50/60">
+          <div className="border border-line border-t-4 border-t-line-strong rounded-xl p-3.5 bg-neutral-tint">
             <div className="flex items-start justify-between gap-1">
-              <span className="text-[13px] font-black text-slate-700 leading-tight">Belum Terbaca (Tak Terkategori)</span>
-              <span className="text-lg font-black font-mono shrink-0 text-gray-500">{unread.length}</span>
+              <span className="text-sm font-bold text-ink leading-tight">Belum Terbaca (Tak Terkategori)</span>
+              <span className="text-xl font-bold font-mono shrink-0 text-ink-soft">{unread.length}</span>
             </div>
-            <span className="text-[10px] text-gray-500 font-semibold mt-0.5 leading-tight block">KPI belum terbaca (baru 1 dari 3 bulan kuartal terisi) → dikecualikan dari kategorisasi &amp; rerata; bukan pekerja rendah.</span>
+            <span className="text-xs text-ink-soft mt-0.5 leading-tight block">KPI belum terbaca (baru 1 dari 3 bulan kuartal terisi) → dikecualikan dari kategorisasi &amp; rerata; bukan pekerja rendah.</span>
             <div className="mt-2 flex flex-wrap gap-1">
               {unread.map((e) => (
-                <span key={e.id} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold"
+                <span key={e.id} className="text-[11px] bg-surface text-ink-soft px-2 py-0.5 rounded-full font-semibold"
                   title={`${e.name} · KPI belum terbaca · 360 ${e.s360 != null ? fmt2(e.s360) : 'N/A'}`}>{shortName(e)}</span>
               ))}
             </div>
@@ -398,10 +441,10 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
         )}
         </div>
         )}
-        <p className="text-[10px] text-gray-500 italic mt-2">
+        <p className="text-xs text-ink-soft mt-3">
           Berbasis KPI × 360° (ambang 80): A = KPI≥80 &amp; 360°≥80 · B Culture = KPI&lt;80 &amp; 360°≥80 ·
           B KPI = KPI≥80 &amp; 360°&lt;80 · C = keduanya &lt;80. Tanpa kelas D. KPI atau 360° kosong → HRD Review.
-          {!has360 && <span className="text-amber-700 font-semibold not-italic"> Tanpa 360° → semua pegawai berstatus HRD Review.</span>}
+          {!has360 && <span className="text-warn-ink font-semibold"> Tanpa 360° → semua pegawai berstatus HRD Review.</span>}
         </p>
       </div>
 
@@ -416,10 +459,10 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
 
 /** Warna band kategori kinerja (Skor Akhir) — selaras `categories`/`recommendations`. */
 const BAND_META = [
-  { key: 'exceed', label: 'Melampaui (≥90)', color: '#183c6c' },
-  { key: 'meet', label: 'Memenuhi (80–89)', color: '#388e3c' },
-  { key: 'improve', label: 'Perlu Peningkatan (70–79)', color: '#ffc107' },
-  { key: 'below', label: 'Di Bawah (<70)', color: '#b71c1c' },
+  { key: 'exceed', label: 'Melampaui (≥90)', color: CAT_COLOR.exceed },
+  { key: 'meet', label: 'Memenuhi (80–89)', color: CAT_COLOR.meet },
+  { key: 'improve', label: 'Perlu Peningkatan (70–79)', color: CAT_COLOR.improve },
+  { key: 'below', label: 'Di Bawah (<70)', color: CAT_COLOR.below },
 ] as const;
 
 /**
@@ -429,24 +472,24 @@ const BAND_META = [
  */
 function QuarterlyDist({ data, yearLabel }: { data: QuarterDist[]; yearLabel: number }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
-      <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">📊 Distribusi Kategori Kinerja per Kuartal {yearLabel}</h3>
-      <p className="text-xs text-gray-500 mt-0.5 mb-4">Komposisi pegawai per band Skor Akhir tiap kuartal — untuk melihat pergerakan komposisi (mis. Di Bawah → Memenuhi) antar waktu.</p>
+    <div className={CARD}>
+      <h3 className={CARD_TITLE}>Distribusi Kategori Kinerja per Kuartal {yearLabel}</h3>
+      <p className="text-xs text-ink-soft mt-1 mb-4">Komposisi pegawai per band Skor Akhir tiap kuartal — untuk melihat pergerakan komposisi (mis. Di Bawah → Memenuhi) antar waktu.</p>
       <div className="space-y-3">
         {data.map((q) => (
           <div key={q.label} className="space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-700">{q.label}</span>
-              <span className="text-gray-400 font-mono">{q.total} pegawai</span>
+            <div className="flex items-center justify-between text-[13px]">
+              <span className="font-bold text-ink">{q.label}</span>
+              <span className="text-ink-soft font-mono text-xs">{q.total} pegawai</span>
             </div>
-            <div className="flex h-5 w-full overflow-hidden rounded-md bg-gray-100">
+            <div className="flex h-7 w-full overflow-hidden rounded-lg bg-neutral-tint">
               {BAND_META.map((b) => {
                 const n = q[b.key];
                 if (!n) return null;
                 const pct = (n / q.total) * 100;
                 return (
-                  <div key={b.key} className="h-full flex items-center justify-center text-[9px] font-bold text-white/95"
-                    style={{ width: `${pct}%`, backgroundColor: b.color }} title={`${b.label}: ${n} (${pct.toFixed(0)}%)`}>
+                  <div key={b.key} className="h-full flex items-center justify-center text-[11px] font-semibold font-mono"
+                    style={{ width: `${pct}%`, backgroundColor: b.color, color: CAT_TEXT[b.key] }} title={`${b.label}: ${n} (${pct.toFixed(0)}%)`}>
                     {pct >= 8 ? n : ''}
                   </div>
                 );
@@ -457,8 +500,8 @@ function QuarterlyDist({ data, yearLabel }: { data: QuarterDist[]; yearLabel: nu
       </div>
       <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5">
         {BAND_META.map((b) => (
-          <span key={b.key} className="inline-flex items-center gap-1.5 text-[11px] text-gray-600">
-            <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: b.color }} /> {b.label}
+          <span key={b.key} className="inline-flex items-center gap-1.5 text-xs text-ink-soft">
+            <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: b.color }} /> {b.label}
           </span>
         ))}
       </div>
@@ -482,48 +525,53 @@ function ScatterKpi360({ rows }: { rows: Row[] }) {
   const hi = 100;
   const x = (v: number) => plotL + ((v - lo) / (hi - lo)) * (plotR - plotL);
   const y = (v: number) => plotB - ((v - lo) / (hi - lo)) * (plotB - plotT);
-  const colorOf = (p: PlayerClass | null | undefined) => (p ? PLAYER_BOXES.find((b) => b.key === p)?.color ?? '#6b7280' : '#9ca3af');
+  // B-Culture (hijau muda) diberi tepi zaitun agar titiknya tetap terlihat di atas latar putih.
+  const colorOf = (p: PlayerClass | null | undefined) => (p ? PLAYER_TONE[p].color : '#8b918c');
   const ticks = [lo, (lo + hi) / 2, hi].map((t) => Math.round(t));
   const x80 = x(80), y80 = y(80);
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
-      <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Sebaran KPI × 360° (Kuadran 4-Box)</h3>
-      <p className="text-xs text-gray-500 mt-0.5 mb-3">Tiap titik = 1 pegawai. Garis putus = ambang 80. Warna = kelas 4-Box. Melengkapi hitungan 4-Box dengan sebaran & outlier.</p>
+    <div className={CARD}>
+      <h3 className={CARD_TITLE}>Sebaran KPI × 360° (Kuadran 4-Box)</h3>
+      <p className="text-xs text-ink-soft mt-1 mb-3">Tiap titik = 1 pegawai. Garis putus = ambang 80. Warna = kelas 4-Box. Melengkapi hitungan 4-Box dengan sebaran & outlier.</p>
       <div className="overflow-x-auto">
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-[520px] mx-auto" style={{ height: 'auto' }} preserveAspectRatio="xMidYMid meet">
-          {/* Tint kuadran */}
-          <rect x={x80} y={plotT} width={plotR - x80} height={y80 - plotT} fill="#10b98110" />
-          <rect x={plotL} y={plotT} width={x80 - plotL} height={y80 - plotT} fill="#3b82f610" />
-          <rect x={x80} y={y80} width={plotR - x80} height={plotB - y80} fill="#6366f110" />
-          <rect x={plotL} y={y80} width={x80 - plotL} height={plotB - y80} fill="#f43f5e10" />
+          {/* Tint kuadran: hanya A (kanan-atas) yang diberi latar hijau keputihan */}
+          <rect x={x80} y={plotT} width={plotR - x80} height={y80 - plotT} fill="#f5ffef" />
           {/* Sumbu & grid */}
           {ticks.map((t) => (
             <g key={`gx-${t}`}>
-              <line x1={x(t)} y1={plotT} x2={x(t)} y2={plotB} stroke="#f1f5f9" strokeWidth={1} />
-              <text x={x(t)} y={plotB + 14} textAnchor="middle" fill="#94a3b8" fontSize={9}>{t}</text>
-              <line x1={plotL} y1={y(t)} x2={plotR} y2={y(t)} stroke="#f1f5f9" strokeWidth={1} />
-              <text x={plotL - 5} y={y(t) + 3} textAnchor="end" fill="#94a3b8" fontSize={9}>{t}</text>
+              <line x1={x(t)} y1={plotT} x2={x(t)} y2={plotB} stroke="#edefeb" strokeWidth={1} />
+              <text x={x(t)} y={plotB + 14} textAnchor="middle" fill="#5b615c" fontSize={9}>{t}</text>
+              <line x1={plotL} y1={y(t)} x2={plotR} y2={y(t)} stroke="#edefeb" strokeWidth={1} />
+              <text x={plotL - 5} y={y(t) + 3} textAnchor="end" fill="#5b615c" fontSize={9}>{t}</text>
             </g>
           ))}
           {/* Garis ambang 80 */}
-          <line x1={x80} y1={plotT} x2={x80} y2={plotB} stroke="#cbd5e1" strokeWidth={1.5} strokeDasharray="4 3" />
-          <line x1={plotL} y1={y80} x2={plotR} y2={y80} stroke="#cbd5e1" strokeWidth={1.5} strokeDasharray="4 3" />
+          <line x1={x80} y1={plotT} x2={x80} y2={plotB} stroke="#8b918c" strokeWidth={1.5} strokeDasharray="4 3" />
+          <line x1={plotL} y1={y80} x2={plotR} y2={y80} stroke="#8b918c" strokeWidth={1.5} strokeDasharray="4 3" />
           {/* Label kuadran */}
-          <text x={plotR - 4} y={plotT + 12} textAnchor="end" fill="#10b981" fontSize={10} fontWeight={800}>A</text>
-          <text x={plotL + 4} y={plotT + 12} textAnchor="start" fill="#3b82f6" fontSize={10} fontWeight={800}>B-Culture</text>
-          <text x={plotR - 4} y={plotB - 5} textAnchor="end" fill="#6366f1" fontSize={10} fontWeight={800}>B-KPI</text>
-          <text x={plotL + 4} y={plotB - 5} textAnchor="start" fill="#f43f5e" fontSize={10} fontWeight={800}>C</text>
+          <text x={plotR - 4} y={plotT + 12} textAnchor="end" fill="#006b31" fontSize={10} fontWeight={800}>A</text>
+          <text x={plotL + 4} y={plotT + 12} textAnchor="start" fill="#3b4a2e" fontSize={10} fontWeight={800}>B-Culture</text>
+          <text x={plotR - 4} y={plotB - 5} textAnchor="end" fill="#6b4e3d" fontSize={10} fontWeight={800}>B-KPI</text>
+          <text x={plotL + 4} y={plotB - 5} textAnchor="start" fill="#a23c33" fontSize={10} fontWeight={800}>C</text>
           {/* Titik pegawai */}
           {pts.map((r) => (
-            <circle key={r.id} cx={x(r.kpiAvg as number)} cy={y(r.s360 as number)} r={4} fill={colorOf(r.player)}
-              fillOpacity={0.75} stroke="#fff" strokeWidth={1}>
+            <circle key={r.id} cx={x(r.kpiAvg as number)} cy={y(r.s360 as number)} r={4.5} fill={colorOf(r.player)}
+              stroke={r.player === 'B_CULTURE' ? '#3b4a2e' : '#fff'} strokeWidth={1.2}>
               <title>{`${r.name} · KPI ${fmt2(r.kpiAvg as number)} · 360° ${fmt2(r.s360 as number)}`}</title>
             </circle>
           ))}
           {/* Judul sumbu */}
-          <text x={(plotL + plotR) / 2} y={H - 2} textAnchor="middle" fill="#64748b" fontSize={10} fontWeight={700}>KPI →</text>
-          <text x={12} y={(plotT + plotB) / 2} textAnchor="middle" fill="#64748b" fontSize={10} fontWeight={700} transform={`rotate(-90 12 ${(plotT + plotB) / 2})`}>360° →</text>
+          <text x={(plotL + plotR) / 2} y={H - 2} textAnchor="middle" fill="#5b615c" fontSize={10} fontWeight={700}>KPI →</text>
+          <text x={12} y={(plotT + plotB) / 2} textAnchor="middle" fill="#5b615c" fontSize={10} fontWeight={700} transform={`rotate(-90 12 ${(plotT + plotB) / 2})`}>360° →</text>
         </svg>
+      </div>
+      <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5">
+        {PLAYER_BOXES.map((b) => (
+          <span key={b.key} className="inline-flex items-center gap-1.5 text-xs text-ink-soft">
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PLAYER_TONE[b.key].color, boxShadow: b.key === 'B_CULTURE' ? 'inset 0 0 0 1px #3b4a2e' : undefined }} /> {b.label}
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -547,88 +595,50 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
 
   return (
     <div className="space-y-6">
-      <SectionHeader label="Ringkasan KPI" hint="metrik utama capaian KPI" tone="emerald" />
+      <SectionHeader label="Ringkasan KPI" hint="metrik utama capaian KPI" />
 
       {unreadCount > 0 && (
-        <p className="text-[11px] text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-          <strong>{unreadCount} pegawai</strong> berstatus <strong>KPI belum terbaca</strong> (baru 1 dari 3 bulan kuartal terisi) — dikecualikan dari rerata, distribusi, &amp; ranking KPI (belum menggambarkan kuartal, bukan berkinerja rendah).
-        </p>
+        <Note title="KPI belum terbaca">
+          <strong>{unreadCount} pegawai</strong> baru mengisi 1 dari 3 bulan kuartal — dikecualikan dari rerata, distribusi, &amp; ranking KPI (belum menggambarkan kuartal, bukan berkinerja rendah).
+        </Note>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
-        <Stat icon={<Award className="w-6 h-6" />} tint="emerald" value={fmt2(avgKpi)} label="Rerata KPI Organisasi"
-          sub={prevLabel && prevKpiAvg != null
-            ? <span className="text-[11px] text-gray-500"><Delta curr={avgKpi} prev={prevKpiAvg} prevLabel={prevLabel} move={kpiMove} /> <span className="text-gray-400">vs {prevLabel}</span></span>
-            : undefined} />
-        <Stat icon={<Target className="w-6 h-6" />} tint="blue"
-          value={topEmp?.kpiAvg != null ? fmt2(topEmp.kpiAvg) : '—'} label="Skor KPI Tertinggi" sub={topEmp ? displayName(topEmp.nickname, topEmp.name) : undefined} />
-        <Stat icon={<TrendingDown className="w-6 h-6" />} tint="rose"
-          value={lowEmp?.kpiAvg != null ? fmt2(lowEmp.kpiAvg) : '—'} label="Skor KPI Terendah" sub={lowEmp ? displayName(lowEmp.nickname, lowEmp.name) : undefined} />
-        <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={`${pctOverStd.toFixed(0)}%`} label={`KPI Di Atas Standar (≥${kpiStandard})`} />
-        <Stat icon={<BarChart3 className="w-6 h-6" />} tint="amber" value={`${monthly.length} Bulan`} label="Siklus Penilaian Terpilih" />
-      </div>
+      <SummaryBand
+        lead={{ value: fmt2(avgKpi), label: 'Rerata KPI Organisasi',
+          sub: <DeltaPill curr={avgKpi} prev={prevKpiAvg} prevLabel={prevLabel} move={kpiMove} /> }}
+        items={[
+          { value: topEmp?.kpiAvg != null ? fmt2(topEmp.kpiAvg) : '—', label: 'Skor KPI Tertinggi', sub: topEmp ? displayName(topEmp.nickname, topEmp.name) : undefined },
+          { value: lowEmp?.kpiAvg != null ? fmt2(lowEmp.kpiAvg) : '—', label: 'Skor KPI Terendah', sub: lowEmp ? displayName(lowEmp.nickname, lowEmp.name) : undefined },
+          { value: `${pctOverStd.toFixed(0)}%`, label: `KPI Di Atas Standar (≥${kpiStandard})` },
+          { value: `${monthly.length} Bulan`, label: 'Siklus Penilaian Terpilih' },
+        ]} />
 
-      <SectionHeader label="Sebaran & Tren" hint="heatmap divisi×bulan · distribusi · tren tahunan" tone="indigo" />
+      <SectionHeader label="Sebaran & Tren" hint="heatmap divisi×bulan · distribusi · tren tahunan" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2"><KpiHeatmap deptMonthly={deptMonthly} months={months} /></div>
         <CategoryPie title="Distribusi Kategori KPI" subtitle="Komposisi pegawai per kelas capaian KPI"
           unit="KPI" values={readable.map((r) => r.kpiAvg).filter((v): v is number => v != null)} />
       </div>
 
-      <Card title={`📈 Tren KPI Bulanan ${yearLabel} (Jan–Des)`}>
+      <Card title={`Tren KPI Bulanan ${yearLabel} (Jan–Des)`}>
         <YearTrendCaption value={yearKpiAvg} label={`Rerata KPI ${yearLabel}`} unit="org-level, ikut filter divisi" />
         <TrendLine points={yearMonthly.map((m) => ({ label: ymShort(m.ym), value: m.avg }))} />
       </Card>
 
-      <SectionHeader label="Per Divisi & Bulan" hint="rincian divisi & perkembangan bulanan" tone="amber" />
+      <SectionHeader label="Per Divisi & Bulan" hint="rincian divisi & perkembangan bulanan" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card title="🏢 Rerata KPI Bulanan per Divisi">
-          <div className="space-y-4">
-            {deptScores.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada data KPI.</p>}
-            {deptScores.map(([dept, score], i) => {
-              const hc = heatColor(score);
-              return (
-                <div key={dept} className="space-y-1">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-slate-700">{dept}</span>
-                    <span className="font-bold font-mono px-2 py-0.5 rounded" style={{ backgroundColor: hc.bg, color: hc.fg }}>{fmt2(score)} / 100</span>
-                  </div>
-                  <div className="h-2.5 bg-gray-100 rounded-md overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(score, 100)}%` }}
-                      transition={{ duration: 0.8, delay: i * 0.1 }} className="h-full rounded-md" style={{ backgroundColor: hc.bg }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card title="Rerata KPI Bulanan per Divisi">
+          <ScoreBars items={deptScores.map(([dept, score]) => ({ label: dept, score }))} suffix=" / 100" empty="Belum ada data KPI." />
         </Card>
 
-        <Card title="📅 Perkembangan KPI Bulanan">
-          {monthly.length === 0 ? <p className="text-xs text-gray-500 italic font-bold">Tidak ada data bulan untuk periode ini.</p> : (
-            <div className="space-y-4">
-              {monthly.map((m, i) => {
-                const hc = heatColor(m.avg);
-                return (
-                  <div key={m.ym} className="space-y-1">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-700">{ymLabel(m.ym)}</span>
-                      <span className="font-bold font-mono px-2 py-0.5 rounded" style={{ backgroundColor: hc.bg, color: hc.fg }}>{fmt2(m.avg)}</span>
-                    </div>
-                    <div className="h-2.5 bg-gray-100 rounded-md overflow-hidden">
-                      <motion.div initial={{ width: 0 }} animate={{ width: `${(m.avg / maxMonthly) * 100}%` }}
-                        transition={{ duration: 0.8, delay: i * 0.1 }} className="h-full rounded-md" style={{ backgroundColor: hc.bg }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        <Card title="Perkembangan KPI Bulanan">
+          <ScoreBars items={monthly.map((m) => ({ label: ymLabel(m.ym), score: m.avg }))} max={maxMonthly} empty="Tidak ada data bulan untuk periode ini." />
         </Card>
       </div>
 
-      <SectionHeader label="Individu" hint="peringkat pegawai" tone="slate" />
+      <SectionHeader label="Individu" hint="peringkat pegawai" />
 
       <LeaderboardToggle metric="Skor KPI" top={top} bottom={low} valueOf={(r) => r.kpiAvg} />
     </div>
@@ -646,64 +656,45 @@ function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, has360
 
   return (
     <div className="space-y-6">
-      <SectionHeader label="Ringkasan 360°" hint="metrik utama umpan balik budaya" tone="emerald" />
+      <SectionHeader label="Ringkasan 360°" hint="metrik utama umpan balik budaya" />
       {!has360 && (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 shadow-3xs">
-          <p className="text-sm font-black text-amber-900">{periodLabel} tanpa Evaluasi 360°</p>
-          <p className="text-xs text-amber-800 mt-1">Komponen 360° tidak aktif, sehingga Skor Akhir = 100% KPI. Data di bawah hanya muncul bila ada penilaian terkirim.</p>
-        </div>
+        <Note title={`${periodLabel} tanpa Evaluasi 360°`}>
+          Komponen 360° tidak aktif, sehingga Skor Akhir = 100% KPI. Data di bawah hanya muncul bila ada penilaian terkirim.
+        </Note>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Stat icon={<TrendingUp className="w-6 h-6" />} tint="indigo" value={fmt2(avg360)} label="Rerata Skor 360° Organisasi"
-          sub={prevLabel && prev360Avg != null
-            ? <span className="text-[11px] text-gray-500"><Delta curr={avg360} prev={prev360Avg} prevLabel={prevLabel} move={s360Move} /> <span className="text-gray-400">vs {prevLabel}</span></span>
-            : undefined} />
-        <Stat icon={<Target className="w-6 h-6" />} tint="emerald" value={top ? fmt2(top.s360!) : '—'} label="Skor 360° Tertinggi" sub={top ? displayName(top.nickname, top.name) : undefined} />
-        <Stat icon={<TrendingDown className="w-6 h-6" />} tint="rose" value={low ? fmt2(low.s360!) : '—'} label="Skor 360° Terendah" sub={low ? displayName(low.nickname, low.name) : undefined} />
-        <Stat icon={<Users className="w-6 h-6" />} tint="blue" value={String(assessed)} label="Pegawai Ternilai 360°" />
-      </div>
+      <SummaryBand
+        lead={{ value: fmt2(avg360), label: 'Rerata Skor 360° Organisasi',
+          sub: <DeltaPill curr={avg360} prev={prev360Avg} prevLabel={prevLabel} move={s360Move} /> }}
+        items={[
+          { value: top ? fmt2(top.s360!) : '—', label: 'Skor 360° Tertinggi', sub: top ? displayName(top.nickname, top.name) : undefined },
+          { value: low ? fmt2(low.s360!) : '—', label: 'Skor 360° Terendah', sub: low ? displayName(low.nickname, low.name) : undefined },
+          { value: String(assessed), label: 'Pegawai Ternilai 360°' },
+        ]} />
 
-      <SectionHeader label="Sebaran, Tren & Aspek" hint="heatmap divisi×aspek · tren kuartal · sub-aspek" tone="indigo" />
+      <SectionHeader label="Sebaran, Tren & Aspek" hint="heatmap divisi×aspek · tren kuartal · sub-aspek" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2"><Aspect360Heatmap deptAspect={deptAspect360} aspects={aspect360Names} /></div>
         <CategoryPie title="Distribusi Kategori 360°" subtitle="Komposisi pegawai per kelas skor 360°"
           unit="360°" values={s360s} />
       </div>
 
       {/* Tren 360° & Evaluasi Sub-Aspek — sejajar (berdampingan) di layar lebar. */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <Card title={`📈 Tren 360° per Kuartal ${yearLabel}`}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        <Card title={`Tren 360° per Kuartal ${yearLabel}`}>
           <YearTrendCaption value={year360Avg} label={`Rerata 360° ${yearLabel}`} unit="org-level, ikut filter divisi · hanya kuartal ber-360°" />
           <TrendLine points={year360.map((q) => ({ label: q.label, value: q.avg }))} />
         </Card>
 
-        <Card title="✨ Evaluasi Budaya 360° (Rataan Sub-Aspek)">
-          <div className="grid grid-cols-1 gap-y-4">
-            {aspectScores.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada skor 360° terkirim.</p>}
-            {aspectScores.map((asp, idx) => {
-              const hc = heatColor(asp.score);
-              return (
-                <div key={asp.aspek} className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-medium text-gray-700">⭐ {asp.aspek}</span>
-                    <span className="text-xs font-semibold font-mono px-2 py-0.5 rounded-md" style={{ backgroundColor: hc.bg, color: hc.fg }}>{fmt2(asp.score)} / 100</span>
-                  </div>
-                  <div className="h-3 bg-gray-100 rounded-md overflow-hidden">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(asp.score, 100)}%` }}
-                      transition={{ duration: 1, delay: idx * 0.08 }} className="h-full rounded-md" style={{ backgroundColor: hc.bg }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <Card title="Evaluasi Budaya 360° (Rataan Sub-Aspek)">
+          <ScoreBars items={aspectScores.map((a) => ({ label: a.aspek, score: a.score }))} suffix=" / 100" empty="Belum ada skor 360° terkirim." />
         </Card>
       </div>
 
-      <SectionHeader label="Individu" hint="peringkat pegawai" tone="slate" />
+      <SectionHeader label="Individu" hint="peringkat pegawai" />
 
-      <LeaderboardToggle metric="Skor 360°" top={ranked.slice(0, 10)} bottom={[...ranked].reverse().slice(0, 10)} valueOf={(r) => r.s360} topTone="indigo" />
+      <LeaderboardToggle metric="Skor 360°" top={ranked.slice(0, 10)} bottom={[...ranked].reverse().slice(0, 10)} valueOf={(r) => r.s360} />
     </div>
   );
 }
@@ -727,14 +718,17 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
   const safePage = Math.min(page, pageCount - 1);
   const paged = shown.slice(safePage * TABLE_PAGE, safePage * TABLE_PAGE + TABLE_PAGE);
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Tabel Hasil Seluruh Pegawai</h3>
-        <div className="flex gap-2">
-          <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama / divisi…"
-            className="text-xs px-3 py-2 border border-gray-200 rounded-lg w-44 focus:outline-none focus:ring-1 focus:ring-emerald-600" />
-          <select value={player} onChange={(e) => { setPlayer(e.target.value as typeof player); setPage(0); }}
-            className="text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white">
+    <div className={CARD}>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h3 className={CARD_TITLE}>Tabel Hasil Seluruh Pegawai</h3>
+          <p className="text-xs text-ink-soft mt-0.5"><span className="font-mono">{rows.length}</span> pegawai</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama / divisi…" aria-label="Cari nama atau divisi"
+            className="text-sm min-h-11 px-3 border border-line rounded-control w-52 bg-infarm-surface text-ink placeholder:text-ink-soft focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+          <select value={player} onChange={(e) => { setPlayer(e.target.value as typeof player); setPage(0); }} aria-label="Filter player"
+            className="text-sm min-h-11 px-3 border border-line rounded-control bg-infarm-surface text-ink font-semibold focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
             <option value="all">Semua Player</option>
             {PLAYER_BOXES.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
             <option value="HRD_REVIEW">HRD Review</option>
@@ -757,41 +751,41 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
             ]).map((w, i) => <col key={i} style={{ width: w }} />)}
           </colgroup>
           <thead>
-            <tr className="text-[11px] uppercase tracking-wider text-gray-500 border-b border-gray-200">
-              <th className="py-2 pr-3">Pegawai</th>
-              <th className="py-2 px-3 text-center">Rerata KPI</th>
-              <th className="py-2 px-3 text-center">Trend KPI</th>
-              <th className="py-2 px-3 text-center">Skor 360°</th>
-              <th className="py-2 px-3 text-center" title="Laporan Final → angka tersimpan; selain itu dihitung dari KPI + 360° periode ini">Skor Akhir</th>
-              <th className="py-2 pl-3 text-center">Player</th>
+            <tr className="text-xs font-semibold text-ink-soft bg-infarm-surface">
+              <th className="py-2.5 px-3 rounded-l-lg">Pegawai</th>
+              <th className="py-2.5 px-3 text-center">Rerata KPI</th>
+              <th className="py-2.5 px-3 text-center">Trend KPI</th>
+              <th className="py-2.5 px-3 text-center">Skor 360°</th>
+              <th className="py-2.5 px-3 text-center" title="Laporan Final → angka tersimpan; selain itu dihitung dari KPI + 360° periode ini">Skor Akhir</th>
+              <th className="py-2.5 px-3 text-center rounded-r-lg">Player</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
-            {shown.length === 0 && <tr><td colSpan={6} className="py-6 text-center text-sm text-gray-500">Tidak ada pegawai sesuai filter.</td></tr>}
+          <tbody className="divide-y divide-line-soft">
+            {shown.length === 0 && <tr><td colSpan={6} className="py-6 text-center text-sm text-ink-soft">Tidak ada pegawai sesuai filter.</td></tr>}
             {paged.map((r) => {
               return (
                 <tr key={r.id}>
-                  <td className="py-3 pr-3 break-words">
-                    <span className="font-bold text-gray-800 block" title={r.name}>
+                  <td className="py-3 px-3 break-words">
+                    <span className="font-semibold text-ink block" title={r.name}>
                       {displayName(r.nickname, r.name)}
                       {r.isActive === false && (
-                        <span className="ml-1.5 align-middle text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-gray-200 text-gray-600" title="Pegawai nonaktif (resign) — data periode ini tetap dihitung">nonaktif</span>
+                        <span className="ml-1.5 align-middle text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft" title="Pegawai nonaktif (resign) — data periode ini tetap dihitung">nonaktif</span>
                       )}
                     </span>
-                    <span className="text-[11px] text-gray-500">{r.dept}</span>
+                    <span className="text-xs text-ink-soft">{r.dept}</span>
                   </td>
-                  <td className="py-3 px-3 text-center font-mono text-emerald-700">{r.kpiAvg != null ? fmt2(r.kpiAvg) : '—'}</td>
+                  <td className="py-3 px-3 text-center font-mono text-ink-soft">{r.kpiAvg != null ? fmt2(r.kpiAvg) : '—'}</td>
                   <td className="py-3 px-3 text-center"><TrendBadge t={r.trend} months={r.kpiMonths} /></td>
-                  <td className="py-3 px-3 text-center font-mono text-indigo-700">{r.s360 != null ? fmt2(r.s360) : has360
-                    ? <span className="text-[10px] font-semibold text-amber-700 font-sans" title={NO_SCORE_TITLE}>{NO_SCORE_LABEL}</span> : '—'}</td>
-                  <td className="py-3 px-3 text-center font-mono font-black text-slate-800">{r.final != null ? fmt2(r.final) : '—'}</td>
-                  <td className="py-3 pl-3 text-center">
+                  <td className="py-3 px-3 text-center font-mono text-ink-soft">{r.s360 != null ? fmt2(r.s360) : has360
+                    ? <span className="text-xs font-semibold text-warn-ink font-sans" title={NO_SCORE_TITLE}>{NO_SCORE_LABEL}</span> : '—'}</td>
+                  <td className="py-3 px-3 text-center font-mono font-bold text-brand">{r.final != null ? fmt2(r.final) : '—'}</td>
+                  <td className="py-3 px-3 text-center">
                     {r.kpiUnread ? (
-                      <span className="text-[11px] font-black px-2 py-0.5 rounded border bg-gray-100 text-gray-600 border-gray-300" title="KPI baru 1 dari 3 bulan kuartal terisi → tidak diklasifikasi">Belum Terbaca</span>
+                      <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border bg-neutral-tint text-ink-soft border-neutral-tint" title="KPI baru 1 dari 3 bulan kuartal terisi → tidak diklasifikasi">Belum Terbaca</span>
                     ) : r.player ? (
-                      <span className={`text-[11px] font-black px-2 py-0.5 rounded border ${PLAYER_COLOR[r.player]}`}>{PLAYER_BADGE[r.player]}</span>
+                      <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${PLAYER_TONE[r.player].chip}`}>{PLAYER_BADGE[r.player]}</span>
                     ) : (
-                      <span className="text-gray-500 text-xs">—</span>
+                      <span className="text-ink-faint text-xs">—</span>
                     )}
                   </td>
                 </tr>
@@ -802,18 +796,18 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
       </div>
       {shown.length > TABLE_PAGE && (
         <div className="mt-auto pt-3 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[11px] text-gray-500">{safePage * TABLE_PAGE + 1}–{Math.min(shown.length, safePage * TABLE_PAGE + paged.length)} / {shown.length} pegawai</span>
+          <span className="text-xs text-ink-soft font-mono">{safePage * TABLE_PAGE + 1}–{Math.min(shown.length, safePage * TABLE_PAGE + paged.length)} / {shown.length} pegawai</span>
           <div className="flex items-center gap-2 shrink-0">
             <button type="button" disabled={safePage <= 0} onClick={() => setPage(safePage - 1)}
-              className="text-xs font-bold px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">← 10 sebelumnya</button>
-            <span className="text-[11px] text-gray-400">Hal. {safePage + 1}/{pageCount}</span>
+              className="text-sm font-semibold min-h-10 px-3.5 rounded-control bg-neutral-tint text-ink-soft hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed">← Sebelumnya</button>
+            <span className="text-xs text-ink-soft font-mono">Hal. {safePage + 1}/{pageCount}</span>
             <button type="button" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}
-              className="text-xs font-bold px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">10 berikutnya →</button>
+              className="text-sm font-semibold min-h-10 px-3.5 rounded-control bg-neutral-tint text-ink-soft hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed">Berikutnya →</button>
           </div>
         </div>
       )}
       </StableHeight>
-      <p className="text-[10px] text-gray-500 italic mt-3">
+      <p className="text-xs text-ink-soft mt-3">
         Skor Akhir = blend KPI+360 (50/50); laporan yang sudah Final memakai angka tersimpannya.
         Player (A/B/C) berbasis KPI × 360° (ambang 80); <strong>HRD Review</strong> = KPI atau Skor 360° kosong → tidak diklasifikasi otomatis;
         <strong> Belum Terbaca</strong> = KPI baru 1 dari 3 bulan kuartal terisi → tidak diklasifikasi (sama dengan Kompilasi).{!has360 && ' Periode tanpa 360° → semua pegawai berstatus HRD Review.'}
@@ -829,10 +823,10 @@ const ymShort = (ym: string) => MONTHS[Number(ym.split('-')[1]) - 1] ?? ym;
 /** Keterangan ringkas di atas trendline: angka rerata tahun + konteks lingkup. */
 function YearTrendCaption({ value, label, unit }: { value: number | null; label: string; unit: string }) {
   return (
-    <div className="flex items-baseline gap-2 mb-3">
-      <span className="text-2xl font-black text-slate-800 font-mono">{value != null ? fmt2(value) : '—'}</span>
-      <span className="text-xs font-bold text-gray-600">{label}</span>
-      <span className="text-[10px] text-gray-500">· {unit}</span>
+    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mb-3">
+      <span className="text-2xl font-bold text-ink font-mono">{value != null ? fmt2(value) : '—'}</span>
+      <span className="text-xs font-semibold text-ink-soft">{label}</span>
+      <span className="text-xs text-ink-soft">· {unit}</span>
     </div>
   );
 }
@@ -844,7 +838,7 @@ function YearTrendCaption({ value, label, unit }: { value: number | null; label:
  * dikecualikan dari audit kontras (lihat CLAUDE.md) — ukuran fixed agar grafik tak berdesakan.
  */
 function TrendLine({ points }: { points: { label: string; value: number }[] }) {
-  if (points.length === 0) return <p className="text-xs text-gray-500 italic">Belum ada data untuk tahun ini.</p>;
+  if (points.length === 0) return <p className="text-sm text-ink-soft italic">Belum ada data untuk tahun ini.</p>;
   const W = 640, H = 200, padL = 40, padR = 18, padT = 20, padB = 26;
   // Inset horizontal titik plot: jarak dari sumbu-Y (kiri) & tepi kanan agar titik data
   // pertama/terakhir + label nilainya tak menempel garis sumbu.
@@ -865,11 +859,12 @@ function TrendLine({ points }: { points: { label: string; value: number }[] }) {
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[480px]" style={{ height: H }} preserveAspectRatio="xMidYMid meet">
         {grid.map((g) => (
           <g key={g}>
-            <line x1={padL} y1={y(g)} x2={W - padR} y2={y(g)} stroke="#e5e7eb" strokeWidth={1} />
-            <text x={padL - 5} y={y(g) + 3} textAnchor="end" fill="#6b7280" fontSize={10}>{g.toFixed(0)}</text>
+            <line x1={padL} y1={y(g)} x2={W - padR} y2={y(g)} stroke="#edefeb" strokeWidth={1} />
+            <text x={padL - 5} y={y(g) + 3} textAnchor="end" fill="#5b615c" fontSize={10}>{g.toFixed(0)}</text>
           </g>
         ))}
-        <path d={path} fill="none" stroke="#94a3b8" strokeWidth={2} />
+        {/* Garis tren = hijau brand (seri utama Design System Infarm); titik = warna skor. */}
+        <path d={path} fill="none" stroke="#00843b" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
         {points.map((p, i) => {
           const { bg } = heatColor(p.value);
           return (
@@ -881,11 +876,11 @@ function TrendLine({ points }: { points: { label: string; value: number }[] }) {
                 x={x(i) + (points.length > 1 && i === 0 ? 3 : points.length > 1 && i === points.length - 1 ? -3 : 0)}
                 y={y(p.value) - 9}
                 textAnchor={points.length > 1 && i === 0 ? 'start' : points.length > 1 && i === points.length - 1 ? 'end' : 'middle'}
-                fill="#374151" fontSize={10} fontWeight={700}>{fmt2(p.value)}</text>
+                fill="#1b1f1c" fontSize={10} fontWeight={700}>{fmt2(p.value)}</text>
               <text
                 x={x(i)} y={H - 8}
                 textAnchor={points.length > 1 && i === 0 ? 'start' : points.length > 1 && i === points.length - 1 ? 'end' : 'middle'}
-                fill="#6b7280" fontSize={10}>{p.label}</text>
+                fill="#5b615c" fontSize={10}>{p.label}</text>
             </g>
           );
         })}
@@ -895,18 +890,18 @@ function TrendLine({ points }: { points: { label: string; value: number }[] }) {
 }
 
 /**
- * Pie/donut distribusi pegawai per kelas capaian KPI (palet diskrit, lihat CLAUDE.md):
- *   ≥90 Melampaui (biru #183c6c) · 80–89 Memenuhi (hijau #388e3c) ·
+ * Pie/donut distribusi pegawai per kelas capaian KPI (palet diskrit CAT_COLOR):
+ *   ≥90 Melampaui (cokelat #6b4e3d) · 80–89 Memenuhi (hijau #388e3c) ·
  *   70–79 Perlu Peningkatan (kuning #ffc107) · <70 Di Bawah (merah #b71c1c).
  * Klasifikasi memakai rerata KPI pegawai (rows.kpiAvg), bukan Skor Akhir — selaras tab KPI.
  */
 // Band skor 0–100 (dipakai donut KPI & 360°) — golongan = perfCategoryOf (ambang atas nilai TERBULAT,
-// sama dengan laporan; rerata KPI mentah 79,996 = 80,00 → Memenuhi) & palet diskrit (CLAUDE.md).
+// sama dengan laporan; rerata KPI mentah 79,996 = 80,00 → Memenuhi) & palet diskrit CAT_COLOR.
 export const SCORE_CATS = [
-  { key: 'exceed', label: 'Melampaui Ekspektasi', range: '≥ 90', color: '#183c6c', test: (v: number) => perfCategoryOf(v) === 'exceed' },
-  { key: 'meet', label: 'Memenuhi Ekspektasi', range: '80–89', color: '#388e3c', test: (v: number) => perfCategoryOf(v) === 'meet' },
-  { key: 'improve', label: 'Perlu Peningkatan', range: '70–79', color: '#ffc107', test: (v: number) => perfCategoryOf(v) === 'improve' },
-  { key: 'below', label: 'Di Bawah Ekspektasi', range: '< 70', color: '#b71c1c', test: (v: number) => perfCategoryOf(v) === 'below' },
+  { key: 'exceed', label: 'Melampaui Ekspektasi', range: '≥ 90', color: CAT_COLOR.exceed, test: (v: number) => perfCategoryOf(v) === 'exceed' },
+  { key: 'meet', label: 'Memenuhi Ekspektasi', range: '80–89', color: CAT_COLOR.meet, test: (v: number) => perfCategoryOf(v) === 'meet' },
+  { key: 'improve', label: 'Perlu Peningkatan', range: '70–79', color: CAT_COLOR.improve, test: (v: number) => perfCategoryOf(v) === 'improve' },
+  { key: 'below', label: 'Di Bawah Ekspektasi', range: '< 70', color: CAT_COLOR.below, test: (v: number) => perfCategoryOf(v) === 'below' },
 ] as const;
 
 /** Donut distribusi pegawai per kelas skor (0–100). Dipakai untuk KPI & 360°. */
@@ -918,11 +913,11 @@ function CategoryPie({ title, subtitle, unit, values }: { title: string; subtitl
   const segs = counts.filter((c) => c.n > 0).map((c) => ({ ...c, len: (c.n / total) * C }));
   const offsets = segs.map((_, i) => segs.slice(0, i).reduce((s, x) => s + x.len, 0));
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs flex flex-col">
-      <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">{title}</h3>
-      <p className="text-xs text-gray-500 mt-0.5 mb-4">{subtitle}</p>
+    <div className={`${CARD} flex flex-col`}>
+      <h3 className={CARD_TITLE}>{title}</h3>
+      <p className="text-xs text-ink-soft mt-1 mb-4">{subtitle}</p>
       {total === 0 ? (
-        <p className="text-xs text-gray-500 italic">Belum ada data.</p>
+        <p className="text-sm text-ink-soft italic">Belum ada data.</p>
       ) : (
         <div className="flex flex-col items-center gap-4">
           <svg viewBox="0 0 140 140" className="w-40 h-40 shrink-0">
@@ -932,17 +927,17 @@ function CategoryPie({ title, subtitle, unit, values }: { title: string; subtitl
                   strokeWidth={SW} strokeDasharray={`${fmt2(c.len)} ${(C - c.len).toFixed(2)}`} strokeDashoffset={-offsets[i]} />
               ))}
             </g>
-            <text x={70} y={66} textAnchor="middle" fill="#1f2937" fontSize={24} fontWeight={800}>{total}</text>
-            <text x={70} y={84} textAnchor="middle" fill="#6b7280" fontSize={9}>Pegawai</text>
+            <text x={70} y={68} textAnchor="middle" fill="#1b1f1c" fontSize={26} fontWeight={700} style={{ fontFamily: 'var(--font-mono)' }}>{total}</text>
+            <text x={70} y={86} textAnchor="middle" fill="#5b615c" fontSize={10}>pegawai</text>
           </svg>
-          <div className="w-full space-y-1.5">
+          <div className="w-full space-y-2">
             {counts.map((c) => (
-              <div key={c.key} className="flex items-center gap-2 text-xs">
-                <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: c.color }} />
-                <span className="font-semibold text-gray-700 flex-1 leading-tight">{c.label}
-                  <span className="text-gray-500 font-normal"> · {unit} {c.range}</span></span>
-                <span className="font-mono font-bold text-gray-800">{c.n}</span>
-                <span className="font-mono text-gray-500 w-9 text-right">{((c.n / total) * 100).toFixed(0)}%</span>
+              <div key={c.key} className="flex items-center gap-2 text-[13px]">
+                <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: c.color }} />
+                <span className="font-medium text-ink flex-1 leading-tight">{c.label}
+                  <span className="text-ink-soft font-normal"> · {unit} {c.range}</span></span>
+                <span className="font-mono font-bold text-ink">{c.n}</span>
+                <span className="font-mono text-ink-soft w-9 text-right">{((c.n / total) * 100).toFixed(0)}%</span>
               </div>
             ))}
           </div>
@@ -955,22 +950,22 @@ function CategoryPie({ title, subtitle, unit, values }: { title: string; subtitl
 function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; months: string[] }) {
   if (deptMonthly.length === 0 || months.length === 0) {
     return (
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
-        <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight mb-1">Capaian KPI / Divisi</h3>
-        <p className="text-xs text-gray-500 italic mt-2">Belum ada data KPI bulanan untuk lingkup ini.</p>
+      <div className={CARD}>
+        <h3 className={`${CARD_TITLE} mb-1`}>Capaian KPI / Divisi</h3>
+        <p className="text-sm text-ink-soft italic mt-2">Belum ada data KPI bulanan untuk lingkup ini.</p>
       </div>
     );
   }
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
+    <div className={CARD}>
       <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
         <div>
-          <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Capaian KPI / Divisi</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Rerata skor KPI per divisi per bulan</p>
+          <h3 className={CARD_TITLE}>Capaian KPI / Divisi</h3>
+          <p className="text-xs text-ink-soft mt-1">Rerata skor KPI per divisi per bulan</p>
         </div>
-        <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
           <span>Rendah</span>
-          <span className="h-2.5 w-24 rounded-full" style={{ background: HEAT_LEGEND_GRADIENT }} />
+          <span className="h-2.5 w-32 rounded-full" style={{ background: HEAT_LEGEND_GRADIENT }} />
           <span>Tinggi</span>
         </div>
       </div>
@@ -985,20 +980,20 @@ function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; mont
           </colgroup>
           <thead>
             <tr>
-              <th className="text-left py-2 px-3 text-[10px] font-extrabold uppercase tracking-wider text-gray-500 sticky left-0 bg-white">Divisi</th>
+              <th className="text-left py-2 px-3 text-xs font-semibold text-ink-soft sticky left-0 bg-surface">Divisi</th>
               {months.map((ym) => (
-                <th key={ym} className="text-center py-2 px-2 text-[10px] font-extrabold uppercase tracking-wider text-gray-500 whitespace-nowrap">{ymLabel(ym)}</th>
+                <th key={ym} className="text-center py-2 px-2 text-xs font-semibold text-ink-soft whitespace-nowrap">{ymLabel(ym)}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {deptMonthly.map((row) => (
               <tr key={row.dept}>
-                <td className="py-2 px-3 font-bold text-slate-700 break-words sticky left-0 bg-white">{row.dept}</td>
+                <td className="py-2 px-3 font-medium text-ink break-words sticky left-0 bg-surface">{row.dept}</td>
                 {row.cells.map((c) => {
                   const { bg, fg } = heatColor(c.avg);
                   return (
-                    <td key={c.ym} className="text-center font-mono font-bold rounded-md py-2.5 px-2"
+                    <td key={c.ym} className="text-center font-mono font-semibold text-[13px] rounded-lg py-3 px-2"
                       style={{ backgroundColor: bg, color: fg }}
                       title={`${row.dept} · ${ymLabel(c.ym)} · ${c.avg != null ? fmt2(c.avg) : 'tanpa data'}`}>
                       {c.avg != null ? fmt2(c.avg) : '—'}
@@ -1010,7 +1005,7 @@ function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; mont
           </tbody>
         </table>
       </div>
-      <p className="text-[10px] text-gray-500 italic mt-3">Sel = rerata KPI seluruh pegawai divisi pada bulan itu (filter divisi aktif). &ldquo;—&rdquo; = belum ada input KPI.</p>
+      <p className="text-xs text-ink-soft mt-3">Sel = rerata KPI seluruh pegawai divisi pada bulan itu (filter divisi aktif). &ldquo;—&rdquo; = belum ada input KPI.</p>
     </div>
   );
 }
@@ -1020,22 +1015,22 @@ function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; mont
 function Aspect360Heatmap({ deptAspect, aspects }: { deptAspect: DeptAspectRow[]; aspects: string[] }) {
   if (deptAspect.length === 0 || aspects.length === 0) {
     return (
-      <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
-        <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight mb-1">Capaian 360° / Divisi × Aspek</h3>
-        <p className="text-xs text-gray-500 italic mt-2">Belum ada penilaian 360° terkirim untuk lingkup ini.</p>
+      <div className={CARD}>
+        <h3 className={`${CARD_TITLE} mb-1`}>Capaian 360° / Divisi × Aspek</h3>
+        <p className="text-sm text-ink-soft italic mt-2">Belum ada penilaian 360° terkirim untuk lingkup ini.</p>
       </div>
     );
   }
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs">
+    <div className={CARD}>
       <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
         <div>
-          <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">Capaian 360° / Divisi × Aspek</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Skor aspek budaya terbobot (skala 100) per divisi</p>
+          <h3 className={CARD_TITLE}>Capaian 360° / Divisi × Aspek</h3>
+          <p className="text-xs text-ink-soft mt-1">Skor aspek budaya terbobot (skala 100) per divisi</p>
         </div>
-        <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
           <span>Rendah</span>
-          <span className="h-2.5 w-24 rounded-full" style={{ background: HEAT_LEGEND_GRADIENT }} />
+          <span className="h-2.5 w-32 rounded-full" style={{ background: HEAT_LEGEND_GRADIENT }} />
           <span>Tinggi</span>
         </div>
       </div>
@@ -1050,20 +1045,20 @@ function Aspect360Heatmap({ deptAspect, aspects }: { deptAspect: DeptAspectRow[]
           </colgroup>
           <thead>
             <tr>
-              <th className="text-left py-2 px-3 text-[10px] font-extrabold uppercase tracking-wider text-gray-500 sticky left-0 bg-white">Divisi</th>
+              <th className="text-left py-2 px-3 text-xs font-semibold text-ink-soft sticky left-0 bg-surface">Divisi</th>
               {aspects.map((a) => (
-                <th key={a} className="text-center py-2 px-2 text-[10px] font-extrabold uppercase tracking-wider text-gray-500 whitespace-normal break-words leading-tight">{a}</th>
+                <th key={a} className="text-center py-2 px-2 text-xs font-semibold text-ink-soft whitespace-normal break-words leading-tight">{a}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {deptAspect.map((row) => (
               <tr key={row.dept}>
-                <td className="py-2 px-3 font-bold text-slate-700 break-words sticky left-0 bg-white">{row.dept}</td>
+                <td className="py-2 px-3 font-medium text-ink break-words sticky left-0 bg-surface">{row.dept}</td>
                 {row.cells.map((c) => {
                   const { bg, fg } = heatColor(c.avg);
                   return (
-                    <td key={c.aspect} className="text-center font-mono font-bold rounded-md py-2.5 px-2"
+                    <td key={c.aspect} className="text-center font-mono font-semibold text-[13px] rounded-lg py-3 px-2"
                       style={{ backgroundColor: bg, color: fg }}
                       title={`${row.dept} · ${c.aspect} · ${c.avg != null ? fmt2(c.avg) : 'tanpa data'}`}>
                       {c.avg != null ? fmt2(c.avg) : '—'}
@@ -1075,50 +1070,27 @@ function Aspect360Heatmap({ deptAspect, aspects }: { deptAspect: DeptAspectRow[]
           </tbody>
         </table>
       </div>
-      <p className="text-[10px] text-gray-500 italic mt-3">Sel = skor aspek 0–100 <strong>terbobot per kelas penilai</strong> (skema bobot aktif, mis. Atasan/Peer/Cross/Bawahan; Self dikecualikan) — selaras Skor 360° resmi. Lingkup filter divisi aktif. &ldquo;—&rdquo; = belum ada penilaian.</p>
+      <p className="text-xs text-ink-soft mt-3">Sel = skor aspek 0–100 <strong>terbobot per kelas penilai</strong> (skema bobot aktif, mis. Atasan/Peer/Cross/Bawahan; Self dikecualikan) — selaras Skor 360° resmi. Lingkup filter divisi aktif. &ldquo;—&rdquo; = belum ada penilaian.</p>
     </div>
   );
 }
 
 /* ───────────────────────── Komponen bersama ───────────────────────── */
-const TINT: Record<string, string> = {
-  emerald: 'bg-emerald-50 text-emerald-600',
-  blue: 'bg-blue-50 text-blue-600',
-  amber: 'bg-amber-50 text-amber-600',
-  indigo: 'bg-indigo-50 text-indigo-600',
-  rose: 'bg-rose-50 text-rose-600',
-};
-
-function Stat({ icon, tint, value, label, sub }: { icon: React.ReactNode; tint: string; value: string; label: string; sub?: React.ReactNode }) {
-  return (
-    <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-xs flex items-center gap-4">
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${TINT[tint]}`}>{icon}</div>
-      <div className="min-w-0">
-        <div className="text-2xl font-semibold text-gray-800">{value}</div>
-        <div className="text-xs text-gray-500">{label}</div>
-        {sub != null && (typeof sub === 'string'
-          ? <div className="text-[11px] font-bold text-gray-600 truncate" title={sub}>{sub}</div>
-          : <div className="mt-0.5">{sub}</div>)}
-      </div>
-    </div>
-  );
-}
-
 /** Bar berlabel + hitung (Distribusi Kategori Kinerja & Rencana Tindak Lanjut). */
 function CountBars({ items, denom }: { items: { label: string; count: number; color: string }[]; denom: number }) {
   const max = Math.max(...items.map((c) => c.count), 1);
   return (
     <div className="space-y-4">
       {items.map((it, idx) => (
-        <div key={it.label} className="space-y-1">
-          <div className="flex justify-between text-xs font-medium text-gray-600">
-            <span>{it.label}</span>
-            <span className="text-gray-900 font-mono">{it.count} Pegawai ({((it.count / denom) * 100).toFixed(2)}%)</span>
+        <div key={it.label} className="space-y-1.5">
+          <div className="flex justify-between gap-3 text-[13px]">
+            <span className="font-medium text-ink-soft">{it.label}</span>
+            <span className="font-mono text-ink whitespace-nowrap"><b>{it.count}</b> <span className="text-ink-soft">· {((it.count / denom) * 100).toFixed(2)}%</span></span>
           </div>
-          <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-2.5 bg-neutral-tint rounded-full overflow-hidden">
             <motion.div initial={{ width: 0 }} animate={{ width: `${(it.count / max) * 100}%` }}
               transition={{ duration: 0.8, delay: idx * 0.1 }} style={{ backgroundColor: it.color }}
-              className="h-full rounded-full shadow-inner" />
+              className="h-full rounded-full" />
           </div>
         </div>
       ))}
@@ -1126,22 +1098,49 @@ function CountBars({ items, denom }: { items: { label: string; count: number; co
   );
 }
 
-function Card({ title, tone, children }: { title: string; tone?: 'emerald' | 'rose'; children: React.ReactNode }) {
-  const head = tone === 'emerald' ? 'text-emerald-800' : tone === 'rose' ? 'text-rose-700' : 'text-gray-800';
+/**
+ * Bar skor 0–100 berlabel (divisi / aspek / bulan): pil angka + batang berwarna gradasi skor
+ * (heatColorInfarm). `max` = skala lebar batang (default 100; Perkembangan Bulanan memakai nilai maks).
+ */
+function ScoreBars({ items, suffix = '', empty, max = 100 }: { items: { label: string; score: number }[]; suffix?: string; empty: string; max?: number }) {
+  if (items.length === 0) return <p className="text-sm text-ink-soft italic">{empty}</p>;
   return (
-    <div className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-xs">
-      <h4 className={`text-sm font-semibold mb-4 ${head}`}>{title}</h4>
+    <div className="space-y-4">
+      {items.map((it, i) => {
+        const hc = heatColor(it.score);
+        return (
+          <div key={it.label} className="space-y-1.5">
+            <div className="flex justify-between items-center gap-3 text-[13px]">
+              <span className="font-medium text-ink-soft">{it.label}</span>
+              <span className="font-mono font-semibold text-xs px-2.5 py-0.5 rounded-full whitespace-nowrap" style={{ backgroundColor: hc.bg, color: hc.fg }}>{fmt2(it.score)}{suffix}</span>
+            </div>
+            <div className="h-2.5 bg-neutral-tint rounded-full overflow-hidden">
+              <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min((it.score / max) * 100, 100)}%` }}
+                transition={{ duration: 0.8, delay: i * 0.08 }} className="h-full rounded-full" style={{ backgroundColor: hc.bg }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className={CARD}>
+      <h3 className={`${CARD_TITLE} mb-4`}>{title}</h3>
       {children}
     </div>
   );
 }
 
 // Warna badge dari golongan nilai TERBULAT — sama dengan labelnya (perfLabelOf), tak bisa tak cocok.
+// Selaras palet CAT_COLOR: Melampaui cokelat · Memenuhi hijau · Perlu Peningkatan kuning · Di Bawah merah.
 const BAND_BADGE_CLS = {
-  exceed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  meet: 'bg-blue-50 text-blue-700 border-blue-200',
-  improve: 'bg-amber-50 text-amber-700 border-amber-200',
-  below: 'bg-rose-50 text-rose-700 border-rose-200',
+  exceed: 'bg-infarm-cream text-infarm-soil border-infarm-cream',
+  meet: 'bg-brand-tint text-brand-ink border-brand-tint',
+  improve: 'bg-warn-tint text-warn-ink border-warn-tint',
+  below: 'bg-danger-tint text-danger-ink border-danger-tint',
 } as const;
 export function bandBadgeClass(v: number | null): string | null {
   const c = perfCategoryOf(v);
@@ -1151,32 +1150,29 @@ export function bandBadgeClass(v: number | null): string | null {
 function bandBadge(v: number | null) {
   const cls = bandBadgeClass(v);
   if (v == null || cls == null) return null;
-  return <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cls}`}>{perfLabelOf(v)}</span>;
+  return <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${cls}`}>{perfLabelOf(v)}</span>;
 }
 
-type LbTone = 'emerald' | 'rose' | 'indigo';
-const lbHead = (tone: LbTone) => tone === 'emerald' ? 'text-emerald-800' : tone === 'indigo' ? 'text-indigo-800' : 'text-rose-700';
-
 /** Baris-baris peringkat (tanpa kartu pembungkus). `startIndex` = offset peringkat absolut
- *  (agar #6–#10 tetap benar saat paginasi 5/halaman, bukan reset ke #1 tiap halaman). */
-function LeaderboardRows({ items, valueOf, tone, startIndex = 0 }: { items: Row[]; valueOf: (r: Row) => number | null; tone: LbTone; startIndex?: number }) {
-  const head = lbHead(tone);
-  const chip = tone === 'emerald' ? 'text-emerald-800 bg-emerald-50 border-emerald-150'
-    : tone === 'indigo' ? 'text-indigo-800 bg-indigo-50 border-indigo-150' : 'text-rose-800 bg-rose-50 border-rose-150';
-  const rowBg = tone === 'rose' ? 'bg-rose-50/10 border-rose-100 border-dashed' : tone === 'indigo' ? 'bg-indigo-50/20 border-indigo-100' : 'bg-emerald-50/20 border-emerald-100';
+ *  (agar #6–#10 tetap benar saat paginasi 5/halaman, bukan reset ke #1 tiap halaman).
+ *  Sisi Terbawah: lingkaran peringkat merah lembut agar terbaca sebagai prioritas coaching. */
+function LeaderboardRows({ items, valueOf, bottom, startIndex = 0 }: { items: Row[]; valueOf: (r: Row) => number | null; bottom: boolean; startIndex?: number }) {
   return (
-    <div className="space-y-3">
-      {items.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada data.</p>}
+    <div>
+      {items.length === 0 && <p className="text-sm text-ink-soft italic">Belum ada data.</p>}
       {items.map((e, idx) => {
         const v = valueOf(e);
+        const rank = startIndex + idx + 1;
+        const rankCls = bottom ? 'bg-danger-tint text-danger-ink border-danger-tint'
+          : rank <= 3 ? 'bg-brand text-white border-brand' : 'bg-infarm-surface text-brand-ink border-infarm-light';
         return (
-          <div key={e.id} className={`p-3 rounded-xl border flex items-center justify-between gap-4 ${rowBg}`}>
-            <div className="flex items-center gap-3">
-              <span className={`font-mono text-xs font-black w-5 ${head}`}>#{startIndex + idx + 1}</span>
-              <div><span className="font-bold text-gray-800 text-xs block" title={e.name}>{displayName(e.nickname, e.name)}</span><span className="text-[10px] text-gray-500 block">{e.dept}</span></div>
+          <div key={e.id} className="py-2.5 border-b border-line-soft last:border-b-0 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className={`font-mono text-xs font-bold w-7 h-7 rounded-full border flex items-center justify-center shrink-0 ${rankCls}`}>{rank}</span>
+              <div className="min-w-0"><span className="font-semibold text-ink text-sm block truncate" title={e.name}>{displayName(e.nickname, e.name)}</span><span className="text-xs text-ink-soft block">{e.dept}</span></div>
             </div>
-            <div className="flex items-center gap-2.5">
-              <span className={`font-mono font-black text-xs px-2 py-1 rounded border ${chip}`}>{v != null ? fmt2(v) : '—'}</span>
+            <div className="flex items-center gap-2.5 shrink-0">
+              <span className="font-mono font-bold text-sm text-ink">{v != null ? fmt2(v) : '—'}</span>
               {bandBadge(v)}
             </div>
           </div>
@@ -1188,36 +1184,32 @@ function LeaderboardRows({ items, valueOf, tone, startIndex = 0 }: { items: Row[
 
 /**
  * Peringkat SATU kartu dengan toggle Teratas ↔ Terbawah (menggantikan pasangan berdampingan).
- * Default "Teratas". `topTone` = warna sisi teratas (emerald KPI/Skor Akhir · indigo 360°);
- * sisi terbawah selalu rose.
+ * Default "Teratas". Toggle = pil bersegmen (aktif hijau brand).
  */
-function LeaderboardToggle({ metric, top, bottom, valueOf, topTone = 'emerald' }: {
-  metric: string; top: Row[]; bottom: Row[]; valueOf: (r: Row) => number | null; topTone?: 'emerald' | 'indigo';
+function LeaderboardToggle({ metric, top, bottom, valueOf }: {
+  metric: string; top: Row[]; bottom: Row[]; valueOf: (r: Row) => number | null;
 }) {
   const [side, setSide] = useState<'top' | 'bottom'>('top');
   const isTop = side === 'top';
-  const tone: LbTone = isTop ? topTone : 'rose';
   // Tampil 5/halaman + tombol Sebelumnya/Berikutnya (klik "selanjutnya" utk peringkat #6–#10).
   const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(isTop ? top : bottom);
-  const seg = (active: boolean) => `px-2.5 py-1 text-[10px] font-bold transition-colors ${active ? 'bg-slate-800 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`;
+  const seg = (active: boolean) => `px-4 min-h-9 rounded-full text-[13px] font-semibold transition-colors ${active ? 'bg-brand text-white' : 'text-ink-soft hover:text-ink'}`;
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs space-y-4">
-      <div>
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <h3 className={`text-xs font-bold tracking-wider uppercase ${lbHead(tone)}`}>
-            {isTop ? '🏆' : '⚠️'} {metric} {isTop ? 'Tertinggi' : 'Terendah'}
-          </h3>
-          <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden shrink-0" role="tablist" aria-label={`Pilih tampilan ${metric}`}>
-            <button type="button" role="tab" aria-selected={isTop} onClick={() => { setSide('top'); setPage(0); }} className={seg(isTop)}>🏆 Teratas</button>
-            <button type="button" role="tab" aria-selected={!isTop} onClick={() => { setSide('bottom'); setPage(0); }} className={seg(!isTop)}>⚠️ Terbawah</button>
-          </div>
+    <div className={`${CARD} space-y-3`}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className={CARD_TITLE}>{metric} {isTop ? 'Tertinggi' : 'Terendah'}</h3>
+          <p className="text-xs text-ink-soft mt-0.5">
+            Pegawai dengan {metric} {isTop ? 'tertinggi.' : 'terendah (prioritas mentoring/coaching).'}
+          </p>
         </div>
-        <p className="text-[11px] text-gray-500 border-b border-gray-100 pb-2.5">
-          Pegawai dengan {metric} {isTop ? 'tertinggi.' : 'terendah (prioritas mentoring/coaching).'}
-        </p>
+        <div className="inline-flex gap-0.5 p-[3px] rounded-full border border-line bg-infarm-surface shrink-0" role="tablist" aria-label={`Pilih tampilan ${metric}`}>
+          <button type="button" role="tab" aria-selected={isTop} onClick={() => { setSide('top'); setPage(0); }} className={seg(isTop)}>Teratas</button>
+          <button type="button" role="tab" aria-selected={!isTop} onClick={() => { setSide('bottom'); setPage(0); }} className={seg(!isTop)}>Terbawah</button>
+        </div>
       </div>
       <StableHeight>
-        <LeaderboardRows items={shown} valueOf={valueOf} tone={tone} startIndex={rangeFrom > 0 ? rangeFrom - 1 : 0} />
+        <LeaderboardRows items={shown} valueOf={valueOf} bottom={!isTop} startIndex={rangeFrom > 0 ? rangeFrom - 1 : 0} />
         <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
       </StableHeight>
     </div>

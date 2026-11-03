@@ -16,16 +16,33 @@ const HEAT_STOPS: { v: number; rgb: [number, number, number] }[] = [
   { v: 97.5, rgb: [24, 60, 108] }, // #183c6c
 ];
 
+/**
+ * Varian Design System Infarm (Dashboard Organisasi, 2026-11-03): jangkar SAMA, hanya ujung atas
+ * biru tua diganti cokelat tanah #6b4e3d (keputusan pengguna). Halaman lain tetap `heatColor`.
+ */
+const HEAT_STOPS_INFARM: typeof HEAT_STOPS = [
+  ...HEAT_STOPS.slice(0, 3),
+  { v: 97.5, rgb: [107, 78, 61] }, // #6b4e3d
+];
+
 export function heatColor(v: number | null): { bg: string; fg: string } {
+  return heatColorWith(v, HEAT_STOPS);
+}
+
+export function heatColorInfarm(v: number | null): { bg: string; fg: string } {
+  return heatColorWith(v, HEAT_STOPS_INFARM);
+}
+
+function heatColorWith(v: number | null, stops: typeof HEAT_STOPS): { bg: string; fg: string } {
   if (v == null) return { bg: '#f9fafb', fg: '#9ca3af' };
-  const last = HEAT_STOPS.length - 1;
+  const last = stops.length - 1;
   let rgb: [number, number, number];
-  if (v <= HEAT_STOPS[0].v) rgb = HEAT_STOPS[0].rgb;
-  else if (v >= HEAT_STOPS[last].v) rgb = HEAT_STOPS[last].rgb;
+  if (v <= stops[0].v) rgb = stops[0].rgb;
+  else if (v >= stops[last].v) rgb = stops[last].rgb;
   else {
     let i = 0;
-    while (v > HEAT_STOPS[i + 1].v) i++;
-    const a = HEAT_STOPS[i], b = HEAT_STOPS[i + 1];
+    while (v > stops[i + 1].v) i++;
+    const a = stops[i], b = stops[i + 1];
     const t = (v - a.v) / (b.v - a.v);
     rgb = [
       Math.round(a.rgb[0] + (b.rgb[0] - a.rgb[0]) * t),
@@ -42,3 +59,5 @@ export function heatColor(v: number | null): { bg: string; fg: string } {
 /** Gradien CSS legend (kiri→kanan) yang merepresentasikan jangkar palet. */
 export const HEAT_LEGEND_GRADIENT =
   'linear-gradient(to right, #b71c1c 0%, #ffc107 36%, #388e3c 73%, #183c6c 100%)';
+export const HEAT_LEGEND_GRADIENT_INFARM =
+  'linear-gradient(to right, #b71c1c 0%, #ffc107 36%, #388e3c 73%, #6b4e3d 100%)';

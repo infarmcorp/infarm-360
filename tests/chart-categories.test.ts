@@ -27,10 +27,11 @@ describe('Kategori grafik = kategori laporan (termasuk nilai tepat di batas)', (
 });
 
 describe('Badge peringkat Dashboard: warna & label dari nilai terbulat yang sama', () => {
-  const TONE = { exceed: 'emerald', meet: 'blue', improve: 'amber', below: 'rose' } as const;
+  // Design System Infarm (2026-11-03): Melampaui cokelat · Memenuhi hijau · Perlu Peningkatan kuning · Di Bawah merah.
+  const TONE = { exceed: 'bg-infarm-cream', meet: 'bg-brand-tint', improve: 'bg-warn-tint', below: 'bg-danger-tint' } as const;
   it.each(BOUNDARY)('%s', (v) => {
     const cat = perfCategoryOf(v)!;
-    expect(bandBadgeClass(v)).toContain(`bg-${TONE[cat]}-50`);
+    expect(bandBadgeClass(v)).toContain(TONE[cat]);
     // label badge tetap perfLabelOf (sudah atas nilai terbulat)
     expect(perfLabelOf(v)).not.toBe('—');
   });

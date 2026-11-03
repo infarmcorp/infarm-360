@@ -506,8 +506,26 @@ async function main() {
           const { error } = await x.from('development_plan_sessions')
             .insert({ plan_id: dp.id, kind: 'one_on_one', session_date: '2099-01-16', summary: 'Disisipkan lewat API' });
           check('Pemilik MENCATAT sesi lewat API DITOLAK [0056]', !!error);
+          { const { error: rpcErr } = await x.rpc('dev_plan_replace_items', { p_plan: dp.id, p_items: [] });
+            check('Pemilik MEMANGGIL dev_plan_replace_items lewat API DITOLAK [0057]', !!rpcErr); }
           await x.auth.signOut();
         }
+
+        // 0057 — pengaman database: prioritas terkunci di luar Draf/Perlu Perbaikan (juga untuk server),
+        // dan kolom pengaturan rencana di periods tak bisa diubah lewat API walau oleh HRD.
+        await admin.from('development_plans').update({ status: 'waiting_supervisor' }).eq('id', dp.id);
+        { const { error } = await admin.from('development_plan_items').insert({ plan_id: dp.id, area: 'Sisip setelah dikirim' });
+          check('Menambah prioritas saat Menunggu Atasan DITOLAK database (juga server) [0057]', !!error); }
+        { const { error } = await admin.rpc('dev_plan_replace_items', { p_plan: dp.id, p_items: [{ area: 'x' }] });
+          check('Ganti prioritas saat Menunggu Atasan DITOLAK fungsi database [0057]', !!error); }
+        {
+          const h = await loginAs(FIX.HRD.email);
+          const { data, error } = await h.from('periods').update({ dev_plan_due: '2099-02-01' }).eq('id', aid.periodId).select('id');
+          check('HRD MENGUBAH batas rencana lewat API DITOLAK (hanya lewat aplikasi) [0057]', !!error || (data?.length ?? 0) === 0);
+          await h.auth.signOut();
+        }
+        { const { error } = await admin.from('periods').update({ dev_plan_due: '2099-02-01' }).eq('id', aid.periodId);
+          check('Server MENGUBAH batas rencana DIIZINKAN (kontrol positif) [0057]', !error, error?.message ?? ''); }
       }
     }
 

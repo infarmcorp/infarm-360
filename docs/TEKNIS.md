@@ -10,7 +10,7 @@ Status & pekerjaan terbuka di [RENCANA.md](RENCANA.md). Riwayat di [CHANGELOG.md
 3. [Aktivasi fitur dorman & Mode Maintenance](#3-aktivasi-fitur-dorman--mode-maintenance)
 4. [Rumus skor & klasifikasi](#4-rumus-skor--klasifikasi)
 5. [Manajemen Akses — model & penegakan](#5-manajemen-akses--model--penegakan)
-6. [Daftar migrasi 0001–0056](#6-daftar-migrasi-00010056)
+6. [Daftar migrasi 0001–0057](#6-daftar-migrasi-00010057)
 7. [Pengujian](#7-pengujian)
 8. [Backup & restore](#8-backup--restore)
 9. [PDF panduan in-app](#9-pdf-panduan-in-app)
@@ -424,14 +424,17 @@ hanya HRD berakses penuh; tak ada yang bisa mengubah izin dirinya sendiri (trigg
   HRD cadangan); tinjauan bulanan = `canHrdManage`. Ubah/hapus hanya pencatatnya (`canEditSession`); tanggapan hanya
   pemilik (`saveSessionResponse`). **Hanya mencatat** — tak ada hitungan/penanda terlambat (keputusan pemilik). Pantauan
   menampilkan jumlah + tanggal terakhir per jenis. RLS `dps_read` mengikuti rencana; tulis hanya service_role.
-- **Tahap 3 — ekspor** `exportDevPlans` (Ekspor Dataset, gerbang `ekspor`): Rencana (per prioritas) · Komentar &
+- **Pengaman DB (0057)**: `saveMyPlan` memanggil `dev_plan_replace_items` (atomik, `FOR UPDATE` → Kirim dari tab lain
+  menunggu; tanpa isi setengah-tersimpan); trigger menolak perubahan prioritas di luar Draf/Perlu Perbaikan dan perubahan
+  kolom `periods.dev_plan_*` dari pengguna mana pun (hanya server). Cadangan tanpa 0057: sisip baru lalu hapus lama.
+- **Tahap 3 — ekspor** `exportDevPlans` (Ekspor Dataset, gerbang `ekspor` + **Mode Admin**): Rencana (per prioritas) · Komentar &
   Persetujuan · Sesi & Tinjauan. **Bernama**; filter = periode laporan asal.
 - Tidak menyentuh skor, `final_reports`, kunci laporan Final. Diuji `tests/dev-plan.test.ts`, `tests/dev-plan-actions.test.ts`,
   `tests/ekspor-dev-plans.test.ts`.
 
 ---
 
-## 6. Daftar migrasi 0001–0056
+## 6. Daftar migrasi 0001–0057
 
 Status penerapan per DB → `scripts/check-migrations.sql`.
 
@@ -491,6 +494,7 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0054 | tabel `outside_mapping_notes` (Catatan di Luar Pemetaan): tanpa kolom penulis & waktu kirim; check isi 20–2000; trigger `trg_outside_note_aspect_in_period`; RLS tanpa policy + `revoke all` anon/authenticated (hanya service_role). Rincian §5.4. Tanpa tabel → kirim "belum aktif", laporan tampil tanpa catatan |
 | 0055 | Rencana Pengembangan: tabel `development_plans` + `development_plan_items`, kolom `periods.dev_plan_closed_at`/`dev_plan_due`; RLS baca pemilik/`is_hrd()`/`is_direksi()`, tulis hanya service_role. Rincian §5.5. Tanpa tabel → halaman "belum aktif" |
 | 0056 | Rencana Pengembangan Tahap 2: tabel `development_plan_sessions` (sesi 1-on-1 & tinjauan bulanan HRD, kemajuan per prioritas, tanggapan pegawai); RLS baca mengikuti rencana, tulis hanya service_role. Rincian §5.5. Tanpa tabel → panel sesi tak tampil |
+| 0057 | Pengaman Rencana Pengembangan: trigger `trg_periods_guard_dev_plan_cols` (kolom `dev_plan_*` hanya diubah server — tutup celah `periods_write`), trigger `trg_dev_plan_items_guard` (prioritas hanya berubah saat `draft`/`revision`, Direksi bebas; berlaku juga untuk service_role), fungsi `dev_plan_replace_items` (ganti prioritas atomik, kunci baris rencana; service_role; kode punya cadangan `rpcMissing`) |
 
 ---
 
@@ -511,7 +515,7 @@ Skrip integrasi `scripts/verify-rls.ts` (bukan unit test): membuat fixture `RLST
 login per peran (anon key), menguji `kpi_scores` (SPV → tim+diri, Employee → diri, HRD/Direksi → semua;
 tulis lintas-SPV ditolak; SPV tulis diri diizinkan) dan raw 360° (SPV ditolak; HRD, penilai, target sesuai
 aturan), plus celah 0045 (HRD terbatas, isi penilaian saat form ditutup, permohonan palsu, bobot ≠ 100,
-respons suksesi draf, log ACC, Catatan di Luar Pemetaan hanya service_role, Rencana Pengembangan & catatan sesi baca pemilik/HRD/Direksi). **78 pemeriksaan.** Menghapus seluruh fixture di `finally`; tulis memakai
+respons suksesi draf, log ACC, Catatan di Luar Pemetaan hanya service_role, Rencana Pengembangan & catatan sesi baca pemilik/HRD/Direksi). **83 pemeriksaan.** Menghapus seluruh fixture di `finally`; tulis memakai
 `UPDATE score=score`. Butuh anon + service role key di `.env.local`. Manual pra-rilis, tak di CI.
 Ulangi tiap ada migrasi/perubahan RLS.
 

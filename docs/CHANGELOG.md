@@ -8,6 +8,16 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-03 — Rencana Pengembangan: pengaman server & database (di `dev`, belum di production)
+- Hasil pemeriksaan "apakah aturan di layar bisa dibobol lewat jalur teknis" (permintaan pemilik). Semua tombol sudah
+  diperiksa ulang di server; tiga celah kecil ditutup:
+  - tutup/buka rencana dan batas tanggal kini hanya bisa diubah lewat aplikasi (sebelumnya HRD berakses Kelola Periode
+    bisa mengubahnya langsung ke database tanpa akses Rencana Pengembangan);
+  - menyimpan prioritas kini satu langkah utuh di database, dan database menolak perubahan prioritas setelah rencana
+    dikirim — menutup celah Simpan dan Kirim dari dua tab sekaligus;
+  - ekspor Rencana Pengembangan hanya dari Mode Admin, juga bila dipanggil langsung.
+- Sisa kode yang tidak dipakai dirapikan. Butuh perubahan database **0057** (sesudah 0056).
+
 ### 2026-11-03 — Rencana Pengembangan: Tarik Kembali & pemisahan mode HRD (di `dev`, belum di production)
 - **Tarik Kembali** untuk pemilik rencana selama **Menunggu Atasan** — mis. untuk menambah prioritas, tanpa meminta
   atasan atau HRD.

@@ -53,13 +53,13 @@ export function PlanItemsView({ items }: { items: PlanItem[] }) {
   );
 }
 
-const COMMENT_FIELDS: { key: 'sup_confirmation' | 'sup_context' | 'sup_support' | 'sup_hope'; label: string; hint: string }[] = [
-  { key: 'sup_confirmation', label: 'Konfirmasi Kinerja', hint: 'Apakah hasil penilaian ini mencerminkan kinerja yang diamati sehari-hari?' },
-  { key: 'sup_context', label: 'Konteks Tambahan', hint: 'Konteks situasional atau hal lain yang perlu diketahui pegawai.' },
-  { key: 'sup_support', label: 'Dukungan yang Diberikan', hint: 'Bentuk dukungan konkret dari atasan untuk pengembangan pegawai.' },
-  { key: 'sup_hope', label: 'Harapan ke Depan', hint: 'Pesan atau harapan atasan untuk kuartal ini.' },
+// Label baca-saja komentar atasan (petunjuk isian ada di supervisor-form.tsx).
+const COMMENT_FIELDS: { key: 'sup_confirmation' | 'sup_context' | 'sup_support' | 'sup_hope'; label: string }[] = [
+  { key: 'sup_confirmation', label: 'Konfirmasi Kinerja' },
+  { key: 'sup_context', label: 'Konteks Tambahan' },
+  { key: 'sup_support', label: 'Dukungan yang Diberikan' },
+  { key: 'sup_hope', label: 'Harapan ke Depan' },
 ];
-export { COMMENT_FIELDS };
 
 export function PlanCommentsView({ plan }: { plan: PlanRow }) {
   const filled = COMMENT_FIELDS.filter((f) => (plan[f.key] ?? '').trim());

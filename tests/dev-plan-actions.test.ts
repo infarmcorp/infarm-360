@@ -30,8 +30,11 @@ function asUser(id: string, row: Record<string, unknown>) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mockCreate.mockResolvedValue(c as any);
 }
-function adminWith(tables: Record<string, QResult[]>): MockClient {
-  const c = makeClient({ tables });
+const RPC_MISSING = { data: null, error: { code: 'PGRST202', message: 'Could not find the function' } };
+/** `rpc` = respons fungsi database per nama; default = fungsi belum ada (0057 belum terpasang → jalur cadangan). */
+function adminWith(tables: Record<string, QResult[]>, rpc: Record<string, { data: unknown; error: unknown }> = {}): MockClient & { rpcs: { fn: string; args: unknown }[] } {
+  const rpcs: { fn: string; args: unknown }[] = [];
+  const c = Object.assign(makeClient({ tables }), { rpcs, rpc: async (fn: string, args: unknown) => { rpcs.push({ fn, args }); return rpc[fn] ?? RPC_MISSING; } });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   mockAdmin.mockReturnValue(c as any);
   return c;
@@ -67,7 +70,23 @@ describe('saveMyPlan / submitMyPlan (pemilik)', () => {
     expect(a.calls.filter((x) => x.op !== 'select')).toHaveLength(0);
   });
 
-  it('simpan: sisip prioritas baru dulu, baru hapus yang lama', async () => {
+  it('simpan (0057): ganti prioritas lewat satu fungsi database terkunci', async () => {
+    asUser(EMP, { role: 'employee' });
+    const a = adminWith({ periods: [OPEN], final_reports: [FINAL], development_plans: [plan()], development_plan_items: [{ data: [] }] },
+      { dev_plan_replace_items: { data: null, error: null } });
+    expect(await saveMyPlan(P, [FULL])).toEqual({ ok: true });
+    expect(a.rpcs).toEqual([{ fn: 'dev_plan_replace_items', args: { p_plan: PLAN, p_items: [FULL] } }]);
+    expect(a.calls.filter((x) => x.table === 'development_plan_items' && x.op !== 'select')).toHaveLength(0);
+  });
+
+  it('simpan (0057): database menolak karena rencana baru saja dikirim dari tab lain', async () => {
+    asUser(EMP, { role: 'employee' });
+    adminWith({ periods: [OPEN], final_reports: [FINAL], development_plans: [plan()], development_plan_items: [{ data: [] }] },
+      { dev_plan_replace_items: { data: null, error: { code: '23514', message: 'Prioritas hanya bisa diubah saat rencana Draf atau Perlu Perbaikan' } } });
+    expect(await saveMyPlan(P, [FULL])).toEqual({ ok: false, error: 'Rencana sudah dikirim — isinya tidak bisa diubah' });
+  });
+
+  it('simpan (cadangan tanpa 0057): sisip prioritas baru dulu, baru hapus yang lama', async () => {
     asUser(EMP, { role: 'employee' });
     const a = adminWith({
       periods: [OPEN], final_reports: [FINAL],

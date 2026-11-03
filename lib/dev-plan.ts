@@ -102,7 +102,7 @@ export const PLAN_ITEM_FIELDS: { key: keyof PlanItem; label: string; long?: bool
 export const PLAN_MAX_ITEMS = 10;
 
 /** Semua kolom prioritas terisi. */
-export function isItemComplete(it: PlanItem): boolean {
+function isItemComplete(it: PlanItem): boolean {
   return PLAN_ITEM_FIELDS.every((f) => (it[f.key] ?? '').trim().length > 0);
 }
 

@@ -251,6 +251,11 @@ export interface Database {
         Args: { p_actor: string; p_employee: string; p_ym: string; p_note: string };
         Returns: number | null;
       };
+      // 0057: ganti seluruh prioritas Rencana Pengembangan dalam satu transaksi (service_role saja).
+      dev_plan_replace_items: {
+        Args: { p_plan: string; p_items: { area: string; target: string; actions: string; due_text: string; companion: string; success_indicator: string }[] };
+        Returns: undefined;
+      };
       // 0048: Aktifkan/Hapus Periode dalam satu transaksi (service_role saja).
       period_activate: {
         Args: { p_period: string };

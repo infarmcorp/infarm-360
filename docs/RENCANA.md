@@ -180,9 +180,10 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
     hanya mencatat, tanpa penanda terlambat;
   - Tahap 3: Ekspor Dataset → Rencana Pengembangan & 1-on-1 (bernama).
   - Perubahan database 0054 dan 0055 sudah terpasang di staging (2026-11-03; `verify:rls` 74 lolos). Sisa:
-  - 🔑 jalankan **0056** di staging;
+  - ✅ **0056** terpasang di staging (`verify:rls` 78 lolos);
+  - 🔑 jalankan **0057** (pengaman database) di staging;
   - 🔑 uji end-to-end per peran di Preview `dev` (Catatan di Luar Pemetaan + Rencana Pengembangan bersamaan);
-  - 🔑 sebelum dipakai: 0054–0056 di production, lalu HRD menetapkan batas rencana disepakati untuk laporan Q3 2026.
+  - 🔑 sebelum dipakai: 0054–0057 di production, lalu HRD menetapkan batas rencana disepakati untuk laporan Q3 2026.
 - Keputusan pemilik (diskusi 2026-11-03), sebagai acuan tahap berikutnya:
   - Rencana **melekat ke periode laporan** (mis. laporan Q3 → "Rencana Pengembangan Q4"), terbuka setelah laporan Final
     dan tetap bisa diisi walau periode aktif sudah pindah atau periode laporan sudah dikunci. HRD menutupnya manual.

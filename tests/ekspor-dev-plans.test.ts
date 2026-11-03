@@ -5,7 +5,8 @@ import { fakeDb } from './helpers/fake-postgrest';
  * Ekspor "Rencana Pengembangan & 1-on-1" (Tahap 3): 3 lembar bernama, disaring periode LAPORAN asal rencana,
  * rencana tanpa prioritas tetap satu baris, kemajuan per prioritas ditulis "P<n> <status>: catatan".
  */
-vi.mock('next/headers', () => ({ cookies: vi.fn(async () => ({ get: () => ({ value: 'admin' }) })) }));
+let mode = 'admin';
+vi.mock('next/headers', () => ({ cookies: vi.fn(async () => ({ get: () => ({ value: mode }) })) }));
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn(), createAdminClient: vi.fn() }));
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
@@ -48,7 +49,7 @@ function setup(role = 'hrd') {
   mockAdmin.mockReturnValue(db as any);
 }
 
-beforeEach(() => { vi.clearAllMocks(); });
+beforeEach(() => { vi.clearAllMocks(); mode = 'admin'; });
 
 describe('exportDevPlans', () => {
   it('3 lembar bernama, tersaring periode laporan', async () => {
@@ -66,6 +67,12 @@ describe('exportDevPlans', () => {
       nama: 'Budi', jenis: 'Sesi 1-on-1', tanggal_sesi: '2026-11-10', status_umum: 'Tertinggal',
       kemajuan_per_prioritas: 'P2 Tertinggal: Belum mulai', tanggapan_pegawai: 'Siap',
     })]);
+  });
+
+  it('HRD di Mode SPV (dipanggil langsung) → ditolak', async () => {
+    mode = 'spv';
+    setup();
+    expect(await exportDevPlans('p3')).toEqual({ ok: false, error: 'Ekspor ini hanya dari Mode Admin' });
   });
 
   it('bukan HRD berbagian Ekspor → ditolak', async () => {

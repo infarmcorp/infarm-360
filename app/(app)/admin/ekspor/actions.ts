@@ -997,6 +997,8 @@ async function exportReportMaterialsImpl(periodId?: string | null): Promise<Conf
  */
 async function exportDevPlansImpl(periodId?: string | null): Promise<ConfigResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
+  // Pemisahan mode (Rencana Pengembangan): data rencana untuk HRD hanya dari Mode Admin, juga bila dipanggil langsung.
+  if ((await cookies()).get('hrd_mode')?.value !== 'admin') return { ok: false, error: 'Ekspor ini hanya dari Mode Admin' };
   const admin = createAdminClient();
   let plans: DevPlanRow[] = [];
   try {

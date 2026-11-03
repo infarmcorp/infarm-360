@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { logAuditAsService } from '@/lib/audit/log';
 import { tableMissing } from '@/lib/report-folder';
+import { rpcMissing } from '@/lib/supabase/rpc';
 import {
   canActAsSupervisor, canHrdManage, canHrdSign, ownerCanEdit, submitBlocker, supervisorApproveBlocker,
   planTitle, PLAN_MAX_ITEMS, SUP_MIN, inAdminView, ownerCanWithdraw, sessionsOpen, canRecordSession, canEditSession, SESSION_KIND_LABEL,
@@ -107,10 +108,17 @@ export async function saveMyPlan(rawPeriodId: string, rawItems: unknown): Promis
       .insert({ employee_id: actor.id, source_period_id: pid.data }).select('id').single();
     if (error || !data) return { ok: false, error: error && tableMissing(error) ? OFF : 'Gagal membuat rencana' };
     planId = data.id;
-  } else {
-    await admin.from('development_plans').update({ updated_at: new Date().toISOString() }).eq('id', planId);
   }
-  // Ganti prioritas: sisipkan yang baru DULU, baru hapus yang lama → gagal sisip tak menghilangkan isi lama.
+  // Ganti seluruh prioritas dalam SATU transaksi yang mengunci baris rencana (0057): Kirim dari tab lain menunggu,
+  // dan database menolak bila status sudah bukan Draf / Perlu Perbaikan — tak ada isi setengah-tersimpan.
+  const { error: rpcErr } = await admin.rpc('dev_plan_replace_items', { p_plan: planId, p_items: items.data });
+  if (!rpcErr) { revalidate(); return { ok: true }; }
+  if (!rpcMissing(rpcErr)) {
+    return { ok: false, error: /Draf atau Perlu Perbaikan/.test(rpcErr.message)
+      ? 'Rencana sudah dikirim — isinya tidak bisa diubah' : 'Gagal menyimpan prioritas: ' + rpcErr.message };
+  }
+  // Cadangan bila 0057 belum terpasang: sisipkan yang baru DULU, baru hapus yang lama → gagal sisip tak menghilangkan isi lama.
+  await admin.from('development_plans').update({ updated_at: new Date().toISOString() }).eq('id', planId);
   const oldIds = cur.items.map((i) => i.id);
   if (items.data.length) {
     const { error } = await admin.from('development_plan_items')

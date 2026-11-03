@@ -517,9 +517,9 @@ export function AssessForm({
                     Komentar / Bukti Perilaku (Evidence) <span className="text-danger-ink">*</span>
                   </label>
                   {evidencePeriod && (
-                    <p className="text-[12px] text-ink-soft leading-relaxed">
+                    <p className="inline-block text-[12px] text-warn-ink bg-warn-tint border border-warn-ink/25 rounded-control px-2.5 py-1">
                       Tulis kejadian selama periode <strong>{evidencePeriod.label}</strong> saja:{' '}
-                      <strong className="data-value">{evidencePeriod.range}</strong>. Kejadian di luar rentang ini jangan dipakai sebagai bukti.
+                      <strong className="data-value">{evidencePeriod.range}</strong>.
                     </p>
                   )}
                   <textarea rows={3} value={comments[cur.id] ?? ''} onChange={(e) => setComments((p) => ({ ...p, [cur.id]: e.target.value }))}

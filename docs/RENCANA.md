@@ -218,9 +218,10 @@ Dipindah ke §2 bila diputuskan dikerjakan.
 - **Pengaman warna otomatis**: pengecekan otomatis yang menolak warna di luar palet resmi agar halaman baru
   tidak kembali ke gaya lama.
 - **Design System Infarm ke halaman lain.** Sudah: sidebar (semua halaman), grup Pemantauan & Laporan (Dashboard,
-  Monitor, Struktur, Monitoring & Audit KPI, Log Aktivitas, Ekspor), serta Monitor Kinerja, Laporan Kinerja Tim, dan
-  Input KPI Anggota (2026-11-03/04). Belum: Daftar Penilaian Saya, Laporan Hasil Saya (mockup sudah disetujui), Rencana
-  Pengembangan, dan halaman Admin lain (Persiapan Siklus, Pelaksanaan, Hasil & Tindak Lanjut, Administrasi).
+  Monitor, Struktur, Monitoring & Audit KPI, Log Aktivitas, Ekspor), serta Monitor Kinerja, Laporan Kinerja Tim,
+  Input KPI Anggota, dan grup Hasil & Tindak Lanjut (2026-11-03/04). Belum: Daftar Penilaian Saya, Laporan Hasil Saya
+  (mockup sudah disetujui), Rencana Pengembangan (pegawai), dan grup Admin lain (Persiapan Siklus, Pelaksanaan,
+  Administrasi). Komponen bersama yang masih bergaya lama: kotak konfirmasi (masih memakai emoji) dan tombol standar.
 - **Mode gelap.** Palet sudah mendukung; belum diminta.
 - **Ganti email sendiri** di Akun Saya.
 - **Email anti-spam permanen**: domain sendiri + layanan Resend.

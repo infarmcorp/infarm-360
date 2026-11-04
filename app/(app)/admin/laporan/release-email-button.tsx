@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ImageUp, Mail, Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/button';
 import { DatePicker } from '@/components/date-picker';
+import { FIELD } from '@/components/infarm-ui';
 import {
   defaultSteps, releaseEmailHtml, releaseSubject,
   type ReleaseContent, type ReleaseImageSrc, type ReleasePeriod, type ReleaseStep,
@@ -44,7 +45,7 @@ export function ReleaseEmailButton({ release, primary }: { release: ReleaseProps
   const none = release.recipients.length === 0;
   return (
     <>
-      <Button type="button" variant={primary && !none ? 'primary' : 'ghost'} size="sm" onClick={() => setOpen(true)}
+      <Button type="button" variant={primary && !none ? 'primary' : 'ghost'} size="sm" className="min-h-9" onClick={() => setOpen(true)}
         disabled={none} title={none ? 'Belum ada laporan Final' : undefined}>
         <Mail className="w-3.5 h-3.5" /> Kirim Email Rilis
       </Button>
@@ -182,8 +183,8 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
     if (res.ok) router.refresh();
   }
 
-  const inputCls = 'w-full rounded-control border border-line bg-surface px-2.5 py-1.5 text-[12.5px] text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-tint';
-  const labelCls = 'text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-faint';
+  const inputCls = `${FIELD} w-full`;
+  const labelCls = 'text-xs font-bold uppercase tracking-[0.08em] text-ink-soft';
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4"
@@ -192,11 +193,11 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
         onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-[17px] font-bold text-ink">
+            <h2 className="text-base font-bold text-ink">
               Email Rilis Laporan — <span className="data-value">{period.label}</span>
               {single && <span className="text-ink-soft font-semibold"> · {single.name}</span>}
             </h2>
-            <p className="mt-0.5 text-[12.5px] text-ink-soft">
+            <p className="mt-0.5 text-[13px] text-ink-soft">
               Mengabarkan pegawai bahwa PDF laporannya sudah bisa diunduh di <strong>Laporan Hasil Saya</strong>.
               Email tidak memuat skor atau isi laporan.
             </p>
@@ -210,7 +211,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
           {/* Kiri: penerima, gambar, isian kuartal */}
           <div className="space-y-4">
             {!single && active && (
-              <section className="rounded-panel border border-brand/30 bg-brand-tint p-3 text-[12.5px] text-ink-soft space-y-1.5">
+              <section className="rounded-panel border border-brand/30 bg-brand-tint p-3 text-[13px] text-ink-soft space-y-1.5">
                 <p className="font-semibold text-brand-ink">
                   {activeLocked ? 'Sedang dikirim terjadwal' : 'Terjadwal'}: {fmtScheduleWib(active.sendAt)}
                 </p>
@@ -236,7 +237,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
             )}
             {!single && !active && schedule.last && <ScheduleResult s={schedule.last} />}
 
-            <section className="rounded-panel border border-line bg-neutral-tint p-3 text-[12.5px] text-ink-soft space-y-1.5">
+            <section className="rounded-panel border border-line bg-neutral-tint p-3 text-[13px] text-ink-soft space-y-1.5">
               {single ? (
                 <>
                   <p>Penerima: <strong className="text-ink">{single.name}</strong> · {single.dept}</p>
@@ -273,7 +274,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
                           </label>
                         ))}
                       </div>
-                      <p className="mt-1 text-[11px] text-ink-faint">Hapus centang untuk menahan pegawai tertentu (dikirimi menyusul).</p>
+                      <p className="mt-1 text-xs text-ink-faint">Hapus centang untuk menahan pegawai tertentu (dikirimi menyusul).</p>
                     </details>
                   )}
                   {noFolder.length > 0 && (
@@ -291,7 +292,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
             <section>
               <span className={labelCls}>Gambar pendamping periode ini</span>
               {!storageOk ? (
-                <p className="mt-1 text-[12px] text-warn-ink">Penyimpanan gambar belum aktif (perubahan database 0051 belum dijalankan). Email tetap bisa dikirim tanpa gambar.</p>
+                <p className="mt-1 text-xs text-warn-ink">Penyimpanan gambar belum aktif (perubahan database 0051 belum dijalankan). Email tetap bisa dikirim tanpa gambar.</p>
               ) : (
                 <div className="mt-1.5 grid grid-cols-2 gap-2">
                   {RELEASE_IMAGES.map((def) => (
@@ -300,7 +301,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
                   ))}
                 </div>
               )}
-              <p className="mt-1 text-[11px] text-ink-faint">JPG/PNG/WebP, maks. 2 MB. Gambar hanya berlaku untuk periode {period.label} — ganti tiap periode.</p>
+              <p className="mt-1 text-xs text-ink-faint">JPG/PNG/WebP, maks. 2 MB. Gambar hanya berlaku untuk periode {period.label} — ganti tiap periode.</p>
             </section>
 
             <label className="block">
@@ -310,7 +311,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
             </label>
 
             {period.has360 && (
-              <label className="flex items-start gap-2 text-[12.5px] text-ink-soft cursor-pointer">
+              <label className="flex items-start gap-2 text-[13px] text-ink-soft cursor-pointer">
                 <input type="checkbox" checked={content.includeLate}
                   onChange={(e) => setContent((c) => ({ ...c, includeLate: e.target.checked }))} className="mt-0.5 accent-brand" />
                 Sertakan paragraf potongan keterlambatan pengisian 360° pada periode ini
@@ -321,12 +322,12 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
               <div className="flex items-center justify-between">
                 <span className={labelCls}>Tahapan Selanjutnya</span>
                 <button type="button" onClick={() => setContent((c) => ({ ...c, steps: defaultSteps(tomorrow(), period.label) }))}
-                  className="text-[11px] font-semibold text-brand-ink hover:underline">Isi ulang bawaan</button>
+                  className="text-xs font-semibold text-brand-ink hover:underline">Isi ulang bawaan</button>
               </div>
               <div className="mt-1.5 space-y-2">
                 {content.steps.map((s, i) => (
                   <div key={i} className="flex gap-2">
-                    <span className="data-value pt-1.5 text-[12px] text-ink-faint">{i + 1}.</span>
+                    <span className="data-value pt-1.5 text-xs text-ink-faint">{i + 1}.</span>
                     <div className="flex-1 space-y-1">
                       <input value={s.when} onChange={(e) => setStep(i, { when: e.target.value })} maxLength={80}
                         placeholder="Tanggal, mis. 16–20 Oktober 2026" className={`${inputCls} font-semibold`} />
@@ -340,7 +341,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
               </div>
               {content.steps.length < MAX_STEPS && (
                 <button type="button" onClick={() => setContent((c) => ({ ...c, steps: [...c.steps, { when: '', text: '' }] }))}
-                  className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-brand-ink hover:underline">
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-ink hover:underline">
                   <Plus className="w-3.5 h-3.5" /> Tambah tahap
                 </button>
               )}
@@ -350,16 +351,16 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
           {/* Kanan: pratinjau */}
           <div className="min-w-0">
             <p className={labelCls}>Pratinjau</p>
-            <p className="mt-1 text-[12px] text-ink-soft">
+            <p className="mt-1 text-xs text-ink-soft">
               Subjek: <span className="font-semibold text-ink">{releaseSubject(period.label, sample)}</span>
             </p>
             <iframe title="Pratinjau email" srcDoc={previewHtml} sandbox=""
-              className="mt-2 h-[620px] w-full rounded-control border border-line bg-white" />
+              className="mt-2 h-[620px] w-full rounded-control border border-line bg-surface" />
           </div>
         </div>
 
         {msg && (
-          <div className={`mt-4 rounded-control border px-3 py-2 text-[12.5px] ${msg.ok ? 'border-brand/25 bg-brand-tint text-brand-ink' : 'border-danger-ink/25 bg-danger-tint text-danger-ink'}`}>
+          <div className={`mt-4 rounded-control border px-3 py-2 text-[13px] ${msg.ok ? 'border-brand/25 bg-brand-tint text-brand-ink' : 'border-danger-ink/25 bg-danger-tint text-danger-ink'}`}>
             <p className="font-semibold">{msg.text}</p>
             {msg.details && msg.details.length > 0 && (
               <ul className="mt-1 list-disc pl-5 text-ink-soft">{msg.details.map((d, i) => <li key={i}>{d}</li>)}</ul>
@@ -368,7 +369,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
         )}
 
         {!single && (
-          <section className="mt-4 rounded-panel border border-line p-3 text-[12.5px] text-ink-soft">
+          <section className="mt-4 rounded-panel border border-line p-3 text-[13px] text-ink-soft">
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="radio" checked={mode === 'now'} disabled={!!editingId || !!busy}
@@ -384,7 +385,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
                 <div className="flex items-center gap-2">
                   <DatePicker value={schedDate} onChange={setSchedDate} ariaLabel="Tanggal kirim" className="w-44" />
                   <input type="time" value={schedTime} onChange={(e) => setSchedTime(e.target.value)} aria-label="Jam kirim"
-                    className="rounded-control border border-line bg-surface px-2.5 py-1.5 text-[12.5px] text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-tint" />
+                    className={FIELD} />
                   <span className="font-semibold text-ink">WIB</span>
                 </div>
               )}
@@ -403,13 +404,13 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
 
         <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
           {progress && (
-            <span className="mr-auto text-[12px] text-ink-soft">
+            <span className="mr-auto text-xs text-ink-soft">
               Mengirim… <span className="data-value">{progress.done}/{progress.total}</span>
             </span>
           )}
           {confirming && mode === 'schedule' && !single ? (
             <>
-              <span className="mr-auto text-[12.5px] font-semibold text-ink">
+              <span className="mr-auto text-[13px] font-semibold text-ink">
                 {editingId ? 'Simpan perubahan: kirim' : 'Jadwalkan email'} ke <span className="data-value">{targets.length}</span> pegawai
                 pada {sendAtIso ? fmtScheduleWib(sendAtIso) : '—'}?
               </span>
@@ -418,7 +419,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
             </>
           ) : confirming ? (
             <>
-              <span className="mr-auto text-[12.5px] font-semibold text-ink">
+              <span className="mr-auto text-[13px] font-semibold text-ink">
                 {single ? <>Kirim email ke {single.name} sekarang?</> : <>Kirim email ke <span className="data-value">{targets.length}</span> pegawai sekarang?</>}
               </span>
               <Button type="button" variant="ghost" size="sm" onClick={() => setConfirming(false)}>Batal</Button>
@@ -461,7 +462,7 @@ function sendAtErrorNow(iso: string): string | null {
 function ScheduleResult({ s }: { s: ReleaseSchedule }) {
   const problems = [...s.failed.map((f) => `${f.name}: gagal — ${f.reason}`), ...s.skipped.map((x) => `${x.name}: dilewati — ${x.reason}`)];
   return (
-    <section className="rounded-panel border border-line bg-neutral-tint p-3 text-[12.5px] text-ink-soft space-y-1">
+    <section className="rounded-panel border border-line bg-neutral-tint p-3 text-[13px] text-ink-soft space-y-1">
       <p className="font-semibold text-ink">Jadwal terakhir ({fmtScheduleWib(s.sendAt)}) selesai</p>
       <p>
         <span className="data-value font-semibold text-brand-ink">{s.sentIds.length}</span> terkirim ·{' '}
@@ -472,7 +473,7 @@ function ScheduleResult({ s }: { s: ReleaseSchedule }) {
         <details>
           <summary className="cursor-pointer font-semibold">Lihat yang tidak terkirim</summary>
           <ul className="mt-1 list-disc pl-5">{problems.map((p, i) => <li key={i}>{p}</li>)}</ul>
-          <p className="mt-1 text-[11px] text-ink-faint">Perbaiki penyebabnya (mis. isi Folder Laporan), lalu kirim manual atau buat jadwal baru.</p>
+          <p className="mt-1 text-xs text-ink-faint">Perbaiki penyebabnya (mis. isi Folder Laporan), lalu kirim manual atau buat jadwal baru.</p>
         </details>
       )}
     </section>
@@ -486,23 +487,23 @@ function ImageSlot({ label, url, disabled, onPick, onRemove }: {
   const ref = useRef<HTMLInputElement>(null);
   return (
     <div className="rounded-control border border-line p-2">
-      <p className="text-[11.5px] font-semibold text-ink leading-tight">{label}</p>
+      <p className="text-xs font-semibold text-ink leading-tight">{label}</p>
       <div className="mt-1.5 flex h-24 items-center justify-center overflow-hidden rounded-control bg-neutral-tint">
         {url
           // eslint-disable-next-line @next/next/no-img-element -- gambar dari Storage (URL publik), bukan aset build
           ? <img src={url} alt={label} className="h-full w-full object-cover object-top" />
-          : <span className="text-[11px] text-ink-faint">Belum diunggah</span>}
+          : <span className="text-xs text-ink-faint">Belum diunggah</span>}
       </div>
       <input ref={ref} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) onPick(f); }} />
       <div className="mt-1.5 flex items-center gap-2">
         <button type="button" disabled={disabled} onClick={() => ref.current?.click()}
-          className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-brand-ink hover:underline disabled:opacity-50">
+          className="inline-flex items-center gap-1 text-xs font-semibold text-brand-ink hover:underline disabled:opacity-50">
           <ImageUp className="w-3.5 h-3.5" /> {url ? 'Ganti' : 'Unggah'}
         </button>
         {url && (
           <button type="button" disabled={disabled} onClick={onRemove}
-            className="ml-auto inline-flex items-center gap-1 text-[11.5px] font-semibold text-danger-ink hover:underline disabled:opacity-50">
+            className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-danger-ink hover:underline disabled:opacity-50">
             <Trash2 className="w-3.5 h-3.5" /> Hapus
           </button>
         )}

@@ -8,6 +8,12 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-04 — Halaman "Hasil & Tindak Lanjut" memakai Design System Infarm (di `dev`, belum di production)
+- Review & Finalisasi, Pantauan Rencana Pengembangan, dan Promosi & Suksesi kini bergaya sama dengan Dashboard, dengan
+  ukuran rapat. Tabel laporan di Tinjauan Hasil Akhir (Direksi) ikut berubah karena memakai tabel yang sama.
+- Simbol dan emoji di halaman ini diganti ikon garis. Langkah rilis 1-2-3 tetap. Judul kartu baru: "Rencana per
+  Pegawai" (Pantauan) dan "Daftar Pegawai" (Suksesi). Logika, finalisasi, email rilis, dan hak akses tidak berubah.
+
 ### 2026-11-04 — Halaman "Pemantauan & Laporan" memakai Design System Infarm (di `dev`, belum di production)
 - Permintaan pemilik: semua halaman di grup Pemantauan & Laporan ikut gaya Dashboard Organisasi — Monitor Kinerja
   Pegawai, Struktur Organisasi, Monitoring & Audit KPI, Log Aktivitas HRD, Ekspor Dataset. Halaman SPV yang memakai

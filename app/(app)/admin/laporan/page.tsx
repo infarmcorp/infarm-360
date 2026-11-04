@@ -15,7 +15,9 @@ import { loadReleaseSchedules } from '@/lib/release-schedule';
 import { fmtScheduleWib } from '@/lib/release-schedule-time';
 import { appBaseUrl } from '@/lib/app-url';
 import { ImportSummaries, type ImportSummaryEmp } from './import-summaries';
-import { Panel } from '@/components/panel';
+import { CARD, CardTitle, Note, PageTitle } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
+import { AlertTriangle, ArrowRight, Check, ListChecks, Lock } from 'lucide-react';
 import { InfoTip } from '@/components/info-tip';
 import { loadLastAccGiven } from '@/lib/report-history';
 import { loadPendingLatePenalties, refreshLatePenalties } from '@/lib/late-server';
@@ -51,8 +53,8 @@ export default async function AdminLaporanPage() {
     grantCanFinalize = !!access?.canFinalize;
   }
   if (!isHrdFull && !reviewScopes) {
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin atau pemegang akses Review & Finalisasi.</p>
-      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><PageTitle title="Review & Finalisasi" />
+      <p className="text-[13px] text-ink-soft">Halaman ini hanya untuk HRD Admin atau pemegang akses Review & Finalisasi.</p></Shell>;
   }
 
   // "Tinjau" (buka detail) tampil bila HRD penuh ATAU pemegang grant (baik lihat-saja maupun edit —
@@ -63,7 +65,7 @@ export default async function AdminLaporanPage() {
 
   const { data: ap } = await supabase
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><PageTitle title="Review & Finalisasi" /><p className="text-[13px] text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
   // Pelaporan: ambil TANPA filter is_active; nonaktif disaring belakangan kecuali punya data
   // periode (KPI/360°/laporan) → pegawai yang resign di akhir periode tetap bisa difinalisasi.
@@ -268,7 +270,7 @@ export default async function AdminLaporanPage() {
   const finalizeIdleLabel = waitingAccCount > 0 ? `Menunggu ACC (${waitingAccCount})`
     : draftCount > 0 ? `Masih ada draf (${draftCount})`
     : noReportCount > 0 ? `Laporan belum dibuat (${noReportCount})`
-    : finalCount > 0 ? '✓ Semua sudah Final' : 'Belum ada laporan';
+    : finalCount > 0 ? 'Semua sudah Final' : 'Belum ada laporan';
   const releaseReady = release?.recipients.filter((r) => r.hasFolder).length ?? 0;
   const releaseSent = release?.recipients.filter((r) => r.hasFolder && r.sent).length ?? 0;
   const releaseNoFolder = release?.recipients.filter((r) => !r.hasFolder).length ?? 0;
@@ -309,48 +311,42 @@ export default async function AdminLaporanPage() {
 
   return (
     <Shell>
-      <div className="flex items-start justify-between mb-5">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink flex items-center gap-2">
-            Review &amp; Finalisasi
-            {!isHrdFull && !grantCanEdit && (
-              <span className="text-[10px] font-semibold uppercase tracking-[0.05em] px-2 py-0.5 rounded-control border bg-neutral-tint text-ink-soft border-line">Lihat-saja</span>
-            )}
-          </h1>
-          <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span> · {isHrdFull ? 'finalisasi Skor Akhir kalibrasi.' : grantCanFinalize ? 'akses dari HRD — boleh tinjau & finalisasi (lingkup terbatas).' : grantCanEdit ? 'akses dari HRD — boleh tinjau & meringkas, tanpa finalisasi (lingkup terbatas).' : 'lihat-saja (akses dari HRD, lingkup terbatas).'}</p>
-        </div>
-        <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
-      </div>
+      <PageTitle title="Review & Finalisasi">
+        {!isHrdFull && !grantCanEdit && (
+          <span className="mr-2 inline-flex items-center rounded-full bg-neutral-tint px-2.5 py-0.5 text-xs font-semibold text-ink-soft">Lihat-saja</span>
+        )}
+        Periode aktif <span className="font-mono font-semibold text-ink">{ap.label}</span> · {isHrdFull ? 'finalisasi Skor Akhir kalibrasi.' : grantCanFinalize ? 'akses dari HRD — boleh tinjau & finalisasi (lingkup terbatas).' : grantCanEdit ? 'akses dari HRD — boleh tinjau & meringkas, tanpa finalisasi (lingkup terbatas).' : 'lihat-saja (akses dari HRD, lingkup terbatas).'}
+      </PageTitle>
 
       {/* Kokpit "Langkah Rilis Laporan" — HANYA HRD penuh (pemegang grant = read-only). Tiga langkah
           berjajar sesuai alur kerja: ① Hitung Skor 360° → ② Finalisasi → ③ Kabari Pegawai. Hanya langkah
           yang SEDANG perlu dikerjakan (`activeStep`) yang tombolnya hijau; langkah lain bergaris/nonaktif. */}
       {isHrdFull && (
-      <div className="mb-5 rounded-panel border border-line bg-neutral-tint p-3">
-        <div className="mb-2.5 flex items-center gap-1.5">
-          <h2 className="text-[11px] font-semibold text-ink-soft uppercase tracking-[0.05em]">Langkah Rilis Laporan</h2>
+      <div className={`${CARD} mb-4`}>
+        <div className="mb-3 flex items-center gap-1.5">
+          <CardTitle icon={ListChecks}>Langkah Rilis Laporan</CardTitle>
           <InfoTip label="Penjelasan langkah rilis" text={'Skor hanya diperbarui saat Anda menekan tombolnya di sini. ① Hitung Ulang: penilaian 360°, koreksi Garis Hubungan, atau bobot berubah sejak terakhir dihitung. ② Finalisasi: laporan yang sudah di-ACC dikunci dan tampil ke pegawai; "laporan Final berubah" = angka tersimpan ketinggalan dari data terkini. ③ Kabari Pegawai: email bahwa PDF sudah bisa diunduh — hanya untuk laporan Final yang Folder Laporan-nya terisi.'} />
         </div>
 
-        <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-stretch">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-stretch">
           <StepCard n={1} title="Hitung Skor 360°" state={stepState(1)}>
             {!ap.has_360 ? (
               <p>Periode ini tanpa 360° — langkah ini tidak diperlukan.</p>
             ) : backfilled ? (
-              <p>🔒 Skor 360° hasil impor resmi (Looker) dan dikunci — tidak perlu dihitung ulang.</p>
+              <p><Lock className="mr-1 inline w-3.5 h-3.5 -mt-0.5" aria-hidden />Skor 360° hasil impor resmi (Looker) dan dikunci — tidak perlu dihitung ulang.</p>
             ) : (
               <>
                 {staleCount === 0
-                  ? <p className="font-semibold text-brand-ink">✓ Semua skor sudah mutakhir</p>
+                  ? <p className="font-semibold text-brand-ink"><Check className="mr-1 inline w-3.5 h-3.5 -mt-0.5" aria-hidden />Semua skor sudah mutakhir</p>
                   : <p className="font-semibold text-warn-ink">
                       {neverCount > 0 && <><span className="data-value">{neverCount}</span> belum pernah dihitung{changedCount > 0 ? ' · ' : ''}</>}
                       {changedCount > 0 && <><span className="data-value">{changedCount}</span> perlu dihitung ulang</>}
                     </p>}
                 {!wsRow && (
-                  <p className="text-warn-ink">⚠ Bobot penilai belum disimpan — <Link href="/admin/bobot" className="underline">simpan di Atur Bobot</Link> dulu.</p>
+                  <p className="text-warn-ink"><Warn />Bobot penilai belum disimpan — <Link href="/admin/bobot" className="underline">simpan di Atur Bobot</Link> dulu.</p>
                 )}
                 {pendingLate > 0 && (
-                  <p className="text-warn-ink">⚠ <span className="data-value">{pendingLate}</span> potongan keterlambatan belum masuk — <Link href="/admin/kepatuhan" className="underline">terapkan di Flag Kepatuhan</Link>.</p>
+                  <p className="text-warn-ink"><Warn /><span className="data-value">{pendingLate}</span> potongan keterlambatan belum masuk — <Link href="/admin/kepatuhan" className="underline">terapkan di Flag Kepatuhan</Link>.</p>
                 )}
               </>
             )}
@@ -392,44 +388,44 @@ export default async function AdminLaporanPage() {
           </StepCard>
         </div>
 
-        <p className="mt-2.5 text-right text-[11px] text-ink-faint">
-          <Link href="/admin/bobot" className="hover:text-ink-soft hover:underline">Atur Bobot</Link>
+        <p className="mt-3 text-right text-xs text-ink-soft">
+          <Link href="/admin/bobot" className="hover:text-brand-ink hover:underline">Atur Bobot</Link>
           {' · '}
-          <Link href="/admin/kepatuhan" className="hover:text-ink-soft hover:underline">Flag Kepatuhan</Link>
+          <Link href="/admin/kepatuhan" className="hover:text-brand-ink hover:underline">Flag Kepatuhan</Link>
         </p>
       </div>
       )}
 
       {importProps && (
-        <div className="mb-5">
+        <div className="mb-4">
           <ImportSummaries {...importProps} periodLabel={ap.label} selfId={isHrdFull ? null : user.id} />
         </div>
       )}
 
-      <Panel><ReportTable rows={shownRows} depts={depts} has360={ap.has_360} readOnly={readOnly} release={release ?? undefined} /></Panel>
+      <div className={CARD}><ReportTable rows={shownRows} depts={depts} has360={ap.has_360} readOnly={readOnly} release={release ?? undefined} /></div>
       {isHrdFull ? (
-        <p className="text-[11px] text-ink-faint mt-4 leading-relaxed">
+        <div className="mt-4"><Note>
           Klik <strong>Tinjau</strong> untuk membuka & mengelola laporan pegawai (Simpan Draf → Rilis ke SPV →
           Finalisasi) di panel detail. Setelah <strong>Final</strong>, kolom Skor Akhir menampilkan angka
           tersimpan yang dilihat pegawai; badge <strong>berubah</strong> muncul bila data terkini berbeda —
           tekan <strong>② Perbarui Laporan Final yang Berubah</strong> di atas untuk menyegarkan semuanya sekaligus
           (atau kembalikan satu laporan ke draf lalu finalisasi ulang manual).
-        </p>
+        </Note></div>
       ) : grantCanFinalize ? (
-        <p className="text-[11px] text-ink-faint mt-4 leading-relaxed">
+        <div className="mt-4"><Note>
           Klik <strong>Tinjau</strong> untuk membuka laporan pegawai dalam lingkup akses Anda dan
           mengelolanya (Simpan Draf → Rilis → Finalisasi). Akses ini diberikan HRD dan dibatasi lingkup.
-        </p>
+        </Note></div>
       ) : grantCanEdit ? (
-        <p className="text-[11px] text-ink-faint mt-4 leading-relaxed">
+        <div className="mt-4"><Note>
           Klik <strong>Tinjau</strong> untuk membuka laporan pegawai dalam lingkup akses Anda dan menulis
           <strong> Ringkasan Aspek</strong>. Finalisasi &amp; kalibrasi skor tetap wewenang HRD.
-        </p>
+        </Note></div>
       ) : (
-        <p className="text-[11px] text-ink-faint mt-4 leading-relaxed">
+        <div className="mt-4"><Note>
           Klik <strong>Tinjau</strong> untuk membuka laporan (tampilan <strong>lihat-saja</strong>) sesuai
           akses yang diberikan HRD (lingkup terbatas). Finalisasi & perubahan laporan hanya oleh HRD.
-        </p>
+        </Note></div>
       )}
     </Shell>
   );
@@ -441,14 +437,14 @@ type StepState = 'active' | 'done' | 'idle';
 function StepCard({ n, title, state, children }: { n: number; title: string; state: StepState; children: React.ReactNode }) {
   const badge = state === 'active' ? 'bg-brand text-white' : state === 'done' ? 'bg-brand-tint text-brand-ink' : 'bg-neutral-tint text-ink-soft';
   return (
-    <section className={`flex flex-col rounded-panel border bg-surface p-3 ${state === 'active' ? 'border-brand/50' : 'border-line'}`}>
+    <section className={`flex flex-col rounded-xl border p-3.5 ${state === 'active' ? 'border-brand bg-surface' : 'border-line bg-infarm-surface'}`}>
       <div className="flex items-center gap-2">
-        <span className={`data-value flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold ${badge}`}>
-          {state === 'done' ? '✓' : n}
+        <span className={`data-value flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${badge}`}>
+          {state === 'done' ? <Check className="w-3.5 h-3.5" aria-hidden /> : n}
         </span>
-        <h3 className="text-[13.5px] font-bold text-ink">{title}</h3>
+        <h3 className="text-[13px] font-bold text-ink">{title}</h3>
       </div>
-      <div className="mt-2 flex flex-1 flex-col gap-1 text-[12px] leading-snug text-ink-soft">{children}</div>
+      <div className="mt-2 flex flex-1 flex-col gap-1 text-xs leading-snug text-ink-soft">{children}</div>
     </section>
   );
 }
@@ -460,9 +456,14 @@ function StepActions({ children }: { children: React.ReactNode }) {
 
 /** Panah antar kartu (hanya di layar lebar; di HP kartu bertumpuk). */
 function StepArrow() {
-  return <div className="hidden items-center text-ink-faint lg:flex" aria-hidden>→</div>;
+  return <div className="hidden items-center text-ink-faint lg:flex" aria-hidden><ArrowRight className="w-4 h-4" /></div>;
+}
+
+/** Ikon peringatan sebaris (pengganti simbol ⚠ di teks langkah). */
+function Warn() {
+  return <AlertTriangle className="mr-1 inline w-3.5 h-3.5 -mt-0.5" aria-hidden />;
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
+  return <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>{children}</main>;
 }

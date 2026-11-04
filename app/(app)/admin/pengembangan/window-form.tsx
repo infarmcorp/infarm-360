@@ -6,6 +6,7 @@ import { Button } from '@/components/button';
 import { DatePicker } from '@/components/date-picker';
 import { callAction, savedAtLabel } from '@/lib/call-action';
 import { formatDateWib } from '@/lib/datetime';
+import { FIELD_LABEL } from '@/components/infarm-ui';
 import { setPlanWindow } from '@/app/(app)/pengembangan/actions';
 
 /**
@@ -35,14 +36,14 @@ export function WindowForm({ periodId, title, due, closed }: { periodId: string;
   return (
     <div className="flex flex-wrap items-end gap-3">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-faint mb-1">Batas rencana disepakati</p>
+        <p className={FIELD_LABEL}>Batas rencana disepakati</p>
         <DatePicker value={d} onChange={setD} allowClear ariaLabel="Batas rencana disepakati" className="w-44" />
       </div>
       <Button variant="ghost" disabled={busy || d === (due ?? '')} onClick={() => save(closed)}>Simpan Batas</Button>
       <Button variant={closed ? 'primary' : 'danger'} disabled={busy} onClick={() => save(!closed)}>
         {closed ? 'Buka Rencana Periode Ini' : 'Tutup Rencana Periode Ini'}
       </Button>
-      {msg && <span className={`text-[12px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
+      {msg && <span className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
     </div>
   );
 }

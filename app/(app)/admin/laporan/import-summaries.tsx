@@ -2,7 +2,8 @@
 
 import { useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileUp } from 'lucide-react';
+import { Check, FileUp, X } from 'lucide-react';
+import { CARD, CardTitle, TABLE_HEAD } from '@/components/infarm-ui';
 import { importSummaries } from './actions';
 import {
   classifySummaryRows, buildSummaryPayload, SUMMARY_SHEET, SUMMARY_KIND_LABEL,
@@ -97,7 +98,7 @@ export function ImportSummaries({ employees, aspects, questions, periodLabel, se
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">
+        className="inline-flex items-center gap-1.5 text-[13px] font-semibold min-h-9 px-3.5 rounded-control border border-line bg-surface text-ink-soft hover:text-ink hover:border-line-strong">
         <FileUp className="w-3.5 h-3.5" /> Impor Ringkasan dari Excel
       </button>
     );
@@ -105,54 +106,54 @@ export function ImportSummaries({ employees, aspects, questions, periodLabel, se
 
   const code = (s: string) => <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">{s}</code>;
   return (
-    <div className="rounded-panel border border-line bg-surface p-3 space-y-2 w-full">
+    <div className={`${CARD} space-y-2.5 w-full`}>
       <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.07em]">Impor Ringkasan Aspek &amp; Kualitatif</h3>
-        <button type="button" onClick={() => { setOpen(false); setRows(null); setMsg(null); }} className="text-ink-faint hover:text-ink-soft text-xs">Tutup ✕</button>
+        <CardTitle icon={FileUp}>Impor Ringkasan Aspek &amp; Kualitatif</CardTitle>
+        <button type="button" onClick={() => { setOpen(false); setRows(null); setMsg(null); }} className="inline-flex items-center gap-1 text-ink-soft hover:text-ink text-xs font-semibold">Tutup <X className="w-3.5 h-3.5" aria-hidden /></button>
       </div>
-      <p className="text-[12px] text-ink-soft leading-relaxed">
+      <p className="text-[13px] text-ink-soft leading-relaxed">
         Format sama dengan lembar <strong>Ringkasan Naratif</strong> di Ekspor: {code('kode')}, {code('jenis')} (Aspek / Pertanyaan Kualitatif),
         {' '}{code('aspek_atau_pertanyaan')}, {code('ringkasan')}. <button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh template (berisi ringkasan saat ini)</button>.
       </p>
-      <p className="text-[11px] text-ink-faint leading-relaxed">
+      <p className="text-xs text-ink-soft leading-relaxed">
         Per pegawai, ringkasan jenis yang ada di file <strong>menggantikan</strong> seluruh ringkasan jenis itu — item yang tidak tercantum akan terhapus.
         Sel ringkasan kosong dilewati (isi lama tetap). Laporan Final tidak diubah.
       </p>
-      <p className="text-[11px] text-ink-faint leading-relaxed">
+      <p className="text-xs text-ink-soft leading-relaxed">
         Format di dalam sel (pindah baris = Alt+Enter): {code('**teks**')} = tebal · baris diawali {code('- ')} atau {code('* ')} = poin
         (baris berikutnya tanpa tanda = lanjutan poin) · baris kosong = paragraf baru. Bila sel <strong>diawali</strong> poin,
         pakai {code('* ')} — Excel menganggap sel berawalan “-” sebagai rumus.
       </p>
       <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile}
-        className="block text-xs file:mr-3 file:rounded-control file:border-0 file:bg-brand file:px-3 file:py-1.5 file:text-white file:font-semibold" />
+        className="block text-xs file:mr-3 file:rounded-control file:border-0 file:bg-brand file:px-3 file:py-2 file:text-white file:font-bold" />
       {parseErr && <p className="text-xs text-danger-ink font-semibold">{parseErr}</p>}
 
       {rows && (
         <>
-          <p className="text-[11px] text-ink-soft">
+          <p className="text-xs text-ink-soft">
             <span className="data-value font-semibold text-ink">{counts.ok}</span> ringkasan akan diimpor ·{' '}
             <span className="data-value">{counts.empty}</span> kosong (isi lama tetap) ·{' '}
             <span className="data-value">{counts.skip}</span> dilewati ·{' '}
             <span className={`data-value ${counts.bad ? 'text-danger-ink font-semibold' : ''}`}>{counts.bad}</span> bermasalah
           </p>
           <div className="overflow-x-auto border border-line rounded-control max-h-72 overflow-y-auto bg-surface">
-            <table className="w-full text-left text-[11px]">
-              <thead><tr className="bg-neutral-tint text-[10px] uppercase text-ink-faint border-b border-line">
-                <th className="py-1.5 px-2 font-semibold">Baris</th><th className="py-1.5 px-2 font-semibold">Pegawai</th><th className="py-1.5 px-2 font-semibold">Jenis</th>
-                <th className="py-1.5 px-2 font-semibold">Aspek / Pertanyaan</th><th className="py-1.5 px-2 font-semibold">Ringkasan</th><th className="py-1.5 px-2 font-semibold">Keterangan</th>
+            <table className="w-full text-left text-xs">
+              <thead><tr className={TABLE_HEAD}>
+                <th className="py-2 px-2 font-semibold">Baris</th><th className="py-2 px-2 font-semibold">Pegawai</th><th className="py-2 px-2 font-semibold">Jenis</th>
+                <th className="py-2 px-2 font-semibold">Aspek / Pertanyaan</th><th className="py-2 px-2 font-semibold">Ringkasan</th><th className="py-2 px-2 font-semibold">Keterangan</th>
               </tr></thead>
               <tbody className="divide-y divide-line-soft">
                 {rows.map((r) => (
                   <tr key={r.line} className={r.status === 'invalid' || r.status === 'blocked' ? 'bg-danger-tint/50' : r.status === 'skip' ? 'bg-warn-tint/60' : ''}>
-                    <td className="py-1.5 px-2 text-ink-faint data-value">{r.line}</td>
+                    <td className="py-1.5 px-2 text-ink-soft data-value">{r.line}</td>
                     <td className="py-1.5 px-2 text-ink whitespace-nowrap">{r.emp?.name ?? <span className="text-danger-ink data-value">{r.code || '?'}</span>}</td>
                     <td className="py-1.5 px-2 text-ink-soft whitespace-nowrap">{r.kind ? SUMMARY_KIND_LABEL[r.kind] : '?'}</td>
                     <td className="py-1.5 px-2 text-ink-soft max-w-[220px] truncate" title={r.item}>{r.item || '?'}</td>
                     <td className="py-1.5 px-2 text-ink-soft max-w-[280px] truncate" title={r.text}>{r.text || <span className="text-ink-faint">—</span>}</td>
                     <td className="py-1.5 px-2">
                       {r.status === 'ok'
-                        ? <span className="text-brand-ink font-semibold">✓ Akan diimpor</span>
-                        : <span className={r.status === 'empty' ? 'text-ink-faint' : r.status === 'skip' ? 'text-warn-ink' : 'text-danger-ink'}>{r.status === 'empty' ? '' : '✗ '}{r.reason}</span>}
+                        ? <span className="inline-flex items-center gap-1 text-brand-ink font-semibold"><Check className="w-3 h-3" aria-hidden />Akan diimpor</span>
+                        : <span className={r.status === 'empty' ? 'text-ink-faint' : r.status === 'skip' ? 'text-warn-ink' : 'text-danger-ink'}>{r.status !== 'empty' && <X className="mr-0.5 inline w-3 h-3 -mt-0.5" aria-hidden />}{r.reason}</span>}
                     </td>
                   </tr>
                 ))}
@@ -160,17 +161,17 @@ export function ImportSummaries({ employees, aspects, questions, periodLabel, se
             </table>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={apply} disabled={pending || payload.length === 0} className="rounded-control bg-brand hover:bg-brand-ink px-3 py-1.5 text-white text-xs font-semibold disabled:opacity-50">
+            <button onClick={apply} disabled={pending || payload.length === 0} className="rounded-xl bg-brand hover:bg-brand-ink min-h-9 px-4 text-white text-[13px] font-bold disabled:opacity-50">
               {pending ? 'Mengimpor…' : `Impor ringkasan ${payload.length} pegawai`}
             </button>
-            <button onClick={() => setRows(null)} disabled={pending} className="text-xs font-semibold text-ink-faint hover:text-ink-soft">Batal</button>
+            <button onClick={() => setRows(null)} disabled={pending} className="text-[13px] font-semibold text-ink-soft hover:text-ink">Batal</button>
           </div>
         </>
       )}
       {msg && (
-        <div className={`text-xs ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>
+        <div className={`text-[13px] ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>
           <p className="font-semibold">{msg.text}</p>
-          {msg.detail && <p className="text-[11px] text-ink-soft mt-1 leading-relaxed">{msg.detail}</p>}
+          {msg.detail && <p className="text-xs text-ink-soft mt-1 leading-relaxed">{msg.detail}</p>}
         </div>
       )}
     </div>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { RefreshCw } from 'lucide-react';
+import { Check, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/button';
 import { OverflowMenu } from '@/components/overflow-menu';
 import { ConfirmDialog } from '@/components/confirm-dialog';
@@ -38,13 +38,13 @@ export function Recompute360Button({ stale, primary, blocked = false }: { stale:
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2">
         {stale > 0 ? (
-          <Button type="button" size="sm" variant={primary ? 'primary' : 'ghost'} onClick={run} disabled={busy || blocked}>
+          <Button type="button" size="sm" className="min-h-9" variant={primary ? 'primary' : 'ghost'} onClick={run} disabled={busy || blocked}>
             {spin} {busy ? 'Menghitung…' : 'Hitung Ulang Skor 360°'}
           </Button>
         ) : (
           <>
-            <Button type="button" size="sm" variant="ghost" disabled title="Tidak ada perubahan sejak terakhir dihitung">
-              {busy ? <>{spin} Menghitung…</> : '✓ Mutakhir'}
+            <Button type="button" size="sm" className="min-h-9" variant="ghost" disabled title="Tidak ada perubahan sejak terakhir dihitung">
+              {busy ? <>{spin} Menghitung…</> : <><Check className="w-3.5 h-3.5" aria-hidden /> Mutakhir</>}
             </Button>
             {!blocked && (
               <OverflowMenu label="Opsi hitung ulang" items={[{
@@ -55,7 +55,7 @@ export function Recompute360Button({ stale, primary, blocked = false }: { stale:
           </>
         )}
       </div>
-      {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
+      {msg && <span className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
 
       <ConfirmDialog
         open={confirmForce} icon="🔄" tone="primary"

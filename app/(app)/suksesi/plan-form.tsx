@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { FIELD } from '@/components/infarm-ui';
 import { upsertPlan, deletePlan } from './actions';
 
 const PLAN_OPTIONS = [
@@ -45,7 +46,7 @@ export function PlanForm({
         value={plan}
         onChange={(e) => setPlan(e.target.value)}
         disabled={locked || pending}
-        className="w-full text-xs p-2 border border-line rounded-control bg-surface text-ink disabled:bg-neutral-tint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
+        className={`${FIELD} w-full py-2 disabled:bg-neutral-tint`}
       >
         {PLAN_OPTIONS.map((p) => <option key={p} value={p}>{p}</option>)}
         {currentPlan && !PLAN_OPTIONS.includes(currentPlan) && <option value={currentPlan}>{currentPlan}</option>}
@@ -56,28 +57,28 @@ export function PlanForm({
         disabled={locked || pending}
         rows={2}
         placeholder="Justifikasi / catatan rencana…"
-        className="w-full text-xs p-2 border border-line rounded-control bg-surface text-ink disabled:bg-neutral-tint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
+        className={`${FIELD} w-full py-2 disabled:bg-neutral-tint`}
       />
       {!locked && (
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => run(false)} disabled={pending}
-            className="text-[11px] font-semibold px-3 py-1.5 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-60">
+            className="inline-flex items-center justify-center min-h-9 px-4 rounded-xl border border-line bg-surface text-ink-soft text-[13px] font-semibold hover:text-ink hover:border-line-strong disabled:opacity-60">
             Simpan Draf
           </button>
           <button type="button" onClick={() => run(true)} disabled={pending}
-            className="text-[11px] font-semibold px-3 py-1.5 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-60">
+            className="inline-flex items-center justify-center min-h-9 px-4 rounded-xl bg-brand hover:bg-brand-ink text-white text-[13px] font-bold disabled:opacity-60">
             Ajukan ke Direksi
           </button>
           {planId && (
             <button type="button" onClick={remove} disabled={pending}
-              className="text-[11px] font-semibold text-danger-ink hover:underline ml-auto">
+              className="text-xs font-semibold text-danger-ink hover:underline ml-auto">
               Hapus
             </button>
           )}
         </div>
       )}
-      {locked && <p className="text-[10px] text-ink-faint italic">Sudah {status === 'approved' ? 'disetujui' : 'ditolak'} Direksi — terkunci.</p>}
-      {msg && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
+      {locked && <p className="text-xs text-ink-soft italic">Sudah {status === 'approved' ? 'disetujui' : 'ditolak'} Direksi — terkunci.</p>}
+      {msg && <p className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
     </div>
   );
 }

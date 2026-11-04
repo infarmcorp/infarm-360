@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { FIELD } from '@/components/infarm-ui';
 import { respondPlan } from './actions';
 
 /** Direksi: setujui/tolak rencana suksesi yang diajukan HRD + komentar. */
@@ -25,19 +26,19 @@ export function RespondForm({ planId }: { planId: string }) {
         disabled={pending}
         rows={2}
         placeholder="Komentar Direksi (opsional)…"
-        className="w-full text-xs p-2 border border-line rounded-control bg-surface text-ink disabled:bg-neutral-tint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
+        className={`${FIELD} w-full py-2 disabled:bg-neutral-tint`}
       />
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => decide('approved')} disabled={pending}
-          className="text-[11px] font-semibold px-3 py-1.5 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-60">
+          className="inline-flex items-center justify-center min-h-9 px-4 rounded-xl bg-brand hover:bg-brand-ink text-white text-[13px] font-bold disabled:opacity-60">
           Setujui
         </button>
         <button type="button" onClick={() => decide('rejected')} disabled={pending}
-          className="text-[11px] font-semibold px-3 py-1.5 rounded-control border border-line text-danger-ink hover:border-danger-ink disabled:opacity-60">
+          className="inline-flex items-center justify-center min-h-9 px-4 rounded-xl border border-line bg-surface text-danger-ink text-[13px] font-semibold hover:border-danger-ink disabled:opacity-60">
           Tolak
         </button>
       </div>
-      {msg && <p className="text-[11px] font-semibold text-danger-ink">{msg}</p>}
+      {msg && <p className="text-xs font-semibold text-danger-ink">{msg}</p>}
     </div>
   );
 }

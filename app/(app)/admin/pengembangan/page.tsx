@@ -2,7 +2,9 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { Panel, PanelLabel } from '@/components/panel';
+import { CheckCircle2, CircleDashed, Clock, FilePen, Hourglass, RotateCcw, Sprout, Users, type LucideIcon } from 'lucide-react';
+import { CARD, CardTitle, PageTitle, StatCards, TABLE_HEAD, type StatTone } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { StatusChip } from '@/components/status-chip';
 import { colPercents } from '@/lib/table-cols';
 import { formatDateWib } from '@/lib/datetime';
@@ -15,6 +17,16 @@ import { PeriodPicker } from '@/app/(app)/pengembangan/period-picker';
 import { WindowForm } from './window-form';
 
 type SB = Awaited<ReturnType<typeof createClient>>;
+
+/** Kartu ringkasan per status (Design System Infarm): ikon + nada selaras PLAN_STATUS_TONE (netral → soil). */
+const STATUS_CARD: Record<DevPlanStatus | 'none', { icon: LucideIcon; tone: StatTone }> = {
+  none: { icon: CircleDashed, tone: 'soil' },
+  draft: { icon: FilePen, tone: 'soil' },
+  waiting_supervisor: { icon: Clock, tone: 'warn' },
+  revision: { icon: RotateCcw, tone: 'danger' },
+  waiting_hrd: { icon: Hourglass, tone: 'warn' },
+  agreed: { icon: CheckCircle2, tone: 'brand' },
+};
 
 /**
  * Pantauan Rencana Pengembangan (migrasi 0055). HRD Mode Admin berbagian "Rencana Pengembangan" (+ atur batas &
@@ -31,15 +43,15 @@ export default async function PantauanRencanaPage({ searchParams }: { searchPara
   const mode: HrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   const manage = canHrdManage(me ? { id: user.id, ...me } : null, mode);
   if (!manage && me?.role !== 'direksi') {
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk HRD (Mode Admin) dan Direksi.</p></Shell>;
+    return <Shell><div className={CARD}><p className="text-[13px] text-ink-soft">Halaman ini untuk HRD (Mode Admin) dan Direksi.</p></div></Shell>;
   }
   const admin = createAdminClient() as unknown as SB;
   if ((await loadPlan(admin, user.id, '00000000-0000-0000-0000-000000000000')).missing) {
-    return <Shell><p className="text-sm text-ink-soft">Fitur Rencana Pengembangan belum aktif.</p></Shell>;
+    return <Shell><div className={CARD}><p className="text-[13px] text-ink-soft">Fitur Rencana Pengembangan belum aktif.</p></div></Shell>;
   }
 
   const periods = await finalizedPeriods(admin);
-  if (!periods.length) return <Shell><p className="text-sm text-ink-soft">Belum ada laporan Final.</p></Shell>;
+  if (!periods.length) return <Shell><div className={CARD}><p className="text-[13px] text-ink-soft">Belum ada laporan Final.</p></div></Shell>;
   const sel = periods.find((p) => p.id === periodParam) ?? periods[0];
 
   const [people, resolve, { data: finals }, { data: plans }] = await Promise.all([
@@ -98,51 +110,55 @@ export default async function PantauanRencanaPage({ searchParams }: { searchPara
     <Shell>
       <div className="space-y-4">
         <PeriodPicker periods={periods} selected={sel.id} base="/admin/pengembangan" />
-        <Panel>
-          <PanelLabel>{planTitle(sel.label)} · dari laporan {sel.label}</PanelLabel>
-          <p className="text-[12.5px] text-ink-soft mt-1">
-            {sel.dev_plan_due ? <>Batas rencana disepakati: <span className="data-value">{formatDateWib(sel.dev_plan_due)}</span></> : 'Batas rencana disepakati belum ditetapkan.'}
-            {' '}· Rencana periode ini <strong>{closed ? 'sudah ditutup' : 'terbuka'}</strong>.
+        <div className={CARD}>
+          <CardTitle icon={Sprout}>{planTitle(sel.label)} · dari laporan {sel.label}</CardTitle>
+          <p className="text-[13px] text-ink-soft mt-1.5">
+            {sel.dev_plan_due ? <>Batas rencana disepakati: <span className="font-mono">{formatDateWib(sel.dev_plan_due)}</span></> : 'Batas rencana disepakati belum ditetapkan.'}
+            {' '}· Rencana periode ini <strong className="text-ink">{closed ? 'sudah ditutup' : 'terbuka'}</strong>.
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {(['none', 'draft', 'waiting_supervisor', 'revision', 'waiting_hrd', 'agreed'] as const).map((k) => (
-              <StatusChip key={k} tone={PLAN_STATUS_TONE[k]}>
-                {PLAN_STATUS_LABEL[k]} <span className="data-value ml-1">{counts.get(k) ?? 0}</span>
-              </StatusChip>
-            ))}
-          </div>
-          {manage && <div className="mt-4"><WindowForm key={sel.id} periodId={sel.id} title={planTitle(sel.label)} due={sel.dev_plan_due} closed={closed} /></div>}
-        </Panel>
+          {manage && <div className="mt-4 pt-4 border-t border-line-soft"><WindowForm key={sel.id} periodId={sel.id} title={planTitle(sel.label)} due={sel.dev_plan_due} closed={closed} /></div>}
+        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full table-fixed table-1line text-left text-sm min-w-[1060px]">
-            <colgroup>{colPercents([190, 110, 200, 130, 70, 120, 120, 100, 60]).map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
-            <thead>
-              <tr className="text-[10px] uppercase tracking-[0.05em] text-ink-faint font-semibold border-b border-line">
-                <th className="py-2 pr-3">Pegawai</th><th className="py-2 px-3">Divisi</th><th className="py-2 px-3">Atasan</th>
-                <th className="py-2 px-3">Status</th><th className="py-2 px-3 text-right">Prioritas</th>
-                <th className="py-2 px-3">Sesi 1-on-1</th><th className="py-2 px-3">Tinjauan HRD</th>
-                <th className="py-2 px-3">Diperbarui</th><th className="py-2 pl-3 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line-soft">
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td className="py-2.5 pr-3 font-semibold text-ink" title={r.name}>{r.name}</td>
-                  <td className="py-2.5 px-3 text-ink-soft">{r.dept ?? '—'}</td>
-                  <td className="py-2.5 px-3 text-ink-soft" title={r.supervisor}>{r.supervisor}</td>
-                  <td className="py-2.5 px-3"><StatusChip tone={PLAN_STATUS_TONE[r.status ?? 'none']}>{planStatusLabel(r.status, r.role)}</StatusChip></td>
-                  <td className="py-2.5 px-3 text-right data-value">{r.items}</td>
-                  <td className="py-2.5 px-3 text-ink-soft data-value">{r.oneOnOne}</td>
-                  <td className="py-2.5 px-3 text-ink-soft data-value">{r.hrdReview}</td>
-                  <td className="py-2.5 px-3 text-ink-soft data-value">{r.plan ? formatDateWib(r.plan.updated_at) : '—'}</td>
-                  <td className="py-2.5 pl-3 text-right">
-                    <Link href={`/pengembangan/${r.id}?period=${sel.id}&from=admin`} className="text-xs font-bold text-brand-ink hover:underline">Buka</Link>
-                  </td>
+        {/* Ringkasan status = kartu terpisah berikon (nada selaras chip status). */}
+        <StatCards items={(['none', 'draft', 'waiting_supervisor', 'revision', 'waiting_hrd', 'agreed'] as const).map((k) => ({
+          value: String(counts.get(k) ?? 0), label: PLAN_STATUS_LABEL[k], icon: STATUS_CARD[k].icon, tone: STATUS_CARD[k].tone,
+        }))} />
+
+        <div className={CARD}>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <CardTitle icon={Users}>Rencana per Pegawai</CardTitle>
+            <span className="text-xs text-ink-soft font-mono">{rows.length} pegawai</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full table-fixed table-1line text-left text-[13px] min-w-[1060px]">
+              <colgroup>{colPercents([190, 110, 200, 130, 70, 120, 120, 100, 60]).map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
+              <thead>
+                <tr className={TABLE_HEAD}>
+                  <th className="py-2.5 px-3 rounded-l-lg">Pegawai</th><th className="py-2.5 px-3">Divisi</th><th className="py-2.5 px-3">Atasan</th>
+                  <th className="py-2.5 px-3">Status</th><th className="py-2.5 px-3 text-right">Prioritas</th>
+                  <th className="py-2.5 px-3">Sesi 1-on-1</th><th className="py-2.5 px-3">Tinjauan HRD</th>
+                  <th className="py-2.5 px-3">Diperbarui</th><th className="py-2.5 px-3 text-right rounded-r-lg">Aksi</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-line-soft">
+                {rows.map((r) => (
+                  <tr key={r.id} className="hover:bg-infarm-surface/60">
+                    <td className="py-2.5 px-3 font-semibold text-ink" title={r.name}>{r.name}</td>
+                    <td className="py-2.5 px-3 text-ink-soft">{r.dept ?? '—'}</td>
+                    <td className="py-2.5 px-3 text-ink-soft" title={r.supervisor}>{r.supervisor}</td>
+                    <td className="py-2.5 px-3"><StatusChip tone={PLAN_STATUS_TONE[r.status ?? 'none']}>{planStatusLabel(r.status, r.role)}</StatusChip></td>
+                    <td className="py-2.5 px-3 text-right font-mono">{r.items}</td>
+                    <td className="py-2.5 px-3 text-xs text-ink-soft font-mono">{r.oneOnOne}</td>
+                    <td className="py-2.5 px-3 text-xs text-ink-soft font-mono">{r.hrdReview}</td>
+                    <td className="py-2.5 px-3 text-xs text-ink-soft font-mono">{r.plan ? formatDateWib(r.plan.updated_at) : '—'}</td>
+                    <td className="py-2.5 px-3 text-right">
+                      <Link href={`/pengembangan/${r.id}?period=${sel.id}&from=admin`} className="text-xs font-bold text-brand-ink hover:underline">Buka</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </Shell>
@@ -151,11 +167,8 @@ export default async function PantauanRencanaPage({ searchParams }: { searchPara
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
-      <div className="mb-5">
-        <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Pantauan Rencana Pengembangan</h1>
-        <p className="text-[13.5px] text-ink-soft mt-1">Status rencana pengembangan per pegawai setelah laporan Final.</p>
-      </div>
+    <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>
+      <PageTitle title="Pantauan Rencana Pengembangan">Status rencana pengembangan per pegawai setelah laporan Final.</PageTitle>
       {children}
     </main>
   );

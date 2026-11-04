@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCheck } from 'lucide-react';
+import { AlertTriangle, CheckCheck } from 'lucide-react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Button } from '@/components/button';
 import { bulkFinalizeAccepted } from './actions';
@@ -15,7 +15,7 @@ import { callAction } from '@/lib/call-action';
  * perlu dihitung ulang (peringatan agar HRD Hitung Ulang dulu supaya skor tersimpan benar).
  * Langkah ② kokpit: hijau bila `primary` (langkah yang sedang perlu dikerjakan); tanpa kandidat →
  * tombol tetap tampil tetapi nonaktif dengan `idleLabel` yang menjelaskan sebabnya (mis. "Menunggu ACC (3)"
- * atau "✓ Semua sudah Final"), agar susunan langkah tak berubah-ubah.
+ * atau "Semua sudah Final"), agar susunan langkah tak berubah-ubah.
  */
 export function BulkFinalizeButton({ count, staleCount, primary, idleLabel }: { count: number; staleCount: number; primary: boolean; idleLabel: string }) {
   const router = useRouter();
@@ -38,12 +38,12 @@ export function BulkFinalizeButton({ count, staleCount, primary, idleLabel }: { 
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <Button type="button" size="sm" variant={primary && count > 0 ? 'primary' : 'ghost'} onClick={() => setOpen(true)}
+      <Button type="button" size="sm" className="min-h-9" variant={primary && count > 0 ? 'primary' : 'ghost'} onClick={() => setOpen(true)}
         disabled={busy || count === 0} title={count === 0 ? 'Tombol ini memfinalisasi laporan yang sudah di-ACC dan masih Ditinjau — saat ini tidak ada' : undefined}>
         <CheckCheck className="w-3.5 h-3.5" /> {count > 0 ? <>Finalisasi <span className="data-value">{count}</span> Laporan</> : idleLabel}
       </Button>
-      {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
-      {msg?.failed && <span className="text-[11px] font-semibold text-danger-ink">{msg.failed}</span>}
+      {msg && <span className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
+      {msg?.failed && <span className="text-xs font-semibold text-danger-ink">{msg.failed}</span>}
 
       <ConfirmDialog
         open={open} icon="✅" tone="primary"
@@ -54,7 +54,7 @@ export function BulkFinalizeButton({ count, staleCount, primary, idleLabel }: { 
         <p>Semua laporan yang <strong>sudah di-ACC</strong> (SPV/Koordinator/Direksi) & masih Ditinjau akan
           <strong> difinalisasi</strong> — langsung <strong>terlihat oleh pegawai</strong> di &quot;Laporan Hasil Saya&quot;.</p>
         {staleCount > 0 && (
-          <p className="text-warn-ink font-semibold">⚠️ {staleCount} di antaranya Skor 360°-nya <strong>perlu dihitung ulang</strong>.
+          <p className="text-warn-ink font-semibold"><AlertTriangle className="mr-1 inline w-3.5 h-3.5 -mt-0.5" aria-hidden />{staleCount} di antaranya Skor 360°-nya <strong>perlu dihitung ulang</strong>.
             Sebaiknya klik &quot;Hitung Ulang Skor 360°&quot; dulu agar skor tersimpan yang dilihat pegawai sudah benar.</p>
         )}
         <p className="text-ink-soft">Laporan yang skornya belum bisa dihitung (KPI &amp; 360° kosong) akan dilewati.</p>

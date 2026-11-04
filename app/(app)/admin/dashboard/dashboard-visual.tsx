@@ -721,7 +721,8 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
     <div className={CARD}>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className={CARD_TITLE}>Tabel Hasil Seluruh Pegawai</h3>
+          {/* font-sans = Geist (sama dengan pil sub-tab), bukan Montserrat judul — permintaan pengguna. */}
+          <h3 className={`${CARD_TITLE} font-sans`}>Tabel Hasil Seluruh Pegawai</h3>
           <p className="text-xs text-ink-soft mt-0.5"><span className="font-mono">{rows.length}</span> pegawai</p>
         </div>
         <div className="flex flex-wrap gap-2">

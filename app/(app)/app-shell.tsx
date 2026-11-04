@@ -238,7 +238,7 @@ export function AppShell({
   const modeLabel = role === 'employee' ? 'Mode Pegawai' : 'Mode SPV';
   // Toggle dual-mode (fungsi render biasa, bukan komponen di dalam komponen — aturan lint hooks).
   const modeSwitch = (compact: boolean) => (
-    <div className={`grid grid-cols-2 gap-0.5 p-[3px] rounded-full border border-line bg-infarm-surface ${compact ? '' : 'w-full'}`}>
+    <div className={`grid grid-cols-2 gap-0.5 p-[3px] rounded-full border border-line bg-surface ${compact ? '' : 'w-full'}`}>
       <form action={setHrdMode.bind(null, 'admin')}>
         <button type="submit" className={`w-full flex items-center justify-center gap-1 font-semibold rounded-full transition-colors ${compact ? 'text-[11px] px-3 h-7' : 'text-[11px] py-1.5'} ${
           hrdMode === 'admin' ? 'bg-brand text-white' : 'text-ink-soft hover:text-ink'}`}>
@@ -257,22 +257,23 @@ export function AppShell({
   const Sidebar = (
     <aside className="app-sidebar w-64 shrink-0 bg-surface text-ink-soft border-r border-line flex flex-col h-full">
       {/* Brand */}
-      <div className="px-4 pt-4 pb-3.5">
+      <div className="px-4 h-14 shrink-0 flex items-center bg-brand">
         <div className="flex items-center gap-2.5">
-          <div className="bg-infarm-surface border border-infarm-light rounded-xl p-1 shrink-0">
+          <div className="bg-surface rounded-xl p-0.5 shrink-0">
             <BrandLogo className="w-8 h-8" />
           </div>
           <div className="leading-tight">
-            <div className="text-sm font-bold text-ink">Infarm 360°</div>
-            <div className="text-[10px] text-ink-soft">Performance Appraisal</div>
+            <div className="text-sm font-bold text-white">Infarm 360°</div>
+            <div className="text-[10px] text-white/85">Performance Appraisal</div>
           </div>
         </div>
       </div>
 
       {/* Toggle dual-mode: tampil bila punya izin HRD (canAdmin). Mode 'base' (token 'spv')
           = bertindak sesuai posisi asli (Pegawai/SPV); 'admin' = mengoperasikan aplikasi. */}
+      <div className="bg-brand-tint border-b border-line">
       {canAdmin && (
-        <div className="px-3.5 py-3 border-t border-line-soft">
+        <div className="px-3.5 py-3">
           {modeSwitch(false)}
           <p className="text-[10px] text-ink-soft text-center mt-1.5">
             {hrdMode === 'spv' ? (role === 'employee' ? 'Bertindak sebagai Pegawai' : 'Bertindak sebagai Supervisor') : 'Mengelola seluruh sistem'}
@@ -281,7 +282,7 @@ export function AppShell({
       )}
 
       {/* Period indicator + deadline — kartu krem */}
-      <div className="px-3.5 py-3 border-t border-line-soft">
+      <div className={`px-3.5 py-3 ${canAdmin ? 'border-t border-brand/15' : ''}`}>
         <div className="bg-infarm-cream rounded-xl px-3 py-2.5 text-xs">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 min-w-0">
@@ -298,7 +299,7 @@ export function AppShell({
       </div>
 
       {/* Tugas & Notifikasi (diturunkan dari data) */}
-      <div className="px-3.5 py-3 border-t border-line-soft">
+      <div className="px-3.5 py-3 border-t border-brand/15">
         <div className="flex items-center gap-1.5 mb-1.5 px-1">
           <Bell className="w-3.5 h-3.5 text-warn" />
           <span className="text-[10px] font-bold text-infarm-soil tracking-[0.08em] uppercase">Tugas &amp; Notifikasi</span>
@@ -315,7 +316,7 @@ export function AppShell({
                 key={t.id}
                 href={t.href}
                 onClick={() => setOpen(false)}
-                className="flex items-start gap-2 text-[11px] leading-snug text-ink-soft hover:text-ink hover:bg-infarm-surface rounded-lg px-1.5 py-1.5 transition-colors"
+                className="flex items-start gap-2 text-[11px] leading-snug text-ink-soft hover:text-ink hover:bg-surface rounded-lg px-1.5 py-1.5 transition-colors"
               >
                 <span className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${TODO_DOT[t.tone]}`} />
                 <span>{t.label}</span>
@@ -324,9 +325,10 @@ export function AppShell({
           </div>
         )}
       </div>
+      </div>
 
       {/* Nav */}
-      <nav className="px-2.5 pb-2 space-y-0.5 flex-1 overflow-y-auto border-t border-line-soft">
+      <nav className="px-2.5 pb-2 space-y-0.5 flex-1 overflow-y-auto">
         {/* Halaman Beranda dihapus 2026-08 → tak ada lagi item menu "Beranda". Landing Mode Admin
             = Dashboard Organisasi (lihat app/page.tsx); kartu Status Siklus pindah ke Kelola Periode. */}
         {sections.map((sec) => {
@@ -368,7 +370,7 @@ export function AppShell({
       </nav>
 
       {/* User + akun + logout */}
-      <div className="p-3 border-t border-line">
+      <div className="p-3 border-t border-line bg-brand-tint">
         <div className="px-1 mb-2">
           <div className="text-xs font-bold text-ink truncate">{name}</div>
           <div className="text-[10px] text-ink-soft">{dept} · {ROLE_LABEL[role]} · <span className="font-mono">{empCode}</span></div>
@@ -377,7 +379,7 @@ export function AppShell({
           href="/akun"
           onClick={() => setOpen(false)}
           className={`w-full flex items-center gap-2 text-xs font-semibold rounded-lg py-2 px-2 mb-1 transition-colors ${
-            isActive('/akun') ? 'bg-brand text-white' : 'text-ink-soft hover:bg-infarm-surface hover:text-ink'
+            isActive('/akun') ? 'bg-brand text-white' : 'text-ink-soft hover:bg-surface hover:text-ink'
           }`}
         >
           <KeyRound className="w-4 h-4" /> Akun Saya
@@ -388,7 +390,7 @@ export function AppShell({
           )}
         </Link>
         <form action="/auth/signout" method="post">
-          <button type="submit" className="w-full flex items-center gap-2 text-xs font-semibold text-danger-ink hover:bg-danger-tint rounded-lg py-2 px-2 transition-colors">
+          <button type="submit" className="w-full flex items-center gap-2 text-xs font-semibold text-danger-ink hover:bg-surface rounded-lg py-2 px-2 transition-colors">
             <LogOut className="w-4 h-4" /> Keluar
           </button>
         </form>
@@ -413,40 +415,40 @@ export function AppShell({
 
       {/* Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="app-mobile-header no-print md:hidden flex items-center gap-3 px-4 py-3 bg-surface border-b border-line">
-          <button type="button" onClick={() => setOpen((v) => !v)} className="relative text-ink-soft"
+        <header className="app-mobile-header no-print md:hidden flex items-center gap-3 px-4 py-3 bg-brand">
+          <button type="button" onClick={() => setOpen((v) => !v)} className="relative text-white"
             aria-label={open ? 'Tutup menu navigasi' : 'Buka menu navigasi'} aria-expanded={open}>
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             {!open && todos.length > 0 && (
               <span className="absolute -top-1.5 -right-1.5 text-[10px] font-bold text-ink bg-warn rounded-full px-1 min-w-[14px] text-center leading-[14px]">{todos.length}</span>
             )}
           </button>
-          <BrandLogo className="w-8 h-8 shrink-0" />
-          <span className="text-sm font-extrabold text-ink">Infarm 360°</span>
+          <span className="bg-surface rounded-lg p-0.5 shrink-0"><BrandLogo className="w-7 h-7" /></span>
+          <span className="text-sm font-extrabold text-white">Infarm 360°</span>
         </header>
 
         {/* Bilah atas desktop: tombol ☰ (tempatnya tetap, sidebar terbuka maupun ditutup) + jejak
             "Grup › Halaman". Saat sidebar DITUTUP: ▾ membuka halaman lain di grup yang sama, dan
             periode / Tugas / mode pindah ke kanan sebagai pil (pilihan pemilik 2026-11-04, mockup B). */}
-        <div className="app-topbar no-print hidden md:flex items-center gap-3 px-5 h-12 shrink-0 bg-surface border-b border-line relative">
+        <div className="app-topbar no-print hidden md:flex items-center gap-3 px-5 h-14 shrink-0 bg-brand relative">
           {popover && <div className="fixed inset-0 z-20" onClick={() => setPopover(null)} aria-hidden />}
           <button type="button" onClick={toggleSidebar}
-            className="w-8 h-8 rounded-control border border-line text-ink-soft hover:text-brand hover:border-infarm-light flex items-center justify-center shrink-0"
+            className="w-8 h-8 rounded-control border border-white/40 text-white hover:bg-white/15 flex items-center justify-center shrink-0"
             aria-label={collapsed ? 'Buka sidebar' : 'Tutup sidebar'} title={collapsed ? 'Buka sidebar' : 'Tutup sidebar'} aria-expanded={!collapsed}>
             <Menu className="w-[18px] h-[18px]" />
           </button>
           {pageLabel && (
             <div className="relative z-30 flex items-center gap-1.5 min-w-0 text-[13px]">
               {crumb?.sec.title && <>
-                <span className="font-semibold text-infarm-soil truncate">{crumb.sec.title}</span>
-                <ChevronRight className="w-4 h-4 text-ink-faint shrink-0" />
+                <span className="font-semibold text-white/85 truncate">{crumb.sec.title}</span>
+                <ChevronRight className="w-4 h-4 text-white/70 shrink-0" />
               </>}
-              <span className="font-semibold text-ink truncate">{pageLabel}</span>
+              <span className="font-bold text-white truncate">{pageLabel}</span>
               {collapsed && crumb && crumb.sec.items.length > 1 && (
                 <button type="button" onClick={() => setPopover(popover === 'pages' ? null : 'pages')} aria-expanded={popover === 'pages'}
                   aria-label="Pindah ke halaman lain di grup ini" title="Pindah ke halaman lain di grup ini"
                   className={`w-7 h-7 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                    popover === 'pages' ? 'border-infarm-light bg-infarm-surface text-brand' : 'border-line text-ink-soft hover:text-brand'}`}>
+                    popover === 'pages' ? 'border-surface bg-surface text-brand' : 'border-white/40 text-white hover:bg-white/15'}`}>
                   <ChevronDown className="w-4 h-4" />
                 </button>
               )}
@@ -482,7 +484,7 @@ export function AppShell({
               </span>
               <div className="relative z-30">
                 <button type="button" onClick={() => setPopover(popover === 'todos' ? null : 'todos')} aria-expanded={popover === 'todos'}
-                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full border border-line bg-surface text-xs font-semibold text-ink-soft hover:text-ink">
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-surface text-xs font-semibold text-ink-soft hover:text-ink">
                   <Bell className="w-3.5 h-3.5 text-warn" /> Tugas
                   {todos.length > 0 && <span className="text-[11px] font-bold text-ink bg-warn rounded-full px-1.5 min-w-[20px] text-center">{todos.length}</span>}
                 </button>

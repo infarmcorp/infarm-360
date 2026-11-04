@@ -63,11 +63,11 @@ export default async function LaporanTimPage({
     // Koordinator (grant is_coordinator): lihat-saja Laporan Kinerja Tim untuk daftar
     // pegawai eksplisit yang dinaunginya (coordinator_team_members). Tanpa ACC/Status/KPI.
     if (me?.is_coordinator) return <CoordinatorTeamReport userId={user.id} periodParam={periodParam} />;
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk Supervisor.</p></Shell>;
+    return <Shell><p className="text-[13px] text-ink-soft">Halaman ini untuk Supervisor.</p></Shell>;
   }
 
   const { list: periods, sel: ap } = await resolvePeriod(supabase, periodParam);
-  if (!ap) return <Shell><p className="text-sm text-ink-soft">Belum ada periode penilaian.</p></Shell>;
+  if (!ap) return <Shell><p className="text-[13px] text-ink-soft">Belum ada periode penilaian.</p></Shell>;
   const periodActive = ap.status === 'active';
 
   // Resolusi lingkup anggota per peran. Laporan DIRI SENDIRI TIDAK ditampilkan di sini —
@@ -166,7 +166,7 @@ export default async function LaporanTimPage({
       <PastPeriodNote active={periodActive} />
 
       {rows.length === 0 ? (
-        <p className="text-sm text-ink-soft">Belum ada anggota tim yang ditugaskan.</p>
+        <p className="text-[13px] text-ink-soft">Belum ada anggota tim yang ditugaskan.</p>
       ) : (
         <>
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
@@ -192,7 +192,7 @@ export default async function LaporanTimPage({
 async function DireksiTeamReport({ periodParam }: { periodParam?: string }) {
   const supabase = await createClient();
   const { list: periods, sel: ap } = await resolvePeriod(supabase, periodParam);
-  if (!ap) return <Shell><p className="text-sm text-ink-soft">Belum ada periode penilaian.</p></Shell>;
+  if (!ap) return <Shell><p className="text-[13px] text-ink-soft">Belum ada periode penilaian.</p></Shell>;
   const periodActive = ap.status === 'active';
 
   const admin = createAdminClient();
@@ -250,7 +250,7 @@ async function DireksiTeamReport({ periodParam }: { periodParam?: string }) {
       <div className="mb-4"><PeriodFilter periods={periods} current={ap.id} basePath="/laporan-tim" /></div>
       <PastPeriodNote active={periodActive} />
       {rows.length === 0 ? (
-        <p className="text-sm text-ink-soft">Belum ada laporan SPV untuk ditinjau.</p>
+        <p className="text-[13px] text-ink-soft">Belum ada laporan SPV untuk ditinjau.</p>
       ) : (
         <>
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
@@ -278,7 +278,7 @@ async function DireksiTeamReport({ periodParam }: { periodParam?: string }) {
 async function CoordinatorTeamReport({ userId, periodParam }: { userId: string; periodParam?: string }) {
   const supabase = await createClient();
   const { list: periods, sel: ap } = await resolvePeriod(supabase, periodParam);
-  if (!ap) return <Shell><p className="text-sm text-ink-soft">Belum ada periode penilaian.</p></Shell>;
+  if (!ap) return <Shell><p className="text-[13px] text-ink-soft">Belum ada periode penilaian.</p></Shell>;
   const periodActive = ap.status === 'active';
 
   const admin = createAdminClient();
@@ -337,7 +337,7 @@ async function CoordinatorTeamReport({ userId, periodParam }: { userId: string; 
       <div className="mb-4"><PeriodFilter periods={periods} current={ap.id} basePath="/laporan-tim" /></div>
       <PastPeriodNote active={periodActive} />
       {rows.length === 0 ? (
-        <p className="text-sm text-ink-soft">Belum ada pegawai yang ditugaskan di bawah koordinasi Anda.</p>
+        <p className="text-[13px] text-ink-soft">Belum ada pegawai yang ditugaskan di bawah koordinasi Anda.</p>
       ) : (
         <>
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}

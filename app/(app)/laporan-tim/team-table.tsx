@@ -50,7 +50,7 @@ const PLAYER_SHORT: Record<PlayerClass, string> = { A: 'A', B_CULTURE: 'B-Cul', 
 /** Chip status laporan: Final = brand · Ditinjau = netral · Draf = warn. */
 const CHIP = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap';
 /** Tombol pager (selaras tabel Dashboard Organisasi). */
-const PAGER_BTN = 'text-sm font-semibold min-h-10 px-3.5 rounded-control bg-neutral-tint text-ink-soft hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed';
+const PAGER_BTN = 'text-[13px] font-semibold min-h-10 px-3.5 rounded-control bg-neutral-tint text-ink-soft hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed';
 
 /** Badge kategori 4-Box (KPI×360). KPI "belum terbaca" tak diklasifikasi — selaras Dashboard.
  *  Warna = PLAYER_TONE (Design System Infarm); HRD Review (BR-11) = tone warn. */
@@ -139,11 +139,11 @@ export function TeamTable({
 
       <StableHeight>
       {filtered.length === 0 ? (
-        <p className="text-sm text-ink-soft">Tidak ada pegawai cocok dengan &quot;{q}&quot;.</p>
+        <p className="text-[13px] text-ink-soft">Tidak ada pegawai cocok dengan &quot;{q}&quot;.</p>
       ) : (
         <div className="overflow-x-auto">
           {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/pencarian (tak bergeser saat paging). */}
-          <table className="w-full table-fixed table-1line text-left text-sm"
+          <table className="w-full table-fixed table-1line text-left text-[13px]"
             style={{ minWidth: Math.round((810 + (showStatus ? 96 : 0) + (showAcc ? 170 : 0)) * 0.78) }}>
             <colgroup>
               {colPercents([

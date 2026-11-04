@@ -29,7 +29,7 @@ export default async function StrukturPage() {
     grantScopes = grantedAccess(g, 'struktur')?.scopes ?? null;
   }
   if (!isHrdFull && !grantScopes) {
-    return <Shell><div className={CARD}><p className="text-sm text-ink-soft">Halaman ini untuk HRD Admin atau pemegang akses Struktur Organisasi.</p></div></Shell>;
+    return <Shell><div className={CARD}><p className="text-[13px] text-ink-soft">Halaman ini untuk HRD Admin atau pemegang akses Struktur Organisasi.</p></div></Shell>;
   }
   const viaGrant = !isHrdFull;
   const ownDept = (me?.dept ?? '').trim();

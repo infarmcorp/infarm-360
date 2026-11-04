@@ -20,7 +20,7 @@ export type RekapRow = {
 };
 
 const fmt = (v: number | null) => (v != null ? fmt2(v) : '—');
-const PAGER_BTN = 'text-sm font-semibold min-h-10 px-3.5 rounded-control bg-neutral-tint text-ink-soft hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed';
+const PAGER_BTN = 'text-[13px] font-semibold min-h-10 px-3.5 rounded-control bg-neutral-tint text-ink-soft hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed';
 
 export function RekapTable({ rows, monthLabels, has360 }: {
   rows: RekapRow[]; monthLabels: string[]; has360: boolean;
@@ -33,7 +33,7 @@ export function RekapTable({ rows, monthLabels, has360 }: {
       <StableHeight>
       <div className="overflow-x-auto">
         {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}
-        <table className="w-full table-fixed table-1line text-left text-sm"
+        <table className="w-full table-fixed table-1line text-left text-[13px]"
           style={{ minWidth: Math.round((200 + monthLabels.length * 76 + 96 + (has360 ? 100 : 0) + 96 + 210) * 0.9) }}>
           <colgroup>
             {colPercents([
@@ -57,7 +57,7 @@ export function RekapTable({ rows, monthLabels, has360 }: {
           </thead>
           <tbody className="divide-y divide-line-soft">
             {rows.length === 0 && (
-              <tr><td colSpan={colCount} className="py-6 text-center text-sm text-ink-soft">Tidak ada pegawai dalam lingkup Anda.</td></tr>
+              <tr><td colSpan={colCount} className="py-6 text-center text-[13px] text-ink-soft">Tidak ada pegawai dalam lingkup Anda.</td></tr>
             )}
             {shown.map((r) => (
               <tr key={r.id}>

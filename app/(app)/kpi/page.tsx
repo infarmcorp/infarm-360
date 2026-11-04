@@ -54,7 +54,7 @@ export default async function KpiPage({
     const { data: grants } = await supabase.from('page_grants').select('section, scope, scopes, can_edit').eq('employee_id', user.id);
     const kpiGrant = grantedAccess(grants ?? [], 'kpi');
     if (!kpiGrant) {
-      return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk SPV / HRD / Koordinator.</p></Shell>;
+      return <Shell><p className="text-[13px] text-ink-soft">Halaman ini untuk SPV / HRD / Koordinator.</p></Shell>;
     }
 
     // Saring pegawai per-lingkup (mirror pola halaman grant lain: ambil semua → filter di JS).
@@ -298,8 +298,8 @@ async function InputTab({
     leftOn: e.is_active ? null : e.left_on,
   }));
 
-  if (members.length === 0) return <p className="text-sm text-ink-soft">Belum ada anggota tim yang ditugaskan kepada Anda.</p>;
-  if (monthOptions.length === 0) return <p className="text-sm text-ink-soft">Tidak ada periode aktif. Hubungi HRD untuk mengaktifkan siklus.</p>;
+  if (members.length === 0) return <p className="text-[13px] text-ink-soft">Belum ada anggota tim yang ditugaskan kepada Anda.</p>;
+  if (monthOptions.length === 0) return <p className="text-[13px] text-ink-soft">Tidak ada periode aktif. Hubungi HRD untuk mengaktifkan siklus.</p>;
 
   // Skor yang SUDAH ada (per pegawai+bulan dalam periode aktif) → dipakai pratinjau Excel
   // menandai baris yang "akan menimpa" input sebelumnya. Hanya petunjuk visual; revalidate

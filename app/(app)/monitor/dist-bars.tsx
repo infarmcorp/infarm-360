@@ -49,7 +49,7 @@ function SegBar({ title, people }: { title: string; people: Person[] }) {
         <div className="text-xs text-ink-soft"><span className="font-mono">{total}</span> pegawai bernilai</div>
       </div>
       {total === 0 ? (
-        <div className="mt-2 text-sm text-ink-soft">Belum ada nilai.</div>
+        <div className="mt-2 text-[13px] text-ink-soft">Belum ada nilai.</div>
       ) : (
         <>
           {/* Batang bersegmen — tiap segmen tombol; klik → drill-down nama. */}

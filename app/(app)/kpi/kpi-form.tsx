@@ -44,11 +44,11 @@ type ParsedRow = KpiParsedRow;
  * Kelas tampilan Design System Infarm (CLAUDE.md §8). Isian di tabel memakai basis TANPA warna garis/latar
  * agar nada status (normal / edit = warn) bisa ditempel tanpa bentrok utilitas warna.
  */
-const INPUT_BASE = 'text-sm min-h-11 px-3 border rounded-control text-ink focus:outline-none focus:ring-2 focus:ring-brand-tint';
+const INPUT_BASE = 'text-[13px] min-h-9 px-3 border rounded-control text-ink focus:outline-none focus:ring-2 focus:ring-brand-tint';
 const INPUT_OK = 'border-line bg-infarm-surface placeholder:text-ink-soft focus:border-brand';
 const INPUT_WARN = 'border-warn-ink/50 bg-surface placeholder:text-warn-ink focus:border-warn-ink';
-const BTN_PRIMARY = 'inline-flex items-center justify-center rounded-xl bg-brand hover:bg-brand-ink min-h-11 px-5 text-white text-sm font-bold disabled:opacity-50';
-const BTN_GHOST = 'inline-flex items-center justify-center rounded-xl border border-line bg-surface min-h-11 px-4 text-sm font-semibold text-ink-soft hover:text-ink disabled:opacity-50';
+const BTN_PRIMARY = 'inline-flex items-center justify-center rounded-xl bg-brand hover:bg-brand-ink min-h-9 px-5 text-white text-[13px] font-bold disabled:opacity-50';
+const BTN_GHOST = 'inline-flex items-center justify-center rounded-xl border border-line bg-surface min-h-9 px-4 text-[13px] font-semibold text-ink-soft hover:text-ink disabled:opacity-50';
 const BTN_DEL = 'shrink-0 inline-flex items-center text-xs font-semibold min-h-9 px-3 rounded-control border border-danger-ink/40 bg-surface text-danger-ink hover:bg-danger-tint disabled:opacity-50';
 const CHIP_EMPTY = 'inline-block rounded-full bg-neutral-tint px-2.5 py-0.5 text-[11px] font-semibold text-ink-soft align-middle';
 const CODE = 'font-mono text-ink bg-surface px-1 rounded';
@@ -281,7 +281,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
           <div className="inline-flex gap-0.5 p-[3px] rounded-full border border-line bg-surface w-fit">
             {(['manual', 'excel'] as const).map((mo) => (
               <button key={mo} type="button" onClick={() => { setMode(mo); setMsg(null); }}
-                className={`px-4 min-h-9 rounded-full text-sm font-semibold transition-colors ${mode === mo ? 'bg-brand text-white' : 'text-ink-soft hover:text-ink'}`}>
+                className={`px-4 min-h-9 rounded-full text-[13px] font-semibold transition-colors ${mode === mo ? 'bg-brand text-white' : 'text-ink-soft hover:text-ink'}`}>
                 {mo === 'manual' ? 'Input Manual' : 'Impor Excel'}
               </button>
             ))}
@@ -323,7 +323,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
         <div className={`${CARD} space-y-4`}>
           {/* Desktop: tabel */}
           <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left text-sm min-w-[620px]">
+          <table className="w-full text-left text-[13px] min-w-[620px]">
             <thead>
               <tr className={TABLE_HEAD}>
                 <th className="py-2.5 px-3 rounded-l-lg">Pegawai</th>
@@ -389,14 +389,14 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
               return (
                 <div key={m.id} className={`rounded-xl border p-3 space-y-2 ${isEditing ? 'border-warn-ink/40 bg-warn-tint' : 'border-line bg-surface'}`}>
                   <div className="flex items-start justify-between gap-2">
-                    <div className="text-sm font-semibold text-ink">
+                    <div className="text-[13px] font-semibold text-ink">
                       {m.name} <span className="text-xs text-ink-soft font-normal">· {m.dept}</span>
                       <InactiveChip leftOn={m.leftOn} />
                     </div>
                     {saved === undefined ? (
                       <span className={`shrink-0 ${CHIP_EMPTY}`}>belum diisi</span>
                     ) : (
-                      <span className="shrink-0 font-mono text-sm font-bold text-brand">{fmt2(saved)}</span>
+                      <span className="shrink-0 font-mono text-[13px] font-bold text-brand">{fmt2(saved)}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
@@ -428,7 +428,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
             const saved = existing[`${delId}|${ym}`];
             return (
               <div className="flex flex-col gap-3 bg-danger-tint border border-danger-ink/25 rounded-xl p-4">
-                <p className="text-sm text-danger-ink">
+                <p className="text-[13px] text-danger-ink">
                   Hapus skor KPI <strong>{m?.name ?? 'pegawai'}</strong> bulan <strong className="font-mono">{ym}</strong>
                   {saved !== undefined && <> (nilai <strong className="font-mono">{fmt2(saved)}</strong>)</>}? Penghapusan
                   <strong> tercatat di Riwayat &amp; Audit</strong> dan mengurangi rerata KPI.
@@ -439,7 +439,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
                   className={`w-full ${INPUT_BASE} border-danger-ink/40 bg-surface placeholder:text-ink-soft focus:border-danger-ink focus:ring-danger-tint`} />
                 <div className="flex flex-wrap items-center gap-2">
                   <button type="button" onClick={doDelete} disabled={pending || !delNote.trim()}
-                    className="inline-flex items-center justify-center rounded-xl bg-danger-ink hover:opacity-90 min-h-11 px-5 text-white text-sm font-bold disabled:opacity-50">
+                    className="inline-flex items-center justify-center rounded-xl bg-danger-ink hover:opacity-90 min-h-9 px-5 text-white text-[13px] font-bold disabled:opacity-50">
                     {pending ? 'Menghapus…' : 'Ya, hapus skor'}
                   </button>
                   <button type="button" onClick={() => { setDelId(null); setDelNote(''); }} disabled={pending}
@@ -454,7 +454,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
             <button onClick={submitManual} disabled={pending} className={BTN_PRIMARY}>
               {pending ? 'Menyimpan…' : 'Simpan Semua Skor'}
             </button>
-            {msg && <span className={`text-sm font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
+            {msg && <span className={`text-[13px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
           </div>
         </div>
       ) : (
@@ -464,13 +464,13 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
             Skor disimpan untuk bulan <strong className="text-ink font-mono">{ym}</strong>. <button type="button" onClick={downloadTemplate} className="text-brand-ink font-semibold hover:underline">Unduh template</button>.
           </Note>
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile}
-            className="block text-sm text-ink-soft file:mr-3 file:rounded-xl file:border-0 file:bg-brand file:min-h-11 file:px-5 file:text-white file:text-sm file:font-bold file:cursor-pointer" />
-          {parseErr && <p className="text-sm text-danger-ink font-semibold">{parseErr}</p>}
+            className="block text-[13px] text-ink-soft file:mr-3 file:rounded-xl file:border-0 file:bg-brand file:min-h-9 file:px-5 file:text-white file:text-[13px] file:font-bold file:cursor-pointer" />
+          {parseErr && <p className="text-[13px] text-danger-ink font-semibold">{parseErr}</p>}
 
           {parsed && (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm min-w-[560px]">
+                <table className="w-full text-left text-[13px] min-w-[560px]">
                   <thead>
                     <tr className={TABLE_HEAD}>
                       <th className="py-2.5 px-3 rounded-l-lg">Kode</th><th className="py-2.5 px-3">Pegawai</th>
@@ -515,11 +515,11 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
                   {pending ? 'Menyimpan…' : `Terapkan & Simpan (${parsed.filter(isValidKpiRow).length} baris)`}
                 </button>
                 <button onClick={() => setParsed(null)} disabled={pending} className={BTN_GHOST}>Batal</button>
-                {msg && <span className={`text-sm font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
+                {msg && <span className={`text-[13px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
               </div>
             </>
           )}
-          {!parsed && msg && <span className={`text-sm font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
+          {!parsed && msg && <span className={`text-[13px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
         </div>
       )}
     </div>

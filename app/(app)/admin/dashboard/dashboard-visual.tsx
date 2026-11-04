@@ -143,7 +143,7 @@ export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptM
           const active = tab === t.key;
           return (
             <button key={t.key} type="button" onClick={() => setTab(t.key)}
-              className={`flex items-center gap-2 min-h-11 px-4 rounded-full border text-sm font-semibold transition-colors ${
+              className={`flex items-center gap-2 min-h-9 px-4 rounded-full border text-[13px] font-semibold transition-colors ${
                 active ? 'bg-brand border-brand text-white' : 'bg-surface border-line text-ink-soft hover:text-brand hover:border-infarm-light'}`}>
               <Icon className="w-4 h-4" />
               <span>{t.label}</span>
@@ -321,8 +321,8 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
               <div key={box.key} style={{ borderTopColor: tone.color }}
                 className="border border-line border-t-4 rounded-xl p-3.5 bg-surface min-h-[130px] flex flex-col">
                 <div className="flex items-start justify-between gap-1">
-                  <span className="text-sm font-bold text-ink leading-tight">{box.label}</span>
-                  <span className="text-xl font-bold font-mono shrink-0 text-ink">{emps.length}</span>
+                  <span className="text-[13px] font-bold text-ink leading-tight">{box.label}</span>
+                  <span className="text-lg font-bold font-mono shrink-0 text-ink">{emps.length}</span>
                 </div>
                 <span className="text-xs text-ink-soft mt-0.5 leading-tight">{PLAYER_DESC[box.key]}</span>
                 <div className="mt-2 flex flex-wrap gap-1">
@@ -341,8 +341,8 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
         {incomplete.length > 0 && (
           <div className="border border-line border-t-4 rounded-xl p-3.5 bg-warn-tint" style={{ borderTopColor: PLAYER_TONE.HRD_REVIEW.color }}>
             <div className="flex items-start justify-between gap-1">
-              <span className="text-sm font-bold text-ink leading-tight">HRD Review</span>
-              <span className="text-xl font-bold font-mono shrink-0 text-warn-ink">{incomplete.length}</span>
+              <span className="text-[13px] font-bold text-ink leading-tight">HRD Review</span>
+              <span className="text-lg font-bold font-mono shrink-0 text-warn-ink">{incomplete.length}</span>
             </div>
             <span className="text-xs text-ink-soft mt-0.5 leading-tight block">KPI atau Skor 360° belum tersedia (No Score / Insufficient Data) → tidak diklasifikasi otomatis (tidak dianggap di bawah 80). Diputuskan HRD, atau lengkapi datanya lalu Hitung Ulang.</span>
             <div className="mt-2 flex flex-wrap gap-1">
@@ -356,8 +356,8 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
         {unread.length > 0 && (
           <div className="border border-line border-t-4 border-t-line-strong rounded-xl p-3.5 bg-neutral-tint">
             <div className="flex items-start justify-between gap-1">
-              <span className="text-sm font-bold text-ink leading-tight">Belum Terbaca (Tak Terkategori)</span>
-              <span className="text-xl font-bold font-mono shrink-0 text-ink-soft">{unread.length}</span>
+              <span className="text-[13px] font-bold text-ink leading-tight">Belum Terbaca (Tak Terkategori)</span>
+              <span className="text-lg font-bold font-mono shrink-0 text-ink-soft">{unread.length}</span>
             </div>
             <span className="text-xs text-ink-soft mt-0.5 leading-tight block">KPI belum terbaca (baru 1 dari 3 bulan kuartal terisi) → dikecualikan dari kategorisasi &amp; rerata; bukan pekerja rendah.</span>
             <div className="mt-2 flex flex-wrap gap-1">
@@ -407,7 +407,7 @@ function QuarterlyDist({ data, yearLabel }: { data: QuarterDist[]; yearLabel: nu
       <div className="space-y-3">
         {data.map((q) => (
           <div key={q.label} className="space-y-1">
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-[13px]">
               <span className="font-bold text-ink">{q.label}</span>
               <span className="text-ink-soft font-mono text-xs">{q.total} pegawai</span>
             </div>
@@ -656,9 +656,9 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
         </div>
         <div className="flex flex-wrap gap-2">
           <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama / divisi…" aria-label="Cari nama atau divisi"
-            className="text-sm min-h-11 px-3 border border-line rounded-control w-52 bg-infarm-surface text-ink placeholder:text-ink-soft focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+            className="text-[13px] min-h-9 px-3 border border-line rounded-control w-52 bg-infarm-surface text-ink placeholder:text-ink-soft focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
           <select value={player} onChange={(e) => { setPlayer(e.target.value as typeof player); setPage(0); }} aria-label="Filter player"
-            className="text-sm min-h-11 px-3 border border-line rounded-control bg-infarm-surface text-ink font-semibold focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
+            className="text-[13px] min-h-9 px-3 border border-line rounded-control bg-infarm-surface text-ink font-semibold focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
             <option value="all">Semua Player</option>
             {PLAYER_BOXES.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
             <option value="HRD_REVIEW">HRD Review</option>
@@ -669,7 +669,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
       <StableHeight className="">
       <div className="overflow-x-auto">
         {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
-        <table className="w-full table-fixed table-1line text-left text-sm min-w-[660px]">
+        <table className="w-full table-fixed table-1line text-left text-[13px] min-w-[660px]">
           <colgroup>
             {colPercents([
               240, // Pegawai (+ chip nonaktif) + divisi
@@ -691,7 +691,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-line-soft">
-            {shown.length === 0 && <tr><td colSpan={6} className="py-6 text-center text-sm text-ink-soft">Tidak ada pegawai sesuai filter.</td></tr>}
+            {shown.length === 0 && <tr><td colSpan={6} className="py-6 text-center text-[13px] text-ink-soft">Tidak ada pegawai sesuai filter.</td></tr>}
             {paged.map((r) => {
               return (
                 <tr key={r.id}>
@@ -729,10 +729,10 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
           <span className="text-xs text-ink-soft font-mono">{safePage * TABLE_PAGE + 1}–{Math.min(shown.length, safePage * TABLE_PAGE + paged.length)} / {shown.length} pegawai</span>
           <div className="flex items-center gap-2 shrink-0">
             <button type="button" disabled={safePage <= 0} onClick={() => setPage(safePage - 1)}
-              className="text-sm font-semibold min-h-10 px-3.5 rounded-control bg-neutral-tint text-ink-soft hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed">← Sebelumnya</button>
+              className="text-[13px] font-semibold min-h-10 px-3.5 rounded-control bg-neutral-tint text-ink-soft hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed">← Sebelumnya</button>
             <span className="text-xs text-ink-soft font-mono">Hal. {safePage + 1}/{pageCount}</span>
             <button type="button" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}
-              className="text-sm font-semibold min-h-10 px-3.5 rounded-control bg-neutral-tint text-ink-soft hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed">Berikutnya →</button>
+              className="text-[13px] font-semibold min-h-10 px-3.5 rounded-control bg-neutral-tint text-ink-soft hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed">Berikutnya →</button>
           </div>
         </div>
       )}
@@ -754,7 +754,7 @@ const ymShort = (ym: string) => MONTHS[Number(ym.split('-')[1]) - 1] ?? ym;
 function YearTrendCaption({ value, label, unit }: { value: number | null; label: string; unit: string }) {
   return (
     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 mb-3">
-      <span className="text-2xl font-bold text-ink font-mono">{value != null ? fmt2(value) : '—'}</span>
+      <span className="text-xl font-bold text-ink font-mono">{value != null ? fmt2(value) : '—'}</span>
       <span className="text-xs font-semibold text-ink-soft">{label}</span>
       <span className="text-xs text-ink-soft">· {unit}</span>
     </div>
@@ -768,7 +768,7 @@ function YearTrendCaption({ value, label, unit }: { value: number | null; label:
  * dikecualikan dari audit kontras (lihat CLAUDE.md) — ukuran fixed agar grafik tak berdesakan.
  */
 function TrendLine({ points }: { points: { label: string; value: number }[] }) {
-  if (points.length === 0) return <p className="text-sm text-ink-soft italic">Belum ada data untuk tahun ini.</p>;
+  if (points.length === 0) return <p className="text-[13px] text-ink-soft italic">Belum ada data untuk tahun ini.</p>;
   const W = 640, H = 200, padL = 40, padR = 18, padT = 20, padB = 26;
   // Inset horizontal titik plot: jarak dari sumbu-Y (kiri) & tepi kanan agar titik data
   // pertama/terakhir + label nilainya tak menempel garis sumbu.
@@ -847,7 +847,7 @@ function CategoryPie({ title, subtitle, unit, values }: { title: string; subtitl
       <CardTitle icon={PieChart}>{title}</CardTitle>
       <p className="text-xs text-ink-soft mt-1 mb-4">{subtitle}</p>
       {total === 0 ? (
-        <p className="text-sm text-ink-soft italic">Belum ada data.</p>
+        <p className="text-[13px] text-ink-soft italic">Belum ada data.</p>
       ) : (
         <div className="flex flex-col items-center gap-4">
           <svg viewBox="0 0 140 140" className="w-40 h-40 shrink-0">
@@ -862,7 +862,7 @@ function CategoryPie({ title, subtitle, unit, values }: { title: string; subtitl
           </svg>
           <div className="w-full space-y-2">
             {counts.map((c) => (
-              <div key={c.key} className="flex items-center gap-2 text-sm">
+              <div key={c.key} className="flex items-center gap-2 text-[13px]">
                 <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: c.color }} />
                 <span className="font-medium text-ink flex-1 leading-tight">{c.label}
                   <span className="text-ink-soft font-normal"> · {unit} {c.range}</span></span>
@@ -882,7 +882,7 @@ function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; mont
     return (
       <div className={CARD}>
         <CardTitle icon={Grid3X3} className="mb-1">Capaian KPI / Divisi</CardTitle>
-        <p className="text-sm text-ink-soft italic mt-2">Belum ada data KPI bulanan untuk lingkup ini.</p>
+        <p className="text-[13px] text-ink-soft italic mt-2">Belum ada data KPI bulanan untuk lingkup ini.</p>
       </div>
     );
   }
@@ -947,7 +947,7 @@ function Aspect360Heatmap({ deptAspect, aspects }: { deptAspect: DeptAspectRow[]
     return (
       <div className={CARD}>
         <CardTitle icon={Grid3X3} className="mb-1">Capaian 360° / Divisi × Aspek</CardTitle>
-        <p className="text-sm text-ink-soft italic mt-2">Belum ada penilaian 360° terkirim untuk lingkup ini.</p>
+        <p className="text-[13px] text-ink-soft italic mt-2">Belum ada penilaian 360° terkirim untuk lingkup ini.</p>
       </div>
     );
   }
@@ -1013,7 +1013,7 @@ function CountBars({ items, denom }: { items: { label: string; count: number; co
     <div className="space-y-4">
       {items.map((it, idx) => (
         <div key={it.label} className="space-y-1.5">
-          <div className="flex justify-between gap-3 text-sm">
+          <div className="flex justify-between gap-3 text-[13px]">
             <span className="font-medium text-ink-soft">{it.label}</span>
             <span className="font-mono text-ink whitespace-nowrap"><b>{it.count}</b> <span className="text-ink-soft">· {((it.count / denom) * 100).toFixed(2)}%</span></span>
           </div>
@@ -1033,14 +1033,14 @@ function CountBars({ items, denom }: { items: { label: string; count: number; co
  * (heatColorInfarm). `max` = skala lebar batang (default 100; Perkembangan Bulanan memakai nilai maks).
  */
 function ScoreBars({ items, suffix = '', empty, max = 100 }: { items: { label: string; score: number }[]; suffix?: string; empty: string; max?: number }) {
-  if (items.length === 0) return <p className="text-sm text-ink-soft italic">{empty}</p>;
+  if (items.length === 0) return <p className="text-[13px] text-ink-soft italic">{empty}</p>;
   return (
     <div className="space-y-4">
       {items.map((it, i) => {
         const hc = heatColor(it.score);
         return (
           <div key={it.label} className="space-y-1.5">
-            <div className="flex justify-between items-center gap-3 text-sm">
+            <div className="flex justify-between items-center gap-3 text-[13px]">
               <span className="font-medium text-ink-soft">{it.label}</span>
               <span className="font-mono font-semibold text-xs px-2.5 py-0.5 rounded-full whitespace-nowrap" style={{ backgroundColor: hc.bg, color: hc.fg }}>{fmt2(it.score)}{suffix}</span>
             </div>
@@ -1089,7 +1089,7 @@ function bandBadge(v: number | null) {
 function LeaderboardRows({ items, valueOf, bottom, startIndex = 0 }: { items: Row[]; valueOf: (r: Row) => number | null; bottom: boolean; startIndex?: number }) {
   return (
     <div>
-      {items.length === 0 && <p className="text-sm text-ink-soft italic">Belum ada data.</p>}
+      {items.length === 0 && <p className="text-[13px] text-ink-soft italic">Belum ada data.</p>}
       {items.map((e, idx) => {
         const v = valueOf(e);
         const rank = startIndex + idx + 1;
@@ -1099,10 +1099,10 @@ function LeaderboardRows({ items, valueOf, bottom, startIndex = 0 }: { items: Ro
           <div key={e.id} className="py-2.5 border-b border-line-soft last:border-b-0 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <span className={`font-mono text-xs font-bold w-7 h-7 rounded-full border flex items-center justify-center shrink-0 ${rankCls}`}>{rank}</span>
-              <div className="min-w-0"><span className="font-semibold text-ink text-sm block truncate" title={e.name}>{displayName(e.nickname, e.name)}</span><span className="text-xs text-ink-soft block">{e.dept}</span></div>
+              <div className="min-w-0"><span className="font-semibold text-ink text-[13px] block truncate" title={e.name}>{displayName(e.nickname, e.name)}</span><span className="text-xs text-ink-soft block">{e.dept}</span></div>
             </div>
             <div className="flex items-center gap-2.5 shrink-0">
-              <span className="font-mono font-bold text-sm text-ink">{v != null ? fmt2(v) : '—'}</span>
+              <span className="font-mono font-bold text-[13px] text-ink">{v != null ? fmt2(v) : '—'}</span>
               {bandBadge(v)}
             </div>
           </div>
@@ -1123,7 +1123,7 @@ function LeaderboardToggle({ metric, top, bottom, valueOf }: {
   const isTop = side === 'top';
   // Tampil 5/halaman + tombol Sebelumnya/Berikutnya (klik "selanjutnya" utk peringkat #6–#10).
   const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(isTop ? top : bottom);
-  const seg = (active: boolean) => `px-4 min-h-9 rounded-full text-sm font-semibold transition-colors ${active ? 'bg-brand text-white' : 'text-ink-soft hover:text-ink'}`;
+  const seg = (active: boolean) => `px-4 min-h-9 rounded-full text-[13px] font-semibold transition-colors ${active ? 'bg-brand text-white' : 'text-ink-soft hover:text-ink'}`;
   return (
     <div className={`${CARD} space-y-3`}>
       <div className="flex flex-wrap items-center justify-between gap-3">

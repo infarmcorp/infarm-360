@@ -36,25 +36,23 @@ export const TREND_CHIP: Record<Exclude<Trend, 'empty'>, string> = {
 };
 
 /** Kartu standar: putih, garis tepi tipis + bayangan tipis (kontras dengan latar hijau keputihan). */
-export const CARD = 'bg-surface border border-line rounded-card shadow-card p-5';
+export const CARD = 'bg-surface border border-line rounded-card shadow-card p-4';
 
-/** Judul halaman (h1 Montserrat 30px) + subjudul. */
+/** Judul halaman (h1 Montserrat 22px — skala rapat, pengguna 2026-11-04) + subjudul. */
 export function PageTitle({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
-    <div className="mb-5">
-      <h1 className="text-[30px] leading-tight font-bold tracking-[-0.01em] text-ink">{title}</h1>
-      {children && <div className="text-sm text-ink-soft mt-1.5">{children}</div>}
+    <div className="mb-4">
+      <h1 className="text-[22px] leading-tight font-bold tracking-[-0.01em] text-ink">{title}</h1>
+      {children && <div className="text-[13px] text-ink-soft mt-1.5">{children}</div>}
     </div>
   );
 }
 
-/** Judul kartu (Montserrat via .infarm-ds h3, 18px bold) + ikon garis di kotak hijau pucat sebagai jangkar mata. */
+/** Judul kartu (Montserrat via .infarm-ds h3, 16px bold) + ikon garis hijau 16px sebagai jangkar mata (tanpa kotak besar). */
 export function CardTitle({ icon: Icon, className = '', children }: { icon: LucideIcon; className?: string; children: React.ReactNode }) {
   return (
-    <h3 className={`flex items-center gap-2.5 text-lg font-bold text-ink leading-snug ${className}`}>
-      <span className="w-8 h-8 rounded-lg bg-brand-tint text-brand-ink flex items-center justify-center shrink-0" aria-hidden>
-        <Icon className="w-[18px] h-[18px]" />
-      </span>
+    <h3 className={`flex items-center gap-2 text-base font-bold text-ink leading-snug ${className}`}>
+      <Icon className="w-4 h-4 text-brand shrink-0" aria-hidden />
       <span className="min-w-0">{children}</span>
     </h3>
   );
@@ -63,9 +61,9 @@ export function CardTitle({ icon: Icon, className = '', children }: { icon: Luci
 /** Judul pengelompok bagian: garis pemisah atas + garis aksen hijau + label kapital tebal + petunjuk abu. */
 export function SectionHeader({ label, hint }: { label: string; hint?: string; tone?: string }) {
   return (
-    <div className="mt-8 pt-6 border-t border-line flex flex-wrap items-center gap-x-2.5 gap-y-1">
-      <span className="w-1 h-[18px] rounded-full bg-brand shrink-0" aria-hidden />
-      <h2 className="text-[13px] font-bold uppercase tracking-[0.08em] text-ink">{label}</h2>
+    <div className="mt-6 pt-5 border-t border-line flex flex-wrap items-center gap-x-2.5 gap-y-1">
+      <span className="w-1 h-4 rounded-full bg-brand shrink-0" aria-hidden />
+      <h2 className="text-xs font-bold uppercase tracking-[0.08em] text-ink">{label}</h2>
       {hint && <span className="text-xs text-ink-soft">· {hint}</span>}
     </div>
   );
@@ -97,11 +95,11 @@ const STAT_TONE: Record<StatTone, string> = {
 export function StatCard({ item }: { item: StatItem }) {
   const Icon = item.icon;
   return (
-    <div className={`${CARD} flex items-center gap-4 min-w-0`}>
-      <span className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${STAT_TONE[item.tone ?? 'brand']}`} aria-hidden><Icon className="w-6 h-6" /></span>
+    <div className={`${CARD} flex items-center gap-3 min-w-0`}>
+      <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${STAT_TONE[item.tone ?? 'brand']}`} aria-hidden><Icon className="w-5 h-5" /></span>
       <div className="min-w-0 flex flex-col gap-0.5">
-        <span className="font-mono text-xl font-bold text-ink leading-tight truncate" title={item.value}>{item.value}</span>
-        <span className="text-sm text-ink-soft">{item.label}</span>
+        <span className="font-mono text-lg font-bold text-ink leading-tight truncate" title={item.value}>{item.value}</span>
+        <span className="text-[13px] text-ink-soft">{item.label}</span>
         {item.sub != null && (typeof item.sub === 'string'
           ? <span className="text-xs font-semibold text-ink truncate" title={item.sub}>{item.sub}</span>
           : <span className="text-xs">{item.sub}</span>)}
@@ -113,18 +111,18 @@ export function StatCard({ item }: { item: StatItem }) {
 /**
  * Kartu ringkasan TERPISAH (satu metrik per kartu, berikon). Hanya angka utama (`lead`) yang berlatar
  * hijau brand agar langsung menjadi titik fokus; sisanya kartu putih standar.
- * Angka ringkasan sengaja < judul halaman (30px): utama 24px, kartu lain 20px (pengguna 2026-11-04).
+ * Angka ringkasan: utama 20px, kartu lain 18px (skala rapat, pengguna 2026-11-04).
  */
 export function StatCards({ lead, items }: { lead?: StatItem; items: StatItem[] }) {
   const LeadIcon = lead?.icon;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {lead && LeadIcon && (
-        <div className="bg-brand text-white rounded-card shadow-card p-5 flex items-center gap-4 min-w-0">
-          <span className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0" aria-hidden><LeadIcon className="w-6 h-6" /></span>
+        <div className="bg-brand text-white rounded-card shadow-card p-4 flex items-center gap-3 min-w-0">
+          <span className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0" aria-hidden><LeadIcon className="w-5 h-5" /></span>
           <div className="min-w-0 flex flex-col gap-1">
-            <span className="font-mono text-2xl leading-none font-bold">{lead.value}</span>
-            <span className="text-sm font-semibold">{lead.label}</span>
+            <span className="font-mono text-xl leading-none font-bold">{lead.value}</span>
+            <span className="text-[13px] font-semibold">{lead.label}</span>
             {lead.sub}
           </div>
         </div>
@@ -134,13 +132,13 @@ export function StatCards({ lead, items }: { lead?: StatItem; items: StatItem[] 
   );
 }
 
-/** Kelas kontrol isian standar (input/select): latar hijau keputihan, tinggi ≥44px, fokus hijau. */
-export const FIELD = 'text-sm min-h-11 px-3 border border-line rounded-control bg-infarm-surface text-ink placeholder:text-ink-soft focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint';
+/** Kelas kontrol isian standar (input/select): latar hijau keputihan, tinggi 36px, fokus hijau. */
+export const FIELD = 'text-[13px] min-h-9 px-3 border border-line rounded-control bg-infarm-surface text-ink placeholder:text-ink-soft focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint';
 /** Label kontrol isian standar. */
 export const FIELD_LABEL = 'block text-xs font-semibold text-ink-soft mb-1.5';
 /** Kepala tabel standar (baris <tr> di <thead>). */
 export const TABLE_HEAD = 'text-xs font-semibold text-ink-soft bg-infarm-surface';
 /** Pil sub-tab: aktif hijau solid, lainnya putih bergaris. */
 export const pillCls = (active: boolean) =>
-  `flex items-center gap-2 min-h-11 px-4 rounded-full border text-sm font-semibold transition-colors ${
+  `flex items-center gap-2 min-h-9 px-4 rounded-full border text-[13px] font-semibold transition-colors ${
     active ? 'bg-brand border-brand text-white' : 'bg-surface border-line text-ink-soft hover:text-brand hover:border-infarm-light'}`;

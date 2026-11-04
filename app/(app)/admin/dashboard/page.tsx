@@ -47,7 +47,7 @@ export default async function DashboardPage({
   }
   if (!isHrdFull && !isDireksi && !grantScopes) {
     return <Shell><div className="bg-surface rounded-card shadow-card p-5">
-      <p className="text-sm text-ink-soft">Halaman ini untuk HRD / Direksi atau pemegang akses Dashboard.</p>
+      <p className="text-[13px] text-ink-soft">Halaman ini untuk HRD / Direksi atau pemegang akses Dashboard.</p>
       <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></div></Shell>;
   }
   // canMonitor = tautan silang ke Monitor Kinerja Pegawai (hanya HRD penuh).
@@ -603,8 +603,8 @@ function PagePurpose({ canMonitor }: { canMonitor: boolean }) {
 function PageHeader({ canMonitor, children }: { canMonitor: boolean; children: React.ReactNode }) {
   return (
     <div className="mb-5">
-      <h1 className="text-[30px] leading-tight font-bold tracking-[-0.01em] text-ink">Dashboard Organisasi</h1>
-      <p className="text-sm text-ink-soft mt-1.5">{children}</p>
+      <h1 className="text-[22px] leading-tight font-bold tracking-[-0.01em] text-ink">Dashboard Organisasi</h1>
+      <p className="text-[13px] text-ink-soft mt-1.5">{children}</p>
       <PagePurpose canMonitor={canMonitor} />
     </div>
   );

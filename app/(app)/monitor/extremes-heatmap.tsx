@@ -86,7 +86,7 @@ export function ExtremesHeatmap({
       {sel && (
         <div className={`flex flex-wrap items-center justify-between gap-2 rounded-xl px-3.5 py-2.5 mb-4 ${
           sel.kind === 'weak' ? 'bg-danger-tint' : 'bg-brand-tint'}`}>
-          <span className="text-sm text-ink">
+          <span className="text-[13px] text-ink">
             Menampilkan <strong className="font-mono">{filteredRows.length}</strong> pegawai dengan{' '}
             <strong className={sel.kind === 'weak' ? 'text-danger-ink' : 'text-brand-ink'}>
               {sel.kind === 'weak' ? 'terlemah' : 'terkuat'}</strong> di: <strong>{sel.label}</strong>

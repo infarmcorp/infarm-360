@@ -53,13 +53,13 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   const coordinatorView = !adminView && !supervisorView && canCoordinate(me);
   if (!supervisorView && !coordinatorView) {
     return <Shell><div className={CARD}>
-      <p className="text-sm text-ink-soft">Halaman ini untuk SPV, Koordinator, atau HRD dalam Mode SPV.</p></div></Shell>;
+      <p className="text-[13px] text-ink-soft">Halaman ini untuk SPV, Koordinator, atau HRD dalam Mode SPV.</p></div></Shell>;
   }
 
   const { data: periodRows } = await supabase
     .from('periods').select('id, label, has_360, status, start_date').order('start_date', { ascending: true });
   const periodList = periodRows ?? [];
-  if (periodList.length === 0) return <Shell><Header coordinator={coordinatorView} /><p className="text-sm text-ink-soft mt-4">Belum ada periode.</p></Shell>;
+  if (periodList.length === 0) return <Shell><Header coordinator={coordinatorView} /><p className="text-[13px] text-ink-soft mt-4">Belum ada periode.</p></Shell>;
   const sel = periodList.find((p) => p.id === periodParam)
     ?? periodList.find((p) => p.status === 'active')
     ?? periodList[periodList.length - 1];
@@ -88,7 +88,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
     empRows = data ?? [];
   }
   if (empRows.length === 0) {
-    return <Shell><Header coordinator={coordinatorView} /><Toolbar periods={periodList} current={sel.id} /><p className="text-sm text-ink-soft mt-4">Belum ada pegawai dalam lingkup Anda.</p></Shell>;
+    return <Shell><Header coordinator={coordinatorView} /><Toolbar periods={periodList} current={sel.id} /><p className="text-[13px] text-ink-soft mt-4">Belum ada pegawai dalam lingkup Anda.</p></Shell>;
   }
   const ids = empRows.map((e) => e.id);
 
@@ -262,7 +262,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
       <Toolbar periods={periodList} current={sel.id} />
 
       {rows.length === 0 && (
-        <p className="text-sm text-ink-soft mt-4">Belum ada data kinerja untuk periode ini — grafik tren lintas periode tetap tampil di bawah.</p>
+        <p className="text-[13px] text-ink-soft mt-4">Belum ada data kinerja untuk periode ini — grafik tren lintas periode tetap tampil di bawah.</p>
       )}
 
       {rows.length > 0 && (

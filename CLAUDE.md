@@ -236,8 +236,10 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
   - **Bagian harus jelas terpisah** (pengguna 2026-11-04 — versi pertama "menyaru"): `SectionHeader` bergaris aksen +
     pemisah; ringkasan = kartu terpisah berikon, hanya angka utama hijau; judul kartu berikon; kartu bergaris tepi +
     bayangan; catatan kecil & netral. Jangan gabungkan metrik ke satu blok berwarna. Tanpa emoji di UI; tanpa biru/ungu.
-  - Skala ukuran (jarak sengaja lebar): h1 30 · angka utama ringkasan 24 · angka kartu 20 · judul kartu 18 bold ·
-    pil/isi 14 · label kartu 13 · keterangan 12 · label bagian 13 kapital. Seri chart: utama `#00843b` · pembanding
+  - Skala ukuran RAPAT (pengguna 2026-11-04 — skala besar 30/18/14 + kontrol 44px ditolak: "besar-besar", kurang rapi):
+    h1 22 · angka utama ringkasan 20 · angka kartu 18 · judul kartu 16 bold (ikon 16px tanpa kotak) · isi 13 ·
+    keterangan 12 · label bagian 12 kapital · kontrol/tombol tinggi 36px · kartu p-4 · sidebar 12px. Filter tunggal = label
+    sejajar ("Periode: [ ]") tanpa kartu. Seri chart: utama `#00843b` · pembanding
     `#f08c00` · ketiga `#3b4a2e` putus-putus.
 - **Sidebar** (`app-shell.tsx`, pemilik 2026-11-04): putih bergaya Design System Infarm di **semua** halaman, bisa ditutup
   di desktop (tombol ☰ di bilah atas; cookie `sidebar_collapsed` dibaca `layout.tsx` agar tak berkedip). Saat ditutup,

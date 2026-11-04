@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Download, Users, Settings, BarChart3, MessageSquareText, ScrollText, FileText, Sprout, type LucideIcon } from 'lucide-react';
-import { CARD, CardTitle, Note, FIELD, FIELD_LABEL } from '@/components/infarm-ui';
+import { CARD, CardTitle, Note, FIELD } from '@/components/infarm-ui';
 import {
   exportEmployees, exportKpi, exportKpiAudit, exportRekap, exportLatePenalties,
   exportAssessments, exportQualAnswers, exportMappings, exportAspectSummaries,
@@ -144,17 +144,15 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
   // Ikon kartu seragam (kotak hijau pucat CardTitle) — kartu dibedakan lewat judul/ikon bentuk, bukan pelangi warna.
   return (
     <div className="space-y-5">
-      {/* Filter periode */}
-      <div className={`${CARD} flex flex-wrap items-end gap-x-4 gap-y-2`}>
-        <div>
-          <label className={FIELD_LABEL} htmlFor="ekspor-period">Periode</label>
-          <select id="ekspor-period" value={periodId} onChange={(e) => setPeriodId(e.target.value)}
-            className={`${FIELD} font-semibold min-w-[220px]`}>
-            <option value="">Semua Periode</option>
-            {periods.map((p) => <option key={p.id} value={p.id}>{p.label}{p.active ? ' (aktif)' : ''}</option>)}
-          </select>
-        </div>
-        <span className="text-xs text-ink-soft pb-3">Berlaku untuk dataset ber-periode (Pegawai selalu lintas periode).</span>
+      {/* Filter periode — satu kontrol: label sejajar, tanpa kartu (rapat, seperti versi lama). */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <label className="text-[13px] font-semibold text-ink" htmlFor="ekspor-period">Periode:</label>
+        <select id="ekspor-period" value={periodId} onChange={(e) => setPeriodId(e.target.value)}
+          className={`${FIELD} bg-surface min-w-[220px]`}>
+          <option value="">Semua Periode</option>
+          {periods.map((p) => <option key={p.id} value={p.id}>{p.label}{p.active ? ' (aktif)' : ''}</option>)}
+        </select>
+        <span className="text-xs text-ink-soft">Berlaku untuk dataset ber-periode (Pegawai selalu lintas periode).</span>
       </div>
 
       <Note>
@@ -163,12 +161,12 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {cards.map((c) => (
-          <div key={c.key} className={`${CARD} flex flex-col gap-3`}>
+          <div key={c.key} className={`${CARD} flex flex-col gap-2`}>
             <CardTitle icon={c.icon}>{c.title}</CardTitle>
-            <p className="text-sm text-ink-soft leading-relaxed">{c.desc}</p>
+            <p className="text-[13px] text-ink-soft leading-relaxed">{c.desc}</p>
             <div className="mt-auto pt-1 flex flex-wrap items-center gap-3">
               <button type="button" disabled={busy !== null} onClick={c.go}
-                className="inline-flex items-center justify-center gap-2 text-sm font-bold min-h-11 px-4 rounded-xl bg-brand hover:bg-brand-ink text-white disabled:opacity-50 disabled:cursor-not-allowed">
+                className="inline-flex items-center justify-center gap-2 text-[13px] font-bold min-h-9 px-4 rounded-xl bg-brand hover:bg-brand-ink text-white disabled:opacity-50 disabled:cursor-not-allowed">
                 <Download className="w-4 h-4" /> {busy === c.key ? 'Menyiapkan…' : 'Unduh Excel'}
               </button>
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-neutral-tint text-ink-soft">{c.scoped ? (selected ? selected.label : 'Semua periode') : 'Master'}</span>

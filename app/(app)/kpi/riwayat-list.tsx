@@ -16,8 +16,8 @@ export type FlatAudit = {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const labelMonth = (ym: string) => { const [y, m] = ym.split('-'); return `${MONTHS[Number(m) - 1] ?? m} ${y}`; };
-const PAGER_BTN = 'text-sm font-semibold min-h-10 px-3.5 rounded-control bg-neutral-tint text-ink-soft hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed';
-const SEARCH_BTN = 'text-sm font-semibold min-h-11 px-4 rounded-control border border-line bg-surface text-ink-soft hover:text-brand hover:border-infarm-light';
+const PAGER_BTN = 'text-[13px] font-semibold min-h-10 px-3.5 rounded-control bg-neutral-tint text-ink-soft hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed';
+const SEARCH_BTN = 'text-[13px] font-semibold min-h-9 px-4 rounded-control border border-line bg-surface text-ink-soft hover:text-brand hover:border-infarm-light';
 
 /**
  * Daftar audit KPI RATA (flat), TERBARU DI ATAS. Paginasi & pencarian DI SERVER (egress:
@@ -62,11 +62,11 @@ export function RiwayatList({ entries, page, total, pageSize, query }: { entries
 
       <StableHeight>
       {entries.length === 0 ? (
-        <p className="text-sm text-ink-soft">{query ? 'Tidak ada jejak audit yang cocok dengan pencarian.' : 'Belum ada jejak audit KPI. Riwayat tercatat otomatis setiap input skor.'}</p>
+        <p className="text-[13px] text-ink-soft">{query ? 'Tidak ada jejak audit yang cocok dengan pencarian.' : 'Belum ada jejak audit KPI. Riwayat tercatat otomatis setiap input skor.'}</p>
       ) : (
         <div className="overflow-x-auto">
           {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}
-          <table className="w-full table-fixed table-1line text-left text-sm min-w-[820px]">
+          <table className="w-full table-fixed table-1line text-left text-[13px] min-w-[820px]">
             <colgroup>
               {colPercents([
                 200, // Pegawai + divisi

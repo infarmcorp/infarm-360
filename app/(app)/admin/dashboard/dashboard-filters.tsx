@@ -57,7 +57,7 @@ export function DashboardFilters({
   };
 
   // Design System Infarm: kartu putih r-16 + bayangan tipis; select berlatar hijau keputihan, tinggi ≥44px.
-  const selectCls = 'w-full text-sm min-h-11 px-3 py-2.5 border border-line rounded-control font-semibold bg-infarm-surface text-ink focus:border-brand focus:ring-2 focus:ring-brand-tint focus:outline-none cursor-pointer';
+  const selectCls = 'w-full text-[13px] min-h-9 px-3 py-2.5 border border-line rounded-control font-semibold bg-infarm-surface text-ink focus:border-brand focus:ring-2 focus:ring-brand-tint focus:outline-none cursor-pointer';
   const labelCls = 'block text-xs font-semibold text-ink-soft';
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-surface rounded-card shadow-card p-5">

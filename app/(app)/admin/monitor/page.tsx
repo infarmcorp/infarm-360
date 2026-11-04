@@ -59,14 +59,14 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   }
   if (!isHrdFull && !grantScopes) {
     return <Shell><div className={CARD}>
-      <p className="text-sm text-ink-soft">Anda tidak memiliki akses ke halaman ini.</p></div></Shell>;
+      <p className="text-[13px] text-ink-soft">Anda tidak memiliki akses ke halaman ini.</p></div></Shell>;
   }
   const ownDept = (me?.dept ?? '').trim();
 
   const { data: periodRows } = await supabase
     .from('periods').select('id, label, has_360, status, start_date').order('start_date', { ascending: true });
   const periodList = periodRows ?? [];
-  if (periodList.length === 0) return <Shell><Header /><p className="text-sm text-ink-soft mt-4">Belum ada periode.</p></Shell>;
+  if (periodList.length === 0) return <Shell><Header /><p className="text-[13px] text-ink-soft mt-4">Belum ada periode.</p></Shell>;
   const sel = periodList.find((p) => p.id === periodParam)
     ?? periodList.find((p) => p.status === 'active')
     ?? periodList[periodList.length - 1];
@@ -100,7 +100,7 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   // Query berat (kpi/360 lintas periode di bawah) hanya untuk id yang lolos saring.
   const empRows = (allEmpData ?? []).filter((e) =>
     employeeInScopes(scopes, ownDept, user.id, e, teamIds) && (dept === 'all' || e.dept === dept));
-  if (empRows.length === 0) return <Shell><Header isHrdFull={isHrdFull} scopeLabel={scopeLabel} /><Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} /><p className="text-sm text-ink-soft mt-4">Belum ada pegawai dalam lingkup ini.</p></Shell>;
+  if (empRows.length === 0) return <Shell><Header isHrdFull={isHrdFull} scopeLabel={scopeLabel} /><Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} /><p className="text-[13px] text-ink-soft mt-4">Belum ada pegawai dalam lingkup ini.</p></Shell>;
   const ids = empRows.map((e) => e.id);
 
   // ── Snapshot periode terpilih → scorecard + tabel ──────────────────────────
@@ -276,7 +276,7 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
       <Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} />
 
       {rows.length === 0 && (
-        <p className="text-sm text-ink-soft mt-4">Belum ada data kinerja untuk lingkup ini — grafik tren lintas periode tetap tampil di bawah.</p>
+        <p className="text-[13px] text-ink-soft mt-4">Belum ada data kinerja untuk lingkup ini — grafik tren lintas periode tetap tampil di bawah.</p>
       )}
 
       {rows.length > 0 && (
@@ -357,8 +357,8 @@ function Card({ label, value, subtext, delta, note, icon: Icon }: { label: strin
     <div className={`${CARD} flex items-center gap-4 min-w-0`}>
       <span className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-brand-tint text-brand-ink" aria-hidden><Icon className="w-6 h-6" /></span>
       <div className="min-w-0 flex flex-col gap-0.5">
-        <div className="font-mono text-xl font-bold text-ink leading-tight">{value}</div>
-        <div className="text-sm text-ink-soft">{label}</div>
+        <div className="font-mono text-lg font-bold text-ink leading-tight">{value}</div>
+        <div className="text-[13px] text-ink-soft">{label}</div>
         {delta && <div>{delta}</div>}
         {subtext && <div className="text-xs text-ink-soft">{subtext}</div>}
         {note}

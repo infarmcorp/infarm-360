@@ -20,7 +20,7 @@ const CHIP = 'inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0
 function PersonChip({ p, sub }: { p: Person; sub?: string }) {
   return (
     <div className={`flex items-center gap-1.5 flex-wrap ${p.active ? '' : 'opacity-55'}`}>
-      <span className="font-semibold text-ink text-sm">{p.name}</span>
+      <span className="font-semibold text-ink text-[13px]">{p.name}</span>
       <span className="text-xs text-ink-soft"><span className="font-mono">{p.empCode}</span>{sub ? ` · ${sub}` : ''}</span>
       {p.role !== 'employee' && (
         <span className={`${CHIP} bg-neutral-tint text-ink-soft`}>{ROLE_LABEL[p.role]}</span>
@@ -96,7 +96,7 @@ export function StrukturView({
             </Note>
           </div>
           {treeRoots.length === 0
-            ? <p className="text-sm text-ink-soft italic">Belum ada lini pelaporan untuk ditampilkan.</p>
+            ? <p className="text-[13px] text-ink-soft italic">Belum ada lini pelaporan untuk ditampilkan.</p>
             : <OrgChart roots={treeRoots} />}
         </section>
       ) : (
@@ -120,7 +120,7 @@ export function StrukturView({
       {/* Lini pelaporan: SPV → tim */}
       <section className={CARD}>
         <CardTitle icon={Building2} className="mb-3">Lini Pelaporan (Supervisor → Tim)</CardTitle>
-        {shownSpv.length === 0 ? <p className="text-sm text-ink-soft italic">Tak ada yang cocok.</p> : (
+        {shownSpv.length === 0 ? <p className="text-[13px] text-ink-soft italic">Tak ada yang cocok.</p> : (
           <div className="space-y-2">
             {shownSpv.map(({ spv, members }) => {
               const isC = collapsed.has(spv.id);
@@ -186,7 +186,7 @@ export function StrukturView({
       <section className={CARD}>
         <CardTitle icon={LayoutGrid} className="mb-3">Ringkasan per Divisi</CardTitle>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm min-w-[360px]">
+          <table className="w-full text-left text-[13px] min-w-[360px]">
             <thead><tr className={TABLE_HEAD}>
               <th className="py-2.5 px-3 rounded-l-lg">Divisi</th><th className="py-2.5 px-3 text-center">Aktif</th><th className="py-2.5 px-3 text-center rounded-r-lg">Total</th>
             </tr></thead>

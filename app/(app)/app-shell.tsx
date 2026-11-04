@@ -240,13 +240,13 @@ export function AppShell({
   const modeSwitch = (compact: boolean) => (
     <div className={`grid grid-cols-2 gap-0.5 p-[3px] rounded-full border border-line bg-infarm-surface ${compact ? '' : 'w-full'}`}>
       <form action={setHrdMode.bind(null, 'admin')}>
-        <button type="submit" className={`w-full flex items-center justify-center gap-1 font-semibold rounded-full transition-colors ${compact ? 'text-xs px-3 h-8' : 'text-xs py-1.5'} ${
+        <button type="submit" className={`w-full flex items-center justify-center gap-1 font-semibold rounded-full transition-colors ${compact ? 'text-[11px] px-3 h-7' : 'text-[11px] py-1.5'} ${
           hrdMode === 'admin' ? 'bg-brand text-white' : 'text-ink-soft hover:text-ink'}`}>
           <Building2 className="w-3.5 h-3.5" /> HRD Admin
         </button>
       </form>
       <form action={setHrdMode.bind(null, 'spv')}>
-        <button type="submit" className={`w-full flex items-center justify-center gap-1 font-semibold rounded-full transition-colors ${compact ? 'text-xs px-3 h-8' : 'text-xs py-1.5'} ${
+        <button type="submit" className={`w-full flex items-center justify-center gap-1 font-semibold rounded-full transition-colors ${compact ? 'text-[11px] px-3 h-7' : 'text-[11px] py-1.5'} ${
           hrdMode === 'spv' ? 'bg-brand text-white' : 'text-ink-soft hover:text-ink'}`}>
           <Briefcase className="w-3.5 h-3.5" /> {modeLabel}
         </button>
@@ -263,8 +263,8 @@ export function AppShell({
             <BrandLogo className="w-8 h-8" />
           </div>
           <div className="leading-tight">
-            <div className="text-[15px] font-bold text-ink">Infarm 360°</div>
-            <div className="text-[11px] text-ink-soft">Performance Appraisal</div>
+            <div className="text-sm font-bold text-ink">Infarm 360°</div>
+            <div className="text-[10px] text-ink-soft">Performance Appraisal</div>
           </div>
         </div>
       </div>
@@ -274,7 +274,7 @@ export function AppShell({
       {canAdmin && (
         <div className="px-3.5 py-3 border-t border-line-soft">
           {modeSwitch(false)}
-          <p className="text-[11px] text-ink-soft text-center mt-1.5">
+          <p className="text-[10px] text-ink-soft text-center mt-1.5">
             {hrdMode === 'spv' ? (role === 'employee' ? 'Bertindak sebagai Pegawai' : 'Bertindak sebagai Supervisor') : 'Mengelola seluruh sistem'}
           </p>
         </div>
@@ -301,7 +301,7 @@ export function AppShell({
       <div className="px-3.5 py-3 border-t border-line-soft">
         <div className="flex items-center gap-1.5 mb-1.5 px-1">
           <Bell className="w-3.5 h-3.5 text-warn" />
-          <span className="text-[11px] font-bold text-infarm-soil tracking-[0.08em] uppercase">Tugas &amp; Notifikasi</span>
+          <span className="text-[10px] font-bold text-infarm-soil tracking-[0.08em] uppercase">Tugas &amp; Notifikasi</span>
           {todos.length > 0 && (
             <span className="ml-auto text-[11px] font-bold text-ink bg-warn rounded-full px-1.5 min-w-[20px] text-center">{todos.length}</span>
           )}
@@ -315,7 +315,7 @@ export function AppShell({
                 key={t.id}
                 href={t.href}
                 onClick={() => setOpen(false)}
-                className="flex items-start gap-2 text-xs leading-snug text-ink-soft hover:text-ink hover:bg-infarm-surface rounded-lg px-1.5 py-1.5 transition-colors"
+                className="flex items-start gap-2 text-[11px] leading-snug text-ink-soft hover:text-ink hover:bg-infarm-surface rounded-lg px-1.5 py-1.5 transition-colors"
               >
                 <span className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${TODO_DOT[t.tone]}`} />
                 <span>{t.label}</span>
@@ -337,13 +337,13 @@ export function AppShell({
             <div key={sec.title ?? 'main'}>
               {sec.title && (collapsible ? (
                 <button type="button" onClick={() => setOpenTitle(isOpen ? null : sec.title!)}
-                  className="w-full flex items-center gap-1.5 px-1.5 pt-3.5 pb-1.5 text-[11px] font-bold text-infarm-soil tracking-[0.08em] uppercase hover:text-ink">
+                  className="w-full flex items-center gap-1.5 px-1.5 pt-3.5 pb-1.5 text-[10px] font-bold text-infarm-soil tracking-[0.08em] uppercase hover:text-ink">
                   <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
                   <span className="flex-1 text-left">{sec.title}</span>
                   {!isOpen && containsActive && <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" aria-label="halaman aktif di grup ini" />}
                 </button>
               ) : (
-                <div className="text-[11px] font-bold text-infarm-soil tracking-[0.08em] px-1.5 pt-3.5 pb-1.5 uppercase">{sec.title}</div>
+                <div className="text-[10px] font-bold text-infarm-soil tracking-[0.08em] px-1.5 pt-3.5 pb-1.5 uppercase">{sec.title}</div>
               ))}
               {isOpen && sec.items.map((it) => {
                 const Icon = it.icon;
@@ -353,7 +353,7 @@ export function AppShell({
                     key={it.href}
                     href={it.href}
                     onClick={() => setOpen(false)}
-                    className={`w-full flex items-center gap-2.5 pl-4 pr-3 py-2 rounded-lg text-[13px] font-semibold transition-colors ${
+                    className={`w-full flex items-center gap-2.5 pl-4 pr-3 py-2 rounded-lg text-xs font-bold transition-colors ${
                       active ? 'bg-brand text-white' : 'text-ink-soft hover:bg-infarm-surface hover:text-brand-ink'
                     }`}
                   >
@@ -370,13 +370,13 @@ export function AppShell({
       {/* User + akun + logout */}
       <div className="p-3 border-t border-line">
         <div className="px-1 mb-2">
-          <div className="text-[13px] font-bold text-ink truncate">{name}</div>
-          <div className="text-[11px] text-ink-soft">{dept} · {ROLE_LABEL[role]} · <span className="font-mono">{empCode}</span></div>
+          <div className="text-xs font-bold text-ink truncate">{name}</div>
+          <div className="text-[10px] text-ink-soft">{dept} · {ROLE_LABEL[role]} · <span className="font-mono">{empCode}</span></div>
         </div>
         <Link
           href="/akun"
           onClick={() => setOpen(false)}
-          className={`w-full flex items-center gap-2 text-[13px] font-semibold rounded-lg py-2 px-2 mb-1 transition-colors ${
+          className={`w-full flex items-center gap-2 text-xs font-semibold rounded-lg py-2 px-2 mb-1 transition-colors ${
             isActive('/akun') ? 'bg-brand text-white' : 'text-ink-soft hover:bg-infarm-surface hover:text-ink'
           }`}
         >
@@ -388,7 +388,7 @@ export function AppShell({
           )}
         </Link>
         <form action="/auth/signout" method="post">
-          <button type="submit" className="w-full flex items-center gap-2 text-[13px] font-semibold text-danger-ink hover:bg-danger-tint rounded-lg py-2 px-2 transition-colors">
+          <button type="submit" className="w-full flex items-center gap-2 text-xs font-semibold text-danger-ink hover:bg-danger-tint rounded-lg py-2 px-2 transition-colors">
             <LogOut className="w-4 h-4" /> Keluar
           </button>
         </form>
@@ -428,15 +428,15 @@ export function AppShell({
         {/* Bilah atas desktop: tombol ☰ (tempatnya tetap, sidebar terbuka maupun ditutup) + jejak
             "Grup › Halaman". Saat sidebar DITUTUP: ▾ membuka halaman lain di grup yang sama, dan
             periode / Tugas / mode pindah ke kanan sebagai pil (pilihan pemilik 2026-11-04, mockup B). */}
-        <div className="app-topbar no-print hidden md:flex items-center gap-3 px-5 h-14 shrink-0 bg-surface border-b border-line relative">
+        <div className="app-topbar no-print hidden md:flex items-center gap-3 px-5 h-12 shrink-0 bg-surface border-b border-line relative">
           {popover && <div className="fixed inset-0 z-20" onClick={() => setPopover(null)} aria-hidden />}
           <button type="button" onClick={toggleSidebar}
-            className="w-9 h-9 rounded-control border border-line text-ink-soft hover:text-brand hover:border-infarm-light flex items-center justify-center shrink-0"
+            className="w-8 h-8 rounded-control border border-line text-ink-soft hover:text-brand hover:border-infarm-light flex items-center justify-center shrink-0"
             aria-label={collapsed ? 'Buka sidebar' : 'Tutup sidebar'} title={collapsed ? 'Buka sidebar' : 'Tutup sidebar'} aria-expanded={!collapsed}>
             <Menu className="w-[18px] h-[18px]" />
           </button>
           {pageLabel && (
-            <div className="relative z-30 flex items-center gap-1.5 min-w-0 text-sm">
+            <div className="relative z-30 flex items-center gap-1.5 min-w-0 text-[13px]">
               {crumb?.sec.title && <>
                 <span className="font-semibold text-infarm-soil truncate">{crumb.sec.title}</span>
                 <ChevronRight className="w-4 h-4 text-ink-faint shrink-0" />
@@ -475,14 +475,14 @@ export function AppShell({
           )}
           {collapsed && (
             <div className="ml-auto flex items-center gap-2 shrink-0">
-              <span className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-infarm-cream text-xs text-ink" title={deadline?.text}>
+              <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full bg-infarm-cream text-xs text-ink" title={deadline?.text}>
                 <span className={`w-2 h-2 rounded-full shrink-0 ${periodActive ? 'bg-brand' : 'bg-danger-ink'}`} />
                 <span className="font-bold">{periodLabel ?? 'Tanpa Periode'}</span>
                 {deadline && <span className={deadline.urgent ? 'text-warn-ink font-bold' : 'text-infarm-soil'}>· {deadline.short}</span>}
               </span>
               <div className="relative z-30">
                 <button type="button" onClick={() => setPopover(popover === 'todos' ? null : 'todos')} aria-expanded={popover === 'todos'}
-                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full border border-line bg-surface text-xs font-semibold text-ink-soft hover:text-ink">
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-full border border-line bg-surface text-xs font-semibold text-ink-soft hover:text-ink">
                   <Bell className="w-3.5 h-3.5 text-warn" /> Tugas
                   {todos.length > 0 && <span className="text-[11px] font-bold text-ink bg-warn rounded-full px-1.5 min-w-[20px] text-center">{todos.length}</span>}
                 </button>

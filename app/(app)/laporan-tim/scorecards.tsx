@@ -32,8 +32,8 @@ function Card({ icon: Icon, label, value, sub }: { icon: LucideIcon; label: stri
         <Icon className="w-6 h-6" />
       </span>
       <div className="min-w-0 flex flex-col gap-0.5">
-        <span className="font-mono text-xl font-bold text-ink leading-tight truncate">{value}</span>
-        <span className="text-sm text-ink-soft">{label}</span>
+        <span className="font-mono text-lg font-bold text-ink leading-tight truncate">{value}</span>
+        <span className="text-[13px] text-ink-soft">{label}</span>
         {sub && <div className="flex flex-col gap-0.5">{sub}</div>}
       </div>
     </div>

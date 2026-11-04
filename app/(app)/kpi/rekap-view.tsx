@@ -31,7 +31,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', 
 
   const { data: periods } = await supabase.from('periods').select('id, label, has_360, status').order('label');
   const periodList = periods ?? [];
-  if (periodList.length === 0) return <p className="text-sm text-ink-soft">Belum ada periode.</p>;
+  if (periodList.length === 0) return <p className="text-[13px] text-ink-soft">Belum ada periode.</p>;
   const sel = periodList.find((p) => p.id === periodParam)
     ?? periodList.find((p) => p.status === 'active')
     ?? periodList[0];
@@ -119,7 +119,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', 
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-        <p className="text-sm text-ink-soft">Ringkasan KPI bulanan, 360°, &amp; Skor Akhir per kuartal.</p>
+        <p className="text-[13px] text-ink-soft">Ringkasan KPI bulanan, 360°, &amp; Skor Akhir per kuartal.</p>
         <PeriodSelect periods={periodList} current={sel.id} />
       </div>
       {!sel.has_360 && (

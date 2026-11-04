@@ -41,7 +41,7 @@ export function TeamAspectProfile({ aspects, scopeLabel }: { aspects: AspectScor
           return (
             <div key={a.aspek} className="space-y-1">
               <div className="flex justify-between items-center text-xs gap-2">
-                <span className="text-sm font-semibold text-ink">{a.aspek}</span>
+                <span className="text-[13px] font-semibold text-ink">{a.aspek}</span>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {d != null && (
                     <span className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-full ${

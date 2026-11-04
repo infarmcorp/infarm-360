@@ -176,9 +176,9 @@ function DeltaMetric({ label, curr, prev }: { label: string; curr: number | null
   const arrow = d == null ? '' : d > 0 ? '▲' : d < 0 ? '▼' : '▬';
   return (
     <div className="rounded-xl border border-line bg-infarm-surface px-3.5 py-2.5">
-      <div className="text-sm text-ink-soft">{label}</div>
+      <div className="text-[13px] text-ink-soft">{label}</div>
       <div className="flex items-baseline gap-2 mt-0.5">
-        <span className="text-xl font-bold font-mono text-ink">{curr != null ? fmt2(curr) : '—'}</span>
+        <span className="text-lg font-bold font-mono text-ink">{curr != null ? fmt2(curr) : '—'}</span>
         <span className={`text-xs font-bold font-mono ${cls}`}>
           {d == null ? '—' : `${arrow} ${d >= 0 ? '+' : '−'}${fmt2(Math.abs(d))}`}
         </span>
@@ -325,7 +325,7 @@ function TopMovers({ movers, labels }: { movers: MoverRow[]; labels: { prev: str
   return (
     <ChartCard icon={ArrowUpDown} title="Pergerakan KPI" hint={labels && <span className="text-xs text-ink-soft">{labels.prev} → {labels.curr}</span>}>
       {!labels || movers.length === 0 ? (
-        <p className="text-sm text-ink-soft py-6 text-center">Perlu ≥2 periode berdata (pegawai bernilai di keduanya) untuk pergerakan.</p>
+        <p className="text-[13px] text-ink-soft py-6 text-center">Perlu ≥2 periode berdata (pegawai bernilai di keduanya) untuk pergerakan.</p>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
@@ -398,7 +398,7 @@ function TopMovers360({ movers, labels }: { movers: MoverRow360[]; labels: { pre
   return (
     <ChartCard icon={Activity} title="Pergerakan 360°" hint={labels && <span className="text-xs text-ink-soft">{labels.prev} → {labels.curr}</span>}>
       {!labels || movers.length === 0 ? (
-        <p className="text-sm text-ink-soft py-6 text-center">Perlu ≥2 periode ber-360° (pegawai bernilai di keduanya) untuk pergerakan.</p>
+        <p className="text-[13px] text-ink-soft py-6 text-center">Perlu ≥2 periode ber-360° (pegawai bernilai di keduanya) untuk pergerakan.</p>
       ) : (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-3">
@@ -561,5 +561,5 @@ export function MonitorTrends({
 }
 
 function Empty() {
-  return <p className="text-sm text-ink-soft py-8 text-center">Belum ada data untuk ditampilkan.</p>;
+  return <p className="text-[13px] text-ink-soft py-8 text-center">Belum ada data untuk ditampilkan.</p>;
 }

@@ -18,7 +18,7 @@ export default async function EksporPage() {
     return (
       <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>
         <div className={CARD}>
-          <p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin.</p>
+          <p className="text-[13px] text-ink-soft">Halaman ini hanya untuk HRD Admin.</p>
         </div>
       </main>
     );

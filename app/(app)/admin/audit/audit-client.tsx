@@ -39,7 +39,7 @@ const CAT_COLOR: Record<string, string> = {
   pengembangan: 'bg-infarm-cream text-infarm-soil',
   lain: 'bg-neutral-tint text-ink-soft',
 };
-const PAGER_BTN = 'text-sm font-semibold min-h-10 px-3.5 rounded-control bg-neutral-tint text-ink-soft hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed';
+const PAGER_BTN = 'text-[13px] font-semibold min-h-10 px-3.5 rounded-control bg-neutral-tint text-ink-soft hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed';
 
 // Halaman ini sudah memakai Asia/Jakarta sejak awal; kini lewat helper bersama agar formatnya
 // PERSIS sama dengan Audit KPI & Log Akses (jam 24 titik-dua + label WIB), bukan tiga gaya berbeda.
@@ -106,7 +106,7 @@ export function AuditClient({
               className={`${FIELD} flex-1 min-w-[140px]`}
             />
             <button type="submit"
-              className="inline-flex items-center gap-1.5 text-sm font-bold min-h-11 px-4 rounded-xl bg-brand hover:bg-brand-ink text-white whitespace-nowrap">
+              className="inline-flex items-center gap-1.5 text-[13px] font-bold min-h-9 px-4 rounded-xl bg-brand hover:bg-brand-ink text-white whitespace-nowrap">
               <Search className="w-4 h-4" /> Cari
             </button>
           </div>
@@ -130,19 +130,19 @@ export function AuditClient({
         </div>
         {active && (
           <button type="button" onClick={() => { setTerm(''); go({ cat: 'all', q: '', period: 'all', page: 0 }); }}
-            className="text-sm font-semibold min-h-11 px-4 rounded-xl bg-neutral-tint text-ink-soft hover:text-ink">Bersihkan</button>
+            className="text-[13px] font-semibold min-h-9 px-4 rounded-xl bg-neutral-tint text-ink-soft hover:text-ink">Bersihkan</button>
         )}
       </div>
 
       <StableHeight className="">
       {rows.length === 0 ? (
-        <p className="py-6 text-center text-sm text-ink-soft">
+        <p className="py-6 text-center text-[13px] text-ink-soft">
           {total === 0 && !active ? 'Belum ada aktivitas tercatat.' : 'Tidak ada entri sesuai filter.'}
         </p>
       ) : (
         <div className="overflow-x-auto">
           {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}
-          <table className="w-full table-fixed table-1line text-left text-sm min-w-[680px]">
+          <table className="w-full table-fixed table-1line text-left text-[13px] min-w-[680px]">
             <colgroup>
               {colPercents([
                 180, // Waktu ("01 Okt 2026 14:30 WIB")

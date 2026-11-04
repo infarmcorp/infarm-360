@@ -224,8 +224,9 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
   Palet diskrit skor Monitor: ≥90 biru · 80–89 hijau · 70–79 kuning · <70 merah (selaras `perfCategoryOf`).
 - **Design System Infarm** (pemilik, 2026-11-03; artifact "Infarm" dari Infarm-Web) — dipakai **Dashboard
   Organisasi** saja, menggantikan aturan token di atas untuk halaman itu: pembungkus `.infarm-ds` + `infarmFontVars`
-  (`app/infarm-fonts.ts`, next/font self-host) = Geist/Geist Mono/Montserrat h1–h4 (pengecualian sadar dari aturan font
-  sistem, hanya di halaman ber-`.infarm-ds`); token `infarm-*`, `rounded-card` 16px, `shadow-card`. Palet skor diskrit
+  (`app/infarm-fonts.ts`, next/font self-host) = **Geist Mono untuk semua teks & angka** + Montserrat h1–h4 (pengguna
+  2026-11-04; pengecualian sadar dari aturan font sistem, hanya di halaman ber-`.infarm-ds`; aturan `.infarm-ds` wajib
+  di `@layer base` agar utilitas bisa menimpanya); token `infarm-*`, `rounded-card` 16px, `shadow-card`. Palet skor diskrit
   `CAT_COLOR` (lokal `dashboard-visual.tsx`): ≥90 cokelat `#6b4e3d` · 80–89 hijau · 70–79 kuning · <70 merah; heatmap
   `heatColorInfarm` (= `heatColor`, ujung biru → cokelat). Warna 4-Box/tren/judul bagian dipetakan lokal — **jangan**
   ubah `PLAYER_BOXES`/`TREND_META`/`heatColor` di `lib/` untuk ini (masih dipakai Monitor & Laporan Tim).

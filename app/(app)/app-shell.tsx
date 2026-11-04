@@ -271,7 +271,7 @@ export function AppShell({
 
       {/* Toggle dual-mode: tampil bila punya izin HRD (canAdmin). Mode 'base' (token 'spv')
           = bertindak sesuai posisi asli (Pegawai/SPV); 'admin' = mengoperasikan aplikasi. */}
-      <div className="bg-brand-tint border-b border-line">
+      <div className="bg-infarm-surface border-b border-line">
       {canAdmin && (
         <div className="px-3.5 py-3">
           {modeSwitch(false)}
@@ -370,7 +370,7 @@ export function AppShell({
       </nav>
 
       {/* User + akun + logout */}
-      <div className="p-3 border-t border-line bg-brand-tint">
+      <div className="p-3 border-t border-line bg-infarm-surface">
         <div className="px-1 mb-2">
           <div className="text-xs font-bold text-ink truncate">{name}</div>
           <div className="text-[10px] text-ink-soft">{dept} · {ROLE_LABEL[role]} · <span className="font-mono">{empCode}</span></div>

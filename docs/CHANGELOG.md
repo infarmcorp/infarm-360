@@ -10,7 +10,7 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ### 2026-11-04 — Bilah atas & sidebar berwarna hijau (di `dev`, belum di production)
 - Bilah atas (tombol menu + judul halaman) kini hijau dengan tulisan putih, menyambung dengan kepala sidebar (logo).
-  Blok mode/periode/tugas dan bagian nama pengguna di sidebar berlatar hijau muda; daftar menu tetap putih.
+  Blok mode/periode/tugas dan bagian nama pengguna di sidebar berlatar hijau lembar kerja; daftar menu tetap putih.
 - Alasan (pemilik): sidebar putih polos sulit dibedakan dari lembar kerja. Isi menu dan cara kerjanya tidak berubah.
 
 ### 2026-11-04 — Form penilaian: label skor seragam & Review langsung terbuka (di `dev`, belum di production)

@@ -1,6 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { PieChart, X } from 'lucide-react';
+import { CARD, CardTitle } from '@/components/infarm-ui';
 import { PerEmployeeHeatmap, type HeatCol, type HeatRow } from './per-employee-heatmap';
 
 /**
@@ -66,32 +68,32 @@ export function ExtremesHeatmap({
   return (
     <div className="mb-4">
       {/* DONUT FREKUENSI (di atas) */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs mb-3">
-        <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-tight">{pieTitle}</h3>
-        {pieSubtitle && <p className="text-xs text-gray-500 mt-0.5 mb-4">{pieSubtitle}</p>}
+      <div className={`${CARD} mb-4`}>
+        <CardTitle icon={PieChart}>{pieTitle}</CardTitle>
+        {pieSubtitle && <p className="text-xs text-ink-soft mt-1 mb-4">{pieSubtitle}</p>}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <PieBlock heading="Paling Sering Terlemah" kind="weak" slices={weak} activeId={activeId} onPick={toggle} tone="rose" />
-          <PieBlock heading="Paling Sering Terkuat" kind="strong" slices={strong} activeId={activeId} onPick={toggle} tone="emerald" />
+          <PieBlock heading="Paling Sering Terlemah" kind="weak" slices={weak} activeId={activeId} onPick={toggle} tone="danger" />
+          <PieBlock heading="Paling Sering Terkuat" kind="strong" slices={strong} activeId={activeId} onPick={toggle} tone="brand" />
         </div>
-        <p className="text-[10px] text-gray-500 italic mt-4">
+        <p className="text-xs text-ink-soft mt-4">
           <strong>Klik satu irisan</strong> untuk menyaring heatmap di bawah — hanya pegawai yang{' '}
-          <span className="text-rose-600 font-semibold not-italic">terlemah</span>/<span className="text-emerald-700 font-semibold not-italic">terkuat</span>-nya
+          <span className="text-danger-ink font-semibold">terlemah</span>/<span className="text-brand-ink font-semibold">terkuat</span>-nya
           di aspek/indikator itu. Irisan menjumlah 100% (4 teratas + Lainnya); ini titik ekstrem <em>relatif</em> tiap orang, bukan skor mutlak.
         </p>
       </div>
 
       {/* Banner filter aktif */}
       {sel && (
-        <div className={`flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 mb-3 ${
-          sel.kind === 'weak' ? 'border-rose-200 bg-rose-50/60' : 'border-emerald-200 bg-emerald-50/60'}`}>
-          <span className="text-xs text-slate-700">
-            Menampilkan <strong>{filteredRows.length}</strong> pegawai dengan{' '}
-            <strong className={sel.kind === 'weak' ? 'text-rose-700' : 'text-emerald-700'}>
+        <div className={`flex flex-wrap items-center justify-between gap-2 rounded-xl px-3.5 py-2.5 mb-4 ${
+          sel.kind === 'weak' ? 'bg-danger-tint' : 'bg-brand-tint'}`}>
+          <span className="text-sm text-ink">
+            Menampilkan <strong className="font-mono">{filteredRows.length}</strong> pegawai dengan{' '}
+            <strong className={sel.kind === 'weak' ? 'text-danger-ink' : 'text-brand-ink'}>
               {sel.kind === 'weak' ? 'terlemah' : 'terkuat'}</strong> di: <strong>{sel.label}</strong>
           </span>
           <button type="button" onClick={() => setSel(null)}
-            className="text-xs font-bold px-2.5 py-1 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">
-            Tampilkan semua ✕
+            className="inline-flex items-center gap-1.5 text-xs font-semibold min-h-9 px-3 rounded-full border border-line bg-surface text-ink-soft hover:text-brand hover:border-infarm-light">
+            Tampilkan semua <X className="w-3.5 h-3.5" aria-hidden />
           </button>
         </div>
       )}
@@ -106,9 +108,10 @@ type Kind = 'weak' | 'strong';
 type Slice = { keys: string[]; label: string; n: number; color: string };
 type Sel = { kind: Kind; keys: string[]; label: string };
 
-const WEAK = ['#e11d48', '#f43f5e', '#fb7185', '#fda4af'];
-const STRONG = ['#047857', '#059669', '#34d399', '#6ee7b7'];
-const OTHER = '#d1d5db';
+// Palet Design System Infarm: Terlemah = rona danger, Terkuat = rona brand, Lainnya = abu garis.
+const WEAK = ['#a23c33', '#c4564b', '#e08a80', '#f2c1bb'];
+const STRONG = ['#006b31', '#00843b', '#5fb877', '#96d296'];
+const OTHER = '#c9cec7';
 
 const selId = (kind: Kind, keys: string[]) => `${kind}|${[...keys].sort().join(',')}`;
 
@@ -123,15 +126,15 @@ function rankSlices(counts: Map<string, number>, labelOf: (k: string) => string,
 
 function PieBlock({ heading, kind, slices, activeId, onPick, tone }: {
   heading: string; kind: Kind; slices: Slice[]; activeId: string | null;
-  onPick: (kind: Kind, sl: Slice) => void; tone: 'rose' | 'emerald';
+  onPick: (kind: Kind, sl: Slice) => void; tone: 'danger' | 'brand';
 }) {
-  const headCls = tone === 'rose' ? 'text-rose-600' : 'text-emerald-700';
+  const headCls = tone === 'danger' ? 'text-danger-ink' : 'text-brand-ink';
   const total = slices.reduce((s, x) => s + x.n, 0);
   if (total === 0) {
     return (
       <div>
-        <h4 className={`text-[11px] font-extrabold uppercase tracking-wider mb-3 ${headCls}`}>{heading}</h4>
-        <p className="text-xs text-gray-400 italic">Belum ada data.</p>
+        <h4 className={`text-[13px] font-bold uppercase tracking-[0.08em] mb-3 ${headCls}`}>{heading}</h4>
+        <p className="text-xs text-ink-soft italic">Belum ada data.</p>
       </div>
     );
   }
@@ -149,7 +152,7 @@ function PieBlock({ heading, kind, slices, activeId, onPick, tone }: {
 
   return (
     <div>
-      <h4 className={`text-[11px] font-extrabold uppercase tracking-wider mb-3 ${headCls}`}>{heading}</h4>
+      <h4 className={`text-[13px] font-bold uppercase tracking-[0.08em] mb-3 ${headCls}`}>{heading}</h4>
       <div className="flex items-center gap-4">
         <svg viewBox="0 0 140 140" className="w-[140px] h-[140px] shrink-0" role="img" aria-label={heading}>
           {single ? (
@@ -168,8 +171,8 @@ function PieBlock({ heading, kind, slices, activeId, onPick, tone }: {
               );
             })
           )}
-          <text x={CX} y={CY - 3} textAnchor="middle" className="fill-slate-700" fontSize={19} fontWeight={800}>{total}</text>
-          <text x={CX} y={CY + 12} textAnchor="middle" className="fill-gray-400" fontSize={9} fontWeight={600}>pegawai</text>
+          <text x={CX} y={CY - 3} textAnchor="middle" className="fill-ink font-mono" fontSize={19} fontWeight={700}>{total}</text>
+          <text x={CX} y={CY + 12} textAnchor="middle" className="fill-ink-soft" fontSize={10} fontWeight={600}>pegawai</text>
         </svg>
         <ul className="flex-1 min-w-0 space-y-1.5">
           {arcs.map(({ s, frac, id }) => {
@@ -177,11 +180,11 @@ function PieBlock({ heading, kind, slices, activeId, onPick, tone }: {
             return (
               <li key={id}>
                 <button type="button" onClick={() => onPick(kind, s)}
-                  className={`w-full flex items-start gap-2 text-xs text-left rounded-md px-1.5 py-1 -mx-1.5 transition-colors hover:bg-gray-50 ${active ? 'bg-gray-100 ring-1 ring-gray-300' : ''}`}
+                  className={`w-full flex items-start gap-2 text-xs text-left rounded-md px-1.5 py-1 -mx-1.5 transition-colors hover:bg-infarm-surface ${active ? 'bg-neutral-tint ring-1 ring-line-strong' : ''}`}
                   title="Klik untuk saring heatmap">
                   <span className="w-3 h-3 rounded-sm shrink-0 mt-0.5" style={{ backgroundColor: s.color }} />
-                  <span className={`break-words leading-tight flex-1 min-w-0 ${active ? 'font-bold text-slate-800' : 'font-semibold text-slate-700'}`}>{s.label}</span>
-                  <span className="font-mono text-gray-500 shrink-0 whitespace-nowrap">{s.n} · {(frac * 100).toFixed(0)}%</span>
+                  <span className={`break-words leading-tight flex-1 min-w-0 ${active ? 'font-bold text-ink' : 'font-semibold text-ink'}`}>{s.label}</span>
+                  <span className="font-mono text-ink-soft shrink-0 whitespace-nowrap">{s.n} · {(frac * 100).toFixed(0)}%</span>
                 </button>
               </li>
             );

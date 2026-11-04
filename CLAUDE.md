@@ -219,28 +219,30 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
 - Font = **font bawaan sistem** (keputusan pengguna 2026-10-16; Google Fonts Montserrat/Plex **tidak** diunduh —
   saat sempat termuat, teks terlalu lebar). Monospace via `.data-value` (alias `.mono`, `tabular-nums`) untuk
   **semua** angka/data/ID — jangan untuk kalimat. Jangan tambahkan font eksternal tanpa permintaan.
-- **Pengecualian (permintaan pengguna):** analitik Monitor (`monitor-trends`, `extremes-heatmap`,
-  `per-employee-heatmap`, `dist-bars`, `team-aspect`, `section-header`) **tetap berwarna** — jangan di-token-kan.
-  Palet diskrit skor Monitor: ≥90 biru · 80–89 hijau · 70–79 kuning · <70 merah (selaras `perfCategoryOf`).
-- **Design System Infarm** (pemilik, 2026-11-03; artifact "Infarm" dari Infarm-Web) — dipakai **Dashboard
-  Organisasi** saja, menggantikan aturan token di atas untuk halaman itu: pembungkus `.infarm-ds` + `infarmFontVars`
-  (`app/infarm-fonts.ts`, **`next/font/local`** + woff2 di `app/fonts/` — jangan `next/font/google`, build Turbopack
-  Vercel gagal mengunduhnya) = Geist (teks) + Geist Mono (angka/data) + Montserrat h1–h4 (pengguna
-  2026-11-04; Geist Mono untuk semua teks sudah dicoba & ditolak; pengecualian sadar dari aturan font sistem, hanya di halaman ber-`.infarm-ds`; aturan `.infarm-ds` wajib
-  di `@layer base` agar utilitas bisa menimpanya); token `infarm-*`, `rounded-card` 16px, `shadow-card`. Palet skor diskrit
-  `CAT_COLOR` (lokal `dashboard-visual.tsx`): ≥90 cokelat `#6b4e3d` · 80–89 hijau · 70–79 kuning · <70 merah; heatmap
-  `heatColorInfarm` (= `heatColor`, ujung biru → cokelat). Warna 4-Box/tren/judul bagian dipetakan lokal — **jangan**
-  ubah `PLAYER_BOXES`/`TREND_META`/`heatColor` di `lib/` untuk ini (masih dipakai Monitor & Laporan Tim).
-  **Bagian harus jelas terpisah** (pengguna 2026-11-04 — versi pertama "menyaru"): judul bagian = garis aksen hijau +
-  garis pemisah atas (`SectionHeader`); ringkasan = kartu terpisah berikon, hanya angka utama berlatar hijau
-  (`StatCards`); judul kartu berikon (`CardTitle`); kartu bergaris tepi + bayangan; catatan penjelas kecil & netral
-  (`Note`). Jangan gabungkan metrik ke satu blok berwarna. Skala ukuran (jarak antartingkat sengaja lebar): h1 30 · angka utama ringkasan 24 · angka kartu 20 ·
-  judul kartu 18 bold · pil/isi 14 · label kartu pita 13 · keterangan 12 · label bagian 12 kapital. Halaman lain menyusul
-  hanya bila diminta.
+- **Design System Infarm** (pemilik, 2026-11-03/04; artifact "Infarm" dari Infarm-Web) — dipakai halaman grup
+  **Pemantauan & Laporan** + halaman SPV yang berbagi komponen: Dashboard Organisasi, Monitor Kinerja Pegawai &
+  Monitor Kinerja (SPV), Struktur Organisasi, Input KPI / Monitoring & Audit KPI (`kpi/`), Log Aktivitas HRD, Ekspor
+  Dataset, Laporan Kinerja Tim. Untuk halaman-halaman itu aturan ini menggantikan aturan token di atas (pengecualian
+  "Monitor tetap berwarna/biru" DICABUT 2026-11-04). Halaman lain menyusul hanya bila diminta.
+  - Primitif bersama `components/infarm-ui.tsx` (tanpa hook; aman server/klien): `CARD`, `PageTitle`, `CardTitle`
+    (ikon lucide), `SectionHeader`, `Note`, `StatCard(s)`, `FIELD`/`FIELD_LABEL`/`TABLE_HEAD`/`pillCls`, palet
+    `CAT_COLOR` (≥90 cokelat `#6b4e3d` · 80–89 hijau · 70–79 kuning · <70 merah), `PLAYER_TONE` (4-Box), `TREND_CHIP`.
+    Heatmap = `heatColorInfarm` (= `heatColor`, ujung biru → cokelat). **Jangan** ubah `PLAYER_BOXES`/`TREND_META`/
+    `heatColor` di `lib/` untuk ini (masih dipakai halaman lain, mis. laporan).
+  - Kanvas `<main>` = `INFARM_PAGE` (`app/infarm-fonts.ts`) — impor HANYA dari page.tsx (next/font tak berjalan di
+    Vitest). Font `next/font/local` + woff2 di `app/fonts/` (jangan `next/font/google`: build Turbopack Vercel gagal) =
+    Geist teks · Geist Mono angka/data · Montserrat h1–h4 (Geist Mono untuk semua teks dicoba & ditolak); aturan
+    `.infarm-ds` wajib di `@layer base` agar utilitas bisa menimpanya. Token `infarm-*`, `rounded-card` 16px, `shadow-card`.
+  - **Bagian harus jelas terpisah** (pengguna 2026-11-04 — versi pertama "menyaru"): `SectionHeader` bergaris aksen +
+    pemisah; ringkasan = kartu terpisah berikon, hanya angka utama hijau; judul kartu berikon; kartu bergaris tepi +
+    bayangan; catatan kecil & netral. Jangan gabungkan metrik ke satu blok berwarna. Tanpa emoji di UI; tanpa biru/ungu.
+  - Skala ukuran (jarak sengaja lebar): h1 30 · angka utama ringkasan 24 · angka kartu 20 · judul kartu 18 bold ·
+    pil/isi 14 · label kartu 13 · keterangan 12 · label bagian 13 kapital. Seri chart: utama `#00843b` · pembanding
+    `#f08c00` · ketiga `#3b4a2e` putus-putus.
 - **Sidebar** (`app-shell.tsx`, pemilik 2026-11-04): putih bergaya Design System Infarm di **semua** halaman, bisa ditutup
   di desktop (tombol ☰ di bilah atas; cookie `sidebar_collapsed` dibaca `layout.tsx` agar tak berkedip). Saat ditutup,
   navigasi pindah ke bilah atas: jejak grup › halaman + ▾ halaman segrup + pil periode/Tugas/mode. Isi `menuFor`
-  (menu, urutan, gate akses) tidak berubah; HP tetap laci. Token `--color-sidebar*` masih dipakai org-chart/laporan.
+  (menu, urutan, gate akses) tidak berubah; HP tetap laci. Token `--color-sidebar*` masih dipakai laporan.
 - ⚠️ `laporan-tim/team-table.tsx` & `scorecards.tsx` dipakai bersama Monitor — mengubahnya mengubah Monitor.
 - **Tabel berpager wajib stabil** (2026-10-15): `table-fixed` + `<colgroup>` (`colPercents`), kelas `table-1line`
   (isi sel 1 baris, keputusan pengguna), dan tabel + pager dibungkus `StableHeight` (`components/table-controls.tsx`)

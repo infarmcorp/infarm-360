@@ -1,8 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ShieldCheck, Users, Search, ChevronDown, ChevronRight, Building2, Crown, Network, List } from 'lucide-react';
+import { ShieldCheck, Users, Search, ChevronDown, ChevronRight, Building2, Crown, Network, List, UserCheck, AlertTriangle, LayoutGrid } from 'lucide-react';
 import { OrgChart, type OrgNode } from './org-chart';
+import { CARD, CardTitle, Note, StatCards, FIELD, TABLE_HEAD, pillCls } from '@/components/infarm-ui';
 
 export type Person = {
   id: string; empCode: string; name: string; dept: string; role: 'employee' | 'spv' | 'hrd' | 'direksi';
@@ -13,23 +14,24 @@ export type CoordNode = { coord: Person; members: Person[] };
 export type DeptStat = { dept: string; total: number; active: number };
 
 const ROLE_LABEL: Record<Person['role'], string> = { employee: 'Pegawai', spv: 'Supervisor', hrd: 'HRD Admin', direksi: 'Direksi' };
+const CHIP = 'inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full';
 
 /** Baris/kartu pegawai dengan badge peran & grant. Ringkas untuk pohon struktur. */
 function PersonChip({ p, sub }: { p: Person; sub?: string }) {
   return (
     <div className={`flex items-center gap-1.5 flex-wrap ${p.active ? '' : 'opacity-55'}`}>
       <span className="font-semibold text-ink text-sm">{p.name}</span>
-      <span className="text-[10px] text-ink-faint data-value">{p.empCode}{sub ? ` · ${sub}` : ''}</span>
+      <span className="text-xs text-ink-soft"><span className="font-mono">{p.empCode}</span>{sub ? ` · ${sub}` : ''}</span>
       {p.role !== 'employee' && (
-        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft">{ROLE_LABEL[p.role]}</span>
+        <span className={`${CHIP} bg-neutral-tint text-ink-soft`}>{ROLE_LABEL[p.role]}</span>
       )}
       {p.isHrdAdmin && p.role !== 'hrd' && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-tint text-brand-ink" title="Izin HRD Admin"><ShieldCheck className="w-2.5 h-2.5" /> HRD</span>
+        <span className={`${CHIP} bg-brand-tint text-brand-ink`} title="Izin HRD Admin"><ShieldCheck className="w-3 h-3" /> HRD</span>
       )}
       {p.isCoordinator && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-tint text-brand-ink" title="Koordinator"><Users className="w-2.5 h-2.5" /> Koordinator</span>
+        <span className={`${CHIP} bg-infarm-cream text-infarm-soil`} title="Koordinator"><Users className="w-3 h-3" /> Koordinator</span>
       )}
-      {!p.active && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-danger-tint text-danger-ink">nonaktif</span>}
+      {!p.active && <span className={`${CHIP} bg-danger-tint text-danger-ink`}>nonaktif</span>}
     </div>
   );
 }
@@ -63,76 +65,78 @@ export function StrukturView({
 
   return (
     <div className="space-y-5">
-      {/* Ringkasan */}
-      <div className="flex flex-wrap gap-2">
-        <Stat label="Pegawai aktif" value={stats.active} />
-        <Stat label="Divisi" value={stats.depts} />
-        <Stat label="Supervisor" value={stats.spv} />
-        <Stat label="Koordinator" value={stats.coord} />
-        <Stat label="Izin HRD" value={stats.hrd} />
-      </div>
+      {/* Ringkasan — kartu metrik terpisah; hanya Pegawai aktif yang menonjol. */}
+      <StatCards
+        lead={{ icon: Users, value: String(stats.active), label: 'Pegawai aktif' }}
+        items={[
+          { icon: Building2, value: String(stats.depts), label: 'Divisi' },
+          { icon: UserCheck, value: String(stats.spv), label: 'Supervisor' },
+          { icon: Users, tone: 'soil', value: String(stats.coord), label: 'Koordinator' },
+          { icon: ShieldCheck, value: String(stats.hrd), label: 'Izin HRD' },
+        ]} />
 
-      {/* Toggle Bagan / Daftar */}
-      <div className="inline-flex rounded-control border border-line overflow-hidden text-xs font-semibold">
-        <button type="button" onClick={() => setView('bagan')}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${view === 'bagan' ? 'bg-brand text-white' : 'bg-surface text-ink-soft hover:bg-neutral-tint'}`}>
-          <Network className="w-3.5 h-3.5" /> Bagan
+      {/* Toggle Bagan / Daftar — pil sub-tab */}
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => setView('bagan')} className={pillCls(view === 'bagan')}>
+          <Network className="w-4 h-4" /> Bagan
         </button>
-        <button type="button" onClick={() => setView('daftar')}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${view === 'daftar' ? 'bg-brand text-white' : 'bg-surface text-ink-soft hover:bg-neutral-tint'}`}>
-          <List className="w-3.5 h-3.5" /> Daftar
+        <button type="button" onClick={() => setView('daftar')} className={pillCls(view === 'daftar')}>
+          <List className="w-4 h-4" /> Daftar
         </button>
       </div>
 
       {view === 'bagan' ? (
-        <section>
-          <p className="text-[11px] text-ink-faint mb-2 leading-relaxed">
-            Bagan lini pelaporan (atasan → bawahan, pegawai aktif) — tersusun <strong>menurun</strong>: bawahan
-            menjorok masuk di bawah atasannya. <strong>Klik kotak</strong> yang punya bawahan untuk melipat/membuka.
-            Koordinasi lintas-jalur lihat tab <strong>Daftar</strong>.
-          </p>
+        <section className={CARD}>
+          <CardTitle icon={Network} className="mb-3">Bagan Lini Pelaporan</CardTitle>
+          <div className="mb-4">
+            <Note>
+              Bagan lini pelaporan (atasan → bawahan, pegawai aktif) — tersusun <strong>menurun</strong>: bawahan
+              menjorok masuk di bawah atasannya. <strong>Klik kotak</strong> yang punya bawahan untuk melipat/membuka.
+              Koordinasi lintas-jalur lihat tab <strong>Daftar</strong>.
+            </Note>
+          </div>
           {treeRoots.length === 0
-            ? <p className="text-xs text-ink-faint italic">Belum ada lini pelaporan untuk ditampilkan.</p>
+            ? <p className="text-sm text-ink-soft italic">Belum ada lini pelaporan untuk ditampilkan.</p>
             : <OrgChart roots={treeRoots} />}
         </section>
       ) : (
       <>
       <div className="relative">
-        <Search className="w-4 h-4 text-ink-faint absolute left-2.5 top-1/2 -translate-y-1/2" />
+        <Search className="w-4 h-4 text-ink-soft absolute left-3 top-1/2 -translate-y-1/2" />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama / kode / divisi…"
-          className="w-full text-sm pl-8 pr-3 py-2 border border-line rounded-control bg-surface focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+          className={`${FIELD} w-full pl-9 bg-surface`} />
       </div>
 
       {/* Direksi */}
       {shownDireksi.length > 0 && (
-        <section>
-          <h2 className="flex items-center gap-1.5 text-sm font-bold text-ink mb-2"><Crown className="w-4 h-4 text-warn-ink" /> Direksi</h2>
-          <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-            {shownDireksi.map((p) => <div key={p.id} className="border border-line rounded-control px-3 py-2"><PersonChip p={p} sub={p.dept} /></div>)}
+        <section className={CARD}>
+          <CardTitle icon={Crown} className="mb-3">Direksi</CardTitle>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {shownDireksi.map((p) => <div key={p.id} className="border border-line rounded-control px-3 py-2.5"><PersonChip p={p} sub={p.dept} /></div>)}
           </div>
         </section>
       )}
 
       {/* Lini pelaporan: SPV → tim */}
-      <section>
-        <h2 className="flex items-center gap-1.5 text-sm font-bold text-ink mb-2"><Building2 className="w-4 h-4 text-brand" /> Lini Pelaporan (Supervisor → Tim)</h2>
-        {shownSpv.length === 0 ? <p className="text-xs text-ink-faint italic">Tak ada yang cocok.</p> : (
+      <section className={CARD}>
+        <CardTitle icon={Building2} className="mb-3">Lini Pelaporan (Supervisor → Tim)</CardTitle>
+        {shownSpv.length === 0 ? <p className="text-sm text-ink-soft italic">Tak ada yang cocok.</p> : (
           <div className="space-y-2">
             {shownSpv.map(({ spv, members }) => {
               const isC = collapsed.has(spv.id);
               return (
-                <div key={spv.id} className="border border-line rounded-panel overflow-hidden">
+                <div key={spv.id} className="border border-line rounded-control overflow-hidden">
                   <button type="button" onClick={() => toggle(spv.id)}
-                    className="w-full flex items-center gap-2 px-3 py-2 bg-brand-tint/60 hover:bg-brand-tint text-left">
-                    {isC ? <ChevronRight className="w-4 h-4 text-ink-faint shrink-0" /> : <ChevronDown className="w-4 h-4 text-ink-faint shrink-0" />}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 bg-brand-tint/60 hover:bg-brand-tint text-left">
+                    {isC ? <ChevronRight className="w-4 h-4 text-ink-soft shrink-0" /> : <ChevronDown className="w-4 h-4 text-ink-soft shrink-0" />}
                     <div className="flex-1 min-w-0"><PersonChip p={spv} sub={spv.dept} /></div>
-                    <span className="text-[10px] font-semibold text-brand-ink shrink-0"><span className="data-value">{members.length}</span> anggota</span>
+                    <span className="text-xs font-semibold text-brand-ink shrink-0"><span className="font-mono">{members.length}</span> anggota</span>
                   </button>
                   {!isC && (
                     <div className="divide-y divide-line-soft">
                       {members.length === 0
-                        ? <p className="text-xs text-ink-faint italic px-3 py-2 pl-9">Belum ada anggota tim.</p>
-                        : members.map((m) => <div key={m.id} className="px-3 py-1.5 pl-9"><PersonChip p={m} sub={m.dept !== spv.dept ? m.dept : undefined} /></div>)}
+                        ? <p className="text-xs text-ink-soft italic px-3 py-2 pl-9">Belum ada anggota tim.</p>
+                        : members.map((m) => <div key={m.id} className="px-3 py-2 pl-9"><PersonChip p={m} sub={m.dept !== spv.dept ? m.dept : undefined} /></div>)}
                     </div>
                   )}
                 </div>
@@ -144,18 +148,20 @@ export function StrukturView({
 
       {/* Koordinasi (overlay) */}
       {shownCoord.length > 0 && (
-        <section>
-          <h2 className="flex items-center gap-1.5 text-sm font-bold text-ink mb-2"><Users className="w-4 h-4 text-brand" /> Koordinasi (pembinaan lintas-jalur)</h2>
-          <p className="text-[11px] text-ink-faint mb-2">Koordinator membina beberapa pegawai (bisa beda atasan formal). Ini lapisan tambahan, bukan garis atasan.</p>
+        <section className={CARD}>
+          <CardTitle icon={Users} className="mb-3">Koordinasi (pembinaan lintas-jalur)</CardTitle>
+          <div className="mb-3">
+            <Note>Koordinator membina beberapa pegawai (bisa beda atasan formal). Ini lapisan tambahan, bukan garis atasan.</Note>
+          </div>
           <div className="space-y-2">
             {shownCoord.map(({ coord, members }) => (
-              <div key={coord.id} className="border border-line rounded-panel overflow-hidden">
-                <div className="flex items-center gap-2 px-3 py-2 bg-neutral-tint">
+              <div key={coord.id} className="border border-line rounded-control overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-infarm-cream/60">
                   <div className="flex-1 min-w-0"><PersonChip p={coord} sub={coord.dept} /></div>
-                  <span className="text-[10px] font-semibold text-brand-ink shrink-0"><span className="data-value">{members.length}</span> binaan</span>
+                  <span className="text-xs font-semibold text-infarm-soil shrink-0"><span className="font-mono">{members.length}</span> binaan</span>
                 </div>
                 <div className="divide-y divide-line-soft">
-                  {members.map((m) => <div key={m.id} className="px-3 py-1.5 pl-6"><PersonChip p={m} sub={m.dept} /></div>)}
+                  {members.map((m) => <div key={m.id} className="px-3 py-2 pl-6"><PersonChip p={m} sub={m.dept} /></div>)}
                 </div>
               </div>
             ))}
@@ -165,29 +171,31 @@ export function StrukturView({
 
       {/* Pegawai tanpa atasan (potensi pemetaan belum lengkap) */}
       {shownOrphans.length > 0 && (
-        <section>
-          <h2 className="text-sm font-bold text-warn-ink mb-1">⚠️ Pegawai tanpa atasan langsung ({shownOrphans.length})</h2>
-          <p className="text-[11px] text-ink-faint mb-2">Aktif tapi belum terhubung ke Supervisor mana pun — periksa di Kelola Pegawai bila ini tak disengaja.</p>
-          <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-            {shownOrphans.map((p) => <div key={p.id} className="border border-warn-ink/25 bg-warn-tint/40 rounded-control px-3 py-2"><PersonChip p={p} sub={p.dept} /></div>)}
+        <section className={CARD}>
+          <CardTitle icon={AlertTriangle} className="mb-3">Pegawai tanpa atasan langsung (<span className="font-mono">{shownOrphans.length}</span>)</CardTitle>
+          <div className="mb-3">
+            <Note tone="warn">Aktif tapi belum terhubung ke Supervisor mana pun — periksa di Kelola Pegawai bila ini tak disengaja.</Note>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {shownOrphans.map((p) => <div key={p.id} className="border border-warn-tint bg-warn-tint/40 rounded-control px-3 py-2.5"><PersonChip p={p} sub={p.dept} /></div>)}
           </div>
         </section>
       )}
 
       {/* Ringkasan per divisi */}
-      <section>
-        <h2 className="text-sm font-bold text-ink mb-2">Ringkasan per Divisi</h2>
+      <section className={CARD}>
+        <CardTitle icon={LayoutGrid} className="mb-3">Ringkasan per Divisi</CardTitle>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm min-w-[360px]">
-            <thead><tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
-              <th className="py-2 pr-3 font-semibold">Divisi</th><th className="py-2 px-3 text-center font-semibold">Aktif</th><th className="py-2 px-3 text-center font-semibold">Total</th>
+            <thead><tr className={TABLE_HEAD}>
+              <th className="py-2.5 px-3 rounded-l-lg">Divisi</th><th className="py-2.5 px-3 text-center">Aktif</th><th className="py-2.5 px-3 text-center rounded-r-lg">Total</th>
             </tr></thead>
             <tbody className="divide-y divide-line-soft">
               {deptStats.map((d) => (
                 <tr key={d.dept}>
-                  <td className="py-2 pr-3 font-semibold text-ink">{d.dept}</td>
-                  <td className="py-2 px-3 text-center data-value text-brand-ink">{d.active}</td>
-                  <td className="py-2 px-3 text-center data-value text-ink-faint">{d.total}</td>
+                  <td className="py-3 px-3 font-semibold text-ink">{d.dept}</td>
+                  <td className="py-3 px-3 text-center font-mono font-bold text-brand">{d.active}</td>
+                  <td className="py-3 px-3 text-center font-mono text-ink-soft">{d.total}</td>
                 </tr>
               ))}
             </tbody>
@@ -196,15 +204,6 @@ export function StrukturView({
       </section>
       </>
       )}
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="border border-line rounded-panel bg-surface px-3 py-2 text-center min-w-[84px]">
-      <div className="text-lg font-bold data-value text-ink leading-none">{value}</div>
-      <div className="text-[10px] text-ink-faint mt-1">{label}</div>
     </div>
   );
 }

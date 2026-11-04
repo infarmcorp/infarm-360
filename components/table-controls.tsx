@@ -36,22 +36,22 @@ export function Pager({
   if (pageCount <= 1) return null;
   return (
     // mt-auto: di dalam StableHeight pager menempel di dasar bingkai (posisinya tetap).
-    <div className="mt-auto flex items-center justify-between gap-2 text-xs text-gray-600">
+    <div className="mt-auto flex items-center justify-between gap-2 text-xs text-ink-soft">
       <button
         onClick={() => setPage(Math.max(0, page - 1))}
         disabled={page === 0}
-        className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50"
+        className="px-3 py-1.5 rounded-control border border-line text-ink-soft font-semibold disabled:opacity-40 hover:bg-neutral-tint"
       >← Sebelumnya</button>
       <span className="text-center">
         Halaman {page + 1} / {pageCount}
         {total != null && rangeFrom != null && rangeTo != null && (
-          <span className="block text-[10px] text-gray-400">{rangeFrom}–{rangeTo} dari {total} {unit}</span>
+          <span className="block text-[10px] text-ink-soft font-mono">{rangeFrom}–{rangeTo} dari {total} {unit}</span>
         )}
       </span>
       <button
         onClick={() => setPage(Math.min(pageCount - 1, page + 1))}
         disabled={page >= pageCount - 1}
-        className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50"
+        className="px-3 py-1.5 rounded-control border border-line text-ink-soft font-semibold disabled:opacity-40 hover:bg-neutral-tint"
       >Berikutnya →</button>
     </div>
   );

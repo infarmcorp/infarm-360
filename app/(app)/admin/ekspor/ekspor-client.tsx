@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, Users, Settings, BarChart3, MessageSquareText, ScrollText, FileText, Sprout } from 'lucide-react';
+import { Download, Users, Settings, BarChart3, MessageSquareText, ScrollText, FileText, Sprout, type LucideIcon } from 'lucide-react';
+import { CARD, CardTitle, Note, FIELD, FIELD_LABEL } from '@/components/infarm-ui';
 import {
   exportEmployees, exportKpi, exportKpiAudit, exportRekap, exportLatePenalties,
   exportAssessments, exportQualAnswers, exportMappings, exportAspectSummaries,
@@ -62,11 +63,11 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
     } finally { setBusy(null); }
   }
 
-  type Card = { key: string; title: string; desc: React.ReactNode; icon: React.ElementType; tint: string; scoped: boolean; go: () => Promise<void> };
+  type Card = { key: string; title: string; desc: React.ReactNode; icon: LucideIcon; scoped: boolean; go: () => Promise<void> };
 
   const cards: Card[] = [
     {
-      key: 'pegawai', title: 'Pegawai (Master)', icon: Users, tint: 'slate', scoped: false,
+      key: 'pegawai', title: 'Pegawai (Master)', icon: Users, scoped: false,
       desc: 'Direktori pegawai: kode, nama, divisi, peran, status, atasan, email. Lintas periode (mengabaikan filter).',
       go: () => run('pegawai', async () => {
         const emp = rowsOf(await exportEmployees());
@@ -74,7 +75,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
       }),
     },
     {
-      key: 'config', title: 'Konfigurasi Periode Lengkap', icon: Settings, tint: 'emerald', scoped: true,
+      key: 'config', title: 'Konfigurasi Periode Lengkap', icon: Settings, scoped: true,
       desc: <>Seluruh pengaturan HRD per kuartal — <strong>6 lembar</strong>: Ringkasan · Bobot Penilai · Bulan KPI · Aspek &amp; Indikator · Pertanyaan Esai · <strong>Pemetaan 360°</strong>.</>,
       go: () => run('config', async () => {
         const cfg = await exportPeriodConfig(pid());
@@ -84,7 +85,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
       }),
     },
     {
-      key: 'kinerja', title: 'Kinerja Lengkap per Periode', icon: BarChart3, tint: 'indigo', scoped: true,
+      key: 'kinerja', title: 'Kinerja Lengkap per Periode', icon: BarChart3, scoped: true,
       desc: <><strong>4 lembar</strong>: Rekap (KPI rerata · Skor 360° · potongan telat · Skor Akhir · kategori · 4-Box) · KPI Bulanan · Audit KPI · <strong>Potongan Keterlambatan</strong> (siapa yang Skor 360°-nya dipotong & keputusan HRD).</>,
       go: () => run('kinerja', async () => {
         const [rekap, kpi, audit, late] = await Promise.all([exportRekap(pid()), exportKpi(pid()), exportKpiAudit(pid()), exportLatePenalties(pid())]);
@@ -98,7 +99,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
       }),
     },
     {
-      key: 'f360', title: 'Penilaian 360° Lengkap', icon: MessageSquareText, tint: 'violet', scoped: true,
+      key: 'f360', title: 'Penilaian 360° Lengkap', icon: MessageSquareText, scoped: true,
       desc: <><strong>5 lembar</strong> (semua <strong>anonim penilai</strong>): <strong>Ringkasan per Pegawai</strong> (jml penilai per kelas · Nilai Atasan/Internal/Self · Nilai 360° · Gap · Skala 100 · <strong>Skor 360° resmi</strong> &amp; selisihnya — selisih ≠ 0 berarti ada penilaian berubah sejak Hitung Ulang terakhir) · <strong>Rekap Aspek</strong> (Skor 360° terbobot &amp; Nilai Diri per aspek budaya) · Kuantitatif (rating per indikator) · Kualitatif (esai) · Ringkasan Naratif HRD.</>,
       go: () => run('f360', async () => {
         const [ringkas, aspek, quant, qual, naratif] = await Promise.all([exportSummary360(pid()), exportAspectScores(pid()), exportAssessments(pid()), exportQualAnswers(pid()), exportAspectSummaries(pid())]);
@@ -113,7 +114,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
       }),
     },
     {
-      key: 'bahan', title: 'Bahan Laporan per Pegawai', icon: FileText, tint: 'violet', scoped: true,
+      key: 'bahan', title: 'Bahan Laporan per Pegawai', icon: FileText, scoped: true,
       desc: <>Untuk diringkas menjadi laporan per pegawai — <strong>4 lembar</strong> (anonim penilai, tanpa Self): <strong>Skor</strong> (Skor Akhir · KPI · 360° · potongan telat · skor tiap aspek budaya + kategori) · <strong>Komentar Aspek</strong> (rating &amp; komentar per indikator) · <strong>Komentar Esai</strong> · <strong>Catatan di Luar Pemetaan</strong> (isi saja, tanpa penulis). Disertai divisi &amp; rentang periode.</>,
       go: () => run('bahan', async () => {
         const res = await exportReportMaterials(pid());
@@ -122,7 +123,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
       }),
     },
     {
-      key: 'idp', title: 'Rencana Pengembangan & 1-on-1', icon: Sprout, tint: 'emerald', scoped: true,
+      key: 'idp', title: 'Rencana Pengembangan & 1-on-1', icon: Sprout, scoped: true,
       desc: <>Rencana pengembangan pegawai (<strong>bernama</strong>), disaring menurut periode <strong>laporan</strong> asalnya — <strong>3 lembar</strong>: <strong>Rencana</strong> (per prioritas) · <strong>Komentar &amp; Persetujuan</strong> (komentar atasan, siapa menyetujui &amp; kapan) · <strong>Sesi &amp; Tinjauan</strong> (sesi 1-on-1, tinjauan bulanan HRD, kemajuan per prioritas, tanggapan pegawai).</>,
       go: () => run('idp', async () => {
         const res = await exportDevPlans(pid());
@@ -131,7 +132,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
       }),
     },
     {
-      key: 'log', title: 'Log Aktivitas HRD', icon: ScrollText, tint: 'amber', scoped: false,
+      key: 'log', title: 'Log Aktivitas HRD', icon: ScrollText, scoped: false,
       desc: <>Jejak audit aksi sensitif HRD (append-only, <strong>lintas periode</strong>): waktu · pelaku · kategori · aksi · ringkasan · target · detail. Terbaru di atas.</>,
       go: () => run('log', async () => {
         const log = rowsOf(await exportHrdAuditLog());
@@ -140,51 +141,41 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
     },
   ];
 
-  // Ikon monokrom on-token — kartu dibedakan lewat judul/ikon bentuk, bukan pelangi warna.
-  const TINT: Record<string, string> = {
-    slate: 'text-ink-soft', emerald: 'text-brand', indigo: 'text-brand', violet: 'text-brand', amber: 'text-warn-ink',
-  };
-
+  // Ikon kartu seragam (kotak hijau pucat CardTitle) — kartu dibedakan lewat judul/ikon bentuk, bukan pelangi warna.
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Filter periode */}
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="text-xs font-bold text-ink-soft">Periode:</label>
-        <select value={periodId} onChange={(e) => setPeriodId(e.target.value)}
-          className="text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint min-w-[200px]">
-          <option value="">Semua Periode</option>
-          {periods.map((p) => <option key={p.id} value={p.id}>{p.label}{p.active ? ' (aktif)' : ''}</option>)}
-        </select>
-        <span className="text-[11px] text-ink-faint">Berlaku untuk dataset ber-periode (Pegawai selalu lintas periode).</span>
+      <div className={`${CARD} flex flex-wrap items-end gap-x-4 gap-y-2`}>
+        <div>
+          <label className={FIELD_LABEL} htmlFor="ekspor-period">Periode</label>
+          <select id="ekspor-period" value={periodId} onChange={(e) => setPeriodId(e.target.value)}
+            className={`${FIELD} font-semibold min-w-[220px]`}>
+            <option value="">Semua Periode</option>
+            {periods.map((p) => <option key={p.id} value={p.id}>{p.label}{p.active ? ' (aktif)' : ''}</option>)}
+          </select>
+        </div>
+        <span className="text-xs text-ink-soft pb-3">Berlaku untuk dataset ber-periode (Pegawai selalu lintas periode).</span>
       </div>
 
-      <p className="text-[11px] text-ink-soft bg-neutral-tint border border-line rounded-control px-3 py-2">
+      <Note>
         Tiap unduhan = <strong>satu file Excel dengan beberapa lembar (sheet)</strong> yang setema — buka file, pindah antar-lembar di bawah. Tak perlu mengunduh berkali-kali untuk data yang berkaitan.
-      </p>
+      </Note>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {cards.map((c) => {
-          const Icon = c.icon;
-          return (
-            <div key={c.key} className="border border-line rounded-panel bg-surface p-4 flex flex-col gap-2">
-              <div className="flex items-start gap-2">
-                <Icon className={`w-5 h-5 shrink-0 mt-0.5 ${TINT[c.tint]}`} />
-                <div className="min-w-0">
-                  <h3 className="text-sm font-extrabold text-ink">{c.title}</h3>
-                  <p className="text-[11px] text-ink-soft leading-snug">{c.desc}</p>
-                </div>
-              </div>
-              <div className="mt-auto flex items-center gap-2">
-                <button type="button" disabled={busy !== null} onClick={c.go}
-                  className="inline-flex items-center justify-center gap-1.5 text-xs font-bold px-3 py-2 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
-                  <Download className="w-4 h-4" /> {busy === c.key ? 'Menyiapkan…' : 'Unduh Excel'}
-                </button>
-                <span className="text-[10px] text-ink-faint">{c.scoped ? (selected ? selected.label : 'Semua periode') : 'Master'}</span>
-              </div>
-              {msg?.key === c.key && <p className={`text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {cards.map((c) => (
+          <div key={c.key} className={`${CARD} flex flex-col gap-3`}>
+            <CardTitle icon={c.icon}>{c.title}</CardTitle>
+            <p className="text-sm text-ink-soft leading-relaxed">{c.desc}</p>
+            <div className="mt-auto pt-1 flex flex-wrap items-center gap-3">
+              <button type="button" disabled={busy !== null} onClick={c.go}
+                className="inline-flex items-center justify-center gap-2 text-sm font-bold min-h-11 px-4 rounded-xl bg-brand hover:bg-brand-ink text-white disabled:opacity-50 disabled:cursor-not-allowed">
+                <Download className="w-4 h-4" /> {busy === c.key ? 'Menyiapkan…' : 'Unduh Excel'}
+              </button>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-neutral-tint text-ink-soft">{c.scoped ? (selected ? selected.label : 'Semua periode') : 'Master'}</span>
             </div>
-          );
-        })}
+            {msg?.key === c.key && <p className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
+          </div>
+        ))}
       </div>
     </div>
   );

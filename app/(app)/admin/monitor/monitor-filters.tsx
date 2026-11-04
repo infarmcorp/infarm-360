@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
+import { CARD, FIELD, FIELD_LABEL } from '@/components/infarm-ui';
 
 /**
  * Filter Monitor Kinerja Pegawai (HRD Admin): Periode + Divisi — keduanya DI SERVER lewat URL
@@ -27,20 +28,20 @@ export function MonitorFilters({
   };
 
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-3">
-      <label className="inline-flex items-center gap-2 text-xs">
-        <span className="font-semibold text-ink-soft">Periode</span>
+    <div className={`${CARD} grid grid-cols-1 sm:grid-cols-3 gap-3`}>
+      <label className="block">
+        <span className={FIELD_LABEL}>Periode</span>
         <select value={currentPeriod} disabled={pending} onChange={(e) => go(e.target.value, currentDept)}
-          className="px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint disabled:opacity-60">
+          className={`${FIELD} w-full disabled:opacity-60`}>
           {periods.map((p) => (
             <option key={p.id} value={p.id}>{p.label}{p.status === 'active' ? ' (aktif)' : ''}</option>
           ))}
         </select>
       </label>
-      <label className="inline-flex items-center gap-2 text-xs">
-        <span className="font-semibold text-ink-soft">Divisi</span>
+      <label className="block">
+        <span className={FIELD_LABEL}>Divisi</span>
         <select value={currentDept} disabled={pending} onChange={(e) => go(currentPeriod, e.target.value)}
-          className="px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint disabled:opacity-60">
+          className={`${FIELD} w-full disabled:opacity-60`}>
           <option value="all">Seluruh Divisi</option>
           {depts.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>

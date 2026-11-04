@@ -30,6 +30,8 @@ export function heatColor(v: number | null): { bg: string; fg: string } {
 }
 
 export function heatColorInfarm(v: number | null): { bg: string; fg: string } {
+  // Sel kosong = token neutral-tint / ink-soft (bukan abu bawaan Tailwind).
+  if (v == null) return { bg: '#eeefec', fg: '#5b615c' };
   return heatColorWith(v, HEAT_STOPS_INFARM);
 }
 

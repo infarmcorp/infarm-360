@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { CARD, PageTitle } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import { StrukturView, type Person, type SpvNode, type CoordNode, type DeptStat } from './struktur-view';
 import type { OrgNode } from './org-chart';
@@ -28,8 +29,7 @@ export default async function StrukturPage() {
     grantScopes = grantedAccess(g, 'struktur')?.scopes ?? null;
   }
   if (!isHrdFull && !grantScopes) {
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk HRD Admin atau pemegang akses Struktur Organisasi.</p>
-      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><div className={CARD}><p className="text-sm text-ink-soft">Halaman ini untuk HRD Admin atau pemegang akses Struktur Organisasi.</p></div></Shell>;
   }
   const viaGrant = !isHrdFull;
   const ownDept = (me?.dept ?? '').trim();
@@ -150,13 +150,7 @@ export default async function StrukturPage() {
 
   return (
     <Shell>
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Struktur Organisasi</h1>
-          <p className="text-[13.5px] text-ink-soft mt-1">Pandangan menyeluruh struktur saat ini — hanya membaca, tak mengubah data.</p>
-        </div>
-        <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
-      </div>
+      <PageTitle title="Struktur Organisasi">Pandangan menyeluruh struktur saat ini — hanya membaca, tak mengubah data.</PageTitle>
       <StrukturView
         direksi={direksi} spvNodes={spvNodes} coordNodes={coordNodes}
         orphans={orphans} deptStats={deptStats} stats={stats} treeRoots={treeRoots}
@@ -166,5 +160,5 @@ export default async function StrukturPage() {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
+  return <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>{children}</main>;
 }

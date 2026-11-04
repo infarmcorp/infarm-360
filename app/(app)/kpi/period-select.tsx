@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { FIELD } from '@/components/infarm-ui';
 
 /**
  * Selektor periode (kuartal) — navigasi tab Rekap agar server merender ulang. Parameter lain
@@ -22,9 +23,9 @@ export function PeriodSelect({ periods, current }: { periods: { id: string; labe
     <select
       value={current}
       onChange={(e) => go(e.target.value)}
-      className="text-xs p-2.5 border border-line rounded-control bg-surface text-ink font-bold focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint cursor-pointer"
+      className={`${FIELD} font-semibold cursor-pointer`}
     >
-      {periods.map((p) => <option key={p.id} value={p.id}>📦 {p.label}</option>)}
+      {periods.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
     </select>
   );
 }

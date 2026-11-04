@@ -1,29 +1,41 @@
+import { Award, TrendingUp, Users, type LucideIcon } from 'lucide-react';
 import { fmt2 } from '@/lib/scoring';
+import { CARD } from '@/components/infarm-ui';
 /**
  * Kartu skor ringkas Laporan Kinerja Tim: Total Pegawai · Avg KPI Tim · Avg 360° Tim.
  * Avg KPI & 360° menyertakan selisih terhadap rata-rata perusahaan (▲ hijau di atas, ▼ merah
  * di bawah). Rata-rata = mean dari rerata per-pegawai (bukan mean baris mentah) agar selaras
  * dengan kolom tabel. Komponen presentasional murni (dihitung di server).
+ * Gaya = StatCard Design System Infarm (kartu putih terpisah berikon); dipakai juga di Monitor Kinerja.
  */
 import { FilledNote } from '@/app/(app)/monitor/completeness';
 
 function Delta({ team, company }: { team: number | null; company: number | null }) {
-  if (team == null || company == null) return <span className="text-[11px] text-ink-faint">— vs rata-rata perusahaan</span>;
+  if (team == null || company == null) return <span className="text-xs text-ink-soft">— vs rata-rata perusahaan</span>;
   const d = team - company;
   const up = d >= 0;
   return (
-    <span className={`text-[11px] font-semibold ${up ? 'text-brand-ink' : 'text-danger-ink'}`}>
-      {up ? '▲' : '▼'} <span className="data-value">{Math.abs(d).toFixed(2)}</span> vs rata-rata perusahaan
+    <span className={`text-xs font-semibold ${up ? 'text-brand-ink' : 'text-danger-ink'}`}>
+      {up ? '▲' : '▼'} <span className="font-mono">{fmt2(Math.abs(d))}</span> vs rata-rata perusahaan
     </span>
   );
 }
 
-function Card({ label, value, sub }: { label: string; value: React.ReactNode; sub?: React.ReactNode }) {
+/**
+ * Kartu metrik — meniru StatCard (components/infarm-ui.tsx), tetapi baris keterangannya `<div>`
+ * (bukan `<span>`) karena memuat blok (FilledNote, baris "belum terbaca").
+ */
+function Card({ icon: Icon, label, value, sub }: { icon: LucideIcon; label: string; value: React.ReactNode; sub?: React.ReactNode }) {
   return (
-    <div className="flex-1 min-w-[150px] rounded-panel border border-line bg-surface px-4 py-3">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-faint">{label}</div>
-      <div className="text-2xl font-semibold data-value text-ink mt-1">{value}</div>
-      {sub && <div className="mt-1">{sub}</div>}
+    <div className={`${CARD} flex items-center gap-4 min-w-0`}>
+      <span className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-brand-tint text-brand-ink" aria-hidden>
+        <Icon className="w-6 h-6" />
+      </span>
+      <div className="min-w-0 flex flex-col gap-0.5">
+        <span className="font-mono text-xl font-bold text-ink leading-tight truncate">{value}</span>
+        <span className="text-sm text-ink-soft">{label}</span>
+        {sub && <div className="flex flex-col gap-0.5">{sub}</div>}
+      </div>
     </div>
   );
 }
@@ -41,19 +53,21 @@ export function TeamScorecards({
   fillTotal?: number; kpiFilled?: number; s360Filled?: number;
 }) {
   return (
-    <div className="flex flex-wrap gap-3 mb-4">
-      <Card label="Total Pegawai" value={total} />
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+      <Card icon={Users} label="Total Pegawai" value={total} />
       <Card
+        icon={Award}
         label="Avg KPI Tim"
         value={teamKpi != null ? fmt2(teamKpi) : '—'}
         sub={<>
           <Delta team={teamKpi} company={companyKpi} />
-          {kpiUnread > 0 && <div className="text-[10px] text-ink-faint">· <span className="data-value">{kpiUnread}</span> belum terbaca (dikecualikan)</div>}
+          {kpiUnread > 0 && <div className="text-xs text-ink-soft">· <span className="font-mono">{kpiUnread}</span> belum terbaca (dikecualikan)</div>}
           {fillTotal != null && kpiFilled != null && <FilledNote n={kpiFilled} total={fillTotal} />}
         </>}
       />
       {has360 && (
         <Card
+          icon={TrendingUp}
           label="Avg 360° Tim"
           value={team360 != null ? fmt2(team360) : '—'}
           sub={<>

@@ -4,6 +4,8 @@ import { fmt2 } from '@/lib/scoring';
 
 import { useMemo, useState } from 'react';
 import { displayName } from '@/lib/employee-name';
+import { TrendingUp, ArrowUpDown, Activity, LineChart as LineChartIcon, UserRound, type LucideIcon } from 'lucide-react';
+import { CARD, CardTitle, FIELD } from '@/components/infarm-ui';
 
 export type PeriodTrendPoint = { label: string; kpi: number | null; s360: number | null; final: number | null };
 export type EmpMonthly = { id: string; name: string; nickname?: string | null; monthly: (number | null)[] };
@@ -32,15 +34,20 @@ type Series = {
   width?: number;         // tebal garis (default 2)
   dots?: boolean;         // false → tanpa titik bulat (garis anggota tipis)
   labelDy?: number;       // offset-Y label nilai (default -6 = di atas titik)
+  dash?: string;          // strokeDasharray (seri ketiga = putus-putus, Design System Infarm)
 };
 
-const C_KPI = '#059669';   // emerald
-const C_360 = '#4f46e5';   // indigo
-const C_FINAL = '#d97706';  // amber — Skor Akhir
-const C_CMP = '#94a3b8';   // slate — garis pembanding (rerata KPI tim)
-const C_HI = '#0ea5e9';    // sky — anggota Teratas (overview)
-const C_LO = '#e11d48';    // rose — anggota Terbawah (overview)
-const C_BAND = 'rgba(100,116,139,0.16)'; // slate transparan — pita rentang tengah tim (p25–p75)
+// Palet seri Design System Infarm: utama = brand, pembanding = warn, ketiga = hijau gelap putus-putus.
+const C_KPI = '#00843b';   // brand — seri utama
+const C_360 = '#f08c00';   // warn — seri pembanding
+const C_FINAL = '#3b4a2e';  // infarm-dark (putus-putus) — Skor Akhir
+const DASH_FINAL = '5 4';
+const C_CMP = '#f08c00';   // warn — garis pembanding (rerata KPI tim)
+const C_HI = '#6b4e3d';    // cokelat tanah — anggota Teratas (overview; = warna band ≥90)
+const C_LO = '#b71c1c';    // merah — anggota Terbawah (overview)
+const C_BAND = 'rgba(0,132,59,0.12)'; // brand transparan — pita rentang tengah tim (p25–p75)
+const C_GRID = '#edefeb';
+const C_AXIS = '#5b615c';
 
 const isNum = (v: number | null): v is number => v != null;
 const avgOf = (xs: (number | null)[]): number | null => {
@@ -88,12 +95,12 @@ function LineChart({ xLabels, series, band, yMax = 100 }: { xLabels: string[]; s
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" preserveAspectRatio="xMidYMid meet" role="img">
       {grid.map((g) => (
         <g key={g}>
-          <line x1={padL} y1={y(g)} x2={W - padR} y2={y(g)} stroke="#e5e7eb" strokeWidth={1} />
-          <text x={padL - 6} y={y(g) + 3} textAnchor="end" className="fill-gray-400" style={{ fontSize: 9 }}>{g}</text>
+          <line x1={padL} y1={y(g)} x2={W - padR} y2={y(g)} stroke={C_GRID} strokeWidth={1} />
+          <text x={padL - 6} y={y(g) + 3} textAnchor="end" fill={C_AXIS} style={{ fontSize: 10 }}>{g}</text>
         </g>
       ))}
       {xLabels.map((lb, i) => (i % step === 0 ? (
-        <text key={i} x={x(i)} y={H - padB + 14} textAnchor="middle" className="fill-gray-500" style={{ fontSize: 9 }}>{lb}</text>
+        <text key={i} x={x(i)} y={H - padB + 14} textAnchor="middle" fill={C_AXIS} style={{ fontSize: 10 }}>{lb}</text>
       ) : null))}
       {/* Pita rentang (di belakang garis): segmen kontigu di mana lo & hi ada; poligon = tepi
           atas maju lalu tepi bawah mundur. Putus pada bulan tanpa data (< 2 anggota). */}
@@ -117,7 +124,7 @@ function LineChart({ xLabels, series, band, yMax = 100 }: { xLabels: string[]; s
       {series.map((s) => (
         <g key={s.label}>
           {segments(s.points).map((seg, si) => (
-            <polyline key={si} fill="none" stroke={s.color} strokeWidth={s.width ?? 2}
+            <polyline key={si} fill="none" stroke={s.color} strokeWidth={s.width ?? 2} strokeDasharray={s.dash}
               points={seg.map((p) => `${x(p.i)},${y(p.v)}`).join(' ')} />
           ))}
           {s.points.map((v, i) => (v == null ? null : (
@@ -143,12 +150,14 @@ function LineChart({ xLabels, series, band, yMax = 100 }: { xLabels: string[]; s
   );
 }
 
-function Legend({ items }: { items: { label: string; color: string }[] }) {
+function Legend({ items }: { items: { label: string; color: string; dash?: boolean }[] }) {
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
       {items.map((it) => (
-        <span key={it.label} className="inline-flex items-center gap-1.5 text-[11px] text-gray-600">
-          <span className="w-3 h-1 rounded-full" style={{ backgroundColor: it.color }} /> {it.label}
+        <span key={it.label} className="inline-flex items-center gap-1.5 text-xs text-ink-soft">
+          {it.dash
+            ? <span className="w-4 h-0 border-t-2 border-dashed" style={{ borderColor: it.color }} />
+            : <span className="w-4 h-1 rounded-full" style={{ backgroundColor: it.color }} />} {it.label}
         </span>
       ))}
     </div>
@@ -163,31 +172,31 @@ function Legend({ items }: { items: { label: string; color: string }[] }) {
  */
 function DeltaMetric({ label, curr, prev }: { label: string; curr: number | null; prev: number | null }) {
   const d = curr != null && prev != null ? curr - prev : null;
-  const cls = d == null ? 'text-gray-400' : d > 0 ? 'text-emerald-700' : d < 0 ? 'text-rose-600' : 'text-gray-500';
+  const cls = d == null ? 'text-ink-faint' : d > 0 ? 'text-brand-ink' : d < 0 ? 'text-danger-ink' : 'text-ink-soft';
   const arrow = d == null ? '' : d > 0 ? '▲' : d < 0 ? '▼' : '▬';
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50/60 px-3 py-2">
-      <div className="text-[11px] font-bold uppercase tracking-wide text-gray-500">{label}</div>
+    <div className="rounded-xl border border-line bg-infarm-surface px-3.5 py-2.5">
+      <div className="text-sm text-ink-soft">{label}</div>
       <div className="flex items-baseline gap-2 mt-0.5">
-        <span className="text-xl font-black font-mono text-slate-800">{curr != null ? fmt2(curr) : '—'}</span>
-        <span className={`text-xs font-bold ${cls}`}>
+        <span className="text-xl font-bold font-mono text-ink">{curr != null ? fmt2(curr) : '—'}</span>
+        <span className={`text-xs font-bold font-mono ${cls}`}>
           {d == null ? '—' : `${arrow} ${d >= 0 ? '+' : '−'}${fmt2(Math.abs(d))}`}
         </span>
       </div>
-      <div className="text-[10px] text-gray-400">{prev != null ? `dari ${fmt2(prev)}` : 'periode pertama'}</div>
+      <div className="text-xs text-ink-soft">{prev != null ? <>dari <span className="font-mono">{fmt2(prev)}</span></> : 'periode pertama'}</div>
     </div>
   );
 }
 
 const INSIGHT_DOT: Record<'up' | 'down' | 'flat', string> = {
-  up: 'bg-emerald-500', down: 'bg-rose-500', flat: 'bg-gray-400',
+  up: 'bg-brand', down: 'bg-danger-ink', flat: 'bg-ink-faint',
 };
 
 /** Format selisih bertanda 2-desimal: +5.30 / −1.82. */
 const sgn = (x: number) => `${x >= 0 ? '+' : '−'}${fmt2(Math.abs(x))}`;
 const toneOf = (d: number): 'up' | 'down' | 'flat' => (Math.abs(d) < 1.5 ? 'flat' : d > 0 ? 'up' : 'down');
 const CAUSE_NUM: Record<'up' | 'down' | 'flat', string> = {
-  up: 'text-emerald-700', down: 'text-rose-600', flat: 'text-gray-500',
+  up: 'text-brand-ink', down: 'text-danger-ink', flat: 'text-ink-soft',
 };
 
 /**
@@ -211,12 +220,12 @@ function CauseBlock({ label, cause }: { label: string; cause: DeltaCause | null 
     : 'populasi tetap';
   return (
     <div className="space-y-1">
-      <div className="flex items-start gap-1.5 text-[11px] leading-snug text-gray-700">
+      <div className="flex items-start gap-1.5 text-xs leading-snug text-ink">
         <span className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${INSIGHT_DOT[tone]}`} />
         <span><span className="font-semibold">{label}</span> {dir} <span className={`font-mono font-bold ${CAUSE_NUM[tone]}`}>({sgn(total)})</span></span>
       </div>
       {showBreak && (
-        <div className="ml-3 pl-1.5 border-l border-gray-200 space-y-0.5 text-[10px] text-gray-500">
+        <div className="ml-3 pl-2 border-l border-line space-y-0.5 text-[11px] text-ink-soft">
           {real == null ? (
             <div>Seluruhnya dari perubahan komposisi — tak ada pegawai yang dinilai di kedua periode.</div>
           ) : (
@@ -224,13 +233,13 @@ function CauseBlock({ label, cause }: { label: string; cause: DeltaCause | null 
               <div>
                 Perubahan skor pegawai:{' '}
                 <span className={`font-mono font-bold ${CAUSE_NUM[toneOf(real)]}`}>{sgn(real)}</span>
-                <span className="text-gray-400"> ({commonN} pegawai konsisten)</span>
+                <span className="text-ink-faint"> (<span className="font-mono">{commonN}</span> pegawai konsisten)</span>
               </div>
               {cohort != null && (
                 <div>
                   Perubahan komposisi:{' '}
                   <span className={`font-mono font-bold ${CAUSE_NUM[toneOf(cohort)]}`}>{sgn(cohort)}</span>
-                  <span className="text-gray-400"> ({composNote})</span>
+                  <span className="text-ink-faint"> ({composNote})</span>
                 </div>
               )}
             </>
@@ -253,9 +262,9 @@ function DeltaSummary({
   if (!curr) return null;
   const hasCause = !!prev && ((kpiCause?.total != null) || (has360 && s360Cause?.total != null));
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-3 h-full flex flex-col">
-      <div className="text-[11px] font-bold text-gray-600 mb-2">
-        {prev ? <>Perubahan <span className="text-gray-800">{prev.label} → {curr.label}</span></> : <>Periode <span className="text-gray-800">{curr.label}</span></>}
+    <div className="rounded-xl border border-line bg-surface p-3.5 h-full flex flex-col">
+      <div className="text-xs font-semibold text-ink-soft mb-2.5">
+        {prev ? <>Perubahan <span className="text-ink">{prev.label} → {curr.label}</span></> : <>Periode <span className="text-ink">{curr.label}</span></>}
       </div>
       <div className="space-y-2">
         <DeltaMetric label="Avg KPI" curr={curr.kpi} prev={prev?.kpi ?? null} />
@@ -263,15 +272,15 @@ function DeltaSummary({
         <DeltaMetric label="Avg Skor Akhir" curr={curr.final} prev={prev?.final ?? null} />
       </div>
       {hasCause && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-gray-400 mb-1.5">Penyebab perubahan</div>
+        <div className="mt-3 pt-3 border-t border-line-soft">
+          <div className="text-[11px] font-bold uppercase tracking-[0.08em] text-ink-soft mb-1.5">Penyebab perubahan</div>
           <div className="space-y-2">
             <CauseBlock label="KPI tim" cause={kpiCause} />
             {has360 && <CauseBlock label="360° tim" cause={s360Cause} />}
           </div>
         </div>
       )}
-      {!prev && <p className="text-[10px] text-gray-400 mt-2">Perlu ≥2 periode berdata untuk selisih.</p>}
+      {!prev && <p className="text-xs text-ink-soft mt-2">Perlu ≥2 periode berdata untuk selisih.</p>}
     </div>
   );
 }
@@ -283,13 +292,13 @@ function DeltaSummary({
  */
 function MoverLine({ m, up }: { m: MoverRow; up: boolean }) {
   return (
-    <div className="flex items-center gap-2 text-[12px]">
-      <span className={`font-bold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>{up ? '▲' : '▼'}</span>
-      <span className="flex-1 min-w-0 truncate text-gray-700" title={m.name}>{displayName(m.nickname, m.name)}</span>
-      <span className={`font-mono font-bold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>
+    <div className="flex items-center gap-2 text-xs">
+      <span className={`font-bold ${up ? 'text-brand-ink' : 'text-danger-ink'}`}>{up ? '▲' : '▼'}</span>
+      <span className="flex-1 min-w-0 truncate text-ink" title={m.name}>{displayName(m.nickname, m.name)}</span>
+      <span className={`font-mono font-bold ${up ? 'text-brand-ink' : 'text-danger-ink'}`}>
         {m.delta >= 0 ? '+' : '−'}{fmt2(Math.abs(m.delta))}
       </span>
-      <span className="font-mono text-[10px] text-gray-400 w-10 text-right">{m.curr.toFixed(1)}</span>
+      <span className="font-mono text-[11px] text-ink-faint w-10 text-right">{m.curr.toFixed(1)}</span>
     </div>
   );
 }
@@ -298,7 +307,7 @@ function MoverLine({ m, up }: { m: MoverRow; up: boolean }) {
 function ShowAllToggle({ expanded, total, onToggle }: { expanded: boolean; total: number; onToggle: () => void }) {
   return (
     <button type="button" onClick={onToggle}
-      className="mt-3 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline">
+      className="mt-3 text-xs font-semibold text-brand-ink hover:underline">
       {expanded ? 'Tampilkan lebih sedikit' : `Lihat semua (${total})`}
     </button>
   );
@@ -314,21 +323,21 @@ function TopMovers({ movers, labels }: { movers: MoverRow[]; labels: { prev: str
   const fallers = expanded ? allFallers : allFallers.slice(0, TOP_N);
   const hasMore = allRisers.length > TOP_N || allFallers.length > TOP_N;
   return (
-    <ChartCard title="Pergerakan KPI" hint={labels && <span className="text-[11px] text-gray-400">{labels.prev} → {labels.curr}</span>}>
+    <ChartCard icon={ArrowUpDown} title="Pergerakan KPI" hint={labels && <span className="text-xs text-ink-soft">{labels.prev} → {labels.curr}</span>}>
       {!labels || movers.length === 0 ? (
-        <p className="text-xs text-gray-500 italic py-6 text-center">Perlu ≥2 periode berdata (pegawai bernilai di keduanya) untuk pergerakan.</p>
+        <p className="text-sm text-ink-soft py-6 text-center">Perlu ≥2 periode berdata (pegawai bernilai di keduanya) untuk pergerakan.</p>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
             <div>
-              <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-700 mb-1.5">Naik {allRisers.length > 0 && <span className="text-gray-400 font-normal">({allRisers.length})</span>}</div>
+              <div className="text-[13px] font-bold uppercase tracking-[0.08em] text-brand-ink mb-2">Naik {allRisers.length > 0 && <span className="text-ink-faint font-normal font-mono">({allRisers.length})</span>}</div>
               {risers.length ? <div className="space-y-1.5">{risers.map((m) => <MoverLine key={m.name} m={m} up />)}</div>
-                : <p className="text-[11px] text-gray-400 italic">Tak ada kenaikan.</p>}
+                : <p className="text-xs text-ink-soft italic">Tak ada kenaikan.</p>}
             </div>
             <div>
-              <div className="text-[11px] font-bold uppercase tracking-wide text-rose-600 mb-1.5">Turun {allFallers.length > 0 && <span className="text-gray-400 font-normal">({allFallers.length})</span>}</div>
+              <div className="text-[13px] font-bold uppercase tracking-[0.08em] text-danger-ink mb-2">Turun {allFallers.length > 0 && <span className="text-ink-faint font-normal font-mono">({allFallers.length})</span>}</div>
               {fallers.length ? <div className="space-y-1.5">{fallers.map((m) => <MoverLine key={m.name} m={m} up={false} />)}</div>
-                : <p className="text-[11px] text-gray-400 italic">Tak ada penurunan.</p>}
+                : <p className="text-xs text-ink-soft italic">Tak ada penurunan.</p>}
             </div>
           </div>
           {hasMore && <ShowAllToggle expanded={expanded} total={allRisers.length + allFallers.length} onToggle={() => setExpanded((v) => !v)} />}
@@ -346,16 +355,16 @@ function TopMovers({ movers, labels }: { movers: MoverRow[]; labels: { prev: str
 function AspectChips({ aspects }: { aspects: AspectDelta[] }) {
   // Penurunan dulu (delta menaik: paling negatif di depan), maksimal 4 aspek bermakna.
   const shown = [...aspects].sort((a, b) => a.delta - b.delta).slice(0, 4);
-  if (shown.length === 0) return <span className="text-[10px] text-gray-400 italic">tak ada perubahan aspek berarti</span>;
+  if (shown.length === 0) return <span className="text-[11px] text-ink-faint italic">tak ada perubahan aspek berarti</span>;
   return (
     <div className="flex flex-wrap gap-x-2 gap-y-0.5">
       {shown.map((a) => {
         const down = a.delta < 0;
         return (
-          <span key={a.aspect} className="text-[10px] whitespace-nowrap">
-            <span className={down ? 'text-rose-600' : 'text-emerald-700'} aria-hidden>{down ? '▼' : '▲'}</span>{' '}
-            <span className="text-gray-600">{a.aspect}</span>{' '}
-            <span className={`font-mono font-bold ${down ? 'text-rose-600' : 'text-emerald-700'}`}>{sgn(a.delta)}</span>
+          <span key={a.aspect} className="text-[11px] whitespace-nowrap">
+            <span className={down ? 'text-danger-ink' : 'text-brand-ink'} aria-hidden>{down ? '▼' : '▲'}</span>{' '}
+            <span className="text-ink-soft">{a.aspect}</span>{' '}
+            <span className={`font-mono font-bold ${down ? 'text-danger-ink' : 'text-brand-ink'}`}>{sgn(a.delta)}</span>
           </span>
         );
       })}
@@ -365,14 +374,14 @@ function AspectChips({ aspects }: { aspects: AspectDelta[] }) {
 
 function Mover360Line({ m, up }: { m: MoverRow360; up: boolean }) {
   return (
-    <div className="border-b border-gray-100 last:border-0 pb-1.5 last:pb-0">
-      <div className="flex items-center gap-2 text-[12px]">
-        <span className={`font-bold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>{up ? '▲' : '▼'}</span>
-        <span className="flex-1 min-w-0 truncate text-gray-700" title={m.name}>{displayName(m.nickname, m.name)}</span>
-        <span className={`font-mono font-bold ${up ? 'text-emerald-700' : 'text-rose-600'}`}>
+    <div className="border-b border-line-soft last:border-0 pb-1.5 last:pb-0">
+      <div className="flex items-center gap-2 text-xs">
+        <span className={`font-bold ${up ? 'text-brand-ink' : 'text-danger-ink'}`}>{up ? '▲' : '▼'}</span>
+        <span className="flex-1 min-w-0 truncate text-ink" title={m.name}>{displayName(m.nickname, m.name)}</span>
+        <span className={`font-mono font-bold ${up ? 'text-brand-ink' : 'text-danger-ink'}`}>
           {m.delta >= 0 ? '+' : '−'}{fmt2(Math.abs(m.delta))}
         </span>
-        <span className="font-mono text-[10px] text-gray-400 w-10 text-right">{m.curr.toFixed(1)}</span>
+        <span className="font-mono text-[11px] text-ink-faint w-10 text-right">{m.curr.toFixed(1)}</span>
       </div>
       <div className="ml-5 mt-0.5"><AspectChips aspects={m.aspects} /></div>
     </div>
@@ -387,36 +396,36 @@ function TopMovers360({ movers, labels }: { movers: MoverRow360[]; labels: { pre
   const fallers = expanded ? allFallers : allFallers.slice(0, TOP_N);
   const hasMore = allRisers.length > TOP_N || allFallers.length > TOP_N;
   return (
-    <ChartCard title="Pergerakan 360°" hint={labels && <span className="text-[11px] text-gray-400">{labels.prev} → {labels.curr}</span>}>
+    <ChartCard icon={Activity} title="Pergerakan 360°" hint={labels && <span className="text-xs text-ink-soft">{labels.prev} → {labels.curr}</span>}>
       {!labels || movers.length === 0 ? (
-        <p className="text-xs text-gray-500 italic py-6 text-center">Perlu ≥2 periode ber-360° (pegawai bernilai di keduanya) untuk pergerakan.</p>
+        <p className="text-sm text-ink-soft py-6 text-center">Perlu ≥2 periode ber-360° (pegawai bernilai di keduanya) untuk pergerakan.</p>
       ) : (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-3">
             <div>
-              <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-700 mb-1.5">Naik {allRisers.length > 0 && <span className="text-gray-400 font-normal">({allRisers.length})</span>}</div>
+              <div className="text-[13px] font-bold uppercase tracking-[0.08em] text-brand-ink mb-2">Naik {allRisers.length > 0 && <span className="text-ink-faint font-normal font-mono">({allRisers.length})</span>}</div>
               {risers.length ? <div className="space-y-1.5">{risers.map((m) => <Mover360Line key={m.name} m={m} up />)}</div>
-                : <p className="text-[11px] text-gray-400 italic">Tak ada kenaikan.</p>}
+                : <p className="text-xs text-ink-soft italic">Tak ada kenaikan.</p>}
             </div>
             <div>
-              <div className="text-[11px] font-bold uppercase tracking-wide text-rose-600 mb-1.5">Turun {allFallers.length > 0 && <span className="text-gray-400 font-normal">({allFallers.length})</span>}</div>
+              <div className="text-[13px] font-bold uppercase tracking-[0.08em] text-danger-ink mb-2">Turun {allFallers.length > 0 && <span className="text-ink-faint font-normal font-mono">({allFallers.length})</span>}</div>
               {fallers.length ? <div className="space-y-1.5">{fallers.map((m) => <Mover360Line key={m.name} m={m} up={false} />)}</div>
-                : <p className="text-[11px] text-gray-400 italic">Tak ada penurunan.</p>}
+                : <p className="text-xs text-ink-soft italic">Tak ada penurunan.</p>}
             </div>
           </div>
           {hasMore && <ShowAllToggle expanded={expanded} total={allRisers.length + allFallers.length} onToggle={() => setExpanded((v) => !v)} />}
-          <p className="text-[10px] text-gray-400 mt-3">Rincian per-aspek: <span className="text-rose-600 font-bold">▼</span> aspek turun · <span className="text-emerald-700 font-bold">▲</span> aspek naik (relatif periode sebelumnya).</p>
+          <p className="text-xs text-ink-soft mt-3">Rincian per-aspek: <span className="text-danger-ink font-bold">▼</span> aspek turun · <span className="text-brand-ink font-bold">▲</span> aspek naik (relatif periode sebelumnya).</p>
         </>
       )}
     </ChartCard>
   );
 }
 
-function ChartCard({ title, hint, children }: { title: string; hint?: React.ReactNode; children: React.ReactNode }) {
+function ChartCard({ icon, title, hint, children }: { icon: LucideIcon; title: string; hint?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-gray-200 p-4">
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <h3 className="text-sm font-bold text-gray-800">{title}</h3>
+    <div className={CARD}>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <CardTitle icon={icon}>{title}</CardTitle>
         {hint}
       </div>
       {children}
@@ -456,7 +465,7 @@ export function MonitorTrends({
   const periodSeries: Series[] = [
     { label: 'Avg KPI', color: C_KPI, points: periodsTrend.map((p) => p.kpi), labelDy: -6 },
     ...(has360 ? [{ label: 'Avg 360°', color: C_360, points: periodsTrend.map((p) => p.s360), labelDy: 13 }] : []),
-    { label: 'Avg Skor Akhir', color: C_FINAL, points: periodsTrend.map((p) => p.final), labelDy: has360 ? 24 : 13 },
+    { label: 'Avg Skor Akhir', color: C_FINAL, points: periodsTrend.map((p) => p.final), labelDy: has360 ? 24 : 13, dash: DASH_FINAL },
   ];
 
   // Overview "Semua Anggota" (grafik kiri): pita rentang-TENGAH tim (p25–p75) + rata tim (tebal)
@@ -492,13 +501,13 @@ export function MonitorTrends({
   ];
 
   return (
-    <div className="mt-3 space-y-4">
-      <ChartCard title="Tren Tim per Periode">
+    <div className="space-y-4">
+      <ChartCard icon={TrendingUp} title="Tren Tim per Periode">
         {periodsTrend.length === 0 ? <Empty /> : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
             <div className="lg:col-span-2 min-w-0">
               <LineChart xLabels={periodLabels} series={periodSeries} />
-              <Legend items={[{ label: 'Avg KPI', color: C_KPI }, ...(has360 ? [{ label: 'Avg 360°', color: C_360 }] : []), { label: 'Avg Skor Akhir', color: C_FINAL }]} />
+              <Legend items={[{ label: 'Avg KPI', color: C_KPI }, ...(has360 ? [{ label: 'Avg 360°', color: C_360 }] : []), { label: 'Avg Skor Akhir', color: C_FINAL, dash: true }]} />
             </div>
             <DeltaSummary periodsTrend={periodsTrend} has360={has360} kpiCause={kpiCause} s360Cause={s360Cause} />
           </div>
@@ -510,23 +519,24 @@ export function MonitorTrends({
       {has360 && <TopMovers360 movers={movers360} labels={moverLabels360} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ChartCard title="Tren KPI Tim — Sebaran Anggota">
+        <ChartCard icon={LineChartIcon} title="Tren KPI Tim — Sebaran Anggota">
           {monthLabels.length === 0 ? <Empty /> : (
             <>
               <LineChart xLabels={monthLabels} series={overviewSeries} band={overviewBand} />
               <Legend items={overviewLegend} />
-              <p className="mt-1.5 text-[10px] leading-snug text-gray-400">
-                <span className="inline-block w-3 h-2 align-middle rounded-sm" style={{ backgroundColor: C_BAND }} /> Area = rentang tengah tim (p25–p75, tempat mayoritas anggota berada); makin lebar = tim makin timpang. Garis tebal = rata-rata tim; biru/merah = anggota rerata tertinggi/terendah.
+              <p className="mt-2 text-xs leading-snug text-ink-soft">
+                <span className="inline-block w-3 h-2 align-middle rounded-sm" style={{ backgroundColor: C_BAND }} /> Area = rentang tengah tim (p25–p75, tempat mayoritas anggota berada); makin lebar = tim makin timpang. Garis tebal = rata-rata tim; cokelat/merah = anggota rerata tertinggi/terendah.
               </p>
             </>
           )}
         </ChartCard>
 
         <ChartCard
+          icon={UserRound}
           title="Tren KPI Pegawai per Bulan"
           hint={
             <select value={sel} onChange={(e) => setSel(e.target.value)}
-              className="text-[11px] px-2 py-1 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600">
+              className={`${FIELD} max-w-[220px]`}>
               <option value="team">Rata-rata Tim</option>
               {employees.map((e) => <option key={e.id} value={e.id}>{displayName(e.nickname, e.name)}</option>)}
             </select>
@@ -551,5 +561,5 @@ export function MonitorTrends({
 }
 
 function Empty() {
-  return <p className="text-xs text-gray-500 italic py-8 text-center">Belum ada data untuk ditampilkan.</p>;
+  return <p className="text-sm text-ink-soft py-8 text-center">Belum ada data untuk ditampilkan.</p>;
 }

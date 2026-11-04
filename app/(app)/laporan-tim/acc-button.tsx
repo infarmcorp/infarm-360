@@ -22,21 +22,21 @@ export function AccButton({ employeeId, acc, hasReport, canAcc }: { employeeId: 
     router.refresh();
   }
 
-  if (!hasReport) return <span className="text-[10px] text-ink-faint italic">menunggu HRD</span>;
+  if (!hasReport) return <span className="text-xs text-ink-soft italic">menunggu HRD</span>;
   // ACC baru terbuka setelah HRD "Rilis ke SPV" (status in_review/finalized). Sebelum itu
   // (masih draf), SPV belum boleh meng-ACC — tegakkan juga di server (setSpvAcc).
-  if (!canAcc) return <span className="text-[10px] text-ink-faint italic">menunggu rilis HRD</span>;
+  if (!canAcc) return <span className="text-xs text-ink-soft italic">menunggu rilis HRD</span>;
 
   return (
     <div className="flex flex-col items-end gap-1">
       <button type="button" disabled={busy} onClick={toggle}
-        className={`text-[11px] font-bold px-2.5 py-1 rounded-control border transition-colors disabled:opacity-50 ${
-          acc ? 'bg-surface text-ink-soft border-line-strong hover:text-ink' : 'bg-brand text-white border-brand hover:bg-brand-ink'
+        className={`text-xs font-bold min-h-9 px-3 rounded-xl border transition-colors disabled:opacity-50 ${
+          acc ? 'bg-surface text-brand-ink border-brand-ink hover:bg-brand-tint' : 'bg-brand text-white border-brand hover:bg-brand-ink'
         }`}>
         {busy ? '…' : acc ? '✔ Di-ACC · batalkan' : 'Beri ACC'}
       </button>
-      {err && <span className="text-[10px] font-semibold text-danger-ink max-w-[170px] text-right">{err}</span>}
-      {saved && <span className="text-[10px] text-brand-ink max-w-[170px] text-right">✓ {saved}</span>}
+      {err && <span className="text-xs font-semibold text-danger-ink max-w-[170px] text-right">{err}</span>}
+      {saved && <span className="text-xs text-brand-ink max-w-[170px] text-right">✓ {saved}</span>}
     </div>
   );
 }

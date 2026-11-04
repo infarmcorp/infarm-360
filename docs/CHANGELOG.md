@@ -8,6 +8,18 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-04 — Halaman "Pemantauan & Laporan" memakai Design System Infarm (di `dev`, belum di production)
+- Permintaan pemilik: semua halaman di grup Pemantauan & Laporan ikut gaya Dashboard Organisasi — Monitor Kinerja
+  Pegawai, Struktur Organisasi, Monitoring & Audit KPI, Log Aktivitas HRD, Ekspor Dataset. Halaman SPV yang memakai
+  bagian yang sama ikut berubah (pilihan pemilik): Monitor Kinerja, Laporan Kinerja Tim, dan Input KPI Anggota.
+- Tampilan: latar hijau keputihan, kartu putih bergaris tepi, judul kartu berikon, judul bagian bergaris aksen,
+  kartu ringkasan terpisah, catatan penjelas kecil, sub-tab berbentuk pil, font Montserrat/Geist/Geist Mono.
+  Emoji di judul dan pilihan dropdown dihapus.
+- Warna grafik Monitor kini memakai palet yang sama dengan Dashboard (Melampaui cokelat, tanpa biru/ungu); heatmap
+  memakai gradasi yang sama dengan Dashboard. Garis "Teratas" di grafik sebaran tim kini cokelat (dulu biru).
+- Tombol paging tabel di seluruh aplikasi kini memakai warna standar (bentuk dan cara kerja sama).
+- Logika, angka, aturan ACC, input KPI, dan hak akses tidak berubah.
+
 ### 2026-11-04 — Sidebar putih yang bisa ditutup (di `dev`, belum di production)
 - Pilihan pemilik dari mockup "Sidebar putih — terbuka vs ditutup" (versi B). Berlaku di semua halaman dan peran.
 - Sidebar kini putih bergaya Design System Infarm: label grup cokelat tanah, menu aktif hijau, kartu periode krem.

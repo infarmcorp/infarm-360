@@ -29,3 +29,9 @@ const montserrat = localFont({
 });
 
 export const infarmFontVars = `${geist.variable} ${geistMono.variable} ${montserrat.variable}`;
+
+/**
+ * Pembungkus kanvas halaman ber-Design System Infarm: font + latar hijau keputihan. Tempel di <main> halaman
+ * (Server Component page.tsx). Jangan impor file ini dari komponen yang diuji Vitest — next/font tak berjalan di sana.
+ */
+export const INFARM_PAGE = `infarm-ds ${infarmFontVars} bg-infarm-surface`;

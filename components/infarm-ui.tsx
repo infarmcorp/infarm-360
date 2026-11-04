@@ -1,7 +1,6 @@
 import { AlertTriangle, Info, type LucideIcon } from 'lucide-react';
 import type { PlayerClass } from '@/lib/scoring';
 import type { Trend } from '@/lib/trend';
-import { infarmFontVars } from '@/app/infarm-fonts';
 
 /*
  * Primitif tampilan Design System Infarm (diekstrak dari Dashboard Organisasi, 2026-11-04) — dipakai semua halaman
@@ -10,8 +9,8 @@ import { infarmFontVars } from '@/app/infarm-fonts';
  * yang hijau), judul kartu berikon, catatan penjelas kecil & netral. Skala & aturan → CLAUDE.md §8.
  */
 
-/** Pembungkus kanvas halaman: font Design System + latar hijau keputihan. Tempel di <main> halaman. */
-export const INFARM_PAGE = `infarm-ds ${infarmFontVars} bg-infarm-surface`;
+// Pembungkus kanvas halaman (font + latar) = `INFARM_PAGE` di app/infarm-fonts.ts — SENGAJA tak diimpor di sini:
+// next/font/local tak bisa dijalankan di Vitest, dan file ini diimpor komponen yang diuji.
 
 /** Palet skor diskrit = jangkar heatColorInfarm: ≥90 cokelat · 80–89 hijau · 70–79 kuning · <70 merah. */
 export const CAT_COLOR = { exceed: '#6b4e3d', meet: '#388e3c', improve: '#ffc107', below: '#b71c1c' } as const;

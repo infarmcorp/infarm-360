@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { colPercents } from '@/lib/table-cols';
-import { UserPlus, Pencil, KeyRound, Power, X, FolderOpen } from 'lucide-react';
+import { UserPlus, Pencil, KeyRound, Power, X, FolderOpen, Users, UserCheck, UserCog, AlertTriangle, CalendarCheck, CalendarX } from 'lucide-react';
 import { createEmployee, updateEmployee, setEmployeeActive, resetPassword, setReportFolder } from './actions';
 import { isDriveUrl } from '@/lib/report-folder';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { usePager, StableHeight, Pager } from '@/components/table-controls';
-import { Panel } from '@/components/panel';
 import { Button } from '@/components/button';
 import { DatePicker } from '@/components/date-picker';
+import { CARD, CardTitle, Note, StatCard, FIELD, FIELD_LABEL, TABLE_HEAD } from '@/components/infarm-ui';
 
 export type Role = 'employee' | 'spv' | 'hrd' | 'direksi';
 export type EmpRow = {
@@ -22,6 +22,14 @@ export type SpvOpt = { id: string; name: string; dept: string; role: Role };
 
 const ROLE_LABEL: Record<Role, string> = { employee: 'Pegawai', spv: 'Supervisor', hrd: 'HRD Admin', direksi: 'Direksi' };
 const ROLE_OPTS: Role[] = ['employee', 'spv', 'hrd', 'direksi'];
+
+/** Kontrol isian (lebar penuh) + varian bergaris merah saat nilai bentrok (duplikat). */
+const INP = `${FIELD} w-full`;
+const INP_ERR = `${FIELD.replace('border-line', 'border-danger-ink')} w-full ring-2 ring-danger-tint`;
+/** Tombol kecil sekunder di samping isian ("Acak"). */
+const SIDE_BTN = 'text-xs font-semibold min-h-9 px-3 rounded-control bg-surface border border-line text-ink-soft hover:text-ink hover:border-line-strong shrink-0';
+/** Tombol ikon aksi baris tabel. */
+const ICON_BTN = 'inline-flex items-center justify-center w-8 h-8 rounded-control disabled:opacity-60';
 
 /**
  * Saran kode pegawai berikutnya: lanjutkan SKEMA yang sudah dipakai (apa pun bentuknya,
@@ -180,13 +188,13 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
     <div className="space-y-4">
       {/* Stats + tambah */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2">
-          <Stat label="Total" value={stats.total} c="text-ink" />
-          <Stat label="Aktif" value={stats.active} c="text-brand-ink" />
-          <Stat label="Supervisor" value={stats.spv} c="text-ink" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1 max-w-2xl">
+          <StatCard item={{ value: String(stats.total), label: 'Total', icon: Users }} />
+          <StatCard item={{ value: String(stats.active), label: 'Aktif', icon: UserCheck }} />
+          <StatCard item={{ value: String(stats.spv), label: 'Supervisor', icon: UserCog, tone: 'soil' }} />
         </div>
         {!form && (
-          <Button type="button" size="sm" onClick={openAdd}>
+          <Button type="button" size="sm" onClick={openAdd} className="min-h-9">
             <UserPlus className="w-4 h-4" /> Tambah Pegawai
           </Button>
         )}
@@ -194,103 +202,103 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
 
       {/* Form tambah/edit */}
       {form && (
-        <form ref={formRef} onSubmit={submit} className="scroll-mt-20 rounded-panel border border-brand/25 bg-brand-tint/40 p-4 space-y-3">
+        <form ref={formRef} onSubmit={submit} className={`${CARD} scroll-mt-20 space-y-3`}>
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-ink">{form.id ? 'Ubah Pegawai' : 'Tambah Pegawai Baru'}</h2>
+            <CardTitle icon={form.id ? Pencil : UserPlus}>{form.id ? 'Ubah Pegawai' : 'Tambah Pegawai Baru'}</CardTitle>
             <button type="button" onClick={() => setForm(null)} className="text-ink-faint hover:text-ink-soft"><X className="w-4 h-4" /></button>
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <Field label="Nama Lengkap">
               <input value={form.name} onChange={(e) => set('name', e.target.value)} required
-                className="inp" placeholder="mis. Andi Pratama" />
+                className={INP} placeholder="mis. Andi Pratama" />
             </Field>
             <Field label="Nama Panggilan (opsional)">
               <input value={form.nickname} onChange={(e) => set('nickname', e.target.value)} maxLength={30}
-                className="inp" placeholder="mis. Andi — untuk tampilan ringkas" />
+                className={INP} placeholder="mis. Andi — untuk tampilan ringkas" />
             </Field>
             <Field label="Peran">
-              <select value={form.role} onChange={(e) => set('role', e.target.value as Role)} className="inp bg-white">
+              <select value={form.role} onChange={(e) => set('role', e.target.value as Role)} className={INP}>
                 {ROLE_OPTS.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
               </select>
             </Field>
             <Field label="Divisi">
               <input value={form.dept} onChange={(e) => set('dept', e.target.value)} required list="dept-list"
-                className="inp" placeholder="mis. Operasional" />
+                className={INP} placeholder="mis. Operasional" />
               <datalist id="dept-list">{depts.map((d) => <option key={d} value={d} />)}</datalist>
             </Field>
             <Field label="Kode Pegawai">
               <input value={form.empCode} onChange={(e) => set('empCode', e.target.value.toUpperCase())} required
-                className={`inp data-value ${dupCode ? 'border-danger-ink ring-2 ring-danger-tint' : ''}`} placeholder="mis. FT2021-001" />
+                className={`${dupCode ? INP_ERR : INP} font-mono`} placeholder="mis. FT2021-001" />
               {dupCode
-                ? <span className="block text-[10px] text-danger-ink font-semibold mt-0.5">⚠ Kode sudah dipakai oleh {dupCode.name} ({dupCode.dept}).</span>
-                : <span className="block text-[10px] text-ink-faint mt-0.5">Bebas mengikuti skema perusahaan; saran melanjutkan nomor terakhir.</span>}
+                ? <span className="flex items-center gap-1 text-xs text-danger-ink font-semibold mt-1"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /> Kode sudah dipakai oleh {dupCode.name} ({dupCode.dept}).</span>
+                : <span className="block text-xs text-ink-faint mt-1">Bebas mengikuti skema perusahaan; saran melanjutkan nomor terakhir.</span>}
             </Field>
             <Field label="Email (boleh placeholder)">
               <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} required
-                className={`inp ${dupEmail ? 'border-danger-ink ring-2 ring-danger-tint' : ''}`} placeholder="nama@infarm.test" />
-              {dupEmail && <span className="block text-[10px] text-danger-ink font-semibold mt-0.5">⚠ Email sudah dipakai oleh {dupEmail.name}.</span>}
+                className={`${dupEmail ? INP_ERR : INP} font-mono`} placeholder="nama@infarm.test" />
+              {dupEmail && <span className="flex items-center gap-1 text-xs text-danger-ink font-semibold mt-1"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /> Email sudah dipakai oleh {dupEmail.name}.</span>}
             </Field>
             {!form.id && (
               <Field label="Sandi Awal">
                 <div className="flex gap-1.5">
                   <input value={form.password} onChange={(e) => set('password', e.target.value)} required minLength={6}
-                    className="inp flex-1" placeholder="min. 6 karakter" />
+                    className={`${INP} flex-1 font-mono`} placeholder="min. 6 karakter" />
                   <button type="button" onClick={() => set('password', randPass())}
-                    className="text-[11px] font-semibold px-2 rounded-control bg-surface border border-line text-ink-soft hover:text-ink hover:border-line-strong shrink-0">Acak</button>
+                    className={SIDE_BTN}>Acak</button>
                 </div>
               </Field>
             )}
             <Field label="Atasan / SPV (opsional)">
-              <select value={form.spvId} onChange={(e) => set('spvId', e.target.value)} className="inp bg-white">
+              <select value={form.spvId} onChange={(e) => set('spvId', e.target.value)} className={INP}>
                 <option value="">— Tanpa atasan —</option>
                 {spvs.filter((s) => s.id !== form.id).map((s) => <option key={s.id} value={s.id}>{s.name} · {ROLE_LABEL[s.role]} · {s.dept}</option>)}
               </select>
             </Field>
             <Field label="Tanggal Masuk / Aktif">
               <DatePicker value={form.joinedOn} onChange={(v) => set('joinedOn', v)} allowClear ariaLabel="Pilih tanggal masuk" />
-              <span className="block text-[10px] text-ink-faint mt-0.5">{form.id ? 'Dapat dikoreksi ke tanggal masuk sebenarnya.' : 'Default hari ini; ubah bila tanggal masuk berbeda.'}</span>
+              <span className="block text-xs text-ink-faint mt-1">{form.id ? 'Dapat dikoreksi ke tanggal masuk sebenarnya.' : 'Default hari ini; ubah bila tanggal masuk berbeda.'}</span>
             </Field>
             {form.id && (
               <Field label="Tanggal Nonaktif (opsional)">
                 <DatePicker value={form.leftOn} onChange={(v) => set('leftOn', v)} min={form.joinedOn || undefined}
                   allowClear placeholder="— Masih aktif —" ariaLabel="Pilih tanggal nonaktif" />
-                <span className="block text-[10px] text-ink-faint mt-0.5">
+                <span className="block text-xs text-ink-faint mt-1">
                   Terisi otomatis saat dinonaktifkan; kosongkan bila masih aktif. {form.leftOn ? 'Koreksi ke tanggal keluar sebenarnya.' : ''}
                 </span>
               </Field>
             )}
-            <label className="sm:col-span-2 flex items-start gap-2 rounded-control border border-warn-ink/25 bg-warn-tint/60 p-2.5 cursor-pointer">
-              <input type="checkbox" checked={form.isExternal} onChange={(e) => set('isExternal', e.target.checked)} className="mt-0.5 accent-warn-ink" />
-              <span className="text-[11px] text-warn-ink leading-snug">
+            <label className="sm:col-span-2 flex items-start gap-2 rounded-xl bg-warn-tint px-3.5 py-2.5 cursor-pointer">
+              <input type="checkbox" checked={form.isExternal} onChange={(e) => set('isExternal', e.target.checked)} className="mt-0.5 accent-brand" />
+              <span className="text-xs text-warn-ink leading-relaxed">
                 <span className="font-bold">Penilai eksternal</span> (vendor/freelance/mitra) — hanya <strong>menilai</strong> pegawai
                 (relasi Cross), <strong>tanpa</strong> KPI/Skor Akhir/laporan & disembunyikan dari dashboard. Bukan untuk pegawai internal Infarm.
               </span>
             </label>
           </div>
           <div className="flex items-center gap-2 pt-1">
-            <Button type="submit" size="sm" disabled={pending || !!dupCode || !!dupEmail}>
+            <Button type="submit" size="sm" disabled={pending || !!dupCode || !!dupEmail} className="min-h-9">
               {pending ? 'Menyimpan…' : form.id ? 'Simpan Perubahan' : 'Buat Pegawai'}
             </Button>
-            <button type="button" onClick={() => setForm(null)} className="text-xs font-semibold text-ink-faint hover:text-ink-soft">Batal</button>
+            <button type="button" onClick={() => setForm(null)} className="text-[13px] font-semibold min-h-9 px-3 text-ink-soft hover:text-ink">Batal</button>
           </div>
         </form>
       )}
 
-      {toast && <p className={`text-xs font-semibold ${toast.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{toast.text}</p>}
+      {toast && <p className={`text-[13px] font-semibold ${toast.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{toast.text}</p>}
 
       {/* Filter */}
       <div className="flex flex-wrap gap-2 items-center">
         <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama, kode, email…"
-          className="text-xs px-3 py-2 border border-line rounded-control bg-surface flex-1 min-w-[160px] focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
-        <select value={fRole} onChange={(e) => { setFRole(e.target.value as typeof fRole); setPage(0); }} className="text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink">
+          className={`${FIELD} bg-surface flex-1 min-w-[160px]`} />
+        <select value={fRole} onChange={(e) => { setFRole(e.target.value as typeof fRole); setPage(0); }} className={`${FIELD} bg-surface font-semibold`}>
           <option value="all">Semua Peran</option>
           {ROLE_OPTS.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
         </select>
-        <select value={fDept} onChange={(e) => { setFDept(e.target.value); setPage(0); }} className="text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink">
+        <select value={fDept} onChange={(e) => { setFDept(e.target.value); setPage(0); }} className={`${FIELD} bg-surface font-semibold`}>
           <option value="all">Semua Divisi</option>
           {depts.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
-        <select value={fStatus} onChange={(e) => { setFStatus(e.target.value as typeof fStatus); setPage(0); }} className="text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink">
+        <select value={fStatus} onChange={(e) => { setFStatus(e.target.value as typeof fStatus); setPage(0); }} className={`${FIELD} bg-surface font-semibold`}>
           <option value="all">Semua Status</option>
           <option value="active">Aktif</option>
           <option value="inactive">Nonaktif</option>
@@ -298,11 +306,11 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
       </div>
 
       {/* Tabel */}
-      <Panel padded={false} className="p-4">
+      <div className={CARD}>
       <StableHeight>
       <div className="overflow-x-auto">
         {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
-        <table className="w-full table-fixed table-1line text-left text-sm min-w-[780px]">
+        <table className="w-full table-fixed table-1line text-left text-[13px] min-w-[780px]">
           <colgroup>
             {colPercents([
               190, // Pegawai (+ kode · email)
@@ -315,53 +323,53 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
             ]).map((w, i) => <col key={i} style={{ width: w }} />)}
           </colgroup>
           <thead>
-            <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
-              <th className="py-2 pr-3 font-semibold">Pegawai</th>
-              <th className="py-2 px-3 font-semibold">Divisi</th>
-              <th className="py-2 px-3 font-semibold">Peran</th>
-              <th className="py-2 px-3 font-semibold">Atasan</th>
-              <th className="py-2 px-3 font-semibold">Masa Aktif</th>
-              <th className="py-2 px-3 text-center font-semibold">Status</th>
-              <th className="py-2 pl-3 text-right font-semibold">Aksi</th>
+            <tr className={TABLE_HEAD}>
+              <th className="py-2.5 px-3 rounded-l-lg">Pegawai</th>
+              <th className="py-2.5 px-3">Divisi</th>
+              <th className="py-2.5 px-3">Peran</th>
+              <th className="py-2.5 px-3">Atasan</th>
+              <th className="py-2.5 px-3">Masa Aktif</th>
+              <th className="py-2.5 px-3 text-center">Status</th>
+              <th className="py-2.5 px-3 text-right rounded-r-lg">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line-soft">
-            {shown.length === 0 && <tr><td colSpan={7} className="py-6 text-center text-sm text-ink-soft">Tidak ada pegawai sesuai filter.</td></tr>}
+            {shown.length === 0 && <tr><td colSpan={7} className="py-6 text-center text-[13px] text-ink-soft">Tidak ada pegawai sesuai filter.</td></tr>}
             {paged.map((r) => (
-              <tr key={r.id} className={r.active ? '' : 'opacity-55'}>
-                <td className="py-3 pr-3 break-words">
-                  <span className="font-bold text-ink block">{r.name}</span>
-                  <span className="text-[11px] text-ink-faint data-value [overflow-wrap:anywhere]">{r.empCode}{r.email ? ` · ${r.email}` : ''}</span>
+              <tr key={r.id} className={`hover:bg-infarm-surface/60 ${r.active ? '' : 'opacity-55'}`}>
+                <td className="py-3 px-3 break-words">
+                  <span className="font-semibold text-ink block">{r.name}</span>
+                  <span className="text-xs text-ink-faint font-mono [overflow-wrap:anywhere]">{r.empCode}{r.email ? ` · ${r.email}` : ''}</span>
                 </td>
-                <td className="py-3 px-3 text-xs text-ink-soft break-words">{r.dept}</td>
+                <td className="py-3 px-3 text-ink-soft break-words">{r.dept}</td>
                 <td className="py-3 px-3">
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-neutral-tint text-ink-soft">{ROLE_LABEL[r.role]}</span>
+                  <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft">{ROLE_LABEL[r.role]}</span>
                   {r.isExternal && (
-                    <span className="ml-1 inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-warn-tint text-warn-ink" title="Penilai eksternal (vendor/freelance) — hanya menilai, bukan dinilai">Eksternal</span>
+                    <span className="ml-1 inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink" title="Penilai eksternal (vendor/freelance) — hanya menilai, bukan dinilai">Eksternal</span>
                   )}
                 </td>
-                <td className="py-3 px-3 text-xs text-ink-faint break-words">{r.spvName ?? '—'}</td>
-                <td className="py-3 px-3 text-[11px] text-ink-soft whitespace-nowrap">
-                  <span title="Tanggal masuk / aktif" className="data-value">↳ {fmtDate(r.joinedOn)}</span>
-                  {r.leftOn && <span className="block text-danger-ink data-value" title="Tanggal nonaktif">⇥ {fmtDate(r.leftOn)}</span>}
+                <td className="py-3 px-3 text-ink-soft break-words">{r.spvName ?? '—'}</td>
+                <td className="py-3 px-3 text-xs text-ink-soft whitespace-nowrap">
+                  <span title="Tanggal masuk / aktif" className="inline-flex items-center gap-1 font-mono"><CalendarCheck className="w-3.5 h-3.5 text-ink-faint shrink-0" /> {fmtDate(r.joinedOn)}</span>
+                  {r.leftOn && <span className="flex items-center gap-1 text-danger-ink font-mono" title="Tanggal nonaktif"><CalendarX className="w-3.5 h-3.5 shrink-0" /> {fmtDate(r.leftOn)}</span>}
                 </td>
                 <td className="py-3 px-3 text-center">
                   {r.active
-                    ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand-tint text-brand-ink">Aktif</span>
-                    : <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-danger-tint text-danger-ink">Nonaktif</span>}
+                    ? <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-brand-tint text-brand-ink">Aktif</span>
+                    : <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-danger-tint text-danger-ink">Nonaktif</span>}
                 </td>
-                <td className="py-3 pl-3 text-right whitespace-nowrap">
+                <td className="py-3 px-3 text-right whitespace-nowrap">
                   <button type="button" onClick={() => openEdit(r)} disabled={pending} title="Ubah"
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-control text-ink-soft hover:bg-neutral-tint disabled:opacity-60"><Pencil className="w-3.5 h-3.5" /></button>
+                    className={`${ICON_BTN} text-ink-soft hover:bg-neutral-tint`}><Pencil className="w-4 h-4" /></button>
                   <button type="button" onClick={() => doReset(r)} disabled={pending} title="Reset sandi"
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-control text-brand-ink hover:bg-brand-tint disabled:opacity-60"><KeyRound className="w-3.5 h-3.5" /></button>
+                    className={`${ICON_BTN} text-brand-ink hover:bg-brand-tint`}><KeyRound className="w-4 h-4" /></button>
                   {/* Folder Laporan (Drive): hijau = sudah diisi, pudar = belum. */}
                   <button type="button" onClick={() => { setToast(null); setFolder({ r, url: r.reportFolderUrl ?? '' }); }} disabled={pending}
                     title={r.reportFolderUrl ? 'Folder Laporan (Drive) — sudah diisi' : 'Folder Laporan (Drive) — belum diisi'}
-                    className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-control disabled:opacity-60 ${r.reportFolderUrl ? 'text-brand-ink hover:bg-brand-tint' : 'text-ink-faint hover:bg-neutral-tint'}`}><FolderOpen className="w-3.5 h-3.5" /></button>
+                    className={`${ICON_BTN} ${r.reportFolderUrl ? 'text-brand-ink hover:bg-brand-tint' : 'text-ink-faint hover:bg-neutral-tint'}`}><FolderOpen className="w-4 h-4" /></button>
                   <button type="button" onClick={() => act(() => setEmployeeActive(r.id, !r.active))} disabled={pending}
                     title={r.active ? 'Nonaktifkan' : 'Aktifkan'}
-                    className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-control disabled:opacity-60 ${r.active ? 'text-danger-ink hover:bg-danger-tint' : 'text-brand-ink hover:bg-brand-tint'}`}><Power className="w-3.5 h-3.5" /></button>
+                    className={`${ICON_BTN} ${r.active ? 'text-danger-ink hover:bg-danger-tint' : 'text-brand-ink hover:bg-brand-tint'}`}><Power className="w-4 h-4" /></button>
                 </td>
               </tr>
             ))}
@@ -370,11 +378,11 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
       </div>
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
       </StableHeight>
-      </Panel>
+      </div>
 
-      <p className="text-[11px] text-ink-faint italic">
+      <Note>
         Nonaktif mengunci akun (tak bisa login) tanpa menghapus riwayat penilaian/KPI. Email boleh placeholder dan diganti kapan saja lewat “Ubah”.
-      </p>
+      </Note>
 
       <ConfirmDialog
         open={!!reset}
@@ -393,10 +401,10 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
             onChange={(e) => setReset((s) => (s ? { ...s, pw: e.target.value } : s))}
             minLength={6}
             placeholder="min. 6 karakter"
-            className="flex-1 text-sm px-2.5 py-1.5 border border-line rounded-control data-value focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
+            className={`${INP} flex-1 font-mono`}
           />
           <button type="button" onClick={() => setReset((s) => (s ? { ...s, pw: randPass() } : s))}
-            className="text-[11px] font-semibold px-2 rounded-control bg-surface border border-line text-ink-soft hover:text-ink hover:border-line-strong shrink-0">Acak</button>
+            className={SIDE_BTN}>Acak</button>
         </div>
       </ConfirmDialog>
 
@@ -419,15 +427,13 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
           value={folder?.url ?? ''}
           onChange={(e) => setFolder((s) => (s ? { ...s, url: e.target.value } : s))}
           placeholder="https://drive.google.com/drive/folders/…"
-          className={`w-full text-sm px-2.5 py-1.5 border rounded-control data-value focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint ${folderInvalid ? 'border-danger-ink' : 'border-line'}`}
+          className={`${folderInvalid ? INP_ERR : INP} font-mono`}
         />
-        {folderInvalid && <p className="text-[11px] text-danger-ink font-semibold">Tautan harus diawali https://drive.google.com/</p>}
-        <p className="text-[11px] text-ink-faint">
+        {folderInvalid && <p className="text-xs text-danger-ink font-semibold">Tautan harus diawali https://drive.google.com/</p>}
+        <p className="text-xs text-ink-faint">
           Bagikan folder di Drive ke email Google pegawai sebagai <strong>Pelihat</strong>, dengan Akses umum <strong>Dibatasi</strong>.
         </p>
       </ConfirmDialog>
-
-      <style>{`.inp{width:100%;font-size:.8rem;padding:.5rem .65rem;border:1px solid var(--color-line);border-radius:var(--radius-control);background:var(--color-surface);color:var(--color-ink);outline:none}.inp:focus{border-color:var(--color-brand);box-shadow:0 0 0 2px var(--color-brand-tint)}`}</style>
     </div>
   );
 }
@@ -435,17 +441,8 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="block text-[11px] font-semibold text-ink-soft mb-1">{label}</span>
+      <span className={FIELD_LABEL}>{label}</span>
       {children}
     </label>
-  );
-}
-
-function Stat({ label, value, c }: { label: string; value: number; c: string }) {
-  return (
-    <div className="border border-line rounded-panel bg-surface px-3 py-2 text-center min-w-[72px]">
-      <div className={`text-lg font-bold data-value ${c}`}>{value}</div>
-      <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em]">{label}</div>
-    </div>
   );
 }

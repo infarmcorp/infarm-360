@@ -219,9 +219,10 @@ Dipindah ke §2 bila diputuskan dikerjakan.
   tidak kembali ke gaya lama.
 - **Design System Infarm ke halaman lain.** Sudah: sidebar (semua halaman), grup Pemantauan & Laporan (Dashboard,
   Monitor, Struktur, Monitoring & Audit KPI, Log Aktivitas, Ekspor), serta Monitor Kinerja, Laporan Kinerja Tim,
-  Input KPI Anggota, dan grup Hasil & Tindak Lanjut (2026-11-03/04). Belum: Daftar Penilaian Saya, Laporan Hasil Saya
-  (mockup sudah disetujui), Rencana Pengembangan (pegawai), dan grup Admin lain (Persiapan Siklus, Pelaksanaan,
-  Administrasi). Komponen bersama yang masih bergaya lama: kotak konfirmasi (masih memakai emoji) dan tombol standar.
+  Input KPI Anggota, grup Hasil & Tindak Lanjut, Pelaksanaan, dan Administrasi (2026-11-03/04). Belum: grup
+  Persiapan Siklus, Daftar Penilaian Saya, Laporan Hasil Saya (mockup sudah disetujui), Rencana Pengembangan (pegawai),
+  Tinjauan Hasil Akhir, Akun Saya. Komponen bersama yang masih bergaya lama: kotak konfirmasi (masih memakai emoji),
+  tombol standar, dropdown berpencarian, dan filter centang.
 - **Mode gelap.** Palet sudah mendukung; belum diminta.
 - **Ganti email sendiri** di Akun Saya.
 - **Email anti-spam permanen**: domain sendiri + layanan Resend.

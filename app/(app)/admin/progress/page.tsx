@@ -4,6 +4,8 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import { progressStatusOf, formatWib, type ProgressStatus } from '@/lib/late';
+import { PageTitle } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { ProgressClient, type AssessorRow, type TargetRow } from './progress-client';
 
 /**
@@ -27,7 +29,7 @@ export default async function ProgressPage() {
     grantScopes = grantedAccess(g, 'progress')?.scopes ?? null;
   }
   if (!isHrdFull && !grantScopes) {
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk HRD Admin atau pemegang akses Progress 360°.</p></Shell>;
+    return <Shell><p className="text-[13px] text-ink-soft">Halaman ini untuk HRD Admin atau pemegang akses Progress 360°.</p></Shell>;
   }
   const viaGrant = !isHrdFull;
   const ownDept = (me?.dept ?? '').trim();
@@ -37,7 +39,7 @@ export default async function ProgressPage() {
     : undefined;
 
   const { data: ap } = await db.from('periods').select('id, label, assessment_deadline').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><p className="text-[13px] text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
   // Independen → paralel. mappings & assessments SELURUH pegawai → bisa >1000; ambil penuh.
   const [empsRes, maps, asmtsAll, ajuanRes] = await Promise.all([
@@ -140,20 +142,19 @@ export default async function ProgressPage() {
 
   return (
     <Shell>
-      <div className="mb-6">
-        <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Progress 360 Feedback</h1>
-        <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span> · kelengkapan pengisian 360°.{viaGrant ? ' (lihat-saja)' : ''}</p>
-        <p className="text-[12px] text-ink-faint mt-0.5">
+      <PageTitle title="Progress 360 Feedback">
+        <p>Periode aktif <span className="font-mono font-semibold text-ink">{ap.label}</span> · kelengkapan pengisian 360°.{viaGrant ? ' (lihat-saja)' : ''}</p>
+        <p className="text-xs mt-0.5">
           Deadline: {ap.assessment_deadline
-            ? <span className="data-value font-semibold text-ink-soft">{formatWib(ap.assessment_deadline)}</span>
+            ? <span className="font-mono font-semibold text-ink">{formatWib(ap.assessment_deadline)}</span>
             : <span className="font-semibold text-warn-ink">belum ditetapkan — status Tepat Waktu/Terlambat belum bisa dibedakan (atur di Kelola Periode)</span>}
         </p>
-      </div>
+      </PageTitle>
       <ProgressClient rows={rowsOut} targetRows={targetRowsOut} readOnly={viaGrant} />
     </Shell>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
+  return <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>{children}</main>;
 }

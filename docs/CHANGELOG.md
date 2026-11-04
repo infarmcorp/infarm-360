@@ -8,6 +8,12 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-04 — Halaman "Pelaksanaan" dan "Administrasi" memakai Design System Infarm (di `dev`, belum di production)
+- Progress 360 Feedback, Flag Kepatuhan, Kelola Pegawai, dan Manajemen Akses kini bergaya sama dengan Dashboard,
+  dengan ukuran rapat. Simbol dan emoji di tombol, lencana izin, dan status diganti ikon garis.
+- Flag Kepatuhan: "Kirim terlambat" kini merah (sebelumnya kuning). Progress 360: chip "Wajib" di Rincian kini kuning
+  (sebelumnya merah); bilah progres hijau. Logika, potongan keterlambatan, aturan izin, dan pemberian akses tidak berubah.
+
 ### 2026-11-04 — Halaman "Hasil & Tindak Lanjut" memakai Design System Infarm (di `dev`, belum di production)
 - Review & Finalisasi, Pantauan Rencana Pengembangan, dan Promosi & Suksesi kini bergaya sama dengan Dashboard, dengan
   ukuran rapat. Tabel laporan di Tinjauan Hasil Akhir (Direksi) ikut berubah karena memakai tabel yang sama.

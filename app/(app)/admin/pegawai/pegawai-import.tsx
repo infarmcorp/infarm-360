@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useRef, useState, useTransition } from 'react';
-import { Upload } from 'lucide-react';
+import { Upload, X, CheckCircle2, Redo2, XCircle } from 'lucide-react';
+import { CARD, CardTitle, FIELD, FIELD_LABEL, TABLE_HEAD } from '@/components/infarm-ui';
 import { createEmployeesBulk } from './actions';
 import type { EmpRow, Role } from './pegawai-client';
 
@@ -138,7 +139,7 @@ export function PegawaiImport({ rows }: { rows: EmpRow[] }) {
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">
+        className="flex items-center gap-1.5 text-[13px] font-semibold min-h-9 px-4 rounded-xl border border-line bg-surface text-ink-soft hover:text-brand hover:border-infarm-light">
         <Upload className="w-4 h-4" /> Impor dari Excel
       </button>
     );
@@ -151,12 +152,12 @@ export function PegawaiImport({ rows }: { rows: EmpRow[] }) {
   } : null;
 
   return (
-    <div className="rounded-panel border border-line bg-surface p-4 space-y-3 w-full">
+    <div className={`${CARD} space-y-3 w-full`}>
       <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.07em]">Impor Pegawai Massal</h3>
-        <button type="button" onClick={() => { setOpen(false); setParsed(null); setMsg(null); }} className="text-ink-faint hover:text-ink-soft text-xs">Tutup ✕</button>
+        <CardTitle icon={Upload}>Impor Pegawai Massal</CardTitle>
+        <button type="button" onClick={() => { setOpen(false); setParsed(null); setMsg(null); }} className="inline-flex items-center gap-1 text-ink-faint hover:text-ink-soft text-xs font-semibold">Tutup <X className="w-3.5 h-3.5" /></button>
       </div>
-      <p className="text-[12px] text-ink-soft leading-relaxed">
+      <p className="text-xs text-ink-soft leading-relaxed">
         Kolom: <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">nama</code>, <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">kode</code>, <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">divisi</code>, <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">peran</code> (employee/spv/hrd/direksi),
         <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded"> email</code> (opsional → otomatis dari nama), <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">sandi</code> (opsional → Sandi Default), <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">atasan</code> (kode pegawai, opsional).
         {' '}<button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh template</button>.
@@ -164,41 +165,41 @@ export function PegawaiImport({ rows }: { rows: EmpRow[] }) {
 
       <div className="flex flex-wrap items-end gap-2">
         <label className="block">
-          <span className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">Sandi Default (untuk baris tanpa kolom sandi)</span>
+          <span className={FIELD_LABEL}>Sandi Default (untuk baris tanpa kolom sandi)</span>
           <input value={defPass} onChange={(e) => reapplyDefault(e.target.value)} placeholder="min. 6 karakter"
-            className="text-xs px-3 py-2 border border-line rounded-control bg-surface focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+            className={`${FIELD} font-mono`} />
         </label>
         <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile}
-          className="block text-xs file:mr-3 file:rounded-control file:border-0 file:bg-brand file:px-3 file:py-1.5 file:text-white file:font-semibold" />
+          className="block text-xs text-ink-soft file:mr-3 file:min-h-9 file:rounded-xl file:border-0 file:bg-brand file:px-4 file:text-[13px] file:text-white file:font-bold" />
       </div>
-      {parseErr && <p className="text-xs text-danger-ink font-semibold">{parseErr}</p>}
+      {parseErr && <p className="text-[13px] text-danger-ink font-semibold">{parseErr}</p>}
 
       {parsed && counts && (
         <>
-          <div className="flex gap-3 text-[11px] font-semibold">
-            <span className="text-brand-ink">✓ {counts.ok} valid</span>
-            <span className="text-warn-ink">↷ {counts.dup} dilewati</span>
-            <span className="text-danger-ink">✗ {counts.bad} tidak valid</span>
+          <div className="flex flex-wrap gap-2 text-xs font-semibold">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-brand-tint text-brand-ink"><CheckCircle2 className="w-3.5 h-3.5" /> <span className="font-mono">{counts.ok}</span> valid</span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-warn-tint text-warn-ink"><Redo2 className="w-3.5 h-3.5" /> <span className="font-mono">{counts.dup}</span> dilewati</span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-danger-tint text-danger-ink"><XCircle className="w-3.5 h-3.5" /> <span className="font-mono">{counts.bad}</span> tidak valid</span>
           </div>
           <div className="overflow-x-auto border border-line rounded-control max-h-72 overflow-y-auto bg-surface">
-            <table className="w-full text-left text-[11px]">
-              <thead><tr className="bg-neutral-tint text-[10px] uppercase text-ink-faint border-b border-line sticky top-0">
-                <th className="py-1.5 px-2 font-semibold">Nama</th><th className="py-1.5 px-2 font-semibold">Kode</th><th className="py-1.5 px-2 font-semibold">Divisi</th>
-                <th className="py-1.5 px-2 font-semibold">Peran</th><th className="py-1.5 px-2 font-semibold">Email</th><th className="py-1.5 px-2 font-semibold">Atasan</th><th className="py-1.5 px-2 font-semibold">Status</th>
+            <table className="w-full text-left text-xs">
+              <thead><tr className={`${TABLE_HEAD} border-b border-line sticky top-0`}>
+                <th className="py-2 px-2">Nama</th><th className="py-2 px-2">Kode</th><th className="py-2 px-2">Divisi</th>
+                <th className="py-2 px-2">Peran</th><th className="py-2 px-2">Email</th><th className="py-2 px-2">Atasan</th><th className="py-2 px-2">Status</th>
               </tr></thead>
               <tbody className="divide-y divide-line-soft">
                 {parsed.map((r, i) => (
                   <tr key={i} className={r.status === 'ok' ? '' : r.status === 'dup' ? 'bg-warn-tint/40' : 'bg-danger-tint/40'}>
                     <td className="py-1.5 px-2 text-ink">{r.name || <span className="text-danger-ink">?</span>}</td>
-                    <td className="py-1.5 px-2 data-value text-ink">{r.empCode || <span className="text-danger-ink">?</span>}</td>
+                    <td className="py-1.5 px-2 font-mono text-ink">{r.empCode || <span className="text-danger-ink">?</span>}</td>
                     <td className="py-1.5 px-2 text-ink-soft">{r.dept || '—'}</td>
                     <td className="py-1.5 px-2 text-ink-soft">{r.role}</td>
-                    <td className="py-1.5 px-2 text-ink-faint">{r.email || '—'}</td>
-                    <td className="py-1.5 px-2 data-value text-ink-faint">{r.spvCode || '—'}</td>
+                    <td className="py-1.5 px-2 font-mono text-ink-faint">{r.email || '—'}</td>
+                    <td className="py-1.5 px-2 font-mono text-ink-faint">{r.spvCode || '—'}</td>
                     <td className="py-1.5 px-2">
                       {r.status === 'ok'
-                        ? <span className="text-brand-ink font-semibold">✓{r.reason ? <span className="text-warn-ink font-normal"> · {r.reason}</span> : ''}</span>
-                        : <span className={`font-semibold ${r.status === 'dup' ? 'text-warn-ink' : 'text-danger-ink'}`}>{r.status === 'dup' ? '↷' : '✗'} {r.reason}</span>}
+                        ? <span className="inline-flex items-center gap-1 text-brand-ink font-semibold"><CheckCircle2 className="w-3.5 h-3.5 shrink-0" />{r.reason ? <span className="text-warn-ink font-normal"> · {r.reason}</span> : ''}</span>
+                        : <span className={`inline-flex items-center gap-1 font-semibold ${r.status === 'dup' ? 'text-warn-ink' : 'text-danger-ink'}`}>{r.status === 'dup' ? <Redo2 className="w-3.5 h-3.5 shrink-0" /> : <XCircle className="w-3.5 h-3.5 shrink-0" />} {r.reason}</span>}
                     </td>
                   </tr>
                 ))}
@@ -207,14 +208,14 @@ export function PegawaiImport({ rows }: { rows: EmpRow[] }) {
           </div>
           <div className="flex items-center gap-3">
             <button onClick={apply} disabled={pending || valids.length === 0}
-              className="rounded-control bg-brand hover:bg-brand-ink px-4 py-2 text-white text-xs font-semibold disabled:opacity-50">
+              className="rounded-xl bg-brand hover:bg-brand-ink min-h-9 px-4 text-white text-[13px] font-bold disabled:opacity-50">
               {pending ? 'Mengimpor…' : `Impor ${valids.length} pegawai`}
             </button>
-            <button onClick={() => setParsed(null)} disabled={pending} className="text-xs font-semibold text-ink-faint hover:text-ink-soft">Batal</button>
+            <button onClick={() => setParsed(null)} disabled={pending} className="text-[13px] font-semibold min-h-9 px-3 text-ink-soft hover:text-ink">Batal</button>
           </div>
         </>
       )}
-      {msg && <p className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
+      {msg && <p className={`text-[13px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
     </div>
   );
 }

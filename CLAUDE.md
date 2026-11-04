@@ -223,7 +223,8 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
   **Pemantauan & Laporan** + halaman SPV yang berbagi komponen: Dashboard Organisasi, Monitor Kinerja Pegawai &
   Monitor Kinerja (SPV), Struktur Organisasi, Input KPI / Monitoring & Audit KPI (`kpi/`), Log Aktivitas HRD, Ekspor
   Dataset, Laporan Kinerja Tim, grup **Hasil & Tindak Lanjut** (Review & Finalisasi — `ReportTable` juga dipakai
-  Tinjauan Hasil Akhir Direksi —, Pantauan Rencana Pengembangan, Promosi & Suksesi). Untuk halaman-halaman itu aturan ini menggantikan aturan token di atas (pengecualian
+  Tinjauan Hasil Akhir Direksi —, Pantauan Rencana Pengembangan, Promosi & Suksesi), grup **Pelaksanaan** (Progress 360, Flag Kepatuhan) dan
+  **Administrasi** (Kelola Pegawai, Manajemen Akses). Untuk halaman-halaman itu aturan ini menggantikan aturan token di atas (pengecualian
   "Monitor tetap berwarna/biru" DICABUT 2026-11-04). Halaman lain menyusul hanya bila diminta.
   - Primitif bersama `components/infarm-ui.tsx` (tanpa hook; aman server/klien): `CARD`, `PageTitle`, `CardTitle`
     (ikon lucide), `SectionHeader`, `Note`, `StatCard(s)`, `FIELD`/`FIELD_LABEL`/`TABLE_HEAD`/`pillCls`, palet

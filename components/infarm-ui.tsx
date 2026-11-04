@@ -82,20 +82,21 @@ export function Note({ title, tone = 'neutral', children }: { title?: string; to
   );
 }
 
-export type StatTone = 'brand' | 'danger' | 'warn' | 'soil';
-export type StatItem = { value: string; label: string; sub?: React.ReactNode; icon: LucideIcon; tone?: StatTone };
+export type StatTone = 'brand' | 'danger' | 'warn' | 'soil' | 'neutral';
+export type StatItem = { value: string; label: string; sub?: React.ReactNode; icon: LucideIcon; tone?: StatTone; title?: string };
 const STAT_TONE: Record<StatTone, string> = {
   brand: 'bg-brand-tint text-brand-ink',
   danger: 'bg-danger-tint text-danger-ink',
   warn: 'bg-warn-tint text-warn-ink',
   soil: 'bg-infarm-cream text-infarm-soil',
+  neutral: 'bg-neutral-tint text-ink-soft',
 };
 
 /** Satu kartu metrik putih berikon (dipakai StatCards; boleh dipakai sendiri). */
 export function StatCard({ item }: { item: StatItem }) {
   const Icon = item.icon;
   return (
-    <div className={`${CARD} flex items-center gap-3 min-w-0`}>
+    <div className={`${CARD} flex items-center gap-3 min-w-0`} title={item.title}>
       <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${STAT_TONE[item.tone ?? 'brand']}`} aria-hidden><Icon className="w-5 h-5" /></span>
       <div className="min-w-0 flex flex-col gap-0.5">
         <span className="font-mono text-lg font-bold text-ink leading-tight truncate" title={item.value}>{item.value}</span>

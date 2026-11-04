@@ -18,8 +18,11 @@ type Question = { id: string; text: string };
 
 // Label BARS generik — CADANGAN saja bila indikator belum diisi key point-nya sendiri
 // (Kelola Pertanyaan). Key point sesungguhnya khusus per indikator, lihat mockup Screen 03.
+// Disamakan dengan contoh key point di Kelola Pertanyaan (indicator-manager KEY_POINT_PLACEHOLDER) agar
+// indikator tanpa key point tampil seragam dengan yang sudah diisi HRD (pemilik 2026-11-04; dulu
+// "Evidence Paling Rendah … Evidence Paling Kuat").
 const FALLBACK_KEY_POINTS: Record<number, string> = {
-  1: 'Evidence Paling Rendah', 2: 'Di Bawah Ekspektasi', 3: 'Sesuai Ekspektasi', 4: 'Di Atas Ekspektasi', 5: 'Evidence Paling Kuat',
+  1: 'Belum terlihat', 2: 'Di bawah ekspektasi', 3: 'Sesuai ekspektasi', 4: 'Di atas ekspektasi', 5: 'Sangat konsisten',
 };
 const EVIDENCE_MIN = 20;
 const QUAL = '__qual__';
@@ -689,21 +692,19 @@ function ReviewPanel({ flat, ratings, comments, questions, answers, onEdit }: {
               const kp = r != null ? f.ratingKeyPoints?.[String(r)] || FALLBACK_KEY_POINTS[r] : null;
               return (
                 <li key={f.id} className="px-4 py-2.5">
-                  <details className="group">
-                    <summary className="flex items-center gap-2 cursor-pointer list-none">
-                      <span className="data-value text-[11px] text-ink-faint w-7 shrink-0">Q{f.qNum}</span>
-                      <span className="text-[13px] font-semibold text-ink flex-1 min-w-0">{f.text}</span>
-                      <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-brand-tint text-brand-ink whitespace-nowrap">
-                        Skor <span className="data-value">{r ?? '—'}</span>
-                      </span>
-                      <ChevronDown className="w-4 h-4 text-ink-faint transition-transform group-open:rotate-180 shrink-0" />
-                      {editBtn(f.id)}
-                    </summary>
-                    <div className="mt-2 ml-9 text-[13px] text-ink-soft leading-relaxed">
-                      {kp && <p className="text-xs font-semibold text-ink mb-1">{kp}</p>}
-                      <p className="whitespace-pre-wrap"><span className="font-semibold text-ink">Bukti perilaku: </span>{(comments[f.id] ?? '').trim() || '—'}</p>
-                    </div>
-                  </details>
+                  {/* Selalu terbuka (tanpa tombol lipat) — pemilik 2026-11-04. */}
+                  <div className="flex items-center gap-2">
+                    <span className="data-value text-[11px] text-ink-faint w-7 shrink-0">Q{f.qNum}</span>
+                    <span className="text-[13px] font-semibold text-ink flex-1 min-w-0">{f.text}</span>
+                    <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-brand-tint text-brand-ink whitespace-nowrap">
+                      Skor <span className="data-value">{r ?? '—'}</span>
+                    </span>
+                    {editBtn(f.id)}
+                  </div>
+                  <div className="mt-2 ml-9 text-[13px] text-ink-soft leading-relaxed">
+                    {kp && <p className="text-xs font-semibold text-ink mb-1">{kp}</p>}
+                    <p className="whitespace-pre-wrap"><span className="font-semibold text-ink">Bukti perilaku: </span>{(comments[f.id] ?? '').trim() || '—'}</p>
+                  </div>
                 </li>
               );
             })}

@@ -8,6 +8,12 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-04 — Form penilaian: label skor seragam & Review langsung terbuka (di `dev`, belum di production)
+- Indikator yang key point-nya belum diisi HRD kini memakai label umum yang sama dengan contoh di Kelola Pertanyaan:
+  1 Belum terlihat · 2 Di bawah ekspektasi · 3 Sesuai ekspektasi · 4 Di atas ekspektasi · 5 Sangat konsisten (dulu
+  "Evidence Paling Rendah … Evidence Paling Kuat"), sehingga tampil seragam dengan indikator yang sudah diisi.
+- Layar Review sebelum Kirim menampilkan semua jawaban langsung, tanpa tombol buka-tutup per pertanyaan.
+
 ### 2026-11-04 — Seluruh aplikasi memakai Design System Infarm (di `dev`, belum di production)
 - Halaman terakhir ikut diubah (permintaan pemilik): Persiapan Siklus (Kelola Periode, Kelola Pertanyaan, Bobot &
   Kalkulasi 360°, Pemetaan 360°), Daftar Penilaian Saya + form penilaian + Catatan di Luar Pemetaan, Laporan Hasil Saya

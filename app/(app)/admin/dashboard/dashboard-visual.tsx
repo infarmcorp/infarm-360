@@ -46,7 +46,7 @@ const CARD_TITLE = 'text-lg font-semibold text-ink leading-snug';
 function SectionHeader({ label, hint }: { label: string; hint?: string; tone?: string }) {
   return (
     <div className="mt-6 mb-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-      <h2 className="text-[11px] font-bold uppercase tracking-[0.09em] text-infarm-soil">{label}</h2>
+      <h2 className="text-xs font-bold uppercase tracking-[0.09em] text-infarm-soil">{label}</h2>
       {hint && <span className="text-xs text-ink-soft">{hint}</span>}
     </div>
   );
@@ -55,8 +55,8 @@ function SectionHeader({ label, hint }: { label: string; hint?: string; tone?: s
 /** Catatan penjelas berlatar krem (aksen hangat Design System Infarm). */
 function Note({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <div className="bg-infarm-cream rounded-xl px-4 py-3 text-[13px] text-ink">
-      {title && <span className="block text-[11px] font-bold uppercase tracking-[0.09em] text-infarm-soil mb-1">{title}</span>}
+    <div className="bg-infarm-cream rounded-xl px-4 py-3 text-sm text-ink">
+      {title && <span className="block text-xs font-bold uppercase tracking-[0.09em] text-infarm-soil mb-1">{title}</span>}
       {children}
     </div>
   );
@@ -71,14 +71,14 @@ function SummaryBand({ lead, items }: { lead: StatItem; items: StatItem[] }) {
   return (
     <section className="bg-brand text-white rounded-card shadow-card p-6 flex flex-wrap gap-5 items-stretch">
       <div className="flex-[1_1_220px] flex flex-col justify-center gap-2">
-        <span className="text-[13px] font-semibold">{lead.label}</span>
+        <span className="text-sm font-semibold">{lead.label}</span>
         <span className="font-mono text-[44px] leading-none font-bold">{lead.value}</span>
         {lead.sub}
       </div>
       <div className="flex-[3_1_480px] grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
         {items.map((it) => (
           <div key={it.label} className="bg-infarm-light text-ink rounded-xl px-4 py-3.5 flex flex-col gap-1 min-w-0">
-            <span className="text-xs font-semibold">{it.label}</span>
+            <span className="text-[13px] font-semibold">{it.label}</span>
             <span className="font-mono text-2xl font-bold leading-tight truncate" title={it.value}>{it.value}</span>
             {it.sub != null && (typeof it.sub === 'string'
               ? <span className="text-xs truncate" title={it.sub}>{it.sub}</span>
@@ -478,7 +478,7 @@ function QuarterlyDist({ data, yearLabel }: { data: QuarterDist[]; yearLabel: nu
       <div className="space-y-3">
         {data.map((q) => (
           <div key={q.label} className="space-y-1">
-            <div className="flex items-center justify-between text-[13px]">
+            <div className="flex items-center justify-between text-sm">
               <span className="font-bold text-ink">{q.label}</span>
               <span className="text-ink-soft font-mono text-xs">{q.total} pegawai</span>
             </div>
@@ -933,7 +933,7 @@ function CategoryPie({ title, subtitle, unit, values }: { title: string; subtitl
           </svg>
           <div className="w-full space-y-2">
             {counts.map((c) => (
-              <div key={c.key} className="flex items-center gap-2 text-[13px]">
+              <div key={c.key} className="flex items-center gap-2 text-sm">
                 <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: c.color }} />
                 <span className="font-medium text-ink flex-1 leading-tight">{c.label}
                   <span className="text-ink-soft font-normal"> · {unit} {c.range}</span></span>
@@ -1084,7 +1084,7 @@ function CountBars({ items, denom }: { items: { label: string; count: number; co
     <div className="space-y-4">
       {items.map((it, idx) => (
         <div key={it.label} className="space-y-1.5">
-          <div className="flex justify-between gap-3 text-[13px]">
+          <div className="flex justify-between gap-3 text-sm">
             <span className="font-medium text-ink-soft">{it.label}</span>
             <span className="font-mono text-ink whitespace-nowrap"><b>{it.count}</b> <span className="text-ink-soft">· {((it.count / denom) * 100).toFixed(2)}%</span></span>
           </div>
@@ -1111,7 +1111,7 @@ function ScoreBars({ items, suffix = '', empty, max = 100 }: { items: { label: s
         const hc = heatColor(it.score);
         return (
           <div key={it.label} className="space-y-1.5">
-            <div className="flex justify-between items-center gap-3 text-[13px]">
+            <div className="flex justify-between items-center gap-3 text-sm">
               <span className="font-medium text-ink-soft">{it.label}</span>
               <span className="font-mono font-semibold text-xs px-2.5 py-0.5 rounded-full whitespace-nowrap" style={{ backgroundColor: hc.bg, color: hc.fg }}>{fmt2(it.score)}{suffix}</span>
             </div>
@@ -1194,7 +1194,7 @@ function LeaderboardToggle({ metric, top, bottom, valueOf }: {
   const isTop = side === 'top';
   // Tampil 5/halaman + tombol Sebelumnya/Berikutnya (klik "selanjutnya" utk peringkat #6–#10).
   const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(isTop ? top : bottom);
-  const seg = (active: boolean) => `px-4 min-h-9 rounded-full text-[13px] font-semibold transition-colors ${active ? 'bg-brand text-white' : 'text-ink-soft hover:text-ink'}`;
+  const seg = (active: boolean) => `px-4 min-h-9 rounded-full text-sm font-semibold transition-colors ${active ? 'bg-brand text-white' : 'text-ink-soft hover:text-ink'}`;
   return (
     <div className={`${CARD} space-y-3`}>
       <div className="flex flex-wrap items-center justify-between gap-3">

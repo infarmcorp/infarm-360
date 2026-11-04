@@ -231,7 +231,9 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
   `CAT_COLOR` (lokal `dashboard-visual.tsx`): ≥90 cokelat `#6b4e3d` · 80–89 hijau · 70–79 kuning · <70 merah; heatmap
   `heatColorInfarm` (= `heatColor`, ujung biru → cokelat). Warna 4-Box/tren/judul bagian dipetakan lokal — **jangan**
   ubah `PLAYER_BOXES`/`TREND_META`/`heatColor` di `lib/` untuk ini (masih dipakai Monitor & Laporan Tim).
-  Halaman lain menyusul hanya bila diminta.
+  Skala ukuran (pengguna 2026-11-04, jarak antartingkat sengaja lebar): angka utama 44 · h1 30 · angka kartu 24 ·
+  judul kartu 18 · pil/isi 14 · label kartu pita 13 · keterangan 12 · label bagian 12 kapital. Halaman lain menyusul
+  hanya bila diminta.
 - ⚠️ `laporan-tim/team-table.tsx` & `scorecards.tsx` dipakai bersama Monitor — mengubahnya mengubah Monitor.
 - **Tabel berpager wajib stabil** (2026-10-15): `table-fixed` + `<colgroup>` (`colPercents`), kelas `table-1line`
   (isi sel 1 baris, keputusan pengguna), dan tabel + pager dibungkus `StableHeight` (`components/table-controls.tsx`)

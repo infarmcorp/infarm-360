@@ -74,14 +74,18 @@ body { font-family: var(--font-sans); }
  * File font di-host sendiri lewat next/font (app/infarm-fonts.ts) dan HANYA dimuat di halaman ini;
  * variabelnya (--font-geist dst.) dipasang di elemen pembungkus. --font-sans/--font-mono ditimpa di sini
  * agar utilitas `font-mono`, `.mono`, `.data-value` di dalamnya ikut Geist Mono.
+ * WAJIB di @layer base: aturan di luar layer selalu mengalahkan utilitas Tailwind (@layer utilities), sehingga
+ * judul yang diberi `font-sans` tetap Montserrat (bug 2026-11-04). Di base, utilitas per elemen bisa menimpanya.
  */
-.infarm-ds {
-  --font-sans: var(--font-geist), Arial, Helvetica, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  font-family: var(--font-sans);
-}
-.infarm-ds :where(h1, h2, h3, h4) {
-  font-family: var(--font-montserrat), var(--font-geist), Arial, sans-serif;
+@layer base {
+  .infarm-ds {
+    --font-sans: var(--font-geist), Arial, Helvetica, sans-serif;
+    --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+    font-family: var(--font-sans);
+  }
+  .infarm-ds :where(h1, h2, h3, h4) {
+    font-family: var(--font-montserrat), var(--font-geist), Arial, sans-serif;
+  }
 }
 
 /*

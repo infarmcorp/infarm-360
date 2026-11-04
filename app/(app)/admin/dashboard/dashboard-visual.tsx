@@ -5,124 +5,19 @@ import { colPercents } from '@/lib/table-cols';
 import { motion } from 'motion/react';
 import {
   Award, TrendingUp, TrendingDown, Building2, Users, Target, Flame, BarChart3, Sparkles, LayoutGrid, Crosshair,
-  CalendarRange, PieChart, CalendarDays, Grid3X3, Trophy, AlertTriangle, Info, type LucideIcon } from 'lucide-react';
+  CalendarRange, PieChart, CalendarDays, Grid3X3, Trophy, AlertTriangle, type LucideIcon } from 'lucide-react';
 import {
   PLAYER_BOXES, type PlayerClass, perfLabelOf, perfCategoryOf, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
 import { heatColorInfarm as heatColor, HEAT_LEGEND_GRADIENT_INFARM as HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
 import { TREND_META, type Trend } from '@/lib/trend';
 import { displayName } from '@/lib/employee-name';
 import { usePager, Pager, StableHeight } from '@/components/table-controls';
+import { CAT_COLOR, CAT_TEXT, PLAYER_TONE, TREND_CHIP, CARD, CardTitle, SectionHeader, Note, StatCards } from '@/components/infarm-ui';
 
 /*
- * Halaman ini memakai Design System Infarm (2026-11-03): kartu putih r-16 bergaris tepi + bayangan tipis di atas
- * latar hijau keputihan. Pemisah bagian JELAS (permintaan pengguna 2026-11-04 — versi pertama terasa menyaru):
- * judul bagian bergaris aksen + garis pemisah, kartu ringkasan terpisah berikon (hanya angka utama yang hijau),
- * judul kartu berikon, catatan penjelas kecil & netral.
- * Palet skor diskrit = jangkar heatColorInfarm: ≥90 cokelat · 80–89 hijau · 70–79 kuning · <70 merah.
- * Warna 4-Box, tren, & judul bagian dipetakan LOKAL di sini — lib/ & Monitor tetap palet lamanya.
+ * Halaman ini memakai Design System Infarm (2026-11-03). Primitif tampilan (kartu, judul, pemisah bagian, catatan,
+ * kartu ringkasan, palet skor/4-Box/tren) ada di components/infarm-ui.tsx — dipakai bersama halaman lain.
  */
-const CAT_COLOR = { exceed: '#6b4e3d', meet: '#388e3c', improve: '#ffc107', below: '#b71c1c' } as const;
-/** Teks di atas segmen berwarna kategori (kuning terang → teks gelap). */
-const CAT_TEXT = { exceed: '#ffffff', meet: '#ffffff', improve: '#1b1f1c', below: '#ffffff' } as const;
-
-const PLAYER_TONE: Record<PlayerClass, { color: string; chip: string }> = {
-  A: { color: '#00843b', chip: 'bg-brand text-white border-brand' },
-  B_CULTURE: { color: '#96d296', chip: 'bg-infarm-light text-ink border-infarm-light' },
-  B_KPI: { color: '#6b4e3d', chip: 'bg-infarm-cream text-infarm-soil border-infarm-cream' },
-  C: { color: '#a23c33', chip: 'bg-danger-tint text-danger-ink border-danger-tint' },
-  HRD_REVIEW: { color: '#f08c00', chip: 'bg-warn-tint text-warn-ink border-warn-tint' },
-};
-
-const TREND_CHIP: Record<Exclude<Trend, 'empty'>, string> = {
-  up: 'bg-brand-tint text-brand-ink',
-  down: 'bg-danger-tint text-danger-ink',
-  stable: 'bg-neutral-tint text-ink-soft',
-  volatile: 'bg-infarm-cream text-infarm-soil',
-  unread: 'bg-neutral-tint text-ink-soft',
-};
-
-/** Kartu standar: putih, garis tepi tipis + bayangan tipis (kontras dengan latar hijau keputihan). */
-const CARD = 'bg-surface border border-line rounded-card shadow-card p-5';
-
-/** Judul kartu (Montserrat via .infarm-ds h3) + ikon garis di kotak hijau pucat sebagai jangkar mata. */
-function CardTitle({ icon: Icon, className = '', children }: { icon: LucideIcon; className?: string; children: React.ReactNode }) {
-  return (
-    <h3 className={`flex items-center gap-2.5 text-lg font-bold text-ink leading-snug ${className}`}>
-      <span className="w-8 h-8 rounded-lg bg-brand-tint text-brand-ink flex items-center justify-center shrink-0" aria-hidden>
-        <Icon className="w-[18px] h-[18px]" />
-      </span>
-      <span className="min-w-0">{children}</span>
-    </h3>
-  );
-}
-
-/** Judul pengelompok bagian: garis pemisah atas + garis aksen hijau + label kapital tebal + petunjuk abu. */
-function SectionHeader({ label, hint }: { label: string; hint?: string; tone?: string }) {
-  return (
-    <div className="mt-8 pt-6 border-t border-line flex flex-wrap items-center gap-x-2.5 gap-y-1">
-      <span className="w-1 h-[18px] rounded-full bg-brand shrink-0" aria-hidden />
-      <h2 className="text-[13px] font-bold uppercase tracking-[0.08em] text-ink">{label}</h2>
-      {hint && <span className="text-xs text-ink-soft">· {hint}</span>}
-    </div>
-  );
-}
-
-/** Catatan penjelas — sengaja kecil & netral (sekunder), agar tak bersaing dengan isi utama. `warn` = peringatan. */
-function Note({ title, tone = 'neutral', children }: { title?: string; tone?: 'neutral' | 'warn'; children: React.ReactNode }) {
-  const cls = tone === 'warn' ? 'bg-warn-tint text-warn-ink' : 'bg-neutral-tint text-ink-soft';
-  return (
-    <div className={`flex gap-2 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${cls}`}>
-      {tone === 'warn'
-        ? <AlertTriangle className="w-4 h-4 shrink-0 mt-px" aria-hidden />
-        : <Info className="w-4 h-4 shrink-0 mt-px" aria-hidden />}
-      <div>{title && <strong className="font-semibold text-ink">{title}: </strong>}{children}</div>
-    </div>
-  );
-}
-
-type StatTone = 'brand' | 'danger' | 'warn' | 'soil';
-type StatItem = { value: string; label: string; sub?: React.ReactNode; icon: LucideIcon; tone?: StatTone };
-const STAT_TONE: Record<StatTone, string> = {
-  brand: 'bg-brand-tint text-brand-ink',
-  danger: 'bg-danger-tint text-danger-ink',
-  warn: 'bg-warn-tint text-warn-ink',
-  soil: 'bg-infarm-cream text-infarm-soil',
-};
-/**
- * Kartu ringkasan TERPISAH (satu metrik per kartu, berikon). Hanya angka utama (`lead`) yang berlatar
- * hijau brand agar langsung menjadi titik fokus; sisanya kartu putih standar.
- */
-function StatCards({ lead, items }: { lead: StatItem; items: StatItem[] }) {
-  const LeadIcon = lead.icon;
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div className="bg-brand text-white rounded-card shadow-card p-5 flex items-center gap-4 min-w-0">
-        <span className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0" aria-hidden><LeadIcon className="w-6 h-6" /></span>
-        <div className="min-w-0 flex flex-col gap-1">
-          {/* Angka ringkasan sengaja < judul halaman (30px): utama 24px, kartu lain 20px (pengguna 2026-11-04). */}
-          <span className="font-mono text-2xl leading-none font-bold">{lead.value}</span>
-          <span className="text-sm font-semibold">{lead.label}</span>
-          {lead.sub}
-        </div>
-      </div>
-      {items.map((it) => {
-        const Icon = it.icon;
-        return (
-          <div key={it.label} className={`${CARD} flex items-center gap-4 min-w-0`}>
-            <span className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${STAT_TONE[it.tone ?? 'brand']}`} aria-hidden><Icon className="w-6 h-6" /></span>
-            <div className="min-w-0 flex flex-col gap-0.5">
-              <span className="font-mono text-xl font-bold text-ink leading-tight truncate" title={it.value}>{it.value}</span>
-              <span className="text-sm text-ink-soft">{it.label}</span>
-              {it.sub != null && (typeof it.sub === 'string'
-                ? <span className="text-xs font-semibold text-ink truncate" title={it.sub}>{it.sub}</span>
-                : <span className="text-xs">{it.sub}</span>)}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 /** Baris pegawai (primitif, serializable) yang dihitung di server. */
 export type Row = {

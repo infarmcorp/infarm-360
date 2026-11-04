@@ -20,6 +20,9 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   Di Bawah merah — tetap. Heatmap memakai gradasi yang sama dengan sebelumnya, hanya ujung biru diganti cokelat.
   Warna badge peringkat kini sama dengan kategorinya (dulu Melampaui hijau, Memenuhi biru).
 - Tautan "← Beranda" dihapus (halaman Beranda sudah tidak ada). Logika, angka, dan hak akses tidak berubah.
+- Penyesuaian 2026-11-04 (masukan pemilik: bagian-bagian terasa menyaru): judul bagian kembali bergaris aksen dan
+  bergaris pemisah; ringkasan kembali berupa kartu terpisah berikon (hanya angka utama yang hijau); judul kartu diberi
+  ikon; kartu diberi garis tepi; catatan penjelas dibuat kecil dan netral; ukuran huruf dibuat lebih bertingkat.
 
 ### 2026-11-03 — Rencana Pengembangan: pengaman server & database (di `dev`, belum di production)
 - Hasil pemeriksaan "apakah aturan di layar bisa dibobol lewat jalur teknis" (permintaan pemilik). Semua tombol sudah

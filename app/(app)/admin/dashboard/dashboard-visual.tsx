@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { colPercents } from '@/lib/table-cols';
 import { motion } from 'motion/react';
-import { Award, TrendingUp, Building2, Users } from 'lucide-react';
+import {
+  Award, TrendingUp, TrendingDown, Building2, Users, Target, Flame, BarChart3, Sparkles, LayoutGrid, Crosshair,
+  CalendarRange, PieChart, CalendarDays, Grid3X3, Trophy, AlertTriangle, Info, type LucideIcon } from 'lucide-react';
 import {
   PLAYER_BOXES, type PlayerClass, perfLabelOf, perfCategoryOf, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
 import { heatColorInfarm as heatColor, HEAT_LEGEND_GRADIENT_INFARM as HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
@@ -12,8 +14,10 @@ import { displayName } from '@/lib/employee-name';
 import { usePager, Pager, StableHeight } from '@/components/table-controls';
 
 /*
- * Halaman ini memakai Design System Infarm (2026-11-03): kartu putih r-16 + bayangan tipis di atas latar
- * hijau keputihan, pita ringkasan hijau brand, label eyebrow cokelat tanah, catatan berlatar krem.
+ * Halaman ini memakai Design System Infarm (2026-11-03): kartu putih r-16 bergaris tepi + bayangan tipis di atas
+ * latar hijau keputihan. Pemisah bagian JELAS (permintaan pengguna 2026-11-04 — versi pertama terasa menyaru):
+ * judul bagian bergaris aksen + garis pemisah, kartu ringkasan terpisah berikon (hanya angka utama yang hijau),
+ * judul kartu berikon, catatan penjelas kecil & netral.
  * Palet skor diskrit = jangkar heatColorInfarm: ≥90 cokelat · 80–89 hijau · 70–79 kuning · <70 merah.
  * Warna 4-Box, tren, & judul bagian dipetakan LOKAL di sini — lib/ & Monitor tetap palet lamanya.
  */
@@ -37,56 +41,85 @@ const TREND_CHIP: Record<Exclude<Trend, 'empty'>, string> = {
   unread: 'bg-neutral-tint text-ink-soft',
 };
 
-/** Kartu standar Design System Infarm. */
-const CARD = 'bg-surface rounded-card shadow-card p-5';
-/** Judul kartu (Montserrat via .infarm-ds h3). */
-const CARD_TITLE = 'text-lg font-semibold text-ink leading-snug';
+/** Kartu standar: putih, garis tepi tipis + bayangan tipis (kontras dengan latar hijau keputihan). */
+const CARD = 'bg-surface border border-line rounded-card shadow-card p-5';
 
-/** Judul pengelompok bagian: label eyebrow cokelat tanah + petunjuk abu. */
+/** Judul kartu (Montserrat via .infarm-ds h3) + ikon garis di kotak hijau pucat sebagai jangkar mata. */
+function CardTitle({ icon: Icon, className = '', children }: { icon: LucideIcon; className?: string; children: React.ReactNode }) {
+  return (
+    <h3 className={`flex items-center gap-2.5 text-lg font-semibold text-ink leading-snug ${className}`}>
+      <span className="w-8 h-8 rounded-lg bg-brand-tint text-brand-ink flex items-center justify-center shrink-0" aria-hidden>
+        <Icon className="w-[18px] h-[18px]" />
+      </span>
+      <span className="min-w-0">{children}</span>
+    </h3>
+  );
+}
+
+/** Judul pengelompok bagian: garis pemisah atas + garis aksen hijau + label kapital tebal + petunjuk abu. */
 function SectionHeader({ label, hint }: { label: string; hint?: string; tone?: string }) {
   return (
-    <div className="mt-6 mb-1 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-      <h2 className="text-xs font-bold uppercase tracking-[0.09em] text-infarm-soil">{label}</h2>
-      {hint && <span className="text-xs text-ink-soft">{hint}</span>}
+    <div className="mt-8 pt-6 border-t border-line flex flex-wrap items-center gap-x-2.5 gap-y-1">
+      <span className="w-1 h-[18px] rounded-full bg-brand shrink-0" aria-hidden />
+      <h2 className="text-[13px] font-bold uppercase tracking-[0.08em] text-ink">{label}</h2>
+      {hint && <span className="text-xs text-ink-soft">· {hint}</span>}
     </div>
   );
 }
 
-/** Catatan penjelas berlatar krem (aksen hangat Design System Infarm). */
-function Note({ title, children }: { title?: string; children: React.ReactNode }) {
+/** Catatan penjelas — sengaja kecil & netral (sekunder), agar tak bersaing dengan isi utama. `warn` = peringatan. */
+function Note({ title, tone = 'neutral', children }: { title?: string; tone?: 'neutral' | 'warn'; children: React.ReactNode }) {
+  const cls = tone === 'warn' ? 'bg-warn-tint text-warn-ink' : 'bg-neutral-tint text-ink-soft';
   return (
-    <div className="bg-infarm-cream rounded-xl px-4 py-3 text-sm text-ink">
-      {title && <span className="block text-xs font-bold uppercase tracking-[0.09em] text-infarm-soil mb-1">{title}</span>}
-      {children}
+    <div className={`flex gap-2 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed ${cls}`}>
+      {tone === 'warn'
+        ? <AlertTriangle className="w-4 h-4 shrink-0 mt-px" aria-hidden />
+        : <Info className="w-4 h-4 shrink-0 mt-px" aria-hidden />}
+      <div>{title && <strong className="font-semibold text-ink">{title}: </strong>}{children}</div>
     </div>
   );
 }
 
-type StatItem = { value: string; label: string; sub?: React.ReactNode };
+type StatTone = 'brand' | 'danger' | 'warn' | 'soil';
+type StatItem = { value: string; label: string; sub?: React.ReactNode; icon: LucideIcon; tone?: StatTone };
+const STAT_TONE: Record<StatTone, string> = {
+  brand: 'bg-brand-tint text-brand-ink',
+  danger: 'bg-danger-tint text-danger-ink',
+  warn: 'bg-warn-tint text-warn-ink',
+  soil: 'bg-infarm-cream text-infarm-soil',
+};
 /**
- * Pita ringkasan hijau brand: satu angka utama besar (kiri) + kartu hijau muda berteks gelap.
- * (Aturan Design System: jangan teks hijau brand di atas hijau muda — kontras 2,74:1.)
+ * Kartu ringkasan TERPISAH (satu metrik per kartu, berikon). Hanya angka utama (`lead`) yang berlatar
+ * hijau brand agar langsung menjadi titik fokus; sisanya kartu putih standar.
  */
-function SummaryBand({ lead, items }: { lead: StatItem; items: StatItem[] }) {
+function StatCards({ lead, items }: { lead: StatItem; items: StatItem[] }) {
+  const LeadIcon = lead.icon;
   return (
-    <section className="bg-brand text-white rounded-card shadow-card p-6 flex flex-wrap gap-5 items-stretch">
-      <div className="flex-[1_1_220px] flex flex-col justify-center gap-2">
-        <span className="text-sm font-semibold">{lead.label}</span>
-        <span className="font-mono text-[44px] leading-none font-bold">{lead.value}</span>
-        {lead.sub}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="bg-brand text-white rounded-card shadow-card p-5 flex items-center gap-4 min-w-0">
+        <span className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0" aria-hidden><LeadIcon className="w-6 h-6" /></span>
+        <div className="min-w-0 flex flex-col gap-1">
+          <span className="font-mono text-[32px] leading-none font-bold">{lead.value}</span>
+          <span className="text-sm font-semibold">{lead.label}</span>
+          {lead.sub}
+        </div>
       </div>
-      <div className="flex-[3_1_480px] grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
-        {items.map((it) => (
-          <div key={it.label} className="bg-infarm-light text-ink rounded-xl px-4 py-3.5 flex flex-col gap-1 min-w-0">
-            <span className="text-[13px] font-semibold">{it.label}</span>
-            <span className="font-mono text-2xl font-bold leading-tight truncate" title={it.value}>{it.value}</span>
-            {it.sub != null && (typeof it.sub === 'string'
-              ? <span className="text-xs truncate" title={it.sub}>{it.sub}</span>
-              : <span className="text-xs">{it.sub}</span>)}
+      {items.map((it) => {
+        const Icon = it.icon;
+        return (
+          <div key={it.label} className={`${CARD} flex items-center gap-4 min-w-0`}>
+            <span className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${STAT_TONE[it.tone ?? 'brand']}`} aria-hidden><Icon className="w-6 h-6" /></span>
+            <div className="min-w-0 flex flex-col gap-0.5">
+              <span className="font-mono text-2xl font-bold text-ink leading-tight truncate" title={it.value}>{it.value}</span>
+              <span className="text-sm text-ink-soft">{it.label}</span>
+              {it.sub != null && (typeof it.sub === 'string'
+                ? <span className="text-xs font-semibold text-ink truncate" title={it.sub}>{it.sub}</span>
+                : <span className="text-xs">{it.sub}</span>)}
+            </div>
           </div>
-        ))}
-      </div>
-    </section>
+        );
+      })}
+    </div>
   );
 }
 
@@ -333,15 +366,15 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
   return (
     <div className="space-y-6">
       <SectionHeader label="Ringkasan Talenta" hint="metrik utama organisasi" />
-      <SummaryBand
-        lead={{ value: fmt2(orgAvg), label: 'Rataan Skor Akhir Organisasi',
+      <StatCards
+        lead={{ icon: Award, value: fmt2(orgAvg), label: 'Rataan Skor Akhir Organisasi',
           sub: <DeltaPill curr={orgAvg} prev={prevFinalAvg} prevLabel={prevLabel} move={finalMove} /> }}
         items={[
-          { value: topEmp?.final != null ? fmt2(topEmp.final) : '—', label: 'Skor Akhir Tertinggi', sub: topEmp ? displayName(topEmp.nickname, topEmp.name) : undefined },
-          { value: lowEmp?.final != null ? fmt2(lowEmp.final) : '—', label: 'Skor Akhir Terendah', sub: lowEmp ? displayName(lowEmp.nickname, lowEmp.name) : undefined },
-          { value: String(aPlayers), label: 'A Player' },
-          { value: String(coaching), label: 'Perlu Coaching (<80)' },
-          { value: dominant?.n ? dominant.label : '—', label: 'Kategori Dominan' },
+          { icon: Target, value: topEmp?.final != null ? fmt2(topEmp.final) : '—', label: 'Skor Akhir Tertinggi', sub: topEmp ? displayName(topEmp.nickname, topEmp.name) : undefined },
+          { icon: TrendingDown, tone: 'danger', value: lowEmp?.final != null ? fmt2(lowEmp.final) : '—', label: 'Skor Akhir Terendah', sub: lowEmp ? displayName(lowEmp.nickname, lowEmp.name) : undefined },
+          { icon: Trophy, value: String(aPlayers), label: 'A Player' },
+          { icon: Flame, tone: 'warn', value: String(coaching), label: 'Perlu Coaching (<80)' },
+          { icon: TrendingUp, tone: 'soil', value: dominant?.n ? dominant.label : '—', label: 'Kategori Dominan' },
         ]} />
 
       {/* Legenda ambang — menjelaskan kenapa "A Player" bisa beda band dengan Skor Akhir. */}
@@ -355,11 +388,11 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
 
       {/* Distribusi Kategori Kinerja + Rencana Tindak Lanjut */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card title="Distribusi Kategori Kinerja — Skor Akhir">
+        <Card icon={BarChart3} title="Distribusi Kategori Kinerja — Skor Akhir">
           <p className="text-xs text-ink-soft mb-4 -mt-2">Skor Akhir = blend KPI 50% + 360° 50% (KPI murni bila 360° nonaktif; 360° saja bila KPI kosong). Berbeda dari tab <strong>Analisis Hasil KPI</strong> (KPI saja).{aggregate && <span className="text-infarm-soil font-semibold"> Mode agregat: rata-rata Skor Akhir per kuartal.</span>}</p>
           <CountBars items={categories} denom={denom} />
         </Card>
-        <Card title="Rencana Tindak Lanjut Organisasi — Skor Akhir"><CountBars items={recommendations} denom={denom} /></Card>
+        <Card icon={Target} title="Rencana Tindak Lanjut Organisasi — Skor Akhir"><CountBars items={recommendations} denom={denom} /></Card>
       </div>
 
       {/* Distribusi kategori kinerja PER KUARTAL — kesehatan talenta dari waktu ke waktu. */}
@@ -369,10 +402,10 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
 
       {/* Skor KPI per Divisi + Evaluasi Budaya 360° */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card title="Skor KPI Rata-rata per Divisi">
+        <Card icon={Building2} title="Skor KPI Rata-rata per Divisi">
           <ScoreBars items={deptScores.map(([dept, score]) => ({ label: dept, score }))} empty="Belum ada data KPI." />
         </Card>
-        <Card title="Evaluasi Budaya 360° (Skor Terbobot Sub-Aspek)">
+        <Card icon={Sparkles} title="Evaluasi Budaya 360° (Skor Terbobot Sub-Aspek)">
           {!has360 && <p className="text-xs text-warn-ink font-semibold mb-3 bg-warn-tint rounded-xl px-3 py-2">360° nonaktif di {periodLabel} — aspek dari penilaian terkirim (bila ada).</p>}
           <ScoreBars items={aspectScores.map((a) => ({ label: a.aspek, score: a.score }))} suffix=" / 100" empty="Belum ada skor 360° terkirim." />
         </Card>
@@ -382,7 +415,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
 
       {/* 4-Box */}
       <div className={CARD}>
-        <h3 className={CARD_TITLE}>Klasifikasi Pemain — Matriks 4-Box (A / B Culture / B KPI / C)</h3>
+        <CardTitle icon={LayoutGrid}>Klasifikasi Pemain — Matriks 4-Box (A / B Culture / B KPI / C)</CardTitle>
         <p className="text-xs text-ink-soft mt-1 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan KPI × 360° (ambang 80){incomplete.length > 0 ? ` · ${incomplete.length} HRD Review (dikecualikan)` : ''}{unread.length > 0 ? ` · ${unread.length} belum terbaca (dikecualikan)` : ''}.</p>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {PLAYER_BOXES.map((box) => {
@@ -473,7 +506,7 @@ const BAND_META = [
 function QuarterlyDist({ data, yearLabel }: { data: QuarterDist[]; yearLabel: number }) {
   return (
     <div className={CARD}>
-      <h3 className={CARD_TITLE}>Distribusi Kategori Kinerja per Kuartal {yearLabel}</h3>
+      <CardTitle icon={CalendarRange}>Distribusi Kategori Kinerja per Kuartal {yearLabel}</CardTitle>
       <p className="text-xs text-ink-soft mt-1 mb-4">Komposisi pegawai per band Skor Akhir tiap kuartal — untuk melihat pergerakan komposisi (mis. Di Bawah → Memenuhi) antar waktu.</p>
       <div className="space-y-3">
         {data.map((q) => (
@@ -531,7 +564,7 @@ function ScatterKpi360({ rows }: { rows: Row[] }) {
   const x80 = x(80), y80 = y(80);
   return (
     <div className={CARD}>
-      <h3 className={CARD_TITLE}>Sebaran KPI × 360° (Kuadran 4-Box)</h3>
+      <CardTitle icon={Crosshair}>Sebaran KPI × 360° (Kuadran 4-Box)</CardTitle>
       <p className="text-xs text-ink-soft mt-1 mb-3">Tiap titik = 1 pegawai. Garis putus = ambang 80. Warna = kelas 4-Box. Melengkapi hitungan 4-Box dengan sebaran & outlier.</p>
       <div className="overflow-x-auto">
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-[520px] mx-auto" style={{ height: 'auto' }} preserveAspectRatio="xMidYMid meet">
@@ -603,14 +636,14 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
         </Note>
       )}
 
-      <SummaryBand
-        lead={{ value: fmt2(avgKpi), label: 'Rerata KPI Organisasi',
+      <StatCards
+        lead={{ icon: Award, value: fmt2(avgKpi), label: 'Rerata KPI Organisasi',
           sub: <DeltaPill curr={avgKpi} prev={prevKpiAvg} prevLabel={prevLabel} move={kpiMove} /> }}
         items={[
-          { value: topEmp?.kpiAvg != null ? fmt2(topEmp.kpiAvg) : '—', label: 'Skor KPI Tertinggi', sub: topEmp ? displayName(topEmp.nickname, topEmp.name) : undefined },
-          { value: lowEmp?.kpiAvg != null ? fmt2(lowEmp.kpiAvg) : '—', label: 'Skor KPI Terendah', sub: lowEmp ? displayName(lowEmp.nickname, lowEmp.name) : undefined },
-          { value: `${pctOverStd.toFixed(0)}%`, label: `KPI Di Atas Standar (≥${kpiStandard})` },
-          { value: `${monthly.length} Bulan`, label: 'Siklus Penilaian Terpilih' },
+          { icon: Target, value: topEmp?.kpiAvg != null ? fmt2(topEmp.kpiAvg) : '—', label: 'Skor KPI Tertinggi', sub: topEmp ? displayName(topEmp.nickname, topEmp.name) : undefined },
+          { icon: TrendingDown, tone: 'danger', value: lowEmp?.kpiAvg != null ? fmt2(lowEmp.kpiAvg) : '—', label: 'Skor KPI Terendah', sub: lowEmp ? displayName(lowEmp.nickname, lowEmp.name) : undefined },
+          { icon: TrendingUp, value: `${pctOverStd.toFixed(0)}%`, label: `KPI Di Atas Standar (≥${kpiStandard})` },
+          { icon: BarChart3, tone: 'soil', value: `${monthly.length} Bulan`, label: 'Siklus Penilaian Terpilih' },
         ]} />
 
       <SectionHeader label="Sebaran & Tren" hint="heatmap divisi×bulan · distribusi · tren tahunan" />
@@ -621,7 +654,7 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
           unit="KPI" values={readable.map((r) => r.kpiAvg).filter((v): v is number => v != null)} />
       </div>
 
-      <Card title={`Tren KPI Bulanan ${yearLabel} (Jan–Des)`}>
+      <Card icon={TrendingUp} title={`Tren KPI Bulanan ${yearLabel} (Jan–Des)`}>
         <YearTrendCaption value={yearKpiAvg} label={`Rerata KPI ${yearLabel}`} unit="org-level, ikut filter divisi" />
         <TrendLine points={yearMonthly.map((m) => ({ label: ymShort(m.ym), value: m.avg }))} />
       </Card>
@@ -629,11 +662,11 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
       <SectionHeader label="Per Divisi & Bulan" hint="rincian divisi & perkembangan bulanan" />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card title="Rerata KPI Bulanan per Divisi">
+        <Card icon={Building2} title="Rerata KPI Bulanan per Divisi">
           <ScoreBars items={deptScores.map(([dept, score]) => ({ label: dept, score }))} suffix=" / 100" empty="Belum ada data KPI." />
         </Card>
 
-        <Card title="Perkembangan KPI Bulanan">
+        <Card icon={CalendarDays} title="Perkembangan KPI Bulanan">
           <ScoreBars items={monthly.map((m) => ({ label: ymLabel(m.ym), score: m.avg }))} max={maxMonthly} empty="Tidak ada data bulan untuk periode ini." />
         </Card>
       </div>
@@ -658,18 +691,18 @@ function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, has360
     <div className="space-y-6">
       <SectionHeader label="Ringkasan 360°" hint="metrik utama umpan balik budaya" />
       {!has360 && (
-        <Note title={`${periodLabel} tanpa Evaluasi 360°`}>
+        <Note tone="warn" title={`${periodLabel} tanpa Evaluasi 360°`}>
           Komponen 360° tidak aktif, sehingga Skor Akhir = 100% KPI. Data di bawah hanya muncul bila ada penilaian terkirim.
         </Note>
       )}
 
-      <SummaryBand
-        lead={{ value: fmt2(avg360), label: 'Rerata Skor 360° Organisasi',
+      <StatCards
+        lead={{ icon: TrendingUp, value: fmt2(avg360), label: 'Rerata Skor 360° Organisasi',
           sub: <DeltaPill curr={avg360} prev={prev360Avg} prevLabel={prevLabel} move={s360Move} /> }}
         items={[
-          { value: top ? fmt2(top.s360!) : '—', label: 'Skor 360° Tertinggi', sub: top ? displayName(top.nickname, top.name) : undefined },
-          { value: low ? fmt2(low.s360!) : '—', label: 'Skor 360° Terendah', sub: low ? displayName(low.nickname, low.name) : undefined },
-          { value: String(assessed), label: 'Pegawai Ternilai 360°' },
+          { icon: Target, value: top ? fmt2(top.s360!) : '—', label: 'Skor 360° Tertinggi', sub: top ? displayName(top.nickname, top.name) : undefined },
+          { icon: TrendingDown, tone: 'danger', value: low ? fmt2(low.s360!) : '—', label: 'Skor 360° Terendah', sub: low ? displayName(low.nickname, low.name) : undefined },
+          { icon: Users, tone: 'soil', value: String(assessed), label: 'Pegawai Ternilai 360°' },
         ]} />
 
       <SectionHeader label="Sebaran, Tren & Aspek" hint="heatmap divisi×aspek · tren kuartal · sub-aspek" />
@@ -682,12 +715,12 @@ function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, has360
 
       {/* Tren 360° & Evaluasi Sub-Aspek — sejajar (berdampingan) di layar lebar. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-        <Card title={`Tren 360° per Kuartal ${yearLabel}`}>
+        <Card icon={TrendingUp} title={`Tren 360° per Kuartal ${yearLabel}`}>
           <YearTrendCaption value={year360Avg} label={`Rerata 360° ${yearLabel}`} unit="org-level, ikut filter divisi · hanya kuartal ber-360°" />
           <TrendLine points={year360.map((q) => ({ label: q.label, value: q.avg }))} />
         </Card>
 
-        <Card title="Evaluasi Budaya 360° (Rataan Sub-Aspek)">
+        <Card icon={Sparkles} title="Evaluasi Budaya 360° (Rataan Sub-Aspek)">
           <ScoreBars items={aspectScores.map((a) => ({ label: a.aspek, score: a.score }))} suffix=" / 100" empty="Belum ada skor 360° terkirim." />
         </Card>
       </div>
@@ -722,7 +755,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
           {/* font-sans = font teks halaman (Geist, sama dengan pil sub-tab), bukan Montserrat judul — permintaan pengguna. */}
-          <h3 className={`${CARD_TITLE} font-sans`}>Tabel Hasil Seluruh Pegawai</h3>
+          <CardTitle icon={Users} className="font-sans">Tabel Hasil Seluruh Pegawai</CardTitle>
           <p className="text-xs text-ink-soft mt-0.5"><span className="font-mono">{rows.length}</span> pegawai</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -915,7 +948,7 @@ function CategoryPie({ title, subtitle, unit, values }: { title: string; subtitl
   const offsets = segs.map((_, i) => segs.slice(0, i).reduce((s, x) => s + x.len, 0));
   return (
     <div className={`${CARD} flex flex-col`}>
-      <h3 className={CARD_TITLE}>{title}</h3>
+      <CardTitle icon={PieChart}>{title}</CardTitle>
       <p className="text-xs text-ink-soft mt-1 mb-4">{subtitle}</p>
       {total === 0 ? (
         <p className="text-sm text-ink-soft italic">Belum ada data.</p>
@@ -952,7 +985,7 @@ function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; mont
   if (deptMonthly.length === 0 || months.length === 0) {
     return (
       <div className={CARD}>
-        <h3 className={`${CARD_TITLE} mb-1`}>Capaian KPI / Divisi</h3>
+        <CardTitle icon={Grid3X3} className="mb-1">Capaian KPI / Divisi</CardTitle>
         <p className="text-sm text-ink-soft italic mt-2">Belum ada data KPI bulanan untuk lingkup ini.</p>
       </div>
     );
@@ -961,7 +994,7 @@ function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; mont
     <div className={CARD}>
       <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
         <div>
-          <h3 className={CARD_TITLE}>Capaian KPI / Divisi</h3>
+          <CardTitle icon={Grid3X3}>Capaian KPI / Divisi</CardTitle>
           <p className="text-xs text-ink-soft mt-1">Rerata skor KPI per divisi per bulan</p>
         </div>
         <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
@@ -1017,7 +1050,7 @@ function Aspect360Heatmap({ deptAspect, aspects }: { deptAspect: DeptAspectRow[]
   if (deptAspect.length === 0 || aspects.length === 0) {
     return (
       <div className={CARD}>
-        <h3 className={`${CARD_TITLE} mb-1`}>Capaian 360° / Divisi × Aspek</h3>
+        <CardTitle icon={Grid3X3} className="mb-1">Capaian 360° / Divisi × Aspek</CardTitle>
         <p className="text-sm text-ink-soft italic mt-2">Belum ada penilaian 360° terkirim untuk lingkup ini.</p>
       </div>
     );
@@ -1026,7 +1059,7 @@ function Aspect360Heatmap({ deptAspect, aspects }: { deptAspect: DeptAspectRow[]
     <div className={CARD}>
       <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
         <div>
-          <h3 className={CARD_TITLE}>Capaian 360° / Divisi × Aspek</h3>
+          <CardTitle icon={Grid3X3}>Capaian 360° / Divisi × Aspek</CardTitle>
           <p className="text-xs text-ink-soft mt-1">Skor aspek budaya terbobot (skala 100) per divisi</p>
         </div>
         <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
@@ -1126,10 +1159,10 @@ function ScoreBars({ items, suffix = '', empty, max = 100 }: { items: { label: s
   );
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({ title, icon, children }: { title: string; icon: LucideIcon; children: React.ReactNode }) {
   return (
     <div className={CARD}>
-      <h3 className={`${CARD_TITLE} mb-4`}>{title}</h3>
+      <CardTitle icon={icon} className="mb-4">{title}</CardTitle>
       {children}
     </div>
   );
@@ -1199,7 +1232,7 @@ function LeaderboardToggle({ metric, top, bottom, valueOf }: {
     <div className={`${CARD} space-y-3`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className={CARD_TITLE}>{metric} {isTop ? 'Tertinggi' : 'Terendah'}</h3>
+          <CardTitle icon={isTop ? Trophy : AlertTriangle}>{metric} {isTop ? 'Tertinggi' : 'Terendah'}</CardTitle>
           <p className="text-xs text-ink-soft mt-0.5">
             Pegawai dengan {metric} {isTop ? 'tertinggi.' : 'terendah (prioritas mentoring/coaching).'}
           </p>

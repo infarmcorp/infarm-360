@@ -217,8 +217,9 @@ Dipindah ke §2 bila diputuskan dikerjakan.
   model. Perlu persetujuan kebijakan internal.
 - **Pengaman warna otomatis**: pengecekan otomatis yang menolak warna di luar palet resmi agar halaman baru
   tidak kembali ke gaya lama.
-- **Design System Infarm ke halaman lain.** Dashboard Organisasi sudah memakainya (2026-11-03). Mockup halaman
-  Mode SPV, sidebar putih yang bisa ditutup, dan warna Monitor sudah disetujui sebagai arah, tetapi belum dikerjakan.
+- **Design System Infarm ke halaman lain.** Dashboard Organisasi (2026-11-03) dan sidebar putih yang bisa ditutup
+  (2026-11-04) sudah memakainya. Mockup halaman Mode SPV dan warna Monitor sudah disetujui sebagai arah, tetapi belum
+  dikerjakan.
   Catatan: warna grafik Monitor masih lama (Melampaui biru), sehingga untuk sementara berbeda dengan Dashboard (cokelat).
 - **Mode gelap.** Palet sudah mendukung; belum diminta.
 - **Ganti email sendiri** di Akun Saya.

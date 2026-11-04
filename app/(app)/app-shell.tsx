@@ -8,7 +8,7 @@ import { KPI_AUDIT_HREF } from '@/lib/kpi-links';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, ChevronDown, Sprout,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, ChevronDown, ChevronRight, Check, Sprout,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 import { BrandLogo } from '@/components/brand-logo';
@@ -165,21 +165,25 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
   return sections;
 }
 
-// Titik penanda tugas di sidebar (latar GELAP) — nada "amber" dipetakan ke oranye terang
-// (--color-warn-bright) agar sederet dengan ikon lonceng & badge hitungan di section yang sama.
+// Titik penanda tugas di sidebar (latar PUTIH, Design System Infarm 2026-11-04) — tanpa biru/ungu.
 const TODO_DOT: Record<TodoTone, string> = {
-  amber: 'bg-warn-bright', emerald: 'bg-emerald-400', indigo: 'bg-indigo-400', rose: 'bg-rose-400', blue: 'bg-blue-400',
+  amber: 'bg-warn', emerald: 'bg-brand', indigo: 'bg-infarm-soil', rose: 'bg-danger-ink', blue: 'bg-ink-faint',
 };
 
+/** Cookie preferensi sidebar desktop (dibaca layout di server → tak ada kedip saat halaman dimuat). */
+const SIDEBAR_COOKIE = 'sidebar_collapsed';
+
 export function AppShell({
-  role, canAdmin, isCoordinator = false, hrdSections = null, pageGrants = [], hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, children,
+  role, canAdmin, isCoordinator = false, hrdSections = null, pageGrants = [], hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, initialCollapsed = false, children,
 }: {
   role: Role; canAdmin: boolean; isCoordinator?: boolean; hrdSections?: string[] | null; pageGrants?: { section: string; scope: string }[]; hrdMode: HrdMode; name: string; dept: string; empCode: string;
   periodLabel: string | null; periodActive: boolean; periodDaysLeft?: number | null;
-  todos: TodoItem[]; children: React.ReactNode;
+  todos: TodoItem[]; initialCollapsed?: boolean; children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(false);                        // laci menu (HP)
+  const [collapsed, setCollapsed] = useState(initialCollapsed);   // sidebar desktop ditutup
+  const [popover, setPopover] = useState<'pages' | 'todos' | null>(null);
   const sections = menuFor(role, canAdmin, hrdMode, isCoordinator, hrdSections, pageGrants);
 
   // Titik "BARU" pada Akun Saya bila panduan versi terkini belum pernah dibuka (localStorage,
@@ -204,26 +208,63 @@ export function AppShell({
   const activeSectionTitle = sections.find((s) => s.items.some((it) => isActive(it.href)))?.title ?? null;
   const firstTitle = sections.find((s) => s.title)?.title ?? null;
   const [openTitle, setOpenTitle] = useState<string | null>(activeSectionTitle ?? firstTitle);
-  // Pindah halaman/mode → buka section halaman aktif. Pola resmi React "sesuaikan state saat nilai
-  // berubah" (dibandingkan saat render, bukan lewat effect yang memicu render berantai).
-  const navKey = `${accordion}|${activeSectionTitle}|${firstTitle}`;
+  // Pindah halaman/mode → buka section halaman aktif & tutup popover. Pola resmi React "sesuaikan state
+  // saat nilai berubah" (dibandingkan saat render, bukan lewat effect yang memicu render berantai).
+  const navKey = `${accordion}|${activeSectionTitle}|${firstTitle}|${pathname}`;
   const [prevNavKey, setPrevNavKey] = useState(navKey);
   if (navKey !== prevNavKey) {
     setPrevNavKey(navKey);
     if (accordion) setOpenTitle(activeSectionTitle ?? firstTitle);
+    setPopover(null);
   }
 
+  // Jejak "Grup › Halaman" di bilah atas: cocokkan prefiks TERPANJANG agar halaman detail
+  // (mis. /laporan/[id]) ikut induknya. Akun Saya tak ada di menu → label manual.
+  let crumb: { sec: Section; item: Item } | null = null;
+  let crumbLen = -1;
+  for (const sec of sections) for (const it of sec.items) {
+    const p = it.href.split('?')[0];
+    if ((pathname === p || pathname.startsWith(`${p}/`)) && p.length > crumbLen) { crumb = { sec, item: it }; crumbLen = p.length; }
+  }
+  const pageLabel = crumb?.item.label ?? (pathname.startsWith('/akun') ? 'Akun Saya' : null);
+
+  const toggleSidebar = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    setPopover(null);
+    try { document.cookie = `${SIDEBAR_COOKIE}=${next ? '1' : '0'}; path=/; max-age=31536000; samesite=lax`; } catch { /* abaikan */ }
+  };
+
+  const modeLabel = role === 'employee' ? 'Mode Pegawai' : 'Mode SPV';
+  // Toggle dual-mode (fungsi render biasa, bukan komponen di dalam komponen — aturan lint hooks).
+  const modeSwitch = (compact: boolean) => (
+    <div className={`grid grid-cols-2 gap-0.5 p-[3px] rounded-full border border-line bg-infarm-surface ${compact ? '' : 'w-full'}`}>
+      <form action={setHrdMode.bind(null, 'admin')}>
+        <button type="submit" className={`w-full flex items-center justify-center gap-1 font-semibold rounded-full transition-colors ${compact ? 'text-xs px-3 h-8' : 'text-xs py-1.5'} ${
+          hrdMode === 'admin' ? 'bg-brand text-white' : 'text-ink-soft hover:text-ink'}`}>
+          <Building2 className="w-3.5 h-3.5" /> HRD Admin
+        </button>
+      </form>
+      <form action={setHrdMode.bind(null, 'spv')}>
+        <button type="submit" className={`w-full flex items-center justify-center gap-1 font-semibold rounded-full transition-colors ${compact ? 'text-xs px-3 h-8' : 'text-xs py-1.5'} ${
+          hrdMode === 'spv' ? 'bg-brand text-white' : 'text-ink-soft hover:text-ink'}`}>
+          <Briefcase className="w-3.5 h-3.5" /> {modeLabel}
+        </button>
+      </form>
+    </div>
+  );
+
   const Sidebar = (
-    <aside className="app-sidebar w-64 shrink-0 bg-sidebar text-sidebar-soft border-r border-black/30 flex flex-col h-full">
+    <aside className="app-sidebar w-64 shrink-0 bg-surface text-ink-soft border-r border-line flex flex-col h-full">
       {/* Brand */}
-      <div className="p-4 border-b border-white/[0.06]">
-        <div className="flex items-center gap-2">
-          <div className="bg-white/95 rounded-control p-1 shrink-0">
+      <div className="px-4 pt-4 pb-3.5">
+        <div className="flex items-center gap-2.5">
+          <div className="bg-infarm-surface border border-infarm-light rounded-xl p-1 shrink-0">
             <BrandLogo className="w-8 h-8" />
           </div>
           <div className="leading-tight">
-            <div className="text-sm font-extrabold text-white">Infarm 360°</div>
-            <div className="text-[10px] text-sidebar-soft">Performance Appraisal</div>
+            <div className="text-[15px] font-bold text-ink">Infarm 360°</div>
+            <div className="text-[11px] text-ink-soft">Performance Appraisal</div>
           </div>
         </div>
       </div>
@@ -231,61 +272,50 @@ export function AppShell({
       {/* Toggle dual-mode: tampil bila punya izin HRD (canAdmin). Mode 'base' (token 'spv')
           = bertindak sesuai posisi asli (Pegawai/SPV); 'admin' = mengoperasikan aplikasi. */}
       {canAdmin && (
-        <div className="px-3 py-2.5 border-b border-white/[0.06] bg-black/25">
-          <div className="grid grid-cols-2 gap-1.5">
-            <form action={setHrdMode.bind(null, 'admin')}>
-              <button type="submit" className={`w-full flex items-center justify-center gap-1 text-[10px] font-bold py-1.5 rounded-control transition-colors ${
-                hrdMode === 'admin' ? 'bg-brand text-white' : 'bg-white/[0.06] text-sidebar-soft hover:bg-white/10 border border-white/10'}`}>
-                <Building2 className="w-3 h-3" /> HRD Admin
-              </button>
-            </form>
-            <form action={setHrdMode.bind(null, 'spv')}>
-              <button type="submit" className={`w-full flex items-center justify-center gap-1 text-[10px] font-bold py-1.5 rounded-control transition-colors ${
-                hrdMode === 'spv' ? 'bg-brand text-white' : 'bg-white/[0.06] text-sidebar-soft hover:bg-white/10 border border-white/10'}`}>
-                <Briefcase className="w-3 h-3" /> {role === 'employee' ? 'Mode Pegawai' : 'Mode SPV'}
-              </button>
-            </form>
-          </div>
-          <p className="text-[10px] text-sidebar-soft/80 text-center mt-1">
+        <div className="px-3.5 py-3 border-t border-line-soft">
+          {modeSwitch(false)}
+          <p className="text-[11px] text-ink-soft text-center mt-1.5">
             {hrdMode === 'spv' ? (role === 'employee' ? 'Bertindak sebagai Pegawai' : 'Bertindak sebagai Supervisor') : 'Mengelola seluruh sistem'}
           </p>
         </div>
       )}
 
-      {/* Period indicator + deadline */}
-      <div className="px-4 py-2.5 bg-black/25 border-b border-white/[0.06] text-xs">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className={`w-2 h-2 rounded-full shrink-0 ${periodActive ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
-            <span className="font-bold text-white truncate">{periodLabel ?? 'Tanpa Periode'}</span>
+      {/* Period indicator + deadline — kartu krem */}
+      <div className="px-3.5 py-3 border-t border-line-soft">
+        <div className="bg-infarm-cream rounded-xl px-3 py-2.5 text-xs">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${periodActive ? 'bg-brand animate-pulse' : 'bg-danger-ink'}`} />
+              <span className="font-bold text-ink truncate">{periodLabel ?? 'Tanpa Periode'}</span>
+            </div>
+            <span className={`text-[10px] font-bold uppercase py-0.5 px-2 rounded-full shrink-0 ${
+              periodActive ? 'bg-brand text-white' : 'bg-surface text-ink-soft'}`}>
+              {periodActive ? 'Aktif' : 'Kunci'}
+            </span>
           </div>
-          <span className={`text-[10px] font-bold uppercase py-0.5 px-2 rounded-full shrink-0 ${
-            periodActive ? 'bg-brand/25 text-emerald-200' : 'bg-white/10 text-sidebar-soft'}`}>
-            {periodActive ? 'Aktif' : 'Kunci'}
-          </span>
+          {periodActive && periodDaysLeft != null && <Deadline daysLeft={periodDaysLeft} />}
         </div>
-        {periodActive && periodDaysLeft != null && <Deadline daysLeft={periodDaysLeft} />}
       </div>
 
       {/* Tugas & Notifikasi (diturunkan dari data) */}
-      <div className="px-3 py-2.5 border-b border-white/[0.06]">
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <Bell className="w-3.5 h-3.5 text-warn-bright" />
-          <span className="text-[10px] font-bold text-sidebar-soft tracking-wider uppercase">Tugas &amp; Notifikasi</span>
+      <div className="px-3.5 py-3 border-t border-line-soft">
+        <div className="flex items-center gap-1.5 mb-1.5 px-1">
+          <Bell className="w-3.5 h-3.5 text-warn" />
+          <span className="text-[11px] font-bold text-infarm-soil tracking-[0.08em] uppercase">Tugas &amp; Notifikasi</span>
           {todos.length > 0 && (
-            <span className="ml-auto text-[10px] font-black text-sidebar bg-warn-bright rounded-full px-1.5 min-w-[18px] text-center">{todos.length}</span>
+            <span className="ml-auto text-[11px] font-bold text-ink bg-warn rounded-full px-1.5 min-w-[20px] text-center">{todos.length}</span>
           )}
         </div>
         {todos.length === 0 ? (
-          <p className="text-[10px] text-sidebar-soft/70">Tak ada tugas tertunda. 🎉</p>
+          <p className="text-[11px] text-ink-faint px-1">Tak ada tugas tertunda.</p>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {todos.map((t) => (
               <Link
                 key={t.id}
                 href={t.href}
                 onClick={() => setOpen(false)}
-                className="flex items-start gap-1.5 text-[11px] leading-snug text-sidebar-soft hover:text-white hover:bg-white/[0.05] rounded-md px-1.5 py-1 transition-colors"
+                className="flex items-start gap-2 text-xs leading-snug text-ink-soft hover:text-ink hover:bg-infarm-surface rounded-lg px-1.5 py-1.5 transition-colors"
               >
                 <span className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${TODO_DOT[t.tone]}`} />
                 <span>{t.label}</span>
@@ -296,7 +326,7 @@ export function AppShell({
       </div>
 
       {/* Nav */}
-      <nav className="p-2 space-y-1 flex-1 overflow-y-auto">
+      <nav className="px-2.5 pb-2 space-y-0.5 flex-1 overflow-y-auto border-t border-line-soft">
         {/* Halaman Beranda dihapus 2026-08 → tak ada lagi item menu "Beranda". Landing Mode Admin
             = Dashboard Organisasi (lihat app/page.tsx); kartu Status Siklus pindah ke Kelola Periode. */}
         {sections.map((sec) => {
@@ -307,13 +337,13 @@ export function AppShell({
             <div key={sec.title ?? 'main'}>
               {sec.title && (collapsible ? (
                 <button type="button" onClick={() => setOpenTitle(isOpen ? null : sec.title!)}
-                  className="w-full flex items-center gap-1.5 px-1.5 pt-3 pb-1 text-[10px] font-bold text-sidebar-soft/80 tracking-wider uppercase hover:text-sidebar-soft">
-                  <ChevronDown className={`w-3 h-3 shrink-0 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
+                  className="w-full flex items-center gap-1.5 px-1.5 pt-3.5 pb-1.5 text-[11px] font-bold text-infarm-soil tracking-[0.08em] uppercase hover:text-ink">
+                  <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
                   <span className="flex-1 text-left">{sec.title}</span>
                   {!isOpen && containsActive && <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" aria-label="halaman aktif di grup ini" />}
                 </button>
               ) : (
-                <div className="text-[10px] font-bold text-sidebar-soft/80 tracking-wider px-1.5 pt-3 pb-1 uppercase">{sec.title}</div>
+                <div className="text-[11px] font-bold text-infarm-soil tracking-[0.08em] px-1.5 pt-3.5 pb-1.5 uppercase">{sec.title}</div>
               ))}
               {isOpen && sec.items.map((it) => {
                 const Icon = it.icon;
@@ -323,11 +353,11 @@ export function AppShell({
                     key={it.href}
                     href={it.href}
                     onClick={() => setOpen(false)}
-                    className={`w-full flex items-center gap-2 pl-5 pr-3 py-2 rounded-control text-xs font-bold transition-colors ${
-                      active ? 'bg-brand text-white' : 'text-sidebar-soft hover:bg-white/[0.05] hover:text-white'
+                    className={`w-full flex items-center gap-2.5 pl-4 pr-3 py-2 rounded-lg text-[13px] font-semibold transition-colors ${
+                      active ? 'bg-brand text-white' : 'text-ink-soft hover:bg-infarm-surface hover:text-brand-ink'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-white' : 'text-sidebar-soft'}`} />
+                    <Icon className="w-4 h-4 shrink-0" />
                     <span>{it.label}</span>
                   </Link>
                 );
@@ -338,38 +368,40 @@ export function AppShell({
       </nav>
 
       {/* User + akun + logout */}
-      <div className="p-3 border-t border-white/[0.06]">
+      <div className="p-3 border-t border-line">
         <div className="px-1 mb-2">
-          <div className="text-xs font-bold text-white truncate">{name}</div>
-          <div className="text-[10px] text-sidebar-soft">{dept} · {ROLE_LABEL[role]} · <span className="font-mono">{empCode}</span></div>
+          <div className="text-[13px] font-bold text-ink truncate">{name}</div>
+          <div className="text-[11px] text-ink-soft">{dept} · {ROLE_LABEL[role]} · <span className="font-mono">{empCode}</span></div>
         </div>
         <Link
           href="/akun"
           onClick={() => setOpen(false)}
-          className={`w-full flex items-center gap-1.5 text-xs font-semibold rounded-control py-2 px-2 mb-1 transition-colors ${
-            isActive('/akun') ? 'bg-brand text-white' : 'text-sidebar-soft hover:bg-white/[0.05] hover:text-white'
+          className={`w-full flex items-center gap-2 text-[13px] font-semibold rounded-lg py-2 px-2 mb-1 transition-colors ${
+            isActive('/akun') ? 'bg-brand text-white' : 'text-ink-soft hover:bg-infarm-surface hover:text-ink'
           }`}
         >
-          <KeyRound className={`w-3.5 h-3.5 ${isActive('/akun') ? 'text-white' : 'text-sidebar-soft'}`} /> Akun Saya
+          <KeyRound className="w-4 h-4" /> Akun Saya
           {panduanNew && (
-            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-rose-500/90 px-1.5 py-0.5 text-[9px] font-extrabold uppercase text-white" title="Ada panduan terbaru">
+            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-danger-ink px-1.5 py-0.5 text-[9px] font-extrabold uppercase text-white" title="Ada panduan terbaru">
               <span className="w-1.5 h-1.5 rounded-full bg-white" /> Panduan
             </span>
           )}
         </Link>
         <form action="/auth/signout" method="post">
-          <button type="submit" className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/15 hover:text-rose-200 rounded-control py-2 transition-colors">
-            <LogOut className="w-3.5 h-3.5" /> Keluar
+          <button type="submit" className="w-full flex items-center gap-2 text-[13px] font-semibold text-danger-ink hover:bg-danger-tint rounded-lg py-2 px-2 transition-colors">
+            <LogOut className="w-4 h-4" /> Keluar
           </button>
         </form>
       </div>
     </aside>
   );
 
+  const deadline = periodActive && periodDaysLeft != null ? deadlineInfo(periodDaysLeft) : null;
+
   return (
     <div className="flex h-screen bg-bg text-ink">
-      {/* Desktop sidebar */}
-      <div className="hidden md:block h-full">{Sidebar}</div>
+      {/* Desktop sidebar (bisa ditutup; pilihan disimpan di cookie) */}
+      {!collapsed && <div className="hidden md:block h-full">{Sidebar}</div>}
 
       {/* Mobile drawer */}
       {open && (
@@ -386,12 +418,94 @@ export function AppShell({
             aria-label={open ? 'Tutup menu navigasi' : 'Buka menu navigasi'} aria-expanded={open}>
             {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             {!open && todos.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 text-[10px] font-black text-sidebar bg-warn-bright rounded-full px-1 min-w-[14px] text-center leading-[14px]">{todos.length}</span>
+              <span className="absolute -top-1.5 -right-1.5 text-[10px] font-bold text-ink bg-warn rounded-full px-1 min-w-[14px] text-center leading-[14px]">{todos.length}</span>
             )}
           </button>
           <BrandLogo className="w-8 h-8 shrink-0" />
           <span className="text-sm font-extrabold text-ink">Infarm 360°</span>
         </header>
+
+        {/* Bilah atas desktop: tombol ☰ (tempatnya tetap, sidebar terbuka maupun ditutup) + jejak
+            "Grup › Halaman". Saat sidebar DITUTUP: ▾ membuka halaman lain di grup yang sama, dan
+            periode / Tugas / mode pindah ke kanan sebagai pil (pilihan pemilik 2026-11-04, mockup B). */}
+        <div className="app-topbar no-print hidden md:flex items-center gap-3 px-5 h-14 shrink-0 bg-surface border-b border-line relative">
+          {popover && <div className="fixed inset-0 z-20" onClick={() => setPopover(null)} aria-hidden />}
+          <button type="button" onClick={toggleSidebar}
+            className="w-9 h-9 rounded-control border border-line text-ink-soft hover:text-brand hover:border-infarm-light flex items-center justify-center shrink-0"
+            aria-label={collapsed ? 'Buka sidebar' : 'Tutup sidebar'} title={collapsed ? 'Buka sidebar' : 'Tutup sidebar'} aria-expanded={!collapsed}>
+            <Menu className="w-[18px] h-[18px]" />
+          </button>
+          {pageLabel && (
+            <div className="relative z-30 flex items-center gap-1.5 min-w-0 text-sm">
+              {crumb?.sec.title && <>
+                <span className="font-semibold text-infarm-soil truncate">{crumb.sec.title}</span>
+                <ChevronRight className="w-4 h-4 text-ink-faint shrink-0" />
+              </>}
+              <span className="font-semibold text-ink truncate">{pageLabel}</span>
+              {collapsed && crumb && crumb.sec.items.length > 1 && (
+                <button type="button" onClick={() => setPopover(popover === 'pages' ? null : 'pages')} aria-expanded={popover === 'pages'}
+                  aria-label="Pindah ke halaman lain di grup ini" title="Pindah ke halaman lain di grup ini"
+                  className={`w-7 h-7 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                    popover === 'pages' ? 'border-infarm-light bg-infarm-surface text-brand' : 'border-line text-ink-soft hover:text-brand'}`}>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              )}
+              {popover === 'pages' && crumb && (
+                <div className="absolute left-0 top-full mt-2 w-72 bg-surface border border-line rounded-card shadow-card p-2">
+                  {crumb.sec.title && <div className="px-2.5 pt-1.5 pb-1 text-[11px] font-bold uppercase tracking-[0.08em] text-infarm-soil">{crumb.sec.title}</div>}
+                  {crumb.sec.items.map((it) => {
+                    const Icon = it.icon;
+                    const here = it.href === crumb!.item.href;
+                    return (
+                      <Link key={it.href} href={it.href} onClick={() => setPopover(null)}
+                        className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] ${here ? 'bg-infarm-surface text-brand-ink font-semibold' : 'text-ink-soft hover:bg-infarm-surface hover:text-ink'}`}>
+                        <Icon className="w-4 h-4 shrink-0" /> <span className="flex-1">{it.label}</span>
+                        {here && <Check className="w-4 h-4 text-brand" />}
+                      </Link>
+                    );
+                  })}
+                  <div className="h-px bg-line-soft my-1.5 mx-1" />
+                  <button type="button" onClick={toggleSidebar}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] font-semibold text-brand hover:bg-infarm-surface">
+                    <Menu className="w-4 h-4" /> Lihat semua menu
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {collapsed && (
+            <div className="ml-auto flex items-center gap-2 shrink-0">
+              <span className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full bg-infarm-cream text-xs text-ink" title={deadline?.text}>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${periodActive ? 'bg-brand' : 'bg-danger-ink'}`} />
+                <span className="font-bold">{periodLabel ?? 'Tanpa Periode'}</span>
+                {deadline && <span className={deadline.urgent ? 'text-warn-ink font-bold' : 'text-infarm-soil'}>· {deadline.short}</span>}
+              </span>
+              <div className="relative z-30">
+                <button type="button" onClick={() => setPopover(popover === 'todos' ? null : 'todos')} aria-expanded={popover === 'todos'}
+                  className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full border border-line bg-surface text-xs font-semibold text-ink-soft hover:text-ink">
+                  <Bell className="w-3.5 h-3.5 text-warn" /> Tugas
+                  {todos.length > 0 && <span className="text-[11px] font-bold text-ink bg-warn rounded-full px-1.5 min-w-[20px] text-center">{todos.length}</span>}
+                </button>
+                {popover === 'todos' && (
+                  <div className="absolute right-0 top-full mt-2 w-80 bg-surface border border-line rounded-card shadow-card p-2">
+                    <div className="px-2.5 pt-1.5 pb-1 text-[11px] font-bold uppercase tracking-[0.08em] text-infarm-soil">Tugas &amp; Notifikasi</div>
+                    {todos.length === 0
+                      ? <p className="px-2.5 py-2 text-xs text-ink-faint">Tak ada tugas tertunda.</p>
+                      : todos.map((t) => (
+                        <Link key={t.id} href={t.href} onClick={() => setPopover(null)}
+                          className="flex items-start gap-2 px-2.5 py-2 rounded-lg text-[13px] leading-snug text-ink-soft hover:bg-infarm-surface hover:text-ink">
+                          <span className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${TODO_DOT[t.tone]}`} />
+                          <span>{t.label}</span>
+                        </Link>
+                      ))}
+                  </div>
+                )}
+              </div>
+              {canAdmin && modeSwitch(true)}
+            </div>
+          )}
+        </div>
+
         {/* scrollbar-gutter: tempat scrollbar selalu disediakan → lebar konten (dan kolom tabel ber-persen)
             tak berubah saat halaman/tab berganti antara pendek (tanpa scrollbar) dan panjang. */}
         <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">{children}</div>
@@ -401,21 +515,27 @@ export function AppShell({
   );
 }
 
-/** Indikator tenggat periode aktif: sisa hari + peringatan saat mendekati/melewati deadline penilaian (fallback end_date). */
+/** Teks tenggat periode aktif (deadline penilaian, fallback end_date): `text` lengkap, `short` untuk pil. */
+function deadlineInfo(daysLeft: number): { text: string; short: string; urgent: boolean; overdue: boolean } {
+  if (daysLeft < 0) return { text: `Lewat tenggat ${Math.abs(daysLeft)} hari`, short: `lewat ${Math.abs(daysLeft)} hari`, urgent: true, overdue: true };
+  if (daysLeft === 0) return { text: 'Berakhir hari ini', short: 'berakhir hari ini', urgent: true, overdue: true };
+  if (daysLeft <= 7) return { text: `${daysLeft} hari lagi (mendekati tenggat)`, short: `${daysLeft} hari lagi`, urgent: true, overdue: false };
+  return { text: `Tenggat: ${daysLeft} hari lagi`, short: `${daysLeft} hari lagi`, urgent: false, overdue: false };
+}
+
+/** Indikator tenggat di kartu periode sidebar (latar krem). */
 function Deadline({ daysLeft }: { daysLeft: number }) {
-  // Kontras naik bertahap sesuai urgensi (di atas latar sidebar gelap):
-  //  lewat tenggat / hari ini → CHIP oranye solid (--color-warn-bright) = paling menonjol;
-  //  ≤7 hari → teks oranye terang; selain itu → teks netral redup (tak menarik perhatian).
-  const { text, cls } =
-    daysLeft < 0 ? { text: `Lewat tenggat ${Math.abs(daysLeft)} hari`, cls: 'bg-warn-bright text-sidebar font-extrabold px-1.5 py-0.5 rounded-control' }
-    : daysLeft === 0 ? { text: 'Berakhir hari ini', cls: 'bg-warn-bright text-sidebar font-extrabold px-1.5 py-0.5 rounded-control' }
-    : daysLeft <= 7 ? { text: `${daysLeft} hari lagi (mendekati tenggat)`, cls: 'text-warn-bright font-bold' }
-    : { text: `Tenggat: ${daysLeft} hari lagi`, cls: 'text-white/55' };
+  // Kontras naik bertahap sesuai urgensi:
+  //  lewat tenggat / hari ini → CHIP oranye solid = paling menonjol;
+  //  ≤7 hari → teks peringatan tebal; selain itu → teks cokelat tanah (tak menarik perhatian).
+  const d = deadlineInfo(daysLeft);
+  const cls = d.overdue ? 'bg-warn text-ink font-extrabold px-1.5 py-0.5 rounded-control'
+    : d.urgent ? 'text-warn-ink font-bold' : 'text-infarm-soil font-semibold';
   return (
     <div className="mt-1.5 flex">
-      <div className={`inline-flex items-center gap-1 text-[10px] ${cls}`}>
-        {daysLeft <= 7 ? <AlertTriangle className="w-3 h-3 shrink-0" /> : <Clock className="w-3 h-3 shrink-0" />}
-        <span>{text}</span>
+      <div className={`inline-flex items-center gap-1 text-[11px] ${cls}`}>
+        {d.urgent ? <AlertTriangle className="w-3 h-3 shrink-0" /> : <Clock className="w-3 h-3 shrink-0" />}
+        <span>{d.text}</span>
       </div>
     </div>
   );

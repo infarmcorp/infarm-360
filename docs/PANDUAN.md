@@ -84,6 +84,9 @@ kuning saat tinggal 7 hari atau kurang, merah saat "Berakhir hari ini" atau "Lew
 | **HRD Admin** / **Mode SPV** atau **Mode Pegawai** | Berganti mode (lihat §5.0) | Hanya untuk pemegang izin HRD |
 | Item menu | Pindah halaman | Sesuai peran dan mode |
 | **Akun Saya** · **Keluar** | Halaman akun · keluar dari aplikasi | Selalu, di bagian bawah |
+| Tombol **☰** (komputer) | Menutup sidebar agar halaman lebih lebar; tekan lagi untuk membukanya. Pilihan diingat di browser ini | Di bilah atas, kiri |
+| **▾** di samping nama halaman | Pindah ke halaman lain dalam grup yang sama tanpa membuka sidebar; **Lihat semua menu** membuka sidebar | Saat sidebar ditutup |
+| Pil **periode**, **Tugas**, dan mode | Menampilkan periode & tenggat, daftar tugas, dan tombol ganti mode | Saat sidebar ditutup, di kanan bilah atas |
 | Tombol menu (HP) | Buka/tutup sidebar | Hanya di layar kecil |
 
 ---

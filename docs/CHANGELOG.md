@@ -8,6 +8,14 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-04 — Sidebar putih yang bisa ditutup (di `dev`, belum di production)
+- Pilihan pemilik dari mockup "Sidebar putih — terbuka vs ditutup" (versi B). Berlaku di semua halaman dan peran.
+- Sidebar kini putih bergaya Design System Infarm: label grup cokelat tanah, menu aktif hijau, kartu periode krem.
+  Isi menu, urutan, dan aturan akses tidak berubah.
+- Bilah atas baru (komputer): tombol **☰** untuk menutup/membuka sidebar, dan nama grup › halaman. Saat sidebar
+  ditutup, **▾** membuka daftar halaman lain di grup yang sama, serta periode, Tugas, dan tombol mode tampil sebagai
+  pil di kanan. Pilihan buka/tutup diingat di browser. Di HP tetap memakai menu laci seperti sebelumnya.
+
 ### 2026-11-03 — Dashboard Organisasi memakai Design System Infarm (di `dev`, belum di production)
 - Halaman pertama yang mengikuti Design System Infarm (sama dengan toko & dasbor pesanan Infarm), atas permintaan
   pemilik setelah meninjau mockup. Halaman lain belum berubah.

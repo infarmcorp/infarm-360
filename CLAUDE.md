@@ -237,6 +237,10 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
   (`Note`). Jangan gabungkan metrik ke satu blok berwarna. Skala ukuran (jarak antartingkat sengaja lebar): h1 30 · angka utama ringkasan 24 · angka kartu 20 ·
   judul kartu 18 bold · pil/isi 14 · label kartu pita 13 · keterangan 12 · label bagian 12 kapital. Halaman lain menyusul
   hanya bila diminta.
+- **Sidebar** (`app-shell.tsx`, pemilik 2026-11-04): putih bergaya Design System Infarm di **semua** halaman, bisa ditutup
+  di desktop (tombol ☰ di bilah atas; cookie `sidebar_collapsed` dibaca `layout.tsx` agar tak berkedip). Saat ditutup,
+  navigasi pindah ke bilah atas: jejak grup › halaman + ▾ halaman segrup + pil periode/Tugas/mode. Isi `menuFor`
+  (menu, urutan, gate akses) tidak berubah; HP tetap laci. Token `--color-sidebar*` masih dipakai org-chart/laporan.
 - ⚠️ `laporan-tim/team-table.tsx` & `scorecards.tsx` dipakai bersama Monitor — mengubahnya mengubah Monitor.
 - **Tabel berpager wajib stabil** (2026-10-15): `table-fixed` + `<colgroup>` (`colPercents`), kelas `table-1line`
   (isi sel 1 baris, keputusan pengguna), dan tabel + pager dibungkus `StableHeight` (`components/table-controls.tsx`)

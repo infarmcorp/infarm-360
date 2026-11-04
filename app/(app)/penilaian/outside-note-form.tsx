@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { PenLine } from 'lucide-react';
+import { CheckCircle2, PenLine } from 'lucide-react';
 import { submitOutsideNote } from './outside-note-actions';
 import { SearchableSelect } from '@/components/searchable-select';
 import { callAction } from '@/lib/call-action';
 import { OUTSIDE_NOTE_MIN, OUTSIDE_NOTE_MAX } from '@/lib/outside-notes';
 import { Modal, ModalActions } from './modal';
+import { FIELD, FIELD_LABEL } from '@/components/infarm-ui';
+import { BTN_GHOST, BTN_PRIMARY, FIELD_AREA } from './penilaian-ui';
 
 type Candidate = { id: string; name: string; dept: string };
 type Aspect = { id: string; name: string };
@@ -46,35 +48,35 @@ export function OutsideNoteButton({ candidates, aspects }: { candidates: Candida
   return (
     <>
       <button type="button" onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-brand hover:bg-brand-ink px-4 py-2 rounded-control">
-        <PenLine className="w-3.5 h-3.5" /> Tulis Catatan
+        className={BTN_PRIMARY}>
+        <PenLine className="w-4 h-4" /> Tulis Catatan
       </button>
 
       <Modal open={open} title={sent ? 'Catatan Terkirim' : 'Catatan di Luar Pemetaan'} size="lg" busy={busy} onClose={close}>
         {sent ? (
           <>
-            <p className="text-sm font-bold text-brand-ink">Catatan terkirim ke HRD</p>
+            <p className="flex items-center gap-2 text-[13px] font-bold text-brand-ink"><CheckCircle2 className="w-4 h-4 shrink-0" /> Catatan terkirim ke HRD</p>
             <div className="flex justify-end gap-2 pt-1">
               <button type="button" onClick={close}
-                className="text-xs font-bold text-ink-soft hover:text-ink border border-line px-4 py-2 rounded-control">
+                className={BTN_GHOST}>
                 Tutup
               </button>
               <button type="button" onClick={reset}
-                className="text-xs font-bold text-white bg-brand hover:bg-brand-ink px-4 py-2 rounded-control">
+                className={BTN_PRIMARY}>
                 Tulis Catatan Lain
               </button>
             </div>
           </>
         ) : (
           <>
-            <p className="text-xs text-ink-soft">
+            <p className="text-[13px] text-ink-soft leading-relaxed">
               Nama Anda tidak ikut tersimpan. Hanya HRD yang membaca catatan ini. Hindari detail yang bisa
               menunjukkan siapa Anda.
             </p>
 
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label className="block text-[10px] uppercase font-extrabold text-ink-faint mb-1">Rekan</label>
+                <label className={FIELD_LABEL}>Rekan</label>
                 <SearchableSelect
                   value={targetId}
                   onChange={setTargetId}
@@ -82,13 +84,13 @@ export function OutsideNoteButton({ candidates, aspects }: { candidates: Candida
                   options={candidates.map((c) => ({ value: c.id, label: `${c.name} — ${c.dept}` }))}
                   placeholder={candidates.length ? '— Pilih Rekan Kerja —' : 'Tidak ada rekan yang bisa dipilih'}
                   searchPlaceholder="Cari rekan…"
-                  className="text-xs px-3 py-2 border border-line rounded-control bg-surface"
+                  className={FIELD}
                 />
               </div>
               <div>
-                <label className="block text-[10px] uppercase font-extrabold text-ink-faint mb-1">Aspek Budaya</label>
+                <label className={FIELD_LABEL}>Aspek Budaya</label>
                 <select value={aspectId} onChange={(e) => setAspectId(e.target.value)} disabled={busy || aspects.length === 0}
-                  className="w-full text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink font-semibold focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
+                  className={`${FIELD} w-full`}>
                   <option value="">— Pilih Aspek —</option>
                   {aspects.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
@@ -96,21 +98,21 @@ export function OutsideNoteButton({ candidates, aspects }: { candidates: Candida
             </div>
 
             <div>
-              <label className="block text-[10px] uppercase font-extrabold text-brand-ink mb-1">Isi Catatan</label>
+              <label className={FIELD_LABEL}>Isi Catatan</label>
               <textarea value={body} onChange={(e) => setBody(e.target.value)} disabled={busy} rows={5}
                 maxLength={OUTSIDE_NOTE_MAX}
                 placeholder="Ceritakan kejadian atau informasi yang perlu HRD ketahui."
-                className="w-full text-xs p-2.5 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
-              <p className={`text-[10px] mt-1 ${len >= OUTSIDE_NOTE_MIN ? 'text-ink-faint' : 'text-warn-ink'}`}>
+                className={FIELD_AREA} />
+              <p className={`text-xs mt-1 ${len >= OUTSIDE_NOTE_MIN ? 'text-ink-soft' : 'text-warn-ink'}`}>
                 <span className="data-value">{len}</span> karakter · minimal <span className="data-value">{OUTSIDE_NOTE_MIN}</span>
               </p>
             </div>
 
-            <p className="text-[10px] text-ink-faint">
+            <p className="text-xs text-ink-soft">
               Catatan tanpa rating, tidak memengaruhi Skor 360°, dan tidak bisa diubah atau dihapus setelah dikirim.
             </p>
 
-            {err && <p className="text-[11px] text-danger-ink font-semibold">{err}</p>}
+            {err && <p className="text-xs text-danger-ink font-semibold">{err}</p>}
             <ModalActions busy={busy} disabled={unavailable} confirmLabel="Kirim Catatan"
               onCancel={close} onConfirm={submit} />
           </>

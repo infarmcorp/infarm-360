@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { saveWeights } from './actions';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/button';
+import { FIELD, FIELD_LABEL } from '@/components/infarm-ui';
 
 type Init = { model: '4class' | '2class'; atasan: number; peer: number; cross: number; bawahan: number; self: number; internal: number };
 
@@ -40,33 +42,33 @@ export function WeightForm({ initial, auto2 = false }: { initial: Init; auto2?: 
 
   const field = (label: string, k: keyof typeof w) => (
     <div>
-      <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">{label}</label>
+      <label className={FIELD_LABEL}>{label}</label>
       <input type="number" min={0} max={100} value={w[k]} onChange={set(k)}
-        className="w-full text-[13px] data-value px-2.5 py-1.5 border border-line rounded-control text-right text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+        className={`${FIELD} w-full font-mono text-right`} />
     </div>
   );
 
   return (
     <form onSubmit={submit} className="space-y-4">
       <div>
-        <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">Model Bobot</label>
+        <label className={FIELD_LABEL}>Model Bobot</label>
         <select value={model} onChange={(e) => setModel(e.target.value as '4class' | '2class')}
-          className="text-[13px] px-2.5 py-1.5 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
+          className={FIELD}>
           <option value="4class">4-Kelas (Atasan / Peer / Cross / Bawahan)</option>
           <option value="2class">2-Kelas (Atasan / Internal)</option>
         </select>
       </div>
 
       {autoMode ? (
-        <div className="border border-line bg-neutral-tint rounded-panel p-3 text-[12px] text-ink-soft leading-relaxed">
-          <p className="font-semibold text-ink">Bobot otomatis (BR-10) — tidak perlu diisi</p>
+        <div className="border border-line bg-infarm-surface rounded-xl p-3.5 text-xs text-ink-soft leading-relaxed">
+          <p className="text-[13px] font-semibold text-ink">Bobot otomatis (BR-10) — tidak perlu diisi</p>
           <p className="mt-1">Mulai Q3 2026, bobot 2-Kelas ditentukan dari jumlah penilai <strong>Internal</strong> (Peer, Cross, Bawahan — dihitung per orang yang sudah mengirim):</p>
           <ul className="mt-1.5 space-y-0.5">
-            <li>Atasan + ≥2 Internal → <span className="data-value font-semibold text-ink">Atasan 40% · Internal 60%</span></li>
-            <li>Atasan + 1 Internal → <span className="data-value font-semibold text-ink">Atasan 60% · Internal 40%</span></li>
-            <li>Hanya Atasan → <span className="data-value font-semibold text-ink">Atasan 100%</span> · Hanya Internal → <span className="data-value font-semibold text-ink">Internal 100%</span></li>
+            <li className="flex flex-wrap items-center gap-1.5">Atasan + ≥2 Internal <ArrowRight className="w-3.5 h-3.5 text-ink-faint" aria-hidden /> <span className="font-mono font-semibold text-ink">Atasan 40% · Internal 60%</span></li>
+            <li className="flex flex-wrap items-center gap-1.5">Atasan + 1 Internal <ArrowRight className="w-3.5 h-3.5 text-ink-faint" aria-hidden /> <span className="font-mono font-semibold text-ink">Atasan 60% · Internal 40%</span></li>
+            <li className="flex flex-wrap items-center gap-1.5">Hanya Atasan <ArrowRight className="w-3.5 h-3.5 text-ink-faint" aria-hidden /> <span className="font-mono font-semibold text-ink">Atasan 100%</span> · Hanya Internal <ArrowRight className="w-3.5 h-3.5 text-ink-faint" aria-hidden /> <span className="font-mono font-semibold text-ink">Internal 100%</span></li>
           </ul>
-          <p className="mt-1.5 text-ink-faint">Skor Internal = rata-rata seluruh penilai internal (tidak dibobot per kelompok). Bobot Khusus per Pegawai di bawah tetap berlaku.</p>
+          <p className="mt-1.5 text-ink-soft">Skor Internal = rata-rata seluruh penilai internal (tidak dibobot per kelompok). Bobot Khusus per Pegawai di bawah tetap berlaku.</p>
         </div>
       ) : model === '4class' ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -78,18 +80,18 @@ export function WeightForm({ initial, auto2 = false }: { initial: Init; auto2?: 
         </div>
       )}
 
-      <p className="text-[12px] text-ink-soft">
-        {!autoMode && <>Total bobot: <span className="data-value font-bold text-ink">{total}</span></>}
+      <p className="text-xs text-ink-soft">
+        {!autoMode && <>Total bobot: <span className="font-mono font-bold text-ink">{total}</span></>}
         {total !== 100 && <span className="text-danger-ink"> — harus tepat 100 untuk bisa disimpan</span>}
-        <span className="block text-[11px] text-ink-faint mt-0.5">
+        <span className="block text-xs text-ink-soft mt-0.5">
           Evaluasi diri (Self) tidak punya bobot — nilainya tak pernah masuk Skor 360°, hanya tampil
           sebagai pembanding di laporan pegawai.
         </span>
       </p>
 
-      {msg && <p className={`text-[12.5px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
+      {msg && <p className={`text-[13px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
 
-      <Button type="submit" disabled={busy || total !== 100}>
+      <Button type="submit" className="min-h-9" disabled={busy || total !== 100}>
         {busy ? 'Menyimpan…' : 'Simpan & Terapkan Bobot'}
       </Button>
     </form>

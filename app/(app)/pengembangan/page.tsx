@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { Sprout, Users } from 'lucide-react';
+import { Sprout, Users, type LucideIcon } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { TabBar, Tab } from '@/components/tab-nav';
+import { CARD, CardTitle, Note, PageTitle, TABLE_HEAD, pillCls } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { StatusChip } from '@/components/status-chip';
 import { colPercents } from '@/lib/table-cols';
 import {
@@ -27,6 +28,7 @@ type SB = Awaited<ReturnType<typeof createClient>>;
  *   Tim Saya     — rencana anggota yang Anda bimbing (Koordinator/SPV/HRD Mode SPV/Direksi) atau hanya Anda lihat
  *                  (SPV dari pegawai berkoordinator). Tab tampil bila ada anggota.
  * Semua baca via service_role SETELAH cek pemilik/atasan (lib/dev-plan.ts); tulis lewat ./actions.ts.
+ * Tampilan: Design System Infarm (CLAUDE.md §8).
  */
 export default async function PengembanganPage({ searchParams }: { searchParams: Promise<{ tab?: string; period?: string }> }) {
   const { tab: tabParam, period: periodParam } = await searchParams;
@@ -44,7 +46,7 @@ export default async function PengembanganPage({ searchParams }: { searchParams:
 
   const probe = await loadPlan(admin, user.id, '00000000-0000-0000-0000-000000000000');
   if (probe.missing) {
-    return <Shell><p className="text-sm text-ink-soft">Fitur Rencana Pengembangan belum aktif.</p></Shell>;
+    return <Shell><div className={CARD}><p className="text-[13px] text-ink-soft">Fitur Rencana Pengembangan belum aktif.</p></div></Shell>;
   }
 
   const [people, resolve] = await Promise.all([loadPlanPeople(admin), loadSupervisorResolver(admin)]);
@@ -60,11 +62,12 @@ export default async function PengembanganPage({ searchParams }: { searchParams:
 
   return (
     <Shell>
-      <TabBar>
-        <Tab href="/pengembangan?tab=saya" active={tab === 'saya'} icon={Sprout}>Rencana Saya</Tab>
-        {team.length > 0 && <Tab href="/pengembangan?tab=tim" active={tab === 'tim'} icon={Users}>Tim Saya</Tab>}
-      </TabBar>
-      <div className="pt-5">
+      {/* Sub-tab pil (Design System Infarm) — pengganti TabBar; href & logika aktif tetap. */}
+      <div className="flex flex-wrap gap-2">
+        <Pill href="/pengembangan?tab=saya" active={tab === 'saya'} icon={Sprout}>Rencana Saya</Pill>
+        {team.length > 0 && <Pill href="/pengembangan?tab=tim" active={tab === 'tim'} icon={Users}>Tim Saya</Pill>}
+      </div>
+      <div className="pt-4">
         {tab === 'saya'
           ? await MyPlan({ admin, userId: user.id, role: me?.role ?? null, name: me?.name ?? '', periodParam, resolve, people, actor, mode })
           : await TeamPlans({ admin, team, periodParam })}
@@ -79,7 +82,11 @@ async function MyPlan({ admin, userId, role, name, periodParam, resolve, people,
 }) {
   const periods = await finalizedPeriods(admin, userId);
   if (!periods.length) {
-    return <p className="text-sm text-ink-soft">Rencana Pengembangan bisa diisi setelah laporan Anda <strong>Final</strong>. Belum ada laporan Final.</p>;
+    return (
+      <div className={CARD}>
+        <p className="text-[13px] text-ink-soft">Rencana Pengembangan bisa diisi setelah laporan Anda <strong className="text-ink">Final</strong>. Belum ada laporan Final.</p>
+      </div>
+    );
   }
   const sel = periods.find((p) => p.id === periodParam) ?? periods[0];
   const { plan, items } = await loadPlan(admin, userId, sel.id);
@@ -101,10 +108,10 @@ async function MyPlan({ admin, userId, role, name, periodParam, resolve, people,
       <PlanHeader title={planTitle(sel.label)} sourceLabel={sel.label} status={status} ownerRole={role}
         due={sel.dev_plan_due} closed={closed} supervisorLabel={supLabel} />
       {role !== 'direksi' && (
-        <p className="text-[12.5px] text-ink-soft">
+        <Note>
           Isi setelah sesi empat mata dengan atasan. Prioritas 1 mengacu pada &quot;Prioritas utama&quot; di bagian Perlu
           Dikembangkan pada laporan Anda. Setelah dikirim, atasan memberi komentar lalu HRD menyetujui.
-        </p>
+        </Note>
       )}
       {plan && <RevisionNotice plan={plan} />}
       {plan && !closed && ownerCanWithdraw(status, role) && <WithdrawButton periodId={sel.id} />}
@@ -122,7 +129,7 @@ async function TeamPlans({ admin, team, periodParam }: {
   admin: SB; team: { id: string; name: string; dept: string | null; role: string | null; act: boolean }[]; periodParam?: string;
 }) {
   const periods = await finalizedPeriods(admin);
-  if (!periods.length) return <p className="text-sm text-ink-soft">Belum ada laporan Final.</p>;
+  if (!periods.length) return <div className={CARD}><p className="text-[13px] text-ink-soft">Belum ada laporan Final.</p></div>;
   const sel = periods.find((p) => p.id === periodParam) ?? periods[0];
   const ids = team.map((t) => t.id);
   const [{ data: finals }, { data: plans }] = await Promise.all([
@@ -136,50 +143,63 @@ async function TeamPlans({ admin, team, periodParam }: {
   return (
     <div className="space-y-4">
       <PeriodPicker periods={periods} selected={sel.id} base="/pengembangan?tab=tim" />
-      <p className="text-[12.5px] text-ink-soft">{planTitle(sel.label)} · dari laporan {sel.label}. Hanya pegawai yang laporannya sudah Final.</p>
-      {rows.length === 0 ? (
-        <p className="text-sm text-ink-soft">Belum ada anggota dengan laporan Final di periode ini.</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full table-fixed table-1line text-left text-sm min-w-[640px]">
-            <colgroup>{colPercents([220, 150, 150, 140, 90]).map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
-            <thead>
-              <tr className="text-[10px] uppercase tracking-[0.05em] text-ink-faint font-semibold border-b border-line">
-                <th className="py-2 pr-3">Pegawai</th><th className="py-2 px-3">Divisi</th><th className="py-2 px-3">Status</th>
-                <th className="py-2 px-3">Peran Anda</th><th className="py-2 pl-3 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line-soft">
-              {rows.map((r) => {
-                const st = statusBy.get(r.id) ?? null;
-                return (
-                  <tr key={r.id}>
-                    <td className="py-2.5 pr-3 font-semibold text-ink">{r.name}</td>
-                    <td className="py-2.5 px-3 text-ink-soft">{r.dept ?? '—'}</td>
-                    <td className="py-2.5 px-3"><StatusChip tone={PLAN_STATUS_TONE[st ?? 'none']}>{planStatusLabel(st, r.role)}</StatusChip></td>
-                    <td className="py-2.5 px-3 text-ink-soft">{r.act ? 'Atasan' : 'Hanya melihat'}</td>
-                    <td className="py-2.5 pl-3 text-right">
-                      <Link href={`/pengembangan/${r.id}?period=${sel.id}`} className="text-xs font-bold text-brand-ink hover:underline">Buka</Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      <div className={CARD}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle icon={Users}>{planTitle(sel.label)} · dari laporan {sel.label}</CardTitle>
+          <span className="text-xs text-ink-soft font-mono">{rows.length} pegawai</span>
         </div>
-      )}
+        <p className="text-xs text-ink-soft mt-1 mb-4">Hanya pegawai yang laporannya sudah Final.</p>
+        {rows.length === 0 ? (
+          <p className="text-[13px] text-ink-soft">Belum ada anggota dengan laporan Final di periode ini.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full table-fixed table-1line text-left text-[13px] min-w-[640px]">
+              <colgroup>{colPercents([220, 150, 150, 140, 90]).map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
+              <thead>
+                <tr className={TABLE_HEAD}>
+                  <th className="py-2.5 px-3 rounded-l-lg">Pegawai</th><th className="py-2.5 px-3">Divisi</th><th className="py-2.5 px-3">Status</th>
+                  <th className="py-2.5 px-3">Peran Anda</th><th className="py-2.5 px-3 text-right rounded-r-lg">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line-soft">
+                {rows.map((r) => {
+                  const st = statusBy.get(r.id) ?? null;
+                  return (
+                    <tr key={r.id} className="hover:bg-infarm-surface/60">
+                      <td className="py-2.5 px-3 font-semibold text-ink" title={r.name}>{r.name}</td>
+                      <td className="py-2.5 px-3 text-ink-soft">{r.dept ?? '—'}</td>
+                      <td className="py-2.5 px-3"><StatusChip tone={PLAN_STATUS_TONE[st ?? 'none']}>{planStatusLabel(st, r.role)}</StatusChip></td>
+                      <td className="py-2.5 px-3 text-ink-soft">{r.act ? 'Atasan' : 'Hanya melihat'}</td>
+                      <td className="py-2.5 px-3 text-right">
+                        <Link href={`/pengembangan/${r.id}?period=${sel.id}`} className="text-xs font-bold text-brand-ink hover:underline">Buka</Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
-      <div className="mb-5">
-        <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Rencana Pengembangan</h1>
-        <p className="text-[13.5px] text-ink-soft mt-1">Rencana pengembangan individu setelah laporan Final, disepakati bersama atasan dan HRD.</p>
-      </div>
+    <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>
+      <PageTitle title="Rencana Pengembangan">Rencana pengembangan individu setelah laporan Final, disepakati bersama atasan dan HRD.</PageTitle>
       {children}
     </main>
+  );
+}
+
+/** Sub-tab pil (Design System Infarm). */
+function Pill({ href, active, icon: Icon, children }: { href: string; active: boolean; icon: LucideIcon; children: React.ReactNode }) {
+  return (
+    <Link href={href} className={`${pillCls(active)} shrink-0`}>
+      <Icon className="w-4 h-4" aria-hidden />
+      <span className="inline-flex items-center">{children}</span>
+    </Link>
   );
 }

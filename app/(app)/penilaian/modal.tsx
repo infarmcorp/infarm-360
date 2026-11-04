@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
+import { X } from 'lucide-react';
+import { BTN_DANGER, BTN_GHOST, BTN_PRIMARY } from './penilaian-ui';
 
 /**
  * Kerangka modal bersama halaman Penilaian — markup yang sebelumnya diduplikasi di
@@ -8,9 +10,9 @@ import { useEffect } from 'react';
  * (Minta Koreksi, Ajukan Hapus, Ajukan Penilaian, Hapus Ad-Hoc) agar satu perubahan
  * gaya berlaku serentak.
  *
- * Sengaja TIDAK memakai components/confirm-dialog.tsx: dialog itu masih memakai palet
- * Tailwind mentah (gray/rose/emerald, rounded-2xl) dari era pra-redesign, sedangkan
- * halaman ini sudah bertoken (surface/ink/line, rounded-panel).
+ * Terpisah dari components/confirm-dialog.tsx karena pop-up di sini memuat form (alasan, pilihan rekan),
+ * bukan sekadar konfirmasi. Gaya Design System Infarm (2026-11-04): kartu putih rounded-card + bayangan
+ * mengambang di atas overlay gelap, judul 16px bold, isi 13px.
  */
 export function Modal({
   open, title, busy = false, size = 'sm', onClose, children,
@@ -35,11 +37,13 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/30" onClick={() => !busy && onClose()} />
-      <div className={`relative bg-surface rounded-panel shadow-xl w-full ${size === 'lg' ? 'max-w-lg' : 'max-w-sm'} p-5 space-y-3.5 text-left`}>
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-extrabold text-ink uppercase tracking-wide">{title}</h3>
-          <button type="button" onClick={onClose} disabled={busy} className="text-ink-faint hover:text-ink-soft">✕</button>
+      <div className="absolute inset-0 bg-black/40" onClick={() => !busy && onClose()} />
+      <div className={`relative bg-surface border border-line rounded-card shadow-[0_8px_32px_rgba(0,0,0,0.18)] w-full ${size === 'lg' ? 'max-w-lg' : 'max-w-sm'} max-h-[calc(100vh-2rem)] overflow-y-auto p-5 space-y-3.5 text-left text-[13px]`}>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-base font-bold text-ink leading-snug">{title}</h3>
+          <button type="button" onClick={onClose} disabled={busy} className="text-ink-faint hover:text-ink disabled:opacity-40 shrink-0">
+            <X className="w-5 h-5" />
+          </button>
         </div>
         {children}
       </div>
@@ -61,16 +65,13 @@ export function ModalActions({
 }) {
   return (
     <div className="flex justify-end gap-2 pt-1">
-      <button type="button" onClick={onCancel} disabled={busy}
-        className="text-xs font-bold text-ink-soft hover:text-ink border border-line px-4 py-2 rounded-control disabled:opacity-60">
+      <button type="button" onClick={onCancel} disabled={busy} className={BTN_GHOST}>
         Batal
       </button>
       {/* Aksi utama = solid (satu-satunya solid fill yang dibolehkan design system). Nada
           destruktif memakai danger-ink karena token tak punya varian `danger` dasar. */}
       <button type="button" onClick={onConfirm} disabled={busy || disabled}
-        className={`text-xs font-bold text-white px-4 py-2 rounded-control disabled:opacity-60 ${
-          tone === 'danger' ? 'bg-danger-ink hover:brightness-90' : 'bg-brand hover:bg-brand-ink'
-        }`}>
+        className={tone === 'danger' ? BTN_DANGER : BTN_PRIMARY}>
         {busy ? busyLabel : confirmLabel}
       </button>
     </div>

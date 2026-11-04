@@ -8,6 +8,16 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-04 — Seluruh aplikasi memakai Design System Infarm (di `dev`, belum di production)
+- Halaman terakhir ikut diubah (permintaan pemilik): Persiapan Siklus (Kelola Periode, Kelola Pertanyaan, Bobot &
+  Kalkulasi 360°, Pemetaan 360°), Daftar Penilaian Saya + form penilaian + Catatan di Luar Pemetaan, Laporan Hasil Saya
+  dan detail laporan, Tinjauan Hasil Akhir, Rencana Pengembangan, Akun Saya, halaman Masuk, Lupa/Perbarui Sandi, dan
+  Mode Maintenance.
+- Komponen bersama (tombol, kotak konfirmasi, tampilan kosong, dropdown berpencarian, filter centang, paging, kalender,
+  tooltip, menu ⋯) kini bergaya sama; emoji di kotak konfirmasi dan tampilan kosong otomatis tampil sebagai ikon garis.
+- Laporan: "Evaluasi Diri" di radar tetap oranye; versi cetak/PDF tetap putih. Form penilaian: tombol bawah kini tetap
+  terlihat saat menggulir. Logika, aturan Kirim, simpan otomatis, anonimitas, dan hak akses tidak berubah.
+
 ### 2026-11-04 — Halaman "Pelaksanaan" dan "Administrasi" memakai Design System Infarm (di `dev`, belum di production)
 - Progress 360 Feedback, Flag Kepatuhan, Kelola Pegawai, dan Manajemen Akses kini bergaya sama dengan Dashboard,
   dengan ukuran rapat. Simbol dan emoji di tombol, lencana izin, dan status diganti ikon garis.

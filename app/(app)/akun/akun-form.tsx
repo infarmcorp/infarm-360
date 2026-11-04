@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { KeyRound, Check } from 'lucide-react';
 import { changeOwnPassword } from './actions';
 import { PasswordInput } from '@/components/password-input';
+import { FIELD_LABEL } from '@/components/infarm-ui';
 
 /** Form ganti sandi: sandi saat ini + sandi baru + konfirmasi. Min. 8 karakter. */
 export function AkunForm() {
@@ -35,11 +36,11 @@ export function AkunForm() {
         <p className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>
       )}
       <button type="submit" disabled={busy}
-        className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-ink disabled:opacity-60 text-white text-sm font-bold px-4 py-2 rounded-control transition-colors">
+        className="inline-flex items-center justify-center gap-1.5 min-h-9 px-4 rounded-xl bg-brand hover:bg-brand-ink disabled:opacity-60 text-white text-[13px] font-bold transition-colors">
         {msg?.ok ? <Check className="w-4 h-4" /> : <KeyRound className="w-4 h-4" />}
         {busy ? 'Menyimpan…' : 'Simpan Sandi Baru'}
       </button>
-      <p className="text-[10px] text-ink-faint italic">
+      <p className="text-xs text-ink-soft">
         Demi keamanan, masukkan sandi saat ini untuk mengonfirmasi. Sandi tidak pernah dicatat.
       </p>
     </form>
@@ -53,7 +54,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-ink-soft mb-1">{label}</label>
+      <label className={FIELD_LABEL}>{label}</label>
       <PasswordInput value={value} onChange={onChange} autoComplete={autoComplete} placeholder={placeholder} />
     </div>
   );

@@ -133,12 +133,12 @@ export function DatePicker({
         aria-label={ariaLabel ?? placeholder}
         aria-expanded={open}
         onClick={toggleOpen}
-        className={`w-full flex items-center gap-2 rounded-control border bg-[#FDFDFC] px-3 py-2 text-left transition-colors ${
+        className={`w-full min-h-9 flex items-center gap-2 rounded-control border bg-infarm-surface px-3 text-left transition-colors focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint ${
           open ? 'border-brand ring-2 ring-brand-tint' : 'border-line hover:border-line-strong'
         }`}
       >
         <CalendarDays className="w-4 h-4 text-brand shrink-0" aria-hidden />
-        <span className={`flex-1 text-[13.5px] ${value ? 'data-value text-ink' : 'text-ink-faint'}`}>
+        <span className={`flex-1 text-[13px] ${value ? 'data-value text-ink' : 'text-ink-soft'}`}>
           {value ? labelOf(value) : placeholder}
         </span>
         {allowClear && value && (
@@ -159,13 +159,13 @@ export function DatePicker({
           role="dialog"
           aria-label="Kalender"
           // Elemen mengambang → shadow diperbolehkan (lihat aturan design system).
-          className="absolute z-40 mt-1 w-[266px] max-w-[calc(100vw-2rem)] rounded-panel border border-line bg-surface p-3 shadow-lg"
+          className="absolute z-40 mt-1 w-[266px] max-w-[calc(100vw-2rem)] rounded-xl border border-line bg-surface p-3 shadow-card"
         >
           {/* Header: klik nama bulan → pilih bulan/tahun langsung (hindari klik ‹ berkali-kali
               untuk tanggal jauh, mis. tanggal bergabung pegawai beberapa tahun lalu). */}
           <div className="flex items-center justify-between gap-2 mb-2">
             <button type="button" onClick={() => setMode((m) => (m === 'day' ? 'month' : 'day'))}
-              className="text-[13.5px] font-bold text-ink hover:text-brand-ink rounded-control px-1 -ml-1">
+              className="text-[13px] font-bold text-ink hover:text-brand-ink rounded-control px-1 -ml-1">
               {mode === 'day' ? `${MONTHS[view.m - 1]} ${view.y}` : view.y}
             </button>
             <div className="flex items-center gap-0.5">
@@ -197,7 +197,7 @@ export function DatePicker({
             <>
               <div className="grid grid-cols-7 mb-1">
                 {WEEKDAYS.map((d) => (
-                  <span key={d} className="text-center text-[10px] font-bold uppercase tracking-wide text-ink-faint py-1">{d}</span>
+                  <span key={d} className="text-center text-[11px] font-bold uppercase tracking-wide text-ink-soft py-1">{d}</span>
                 ))}
               </div>
               <div className="grid grid-cols-7 gap-y-0.5">
@@ -212,7 +212,7 @@ export function DatePicker({
                       disabled={disabled}
                       onClick={() => pick(c.date)}
                       aria-current={isToday ? 'date' : undefined}
-                      className={`mx-auto flex h-8 w-8 items-center justify-center rounded-full text-[12.5px] data-value transition-colors ${
+                      className={`mx-auto flex h-8 w-8 items-center justify-center rounded-full text-xs data-value transition-colors ${
                         selected
                           ? 'bg-brand text-white font-bold'
                           : disabled

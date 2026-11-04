@@ -14,9 +14,9 @@ export function WithdrawButton({ periodId }: { periodId: string }) {
   const [busy, start] = useTransition();
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
-      {err && <span className="text-[12px] text-danger-ink font-semibold mr-auto">{err}</span>}
-      <span className="text-[11.5px] text-ink-faint">Atasan belum memutuskan — Anda masih bisa menarik rencana ini untuk diubah.</span>
-      <Button variant="ghost" size="sm" disabled={busy} onClick={() => {
+      {err && <span className="text-xs text-danger-ink font-semibold mr-auto">{err}</span>}
+      <span className="text-xs text-ink-soft">Atasan belum memutuskan — Anda masih bisa menarik rencana ini untuk diubah.</span>
+      <Button variant="ghost" size="sm" className="min-h-9" disabled={busy} onClick={() => {
         setErr(null);
         start(async () => {
           const r = await callAction(() => withdrawMyPlan(periodId));

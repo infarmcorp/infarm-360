@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createPeriod } from './actions';
 import { Button } from '@/components/button';
 import { DatePicker } from '@/components/date-picker';
+import { FIELD, FIELD_LABEL } from '@/components/infarm-ui';
 
 export function PeriodForm() {
   const router = useRouter();
@@ -32,21 +33,21 @@ export function PeriodForm() {
     router.refresh();
   }
 
-  const inputCls = 'w-full text-[13.5px] px-3 py-2 rounded-control border border-line bg-[#FDFDFC] text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint';
+  const inputCls = `${FIELD} w-full`;
 
   return (
     <form onSubmit={submit}>
       <div className="grid grid-cols-1 sm:grid-cols-[1.3fr_1fr_1fr] gap-4">
         <div>
-          <label className="block text-[12.5px] font-medium text-ink-soft mb-1.5">Label</label>
+          <label className={FIELD_LABEL}>Label</label>
           <input value={label} onChange={(e) => setLabel(e.target.value)} required placeholder="Q4 2026" className={inputCls} />
         </div>
         <div>
-          <label className="block text-[12.5px] font-medium text-ink-soft mb-1.5">Tanggal Mulai</label>
+          <label className={FIELD_LABEL}>Tanggal Mulai</label>
           <DatePicker value={startDate} onChange={setStartDate} ariaLabel="Pilih tanggal mulai periode" />
         </div>
         <div>
-          <label className="block text-[12.5px] font-medium text-ink-soft mb-1.5">Tanggal Selesai</label>
+          <label className={FIELD_LABEL}>Tanggal Selesai</label>
           {/* min = tanggal mulai → tanggal sebelum itu tak bisa dipilih (bukan cuma diperingatkan). */}
           <DatePicker value={endDate} onChange={setEndDate} min={startDate || undefined} ariaLabel="Pilih tanggal selesai periode" />
         </div>
@@ -61,16 +62,16 @@ export function PeriodForm() {
         <span>Sertakan Evaluasi 360° <span className="text-ink font-semibold">(Skor Akhir = blend KPI 50% + 360° 50%; jika tidak, 100% KPI)</span></span>
       </label>
 
-      <div className="flex items-center gap-2.5 mt-4 text-[13px] text-ink-soft">
+      <div className="flex flex-wrap items-center gap-2.5 mt-4 text-[13px] text-ink-soft">
         <label htmlFor="kpiStandard">Standar/Target KPI untuk metrik dashboard</label>
         <input id="kpiStandard" type="number" min={0} max={100} value={kpiStandard}
           onChange={(e) => setKpiStandard(e.target.value)}
-          className="w-16 text-center text-[13px] data-value px-2 py-1.5 rounded-control border border-line text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
-        <span className="text-[12px] text-ink-faint">tak memengaruhi rumus skor · bisa diubah per kuartal</span>
+          className={`${FIELD} w-16 text-center data-value`} />
+        <span className="text-[12px] text-ink-soft">tak memengaruhi rumus skor · bisa diubah per kuartal</span>
       </div>
 
       {err && <p className="text-[13px] text-danger-ink font-semibold mt-3">{err}</p>}
-      <Button type="submit" disabled={busy} className="mt-5">
+      <Button type="submit" disabled={busy} className="mt-4">
         {busy ? 'Membuat…' : 'Buat Periode'}
       </Button>
     </form>
@@ -103,14 +104,14 @@ function RangePreview({ start, end }: { start: string; end: string }) {
   }
   const left = `${a.d} ${ID_MONTHS[a.m - 1]}${a.y !== b.y ? ` ${a.y}` : ''}`;
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-2 rounded-control border border-line bg-neutral-tint/60 px-3 py-2">
-      <span className="text-[12.5px] font-semibold text-ink data-value">
+    <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-neutral-tint px-3.5 py-2.5">
+      <span className="text-[13px] font-semibold text-ink data-value">
         {left} – {b.d} {ID_MONTHS[b.m - 1]} {b.y}
       </span>
-      <span className="text-[11px] text-ink-faint">· mencakup <span className="data-value font-bold text-ink-soft">{chips.length}</span> bulan</span>
+      <span className="text-[12px] text-ink-soft">· mencakup <span className="data-value font-bold text-ink-soft">{chips.length}</span> bulan</span>
       <span className="flex flex-wrap gap-1">
         {chips.map((c) => (
-          <span key={c.key} className="text-[10px] font-semibold text-ink-soft bg-surface border border-line rounded-control px-1.5 py-0.5">{c.label}</span>
+          <span key={c.key} className="text-[10px] font-semibold text-ink-soft bg-surface border border-line rounded-full px-1.5 py-0.5">{c.label}</span>
         ))}
       </span>
     </div>

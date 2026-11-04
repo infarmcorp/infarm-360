@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Network, Wrench } from 'lucide-react';
+import { Network, Wrench, Map as MapIcon, ArrowRight, Check, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection } from '@/lib/auth/roles';
@@ -11,8 +11,8 @@ import { MappingTable } from './mapping-table';
 import type { PairStatus } from './actions';
 import { CopyMapping } from './copy-mapping';
 import { EmptyState } from '@/components/empty-state';
-import { Panel } from '@/components/panel';
-import { TabBar, Tab } from '@/components/tab-nav';
+import { CARD, PageTitle, pillCls } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 /**
  * Pemetaan (Mapping) — HRD atur siapa menilai siapa di periode aktif. Dua tab:
@@ -32,7 +32,7 @@ export default async function PemetaanPage({
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'pemetaan')) {
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin.</p></Shell>;
+    return <Shell><div className={CARD}><p className="text-[13px] text-ink-soft">Halaman ini hanya untuk HRD Admin.</p></div></Shell>;
   }
 
   const { data: ap } = await supabase
@@ -40,7 +40,7 @@ export default async function PemetaanPage({
   if (!ap) return (
     <Shell>
       <EmptyState
-        icon="🗺️"
+        icon={<MapIcon className="w-6 h-6" aria-hidden />}
         title="Belum ada periode aktif"
         description="Pemetaan penilai mengikat ke periode aktif. Aktifkan sebuah periode dulu, baru atur siapa menilai siapa."
         steps={[
@@ -61,21 +61,16 @@ export default async function PemetaanPage({
 
   return (
     <Shell>
-      <div className="flex items-start justify-between mb-5">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Pemetaan Penilai 360°</h1>
-          <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span></p>
-        </div>
-        <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
-      </div>
+      <PageTitle title="Pemetaan Penilai 360°">
+        Periode aktif <span className="font-mono font-semibold text-ink">{ap.label}</span>
+      </PageTitle>
 
-      <div className="mb-5">
-      <TabBar>
-        <Tab href="/admin/pemetaan?tab=pemetaan" active={tab === 'pemetaan'} icon={Network}>Pemetaan</Tab>
-        <Tab href="/admin/pemetaan?tab=koreksi" active={tab === 'koreksi'} icon={Wrench}>
-          Permohonan{pendingCount ? <span className="ml-1.5 text-[10px] data-value bg-brand text-white px-1.5 py-0.5 rounded-full">{pendingCount}</span> : null}
-        </Tab>
-      </TabBar>
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Link href="/admin/pemetaan?tab=pemetaan" className={pillCls(tab === 'pemetaan')}><Network className="w-4 h-4" /> Pemetaan</Link>
+        <Link href="/admin/pemetaan?tab=koreksi" className={pillCls(tab === 'koreksi')}>
+          <Wrench className="w-4 h-4" /> Permohonan
+          {pendingCount ? <span className={`text-[11px] font-mono font-bold px-1.5 py-0.5 rounded-full leading-none ${tab === 'koreksi' ? 'bg-white text-brand-ink' : 'bg-brand text-white'}`}>{pendingCount}</span> : null}
+        </Link>
       </div>
 
       {tab === 'pemetaan'
@@ -122,7 +117,7 @@ async function PemetaanTab({ supabase, periodId }: { supabase: Awaited<ReturnTyp
   return (
     <>
       {/* Split screen (layar lebar): kiri = tambah/impor/salin, kanan = daftar. Layar sempit → bertumpuk. */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)] gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)] gap-4 items-start">
         <div className="space-y-3">
           <MappingForm employees={employees} />
           <div className="grid gap-2">
@@ -130,7 +125,7 @@ async function PemetaanTab({ supabase, periodId }: { supabase: Awaited<ReturnTyp
             <CopyMapping periods={otherPeriods ?? []} />
           </div>
         </div>
-        <Panel className="min-w-0"><MappingTable rows={rows} /></Panel>
+        <section className={`${CARD} min-w-0`}><MappingTable rows={rows} /></section>
       </div>
     </>
   );
@@ -147,7 +142,7 @@ async function KoreksiTab({ supabase, periodId }: { supabase: Awaited<ReturnType
   const { data: emps } = ids.length ? await supabase.from('employees').select('id, name').in('id', ids) : { data: [] };
   const nameById = new Map((emps ?? []).map((e) => [e.id, e.name]));
 
-  if (list.length === 0) return <p className="text-sm text-ink-soft">Tidak ada permohonan pemetaan.</p>;
+  if (list.length === 0) return <div className={CARD}><p className="text-[13px] text-ink-soft">Tidak ada permohonan pemetaan.</p></div>;
 
   // Yang menunggu diputuskan naik ke atas — sisanya jadi arsip keputusan.
   const sorted = [...list].sort((a, b) => Number(b.status === 'pending') - Number(a.status === 'pending'));
@@ -157,41 +152,41 @@ async function KoreksiTab({ supabase, periodId }: { supabase: Awaited<ReturnType
       {sorted.map((r) => {
         const kind = (r.kind ?? 'relation') as 'relation' | 'remove' | 'add';
         return (
-          <Panel key={r.id} padded={false} className="p-4 flex flex-col sm:flex-row justify-between gap-3">
+          <section key={r.id} className={`${CARD} flex flex-col sm:flex-row justify-between gap-3`}>
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center gap-2 flex-wrap text-[13px]">
                 <KindChip kind={kind} />
                 <span className="font-bold text-ink">{nameById.get(r.assessor_id) ?? '—'}</span>
-                <span className="text-ink-faint">→</span>
+                <ArrowRight className="w-3.5 h-3.5 text-ink-faint shrink-0" aria-hidden />
                 <span className="font-bold text-ink">{nameById.get(r.target_id) ?? '—'}</span>
               </div>
 
               {/* Ringkas apa yang diminta, per jenis. */}
               {kind === 'relation' && (
-                <div className="flex items-center gap-2 text-[11px]">
-                  <span className="bg-danger-tint text-danger-ink font-semibold px-1.5 py-0.5 rounded-full line-through">{r.old_relation ?? '—'}</span>
-                  <span className="text-ink-faint">menjadi</span>
-                  <span className="bg-brand-tint text-brand-ink font-semibold px-1.5 py-0.5 rounded-full">{r.new_relation ?? '—'}</span>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="bg-danger-tint text-danger-ink font-semibold px-2 py-0.5 rounded-full line-through">{r.old_relation ?? '—'}</span>
+                  <span className="text-ink-soft">menjadi</span>
+                  <span className="bg-brand-tint text-brand-ink font-semibold px-2 py-0.5 rounded-full">{r.new_relation ?? '—'}</span>
                 </div>
               )}
               {kind === 'remove' && (
-                <p className="text-[11px] text-ink-soft">
+                <p className="text-xs text-ink-soft">
                   Minta <strong>dikeluarkan</strong> dari daftar penilaiannya
                   {r.old_relation && <> (saat ini <span className="font-semibold">{r.old_relation}</span>)</>}.
                   Disetujui → pemetaan dinonaktifkan.
                 </p>
               )}
               {kind === 'add' && (
-                <p className="text-[11px] text-ink-soft">
+                <p className="text-xs text-ink-soft">
                   Minta <strong>menilai rekan ini</strong> sebagai{' '}
-                  <span className="bg-brand-tint text-brand-ink font-semibold px-1.5 py-0.5 rounded-full">{r.new_relation ?? '—'}</span>.
+                  <span className="bg-brand-tint text-brand-ink font-semibold px-2 py-0.5 rounded-full">{r.new_relation ?? '—'}</span>.
                   Disetujui → pemetaan baru dibuat (sifat Opsional).
                 </p>
               )}
 
-              <p className="text-[11.5px] text-ink-soft italic bg-neutral-tint p-2 rounded-control">“{r.reason}”</p>
+              <p className="text-xs text-ink-soft italic bg-infarm-surface border border-line-soft px-3 py-2 rounded-xl">“{r.reason}”</p>
               {r.status === 'rejected' && r.reject_reason && (
-                <p className="text-[11.5px] text-danger-ink bg-danger-tint border border-danger-ink/20 p-2 rounded-control">
+                <p className="text-xs text-danger-ink bg-danger-tint px-3 py-2 rounded-xl">
                   <strong>Alasan penolakan:</strong> {r.reject_reason}
                 </p>
               )}
@@ -200,11 +195,11 @@ async function KoreksiTab({ supabase, periodId }: { supabase: Awaited<ReturnType
             <div className="shrink-0 self-end sm:self-center">
               {r.status === 'pending'
                 ? <ReviewButton requestId={r.id} />
-                : <span className={`text-[10px] font-semibold uppercase px-2 py-1 rounded-full ${r.status === 'approved' ? 'bg-brand-tint text-brand-ink' : 'bg-neutral-tint text-ink-faint'}`}>
-                    {r.status === 'approved' ? '✓ Diterima' : '✗ Ditolak'}
+                : <span className={`inline-flex items-center gap-1 text-[11px] font-semibold uppercase px-2.5 py-1 rounded-full ${r.status === 'approved' ? 'bg-brand-tint text-brand-ink' : 'bg-neutral-tint text-ink-soft'}`}>
+                    {r.status === 'approved' ? <><Check className="w-3.5 h-3.5" aria-hidden /> Diterima</> : <><X className="w-3.5 h-3.5" aria-hidden /> Ditolak</>}
                   </span>}
             </div>
-          </Panel>
+          </section>
         );
       })}
     </div>
@@ -214,14 +209,14 @@ async function KoreksiTab({ supabase, periodId }: { supabase: Awaited<ReturnType
 /** Penanda jenis permohonan — HRD perlu tahu sekilas apa yang diminta sebelum membaca isinya. */
 function KindChip({ kind }: { kind: 'relation' | 'remove' | 'add' }) {
   const map = {
-    relation: { label: 'Koreksi Relasi', cls: 'bg-neutral-tint text-ink-soft border-line' },
-    remove: { label: 'Minta Hapus', cls: 'bg-danger-tint text-danger-ink border-danger-ink/25' },
-    add: { label: 'Minta Tambah', cls: 'bg-brand-tint text-brand-ink border-brand-ink/25' },
+    relation: { label: 'Koreksi Relasi', cls: 'bg-infarm-cream text-infarm-soil' },
+    remove: { label: 'Minta Hapus', cls: 'bg-danger-tint text-danger-ink' },
+    add: { label: 'Minta Tambah', cls: 'bg-brand-tint text-brand-ink' },
   } as const;
   const m = map[kind];
-  return <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-control border ${m.cls}`}>{m.label}</span>;
+  return <span className={`text-[11px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${m.cls}`}>{m.label}</span>;
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
+  return <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>{children}</main>;
 }

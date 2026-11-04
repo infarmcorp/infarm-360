@@ -5,6 +5,8 @@ import { Send } from 'lucide-react';
 import { requestNewAssessment } from './request-actions';
 import { SearchableSelect } from '@/components/searchable-select';
 import { Modal, ModalActions } from './modal';
+import { FIELD, FIELD_LABEL } from '@/components/infarm-ui';
+import { BTN_PRIMARY, FIELD_AREA } from './penilaian-ui';
 
 type Candidate = { id: string; name: string; dept: string };
 
@@ -62,21 +64,21 @@ export function RequestAssessmentButton({ candidates }: { candidates: Candidate[
   return (
     <>
       <button type="button" onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-brand hover:bg-brand-ink px-4 py-2 rounded-control">
-        <Send className="w-3.5 h-3.5" /> Ajukan Penilaian atas Rekan Lain
+        className={BTN_PRIMARY}>
+        <Send className="w-4 h-4" /> Ajukan Penilaian atas Rekan Lain
       </button>
 
       <Modal open={open} title="Ajukan Penilaian atas Rekan Lain" size="lg" busy={busy} onClose={close}>
-        <p className="text-xs text-ink-soft">
+        <p className="text-[13px] text-ink-soft leading-relaxed">
           Merasa perlu menilai rekan yang belum ada di daftar? Ajukan di sini beserta hubungan kerjanya.
           <strong> Berlaku setelah disetujui HRD.</strong> Penilaian yang disetujui bersifat Opsional, tetapi
           karena Anda sendiri yang mengajukannya, <strong>wajib dikirim sebelum deadline</strong> — bila tidak,
           Skor 360° Anda terkena potongan keterlambatan (berlaku mulai periode Q3 2026).
         </p>
 
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="block text-[10px] uppercase font-extrabold text-ink-faint mb-1">Rekan yang Dinilai</label>
+            <label className={FIELD_LABEL}>Rekan yang Dinilai</label>
             <SearchableSelect
               value={targetId}
               onChange={setTargetId}
@@ -84,36 +86,36 @@ export function RequestAssessmentButton({ candidates }: { candidates: Candidate[
               options={candidates.map((c) => ({ value: c.id, label: `${c.name} — ${c.dept}` }))}
               placeholder={candidates.length ? '— Pilih Rekan Kerja —' : 'Semua rekan sudah ada di daftar Anda'}
               searchPlaceholder="Cari rekan…"
-              className="text-xs px-3 py-2 border border-line rounded-control bg-surface"
+              className={FIELD}
             />
           </div>
           <div>
-            <label className="block text-[10px] uppercase font-extrabold text-ink-faint mb-1">Hubungan dengan Rekan yang Dinilai</label>
+            <label className={FIELD_LABEL}>Hubungan dengan Rekan yang Dinilai</label>
             <select value={relation} onChange={(e) => setRelation(e.target.value)} disabled={busy}
-              className="w-full text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink font-semibold focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
+              className={`${FIELD} w-full`}>
               {REL_OPTS.map((r) => <option key={r} value={r}>{REL_LABEL[r]}</option>)}
             </select>
           </div>
         </div>
 
         <div>
-          <label className="block text-[10px] uppercase font-extrabold text-brand-ink mb-1">Alasan Pengajuan</label>
+          <label className={FIELD_LABEL}>Alasan Pengajuan</label>
           <select value={reasonOpt} onChange={(e) => setReasonOpt(e.target.value)} disabled={busy}
-            className="w-full text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink font-semibold focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
+            className={`${FIELD} w-full`}>
             {REASON_OPTS.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
           {isOther && (
             <>
               <textarea value={reasonOther} onChange={(e) => setReasonOther(e.target.value)} disabled={busy} rows={3}
                 placeholder="Jelaskan alasan Anda mengajukan penilaian ini."
-                className="w-full text-xs p-2.5 mt-1.5 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
-              <p className="text-[10px] text-ink-faint mt-1">Wajib diisi (minimal 5 karakter) untuk pilihan &quot;Lainnya&quot;.</p>
+                className={`${FIELD_AREA} mt-1.5`} />
+              <p className="text-xs text-ink-soft mt-1">Wajib diisi (minimal 5 karakter) untuk pilihan &quot;Lainnya&quot;.</p>
             </>
           )}
-          <p className="text-[10px] text-ink-faint mt-1">Alasan ini yang dibaca HRD saat memutuskan.</p>
+          <p className="text-xs text-ink-soft mt-1">Alasan ini yang dibaca HRD saat memutuskan.</p>
         </div>
 
-        {err && <p className="text-[11px] text-danger-ink font-semibold">{err}</p>}
+        {err && <p className="text-xs text-danger-ink font-semibold">{err}</p>}
         <ModalActions busy={busy} disabled={candidates.length === 0} confirmLabel="Kirim Permohonan"
           onCancel={close} onConfirm={submit} />
       </Modal>

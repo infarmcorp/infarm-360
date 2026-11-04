@@ -7,6 +7,7 @@ import { saveEmployeeWeightOverride, removeEmployeeWeightOverride } from './acti
 import { SearchableSelect } from '@/components/searchable-select';
 import { Button } from '@/components/button';
 import type { WeightValues } from '@/lib/database.types';
+import { FIELD, FIELD_LABEL, TABLE_HEAD } from '@/components/infarm-ui';
 
 export type Emp = { id: string; name: string; dept: string };
 export type Override = { employeeId: string; name: string; dept: string; model: '4class' | '2class'; weights: WeightValues };
@@ -78,9 +79,9 @@ export function EmployeeWeights({ employees, overrides }: { employees: Emp[]; ov
 
   const field = (label: string, k: keyof typeof w) => (
     <div>
-      <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">{label}</label>
+      <label className={FIELD_LABEL}>{label}</label>
       <input type="number" min={0} max={100} value={w[k]} onChange={set(k)}
-        className="w-full text-[13px] data-value px-2.5 py-1.5 border border-line rounded-control bg-surface text-right text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+        className={`${FIELD} w-full font-mono text-right`} />
     </div>
   );
 
@@ -88,12 +89,12 @@ export function EmployeeWeights({ employees, overrides }: { employees: Emp[]; ov
     <div className="space-y-4">
       {/* Daftar override yang ada */}
       {rows.length === 0 ? (
-        <p className="text-sm text-ink-soft">Belum ada bobot khusus. Semua pegawai memakai skema periode di atas.</p>
+        <p className="text-[13px] text-ink-soft">Belum ada bobot khusus. Semua pegawai memakai skema periode di atas.</p>
       ) : (
-        <div className="overflow-x-auto rounded-panel border border-line">
-          <table className="w-full text-left text-sm min-w-[480px]">
+        <div className="overflow-x-auto rounded-xl border border-line">
+          <table className="w-full text-left text-[13px] min-w-[480px]">
             <thead>
-              <tr className="bg-neutral-tint text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
+              <tr className={`${TABLE_HEAD} border-b border-line`}>
                 <th className="py-2 px-3 font-semibold">Pegawai</th>
                 <th className="py-2 px-3 font-semibold">Model</th>
                 <th className="py-2 px-3 font-semibold">Bobot</th>
@@ -102,17 +103,17 @@ export function EmployeeWeights({ employees, overrides }: { employees: Emp[]; ov
             </thead>
             <tbody className="divide-y divide-line-soft">
               {rows.map((r) => (
-                <tr key={r.employeeId}>
+                <tr key={r.employeeId} className="hover:bg-infarm-surface">
                   <td className="py-2.5 px-3">
                     <span className="font-bold text-ink block">{r.name}</span>
-                    <span className="text-[11px] text-ink-faint">{r.dept}</span>
+                    <span className="text-xs text-ink-soft">{r.dept}</span>
                   </td>
                   <td className="py-2.5 px-3 text-ink-soft">{r.model === '4class' ? '4-Kelas' : '2-Kelas'}</td>
-                  <td className="py-2.5 px-3 data-value text-[12px] text-brand-ink">{summarize(r.model, r.weights)}</td>
+                  <td className="py-2.5 px-3 font-mono text-xs text-brand-ink">{summarize(r.model, r.weights)}</td>
                   <td className="py-2.5 px-3 text-right">
                     <button type="button" onClick={() => remove(r.employeeId)} disabled={busy}
                       title="Hapus bobot khusus (kembali ke skema periode)"
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-danger-ink border border-line hover:border-danger-ink rounded-control px-2 py-1 disabled:opacity-50">
+                      className="inline-flex items-center gap-1 min-h-9 text-xs font-semibold text-danger-ink border border-line hover:border-danger-ink hover:bg-danger-tint rounded-control px-2.5 disabled:opacity-50">
                       <X className="w-3.5 h-3.5" /> Hapus
                     </button>
                   </td>
@@ -124,24 +125,24 @@ export function EmployeeWeights({ employees, overrides }: { employees: Emp[]; ov
       )}
 
       {/* Form tambah override */}
-      <form onSubmit={submit} className="rounded-control bg-neutral-tint p-4 space-y-3">
-        <h3 className="text-[11px] font-semibold text-ink-soft uppercase tracking-[0.05em]">Tambah bobot khusus</h3>
+      <form onSubmit={submit} className="rounded-xl border border-line bg-infarm-surface p-4 space-y-3">
+        <h4 className="text-xs font-bold text-ink uppercase tracking-[0.08em]">Tambah bobot khusus</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">Pegawai</label>
+            <label className={FIELD_LABEL}>Pegawai</label>
             <SearchableSelect
               value={empId}
               onChange={setEmpId}
               options={options}
               placeholder="— pilih pegawai —"
               ariaLabel="Pilih pegawai untuk bobot khusus"
-              className="rounded-control border border-line px-3 py-2 text-sm bg-surface"
+              className={`${FIELD} w-full bg-surface`}
             />
           </div>
           <div>
-            <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">Model Bobot</label>
+            <label className={FIELD_LABEL}>Model Bobot</label>
             <select value={model} onChange={(e) => setModel(e.target.value as '4class' | '2class')}
-              className="w-full text-sm px-2.5 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
+              className={`${FIELD} w-full bg-surface`}>
               <option value="4class">4-Kelas (Atasan / Peer / Cross / Bawahan)</option>
               <option value="2class">2-Kelas (Atasan / Internal)</option>
             </select>
@@ -159,14 +160,14 @@ export function EmployeeWeights({ employees, overrides }: { employees: Emp[]; ov
           </div>
         )}
 
-        <p className="text-[12px] text-ink-soft">
-          Total bobot: <span className="data-value font-bold text-ink">{total}</span>
+        <p className="text-xs text-ink-soft">
+          Total bobot: <span className="font-mono font-bold text-ink">{total}</span>
           {total !== 100 && <span className="text-danger-ink"> — harus tepat 100 untuk bisa disimpan</span>}
         </p>
 
-        {msg && <p className={`text-[12.5px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
+        {msg && <p className={`text-[13px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
 
-        <Button type="submit" disabled={busy || !empId || total !== 100}>
+        <Button type="submit" className="min-h-9" disabled={busy || !empId || total !== 100}>
           {busy ? 'Menyimpan…' : 'Simpan bobot khusus'}
         </Button>
       </form>

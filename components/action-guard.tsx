@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { RefreshCw, X } from 'lucide-react';
+import { AlertTriangle, RefreshCw, X } from 'lucide-react';
 
 /**
  * Penjaga global di kerangka aplikasi — dua hal yang membuat "sudah klik tapi tak tersimpan" terlihat:
@@ -51,18 +51,19 @@ export function ActionGuard() {
   return (
     <div className="fixed inset-x-0 top-0 z-[60] flex justify-center p-3 pointer-events-none"
       style={{ paddingTop: 'max(12px, env(safe-area-inset-top, 0px))' }}>
-      <div className={`pointer-events-auto flex max-w-xl items-start gap-3 rounded-panel border px-4 py-3 text-[13px] shadow-[0_8px_24px_rgba(0,0,0,0.15)] ${
+      <div className={`pointer-events-auto flex max-w-xl items-start gap-3 rounded-card border px-4 py-3 text-[13px] shadow-card ${
         failed ? 'border-danger-ink/30 bg-danger-tint text-danger-ink' : 'border-warn-ink/30 bg-warn-tint text-warn-ink'}`}>
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         <div className="min-w-0">
           <p className="font-semibold">
             {failed ? 'Perubahan terakhir TIDAK tersimpan — gagal terhubung ke server.' : 'Aplikasi baru saja diperbarui.'}
           </p>
-          <p className="mt-0.5 text-ink-soft">
+          <p className="mt-0.5 text-xs text-ink-soft">
             {failed ? 'Muat ulang halaman, periksa datanya, lalu ulangi aksi tadi.' : 'Muat ulang halaman ini sebelum menyimpan apa pun, agar perubahan Anda tersimpan.'}
           </p>
         </div>
         <button type="button" onClick={() => window.location.reload()}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-control bg-brand px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-brand-ink">
+          className="inline-flex min-h-8 shrink-0 items-center gap-1.5 rounded-xl bg-brand px-3 text-[13px] font-bold text-white hover:bg-brand-ink">
           <RefreshCw className="h-3.5 w-3.5" /> Muat ulang
         </button>
         {!failed && (

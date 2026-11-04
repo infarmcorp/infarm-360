@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { CalendarRange, ListChecks } from 'lucide-react';
+import { CalendarPlus, CalendarRange, CalendarX, ListChecks } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { isBackfilledPeriod } from '@/lib/backfill-guard';
 import { canSection } from '@/lib/auth/roles';
@@ -11,9 +11,9 @@ import { DeadlineEditor } from './deadline-editor';
 import { ReadinessPanel } from './readiness-panel';
 import { CycleStatus } from './cycle-status';
 import { EmptyState } from '@/components/empty-state';
-import { Panel, PanelLabel } from '@/components/panel';
 import { StatusChip } from '@/components/status-chip';
-import { TabBar, Tab } from '@/components/tab-nav';
+import { CARD, CardTitle, Note, PageTitle, TABLE_HEAD, pillCls } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 /**
  * Kelola Siklus Periode (HRD). Buat/aktivasi/kunci periode + toggle 360.
@@ -35,8 +35,7 @@ export default async function PeriodePage({
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'periode')) {
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin.</p>
-      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><div className={CARD}><p className="text-[13px] text-ink-soft">Halaman ini hanya untuk HRD Admin.</p></div></Shell>;
   }
 
   const { data: periods } = await supabase
@@ -65,19 +64,13 @@ export default async function PeriodePage({
 
   return (
     <Shell>
-      <div className="flex items-start justify-between mb-7">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Kelola Siklus Periode</h1>
-          <p className="text-[13.5px] text-ink-soft mt-1 max-w-xl">Aktivasi membuka pengisian; Kunci &amp; Akhiri menghentikannya.</p>
-        </div>
-        <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
-      </div>
+      <PageTitle title="Kelola Siklus Periode">
+        Aktivasi membuka pengisian; Kunci &amp; Akhiri menghentikannya.
+      </PageTitle>
 
-      <div className="mb-5">
-        <TabBar>
-          <Tab href="/admin/periode" active={tab === 'periode'} icon={CalendarRange}>Kelola Periode</Tab>
-          <Tab href="/admin/periode?tab=siklus" active={tab === 'siklus'} icon={ListChecks}>Status Siklus</Tab>
-        </TabBar>
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Link href="/admin/periode" className={pillCls(tab === 'periode')}><CalendarRange className="w-4 h-4" /> Kelola Periode</Link>
+        <Link href="/admin/periode?tab=siklus" className={pillCls(tab === 'siklus')}><ListChecks className="w-4 h-4" /> Status Siklus</Link>
       </div>
 
       {/* Sub-tab "Status Siklus": rincian 10 langkah (pindahan kartu Beranda yang dihapus). */}
@@ -85,10 +78,10 @@ export default async function PeriodePage({
         <CycleStatus variant="full" />
       ) : (
       <>
-      <Panel className="mb-5">
-        <PanelLabel className="mb-[18px]">Buat Periode Baru</PanelLabel>
+      <div className={`${CARD} mb-4`}>
+        <CardTitle icon={CalendarPlus} className="mb-3">Buat Periode Baru</CardTitle>
         <PeriodForm />
-      </Panel>
+      </div>
 
       {active && readiness && (
         <ReadinessPanel
@@ -107,7 +100,7 @@ export default async function PeriodePage({
 
       {list.length === 0 ? (
         <EmptyState
-          icon="🗓️"
+          icon={<CalendarX className="w-6 h-6" />}
           title="Belum ada periode"
           description="Periode (kuartal) adalah gerbang seluruh proses penilaian. Buat yang pertama lewat form di atas, lalu lengkapi langkah berikut sebelum penilaian dapat diisi."
           steps={[
@@ -119,47 +112,48 @@ export default async function PeriodePage({
           note="Hanya satu periode aktif pada satu waktu."
         />
       ) : (
-      <Panel>
+      <div className={CARD}>
+      <CardTitle icon={CalendarRange} className="mb-3">Daftar Periode <span className="data-value text-[12px] font-semibold text-ink-soft">· {list.length}</span></CardTitle>
       <div className="overflow-x-auto">
-      <table className="w-full text-left min-w-[780px]">
+      <table className="w-full text-left text-[13px] min-w-[780px]">
         <thead>
-          <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
-            <th className="pb-3 pr-3 font-semibold">Periode</th>
-            <th className="pb-3 px-3 font-semibold">Rentang</th>
-            <th className="pb-3 px-3 text-center font-semibold">360°</th>
-            <th className="pb-3 px-3 text-center font-semibold">Deadline 360°</th>
-            <th className="pb-3 px-3 text-center font-semibold">Standar KPI</th>
-            <th className="pb-3 px-3 text-center font-semibold">Status</th>
-            <th className="pb-3 pl-3 text-right font-semibold"></th>
+          <tr className={`${TABLE_HEAD} border-b border-line`}>
+            <th className="py-2.5 px-3 font-semibold">Periode</th>
+            <th className="py-2.5 px-3 font-semibold">Rentang</th>
+            <th className="py-2.5 px-3 text-center font-semibold">360°</th>
+            <th className="py-2.5 px-3 text-center font-semibold">Deadline 360°</th>
+            <th className="py-2.5 px-3 text-center font-semibold">Standar KPI</th>
+            <th className="py-2.5 px-3 text-center font-semibold">Status</th>
+            <th className="py-2.5 px-3 text-right font-semibold"></th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-line-soft">
           {list.map((p) => (
-            <tr key={p.id} className="border-b border-line-soft last:border-0">
-              <td className="py-4 pr-3">
-                <span className="block text-[14px] font-bold text-ink">{p.label}</span>
-                <span className="text-[12px] text-ink-faint data-value">{p.code} · {monthCount.get(p.id) ?? 0} bln</span>
+            <tr key={p.id}>
+              <td className="py-3 px-3">
+                <span className="block text-[13px] font-bold text-ink">{p.label}</span>
+                <span className="text-[12px] text-ink-soft data-value">{p.code} · {monthCount.get(p.id) ?? 0} bln</span>
               </td>
-              <td className="py-4 px-3"><DateRange start={p.start_date} end={p.end_date} /></td>
-              <td className="py-4 px-3 text-center text-[13px]">
+              <td className="py-3 px-3"><DateRange start={p.start_date} end={p.end_date} /></td>
+              <td className="py-3 px-3 text-center">
                 {p.has_360
-                  ? <span className="font-medium text-brand-ink">Aktif</span>
-                  : <span className="text-ink-faint">Tanpa</span>}
+                  ? <span className="inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-semibold bg-brand-tint text-brand-ink">Aktif</span>
+                  : <span className="inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-semibold bg-neutral-tint text-ink-soft">Tanpa</span>}
               </td>
-              <td className="py-4 px-3 text-center">
+              <td className="py-3 px-3 text-center">
                 {p.has_360
                   ? <DeadlineEditor periodId={p.id} value={p.assessment_deadline} />
-                  : <span className="text-ink-faint">—</span>}
+                  : <span className="text-ink-soft">—</span>}
               </td>
-              <td className="py-4 px-3 text-center">
+              <td className="py-3 px-3 text-center">
                 <KpiStandardEditor periodId={p.id} value={p.kpi_standard} />
               </td>
-              <td className="py-4 px-3 text-center">
+              <td className="py-3 px-3 text-center">
                 {p.status === 'active'
                   ? <StatusChip tone="brand">Aktif</StatusChip>
                   : <StatusChip tone="neutral">Terkunci</StatusChip>}
               </td>
-              <td className="py-4 pl-3 text-right">
+              <td className="py-3 px-3 text-right">
                 <PeriodActions periodId={p.id} status={p.status} has360={p.has_360} formOpen={p.form_open} mappingPublished={p.mapping_published} />
               </td>
             </tr>
@@ -167,12 +161,12 @@ export default async function PeriodePage({
         </tbody>
       </table>
       </div>
-      </Panel>
+      </div>
       )}
-      <p className="text-[12px] text-ink-faint mt-5">
+      <div className="mt-4"><Note>
         Hanya satu periode aktif pada satu waktu — mengaktivasi periode akan mengunci yang lain.
         Periode baru harus diisi pertanyaan &amp; pemetaan (kelola terpisah) sebelum penilaian.
-      </p>
+      </Note></div>
       </>
       )}
     </Shell>
@@ -196,7 +190,7 @@ function parseYmd(s: string | null): { y: number; m: number; d: number } | null 
  */
 function DateRange({ start, end }: { start: string | null; end: string | null }) {
   const a = parseYmd(start), b = parseYmd(end);
-  if (!a || !b) return <span className="text-[13px] data-value text-ink-soft">{start} → {end}</span>;
+  if (!a || !b) return <span className="text-[13px] data-value text-ink-soft">{start} – {end}</span>;
 
   // Tahun ditulis sekali bila sama (mis. "1 Jan – 31 Mar 2026").
   const left = `${a.d} ${ID_MONTHS[a.m - 1]}${a.y !== b.y ? ` ${a.y}` : ''}`;
@@ -214,7 +208,7 @@ function DateRange({ start, end }: { start: string | null; end: string | null })
       <span className="block text-[13px] data-value text-ink whitespace-nowrap">{left} – {right}</span>
       <span className="mt-1 flex flex-wrap gap-1">
         {chips.map((c) => (
-          <span key={c.key} className="text-[10px] font-semibold text-ink-soft bg-neutral-tint border border-line rounded-control px-1.5 py-0.5">
+          <span key={c.key} className="text-[10px] font-semibold text-ink-soft bg-neutral-tint rounded-full px-1.5 py-0.5">
             {c.label}
           </span>
         ))}
@@ -224,5 +218,5 @@ function DateRange({ start, end }: { start: string | null; end: string | null })
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
+  return <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>{children}</main>;
 }

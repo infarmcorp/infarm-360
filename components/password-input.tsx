@@ -27,14 +27,14 @@ export function PasswordInput({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full text-sm px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 ${className}`}
+        className={`w-full text-[13px] min-h-9 px-3 pr-10 border border-line rounded-control bg-infarm-surface text-ink placeholder:text-ink-soft focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint ${className}`}
       />
       <button
         type="button"
         tabIndex={-1}
         onClick={() => setShow((s) => !s)}
         title={show ? 'Sembunyikan sandi' : 'Tampilkan sandi'}
-        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+        className="absolute inset-y-0 right-0 flex items-center pr-3 text-ink-faint hover:text-ink-soft"
       >
         {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
       </button>

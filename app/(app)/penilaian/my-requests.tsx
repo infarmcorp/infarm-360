@@ -1,4 +1,7 @@
+import { ArrowRight, ListChecks } from 'lucide-react';
 import type { RequestKind, CorrectionStatus, RelationKind } from '@/lib/database.types';
+import { CARD, CardTitle } from '@/components/infarm-ui';
+import { StatusChip } from '@/components/status-chip';
 
 export type MyRequest = {
   id: string;
@@ -32,36 +35,34 @@ export function MyRequests({ requests }: { requests: MyRequest[] }) {
   const pendingN = requests.filter((r) => r.status === 'pending').length;
 
   return (
-    <section className="mb-5 rounded-panel border border-line bg-surface p-4">
-      <h3 className="text-xs font-bold text-ink uppercase tracking-wide mb-2.5">
-        Permohonan Saya
+    <section className={`${CARD} mb-5`}>
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <CardTitle icon={ListChecks}>Permohonan Saya</CardTitle>
         {pendingN > 0 && (
-          <span className="ml-2 normal-case tracking-normal text-[10px] font-bold text-warn-ink bg-warn-tint border border-warn-ink/25 px-1.5 py-0.5 rounded-full">
-            <span className="data-value">{pendingN}</span> menunggu
-          </span>
+          <StatusChip tone="warn"><span className="data-value mr-1">{pendingN}</span> menunggu</StatusChip>
         )}
-      </h3>
+      </div>
 
-      <ul className="space-y-2">
+      <ul className="space-y-2.5">
         {requests.map((r) => (
-          <li key={r.id} className="rounded-control border border-line-soft p-2.5">
+          <li key={r.id} className="rounded-xl border border-line p-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[12.5px] font-semibold text-ink">{titleOf(r)}</p>
+                <p className="text-[13px] font-semibold text-ink">{titleOf(r)}</p>
                 {r.kind === 'relation' && (
-                  <p className="text-[11px] text-ink-faint mt-0.5">
-                    {REL_LABEL[r.oldRelation ?? ''] ?? '—'} → {REL_LABEL[r.newRelation ?? ''] ?? '—'}
+                  <p className="flex items-center gap-1 text-xs text-ink-soft mt-0.5">
+                    {REL_LABEL[r.oldRelation ?? ''] ?? '—'} <ArrowRight className="w-3.5 h-3.5 shrink-0" /> {REL_LABEL[r.newRelation ?? ''] ?? '—'}
                   </p>
                 )}
-                <p className="text-[11px] text-ink-soft italic mt-1">Alasan Anda: “{r.reason}”</p>
+                <p className="text-xs text-ink-soft italic mt-1">Alasan Anda: “{r.reason}”</p>
                 {/* Alasan penolakan HRD — inti dari "keputusan dua arah". */}
                 {r.status === 'rejected' && r.rejectReason && (
-                  <p className="text-[11px] text-danger-ink mt-1 bg-danger-tint border border-danger-ink/20 rounded-control px-2 py-1.5">
+                  <p className="text-xs text-danger-ink mt-2 bg-danger-tint rounded-control px-3 py-2 leading-relaxed">
                     <strong>Alasan HRD menolak:</strong> {r.rejectReason}
                   </p>
                 )}
                 {r.kind === 'add' && r.status === 'approved' && (
-                  <p className="text-[11px] text-brand-ink mt-1 bg-brand-tint border border-brand-ink/20 rounded-control px-2 py-1.5">
+                  <p className="text-xs text-brand-ink mt-2 bg-brand-tint rounded-control px-3 py-2 leading-relaxed">
                     Disetujui — buka tab <strong>Penilaian</strong>, cari {r.targetName}, lalu mulai menilai
                     (sifat <strong>Opsional</strong>).
                   </p>
@@ -76,12 +77,13 @@ export function MyRequests({ requests }: { requests: MyRequest[] }) {
   );
 }
 
+const REQ_STATUS: Record<CorrectionStatus, { label: string; tone: 'warn' | 'brand' | 'danger' }> = {
+  pending: { label: 'Menunggu', tone: 'warn' },
+  approved: { label: 'Disetujui', tone: 'brand' },
+  rejected: { label: 'Ditolak', tone: 'danger' },
+};
+
 function StatusChipReq({ status }: { status: CorrectionStatus }) {
-  const map: Record<CorrectionStatus, { label: string; cls: string }> = {
-    pending: { label: 'Menunggu', cls: 'bg-warn-tint text-warn-ink border-warn-ink/25' },
-    approved: { label: '✓ Disetujui', cls: 'bg-brand-tint text-brand-ink border-brand-ink/20' },
-    rejected: { label: '✗ Ditolak', cls: 'bg-danger-tint text-danger-ink border-danger-ink/20' },
-  };
-  const s = map[status];
-  return <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-control border ${s.cls}`}>{s.label}</span>;
+  const s = REQ_STATUS[status];
+  return <StatusChip tone={s.tone} className="shrink-0 whitespace-nowrap">{s.label}</StatusChip>;
 }

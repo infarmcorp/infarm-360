@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Save, Send, Trash2 } from 'lucide-react';
+import { Plus, Save, Send, Target, Trash2 } from 'lucide-react';
 import { Button } from '@/components/button';
+import { CARD, CardTitle, FIELD } from '@/components/infarm-ui';
 import { callAction, savedAtLabel } from '@/lib/call-action';
 import { PLAN_ITEM_FIELDS, PLAN_MAX_ITEMS, submitBlocker, type PlanItem } from '@/lib/dev-plan';
 import { saveMyPlan, submitMyPlan } from './actions';
@@ -45,51 +46,51 @@ export function PlanEditor({ periodId, initialItems, canSubmit }: { periodId: st
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {items.map((it, i) => (
-        <div key={i} className="rounded-panel border border-line overflow-hidden">
-          <div className="px-3 py-2 bg-neutral-tint border-b border-line-soft flex items-center justify-between">
-            <span className="text-xs font-extrabold text-ink uppercase tracking-wide">Prioritas {i + 1}</span>
+        <section key={i} className={CARD}>
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <CardTitle icon={Target}>Prioritas {i + 1}</CardTitle>
             {items.length > 1 && (
               <button type="button" disabled={busy} onClick={() => setItems((xs) => xs.filter((_, j) => j !== i))}
-                className="inline-flex items-center gap-1 text-[12px] font-semibold text-danger-ink hover:underline disabled:opacity-60">
+                className="inline-flex items-center gap-1 text-xs font-semibold text-danger-ink hover:underline disabled:opacity-60">
                 <Trash2 className="w-3.5 h-3.5" /> Hapus prioritas
               </button>
             )}
           </div>
           <div className="divide-y divide-line-soft">
             {PLAN_ITEM_FIELDS.map((f) => (
-              <label key={f.key} className="grid sm:grid-cols-[200px_1fr] gap-1 sm:gap-3 px-3 py-2 items-start">
-                <span className="text-[12px] font-semibold text-ink-soft pt-2">{f.label}</span>
+              <label key={f.key} className="grid sm:grid-cols-[200px_1fr] gap-1.5 sm:gap-3 py-2.5 items-start">
+                <span className="text-xs font-semibold text-ink-soft sm:pt-2">{f.label}</span>
                 <textarea value={it[f.key]} onChange={(e) => set(i, f.key, e.target.value)} disabled={busy}
                   rows={f.long ? 3 : 1}
-                  className="w-full text-[13px] px-2.5 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint resize-y" />
+                  className={`${FIELD} w-full py-2 resize-y`} />
               </label>
             ))}
           </div>
-        </div>
+        </section>
       ))}
 
       {items.length < PLAN_MAX_ITEMS && (
         <button type="button" disabled={busy} onClick={() => setItems((xs) => [...xs, { ...EMPTY }])}
-          className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-brand-ink hover:underline disabled:opacity-60">
+          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-ink hover:underline disabled:opacity-60">
           <Plus className="w-4 h-4" /> Tambah Prioritas
         </button>
       )}
 
-      <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
-        {msg && <span className={`text-[12px] font-semibold mr-auto ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
-        <Button variant={canSubmit ? 'ghost' : 'primary'} disabled={busy} onClick={() => save(false)}>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {msg && <span className={`text-xs font-semibold mr-auto ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
+        <Button variant={canSubmit ? 'ghost' : 'primary'} disabled={busy} onClick={() => save(false)} className="min-h-9">
           <Save className="w-4 h-4" /> {canSubmit ? 'Simpan Draf' : 'Simpan'}
         </Button>
         {canSubmit && (
-          <Button disabled={busy} onClick={() => save(true)}>
+          <Button disabled={busy} onClick={() => save(true)} className="min-h-9">
             <Send className="w-4 h-4" /> Kirim ke Atasan
           </Button>
         )}
       </div>
       {canSubmit && (
-        <p className="text-[11.5px] text-ink-faint text-right">
+        <p className="text-xs text-ink-soft text-right">
           Kirim ke Atasan = persetujuan Anda atas rencana ini. Setelah dikirim, isi tidak bisa diubah kecuali atasan meminta perbaikan.
         </p>
       )}

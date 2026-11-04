@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { FIELD, FIELD_LABEL } from '@/components/infarm-ui';
 
 /**
  * Kirim email reset sandi. redirectTo → /auth/callback (tukar code jadi sesi) lalu
@@ -29,9 +31,12 @@ export function LupaSandiForm() {
 
   if (sent) {
     return (
-      <div className="rounded-control bg-brand-tint p-4 text-sm text-brand-ink">
-        Jika email <strong>{email}</strong> terdaftar, tautan untuk membuat sandi baru telah dikirim.
-        Periksa kotak masuk (dan folder spam).
+      <div className="flex items-start gap-2 rounded-xl bg-brand-tint p-4 text-[13px] leading-relaxed text-brand-ink">
+        <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
+        <div>
+          Jika email <strong>{email}</strong> terdaftar, tautan untuk membuat sandi baru telah dikirim.
+          Periksa kotak masuk (dan folder spam).
+        </div>
       </div>
     );
   }
@@ -39,7 +44,7 @@ export function LupaSandiForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
-        <label className="block text-xs font-semibold text-ink-soft mb-1">Email</label>
+        <label className={FIELD_LABEL}>Email</label>
         <input
           type="email"
           required
@@ -47,14 +52,14 @@ export function LupaSandiForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="nama@infarm.test"
-          className="w-full text-sm px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
+          className={`w-full ${FIELD}`}
         />
       </div>
-      {error && <p className="text-xs text-danger-ink font-semibold">{error}</p>}
+      {error && <p className="flex items-start gap-1.5 rounded-control bg-danger-tint px-3 py-2 text-xs text-danger-ink font-semibold"><AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden />{error}</p>}
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand hover:bg-brand-ink disabled:opacity-60 text-white text-sm font-bold py-2 rounded-control transition-colors"
+        className="w-full min-h-9 bg-brand hover:bg-brand-ink disabled:opacity-60 text-white text-[13px] font-bold rounded-xl transition-colors"
       >
         {loading ? 'Mengirim…' : 'Kirim Tautan Reset'}
       </button>

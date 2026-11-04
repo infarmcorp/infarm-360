@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Download, FileText } from 'lucide-react';
+import { BookOpen, Download, FileText } from 'lucide-react';
+import { CARD, CardTitle } from '@/components/infarm-ui';
 
 const SEEN_KEY = 'panduan_seen_version';
 
@@ -31,29 +32,29 @@ export function PanduanCard({
 
   return (
     // Section mandiri (kartu) — sejajar dengan "Informasi Akun"/"Ganti Sandi" di Akun Saya.
-    <section className="bg-surface border border-line rounded-panel p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <h2 className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.07em]">Panduan Pengguna</h2>
+    <section className={CARD}>
+      <div className="flex items-center gap-2 mb-4">
+        <CardTitle icon={BookOpen}>Panduan Pengguna</CardTitle>
         {isNew && (
-          <span className="inline-flex items-center rounded-full bg-brand-tint px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-brand-ink">
+          <span className="inline-flex items-center rounded-full bg-brand-tint px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-brand-ink">
             Baru
           </span>
         )}
       </div>
 
       <div>
-        <div className="flex items-start gap-3">
-          <FileText className="w-5 h-5 shrink-0 text-brand mt-0.5" aria-hidden />
+        <div className="flex items-center gap-3">
+          <span className="w-10 h-10 rounded-xl bg-brand-tint text-brand-ink flex items-center justify-center shrink-0" aria-hidden><FileText className="w-5 h-5" /></span>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold text-ink">{label}</div>
-            <div className="text-[11px] text-ink-faint">Diperbarui {updatedLabel}</div>
+            <div className="text-[13px] font-semibold text-ink">{label}</div>
+            <div className="text-xs text-ink-soft mt-0.5">Diperbarui {updatedLabel}</div>
           </div>
         </div>
         <a
           href={href} download={filename} onClick={markSeen}
-          className="mt-3 inline-flex items-center gap-1.5 rounded-control bg-brand px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-ink"
+          className="mt-4 inline-flex items-center justify-center gap-1.5 min-h-9 px-4 rounded-xl bg-brand hover:bg-brand-ink text-white text-[13px] font-bold transition-colors"
         >
-          <Download className="w-3.5 h-3.5" aria-hidden /> Unduh PDF
+          <Download className="w-4 h-4" aria-hidden /> Unduh PDF
         </a>
       </div>
     </section>

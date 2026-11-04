@@ -199,60 +199,48 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
 - `lib/score360.ts` diekstrak dari `app/(app)/admin/360/actions.ts` — jaga sinkron.
 - **Mengubah rumus atau ambang** = ubah kode + tes + tabel TEKNIS.md §4 sekaligus.
 
-## 8. Design System — token (acuan tetap)
-- Sumber tunggal `app/globals.css` (`@theme` + `.data-value`). **Selalu** pakai utilitas token (`bg-brand`,
-  `text-ink-soft`, `border-line`, `rounded-panel`, …); **jangan** hex mentah / palet Tailwind default
-  (`emerald-*`, `gray-*`, `indigo-*`, `amber-*`, `rose-*`, `slate-*`, `rounded-lg`, `shadow-sm`).
-  Acuan: Kelola Siklus Periode (`app/(app)/admin/periode/`) + sidebar (`app-shell.tsx`).
-- **Brand** `--color-brand #00843b` (+ `brand-ink #006B31`, `brand-tint #E4F3E9`) **hanya** untuk primary action
-  & elemen aktif (tombol utama, item sidebar aktif, ring fokus).
-- Status/badge = **soft-tint** via `StatusChip` (`components/status-chip.tsx`, tone `neutral|brand|warn|danger`);
-  solid hanya primary button.
-- Pemetaan semantik (invariant): **brand** = primary/aktif/positif (terpilih, "Terkirim") · **warn** =
-  peringatan/pending/obligasi ("Wajib", draf, skor basi, "Lengkapi") · **danger** = error/destruktif/wajib-isi ·
-  **neutral** = nonaktif/info. Chart 2 seri: utama = brand, pembanding = warn (radar Rekan vs Self; hex SVG =
-  nilai `--color-*`).
-- Border `--color-line #E4E6E2`; radius `--radius-panel 10px` / `--radius-control 7px`; **tanpa shadow** kecuali
-  elemen mengambang. Kartu = `Panel` (flat, kurangi nested card). Tombol = `Button` (`primary|ghost|danger`);
-  aksi sekunder di tabel → `OverflowMenu` (⋯), satu primary per baris. Microcopy panjang → footnote/tooltip.
-  Kanvas `bg-bg` + `px-5 py-7`, tanpa wrapper putih besar.
-- Font = **font bawaan sistem** (keputusan pengguna 2026-10-16; Google Fonts Montserrat/Plex **tidak** diunduh —
-  saat sempat termuat, teks terlalu lebar). Monospace via `.data-value` (alias `.mono`, `tabular-nums`) untuk
-  **semua** angka/data/ID — jangan untuk kalimat. Jangan tambahkan font eksternal tanpa permintaan.
-- **Design System Infarm** (pemilik, 2026-11-03/04; artifact "Infarm" dari Infarm-Web) — dipakai halaman grup
-  **Pemantauan & Laporan** + halaman SPV yang berbagi komponen: Dashboard Organisasi, Monitor Kinerja Pegawai &
-  Monitor Kinerja (SPV), Struktur Organisasi, Input KPI / Monitoring & Audit KPI (`kpi/`), Log Aktivitas HRD, Ekspor
-  Dataset, Laporan Kinerja Tim, grup **Hasil & Tindak Lanjut** (Review & Finalisasi — `ReportTable` juga dipakai
-  Tinjauan Hasil Akhir Direksi —, Pantauan Rencana Pengembangan, Promosi & Suksesi), grup **Pelaksanaan** (Progress 360, Flag Kepatuhan) dan
-  **Administrasi** (Kelola Pegawai, Manajemen Akses). Untuk halaman-halaman itu aturan ini menggantikan aturan token di atas (pengecualian
-  "Monitor tetap berwarna/biru" DICABUT 2026-11-04). Halaman lain menyusul hanya bila diminta.
-  - Primitif bersama `components/infarm-ui.tsx` (tanpa hook; aman server/klien): `CARD`, `PageTitle`, `CardTitle`
-    (ikon lucide), `SectionHeader`, `Note`, `StatCard(s)`, `FIELD`/`FIELD_LABEL`/`TABLE_HEAD`/`pillCls`, palet
-    `CAT_COLOR` (≥90 cokelat `#6b4e3d` · 80–89 hijau · 70–79 kuning · <70 merah), `PLAYER_TONE` (4-Box), `TREND_CHIP`.
-    Heatmap = `heatColorInfarm` (= `heatColor`, ujung biru → cokelat). **Jangan** ubah `PLAYER_BOXES`/`TREND_META`/
-    `heatColor` di `lib/` untuk ini (masih dipakai halaman lain, mis. laporan).
-  - Kanvas `<main>` = `INFARM_PAGE` (`app/infarm-fonts.ts`) — impor HANYA dari page.tsx (next/font tak berjalan di
-    Vitest). Font `next/font/local` + woff2 di `app/fonts/` (jangan `next/font/google`: build Turbopack Vercel gagal) =
-    Geist teks · Geist Mono angka/data · Montserrat h1–h4 (Geist Mono untuk semua teks dicoba & ditolak); aturan
-    `.infarm-ds` wajib di `@layer base` agar utilitas bisa menimpanya. Token `infarm-*`, `rounded-card` 16px, `shadow-card`.
-  - **Bagian harus jelas terpisah** (pengguna 2026-11-04 — versi pertama "menyaru"): `SectionHeader` bergaris aksen +
-    pemisah; ringkasan = kartu terpisah berikon, hanya angka utama hijau; judul kartu berikon; kartu bergaris tepi +
-    bayangan; catatan kecil & netral. Jangan gabungkan metrik ke satu blok berwarna. Tanpa emoji di UI; tanpa biru/ungu.
-  - Skala ukuran RAPAT (pengguna 2026-11-04 — skala besar 30/18/14 + kontrol 44px ditolak: "besar-besar", kurang rapi):
-    h1 22 · angka utama ringkasan 20 · angka kartu 18 · judul kartu 16 bold (ikon 16px tanpa kotak) · isi 13 ·
-    keterangan 12 · label bagian 12 kapital · kontrol/tombol tinggi 36px · kartu p-4 · sidebar 12px. Filter tunggal = label
-    sejajar ("Periode: [ ]") tanpa kartu. Seri chart: utama `#00843b` · pembanding
-    `#f08c00` · ketiga `#3b4a2e` putus-putus.
-- **Sidebar** (`app-shell.tsx`, pemilik 2026-11-04): putih bergaya Design System Infarm di **semua** halaman, bisa ditutup
-  di desktop (tombol ☰ di bilah atas; cookie `sidebar_collapsed` dibaca `layout.tsx` agar tak berkedip). Saat ditutup,
-  navigasi pindah ke bilah atas: jejak grup › halaman + ▾ halaman segrup + pil periode/Tugas/mode. Isi `menuFor`
-  (menu, urutan, gate akses) tidak berubah; HP tetap laci. Token `--color-sidebar*` masih dipakai laporan.
-- ⚠️ `laporan-tim/team-table.tsx` & `scorecards.tsx` dipakai bersama Monitor — mengubahnya mengubah Monitor.
+## 8. Design System Infarm (acuan tetap — seluruh aplikasi sejak 2026-11-04)
+Pemilik memilih Design System Infarm (artifact "Infarm" dari Infarm-Web) untuk **semua** halaman, login, dan komponen
+bersama (2026-11-03/04). Aturan token & "kartu flat tanpa bayangan / font sistem" yang lama tidak berlaku lagi.
+- **Token** di `app/globals.css` (`@theme`) — **selalu** pakai utilitas token: `surface`, `ink`/`ink-soft`/`ink-faint`,
+  `line`/`line-soft`/`line-strong`, `brand`/`brand-tint`/`brand-ink`, `warn`/`warn-tint`/`warn-ink`,
+  `danger-tint`/`danger-ink`, `neutral-tint`, `infarm-surface`/`infarm-light`/`infarm-soil`/`infarm-cream`/`infarm-dark`,
+  `rounded-card` (16px) / `rounded-control` / `rounded-xl`, `shadow-card`. **Jangan** hex mentah di kelas, palet
+  Tailwind default (`gray-*`, `emerald-*`, `rose-*`, `amber-*`, `indigo-*`, `blue-*`, …), `rounded-2xl`, `shadow-xs`.
+  **Tanpa biru/ungu**, **tanpa emoji** di UI (ikon = `lucide-react`). Teks ≥ 10px, kontras AA (`ink-faint` hanya dekorasi).
+- **Primitif** `components/infarm-ui.tsx` (tanpa hook; aman server/klien): `CARD` (putih, garis tepi + bayangan tipis),
+  `PageTitle`, `CardTitle` (ikon lucide 16px), `SectionHeader` (garis aksen + pemisah), `Note` (penjelas kecil netral;
+  `tone="warn"`), `StatCard(s)` (tone `brand|danger|warn|soil|neutral`; hanya angka utama berlatar hijau), `FIELD`/
+  `FIELD_LABEL`/`TABLE_HEAD`/`pillCls`, palet `CAT_COLOR` (≥90 cokelat `#6b4e3d` · 80–89 hijau · 70–79 kuning · <70 merah),
+  `PLAYER_TONE` (4-Box), `TREND_CHIP`. Heatmap = `heatColorInfarm` (= `heatColor`, ujung biru → cokelat). Komponen bersama
+  (`Button`, `Panel`, `StatusChip`, `ConfirmDialog`, `EmptyState`, `SearchableSelect`, `table-controls`, `TabNav`, …) sudah
+  bergaya ini; `ConfirmDialog`/`EmptyState` mengubah string emoji di prop `icon` menjadi ikon lucide (`components/emoji-icon.tsx`)
+  — pemanggil baru sebaiknya langsung memberi elemen ikon. **Jangan** ubah `PLAYER_BOXES`/`TREND_META`/`heatColor` di `lib/`.
+- **Kanvas** `<main>` = `INFARM_PAGE` (`app/infarm-fonts.ts`) + `px-5 py-7 lg:px-7` — impor HANYA dari `page.tsx`
+  (next/font tak berjalan di Vitest). Laporan cetak: `print:bg-white`, kartu `print:shadow-none`, pertahankan `.no-print`.
+- **Font** `next/font/local` + woff2 di `app/fonts/` (jangan `next/font/google`: build Turbopack Vercel gagal) = Geist teks ·
+  Geist Mono semua angka/data/ID · Montserrat h1–h4 (Geist Mono untuk semua teks dicoba & ditolak). Aturan `.infarm-ds`
+  wajib di `@layer base` agar utilitas bisa menimpanya. Sidebar (di luar `.infarm-ds`) tetap font sistem.
+- **Bagian harus jelas terpisah** (pengguna 2026-11-04 — versi pertama "menyaru"): `SectionHeader`, kartu metrik terpisah
+  berikon, judul kartu berikon, kartu bergaris tepi + bayangan, catatan kecil & netral. Jangan gabungkan metrik ke satu
+  blok berwarna.
+- **Skala RAPAT** (pengguna 2026-11-04 — skala besar 30/18/14 + kontrol 44px ditolak: "besar-besar", kurang rapi):
+  h1 22 · angka utama ringkasan 20 · angka kartu 18 · judul kartu 16 bold · isi 13 · keterangan 12 · label bagian 12
+  kapital · kontrol/tombol tinggi 36px · kartu p-4 · sidebar 12px. Filter tunggal = label sejajar ("Periode: [ ]") tanpa
+  kartu. Seri chart: utama `#00843b` · pembanding `#f08c00` (mis. radar Self — oranye, keputusan pengguna) · ketiga
+  `#3b4a2e` putus-putus.
+- Pemetaan semantik (invariant): **brand** = primary/aktif/positif ("Terkirim", Final) · **warn** = peringatan/pending/
+  obligasi ("Wajib", draf, skor basi) · **danger** = error/destruktif/terlambat · **neutral** = nonaktif/info. Solid hanya
+  tombol utama; status = chip soft-tint `rounded-full`. Satu tombol utama per baris tabel; aksi lain → `OverflowMenu`.
+- **Sidebar** (`app-shell.tsx`, pemilik 2026-11-04): putih, bisa ditutup di desktop (tombol ☰ di bilah atas; cookie
+  `sidebar_collapsed` dibaca `layout.tsx` agar tak berkedip). Saat ditutup: jejak grup › halaman + ▾ halaman segrup + pil
+  periode/Tugas/mode. Isi `menuFor` (menu, urutan, gate akses) tidak berubah; HP tetap laci.
+- ⚠️ `laporan-tim/team-table.tsx` & `scorecards.tsx` dipakai bersama Monitor; `admin/laporan/report-table.tsx` dipakai juga
+  Tinjauan Hasil Akhir (Direksi) — mengubahnya mengubah halaman lain.
 - **Tabel berpager wajib stabil** (2026-10-15): `table-fixed` + `<colgroup>` (`colPercents`), kelas `table-1line`
   (isi sel 1 baris, keputusan pengguna), dan tabel + pager dibungkus `StableHeight` (`components/table-controls.tsx`)
   — ukuran tak boleh bergeser saat paging/filter/tab. Daftar yang barisnya bisa dibuka-tutup (Progress 360) dikecualikan.
-- Audit kontras (2026-06-19): teks harus lulus WCAG AA (dulu `text-gray-400` → `gray-500`) dan ≥ 10px; label di dalam SVG chart (radar `report-doc`,
-  `monitor-chart`) dikecualikan agar grafik tak berdesakan.
+- Label di dalam SVG chart (radar `report-doc`, grafik Monitor) boleh < 10px agar grafik tak berdesakan.
 
 ## 9. Konvensi & pengujian
 - TS strict; hindari `any`. Komentar & label UI bahasa Indonesia mengikuti istilah PANDUAN ("Mulai Nilai",

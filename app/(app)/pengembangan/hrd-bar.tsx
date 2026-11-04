@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check } from 'lucide-react';
+import { Check, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/button';
+import { CARD, CardTitle } from '@/components/infarm-ui';
 import { callAction } from '@/lib/call-action';
 import { approveAsHrd } from './actions';
 
@@ -17,10 +18,10 @@ export function HrdBar({ planId }: { planId: string }) {
   const [busy, start] = useTransition();
 
   return (
-    <div className="rounded-panel border border-line bg-neutral-tint p-3 flex flex-wrap items-center gap-2">
-      <span className="text-[12.5px] font-semibold text-ink mr-auto">Aksi HRD</span>
-      {err && <span className="text-[12px] text-danger-ink font-semibold w-full sm:w-auto">{err}</span>}
-      <Button size="sm" disabled={busy} onClick={() => {
+    <div className={`${CARD} flex flex-wrap items-center gap-3`}>
+      <CardTitle icon={ShieldCheck} className="mr-auto">Aksi HRD</CardTitle>
+      {err && <span className="text-xs text-danger-ink font-semibold w-full sm:w-auto">{err}</span>}
+      <Button size="sm" className="min-h-9" disabled={busy} onClick={() => {
         setErr(null);
         start(async () => {
           const r = await callAction(() => approveAsHrd(planId));

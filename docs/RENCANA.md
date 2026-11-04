@@ -217,12 +217,9 @@ Dipindah ke §2 bila diputuskan dikerjakan.
   model. Perlu persetujuan kebijakan internal.
 - **Pengaman warna otomatis**: pengecekan otomatis yang menolak warna di luar palet resmi agar halaman baru
   tidak kembali ke gaya lama.
-- **Design System Infarm ke halaman lain.** Sudah: sidebar (semua halaman), grup Pemantauan & Laporan (Dashboard,
-  Monitor, Struktur, Monitoring & Audit KPI, Log Aktivitas, Ekspor), serta Monitor Kinerja, Laporan Kinerja Tim,
-  Input KPI Anggota, grup Hasil & Tindak Lanjut, Pelaksanaan, dan Administrasi (2026-11-03/04). Belum: grup
-  Persiapan Siklus, Daftar Penilaian Saya, Laporan Hasil Saya (mockup sudah disetujui), Rencana Pengembangan (pegawai),
-  Tinjauan Hasil Akhir, Akun Saya. Komponen bersama yang masih bergaya lama: kotak konfirmasi (masih memakai emoji),
-  tombol standar, dropdown berpencarian, dan filter centang.
+- **Design System Infarm — rapikan sisa.** Seluruh halaman sudah memakainya (2026-11-04). Sisa kecil: pemanggil kotak
+  konfirmasi/tampilan kosong masih mengirim emoji (diubah otomatis jadi ikon); tampilan perlu dicek langsung di Preview
+  per halaman dan per peran, termasuk cetak PDF laporan.
 - **Mode gelap.** Palet sudah mendukung; belum diminta.
 - **Ganti email sendiri** di Akun Saya.
 - **Email anti-spam permanen**: domain sendiri + layanan Resend.

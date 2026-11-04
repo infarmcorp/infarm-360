@@ -1,6 +1,10 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { ChevronLeft } from 'lucide-react';
+import { CARD, PageTitle } from '@/components/infarm-ui';
+import { StatusChip } from '@/components/status-chip';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { AssessForm } from './assess-form';
 import { ReadOnlyView } from './read-only-view';
 import { isPastDeadline } from '@/lib/late';
@@ -106,24 +110,25 @@ export default async function AssessPage({
   const locked = existing?.status === 'submitted' && isPastDeadline(ap.assessment_deadline);
 
   return (
-    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
-      <div className="bg-surface border border-line rounded-panel p-5">
-        <div className="flex items-center justify-between mb-1">
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">{locked ? 'Lihat Penilaian' : 'Mulai Nilai'}</h1>
-          <Link href="/penilaian" className="text-xs text-ink-faint hover:text-ink-soft">← Daftar</Link>
-        </div>
-        <p className="text-[13.5px] text-ink-soft mb-4">
-          Menilai <span className="font-bold text-ink">{target?.name ?? '—'}</span>
-          {' '}({target?.dept}) · {mapping.relation} ·{' '}
-          <span className={mapping.mandatory ? 'text-warn-ink font-semibold' : 'text-ink-faint'}>
-            {mapping.mandatory ? 'Wajib' : 'Opsional'}
-          </span> · Periode {ap.label}
-          {existing?.status === 'submitted' && (
-            <span className="ml-2 text-[10px] font-bold text-brand-ink bg-brand-tint border border-brand-ink/20 px-2 py-0.5 rounded-control">
-              {locked ? 'Terkirim — terkunci (deadline lewat)' : 'Sudah terkirim — mengedit (sampai deadline) akan memperbarui'}
-            </span>
-          )}
-        </p>
+    <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <PageTitle title={locked ? 'Lihat Penilaian' : 'Mulai Nilai'}>
+          <span className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+            <span>Menilai <span className="font-bold text-ink">{target?.name ?? '—'}</span>{' '}({target?.dept}) · {mapping.relation} ·</span>
+            <StatusChip tone={mapping.mandatory ? 'warn' : 'neutral'}>{mapping.mandatory ? 'Wajib' : 'Opsional'}</StatusChip>
+            <span>· Periode {ap.label}</span>
+            {existing?.status === 'submitted' && (
+              <StatusChip tone="brand">
+                {locked ? 'Terkirim — terkunci (deadline lewat)' : 'Sudah terkirim — mengedit (sampai deadline) akan memperbarui'}
+              </StatusChip>
+            )}
+          </span>
+        </PageTitle>
+        <Link href="/penilaian" className="inline-flex items-center gap-1 text-xs font-semibold text-ink-soft hover:text-brand-ink mt-1.5">
+          <ChevronLeft className="w-4 h-4" aria-hidden /> Daftar
+        </Link>
+      </div>
+      <div>
 
         {/* Exposure Check (BR-03) DICABUT 2026-09-29 (permintaan pengguna) — dari UI & server; langsung
             ke form penilaian. Kolom DB exposure_* dibiarkan kosong & dikunci trigger (migrasi 0044).
@@ -133,9 +138,9 @@ export default async function AssessPage({
             "Umpan Balik Kualitatif" atau menampilkan jawaban target lama. */}
         {existing?.status === 'invalidated' ? (
           // Dibatalkan validitasnya oleh HRD (0046): arsip, tak bisa diubah; DB juga menolak tulis.
-          <div className="rounded-panel border border-line bg-neutral-tint p-4">
+          <div className={CARD}>
             <p className="text-[13px] font-bold text-ink">Penilaian ini dibatalkan validitasnya oleh HRD</p>
-            <p className="text-[12px] text-ink-soft mt-1 leading-relaxed">
+            <p className="text-[13px] text-ink-soft mt-1 leading-relaxed">
               Penilaian Anda untuk rekan ini dinyatakan tidak valid, sehingga tidak dihitung dalam Skor 360° dan
               bukan lagi kewajiban Anda. Jawaban tidak dapat diubah. Hubungi HRD bila ada pertanyaan.
             </p>
@@ -173,11 +178,11 @@ export default async function AssessPage({
 
 function Notice({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
-      <div className="bg-surface border border-line rounded-panel p-5">
-        <p className="text-sm text-ink-soft">{children}</p>
-        <Link href="/penilaian" className="text-xs text-brand-ink hover:underline mt-3 inline-block">
-          ← Kembali ke Daftar Penilaian Saya
+    <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>
+      <div className={CARD}>
+        <p className="text-[13px] text-ink-soft">{children}</p>
+        <Link href="/penilaian" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-ink hover:underline mt-3">
+          <ChevronLeft className="w-4 h-4" aria-hidden /> Kembali ke Daftar Penilaian Saya
         </Link>
       </div>
     </main>

@@ -5,6 +5,12 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, CheckCircle2, X, Send, Save, XCircle, Trash2, ClipboardList, ChevronDown, Loader2, Pencil, ListChecks } from 'lucide-react';
 import { submitAssessment, discardAssessment } from '../actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { CARD } from '@/components/infarm-ui';
+import { BTN_DANGER_GHOST, BTN_GHOST, BTN_PRIMARY, FIELD_AREA, FIELD_AREA_MISSING } from '../penilaian-ui';
+
+// Tombol "Lengkapi" — oranye solid (sengaja mencolok); ukuran sama dengan BTN_* (skala rapat).
+const BTN_WARN = 'inline-flex items-center justify-center gap-1.5 rounded-xl font-bold text-[13px] min-h-9 px-4 transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-warn text-ink hover:brightness-95';
+const KBD = 'data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded-control px-1';
 
 type Indicator = { id: string; text: string; description?: string | null; ratingGuide?: Record<string, string> | null; ratingKeyPoints?: Record<string, string> | null };
 type Group = { id: string; name: string; indicators: Indicator[] };
@@ -297,26 +303,26 @@ export function AssessForm({
     const doneNow = mandatoryDoneOthers + (thisMandatory ? 1 : 0);
     const remaining = Math.max(0, mandatoryTotal - doneNow);
     return (
-      <div className="flex flex-col items-center text-center py-10 px-4">
+      <div className={`${CARD} flex flex-col items-center text-center py-10 px-4`}>
         <div className="w-16 h-16 rounded-full bg-brand-tint flex items-center justify-center mb-4">
-          <CheckCircle2 className="w-9 h-9 text-brand" />
+          <CheckCircle2 className="w-9 h-9 text-brand" aria-hidden />
         </div>
-        <h2 className="text-lg font-extrabold text-ink">Penilaian Terkirim ✓</h2>
-        <p className="text-sm text-ink-soft mt-1.5 max-w-md">
+        <h2 className="text-lg font-bold text-ink">Penilaian Terkirim</h2>
+        <p className="text-[13px] text-ink-soft mt-1.5 max-w-md leading-relaxed">
           Penilaian untuk <span className="font-bold text-ink">{targetName}</span> berhasil dikirim.
           {deadlinePassed
             ? <>Deadline sudah lewat, sehingga penilaian ini <span className="font-semibold">tidak dapat diubah lagi</span>.</>
             : <>Anda masih bisa <span className="font-semibold">mengeditnya sampai deadline</span> dari Daftar Penilaian.</>}
         </p>
         {mandatoryTotal > 0 && (
-          <div className={`mt-4 px-4 py-2.5 rounded-panel border text-sm font-bold ${remaining > 0 ? 'bg-warn-tint border-warn-ink/30 text-warn-ink' : 'bg-brand-tint border-brand-ink/25 text-brand-ink'}`}>
+          <div className={`mt-4 px-4 py-2.5 rounded-xl text-[13px] font-semibold ${remaining > 0 ? 'bg-warn-tint text-warn-ink' : 'bg-brand-tint text-brand-ink'}`}>
             {remaining > 0
-              ? <>Penilaian wajib: {doneNow}/{mandatoryTotal} selesai · <span className="font-extrabold">masih ada {remaining} lagi</span> untuk dikerjakan.</>
-              : <>🎉 Semua {mandatoryTotal} penilaian wajib Anda sudah selesai!</>}
+              ? <>Penilaian wajib: <span className="data-value">{doneNow}/{mandatoryTotal}</span> selesai · <span className="font-bold">masih ada <span className="data-value">{remaining}</span> lagi</span> untuk dikerjakan.</>
+              : <>Semua <span className="data-value">{mandatoryTotal}</span> penilaian wajib Anda sudah selesai!</>}
           </div>
         )}
         <button type="button" onClick={() => { router.push('/penilaian'); router.refresh(); }}
-          className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2.5 rounded-control bg-brand hover:bg-brand-ink text-white">
+          className={`${BTN_PRIMARY} mt-5`}>
           <ChevronLeft className="w-4 h-4" /> {remaining > 0 ? 'Lanjut ke Penilaian Berikutnya' : 'Kembali ke Daftar Penilaian'}
         </button>
       </div>
@@ -326,9 +332,9 @@ export function AssessForm({
   return (
     <div className="space-y-4">
       {/* Bar progres + indikator auto-simpan */}
-      <div className="bg-surface border border-line rounded-panel p-3 space-y-2">
+      <div className={`${CARD} space-y-2`}>
         <div className="flex items-center gap-3">
-          <div className="h-2.5 bg-neutral-tint flex-1 rounded-full overflow-hidden">
+          <div className="h-2 bg-neutral-tint flex-1 rounded-full overflow-hidden">
             <div style={{ width: `${pct}%` }} className="h-full bg-brand rounded-full transition-all" />
           </div>
           <span className="text-xs font-bold text-brand-ink data-value shrink-0">{progDone}/{progTotal} · {pct}%</span>
@@ -338,15 +344,15 @@ export function AssessForm({
 
       {/* Panduan Penilaian Umum (statis, berlaku semua pertanyaan) — disembunyikan di halaman Review. */}
       {!reviewing && (
-      <div className="bg-neutral-tint border border-line rounded-panel">
+      <div className="bg-neutral-tint rounded-xl">
         <button type="button" onClick={() => setGuideOpen((o) => !o)}
-          className="w-full flex items-center gap-2 px-4 py-2.5 text-left">
+          className="w-full flex items-center gap-2 px-4 min-h-9 py-2 text-left">
           <ClipboardList className="w-4 h-4 text-brand shrink-0" />
-          <span className="text-xs font-extrabold text-ink flex-1">Panduan Penilaian Umum</span>
+          <span className="text-[13px] font-bold text-ink flex-1">Panduan Penilaian Umum</span>
           <ChevronDown className={`w-4 h-4 text-ink-faint transition-transform ${guideOpen ? 'rotate-180' : ''}`} />
         </button>
         {guideOpen && (
-          <ul className="list-disc list-inside space-y-1.5 px-4 pb-3 text-[11px] text-ink-soft leading-relaxed">
+          <ul className="list-disc list-inside space-y-1.5 px-4 pb-3 text-xs text-ink-soft leading-relaxed">
             {GENERAL_GUIDE.map((g, i) => <li key={i}>{g}</li>)}
           </ul>
         )}
@@ -362,7 +368,7 @@ export function AssessForm({
       <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-4">
         {/* RAIL aspek — HP: strip horizontal yang bisa di-geser; layar lebar (lg): vertikal. */}
         <div>
-          <label className="block text-[11px] font-bold text-ink-faint uppercase tracking-wider mb-1.5">Aspek Budaya</label>
+          <label className="block text-xs font-bold uppercase tracking-[0.08em] text-ink-soft mb-1.5">Aspek Budaya</label>
           <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
           {aspectGroups.map((g) => {
             const items = flat.filter((f) => f.gid === g.id);
@@ -371,24 +377,24 @@ export function AssessForm({
             const active = activeGroup === g.id;
             return (
               <button key={g.id} type="button" onClick={() => selectGroup(g.id)}
-                className={`shrink-0 w-[150px] lg:w-full p-3 rounded-control border text-left transition-all ${active ? 'border-brand bg-brand-tint ring-1 ring-brand' : 'border-line bg-surface hover:bg-neutral-tint'}`}>
-                <span className={`text-xs leading-tight block ${active ? 'font-extrabold text-brand-ink' : 'font-semibold text-ink-soft'}`}>{g.name}</span>
-                <span className="flex items-center justify-between mt-1.5 text-[10px] font-bold text-ink-faint">
-                  <span>{items.length} indikator</span>
+                className={`shrink-0 w-[150px] lg:w-full p-3 rounded-xl border text-left transition-colors ${active ? 'border-brand bg-brand-tint ring-1 ring-brand' : 'border-line bg-surface hover:border-infarm-light'}`}>
+                <span className={`text-[13px] leading-tight block ${active ? 'font-bold text-brand-ink' : 'font-semibold text-ink'}`}>{g.name}</span>
+                <span className="flex items-center justify-between mt-1.5 text-[11px] font-semibold text-ink-soft">
+                  <span><span className="data-value">{items.length}</span> indikator</span>
                   {all
                     ? <CheckCircle2 className="w-4 h-4 text-brand" />
-                    : <span className="px-1.5 py-0.5 rounded-control bg-neutral-tint text-ink-soft data-value">{done}/{items.length}</span>}
+                    : <span className="px-1.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft data-value">{done}/{items.length}</span>}
                 </span>
               </button>
             );
           })}
           {hasQual && (
             <button type="button" onClick={() => selectGroup(QUAL)}
-              className={`shrink-0 w-[150px] lg:w-full p-3 rounded-control border text-left transition-all ${activeGroup === QUAL ? 'border-brand bg-brand-tint ring-1 ring-brand' : 'border-line bg-surface hover:bg-neutral-tint'}`}>
-              <span className={`text-xs leading-tight block ${activeGroup === QUAL ? 'font-extrabold text-brand-ink' : 'font-semibold text-ink-soft'}`}>Umpan Balik Kualitatif</span>
-              <span className="flex items-center justify-between mt-1.5 text-[10px] font-bold text-ink-faint">
-                <span>{questions.length} pertanyaan</span>
-                <span className={`px-1.5 py-0.5 rounded-control data-value ${qualDone >= questions.length ? 'bg-brand-tint text-brand-ink' : 'bg-neutral-tint text-ink-soft'}`}>{qualDone}/{questions.length}</span>
+              className={`shrink-0 w-[150px] lg:w-full p-3 rounded-xl border text-left transition-colors ${activeGroup === QUAL ? 'border-brand bg-brand-tint ring-1 ring-brand' : 'border-line bg-surface hover:border-infarm-light'}`}>
+              <span className={`text-[13px] leading-tight block ${activeGroup === QUAL ? 'font-bold text-brand-ink' : 'font-semibold text-ink'}`}>Umpan Balik Kualitatif</span>
+              <span className="flex items-center justify-between mt-1.5 text-[11px] font-semibold text-ink-soft">
+                <span><span className="data-value">{questions.length}</span> pertanyaan</span>
+                <span className={`px-1.5 py-0.5 rounded-full data-value ${qualDone >= questions.length ? 'bg-brand-tint text-brand-ink' : 'bg-neutral-tint text-ink-soft'}`}>{qualDone}/{questions.length}</span>
               </span>
             </button>
           )}
@@ -398,34 +404,33 @@ export function AssessForm({
         {/* EDITOR */}
         <div ref={editorRef} className="min-w-0 scroll-mt-24">
           {activeGroup === QUAL ? (
-            <div className="border border-line rounded-panel p-5 space-y-4">
-              <h3 className="text-sm font-extrabold text-ink">Umpan Balik Kualitatif <span className="text-[10px] font-bold text-danger-ink">(wajib diisi semua)</span></h3>
-              <p className="text-[10px] text-ink-faint -mt-2">
-                Tekan <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Enter</kbd> untuk pindah ke pertanyaan berikutnya
-                · <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Shift+Enter</kbd> baris baru.
+            <div className={`${CARD} space-y-4`}>
+              <h3 className="text-base font-bold text-ink">Umpan Balik Kualitatif <span className="text-xs font-semibold text-danger-ink">(wajib diisi semua)</span></h3>
+              <p className="text-xs text-ink-soft -mt-2">
+                Tekan <kbd className={KBD}>Enter</kbd> untuk pindah ke pertanyaan berikutnya
+                · <kbd className={KBD}>Shift+Enter</kbd> baris baru.
               </p>
               {questions.map((q, qi) => {
                 const filled = (answers[q.id] ?? '').trim().length > 0;
                 return (
                   <div key={q.id}>
-                    <p className="text-sm text-ink-soft mb-1.5">{q.text} <span className="text-danger-ink">*</span></p>
+                    <p className="text-[13px] font-semibold text-ink mb-1.5">{q.text} <span className="text-danger-ink">*</span></p>
                     <textarea rows={2} value={answers[q.id]} onChange={(e) => setAnswers((p) => ({ ...p, [q.id]: e.target.value }))}
                       ref={(el) => { qualRefs.current[qi] = el; }}
                       onKeyDown={(e) => onQualKeyDown(e, qi)}
                       placeholder="Tulis jawaban Anda…"
-                      className={`w-full text-xs px-3 py-2 border rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint ${filled ? 'border-line' : 'border-danger-ink/40'}`} />
-                    {!filled && <p className="text-[10px] text-danger-ink font-semibold mt-0.5">Wajib diisi</p>}
+                      className={filled ? FIELD_AREA : FIELD_AREA_MISSING} />
+                    {!filled && <p className="text-xs text-danger-ink font-semibold mt-1">Wajib diisi</p>}
                   </div>
                 );
               })}
               {/* Navigasi: kembali ke indikator kuantitatif terakhir (simetri dgn "Selanjutnya"). */}
               {total > 0 && (
-                <div className="flex justify-between items-center pt-2 border-t border-line-soft text-xs font-bold text-ink-soft">
-                  <button type="button" onClick={() => goTo(total - 1)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-line bg-surface hover:bg-neutral-tint rounded-control">
-                    <ChevronLeft className="w-3.5 h-3.5" /> Sebelumnya
+                <div className="flex justify-between items-center gap-2 pt-3 border-t border-line-soft">
+                  <button type="button" onClick={() => goTo(total - 1)} className={BTN_GHOST}>
+                    <ChevronLeft className="w-4 h-4" /> Sebelumnya
                   </button>
-                  <span className="data-value text-[10px] text-ink-faint bg-neutral-tint px-2 py-0.5 rounded-control">Langkah terakhir</span>
+                  <span className="text-[11px] font-semibold text-ink-soft bg-neutral-tint px-2.5 py-0.5 rounded-full">Langkah terakhir</span>
                 </div>
               )}
             </div>
@@ -438,18 +443,18 @@ export function AssessForm({
                   const filled = indDone(f.id);
                   return (
                     <button key={f.id} type="button" onClick={() => setActiveId(f.id)}
-                      className={`px-3 py-2 rounded-control border text-left min-w-[110px] max-w-[180px] flex-1 transition-all ${isActive ? 'border-brand bg-brand-tint ring-1 ring-brand' : filled ? 'border-brand-ink/25 bg-brand-tint/50' : 'border-line bg-neutral-tint hover:bg-neutral-tint/70'}`}>
-                      <span className="text-[10px] text-ink-faint font-bold block">Q{f.qNum}{filled ? ' ✓' : ''}</span>
-                      <span className="text-[11px] leading-tight line-clamp-1 text-ink-soft">{f.text}</span>
+                      className={`px-3 py-2 rounded-xl border text-left min-w-[110px] max-w-[180px] flex-1 transition-colors ${isActive ? 'border-brand bg-brand-tint ring-1 ring-brand' : filled ? 'border-brand-ink/25 bg-brand-tint/50' : 'border-line bg-surface hover:border-infarm-light'}`}>
+                      <span className="flex items-center gap-1 text-[11px] text-ink-soft font-bold data-value">Q{f.qNum}{filled && <CheckCircle2 className="w-3.5 h-3.5 text-brand" aria-hidden />}</span>
+                      <span className="text-xs leading-tight line-clamp-1 text-ink-soft">{f.text}</span>
                     </button>
                   );
                 })}
               </div>
 
               {/* Editor satu indikator */}
-              <div className="border border-line rounded-panel p-5 space-y-4">
+              <div className={`${CARD} space-y-4`}>
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-extrabold text-base sm:text-lg text-ink">Q{cur.qNum}: {cur.text}</h3>
+                  <h3 className="font-bold text-base text-ink leading-snug"><span className="data-value text-brand-ink">Q{cur.qNum}</span>: {cur.text}</h3>
                   {(ratings[cur.id] != null || (comments[cur.id] ?? '') !== '') && (
                     <button type="button" title="Bersihkan jawaban indikator ini"
                       onClick={() => {
@@ -461,25 +466,25 @@ export function AssessForm({
 
                 {/* Deskripsi indikator (opsional, dari Kelola Pertanyaan) */}
                 {cur.description && (
-                  <div className="border border-line border-l-4 border-l-brand bg-brand-tint/40 p-3.5 rounded-control text-[15px] text-ink leading-relaxed font-semibold">
+                  <div className="border-l-4 border-l-brand bg-brand-tint/50 px-3.5 py-3 rounded-control text-[13px] text-ink leading-relaxed font-semibold">
                     {cur.description}
                   </div>
                 )}
 
                 {/* Panduan BARS untuk indikator ini — key point (khusus indikator ini) + deskripsi. */}
                 {(cur.ratingGuide && Object.keys(cur.ratingGuide).length > 0) && (
-                  <div className="bg-neutral-tint border border-line rounded-panel p-3 space-y-2">
-                    <span className="text-[11px] font-extrabold text-ink uppercase tracking-wide flex items-center gap-1.5">
+                  <div className="bg-infarm-surface border border-line rounded-xl p-3 space-y-2">
+                    <span className="text-xs font-bold text-ink uppercase tracking-[0.08em] flex items-center gap-1.5">
                       <ClipboardList className="w-4 h-4 text-brand" /> Panduan BARS untuk indikator ini
                     </span>
-                    <p className="text-[12px] text-ink-faint -mt-1">Pilih skor berdasarkan perilaku yang paling sesuai dengan pengamatan Anda selama periode penilaian.</p>
+                    <p className="text-xs text-ink-soft -mt-1">Pilih skor berdasarkan perilaku yang paling sesuai dengan pengamatan Anda selama periode penilaian.</p>
                     {[5, 4, 3, 2, 1].map((n) => {
                       const desc = cur.ratingGuide?.[String(n)];
                       if (!desc) return null;
                       const keyPoint = cur.ratingKeyPoints?.[String(n)] || FALLBACK_KEY_POINTS[n];
                       return (
                         <div key={n} className="flex gap-2 items-start text-[13px]">
-                          <span className="font-black text-brand-ink data-value w-6 h-6 flex items-center justify-center shrink-0 rounded-control bg-brand-tint border border-brand-ink/15">{n}</span>
+                          <span className="font-bold text-brand-ink data-value w-6 h-6 flex items-center justify-center shrink-0 rounded-control bg-brand-tint">{n}</span>
                           <span className="text-ink-soft leading-snug"><strong className="text-ink">{keyPoint}</strong> — {desc}</span>
                         </div>
                       );
@@ -488,36 +493,36 @@ export function AssessForm({
                 )}
 
                 {/* Rating 1–5 (fitur N/A dicabut 2026-09-29 — semua indikator wajib diberi rating). */}
-                <div className="bg-neutral-tint border border-line rounded-panel p-3">
-                  <span className="text-[11px] font-black text-ink-faint uppercase tracking-widest block mb-2">Rating (klik untuk pilih)</span>
+                <div>
+                  <span className="text-xs font-bold text-ink-soft uppercase tracking-[0.08em] block mb-2">Rating (klik untuk pilih)</span>
                   <div className="grid gap-1.5 sm:gap-2 grid-cols-5">
                     {[1, 2, 3, 4, 5].map((n) => {
                       const sel = ratings[cur.id] === n;
                       return (
                         <button key={n} type="button"
                           onClick={() => setRatings((p) => ({ ...p, [cur.id]: n }))}
-                          className={`flex items-center justify-center py-3.5 rounded-control border font-extrabold transition-all ${sel ? 'bg-brand text-white border-brand shadow-2xs' : 'bg-surface text-ink-soft border-line hover:bg-neutral-tint'}`}>
-                          <span className="text-2xl leading-none data-value">{n}</span>
+                          className={`flex items-center justify-center min-h-11 py-2.5 rounded-xl border font-bold transition-colors ${sel ? 'bg-brand text-white border-brand' : 'bg-surface text-ink border-line hover:border-brand hover:text-brand-ink'}`}>
+                          <span className="text-xl leading-none data-value">{n}</span>
                         </button>
                       );
                     })}
                   </div>
                   <div className="mt-2 text-center sm:hidden">
                     {ratings[cur.id] != null ? (
-                      <span className="text-sm font-bold text-brand-ink">Pilihan Anda: {ratings[cur.id]}</span>
+                      <span className="text-[13px] font-bold text-brand-ink">Pilihan Anda: <span className="data-value">{ratings[cur.id]}</span></span>
                     ) : (
-                      <span className="text-sm font-semibold text-ink-faint">Pilih rating 1–5.</span>
+                      <span className="text-[13px] font-semibold text-ink-soft">Pilih rating 1–5.</span>
                     )}
                   </div>
                 </div>
 
                 {/* Komentar — WAJIB (BR-06, evidence). */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-extrabold text-brand-ink uppercase tracking-wider flex items-center gap-1">
+                  <label className="text-xs font-bold text-ink-soft uppercase tracking-[0.08em] flex items-center gap-1">
                     Komentar / Bukti Perilaku (Evidence) <span className="text-danger-ink">*</span>
                   </label>
                   {evidencePeriod && (
-                    <p className="inline-block text-[12px] text-warn-ink bg-warn-tint border border-warn-ink/25 rounded-control px-2.5 py-1">
+                    <p className="inline-block text-xs text-warn-ink bg-warn-tint rounded-control px-2.5 py-1">
                       Tulis kejadian selama periode <strong>{evidencePeriod.label}</strong> saja:{' '}
                       <strong className="data-value">{evidencePeriod.range}</strong>.
                     </p>
@@ -527,80 +532,73 @@ export function AssessForm({
                     placeholder={evidencePeriod
                       ? `Jelaskan rating dengan contoh konkret selama ${evidencePeriod.range} (situasi nyata, perilaku yang terlihat, frekuensi).`
                       : 'Jelaskan rating dengan contoh konkret (situasi nyata, perilaku yang terlihat, frekuensi).'}
-                    className="w-full text-sm p-3 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint resize-y" />
-                  <div className="flex flex-wrap justify-between items-center gap-2 text-[11px]">
-                    <span className="text-ink-faint">
-                      Tekan <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Enter</kbd> untuk lanjut ke pertanyaan berikutnya
-                      · <kbd className="data-value font-bold text-ink-soft bg-neutral-tint border border-line rounded px-1">Shift+Enter</kbd> baris baru
+                    className={`${FIELD_AREA} resize-y`} />
+                  <div className="flex flex-wrap justify-between items-center gap-2 text-xs">
+                    <span className="text-ink-soft">
+                      Tekan <kbd className={KBD}>Enter</kbd> untuk lanjut ke pertanyaan berikutnya
+                      · <kbd className={KBD}>Shift+Enter</kbd> baris baru
                     </span>
-                    <span className={(comments[cur.id] ?? '').trim().length >= EVIDENCE_MIN ? 'text-brand-ink font-extrabold' : 'text-danger-ink font-extrabold data-value'}>
+                    <span className={`data-value font-bold ${(comments[cur.id] ?? '').trim().length >= EVIDENCE_MIN ? 'text-brand-ink' : 'text-danger-ink'}`}>
                       {(comments[cur.id] ?? '').trim().length >= EVIDENCE_MIN ? `${(comments[cur.id] ?? '').trim().length} karakter` : `${(comments[cur.id] ?? '').trim().length}/${EVIDENCE_MIN} karakter · wajib min. ${EVIDENCE_MIN}`}
                     </span>
                   </div>
                 </div>
 
                 {/* Navigasi Sebelumnya / Selanjutnya */}
-                <div className="flex justify-between items-center pt-2 border-t border-line-soft text-xs font-bold text-ink-soft">
-                  <button type="button" disabled={curPos <= 0} onClick={() => goTo(curPos - 1)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-line bg-surface hover:bg-neutral-tint rounded-control disabled:opacity-40 disabled:cursor-not-allowed">
-                    <ChevronLeft className="w-3.5 h-3.5" /> Sebelumnya
+                <div className="flex justify-between items-center gap-2 pt-3 border-t border-line-soft">
+                  <button type="button" disabled={curPos <= 0} onClick={() => goTo(curPos - 1)} className={BTN_GHOST}>
+                    <ChevronLeft className="w-4 h-4" /> Sebelumnya
                   </button>
-                  <span className="data-value text-[10px] text-ink-faint bg-neutral-tint px-2 py-0.5 rounded-control">Q{cur.qNum}/{total}</span>
-                  <button type="button" disabled={atLastQuant && !hasQual} onClick={goNext}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 border border-line bg-surface hover:bg-neutral-tint rounded-control disabled:opacity-40 disabled:cursor-not-allowed">
-                    {atLastQuant && hasQual ? 'Ke Umpan Balik Kualitatif' : 'Selanjutnya'} <ChevronLeft className="w-3.5 h-3.5 rotate-180" />
+                  <span className="data-value text-[11px] font-semibold text-ink-soft bg-neutral-tint px-2.5 py-0.5 rounded-full">Q{cur.qNum}/{total}</span>
+                  <button type="button" disabled={atLastQuant && !hasQual} onClick={goNext} className={BTN_GHOST}>
+                    {atLastQuant && hasQual ? 'Ke Umpan Balik Kualitatif' : 'Selanjutnya'} <ChevronLeft className="w-4 h-4 rotate-180" />
                   </button>
                 </div>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-ink-soft">Belum ada indikator pada periode ini.</p>
+            <p className="text-[13px] text-ink-soft">Belum ada indikator pada periode ini.</p>
           )}
         </div>
       </div>
       )}
 
-      {error && <p className="text-xs text-danger-ink font-semibold">{error}</p>}
+      {error && <p className="text-[13px] text-danger-ink font-semibold">{error}</p>}
 
       {/* Konfirmasi Kirim */}
       {confirmSend && (
-        <div className="bg-brand-tint border border-brand-ink/25 rounded-panel p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <p className="text-sm text-brand-ink font-semibold">
-            Kirim penilaian untuk <span className="font-extrabold">{targetName}</span>?
-            <span className="block text-[11px] font-normal text-brand-ink/80 mt-0.5">{deadlinePassed
+        <div className="bg-brand-tint border border-brand/30 rounded-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-[13px] text-brand-ink font-semibold">
+            Kirim penilaian untuk <span className="font-bold">{targetName}</span>?
+            <span className="block text-xs font-normal text-brand-ink mt-0.5">{deadlinePassed
               ? 'Deadline sudah lewat — setelah dikirim, penilaian ini tidak dapat diubah lagi dan tercatat Terlambat.'
               : 'Setelah dikirim, Anda masih bisa mengeditnya sampai deadline. Sesudah deadline, penilaian terkunci.'}</span>
           </p>
           <div className="flex gap-2 shrink-0">
-            <button type="button" disabled={busy} onClick={cancelSend}
-              className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-control text-ink-soft bg-surface border border-line hover:bg-neutral-tint disabled:opacity-60">
+            <button type="button" disabled={busy} onClick={cancelSend} className={BTN_GHOST}>
               Batal
             </button>
-            <button type="button" disabled={busy} onClick={doSend}
-              className="inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
+            <button type="button" disabled={busy} onClick={doSend} className={BTN_PRIMARY}>
               <Send className="w-4 h-4 text-white/85" /> {busy ? 'Mengirim…' : 'Ya, Kirim Sekarang'}
             </button>
           </div>
         </div>
       )}
 
-      {/* Kontrol bawah */}
-      <div className="bg-neutral-tint border border-line rounded-panel p-3 flex flex-col sm:flex-row justify-between gap-2">
+      {/* Kontrol bawah — lengket di dasar layar agar Simpan/Kirim selalu terjangkau. */}
+      <div className="sticky bottom-0 z-10 bg-surface border border-line rounded-card shadow-card p-3 flex flex-col sm:flex-row justify-between gap-2">
         <div className="flex gap-2">
           {reviewing ? (
-            <button type="button" disabled={busy} onClick={() => { cancelSend(); setReviewing(false); }}
-              className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-control text-ink-soft bg-surface border border-line hover:bg-neutral-tint disabled:opacity-60">
+            <button type="button" disabled={busy} onClick={() => { cancelSend(); setReviewing(false); }} className={BTN_GHOST}>
               <ChevronLeft className="w-4 h-4 text-ink-faint" /> Kembali ke Form
             </button>
           ) : (
-          <button type="button" disabled={busy} onClick={() => router.push('/penilaian')}
-            className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-control text-ink-soft bg-surface border border-line hover:bg-neutral-tint disabled:opacity-60">
+          <button type="button" disabled={busy} onClick={() => router.push('/penilaian')} className={BTN_GHOST}>
             <XCircle className="w-4 h-4 text-ink-faint" /> Batal
           </button>
           )}
           {hasDraft && !reviewing && (
-            <button type="button" disabled={busy} onClick={discard}
-              className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-control text-danger-ink bg-surface border border-danger-ink/30 hover:bg-danger-tint disabled:opacity-60">
+            <button type="button" disabled={busy} onClick={discard} className={BTN_DANGER_GHOST}>
               <Trash2 className="w-4 h-4" /> Buang Draf
             </button>
           )}
@@ -609,8 +607,7 @@ export function AssessForm({
           {/* Sudah terkirim → tak ada Simpan Draf (akan menurunkan status & mengeluarkan nilai dari
               laporan yang dinilai); perubahan disimpan lewat "Kirim Ulang". Server juga menolaknya. */}
           {initialStatus !== 'submitted' && (
-            <button type="button" disabled={busy} onClick={saveDraft}
-              className="inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-control text-ink-soft bg-surface border border-line hover:bg-neutral-tint disabled:opacity-60">
+            <button type="button" disabled={busy} onClick={saveDraft} className={BTN_GHOST}>
               <Save className="w-4 h-4 text-ink-faint" /> Simpan Draf
             </button>
           )}
@@ -618,18 +615,13 @@ export function AssessForm({
               pengguna sadar masih ada yang kurang; teks gelap di atas oranye = kontras tinggi);
               lengkap → "Kirim" (hijau brand). */}
           {reviewing ? (
-            <button type="button" disabled={busy || saveState === 'saving' || confirmSend} onClick={askSend}
-              className="inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
+            <button type="button" disabled={busy || saveState === 'saving' || confirmSend} onClick={askSend} className={BTN_PRIMARY}>
               <Send className="w-4 h-4 text-white/85" />
               {busy ? 'Memproses…' : initialStatus === 'submitted' ? 'Kirim Ulang Penilaian 360°' : 'Kirim Penilaian 360°'}
             </button>
           ) : (
           <button type="button" disabled={busy || total === 0 || saveState === 'saving' || confirmSend} onClick={submit}
-            className={`inline-flex items-center gap-1.5 text-sm font-bold px-5 py-2 rounded-control disabled:opacity-50 ${
-              allComplete
-                ? 'bg-brand hover:bg-brand-ink text-white'
-                : 'bg-warn text-ink border border-warn-ink/40 hover:brightness-95 shadow-2xs'
-            }`}>
+            className={allComplete ? BTN_PRIMARY : BTN_WARN}>
             {allComplete ? <ListChecks className="w-4 h-4 text-white/85" /> : <Send className="w-4 h-4 text-ink" />}
             {busy ? 'Memproses…' : allComplete ? 'Review Penilaian' : `Lengkapi Penilaian (${remaining} tersisa)`}
           </button>
@@ -671,24 +663,24 @@ function ReviewPanel({ flat, ratings, comments, questions, answers, onEdit }: {
   const doneN = flat.filter((f) => ratings[f.id] != null && (comments[f.id] ?? '').trim().length >= EVIDENCE_MIN).length;
   const editBtn = (target: string) => (
     <button type="button" onClick={(e) => { e.preventDefault(); onEdit(target); }}
-      className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-control border border-line text-brand-ink bg-surface hover:border-brand shrink-0">
+      className="inline-flex items-center gap-1 text-xs font-bold px-2.5 min-h-7 rounded-xl border border-line text-brand-ink bg-surface hover:border-brand shrink-0">
       <Pencil className="w-3 h-3" /> Edit
     </button>
   );
   return (
     <div className="space-y-3">
-      <div className="border border-line rounded-panel p-4">
-        <h3 className="text-base font-extrabold text-ink">Review Penilaian</h3>
-        <p className="text-[12.5px] text-ink-soft mt-0.5">Periksa kembali seluruh jawaban sebelum dikirim. Klik baris untuk melihat bukti perilaku, atau <strong>Edit</strong> untuk memperbaiki.</p>
-        <p className="mt-2 text-[12px] font-bold text-brand-ink">
+      <div className={CARD}>
+        <h3 className="text-base font-bold text-ink">Review Penilaian</h3>
+        <p className="text-[13px] text-ink-soft mt-0.5">Periksa kembali seluruh jawaban sebelum dikirim. Klik baris untuk melihat bukti perilaku, atau <strong>Edit</strong> untuk memperbaiki.</p>
+        <p className="mt-2 text-xs font-bold text-brand-ink">
           <CheckCircle2 className="w-4 h-4 inline -mt-0.5 mr-1" />
           <span className="data-value">{doneN}/{flat.length}</span> indikator lengkap
           {questions.length > 0 && <> · <span className="data-value">{questions.length}</span> pertanyaan esai terjawab</>}
         </p>
       </div>
       {groups.map((g, gi) => (
-        <section key={g.gid} className="border border-line rounded-panel overflow-hidden">
-          <h4 className="px-4 py-2 bg-neutral-tint border-b border-line text-[12.5px] font-extrabold text-ink">
+        <section key={g.gid} className="bg-surface border border-line rounded-card shadow-card overflow-hidden">
+          <h4 className="px-4 py-2.5 bg-infarm-surface border-b border-line text-[13px] font-bold text-ink">
             <span className="data-value text-ink-faint mr-1.5">{gi + 1}</span>{g.gname}
           </h4>
           <ul className="divide-y divide-line-soft">
@@ -701,15 +693,15 @@ function ReviewPanel({ flat, ratings, comments, questions, answers, onEdit }: {
                     <summary className="flex items-center gap-2 cursor-pointer list-none">
                       <span className="data-value text-[11px] text-ink-faint w-7 shrink-0">Q{f.qNum}</span>
                       <span className="text-[13px] font-semibold text-ink flex-1 min-w-0">{f.text}</span>
-                      <span className="text-[10.5px] font-bold px-2 py-0.5 rounded-control bg-brand-tint text-brand-ink border border-brand-ink/20 whitespace-nowrap">
+                      <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-brand-tint text-brand-ink whitespace-nowrap">
                         Skor <span className="data-value">{r ?? '—'}</span>
                       </span>
                       <ChevronDown className="w-4 h-4 text-ink-faint transition-transform group-open:rotate-180 shrink-0" />
                       {editBtn(f.id)}
                     </summary>
-                    <div className="mt-2 ml-9 text-[12px] text-ink-soft leading-relaxed">
-                      {kp && <p className="text-[11px] font-semibold text-ink mb-1">{kp}</p>}
-                      <p className="whitespace-pre-wrap"><span className="font-semibold text-ink-faint">Bukti perilaku: </span>{(comments[f.id] ?? '').trim() || '—'}</p>
+                    <div className="mt-2 ml-9 text-[13px] text-ink-soft leading-relaxed">
+                      {kp && <p className="text-xs font-semibold text-ink mb-1">{kp}</p>}
+                      <p className="whitespace-pre-wrap"><span className="font-semibold text-ink">Bukti perilaku: </span>{(comments[f.id] ?? '').trim() || '—'}</p>
                     </div>
                   </details>
                 </li>
@@ -719,16 +711,16 @@ function ReviewPanel({ flat, ratings, comments, questions, answers, onEdit }: {
         </section>
       ))}
       {questions.length > 0 && (
-        <section className="border border-line rounded-panel overflow-hidden">
-          <div className="px-4 py-2 bg-neutral-tint border-b border-line flex items-center justify-between gap-2">
-            <h4 className="text-[12.5px] font-extrabold text-ink">Umpan Balik Kualitatif</h4>
+        <section className="bg-surface border border-line rounded-card shadow-card overflow-hidden">
+          <div className="px-4 py-2.5 bg-infarm-surface border-b border-line flex items-center justify-between gap-2">
+            <h4 className="text-[13px] font-bold text-ink">Umpan Balik Kualitatif</h4>
             {editBtn(QUAL)}
           </div>
           <ul className="divide-y divide-line-soft">
             {questions.map((q) => (
               <li key={q.id} className="px-4 py-2.5">
-                <p className="text-[12.5px] font-semibold text-ink">{q.text}</p>
-                <p className="text-[12px] text-ink-soft mt-1 whitespace-pre-wrap">{(answers[q.id] ?? '').trim() || '—'}</p>
+                <p className="text-[13px] font-semibold text-ink">{q.text}</p>
+                <p className="text-[13px] text-ink-soft mt-1 whitespace-pre-wrap">{(answers[q.id] ?? '').trim() || '—'}</p>
               </li>
             ))}
           </ul>
@@ -741,15 +733,15 @@ function ReviewPanel({ flat, ratings, comments, questions, answers, onEdit }: {
 /** Indikator kecil status auto-simpan draf. */
 function AutoSaveHint({ state, disabled }: { state: SaveState; disabled: boolean }) {
   if (disabled) {
-    return <p className="text-[11px] text-ink-faint">Penilaian sudah terkirim — perubahan disimpan saat Anda menekan Kirim.</p>;
+    return <p className="text-xs text-ink-faint">Penilaian sudah terkirim — perubahan disimpan saat Anda menekan Kirim.</p>;
   }
-  if (state === 'saving') return <p className="text-[11px] text-ink-soft flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Menyimpan otomatis…</p>;
+  if (state === 'saving') return <p className="text-xs text-ink-soft flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Menyimpan otomatis…</p>;
   if (state === 'pending') return (
-    <p className="text-[11px] font-bold text-ink inline-flex items-center gap-1.5">
+    <p className="text-xs font-bold text-ink inline-flex items-center gap-1.5">
       <span className="w-2 h-2 rounded-full bg-warn animate-pulse" aria-hidden /> Perubahan belum disimpan…
     </p>
   );
-  if (state === 'saved') return <p className="text-[11px] text-brand-ink font-semibold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tersimpan otomatis</p>;
-  if (state === 'error') return <p className="text-[11px] text-danger-ink font-semibold">Gagal menyimpan otomatis — tekan “Simpan Draf”.</p>;
-  return <p className="text-[11px] text-ink-faint">Draf tersimpan otomatis saat Anda mengisi.</p>;
+  if (state === 'saved') return <p className="text-xs text-brand-ink font-semibold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Tersimpan otomatis</p>;
+  if (state === 'error') return <p className="text-xs text-danger-ink font-semibold">Gagal menyimpan otomatis — tekan “Simpan Draf”.</p>;
+  return <p className="text-xs text-ink-faint">Draf tersimpan otomatis saat Anda mengisi.</p>;
 }

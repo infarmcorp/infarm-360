@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { CopyPlus } from 'lucide-react';
+import { CopyPlus, X } from 'lucide-react';
+import { CARD, CardTitle, FIELD } from '@/components/infarm-ui';
 import { copyMappingsFromPeriod } from './actions';
 
 type P = { id: string; label: string };
@@ -30,34 +31,34 @@ export function CopyMapping({ periods }: { periods: P[] }) {
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">
+        className="flex items-center gap-1.5 min-h-9 text-[13px] font-semibold px-3 rounded-xl border border-line bg-surface text-ink-soft hover:text-brand hover:border-infarm-light">
         <CopyPlus className="w-4 h-4" /> Salin dari Periode Sebelumnya
       </button>
     );
   }
 
   return (
-    <div className="rounded-panel border border-line bg-surface p-4 space-y-2">
-      <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.07em]">Salin Pemetaan dari Periode Lain</h3>
-        <button type="button" onClick={() => { setOpen(false); setMsg(null); }} className="text-ink-faint hover:text-ink-soft text-xs">Tutup ✕</button>
+    <div className={`${CARD} space-y-2`}>
+      <div className="flex items-center justify-between gap-2">
+        <CardTitle icon={CopyPlus}>Salin Pemetaan dari Periode Lain</CardTitle>
+        <button type="button" onClick={() => { setOpen(false); setMsg(null); }} className="inline-flex items-center gap-1 text-ink-soft hover:text-ink text-xs font-semibold shrink-0">Tutup <X className="w-3.5 h-3.5" aria-hidden /></button>
       </div>
-      <p className="text-[12px] text-ink-soft leading-relaxed">
+      <p className="text-xs text-ink-soft leading-relaxed">
         Menyalin seluruh pasangan penilai→target dari periode terpilih ke periode aktif. Pasangan yang
         sudah ada <strong className="font-semibold text-ink">dilewati</strong>, dan hasil salinan <strong className="font-semibold text-ink">tetap bisa diedit/dihapus</strong>.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <select value={src} onChange={(e) => setSrc(e.target.value)}
-          className="text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint min-w-[180px]">
+          className={`${FIELD} min-w-[180px]`}>
           <option value="">— Pilih Periode Sumber —</option>
           {periods.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
         </select>
         <button type="button" onClick={run} disabled={pending || !src}
-          className="text-xs font-semibold px-4 py-2 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
+          className="min-h-9 text-[13px] font-bold px-4 rounded-xl bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
           {pending ? 'Menyalin…' : 'Salin Pemetaan'}
         </button>
       </div>
-      {msg && <p className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
+      {msg && <p className={`text-[13px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
     </div>
   );
 }

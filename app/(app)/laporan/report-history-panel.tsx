@@ -1,3 +1,4 @@
+import { History } from 'lucide-react';
 import type { HistoryEvent } from '@/lib/report-history';
 
 /**
@@ -15,22 +16,23 @@ const TONE: Record<string, string> = { brand: 'text-brand-ink', danger: 'text-da
 
 export function ReportHistoryPanel({ history }: { history: { ok: true; events: HistoryEvent[] } | { ok: false } }) {
   return (
-    <details className="no-print mb-3 rounded-panel border border-line bg-surface px-3 py-2 text-[12.5px]">
-      <summary className="cursor-pointer select-none font-semibold text-ink">
+    <details className="no-print mb-4 rounded-card border border-line bg-surface shadow-card px-4 py-3 text-[13px]">
+      <summary className="cursor-pointer select-none font-bold text-ink">
+        <History className="inline w-4 h-4 mr-1.5 -mt-0.5 text-brand align-middle" aria-hidden />
         Riwayat Laporan
-        {history.ok && <span className="ml-1 font-normal text-ink-faint">(<span className="data-value">{history.events.length}</span> catatan)</span>}
-        <span className="ml-2 font-normal text-ink-faint">— kapan ACC diberikan/dibatalkan, perubahan status &amp; Skor Akhir</span>
+        {history.ok && <span className="ml-1 font-normal text-ink-soft">(<span className="data-value">{history.events.length}</span> catatan)</span>}
+        <span className="ml-2 text-xs font-normal text-ink-soft">— kapan ACC diberikan/dibatalkan, perubahan status &amp; Skor Akhir</span>
       </summary>
       {!history.ok ? (
         <p className="mt-2 text-warn-ink">Riwayat belum aktif — perubahan database 0052 belum dijalankan.</p>
       ) : history.events.length === 0 ? (
-        <p className="mt-2 text-ink-faint">Belum ada perubahan tercatat sejak riwayat diaktifkan.</p>
+        <p className="mt-2 text-ink-soft">Belum ada perubahan tercatat sejak riwayat diaktifkan.</p>
       ) : (
         <ol className="mt-2 space-y-2 border-l border-line pl-3">
           {history.events.map((e, i) => (
             <li key={i} className="relative">
               <span className="absolute -left-[17px] top-1.5 h-2 w-2 rounded-full bg-line-strong" aria-hidden />
-              <p className="text-[11.5px] text-ink-faint">
+              <p className="text-xs text-ink-soft">
                 <span className="data-value">{fmtWib(e.at)}</span> WIB
                 {' · '}{e.actor ?? <span className="italic">pelaku tak tercatat</span>}
                 {e.actorFromLog && <span className="italic"> (dari log aktivitas)</span>}
@@ -40,7 +42,7 @@ export function ReportHistoryPanel({ history }: { history: { ok: true; events: H
           ))}
         </ol>
       )}
-      <p className="mt-2 text-[11px] text-ink-faint">
+      <p className="mt-2 text-xs text-ink-soft">
         Dicatat otomatis oleh database untuk setiap perubahan, apa pun jalurnya. Klik yang gagal terkirim ke server tidak
         akan muncul di sini — artinya perubahan itu memang tidak pernah tersimpan.
       </p>

@@ -6,6 +6,8 @@ import { DeleteButton } from './delete-button';
 import type { PairStatus } from './actions';
 import { SearchableSelect } from '@/components/searchable-select';
 import { usePager, StableHeight, Pager } from '@/components/table-controls';
+import { Link2, ListTree } from 'lucide-react';
+import { CardTitle, FIELD, TABLE_HEAD } from '@/components/infarm-ui';
 
 export type MapRow = {
   id: string; assessorId: string; assessor: string; targetId: string; target: string;
@@ -17,7 +19,12 @@ export type MapRow = {
 const STATUS_LABEL: Record<PairStatus, string> = { none: 'Belum Mulai', draft: 'Draft', submitted: 'Terkirim', invalidated: 'Dibatalkan' };
 const STATUS_CLS: Record<PairStatus, string> = {
   none: 'bg-neutral-tint text-ink-soft', draft: 'bg-warn-tint text-warn-ink',
-  submitted: 'bg-brand-tint text-brand-ink', invalidated: 'bg-neutral-tint text-ink-faint',
+  submitted: 'bg-brand-tint text-brand-ink', invalidated: 'bg-neutral-tint text-ink-soft',
+};
+/** Warna kelas relasi (token Design System Infarm; tanpa biru/ungu). */
+const REL_CLS: Record<string, string> = {
+  Atasan: 'bg-brand-tint text-brand-ink', Peer: 'bg-infarm-light/40 text-ink', Cross: 'bg-infarm-cream text-infarm-soil',
+  Bawahan: 'bg-warn-tint text-warn-ink', Self: 'bg-neutral-tint text-ink-soft',
 };
 
 /** Daftar pemetaan + filter Penilai & Target (ala legacy). */
@@ -44,10 +51,10 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
   const { page, setPage, pageCount, shown: paged, total, rangeFrom, rangeTo } = usePager(shown);
 
   if (rows.length === 0) return (
-    <div className="border border-dashed border-line-strong rounded-panel p-5 text-center">
-      <p className="text-2xl mb-1">🔗</p>
-      <p className="text-sm font-bold text-ink">Belum ada pemetaan penilai untuk periode ini</p>
-      <p className="text-[12.5px] text-ink-soft mt-1 max-w-sm mx-auto leading-relaxed">
+    <div className="border border-dashed border-line-strong rounded-xl p-5 text-center">
+      <span className="w-10 h-10 mx-auto mb-2 rounded-xl bg-brand-tint text-brand-ink flex items-center justify-center" aria-hidden><Link2 className="w-5 h-5" /></span>
+      <p className="text-[13px] font-bold text-ink">Belum ada pemetaan penilai untuk periode ini</p>
+      <p className="text-xs text-ink-soft mt-1 max-w-sm mx-auto leading-relaxed">
         Tentukan siapa menilai siapa dengan salah satu cara di atas:
         <strong className="font-semibold text-ink"> tambah manual</strong>, <strong className="font-semibold text-ink">impor Excel</strong>, atau <strong className="font-semibold text-ink">salin dari periode sebelumnya</strong> (tetap bisa diedit).
       </p>
@@ -67,9 +74,9 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h3 className="text-sm font-bold text-ink">Daftar Pemetaan</h3>
-        <span className={`text-[12px] font-semibold px-2.5 py-1 rounded-full ${active ? 'text-brand-ink bg-brand-tint border border-brand/20' : 'text-ink-soft bg-neutral-tint'}`}>
-          {totalLabel}{active && <span className="font-normal text-ink-faint"> · dari <span className="data-value">{rows.length}</span></span>}
+        <CardTitle icon={ListTree}>Daftar Pemetaan</CardTitle>
+        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${active ? 'text-brand-ink bg-brand-tint' : 'text-ink-soft bg-neutral-tint'}`}>
+          {totalLabel}{active && <span className="font-normal text-ink-soft"> · dari <span className="font-mono">{rows.length}</span></span>}
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -77,38 +84,38 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
           <SearchableSelect
             value={fAssessor}
             onChange={(v) => { setFAssessor(v); setPage(0); }}
-            options={[{ value: 'all', label: '👤 Semua Penilai' }, ...assessors.map((a) => ({ value: a.id, label: a.name }))]}
+            options={[{ value: 'all', label: 'Semua Penilai' }, ...assessors.map((a) => ({ value: a.id, label: a.name }))]}
             searchPlaceholder="Cari penilai…"
-            className="text-xs px-3 py-2 border border-line rounded-control bg-surface focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
+            className={`${FIELD} w-full bg-surface`}
           />
         </div>
         <div className="w-full sm:w-56">
           <SearchableSelect
             value={fTarget}
             onChange={(v) => { setFTarget(v); setPage(0); }}
-            options={[{ value: 'all', label: '🎯 Semua Target' }, ...targets.map((t) => ({ value: t.id, label: t.name }))]}
+            options={[{ value: 'all', label: 'Semua Target' }, ...targets.map((t) => ({ value: t.id, label: t.name }))]}
             searchPlaceholder="Cari target…"
-            className="text-xs px-3 py-2 border border-line rounded-control bg-surface focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
+            className={`${FIELD} w-full bg-surface`}
           />
         </div>
         <select value={fStatus} onChange={(e) => { setFStatus(e.target.value as typeof fStatus); setPage(0); }}
-          className="text-xs px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
+          className={`${FIELD} bg-surface`}>
           <option value="all">Semua Status</option>
           {(Object.keys(STATUS_LABEL) as PairStatus[]).map((k) => <option key={k} value={k}>{STATUS_LABEL[k]}</option>)}
         </select>
         {active && (
           <button type="button" onClick={() => { setFAssessor('all'); setFTarget('all'); setFStatus('all'); setPage(0); }}
-            className="text-[11px] font-semibold px-2.5 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong">Bersihkan</button>
+            className="min-h-9 text-[13px] font-semibold px-3 rounded-control border border-line bg-surface text-ink-soft hover:text-ink hover:border-line-strong">Bersihkan</button>
         )}
       </div>
 
       <StableHeight>
       {shown.length === 0 ? (
-        <p className="text-sm text-ink-soft">Tidak ada pemetaan sesuai filter.</p>
+        <p className="text-[13px] text-ink-soft">Tidak ada pemetaan sesuai filter.</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-xl border border-line">
         {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
-        <table className="w-full table-fixed table-1line text-left text-sm min-w-[530px]">
+        <table className="w-full table-fixed table-1line text-left text-[13px] min-w-[530px]">
           <colgroup>
             {colPercents([
               18, // Penilai (%)
@@ -120,27 +127,27 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
             ]).map((w, i) => <col key={i} style={{ width: w }} />)}
           </colgroup>
           <thead>
-            <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
-              <th className="py-2 pr-3 font-semibold">Penilai</th><th className="py-2 px-3 font-semibold">Yang Dinilai</th><th className="py-2 px-3 font-semibold">Relasi</th>
+            <tr className={`${TABLE_HEAD} border-b border-line`}>
+              <th className="py-2 px-3 font-semibold">Penilai</th><th className="py-2 px-3 font-semibold">Yang Dinilai</th><th className="py-2 px-3 font-semibold">Relasi</th>
               <th className="py-2 px-3 text-center font-semibold">Sifat</th><th className="py-2 px-3 text-center font-semibold">Status</th>
-              <th className="py-2 pl-3 text-right font-semibold">Aksi</th>
+              <th className="py-2 px-3 text-right font-semibold">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line-soft">
             {paged.map((r) => (
-              <tr key={r.id}>
-                <td className="py-3 pr-3 font-bold text-ink break-words">{r.assessor}</td>
-                <td className="py-3 px-3 text-ink-soft break-words">{r.target}</td>
-                <td className="py-3 px-2 text-ink-soft">{r.relation}</td>
-                <td className="py-3 px-2 text-center">
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${r.mandatory ? 'bg-danger-tint text-danger-ink' : 'bg-neutral-tint text-ink-faint'}`}>
+              <tr key={r.id} className="hover:bg-infarm-surface">
+                <td className="py-2.5 px-3 font-bold text-ink break-words">{r.assessor}</td>
+                <td className="py-2.5 px-3 text-ink-soft break-words">{r.target}</td>
+                <td className="py-2.5 px-2"><span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${REL_CLS[r.relation] ?? 'bg-neutral-tint text-ink-soft'}`}>{r.relation}</span></td>
+                <td className="py-2.5 px-2 text-center">
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${r.mandatory ? 'bg-warn-tint text-warn-ink' : 'bg-neutral-tint text-ink-soft'}`}>
                     {r.mandatory ? 'Wajib' : 'Opsional'}
                   </span>
                 </td>
-                <td className="py-3 px-2 text-center">
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_CLS[r.status]}`}>{STATUS_LABEL[r.status]}</span>
+                <td className="py-2.5 px-2 text-center">
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_CLS[r.status]}`}>{STATUS_LABEL[r.status]}</span>
                 </td>
-                <td className="py-3 pl-3 text-right"><DeleteButton mappingId={r.id} status={r.status} /></td>
+                <td className="py-2.5 px-3 text-right"><DeleteButton mappingId={r.id} status={r.status} /></td>
               </tr>
             ))}
           </tbody>
@@ -149,7 +156,7 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
       )}
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pasangan" />
       </StableHeight>
-      <p className="text-[11px] text-ink-faint leading-relaxed">
+      <p className="text-xs text-ink-soft leading-relaxed">
         Relasi menentukan kelas bobot 360 (Atasan/Peer/Cross/Self). Sifat Wajib jadi dasar Flag Kepatuhan.
         Hapus hanya untuk status Belum Mulai &amp; Draft (alasan wajib). Penilaian Terkirim tidak dapat dihapus —
         gunakan <strong className="font-semibold text-ink-soft">Periksa Validitas</strong> untuk membatalkan validitasnya

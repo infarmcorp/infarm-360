@@ -6,8 +6,15 @@ import localFont from 'next/font/local';
  * mengunduhnya ("next/font/google queries have exactly one entry", 2026-11-04) walau build lokal lulus.
  * Hanya dipakai halaman ber-kelas `.infarm-ds` (lihat app/globals.css); halaman lain tetap font sistem.
  * Tempel `infarmFontVars` pada className elemen pembungkus halaman.
- * Geist Mono = semua teks & angka; Montserrat = judul h1–h4 (keputusan pengguna 2026-11-04).
+ * Geist = teks; Geist Mono = angka/data; Montserrat = judul h1–h4 (sesuai Design System; pengguna sempat mencoba
+ * Geist Mono untuk semua teks lalu kembali ke Geist, 2026-11-04).
  */
+const geist = localFont({
+  src: './fonts/Geist-Variable-latin.woff2',
+  weight: '100 900',
+  variable: '--font-geist',
+  display: 'swap',
+});
 const geistMono = localFont({
   src: './fonts/GeistMono-Variable-latin.woff2',
   weight: '100 900',
@@ -21,4 +28,4 @@ const montserrat = localFont({
   display: 'swap',
 });
 
-export const infarmFontVars = `${geistMono.variable} ${montserrat.variable}`;
+export const infarmFontVars = `${geist.variable} ${geistMono.variable} ${montserrat.variable}`;

@@ -13,9 +13,9 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   pemilik setelah meninjau mockup. Halaman lain belum berubah.
 - Tampilan: latar hijau keputihan; kartu putih bersudut 16px dengan bayangan tipis; ringkasan tiap tab di pita hijau;
   sub-tab berbentuk pil; label bagian cokelat tanah; catatan berlatar krem; emoji di judul kartu dihapus.
-- Font halaman ini: Montserrat untuk judul, **Geist Mono untuk semua teks dan angka** (2026-11-04, pilihan pemilik;
-  Design System aslinya memakai Geist untuk teks). Halaman lain tetap font sistem. File font ikut aplikasi, tidak
-  diambil dari Google saat halaman dibuka.
+- Font halaman ini mengikuti Design System: Montserrat (judul), Geist (teks), Geist Mono (angka). Geist Mono untuk
+  semua teks sempat dicoba (2026-11-04) lalu dikembalikan. Halaman lain tetap font sistem. File font ikut aplikasi,
+  tidak diambil dari Google saat halaman dibuka.
 - Warna kategori skor: **Melampaui (≥ 90) kini cokelat** (dulu biru tua); Memenuhi hijau, Perlu Peningkatan kuning,
   Di Bawah merah — tetap. Heatmap memakai gradasi yang sama dengan sebelumnya, hanya ujung biru diganti cokelat.
   Warna badge peringkat kini sama dengan kategorinya (dulu Melampaui hijau, Memenuhi biru).

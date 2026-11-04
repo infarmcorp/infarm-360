@@ -610,7 +610,7 @@ function PageHeader({ canMonitor, children }: { canMonitor: boolean; children: R
   );
 }
 
-/** Kanvas Design System Infarm: latar hijau keputihan + font Geist Mono/Montserrat (hanya halaman ini). */
+/** Kanvas Design System Infarm: latar hijau keputihan + font Geist/Geist Mono/Montserrat (hanya halaman ini). */
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main className={`infarm-ds ${infarmFontVars} w-full min-h-full bg-infarm-surface px-5 py-7 lg:px-7`}>{children}</main>

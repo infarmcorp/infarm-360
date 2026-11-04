@@ -225,8 +225,8 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
 - **Design System Infarm** (pemilik, 2026-11-03; artifact "Infarm" dari Infarm-Web) — dipakai **Dashboard
   Organisasi** saja, menggantikan aturan token di atas untuk halaman itu: pembungkus `.infarm-ds` + `infarmFontVars`
   (`app/infarm-fonts.ts`, **`next/font/local`** + woff2 di `app/fonts/` — jangan `next/font/google`, build Turbopack
-  Vercel gagal mengunduhnya) = **Geist Mono untuk semua teks & angka** + Montserrat h1–h4 (pengguna
-  2026-11-04; pengecualian sadar dari aturan font sistem, hanya di halaman ber-`.infarm-ds`; aturan `.infarm-ds` wajib
+  Vercel gagal mengunduhnya) = Geist (teks) + Geist Mono (angka/data) + Montserrat h1–h4 (pengguna
+  2026-11-04; Geist Mono untuk semua teks sudah dicoba & ditolak; pengecualian sadar dari aturan font sistem, hanya di halaman ber-`.infarm-ds`; aturan `.infarm-ds` wajib
   di `@layer base` agar utilitas bisa menimpanya); token `infarm-*`, `rounded-card` 16px, `shadow-card`. Palet skor diskrit
   `CAT_COLOR` (lokal `dashboard-visual.tsx`): ≥90 cokelat `#6b4e3d` · 80–89 hijau · 70–79 kuning · <70 merah; heatmap
   `heatColorInfarm` (= `heatColor`, ujung biru → cokelat). Warna 4-Box/tren/judul bagian dipetakan lokal — **jangan**

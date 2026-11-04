@@ -47,7 +47,7 @@ const CARD = 'bg-surface border border-line rounded-card shadow-card p-5';
 /** Judul kartu (Montserrat via .infarm-ds h3) + ikon garis di kotak hijau pucat sebagai jangkar mata. */
 function CardTitle({ icon: Icon, className = '', children }: { icon: LucideIcon; className?: string; children: React.ReactNode }) {
   return (
-    <h3 className={`flex items-center gap-2.5 text-lg font-semibold text-ink leading-snug ${className}`}>
+    <h3 className={`flex items-center gap-2.5 text-lg font-bold text-ink leading-snug ${className}`}>
       <span className="w-8 h-8 rounded-lg bg-brand-tint text-brand-ink flex items-center justify-center shrink-0" aria-hidden>
         <Icon className="w-[18px] h-[18px]" />
       </span>
@@ -99,7 +99,8 @@ function StatCards({ lead, items }: { lead: StatItem; items: StatItem[] }) {
       <div className="bg-brand text-white rounded-card shadow-card p-5 flex items-center gap-4 min-w-0">
         <span className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0" aria-hidden><LeadIcon className="w-6 h-6" /></span>
         <div className="min-w-0 flex flex-col gap-1">
-          <span className="font-mono text-[32px] leading-none font-bold">{lead.value}</span>
+          {/* Angka ringkasan sengaja < judul halaman (30px): utama 24px, kartu lain 20px (pengguna 2026-11-04). */}
+          <span className="font-mono text-2xl leading-none font-bold">{lead.value}</span>
           <span className="text-sm font-semibold">{lead.label}</span>
           {lead.sub}
         </div>
@@ -110,7 +111,7 @@ function StatCards({ lead, items }: { lead: StatItem; items: StatItem[] }) {
           <div key={it.label} className={`${CARD} flex items-center gap-4 min-w-0`}>
             <span className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${STAT_TONE[it.tone ?? 'brand']}`} aria-hidden><Icon className="w-6 h-6" /></span>
             <div className="min-w-0 flex flex-col gap-0.5">
-              <span className="font-mono text-2xl font-bold text-ink leading-tight truncate" title={it.value}>{it.value}</span>
+              <span className="font-mono text-xl font-bold text-ink leading-tight truncate" title={it.value}>{it.value}</span>
               <span className="text-sm text-ink-soft">{it.label}</span>
               {it.sub != null && (typeof it.sub === 'string'
                 ? <span className="text-xs font-semibold text-ink truncate" title={it.sub}>{it.sub}</span>

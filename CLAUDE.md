@@ -234,8 +234,8 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
   **Bagian harus jelas terpisah** (pengguna 2026-11-04 — versi pertama "menyaru"): judul bagian = garis aksen hijau +
   garis pemisah atas (`SectionHeader`); ringkasan = kartu terpisah berikon, hanya angka utama berlatar hijau
   (`StatCards`); judul kartu berikon (`CardTitle`); kartu bergaris tepi + bayangan; catatan penjelas kecil & netral
-  (`Note`). Jangan gabungkan metrik ke satu blok berwarna. Skala ukuran (jarak antartingkat sengaja lebar): angka utama 44 · h1 30 · angka kartu 24 ·
-  judul kartu 18 · pil/isi 14 · label kartu pita 13 · keterangan 12 · label bagian 12 kapital. Halaman lain menyusul
+  (`Note`). Jangan gabungkan metrik ke satu blok berwarna. Skala ukuran (jarak antartingkat sengaja lebar): h1 30 · angka utama ringkasan 24 · angka kartu 20 ·
+  judul kartu 18 bold · pil/isi 14 · label kartu pita 13 · keterangan 12 · label bagian 12 kapital. Halaman lain menyusul
   hanya bila diminta.
 - ⚠️ `laporan-tim/team-table.tsx` & `scorecards.tsx` dipakai bersama Monitor — mengubahnya mengubah Monitor.
 - **Tabel berpager wajib stabil** (2026-10-15): `table-fixed` + `<colgroup>` (`colPercents`), kelas `table-1line`

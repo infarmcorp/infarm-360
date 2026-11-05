@@ -255,7 +255,7 @@ export function AppShell({
   );
 
   const Sidebar = (
-    <aside className="app-sidebar w-64 shrink-0 bg-surface text-ink-soft border-r border-line flex flex-col h-full">
+    <aside className="app-sidebar w-64 shrink-0 bg-surface text-ink-soft border-r border-line-strong shadow-[4px_0_14px_-6px_rgb(27_31_28/0.22)] relative z-10 flex flex-col h-full">
       {/* Brand */}
       <div className="px-4 h-14 shrink-0 flex items-center bg-brand">
         <div className="flex items-center gap-2.5">
@@ -271,7 +271,7 @@ export function AppShell({
 
       {/* Toggle dual-mode: tampil bila punya izin HRD (canAdmin). Mode 'base' (token 'spv')
           = bertindak sesuai posisi asli (Pegawai/SPV); 'admin' = mengoperasikan aplikasi. */}
-      <div className="bg-infarm-surface border-b border-line">
+      <div className="border-b border-line">
       {canAdmin && (
         <div className="px-3.5 py-3">
           {modeSwitch(false)}
@@ -317,7 +317,7 @@ export function AppShell({
                 href={t.href}
                 prefetch={false}
                 onClick={() => setOpen(false)}
-                className="flex items-start gap-2 text-[11px] leading-snug text-ink-soft hover:text-ink hover:bg-surface rounded-lg px-1.5 py-1.5 transition-colors"
+                className="flex items-start gap-2 text-[11px] leading-snug text-ink-soft hover:text-ink hover:bg-infarm-surface rounded-lg px-1.5 py-1.5 transition-colors"
               >
                 <span className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${TODO_DOT[t.tone]}`} />
                 <span>{t.label}</span>
@@ -374,7 +374,7 @@ export function AppShell({
       </nav>
 
       {/* User + akun + logout */}
-      <div className="p-3 border-t border-line bg-infarm-surface">
+      <div className="p-3 border-t border-line">
         <div className="px-1 mb-2">
           <div className="text-xs font-bold text-ink truncate">{name}</div>
           <div className="text-[10px] text-ink-soft">{dept} · {ROLE_LABEL[role]} · <span className="font-mono">{empCode}</span></div>
@@ -384,7 +384,7 @@ export function AppShell({
           prefetch={false}
           onClick={() => setOpen(false)}
           className={`w-full flex items-center gap-2 text-xs font-semibold rounded-lg py-2 px-2 mb-1 transition-colors ${
-            isActive('/akun') ? 'bg-brand text-white' : 'text-ink-soft hover:bg-surface hover:text-ink'
+            isActive('/akun') ? 'bg-brand text-white' : 'text-ink-soft hover:bg-infarm-surface hover:text-ink'
           }`}
         >
           <KeyRound className="w-4 h-4" /> Akun Saya
@@ -395,7 +395,7 @@ export function AppShell({
           )}
         </Link>
         <form action="/auth/signout" method="post">
-          <button type="submit" className="w-full flex items-center gap-2 text-xs font-semibold text-danger-ink hover:bg-surface rounded-lg py-2 px-2 transition-colors">
+          <button type="submit" className="w-full flex items-center gap-2 text-xs font-semibold text-danger-ink hover:bg-danger-tint rounded-lg py-2 px-2 transition-colors">
             <LogOut className="w-4 h-4" /> Keluar
           </button>
         </form>

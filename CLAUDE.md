@@ -236,8 +236,9 @@ bersama (2026-11-03/04). Aturan token & "kartu flat tanpa bayangan / font sistem
   obligasi ("Wajib", draf, skor basi) · **danger** = error/destruktif/terlambat · **neutral** = nonaktif/info. Solid hanya
   tombol utama; status = chip soft-tint `rounded-full`. Satu tombol utama per baris tabel; aksi lain → `OverflowMenu`.
 - **Sidebar** (`app-shell.tsx`, pemilik 2026-11-04): bilah atas + kepala sidebar hijau `brand` (teks putih, satu pita
-  setinggi 56px), blok mode/periode/tugas & kaki pengguna `infarm-surface` (warna lembar kerja; `brand-tint` bukan warna DS), menu putih — agar sidebar jelas terpisah dari
-  lembar kerja. Bisa ditutup di desktop (tombol ☰ di bilah atas; cookie
+  setinggi 56px), **seluruh** badan sidebar putih (kartu periode tetap krem) + tepi kanan `border-line-strong` dan bayangan
+  tipis ke kanan — agar sidebar jelas terpisah dari lembar kerja `infarm-surface` (pemilik 2026-11-05: blok status berwarna
+  lembar kerja membuat sidebar menyaru; jangan pakai `infarm-surface` sebagai latar blok sidebar, hanya untuk hover). Bisa ditutup di desktop (tombol ☰ di bilah atas; cookie
   `sidebar_collapsed` dibaca `layout.tsx` agar tak berkedip). Saat ditutup: jejak grup › halaman + ▾ halaman segrup + pil
   periode/Tugas/mode. Isi `menuFor` (menu, urutan, gate akses) tidak berubah; HP tetap laci.
 - ⚠️ `laporan-tim/team-table.tsx` & `scorecards.tsx` dipakai bersama Monitor; `admin/laporan/report-table.tsx` dipakai juga

@@ -14,6 +14,8 @@ import { AlertTriangle, RefreshCw, X } from 'lucide-react';
  */
 const BUILD = process.env.NEXT_PUBLIC_BUILD_ID ?? 'dev';
 const CHECK_EVERY_MS = 5 * 60 * 1000;
+// focus + visibilitychange datang bersamaan saat kembali ke tab → jeda minimal antar-cek.
+const MIN_GAP_MS = 60 * 1000;
 const NETWORKISH = /server action|failed to fetch|networkerror|load failed|fetch failed|unexpected response|chunkloaderror|loading chunk/i;
 
 export function ActionGuard() {
@@ -23,8 +25,11 @@ export function ActionGuard() {
   useEffect(() => {
     if (BUILD === 'dev') return; // lokal: tiap build berganti, banner hanya mengganggu
     let stop = false;
+    let last = 0;
     const check = async () => {
       if (stop || document.visibilityState !== 'visible') return;
+      if (Date.now() - last < MIN_GAP_MS) return;
+      last = Date.now();
       try {
         const r = await fetch('/api/version', { cache: 'no-store' });
         if (!r.ok) return;

@@ -197,7 +197,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 /** Sub-tab pil (Design System Infarm). */
 function Pill({ href, active, icon: Icon, children }: { href: string; active: boolean; icon: LucideIcon; children: React.ReactNode }) {
   return (
-    <Link href={href} className={`${pillCls(active)} shrink-0`}>
+    <Link href={href} prefetch={false} className={`${pillCls(active)} shrink-0`}>
       <Icon className="w-4 h-4" aria-hidden />
       <span className="inline-flex items-center">{children}</span>
     </Link>

@@ -331,6 +331,22 @@ akses bawaan peran tetap; grant hanya menambah atau mencabut. Katalog **tetap** 
 Mengubah izin (HRD Admin, bagian HRD, Koordinator + tim) & akun HRD/Direksi (ubah, nonaktifkan, reset sandi)
 hanya HRD berakses penuh; tak ada yang bisa mengubah izin dirinya sendiri (trigger `employees_guard_privileges`).
 
+### 5.0 Cek sesi per request (hemat Log Ingestion Supabase, 2026-11-05)
+Kuota Log Ingestion organisasi habis oleh `GET /auth/v1/user` dari server. Diukur di staging (alur sama, akun HRD
+Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
+- **Proxy** (`lib/supabase/middleware.ts`) = gerbang redirect + refresh sesi: `auth.getClaims()` (verifikasi tanda tangan
+  JWT lokal dengan JWKS ES256, cache ±10 menit; HS256/tanpa `kid` → otomatis jatuh ke `getUser()`), tolak bila tak ada
+  `sub`. `setAll` meneruskan header anti-cache dari `@supabase/ssr`. Tak menangkap sesi yang dicabut sebelum token
+  kedaluwarsa (≤ 1 jam) — karena itu:
+- **Tiap halaman & Server Action tetap `auth.getUser()`** (terverifikasi ke server Auth) sebelum membaca data. Jangan
+  ganti ke `getClaims`/`getSession` di sana. Layout + page dalam satu render otomatis digabung oleh memoisasi fetch Next
+  (terukur: 1 panggilan per render) — `cache()` tak menambah hemat.
+- **`<Link prefetch={false}>`** di menu sidebar, Tugas, tab halaman (`pillCls`), daftar target `/penilaian`, dan nama di
+  `team-table.tsx`: tiap prefetch melewati proxy (dulu = 1 panggilan Auth; menu sidebar sendiri ±80% panggilan).
+- `/api/version` publik (cocok persis, `isPublicPath`, diuji `tests/session-public-paths.test.ts`) — isinya hanya SHA
+  commit. ActionGuard memberi jeda ≥ 60 detik antar-cek.
+- Auto-simpan draf 360° tetap `revalidatePath` (sengaja): tanpa itu tombol Back browser menampilkan progres lama.
+
 ### 5.2 `page_grants`
 - Kolom: `employee_id`, `section`, `scope` (lama, = `scopes[0]`, tetap ditulis sinkron), `scopes text[]`,
   `can_edit`, `can_finalize`, unique(employee_id, section).

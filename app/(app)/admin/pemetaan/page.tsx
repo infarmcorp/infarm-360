@@ -66,8 +66,8 @@ export default async function PemetaanPage({
       </PageTitle>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        <Link href="/admin/pemetaan?tab=pemetaan" className={pillCls(tab === 'pemetaan')}><Network className="w-4 h-4" /> Pemetaan</Link>
-        <Link href="/admin/pemetaan?tab=koreksi" className={pillCls(tab === 'koreksi')}>
+        <Link href="/admin/pemetaan?tab=pemetaan" prefetch={false} className={pillCls(tab === 'pemetaan')}><Network className="w-4 h-4" /> Pemetaan</Link>
+        <Link href="/admin/pemetaan?tab=koreksi" prefetch={false} className={pillCls(tab === 'koreksi')}>
           <Wrench className="w-4 h-4" /> Permohonan
           {pendingCount ? <span className={`text-[11px] font-mono font-bold px-1.5 py-0.5 rounded-full leading-none ${tab === 'koreksi' ? 'bg-white text-brand-ink' : 'bg-brand text-white'}`}>{pendingCount}</span> : null}
         </Link>

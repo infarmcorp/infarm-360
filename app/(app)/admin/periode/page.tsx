@@ -69,8 +69,8 @@ export default async function PeriodePage({
       </PageTitle>
 
       <div className="mb-4 flex flex-wrap gap-2">
-        <Link href="/admin/periode" className={pillCls(tab === 'periode')}><CalendarRange className="w-4 h-4" /> Kelola Periode</Link>
-        <Link href="/admin/periode?tab=siklus" className={pillCls(tab === 'siklus')}><ListChecks className="w-4 h-4" /> Status Siklus</Link>
+        <Link href="/admin/periode" prefetch={false} className={pillCls(tab === 'periode')}><CalendarRange className="w-4 h-4" /> Kelola Periode</Link>
+        <Link href="/admin/periode?tab=siklus" prefetch={false} className={pillCls(tab === 'siklus')}><ListChecks className="w-4 h-4" /> Status Siklus</Link>
       </div>
 
       {/* Sub-tab "Status Siklus": rincian 10 langkah (pindahan kartu Beranda yang dihapus). */}

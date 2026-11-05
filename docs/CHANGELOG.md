@@ -8,6 +8,17 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-05 — Pemeriksaan login lebih hemat (di `dev`, belum dirilis)
+- Kuota catatan (log) Supabase habis jauh melebihi batas, hampir seluruhnya dari pemeriksaan "apakah pengguna masih
+  login" yang diulang-ulang. Penyebab terbesar: aplikasi memuat lebih dulu setiap halaman yang tautannya terlihat di
+  menu, tab, dan daftar (walau tidak diklik), dan setiap muatan itu ikut diperiksa ke Supabase.
+- Sekarang halaman hanya dimuat saat diklik, pemeriksaan di "pintu depan" aplikasi dilakukan di server aplikasi sendiri
+  (tanda tangan tiket login dicek tanpa bertanya ke Supabase), dan pengecekan versi aplikasi tak lagi memeriksa login.
+  Uji di staging untuk alur yang sama: 105 → 17 pemeriksaan.
+- Keamanan tidak dilonggarkan: setiap halaman dan setiap tombol tetap memeriksa login dan hak akses ke Supabase sebelum
+  menampilkan atau mengubah data. Efek yang terasa: pindah menu/tab sepersekian detik lebih lambat.
+- Keterangan "Tersimpan otomatis" di form penilaian pindah ke bawah kotak evidence (permintaan pemilik).
+
 ### 2026-11-04 — Bilah atas & sidebar berwarna hijau (di `dev`, belum di production)
 - Bilah atas (tombol menu + judul halaman) kini hijau dengan tulisan putih, menyambung dengan kepala sidebar (logo).
   Blok mode/periode/tugas dan bagian nama pengguna di sidebar berlatar hijau lembar kerja; daftar menu tetap putih.

@@ -315,6 +315,7 @@ export function AppShell({
               <Link
                 key={t.id}
                 href={t.href}
+                prefetch={false}
                 onClick={() => setOpen(false)}
                 className="flex items-start gap-2 text-[11px] leading-snug text-ink-soft hover:text-ink hover:bg-surface rounded-lg px-1.5 py-1.5 transition-colors"
               >
@@ -351,9 +352,12 @@ export function AppShell({
                 const Icon = it.icon;
                 const active = isActive(it.href);
                 return (
+                  // prefetch={false}: prefetch otomatis puluhan tautan menu (diulang tiap pindah halaman) =
+                  // pemakai terbesar kuota log Supabase (tiap prefetch = 1 cek sesi). Klik tetap memuat normal.
                   <Link
                     key={it.href}
                     href={it.href}
+                    prefetch={false}
                     onClick={() => setOpen(false)}
                     className={`w-full flex items-center gap-2.5 pl-4 pr-3 py-2 rounded-lg text-xs font-bold transition-colors ${
                       active ? 'bg-brand text-white' : 'text-ink-soft hover:bg-infarm-surface hover:text-brand-ink'
@@ -377,6 +381,7 @@ export function AppShell({
         </div>
         <Link
           href="/akun"
+          prefetch={false}
           onClick={() => setOpen(false)}
           className={`w-full flex items-center gap-2 text-xs font-semibold rounded-lg py-2 px-2 mb-1 transition-colors ${
             isActive('/akun') ? 'bg-brand text-white' : 'text-ink-soft hover:bg-surface hover:text-ink'
@@ -459,7 +464,7 @@ export function AppShell({
                     const Icon = it.icon;
                     const here = it.href === crumb!.item.href;
                     return (
-                      <Link key={it.href} href={it.href} onClick={() => setPopover(null)}
+                      <Link key={it.href} href={it.href} prefetch={false} onClick={() => setPopover(null)}
                         className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] ${here ? 'bg-infarm-surface text-brand-ink font-semibold' : 'text-ink-soft hover:bg-infarm-surface hover:text-ink'}`}>
                         <Icon className="w-4 h-4 shrink-0" /> <span className="flex-1">{it.label}</span>
                         {here && <Check className="w-4 h-4 text-brand" />}
@@ -494,7 +499,7 @@ export function AppShell({
                     {todos.length === 0
                       ? <p className="px-2.5 py-2 text-xs text-ink-faint">Tak ada tugas tertunda.</p>
                       : todos.map((t) => (
-                        <Link key={t.id} href={t.href} onClick={() => setPopover(null)}
+                        <Link key={t.id} href={t.href} prefetch={false} onClick={() => setPopover(null)}
                           className="flex items-start gap-2 px-2.5 py-2 rounded-lg text-[13px] leading-snug text-ink-soft hover:bg-infarm-surface hover:text-ink">
                           <span className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${TODO_DOT[t.tone]}`} />
                           <span>{t.label}</span>

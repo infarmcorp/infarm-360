@@ -242,7 +242,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
     const label = primaryLabel(it);
     const solid = label === 'Mulai Nilai' || label === 'Lanjutkan';
     return (
-      <Link href={`/penilaian/${it.targetId}`}
+      <Link href={`/penilaian/${it.targetId}`} prefetch={false}
         className={`${solid ? BTN_PRIMARY : BTN_GHOST} shrink-0 whitespace-nowrap ${asButton ? 'w-full' : ''}`}>
         {label === 'Edit' && asButton ? 'Edit Penilaian' : label}
       </Link>
@@ -284,11 +284,11 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
 
       {/* Sub-tab pil (Design System Infarm) — href & logika aktif tetap. */}
       <div className="flex flex-wrap gap-2">
-        <Link href="/penilaian?tab=penilaian" className={`${pillCls(tab === 'penilaian')} shrink-0`}>
+        <Link href="/penilaian?tab=penilaian" prefetch={false} className={`${pillCls(tab === 'penilaian')} shrink-0`}>
           <ClipboardList className="w-4 h-4" aria-hidden /> Penilaian
           {items.length ? <CountChip active={tab === 'penilaian'}>{items.length}</CountChip> : null}
         </Link>
-        <Link href="/penilaian?tab=pengajuan" className={`${pillCls(tab === 'pengajuan')} shrink-0`}>
+        <Link href="/penilaian?tab=pengajuan" prefetch={false} className={`${pillCls(tab === 'pengajuan')} shrink-0`}>
           <Inbox className="w-4 h-4" aria-hidden /> Pengajuan
           {pendingReqN ? <CountChip active={tab === 'pengajuan'} warn>{pendingReqN}</CountChip> : null}
         </Link>

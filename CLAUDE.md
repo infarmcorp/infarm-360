@@ -135,6 +135,9 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
 - Periode terkunci & form tertutup ditolak server (`assessment_writable`, trigger). Kirim ulang hanya sampai
   deadline (`assessment_locked_after_deadline`).
 - `?next=` login/callback lewat `safeNext` (cegah open redirect).
+- **Cek sesi hemat log** (2026-11-05, TEKNIS.md §5.0): proxy = `getClaims()` (gerbang + refresh); halaman & Server
+  Action **tetap** `getUser()` sebelum membaca data — jangan diganti. Tautan menu/tab/daftar baru pakai
+  `prefetch={false}` (tiap prefetch = 1 cek sesi). Route publik baru hanya lewat `isPublicPath` + tes.
 - Repo **publik**: jangan commit data pegawai, backup mentah, email, kredensial, atau CSV `BACKFILL-*`.
 
 ## 6. Invariant akses

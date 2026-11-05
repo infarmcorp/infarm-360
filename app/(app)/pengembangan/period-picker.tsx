@@ -12,7 +12,7 @@ export function PeriodPicker({ periods, selected, base }: { periods: PlanPeriod[
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-[13px] font-semibold text-ink-soft mr-1">Periode laporan:</span>
       {periods.map((p) => (
-        <Link key={p.id} href={`${base}${base.includes('?') ? '&' : '?'}period=${p.id}`} className={`${pillCls(p.id === selected)} shrink-0`}>
+        <Link key={p.id} prefetch={false} href={`${base}${base.includes('?') ? '&' : '?'}period=${p.id}`} className={`${pillCls(p.id === selected)} shrink-0`}>
           {p.label}
         </Link>
       ))}

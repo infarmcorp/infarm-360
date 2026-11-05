@@ -334,7 +334,7 @@ export function AssessForm({
 
   return (
     <div className="space-y-4">
-      {/* Bar progres + indikator auto-simpan */}
+      {/* Bar progres (indikator auto-simpan ada di bawah kotak evidence — tempat pengguna mengetik) */}
       <div className={`${CARD} space-y-2`}>
         <div className="flex items-center gap-3">
           <div className="h-2 bg-neutral-tint flex-1 rounded-full overflow-hidden">
@@ -342,7 +342,6 @@ export function AssessForm({
           </div>
           <span className="text-xs font-bold text-brand-ink data-value shrink-0">{progDone}/{progTotal} · {pct}%</span>
         </div>
-        <AutoSaveHint state={saveState} disabled={initialStatus === 'submitted'} />
       </div>
 
       {/* Panduan Penilaian Umum (statis, berlaku semua pertanyaan) — disembunyikan di halaman Review. */}
@@ -545,6 +544,7 @@ export function AssessForm({
                       {(comments[cur.id] ?? '').trim().length >= EVIDENCE_MIN ? `${(comments[cur.id] ?? '').trim().length} karakter` : `${(comments[cur.id] ?? '').trim().length}/${EVIDENCE_MIN} karakter · wajib min. ${EVIDENCE_MIN}`}
                     </span>
                   </div>
+                  <AutoSaveHint state={saveState} disabled={initialStatus === 'submitted'} />
                 </div>
 
                 {/* Navigasi Sebelumnya / Selanjutnya */}

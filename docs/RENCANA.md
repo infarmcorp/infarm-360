@@ -47,9 +47,10 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 ## 2. Harus dikerjakan
 
 ### Rilis & operasional
-- 🔑⬜ **Panduan pindah ke Notion per peran** (keputusan pemilik 2026-11-06). Kartu Panduan dan penanda PANDUAN di Akun
-  Saya sudah dihapus dari `dev` agar pegawai tidak mengunduh panduan yang salah. Sisa: siapkan halaman Notion tiap peran,
-  lalu pasang tautannya di Akun Saya. Keputusan terbuka: email Undangan masih melampirkan PDF lama.
+- 🔑⬜ **Panduan pindah ke Notion per peran** (keputusan pemilik 2026-11-06). Kartu Panduan, penanda PANDUAN, dan lampiran
+  PDF di email Undangan sudah dihapus dari `dev` agar pegawai tidak memakai panduan yang salah. Rilisnya ikut rilis menuju
+  Q4 (keputusan pemilik), jadi sampai itu production masih memakai yang lama. Sisa: siapkan halaman Notion tiap peran, lalu
+  pasang tautannya di Akun Saya. Keputusan terbuka: hapus 4 berkas PDF lama. Revisi PDF di bawah gugur bila Notion dipakai.
 - 🔄 **Revisi 4 PDF panduan (belum prioritas).** Keputusan pemilik 2026-10-16: 4 PDF dan nomor versinya
   (`2026-10-01`) **ikut rilis Q3 apa adanya**. Akibatnya tanda "BARU" muncul walau isinya masih sama dengan versi
   30 Juli (masih ada "Review Hasil Akhir", "punishment", "4 karakter", salah ketik "ditHRD"). Revisi menyusul:

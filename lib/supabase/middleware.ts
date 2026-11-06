@@ -9,9 +9,8 @@ import type { Database } from '@/lib/database.types';
  * (cek sesi sendiri), jadi tetap publik. `/legacy` (SPA demo localStorage), `/login`,
  * & `/auth` juga publik. Route lain butuh sesi → diarahkan ke /login.
  *
- * `/panduan` (PDF panduan per peran di public/) WAJIB publik: dilampirkan ke email
- * onboarding & diunduh provider email (Gmail/Resend) tanpa sesi — bila digate, provider
- * hanya mendapat halaman login, bukan PDF.
+ * `/panduan` (PDF panduan lama di public/) masih publik, tetapi sejak 2026-11-06 tak dipakai
+ * aplikasi lagi: lampiran email Undangan dan kartu Akun Saya sudah dihapus.
  *
  * `/api/cron/` dipanggil server-ke-server (GitHub Actions/penjadwal) TANPA sesi pengguna — bila digate,
  * pemanggil hanya mendapat redirect ke /login. Tiap route di bawahnya WAJIB memeriksa sendiri

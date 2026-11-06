@@ -677,22 +677,11 @@ Ekspor Dataset Excel = cadangan parsial, bukan pengganti dump.
 
 ## 9. PDF panduan in-app
 
-Folder `public/panduan/` — kini hanya dipakai sebagai lampiran email Undangan. Unduhan di Akun Saya dan badge-nya
-dihapus 2026-11-06; kelak Akun Saya menaut ke panduan Notion per peran. Pemetaan peran → file di `lib/panduan.ts`
-(sumber tunggal; nama tampil di `PANDUAN_PDF`).
+**Tidak dipakai lagi sejak 2026-11-06.** Unduhan di Akun Saya, badge-nya, dan lampiran email Undangan sudah dihapus
+karena isi PDF usang. Kelak Akun Saya menaut ke panduan Notion per peran. Empat berkas di `public/panduan/` belum dihapus,
+jadi masih bisa dibuka siapa pun yang tahu tautannya, dan `/panduan` masih terdaftar publik di `lib/supabase/middleware.ts`.
 
-| Penerima | File (nama WAJIB persis) |
-|---|---|
-| Pegawai tanpa grant Koordinator | `panduan-pegawai.pdf` |
-| SPV **dan** pemegang grant Koordinator | `panduan-spv-koor.pdf` |
-| HRD Admin (role `hrd` atau `is_hrd_admin`) | `panduan-hrd.pdf` |
-| Direksi | `panduan-direksi.pdf` |
-
-- File belum ada → email tetap terkirim tanpa lampiran.
 - Isi `public/` dapat diunduh siapa pun yang tahu tautannya → jangan taruh dokumen rahasia (atau `.md`) di sana.
-- **Memperbarui lampiran:** sunting dokumen sumber Word (tidak disimpan di repo; ada di penyimpanan tim HRD) → ekspor
-  PDF dengan nama persis → timpa → commit & deploy → kirim uji Undangan tiap peran. Daftar revisi isi yang tertunda:
-  [panduan/REVISI-PANDUAN-PDF.md](panduan/REVISI-PANDUAN-PDF.md).
 
 ---
 

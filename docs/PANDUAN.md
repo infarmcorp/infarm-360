@@ -674,8 +674,7 @@ dan dashboard sub-aspek ikut.
   yang sudah menilai pegawai ini, mis. `7/10 orang · 70%`).
 - Filter **Divisi** dan **Status** berupa centang multi-pilih ("Pilih semua"/"Bersihkan"; kosong = semua) + cari nama.
 - **Paksa Selesai**: menandai satu penilaian selesai secara manual. Tidak mengubah skor dan tidak dihitung terlambat.
-- **Undangan** memuat peran, email login, **sandi baru**, tombol login, daftar yang belum dinilai, panduan ringkas,
-  dan lampiran PDF panduan sesuai peran (bila filenya belum ada, email tetap terkirim tanpa lampiran).
+- **Undangan** memuat peran, email login, **sandi baru**, tombol login, daftar yang belum dinilai, dan panduan ringkas.
   ⚠️ Mengirim undangan **menyetel ulang sandi** orang itu. Saat ini hanya alamat `@gmail.com` yang dikirimi;
   alamat lain dilewati tanpa mengubah sandinya.
 - **Kirim Pengingat** memuat daftar yang belum dinilai + tombol **Buka Portal**. Hanya dikirim ke penilai yang

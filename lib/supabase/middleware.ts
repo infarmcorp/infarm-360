@@ -9,9 +9,6 @@ import type { Database } from '@/lib/database.types';
  * (cek sesi sendiri), jadi tetap publik. `/legacy` (SPA demo localStorage), `/login`,
  * & `/auth` juga publik. Route lain butuh sesi → diarahkan ke /login.
  *
- * `/panduan` (PDF panduan lama di public/) masih publik, tetapi sejak 2026-11-06 tak dipakai
- * aplikasi lagi: lampiran email Undangan dan kartu Akun Saya sudah dihapus.
- *
  * `/api/cron/` dipanggil server-ke-server (GitHub Actions/penjadwal) TANPA sesi pengguna — bila digate,
  * pemanggil hanya mendapat redirect ke /login. Tiap route di bawahnya WAJIB memeriksa sendiri
  * `Authorization: Bearer $CRON_SECRET` dan menolak bila CRON_SECRET kosong (gagal tertutup).
@@ -19,7 +16,7 @@ import type { Database } from '@/lib/database.types';
  * `/api/version` (cocok PERSIS) hanya mengembalikan id build (SHA commit repo publik) dan dicek
  * ActionGuard tiap 5 menit per tab — bila digate, tiap cek = 1 panggilan Auth Supabase (kuota log).
  */
-const PUBLIC_PREFIXES = ['/login', '/auth', '/legacy', '/panduan', '/api/cron/'];
+const PUBLIC_PREFIXES = ['/login', '/auth', '/legacy', '/api/cron/'];
 const PUBLIC_EXACT = ['/', '/api/version'];
 
 export function isPublicPath(path: string): boolean {

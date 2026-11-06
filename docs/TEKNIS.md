@@ -163,7 +163,7 @@ Hanya `VERCEL_ENV=production` — Preview `dev` & lokal tak pernah terkunci (Edg
 production & Preview). Edge Config gagal dibaca / belum di-Connect → dianggap **mati**. Bypass: banding
 waktu-konstan, cookie httpOnly 12 jam. Diuji `tests/maintenance.test.ts`.
 
-**A. Rilis kode (sekali):** PR `dev` → `main` → merge (cek isi PDF panduan yang ikut) → tunggu deploy.
+**A. Rilis kode (sekali):** PR `dev` → `main` → merge → tunggu deploy.
 
 **B. Persiapan Edge Config (sekali, setelah A):**
 1. Vercel → project → **Storage** → **Create Database** → **Edge Config** → nama mis. `infarm-maintenance` → **Create**.
@@ -677,9 +677,9 @@ Ekspor Dataset Excel = cadangan parsial, bukan pengganti dump.
 
 ## 9. PDF panduan in-app
 
-**Tidak dipakai lagi sejak 2026-11-06.** Unduhan di Akun Saya, badge-nya, dan lampiran email Undangan sudah dihapus
-karena isi PDF usang. Kelak Akun Saya menaut ke panduan Notion per peran. Empat berkas di `public/panduan/` belum dihapus,
-jadi masih bisa dibuka siapa pun yang tahu tautannya, dan `/panduan` masih terdaftar publik di `lib/supabase/middleware.ts`.
+**Dihapus 2026-11-06.** Unduhan di Akun Saya, badge-nya, lampiran email Undangan, keempat berkas `public/panduan/`, dan
+pengecualian sesi `/panduan` sudah dihapus karena isi PDF usang. Berkas lama ada di riwayat git. Kelak Akun Saya menaut ke
+panduan Notion per peran.
 
 - Isi `public/` dapat diunduh siapa pun yang tahu tautannya → jangan taruh dokumen rahasia (atau `.md`) di sana.
 

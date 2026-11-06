@@ -19,10 +19,12 @@ import { isPublicPath, updateSession } from '@/lib/supabase/middleware';
  */
 describe('isPublicPath', () => {
   it('route publik yang disengaja', () => {
-    for (const p of ['/', '/login', '/auth/callback', '/auth/signout', '/panduan/panduan-hrd.pdf',
+    for (const p of ['/', '/login', '/auth/callback', '/auth/signout',
       '/api/cron/release-email', '/api/version']) {
       expect(isPublicPath(p), p).toBe(true);
     }
+    // PDF panduan lama sudah dihapus (2026-11-06): awalannya tidak boleh publik lagi.
+    expect(isPublicPath('/panduan/panduan-hrd.pdf')).toBe(false);
   });
 
   it('/api/version dicocokkan persis, bukan awalan', () => {

@@ -28,7 +28,7 @@ Acuan fungsional: `PANDUAN Infarm 360 Portal.pdf` dan [docs/PANDUAN.md](docs/PAN
 | [docs/TEKNIS.md](docs/TEKNIS.md) | alur branch/staging/migrasi, env var, aktivasi (email, Lupa Sandi, Mode Maintenance, cron), rumus & tabel klasifikasi, model akses, daftar migrasi, pengujian, backup, PDF |
 | [docs/PANDUAN.md](docs/PANDUAN.md) | panduan pengguna per peran + tombol + SOP HRD (bahasa awam) |
 | `docs/pengembangan/DESAIN-MANAJEMEN-AKSES.md` | catatan keputusan izin 3 tingkat (dirujuk migrasi 0032/0033) |
-| `docs/panduan/REVISI-PANDUAN-PDF.md` | sementara — teks revisi 4 PDF; hapus setelah PDF direvisi |
+| `docs/panduan/REVISI-PANDUAN-PDF.md` | arsip — teks revisi 4 PDF yang sudah dihapus (2026-11-06); panduan pindah ke Notion |
 | [docs/UJI-RILIS-Q3.md](docs/UJI-RILIS-Q3.md) | sementara — daftar uji manual rilis Q3 (gelombang 1, 2, 2b); hapus setelah rilis |
 | [docs/PESAN-HRD-RILIS-Q3.md](docs/PESAN-HRD-RILIS-Q3.md) | sementara — pesan siap kirim ke HRD tentang perubahan rilis Q3; hapus setelah rilis |
 
@@ -52,8 +52,8 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   `/` = gerbang auth → landing per peran (tak ada Beranda). **Tak ada `src/`** (SPA legacy sudah dihapus).
 - `lib/` — rumus (`scoring.ts`, `score360.ts`, `late.ts`, `trend.ts`), `report.ts` (loader laporan),
   `auth/roles.ts`, `supabase/` (`server.ts`: `createClient` user/RLS vs `createAdminClient` service_role;
-  `paginate`), `maintenance.ts`, `panduan.ts`, `email/mailer.ts`, `audit/log.ts`, `database.types.ts`.
-- `proxy.ts` (cek maintenance → session), `components/` (primitif UI), `scripts/`, `tests/`, `public/panduan/` (4 PDF).
+  `paginate`), `maintenance.ts`, `email/mailer.ts`, `audit/log.ts`, `database.types.ts`.
+- `proxy.ts` (cek maintenance → session), `components/` (primitif UI), `scripts/`, `tests/`.
 - Fitur memakai sub-tab `?tab=`. Tombol per halaman → PANDUAN.md.
 
 ## 4. Keputusan arsitektur terkunci

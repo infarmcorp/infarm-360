@@ -7,6 +7,7 @@ import {
   finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf,
 } from '@/lib/scoring';
 import { computeDashboardAggregate } from '@/lib/dashboard/aggregate';
+import { deptIndicatorForPeriod, deptIndicatorMatrix } from '@/lib/dashboard/dept-indicator';
 import { loadPrevPeriodScores } from '@/lib/dashboard/prev-period';
 import { classOf, avg as avg360, weightedScore360, effectiveModel, type Groups360, type Model360 } from '@/lib/score360';
 import { trendOf } from '@/lib/trend';
@@ -137,6 +138,8 @@ export default async function DashboardPage({
             months={bundle.months}
             deptAspect360={bundle.deptAspect360}
             aspect360Names={bundle.aspect360Names}
+            deptIndicator360={bundle.deptIndicator360}
+            indicator360Cols={bundle.indicator360Cols}
             yearLabel={selY}
             yearMonthly={bundle.yearMonthly}
             year360={bundle.year360}
@@ -184,7 +187,7 @@ export default async function DashboardPage({
       ? fetchAllByIds<{ employee_id: string; ym: string; score: number }>(empIds, (chunk, from, to) =>
           db.from('kpi_scores').select('employee_id, ym, score').in('ym', ymList).in('employee_id', chunk).order('employee_id').order('ym').range(from, to))
       : Promise.resolve([] as { employee_id: string; ym: string; score: number }[]),
-    aspectList.length ? db.from('indicators').select('id, aspect_id').in('aspect_id', aspectList.map((a) => a.id)) : Promise.resolve({ data: [] as { id: string; aspect_id: string }[] }),
+    aspectList.length ? db.from('indicators').select('id, aspect_id, text, order_idx, is_active').in('aspect_id', aspectList.map((a) => a.id)) : Promise.resolve({ data: [] as { id: string; aspect_id: string; text: string; order_idx: number; is_active: boolean }[] }),
     nonSelfIds.length
       ? fetchAllByIds<{ assessment_id: string; indicator_id: string; rating: number | null }>(nonSelfIds, (chunk, from, to) =>
           db.from('assessment_indicator_scores').select('assessment_id, indicator_id, rating')
@@ -449,6 +452,10 @@ export default async function DashboardPage({
       cells: aspectList.map((a) => { const g = deptAspectG.get(`${d}|${a.id}`); return { aspect: a.name, avg: g ? scoreOfG(g) : null }; }),
     }))
     .filter((r) => r.cells.some((c) => c.avg != null));
+  const { cols: indicator360Cols, rows: deptIndicator360 } = deptIndicatorMatrix(
+    [deptIndicatorForPeriod({ aspects: aspectList, indicators: indRes.data ?? [], scoreRows, asmtInfo, relByPair, empDept, scoreOfG })],
+    [...new Set(emps.map((e) => e.dept))].sort(),
+  );
 
   // ── Pembanding periode SEBELUMNYA (delta naik/turun scorecard) ─────────────────
   // Periode sebelumnya = start_date terbesar yang < periode terpilih (lintas tahun boleh).
@@ -560,6 +567,8 @@ export default async function DashboardPage({
           months={ymSorted}
           deptAspect360={deptAspect360}
           aspect360Names={aspect360Names}
+          deptIndicator360={deptIndicator360}
+          indicator360Cols={indicator360Cols}
           yearLabel={selYear}
           yearMonthly={yearMonthly}
           year360={year360}

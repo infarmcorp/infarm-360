@@ -15,6 +15,8 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   orang. Tombol Teratas/Terbawah dan tombol halaman dihapus.
 - Tulisan kategori di tiap baris peringkat diganti warna pada angka skor, dengan keterangan warna di bawah daftar.
 - Sidebar kini putih seluruhnya dengan tepi kanan lebih tegas, agar jelas terpisah dari lembar kerja (2026-11-05).
+- Analisis 360 Feedback mendapat peta warna baru, Divisi × Indikator. Kolomnya mengikuti indikator aktif di Kelola
+  Pertanyaan pada periode itu; indikator yang dinonaktifkan HRD tidak tampil. Cara hitungnya sama dengan Divisi × Aspek.
 
 ### 2026-11-05 — Pemeriksaan login lebih hemat (di `dev`, belum dirilis)
 - Kuota catatan (log) Supabase habis jauh melebihi batas, hampir seluruhnya dari pemeriksaan "apakah pengguna masih

@@ -11,6 +11,7 @@ import {
 import { heatColorInfarm as heatColor, HEAT_LEGEND_GRADIENT_INFARM as HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
 import { TREND_META, type Trend } from '@/lib/trend';
 import { displayName } from '@/lib/employee-name';
+import type { DeptIndicatorCol, DeptIndicatorRow } from '@/lib/dashboard/dept-indicator';
 import { StableHeight } from '@/components/table-controls';
 import { CAT_COLOR, CAT_TEXT, PLAYER_TONE, TREND_CHIP, CARD, CardTitle, SectionHeader, Note, StatCards } from '@/components/infarm-ui';
 
@@ -58,6 +59,8 @@ type Props = {
   months: string[];
   deptAspect360: DeptAspectRow[];
   aspect360Names: string[];
+  deptIndicator360: DeptIndicatorRow[];
+  indicator360Cols: DeptIndicatorCol[];
   yearLabel: number;
   yearMonthly: { ym: string; avg: number }[];
   year360: { label: string; avg: number }[];
@@ -131,7 +134,7 @@ const TABS: { key: SubTab; label: string; icon: React.ElementType }[] = [
   { key: 'table', label: 'Tabel Hasil Seluruh Pegawai', icon: Users },
 ];
 
-export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptMonthly, months, deptAspect360, aspect360Names, yearLabel, yearMonthly, year360, yearKpiAvg, year360Avg, has360, periodLabel, kpiStandard, prevLabel, prevFinalAvg, prevKpiAvg, prev360Avg, finalMove, kpiMove, s360Move, aggregate, quarterlyDist }: Props) {
+export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptMonthly, months, deptAspect360, aspect360Names, deptIndicator360, indicator360Cols, yearLabel, yearMonthly, year360, yearKpiAvg, year360Avg, has360, periodLabel, kpiStandard, prevLabel, prevFinalAvg, prevKpiAvg, prev360Avg, finalMove, kpiMove, s360Move, aggregate, quarterlyDist }: Props) {
   const [tab, setTab] = useState<SubTab>('compilation');
 
   return (
@@ -155,7 +158,7 @@ export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptM
       {tab === 'compilation' && <CompilationTab rows={rows} deptScores={deptScores} aspectScores={aspectScores} has360={has360} periodLabel={periodLabel}
         prevLabel={prevLabel} prevFinalAvg={prevFinalAvg} finalMove={finalMove} aggregate={aggregate} yearLabel={yearLabel} quarterlyDist={quarterlyDist} />}
       {tab === 'kpi' && <KpiTab rows={rows} deptScores={deptScores} monthly={monthly} deptMonthly={deptMonthly} months={months} kpiStandard={kpiStandard} yearLabel={yearLabel} yearMonthly={yearMonthly} yearKpiAvg={yearKpiAvg} prevLabel={prevLabel} prevKpiAvg={prevKpiAvg} kpiMove={kpiMove} />}
-      {tab === 'feedback' && <FeedbackTab rows={rows} aspectScores={aspectScores} deptAspect360={deptAspect360} aspect360Names={aspect360Names} has360={has360} periodLabel={periodLabel} yearLabel={yearLabel} year360={year360} year360Avg={year360Avg} prevLabel={prevLabel} prev360Avg={prev360Avg} s360Move={s360Move} />}
+      {tab === 'feedback' && <FeedbackTab rows={rows} aspectScores={aspectScores} deptAspect360={deptAspect360} aspect360Names={aspect360Names} deptIndicator360={deptIndicator360} indicator360Cols={indicator360Cols} has360={has360} periodLabel={periodLabel} yearLabel={yearLabel} year360={year360} year360Avg={year360Avg} prevLabel={prevLabel} prev360Avg={prev360Avg} s360Move={s360Move} />}
       {tab === 'table' && <TableTab rows={rows} has360={has360} />}
     </div>
   );
@@ -569,7 +572,7 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
 }
 
 /* ───────────────────────── TAB 3 — ANALISIS 360 ───────────────────────── */
-function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, has360, periodLabel, yearLabel, year360, year360Avg, prevLabel, prev360Avg, s360Move }: { rows: Row[]; aspectScores: { aspek: string; score: number }[]; deptAspect360: DeptAspectRow[]; aspect360Names: string[]; has360: boolean; periodLabel: string; yearLabel: number; year360: { label: string; avg: number }[]; year360Avg: number | null; prevLabel: string | null; prev360Avg: number | null; s360Move: MoveBreakdown | null }) {
+function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, deptIndicator360, indicator360Cols, has360, periodLabel, yearLabel, year360, year360Avg, prevLabel, prev360Avg, s360Move }: { rows: Row[]; aspectScores: { aspek: string; score: number }[]; deptAspect360: DeptAspectRow[]; aspect360Names: string[]; deptIndicator360: DeptIndicatorRow[]; indicator360Cols: DeptIndicatorCol[]; has360: boolean; periodLabel: string; yearLabel: number; year360: { label: string; avg: number }[]; year360Avg: number | null; prevLabel: string | null; prev360Avg: number | null; s360Move: MoveBreakdown | null }) {
   const s360s = rows.map((r) => r.s360).filter((v): v is number => v != null);
   const avg360 = mean(s360s);
   const assessed = s360s.length;
@@ -595,13 +598,15 @@ function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, has360
           { icon: Users, tone: 'soil', value: String(assessed), label: 'Pegawai Ternilai 360°' },
         ]} />
 
-      <SectionHeader label="Sebaran, Tren & Aspek" hint="heatmap divisi×aspek · tren kuartal · sub-aspek" />
+      <SectionHeader label="Sebaran, Tren & Aspek" hint="heatmap divisi×aspek · divisi×indikator · tren kuartal · sub-aspek" />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2"><Aspect360Heatmap deptAspect={deptAspect360} aspects={aspect360Names} /></div>
         <CategoryPie title="Distribusi Kategori 360°" subtitle="Komposisi pegawai per kelas skor 360°"
           unit="360°" values={s360s} />
       </div>
+
+      <DeptIndicatorHeatmap rows={deptIndicator360} cols={indicator360Cols} />
 
       {/* Tren 360° & Evaluasi Sub-Aspek — sejajar (berdampingan) di layar lebar. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
@@ -995,6 +1000,82 @@ function Aspect360Heatmap({ deptAspect, aspects }: { deptAspect: DeptAspectRow[]
         </table>
       </div>
       <p className="text-xs text-ink-soft mt-3">Sel = skor aspek 0–100 <strong>terbobot per kelas penilai</strong> (skema bobot aktif, mis. Atasan/Peer/Cross/Bawahan; Self dikecualikan) — selaras Skor 360° resmi. Lingkup filter divisi aktif. &ldquo;—&rdquo; = belum ada penilaian.</p>
+    </div>
+  );
+}
+
+/**
+ * Heatmap Divisi × Indikator: kolom mengikuti indikator aktif di Kelola Pertanyaan, dikelompokkan per aspek.
+ * Jumlah indikator bisa banyak → tabel boleh digeser ke samping, kolom Divisi tetap menempel di kiri.
+ */
+function DeptIndicatorHeatmap({ rows, cols }: { rows: DeptIndicatorRow[]; cols: DeptIndicatorCol[] }) {
+  if (rows.length === 0 || cols.length === 0) {
+    return (
+      <div className={CARD}>
+        <CardTitle icon={Grid3X3} className="mb-1">Capaian 360° / Divisi × Indikator</CardTitle>
+        <p className="text-[13px] text-ink-soft italic mt-2">Belum ada penilaian 360° terkirim untuk lingkup ini.</p>
+      </div>
+    );
+  }
+  const groups: { aspect: string; span: number }[] = [];
+  for (const c of cols) {
+    const last = groups[groups.length - 1];
+    if (last?.aspect === c.aspect) last.span += 1; else groups.push({ aspect: c.aspect, span: 1 });
+  }
+  return (
+    <div className={CARD}>
+      <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
+        <div>
+          <CardTitle icon={Grid3X3}>Capaian 360° / Divisi × Indikator</CardTitle>
+          <p className="text-xs text-ink-soft mt-1">Skor tiap indikator terbobot (skala 100) per divisi, mengikuti indikator aktif di Kelola Pertanyaan</p>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
+          <span>Rendah</span>
+          <span className="h-2.5 w-32 rounded-full" style={{ background: HEAT_LEGEND_GRADIENT }} />
+          <span>Tinggi</span>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full table-fixed border-separate border-spacing-1 text-xs" style={{ minWidth: 160 + cols.length * 84 }}>
+          <colgroup>
+            {colPercents([160, ...cols.map(() => 84)]).map((w, i) => <col key={i} style={{ width: w }} />)}
+          </colgroup>
+          <thead>
+            <tr>
+              <th className="sticky left-0 bg-surface" />
+              {groups.map((g, i) => (
+                <th key={`${g.aspect}-${i}`} colSpan={g.span} title={g.aspect}
+                  className="px-1 py-1 text-[11px] font-bold uppercase tracking-[0.06em] text-ink-soft text-center break-words leading-tight border-b border-line">{g.aspect}</th>
+              ))}
+            </tr>
+            <tr>
+              <th className="text-left py-2 px-3 text-xs font-semibold text-ink-soft sticky left-0 bg-surface">Divisi</th>
+              {cols.map((c) => (
+                <th key={c.key} title={c.text} className="text-center py-2 px-1 text-xs font-semibold text-ink-soft whitespace-normal break-words leading-tight align-bottom">{c.text}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.dept}>
+                <td className="py-2 px-3 font-medium text-ink break-words sticky left-0 bg-surface">{row.dept}</td>
+                {cols.map((c) => {
+                  const v = row.cells[c.key] ?? null;
+                  const { bg, fg } = heatColor(v);
+                  return (
+                    <td key={c.key} className="text-center font-mono font-semibold text-[13px] rounded-lg py-3 px-1"
+                      style={{ backgroundColor: bg, color: fg }}
+                      title={`${row.dept} · ${c.aspect} · ${c.text} · ${v != null ? fmt2(v) : 'tanpa data'}`}>
+                      {v != null ? fmt2(v) : '—'}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-ink-soft mt-3">Sel = skor indikator 0–100 <strong>terbobot per kelas penilai</strong>, cara hitung sama dengan Divisi × Aspek (Self dikecualikan). Lingkup filter divisi aktif. Mode Semua Kuartal = rata-rata antar-kuartal untuk indikator bernama sama. &ldquo;—&rdquo; = belum ada penilaian.</p>
     </div>
   );
 }

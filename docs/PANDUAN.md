@@ -961,7 +961,8 @@ terbaca"** tidak dihitung dalam rerata, sebaran, dan peringkat KPI (jumlahnya di
   yang terlihat sekaligus (warna angka = kategori skor; keterangan ada di bawah daftar).
 - **Analisis Hasil KPI** — rerata KPI, KPI tertinggi & terendah (dengan nama), **% KPI Di Atas Standar (≥N)**,
   KPI per divisi, peta warna capaian KPI per divisi × bulan, sebaran kategori KPI, tren KPI bulanan, peringkat.
-- **Analisis 360 Feedback** — rerata 360°, tren 360° per kuartal, sub-aspek budaya, peringkat.
+- **Analisis 360 Feedback** — rerata 360°, peta warna divisi × aspek, peta warna **divisi × indikator** (kolomnya
+  mengikuti indikator aktif di Kelola Pertanyaan), tren 360° per kuartal, sub-aspek budaya, peringkat.
 - **Tabel Hasil Seluruh Pegawai** — 10 baris per halaman, cari nama/divisi, filter **A/B/C Player** (termasuk
   "HRD Review"). Pegawai nonaktif yang masih tampil berpenanda "nonaktif".
 

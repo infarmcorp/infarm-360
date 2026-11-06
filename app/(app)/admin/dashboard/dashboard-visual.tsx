@@ -314,66 +314,46 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
           (kiri B Culture/C · kanan A/B KPI) agar kotak & titik terbaca berkaitan, tanpa scroll atas-bawah. */}
       <div className={CARD}>
         <CardTitle icon={LayoutGrid}>Klasifikasi Pemain — Matriks 4-Box &amp; Sebaran KPI × 360°</CardTitle>
-        <p className="text-xs text-ink-soft mt-1 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan KPI × 360° (ambang 80){incomplete.length > 0 ? ` · ${incomplete.length} HRD Review (dikecualikan)` : ''}{unread.length > 0 ? ` · ${unread.length} belum terbaca (dikecualikan)` : ''}.{showScatter ? ' Tiap titik = 1 pegawai; warna titik = warna garis atas kotak.' : ''}</p>
+        <p className="text-xs text-ink-soft mt-1 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan KPI × 360° (ambang 80){incomplete.length > 0 ? ` · ${incomplete.length} HRD Review (dikecualikan)` : ''}{unread.length > 0 ? ` · ${unread.length} belum terbaca (dikecualikan)` : ''}.{showScatter ? ' Tiap titik = 1 pegawai.' : ''}</p>
         {showScatter ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,440px)_minmax(0,1fr)] gap-3">
-            <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)_minmax(0,1fr)] gap-x-6 gap-y-3">
+            <div className="flex flex-col divide-y divide-line-soft">
               {PLAYER_BOXES.filter((b) => b.key === 'B_CULTURE' || b.key === 'C').map((box) => (
                 <PlayerBoxCard key={box.key} box={box} emps={playerGroups.get(box.key) ?? []} />
               ))}
             </div>
             <div className="sm:col-span-2 xl:col-span-1 order-first xl:order-none"><ScatterKpi360 rows={scored} /></div>
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col divide-y divide-line-soft">
               {PLAYER_BOXES.filter((b) => b.key === 'A' || b.key === 'B_KPI').map((box) => (
                 <PlayerBoxCard key={box.key} box={box} emps={playerGroups.get(box.key) ?? []} />
               ))}
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-3">
             {PLAYER_BOXES.map((box) => <PlayerBoxCard key={box.key} box={box} emps={playerGroups.get(box.key) ?? []} />)}
           </div>
         )}
-        {/* HRD Review & Belum Terbaca berdampingan kiri-kanan (bertumpuk di layar sempit). */}
+        {/* HRD Review & Belum Terbaca: di luar 4-Box, berdampingan (bertumpuk di layar sempit). */}
         {(incomplete.length > 0 || unread.length > 0) && (
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
         {incomplete.length > 0 && (
-          <div className="border border-line border-t-4 rounded-xl p-3.5 bg-warn-tint" style={{ borderTopColor: PLAYER_TONE.HRD_REVIEW.color }}>
-            <div className="flex items-start justify-between gap-1">
-              <span className="text-[13px] font-bold text-ink leading-tight">HRD Review</span>
-              <span className="text-lg font-bold font-mono shrink-0 text-warn-ink">{incomplete.length}</span>
-            </div>
-            <span className="text-xs text-ink-soft mt-0.5 leading-tight block">KPI atau Skor 360° belum tersedia (No Score / Insufficient Data) → tidak diklasifikasi otomatis (tidak dianggap di bawah 80). Diputuskan HRD, atau lengkapi datanya lalu Hitung Ulang.</span>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {incomplete.map((e) => (
-                <span key={e.id} className="text-[11px] bg-surface text-ink-soft px-2 py-0.5 rounded-full font-semibold"
-                  title={`${e.name} · KPI ${e.kpiAvg != null ? fmt2(e.kpiAvg) : 'kosong'} · 360 ${e.s360 != null ? fmt2(e.s360) : has360 ? NO_SCORE_LABEL : 'tanpa 360°'}`}>{shortName(e)}</span>
-              ))}
-            </div>
+          <div className="rounded-xl px-3.5 py-2.5 bg-warn-tint text-xs">
+            <div className="text-[13px] font-bold text-ink">HRD Review <span className="font-mono text-warn-ink">{incomplete.length}</span></div>
+            <p className="text-ink-soft mt-0.5">KPI atau Skor 360° belum tersedia, jadi tidak diklasifikasi otomatis (bukan berarti di bawah 80). Diputuskan HRD, atau lengkapi datanya lalu Hitung Ulang.</p>
+            <NameList emps={incomplete} titleOf={(e) => `${e.name} · KPI ${e.kpiAvg != null ? fmt2(e.kpiAvg) : 'kosong'} · 360 ${e.s360 != null ? fmt2(e.s360) : has360 ? NO_SCORE_LABEL : 'tanpa 360°'}`} />
           </div>
         )}
         {unread.length > 0 && (
-          <div className="border border-line border-t-4 border-t-line-strong rounded-xl p-3.5 bg-neutral-tint">
-            <div className="flex items-start justify-between gap-1">
-              <span className="text-[13px] font-bold text-ink leading-tight">Belum Terbaca (Tak Terkategori)</span>
-              <span className="text-lg font-bold font-mono shrink-0 text-ink-soft">{unread.length}</span>
-            </div>
-            <span className="text-xs text-ink-soft mt-0.5 leading-tight block">KPI belum terbaca (baru 1 dari 3 bulan kuartal terisi) → dikecualikan dari kategorisasi &amp; rerata; bukan pekerja rendah.</span>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {unread.map((e) => (
-                <span key={e.id} className="text-[11px] bg-surface text-ink-soft px-2 py-0.5 rounded-full font-semibold"
-                  title={`${e.name} · KPI belum terbaca · 360 ${e.s360 != null ? fmt2(e.s360) : 'N/A'}`}>{shortName(e)}</span>
-              ))}
-            </div>
+          <div className="rounded-xl px-3.5 py-2.5 bg-neutral-tint text-xs">
+            <div className="text-[13px] font-bold text-ink">Belum Terbaca (Tak Terkategori) <span className="font-mono text-ink-soft">{unread.length}</span></div>
+            <p className="text-ink-soft mt-0.5">KPI baru 1 dari 3 bulan kuartal terisi, jadi dikecualikan dari kategorisasi &amp; rerata; bukan pekerja rendah.</p>
+            <NameList emps={unread} titleOf={(e) => `${e.name} · KPI belum terbaca · 360 ${e.s360 != null ? fmt2(e.s360) : 'N/A'}`} />
           </div>
         )}
         </div>
         )}
-        <p className="text-xs text-ink-soft mt-3">
-          Berbasis KPI × 360° (ambang 80): A = KPI≥80 &amp; 360°≥80 · B Culture = KPI&lt;80 &amp; 360°≥80 ·
-          B KPI = KPI≥80 &amp; 360°&lt;80 · C = keduanya &lt;80. Tanpa kelas D. KPI atau 360° kosong → HRD Review.
-          {!has360 && <span className="text-warn-ink font-semibold"> Tanpa 360° → semua pegawai berstatus HRD Review.</span>}
-        </p>
+        {!has360 && <p className="text-xs text-warn-ink font-semibold mt-3">Tanpa 360° → semua pegawai berstatus HRD Review.</p>}
       </div>
 
       {/* Teratas & Terbawah — satu kartu, keduanya terlihat sekaligus */}
@@ -434,22 +414,31 @@ function QuarterlyDist({ data, yearLabel }: { data: QuarterDist[]; yearLabel: nu
   );
 }
 
-/** Satu kotak kelas 4-Box: garis atas berwarna kelas (= warna titik di grafik), jumlah, syarat, nama pegawai. */
+/** Nama pegawai sebagai teks polos berpemisah titik (bukan pil: puluhan pil membuat kartu ramai). Detail skor di tooltip. */
+function NameList({ emps, titleOf }: { emps: Row[]; titleOf: (e: Row) => string }) {
+  return (
+    <p className="mt-1.5 text-xs leading-relaxed text-ink">
+      {emps.map((e, i) => (
+        <span key={e.id}>
+          {i > 0 && <span className="text-ink-soft"> · </span>}
+          <span className="whitespace-nowrap" title={titleOf(e)}>{shortName(e)}</span>
+        </span>
+      ))}
+    </p>
+  );
+}
+
+/** Satu kelas 4-Box tanpa bingkai: titik berwarna kelas (= warna titik di grafik), jumlah, syarat, nama pegawai. */
 function PlayerBoxCard({ box, emps }: { box: (typeof PLAYER_BOXES)[number]; emps: Row[] }) {
   return (
-    <div style={{ borderTopColor: PLAYER_TONE[box.key].color }}
-      className="flex-1 border border-line border-t-4 rounded-xl p-3.5 bg-surface min-h-[130px] flex flex-col">
-      <div className="flex items-start justify-between gap-1">
+    <div className="flex-1 py-3 first:pt-0 last:pb-0">
+      <div className="flex items-center gap-2">
+        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PLAYER_TONE[box.key].color, boxShadow: box.key === 'B_CULTURE' ? 'inset 0 0 0 1px #3b4a2e' : undefined }} />
         <span className="text-[13px] font-bold text-ink leading-tight">{box.label}</span>
-        <span className="text-lg font-bold font-mono shrink-0 text-ink">{emps.length}</span>
+        <span className="ml-auto text-[13px] font-bold font-mono shrink-0 text-ink">{emps.length}</span>
       </div>
-      <span className="text-xs text-ink-soft mt-0.5 leading-tight">{PLAYER_DESC[box.key]}</span>
-      <div className="mt-2 flex flex-wrap gap-1">
-        {emps.map((e) => (
-          <span key={e.id} className="text-[11px] bg-neutral-tint text-ink-soft px-2 py-0.5 rounded-full font-semibold"
-            title={`${e.name} · KPI ${e.kpiAvg != null ? fmt2(e.kpiAvg) : 'N/A'} · 360 ${e.s360 != null ? fmt2(e.s360) : 'N/A'}`}>{shortName(e)}</span>
-        ))}
-      </div>
+      <div className="text-xs text-ink-soft mt-0.5">{PLAYER_DESC[box.key]}</div>
+      <NameList emps={emps} titleOf={(e) => `${e.name} · KPI ${e.kpiAvg != null ? fmt2(e.kpiAvg) : 'N/A'} · 360 ${e.s360 != null ? fmt2(e.s360) : 'N/A'}`} />
     </div>
   );
 }

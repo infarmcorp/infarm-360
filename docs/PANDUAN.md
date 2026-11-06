@@ -49,8 +49,7 @@ Setelah perbaikan selesai, halaman ini otomatis kembali ke aplikasi.
 
 ### 1.3 Akun Saya — ganti sandi
 Tautan **Akun Saya** ada di bagian bawah sidebar, dekat **Keluar**. Halaman ini menampilkan nama, email login,
-divisi, peran, dan kode pegawai, serta tombol unduh **Panduan Pengguna** (PDF sesuai peran; tanda "BARU" bila
-ada versi baru).
+divisi, peran, dan kode pegawai.
 1. Isi **Sandi Saat Ini**, **Sandi Baru** (minimal 8 karakter), dan **Ulangi Sandi Baru**.
 2. Klik **Simpan Sandi Baru**.
 

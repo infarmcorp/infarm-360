@@ -8,6 +8,11 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-06 — Kartu Panduan di Akun Saya dihapus sementara (di `dev`, belum dirilis)
+- Kartu **Panduan Pengguna** di Akun Saya dan penanda **PANDUAN** di sidebar dihapus, karena PDF-nya sudah usang dan
+  pegawai bisa mengunduh panduan yang salah (permintaan pemilik). Kelak Akun Saya menaut ke panduan Notion per peran.
+- Email Undangan masih melampirkan PDF lama; berkas PDF tetap ada untuk keperluan itu.
+
 ### 2026-11-06 — Dashboard: Klasifikasi & Peringkat tampil sekaligus (di `dev`, belum dirilis)
 - Klasifikasi Pemain dan grafik sebarannya kini satu kartu: grafik di tengah, nama pegawai per kelas di kiri dan kanan
   sesuai kuadrannya, supaya tidak perlu menggulir atas-bawah (permintaan pemilik).

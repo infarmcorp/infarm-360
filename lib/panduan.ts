@@ -1,11 +1,7 @@
 /**
- * Sumber tunggal panduan PDF per peran (disajikan statik dari public/panduan/ — 0 byte DB/Storage).
- * Dipakai bersama oleh (a) lampiran email onboarding (lib/email/mailer.ts) dan (b) section
- * "Panduan Pengguna" di aplikasi (akun/). Menjaga paritas: satu mapping, tak ada duplikasi.
- *
- * Cara memperbarui panduan: timpa file di public/panduan/ lalu naikkan PANDUAN_VERSION +
- * PANDUAN_UPDATED_LABEL, commit & deploy (daftar revisi isi: docs/panduan/REVISI-PANDUAN-PDF.md). Badge "BARU" muncul otomatis untuk pengguna yang belum
- * membuka versi ini (dilacak di localStorage — tanpa menyentuh database).
+ * Pemetaan panduan PDF per peran (disajikan statik dari public/panduan/ — 0 byte DB/Storage).
+ * Kini hanya dipakai lampiran email Undangan (lib/email/mailer.ts). Kartu unduh di Akun Saya
+ * dihapus 2026-11-06 karena isi PDF usang; kelak Akun Saya menaut ke panduan Notion per peran.
  */
 export type PanduanDef = { file: string; filename: string; label: string };
 
@@ -33,17 +29,3 @@ export function panduanKeyFor(role: string | null | undefined, isHrdAdmin: boole
 export function panduanFor(role: string | null | undefined, isHrdAdmin: boolean, isCoordinator = false): PanduanDef {
   return PANDUAN_PDF[panduanKeyFor(role, isHrdAdmin, isCoordinator)] ?? PANDUAN_PDF.employee;
 }
-
-/** Path unduh relatif (disajikan Vercel dari /public). */
-export function panduanHref(def: PanduanDef): string {
-  return `/panduan/${def.file}`;
-}
-
-/**
- * Versi panduan terkini (tanggal terbit). NAIKKAN setiap kali PDF di public/panduan/ diganti agar
- * badge "BARU" muncul. Format bebas asalkan berubah tiap rilis; dipakai sebagai kunci "sudah dilihat".
- */
-export const PANDUAN_VERSION = '2026-10-01';
-
-/** Tanggal tampil (ID) untuk section Panduan. */
-export const PANDUAN_UPDATED_LABEL = '1 Oktober 2026';

@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { PANDUAN_VERSION } from '@/lib/panduan';
 import { KPI_AUDIT_HREF } from '@/lib/kpi-links';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
@@ -185,16 +184,6 @@ export function AppShell({
   const [collapsed, setCollapsed] = useState(initialCollapsed);   // sidebar desktop ditutup
   const [popover, setPopover] = useState<'pages' | 'todos' | null>(null);
   const sections = menuFor(role, canAdmin, hrdMode, isCoordinator, hrdSections, pageGrants);
-
-  // Titik "BARU" pada Akun Saya bila panduan versi terkini belum pernah dibuka (localStorage,
-  // tanpa DB). Ditandai sudah dibaca saat pengguna mengunduh dari kartu Panduan di Akun Saya.
-  const [panduanNew, setPanduanNew] = useState(false);
-  useEffect(() => {
-    const check = () => { try { setPanduanNew(localStorage.getItem('panduan_seen_version') !== PANDUAN_VERSION); } catch { /* abaikan */ } };
-    check();
-    window.addEventListener('storage', check);
-    return () => window.removeEventListener('storage', check);
-  }, [pathname]);
 
   const isActive = (href: string) => {
     const path = href.split('?')[0];
@@ -388,11 +377,6 @@ export function AppShell({
           }`}
         >
           <KeyRound className="w-4 h-4" /> Akun Saya
-          {panduanNew && (
-            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-danger-ink px-1.5 py-0.5 text-[9px] font-extrabold uppercase text-white" title="Ada panduan terbaru">
-              <span className="w-1.5 h-1.5 rounded-full bg-white" /> Panduan
-            </span>
-          )}
         </Link>
         <form action="/auth/signout" method="post">
           <button type="submit" className="w-full flex items-center gap-2 text-xs font-semibold text-danger-ink hover:bg-danger-tint rounded-lg py-2 px-2 transition-colors">

@@ -677,8 +677,9 @@ Ekspor Dataset Excel = cadangan parsial, bukan pengganti dump.
 
 ## 9. PDF panduan in-app
 
-Folder `public/panduan/` — dipakai sebagai lampiran email Undangan dan unduhan "Panduan Pengguna" di
-Akun Saya. Pemetaan peran → file di `lib/panduan.ts` (sumber tunggal; nama tampil di `PANDUAN_PDF`).
+Folder `public/panduan/` — kini hanya dipakai sebagai lampiran email Undangan. Unduhan di Akun Saya dan badge-nya
+dihapus 2026-11-06; kelak Akun Saya menaut ke panduan Notion per peran. Pemetaan peran → file di `lib/panduan.ts`
+(sumber tunggal; nama tampil di `PANDUAN_PDF`).
 
 | Penerima | File (nama WAJIB persis) |
 |---|---|
@@ -689,9 +690,8 @@ Akun Saya. Pemetaan peran → file di `lib/panduan.ts` (sumber tunggal; nama tam
 
 - File belum ada → email tetap terkirim tanpa lampiran.
 - Isi `public/` dapat diunduh siapa pun yang tahu tautannya → jangan taruh dokumen rahasia (atau `.md`) di sana.
-- **Memperbarui:** sunting dokumen sumber Word (tidak disimpan di repo; ada di penyimpanan tim HRD) → ekspor
-  PDF dengan nama persis → timpa → naikkan `PANDUAN_VERSION` & `PANDUAN_UPDATED_LABEL` (badge "BARU" di Akun
-  Saya) → commit & deploy → cek unduhan tiap peran. Daftar revisi isi yang tertunda:
+- **Memperbarui lampiran:** sunting dokumen sumber Word (tidak disimpan di repo; ada di penyimpanan tim HRD) → ekspor
+  PDF dengan nama persis → timpa → commit & deploy → kirim uji Undangan tiap peran. Daftar revisi isi yang tertunda:
   [panduan/REVISI-PANDUAN-PDF.md](panduan/REVISI-PANDUAN-PDF.md).
 
 ---

@@ -4,14 +4,14 @@ import { useState } from 'react';
 import { colPercents } from '@/lib/table-cols';
 import { motion } from 'motion/react';
 import {
-  Award, TrendingUp, TrendingDown, Building2, Users, Target, Flame, BarChart3, Sparkles, LayoutGrid, Crosshair,
+  Award, TrendingUp, TrendingDown, Building2, Users, Target, Flame, BarChart3, Sparkles, LayoutGrid,
   CalendarRange, PieChart, CalendarDays, Grid3X3, Trophy, AlertTriangle, type LucideIcon } from 'lucide-react';
 import {
   PLAYER_BOXES, type PlayerClass, perfLabelOf, perfCategoryOf, fmt2, NO_SCORE_LABEL, NO_SCORE_TITLE } from '@/lib/scoring';
 import { heatColorInfarm as heatColor, HEAT_LEGEND_GRADIENT_INFARM as HEAT_LEGEND_GRADIENT } from '@/lib/score-color';
 import { TREND_META, type Trend } from '@/lib/trend';
 import { displayName } from '@/lib/employee-name';
-import { usePager, Pager, StableHeight } from '@/components/table-controls';
+import { StableHeight } from '@/components/table-controls';
 import { CAT_COLOR, CAT_TEXT, PLAYER_TONE, TREND_CHIP, CARD, CardTitle, SectionHeader, Note, StatCards } from '@/components/infarm-ui';
 
 /*
@@ -258,6 +258,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
   const bottom = [...rankedFinal].reverse().slice(0, 10);
   const topEmp = rankedFinal[0] ?? null;                                  // Skor Akhir tertinggi (pegawai + skor)
   const lowEmp = rankedFinal.length ? rankedFinal[rankedFinal.length - 1] : null; // Skor Akhir terendah
+  const showScatter = has360 && scored.some((r) => r.kpiAvg != null && r.s360 != null);
 
   return (
     <div className="space-y-6">
@@ -309,32 +310,30 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
 
       <SectionHeader label="Klasifikasi & Individu" hint="4-Box · sebaran · peringkat pegawai" />
 
-      {/* 4-Box */}
+      {/* 4-Box + sebaran dalam SATU kartu: grafik di tengah, tiap kotak nama di sisi kuadrannya
+          (kiri B Culture/C · kanan A/B KPI) agar kotak & titik terbaca berkaitan, tanpa scroll atas-bawah. */}
       <div className={CARD}>
-        <CardTitle icon={LayoutGrid}>Klasifikasi Pemain — Matriks 4-Box (A / B Culture / B KPI / C)</CardTitle>
-        <p className="text-xs text-ink-soft mt-1 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan KPI × 360° (ambang 80){incomplete.length > 0 ? ` · ${incomplete.length} HRD Review (dikecualikan)` : ''}{unread.length > 0 ? ` · ${unread.length} belum terbaca (dikecualikan)` : ''}.</p>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {PLAYER_BOXES.map((box) => {
-            const emps = playerGroups.get(box.key) ?? [];
-            const tone = PLAYER_TONE[box.key];
-            return (
-              <div key={box.key} style={{ borderTopColor: tone.color }}
-                className="border border-line border-t-4 rounded-xl p-3.5 bg-surface min-h-[130px] flex flex-col">
-                <div className="flex items-start justify-between gap-1">
-                  <span className="text-[13px] font-bold text-ink leading-tight">{box.label}</span>
-                  <span className="text-lg font-bold font-mono shrink-0 text-ink">{emps.length}</span>
-                </div>
-                <span className="text-xs text-ink-soft mt-0.5 leading-tight">{PLAYER_DESC[box.key]}</span>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {emps.map((e) => (
-                    <span key={e.id} className="text-[11px] bg-neutral-tint text-ink-soft px-2 py-0.5 rounded-full font-semibold"
-                      title={`${e.name} · KPI ${e.kpiAvg != null ? fmt2(e.kpiAvg) : 'N/A'} · 360 ${e.s360 != null ? fmt2(e.s360) : 'N/A'}`}>{shortName(e)}</span>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <CardTitle icon={LayoutGrid}>Klasifikasi Pemain — Matriks 4-Box &amp; Sebaran KPI × 360°</CardTitle>
+        <p className="text-xs text-ink-soft mt-1 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan KPI × 360° (ambang 80){incomplete.length > 0 ? ` · ${incomplete.length} HRD Review (dikecualikan)` : ''}{unread.length > 0 ? ` · ${unread.length} belum terbaca (dikecualikan)` : ''}.{showScatter ? ' Tiap titik = 1 pegawai; warna titik = warna garis atas kotak.' : ''}</p>
+        {showScatter ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,440px)_minmax(0,1fr)] gap-3">
+            <div className="flex flex-col gap-3">
+              {PLAYER_BOXES.filter((b) => b.key === 'B_CULTURE' || b.key === 'C').map((box) => (
+                <PlayerBoxCard key={box.key} box={box} emps={playerGroups.get(box.key) ?? []} />
+              ))}
+            </div>
+            <div className="sm:col-span-2 xl:col-span-1 order-first xl:order-none"><ScatterKpi360 rows={scored} /></div>
+            <div className="flex flex-col gap-3">
+              {PLAYER_BOXES.filter((b) => b.key === 'A' || b.key === 'B_KPI').map((box) => (
+                <PlayerBoxCard key={box.key} box={box} emps={playerGroups.get(box.key) ?? []} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {PLAYER_BOXES.map((box) => <PlayerBoxCard key={box.key} box={box} emps={playerGroups.get(box.key) ?? []} />)}
+          </div>
+        )}
         {/* HRD Review & Belum Terbaca berdampingan kiri-kanan (bertumpuk di layar sempit). */}
         {(incomplete.length > 0 || unread.length > 0) && (
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -377,11 +376,8 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
         </p>
       </div>
 
-      {/* Sebaran KPI × 360° (scatter kuadran) — lengkapi 4-Box: lihat spread & outlier. */}
-      {has360 && <ScatterKpi360 rows={scored} />}
-
-      {/* Top / bottom — satu kartu, toggle Teratas ↔ Terbawah */}
-      <LeaderboardToggle metric="Skor Akhir" top={top} bottom={bottom} valueOf={(r) => r.final} />
+      {/* Teratas & Terbawah — satu kartu, keduanya terlihat sekaligus */}
+      <LeaderboardPanel metric="Skor Akhir" top={top} bottom={bottom} valueOf={(r) => r.final} />
     </div>
   );
 }
@@ -438,8 +434,28 @@ function QuarterlyDist({ data, yearLabel }: { data: QuarterDist[]; yearLabel: nu
   );
 }
 
+/** Satu kotak kelas 4-Box: garis atas berwarna kelas (= warna titik di grafik), jumlah, syarat, nama pegawai. */
+function PlayerBoxCard({ box, emps }: { box: (typeof PLAYER_BOXES)[number]; emps: Row[] }) {
+  return (
+    <div style={{ borderTopColor: PLAYER_TONE[box.key].color }}
+      className="flex-1 border border-line border-t-4 rounded-xl p-3.5 bg-surface min-h-[130px] flex flex-col">
+      <div className="flex items-start justify-between gap-1">
+        <span className="text-[13px] font-bold text-ink leading-tight">{box.label}</span>
+        <span className="text-lg font-bold font-mono shrink-0 text-ink">{emps.length}</span>
+      </div>
+      <span className="text-xs text-ink-soft mt-0.5 leading-tight">{PLAYER_DESC[box.key]}</span>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {emps.map((e) => (
+          <span key={e.id} className="text-[11px] bg-neutral-tint text-ink-soft px-2 py-0.5 rounded-full font-semibold"
+            title={`${e.name} · KPI ${e.kpiAvg != null ? fmt2(e.kpiAvg) : 'N/A'} · 360 ${e.s360 != null ? fmt2(e.s360) : 'N/A'}`}>{shortName(e)}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /**
- * Scatter KPI × 360° dengan garis kuadran (ambang 80) — melengkapi 4-Box: alih-alih hanya hitungan,
+ * Scatter KPI × 360° dengan garis kuadran (ambang 80) — bagian tengah kartu 4-Box: alih-alih hanya hitungan,
  * tampak SEBARAN, outlier, & klaster tiap pegawai. Kuadran: kanan-atas A · kiri-atas B-Culture ·
  * kanan-bawah B-KPI · kiri-bawah C. Warna titik = kelas 4-Box.
  */
@@ -459,49 +475,38 @@ function ScatterKpi360({ rows }: { rows: Row[] }) {
   const ticks = [lo, (lo + hi) / 2, hi].map((t) => Math.round(t));
   const x80 = x(80), y80 = y(80);
   return (
-    <div className={CARD}>
-      <CardTitle icon={Crosshair}>Sebaran KPI × 360° (Kuadran 4-Box)</CardTitle>
-      <p className="text-xs text-ink-soft mt-1 mb-3">Tiap titik = 1 pegawai. Garis putus = ambang 80. Warna = kelas 4-Box. Melengkapi hitungan 4-Box dengan sebaran & outlier.</p>
-      <div className="overflow-x-auto">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-[520px] mx-auto" style={{ height: 'auto' }} preserveAspectRatio="xMidYMid meet">
-          {/* Tint kuadran: hanya A (kanan-atas) yang diberi latar hijau keputihan */}
-          <rect x={x80} y={plotT} width={plotR - x80} height={y80 - plotT} fill="#f5ffef" />
-          {/* Sumbu & grid */}
-          {ticks.map((t) => (
-            <g key={`gx-${t}`}>
-              <line x1={x(t)} y1={plotT} x2={x(t)} y2={plotB} stroke="#edefeb" strokeWidth={1} />
-              <text x={x(t)} y={plotB + 14} textAnchor="middle" fill="#5b615c" fontSize={9}>{t}</text>
-              <line x1={plotL} y1={y(t)} x2={plotR} y2={y(t)} stroke="#edefeb" strokeWidth={1} />
-              <text x={plotL - 5} y={y(t) + 3} textAnchor="end" fill="#5b615c" fontSize={9}>{t}</text>
-            </g>
-          ))}
-          {/* Garis ambang 80 */}
-          <line x1={x80} y1={plotT} x2={x80} y2={plotB} stroke="#8b918c" strokeWidth={1.5} strokeDasharray="4 3" />
-          <line x1={plotL} y1={y80} x2={plotR} y2={y80} stroke="#8b918c" strokeWidth={1.5} strokeDasharray="4 3" />
-          {/* Label kuadran */}
-          <text x={plotR - 4} y={plotT + 12} textAnchor="end" fill="#006b31" fontSize={10} fontWeight={800}>A</text>
-          <text x={plotL + 4} y={plotT + 12} textAnchor="start" fill="#3b4a2e" fontSize={10} fontWeight={800}>B-Culture</text>
-          <text x={plotR - 4} y={plotB - 5} textAnchor="end" fill="#6b4e3d" fontSize={10} fontWeight={800}>B-KPI</text>
-          <text x={plotL + 4} y={plotB - 5} textAnchor="start" fill="#a23c33" fontSize={10} fontWeight={800}>C</text>
-          {/* Titik pegawai */}
-          {pts.map((r) => (
-            <circle key={r.id} cx={x(r.kpiAvg as number)} cy={y(r.s360 as number)} r={4.5} fill={colorOf(r.player)}
-              stroke={r.player === 'B_CULTURE' ? '#3b4a2e' : '#fff'} strokeWidth={1.2}>
-              <title>{`${r.name} · KPI ${fmt2(r.kpiAvg as number)} · 360° ${fmt2(r.s360 as number)}`}</title>
-            </circle>
-          ))}
-          {/* Judul sumbu */}
-          <text x={(plotL + plotR) / 2} y={H - 2} textAnchor="middle" fill="#5b615c" fontSize={10} fontWeight={700}>KPI →</text>
-          <text x={12} y={(plotT + plotB) / 2} textAnchor="middle" fill="#5b615c" fontSize={10} fontWeight={700} transform={`rotate(-90 12 ${(plotT + plotB) / 2})`}>360° →</text>
-        </svg>
-      </div>
-      <div className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1.5">
-        {PLAYER_BOXES.map((b) => (
-          <span key={b.key} className="inline-flex items-center gap-1.5 text-xs text-ink-soft">
-            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PLAYER_TONE[b.key].color, boxShadow: b.key === 'B_CULTURE' ? 'inset 0 0 0 1px #3b4a2e' : undefined }} /> {b.label}
-          </span>
+    <div className="overflow-x-auto">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-[520px] mx-auto" style={{ height: 'auto' }} preserveAspectRatio="xMidYMid meet">
+        {/* Tint kuadran: hanya A (kanan-atas) yang diberi latar hijau keputihan */}
+        <rect x={x80} y={plotT} width={plotR - x80} height={y80 - plotT} fill="#f5ffef" />
+        {/* Sumbu & grid */}
+        {ticks.map((t) => (
+          <g key={`gx-${t}`}>
+            <line x1={x(t)} y1={plotT} x2={x(t)} y2={plotB} stroke="#edefeb" strokeWidth={1} />
+            <text x={x(t)} y={plotB + 14} textAnchor="middle" fill="#5b615c" fontSize={9}>{t}</text>
+            <line x1={plotL} y1={y(t)} x2={plotR} y2={y(t)} stroke="#edefeb" strokeWidth={1} />
+            <text x={plotL - 5} y={y(t) + 3} textAnchor="end" fill="#5b615c" fontSize={9}>{t}</text>
+          </g>
         ))}
-      </div>
+        {/* Garis ambang 80 */}
+        <line x1={x80} y1={plotT} x2={x80} y2={plotB} stroke="#8b918c" strokeWidth={1.5} strokeDasharray="4 3" />
+        <line x1={plotL} y1={y80} x2={plotR} y2={y80} stroke="#8b918c" strokeWidth={1.5} strokeDasharray="4 3" />
+        {/* Label kuadran */}
+        <text x={plotR - 4} y={plotT + 12} textAnchor="end" fill="#006b31" fontSize={10} fontWeight={800}>A</text>
+        <text x={plotL + 4} y={plotT + 12} textAnchor="start" fill="#3b4a2e" fontSize={10} fontWeight={800}>B-Culture</text>
+        <text x={plotR - 4} y={plotB - 5} textAnchor="end" fill="#6b4e3d" fontSize={10} fontWeight={800}>B-KPI</text>
+        <text x={plotL + 4} y={plotB - 5} textAnchor="start" fill="#a23c33" fontSize={10} fontWeight={800}>C</text>
+        {/* Titik pegawai */}
+        {pts.map((r) => (
+          <circle key={r.id} cx={x(r.kpiAvg as number)} cy={y(r.s360 as number)} r={4.5} fill={colorOf(r.player)}
+            stroke={r.player === 'B_CULTURE' ? '#3b4a2e' : '#fff'} strokeWidth={1.2}>
+            <title>{`${r.name} · KPI ${fmt2(r.kpiAvg as number)} · 360° ${fmt2(r.s360 as number)}`}</title>
+          </circle>
+        ))}
+        {/* Judul sumbu */}
+        <text x={(plotL + plotR) / 2} y={H - 2} textAnchor="middle" fill="#5b615c" fontSize={10} fontWeight={700}>KPI →</text>
+        <text x={12} y={(plotT + plotB) / 2} textAnchor="middle" fill="#5b615c" fontSize={10} fontWeight={700} transform={`rotate(-90 12 ${(plotT + plotB) / 2})`}>360° →</text>
+      </svg>
     </div>
   );
 }
@@ -569,7 +574,7 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
 
       <SectionHeader label="Individu" hint="peringkat pegawai" />
 
-      <LeaderboardToggle metric="Skor KPI" top={top} bottom={low} valueOf={(r) => r.kpiAvg} />
+      <LeaderboardPanel metric="Skor KPI" top={top} bottom={low} valueOf={(r) => r.kpiAvg} />
     </div>
   );
 }
@@ -623,7 +628,7 @@ function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, has360
 
       <SectionHeader label="Individu" hint="peringkat pegawai" />
 
-      <LeaderboardToggle metric="Skor 360°" top={ranked.slice(0, 10)} bottom={[...ranked].reverse().slice(0, 10)} valueOf={(r) => r.s360} />
+      <LeaderboardPanel metric="Skor 360°" top={ranked.slice(0, 10)} bottom={[...ranked].reverse().slice(0, 10)} valueOf={(r) => r.s360} />
     </div>
   );
 }
@@ -1064,47 +1069,32 @@ function Card({ title, icon, children }: { title: string; icon: LucideIcon; chil
   );
 }
 
-// Warna badge dari golongan nilai TERBULAT — sama dengan labelnya (perfLabelOf), tak bisa tak cocok.
-// Selaras palet CAT_COLOR: Melampaui cokelat · Memenuhi hijau · Perlu Peningkatan kuning · Di Bawah merah.
-const BAND_BADGE_CLS = {
-  exceed: 'bg-infarm-cream text-infarm-soil border-infarm-cream',
-  meet: 'bg-brand-tint text-brand-ink border-brand-tint',
-  improve: 'bg-warn-tint text-warn-ink border-warn-tint',
-  below: 'bg-danger-tint text-danger-ink border-danger-tint',
-} as const;
-export function bandBadgeClass(v: number | null): string | null {
+// Warna angka peringkat dari golongan nilai TERBULAT — sama dengan kategori laporan (perfCategoryOf), tak bisa tak cocok.
+// Latar solid palet CAT_COLOR, bukan warna huruf: huruf kuning (70–79) tak terbaca di atas putih.
+export function bandScoreStyle(v: number | null): { backgroundColor: string; color: string } | null {
   const c = perfCategoryOf(v);
-  return c ? BAND_BADGE_CLS[c] : null;
-}
-
-function bandBadge(v: number | null) {
-  const cls = bandBadgeClass(v);
-  if (v == null || cls == null) return null;
-  return <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${cls}`}>{perfLabelOf(v)}</span>;
+  return c ? { backgroundColor: CAT_COLOR[c], color: CAT_TEXT[c] } : null;
 }
 
 /** Baris-baris peringkat (tanpa kartu pembungkus). `startIndex` = offset peringkat absolut
- *  (agar #6–#10 tetap benar saat paginasi 5/halaman, bukan reset ke #1 tiap halaman).
+ *  (kolom kedua mulai #6, bukan reset ke #1).
  *  Sisi Terbawah: lingkaran peringkat merah lembut agar terbaca sebagai prioritas coaching. */
 function LeaderboardRows({ items, valueOf, bottom, startIndex = 0 }: { items: Row[]; valueOf: (r: Row) => number | null; bottom: boolean; startIndex?: number }) {
   return (
-    <div>
-      {items.length === 0 && <p className="text-[13px] text-ink-soft italic">Belum ada data.</p>}
+    <div className="min-w-0">
       {items.map((e, idx) => {
         const v = valueOf(e);
         const rank = startIndex + idx + 1;
         const rankCls = bottom ? 'bg-danger-tint text-danger-ink border-danger-tint'
           : rank <= 3 ? 'bg-brand text-white border-brand' : 'bg-infarm-surface text-brand-ink border-infarm-light';
         return (
-          <div key={e.id} className="py-2.5 border-b border-line-soft last:border-b-0 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className={`font-mono text-xs font-bold w-7 h-7 rounded-full border flex items-center justify-center shrink-0 ${rankCls}`}>{rank}</span>
-              <div className="min-w-0"><span className="font-semibold text-ink text-[13px] block truncate" title={e.name}>{displayName(e.nickname, e.name)}</span><span className="text-xs text-ink-soft block">{e.dept}</span></div>
+          <div key={e.id} className="py-2 border-b border-line-soft last:border-b-0 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={`font-mono text-[11px] font-bold w-6 h-6 rounded-full border flex items-center justify-center shrink-0 ${rankCls}`}>{rank}</span>
+              <div className="min-w-0"><span className="font-semibold text-ink text-[13px] block truncate" title={e.name}>{displayName(e.nickname, e.name)}</span><span className="text-xs text-ink-soft block truncate" title={e.dept}>{e.dept}</span></div>
             </div>
-            <div className="flex items-center gap-2.5 shrink-0">
-              <span className="font-mono font-bold text-[13px] text-ink">{v != null ? fmt2(v) : '—'}</span>
-              {bandBadge(v)}
-            </div>
+            <span title={perfLabelOf(v)} style={bandScoreStyle(v) ?? undefined}
+              className="font-mono font-bold text-xs px-2 py-0.5 rounded-full shrink-0">{v != null ? fmt2(v) : '—'}</span>
           </div>
         );
       })}
@@ -1112,36 +1102,46 @@ function LeaderboardRows({ items, valueOf, bottom, startIndex = 0 }: { items: Ro
   );
 }
 
-/**
- * Peringkat SATU kartu dengan toggle Teratas ↔ Terbawah (menggantikan pasangan berdampingan).
- * Default "Teratas". Toggle = pil bersegmen (aktif hijau brand).
- */
-function LeaderboardToggle({ metric, top, bottom, valueOf }: {
+/** Satu sisi peringkat: maksimal 10 orang dibagi dua kolom (#1–#5 · #6–#10). */
+function LeaderboardSide({ title, icon: Icon, items, valueOf, bottom, className = '' }: {
+  title: string; icon: LucideIcon; items: Row[]; valueOf: (r: Row) => number | null; bottom: boolean; className?: string;
+}) {
+  return (
+    <div className={`min-w-0 ${className}`}>
+      <div className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide mb-1 ${bottom ? 'text-danger-ink' : 'text-brand-ink'}`}>
+        <Icon className="w-4 h-4" /> {title}
+      </div>
+      {items.length === 0 && <p className="text-[13px] text-ink-soft italic">Belum ada data.</p>}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+        <LeaderboardRows items={items.slice(0, 5)} valueOf={valueOf} bottom={bottom} />
+        <LeaderboardRows items={items.slice(5, 10)} valueOf={valueOf} bottom={bottom} startIndex={5} />
+      </div>
+    </div>
+  );
+}
+
+/** Peringkat SATU kartu: Teratas & Terbawah terlihat sekaligus, tanpa toggle/paginasi (bertumpuk di layar sempit). */
+function LeaderboardPanel({ metric, top, bottom, valueOf }: {
   metric: string; top: Row[]; bottom: Row[]; valueOf: (r: Row) => number | null;
 }) {
-  const [side, setSide] = useState<'top' | 'bottom'>('top');
-  const isTop = side === 'top';
-  // Tampil 5/halaman + tombol Sebelumnya/Berikutnya (klik "selanjutnya" utk peringkat #6–#10).
-  const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(isTop ? top : bottom);
-  const seg = (active: boolean) => `px-4 min-h-9 rounded-full text-[13px] font-semibold transition-colors ${active ? 'bg-brand text-white' : 'text-ink-soft hover:text-ink'}`;
   return (
     <div className={`${CARD} space-y-3`}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <CardTitle icon={isTop ? Trophy : AlertTriangle}>{metric} {isTop ? 'Tertinggi' : 'Terendah'}</CardTitle>
-          <p className="text-xs text-ink-soft mt-0.5">
-            Pegawai dengan {metric} {isTop ? 'tertinggi.' : 'terendah (prioritas mentoring/coaching).'}
-          </p>
-        </div>
-        <div className="inline-flex gap-0.5 p-[3px] rounded-full border border-line bg-infarm-surface shrink-0" role="tablist" aria-label={`Pilih tampilan ${metric}`}>
-          <button type="button" role="tab" aria-selected={isTop} onClick={() => { setSide('top'); setPage(0); }} className={seg(isTop)}>Teratas</button>
-          <button type="button" role="tab" aria-selected={!isTop} onClick={() => { setSide('bottom'); setPage(0); }} className={seg(!isTop)}>Terbawah</button>
-        </div>
+      <div>
+        <CardTitle icon={Trophy}>Peringkat {metric}</CardTitle>
+        <p className="text-xs text-ink-soft mt-0.5">10 tertinggi &amp; 10 terendah. Terbawah #1 = skor terendah (prioritas mentoring/coaching).</p>
       </div>
-      <StableHeight>
-        <LeaderboardRows items={shown} valueOf={valueOf} bottom={!isTop} startIndex={rangeFrom > 0 ? rangeFrom - 1 : 0} />
-        <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
-      </StableHeight>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-4">
+        <LeaderboardSide title="Teratas" icon={Trophy} items={top} valueOf={valueOf} bottom={false} />
+        <LeaderboardSide title="Terbawah" icon={AlertTriangle} items={bottom} valueOf={valueOf} bottom className="xl:border-l xl:border-line xl:pl-6" />
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-1">
+        <span className="text-xs text-ink-soft">Warna angka:</span>
+        {SCORE_CATS.map((c) => (
+          <span key={c.key} className="inline-flex items-center gap-1.5 text-xs text-ink-soft">
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} /> {c.label} ({c.range})
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

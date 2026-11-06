@@ -956,8 +956,9 @@ divisi). Ada mode **"Semua Kuartal (tahun X)"** dan **"Semua kuartal (semua tahu
 (Skor Akhir = rerata Skor Akhir tiap kuartal). Laporan Final memakai angka tersimpan. Pegawai **"KPI belum
 terbaca"** tidak dihitung dalam rerata, sebaran, dan peringkat KPI (jumlahnya dicatat). Empat tab:
 - **Kompilasi Kinerja Organisasi** — statistik talenta, Distribusi Kategori Kinerja, Rencana Tindak Lanjut,
-  Skor KPI per Divisi, Evaluasi Budaya 360° per sub-aspek, **Matriks 4-Box**, scatter KPI × 360°, distribusi
-  per kuartal, teratas/terbawah.
+  Skor KPI per Divisi, Evaluasi Budaya 360° per sub-aspek, **Matriks 4-Box** (satu kartu: grafik sebaran KPI × 360°
+  di tengah, nama pegawai per kelas di kiri & kanan sesuai kuadrannya), distribusi per kuartal, 10 teratas & 10 terbawah
+  yang terlihat sekaligus (warna angka = kategori skor; keterangan ada di bawah daftar).
 - **Analisis Hasil KPI** — rerata KPI, KPI tertinggi & terendah (dengan nama), **% KPI Di Atas Standar (≥N)**,
   KPI per divisi, peta warna capaian KPI per divisi × bulan, sebaran kategori KPI, tren KPI bulanan, peringkat.
 - **Analisis 360 Feedback** — rerata 360°, tren 360° per kuartal, sub-aspek budaya, peringkat.

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { perfCategoryOf, perfLabelOf } from '@/lib/scoring';
-import { SCORE_CATS, bandBadgeClass } from '@/app/(app)/admin/dashboard/dashboard-visual';
+import { perfCategoryOf } from '@/lib/scoring';
+import { CAT_COLOR } from '@/components/infarm-ui';
+import { SCORE_CATS, bandScoreStyle } from '@/app/(app)/admin/dashboard/dashboard-visual';
 import { catOf } from '@/app/(app)/monitor/dist-bars';
 
 // Grafik Dashboard & Monitor memakai golongan yang SAMA dengan laporan (perfCategoryOf: ambang atas
@@ -26,14 +27,12 @@ describe('Kategori grafik = kategori laporan (termasuk nilai tepat di batas)', (
   });
 });
 
-describe('Badge peringkat Dashboard: warna & label dari nilai terbulat yang sama', () => {
-  // Design System Infarm (2026-11-03): Melampaui cokelat · Memenuhi hijau · Perlu Peningkatan kuning · Di Bawah merah.
-  const TONE = { exceed: 'bg-infarm-cream', meet: 'bg-brand-tint', improve: 'bg-warn-tint', below: 'bg-danger-tint' } as const;
+describe('Warna angka peringkat Dashboard: dari nilai terbulat yang sama & cocok dengan keterangannya', () => {
   it.each(BOUNDARY)('%s', (v) => {
     const cat = perfCategoryOf(v)!;
-    expect(bandBadgeClass(v)).toContain(TONE[cat]);
-    // label badge tetap perfLabelOf (sudah atas nilai terbulat)
-    expect(perfLabelOf(v)).not.toBe('—');
+    expect(bandScoreStyle(v)?.backgroundColor).toBe(CAT_COLOR[cat]);
+    // warna keterangan (SCORE_CATS) = warna angka
+    expect(SCORE_CATS.find((c) => c.key === cat)?.color).toBe(bandScoreStyle(v)?.backgroundColor);
   });
-  it('null → tanpa badge', () => expect(bandBadgeClass(null)).toBeNull());
+  it('null → tanpa warna', () => expect(bandScoreStyle(null)).toBeNull());
 });

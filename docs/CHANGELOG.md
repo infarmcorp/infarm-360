@@ -8,6 +8,14 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-06 — Dashboard: Klasifikasi & Peringkat tampil sekaligus (di `dev`, belum dirilis)
+- Klasifikasi Pemain dan grafik sebarannya kini satu kartu: grafik di tengah, nama pegawai per kelas di kiri dan kanan
+  sesuai kuadrannya, supaya tidak perlu menggulir atas-bawah (permintaan pemilik).
+- Peringkat Skor Akhir, KPI, dan 360° menampilkan 10 teratas dan 10 terbawah sekaligus, masing-masing dua kolom isi 5
+  orang. Tombol Teratas/Terbawah dan tombol halaman dihapus.
+- Tulisan kategori di tiap baris peringkat diganti warna pada angka skor, dengan keterangan warna di bawah daftar.
+- Sidebar kini putih seluruhnya dengan tepi kanan lebih tegas, agar jelas terpisah dari lembar kerja (2026-11-05).
+
 ### 2026-11-05 — Pemeriksaan login lebih hemat (di `dev`, belum dirilis)
 - Kuota catatan (log) Supabase habis jauh melebihi batas, hampir seluruhnya dari pemeriksaan "apakah pengguna masih
   login" yang diulang-ulang. Penyebab terbesar: aplikasi memuat lebih dulu setiap halaman yang tautannya terlihat di

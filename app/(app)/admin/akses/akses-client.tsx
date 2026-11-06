@@ -10,6 +10,7 @@ import { SearchableSelect } from '@/components/searchable-select';
 import { usePager, Pager, MultiCheckFilter, StableHeight } from '@/components/table-controls';
 import { AksesLog, type AksesLogRow } from './akses-log';
 import { CARD, CardTitle, Note, FIELD, pillCls } from '@/components/infarm-ui';
+import { TabBar, TabButton, TabPanel } from '@/components/tab-nav';
 
 export type AksesEmployee = {
   id: string;
@@ -397,15 +398,12 @@ export function AksesClient({
   return (
     <div>
       {/* Tab utama: Kelola Akses | Log aktivitas */}
-      <div className="flex flex-wrap gap-2 mb-5">
+      <TabBar>
         {([['kelola', 'Kelola Akses', SlidersHorizontal], ['log', 'Log aktivitas', ScrollText]] as const).map(([key, label, Icon]) => (
-          <button key={key} type="button" onClick={() => setMainTab(key)}
-            className={pillCls(mainTab === key)}>
-            <Icon className="w-4 h-4" />
-            <span>{label}</span>
-          </button>
+          <TabButton key={key} active={mainTab === key} onClick={() => setMainTab(key)} icon={Icon}>{label}</TabButton>
         ))}
-      </div>
+      </TabBar>
+      <TabPanel>
 
       {mainTab === 'log' && <AksesLog rows={logRows} page={logPage} pageSize={logPageSize} total={logTotal} />}
 
@@ -740,6 +738,7 @@ export function AksesClient({
           </Note>
         </div>
       </>)}
+      </TabPanel>
 
       {/* Dialog: Tim Koordinasi */}
       <ConfirmDialog open={!!coordDlg} icon="👥" title={coordDlg ? `Tim Koordinasi — ${coordDlg.r.name}` : ''} tone="primary"

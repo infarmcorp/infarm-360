@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { Sprout, Users, type LucideIcon } from 'lucide-react';
+import { Sprout, Users } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { CARD, CardTitle, Note, PageTitle, TABLE_HEAD, pillCls } from '@/components/infarm-ui';
+import { CARD, CardTitle, Note, PageTitle, TABLE_HEAD } from '@/components/infarm-ui';
+import { TabBar, Tab, TabPanel } from '@/components/tab-nav';
 import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { StatusChip } from '@/components/status-chip';
 import { colPercents } from '@/lib/table-cols';
@@ -62,16 +63,15 @@ export default async function PengembanganPage({ searchParams }: { searchParams:
 
   return (
     <Shell>
-      {/* Sub-tab pil (Design System Infarm) — pengganti TabBar; href & logika aktif tetap. */}
-      <div className="flex flex-wrap gap-2">
-        <Pill href="/pengembangan?tab=saya" active={tab === 'saya'} icon={Sprout}>Rencana Saya</Pill>
-        {team.length > 0 && <Pill href="/pengembangan?tab=tim" active={tab === 'tim'} icon={Users}>Tim Saya</Pill>}
-      </div>
-      <div className="pt-4">
+      <TabBar>
+        <Tab href="/pengembangan?tab=saya" active={tab === 'saya'} icon={Sprout}>Rencana Saya</Tab>
+        {team.length > 0 && <Tab href="/pengembangan?tab=tim" active={tab === 'tim'} icon={Users}>Tim Saya</Tab>}
+      </TabBar>
+      <TabPanel>
         {tab === 'saya'
           ? await MyPlan({ admin, userId: user.id, role: me?.role ?? null, name: me?.name ?? '', periodParam, resolve, people, actor, mode })
           : await TeamPlans({ admin, team, periodParam })}
-      </div>
+      </TabPanel>
     </Shell>
   );
 }
@@ -191,15 +191,5 @@ function Shell({ children }: { children: React.ReactNode }) {
       <PageTitle title="Rencana Pengembangan">Rencana pengembangan individu setelah laporan Final, disepakati bersama atasan dan HRD.</PageTitle>
       {children}
     </main>
-  );
-}
-
-/** Sub-tab pil (Design System Infarm). */
-function Pill({ href, active, icon: Icon, children }: { href: string; active: boolean; icon: LucideIcon; children: React.ReactNode }) {
-  return (
-    <Link href={href} prefetch={false} className={`${pillCls(active)} shrink-0`}>
-      <Icon className="w-4 h-4" aria-hidden />
-      <span className="inline-flex items-center">{children}</span>
-    </Link>
   );
 }

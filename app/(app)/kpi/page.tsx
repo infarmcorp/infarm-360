@@ -1,11 +1,11 @@
 import { cookies } from 'next/headers';
-import Link from 'next/link';
 import { PencilLine, History, LayoutList, type LucideIcon } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin, canCoordinate, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
 import { INFARM_PAGE } from '@/app/infarm-fonts';
-import { CARD, CardTitle, PageTitle, pillCls } from '@/components/infarm-ui';
+import { CARD, CardTitle, PageTitle } from '@/components/infarm-ui';
+import { TabBar, Tab, TabPanel } from '@/components/tab-nav';
 import { KpiForm } from './kpi-form';
 import { RekapView } from './rekap-view';
 import { RiwayatView } from './riwayat-view';
@@ -81,7 +81,7 @@ export default async function KpiPage({
         </PageTitle>
         {deptOptions.length > 1 && <div className="-mt-1 mb-5"><DeptSelect depts={deptOptions} current={dept} /></div>}
         <MonitoringTabs view={view} period={period} dept={dept} />
-        <div className="mt-5">
+        <TabPanel>
           {view === 'riwayat' ? (
             <Panel title="Riwayat & Audit Perubahan KPI" icon={History}>
               <RiwayatView role={role} userId={user.id} scopedIds={scopedIds} page={auditPage} query={auditQ} dept={dept} />
@@ -91,7 +91,7 @@ export default async function KpiPage({
               <RekapView role={role} userId={user.id} periodParam={period} scopedIds={scopedIds} dept={dept} />
             </Panel>
           )}
-        </div>
+        </TabPanel>
       </Shell>
     );
   }
@@ -110,7 +110,7 @@ export default async function KpiPage({
         </PageTitle>
         {deptOptions.length > 1 && <div className="-mt-1 mb-5"><DeptSelect depts={deptOptions} current={dept} /></div>}
         <MonitoringTabs view={view} period={period} dept={dept} />
-        <div className="mt-5">
+        <TabPanel>
           {view === 'riwayat' ? (
             <Panel title="Riwayat & Audit Perubahan KPI" icon={History}>
               <RiwayatView role={role} canAdmin={admin} userId={user.id} page={auditPage} query={auditQ} dept={dept} />
@@ -120,7 +120,7 @@ export default async function KpiPage({
               <RekapView role={role} userId={user.id} periodParam={period} dept={dept} />
             </Panel>
           )}
-        </div>
+        </TabPanel>
       </Shell>
     );
   }
@@ -131,6 +131,20 @@ export default async function KpiPage({
   const requested = tabParam && allowed.has(tabParam) ? tabParam : null;
   const tab = isCoord ? 'input' : (requested ?? 'input');
 
+  // Section (kartu) hanya untuk tampilan TABEL BESAR (Riwayat & Rekap). Input KPI mengatur section-nya
+  // sendiri di KpiForm — toolbar filter tanpa kartu, tabel input yang dibungkus kartu.
+  const content = tab === 'input' ? (
+    <InputTab supabase={supabase} userId={user.id} role={role} isCoord={isCoord} />
+  ) : tab === 'riwayat' ? (
+    <Panel title="Riwayat & Audit Perubahan KPI" icon={History}>
+      <RiwayatView role={role} canAdmin={admin} userId={user.id} hrdMode={hrdMode} page={auditPage} query={auditQ} />
+    </Panel>
+  ) : (
+    <Panel title="Rekapitulasi Kuartal" icon={LayoutList}>
+      <RekapView role={role} userId={user.id} periodParam={period} hrdMode={hrdMode} />
+    </Panel>
+  );
+
   return (
     <Shell>
       <PageTitle title={isCoord ? 'Input KPI' : 'Kinerja Tim'}>
@@ -139,31 +153,17 @@ export default async function KpiPage({
           : 'Input KPI bulanan, riwayat audit, & rekapitulasi per kuartal anggota tim.'}
       </PageTitle>
 
-      {/* Sub-tab pil (Design System Infarm) — disembunyikan untuk koordinator (hanya Input KPI). */}
-      {!isCoord && (
-        <PillNav>
-          <Pill href="/kpi?tab=input" active={tab === 'input'} icon={PencilLine}>Input KPI</Pill>
-          <Pill href="/kpi?tab=riwayat" active={tab === 'riwayat'} icon={History}>Riwayat &amp; Audit</Pill>
-          <Pill href="/kpi?tab=rekap" active={tab === 'rekap'} icon={LayoutList}>Rekapitulasi Kuartal</Pill>
-        </PillNav>
+      {/* Sub-tab disembunyikan untuk koordinator (hanya Input KPI) → isi langsung di kanvas. */}
+      {isCoord ? <div className="mt-5">{content}</div> : (
+        <>
+          <TabBar>
+            <Tab href="/kpi?tab=input" active={tab === 'input'} icon={PencilLine}>Input KPI</Tab>
+            <Tab href="/kpi?tab=riwayat" active={tab === 'riwayat'} icon={History}>Riwayat &amp; Audit</Tab>
+            <Tab href="/kpi?tab=rekap" active={tab === 'rekap'} icon={LayoutList}>Rekapitulasi Kuartal</Tab>
+          </TabBar>
+          <TabPanel>{content}</TabPanel>
+        </>
       )}
-
-      {/* Section (kartu) hanya untuk tampilan TABEL BESAR yang perlu dipisahkan dari kanvas
-          (Riwayat & Rekap). Input KPI mengatur section-nya sendiri di KpiForm — toolbar filter
-          tetap di kanvas, tabel input yang dibungkus kartu. */}
-      <div className="mt-5">
-        {tab === 'input' ? (
-          <InputTab supabase={supabase} userId={user.id} role={role} isCoord={isCoord} />
-        ) : tab === 'riwayat' ? (
-          <Panel title="Riwayat & Audit Perubahan KPI" icon={History}>
-            <RiwayatView role={role} canAdmin={admin} userId={user.id} hrdMode={hrdMode} page={auditPage} query={auditQ} />
-          </Panel>
-        ) : (
-          <Panel title="Rekapitulasi Kuartal" icon={LayoutList}>
-            <RekapView role={role} userId={user.id} periodParam={period} hrdMode={hrdMode} />
-          </Panel>
-        )}
-      </div>
     </Shell>
   );
 }
@@ -182,24 +182,10 @@ function resolveDeptParam(param: string | undefined, options: string[]): string 
 function MonitoringTabs({ view, period, dept }: { view: 'rekap' | 'riwayat'; period?: string; dept?: string | null }) {
   const suffix = (period ? `&period=${encodeURIComponent(period)}` : '') + (dept ? `&dept=${encodeURIComponent(dept)}` : '');
   return (
-    <PillNav>
-      <Pill href={`/kpi?view=rekap${suffix}`} active={view === 'rekap'} icon={LayoutList}>Rekapitulasi Kuartal</Pill>
-      <Pill href={`/kpi?view=riwayat${suffix}`} active={view === 'riwayat'} icon={History}>Riwayat &amp; Audit</Pill>
-    </PillNav>
-  );
-}
-
-/** Baris sub-tab pil (Design System Infarm) — pengganti TabBar garis-bawah; href & logika aktif tetap. */
-function PillNav({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-wrap gap-2">{children}</div>;
-}
-
-function Pill({ href, active, icon: Icon, children }: { href: string; active: boolean; icon: LucideIcon; children: React.ReactNode }) {
-  return (
-    <Link href={href} prefetch={false} className={`${pillCls(active)} shrink-0`}>
-      <Icon className="w-4 h-4" aria-hidden />
-      <span className="inline-flex items-center">{children}</span>
-    </Link>
+    <TabBar>
+      <Tab href={`/kpi?view=rekap${suffix}`} active={view === 'rekap'} icon={LayoutList}>Rekapitulasi Kuartal</Tab>
+      <Tab href={`/kpi?view=riwayat${suffix}`} active={view === 'riwayat'} icon={History}>Riwayat &amp; Audit</Tab>
+    </TabBar>
   );
 }
 

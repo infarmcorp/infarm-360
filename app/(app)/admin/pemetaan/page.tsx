@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { Network, Wrench, Map as MapIcon, ArrowRight, Check, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
@@ -11,7 +10,8 @@ import { MappingTable } from './mapping-table';
 import type { PairStatus } from './actions';
 import { CopyMapping } from './copy-mapping';
 import { EmptyState } from '@/components/empty-state';
-import { CARD, PageTitle, pillCls } from '@/components/infarm-ui';
+import { CARD, PageTitle } from '@/components/infarm-ui';
+import { TabBar, Tab, TabPanel } from '@/components/tab-nav';
 import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 /**
@@ -65,17 +65,18 @@ export default async function PemetaanPage({
         Periode aktif <span className="font-mono font-semibold text-ink">{ap.label}</span>
       </PageTitle>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Link href="/admin/pemetaan?tab=pemetaan" prefetch={false} className={pillCls(tab === 'pemetaan')}><Network className="w-4 h-4" /> Pemetaan</Link>
-        <Link href="/admin/pemetaan?tab=koreksi" prefetch={false} className={pillCls(tab === 'koreksi')}>
-          <Wrench className="w-4 h-4" /> Permohonan
-          {pendingCount ? <span className={`text-[11px] font-mono font-bold px-1.5 py-0.5 rounded-full leading-none ${tab === 'koreksi' ? 'bg-white text-brand-ink' : 'bg-brand text-white'}`}>{pendingCount}</span> : null}
-        </Link>
-      </div>
-
-      {tab === 'pemetaan'
-        ? <PemetaanTab supabase={supabase} periodId={ap.id} />
-        : <KoreksiTab supabase={supabase} periodId={ap.id} />}
+      <TabBar>
+        <Tab href="/admin/pemetaan?tab=pemetaan" active={tab === 'pemetaan'} icon={Network}>Pemetaan</Tab>
+        <Tab href="/admin/pemetaan?tab=koreksi" active={tab === 'koreksi'} icon={Wrench}>
+          Permohonan
+          {pendingCount ? <span className="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded-full leading-none bg-brand text-white">{pendingCount}</span> : null}
+        </Tab>
+      </TabBar>
+      <TabPanel>
+        {tab === 'pemetaan'
+          ? <PemetaanTab supabase={supabase} periodId={ap.id} />
+          : <KoreksiTab supabase={supabase} periodId={ap.id} />}
+      </TabPanel>
     </Shell>
   );
 }

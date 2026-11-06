@@ -8,7 +8,8 @@ import { RequestRemoveButton } from './request-remove-button';
 import { EmptyState } from '@/components/empty-state';
 import { colPercents } from '@/lib/table-cols';
 import { StatusChip } from '@/components/status-chip';
-import { CARD, CardTitle, Note, PageTitle, TABLE_HEAD, pillCls } from '@/components/infarm-ui';
+import { CARD, CardTitle, Note, PageTitle, TABLE_HEAD } from '@/components/infarm-ui';
+import { TabBar, Tab, TabPanel } from '@/components/tab-nav';
 import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { BTN_GHOST, BTN_PRIMARY } from './penilaian-ui';
 import { RequestAssessmentButton } from './request-assessment-form';
@@ -282,17 +283,18 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
         </Note>
       )}
 
-      {/* Sub-tab pil (Design System Infarm) — href & logika aktif tetap. */}
-      <div className="flex flex-wrap gap-2">
-        <Link href="/penilaian?tab=penilaian" prefetch={false} className={`${pillCls(tab === 'penilaian')} shrink-0`}>
-          <ClipboardList className="w-4 h-4" aria-hidden /> Penilaian
+      <div>
+      <TabBar>
+        <Tab href="/penilaian?tab=penilaian" active={tab === 'penilaian'} icon={ClipboardList}>
+          Penilaian
           {items.length ? <CountChip active={tab === 'penilaian'}>{items.length}</CountChip> : null}
-        </Link>
-        <Link href="/penilaian?tab=pengajuan" prefetch={false} className={`${pillCls(tab === 'pengajuan')} shrink-0`}>
-          <Inbox className="w-4 h-4" aria-hidden /> Pengajuan
+        </Tab>
+        <Tab href="/penilaian?tab=pengajuan" active={tab === 'pengajuan'} icon={Inbox}>
+          Pengajuan
           {pendingReqN ? <CountChip active={tab === 'pengajuan'} warn>{pendingReqN}</CountChip> : null}
-        </Link>
-      </div>
+        </Tab>
+      </TabBar>
+      <TabPanel className="space-y-4">
 
       {tab === 'pengajuan' ? (
         <>
@@ -473,6 +475,8 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
       )}
         </>
       )}
+      </TabPanel>
+      </div>
       </div>
     </Shell>
   );
@@ -480,7 +484,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
 
 /** Chip jumlah di dalam pil sub-tab (kontras di atas pil aktif hijau maupun pil putih). */
 function CountChip({ active, warn = false, children }: { active: boolean; warn?: boolean; children: React.ReactNode }) {
-  const cls = active ? 'bg-white/20 text-white' : warn ? 'bg-warn-tint text-warn-ink' : 'bg-neutral-tint text-ink-soft';
+  const cls = active ? 'bg-brand-tint text-brand-ink' : warn ? 'bg-warn-tint text-warn-ink' : 'bg-neutral-tint text-ink-soft';
   return <span className={`data-value text-[11px] font-bold px-1.5 py-0.5 rounded-full leading-none ${cls}`}>{children}</span>;
 }
 

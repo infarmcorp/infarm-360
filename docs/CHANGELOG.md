@@ -19,6 +19,8 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 - Monitor Kinerja, Pergerakan KPI: tiap sisi (Naik/Turun) kini menampilkan sampai 10 orang dalam dua kolom, bukan 3 orang.
   Tombol Lihat semua hanya muncul bila satu sisi lebih dari 10 orang. Pergerakan 360° dan Distribusi Kinerja tetap.
 - Sidebar kini putih seluruhnya dengan tepi kanan lebih tegas, agar jelas terpisah dari lembar kerja (2026-11-05).
+- Sub-tab di semua halaman kini berbentuk tab map, bukan kapsul, karena kapsul terbaca seperti filter (permintaan pemilik).
+  Kapsul tetap dipakai untuk pilihan di dalam satu tampilan, misalnya pilihan periode.
 - Analisis 360 Feedback mendapat peta warna baru, Divisi × Indikator. Kolomnya mengikuti indikator aktif di Kelola
   Pertanyaan pada periode itu; indikator yang dinonaktifkan HRD tidak tampil. Cara hitungnya sama dengan Divisi × Aspek.
 

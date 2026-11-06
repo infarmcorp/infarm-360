@@ -13,6 +13,7 @@ import { TREND_META, type Trend } from '@/lib/trend';
 import { displayName } from '@/lib/employee-name';
 import type { DeptIndicatorCol, DeptIndicatorRow } from '@/lib/dashboard/dept-indicator';
 import { StableHeight } from '@/components/table-controls';
+import { TabBar, TabButton, TabPanel } from '@/components/tab-nav';
 import { CAT_COLOR, CAT_TEXT, PLAYER_TONE, TREND_CHIP, CARD, CardTitle, SectionHeader, Note, StatCards } from '@/components/infarm-ui';
 
 /*
@@ -138,28 +139,17 @@ export function DashboardVisual({ rows, deptScores, aspectScores, monthly, deptM
   const [tab, setTab] = useState<SubTab>('compilation');
 
   return (
-    <div className="space-y-5">
-      {/* Sub-tab nav — pil; aktif = hijau brand solid */}
-      <div className="flex flex-wrap gap-2">
-        {TABS.map((t) => {
-          const Icon = t.icon;
-          const active = tab === t.key;
-          return (
-            <button key={t.key} type="button" onClick={() => setTab(t.key)}
-              className={`flex items-center gap-2 min-h-9 px-4 rounded-full border text-[13px] font-semibold transition-colors ${
-                active ? 'bg-brand border-brand text-white' : 'bg-surface border-line text-ink-soft hover:text-brand hover:border-infarm-light'}`}>
-              <Icon className="w-4 h-4" />
-              <span>{t.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
+    <div>
+      <TabBar>
+        {TABS.map((t) => <TabButton key={t.key} active={tab === t.key} onClick={() => setTab(t.key)} icon={t.icon}>{t.label}</TabButton>)}
+      </TabBar>
+      <TabPanel>
       {tab === 'compilation' && <CompilationTab rows={rows} deptScores={deptScores} aspectScores={aspectScores} has360={has360} periodLabel={periodLabel}
         prevLabel={prevLabel} prevFinalAvg={prevFinalAvg} finalMove={finalMove} aggregate={aggregate} yearLabel={yearLabel} quarterlyDist={quarterlyDist} />}
       {tab === 'kpi' && <KpiTab rows={rows} deptScores={deptScores} monthly={monthly} deptMonthly={deptMonthly} months={months} kpiStandard={kpiStandard} yearLabel={yearLabel} yearMonthly={yearMonthly} yearKpiAvg={yearKpiAvg} prevLabel={prevLabel} prevKpiAvg={prevKpiAvg} kpiMove={kpiMove} />}
       {tab === 'feedback' && <FeedbackTab rows={rows} aspectScores={aspectScores} deptAspect360={deptAspect360} aspect360Names={aspect360Names} deptIndicator360={deptIndicator360} indicator360Cols={indicator360Cols} has360={has360} periodLabel={periodLabel} yearLabel={yearLabel} year360={year360} year360Avg={year360Avg} prevLabel={prevLabel} prev360Avg={prev360Avg} s360Move={s360Move} />}
       {tab === 'table' && <TableTab rows={rows} has360={has360} />}
+      </TabPanel>
     </div>
   );
 }

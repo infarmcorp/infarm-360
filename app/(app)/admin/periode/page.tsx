@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { CalendarPlus, CalendarRange, CalendarX, ListChecks } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { isBackfilledPeriod } from '@/lib/backfill-guard';
@@ -12,7 +11,8 @@ import { ReadinessPanel } from './readiness-panel';
 import { CycleStatus } from './cycle-status';
 import { EmptyState } from '@/components/empty-state';
 import { StatusChip } from '@/components/status-chip';
-import { CARD, CardTitle, Note, PageTitle, TABLE_HEAD, pillCls } from '@/components/infarm-ui';
+import { CARD, CardTitle, Note, PageTitle, TABLE_HEAD } from '@/components/infarm-ui';
+import { TabBar, Tab, TabPanel } from '@/components/tab-nav';
 import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 /**
@@ -68,10 +68,11 @@ export default async function PeriodePage({
         Aktivasi membuka pengisian; Kunci &amp; Akhiri menghentikannya.
       </PageTitle>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Link href="/admin/periode" prefetch={false} className={pillCls(tab === 'periode')}><CalendarRange className="w-4 h-4" /> Kelola Periode</Link>
-        <Link href="/admin/periode?tab=siklus" prefetch={false} className={pillCls(tab === 'siklus')}><ListChecks className="w-4 h-4" /> Status Siklus</Link>
-      </div>
+      <TabBar>
+        <Tab href="/admin/periode" active={tab === 'periode'} icon={CalendarRange}>Kelola Periode</Tab>
+        <Tab href="/admin/periode?tab=siklus" active={tab === 'siklus'} icon={ListChecks}>Status Siklus</Tab>
+      </TabBar>
+      <TabPanel>
 
       {/* Sub-tab "Status Siklus": rincian 10 langkah (pindahan kartu Beranda yang dihapus). */}
       {tab === 'siklus' ? (
@@ -169,6 +170,7 @@ export default async function PeriodePage({
       </Note></div>
       </>
       )}
+      </TabPanel>
     </Shell>
   );
 }

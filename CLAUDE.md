@@ -235,6 +235,9 @@ bersama (2026-11-03/04). Aturan token & "kartu flat tanpa bayangan / font sistem
 - Pemetaan semantik (invariant): **brand** = primary/aktif/positif ("Terkirim", Final) · **warn** = peringatan/pending/
   obligasi ("Wajib", draf, skor basi) · **danger** = error/destruktif/terlambat · **neutral** = nonaktif/info. Solid hanya
   tombol utama; status = chip soft-tint `rounded-full`. Satu tombol utama per baris tabel; aksi lain → `OverflowMenu`.
+- **Sub-tab = tab map** (pemilik 2026-11-06, `components/tab-nav.tsx`: `TabBar` + `Tab`/`TabButton` + `TabPanel`): tab aktif
+  putih menyatu dengan lembar isi. Kapsul (`pillCls`) khusus pilihan/filter di dalam satu tampilan, supaya sub-tab tak terbaca
+  sebagai filter. Halaman baru yang punya sub-tab wajib memakai komponen ini.
 - **Sidebar** (`app-shell.tsx`, pemilik 2026-11-04): bilah atas + kepala sidebar hijau `brand` (teks putih, satu pita
   setinggi 56px), **seluruh** badan sidebar putih (kartu periode tetap krem) + tepi kanan `border-line-strong` dan bayangan
   tipis ke kanan — agar sidebar jelas terpisah dari lembar kerja `infarm-surface` (pemilik 2026-11-05: blok status berwarna

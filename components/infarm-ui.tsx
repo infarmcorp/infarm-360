@@ -139,7 +139,7 @@ export const FIELD = 'text-[13px] min-h-9 px-3 border border-line rounded-contro
 export const FIELD_LABEL = 'block text-xs font-semibold text-ink-soft mb-1.5';
 /** Kepala tabel standar (baris <tr> di <thead>). */
 export const TABLE_HEAD = 'text-xs font-semibold text-ink-soft bg-infarm-surface';
-/** Pil sub-tab: aktif hijau solid, lainnya putih bergaris. */
+/** Pil pilihan/filter di dalam satu tampilan: aktif hijau solid, lainnya putih bergaris. Sub-tab halaman → components/tab-nav.tsx. */
 export const pillCls = (active: boolean) =>
   `flex items-center gap-2 min-h-9 px-4 rounded-full border text-[13px] font-semibold transition-colors ${
     active ? 'bg-brand border-brand text-white' : 'bg-surface border-line text-ink-soft hover:text-brand hover:border-infarm-light'}`;

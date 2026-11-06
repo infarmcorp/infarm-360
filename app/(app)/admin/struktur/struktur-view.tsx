@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { ShieldCheck, Users, Search, ChevronDown, ChevronRight, Building2, Crown, Network, List, UserCheck, AlertTriangle, LayoutGrid } from 'lucide-react';
 import { OrgChart, type OrgNode } from './org-chart';
-import { CARD, CardTitle, Note, StatCards, FIELD, TABLE_HEAD, pillCls } from '@/components/infarm-ui';
+import { CARD, CardTitle, Note, StatCards, FIELD, TABLE_HEAD } from '@/components/infarm-ui';
+import { TabBar, TabButton, TabPanel } from '@/components/tab-nav';
 
 export type Person = {
   id: string; empCode: string; name: string; dept: string; role: 'employee' | 'spv' | 'hrd' | 'direksi';
@@ -75,15 +76,12 @@ export function StrukturView({
           { icon: ShieldCheck, value: String(stats.hrd), label: 'Izin HRD' },
         ]} />
 
-      {/* Toggle Bagan / Daftar — pil sub-tab */}
-      <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => setView('bagan')} className={pillCls(view === 'bagan')}>
-          <Network className="w-4 h-4" /> Bagan
-        </button>
-        <button type="button" onClick={() => setView('daftar')} className={pillCls(view === 'daftar')}>
-          <List className="w-4 h-4" /> Daftar
-        </button>
-      </div>
+      <div>
+      <TabBar>
+        <TabButton active={view === 'bagan'} onClick={() => setView('bagan')} icon={Network}>Bagan</TabButton>
+        <TabButton active={view === 'daftar'} onClick={() => setView('daftar')} icon={List}>Daftar</TabButton>
+      </TabBar>
+      <TabPanel className="space-y-5">
 
       {view === 'bagan' ? (
         <section className={CARD}>
@@ -204,6 +202,8 @@ export function StrukturView({
       </section>
       </>
       )}
+      </TabPanel>
+      </div>
     </div>
   );
 }

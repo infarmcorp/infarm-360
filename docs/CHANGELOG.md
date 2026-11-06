@@ -13,7 +13,11 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   sesuai kuadrannya, supaya tidak perlu menggulir atas-bawah (permintaan pemilik).
 - Peringkat Skor Akhir, KPI, dan 360° menampilkan 10 teratas dan 10 terbawah sekaligus, masing-masing dua kolom isi 5
   orang. Tombol Teratas/Terbawah dan tombol halaman dihapus.
+  Pegawai yang sudah tampil di Teratas tidak diulang di Terbawah, sehingga daftar Terbawah bisa lebih pendek atau kosong
+  bila pegawainya kurang dari 20 (misalnya saat disaring satu divisi).
 - Tulisan kategori di tiap baris peringkat diganti warna pada angka skor, dengan keterangan warna di bawah daftar.
+- Monitor Kinerja, Pergerakan KPI: tiap sisi (Naik/Turun) kini menampilkan sampai 10 orang dalam dua kolom, bukan 3 orang.
+  Tombol Lihat semua hanya muncul bila satu sisi lebih dari 10 orang. Pergerakan 360° dan Distribusi Kinerja tetap.
 - Sidebar kini putih seluruhnya dengan tepi kanan lebih tegas, agar jelas terpisah dari lembar kerja (2026-11-05).
 - Analisis 360 Feedback mendapat peta warna baru, Divisi × Indikator. Kolomnya mengikuti indikator aktif di Kelola
   Pertanyaan pada periode itu; indikator yang dinonaktifkan HRD tidak tampil. Cara hitungnya sama dengan Divisi × Aspek.

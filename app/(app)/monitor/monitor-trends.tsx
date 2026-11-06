@@ -288,7 +288,7 @@ function DeltaSummary({
 /**
  * Top Movers — pegawai dengan kenaikan/penurunan KPI TERBESAR antar dua periode berdata terakhir.
  * "Actionable" untuk tim kecil: langsung menyorot siapa yang melonjak / perlu perhatian. `movers`
- * sudah diurut selisih menurun di server; komponen memilih 3 teratas naik & 3 teratas turun.
+ * sudah diurut selisih menurun di server; komponen menampilkan 10 teratas naik & 10 teratas turun, dua kolom per sisi.
  */
 function MoverLine({ m, up }: { m: MoverRow; up: boolean }) {
   return (
@@ -313,30 +313,42 @@ function ShowAllToggle({ expanded, total, onToggle }: { expanded: boolean; total
   );
 }
 
-const TOP_N = 3; // default tampil per kolom (Naik/Turun) sebelum "Lihat semua"
+const TOP_N = 3; // Pergerakan 360°: default tampil per sisi (Naik/Turun) sebelum "Lihat semua"
+const TOP_N_KPI = 10; // Pergerakan KPI: barisnya ringkas → tampil lebih banyak, dua kolom per sisi
+
+/** Satu sisi Pergerakan KPI dibagi dua kolom: 5 pertama di kiri; saat "Lihat semua" dibagi rata. */
+function MoverColumns({ list, up }: { list: MoverRow[]; up: boolean }) {
+  const mid = Math.max(5, Math.ceil(list.length / 2));
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+      <div className="space-y-1.5 min-w-0">{list.slice(0, mid).map((m) => <MoverLine key={m.name} m={m} up={up} />)}</div>
+      <div className="space-y-1.5 min-w-0">{list.slice(mid).map((m) => <MoverLine key={m.name} m={m} up={up} />)}</div>
+    </div>
+  );
+}
 
 function TopMovers({ movers, labels }: { movers: MoverRow[]; labels: { prev: string; curr: string } | null }) {
   const [expanded, setExpanded] = useState(false);
   const allRisers = movers.filter((m) => m.delta > 0);
   const allFallers = movers.filter((m) => m.delta < 0).sort((a, b) => a.delta - b.delta);
-  const risers = expanded ? allRisers : allRisers.slice(0, TOP_N);
-  const fallers = expanded ? allFallers : allFallers.slice(0, TOP_N);
-  const hasMore = allRisers.length > TOP_N || allFallers.length > TOP_N;
+  const risers = expanded ? allRisers : allRisers.slice(0, TOP_N_KPI);
+  const fallers = expanded ? allFallers : allFallers.slice(0, TOP_N_KPI);
+  const hasMore = allRisers.length > TOP_N_KPI || allFallers.length > TOP_N_KPI;
   return (
     <ChartCard icon={ArrowUpDown} title="Pergerakan KPI" hint={labels && <span className="text-xs text-ink-soft">{labels.prev} → {labels.curr}</span>}>
       {!labels || movers.length === 0 ? (
         <p className="text-[13px] text-ink-soft py-6 text-center">Perlu ≥2 periode berdata (pegawai bernilai di keduanya) untuk pergerakan.</p>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-3">
             <div>
               <div className="text-[13px] font-bold uppercase tracking-[0.08em] text-brand-ink mb-2">Naik {allRisers.length > 0 && <span className="text-ink-faint font-normal font-mono">({allRisers.length})</span>}</div>
-              {risers.length ? <div className="space-y-1.5">{risers.map((m) => <MoverLine key={m.name} m={m} up />)}</div>
+              {risers.length ? <MoverColumns list={risers} up />
                 : <p className="text-xs text-ink-soft italic">Tak ada kenaikan.</p>}
             </div>
             <div>
               <div className="text-[13px] font-bold uppercase tracking-[0.08em] text-danger-ink mb-2">Turun {allFallers.length > 0 && <span className="text-ink-faint font-normal font-mono">({allFallers.length})</span>}</div>
-              {fallers.length ? <div className="space-y-1.5">{fallers.map((m) => <MoverLine key={m.name} m={m} up={false} />)}</div>
+              {fallers.length ? <MoverColumns list={fallers} up={false} />
                 : <p className="text-xs text-ink-soft italic">Tak ada penurunan.</p>}
             </div>
           </div>

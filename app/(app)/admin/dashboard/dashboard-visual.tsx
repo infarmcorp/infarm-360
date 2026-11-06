@@ -1173,21 +1173,27 @@ function LeaderboardRows({ items, valueOf, bottom, startIndex = 0 }: { items: Ro
 }
 
 /** Satu sisi peringkat: maksimal 10 orang dibagi dua kolom (#1–#5 · #6–#10). */
-function LeaderboardSide({ title, icon: Icon, items, valueOf, bottom, className = '' }: {
-  title: string; icon: LucideIcon; items: Row[]; valueOf: (r: Row) => number | null; bottom: boolean; className?: string;
+function LeaderboardSide({ title, icon: Icon, items, valueOf, bottom, emptyText = 'Belum ada data.', className = '' }: {
+  title: string; icon: LucideIcon; items: Row[]; valueOf: (r: Row) => number | null; bottom: boolean; emptyText?: string; className?: string;
 }) {
   return (
     <div className={`min-w-0 ${className}`}>
       <div className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide mb-1 ${bottom ? 'text-danger-ink' : 'text-brand-ink'}`}>
         <Icon className="w-4 h-4" /> {title}
       </div>
-      {items.length === 0 && <p className="text-[13px] text-ink-soft italic">Belum ada data.</p>}
+      {items.length === 0 && <p className="text-[13px] text-ink-soft italic">{emptyText}</p>}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
         <LeaderboardRows items={items.slice(0, 5)} valueOf={valueOf} bottom={bottom} />
         <LeaderboardRows items={items.slice(5, 10)} valueOf={valueOf} bottom={bottom} startIndex={5} />
       </div>
     </div>
   );
+}
+
+/** Sisi Terbawah tanpa pegawai yang sudah tampil di Teratas (pegawai < 20 → kedua daftar beririsan). Peringkat tetap dari skor terendah. */
+export function bottomWithoutTop<T extends { id: string }>(top: T[], bottom: T[]): T[] {
+  const shown = new Set(top.map((r) => r.id));
+  return bottom.filter((r) => !shown.has(r.id));
 }
 
 /** Peringkat SATU kartu: Teratas & Terbawah terlihat sekaligus, tanpa toggle/paginasi (bertumpuk di layar sempit). */
@@ -1198,11 +1204,12 @@ function LeaderboardPanel({ metric, top, bottom, valueOf }: {
     <div className={`${CARD} space-y-3`}>
       <div>
         <CardTitle icon={Trophy}>Peringkat {metric}</CardTitle>
-        <p className="text-xs text-ink-soft mt-0.5">10 tertinggi &amp; 10 terendah. Terbawah #1 = skor terendah (prioritas mentoring/coaching).</p>
+        <p className="text-xs text-ink-soft mt-0.5">10 tertinggi &amp; 10 terendah; yang sudah tampil di Teratas tidak diulang. Terbawah #1 = skor terendah (prioritas mentoring/coaching).</p>
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-4">
         <LeaderboardSide title="Teratas" icon={Trophy} items={top} valueOf={valueOf} bottom={false} />
-        <LeaderboardSide title="Terbawah" icon={AlertTriangle} items={bottom} valueOf={valueOf} bottom className="xl:border-l xl:border-line xl:pl-6" />
+        <LeaderboardSide title="Terbawah" icon={AlertTriangle} items={bottomWithoutTop(top, bottom)} valueOf={valueOf} bottom
+          emptyText={top.length > 0 ? 'Semua pegawai sudah tampil di Teratas.' : undefined} className="xl:border-l xl:border-line xl:pl-6" />
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-1">
         <span className="text-xs text-ink-soft">Warna angka:</span>

@@ -72,25 +72,25 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 - 🔑🔄 **Email Rilis Laporan.** Perubahan database **0051** terpasang di staging dan production (2026-10-16).
   Sisa, per periode: unggah dua gambar pendamping di dialog Email Rilis Laporan, kirim uji ke email sendiri, baru
   kirim ke pegawai (SOP di [PANDUAN.md](PANDUAN.md) §5.9). Butuh tautan folder tiap pegawai terisi.
-- 🔑🔄 **Email Rilis terjadwal** (permintaan HRD) — sudah di `dev` (2026-11-03), belum di production. HRD mengatur
+- 🔑🔄 **Email Rilis terjadwal** (permintaan HRD) — **sudah di production** (ikut rilis 2026-11-03). HRD mengatur
   tanggal & jam di dialog Email Rilis; email terkirim sendiri (±30 menit). Penerima dan isi dikunci saat
   menjadwalkan; bisa diubah/dibatalkan sebelum mulai terkirim. Sisa:
-  - 🔑 jalankan perubahan database **0053** di staging, lalu production;
+  - ✅ perubahan database **0053** terpasang di staging dan production (dicek pemilik 2026-11-09);
   - ✅ kode rahasia sudah dipasang pemilik di Vercel (Production & Preview) dan GitHub (2026-11-03);
   - 🔑 di Preview: uji isi & syarat email lewat **Kirim sekarang** (inti pengiriman sama dengan jadwal). Jadwal di
     Preview tidak berjalan sendiri — pemicu GitHub hanya memanggil production dan hanya dari `main` (keputusan pemilik:
     tidak menambah pemicu untuk Preview);
-  - 🔑 setelah rilis `dev` → `main` + 0053 di production: uji pemicu sekali (Actions → Email Rilis Terjadwal → Run
-    workflow), lalu jadwalkan ke akun sendiri dari UI untuk memastikan terkirim otomatis.
-- 🔑🔄 **Catatan di Luar Pemetaan** (untuk Q4 2026) — sudah di `dev` (2026-11-03), belum
-  di production. Pegawai bisa menulis catatan anonim kepada HRD tentang rekan yang tidak ada di daftar
+  - 🔑 uji pemicu sekali di production (Actions → Email Rilis Terjadwal → Run workflow), lalu jadwalkan ke akun
+    sendiri dari UI untuk memastikan terkirim otomatis.
+- 🔑🔄 **Catatan di Luar Pemetaan** (untuk Q4 2026) — **sudah di production** (ikut rilis 2026-11-03). Pegawai bisa menulis catatan anonim kepada HRD tentang rekan yang tidak ada di daftar
   penilaiannya (pilih rekan + aspek budaya, tanpa nilai). Hanya HRD di Mode Admin yang membacanya, di rincian
   komentar laporan. Sisa:
-  - ✅ perubahan database **0054** terpasang di staging (2026-11-03, `verify:rls` lolos);
+  - ✅ perubahan database **0054** terpasang di staging (2026-11-03, `verify:rls` lolos) dan production (dicek
+    2026-11-09);
   - 🔑 uji per peran di Preview `dev`;
-  - 🔑 sebelum Q4 dibuka: jalankan 0054 di production dan umumkan fiturnya ke pegawai.
-- ✅ **Perubahan database production** — 0001–0052 terpasang di staging dan production (dicek pemilik
-  2026-10-16 dengan `scripts/check-migrations.sql`).
+  - 🔑 sebelum Q4 dibuka: umumkan fiturnya ke pegawai.
+- ✅ **Perubahan database** — 0001–0057 terpasang di staging dan production (0050–0057 dicek pemilik 2026-11-09
+  dengan `scripts/check-migrations.sql` di kedua database).
 
 ### Keamanan
 - 🔑⬜ **Ganti kunci rahasia database** (kunci admin Supabase dan lainnya) sebelum produksi penuh. Kunci admin
@@ -160,7 +160,7 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
     74,00 → 72,50), dan **KPI pegawai Final terkunci** untuk SPV/Koordinator. Pesan siap kirim:
     [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md);
   - catatan: Ubah deadline & cron melewati pegawai Final tanpa menyebut jumlahnya (proses otomatis).
-- 🔄 **Gelombang 3 (kecil): pesan di Manajemen Akses** — sudah di `dev` (2026-10-16), belum di production. Pesan
+- 🔄 **Gelombang 3 (kecil): pesan di Manajemen Akses** — sudah di production (ikut rilis 2026-11-03). Pesan
   berhasil kini tetap terlihat setelah panel tertutup (per peran dan per pegawai), dan jumlah penerima per peran
   tidak lagi menghitung pemberi akses sendiri (mis. "50 Pegawai (Anda sendiri tidak termasuk)"). 🔑 Sisa: uji di
   Preview `dev`.
@@ -168,15 +168,15 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   jumlah laporan berlabel "berubah → N" = 0. Dengan kunci laporan Final, label itu tak akan muncul lagi; tombol
   sementara dipertahankan hanya untuk merapikan selisih lama (keputusan 2026-10-12).
 - 🔄 **Rapikan temuan lint** — **bersih (0 temuan)** 2026-10-16 dan kini ikut pemeriksaan otomatis. 27 temuan
-  mekanis sudah di `dev`; 22 temuan pola React ada di PR terpisah (`chore/lint-react-hooks`). 🔑 Sisa: cek tampilan
-  di Preview PR itu lalu merge (daftar cek di deskripsi PR).
+  mekanis dan 22 temuan pola React sudah di production. 🔑 Sisa: cek tampilan di production (daftar cek di deskripsi
+  PR `chore/lint-react-hooks`).
 - ✅ **Cek dampak bug potongan telat ke 0** — **ditutup 2026-10-14**: query cek dampak dijalankan di production,
   hasilnya kosong. Tidak ada pegawai yang terdampak.
 
 ---
 
 ### Rencana Pengembangan & 1-on-1
-- 🔑🔄 **Tahap 1–3 sudah di `dev`** (2026-11-03), belum di production:
+- 🔑🔄 **Tahap 1–3 sudah di production** (ikut rilis 2026-11-03):
   - Tahap 1: isi rencana, komentar atasan, persetujuan (pegawai → atasan → HRD), pantauan HRD + Direksi, batas rencana
     disepakati (informasi saja), tutup/buka per periode, pengingat;
   - Tahap 2: catatan Sesi 1-on-1 (atasan) dan Tinjauan Bulanan HRD setelah rencana Disepakati, tanggapan pegawai —
@@ -186,7 +186,8 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   - ✅ **0056** terpasang di staging (`verify:rls` 78 lolos);
   - ✅ **0057** (pengaman database) terpasang di staging (`verify:rls` 83 lolos, 2026-11-03);
   - 🔑 uji end-to-end per peran di Preview `dev` (Catatan di Luar Pemetaan + Rencana Pengembangan bersamaan);
-  - 🔑 sebelum dipakai: 0054–0057 di production, lalu HRD menetapkan batas rencana disepakati untuk laporan Q3 2026.
+  - ✅ 0054–0057 terpasang di production (dicek 2026-11-09);
+  - 🔑 sebelum dipakai: HRD menetapkan batas rencana disepakati untuk laporan Q3 2026.
 - Keputusan pemilik (diskusi 2026-11-03), sebagai acuan tahap berikutnya:
   - Rencana **melekat ke periode laporan** (mis. laporan Q3 → "Rencana Pengembangan Q4"), terbuka setelah laporan Final
     dan tetap bisa diisi walau periode aktif sudah pindah atau periode laporan sudah dikunci. HRD menutupnya manual.

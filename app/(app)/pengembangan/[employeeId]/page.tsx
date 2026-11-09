@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { CARD, PageTitle } from '@/components/infarm-ui';
+import { CARD, Note, PageTitle } from '@/components/infarm-ui';
 import { INFARM_PAGE } from '@/app/infarm-fonts';
 import {
   canActAsSupervisor, canHrdSign, canViewPlan, inAdminView, planTitle, SUPERVISOR_KIND_LABEL, type HrdMode, type PlanItem,
@@ -64,10 +64,12 @@ export default async function PlanDetailPage({ params, searchParams }: {
   const plainItems: PlanItem[] = items.map(({ area, target, actions, due_text, companion, success_indicator }) =>
     ({ area, target, actions, due_text, companion, success_indicator }));
 
-  const supervises = canActAsSupervisor(info, actor, emp.id, mode);
-  const hrd = canHrdSign(actor, mode);
+  // Pegawai sudah keluar → rencana hanya dilihat (server juga menolak semua aksi tulis, actions.ts planById).
+  const readOnly = !emp.is_active;
+  const supervises = !readOnly && canActAsSupervisor(info, actor, emp.id, mode);
+  const hrd = !readOnly && canHrdSign(actor, mode);
   const isDireksiPlan = emp.role === 'direksi';
-  const sessionsPanel = await sessionsPanelData(admin, { plan, items, ownerId: emp.id, ownerRole: emp.role, info, actor, mode, closed });
+  const sessionsPanel = await sessionsPanelData(admin, { plan, items, ownerId: emp.id, ownerRole: emp.role, info, actor, mode, closed: closed || readOnly });
 
   return (
     <Shell back={back} subtitle={<><strong className="text-ink">{emp.name}</strong> · {emp.dept ?? '—'}</>}>
@@ -75,6 +77,7 @@ export default async function PlanDetailPage({ params, searchParams }: {
         <PeriodPicker periods={periods} selected={sel.id} base={`/pengembangan/${emp.id}?from=${from ?? ''}`} />
         <PlanHeader title={planTitle(sel.label)} sourceLabel={sel.label} status={plan?.status ?? null} ownerRole={emp.role}
           due={sel.dev_plan_due} closed={closed} supervisorLabel={supLabel} />
+        {readOnly && <Note>{emp.name} sudah <strong className="font-semibold text-ink">nonaktif</strong> — rencana dan catatan sesinya hanya dapat dilihat.</Note>}
         {plan && <RevisionNotice plan={plan} />}
         {!plan ? <div className={CARD}><p className="text-[13px] text-ink-soft">Pegawai belum mengisi rencana.</p></div> : <PlanItemsView items={plainItems} />}
         {plan && !closed && hrd && !isDireksiPlan && plan.status === 'waiting_hrd' && <HrdBar planId={plan.id} />}

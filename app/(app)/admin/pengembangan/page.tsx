@@ -84,7 +84,9 @@ export default async function PantauanRencanaPage({ searchParams }: { searchPara
   for (const r of itemRows ?? []) itemCount.set(r.plan_id, (itemCount.get(r.plan_id) ?? 0) + 1);
   const nameById = new Map(people.map((p) => [p.id, p.name]));
 
-  const rows = people.filter((p) => finalSet.has(p.id)).map((p) => {
+  // Pegawai yang sudah keluar tampil HANYA bila sudah punya rencana (bisa dibuka, lihat saja) — tidak dihitung
+  // sebagai "belum mengisi".
+  const rows = people.filter((p) => finalSet.has(p.id) && (p.is_active || planBy.has(p.id))).map((p) => {
     const info = resolve(p);
     const plan = planBy.get(p.id);
     return {
@@ -143,7 +145,10 @@ export default async function PantauanRencanaPage({ searchParams }: { searchPara
               <tbody className="divide-y divide-line-soft">
                 {rows.map((r) => (
                   <tr key={r.id} className="hover:bg-infarm-surface/60">
-                    <td className="py-2.5 px-3 font-semibold text-ink" title={r.name}>{r.name}</td>
+                    <td className="py-2.5 px-3 font-semibold text-ink" title={r.name}>
+                      {r.name}
+                      {!r.is_active && <span className="ml-1.5 align-middle text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft" title="Pegawai nonaktif — rencana hanya dapat dilihat">nonaktif</span>}
+                    </td>
                     <td className="py-2.5 px-3 text-ink-soft">{r.dept ?? '—'}</td>
                     <td className="py-2.5 px-3 text-ink-soft" title={r.supervisor}>{r.supervisor}</td>
                     <td className="py-2.5 px-3"><StatusChip tone={PLAN_STATUS_TONE[r.status ?? 'none']}>{planStatusLabel(r.status, r.role)}</StatusChip></td>

@@ -252,10 +252,12 @@ async function devPlanTodos(userId: string, hrdMode: 'admin' | 'spv'): Promise<T
       .in('source_period_id', openIds).in('status', ['waiting_supervisor', 'waiting_hrd']);
     if (waiting?.length) {
       const resolve = await loadSupervisorResolver(admin);
-      const { data: emps } = await admin.from('employees').select('id, role').in('id', [...new Set(waiting.map((w) => w.employee_id))]);
+      // Rencana milik pegawai yang sudah nonaktif hanya bisa dilihat → bukan tugas siapa pun.
+      const { data: emps } = await admin.from('employees').select('id, role').eq('is_active', true).in('id', [...new Set(waiting.map((w) => w.employee_id))]);
       const roleBy = new Map((emps ?? []).map((e) => [e.id, e.role]));
       let asSup = 0, asHrd = 0;
       for (const w of waiting) {
+        if (!roleBy.has(w.employee_id)) continue;
         const info = resolve({ id: w.employee_id, role: roleBy.get(w.employee_id) ?? null });
         if (w.status === 'waiting_supervisor' && canActAsSupervisor(info, actor, w.employee_id, hrdMode)) {
           if (info.kind === 'hrd') asHrd++; else if (hrdMode !== 'admin') asSup++;

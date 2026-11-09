@@ -52,7 +52,7 @@ export default async function PengembanganPage({ searchParams }: { searchParams:
 
   const [people, resolve] = await Promise.all([loadPlanPeople(admin), loadSupervisorResolver(admin)]);
   const team = people
-    .filter((p) => p.id !== user.id)
+    .filter((p) => p.id !== user.id && p.is_active) // anggota yang sudah keluar: dilihat HRD lewat Pantauan saja
     .map((p) => {
       const info = resolve(p);
       const act = canActAsSupervisor(info, actor, p.id, mode) && info.kind !== 'hrd'; // fallback HRD → halaman pantauan

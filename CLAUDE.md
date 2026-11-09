@@ -119,7 +119,8 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
     tabelnya (dikunci `tests/outside-notes.test.ts`). Pengirim eksternal ditolak (sementara).
 - **Rencana Pengembangan** (0055, TEKNIS.md §5.5): melekat ke periode **laporan** (terbuka bila laporan Final & HRD
   belum menutup; periode aktif tak berpengaruh). Atasan = `resolveSupervisor` (koordinator → SPV → Direksi untuk SPV/
-  pemimpin tim → HRD cadangan); SPV dari pegawai berkoordinator hanya melihat. Persetujuan HRD hanya
+  pemimpin tim → HRD cadangan; atasan **nonaktif** dilewati di `loadSupervisorResolver`); SPV dari pegawai
+  berkoordinator hanya melihat. Rencana milik pegawai nonaktif = lihat saja (`planById` menolak semua aksi tulis). Persetujuan HRD hanya
   **posisi** `role='hrd'` di Mode Admin (`canHrdSign`, pengecualian sadar dari aturan `is_hrd()`); boleh atas rencana
   sendiri setelah atasan. **Tak ada Buka Kembali** (pemilik 2026-11-03): pemilik hanya bisa Tarik Kembali selama
   Menunggu Atasan; sesudah atasan menyetujui rencana terkunci. **Pemisahan mode ketat** (`inAdminView`): Mode Admin =

@@ -173,7 +173,8 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   - koordinator dinonaktifkan → anggota timnya kembali ke SPV (kecuali punya koordinator lain);
   - Direksi tampil di Flag Kepatuhan bila punya penilaian wajib tertunda atau potongan −3.
   - ✅ dicek di production 2026-11-09: tidak ada koordinator nonaktif yang masih memegang tim.
-  Diabaikan (pemilik): Rencana Pengembangan yang tertahan di atasan yang sudah keluar — fiturnya belum dipakai HRD.
+  - Rencana Pengembangan: atasan yang sudah keluar dilewati (rencana pindah ke koordinator → SPV → HRD berikutnya);
+    rencana milik pegawai yang sudah keluar tetap bisa dibuka HRD dari Pantauan (lihat saja, berpenanda "nonaktif").
   Masih terbuka: jumlah pegawai Dashboard / Monitor / Laporan Kinerja Tim / Review & Finalisasi bisa berbeda untuk
   kuartal yang sama (aturan "siapa termasuk kuartal ini" belum seragam); Email Rilis ikut terkirim ke pegawai yang
   sudah keluar.

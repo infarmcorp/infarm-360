@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { fakeDb } from './helpers/fake-postgrest';
-import { countStaleFinalReports } from '@/lib/todos/compute';
+import { countStaleFinalReports, countPendingReports } from '@/lib/todos/compute';
 import { finalScoreOf, kpiAvgOf } from '@/lib/scoring';
 
 // "N laporan Final skornya berubah" (sidebar HRD) — membandingkan Skor Akhir tersimpan dengan skor
@@ -57,5 +57,15 @@ describe('countStaleFinalReports — laporan Final yang skornya basi', () => {
     }, { failOn: ['kpi_scores'] });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await expect(countStaleFinalReports(db as any, P, true)).rejects.toThrow();
+  });
+});
+
+describe('countPendingReports — Tugas HRD "laporan belum difinalisasi"', () => {
+  it('laporan Final milik Direksi / pegawai yang sudah keluar tidak mengurangi hitungan pegawai aktif', () => {
+    // 5 aktif, 3 di antaranya Final; plus 2 laporan Final milik orang di luar daftar aktif.
+    expect(countPendingReports(['a', 'b', 'c', 'd', 'e'], ['a', 'b', 'c', 'direksi1', 'keluar1'])).toBe(2);
+  });
+  it('semua aktif sudah Final → 0', () => {
+    expect(countPendingReports(['a', 'b'], ['b', 'a'])).toBe(0);
   });
 });

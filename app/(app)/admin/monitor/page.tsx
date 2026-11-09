@@ -81,8 +81,9 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
     const { data: tm } = await admin.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id);
     teamIds = new Set((tm ?? []).map((r) => r.employee_id));
   }
-  // Ambil SEMUA pegawai internal sekali; dipakai untuk daftar divisi + penyaringan lingkup.
-  const { data: allEmpData } = await admin.from('employees').select('id, name, nickname, dept, is_active').eq('is_external', false);
+  // Ambil SEMUA pegawai internal non-Direksi sekali; dipakai untuk daftar divisi + penyaringan lingkup.
+  // Direksi dikecualikan seperti Monitor SPV & Dashboard (tanpa KPI; rata-rata organisasi pembanding juga tanpa Direksi).
+  const { data: allEmpData } = await admin.from('employees').select('id, name, nickname, dept, is_active').eq('is_external', false).neq('role', 'direksi');
   const allDepts = [...new Set((allEmpData ?? []).map((d) => d.dept).filter((d): d is string => !!d))].sort();
   // Divisi anggota tim naungan (tim bisa lintas divisi) → menambah pilihan dropdown utk lingkup tim.
   const teamDepts = teamIds
@@ -287,7 +288,7 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
             scopeLabel={scopeLabel} periodLabel={sel.label}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length}
             orgKpi={orgAvg?.kpi ?? null} orgS360={orgAvg?.s360 ?? null}
-            fillTotal={ids.length} kpiFilled={kpiBy.size} s360Filled={s360By.size} />
+            fillTotal={rows.length} kpiFilled={kpiBy.size} s360Filled={s360By.size} />
 
           {/* B. KOMPOSISI */}
           <SectionHeader label="Komposisi" hint="sebaran kategori & profil aspek" />

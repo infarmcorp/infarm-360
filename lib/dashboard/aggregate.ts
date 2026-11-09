@@ -44,7 +44,7 @@ export type AggregateBundle = {
 };
 
 type PeriodMeta = { id: string; label: string; has_360: boolean; start_date: string };
-type Emp = { id: string; name: string; nickname: string | null; dept: string };
+type Emp = { id: string; name: string; nickname: string | null; dept: string; is_active: boolean };
 
 const mean = (xs: number[]): number | null => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
@@ -242,7 +242,7 @@ export async function computeDashboardAggregate(
       if (fq != null) quarterFinals.push(fq);
     }
     const final = quarterFinals.length ? roundScore(mean(quarterFinals)) : null;
-    return { id: e.id, name: e.name, nickname: e.nickname, dept: e.dept, kpiAvg, s360, final, player, axisIncomplete, isActive: true, kpiUnread, trend: 'empty' as const, kpiMonths: [] };
+    return { id: e.id, name: e.name, nickname: e.nickname, dept: e.dept, kpiAvg, s360, final, player, axisIncomplete, isActive: e.is_active, kpiUnread, trend: 'empty' as const, kpiMonths: [] };
   })
     .filter((r) => r.kpiAvg != null || r.s360 != null)
     .sort((a, b) => (b.final ?? -1) - (a.final ?? -1));

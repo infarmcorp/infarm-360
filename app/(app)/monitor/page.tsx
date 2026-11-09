@@ -272,7 +272,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={sel.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length}
-            fillTotal={ids.length} kpiFilled={kpiBy.size} s360Filled={s360By.size} />
+            fillTotal={rows.length} kpiFilled={kpiBy.size} s360Filled={s360By.size} />
 
           {/* B. KOMPOSISI — sebaran & profil aspek */}
           <SectionHeader label="Komposisi" hint="sebaran kategori & profil aspek" />

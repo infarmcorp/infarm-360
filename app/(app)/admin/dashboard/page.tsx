@@ -112,7 +112,7 @@ export default async function DashboardPage({
     ).map((p) => ({ id: p.id, label: p.label, has_360: p.has_360, start_date: String(p.start_date), kpi_standard: p.kpi_standard }));
     const bundle = await computeDashboardAggregate(
       aggPeriods.map((p) => ({ id: p.id, label: p.label, has_360: p.has_360, start_date: p.start_date })),
-      emps.map((e) => ({ id: e.id, name: e.name, nickname: e.nickname, dept: e.dept })),
+      emps.map((e) => ({ id: e.id, name: e.name, nickname: e.nickname, dept: e.dept, is_active: e.is_active })),
       empIds,
     );
     const scopeLabel = aggScope === 'all' ? 'Semua Tahun (all-time)' : `Tahun ${selY} · Semua Kuartal`;

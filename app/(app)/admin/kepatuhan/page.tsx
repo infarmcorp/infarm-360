@@ -47,7 +47,9 @@ export default async function KepatuhanPage() {
     .from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return <Shell><p className="text-[13px] text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
-  const { data: emps } = await db.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
+  // Direksi IKUT (keputusan pemilik 2026-11-09): Direksi bisa kena potongan −3 sebagai penilai, jadi harus terlihat
+  // di sini — termasuk untuk diubah/dikecualikan HRD. Tabel default hanya menampilkan yang perlu perhatian.
+  const { data: emps } = await db.from('employees').select('id, name, dept').eq('is_external', false).eq('is_active', true);
   // Pemegang grant: batasi ke lingkupnya (employeeInScopes; 'coordinator_team' via teamIds).
   const employees = (emps ?? []).filter((e) => !viaGrant || employeeInScopes(grantScopes!, ownDept, user.id, { id: e.id, dept: e.dept }, teamIds));
   const nameById = new Map(employees.map((e) => [e.id, e.name]));

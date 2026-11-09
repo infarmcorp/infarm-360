@@ -436,7 +436,11 @@ Mengelola akun dan data pegawai. Pemberian izin dan akses **tidak** di sini, tet
   Mereka tidak punya KPI, Skor Akhir, atau laporan, tidak muncul di dashboard/monitor/laporan, dan tidak bisa
   dipilih sebagai "Yang Dinilai". Nilai mereka tetap masuk Skor 360° lewat bobot Lintas Divisi. Berlabel **"Eksternal"**.
 - **Nonaktifkan**: akun terkunci (tak bisa login), riwayat tetap ada, dan **pemetaannya ikut nonaktif** (keluar
-  dari siklus). **Aktifkan** mengembalikan semuanya. Di halaman pelaporan (Dashboard, Rekap, Monitor, Laporan
+  dari siklus) — hanya di periode yang **belum berakhir** pada tanggal itu; pemetaan kuartal yang sudah lewat tidak
+  diubah. Bila dia **koordinator**, anggota timnya otomatis kembali ke SPV masing-masing (kecuali yang masih punya
+  koordinator lain). **Aktifkan** menghidupkan lagi pemetaannya, juga hanya di periode yang belum berakhir pada tanggal
+  diaktifkan, dan tidak menghidupkan pasangan yang dulu dihapus lewat permohonan. Tim koordinator **tidak** kembali
+  otomatis — tetapkan ulang di Manajemen Akses bila perlu. Di halaman pelaporan (Dashboard, Rekap, Monitor, Laporan
   Tim, Review & Finalisasi) pegawai nonaktif yang punya data periode **tetap tampil** dengan penanda "nonaktif",
   agar hasilnya tidak hilang dan masih bisa difinalisasi. Di halaman siklus (Kepatuhan, Progress, Penilaian,
   Suksesi) mereka disembunyikan, dan tidak menerima undangan/pengingat.
@@ -973,7 +977,8 @@ terbaca"** tidak dihitung dalam rerata, sebaran, dan peringkat KPI (jumlahnya di
 - Keduanya kosong → tidak diklasifikasi. KPI dan 360° selalu diambil dari periode yang sama.
 - **Kategori kinerja**: ≥ 90 Melampaui Ekspektasi · 80–89,99 Memenuhi · 70–79,99 Perlu Peningkatan · < 70 Di Bawah.
 - Matriks 9-Box tidak lagi ditampilkan.
-- Direksi tidak masuk Dashboard, 4-Box, KPI, kepatuhan, dan monitor.
+- Direksi tidak masuk Dashboard, 4-Box, KPI, dan monitor. Di **Flag Kepatuhan** Direksi tampil bila punya penilaian
+  wajib yang belum dikirim atau kena potongan −3 (dan bisa diubah/dikecualikan HRD seperti pegawai lain).
 
 ### 5.12 Struktur Organisasi
 Tampilan baca-saja struktur saat ini, otomatis mengikuti Kelola Pegawai dan Manajemen Akses. Pilihan
@@ -1072,7 +1077,8 @@ flowchart TD
   maupun persetujuan. Setelah rencana SPV **Disepakati**, Direksi mencatat **Sesi 1-on-1** di halaman rencananya
   (**Catat Sesi 1-on-1**: tanggal, catatan, status umum, kemajuan per prioritas).
 - Direksi **boleh dinilai** 360°. Hasilnya tampil di Review & Finalisasi dan Ekspor HRD dengan Skor Akhir =
-  Skor 360° (Direksi tidak punya KPI). Direksi tidak masuk Dashboard, 4-Box, KPI, kepatuhan, dan monitor.
+  Skor 360° (Direksi tidak punya KPI). Direksi tidak masuk Dashboard, 4-Box, KPI, dan monitor; di Flag Kepatuhan
+  Direksi tampil bila ada penilaian wajib yang tertunda atau potongan −3.
 - Direksi tidak punya Monitor Kinerja atau Rekapitulasi Kuartal (kecuali diberi akses), dan tidak melihat
   siapa menilai siapa.
 
@@ -1238,8 +1244,9 @@ flowchart TD
    hasil kuartal ingin keluar. Laporan pegawai nonaktif tetap bisa difinalisasi, jadi boleh juga nonaktifkan dulu.
 2. **Manajemen Akses → Seorang pegawai**: cabut **HRD Admin**, **Koordinator** (timnya ikut kosong), dan semua
    akses halaman.
-3. Bila dia atasan/koordinator orang lain: pindahkan bawahannya ke pengganti **sebelum** dinonaktifkan.
-4. **Kelola Pegawai → Nonaktifkan**: akun terkunci, pemetaannya ikut nonaktif, riwayat tetap.
+3. Bila dia atasan/koordinator orang lain: pindahkan bawahannya ke pengganti **sebelum** dinonaktifkan. (Koordinator
+   tanpa pengganti: anggotanya otomatis kembali ke SPV saat dinonaktifkan.)
+4. **Kelola Pegawai → Nonaktifkan**: akun terkunci, pemetaannya di periode berjalan ikut nonaktif, riwayat tetap.
 5. Isi **Tanggal Keluar**.
 6. (Opsional) Pasangan di mana dia **penilai** dan belum terisi: hapus (bila Belum Mulai/Draft) atau **Paksa
    Selesai** di Progress 360 agar kelengkapan target tidak macet.

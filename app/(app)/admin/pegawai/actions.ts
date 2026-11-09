@@ -6,6 +6,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin, canSection, isFullHrd, isHrdDept, HRD_SECTIONS } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { ReportFolderUrl, tableMissing } from '@/lib/report-folder';
+import { mappingsToReactivate, pairKey } from '@/lib/employee-activation';
 
 /**
  * Kelola Pegawai (HRD): kelola akun + baris employees + keanggotaan tim SPV.
@@ -457,25 +458,41 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
 
   // Pemetaan ikut dinonaktifkan/diaktifkan → orang keluar/masuk siklus penilaian (tak lagi
   // dihitung di Progress 360 & tak jadi tugas penilai lain) TANPA menghapus data (reversibel).
+  // Hanya periode yang BELUM BERAKHIR per tanggal aksi (lib/employee-activation.ts, keputusan 2026-11-09):
+  // periode yang sudah lewat tak tersentuh, jadi riwayat & kewajiban lamanya tetap.
+  const { data: openPeriods, error: pErr } = await supabase.from('periods').select('id').gte('end_date', today);
+  if (pErr) return { ok: false, error: 'Status diubah, tapi gagal membaca periode: ' + pErr.message };
+  const openPeriodIds = (openPeriods ?? []).map((p) => p.id);
+  let releasedMembers = 0;
   if (!active) {
-    // Nonaktif: matikan SEMUA pemetaan orang ini (sebagai penilai maupun yang dinilai).
-    const { error: mErr } = await supabase.from('mappings')
-      .update({ is_active: false }).or(`assessor_id.eq.${id},target_id.eq.${id}`);
-    if (mErr) return { ok: false, error: 'Status diubah, tapi gagal memperbarui pemetaan: ' + mErr.message };
-  } else {
-    // Reaktivasi: HANYA hidupkan pemetaan yang sisi LAWANNYA juga aktif → cegah pemetaan
-    // menunjuk ke pegawai yang masih nonaktif (kasus deaktivasi-ganda lalu reaktivasi sebagian).
+    // Nonaktif: matikan pemetaan orang ini (sebagai penilai maupun yang dinilai) di periode yang belum berakhir.
+    if (openPeriodIds.length) {
+      const { error: mErr } = await supabase.from('mappings')
+        .update({ is_active: false }).in('period_id', openPeriodIds).or(`assessor_id.eq.${id},target_id.eq.${id}`);
+      if (mErr) return { ok: false, error: 'Status diubah, tapi gagal memperbarui pemetaan: ' + mErr.message };
+    }
+    // Koordinator nonaktif → anggota timnya dilepas & kembali menjadi tanggung jawab SPV (keputusan 2026-11-09).
+    // Anggota yang masih punya koordinator lain (pengganti) tetap di bawah koordinator tsb.
+    const { data: released, error: cErr } = await supabase.from('coordinator_team_members')
+      .delete().eq('coordinator_id', id).select('employee_id');
+    if (cErr) return { ok: false, error: 'Status diubah, tapi gagal melepas anggota tim koordinator: ' + cErr.message };
+    releasedMembers = released?.length ?? 0;
+  } else if (openPeriodIds.length) {
     const { data: myMaps } = await supabase.from('mappings')
-      .select('id, assessor_id, target_id').or(`assessor_id.eq.${id},target_id.eq.${id}`);
+      .select('id, period_id, assessor_id, target_id').in('period_id', openPeriodIds).or(`assessor_id.eq.${id},target_id.eq.${id}`);
     const otherIds = [...new Set((myMaps ?? []).map((m) => (m.assessor_id === id ? m.target_id : m.assessor_id)))];
     const activeOthers = new Set<string>();
     if (otherIds.length) {
       const { data: act } = await supabase.from('employees').select('id').in('id', otherIds).eq('is_active', true);
       (act ?? []).forEach((e) => activeOthers.add(e.id));
     }
-    const toEnable = (myMaps ?? [])
-      .filter((m) => activeOthers.has(m.assessor_id === id ? m.target_id : m.assessor_id))
-      .map((m) => m.id);
+    // Pemetaan yang dulu dihapus lewat permohonan (disetujui HRD) jangan dihidupkan lagi.
+    const { data: removed, error: rErr } = await supabase.from('relation_correction_requests')
+      .select('period_id, assessor_id, target_id').in('period_id', openPeriodIds).eq('kind', 'remove').eq('status', 'approved')
+      .or(`assessor_id.eq.${id},target_id.eq.${id}`);
+    if (rErr) return { ok: false, error: 'Status diubah, tapi gagal membaca permohonan hapus pemetaan: ' + rErr.message };
+    const removedPairs = new Set((removed ?? []).map((r) => pairKey(r.period_id, r.assessor_id, r.target_id)));
+    const toEnable = mappingsToReactivate(myMaps ?? [], id, { openPeriodIds: new Set(openPeriodIds), activeOthers, removedPairs });
     if (toEnable.length) {
       const { error: mErr } = await supabase.from('mappings').update({ is_active: true }).in('id', toEnable);
       if (mErr) return { ok: false, error: 'Status diubah, tapi gagal memperbarui pemetaan: ' + mErr.message };
@@ -489,11 +506,14 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
   const { data: emp } = await supabase.from('employees').select('name').eq('id', id).maybeSingle();
   await logHrdAction({
     action: active ? 'employee.activate' : 'employee.deactivate', category: 'pegawai',
-    summary: `${active ? 'Mengaktifkan' : `Menonaktifkan (mengunci akun) per ${today}`} pegawai ${emp?.name ?? id} + ${active ? 'mengaktifkan' : 'menonaktifkan'} pemetaannya`,
-    targetType: 'employee', targetId: id, targetLabel: emp?.name ?? null, meta: { effective_date: today, active },
+    summary: `${active ? `Mengaktifkan per ${today}` : `Menonaktifkan (mengunci akun) per ${today}`} pegawai ${emp?.name ?? id} + ${active ? 'mengaktifkan' : 'menonaktifkan'} pemetaannya di periode yang belum berakhir`
+      + (releasedMembers ? ` + melepas ${releasedMembers} anggota tim koordinator (kembali ke SPV)` : ''),
+    targetType: 'employee', targetId: id, targetLabel: emp?.name ?? null,
+    meta: { effective_date: today, active, period_ids: openPeriodIds, released_coordinator_members: releasedMembers },
   });
   revalidate();
-  return { ok: true, msg: active ? 'Pegawai diaktifkan.' : 'Pegawai dinonaktifkan (akun dikunci).' };
+  const releasedMsg = releasedMembers ? ` ${releasedMembers} anggota tim koordinatornya kembali ke SPV masing-masing.` : '';
+  return { ok: true, msg: active ? 'Pegawai diaktifkan.' : `Pegawai dinonaktifkan (akun dikunci).${releasedMsg}` };
 }
 
 /**

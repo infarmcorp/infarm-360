@@ -167,14 +167,17 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 - 🔑⬜ **Pegawai nonaktif & daftar pegawai antar-halaman** (pemeriksaan 2026-11-09). Sudah diperbaiki di `dev`:
   hitungan "Terisi x/y · n belum" di Monitor tak lagi menghitung anggota tim yang sudah keluar; Monitor HRD tak
   menampilkan Direksi; tugas HRD "laporan belum difinalisasi" dihitung per pegawai aktif; chip "nonaktif" tampil di
-  Dashboard mode Semua Kuartal/Tahun. Menunggu keputusan pemilik:
-  - menonaktifkan/mengaktifkan kembali pegawai mengubah pemetaannya di **semua** periode, dan pengaktifan kembali ikut
-    menghidupkan pemetaan yang dulu dihapus lewat permohonan (penilai bisa mendapat tugas Wajib lagi);
-  - koordinator yang sudah keluar tetap tercatat memegang tim → SPV tak bisa meng-ACC anggota tersebut;
-  - Rencana Pengembangan bisa tertahan di atasan yang sudah keluar; rencana milik pegawai yang sudah keluar tak bisa dibuka;
-  - potongan telat Direksi tak terlihat di Flag Kepatuhan;
-  - jumlah pegawai Dashboard / Monitor / Laporan Kinerja Tim / Review & Finalisasi bisa berbeda untuk kuartal yang sama
-    (aturan "siapa termasuk kuartal ini" belum seragam); Email Rilis ikut terkirim ke pegawai yang sudah keluar.
+  Dashboard mode Semua Kuartal/Tahun. Keputusan pemilik (2026-11-09), juga sudah di `dev`:
+  - nonaktif/aktif kembali hanya mengubah pemetaan periode yang **belum berakhir** pada tanggal itu; aktif kembali tidak
+    menghidupkan pasangan yang dulu dihapus lewat permohonan;
+  - koordinator dinonaktifkan → anggota timnya kembali ke SPV (kecuali punya koordinator lain);
+  - Direksi tampil di Flag Kepatuhan bila punya penilaian wajib tertunda atau potongan −3.
+  - 🔑 koordinator yang **sudah** nonaktif sebelum perbaikan ini masih memegang tim — lepaskan sekali di database
+    (atau tetapkan pengganti di Manajemen Akses).
+  Diabaikan (pemilik): Rencana Pengembangan yang tertahan di atasan yang sudah keluar — fiturnya belum dipakai HRD.
+  Masih terbuka: jumlah pegawai Dashboard / Monitor / Laporan Kinerja Tim / Review & Finalisasi bisa berbeda untuk
+  kuartal yang sama (aturan "siapa termasuk kuartal ini" belum seragam); Email Rilis ikut terkirim ke pegawai yang
+  sudah keluar.
 - ⬜ **Gelombang 3: hapus tombol "Perbarui Laporan Final yang Berubah"** (Finalisasi Ulang Laporan Berubah) setelah
   jumlah laporan berlabel "berubah → N" = 0. Dengan kunci laporan Final, label itu tak akan muncul lagi; tombol
   sementara dipertahankan hanya untuk merapikan selisih lama (keputusan 2026-10-12).

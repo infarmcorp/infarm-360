@@ -147,6 +147,9 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   `laporan/[employeeId]` (jalur `asSpv` + `loadTeamReportForHrdSpv`). Jangan tinggalkan cabang `role==='hrd'`.
   Paritas yang sama berlaku ke jalur grant halaman.
 - Pegawai berkoordinator: ACC & input KPI oleh **koordinator**; SPV/HRD Mode-SPV hanya lihat status.
+  Koordinator dinonaktifkan → baris `coordinator_team_members`-nya dihapus (anggota kembali ke SPV; pemilik 2026-11-09).
+- Aktif/nonaktif pegawai (`setEmployeeActive`) hanya mengubah pemetaan periode yang **belum berakhir** per tanggal aksi;
+  aktif kembali tidak menghidupkan pasangan hasil permohonan hapus yang disetujui (`lib/employee-activation.ts`).
 - **ACC (`setSpvAcc`) lingkupnya ditegakkan server** lalu ditulis via service_role (RLS tak cukup: `hrd_can('laporan')`
   lolos untuk laporan siapa pun): tak ada yang meng-ACC laporannya sendiri (+ trigger 0049); SPV = `spv_team_members`;
   HRD posisi = sedivisi (bukan Direksi/eksternal), juga HRD tanpa bagian Laporan (paritas). Log ACC dicatat app.
@@ -189,7 +192,8 @@ Kode BR-xx = nomor aturan bisnis dari HRD (keputusan 2026-10-01).
 - Klasifikasi Dashboard dikunci ke satu kuartal lewat filter periode (KPI, 360°, Skor Akhir dari periode yang sama). Standar KPI (`kpi_standard`) dan
   semua dashboard = pelaporan, bukan ambang rumus.
 - Direksi = subjek 360° terbatas: tampil di Review & Ekspor (Skor Akhir = 360°); `.neq('role','direksi')` di
-  Dashboard/4-Box/KPI/kepatuhan/monitor/laporan-tim **sengaja dipertahankan**.
+  Dashboard/4-Box/KPI/monitor (termasuk Monitor HRD)/laporan-tim **sengaja dipertahankan**. **Kepatuhan menyertakan
+  Direksi** (pemilik 2026-11-09): potongan telat −3 Direksi sebagai penilai harus terlihat & bisa diubah HRD.
 - **Laporan Final terkunci** (keputusan 2026-10-12, `lib/final-lock.ts`): angka laporan Final tak boleh berubah
   kecuali HRD menekan **Buka Kembali (ke Draf)** dulu. Jalur satu pegawai → tolak (`finalLockError`; KPI per bulan
   lintas periode → `finalLockErrorForMonths`); proses massal (Hitung Ulang, `refreshLatePenalties`) → lewati pegawai

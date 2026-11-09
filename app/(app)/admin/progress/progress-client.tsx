@@ -242,7 +242,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                       <span className="font-mono">{r.mandatoryDone}/{r.mandatoryTotal} · {pct}%</span>
                     </div>
                     <div className="h-2 bg-neutral-tint rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-brand" style={{ width: `${pct}%` }} />
+                      <div className={`h-full rounded-full ${complete ? 'bg-brand' : 'bg-warn-ink'}`} style={{ width: `${pct}%` }} />
                     </div>
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {CHIP_ORDER.filter((k) => r.statusCounts[k] > 0).map((k) => (
@@ -267,7 +267,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                       <span className="font-mono">{by ? `${by.done}/${by.total} orang · ${byPct}%` : '—'}</span>
                     </div>
                     <div className="h-2 bg-neutral-tint rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-brand" style={{ width: `${byPct}%` }} />
+                      <div className={`h-full rounded-full ${by && by.total > 0 && by.done === by.total ? 'bg-brand' : 'bg-warn-ink'}`} style={{ width: `${byPct}%` }} />
                     </div>
                   </div>
                 </div>

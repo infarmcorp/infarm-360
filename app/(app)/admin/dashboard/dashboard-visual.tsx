@@ -995,7 +995,8 @@ function Aspect360Heatmap({ deptAspect, aspects }: { deptAspect: DeptAspectRow[]
 }
 
 /**
- * Heatmap Divisi × Indikator: kolom mengikuti indikator aktif di Kelola Pertanyaan, dikelompokkan per aspek.
+ * Heatmap Divisi × Indikator: kolom mengikuti indikator aktif di Kelola Pertanyaan (+ indikator nonaktif yang sudah
+ * punya nilai), dikelompokkan per aspek.
  * Jumlah indikator bisa banyak → tabel boleh digeser ke samping, kolom Divisi tetap menempel di kiri.
  */
 function DeptIndicatorHeatmap({ rows, cols }: { rows: DeptIndicatorRow[]; cols: DeptIndicatorCol[] }) {
@@ -1017,7 +1018,7 @@ function DeptIndicatorHeatmap({ rows, cols }: { rows: DeptIndicatorRow[]; cols: 
       <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
         <div>
           <CardTitle icon={Grid3X3}>Capaian 360° / Divisi × Indikator</CardTitle>
-          <p className="text-xs text-ink-soft mt-1">Skor tiap indikator terbobot (skala 100) per divisi, mengikuti indikator aktif di Kelola Pertanyaan</p>
+          <p className="text-xs text-ink-soft mt-1">Skor tiap indikator terbobot (skala 100) per divisi, mengikuti indikator aktif di Kelola Pertanyaan (indikator yang sudah dinonaktifkan tetap tampil bila sudah dinilai)</p>
         </div>
         <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
           <span>Rendah</span>

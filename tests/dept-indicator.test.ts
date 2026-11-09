@@ -29,10 +29,16 @@ const period = (scoreRows: { assessment_id: string; indicator_id: string; rating
   deptIndicatorForPeriod({ aspects, indicators, scoreRows, asmtInfo, relByPair, empDept, scoreOfG });
 
 describe('Heatmap Divisi × Indikator', () => {
-  it('kolom = indikator aktif saja, urut aspek lalu indikator (sesuai Kelola Pertanyaan)', () => {
+  it('kolom = indikator aktif (nonaktif tanpa nilai disembunyikan), urut aspek lalu indikator (sesuai Kelola Pertanyaan)', () => {
     const { cols } = deptIndicatorMatrix([period([])], []);
     expect(cols.map((c) => c.text)).toEqual(['Inisiatif', 'Tuntas', 'Terbuka']);
     expect(cols.map((c) => c.aspect)).toEqual(['Berusaha', 'Berusaha', 'Jujur']);
+  });
+
+  it('dua aspek bernomor urut sama tetap berkelompok (judul aspek tidak terpecah)', () => {
+    const sameOrder = [{ id: 'a2', name: 'Jujur', order_idx: 0 }, { id: 'a1', name: 'Berusaha', order_idx: 0 }];
+    const p = deptIndicatorForPeriod({ aspects: sameOrder, indicators, scoreRows: [], asmtInfo, relByPair, empDept, scoreOfG: avgNonSelf });
+    expect(deptIndicatorMatrix([p], []).cols.map((c) => c.aspect)).toEqual(['Berusaha', 'Berusaha', 'Jujur']);
   });
 
   it('rating ×20 per kelas penilai, per divisi target', () => {
@@ -49,17 +55,22 @@ describe('Heatmap Divisi × Indikator', () => {
     expect(rows.find((r) => r.dept === 'Marketing')?.cells['Berusaha|Inisiatif']).toBe(60);
   });
 
-  it('penilaian diri, rating kosong, dan indikator nonaktif tidak masuk skor', () => {
+  it('penilaian diri dan rating kosong tidak masuk skor', () => {
     const p = period([
       { assessment_id: 'self', indicator_id: 'i1', rating: 5 },
       { assessment_id: 's2', indicator_id: 'i1', rating: null },
-      { assessment_id: 's2', indicator_id: 'i4', rating: 5 },
       { assessment_id: 's2', indicator_id: 'i2', rating: 2 },
     ]);
-    const { cols, rows } = deptIndicatorMatrix([p], ['Sales']);
-    expect(cols.some((c) => c.text === 'Dinonaktifkan HRD')).toBe(false);
+    const { rows } = deptIndicatorMatrix([p], ['Sales']);
     expect(rows[0].cells['Berusaha|Inisiatif']).toBeNull();
     expect(rows[0].cells['Berusaha|Tuntas']).toBe(40);
+  });
+
+  it('indikator nonaktif yang punya nilai tetap tampil & dihitung (sama dengan Skor 360° dan Divisi × Aspek)', () => {
+    const p = period([{ assessment_id: 's2', indicator_id: 'i4', rating: 5 }]);
+    const { cols, rows } = deptIndicatorMatrix([p], ['Sales']);
+    expect(cols.map((c) => c.text)).toEqual(['Inisiatif', 'Tuntas', 'Dinonaktifkan HRD', 'Terbuka']);
+    expect(rows[0].cells['Berusaha|Dinonaktifkan HRD']).toBe(100);
   });
 
   it('divisi tanpa skor sama sekali tidak ditampilkan', () => {

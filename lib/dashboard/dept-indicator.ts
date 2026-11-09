@@ -2,9 +2,11 @@ import { classOf, type Groups360 } from '@/lib/score360';
 import type { RelationKind } from '@/lib/database.types';
 
 /**
- * Heatmap Dashboard "Divisi × Indikator". Kolom mengikuti Kelola Pertanyaan: hanya indikator AKTIF pada periode itu,
- * urut aspek → indikator. Metodologi SAMA dengan Divisi × Aspek (rating ×20, per kelas penilai, `scoreOfG` pemanggil;
- * Self dikecualikan), hanya granularitasnya indikator. Murni — pemanggil yang membaca data & menyiapkan bobot.
+ * Heatmap Dashboard "Divisi × Indikator". Kolom mengikuti Kelola Pertanyaan: indikator AKTIF pada periode itu, ditambah
+ * indikator yang sudah dinonaktifkan tetapi punya nilai terkirim (Skor 360° resmi & Divisi × Aspek tetap menghitungnya,
+ * jadi kolomnya tak boleh hilang diam-diam). Urut aspek → indikator. Metodologi SAMA dengan Divisi × Aspek (rating ×20,
+ * per kelas penilai, `scoreOfG` pemanggil; Self dikecualikan), hanya granularitasnya indikator. Murni — pemanggil yang
+ * membaca data & menyiapkan bobot.
  */
 export type DeptIndicatorCol = { key: string; text: string; aspect: string };
 export type DeptIndicatorRow = { dept: string; cells: Record<string, number | null> };
@@ -27,10 +29,13 @@ export function deptIndicatorForPeriod({ aspects, indicators, scoreRows, asmtInf
 }): DeptIndicatorPeriod {
   const aspectById = new Map(aspects.map((a) => [a.id, a]));
   const colById = new Map<string, DeptIndicatorPeriod['cols'][number]>();
+  const activeKeys = new Set<string>();
   for (const i of indicators) {
     const a = aspectById.get(i.aspect_id);
-    if (!a || !i.is_active) continue;
-    colById.set(i.id, { key: `${a.name}|${i.text}`, text: i.text, aspect: a.name, aspectOrder: a.order_idx ?? 0, order: i.order_idx ?? 0 });
+    if (!a) continue;
+    const key = `${a.name}|${i.text}`;
+    if (i.is_active) activeKeys.add(key);
+    colById.set(i.id, { key, text: i.text, aspect: a.name, aspectOrder: a.order_idx ?? 0, order: i.order_idx ?? 0 });
   }
 
   const groups = new Map<string, Map<string, Groups360>>();
@@ -57,7 +62,9 @@ export function deptIndicatorForPeriod({ aspects, indicators, scoreRows, asmtInf
     }
     scores.set(dept, out);
   }
-  return { cols: [...colById.values()], scores };
+  const scoredKeys = new Set([...scores.values()].flatMap((m) => [...m.keys()]));
+  const cols = [...colById.values()].filter((c) => activeKeys.has(c.key) || scoredKeys.has(c.key));
+  return { cols, scores };
 }
 
 /** Gabung hasil per periode → kolom & baris tabel. Satu periode = apa adanya; beberapa = rata-rata antar-kuartal per nama indikator. */
@@ -65,7 +72,8 @@ export function deptIndicatorMatrix(periods: DeptIndicatorPeriod[], depts: strin
   const firstByKey = new Map<string, DeptIndicatorPeriod['cols'][number]>();
   for (const p of periods) for (const c of p.cols) if (!firstByKey.has(c.key)) firstByKey.set(c.key, c);
   const cols = [...firstByKey.values()]
-    .sort((a, b) => a.aspectOrder - b.aspectOrder || a.order - b.order)
+    // Nama aspek sebagai pemecah seri: dua aspek bernomor urut sama tetap berkelompok (judul aspek tak terpecah).
+    .sort((a, b) => a.aspectOrder - b.aspectOrder || a.aspect.localeCompare(b.aspect) || a.order - b.order)
     .map(({ key, text, aspect }) => ({ key, text, aspect }));
   const rows = depts
     .map((dept) => ({

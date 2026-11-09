@@ -14,6 +14,9 @@ import { AspectSummaryEditor } from '../aspect-summary-editor';
 import { AspectSummaryView } from '../aspect-summary-view';
 import { RawFeedback } from '../raw-feedback';
 import { saveQualSummaries } from '@/app/(app)/admin/laporan/actions';
+import { AlertTriangle, ArrowLeft, Info } from 'lucide-react';
+import { CARD } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 // Label ringkasan pertanyaan kualitatif (dipakai editor & tampilan read-only).
 const QUAL_TITLE = 'Ringkasan Umpan Balik Kualitatif 360°';
@@ -60,8 +63,7 @@ export default async function LaporanDetailPage({
   // posisi-asli tak lagi mendapat tampilan HRD penuh (sisa temuan no. 11, Gelombang 3).
   const route = reportDetailRoute(me, hrdModeEarly, !!reviewGrant);
   if (route === 'denied') {
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk SPV / HRD / Direksi.</p>
-      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><p className={MSG}>Halaman ini untuk SPV / HRD / Direksi.</p></Shell>;
   }
 
   // Jalur "seperti SPV": SPV biasa ATAU HRD-posisi di mode posisi-asli (dibatasi setara SPV, tanpa raw 360°).
@@ -76,7 +78,7 @@ export default async function LaporanDetailPage({
   const ap = (periodParam ? allPeriods.find((p) => p.id === periodParam) : undefined)
     ?? allPeriods.find((p) => p.status === 'active')
     ?? null;
-  if (!ap) return <Shell><p className="text-sm text-ink-soft">Belum ada periode penilaian.</p></Shell>;
+  if (!ap) return <Shell><p className={MSG}>Belum ada periode penilaian.</p></Shell>;
   // Periode lampau → seluruh jalur tulis (finalisasi/rilis/ringkasan) ditutup di UI.
   const periodActive = ap.status === 'active';
 
@@ -100,15 +102,15 @@ export default async function LaporanDetailPage({
     const inScope = !!tgt && employeeInScopes(reviewGrant.scopes, me?.dept ?? '', user.id, { id: employeeId, dept: tgt.dept ?? null }, teamIds);
     if (!inScope) {
       return <Shell>
-        <Link href="/admin/laporan" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Review & Finalisasi</Link>
-        <p className="text-sm text-ink-soft mt-3">Pegawai ini di luar lingkup akses yang diberikan kepada Anda.</p>
+        <BackLink href="/admin/laporan">Review & Finalisasi</BackLink>
+        <p className={MSG}>Pegawai ini di luar lingkup akses yang diberikan kepada Anda.</p>
       </Shell>;
     }
     const loaded = await loadReport(admin, employeeId, ap);
     if (!loaded) {
       return <Shell>
-        <Link href="/admin/laporan" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Review & Finalisasi</Link>
-        <p className="text-sm text-ink-soft mt-3">Data tidak ditemukan.</p>
+        <BackLink href="/admin/laporan">Review & Finalisasi</BackLink>
+        <p className={MSG}>Data tidak ditemukan.</p>
       </Shell>;
     }
     // Laporan DIRI SENDIRI (mis. lingkup 'self'/'own_division'/'all') → tanpa umpan balik mentah;
@@ -149,16 +151,20 @@ export default async function LaporanDetailPage({
 
     return (
       <Shell>
-        <Link href="/admin/laporan" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Review & Finalisasi</Link>
-        <div className="mt-2">
+        <BackLink href="/admin/laporan">Review & Finalisasi</BackLink>
+        <div>
           {!canEditReport && (
-            <div className="mb-3 text-[11px] text-ink-soft bg-neutral-tint border border-line rounded-control px-3 py-2 no-print">
-              Tampilan <strong>lihat-saja</strong> — akses dari HRD (lingkup terbatas). Perubahan laporan hanya oleh yang berwenang.
+            <div className="mb-4 flex gap-2 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed bg-neutral-tint text-ink-soft no-print">
+              <Info className="w-4 h-4 shrink-0 mt-px" aria-hidden />
+              <span>
+              Tampilan <strong>lihat-saja</strong> — akses dari HRD (lingkup terbatas). Perubahan laporan hanya oleh yang berwenang.</span>
             </div>
           )}
           {canEditReport && !canFinalizeReport && (
-            <div className="mb-3 text-[11px] text-warn-ink bg-warn-tint border border-warn-ink/25 rounded-control px-3 py-2 no-print">
-              Akses <strong>meringkas</strong> — Anda dapat menulis <strong>Ringkasan Aspek</strong>. Finalisasi &amp; kalibrasi skor tetap wewenang HRD.
+            <div className="mb-4 flex gap-2 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed bg-warn-tint text-warn-ink no-print">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-px" aria-hidden />
+              <span>
+              Akses <strong>meringkas</strong> — Anda dapat menulis <strong>Ringkasan Aspek</strong>. Finalisasi &amp; kalibrasi skor tetap wewenang HRD.</span>
             </div>
           )}
           {canFinalizeReport && (
@@ -211,15 +217,15 @@ export default async function LaporanDetailPage({
     if (!data) {
       return (
         <Shell>
-          <Link href="/laporan-tim" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Laporan Kinerja Tim</Link>
-          <p className="text-sm text-ink-soft mt-3">Laporan belum dirilis HRD untuk ditinjau.</p>
+          <BackLink href="/laporan-tim">Laporan Kinerja Tim</BackLink>
+          <p className={MSG}>Laporan belum dirilis HRD untuk ditinjau.</p>
         </Shell>
       );
     }
     return (
       <Shell>
-        <Link href="/laporan-tim" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Laporan Kinerja Tim</Link>
-        <div className="mt-2">
+        <BackLink href="/laporan-tim">Laporan Kinerja Tim</BackLink>
+        <div>
           <ReportDoc data={data} anonymize hideAssessorComments />
           {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
           {data.has360 && <AspectSummaryView summaries={data.qualSummaries} title={QUAL_TITLE} intro={QUAL_INTRO} />}
@@ -234,8 +240,8 @@ export default async function LaporanDetailPage({
   if (role === 'direksi') {
     return (
       <Shell>
-        <Link href="/laporan-tim" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Laporan Kinerja Tim</Link>
-        <p className="text-sm text-ink-soft mt-3">Direksi hanya dapat meninjau laporan Supervisor (SPV).</p>
+        <BackLink href="/laporan-tim">Laporan Kinerja Tim</BackLink>
+        <p className={MSG}>Direksi hanya dapat meninjau laporan Supervisor (SPV).</p>
       </Shell>
     );
   }
@@ -248,8 +254,8 @@ export default async function LaporanDetailPage({
     if (!data) {
       return (
         <Shell>
-          <Link href="/laporan-tim" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Laporan Kinerja Tim</Link>
-          <p className="text-sm text-ink-soft mt-3">
+          <BackLink href="/laporan-tim">Laporan Kinerja Tim</BackLink>
+          <p className={MSG}>
             Laporan belum dirilis HRD untuk ditinjau, atau di luar lingkup tim koordinasi Anda.
           </p>
         </Shell>
@@ -257,8 +263,8 @@ export default async function LaporanDetailPage({
     }
     return (
       <Shell>
-        <Link href="/laporan-tim" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Laporan Kinerja Tim</Link>
-        <div className="mt-2">
+        <BackLink href="/laporan-tim">Laporan Kinerja Tim</BackLink>
+        <div>
           <ReportDoc data={data} anonymize hideAssessorComments />
           {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
           {data.has360 && <AspectSummaryView summaries={data.qualSummaries} title={QUAL_TITLE} intro={QUAL_INTRO} />}
@@ -272,8 +278,8 @@ export default async function LaporanDetailPage({
   // Periode ikut dibawa agar kembali ke kuartal yang sedang ditinjau, bukan lompat ke periode aktif.
   const backQS = periodActive ? '' : `?period=${ap.id}`;
   const back = asSpv
-    ? { href: `/laporan-tim${backQS}`, label: '← Laporan Kinerja Tim' }
-    : { href: '/admin/laporan', label: '← Daftar Laporan' };
+    ? { href: `/laporan-tim${backQS}`, label: 'Laporan Kinerja Tim' }
+    : { href: '/admin/laporan', label: 'Daftar Laporan' };
 
   // Jalur "seperti SPV" (SPV biasa + HRD mode-SPV): detail agregat (radar/aspek + ringkasan
   // aspek HRD) + umpan balik mentah ANONIM (tanpa L3 bernama; laporan diri sendiri tanpa raw).
@@ -285,8 +291,8 @@ export default async function LaporanDetailPage({
     if (!data) {
       return (
         <Shell>
-          <Link href={back.href} className="text-xs text-ink-faint hover:text-ink-soft no-print">{back.label}</Link>
-          <p className="text-sm text-ink-soft mt-3">
+          <BackLink href={back.href}>{back.label}</BackLink>
+          <p className={MSG}>
             Laporan belum dirilis HRD untuk ditinjau, atau di luar lingkup tim Anda.
           </p>
         </Shell>
@@ -294,8 +300,8 @@ export default async function LaporanDetailPage({
     }
     return (
       <Shell>
-        <Link href={back.href} className="text-xs text-ink-faint hover:text-ink-soft no-print">{back.label}</Link>
-        <div className="mt-2">
+        <BackLink href={back.href}>{back.label}</BackLink>
+        <div>
           <ReportDoc data={data} anonymize hideAssessorComments />
           {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
           {data.has360 && <AspectSummaryView summaries={data.qualSummaries} title={QUAL_TITLE} intro={QUAL_INTRO} />}
@@ -309,9 +315,8 @@ export default async function LaporanDetailPage({
   // Sisa di luar Mode Admin = pegawai ber-izin HRD di mode posisi-asli (bukan SPV/Koordinator, tanpa grant
   // Review) → tak ada tampilan untuknya di sini; tampilan HRD penuh hanya di Mode Admin.
   if (route === 'need-admin') {
-    return <Shell><p className="text-sm text-ink-soft">Detail laporan pegawai lain hanya tersedia di <strong>Mode Admin</strong>.
-      Pindah ke Mode Admin lewat tombol di sidebar, lalu buka lagi dari Review &amp; Finalisasi.</p>
-      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><p className={MSG}>Detail laporan pegawai lain hanya tersedia di <strong>Mode Admin</strong>.
+      Pindah ke Mode Admin lewat tombol di sidebar, lalu buka lagi dari Review &amp; Finalisasi.</p></Shell>;
   }
 
   // Jalur HRD (mode admin): laporan penuh (tunduk RLS; raw 360° untuk HRD anonim).
@@ -327,8 +332,7 @@ export default async function LaporanDetailPage({
       : withoutNamedFeedback(loadedFull))
     : null;
   if (!data) {
-    return <Shell><p className="text-sm text-ink-soft">Data tidak ditemukan atau di luar lingkup akses Anda.</p>
-      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><p className={MSG}>Data tidak ditemukan atau di luar lingkup akses Anda.</p></Shell>;
   }
 
   // Deteksi "Skor 360° basi": skor usang bila ada perubahan SETELAH hitung ulang terakhir —
@@ -386,12 +390,12 @@ export default async function LaporanDetailPage({
   // feedback anonim). Direksi tak sampai di sini (hanya laporan SPV L2, diblok di atas).
   return (
     <Shell>
-      <Link href={back.href} className="text-xs text-ink-faint hover:text-ink-soft no-print">{back.label}</Link>
-      <div className="mt-2">
+      <BackLink href={back.href}>{back.label}</BackLink>
+      <div>
           {/* Peringatan skor 360° basi: penilaian berubah setelah hitung ulang terakhir. */}
           {isAdmin && score360Stale && (
-            <div className="mb-3 flex items-start gap-2 bg-warn-tint border border-warn-ink/30 rounded-panel p-3 text-[12px] text-warn-ink no-print">
-              <span aria-hidden>⚠️</span>
+            <div className="mb-4 flex items-start gap-2 bg-warn-tint rounded-xl px-3.5 py-2.5 text-xs leading-relaxed text-warn-ink no-print">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-px" aria-hidden />
               <div>
                 <strong>Skor 360° perlu dihitung ulang.</strong> Penyebab:
                 <ul className="list-disc pl-5 mt-1 mb-1.5 space-y-0.5">
@@ -405,7 +409,7 @@ export default async function LaporanDetailPage({
           )}
           {/* Penanda periode lampau — menjelaskan hilangnya panel aksi & editor. */}
           {!periodActive && (
-            <p className="mb-3 rounded-control border border-warn-ink/25 bg-warn-tint px-3 py-2 text-[12px] text-warn-ink no-print">
+            <p className="mb-4 rounded-xl bg-warn-tint px-3.5 py-2.5 text-xs text-warn-ink no-print">
               Laporan periode <strong>{ap.label}</strong> (sudah tidak aktif) — ditampilkan untuk ditinjau, tanpa perubahan.
             </p>
           )}
@@ -451,10 +455,23 @@ export default async function LaporanDetailPage({
   );
 }
 
+// Pesan status (belum dirilis / di luar lingkup / tak ditemukan) = kartu putih Design System Infarm.
+const MSG = `${CARD} text-[13px] text-ink-soft`;
+
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
-      <div className="bg-surface border border-line rounded-panel p-5">{children}</div>
+    // Kanvas Design System Infarm; saat cetak latar putih tanpa padding (globals.css @media print).
+    <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7 print:bg-white print:p-0`}>
+      <div>{children}</div>
     </main>
+  );
+}
+
+/** Tautan kembali ke daftar asal (tak ikut dicetak). */
+function BackLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className="no-print mb-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-soft hover:text-brand">
+      <ArrowLeft className="w-4 h-4" aria-hidden /> {children}
+    </Link>
   );
 }

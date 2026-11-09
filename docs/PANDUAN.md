@@ -49,8 +49,7 @@ Setelah perbaikan selesai, halaman ini otomatis kembali ke aplikasi.
 
 ### 1.3 Akun Saya — ganti sandi
 Tautan **Akun Saya** ada di bagian bawah sidebar, dekat **Keluar**. Halaman ini menampilkan nama, email login,
-divisi, peran, dan kode pegawai, serta tombol unduh **Panduan Pengguna** (PDF sesuai peran; tanda "BARU" bila
-ada versi baru).
+divisi, peran, dan kode pegawai.
 1. Isi **Sandi Saat Ini**, **Sandi Baru** (minimal 8 karakter), dan **Ulangi Sandi Baru**.
 2. Klik **Simpan Sandi Baru**.
 
@@ -84,6 +83,9 @@ kuning saat tinggal 7 hari atau kurang, merah saat "Berakhir hari ini" atau "Lew
 | **HRD Admin** / **Mode SPV** atau **Mode Pegawai** | Berganti mode (lihat §5.0) | Hanya untuk pemegang izin HRD |
 | Item menu | Pindah halaman | Sesuai peran dan mode |
 | **Akun Saya** · **Keluar** | Halaman akun · keluar dari aplikasi | Selalu, di bagian bawah |
+| Tombol **☰** (komputer) | Menutup sidebar agar halaman lebih lebar; tekan lagi untuk membukanya. Pilihan diingat di browser ini | Di bilah atas, kiri |
+| **▾** di samping nama halaman | Pindah ke halaman lain dalam grup yang sama tanpa membuka sidebar; **Lihat semua menu** membuka sidebar | Saat sidebar ditutup |
+| Pil **periode**, **Tugas**, dan mode | Menampilkan periode & tenggat, daftar tugas, dan tombol ganti mode | Saat sidebar ditutup, di kanan bilah atas |
 | Tombol menu (HP) | Buka/tutup sidebar | Hanya di layar kecil |
 
 ---
@@ -434,7 +436,11 @@ Mengelola akun dan data pegawai. Pemberian izin dan akses **tidak** di sini, tet
   Mereka tidak punya KPI, Skor Akhir, atau laporan, tidak muncul di dashboard/monitor/laporan, dan tidak bisa
   dipilih sebagai "Yang Dinilai". Nilai mereka tetap masuk Skor 360° lewat bobot Lintas Divisi. Berlabel **"Eksternal"**.
 - **Nonaktifkan**: akun terkunci (tak bisa login), riwayat tetap ada, dan **pemetaannya ikut nonaktif** (keluar
-  dari siklus). **Aktifkan** mengembalikan semuanya. Di halaman pelaporan (Dashboard, Rekap, Monitor, Laporan
+  dari siklus) — hanya di periode yang **belum berakhir** pada tanggal itu; pemetaan kuartal yang sudah lewat tidak
+  diubah. Bila dia **koordinator**, anggota timnya otomatis kembali ke SPV masing-masing (kecuali yang masih punya
+  koordinator lain). **Aktifkan** menghidupkan lagi pemetaannya, juga hanya di periode yang belum berakhir pada tanggal
+  diaktifkan, dan tidak menghidupkan pasangan yang dulu dihapus lewat permohonan. Tim koordinator **tidak** kembali
+  otomatis — tetapkan ulang di Manajemen Akses bila perlu. Di halaman pelaporan (Dashboard, Rekap, Monitor, Laporan
   Tim, Review & Finalisasi) pegawai nonaktif yang punya data periode **tetap tampil** dengan penanda "nonaktif",
   agar hasilnya tidak hilang dan masih bisa difinalisasi. Di halaman siklus (Kepatuhan, Progress, Penilaian,
   Suksesi) mereka disembunyikan, dan tidak menerima undangan/pengingat.
@@ -672,8 +678,7 @@ dan dashboard sub-aspek ikut.
   yang sudah menilai pegawai ini, mis. `7/10 orang · 70%`).
 - Filter **Divisi** dan **Status** berupa centang multi-pilih ("Pilih semua"/"Bersihkan"; kosong = semua) + cari nama.
 - **Paksa Selesai**: menandai satu penilaian selesai secara manual. Tidak mengubah skor dan tidak dihitung terlambat.
-- **Undangan** memuat peran, email login, **sandi baru**, tombol login, daftar yang belum dinilai, panduan ringkas,
-  dan lampiran PDF panduan sesuai peran (bila filenya belum ada, email tetap terkirim tanpa lampiran).
+- **Undangan** memuat peran, email login, **sandi baru**, tombol login, daftar yang belum dinilai, dan panduan ringkas.
   ⚠️ Mengirim undangan **menyetel ulang sandi** orang itu. Saat ini hanya alamat `@gmail.com` yang dikirimi;
   alamat lain dilewati tanpa mengubah sandinya.
 - **Kirim Pengingat** memuat daftar yang belum dinilai + tombol **Buka Portal**. Hanya dikirim ke penilai yang
@@ -953,11 +958,13 @@ divisi). Ada mode **"Semua Kuartal (tahun X)"** dan **"Semua kuartal (semua tahu
 (Skor Akhir = rerata Skor Akhir tiap kuartal). Laporan Final memakai angka tersimpan. Pegawai **"KPI belum
 terbaca"** tidak dihitung dalam rerata, sebaran, dan peringkat KPI (jumlahnya dicatat). Empat tab:
 - **Kompilasi Kinerja Organisasi** — statistik talenta, Distribusi Kategori Kinerja, Rencana Tindak Lanjut,
-  Skor KPI per Divisi, Evaluasi Budaya 360° per sub-aspek, **Matriks 4-Box**, scatter KPI × 360°, distribusi
-  per kuartal, teratas/terbawah.
+  Skor KPI per Divisi, Evaluasi Budaya 360° per sub-aspek, **Matriks 4-Box** (satu kartu: grafik sebaran KPI × 360°
+  di tengah, nama pegawai per kelas di kiri & kanan sesuai kuadrannya), distribusi per kuartal, 10 teratas & 10 terbawah
+  yang terlihat sekaligus (warna angka = kategori skor; keterangan ada di bawah daftar).
 - **Analisis Hasil KPI** — rerata KPI, KPI tertinggi & terendah (dengan nama), **% KPI Di Atas Standar (≥N)**,
   KPI per divisi, peta warna capaian KPI per divisi × bulan, sebaran kategori KPI, tren KPI bulanan, peringkat.
-- **Analisis 360 Feedback** — rerata 360°, tren 360° per kuartal, sub-aspek budaya, peringkat.
+- **Analisis 360 Feedback** — rerata 360°, peta warna divisi × aspek, peta warna **divisi × indikator** (kolomnya
+  mengikuti indikator aktif di Kelola Pertanyaan), tren 360° per kuartal, sub-aspek budaya, peringkat.
 - **Tabel Hasil Seluruh Pegawai** — 10 baris per halaman, cari nama/divisi, filter **A/B/C Player** (termasuk
   "HRD Review"). Pegawai nonaktif yang masih tampil berpenanda "nonaktif".
 
@@ -970,7 +977,8 @@ terbaca"** tidak dihitung dalam rerata, sebaran, dan peringkat KPI (jumlahnya di
 - Keduanya kosong → tidak diklasifikasi. KPI dan 360° selalu diambil dari periode yang sama.
 - **Kategori kinerja**: ≥ 90 Melampaui Ekspektasi · 80–89,99 Memenuhi · 70–79,99 Perlu Peningkatan · < 70 Di Bawah.
 - Matriks 9-Box tidak lagi ditampilkan.
-- Direksi tidak masuk Dashboard, 4-Box, KPI, kepatuhan, dan monitor.
+- Direksi tidak masuk Dashboard, 4-Box, KPI, dan monitor. Di **Flag Kepatuhan** Direksi tampil bila punya penilaian
+  wajib yang belum dikirim atau kena potongan −3 (dan bisa diubah/dikecualikan HRD seperti pegawai lain).
 
 ### 5.12 Struktur Organisasi
 Tampilan baca-saja struktur saat ini, otomatis mengikuti Kelola Pegawai dan Manajemen Akses. Pilihan
@@ -1069,7 +1077,8 @@ flowchart TD
   maupun persetujuan. Setelah rencana SPV **Disepakati**, Direksi mencatat **Sesi 1-on-1** di halaman rencananya
   (**Catat Sesi 1-on-1**: tanggal, catatan, status umum, kemajuan per prioritas).
 - Direksi **boleh dinilai** 360°. Hasilnya tampil di Review & Finalisasi dan Ekspor HRD dengan Skor Akhir =
-  Skor 360° (Direksi tidak punya KPI). Direksi tidak masuk Dashboard, 4-Box, KPI, kepatuhan, dan monitor.
+  Skor 360° (Direksi tidak punya KPI). Direksi tidak masuk Dashboard, 4-Box, KPI, dan monitor; di Flag Kepatuhan
+  Direksi tampil bila ada penilaian wajib yang tertunda atau potongan −3.
 - Direksi tidak punya Monitor Kinerja atau Rekapitulasi Kuartal (kecuali diberi akses), dan tidak melihat
   siapa menilai siapa.
 
@@ -1235,8 +1244,9 @@ flowchart TD
    hasil kuartal ingin keluar. Laporan pegawai nonaktif tetap bisa difinalisasi, jadi boleh juga nonaktifkan dulu.
 2. **Manajemen Akses → Seorang pegawai**: cabut **HRD Admin**, **Koordinator** (timnya ikut kosong), dan semua
    akses halaman.
-3. Bila dia atasan/koordinator orang lain: pindahkan bawahannya ke pengganti **sebelum** dinonaktifkan.
-4. **Kelola Pegawai → Nonaktifkan**: akun terkunci, pemetaannya ikut nonaktif, riwayat tetap.
+3. Bila dia atasan/koordinator orang lain: pindahkan bawahannya ke pengganti **sebelum** dinonaktifkan. (Koordinator
+   tanpa pengganti: anggotanya otomatis kembali ke SPV saat dinonaktifkan.)
+4. **Kelola Pegawai → Nonaktifkan**: akun terkunci, pemetaannya di periode berjalan ikut nonaktif, riwayat tetap.
 5. Isi **Tanggal Keluar**.
 6. (Opsional) Pasangan di mana dia **penilai** dan belum terisi: hapus (bila Belum Mulai/Draft) atau **Paksa
    Selesai** di Progress 360 agar kelengkapan target tidak macet.

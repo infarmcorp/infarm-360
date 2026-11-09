@@ -44,6 +44,8 @@ const FINAL = { data: { status: 'finalized' } };
 const plan = (over: Record<string, unknown> = {}) => ({ data: { id: PLAN, employee_id: EMP, source_period_id: P, status: 'draft', ...over } });
 const TEAM = { spv_team_members: [{ data: [{ spv_id: SPV, employee_id: EMP }, { spv_id: SPV, employee_id: COORD }] }],
   coordinator_team_members: [{ data: [{ coordinator_id: COORD, employee_id: EMP }] }] };
+/** Daftar pegawai AKTIF yang dibaca penentu atasan (atasan nonaktif dilewati). */
+const ACTIVE = { data: [{ id: EMP }, { id: COORD }, { id: SPV }, { id: HRD }] };
 const updates = (c: MockClient) => c.calls.filter((x) => x.table === 'development_plans' && x.op === 'update');
 
 beforeEach(() => { vi.clearAllMocks(); mode = 'spv'; });
@@ -126,7 +128,7 @@ describe('decideAsSupervisor', () => {
   const C = { confirmation: 'Sesuai pengamatan', context: '', support: 'Coaching dua mingguan', hope: '' };
   const base = (status = 'waiting_supervisor') => ({
     development_plans: [plan({ status }), { data: [{ id: PLAN }] }],
-    employees: [{ data: { id: EMP, role: 'employee', name: 'Pegawai' } }],
+    employees: [{ data: { id: EMP, role: 'employee', name: 'Pegawai', is_active: true } }, ACTIVE],
     ...TEAM, periods: [OPEN], final_reports: [FINAL],
   });
 
@@ -165,12 +167,29 @@ describe('decideAsSupervisor', () => {
     adminWith(base('draft'));
     expect((await decideAsSupervisor(PLAN, 'approve', C, '')).ok).toBe(false);
   });
+
+  it('koordinator NONAKTIF dilewati → SPV menjadi atasan dan bisa menyetujui', async () => {
+    asUser(SPV, { role: 'spv', name: 'SPV A' });
+    const a = adminWith({ ...base(), employees: [
+      { data: { id: EMP, role: 'employee', name: 'Pegawai', is_active: true } },
+      { data: [{ id: EMP }, { id: SPV }, { id: HRD }] }, // COORD sudah nonaktif
+    ] });
+    expect(await decideAsSupervisor(PLAN, 'approve', C, '')).toEqual({ ok: true });
+    expect(updates(a)[0].payload).toMatchObject({ status: 'waiting_hrd', supervisor_id: SPV });
+  });
+
+  it('rencana milik pegawai NONAKTIF hanya bisa dilihat → aksi ditolak', async () => {
+    asUser(COORD, { role: 'employee', is_coordinator: true });
+    const a = adminWith({ ...base(), employees: [{ data: { id: EMP, role: 'employee', name: 'Pegawai', is_active: false } }] });
+    expect(await decideAsSupervisor(PLAN, 'approve', C, '')).toEqual({ ok: false, error: expect.stringMatching(/nonaktif/) });
+    expect(updates(a)).toHaveLength(0);
+  });
 });
 
 describe('approveAsHrd / setPlanWindow', () => {
   const hrdBase = (status: string) => ({
     development_plans: [plan({ status }), { data: [{ id: PLAN }] }],
-    employees: [{ data: { id: EMP, role: 'employee', name: 'Pegawai' } }],
+    employees: [{ data: { id: EMP, role: 'employee', name: 'Pegawai', is_active: true } }, ACTIVE],
     periods: [OPEN], final_reports: [FINAL],
   });
 
@@ -202,7 +221,7 @@ describe('approveAsHrd / setPlanWindow', () => {
     mode = 'admin';
     asUser(HRD, { role: 'hrd', name: 'HRD Satu' });
     const a = adminWith({ ...hrdBase('waiting_hrd'), development_plans: [plan({ status: 'waiting_hrd', employee_id: HRD }), { data: [{ id: PLAN }] }],
-      employees: [{ data: { id: HRD, role: 'hrd', name: 'HRD Satu' } }] });
+      employees: [{ data: { id: HRD, role: 'hrd', name: 'HRD Satu', is_active: true } }, ACTIVE] });
     expect(await approveAsHrd(PLAN)).toEqual({ ok: true });
     expect(updates(a)[0].payload).toMatchObject({ status: 'agreed', hrd_id: HRD });
   });
@@ -227,7 +246,7 @@ describe('Tahap 2 — saveSession / saveSessionResponse', () => {
     progress: [{ item_id: ITEM, status: 'on_track', note: 'Mulai jalan' }] };
   const ctxTables = (status = 'agreed', extra: Record<string, QResult[]> = {}) => ({
     development_plans: [plan({ status })],
-    employees: [{ data: { id: EMP, role: 'employee', name: 'Pegawai' } }],
+    employees: [{ data: { id: EMP, role: 'employee', name: 'Pegawai', is_active: true } }, ACTIVE],
     periods: [OPEN], final_reports: [FINAL], ...TEAM, ...extra,
   });
 
@@ -316,7 +335,7 @@ describe('Tarik Kembali & pemisahan mode', () => {
     asUser(SPV, { role: 'hrd' });
     const a = adminWith({
       development_plans: [plan({ status: 'waiting_supervisor', employee_id: COORD })],
-      employees: [{ data: { id: COORD, role: 'employee', name: 'Koordinator' } }],
+      employees: [{ data: { id: COORD, role: 'employee', name: 'Koordinator', is_active: true } }, ACTIVE],
       ...TEAM, periods: [OPEN], final_reports: [FINAL],
     });
     const r = await decideAsSupervisor(PLAN, 'approve', { confirmation: 'Sesuai pengamatan', context: '', support: 'Coaching rutin', hope: '' }, '');

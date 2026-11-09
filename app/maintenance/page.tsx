@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Wrench } from 'lucide-react';
 import { BrandLogo } from '@/components/brand-logo';
 import { readMaintenance } from '@/lib/maintenance';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 export const metadata: Metadata = {
   title: 'Sedang Maintenance — Infarm 360°',
@@ -19,23 +20,23 @@ export default async function MaintenancePage() {
   const { until } = await readMaintenance();
 
   return (
-    <main className="min-h-[100dvh] flex items-center justify-center bg-bg p-4 sm:p-6">
-      <div className="w-full max-w-md bg-surface border border-line rounded-panel p-6 sm:p-8 text-center">
+    <main className={`${INFARM_PAGE} min-h-[100dvh] flex items-center justify-center p-4 sm:p-6`}>
+      <div className="w-full max-w-md bg-surface border border-line rounded-card shadow-card p-6 sm:p-8 text-center">
         <BrandLogo className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-5" />
-        <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-warn-tint text-warn-ink">
+        <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-warn-tint text-warn-ink">
           <Wrench className="h-5 w-5" aria-hidden />
         </div>
-        <h1 className="text-lg font-bold text-ink">Sedang Maintenance</h1>
-        <p className="mt-2 text-sm text-ink-soft leading-relaxed">
+        <h1 className="text-[22px] leading-tight font-bold text-ink">Sedang Maintenance</h1>
+        <p className="mt-2 text-[13px] text-ink-soft leading-relaxed">
           Infarm 360° sedang dalam perbaikan dan untuk sementara tidak bisa diakses.
           Data penilaian Anda tetap aman.
         </p>
         {until && (
-          <p className="mt-4 text-sm text-ink">
-            Perkiraan selesai: <span className="font-semibold">{until}</span>
+          <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-neutral-tint px-3 py-1 text-xs text-ink">
+            Perkiraan selesai: <span className="font-semibold font-mono">{until}</span>
           </p>
         )}
-        <p className="mt-5 text-xs text-ink-faint">
+        <p className="mt-5 text-xs text-ink-soft">
           Silakan coba lagi nanti. Bila mendesak, hubungi HRD.
         </p>
       </div>

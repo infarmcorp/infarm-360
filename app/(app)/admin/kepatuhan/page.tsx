@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import Link from 'next/link';
+import { Clock, FilePlus2, MailX } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
 import { canSection, grantedAccess, employeeInScopes, type PageScope } from '@/lib/auth/roles';
 import { KepatuhanTable } from './kepatuhan-table';
-import { Panel } from '@/components/panel';
+import { CARD, Note, PageTitle, StatCard } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { loadLateSummaries, loadPendingLatePenalties, refreshLatePenalties } from '@/lib/late-server';
 import { ApplyLateButton } from './apply-late-button';
 import { formatWib, LATE_PENALTY_360 } from '@/lib/late';
@@ -33,8 +34,7 @@ export default async function KepatuhanPage() {
     grantScopes = grantedAccess(g, 'kepatuhan')?.scopes ?? null;
   }
   if (!isHrdFull && !grantScopes) {
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk HRD Admin atau pemegang akses Flag Kepatuhan.</p>
-      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><p className="text-[13px] text-ink-soft">Halaman ini untuk HRD Admin atau pemegang akses Flag Kepatuhan.</p></Shell>;
   }
   const viaGrant = !isHrdFull;
   const ownDept = (me?.dept ?? '').trim();
@@ -45,9 +45,11 @@ export default async function KepatuhanPage() {
 
   const { data: ap } = await db
     .from('periods').select('id, label').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><p className="text-[13px] text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
-  const { data: emps } = await db.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false).eq('is_active', true);
+  // Direksi IKUT (keputusan pemilik 2026-11-09): Direksi bisa kena potongan −3 sebagai penilai, jadi harus terlihat
+  // di sini — termasuk untuk diubah/dikecualikan HRD. Tabel default hanya menampilkan yang perlu perhatian.
+  const { data: emps } = await db.from('employees').select('id, name, dept').eq('is_external', false).eq('is_active', true);
   // Pemegang grant: batasi ke lingkupnya (employeeInScopes; 'coordinator_team' via teamIds).
   const employees = (emps ?? []).filter((e) => !viaGrant || employeeInScopes(grantScopes!, ownDept, user.id, { id: e.id, dept: e.dept }, teamIds));
   const nameById = new Map(employees.map((e) => [e.id, e.name]));
@@ -106,65 +108,57 @@ export default async function KepatuhanPage() {
 
   return (
     <Shell>
-      <div className="flex items-start justify-between mb-5">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Flag Kepatuhan Penilaian</h1>
-          <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span>
-            {' · '}Deadline 360° {deadline
-              ? <span className="data-value font-semibold text-ink">{formatWib(deadline)}</span>
-              : <span className="text-ink-faint">belum diatur (atur di Kelola Periode)</span>}
-          </p>
+      <PageTitle title="Flag Kepatuhan Penilaian">
+        Periode aktif <span className="font-mono font-semibold text-ink">{ap.label}</span>
+        {' · '}Deadline 360° {deadline
+          ? <span className="font-mono font-semibold text-ink">{formatWib(deadline)}</span>
+          : <span className="text-ink-soft">belum diatur (atur di Kelola Periode)</span>}
+      </PageTitle>
+
+      <div className="space-y-4">
+        {pendingLate.length > 0 && (
+          <Note tone="warn">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <p>
+                <strong>{pendingLate.length} pegawai</strong> punya potongan keterlambatan yang <strong>belum masuk Skor 360°</strong> tersimpan
+                (mis. penilai yang belum mengirim sampai deadline lewat). Terapkan sebelum memfinalisasi laporan.
+              </p>
+              {!viaGrant && <ApplyLateButton pending={pendingLate.length} />}
+            </div>
+          </Note>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard item={{ icon: MailX, tone: 'danger', value: String(totalLate), label: 'Belum kirim (penilaian wajib)' }} />
+          <StatCard item={{ icon: Clock, tone: 'danger', value: String(totalLateSubmit), label: 'Kirim terlambat' }} />
+          <div className="min-w-0 grid"
+            title="Penilaian Opsional yang diajukan pegawai sendiri & disetujui HRD, tapi belum selesai saat deadline — ikut kena potongan.">
+            <StatCard item={{ icon: FilePlus2, tone: 'warn', value: String(totalAjuan), label: 'Kena potongan krn ajuan' }} />
+          </div>
         </div>
-        <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
+
+        <div className={CARD}>
+          <KepatuhanTable rows={rows} readOnly={viaGrant} />
+        </div>
+        <Note>
+          Default menampilkan pegawai yang <strong className="font-semibold text-ink">perlu perhatian</strong> (penilaian wajib/ajuan belum
+          selesai, terlambat, atau sudah punya penetapan potongan HRD). &quot;Belum Kirim&quot; = penilaian bersifat Wajib (mapping)
+          yang belum dikirim{viaGrant ? '' : ' (arahkan kursor untuk daftar nama)'}. &quot;Kirim Terlambat&quot; = penilaian Wajib yang pertama kali
+          dikirim sesudah deadline{viaGrant ? '' : ' (arahkan kursor untuk nama & waktu kirim)'}.
+          <strong className="font-semibold text-ink"> Potongan Skor 360° <span className="font-mono">{LATE_PENALTY_360}</span> poin (otomatis, sekali per periode)</strong> berlaku
+          untuk KEDUA kondisi — sudah kirim tapi telat, MAUPUN belum kirim sama sekali sampai deadline lewat (kolom &quot;Belum Kirim&quot;
+          yang masih &gt;0 saat deadline terlampaui ikut kena potongan yang sama; gugur bila penilai tak punya Skor 360° sendiri).
+          Penilaian yang telat tetap dihitung penuh untuk pegawai yang dinilai — potongan hanya menyentuh Skor 360° milik si penilai.
+          {' '}<strong className="font-semibold text-ink">Ajuan</strong> (penilaian Opsional yang diajukan pegawai sendiri &amp; disetujui HRD) ikut dihitung
+          mulai periode Q3 2026 dan ditandai terpisah. Opsional biasa, Ad-Hoc Mandiri lama, Paksa Selesai HRD, dan pemetaan yang dibuat sesudah deadline tidak dihitung.
+          Nilai potongan bisa <strong className="font-semibold text-ink">diubah HRD</strong> per pegawai (tombol Ubah, alasan wajib; 0 = dikecualikan).
+          Potongan ini satu-satunya sanksi kepatuhan — Skor Akhir tidak dipotong lagi secara terpisah.
+        </Note>
       </div>
-
-      {pendingLate.length > 0 && (
-        <div className="mb-5 border border-warn-ink/25 bg-warn-tint rounded-panel p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <p className="text-[12.5px] text-warn-ink leading-relaxed">
-            <strong>{pendingLate.length} pegawai</strong> punya potongan keterlambatan yang <strong>belum masuk Skor 360°</strong> tersimpan
-            (mis. penilai yang belum mengirim sampai deadline lewat). Terapkan sebelum memfinalisasi laporan.
-          </p>
-          {!viaGrant && <ApplyLateButton pending={pendingLate.length} />}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
-        <div className="border border-line rounded-panel bg-surface p-3 text-center">
-          <div className="text-xl font-bold data-value text-danger-ink">{totalLate}</div>
-          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Belum kirim (penilaian wajib)</div>
-        </div>
-        <div className="border border-line rounded-panel bg-surface p-3 text-center">
-          <div className="text-xl font-bold data-value text-warn-ink">{totalLateSubmit}</div>
-          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Kirim terlambat</div>
-        </div>
-        <div className="border border-line rounded-panel bg-surface p-3 text-center"
-          title="Penilaian Opsional yang diajukan pegawai sendiri & disetujui HRD, tapi belum selesai saat deadline — ikut kena potongan.">
-          <div className="text-xl font-bold data-value text-warn-ink">{totalAjuan}</div>
-          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.04em]">Kena potongan krn ajuan</div>
-        </div>
-      </div>
-
-      <Panel>
-        <KepatuhanTable rows={rows} readOnly={viaGrant} />
-      </Panel>
-      <p className="text-[11px] text-ink-faint mt-5 leading-relaxed">
-        Default menampilkan pegawai yang <strong className="font-semibold text-ink-soft">perlu perhatian</strong> (penilaian wajib/ajuan belum
-        selesai, terlambat, atau sudah punya penetapan potongan HRD). &quot;Belum Kirim&quot; = penilaian bersifat Wajib (mapping)
-        yang belum dikirim{viaGrant ? '' : ' (arahkan kursor untuk daftar nama)'}. &quot;Kirim Terlambat&quot; = penilaian Wajib yang pertama kali
-        dikirim sesudah deadline{viaGrant ? '' : ' (arahkan kursor untuk nama & waktu kirim)'}.
-        <strong className="font-semibold text-ink-soft"> Potongan Skor 360° {LATE_PENALTY_360} poin (otomatis, sekali per periode)</strong> berlaku
-        untuk KEDUA kondisi — sudah kirim tapi telat, MAUPUN belum kirim sama sekali sampai deadline lewat (kolom &quot;Belum Kirim&quot;
-        yang masih &gt;0 saat deadline terlampaui ikut kena potongan yang sama; gugur bila penilai tak punya Skor 360° sendiri).
-        Penilaian yang telat tetap dihitung penuh untuk pegawai yang dinilai — potongan hanya menyentuh Skor 360° milik si penilai.
-        <strong className="font-semibold text-ink-soft">Ajuan</strong> (penilaian Opsional yang diajukan pegawai sendiri &amp; disetujui HRD) ikut dihitung
-        mulai periode Q3 2026 dan ditandai terpisah. Opsional biasa, Ad-Hoc Mandiri lama, Paksa Selesai HRD, dan pemetaan yang dibuat sesudah deadline tidak dihitung.
-        Nilai potongan bisa <strong className="font-semibold text-ink-soft">diubah HRD</strong> per pegawai (tombol Ubah, alasan wajib; 0 = dikecualikan).
-        Potongan ini satu-satunya sanksi kepatuhan — Skor Akhir tidak dipotong lagi secara terpisah.
-      </p>
     </Shell>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
+  return <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>{children}</main>;
 }

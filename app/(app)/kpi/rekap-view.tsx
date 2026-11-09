@@ -2,6 +2,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllByIds } from '@/lib/supabase/paginate';
 import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf, perfCategoryOf, perfLabelOf } from '@/lib/scoring';
 import { trendOf } from '@/lib/trend';
+import { Note } from '@/components/infarm-ui';
 import { PeriodSelect } from './period-select';
 import { RekapTable, type RekapRow } from './rekap-table';
 
@@ -12,9 +13,11 @@ import { RekapTable, type RekapRow } from './rekap-table';
  */
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 const labelOf = (ym: string) => { const [, m] = ym.split('-'); return MONTHS[Number(m) - 1] ?? m; };
-// Warna per kategori terpadu (label dari perfLabelOf agar seragam dgn dashboard/ekspor).
+// Chip soft-tint per kategori (Design System Infarm; selaras jangkar CAT_COLOR: ≥90 cokelat · 80–89 hijau ·
+// 70–79 kuning · <70 merah). Label dari perfLabelOf agar seragam dgn dashboard/ekspor.
 const KAT_COLOR: Record<string, string> = {
-  exceed: 'text-brand-ink', meet: 'text-ink', improve: 'text-warn-ink', below: 'text-danger-ink',
+  exceed: 'bg-infarm-cream text-infarm-soil', meet: 'bg-brand-tint text-brand-ink',
+  improve: 'bg-warn-tint text-warn-ink', below: 'bg-danger-tint text-danger-ink',
 };
 const KAT = (f: number | null) => {
   const c = perfCategoryOf(f);
@@ -28,7 +31,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', 
 
   const { data: periods } = await supabase.from('periods').select('id, label, has_360, status').order('label');
   const periodList = periods ?? [];
-  if (periodList.length === 0) return <p className="text-sm text-ink-soft">Belum ada periode.</p>;
+  if (periodList.length === 0) return <p className="text-[13px] text-ink-soft">Belum ada periode.</p>;
   const sel = periodList.find((p) => p.id === periodParam)
     ?? periodList.find((p) => p.status === 'active')
     ?? periodList[0];
@@ -103,7 +106,7 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', 
     // KPI "belum terbaca" (1 dari 3 bulan pertama terisi) → tak dikategorikan & tak diberi kelas Player,
     // sama dengan Kompilasi Dashboard. Angka tetap tampil.
     if (trendOf(monthly.slice(0, 3)) === 'unread') {
-      return { id: e.id, name: e.name, dept: e.dept, is_active: e.is_active, monthly, kpiAvg, s360, final, player: null, katText: 'Belum Terbaca', katClass: 'text-ink-faint' };
+      return { id: e.id, name: e.name, dept: e.dept, is_active: e.is_active, monthly, kpiAvg, s360, final, player: null, katText: 'Belum Terbaca', katClass: 'bg-neutral-tint text-ink-soft' };
     }
     const player = playerClassOf(kpiAvg, sel.has_360 ? s360 : null);
     const kat = KAT(final);
@@ -115,17 +118,19 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', 
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-        <p className="text-sm text-ink-soft">Ringkasan KPI bulanan, 360°, &amp; Skor Akhir per kuartal.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <p className="text-[13px] text-ink-soft">Ringkasan KPI bulanan, 360°, &amp; Skor Akhir per kuartal.</p>
         <PeriodSelect periods={periodList} current={sel.id} />
       </div>
       {!sel.has_360 && (
-        <div className="mb-3 bg-warn-tint border border-warn-ink/25 p-3 rounded-control text-xs text-warn-ink">
-          Kuartal ini bertipe <strong>KPI Saja</strong> — 360° diabaikan; Skor Akhir = 100% KPI.
+        <div className="mb-4">
+          <Note tone="warn">
+            Kuartal ini bertipe <strong>KPI Saja</strong> — 360° diabaikan; Skor Akhir = 100% KPI.
+          </Note>
         </div>
       )}
       <RekapTable rows={rows} monthLabels={ymList.map(labelOf)} has360={sel.has_360} />
-      <p className="text-[11px] text-ink-faint mt-3 leading-relaxed">
+      <p className="text-xs text-ink-soft mt-3 leading-relaxed">
         Rataan KPI = rerata bulan ber-skor di kuartal ini. Skor Akhir = blend KPI+360 (50/50)
         {sel.has_360 ? '' : ' (kuartal KPI saja → 100% KPI)'}. Kategori: ≥90 Melampaui · ≥80 Memenuhi · ≥70 Perlu Peningkatan · &lt;70 Di Bawah Ekspektasi.
         Belum Terbaca = KPI baru 1 dari 3 bulan kuartal terisi → belum dikategorikan (sama dengan Dashboard).

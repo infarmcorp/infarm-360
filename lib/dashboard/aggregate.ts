@@ -4,6 +4,7 @@ import { classOf, avg as avg360, weightedScore360, effectiveModel, type Groups36
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
 import { trendOf } from '@/lib/trend';
+import { deptIndicatorForPeriod, deptIndicatorMatrix, EMPTY_DEPT_INDICATOR, type DeptIndicatorCol, type DeptIndicatorPeriod, type DeptIndicatorRow } from '@/lib/dashboard/dept-indicator';
 
 /**
  * Agregasi Dashboard LINTAS-PERIODE (mode "Semua Kuartal" = 1 tahun · "Semua Tahun" = all-time).
@@ -30,6 +31,8 @@ export type AggregateBundle = {
   aspectScores: { aspek: string; score: number }[];
   deptAspect360: AggDeptAspectRow[];
   aspect360Names: string[];
+  deptIndicator360: DeptIndicatorRow[];
+  indicator360Cols: DeptIndicatorCol[];
   monthly: { ym: string; avg: number }[];
   deptMonthly: AggDeptMonthRow[];
   months: string[];
@@ -41,7 +44,7 @@ export type AggregateBundle = {
 };
 
 type PeriodMeta = { id: string; label: string; has_360: boolean; start_date: string };
-type Emp = { id: string; name: string; nickname: string | null; dept: string };
+type Emp = { id: string; name: string; nickname: string | null; dept: string; is_active: boolean };
 
 const mean = (xs: number[]): number | null => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
@@ -52,7 +55,7 @@ async function aspectForPeriod(
   empIds: string[],
   empDept: Map<string, string>,
   periodStart: string,
-): Promise<{ org: Map<string, number>; dept: Map<string, number>; names: { name: string; order: number }[] }> {
+): Promise<{ org: Map<string, number>; dept: Map<string, number>; names: { name: string; order: number }[]; indicators: DeptIndicatorPeriod }> {
   const org = new Map<string, number>();
   const dept = new Map<string, number>();
   // assessments satu periode (seluruh organisasi) bisa >1000 → dipaginasi.
@@ -64,12 +67,12 @@ async function aspectForPeriod(
   ]);
   const aspectList = aspRes.data ?? [];
   const names = aspectList.map((a) => ({ name: a.name, order: a.order_idx ?? 0 }));
-  if (aspectList.length === 0) return { org, dept, names };
+  if (aspectList.length === 0) return { org, dept, names, indicators: EMPTY_DEPT_INDICATOR };
   const inScope = (id: string) => empIds.includes(id);
   const nonSelfIds = asmtRows.filter((a) => a.assessor_id !== a.target_id && inScope(a.target_id)).map((a) => a.id);
 
   const [indRes, wsRes, mapsData, scoreRows] = await Promise.all([
-    admin.from('indicators').select('id, aspect_id').in('aspect_id', aspectList.map((a) => a.id)),
+    admin.from('indicators').select('id, aspect_id, text, order_idx, is_active').in('aspect_id', aspectList.map((a) => a.id)),
     admin.from('weight_schemes').select('model, weights').eq('period_id', periodId).eq('is_active', true).maybeSingle(),
     fetchAllPaged<{ assessor_id: string; target_id: string; relation: RelationKind }>((from, to) =>
       admin.from('mappings').select('assessor_id, target_id, relation').eq('period_id', periodId)
@@ -127,7 +130,8 @@ async function aspectForPeriod(
     const s = scoreOfG(g); const nm = idToName.get(aid);
     if (nm && s != null) dept.set(`${d}|${nm}`, s);
   }
-  return { org, dept, names };
+  const indicators = deptIndicatorForPeriod({ aspects: aspectList, indicators: indRes.data ?? [], scoreRows, asmtInfo, relByPair, empDept, scoreOfG });
+  return { org, dept, names, indicators };
 }
 
 export async function computeDashboardAggregate(
@@ -140,7 +144,7 @@ export async function computeDashboardAggregate(
   const periodIds = periods.map((p) => p.id);
   const has360 = periods.some((p) => p.has_360);
   const empty: AggregateBundle = {
-    rows: [], deptScores: [], aspectScores: [], deptAspect360: [], aspect360Names: [],
+    rows: [], deptScores: [], aspectScores: [], deptAspect360: [], aspect360Names: [], deptIndicator360: [], indicator360Cols: [],
     monthly: [], deptMonthly: [], months: [], has360, yearMonthly: [], year360: [], yearKpiAvg: null, year360Avg: null,
   };
   if (periodIds.length === 0 || empIds.length === 0) return empty;
@@ -238,7 +242,7 @@ export async function computeDashboardAggregate(
       if (fq != null) quarterFinals.push(fq);
     }
     const final = quarterFinals.length ? roundScore(mean(quarterFinals)) : null;
-    return { id: e.id, name: e.name, nickname: e.nickname, dept: e.dept, kpiAvg, s360, final, player, axisIncomplete, isActive: true, kpiUnread, trend: 'empty' as const, kpiMonths: [] };
+    return { id: e.id, name: e.name, nickname: e.nickname, dept: e.dept, kpiAvg, s360, final, player, axisIncomplete, isActive: e.is_active, kpiUnread, trend: 'empty' as const, kpiMonths: [] };
   })
     .filter((r) => r.kpiAvg != null || r.s360 != null)
     .sort((a, b) => (b.final ?? -1) - (a.final ?? -1));
@@ -276,9 +280,10 @@ export async function computeDashboardAggregate(
   const deptAspect360: AggDeptAspectRow[] = deptListSorted
     .map((d) => ({ dept: d, cells: aspect360Names.map((nm) => ({ aspect: nm, avg: mean(deptByName.get(`${d}|${nm}`) ?? []) })) }))
     .filter((r) => r.cells.some((c) => c.avg != null));
+  const { cols: indicator360Cols, rows: deptIndicator360 } = deptIndicatorMatrix(perPeriodAspects.map((r) => r.indicators), deptListSorted);
 
   return {
-    rows, deptScores, aspectScores, deptAspect360, aspect360Names,
+    rows, deptScores, aspectScores, deptAspect360, aspect360Names, deptIndicator360, indicator360Cols,
     monthly, deptMonthly, months: yms, has360,
     yearMonthly: monthly, year360, yearKpiAvg, year360Avg,
   };

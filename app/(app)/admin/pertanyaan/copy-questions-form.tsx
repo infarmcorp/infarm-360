@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Copy } from 'lucide-react';
 import { importQuestionsFromPeriod } from './actions';
 import { Button } from '@/components/button';
+import { CARD, CardTitle, FIELD } from '@/components/infarm-ui';
 
 export type SourcePeriod = { id: string; label: string; aspects: number; indicators: number; quals: number };
 
@@ -39,11 +40,9 @@ export function CopyQuestionsForm({ sources }: { sources: SourcePeriod[] }) {
   }
 
   return (
-    <div className="rounded-panel border border-line bg-surface p-4">
-      <h2 className="text-[13px] font-bold text-ink flex items-center gap-1.5">
-        <Copy className="w-4 h-4 text-ink-faint" /> Pakai Pertanyaan Periode Sebelumnya
-      </h2>
-      <p className="text-[12px] text-ink-soft mt-1 leading-relaxed">
+    <div className={CARD}>
+      <CardTitle icon={Copy}>Pakai Pertanyaan Periode Sebelumnya</CardTitle>
+      <p className="text-[13px] text-ink-soft mt-1.5 leading-relaxed">
         Salin aspek, indikator aktif, &amp; esai dari periode lain ke periode aktif. Yang
         <strong className="font-semibold text-ink"> sudah ada</strong> (nama/teks sama) otomatis dilewati — tak menimpa.
       </p>
@@ -52,7 +51,7 @@ export function CopyQuestionsForm({ sources }: { sources: SourcePeriod[] }) {
         <select
           value={sel}
           onChange={(e) => { setSel(e.target.value); setMsg(null); setConfirming(false); }}
-          className="rounded-control border border-line bg-[#FDFDFC] px-3 py-2 text-[13px] text-ink min-w-[16rem] focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
+          className={`${FIELD} min-w-[16rem] cursor-pointer`}
           aria-label="Pilih periode sumber"
         >
           <option value="">— Pilih periode sumber —</option>
@@ -64,28 +63,28 @@ export function CopyQuestionsForm({ sources }: { sources: SourcePeriod[] }) {
         </select>
 
         {!confirming ? (
-          <Button type="button" variant="ghost" size="sm"
+          <Button type="button" variant="ghost"
             onClick={() => { if (!sel) { setMsg({ ok: false, text: 'Pilih periode sumber dulu.' }); return; } setConfirming(true); setMsg(null); }}
             disabled={pending}
           >
             <Copy className="w-3.5 h-3.5" /> Salin ke Periode Aktif
           </Button>
         ) : (
-          <span className="inline-flex items-center gap-2">
-            <span className="text-[12px] font-semibold text-warn-ink">
+          <span className="inline-flex flex-wrap items-center gap-2">
+            <span className="text-[13px] font-semibold text-warn-ink">
               Salin dari <strong>{chosen?.label}</strong>?
             </span>
-            <Button type="button" variant="primary" size="sm" onClick={run} disabled={pending}>
+            <Button type="button" variant="primary" onClick={run} disabled={pending}>
               {pending ? 'Menyalin…' : 'Ya, salin'}
             </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setConfirming(false)} disabled={pending}>
+            <Button type="button" variant="ghost" onClick={() => setConfirming(false)} disabled={pending}>
               Batal
             </Button>
           </span>
         )}
       </div>
 
-      {msg && <p className={`text-[12px] font-semibold mt-2 ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
+      {msg && <p className={`text-[13px] font-semibold mt-2 ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
     </div>
   );
 }

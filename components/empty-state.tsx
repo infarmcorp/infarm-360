@@ -1,11 +1,16 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { Check, Inbox } from 'lucide-react';
+import { renderIcon } from '@/components/emoji-icon';
 
 /**
  * Empty-state berpandu — dipakai saat sebuah halaman belum punya data (belum ada
  * periode, pemetaan, skor, dst). Alih-alih tabel kosong/teks buntu, tampilkan
  * langkah berikutnya + tombol aksi agar pengguna baru tahu harus berbuat apa.
  * Murni presentasional (server component) — boleh dipakai di server maupun client.
+ *
+ * `icon`: pemanggil lama mengisi emoji (📊 🗓️ …) — dipetakan ke ikon lucide (emoji-icon.tsx), jadi emoji tak
+ * pernah tampil (Design System Infarm). Elemen React juga diterima.
  */
 export type EmptyStep = { text: ReactNode; done?: boolean };
 export type EmptyAction = { label: string; href: string; primary?: boolean };
@@ -21,23 +26,23 @@ export function EmptyState({
   note?: ReactNode;
 }) {
   return (
-    <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 sm:p-8 flex flex-col items-center text-center gap-3">
-      <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-2xl shrink-0">
-        {icon}
+    <div className="bg-surface border border-dashed border-line-strong rounded-card p-6 sm:p-8 flex flex-col items-center text-center gap-3">
+      <div className="w-12 h-12 rounded-xl bg-brand-tint text-brand flex items-center justify-center shrink-0">
+        {renderIcon(icon, Inbox, 'w-6 h-6')}
       </div>
-      <h2 className="text-base font-extrabold text-gray-800">{title}</h2>
-      {description && <p className="text-sm text-gray-500 max-w-md">{description}</p>}
+      <h2 className="text-base font-bold text-ink">{title}</h2>
+      {description && <p className="text-[13px] text-ink-soft max-w-md leading-relaxed">{description}</p>}
 
       {steps && steps.length > 0 && (
-        <ol className="text-left text-sm text-gray-600 space-y-1.5 mt-1 w-full max-w-md">
+        <ol className="text-left text-[13px] text-ink-soft space-y-1.5 mt-1 w-full max-w-md">
           {steps.map((s, i) => (
             <li key={i} className="flex items-start gap-2.5">
-              <span className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold ${
-                s.done ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-500'
+              <span className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold font-mono ${
+                s.done ? 'bg-brand text-white' : 'bg-neutral-tint text-ink-soft'
               }`}>
-                {s.done ? '✓' : i + 1}
+                {s.done ? <Check className="w-3 h-3" strokeWidth={3} aria-hidden /> : i + 1}
               </span>
-              <span className={s.done ? 'text-gray-500 line-through' : ''}>{s.text}</span>
+              <span className={s.done ? 'text-ink-faint line-through' : 'text-ink'}>{s.text}</span>
             </li>
           ))}
         </ol>
@@ -50,8 +55,8 @@ export function EmptyState({
               key={a.href + a.label}
               href={a.href}
               className={a.primary
-                ? 'text-xs font-bold px-4 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white'
-                : 'text-xs font-bold px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50'}
+                ? 'inline-flex items-center justify-center min-h-9 px-4 rounded-xl bg-brand hover:bg-brand-ink text-white text-[13px] font-bold transition-colors'
+                : 'inline-flex items-center justify-center min-h-9 px-4 rounded-xl border border-line bg-surface text-ink-soft text-[13px] font-semibold hover:text-brand hover:border-infarm-light transition-colors'}
             >
               {a.label}
             </Link>
@@ -59,7 +64,7 @@ export function EmptyState({
         </div>
       )}
 
-      {note && <p className="text-[11px] text-gray-500 italic mt-1 max-w-md">{note}</p>}
+      {note && <p className="text-xs text-ink-soft italic mt-1 max-w-md">{note}</p>}
     </div>
   );
 }

@@ -73,7 +73,7 @@ describe('maintenanceRoute', () => {
   });
 
   it('aktif tanpa bypass → semua halaman (termasuk login & auth) dialihkan; API 503', () => {
-    for (const p of ['/', '/login', '/auth/callback', '/penilaian', '/admin/pegawai', '/panduan/panduan-hrd.pdf', '/maintenance-lama']) {
+    for (const p of ['/', '/login', '/auth/callback', '/penilaian', '/admin/pegawai', '/maintenance-lama']) {
       expect(maintenanceRoute(p, true)).toBe('page');
     }
     expect(maintenanceRoute('/api/cron/late-penalty', true)).toBe('api');

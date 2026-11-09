@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { setKpiStandard } from './actions';
+import { FIELD } from '@/components/infarm-ui';
 
 /**
  * Editor inline Standar/Target KPI periode (metrik dashboard "% di atas standar").
@@ -28,7 +29,7 @@ export function KpiStandardEditor({ periodId, value }: { periodId: string; value
   return (
     <div className="inline-flex flex-col items-center gap-0.5">
       <div className="inline-flex items-center gap-1">
-        <span className="text-[11px] text-ink-faint">≥</span>
+        <span className="text-[12px] text-ink-soft">≥</span>
         <input
           type="number"
           min={0}
@@ -39,10 +40,10 @@ export function KpiStandardEditor({ periodId, value }: { periodId: string; value
           onChange={(e) => setVal(e.target.value)}
           onBlur={save}
           onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-          className="w-14 text-center text-[13px] data-value px-1.5 py-1.5 border border-line rounded-control text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint disabled:opacity-50"
+          className={`${FIELD} w-16 text-center data-value disabled:opacity-50`}
         />
       </div>
-      {err && <span className="text-[10px] text-danger-ink">{err}</span>}
+      {err && <span className="text-[12px] text-danger-ink">{err}</span>}
     </div>
   );
 }

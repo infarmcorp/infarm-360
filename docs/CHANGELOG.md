@@ -8,6 +8,108 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-06 — PDF panduan lama tidak dibagikan lagi (di `dev`, belum dirilis)
+- Kartu **Panduan Pengguna** di Akun Saya, penanda **PANDUAN** di sidebar, dan lampiran PDF di email **Undangan** dihapus,
+  karena PDF-nya sudah usang dan pegawai bisa memakai panduan yang salah (permintaan pemilik). Kelak Akun Saya menaut ke
+  panduan Notion per peran. Panduan ringkas di badan email Undangan tetap ada.
+- Empat berkas PDF lama ikut dihapus, jadi tautan lamanya tidak bisa dibuka lagi setelah rilis.
+
+### 2026-11-06 — Dashboard: Klasifikasi & Peringkat tampil sekaligus (di `dev`, belum dirilis)
+- Klasifikasi Pemain dan grafik sebarannya kini satu kartu: grafik di tengah, nama pegawai per kelas di kiri dan kanan
+  sesuai kuadrannya, supaya tidak perlu menggulir atas-bawah (permintaan pemilik).
+- Peringkat Skor Akhir, KPI, dan 360° menampilkan 10 teratas dan 10 terbawah sekaligus, masing-masing dua kolom isi 5
+  orang. Tombol Teratas/Terbawah dan tombol halaman dihapus.
+  Pegawai yang sudah tampil di Teratas tidak diulang di Terbawah, sehingga daftar Terbawah bisa lebih pendek atau kosong
+  bila pegawainya kurang dari 20 (misalnya saat disaring satu divisi).
+- Tulisan kategori di tiap baris peringkat diganti warna pada angka skor, dengan keterangan warna di bawah daftar.
+- Monitor Kinerja, Pergerakan KPI: tiap sisi (Naik/Turun) kini menampilkan sampai 10 orang dalam dua kolom, bukan 3 orang.
+  Tombol Lihat semua hanya muncul bila satu sisi lebih dari 10 orang. Pergerakan 360° dan Distribusi Kinerja tetap.
+- Sidebar kini putih seluruhnya dengan tepi kanan lebih tegas, agar jelas terpisah dari lembar kerja (2026-11-05).
+- Sub-tab di semua halaman kini berbentuk tab map, bukan kapsul, karena kapsul terbaca seperti filter (permintaan pemilik).
+  Kapsul tetap dipakai untuk pilihan di dalam satu tampilan, misalnya pilihan periode.
+- Analisis 360 Feedback mendapat peta warna baru, Divisi × Indikator. Kolomnya mengikuti indikator aktif di Kelola
+  Pertanyaan pada periode itu; indikator yang dinonaktifkan HRD tidak tampil. Cara hitungnya sama dengan Divisi × Aspek.
+
+### 2026-11-05 — Pemeriksaan login lebih hemat (di `dev`, belum dirilis)
+- Kuota catatan (log) Supabase habis jauh melebihi batas, hampir seluruhnya dari pemeriksaan "apakah pengguna masih
+  login" yang diulang-ulang. Penyebab terbesar: aplikasi memuat lebih dulu setiap halaman yang tautannya terlihat di
+  menu, tab, dan daftar (walau tidak diklik), dan setiap muatan itu ikut diperiksa ke Supabase.
+- Sekarang halaman hanya dimuat saat diklik, pemeriksaan di "pintu depan" aplikasi dilakukan di server aplikasi sendiri
+  (tanda tangan tiket login dicek tanpa bertanya ke Supabase), dan pengecekan versi aplikasi tak lagi memeriksa login.
+  Uji di staging untuk alur yang sama: 105 → 17 pemeriksaan.
+- Keamanan tidak dilonggarkan: setiap halaman dan setiap tombol tetap memeriksa login dan hak akses ke Supabase sebelum
+  menampilkan atau mengubah data. Efek yang terasa: pindah menu/tab sepersekian detik lebih lambat.
+- Keterangan "Tersimpan otomatis" di form penilaian pindah ke bawah kotak evidence (permintaan pemilik).
+
+### 2026-11-04 — Bilah atas & sidebar berwarna hijau (di `dev`, belum di production)
+- Bilah atas (tombol menu + judul halaman) kini hijau dengan tulisan putih, menyambung dengan kepala sidebar (logo).
+  Blok mode/periode/tugas dan bagian nama pengguna di sidebar berlatar hijau lembar kerja; daftar menu tetap putih.
+- Alasan (pemilik): sidebar putih polos sulit dibedakan dari lembar kerja. Isi menu dan cara kerjanya tidak berubah.
+
+### 2026-11-04 — Form penilaian: label skor seragam & Review langsung terbuka (di `dev`, belum di production)
+- Indikator yang key point-nya belum diisi HRD kini memakai label umum yang sama dengan contoh di Kelola Pertanyaan:
+  1 Belum terlihat · 2 Di bawah ekspektasi · 3 Sesuai ekspektasi · 4 Di atas ekspektasi · 5 Sangat konsisten (dulu
+  "Evidence Paling Rendah … Evidence Paling Kuat"), sehingga tampil seragam dengan indikator yang sudah diisi.
+- Layar Review sebelum Kirim menampilkan semua jawaban langsung, tanpa tombol buka-tutup per pertanyaan.
+
+### 2026-11-04 — Seluruh aplikasi memakai Design System Infarm (di `dev`, belum di production)
+- Halaman terakhir ikut diubah (permintaan pemilik): Persiapan Siklus (Kelola Periode, Kelola Pertanyaan, Bobot &
+  Kalkulasi 360°, Pemetaan 360°), Daftar Penilaian Saya + form penilaian + Catatan di Luar Pemetaan, Laporan Hasil Saya
+  dan detail laporan, Tinjauan Hasil Akhir, Rencana Pengembangan, Akun Saya, halaman Masuk, Lupa/Perbarui Sandi, dan
+  Mode Maintenance.
+- Komponen bersama (tombol, kotak konfirmasi, tampilan kosong, dropdown berpencarian, filter centang, paging, kalender,
+  tooltip, menu ⋯) kini bergaya sama; emoji di kotak konfirmasi dan tampilan kosong otomatis tampil sebagai ikon garis.
+- Laporan: "Evaluasi Diri" di radar tetap oranye; versi cetak/PDF tetap putih. Form penilaian: tombol bawah kini tetap
+  terlihat saat menggulir. Logika, aturan Kirim, simpan otomatis, anonimitas, dan hak akses tidak berubah.
+
+### 2026-11-04 — Halaman "Pelaksanaan" dan "Administrasi" memakai Design System Infarm (di `dev`, belum di production)
+- Progress 360 Feedback, Flag Kepatuhan, Kelola Pegawai, dan Manajemen Akses kini bergaya sama dengan Dashboard,
+  dengan ukuran rapat. Simbol dan emoji di tombol, lencana izin, dan status diganti ikon garis.
+- Flag Kepatuhan: "Kirim terlambat" kini merah (sebelumnya kuning). Progress 360: chip "Wajib" di Rincian kini kuning
+  (sebelumnya merah); bilah progres hijau. Logika, potongan keterlambatan, aturan izin, dan pemberian akses tidak berubah.
+
+### 2026-11-04 — Halaman "Hasil & Tindak Lanjut" memakai Design System Infarm (di `dev`, belum di production)
+- Review & Finalisasi, Pantauan Rencana Pengembangan, dan Promosi & Suksesi kini bergaya sama dengan Dashboard, dengan
+  ukuran rapat. Tabel laporan di Tinjauan Hasil Akhir (Direksi) ikut berubah karena memakai tabel yang sama.
+- Simbol dan emoji di halaman ini diganti ikon garis. Langkah rilis 1-2-3 tetap. Judul kartu baru: "Rencana per
+  Pegawai" (Pantauan) dan "Daftar Pegawai" (Suksesi). Logika, finalisasi, email rilis, dan hak akses tidak berubah.
+
+### 2026-11-04 — Halaman "Pemantauan & Laporan" memakai Design System Infarm (di `dev`, belum di production)
+- Permintaan pemilik: semua halaman di grup Pemantauan & Laporan ikut gaya Dashboard Organisasi — Monitor Kinerja
+  Pegawai, Struktur Organisasi, Monitoring & Audit KPI, Log Aktivitas HRD, Ekspor Dataset. Halaman SPV yang memakai
+  bagian yang sama ikut berubah (pilihan pemilik): Monitor Kinerja, Laporan Kinerja Tim, dan Input KPI Anggota.
+- Tampilan: latar hijau keputihan, kartu putih bergaris tepi, judul kartu berikon, judul bagian bergaris aksen,
+  kartu ringkasan terpisah, catatan penjelas kecil, sub-tab berbentuk pil, font Montserrat/Geist/Geist Mono.
+  Emoji di judul dan pilihan dropdown dihapus.
+- Warna grafik Monitor kini memakai palet yang sama dengan Dashboard (Melampaui cokelat, tanpa biru/ungu); heatmap
+  memakai gradasi yang sama dengan Dashboard. Garis "Teratas" di grafik sebaran tim kini cokelat (dulu biru).
+- Tombol paging tabel di seluruh aplikasi kini memakai warna standar (bentuk dan cara kerja sama).
+- Logika, angka, aturan ACC, input KPI, dan hak akses tidak berubah.
+
+### 2026-11-04 — Sidebar putih yang bisa ditutup (di `dev`, belum di production)
+- Pilihan pemilik dari mockup "Sidebar putih — terbuka vs ditutup" (versi B). Berlaku di semua halaman dan peran.
+- Sidebar kini putih bergaya Design System Infarm: label grup cokelat tanah, menu aktif hijau, kartu periode krem.
+  Isi menu, urutan, dan aturan akses tidak berubah.
+- Bilah atas baru (komputer): tombol **☰** untuk menutup/membuka sidebar, dan nama grup › halaman. Saat sidebar
+  ditutup, **▾** membuka daftar halaman lain di grup yang sama, serta periode, Tugas, dan tombol mode tampil sebagai
+  pil di kanan. Pilihan buka/tutup diingat di browser. Di HP tetap memakai menu laci seperti sebelumnya.
+
+### 2026-11-03 — Dashboard Organisasi memakai Design System Infarm (di `dev`, belum di production)
+- Halaman pertama yang mengikuti Design System Infarm (sama dengan toko & dasbor pesanan Infarm), atas permintaan
+  pemilik setelah meninjau mockup. Halaman lain belum berubah.
+- Tampilan: latar hijau keputihan; kartu putih bersudut 16px dengan bayangan tipis; ringkasan tiap tab di pita hijau;
+  sub-tab berbentuk pil; label bagian cokelat tanah; catatan berlatar krem; emoji di judul kartu dihapus.
+- Font halaman ini mengikuti Design System: Montserrat (judul), Geist (teks), Geist Mono (angka). Geist Mono untuk
+  semua teks sempat dicoba (2026-11-04) lalu dikembalikan. Halaman lain tetap font sistem. File font ikut aplikasi,
+  tidak diambil dari Google saat halaman dibuka.
+- Warna kategori skor: **Melampaui (≥ 90) kini cokelat** (dulu biru tua); Memenuhi hijau, Perlu Peningkatan kuning,
+  Di Bawah merah — tetap. Heatmap memakai gradasi yang sama dengan sebelumnya, hanya ujung biru diganti cokelat.
+  Warna badge peringkat kini sama dengan kategorinya (dulu Melampaui hijau, Memenuhi biru).
+- Tautan "← Beranda" dihapus (halaman Beranda sudah tidak ada). Logika, angka, dan hak akses tidak berubah.
+- Penyesuaian 2026-11-04 (masukan pemilik: bagian-bagian terasa menyaru): judul bagian kembali bergaris aksen dan
+  bergaris pemisah; ringkasan kembali berupa kartu terpisah berikon (hanya angka utama yang hijau); judul kartu diberi
+  ikon; kartu diberi garis tepi; catatan penjelas dibuat kecil dan netral; ukuran huruf dibuat lebih bertingkat.
+
 ### 2026-11-03 — Rencana Pengembangan: pengaman server & database (di `dev`, belum di production)
 - Hasil pemeriksaan "apakah aturan di layar bisa dibobol lewat jalur teknis" (permintaan pemilik). Semua tombol sudah
   diperiksa ulang di server; tiga celah kecil ditutup:

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { colPercents } from '@/lib/table-cols';
 import { StableHeight } from '@/components/table-controls';
 import { formatDateTimeWib } from '@/lib/datetime';
+import { ScrollText } from 'lucide-react';
+import { CARD, CardTitle, TABLE_HEAD } from '@/components/infarm-ui';
 
 /**
  * Log Akses — panel read-only di halaman Manajemen Akses: jejak perubahan AKSES (grant halaman +
@@ -19,6 +21,7 @@ export type AksesLogRow = {
 
 // WIB dipaksa (komponen server = UTC di Vercel) — lihat lib/datetime.ts.
 const fmt = (iso: string) => formatDateTimeWib(iso);
+const PAGER_BTN = 'inline-flex items-center text-[13px] font-semibold min-h-9 px-3.5 rounded-control bg-neutral-tint text-ink-soft';
 
 export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[]; page: number; pageSize: number; total: number }) {
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -27,22 +30,22 @@ export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[];
   const link = (p: number) => `/admin/akses?tab=log&logPage=${p}#log-akses`;
 
   return (
-    <section id="log-akses" className="mt-2">
-      <h3 className="text-sm font-bold text-ink mb-0.5">Log Akses</h3>
-      <p className="text-[11.5px] text-ink-soft mb-3 max-w-3xl leading-relaxed">
+    <section id="log-akses" className={CARD}>
+      <CardTitle icon={ScrollText}>Log Akses</CardTitle>
+      <p className="text-xs text-ink-soft mt-1 mb-3 max-w-3xl leading-relaxed">
         Jejak perubahan akses (grant halaman + izin peran/HRD) — hanya-baca &amp; tak dapat diubah.
         Terpisah dari <span className="font-semibold text-ink-soft">Log Aktivitas HRD</span> umum yang mencatat semua kategori.
       </p>
 
       <StableHeight>
       {rows.length === 0 ? (
-        <div className="rounded-panel border border-dashed border-line-strong py-8 text-center text-sm text-ink-faint">
+        <div className="rounded-xl border border-dashed border-line-strong py-8 text-center text-[13px] text-ink-soft">
           Belum ada perubahan akses tercatat.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-panel border border-line">
+        <div className="overflow-x-auto">
           {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}
-          <table className="w-full table-fixed table-1line text-sm min-w-[570px]">
+          <table className="w-full table-fixed table-1line text-left text-[13px] min-w-[570px]">
             <colgroup>
               {colPercents([
                 180, // Waktu ("01 Okt 2026 14:30 WIB")
@@ -51,18 +54,18 @@ export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[];
               ]).map((w, i) => <col key={i} style={{ width: w }} />)}
             </colgroup>
             <thead>
-              <tr className="bg-neutral-tint text-left text-[11px] uppercase tracking-[0.05em] text-ink-faint">
-                <th className="px-3 py-2 font-semibold whitespace-nowrap">Waktu</th>
-                <th className="px-3 py-2 font-semibold">Oleh</th>
-                <th className="px-3 py-2 font-semibold">Aktivitas</th>
+              <tr className={TABLE_HEAD}>
+                <th className="px-3 py-2.5 rounded-l-lg whitespace-nowrap">Waktu</th>
+                <th className="px-3 py-2.5">Oleh</th>
+                <th className="px-3 py-2.5 rounded-r-lg">Aktivitas</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-line-soft">
               {rows.map((r) => (
-                <tr key={r.id} className="border-t border-line-soft align-top">
-                  <td className="px-3 py-2 text-ink-faint text-[12px] data-value">{fmt(r.createdAt)}</td>
-                  <td className="px-3 py-2 text-ink-soft break-words font-medium">{r.actor}</td>
-                  <td className="px-3 py-2 text-ink-soft break-words">{r.summary}</td>
+                <tr key={r.id} className="align-top hover:bg-infarm-surface/60">
+                  <td className="px-3 py-3 text-ink-soft text-xs font-mono">{fmt(r.createdAt)}</td>
+                  <td className="px-3 py-3 text-ink break-words font-semibold">{r.actor}</td>
+                  <td className="px-3 py-3 text-ink-soft break-words">{r.summary}</td>
                 </tr>
               ))}
             </tbody>
@@ -71,17 +74,17 @@ export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[];
       )}
 
       {(total > pageSize || page > 0) && (
-        <div className="mt-auto flex items-center justify-between text-xs text-ink-soft">
+        <div className="mt-auto pt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-soft">
           {page > 0 ? (
-            <Link href={link(page - 1)} className="px-3 py-1.5 rounded-control border border-line hover:border-line-strong">← Sebelumnya</Link>
+            <Link href={link(page - 1)} className={`${PAGER_BTN} hover:text-ink`}>← Sebelumnya</Link>
           ) : (
-            <span className="px-3 py-1.5 rounded-control border border-line opacity-40">← Sebelumnya</span>
+            <span className={`${PAGER_BTN} opacity-40`}>← Sebelumnya</span>
           )}
-          <span><span className="data-value">{from}–{to}</span> dari <span className="data-value">{total}</span> · Halaman <span className="data-value">{page + 1} / {pageCount}</span></span>
+          <span><span className="font-mono">{from}–{to}</span> dari <span className="font-mono">{total}</span> · Halaman <span className="font-mono">{page + 1} / {pageCount}</span></span>
           {page < pageCount - 1 ? (
-            <Link href={link(page + 1)} className="px-3 py-1.5 rounded-control border border-line hover:border-line-strong">Berikutnya →</Link>
+            <Link href={link(page + 1)} className={`${PAGER_BTN} hover:text-ink`}>Berikutnya →</Link>
           ) : (
-            <span className="px-3 py-1.5 rounded-control border border-line opacity-40">Berikutnya →</span>
+            <span className={`${PAGER_BTN} opacity-40`}>Berikutnya →</span>
           )}
         </div>
       )}

@@ -1,13 +1,17 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ClipboardList, Inbox } from 'lucide-react';
+import { CalendarClock, ClipboardCheck, ClipboardList, Clock, Inbox, ListChecks, Lock, MessageSquareText, UserPlus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { CorrectionButton } from './correction-button';
 import { AdhocDeleteButton } from './adhoc-delete-button';
 import { RequestRemoveButton } from './request-remove-button';
 import { EmptyState } from '@/components/empty-state';
 import { colPercents } from '@/lib/table-cols';
-import { TabBar, Tab } from '@/components/tab-nav';
+import { StatusChip } from '@/components/status-chip';
+import { CARD, CardTitle, Note, PageTitle, TABLE_HEAD } from '@/components/infarm-ui';
+import { TabBar, Tab, TabPanel } from '@/components/tab-nav';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
+import { BTN_GHOST, BTN_PRIMARY } from './penilaian-ui';
 import { RequestAssessmentButton } from './request-assessment-form';
 import { MyRequests, type MyRequest } from './my-requests';
 import { OutsideNoteButton } from './outside-note-form';
@@ -23,7 +27,7 @@ const REL_LABEL: Record<string, string> = {
  * Semua query tunduk RLS (map_read/asmt_read): user hanya melihat mapping/penilaian
  * miliknya. Query datar (tanpa embedded join) agar ter-tipe penuh.
  *
- * DUA SUB-TAB (`?tab=penilaian|pengajuan`, pola seragam TabBar):
+ * DUA SUB-TAB (`?tab=penilaian|pengajuan`, pil Design System Infarm):
  *   Penilaian → daftar rekan yang harus dinilai (pekerjaan utama halaman ini)
  *   Pengajuan → menambah rekan (Ad-Hoc instan / ajukan ke HRD) + status "Permohonan Saya"
  * Dipisah karena panel-panel pengajuan sebelumnya menumpuk di atas tabel dan menggeser
@@ -42,7 +46,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
     return (
       <Shell>
         <EmptyState
-          icon="⏳"
+          icon={<Clock className="w-6 h-6" />}
           title="Belum ada periode penilaian yang dibuka"
           description="Saat ini tidak ada periode aktif, jadi belum ada penilaian yang bisa diisi. Periode dibuka oleh HRD."
           note="Anda akan melihat daftar tugas penilaian di sini begitu HRD mengaktifkan periode baru."
@@ -55,7 +59,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
     return (
       <Shell periodLabel={ap.label}>
         <EmptyState
-          icon="🔒"
+          icon={<Lock className="w-6 h-6" />}
           title="Penilaian 360° belum dibuka"
           description="HRD belum membuka komponen 360° untuk periode ini. Daftar penilaian akan muncul di sini begitu HRD mengaktifkannya."
           note="Tidak ada yang perlu Anda lakukan sekarang — tunggu pengumuman dari HRD."
@@ -72,7 +76,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
     return (
       <Shell periodLabel={ap.label}>
         <EmptyState
-          icon="🔒"
+          icon={<Lock className="w-6 h-6" />}
           title="Form penilaian sedang ditutup"
           description="HRD sementara menutup pengisian penilaian 360° untuk periode ini (tahap peninjauan hasil)."
           note="Penilaian yang sudah Anda kirim tetap tersimpan. Bila Anda merasa masih perlu mengisi, hubungi HRD."
@@ -230,92 +234,101 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
       )}
     </>
   );
-  /** Aksi utama — teks (tabel) atau tombol penuh (kartu HP). */
+  /** Aksi utama — satu per baris: Mulai Nilai/Lanjutkan = hijau solid; Edit/Lihat = netral. HP = selebar kartu. */
   const primaryAction = (it: Item, asButton: boolean) => {
     if (it.status === 'invalidated') {
-      return <span className="text-[11px] text-ink-faint italic" title="HRD membatalkan validitas penilaian ini — tidak dihitung & tidak bisa diubah.">dibatalkan HRD</span>;
+      return <span className="text-xs text-ink-faint italic" title="HRD membatalkan validitas penilaian ini — tidak dihitung & tidak bisa diubah.">dibatalkan HRD</span>;
     }
-    if (reviewPhase) return <span className="text-[11px] text-ink-faint italic">belum dibuka</span>;
+    if (reviewPhase) return <span className="text-xs text-ink-faint italic">belum dibuka</span>;
     const label = primaryLabel(it);
     const solid = label === 'Mulai Nilai' || label === 'Lanjutkan';
     return (
-      <Link href={`/penilaian/${it.targetId}`}
-        className={asButton
-          ? `block w-full text-center text-sm font-bold py-2.5 rounded-control ${solid ? 'bg-brand hover:bg-brand-ink text-white' : 'border border-line text-ink bg-surface hover:bg-neutral-tint'}`
-          : 'text-xs font-bold text-brand-ink hover:underline'}>
+      <Link href={`/penilaian/${it.targetId}`} prefetch={false}
+        className={`${solid ? BTN_PRIMARY : BTN_GHOST} shrink-0 whitespace-nowrap ${asButton ? 'w-full' : ''}`}>
         {label === 'Edit' && asButton ? 'Edit Penilaian' : label}
       </Link>
     );
   };
   const draftProgress = (it: Item) => it.status === 'draft' && it.draftDone != null && indicatorTotal > 0 ? (
     <div className="mt-1.5">
-      <p className="text-[11px] text-ink-soft"><span className="data-value font-semibold">{it.draftDone}</span> dari <span className="data-value">{indicatorTotal}</span> indikator selesai</p>
+      <p className="text-xs text-ink-soft"><span className="data-value font-semibold text-ink">{it.draftDone}</span> dari <span className="data-value">{indicatorTotal}</span> indikator selesai</p>
       <div className="h-1.5 mt-1 bg-neutral-tint rounded-full overflow-hidden">
-        <div className="h-full bg-brand rounded-full" style={{ width: `${Math.round((it.draftDone / indicatorTotal) * 100)}%` }} />
+        <div className="h-full bg-warn rounded-full" style={{ width: `${Math.round((it.draftDone / indicatorTotal) * 100)}%` }} />
       </div>
     </div>
   ) : null;
+  /** Chip Sifat: Wajib = warn; Opsional = netral; ajuan yang disetujui HRD tetap wajib diselesaikan (warn). */
+  const sifatChips = (it: Item) => (
+    <>
+      <StatusChip tone={it.mandatory ? 'warn' : 'neutral'} className="whitespace-nowrap">{it.mandatory ? 'Wajib' : 'Opsional'}</StatusChip>
+      {it.requested && (
+        <span title="Penilaian ini Anda ajukan sendiri & sudah disetujui HRD — tetap harus dikirim sebelum deadline, bila tidak Skor 360° Anda terkena potongan keterlambatan.">
+          <StatusChip tone="warn" className="whitespace-nowrap">Ajuan · wajib selesai</StatusChip>
+        </span>
+      )}
+    </>
+  );
+  const mandPct = mandTotal ? Math.round((mandDone / mandTotal) * 100) : 0;
 
   return (
     <Shell periodLabel={ap.label}>
+      <div className="space-y-4">
       {/* FASE TINJAU: pemetaan sudah diumumkan tapi form belum dibuka. */}
       {reviewPhase && (
-        <div className="mb-4 rounded-panel border border-warn-ink/25 bg-warn-tint p-3.5">
-          <p className="text-[12.5px] font-bold text-warn-ink">Tahap peninjauan pemetaan — pengisian belum dibuka</p>
-          <p className="text-[11.5px] text-warn-ink/90 mt-1 leading-relaxed">
-            Berikut daftar rekan yang akan Anda nilai kuartal ini. <strong>Periksa dulu:</strong> bila ada yang
-            tidak sesuai, ajukan penghapusan; bila ada rekan yang seharusnya Anda nilai tapi belum tercantum,
-            ajukan lewat form di bawah. Semua permohonan diputuskan HRD. Tombol <strong>Mulai Nilai</strong> muncul
-            setelah HRD membuka form.
-          </p>
-        </div>
+        <Note tone="warn" title="Tahap peninjauan pemetaan — pengisian belum dibuka">
+          Berikut daftar rekan yang akan Anda nilai kuartal ini. <strong>Periksa dulu:</strong> bila ada yang
+          tidak sesuai, ajukan penghapusan; bila ada rekan yang seharusnya Anda nilai tapi belum tercantum,
+          ajukan lewat form di bawah. Semua permohonan diputuskan HRD. Tombol <strong>Mulai Nilai</strong> muncul
+          setelah HRD membuka form.
+        </Note>
       )}
 
+      <div>
       <TabBar>
         <Tab href="/penilaian?tab=penilaian" active={tab === 'penilaian'} icon={ClipboardList}>
           Penilaian
-          {items.length ? <span className="ml-1.5 text-[10px] data-value bg-neutral-tint text-ink-soft border border-line px-1.5 py-0.5 rounded-full">{items.length}</span> : null}
+          {items.length ? <CountChip active={tab === 'penilaian'}>{items.length}</CountChip> : null}
         </Tab>
         <Tab href="/penilaian?tab=pengajuan" active={tab === 'pengajuan'} icon={Inbox}>
           Pengajuan
-          {pendingReqN ? <span className="ml-1.5 text-[10px] data-value bg-warn-tint text-warn-ink border border-warn-ink/25 px-1.5 py-0.5 rounded-full">{pendingReqN}</span> : null}
+          {pendingReqN ? <CountChip active={tab === 'pengajuan'} warn>{pendingReqN}</CountChip> : null}
         </Tab>
       </TabBar>
+      <TabPanel className="space-y-4">
 
-      <div className="pt-5">
       {tab === 'pengajuan' ? (
         <>
           {/* Satu jalur menambah rekan yang dinilai (BR-04, Q3 2026): Ad-Hoc instan
               dinonaktifkan — semua penambahan wajib alasan + ACC HRD. */}
           {/* Berdampingan di layar lebar, bertumpuk di HP. Kartu catatan disembunyikan untuk penilai
               eksternal (belum boleh mengirim — keputusan pemilik 2026-11-03; server juga menolak). */}
-          <div className={`mb-5 grid gap-3 ${showNoteCard ? 'sm:grid-cols-2' : ''}`}>
-          <section className="rounded-panel border border-line bg-surface p-4">
-            <h3 className="text-xs font-bold text-ink uppercase tracking-wide">Menambah Rekan yang Anda Nilai</h3>
-            <p className="text-[11.5px] text-ink-soft mt-1 leading-relaxed">
+          <div className={`grid gap-4 ${showNoteCard ? 'sm:grid-cols-2' : ''}`}>
+          <section className={`${CARD} flex flex-col`}>
+            <CardTitle icon={UserPlus}>Menambah Rekan yang Anda Nilai</CardTitle>
+            <p className="text-[13px] text-ink-soft mt-1.5 leading-relaxed">
               Ada rekan yang seharusnya Anda nilai tapi belum tercantum? Ajukan lewat{' '}
-              <strong>Ajukan Penilaian</strong> — sertakan alasan, lalu tunggu keputusan HRD.
+              <strong className="text-ink">Ajukan Penilaian</strong> — sertakan alasan, lalu tunggu keputusan HRD.
             </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-auto pt-3 flex flex-wrap items-center gap-2">
               <RequestAssessmentButton candidates={candidates} />
             </div>
           </section>
           {showNoteCard && (
-            <section className="rounded-panel border border-line bg-surface p-4">
-              <h3 className="text-xs font-bold text-ink uppercase tracking-wide">Catatan di Luar Pemetaan</h3>
-              <p className="text-[11.5px] text-ink-soft mt-1 leading-relaxed">
+            <section className="bg-infarm-cream border border-line rounded-card shadow-card p-4 flex flex-col">
+              <CardTitle icon={MessageSquareText}>Catatan di Luar Pemetaan</CardTitle>
+              <p className="text-[13px] text-ink-soft mt-1.5 leading-relaxed">
                 Ada kejadian yang perlu HRD ketahui tentang rekan di luar daftar penilaian Anda? Tulis di sini
                 tanpa rating dan tanpa nama Anda.
               </p>
               {ap.form_open ? (
                 <>
-                  <p className="text-[11px] text-ink-faint mt-1">Bisa dikirim selama penilaian {ap.label} berlangsung.</p>
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <p className="text-xs text-ink-soft mt-1">Bisa dikirim selama penilaian {ap.label} berlangsung.</p>
+                  <div className="mt-auto pt-3 flex flex-wrap items-center gap-2">
                     <OutsideNoteButton candidates={candidates} aspects={noteAspects} />
                   </div>
                 </>
               ) : (
-                <p className="text-[11px] text-ink-faint mt-2 leading-relaxed">
+                <p className="text-xs text-ink-soft mt-2 leading-relaxed">
                   Belum bisa dikirim — catatan dibuka bersamaan dengan form penilaian oleh HRD.
                 </p>
               )}
@@ -323,140 +336,131 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
           )}
           </div>
 
+          <div>
           {showNoteCard && (
-            <p className="mb-2 text-[11px] text-ink-faint">
+            <p className="mb-2 text-xs text-ink-soft">
               Catatan di luar pemetaan tidak tercantum di sini, karena tidak tersimpan dengan nama Anda.
             </p>
           )}
           {myRequestRows.length === 0 ? (
-            <p className="text-sm text-ink-soft">Belum ada permohonan. Pengajuan Anda beserta keputusan HRD akan tampil di sini.</p>
+            <section className={CARD}>
+              <CardTitle icon={ListChecks}>Permohonan Saya</CardTitle>
+              <p className="text-[13px] text-ink-soft mt-1.5">Belum ada permohonan. Pengajuan Anda beserta keputusan HRD akan tampil di sini.</p>
+            </section>
           ) : (
             <MyRequests requests={myRequestRows} />
           )}
+          </div>
         </>
       ) : (
         <>
       {mandTotal > 0 && !reviewPhase && (
-        <div className="mb-4 flex items-center justify-between gap-3 bg-brand-tint border border-brand-ink/20 rounded-panel p-3">
-          <div className="min-w-0">
-            <p className="text-xs font-extrabold text-brand-ink">Penilaian Wajib Anda</p>
-            <p className="text-[11px] text-brand-ink/80">
-              {mandDone} dari {mandTotal} sudah dikirim
-              {mandDone < mandTotal ? ` · sisa ${mandTotal - mandDone} untuk dikerjakan` : ' · selesai semua 🎉'}
-            </p>
+        <section className={CARD}>
+          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+            <div className="min-w-0">
+              <CardTitle icon={ClipboardCheck}>Penilaian Wajib Anda</CardTitle>
+              <p className="text-[13px] text-ink-soft mt-1.5">
+                <span className="data-value text-xl font-bold text-ink leading-none">{mandDone}</span>
+                <span className="data-value text-ink-soft"> / {mandTotal}</span> sudah dikirim
+                {mandDone < mandTotal ? <> · sisa <span className="data-value font-semibold text-ink">{mandTotal - mandDone}</span> untuk dikerjakan</> : ' · selesai semua'}
+              </p>
+            </div>
             {deadline && (
-              <p className="text-[11px] text-brand-ink/80 mt-0.5">
-                Deadline: <span className="data-value font-semibold">{formatWib(deadline)}</span>
+              <p className="flex items-center gap-1.5 text-xs text-ink-soft">
+                <CalendarClock className="w-4 h-4 text-brand shrink-0" aria-hidden />
+                Deadline: <span className="data-value font-semibold text-ink">{formatWib(deadline)}</span>
               </p>
             )}
           </div>
-          <div className="w-24 sm:w-32 h-2 bg-brand/20 rounded-full overflow-hidden shrink-0">
-            <div className="h-full bg-brand rounded-full transition-all"
-              style={{ width: `${mandTotal ? Math.round((mandDone / mandTotal) * 100) : 0}%` }} />
+          <div className="mt-3 flex items-center gap-3">
+            <div className="flex-1 h-2 bg-neutral-tint rounded-full overflow-hidden">
+              <div className="h-full bg-brand rounded-full transition-all" style={{ width: `${mandPct}%` }} />
+            </div>
+            <span className="data-value text-xs font-bold text-brand-ink shrink-0">{mandPct}%</span>
           </div>
-        </div>
+        </section>
       )}
       {deadlinePassed && !reviewPhase && (mandDone < mandTotal || ajuanPendingN > 0) && (
-        <div className="mb-4 rounded-panel border border-warn-ink/25 bg-warn-tint p-3">
-          <p className="text-[12px] font-bold text-warn-ink">Deadline penilaian sudah lewat</p>
-          <p className="text-[11.5px] text-warn-ink/90 mt-0.5 leading-relaxed">
-            Form masih bisa diisi, tetapi penilaian wajib{ajuanPendingN > 0 ? ' (termasuk ajuan Anda)' : ''} yang dikirim sekarang tercatat <strong>Terlambat</strong> dan
-            Skor 360° Anda dipotong <span className="data-value">{LATE_PENALTY_360}</span> poin (sekali per periode).
-            Penilaian Anda tetap dihitung untuk rekan yang dinilai. Penilaian yang <strong>sudah terkirim</strong> kini
-            terkunci (hanya bisa dilihat).
-          </p>
-        </div>
+        <Note tone="warn" title="Deadline penilaian sudah lewat">
+          Form masih bisa diisi, tetapi penilaian wajib{ajuanPendingN > 0 ? ' (termasuk ajuan Anda)' : ''} yang dikirim sekarang tercatat <strong>Terlambat</strong> dan
+          Skor 360° Anda dipotong <span className="data-value">{LATE_PENALTY_360}</span> poin (sekali per periode).
+          Penilaian Anda tetap dihitung untuk rekan yang dinilai. Penilaian yang <strong>sudah terkirim</strong> kini
+          terkunci (hanya bisa dilihat).
+        </Note>
       )}
       {items.length === 0 ? (
-        <p className="text-sm text-ink-soft">
-          Belum ada penilaian rutin yang ditugaskan. Buka tab <strong>Pengajuan</strong> untuk menambah rekan
-          yang ingin Anda nilai.
-        </p>
+        <section className={CARD}>
+          <p className="text-[13px] text-ink-soft">
+            Belum ada penilaian rutin yang ditugaskan. Buka tab <strong className="text-ink">Pengajuan</strong> untuk menambah rekan
+            yang ingin Anda nilai.
+          </p>
+        </section>
       ) : (
         <>
-          <div className="mb-4 flex items-start gap-2 bg-neutral-tint border border-line rounded-panel p-3 text-[12px] text-ink-soft">
-            <span aria-hidden>ℹ️</span>
-            <p className="leading-relaxed">
-              Periksa kolom <strong>Garis Hubungan</strong> tiap rekan. Bila relasi Anda dengan rekan itu
-              keliru (mis. tertulis Rekan padahal Anda atasannya), klik <strong>“Minta Koreksi”</strong>
-              agar HRD memperbaikinya — relasi menentukan <strong>bobot Skor 360°</strong>, sehingga
-              memengaruhi hasil akhir pegawai.
-            </p>
-          </div>
+          <Note>
+            Periksa kolom <strong className="text-ink">Garis Hubungan</strong> tiap rekan. Bila relasi Anda dengan rekan itu
+            keliru (mis. tertulis Rekan padahal Anda atasannya), klik <strong className="text-ink">“Minta Koreksi”</strong>{' '}
+            agar HRD memperbaikinya — relasi menentukan <strong className="text-ink">bobot Skor 360°</strong>, sehingga
+            memengaruhi hasil akhir pegawai.
+          </Note>
           {/* HP (Decision 03, opsi kartu): satu kartu per rekan — nama, divisi · relasi, status, progres draf,
               tombol utama penuh; aksi sekunder kecil di bawahnya. Layar ≥ sm tetap tabel. */}
           <ul className="sm:hidden space-y-3">
             {items.map((it) => (
-              <li key={it.id} className="rounded-panel border border-line bg-surface p-3.5">
+              <li key={it.id} className={CARD}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-bold text-ink leading-tight">{it.name}</p>
-                    <p className="text-[11.5px] text-ink-faint mt-0.5">{it.dept} · {REL_LABEL[it.relation] ?? it.relation}</p>
+                    <p className="text-[13px] font-bold text-ink leading-tight">{it.name}</p>
+                    <p className="text-xs text-ink-soft mt-0.5">{it.dept} · {REL_LABEL[it.relation] ?? it.relation}</p>
                   </div>
                   <StatusBadge status={it.progress} counted={it.counted} />
                 </div>
-                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-control border ${it.mandatory ? 'bg-warn-tint text-warn-ink border-warn-ink/25' : 'bg-neutral-tint text-ink-faint border-line'}`}>
-                    {it.mandatory ? 'Wajib' : 'Opsional'}
-                  </span>
-                  {it.requested && <span className="text-[9.5px] font-semibold text-warn-ink">Ajuan · wajib selesai</span>}
-                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">{sifatChips(it)}</div>
                 {draftProgress(it)}
-                <div className="mt-3">{primaryAction(it, true)}</div>
+                <div className="mt-3 flex">{primaryAction(it, true)}</div>
                 <div className="mt-2 flex flex-wrap items-center justify-end gap-3">{secondaryActions(it)}</div>
               </li>
             ))}
           </ul>
-          <div className="hidden sm:block overflow-x-auto">
+          <section className="hidden sm:block bg-surface border border-line rounded-card shadow-card overflow-hidden">
+          <div className="overflow-x-auto">
           {/* table-fixed + colgroup: lebar kolom TETAP antar tab (tak bergeser saat berpindah tab). */}
-          <table className="w-full table-fixed text-left text-sm min-w-[720px]">
+          <table className="w-full table-fixed text-left text-[13px] min-w-[760px]">
             <colgroup>
               {colPercents([
                 230, // Yang Dinilai + divisi
-                140, // Garis Hubungan
-                110, // Sifat (+ "Ajuan · wajib selesai")
-                150, // Status (+ progres draf)
-                230, // Aksi (sekunder + utama)
+                130, // Garis Hubungan
+                130, // Sifat (+ "Ajuan · wajib selesai")
+                160, // Status (+ progres draf)
+                250, // Aksi (sekunder + utama)
               ]).map((w, i) => <col key={i} style={{ width: w }} />)}
             </colgroup>
             <thead>
-              <tr className="text-[10px] uppercase tracking-[0.05em] text-ink-faint font-semibold border-b border-line">
-                <th className="py-2 pr-3">Yang Dinilai</th>
-                <th className="py-2 px-3">Garis Hubungan</th>
-                <th className="py-2 px-3 text-center">Sifat</th>
-                <th className="py-2 px-3 text-right">Status</th>
-                <th className="py-2 pl-3 text-right">Aksi</th>
+              <tr className={`${TABLE_HEAD} border-b border-line`}>
+                <th className="py-2.5 pl-4 pr-3 font-semibold">Yang Dinilai</th>
+                <th className="py-2.5 px-3 font-semibold">Garis Hubungan</th>
+                <th className="py-2.5 px-3 font-semibold">Sifat</th>
+                <th className="py-2.5 px-3 font-semibold">Status</th>
+                <th className="py-2.5 pl-3 pr-4 font-semibold text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line-soft">
               {items.map((it) => (
-                <tr key={it.id}>
-                  <td className="py-3 pr-3">
-                    <span className="font-bold text-ink block">{it.name}</span>
-                    <span className="text-[11px] text-ink-faint">{it.dept}</span>
+                <tr key={it.id} className="align-top">
+                  <td className="py-3 pl-4 pr-3">
+                    <span className="font-bold text-ink block truncate" title={it.name}>{it.name}</span>
+                    <span className="text-xs text-ink-soft block truncate">{it.dept}</span>
                   </td>
                   <td className="py-3 px-3 text-ink-soft">{REL_LABEL[it.relation] ?? it.relation}</td>
-                  <td className="py-3 px-3 text-center">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-control border ${
-                      it.mandatory
-                        ? 'bg-warn-tint text-warn-ink border-warn-ink/25'
-                        : 'bg-neutral-tint text-ink-faint border-line'
-                    }`}>
-                      {it.mandatory ? 'Wajib' : 'Opsional'}
-                    </span>
-                    {it.requested && (
-                      <span className="block mt-1 text-[9.5px] font-semibold text-warn-ink"
-                        title="Penilaian ini Anda ajukan sendiri & sudah disetujui HRD — tetap harus dikirim sebelum deadline, bila tidak Skor 360° Anda terkena potongan keterlambatan.">
-                        Ajuan · wajib selesai
-                      </span>
-                    )}
+                  <td className="py-3 px-3">
+                    <div className="flex flex-col items-start gap-1">{sifatChips(it)}</div>
                   </td>
-                  <td className="py-3 px-3 text-right">
+                  <td className="py-3 px-3">
                     <StatusBadge status={it.progress} counted={it.counted} />
                     {draftProgress(it)}
                   </td>
-                  <td className="py-3 pl-3 text-right">
-                    <div className="flex items-center justify-end gap-3">
+                  <td className="py-3 pl-3 pr-4">
+                    <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5">
                       {secondaryActions(it)}
                       {primaryAction(it, false)}
                     </div>
@@ -466,21 +470,31 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
             </tbody>
           </table>
           </div>
+          </section>
         </>
       )}
         </>
       )}
+      </TabPanel>
+      </div>
       </div>
     </Shell>
   );
 }
 
-const STATUS_CLS: Record<ProgressStatus, string> = {
-  not_started: 'bg-neutral-tint text-ink-faint border-line',
-  in_progress: 'bg-warn-tint text-warn-ink border-warn-ink/25',
-  on_time: 'bg-brand-tint text-brand-ink border-brand-ink/20',
-  late: 'bg-danger-tint text-danger-ink border-danger-ink/25',
-  invalidated: 'bg-neutral-tint text-ink-faint border-line',
+/** Chip jumlah di dalam pil sub-tab (kontras di atas pil aktif hijau maupun pil putih). */
+function CountChip({ active, warn = false, children }: { active: boolean; warn?: boolean; children: React.ReactNode }) {
+  const cls = active ? 'bg-brand-tint text-brand-ink' : warn ? 'bg-warn-tint text-warn-ink' : 'bg-neutral-tint text-ink-soft';
+  return <span className={`data-value text-[11px] font-bold px-1.5 py-0.5 rounded-full leading-none ${cls}`}>{children}</span>;
+}
+
+/** BR-07 → nada chip: Belum Mulai netral · Sedang Diisi warn · Tepat Waktu/Terkirim brand · Terlambat danger · Dibatalkan netral. */
+const STATUS_TONE: Record<ProgressStatus, 'neutral' | 'warn' | 'brand' | 'danger'> = {
+  not_started: 'neutral',
+  in_progress: 'warn',
+  on_time: 'brand',
+  late: 'danger',
+  invalidated: 'neutral',
 };
 const STATUS_TITLE: Record<ProgressStatus, string> = {
   not_started: 'Not Started — penilaian belum mulai dikerjakan',
@@ -497,22 +511,18 @@ function StatusBadge({ status, counted }: { status: ProgressStatus; counted: boo
   const key: ProgressStatus = done && !counted ? 'on_time' : status;
   const label = done && !counted ? 'Terkirim' : PROGRESS_STATUS_LABEL[status];
   return (
-    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-control border whitespace-nowrap ${STATUS_CLS[key]}`}
-      title={done && !counted ? 'Penilaian opsional sudah dikirim' : STATUS_TITLE[status]}>{label}</span>
+    <span className="inline-flex shrink-0" title={done && !counted ? 'Penilaian opsional sudah dikirim' : STATUS_TITLE[status]}>
+      <StatusChip tone={STATUS_TONE[key]} className="whitespace-nowrap">{label}</StatusChip>
+    </span>
   );
 }
 
 function Shell({ children, periodLabel }: { children: React.ReactNode; periodLabel?: string }) {
   return (
-    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
-      {/* Tanpa bingkai/kartu: judul & isi langsung di atas kanvas halaman (pola Dashboard/Monitor). */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Daftar Penilaian Saya</h1>
-          {periodLabel && <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif: {periodLabel}</p>}
-        </div>
-        <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft">← Beranda</Link>
-      </div>
+    <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>
+      <PageTitle title="Daftar Penilaian Saya">
+        {periodLabel ? <>Periode aktif: {periodLabel}</> : null}
+      </PageTitle>
       {children}
     </main>
   );

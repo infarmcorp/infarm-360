@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin, canCoordinate } from '@/lib/auth/roles';
 import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf } from '@/lib/scoring';
@@ -16,6 +15,9 @@ import { DistBars } from './dist-bars';
 import { TeamAspectProfile } from './team-aspect';
 import { SectionHeader } from './section-header';
 import { loadMonitorHistory } from '@/lib/monitor/history';
+import { CARD, CardTitle, PageTitle } from '@/components/infarm-ui';
+import { Users } from 'lucide-react';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 /**
  * Monitor Kinerja (SPV / HRD mode-SPV) — dashboard kinerja tim, bergaya Laporan Kinerja Tim:
@@ -50,15 +52,14 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
   // Koordinator: bukan SPV/HRD tapi punya grant is_coordinator → Monitor untuk naungannya saja.
   const coordinatorView = !adminView && !supervisorView && canCoordinate(me);
   if (!supervisorView && !coordinatorView) {
-    return <Shell><div className="bg-surface border border-line rounded-panel p-5">
-      <p className="text-sm text-ink-soft">Halaman ini untuk SPV, Koordinator, atau HRD dalam Mode SPV.</p>
-      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></div></Shell>;
+    return <Shell><div className={CARD}>
+      <p className="text-[13px] text-ink-soft">Halaman ini untuk SPV, Koordinator, atau HRD dalam Mode SPV.</p></div></Shell>;
   }
 
   const { data: periodRows } = await supabase
     .from('periods').select('id, label, has_360, status, start_date').order('start_date', { ascending: true });
   const periodList = periodRows ?? [];
-  if (periodList.length === 0) return <Shell><Header coordinator={coordinatorView} /><p className="text-sm text-ink-soft mt-4">Belum ada periode.</p></Shell>;
+  if (periodList.length === 0) return <Shell><Header coordinator={coordinatorView} /><p className="text-[13px] text-ink-soft mt-4">Belum ada periode.</p></Shell>;
   const sel = periodList.find((p) => p.id === periodParam)
     ?? periodList.find((p) => p.status === 'active')
     ?? periodList[periodList.length - 1];
@@ -87,7 +88,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
     empRows = data ?? [];
   }
   if (empRows.length === 0) {
-    return <Shell><Header coordinator={coordinatorView} /><Toolbar periods={periodList} current={sel.id} /><p className="text-sm text-ink-soft mt-4">Belum ada pegawai dalam lingkup Anda.</p></Shell>;
+    return <Shell><Header coordinator={coordinatorView} /><Toolbar periods={periodList} current={sel.id} /><p className="text-[13px] text-ink-soft mt-4">Belum ada pegawai dalam lingkup Anda.</p></Shell>;
   }
   const ids = empRows.map((e) => e.id);
 
@@ -261,20 +262,20 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
       <Toolbar periods={periodList} current={sel.id} />
 
       {rows.length === 0 && (
-        <p className="text-sm text-ink-soft mt-4">Belum ada data kinerja untuk periode ini — grafik tren lintas periode tetap tampil di bawah.</p>
+        <p className="text-[13px] text-ink-soft mt-4">Belum ada data kinerja untuk periode ini — grafik tren lintas periode tetap tampil di bawah.</p>
       )}
 
       {rows.length > 0 && (
         <>
           {/* A. RINGKASAN — keadaan periode terpilih */}
-          <SectionHeader label="Ringkasan" hint="keadaan periode terpilih" tone="emerald" />
+          <SectionHeader label="Ringkasan" hint="keadaan periode terpilih" />
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={sel.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length}
-            fillTotal={ids.length} kpiFilled={kpiBy.size} s360Filled={s360By.size} />
+            fillTotal={rows.length} kpiFilled={kpiBy.size} s360Filled={s360By.size} />
 
           {/* B. KOMPOSISI — sebaran & profil aspek */}
-          <SectionHeader label="Komposisi" hint="sebaran kategori & profil aspek" tone="indigo" />
+          <SectionHeader label="Komposisi" hint="sebaran kategori & profil aspek" />
           <DistBars
             kpiPeople={rows.filter((r) => r.trend !== 'unread' && r.kpiAvg != null).map((r) => ({ name: r.name, nickname: r.nickname, value: r.kpiAvg as number }))}
             s360People={sel.has_360 ? rows.filter((r) => r.s360 != null).map((r) => ({ name: r.name, nickname: r.nickname, value: r.s360 as number })) : null} />
@@ -283,7 +284,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
       )}
 
       {/* C. ARAH — tren & pergerakan lintas periode/bulan */}
-      <SectionHeader label="Arah — Tren & Pergerakan" hint="lintas periode/bulan" tone="amber" />
+      <SectionHeader label="Arah — Tren & Pergerakan" hint="lintas periode/bulan" />
       <MonitorTrends periodsTrend={periodsTrend} monthLabels={monthLabels}
         teamMonthly={teamMonthly} employees={employeesMonthly} has360={anyHas360}
         movers={movers} moverLabels={moverLabels} kpiCause={kpiCause} s360Cause={s360Cause}
@@ -292,8 +293,11 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
       {rows.length > 0 && (
         <>
           {/* D. RINCIAN PER PEGAWAI — tabel & heatmap (paling rinci) */}
-          <SectionHeader label="Rincian per Pegawai" hint="tabel & heatmap" tone="slate" />
-          <TeamTable rows={rows} linkNames={false} showStatus={false} showAcc={false} scoreBasis="live" pageSize={5} />
+          <SectionHeader label="Rincian per Pegawai" hint="tabel & heatmap" />
+          <div className={`${CARD} mb-4`}>
+            <CardTitle icon={Users} className="mb-4">Tabel Kinerja Pegawai</CardTitle>
+            <TeamTable rows={rows} linkNames={false} showStatus={false} showAcc={false} scoreBasis="live" pageSize={5} />
+          </div>
           {heat && heat.aspectRows.length > 0 && (
             <ExtremesHeatmap
               pieTitle="Aspek Terlemah & Terkuat Tim (Frekuensi)"
@@ -318,7 +322,7 @@ export default async function MonitorPage({ searchParams }: { searchParams: Prom
 
 function Toolbar({ periods, current }: { periods: { id: string; label: string; status: string }[]; current: string }) {
   return (
-    <div className="mt-3">
+    <div>
       <PeriodFilter periods={periods} current={current} />
     </div>
   );
@@ -326,22 +330,17 @@ function Toolbar({ periods, current }: { periods: { id: string; label: string; s
 
 function Header({ coordinator = false }: { coordinator?: boolean }) {
   return (
-    <div className="flex items-start justify-between gap-3 mb-4">
-      <div>
-        <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Monitor Kinerja</h1>
-        <p className="text-[13.5px] text-ink-soft mt-1">
-          {coordinator
-            ? 'Dashboard kinerja pegawai yang Anda koordinasikan — snapshot per periode & tren lintas waktu.'
-            : 'Dashboard kinerja tim Anda (termasuk diri Anda) — snapshot per periode & tren lintas waktu.'}
-        </p>
-      </div>
-      <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
-    </div>
+    <PageTitle title="Monitor Kinerja">
+      {coordinator
+        ? 'Dashboard kinerja pegawai yang Anda koordinasikan — snapshot per periode & tren lintas waktu.'
+        : 'Dashboard kinerja tim Anda (termasuk diri Anda) — snapshot per periode & tren lintas waktu.'}
+    </PageTitle>
   );
 }
 
+/** Kanvas Design System Infarm: latar hijau keputihan + font halaman ber-redesign. */
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>
+    <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>{children}</main>
   );
 }

@@ -1,59 +1,48 @@
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
+import { KeyRound, UserRound, type LucideIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
+import { CARD, CardTitle, Note, PageTitle } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { AkunForm } from './akun-form';
-import { PanduanCard } from './panduan-card';
-import { panduanFor, panduanHref, PANDUAN_VERSION, PANDUAN_UPDATED_LABEL } from '@/lib/panduan';
 
 const ROLE_LABEL: Record<string, string> = {
   employee: 'Pegawai Operasional', spv: 'Supervisor (SPV)', hrd: 'HRD Admin', direksi: 'Direktur',
 };
 
-/** Akun Saya — info akun + ganti sandi mandiri (semua peran). */
+/** Akun Saya — info akun + ganti sandi mandiri (semua peran). Tampilan: Design System Infarm. */
 export default async function AkunPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees')
-    .select('name, dept, role, emp_code, is_hrd_admin, is_coordinator').eq('id', user.id).maybeSingle();
-  const panduan = panduanFor(me?.role, me?.is_hrd_admin ?? false, me?.is_coordinator ?? false);
+    .select('name, dept, role, emp_code').eq('id', user.id).maybeSingle();
 
   return (
-    // Lebar PENUH (tanpa max-w/mx-auto) + tata letak 2 kolom di layar lebar: identitas & panduan
-    // di kiri, ganti sandi di kanan → seluruh isi muat satu layar tanpa perlu digulir.
-    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Akun Saya</h1>
-          <p className="text-[13.5px] text-ink-soft mt-1">Informasi akun &amp; ganti sandi Anda.</p>
-        </div>
-        <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft">← Beranda</Link>
-      </div>
+    // Lebar PENUH (tanpa max-w/mx-auto) + tata letak 2 kolom di layar lebar: identitas di kiri,
+    // ganti sandi di kanan → seluruh isi muat satu layar tanpa perlu digulir.
+    <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>
+      <PageTitle title="Akun Saya">Informasi akun &amp; ganti sandi Anda.</PageTitle>
 
       <div className="grid gap-4 lg:grid-cols-2 items-start">
-        {/* Kolom kiri — identitas + panduan */}
-        <div className="space-y-4">
-          <Section title="Informasi Akun">
-            <dl className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2 text-xs">
-              <Row label="Nama" value={me?.name ?? '—'} />
-              <Row label="Email (login)" value={user.email ?? '—'} mono />
-              <Row label="Divisi" value={me?.dept ?? '—'} />
-              <Row label="Peran" value={ROLE_LABEL[me?.role ?? ''] ?? (me?.role ?? '—')} />
-              <Row label="Kode Pegawai" value={me?.emp_code ?? '—'} mono />
-            </dl>
-          </Section>
-
-          <PanduanCard
-            href={panduanHref(panduan)} label={panduan.label} filename={panduan.filename}
-            version={PANDUAN_VERSION} updatedLabel={PANDUAN_UPDATED_LABEL} />
-        </div>
+        {/* Kolom kiri — identitas */}
+        <Section title="Informasi Akun" icon={UserRound}>
+          <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+            <Row label="Nama" value={me?.name ?? '—'} />
+            <Row label="Email (login)" value={user.email ?? '—'} mono />
+            <Row label="Divisi" value={me?.dept ?? '—'} />
+            <Row label="Peran" value={ROLE_LABEL[me?.role ?? ''] ?? (me?.role ?? '—')} />
+            <Row label="Kode Pegawai" value={me?.emp_code ?? '—'} mono />
+          </dl>
+        </Section>
 
         {/* Kolom kanan — ganti sandi */}
-        <Section title="Ganti Sandi">
-          <p className="text-[11px] text-warn-ink bg-warn-tint border border-warn-ink/25 rounded-control p-2 mb-3">
-            Jika akun Anda masih memakai <strong>sandi awal bersama</strong>, segera ganti dengan
-            sandi pribadi yang hanya Anda ketahui — demi menjaga integritas penilaian 360°.
-          </p>
+        <Section title="Ganti Sandi" icon={KeyRound}>
+          <div className="mb-4">
+            <Note tone="warn">
+              Jika akun Anda masih memakai <strong>sandi awal bersama</strong>, segera ganti dengan
+              sandi pribadi yang hanya Anda ketahui — demi menjaga integritas penilaian 360°.
+            </Note>
+          </div>
           <AkunForm />
         </Section>
       </div>
@@ -61,11 +50,11 @@ export default async function AkunPage() {
   );
 }
 
-/** Bingkai section: hanya untuk kelompok isi yang berdiri sendiri (identitas, sandi, panduan). */
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+/** Kartu section: hanya untuk kelompok isi yang berdiri sendiri (identitas, sandi). */
+function Section({ title, icon, children }: { title: string; icon: LucideIcon; children: React.ReactNode }) {
   return (
-    <section className="bg-surface border border-line rounded-panel p-5">
-      <h2 className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.07em] mb-3">{title}</h2>
+    <section className={CARD}>
+      <CardTitle icon={icon} className="mb-4">{title}</CardTitle>
       {children}
     </section>
   );
@@ -74,8 +63,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="min-w-0">
-      <dt className="text-ink-faint font-semibold uppercase tracking-wide text-[10px]">{label}</dt>
-      <dd className={`mt-0.5 text-ink-soft break-words ${mono ? 'data-value' : 'font-semibold'}`}>{value}</dd>
+      <dt className="text-xs font-semibold text-ink-soft">{label}</dt>
+      <dd className={`mt-0.5 text-[13px] text-ink break-words ${mono ? 'font-mono' : 'font-semibold'}`}>{value}</dd>
     </div>
   );
 }

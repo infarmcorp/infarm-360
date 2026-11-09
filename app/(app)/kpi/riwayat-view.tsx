@@ -41,10 +41,10 @@ export async function RiwayatView({
     const sel = list.find((p) => p.id === periodParam)
       ?? list.find((p) => p.status === 'active')
       ?? list[0];
-    if (!sel) return <p className="text-sm text-ink-soft">Belum ada periode.</p>;
+    if (!sel) return <p className="text-[13px] text-ink-soft">Belum ada periode.</p>;
     const { data: months } = await supabase.from('period_months').select('ym').eq('period_id', sel.id);
     ymFilter = (months ?? []).map((m) => m.ym);
-    if (ymFilter.length === 0) return <p className="text-sm text-ink-soft">Periode ini belum memiliki bulan.</p>;
+    if (ymFilter.length === 0) return <p className="text-[13px] text-ink-soft">Periode ini belum memiliki bulan.</p>;
   }
 
   // Lingkup pegawai. Izin HRD (canAdmin) mode admin → semua; HRD-posisi mode-SPV → DIVISINYA;
@@ -73,7 +73,7 @@ export async function RiwayatView({
   // memperluasnya (pemegang grant tetap terbatas ke scopedIds-nya).
   if (dept) empRows = empRows.filter((e) => e.dept === dept);
   if (empRows.length === 0) {
-    return <p className="text-sm text-ink-soft">{dept ? `Tidak ada pegawai divisi ${dept} dalam lingkup Anda.` : 'Belum ada anggota tim dalam lingkup Anda.'}</p>;
+    return <p className="text-[13px] text-ink-soft">{dept ? `Tidak ada pegawai divisi ${dept} dalam lingkup Anda.` : 'Belum ada anggota tim dalam lingkup Anda.'}</p>;
   }
   const empById = new Map(empRows.map((e) => [e.id, e]));
 

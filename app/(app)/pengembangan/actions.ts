@@ -59,9 +59,11 @@ async function planById(admin: SB, planId: string): Promise<{ ok: true; plan: Pl
   const { data: plan, error } = await admin.from('development_plans').select('*').eq('id', planId).maybeSingle();
   if (error) return { ok: false, error: tableMissing(error) ? OFF : 'Gagal membaca rencana' };
   if (!plan) return { ok: false, error: 'Rencana tidak ditemukan' };
-  const { data: emp } = await admin.from('employees').select('id, role, name').eq('id', plan.employee_id).maybeSingle();
+  const { data: emp } = await admin.from('employees').select('id, role, name, is_active').eq('id', plan.employee_id).maybeSingle();
   if (!emp) return { ok: false, error: 'Pegawai tidak ditemukan' };
-  return { ok: true, plan: plan as PlanRow, emp };
+  // Rencana milik pegawai yang sudah keluar hanya bisa DILIHAT (persetujuan, sesi, tanggapan ditolak).
+  if (!emp.is_active) return { ok: false, error: 'Pegawai ini sudah nonaktif — rencananya hanya dapat dilihat' };
+  return { ok: true, plan: plan as PlanRow, emp: { id: emp.id, role: emp.role, name: emp.name } };
 }
 
 /** Ubah status dengan syarat status lama; 0 baris = sudah diubah orang lain. */

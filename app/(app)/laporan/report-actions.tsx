@@ -4,7 +4,7 @@ import { fmt2, hasScoreDrift } from '@/lib/scoring';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Download, Save, CheckCircle2, Send, Undo2, AlertTriangle } from 'lucide-react';
+import { Download, Save, CheckCircle2, Send, Undo2, AlertTriangle, ArrowRight } from 'lucide-react';
 import { saveOrFinalizeReport, releaseToSpv } from '@/app/(app)/admin/laporan/actions';
 import { callAction } from '@/lib/call-action';
 
@@ -81,63 +81,63 @@ export function ReportActions({
   }
 
   return (
-    <div className="no-print mb-3 flex flex-wrap items-center gap-2 bg-neutral-tint border border-line rounded-panel p-3">
+    <div className="no-print mb-4 flex flex-wrap items-center gap-2 bg-surface border border-line rounded-card shadow-card p-4">
       <div className="flex items-center gap-2 mr-auto">
-        <span className="text-xs font-bold text-ink">Review & Finalisasi</span>
+        <span className="text-[13px] font-bold text-ink">Review & Finalisasi</span>
         {isFinal
-          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-brand-tint text-brand-ink border-brand-ink/20">Final</span>
+          ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-tint text-brand-ink">Final</span>
           : status === 'in_review'
-          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-neutral-tint text-ink-soft border-line">Ditinjau {reviewer}</span>
+          ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-neutral-tint text-ink-soft">Ditinjau {reviewer}</span>
           : status === 'draft'
-          ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-control border bg-warn-tint text-warn-ink border-warn-ink/25">Draf</span>
-          : <span className="text-[10px] text-ink-faint">belum disimpan</span>}
-        {finalScore != null && <span className="text-[11px] data-value font-bold text-ink">Skor Akhir {fmt2(finalScore)}</span>}
+          ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink">Draf</span>
+          : <span className="text-xs text-ink-soft">belum disimpan</span>}
+        {finalScore != null && <span className="text-[13px] data-value font-bold text-ink">Skor Akhir {fmt2(finalScore)}</span>}
         {drift && (
           <span title={`Skor terkini ${fmt2(liveFinal!)} berbeda dari yang difinalisasi (${fmt2(finalScore!)}) — KPI/360° berubah. Tekan ② Perbarui Laporan Final yang Berubah di Review & Finalisasi (atau Buka Kembali (ke Draf) lalu Finalisasi ulang) untuk memperbarui.`}
-            className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink border border-warn-ink/25">
-            berubah → {fmt2(liveFinal!)}
+            className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink">
+            berubah <ArrowRight className="w-3 h-3" aria-hidden /> <span className="data-value">{fmt2(liveFinal!)}</span>
           </span>
         )}
       </div>
 
       <button type="button" onClick={() => window.print()}
-        className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-control bg-sidebar hover:opacity-90 text-white">
-        <Download className="w-3.5 h-3.5" /> Unduh PDF
+        className="inline-flex items-center gap-1.5 text-[13px] font-semibold min-h-9 px-3.5 rounded-control border border-line bg-surface text-ink-soft hover:text-ink hover:border-line-strong">
+        <Download className="w-4 h-4" /> Unduh PDF
       </button>
 
       {!canCompute ? (
-        <span className="text-[11px] text-ink-faint italic">KPI & Skor 360° pegawai masih kosong — belum bisa disimpan.</span>
+        <span className="text-xs text-ink-soft italic">KPI & Skor 360° pegawai masih kosong — belum bisa disimpan.</span>
       ) : isFinal ? (
         // FINAL: terkunci. Satu-satunya jalan edit = kembalikan ke draf (dgn konfirmasi).
         <button type="button" disabled={busy !== null} onClick={() => setConfirmRevert(true)}
-          className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-control border border-warn-ink/40 text-warn-ink bg-warn-tint hover:bg-warn-tint/70 disabled:opacity-50">
-          <Undo2 className="w-3.5 h-3.5" /> {busy === 'revert' ? 'Membuka kembali…' : 'Buka Kembali (ke Draf)'}
+          className="inline-flex items-center gap-1.5 text-[13px] font-semibold min-h-9 px-3.5 rounded-control border border-warn-ink/40 text-warn-ink bg-warn-tint hover:bg-warn-tint/70 disabled:opacity-50">
+          <Undo2 className="w-4 h-4" /> {busy === 'revert' ? 'Membuka kembali…' : 'Buka Kembali (ke Draf)'}
         </button>
       ) : (
         // DRAF / DITINJAU SPV: bisa diedit.
         <>
           <button type="button" disabled={busy !== null} onClick={() => run(false, 'draft')}
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-control border border-line text-ink-soft hover:bg-surface disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 text-[13px] font-semibold min-h-9 px-3.5 rounded-control border border-line bg-surface text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-50"
             title="Menyimpan & menghitung ulang Skor Akhir (tetap draf)">
-            <Save className="w-3.5 h-3.5" /> {busy === 'draft' ? 'Menyimpan…' : 'Simpan Draf'}
+            <Save className="w-4 h-4" /> {busy === 'draft' ? 'Menyimpan…' : 'Simpan Draf'}
           </button>
           {status !== 'in_review' && (
             <button type="button" disabled={busy !== null} onClick={release}
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-control border border-line text-ink-soft hover:bg-surface disabled:opacity-50">
-              <Send className="w-3.5 h-3.5" /> {busy === 'release' ? 'Merilis…' : `Rilis ke ${reviewer}`}
+              className="inline-flex items-center gap-1.5 text-[13px] font-semibold min-h-9 px-3.5 rounded-control border border-line bg-surface text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-50">
+              <Send className="w-4 h-4" /> {busy === 'release' ? 'Merilis…' : `Rilis ke ${reviewer}`}
             </button>
           )}
           <button type="button" disabled={busy !== null} onClick={finalGuard}
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
-            <CheckCircle2 className="w-3.5 h-3.5" /> {busy === 'final' ? 'Memfinalisasi…' : 'Finalisasi Hasil'}
+            className="inline-flex items-center gap-1.5 text-[13px] font-bold min-h-9 px-4 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
+            <CheckCircle2 className="w-4 h-4" /> {busy === 'final' ? 'Memfinalisasi…' : 'Finalisasi Hasil'}
           </button>
         </>
       )}
 
       {/* Konfirmasi sebelum menurunkan laporan FINAL → draf (menyembunyikan dari pegawai). */}
       {confirmRevert && (
-        <div className="w-full mt-1 flex flex-wrap items-center gap-2 bg-warn-tint border border-warn-ink/25 rounded-control p-2.5">
-          <span className="flex items-center gap-1.5 text-[11px] font-semibold text-warn-ink mr-auto">
+        <div className="w-full mt-1 flex flex-wrap items-center gap-2 bg-warn-tint rounded-xl px-3.5 py-2.5">
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-warn-ink mr-auto">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>
               Laporan ini <strong>sudah final</strong>. ACC SPV/Direksi akan dihapus dan perlu diulang.
@@ -145,12 +145,12 @@ export function ReportActions({
             </span>
           </span>
           <button type="button" disabled={busy !== null} onClick={() => setConfirmRevert(false)}
-            className="text-[11px] font-bold px-3 py-1.5 rounded-control border border-warn-ink/40 text-warn-ink hover:bg-warn-tint/70">
+            className="text-[13px] font-semibold min-h-9 px-3.5 rounded-control border border-warn-ink/40 bg-surface text-warn-ink hover:border-warn-ink">
             Batal
           </button>
           <button type="button" disabled={busy !== null}
             onClick={async () => { setConfirmRevert(false); await run(false, 'revert'); }}
-            className="text-[11px] font-bold px-3 py-1.5 rounded-control bg-warn-ink hover:opacity-90 text-white">
+            className="text-[13px] font-bold min-h-9 px-4 rounded-control bg-warn-ink hover:opacity-90 text-white">
             Ya, buka kembali
           </button>
         </div>
@@ -158,8 +158,8 @@ export function ReportActions({
 
       {/* Konfirmasi sebelum Finalisasi bila ada masalah (360° usang / KPI belum lengkap). */}
       {confirmFinal && (
-        <div className="w-full mt-1 flex flex-wrap items-center gap-2 bg-warn-tint border border-warn-ink/25 rounded-control p-2.5">
-          <div className="flex items-start gap-1.5 text-[11px] font-semibold text-warn-ink mr-auto">
+        <div className="w-full mt-1 flex flex-wrap items-center gap-2 bg-warn-tint rounded-xl px-3.5 py-2.5">
+          <div className="flex items-start gap-1.5 text-xs font-semibold text-warn-ink mr-auto">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <div>
               Sebelum finalisasi, perhatikan:
@@ -169,19 +169,19 @@ export function ReportActions({
             </div>
           </div>
           <button type="button" disabled={busy !== null} onClick={() => setConfirmFinal(false)}
-            className="text-[11px] font-bold px-3 py-1.5 rounded-control border border-warn-ink/40 text-warn-ink hover:bg-warn-tint/70">
+            className="text-[13px] font-semibold min-h-9 px-3.5 rounded-control border border-warn-ink/40 bg-surface text-warn-ink hover:border-warn-ink">
             Batal (perbaiki dulu)
           </button>
           <button type="button" disabled={busy !== null}
             onClick={async () => { setConfirmFinal(false); await run(true, 'final'); }}
-            className="text-[11px] font-bold px-3 py-1.5 rounded-control bg-brand hover:bg-brand-ink text-white">
+            className="text-[13px] font-bold min-h-9 px-4 rounded-control bg-brand hover:bg-brand-ink text-white">
             Ya, finalisasi
           </button>
         </div>
       )}
 
       {msg && (
-        <span className={`w-full text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>
+        <span className={`w-full text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>
       )}
     </div>
   );

@@ -4,7 +4,9 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { AlertTriangle } from 'lucide-react';
 import { SearchableSelect } from '@/components/searchable-select';
+import { FIELD, FIELD_LABEL } from '@/components/infarm-ui';
 import { PasswordInput } from '@/components/password-input';
 import { LOGIN_FAILED } from '@/lib/auth/login-messages';
 import type { LoginOption } from '@/lib/auth/login-roster';
@@ -84,11 +86,11 @@ export function LoginForm({ next, users }: { next: string; users: LoginOption[] 
         <>
           {/* Peran = penyaring opsional. <select> native → andal di semua HP. */}
           <div>
-            <label className="block text-xs font-semibold text-ink-soft mb-1">Peran (opsional)</label>
+            <label className={FIELD_LABEL}>Peran (opsional)</label>
             <select
               value={role}
               onChange={(e) => { setRole(e.target.value); setLoginId(''); }}
-              className="w-full text-sm px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
+              className={`w-full ${FIELD}`}
             >
               <option value="">— Semua Peran —</option>
               {roles.map((r) => <option key={r} value={r}>{ROLE_LABEL[r] ?? r}</option>)}
@@ -98,7 +100,7 @@ export function LoginForm({ next, users }: { next: string; users: LoginOption[] 
               hilang. Combobox dgn PENCARIAN DI DALAM dropdown; tiap opsi menyertakan PERAN.
               Bila combobox bermasalah di perangkat tertentu, tersedia "email manual" di bawah. */}
           <div>
-            <label className="block text-xs font-semibold text-ink-soft mb-1">Nama Pegawai</label>
+            <label className={FIELD_LABEL}>Nama Pegawai</label>
             <SearchableSelect
               value={loginId}
               onChange={(val) => {
@@ -110,13 +112,13 @@ export function LoginForm({ next, users }: { next: string; users: LoginOption[] 
               options={nameOptions}
               placeholder="— Pilih / Cari Nama —"
               searchPlaceholder="Cari nama / divisi…"
-              className="text-sm px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
+              className={FIELD}
             />
           </div>
         </>
       ) : (
         <div>
-          <label className="block text-xs font-semibold text-ink-soft mb-1">Email</label>
+          <label className={FIELD_LABEL}>Email</label>
           <input
             type="email"
             required
@@ -124,22 +126,22 @@ export function LoginForm({ next, users }: { next: string; users: LoginOption[] 
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="nama@infarm.test"
-            className="w-full text-sm px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint"
+            className={`w-full ${FIELD}`}
           />
         </div>
       )}
 
       <div>
-        <label className="block text-xs font-semibold text-ink-soft mb-1">Sandi</label>
+        <label className={FIELD_LABEL}>Sandi</label>
         <PasswordInput autoComplete="current-password" value={password} onChange={setPassword} />
       </div>
 
-      {error && <p className="text-xs text-danger-ink font-semibold">{error}</p>}
+      {error && <p className="flex items-start gap-1.5 rounded-control bg-danger-tint px-3 py-2 text-xs text-danger-ink font-semibold"><AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden />{error}</p>}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand hover:bg-brand-ink disabled:opacity-60 text-white text-sm font-bold py-2 rounded-control transition-colors"
+        className="w-full min-h-9 bg-brand hover:bg-brand-ink disabled:opacity-60 text-white text-[13px] font-bold rounded-xl transition-colors"
       >
         {loading ? 'Memproses…' : 'Masuk'}
       </button>
@@ -147,18 +149,18 @@ export function LoginForm({ next, users }: { next: string; users: LoginOption[] 
       <button
         type="button"
         onClick={() => { setManual((v) => !v); setEmail(''); setLoginId(''); setRole(''); setError(null); }}
-        className="w-full text-[11px] text-ink-faint hover:text-ink-soft hover:underline"
+        className="w-full text-xs text-ink-soft hover:text-brand hover:underline"
       >
         {manual ? '← Pilih dari daftar' : 'Masuk dengan email manual'}
       </button>
 
       {PW_RESET_ON ? (
-        <Link href="/auth/lupa-sandi" className="block text-center text-[11px] text-brand-ink hover:underline">
+        <Link href="/auth/lupa-sandi" className="block text-center text-xs font-semibold text-brand-ink hover:underline">
           Lupa sandi?
         </Link>
       ) : (
-        <p className="text-center text-[11px] text-ink-faint">
-          Lupa sandi? <span className="font-semibold text-ink-soft">Hubungi HRD untuk reset.</span>
+        <p className="text-center text-xs text-ink-soft">
+          Lupa sandi? <span className="font-semibold text-ink">Hubungi HRD untuk reset.</span>
         </p>
       )}
     </form>

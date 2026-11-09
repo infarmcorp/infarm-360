@@ -5,6 +5,9 @@ import { loadReportForDireksiReview } from '@/lib/report';
 import { ReportDoc } from '@/app/(app)/laporan/report-doc';
 import { AspectSummaryView } from '@/app/(app)/laporan/aspect-summary-view';
 import { RawFeedback } from '@/app/(app)/laporan/raw-feedback';
+import { ArrowLeft } from 'lucide-react';
+import { CARD } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 const QUAL_TITLE = 'Ringkasan Umpan Balik Kualitatif 360°';
 const QUAL_INTRO = 'Rangkuman kalibrasi HRD atas jawaban pertanyaan kualitatif (esai) 360° — anonim, tanpa identitas penilai.';
@@ -21,28 +24,27 @@ export default async function ReviewHasilDetailPage({ params }: { params: Promis
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role').eq('id', user.id).maybeSingle();
   if (me?.role !== 'direksi') {
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk Direksi.</p>
-      <Link href="/" className="text-xs text-brand-ink font-semibold hover:underline mt-3 inline-block">← Kembali ke halaman awal</Link></Shell>;
+    return <Shell><p className={MSG}>Halaman ini untuk Direksi.</p></Shell>;
   }
 
   const { data: ap } = await supabase
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><p className="text-sm text-ink-soft">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><p className={MSG}>Tidak ada periode aktif.</p></Shell>;
 
   const data = await loadReportForDireksiReview(user.id, employeeId, ap);
   if (!data) {
     return (
       <Shell>
-        <Link href="/review-hasil" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Tinjauan Hasil Akhir</Link>
-        <p className="text-sm text-ink-soft mt-3">Data tidak ditemukan.</p>
+        <BackLink href="/review-hasil">Tinjauan Hasil Akhir</BackLink>
+        <p className={MSG}>Data tidak ditemukan.</p>
       </Shell>
     );
   }
 
   return (
     <Shell>
-      <Link href="/review-hasil" className="text-xs text-ink-faint hover:text-ink-soft no-print">← Tinjauan Hasil Akhir</Link>
-      <div className="mt-2">
+      <BackLink href="/review-hasil">Tinjauan Hasil Akhir</BackLink>
+      <div>
         {/* Anonim + sembunyikan blok per-penilai bernama (L3 sudah dibuang di loader). */}
         <ReportDoc data={data} anonymize hideAssessorComments />
         {data.has360 && <AspectSummaryView summaries={data.aspectSummaries} />}
@@ -53,11 +55,23 @@ export default async function ReviewHasilDetailPage({ params }: { params: Promis
   );
 }
 
+// Pesan status = kartu putih Design System Infarm.
+const MSG = `${CARD} text-[13px] text-ink-soft`;
+
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    // Kanvas ber-token + satu panel datar (pola detail laporan /laporan/[employeeId]).
-    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
-      <div className="bg-surface border border-line rounded-panel p-5">{children}</div>
+    // Kanvas Design System Infarm (pola detail laporan /laporan/[employeeId]); cetak = latar putih.
+    <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7 print:bg-white print:p-0`}>
+      <div>{children}</div>
     </main>
+  );
+}
+
+/** Tautan kembali ke daftar (tak ikut dicetak). */
+function BackLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className="no-print mb-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-soft hover:text-brand">
+      <ArrowLeft className="w-4 h-4" aria-hidden /> {children}
+    </Link>
   );
 }

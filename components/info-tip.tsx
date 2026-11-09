@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Info } from 'lucide-react';
 
 /**
- * Tooltip bantuan inline — ikon "ⓘ" kecil yang memunculkan 1 kalimat penjelasan.
+ * Tooltip bantuan inline — ikon info (lucide) kecil yang memunculkan 1 kalimat penjelasan.
  * Aksesibel: muncul saat hover, fokus keyboard, ATAU tap (mobile).
  *
  * POSISI: balon dirender lewat PORTAL ke <body> dengan `position: fixed`, BUKAN absolute di
@@ -56,16 +57,16 @@ export function InfoTip({ text, label }: { text: string; label?: string }) {
         onMouseLeave={() => setOpen(false)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
-        className="ml-1 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-line-strong text-[9px] font-bold leading-none text-ink-faint hover:border-ink-faint hover:text-ink-soft"
+        className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-ink-faint hover:text-brand"
       >
-        i
+        <Info className="h-3.5 w-3.5" aria-hidden />
       </button>
       {open && pos && typeof document !== 'undefined' && createPortal(
         <span
           role="tooltip"
           id={id}
           style={{ top: pos.top, left: pos.left, width: TIP_W }}
-          className="fixed z-50 rounded-panel bg-ink p-2.5 text-[11px] font-normal normal-case leading-snug tracking-normal whitespace-normal break-words text-white shadow-lg"
+          className="fixed z-50 rounded-xl bg-ink px-3 py-2.5 text-xs font-normal normal-case leading-snug tracking-normal whitespace-normal break-words text-white shadow-card"
         >
           {text}
         </span>,

@@ -5,6 +5,7 @@ import { colPercents } from '@/lib/table-cols';
 
 import { useMemo, useState } from 'react';
 import { usePager, StableHeight, Pager, CheckboxFilter } from '@/components/table-controls';
+import { TABLE_HEAD } from '@/components/infarm-ui';
 
 /**
  * Tabel Kalkulasi Skor 360° — SATU tabel fokus bobot, dengan grup kolom "Perbandingan Model"
@@ -24,7 +25,7 @@ export type MergedRow = {
 };
 
 const fmt = (n: number | null) => (n != null ? fmt2(n) : '—');
-const deltaCls = (d: number | null) => (d == null || d === 0 ? 'text-ink-faint' : d > 0 ? 'text-brand-ink' : 'text-danger-ink');
+const deltaCls = (d: number | null) => (d == null || d === 0 ? 'text-ink-soft' : d > 0 ? 'text-brand-ink' : 'text-danger-ink');
 const deltaTxt = (d: number | null) => (d == null ? '—' : d === 0 ? '0' : `${d > 0 ? '+' : ''}${fmt2(d)}`);
 
 export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
@@ -36,16 +37,16 @@ export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
   const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(filtered);
 
   if (rows.length === 0) {
-    return <p className="text-sm text-ink-soft">Belum ada data. Jalankan <strong className="font-semibold text-ink">Hitung Ulang Skor 360°</strong> di Review &amp; Finalisasi setelah ada penilaian terkirim.</p>;
+    return <p className="text-[13px] text-ink-soft">Belum ada data. Jalankan <strong className="font-semibold text-ink">Hitung Ulang Skor 360°</strong> di Review &amp; Finalisasi setelah ada penilaian terkirim.</p>;
   }
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-[11.5px] text-ink-soft">
+        <span className="text-xs text-ink-soft">
           {overrideCount > 0
-            ? <><strong className="data-value text-brand-ink">{overrideCount}</strong> pegawai berbobot khusus · sisanya bobot global (<span className="data-value">{globalLabel}</span>)</>
-            : <>Semua pegawai memakai bobot global (<span className="data-value">{globalLabel}</span>)</>}
+            ? <><strong className="font-mono text-brand-ink">{overrideCount}</strong> pegawai berbobot khusus · sisanya bobot global (<span className="font-mono">{globalLabel}</span>)</>
+            : <>Semua pegawai memakai bobot global (<span className="font-mono">{globalLabel}</span>)</>}
         </span>
         {overrideCount > 0 && (
           <CheckboxFilter
@@ -57,9 +58,9 @@ export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
       </div>
 
       <StableHeight>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-xl border border-line">
         {/* table-fixed + colgroup: lebar kolom TETAP antar halaman/filter (tak bergeser saat paging). */}
-        <table className="w-full table-fixed table-1line text-left text-sm min-w-[660px]">
+        <table className="w-full table-fixed table-1line text-left text-[13px] min-w-[660px]">
           <colgroup>
             {colPercents([
               230, // Pegawai + divisi
@@ -72,50 +73,50 @@ export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
           </colgroup>
           <thead>
             {/* Header grup: bobot-fokus | (pemisah) perbandingan model */}
-            <tr className="text-[10px] uppercase tracking-[0.05em] text-ink-faint">
-              <th className="py-1.5 pr-3 font-semibold" colSpan={3}>Bobot &amp; Skor</th>
-              <th className="py-1.5 px-3 text-center border-l border-line font-semibold" colSpan={3}>Perbandingan Model (bobot global)</th>
+            <tr className="text-[10px] font-bold uppercase tracking-[0.08em] text-ink-soft bg-infarm-surface">
+              <th className="pt-2 pb-1 px-3" colSpan={3}>Bobot &amp; Skor</th>
+              <th className="pt-2 pb-1 px-3 text-center border-l border-line" colSpan={3}>Perbandingan Model (bobot global)</th>
             </tr>
-            <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
-              <th className="py-2 pr-3 font-semibold">Pegawai</th>
+            <tr className={`${TABLE_HEAD} border-b border-line`}>
+              <th className="py-2 px-3 font-semibold">Pegawai</th>
               <th className="py-2 px-3 font-semibold">Bobot dipakai</th>
               <th className="py-2 px-3 text-right font-semibold">Skor Resmi</th>
-              <th className="py-2 px-3 text-right border-l border-line font-semibold">4-Kelas{model === '4class' ? ' ●' : ''}</th>
-              <th className="py-2 px-3 text-right font-semibold">2-Kelas{model === '2class' ? ' ●' : ''}</th>
-              <th className="py-2 pl-3 text-right font-semibold">Δ Model</th>
+              <th className="py-2 px-3 text-right border-l border-line font-semibold">4-Kelas{model === '4class' && <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand ml-1.5 align-middle" title="Model aktif" />}</th>
+              <th className="py-2 px-3 text-right font-semibold">2-Kelas{model === '2class' && <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand ml-1.5 align-middle" title="Model aktif" />}</th>
+              <th className="py-2 px-3 text-right font-semibold">Δ Model</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line-soft">
             {shown.map((r) => {
               const dModel = r.s4 != null && r.s2 != null ? Math.round((r.s4 - r.s2) * 100) / 100 : null;
               return (
-                <tr key={r.id} className={r.hasOverride ? 'bg-brand-tint/50' : ''}>
-                  <td className="py-3 pr-3 break-words">
+                <tr key={r.id} className={r.hasOverride ? 'bg-brand-tint/50' : 'hover:bg-infarm-surface'}>
+                  <td className="py-2.5 px-3 break-words">
                     <span className="font-bold text-ink block">{r.name}</span>
-                    <span className="text-[11px] text-ink-faint">{r.dept}</span>
+                    <span className="text-xs text-ink-soft">{r.dept}</span>
                   </td>
-                  <td className="py-3 px-3 break-words">
+                  <td className="py-2.5 px-3 break-words">
                     {r.hasOverride ? (
                       <span className="inline-flex flex-col gap-0.5">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-brand-ink bg-brand-tint border border-brand/20 rounded-full px-2 py-0.5 w-fit">Khusus</span>
-                        <span className="text-[10px] text-ink-faint data-value">{r.overrideLabel}</span>
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-ink bg-brand-tint rounded-full px-2 py-0.5 w-fit">Khusus</span>
+                        <span className="text-[11px] text-ink-soft font-mono">{r.overrideLabel}</span>
                         {r.deltaWeight != null && (
-                          <span className={`text-[10px] font-semibold ${deltaCls(r.deltaWeight)}`}>vs default: <span className="data-value">{deltaTxt(r.deltaWeight)}</span></span>
+                          <span className={`text-[11px] font-semibold ${deltaCls(r.deltaWeight)}`}>vs default: <span className="font-mono">{deltaTxt(r.deltaWeight)}</span></span>
                         )}
                       </span>
                     ) : (
-                      <span className="text-[11px] text-ink-faint">Default</span>
+                      <span className="inline-flex text-[11px] font-semibold text-ink-soft bg-neutral-tint rounded-full px-2 py-0.5">Default</span>
                     )}
                   </td>
-                  <td className="py-3 px-3 text-right data-value font-bold text-brand-ink">{fmt(r.scoreResmi)}</td>
-                  <td className={`py-3 px-3 text-right data-value border-l border-line ${model === '4class' ? 'font-bold text-brand-ink' : 'text-ink-soft'}`}>{fmt(r.s4)}</td>
-                  <td className={`py-3 px-3 text-right data-value ${model === '2class' ? 'font-bold text-brand-ink' : 'text-ink-soft'}`}>{fmt(r.s2)}</td>
-                  <td className={`py-3 pl-3 text-right data-value font-bold ${deltaCls(dModel)}`}>{deltaTxt(dModel)}</td>
+                  <td className="py-2.5 px-3 text-right font-mono font-bold text-brand-ink">{fmt(r.scoreResmi)}</td>
+                  <td className={`py-2.5 px-3 text-right font-mono border-l border-line ${model === '4class' ? 'font-bold text-brand-ink' : 'text-ink-soft'}`}>{fmt(r.s4)}</td>
+                  <td className={`py-2.5 px-3 text-right font-mono ${model === '2class' ? 'font-bold text-brand-ink' : 'text-ink-soft'}`}>{fmt(r.s2)}</td>
+                  <td className={`py-2.5 px-3 text-right font-mono font-bold ${deltaCls(dModel)}`}>{deltaTxt(dModel)}</td>
                 </tr>
               );
             })}
             {shown.length === 0 && (
-              <tr><td colSpan={6} className="py-6 text-center text-ink-faint italic">Tak ada pegawai berbobot khusus.</td></tr>
+              <tr><td colSpan={6} className="py-6 text-center text-ink-soft">Tak ada pegawai berbobot khusus.</td></tr>
             )}
           </tbody>
         </table>
@@ -124,7 +125,7 @@ export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
       </StableHeight>
 
-      <p className="text-[11px] text-ink-faint leading-relaxed">
+      <p className="text-xs text-ink-soft leading-relaxed">
         <strong className="font-semibold text-ink-soft">Skor Resmi</strong> = hasil tersimpan (result_360) dari Hitung Ulang terakhir — dipakai dashboard/laporan.
         <strong className="font-semibold text-ink-soft"> vs default</strong> = dampak bobot khusus (simulasi: skor bobot khusus − skor bobot global). <strong className="font-semibold text-ink-soft">Perbandingan Model</strong> =
         simulasi 4/2-Kelas memakai bobot global periode (Δ Model = 4-Kelas − 2-Kelas); tak mengubah data.

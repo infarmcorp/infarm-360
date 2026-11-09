@@ -163,7 +163,7 @@ Hanya `VERCEL_ENV=production` — Preview `dev` & lokal tak pernah terkunci (Edg
 production & Preview). Edge Config gagal dibaca / belum di-Connect → dianggap **mati**. Bypass: banding
 waktu-konstan, cookie httpOnly 12 jam. Diuji `tests/maintenance.test.ts`.
 
-**A. Rilis kode (sekali):** PR `dev` → `main` → merge (cek isi PDF panduan yang ikut) → tunggu deploy.
+**A. Rilis kode (sekali):** PR `dev` → `main` → merge → tunggu deploy.
 
 **B. Persiapan Edge Config (sekali, setelah A):**
 1. Vercel → project → **Storage** → **Create Database** → **Edge Config** → nama mis. `infarm-maintenance` → **Create**.
@@ -330,6 +330,22 @@ akses bawaan peran tetap; grant hanya menambah atau mencabut. Katalog **tetap** 
 
 Mengubah izin (HRD Admin, bagian HRD, Koordinator + tim) & akun HRD/Direksi (ubah, nonaktifkan, reset sandi)
 hanya HRD berakses penuh; tak ada yang bisa mengubah izin dirinya sendiri (trigger `employees_guard_privileges`).
+
+### 5.0 Cek sesi per request (hemat Log Ingestion Supabase, 2026-11-05)
+Kuota Log Ingestion organisasi habis oleh `GET /auth/v1/user` dari server. Diukur di staging (alur sama, akun HRD
+Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
+- **Proxy** (`lib/supabase/middleware.ts`) = gerbang redirect + refresh sesi: `auth.getClaims()` (verifikasi tanda tangan
+  JWT lokal dengan JWKS ES256, cache ±10 menit; HS256/tanpa `kid` → otomatis jatuh ke `getUser()`), tolak bila tak ada
+  `sub`. `setAll` meneruskan header anti-cache dari `@supabase/ssr`. Tak menangkap sesi yang dicabut sebelum token
+  kedaluwarsa (≤ 1 jam) — karena itu:
+- **Tiap halaman & Server Action tetap `auth.getUser()`** (terverifikasi ke server Auth) sebelum membaca data. Jangan
+  ganti ke `getClaims`/`getSession` di sana. Layout + page dalam satu render otomatis digabung oleh memoisasi fetch Next
+  (terukur: 1 panggilan per render) — `cache()` tak menambah hemat.
+- **`<Link prefetch={false}>`** di menu sidebar, Tugas, tab halaman (`pillCls`), daftar target `/penilaian`, dan nama di
+  `team-table.tsx`: tiap prefetch melewati proxy (dulu = 1 panggilan Auth; menu sidebar sendiri ±80% panggilan).
+- `/api/version` publik (cocok persis, `isPublicPath`, diuji `tests/session-public-paths.test.ts`) — isinya hanya SHA
+  commit. ActionGuard memberi jeda ≥ 60 detik antar-cek.
+- Auto-simpan draf 360° tetap `revalidatePath` (sengaja): tanpa itu tombol Back browser menampilkan progres lama.
 
 ### 5.2 `page_grants`
 - Kolom: `employee_id`, `section`, `scope` (lama, = `scopes[0]`, tetap ditulis sinkron), `scopes text[]`,
@@ -661,22 +677,11 @@ Ekspor Dataset Excel = cadangan parsial, bukan pengganti dump.
 
 ## 9. PDF panduan in-app
 
-Folder `public/panduan/` — dipakai sebagai lampiran email Undangan dan unduhan "Panduan Pengguna" di
-Akun Saya. Pemetaan peran → file di `lib/panduan.ts` (sumber tunggal; nama tampil di `PANDUAN_PDF`).
+**Dihapus 2026-11-06.** Unduhan di Akun Saya, badge-nya, lampiran email Undangan, keempat berkas `public/panduan/`, dan
+pengecualian sesi `/panduan` sudah dihapus karena isi PDF usang. Berkas lama ada di riwayat git. Kelak Akun Saya menaut ke
+panduan Notion per peran.
 
-| Penerima | File (nama WAJIB persis) |
-|---|---|
-| Pegawai tanpa grant Koordinator | `panduan-pegawai.pdf` |
-| SPV **dan** pemegang grant Koordinator | `panduan-spv-koor.pdf` |
-| HRD Admin (role `hrd` atau `is_hrd_admin`) | `panduan-hrd.pdf` |
-| Direksi | `panduan-direksi.pdf` |
-
-- File belum ada → email tetap terkirim tanpa lampiran.
 - Isi `public/` dapat diunduh siapa pun yang tahu tautannya → jangan taruh dokumen rahasia (atau `.md`) di sana.
-- **Memperbarui:** sunting dokumen sumber Word (tidak disimpan di repo; ada di penyimpanan tim HRD) → ekspor
-  PDF dengan nama persis → timpa → naikkan `PANDUAN_VERSION` & `PANDUAN_UPDATED_LABEL` (badge "BARU" di Akun
-  Saya) → commit & deploy → cek unduhan tiap peran. Daftar revisi isi yang tertunda:
-  [panduan/REVISI-PANDUAN-PDF.md](panduan/REVISI-PANDUAN-PDF.md).
 
 ---
 

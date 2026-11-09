@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { CheckCircle2, Circle, CircleDot, MinusCircle, AlertTriangle, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Circle, CircleDot, MinusCircle, AlertTriangle, ArrowRight, ListChecks } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
+import { CARD, CardTitle } from '@/components/infarm-ui';
 
 /**
  * Status Siklus — TAHAP periode aktif (peta alur end-to-end) + "apa yang memblokir finalisasi".
@@ -25,9 +26,9 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
   if (!ap) {
     if (variant === 'summary') return null;
     return (
-      <div className="rounded-panel border border-line bg-surface p-4">
-        <h3 className="text-[14.5px] font-bold text-ink">Status Siklus</h3>
-        <p className="mt-1.5 text-[13px] text-ink-soft">
+      <div className={CARD}>
+        <CardTitle icon={ListChecks}>Status Siklus</CardTitle>
+        <p className="mt-2 text-[13px] text-ink-soft">
           Belum ada periode aktif, jadi belum ada siklus yang berjalan. Buat atau aktifkan periode
           di tab <Link href="/admin/periode" className="font-semibold text-brand-ink hover:underline">Kelola Periode</Link>.
         </p>
@@ -115,9 +116,9 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
   const doneCount = stages.filter((s) => s.status === 'done' || s.status === 'skipped').length;
 
   const header = (
-    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-      <h3 className="text-[14.5px] font-bold text-ink">Status Siklus — {ap.label}</h3>
-      <span className="text-[12px] text-ink-faint">
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+      <CardTitle icon={ListChecks}>Status Siklus — {ap.label}</CardTitle>
+      <span className="text-[12px] text-ink-soft">
         Mode 360°:{' '}
         {has360
           ? <strong className="font-semibold text-brand-ink">Aktif</strong>
@@ -139,7 +140,7 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
           }`} />
         ))}
       </div>
-      <span className="shrink-0 text-[11.5px] text-ink-faint">
+      <span className="shrink-0 text-[12px] text-ink-soft">
         <span className="data-value font-bold text-ink-soft">{doneCount}</span>/<span className="data-value">{stages.length}</span> langkah
       </span>
     </div>
@@ -147,21 +148,23 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
 
   const blockerBlock = (
     <div className="mt-4 pt-3.5 border-t border-line-soft">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <AlertTriangle className={`w-3.5 h-3.5 ${blockers.length ? 'text-warn' : 'text-brand'}`} />
-        <h4 className="text-[12px] font-bold text-ink">
+      <div className="flex items-center gap-1.5 mb-2">
+        {blockers.length
+          ? <AlertTriangle className="w-4 h-4 text-warn-ink" />
+          : <CheckCircle2 className="w-4 h-4 text-brand" />}
+        <h4 className="text-[12px] font-bold uppercase tracking-[0.08em] text-ink">
           Apa yang memblokir finalisasi{blockers.length > 0 && <span className="data-value"> ({blockers.length})</span>}
         </h4>
       </div>
       {blockers.length === 0 ? (
-        <p className="text-[12px] text-brand-ink font-semibold">Tak ada penghalang — siap difinalisasi &amp; dikunci. 🎉</p>
+        <p className="text-[13px] text-brand-ink font-semibold">Tak ada penghalang — siap difinalisasi &amp; dikunci.</p>
       ) : (
         <ul className="space-y-1.5">
           {blockers.map((b, i) => (
             <li key={i}>
-              <Link href={b.href} className="flex items-center justify-between gap-3 rounded-control border border-warn-ink/25 bg-warn-tint px-3 py-2 text-[12px] font-semibold text-warn-ink hover:brightness-97">
+              <Link href={b.href} className="flex items-center justify-between gap-3 rounded-xl bg-warn-tint px-3.5 py-2.5 text-[13px] font-semibold text-warn-ink hover:brightness-97">
                 <span>{b.label}</span>
-                <span className="text-[11px] font-bold opacity-70 shrink-0">Selesaikan →</span>
+                <span className="inline-flex items-center gap-1 text-[12px] font-bold shrink-0">Selesaikan <ArrowRight className="w-3.5 h-3.5" /></span>
               </Link>
             </li>
           ))}
@@ -174,25 +177,25 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
   // pindah ke sub-tab "Status Siklus" agar halaman utama tak lagi memanjang & melebar.
   if (variant === 'summary') {
     return (
-      <div className="mb-5 max-w-5xl rounded-panel border border-line bg-surface p-5">
+      <div className={`${CARD} mb-4 max-w-5xl`}>
         {header}
         {progress}
-        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-control bg-brand-tint/50 border border-brand/25 px-3 py-2">
-          <span className="text-[12.5px] text-ink">
-            <span className="text-ink-faint">Tahap kini: </span>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-brand-tint px-3.5 py-2.5">
+          <span className="text-[13px] text-ink">
+            <span className="text-ink-soft">Tahap kini: </span>
             <strong className="font-bold">{current?.label ?? 'Siap dikunci'}</strong>
-            {current?.detail && <span className="text-ink-faint"> · {current.detail}</span>}
+            {current?.detail && <span className="text-ink-soft"> · {current.detail}</span>}
           </span>
           {current?.href && (
-            <Link href={current.href} className="shrink-0 inline-flex items-center gap-1 text-[11.5px] font-bold text-brand-ink hover:underline">
-              Buka <ArrowRight className="w-3 h-3" />
+            <Link href={current.href} className="shrink-0 inline-flex items-center gap-1 text-[12px] font-bold text-brand-ink hover:underline">
+              Buka <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           )}
         </div>
         {blockerBlock}
         <div className="mt-3.5">
           <Link href="/admin/periode?tab=siklus"
-            className="inline-flex items-center gap-1 text-[12px] font-bold text-brand-ink hover:underline">
+            className="inline-flex items-center gap-1 text-[13px] font-bold text-brand-ink hover:underline">
             Lihat {stages.length} langkah siklus <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
@@ -204,14 +207,14 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
   // tanpa bingkai per langkah (hanya tahap kini yang diberi latar) → 10 langkah cukup 4 baris.
   // Urutan mengalir per-baris (1·2·3 / 4·5·6 / …), jadi tetap terbaca kiri→kanan sesuai tahapan.
   return (
-    <div className="rounded-panel border border-line bg-surface p-4">
+    <div className={CARD}>
       {header}
       {progress}
 
       <ol className="mt-3.5 grid gap-x-5 gap-y-0.5 sm:grid-cols-2 lg:grid-cols-3">
         {stages.map((s, i) => (
-          <li key={i} className={`flex items-start gap-2 rounded-control px-2 py-1.5 ${
-            s.status === 'current' ? 'bg-brand-tint/60 ring-1 ring-brand/30' : ''
+          <li key={i} className={`flex items-start gap-2 rounded-xl px-2.5 py-2 ${
+            s.status === 'current' ? 'bg-brand-tint' : ''
           }`}>
             <span className="mt-0.5 shrink-0">
               {s.status === 'done' ? <CheckCircle2 className="w-4 h-4 text-brand" />
@@ -220,14 +223,14 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
                 : <Circle className="w-4 h-4 text-line-strong" />}
             </span>
             <div className="min-w-0 flex-1">
-              <div className={`text-[12.5px] font-semibold leading-tight ${
-                s.status === 'skipped' ? 'text-ink-faint' : s.status === 'todo' ? 'text-ink-soft' : 'text-ink'
+              <div className={`text-[13px] font-semibold leading-tight ${
+                s.status === 'skipped' || s.status === 'todo' ? 'text-ink-soft' : 'text-ink'
               }`}>{s.label}</div>
-              {s.detail && <div className={`text-[11px] leading-tight ${s.status === 'skipped' ? 'text-ink-faint italic' : 'text-ink-faint'}`}>{s.detail}</div>}
+              {s.detail && <div className={`mt-0.5 text-[12px] leading-tight text-ink-soft ${s.status === 'skipped' ? 'italic' : ''}`}>{s.detail}</div>}
             </div>
             {s.href && s.status !== 'skipped' && (
-              <Link href={s.href} className="shrink-0 mt-0.5 inline-flex items-center gap-1 text-[11px] font-bold text-brand-ink hover:underline">
-                Buka <ArrowRight className="w-3 h-3" />
+              <Link href={s.href} className="shrink-0 mt-0.5 inline-flex items-center gap-1 text-[12px] font-bold text-brand-ink hover:underline">
+                Buka <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             )}
           </li>

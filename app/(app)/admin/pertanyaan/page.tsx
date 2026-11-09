@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
+import { FileQuestion, Layers } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import { IndicatorManager } from './indicator-manager';
@@ -8,7 +8,8 @@ import { AddAspectForm } from './add-aspect-form';
 import { QualManager } from './qual-manager';
 import { CopyQuestionsForm } from './copy-questions-form';
 import { EmptyState } from '@/components/empty-state';
-import { Panel, PanelLabel } from '@/components/panel';
+import { CARD, CardTitle, Note, PageTitle } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 /**
  * Kelola Pertanyaan (HRD): indikator kuantitatif per aspek + pertanyaan kualitatif
@@ -20,8 +21,7 @@ export default async function PertanyaanPage() {
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'pertanyaan')) {
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin.</p>
-      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><div className={CARD}><p className="text-[13px] text-ink-soft">Halaman ini hanya untuk HRD Admin.</p></div></Shell>;
   }
 
   const { data: ap } = await supabase
@@ -29,7 +29,7 @@ export default async function PertanyaanPage() {
   if (!ap) return (
     <Shell>
       <EmptyState
-        icon="📝"
+        icon={<FileQuestion className="w-6 h-6" />}
         title="Belum ada periode aktif"
         description="Pertanyaan (indikator & esai) disusun per periode aktif. Aktifkan periode dulu untuk mengelolanya."
         actions={[{ label: 'Ke Kelola Periode', href: '/admin/periode', primary: true }]}
@@ -80,23 +80,17 @@ export default async function PertanyaanPage() {
 
   return (
     <Shell>
-      <div className="flex items-start justify-between mb-7">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Kelola Pertanyaan</h1>
-          <p className="text-[13.5px] text-ink-soft mt-1">
-            Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span> · indikator (rating 1–5) &amp; esai. Perubahan langsung tampil di form penilaian.
-          </p>
-        </div>
-        <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
-      </div>
+      <PageTitle title="Kelola Pertanyaan">
+        Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span> · indikator (rating 1–5) &amp; esai. Perubahan langsung tampil di form penilaian.
+      </PageTitle>
 
       <CopyQuestionsForm sources={sourcePeriods} />
 
-      <Panel className="mt-5">
-        <div className="flex items-center justify-between gap-2 mb-4">
-          <PanelLabel>Aspek &amp; Indikator Kuantitatif</PanelLabel>
-          <span className="text-[11.5px] text-ink-faint">
-            <span className="data-value font-semibold text-ink-soft">{aspectList.length}</span> aspek
+      <div className={`${CARD} mt-4`}>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <CardTitle icon={Layers}>Aspek &amp; Indikator Kuantitatif</CardTitle>
+          <span className="shrink-0 rounded-full bg-neutral-tint px-2.5 py-0.5 text-[12px] text-ink-soft">
+            <span className="data-value font-semibold text-ink">{aspectList.length}</span> aspek
           </span>
         </div>
 
@@ -121,20 +115,20 @@ export default async function PertanyaanPage() {
         )}
 
         {aspectList.length > 0 && <AddIndicatorForm aspects={aspectList.map((a) => ({ id: a.id, name: a.name }))} />}
-      </Panel>
+      </div>
 
-      <Panel className="mt-5">
+      <div className={`${CARD} mt-4`}>
         <QualManager questions={(quals ?? []).map((q) => ({ id: q.id, text: q.text }))} />
-      </Panel>
+      </div>
 
-      <p className="text-[12px] text-ink-faint mt-5 leading-relaxed">
-        Indikator <strong className="font-semibold text-ink-soft">dinonaktifkan</strong> (bukan dihapus) agar skor historis tetap utuh — yang nonaktif
+      <div className="mt-4"><Note>
+        Indikator <strong className="font-semibold text-ink">dinonaktifkan</strong> (bukan dihapus) agar skor historis tetap utuh — yang nonaktif
         tak muncul di form penilaian baru. Pertanyaan esai dihapus permanen (beserta jawabannya).
-      </p>
+      </Note></div>
     </Shell>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
+  return <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>{children}</main>;
 }

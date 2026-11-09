@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { setAssessmentDeadline } from './actions';
 import { toWibInput } from '@/lib/late';
+import { FIELD } from '@/components/infarm-ui';
 
 /**
  * Editor inline DEADLINE penilaian 360° (WIB). Simpan saat blur bila berubah; kosongkan =
@@ -37,11 +38,11 @@ export function DeadlineEditor({ periodId, value }: { periodId: string; value: s
           onChange={(e) => setVal(e.target.value)}
           onBlur={save}
           onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
-          className="text-[12px] data-value px-1.5 py-1.5 border border-line rounded-control text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint disabled:opacity-50"
+          className={`${FIELD} data-value disabled:opacity-50`}
         />
-        <span className="text-[10px] text-ink-faint">WIB</span>
+        <span className="text-[12px] text-ink-soft">WIB</span>
       </div>
-      {err && <span className="text-[10px] text-danger-ink max-w-[200px]">{err}</span>}
+      {err && <span className="text-[12px] text-danger-ink max-w-[200px]">{err}</span>}
     </div>
   );
 }

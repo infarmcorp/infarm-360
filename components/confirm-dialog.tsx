@@ -1,11 +1,16 @@
 'use client';
 
 import { useEffect } from 'react';
+import { AlertTriangle, Info } from 'lucide-react';
+import { renderIcon } from '@/components/emoji-icon';
 
 /**
- * Dialog konfirmasi in-app (pengganti window.confirm bawaan browser) — tampilan
- * bergaya aplikasi: overlay + kartu, tombol Batal/konfirmasi. Esc & klik luar = batal.
+ * Dialog konfirmasi in-app (pengganti window.confirm bawaan browser) — kartu mengambang Design System
+ * Infarm di atas overlay, tombol Batal/konfirmasi. Esc & klik luar = batal.
  * Dipakai untuk aksi penting (mis. Kunci & Akhiri / Aktivasi Periode).
+ *
+ * `icon`: pemanggil lama mengisi emoji (⚠️ ✅ 🔄 …) — dipetakan ke ikon lucide (lihat emoji-icon.tsx), jadi
+ * emoji tak pernah tampil. Elemen React (mis. `<Mail />`) juga diterima.
  */
 export function ConfirmDialog({
   open, icon = '⚠️', title, children,
@@ -14,7 +19,7 @@ export function ConfirmDialog({
   onConfirm, onCancel,
 }: {
   open: boolean;
-  icon?: string;
+  icon?: string | React.ReactNode;
   title: string;
   children: React.ReactNode;
   confirmLabel?: string;
@@ -34,6 +39,8 @@ export function ConfirmDialog({
 
   if (!open) return null;
 
+  const danger = tone === 'danger';
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
@@ -41,24 +48,27 @@ export function ConfirmDialog({
       role="dialog" aria-modal="true"
     >
       <div
-        className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-200 p-5 text-left"
+        className="w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto bg-surface rounded-card shadow-card border border-line p-5 text-left"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3">
-          <span className="text-2xl shrink-0" aria-hidden>{icon}</span>
-          <div className="min-w-0">
-            <h2 className="text-base font-bold text-gray-800">{title}</h2>
-            <div className="mt-1.5 text-[13px] text-gray-600 space-y-2 leading-relaxed">{children}</div>
+          <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+            danger ? 'bg-danger-tint text-danger-ink' : 'bg-brand-tint text-brand-ink'}`} aria-hidden>
+            {renderIcon(icon, danger ? AlertTriangle : Info, 'w-5 h-5')}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-bold leading-snug text-ink">{title}</h2>
+            <div className="mt-1.5 text-[13px] text-ink-soft space-y-2 leading-relaxed">{children}</div>
           </div>
         </div>
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="mt-5 flex justify-end gap-2">
           <button type="button" onClick={onCancel} disabled={busy}
-            className="text-xs font-bold px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+            className="inline-flex items-center justify-center min-h-9 px-4 rounded-xl border border-line bg-surface text-[13px] font-semibold text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-50">
             {cancelLabel}
           </button>
           <button type="button" onClick={onConfirm} disabled={busy || confirmDisabled}
-            className={`text-xs font-bold px-4 py-2 rounded-lg text-white disabled:opacity-50 ${
-              tone === 'danger' ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-700 hover:bg-emerald-800'
+            className={`inline-flex items-center justify-center min-h-9 px-4 rounded-xl text-[13px] font-bold text-white disabled:opacity-50 transition-colors ${
+              danger ? 'bg-danger-ink hover:opacity-90' : 'bg-brand hover:bg-brand-ink'
             }`}>
             {busy ? 'Memproses…' : confirmLabel}
           </button>

@@ -5,7 +5,9 @@ import { canSection } from '@/lib/auth/roles';
 import { finalScoreOf, kpiAvgOf, displayedFinalOf } from '@/lib/scoring';
 import { RespondForm } from './respond-form';
 import { SuksesiList, type SuksesiRow } from './suksesi-list';
-import { Panel } from '@/components/panel';
+import { CheckCircle2, Clock } from 'lucide-react';
+import { CARD, CardTitle, PageTitle } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 /**
  * Promosi & Suksesi. HRD: ajukan rencana per pegawai (berbasis Skor Akhir periode aktif).
@@ -27,11 +29,11 @@ export default async function SuksesiPage() {
   // HRD: butuh bagian 'suksesi' (akses granular Jalur A). Direksi selalu boleh (merespons).
   const admin = canSection(me, 'suksesi');
   if (!admin && role !== 'direksi') {
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk HRD / Direksi.</p></Shell>;
+    return <Shell><Header /><div className={CARD}><p className="text-[13px] text-ink-soft">Halaman ini untuk HRD / Direksi.</p></div></Shell>;
   }
 
   const { data: ap } = await supabase.from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><Header /><p className="text-sm text-ink-soft mt-4">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><Header /><div className={CARD}><p className="text-[13px] text-ink-soft">Tidak ada periode aktif.</p></div></Shell>;
 
   const { data: plans } = await supabase
     .from('succession_plans')
@@ -80,10 +82,11 @@ async function HrdView({
   return (
     <Shell>
       <Header />
-      <p className="text-[12px] text-ink-soft mt-1 mb-5">
-        Periode aktif <span className="data-value font-semibold text-ink">{period.label}</span>. Pertimbangkan kandidat (umumnya Skor Akhir ≥ 90), ajukan rencana ke Direksi.
+      <p className="text-xs text-ink-soft -mt-2 mb-4">
+        Periode aktif <span className="font-mono font-semibold text-ink">{period.label}</span>. Pertimbangkan kandidat (umumnya Skor Akhir ≥ 90), ajukan rencana ke Direksi.
       </p>
-      <Panel><SuksesiList rows={rows} /></Panel>
+      {/* SuksesiList merender kartu ringkasan + kartu daftar sendiri (agar ringkasan tak bersarang di kartu). */}
+      <SuksesiList rows={rows} />
     </Shell>
   );
 }
@@ -105,63 +108,64 @@ async function DireksiView({
   return (
     <Shell>
       <Header />
-      <h2 className="text-sm font-bold text-ink mt-5 mb-2">Menunggu Keputusan ({pending.length})</h2>
-      {pending.length === 0 ? (
-        <p className="text-sm text-ink-soft">Tidak ada rencana yang menunggu persetujuan.</p>
-      ) : (
-        <div className="space-y-3">
-          {pending.map((p) => {
-            const e = empBy.get(p.employee_id);
-            return (
-              <div key={p.id} className="rounded-panel border border-warn-ink/25 bg-warn-tint/40 p-3 grid md:grid-cols-[1fr_1.4fr] gap-3">
-                <div>
-                  <span className="font-bold text-ink text-sm block">{e?.name ?? '—'}</span>
-                  <span className="text-[11px] text-ink-faint">{e?.dept}</span>
-                  <p className="mt-1.5 text-xs font-semibold text-ink-soft">{p.plan}</p>
-                  {p.justification && <p className="mt-1 text-[11px] text-ink-faint">{p.justification}</p>}
-                </div>
-                <RespondForm planId={p.id} />
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {decided.length > 0 && (
-        <>
-          <h2 className="text-sm font-bold text-ink mt-6 mb-2">Riwayat Keputusan ({decided.length})</h2>
-          <div className="space-y-2">
-            {decided.map((p) => {
-              const e = empBy.get(p.employee_id);
-              const badge = STATUS_BADGE[p.status];
-              return (
-                <Panel key={p.id} padded={false} className="p-3 flex items-start justify-between gap-3">
-                  <div>
-                    <span className="font-bold text-ink text-sm">{e?.name ?? '—'}</span>
-                    <span className="text-[11px] text-ink-faint"> · {e?.dept}</span>
-                    <p className="text-xs text-ink-soft mt-0.5">{p.plan}</p>
-                    {p.direksi_comment && <p className="text-[10px] text-ink-faint italic mt-0.5">Komentar: “{p.direksi_comment}”</p>}
+      <div className="space-y-4">
+        <div className={CARD}>
+          <CardTitle icon={Clock} className="mb-3">Menunggu Keputusan (<span className="font-mono">{pending.length}</span>)</CardTitle>
+          {pending.length === 0 ? (
+            <p className="text-[13px] text-ink-soft">Tidak ada rencana yang menunggu persetujuan.</p>
+          ) : (
+            <div className="space-y-3">
+              {pending.map((p) => {
+                const e = empBy.get(p.employee_id);
+                return (
+                  <div key={p.id} className="rounded-xl border border-warn/40 bg-warn-tint/40 p-3 grid md:grid-cols-[1fr_1.4fr] gap-3">
+                    <div>
+                      <span className="font-bold text-ink text-[13px] block">{e?.name ?? '—'}</span>
+                      <span className="text-xs text-ink-soft">{e?.dept}</span>
+                      <p className="mt-1.5 text-[13px] font-semibold text-ink">{p.plan}</p>
+                      {p.justification && <p className="mt-1 text-xs text-ink-soft">{p.justification}</p>}
+                    </div>
+                    <RespondForm planId={p.id} />
                   </div>
-                  <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full ${badge.c}`}>{badge.t}</span>
-                </Panel>
-              );
-            })}
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {decided.length > 0 && (
+          <div className={CARD}>
+            <CardTitle icon={CheckCircle2} className="mb-3">Riwayat Keputusan (<span className="font-mono">{decided.length}</span>)</CardTitle>
+            <div className="divide-y divide-line-soft">
+              {decided.map((p) => {
+                const e = empBy.get(p.employee_id);
+                const badge = STATUS_BADGE[p.status];
+                return (
+                  <div key={p.id} className="py-3 first:pt-0 last:pb-0 flex items-start justify-between gap-3">
+                    <div>
+                      <span className="font-bold text-ink text-[13px]">{e?.name ?? '—'}</span>
+                      <span className="text-xs text-ink-soft"> · {e?.dept}</span>
+                      <p className="text-[13px] text-ink-soft mt-0.5">{p.plan}</p>
+                      {p.direksi_comment && <p className="text-xs text-ink-soft italic mt-0.5">Komentar: “{p.direksi_comment}”</p>}
+                    </div>
+                    <span className={`shrink-0 text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${badge.c}`}>{badge.t}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </>
-      )}
+        )}
+      </div>
     </Shell>
   );
 }
 
 function Header() {
   return (
-    <div>
-      <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Promosi &amp; Suksesi</h1>
-      <p className="text-[13.5px] text-ink-soft mt-1">Pengajuan rencana karier (HRD) &amp; persetujuan eksekutif (Direksi).</p>
-    </div>
+    <PageTitle title="Promosi & Suksesi">Pengajuan rencana karier (HRD) &amp; persetujuan eksekutif (Direksi).</PageTitle>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
+  return <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>{children}</main>;
 }

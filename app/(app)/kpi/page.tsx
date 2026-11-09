@@ -1,9 +1,11 @@
 import { cookies } from 'next/headers';
-import { PencilLine, History, LayoutList } from 'lucide-react';
+import { PencilLine, History, LayoutList, type LucideIcon } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canAdmin, canCoordinate, grantedAccess, employeeInScopes } from '@/lib/auth/roles';
-import { TabBar, Tab } from '@/components/tab-nav';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
+import { CARD, CardTitle, PageTitle } from '@/components/infarm-ui';
+import { TabBar, Tab, TabPanel } from '@/components/tab-nav';
 import { KpiForm } from './kpi-form';
 import { RekapView } from './rekap-view';
 import { RiwayatView } from './riwayat-view';
@@ -52,7 +54,7 @@ export default async function KpiPage({
     const { data: grants } = await supabase.from('page_grants').select('section, scope, scopes, can_edit').eq('employee_id', user.id);
     const kpiGrant = grantedAccess(grants ?? [], 'kpi');
     if (!kpiGrant) {
-      return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk SPV / HRD / Koordinator.</p></Shell>;
+      return <Shell><p className="text-[13px] text-ink-soft">Halaman ini untuk SPV / HRD / Koordinator.</p></Shell>;
     }
 
     // Saring pegawai per-lingkup (mirror pola halaman grant lain: ambil semua → filter di JS).
@@ -73,25 +75,24 @@ export default async function KpiPage({
     const dept = resolveDeptParam(deptParam, deptOptions);
 
     return (
-      <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
-        <div className="mb-5">
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Monitoring &amp; Audit KPI</h1>
-          <p className="mt-1 text-[13.5px] text-ink-soft">Rekapitulasi kuartal &amp; jejak audit perubahan KPI dalam lingkup akses Anda (lihat-saja).</p>
-          {deptOptions.length > 1 && <div className="mt-3"><DeptSelect depts={deptOptions} current={dept} /></div>}
-        </div>
+      <Shell>
+        <PageTitle title="Monitoring & Audit KPI">
+          Rekapitulasi kuartal &amp; jejak audit perubahan KPI dalam lingkup akses Anda (lihat-saja).
+        </PageTitle>
+        {deptOptions.length > 1 && <div className="-mt-1 mb-5"><DeptSelect depts={deptOptions} current={dept} /></div>}
         <MonitoringTabs view={view} period={period} dept={dept} />
-        <div className="mt-4">
+        <TabPanel>
           {view === 'riwayat' ? (
-            <Panel title="Riwayat &amp; Audit Perubahan KPI">
+            <Panel title="Riwayat & Audit Perubahan KPI" icon={History}>
               <RiwayatView role={role} userId={user.id} scopedIds={scopedIds} page={auditPage} query={auditQ} dept={dept} />
             </Panel>
           ) : (
-            <Panel title="Rekapitulasi Kuartal">
+            <Panel title="Rekapitulasi Kuartal" icon={LayoutList}>
               <RekapView role={role} userId={user.id} periodParam={period} scopedIds={scopedIds} dept={dept} />
             </Panel>
           )}
-        </div>
-      </main>
+        </TabPanel>
+      </Shell>
     );
   }
 
@@ -103,25 +104,24 @@ export default async function KpiPage({
     const deptOptions = uniqueDepts(deptRows ?? []);
     const dept = resolveDeptParam(deptParam, deptOptions);
     return (
-      <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
-        <div className="mb-5">
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Monitoring &amp; Audit KPI</h1>
-          <p className="mt-1 text-[13.5px] text-ink-soft">Rekapitulasi kuartal &amp; jejak audit perubahan KPI seluruh pegawai.</p>
-          {deptOptions.length > 1 && <div className="mt-3"><DeptSelect depts={deptOptions} current={dept} /></div>}
-        </div>
+      <Shell>
+        <PageTitle title="Monitoring & Audit KPI">
+          Rekapitulasi kuartal &amp; jejak audit perubahan KPI seluruh pegawai.
+        </PageTitle>
+        {deptOptions.length > 1 && <div className="-mt-1 mb-5"><DeptSelect depts={deptOptions} current={dept} /></div>}
         <MonitoringTabs view={view} period={period} dept={dept} />
-        <div className="mt-4">
+        <TabPanel>
           {view === 'riwayat' ? (
-            <Panel title="Riwayat &amp; Audit Perubahan KPI">
+            <Panel title="Riwayat & Audit Perubahan KPI" icon={History}>
               <RiwayatView role={role} canAdmin={admin} userId={user.id} page={auditPage} query={auditQ} dept={dept} />
             </Panel>
           ) : (
-            <Panel title="Rekapitulasi Kuartal">
+            <Panel title="Rekapitulasi Kuartal" icon={LayoutList}>
               <RekapView role={role} userId={user.id} periodParam={period} dept={dept} />
             </Panel>
           )}
-        </div>
-      </main>
+        </TabPanel>
+      </Shell>
     );
   }
 
@@ -131,42 +131,39 @@ export default async function KpiPage({
   const requested = tabParam && allowed.has(tabParam) ? tabParam : null;
   const tab = isCoord ? 'input' : (requested ?? 'input');
 
+  // Section (kartu) hanya untuk tampilan TABEL BESAR (Riwayat & Rekap). Input KPI mengatur section-nya
+  // sendiri di KpiForm — toolbar filter tanpa kartu, tabel input yang dibungkus kartu.
+  const content = tab === 'input' ? (
+    <InputTab supabase={supabase} userId={user.id} role={role} isCoord={isCoord} />
+  ) : tab === 'riwayat' ? (
+    <Panel title="Riwayat & Audit Perubahan KPI" icon={History}>
+      <RiwayatView role={role} canAdmin={admin} userId={user.id} hrdMode={hrdMode} page={auditPage} query={auditQ} />
+    </Panel>
+  ) : (
+    <Panel title="Rekapitulasi Kuartal" icon={LayoutList}>
+      <RekapView role={role} userId={user.id} periodParam={period} hrdMode={hrdMode} />
+    </Panel>
+  );
+
   return (
     <Shell>
-      <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">{isCoord ? 'Input KPI' : 'Kinerja Tim'}</h1>
-      <p className="mt-1 text-[13.5px] text-ink-soft">
+      <PageTitle title={isCoord ? 'Input KPI' : 'Kinerja Tim'}>
         {isCoord
           ? 'Input KPI bulanan untuk pegawai yang Anda koordinasikan.'
           : 'Input KPI bulanan, riwayat audit, & rekapitulasi per kuartal anggota tim.'}
-      </p>
+      </PageTitle>
 
-      {/* Tab nav — disembunyikan untuk koordinator (hanya Input KPI). */}
-      {!isCoord && (
-        <div className="mt-4">
+      {/* Sub-tab disembunyikan untuk koordinator (hanya Input KPI) → isi langsung di kanvas. */}
+      {isCoord ? <div className="mt-5">{content}</div> : (
+        <>
           <TabBar>
             <Tab href="/kpi?tab=input" active={tab === 'input'} icon={PencilLine}>Input KPI</Tab>
             <Tab href="/kpi?tab=riwayat" active={tab === 'riwayat'} icon={History}>Riwayat &amp; Audit</Tab>
             <Tab href="/kpi?tab=rekap" active={tab === 'rekap'} icon={LayoutList}>Rekapitulasi Kuartal</Tab>
           </TabBar>
-        </div>
+          <TabPanel>{content}</TabPanel>
+        </>
       )}
-
-      {/* Section (kartu) hanya untuk tampilan TABEL BESAR yang perlu dipisahkan dari kanvas
-          (Riwayat & Rekap). Input KPI mengatur section-nya sendiri di KpiForm — toolbar filter
-          tetap di kanvas, tabel input yang dibungkus panel. */}
-      <div className="mt-4">
-        {tab === 'input' ? (
-          <InputTab supabase={supabase} userId={user.id} role={role} isCoord={isCoord} />
-        ) : tab === 'riwayat' ? (
-          <Panel title="Riwayat &amp; Audit Perubahan KPI">
-            <RiwayatView role={role} canAdmin={admin} userId={user.id} hrdMode={hrdMode} page={auditPage} query={auditQ} />
-          </Panel>
-        ) : (
-          <Panel title="Rekapitulasi Kuartal">
-            <RekapView role={role} userId={user.id} periodParam={period} hrdMode={hrdMode} />
-          </Panel>
-        )}
-      </div>
     </Shell>
   );
 }
@@ -192,13 +189,13 @@ function MonitoringTabs({ view, period, dept }: { view: 'rekap' | 'riwayat'; per
   );
 }
 
-/** Kartu panel dengan header lengket & scroll vertikal independen. */
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+/** Kartu standar Design System Infarm: judul berikon + isi (tabel berpager → tanpa scroll internal). */
+function Panel({ title, icon, children }: { title: string; icon: LucideIcon; children: React.ReactNode }) {
   return (
-    <div className="bg-surface border border-line rounded-panel flex flex-col max-h-[78vh]">
-      <h2 className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.07em] px-5 py-3 border-b border-line sticky top-0 bg-surface rounded-t-panel z-10">{title}</h2>
-      <div className="p-5 overflow-y-auto">{children}</div>
-    </div>
+    <section className={CARD}>
+      <CardTitle icon={icon} className="mb-4">{title}</CardTitle>
+      {children}
+    </section>
   );
 }
 
@@ -287,8 +284,8 @@ async function InputTab({
     leftOn: e.is_active ? null : e.left_on,
   }));
 
-  if (members.length === 0) return <p className="text-sm text-ink-soft">Belum ada anggota tim yang ditugaskan kepada Anda.</p>;
-  if (monthOptions.length === 0) return <p className="text-sm text-ink-soft">Tidak ada periode aktif. Hubungi HRD untuk mengaktifkan siklus.</p>;
+  if (members.length === 0) return <p className="text-[13px] text-ink-soft">Belum ada anggota tim yang ditugaskan kepada Anda.</p>;
+  if (monthOptions.length === 0) return <p className="text-[13px] text-ink-soft">Tidak ada periode aktif. Hubungi HRD untuk mengaktifkan siklus.</p>;
 
   // Skor yang SUDAH ada (per pegawai+bulan dalam periode aktif) → dipakai pratinjau Excel
   // menandai baris yang "akan menimpa" input sebelumnya. Hanya petunjuk visual; revalidate
@@ -303,5 +300,5 @@ async function InputTab({
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
+  return <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>{children}</main>;
 }

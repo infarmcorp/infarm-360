@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTransition } from 'react';
+import { FIELD, FIELD_LABEL } from '@/components/infarm-ui';
 
 /**
  * Filter Divisi halaman Monitoring & Audit KPI — DI SERVER lewat URL (`?dept=`), berlaku untuk
@@ -24,10 +25,10 @@ export function DeptSelect({ depts, current }: { depts: string[]; current: strin
   };
 
   return (
-    <label className="inline-flex items-center gap-2 text-xs">
-      <span className="font-semibold text-ink-soft">Divisi</span>
+    <label className="inline-block">
+      <span className={FIELD_LABEL}>Divisi</span>
       <select value={current ?? 'all'} disabled={pending} onChange={(e) => go(e.target.value)}
-        className="px-3 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint disabled:opacity-60 cursor-pointer">
+        className={`${FIELD} min-w-48 disabled:opacity-60 cursor-pointer`}>
         <option value="all">Seluruh Divisi</option>
         {depts.map((d) => <option key={d} value={d}>{d}</option>)}
       </select>

@@ -47,11 +47,10 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 ## 2. Harus dikerjakan
 
 ### Rilis & operasional
-- 🔄 **Revisi 4 PDF panduan (belum prioritas).** Keputusan pemilik 2026-10-16: 4 PDF dan nomor versinya
-  (`2026-10-01`) **ikut rilis Q3 apa adanya**. Akibatnya tanda "BARU" muncul walau isinya masih sama dengan versi
-  30 Juli (masih ada "Review Hasil Akhir", "punishment", "4 karakter", salah ketik "ditHRD"). Revisi menyusul:
-  sunting dokumen Word sumber sesuai [panduan/REVISI-PANDUAN-PDF.md](panduan/REVISI-PANDUAN-PDF.md) (bagian 0–4
-  dan 6), ekspor ulang, naikkan nomor versi, lalu rilis. Langkahnya di [TEKNIS.md](TEKNIS.md) §9.
+- 🔑⬜ **Panduan pindah ke Notion per peran** (keputusan pemilik 2026-11-06). Kartu Panduan, penanda PANDUAN, lampiran PDF
+  di email Undangan, dan 4 berkas PDF lama sudah dihapus dari `dev` agar pegawai tidak memakai panduan yang salah. Rilisnya
+  ikut rilis menuju Q4 (keputusan pemilik), jadi sampai itu production masih memakai yang lama. Sisa: siapkan halaman Notion
+  tiap peran, lalu pasang tautannya di Akun Saya. Revisi 4 PDF tidak jadi dikerjakan.
 - 🔑🔄 **Rilis Q3** — sudah di production (2026-10-16), 0048 & 0049 terpasang. Sisa:
   - 🔑 kirim [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md) ke HRD (dan bagian untuk SPV/Koordinator & pegawai);
   - 🔑 jalankan bagian 16–21 [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md) di Preview `dev` (staging);
@@ -73,25 +72,25 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 - 🔑🔄 **Email Rilis Laporan.** Perubahan database **0051** terpasang di staging dan production (2026-10-16).
   Sisa, per periode: unggah dua gambar pendamping di dialog Email Rilis Laporan, kirim uji ke email sendiri, baru
   kirim ke pegawai (SOP di [PANDUAN.md](PANDUAN.md) §5.9). Butuh tautan folder tiap pegawai terisi.
-- 🔑🔄 **Email Rilis terjadwal** (permintaan HRD) — sudah di `dev` (2026-11-03), belum di production. HRD mengatur
+- 🔑🔄 **Email Rilis terjadwal** (permintaan HRD) — **sudah di production** (ikut rilis 2026-11-03). HRD mengatur
   tanggal & jam di dialog Email Rilis; email terkirim sendiri (±30 menit). Penerima dan isi dikunci saat
   menjadwalkan; bisa diubah/dibatalkan sebelum mulai terkirim. Sisa:
-  - 🔑 jalankan perubahan database **0053** di staging, lalu production;
+  - ✅ perubahan database **0053** terpasang di staging dan production (dicek pemilik 2026-11-09);
   - ✅ kode rahasia sudah dipasang pemilik di Vercel (Production & Preview) dan GitHub (2026-11-03);
   - 🔑 di Preview: uji isi & syarat email lewat **Kirim sekarang** (inti pengiriman sama dengan jadwal). Jadwal di
     Preview tidak berjalan sendiri — pemicu GitHub hanya memanggil production dan hanya dari `main` (keputusan pemilik:
     tidak menambah pemicu untuk Preview);
-  - 🔑 setelah rilis `dev` → `main` + 0053 di production: uji pemicu sekali (Actions → Email Rilis Terjadwal → Run
-    workflow), lalu jadwalkan ke akun sendiri dari UI untuk memastikan terkirim otomatis.
-- 🔑🔄 **Catatan di Luar Pemetaan** (untuk Q4 2026) — sudah di `dev` (2026-11-03), belum
-  di production. Pegawai bisa menulis catatan anonim kepada HRD tentang rekan yang tidak ada di daftar
+  - 🔑 uji pemicu sekali di production (Actions → Email Rilis Terjadwal → Run workflow), lalu jadwalkan ke akun
+    sendiri dari UI untuk memastikan terkirim otomatis.
+- 🔑🔄 **Catatan di Luar Pemetaan** (untuk Q4 2026) — **sudah di production** (ikut rilis 2026-11-03). Pegawai bisa menulis catatan anonim kepada HRD tentang rekan yang tidak ada di daftar
   penilaiannya (pilih rekan + aspek budaya, tanpa nilai). Hanya HRD di Mode Admin yang membacanya, di rincian
   komentar laporan. Sisa:
-  - ✅ perubahan database **0054** terpasang di staging (2026-11-03, `verify:rls` lolos);
+  - ✅ perubahan database **0054** terpasang di staging (2026-11-03, `verify:rls` lolos) dan production (dicek
+    2026-11-09);
   - 🔑 uji per peran di Preview `dev`;
-  - 🔑 sebelum Q4 dibuka: jalankan 0054 di production dan umumkan fiturnya ke pegawai.
-- ✅ **Perubahan database production** — 0001–0052 terpasang di staging dan production (dicek pemilik
-  2026-10-16 dengan `scripts/check-migrations.sql`).
+  - 🔑 sebelum Q4 dibuka: umumkan fiturnya ke pegawai.
+- ✅ **Perubahan database** — 0001–0057 terpasang di staging dan production (0050–0057 dicek pemilik 2026-11-09
+  dengan `scripts/check-migrations.sql` di kedua database).
 
 ### Keamanan
 - 🔑⬜ **Ganti kunci rahasia database** (kunci admin Supabase dan lainnya) sebelum produksi penuh. Kunci admin
@@ -161,23 +160,37 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
     74,00 → 72,50), dan **KPI pegawai Final terkunci** untuk SPV/Koordinator. Pesan siap kirim:
     [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md);
   - catatan: Ubah deadline & cron melewati pegawai Final tanpa menyebut jumlahnya (proses otomatis).
-- 🔄 **Gelombang 3 (kecil): pesan di Manajemen Akses** — sudah di `dev` (2026-10-16), belum di production. Pesan
+- 🔄 **Gelombang 3 (kecil): pesan di Manajemen Akses** — sudah di production (ikut rilis 2026-11-03). Pesan
   berhasil kini tetap terlihat setelah panel tertutup (per peran dan per pegawai), dan jumlah penerima per peran
   tidak lagi menghitung pemberi akses sendiri (mis. "50 Pegawai (Anda sendiri tidak termasuk)"). 🔑 Sisa: uji di
   Preview `dev`.
+- 🔑⬜ **Pegawai nonaktif & daftar pegawai antar-halaman** (pemeriksaan 2026-11-09). Sudah diperbaiki di `dev`:
+  hitungan "Terisi x/y · n belum" di Monitor tak lagi menghitung anggota tim yang sudah keluar; Monitor HRD tak
+  menampilkan Direksi; tugas HRD "laporan belum difinalisasi" dihitung per pegawai aktif; chip "nonaktif" tampil di
+  Dashboard mode Semua Kuartal/Tahun. Keputusan pemilik (2026-11-09), juga sudah di `dev`:
+  - nonaktif/aktif kembali hanya mengubah pemetaan periode yang **belum berakhir** pada tanggal itu; aktif kembali tidak
+    menghidupkan pasangan yang dulu dihapus lewat permohonan;
+  - koordinator dinonaktifkan → anggota timnya kembali ke SPV (kecuali punya koordinator lain);
+  - Direksi tampil di Flag Kepatuhan bila punya penilaian wajib tertunda atau potongan −3.
+  - ✅ dicek di production 2026-11-09: tidak ada koordinator nonaktif yang masih memegang tim.
+  - Rencana Pengembangan: atasan yang sudah keluar dilewati (rencana pindah ke koordinator → SPV → HRD berikutnya);
+    rencana milik pegawai yang sudah keluar tetap bisa dibuka HRD dari Pantauan (lihat saja, berpenanda "nonaktif").
+  Masih terbuka: jumlah pegawai Dashboard / Monitor / Laporan Kinerja Tim / Review & Finalisasi bisa berbeda untuk
+  kuartal yang sama (aturan "siapa termasuk kuartal ini" belum seragam); Email Rilis ikut terkirim ke pegawai yang
+  sudah keluar.
 - ⬜ **Gelombang 3: hapus tombol "Perbarui Laporan Final yang Berubah"** (Finalisasi Ulang Laporan Berubah) setelah
   jumlah laporan berlabel "berubah → N" = 0. Dengan kunci laporan Final, label itu tak akan muncul lagi; tombol
   sementara dipertahankan hanya untuk merapikan selisih lama (keputusan 2026-10-12).
 - 🔄 **Rapikan temuan lint** — **bersih (0 temuan)** 2026-10-16 dan kini ikut pemeriksaan otomatis. 27 temuan
-  mekanis sudah di `dev`; 22 temuan pola React ada di PR terpisah (`chore/lint-react-hooks`). 🔑 Sisa: cek tampilan
-  di Preview PR itu lalu merge (daftar cek di deskripsi PR).
+  mekanis dan 22 temuan pola React sudah di production. 🔑 Sisa: cek tampilan di production (daftar cek di deskripsi
+  PR `chore/lint-react-hooks`).
 - ✅ **Cek dampak bug potongan telat ke 0** — **ditutup 2026-10-14**: query cek dampak dijalankan di production,
   hasilnya kosong. Tidak ada pegawai yang terdampak.
 
 ---
 
 ### Rencana Pengembangan & 1-on-1
-- 🔑🔄 **Tahap 1–3 sudah di `dev`** (2026-11-03), belum di production:
+- 🔑🔄 **Tahap 1–3 sudah di production** (ikut rilis 2026-11-03):
   - Tahap 1: isi rencana, komentar atasan, persetujuan (pegawai → atasan → HRD), pantauan HRD + Direksi, batas rencana
     disepakati (informasi saja), tutup/buka per periode, pengingat;
   - Tahap 2: catatan Sesi 1-on-1 (atasan) dan Tinjauan Bulanan HRD setelah rencana Disepakati, tanggapan pegawai —
@@ -187,7 +200,8 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   - ✅ **0056** terpasang di staging (`verify:rls` 78 lolos);
   - ✅ **0057** (pengaman database) terpasang di staging (`verify:rls` 83 lolos, 2026-11-03);
   - 🔑 uji end-to-end per peran di Preview `dev` (Catatan di Luar Pemetaan + Rencana Pengembangan bersamaan);
-  - 🔑 sebelum dipakai: 0054–0057 di production, lalu HRD menetapkan batas rencana disepakati untuk laporan Q3 2026.
+  - ✅ 0054–0057 terpasang di production (dicek 2026-11-09);
+  - 🔑 sebelum dipakai: HRD menetapkan batas rencana disepakati untuk laporan Q3 2026.
 - Keputusan pemilik (diskusi 2026-11-03), sebagai acuan tahap berikutnya:
   - Rencana **melekat ke periode laporan** (mis. laporan Q3 → "Rencana Pengembangan Q4"), terbuka setelah laporan Final
     dan tetap bisa diisi walau periode aktif sudah pindah atau periode laporan sudah dikunci. HRD menutupnya manual.
@@ -217,7 +231,9 @@ Dipindah ke §2 bila diputuskan dikerjakan.
   model. Perlu persetujuan kebijakan internal.
 - **Pengaman warna otomatis**: pengecekan otomatis yang menolak warna di luar palet resmi agar halaman baru
   tidak kembali ke gaya lama.
-- **Tinjau ulang warna grafik** di Dashboard dan bagian analitik Monitor (sengaja dibiarkan atas permintaan).
+- **Design System Infarm — rapikan sisa.** Seluruh halaman sudah memakainya (2026-11-04). Sisa kecil: pemanggil kotak
+  konfirmasi/tampilan kosong masih mengirim emoji (diubah otomatis jadi ikon); tampilan perlu dicek langsung di Preview
+  per halaman dan per peran, termasuk cetak PDF laporan.
 - **Mode gelap.** Palet sudah mendukung; belum diminta.
 - **Ganti email sendiri** di Akun Saya.
 - **Email anti-spam permanen**: domain sendiri + layanan Resend.

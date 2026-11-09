@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createMapping } from './actions';
 import { SearchableSelect } from '@/components/searchable-select';
+import { UserPlus } from 'lucide-react';
 import { Button } from '@/components/button';
+import { CARD, CardTitle, FIELD, FIELD_LABEL } from '@/components/infarm-ui';
 
 type Emp = { id: string; name: string; dept: string; is_external?: boolean };
 // BR-02 (Q3 2026): Self Assessment dinonaktifkan — tak lagi dipilihkan di form ini
@@ -34,36 +36,36 @@ export function MappingForm({ employees }: { employees: Emp[] }) {
   // (vendor/freelance) hanya boleh menilai, tak boleh dinilai.
   const assessorOptions = employees.map((e) => ({ value: e.id, label: `${e.name} (${e.dept})${e.is_external ? ' · Eksternal' : ''}` }));
   const targetOptions = employees.filter((e) => !e.is_external).map((e) => ({ value: e.id, label: `${e.name} (${e.dept})` }));
-  const inputCls = 'text-sm px-2.5 py-1.5 border border-line rounded-control bg-surface focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint';
+  const inputCls = `${FIELD} w-full`;
 
   return (
-    <form onSubmit={submit} className="rounded-panel border border-line bg-surface p-4 space-y-3">
-      <p className="text-[11px] font-semibold text-ink-faint uppercase tracking-[0.07em]">Tambah Pemetaan</p>
+    <form onSubmit={submit} className={`${CARD} space-y-3`}>
+      <CardTitle icon={UserPlus}>Tambah Pemetaan</CardTitle>
       {/* Satu kolom: form berada di kolom kiri split screen halaman Pemetaan (sempit). */}
       <div className="grid grid-cols-1 gap-3">
         <div>
-          <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">Penilai</label>
+          <label className={FIELD_LABEL}>Penilai</label>
           <SearchableSelect value={assessorId} onChange={setAssessorId} options={assessorOptions} placeholder="— pilih penilai —" className={inputCls} />
         </div>
         <div>
-          <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">Yang Dinilai</label>
+          <label className={FIELD_LABEL}>Yang Dinilai</label>
           <SearchableSelect value={targetId} onChange={setTargetId} options={targetOptions} placeholder="— pilih target —" className={inputCls} />
         </div>
         <div>
-          <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">Relasi</label>
+          <label className={FIELD_LABEL}>Relasi</label>
           <select value={relation} onChange={(e) => setRelation(e.target.value as (typeof RELATIONS)[number])}
-            className="w-full text-sm px-2.5 py-1.5 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
+            className={inputCls}>
             {RELATIONS.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
         <div>
-          <p className="text-[12.5px] text-ink-soft">
-            Sifat: <span className="font-semibold text-danger-ink">Wajib</span> — semua penilaian wajib (kebijakan).
+          <p className="text-xs text-ink-soft">
+            Sifat: <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink">Wajib</span> — semua penilaian wajib (kebijakan).
           </p>
         </div>
       </div>
-      {err && <p className="text-[12.5px] text-danger-ink font-semibold">{err}</p>}
-      <Button type="submit" disabled={busy}>
+      {err && <p className="text-[13px] text-danger-ink font-semibold">{err}</p>}
+      <Button type="submit" className="min-h-9" disabled={busy}>
         {busy ? 'Menyimpan…' : 'Tambah Relasi'}
       </Button>
     </form>

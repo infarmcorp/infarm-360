@@ -35,7 +35,7 @@ export function AdhocDeleteButton({ targetId, targetName, submitted = false }: {
     return (
       <span
         title="Sudah dikirim — tidak bisa dihapus"
-        className="inline-flex items-center gap-1 text-xs font-bold text-ink-faint/50 cursor-not-allowed"
+        className="inline-flex items-center gap-1 text-xs font-semibold text-ink-faint cursor-not-allowed"
       >
         <Trash2 className="w-3.5 h-3.5" /> Hapus
       </span>
@@ -48,21 +48,21 @@ export function AdhocDeleteButton({ targetId, targetName, submitted = false }: {
         type="button"
         onClick={() => setOpen(true)}
         title="Hapus penilaian ad-hoc ini"
-        className="inline-flex items-center gap-1 text-xs font-bold text-danger-ink hover:underline"
+        className="inline-flex items-center gap-1 text-xs font-semibold text-danger-ink hover:underline underline-offset-2"
       >
         <Trash2 className="w-3.5 h-3.5" /> Hapus
       </button>
 
       <Modal open={open} title="Hapus Penilaian Ad-Hoc" busy={busy} onClose={close}>
-        <p className="text-xs text-ink-soft">
+        <p className="text-[13px] text-ink-soft leading-relaxed">
           Menghapus <strong>{targetName}</strong> dari daftar penilaian Anda.
           <strong className="text-danger-ink"> Draf yang belum dikirim ikut terhapus</strong> dan tak dapat dipulihkan.
         </p>
-        <p className="text-[11px] text-ink-faint">
+        <p className="text-xs text-ink-soft">
           Bila rekan ini ditugaskan HRD (bukan tambahan Anda sendiri), pakai <strong>Ajukan Hapus</strong> —
           hanya HRD yang boleh membatalkan penugasan.
         </p>
-        {err && <p className="text-[11px] text-danger-ink font-semibold">{err}</p>}
+        {err && <p className="text-xs text-danger-ink font-semibold">{err}</p>}
         <ModalActions busy={busy} tone="danger" confirmLabel="Hapus" busyLabel="Menghapus…"
           onCancel={close} onConfirm={confirm} />
       </Modal>

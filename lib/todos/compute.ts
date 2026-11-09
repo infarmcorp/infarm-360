@@ -112,6 +112,16 @@ async function countKpiMissing(supabase: SB, periodId: string, userId: string): 
   return { missing: ids.length - new Set((have ?? []).map((h) => h.employee_id)).size, ym };
 }
 
+/**
+ * Laporan belum Final = pegawai AKTIF (internal, non-Direksi) yang laporannya belum Final. Dihitung per orang,
+ * bukan "jumlah aktif − jumlah Final": laporan Final milik Direksi / pegawai yang sudah keluar tidak boleh
+ * mengurangi hitungan pegawai aktif (dulu tugas ini bisa hilang padahal masih ada laporan belum Final).
+ */
+export function countPendingReports(activeIds: string[], finalizedIds: string[]): number {
+  const done = new Set(finalizedIds);
+  return activeIds.filter((id) => !done.has(id)).length;
+}
+
 /** Tugas HRD Admin: koreksi relasi menunggu + penilaian 360 belum lengkap + laporan belum final. */
 async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): Promise<TodoItem[]> {
   const out: TodoItem[] = [];
@@ -139,14 +149,18 @@ async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): P
     if (wajib > 0) out.push({ id: 'hrd-progress', tone: 'amber', href: '/admin/progress', label: `${wajib} penilaian wajib belum lengkap` });
     if (ajuan > 0) out.push({ id: 'hrd-ajuan', tone: 'blue', href: '/admin/progress', label: `${ajuan} penilaian ajuan belum selesai` });
   }
-  const [{ count: empCount }, { count: finalCount }, { count: corrCount }] = await Promise.all([
-    supabase.from('employees').select('*', { count: 'exact', head: true }).eq('is_active', true).neq('role', 'direksi').eq('is_external', false),
-    supabase.from('final_reports').select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('status', 'finalized'),
+  const [activeEmps, finalized, { count: corrCount }] = await Promise.all([
+    fetchAllPaged<{ id: string }>((from, to) =>
+      supabase.from('employees').select('id').eq('is_active', true).neq('role', 'direksi').eq('is_external', false)
+        .order('id').range(from, to)),
+    fetchAllPaged<{ employee_id: string }>((from, to) =>
+      supabase.from('final_reports').select('employee_id').eq('period_id', periodId).eq('status', 'finalized')
+        .order('employee_id').range(from, to)),
     supabase.from('relation_correction_requests').select('*', { count: 'exact', head: true }).eq('period_id', periodId).eq('status', 'pending'),
   ]);
   // Permohonan pemetaan (koreksi relasi / hapus / tambah) menunggu keputusan HRD (Pemetaan → tab Permohonan).
   if ((corrCount ?? 0) > 0) out.push({ id: 'hrd-corr', tone: 'rose', href: '/admin/pemetaan', label: `${corrCount} permohonan pemetaan menunggu` });
-  const pendingReports = (empCount ?? 0) - (finalCount ?? 0);
+  const pendingReports = countPendingReports(activeEmps.map((e) => e.id), finalized.map((r) => r.employee_id));
   if (pendingReports > 0) out.push({ id: 'hrd-final', tone: 'blue', href: '/admin/laporan', label: `${pendingReports} laporan belum difinalisasi` });
   // Laporan FINAL yang skornya sudah usang (KPI/360° berubah sejak difinalisasi).
   // Gagal baca → tanpa notifikasi ini (bukan angka salah), tugas HRD lain tetap tampil.
@@ -238,10 +252,12 @@ async function devPlanTodos(userId: string, hrdMode: 'admin' | 'spv'): Promise<T
       .in('source_period_id', openIds).in('status', ['waiting_supervisor', 'waiting_hrd']);
     if (waiting?.length) {
       const resolve = await loadSupervisorResolver(admin);
-      const { data: emps } = await admin.from('employees').select('id, role').in('id', [...new Set(waiting.map((w) => w.employee_id))]);
+      // Rencana milik pegawai yang sudah nonaktif hanya bisa dilihat → bukan tugas siapa pun.
+      const { data: emps } = await admin.from('employees').select('id, role').eq('is_active', true).in('id', [...new Set(waiting.map((w) => w.employee_id))]);
       const roleBy = new Map((emps ?? []).map((e) => [e.id, e.role]));
       let asSup = 0, asHrd = 0;
       for (const w of waiting) {
+        if (!roleBy.has(w.employee_id)) continue;
         const info = resolve({ id: w.employee_id, role: roleBy.get(w.employee_id) ?? null });
         if (w.status === 'waiting_supervisor' && canActAsSupervisor(info, actor, w.employee_id, hrdMode)) {
           if (info.kind === 'hrd') asHrd++; else if (hrdMode !== 'admin') asSup++;

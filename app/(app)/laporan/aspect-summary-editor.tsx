@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Lock } from 'lucide-react';
+import { Sparkles, Lock, Star, Check, X } from 'lucide-react';
+import { CARD, CardTitle } from '@/components/infarm-ui';
 import { saveAspectSummaries } from '@/app/(app)/admin/laporan/actions';
 import { hasSummaryMarkup } from '@/lib/summary-format';
 import { SummaryText } from './summary-text';
@@ -74,37 +75,39 @@ export function AspectSummaryEditor({
 
   const STATUS_TEXT: Record<SaveState, string> = {
     idle: '', pending: 'Perubahan belum disimpan…', saving: 'Menyimpan…',
-    saved: '✓ Tersimpan otomatis', error: '✗ Gagal menyimpan — coba ubah lagi',
+    saved: 'Tersimpan otomatis', error: 'Gagal menyimpan — coba ubah lagi',
   };
 
   return (
-    <section className="mt-6 break-inside-avoid">
-      <div className="bg-brand text-white rounded-t-panel px-4 py-2.5 flex items-center justify-between gap-2">
-        <h2 className="text-sm font-extrabold uppercase tracking-wide flex items-center gap-2">
-          <Sparkles className="w-4 h-4" /> {title}
-        </h2>
+    <section className={`${CARD} print:shadow-none mt-4 break-inside-avoid`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <CardTitle icon={Sparkles}>{title}</CardTitle>
         {locked && (
-          <span className="text-[10px] font-bold bg-white/15 px-2 py-0.5 rounded-control inline-flex items-center gap-1">
+          <span className="text-xs font-semibold bg-brand-tint text-brand-ink px-2 py-0.5 rounded-full inline-flex items-center gap-1">
             <Lock className="w-3 h-3" /> Terkunci (Final)
           </span>
         )}
       </div>
-      <div className="border border-t-0 border-line rounded-b-panel p-4 space-y-3">
-        <p className="text-[11px] text-ink-soft bg-brand-tint/60 border border-brand-ink/15 rounded-control p-2">
-          {intro}
-          {!locked && <> Tersimpan <strong>otomatis</strong> — tak perlu tombol Simpan.</>}
-        </p>
+      <p className="text-xs text-ink-soft mt-1.5">
+        {intro}
+        {!locked && <> Tersimpan <strong>otomatis</strong> — tak perlu tombol Simpan.</>}
+      </p>
+      <div className="mt-3 space-y-3">
         {locked && (
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-ink bg-brand-tint border border-brand-ink/20 rounded-control p-2 no-print">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-brand-ink bg-brand-tint rounded-xl px-3.5 py-2.5 no-print">
             <Lock className="w-3.5 h-3.5 shrink-0" />
-            Laporan sudah <strong>final</strong> &amp; terlihat pegawai. Untuk mengubah ringkasan,
-            klik <strong>&quot;Buka Kembali (ke Draf)&quot;</strong> di panel atas.
+            <span>
+              Laporan sudah <strong>final</strong> &amp; terlihat pegawai. Untuk mengubah ringkasan,
+              klik <strong>&quot;Buka Kembali (ke Draf)&quot;</strong> di panel atas.
+            </span>
           </p>
         )}
         {aspects.map((a) => (
-          <div key={a} className="border border-line rounded-panel overflow-hidden">
-            <div className="px-3 py-2 bg-neutral-tint border-b border-line-soft">
-              <span className="text-xs font-bold text-brand-ink flex items-center gap-1.5">★ {a}</span>
+          <div key={a} className="border border-line rounded-control bg-infarm-surface print:bg-white overflow-hidden">
+            <div className="px-3 py-2 border-b border-line">
+              <span className="text-[13px] font-bold text-brand-ink flex items-center gap-1.5">
+                <Star className="w-3.5 h-3.5 shrink-0" aria-hidden /> {a}
+              </span>
             </div>
             <textarea
               value={vals[a] ?? ''}
@@ -113,28 +116,30 @@ export function AspectSummaryEditor({
               onBlur={() => { if (!locked && changed) void flush(); }} // simpan segera saat pindah fokus
               rows={Math.min(14, Math.max(3, (vals[a] ?? '').split('\n').length + 1))}
               placeholder={`Ringkasan kalibrasi HRD untuk ${noun} "${a}"…`}
-              className="w-full text-xs p-3 outline-none resize-y text-ink-soft leading-relaxed disabled:bg-neutral-tint disabled:text-ink-faint no-print"
+              className="block w-full text-[13px] p-3 bg-surface outline-none focus:ring-2 focus:ring-inset focus:ring-brand-tint resize-y text-ink leading-relaxed placeholder:text-ink-soft disabled:bg-neutral-tint disabled:text-ink-soft no-print"
             />
             {/* Pratinjau berformat (tebal/poin) — selalu dipakai saat cetak/Unduh PDF. */}
             {(vals[a] ?? '').trim() && (
-              <div className={`border-t border-line-soft bg-bg ${hasSummaryMarkup(vals[a] ?? '') ? '' : 'hidden print:block'} print:border-0 print:bg-transparent`}>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-ink-faint px-3 pt-2 no-print">Pratinjau</p>
-                <SummaryText text={vals[a] ?? ''} className="text-xs p-3 text-ink-soft leading-relaxed" />
+              <div className={`border-t border-line bg-infarm-surface ${hasSummaryMarkup(vals[a] ?? '') ? '' : 'hidden print:block'} print:border-0 print:bg-transparent`}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.05em] text-ink-soft px-3 pt-2 no-print">Pratinjau</p>
+                <SummaryText text={vals[a] ?? ''} className="text-[13px] p-3 text-ink leading-relaxed" />
               </div>
             )}
           </div>
         ))}
         {!locked && (
-          <p className="text-[11px] text-ink-faint no-print">
+          <p className="text-xs text-ink-soft no-print">
             Format: <code className="data-value bg-neutral-tint px-1 rounded">**teks**</code> = tebal ·
             baris diawali <code className="data-value bg-neutral-tint px-1 rounded">- </code> = poin (baris berikutnya tanpa “- ” = lanjutan poin) ·
             baris kosong = paragraf baru.
           </p>
         )}
         {!locked && saveState !== 'idle' && (
-          <p className={`text-[11px] font-semibold no-print ${
+          <p className={`flex items-center gap-1 text-xs font-semibold no-print ${
             saveState === 'error' ? 'text-danger-ink' : saveState === 'saved' ? 'text-brand-ink' : 'text-warn-ink'
           }`}>
+            {saveState === 'saved' && <Check className="w-3.5 h-3.5 shrink-0" aria-hidden />}
+            {saveState === 'error' && <X className="w-3.5 h-3.5 shrink-0" aria-hidden />}
             {STATUS_TEXT[saveState]}
           </p>
         )}

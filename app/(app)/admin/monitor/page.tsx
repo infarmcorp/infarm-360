@@ -16,6 +16,9 @@ import { FilledNote } from '@/app/(app)/monitor/completeness';
 import { TeamAspectProfile } from '@/app/(app)/monitor/team-aspect';
 import { SectionHeader } from '@/app/(app)/monitor/section-header';
 import { MonitorFilters } from './monitor-filters';
+import { Users, Target, MessagesSquare, type LucideIcon } from 'lucide-react';
+import { CARD, CardTitle, PageTitle } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 /**
  * Monitor Kinerja Pegawai (HRD Admin) — SAMA seperti Monitor Kinerja SPV/Koordinator (scorecard ·
@@ -55,16 +58,15 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
     grantScopes = grantedAccess(myGrants, 'monitor')?.scopes ?? null;
   }
   if (!isHrdFull && !grantScopes) {
-    return <Shell><div className="bg-surface border border-line rounded-panel p-5">
-      <p className="text-sm text-ink-soft">Anda tidak memiliki akses ke halaman ini.</p>
-      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></div></Shell>;
+    return <Shell><div className={CARD}>
+      <p className="text-[13px] text-ink-soft">Anda tidak memiliki akses ke halaman ini.</p></div></Shell>;
   }
   const ownDept = (me?.dept ?? '').trim();
 
   const { data: periodRows } = await supabase
     .from('periods').select('id, label, has_360, status, start_date').order('start_date', { ascending: true });
   const periodList = periodRows ?? [];
-  if (periodList.length === 0) return <Shell><Header /><p className="text-sm text-ink-soft mt-4">Belum ada periode.</p></Shell>;
+  if (periodList.length === 0) return <Shell><Header /><p className="text-[13px] text-ink-soft mt-4">Belum ada periode.</p></Shell>;
   const sel = periodList.find((p) => p.id === periodParam)
     ?? periodList.find((p) => p.status === 'active')
     ?? periodList[periodList.length - 1];
@@ -79,8 +81,9 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
     const { data: tm } = await admin.from('coordinator_team_members').select('employee_id').eq('coordinator_id', user.id);
     teamIds = new Set((tm ?? []).map((r) => r.employee_id));
   }
-  // Ambil SEMUA pegawai internal sekali; dipakai untuk daftar divisi + penyaringan lingkup.
-  const { data: allEmpData } = await admin.from('employees').select('id, name, nickname, dept, is_active').eq('is_external', false);
+  // Ambil SEMUA pegawai internal non-Direksi sekali; dipakai untuk daftar divisi + penyaringan lingkup.
+  // Direksi dikecualikan seperti Monitor SPV & Dashboard (tanpa KPI; rata-rata organisasi pembanding juga tanpa Direksi).
+  const { data: allEmpData } = await admin.from('employees').select('id, name, nickname, dept, is_active').eq('is_external', false).neq('role', 'direksi');
   const allDepts = [...new Set((allEmpData ?? []).map((d) => d.dept).filter((d): d is string => !!d))].sort();
   // Divisi anggota tim naungan (tim bisa lintas divisi) → menambah pilihan dropdown utk lingkup tim.
   const teamDepts = teamIds
@@ -98,7 +101,7 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
   // Query berat (kpi/360 lintas periode di bawah) hanya untuk id yang lolos saring.
   const empRows = (allEmpData ?? []).filter((e) =>
     employeeInScopes(scopes, ownDept, user.id, e, teamIds) && (dept === 'all' || e.dept === dept));
-  if (empRows.length === 0) return <Shell><Header isHrdFull={isHrdFull} scopeLabel={scopeLabel} /><Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} /><p className="text-sm text-ink-soft mt-4">Belum ada pegawai dalam lingkup ini.</p></Shell>;
+  if (empRows.length === 0) return <Shell><Header isHrdFull={isHrdFull} scopeLabel={scopeLabel} /><Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} /><p className="text-[13px] text-ink-soft mt-4">Belum ada pegawai dalam lingkup ini.</p></Shell>;
   const ids = empRows.map((e) => e.id);
 
   // ── Snapshot periode terpilih → scorecard + tabel ──────────────────────────
@@ -274,21 +277,21 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
       <Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} />
 
       {rows.length === 0 && (
-        <p className="text-sm text-ink-soft mt-4">Belum ada data kinerja untuk lingkup ini — grafik tren lintas periode tetap tampil di bawah.</p>
+        <p className="text-[13px] text-ink-soft mt-4">Belum ada data kinerja untuk lingkup ini — grafik tren lintas periode tetap tampil di bawah.</p>
       )}
 
       {rows.length > 0 && (
         <>
           {/* A. RINGKASAN */}
-          <SectionHeader label="Ringkasan" hint="keadaan lingkup terpilih" tone="emerald" />
+          <SectionHeader label="Ringkasan" hint="keadaan lingkup terpilih" />
           <ScopeScorecards total={rows.length} kpi={sAvg.kpi} s360={sAvg.s360} has360={sel.has_360}
             scopeLabel={scopeLabel} periodLabel={sel.label}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length}
             orgKpi={orgAvg?.kpi ?? null} orgS360={orgAvg?.s360 ?? null}
-            fillTotal={ids.length} kpiFilled={kpiBy.size} s360Filled={s360By.size} />
+            fillTotal={rows.length} kpiFilled={kpiBy.size} s360Filled={s360By.size} />
 
           {/* B. KOMPOSISI */}
-          <SectionHeader label="Komposisi" hint="sebaran kategori & profil aspek" tone="indigo" />
+          <SectionHeader label="Komposisi" hint="sebaran kategori & profil aspek" />
           <DistBars
             kpiPeople={rows.filter((r) => r.trend !== 'unread' && r.kpiAvg != null).map((r) => ({ name: r.name, nickname: r.nickname, value: r.kpiAvg as number }))}
             s360People={sel.has_360 ? rows.filter((r) => r.s360 != null).map((r) => ({ name: r.name, nickname: r.nickname, value: r.s360 as number })) : null} />
@@ -297,7 +300,7 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
       )}
 
       {/* C. ARAH — tren & pergerakan */}
-      <SectionHeader label="Arah — Tren & Pergerakan" hint="lintas periode/bulan" tone="amber" />
+      <SectionHeader label="Arah — Tren & Pergerakan" hint="lintas periode/bulan" />
       <MonitorTrends periodsTrend={periodsTrend} monthLabels={monthLabels}
         teamMonthly={teamMonthly} employees={employeesMonthly} has360={anyHas360}
         movers={movers} moverLabels={moverLabels} kpiCause={kpiCause} s360Cause={s360Cause}
@@ -306,8 +309,11 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
       {rows.length > 0 && (
         <>
           {/* D. RINCIAN PER PEGAWAI — tabel & heatmap */}
-          <SectionHeader label="Rincian per Pegawai" hint="tabel & heatmap" tone="slate" />
-          <TeamTable rows={rows} linkNames={false} showStatus={false} showAcc={false} scoreBasis="live" pageSize={5} />
+          <SectionHeader label="Rincian per Pegawai" hint="tabel & heatmap" />
+          <div className={`${CARD} mb-4`}>
+            <CardTitle icon={Users} className="mb-4">Tabel Kinerja Pegawai</CardTitle>
+            <TeamTable rows={rows} linkNames={false} showStatus={false} showAcc={false} scoreBasis="live" pageSize={5} />
+          </div>
           {heat && heat.aspectRows.length > 0 && (
             <ExtremesHeatmap
               pieTitle="Aspek Terlemah & Terkuat (Frekuensi)"
@@ -339,21 +345,25 @@ function OrgDelta({ scope, org }: { scope: number | null; org: number | null }) 
   const d = scope - org;
   const up = d >= 0;
   return (
-    <span className={`text-[11px] font-semibold ${up ? 'text-brand-ink' : 'text-danger-ink'}`}>
-      {up ? '▲' : '▼'} <span className="data-value">{fmt2(Math.abs(d))}</span> vs rata-rata organisasi
+    <span className={`text-xs font-semibold ${up ? 'text-brand-ink' : 'text-danger-ink'}`}>
+      {up ? '▲' : '▼'} <span className="font-mono">{fmt2(Math.abs(d))}</span> vs rata-rata organisasi
     </span>
   );
 }
 
 /** Satu kartu ringkas (tingkat modul, bukan di dalam ScopeScorecards, agar tak dibuat ulang tiap render). */
-function Card({ label, value, subtext, delta, note }: { label: string; value: React.ReactNode; subtext?: string; delta?: React.ReactNode; note?: React.ReactNode }) {
+// Gaya = StatCard Design System Infarm (kartu putih berikon, angka 20px mono) + baris tambahan delta/kelengkapan.
+function Card({ label, value, subtext, delta, note, icon: Icon }: { label: string; value: React.ReactNode; subtext?: string; delta?: React.ReactNode; note?: React.ReactNode; icon: LucideIcon }) {
   return (
-    <div className="flex-1 min-w-[150px] rounded-panel border border-line bg-surface px-4 py-3">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.07em] text-ink-faint">{label}</div>
-      <div className="text-2xl font-semibold data-value text-ink mt-1">{value}</div>
-      {delta && <div className="mt-1">{delta}</div>}
-      {subtext && <div className="text-[11px] text-ink-faint mt-1">{subtext}</div>}
-      {note}
+    <div className={`${CARD} flex items-center gap-4 min-w-0`}>
+      <span className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-brand-tint text-brand-ink" aria-hidden><Icon className="w-6 h-6" /></span>
+      <div className="min-w-0 flex flex-col gap-0.5">
+        <div className="font-mono text-lg font-bold text-ink leading-tight">{value}</div>
+        <div className="text-[13px] text-ink-soft">{label}</div>
+        {delta && <div>{delta}</div>}
+        {subtext && <div className="text-xs text-ink-soft">{subtext}</div>}
+        {note}
+      </div>
     </div>
   );
 }
@@ -365,13 +375,13 @@ function ScopeScorecards({
 }: { total: number; kpi: number | null; s360: number | null; has360: boolean; scopeLabel: string; periodLabel: string; kpiUnread?: number; orgKpi?: number | null; orgS360?: number | null; fillTotal?: number; kpiFilled?: number; s360Filled?: number }) {
   const sub = `${scopeLabel} · ${periodLabel}`;
   return (
-    <div className="flex flex-wrap gap-3 mb-4">
-      <Card label="Total Pegawai" value={total} subtext={scopeLabel} />
-      <Card label="Avg KPI" value={kpi != null ? fmt2(kpi) : '—'}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+      <Card icon={Users} label="Total Pegawai" value={total} subtext={scopeLabel} />
+      <Card icon={Target} label="Avg KPI" value={kpi != null ? fmt2(kpi) : '—'}
         delta={orgKpi != null ? <OrgDelta scope={kpi} org={orgKpi} /> : undefined}
         subtext={kpiUnread > 0 ? `${sub} · ${kpiUnread} belum terbaca (dikecualikan)` : sub}
         note={fillTotal != null && kpiFilled != null ? <FilledNote n={kpiFilled} total={fillTotal} /> : undefined} />
-      {has360 && <Card label="Avg 360°" value={s360 != null ? fmt2(s360) : '—'}
+      {has360 && <Card icon={MessagesSquare} label="Avg 360°" value={s360 != null ? fmt2(s360) : '—'}
         delta={orgS360 != null ? <OrgDelta scope={s360} org={orgS360} /> : undefined}
         subtext={sub}
         note={fillTotal != null && s360Filled != null ? <FilledNote n={s360Filled} total={fillTotal} /> : undefined} />}
@@ -385,28 +395,24 @@ function Toolbar({ periods, current, depts, dept }: { periods: { id: string; lab
 
 function Header({ isHrdFull = true, scopeLabel }: { isHrdFull?: boolean; scopeLabel?: string }) {
   return (
-    <div className="flex items-start justify-between gap-3 mb-4">
-      <div>
-        <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Monitor Kinerja Pegawai</h1>
-        <p className="text-[13.5px] text-ink-soft mt-1">
-          Pemantauan kinerja {scopeLabel ? <span className="font-semibold text-ink">{scopeLabel}</span> : 'seluruh pegawai'} — snapshot per periode &amp; tren lintas waktu.
-          Skor Akhir dihitung langsung (live).
-        </p>
-        <p className="text-[11px] text-ink-faint mt-1">
-          <span className="font-semibold text-ink-soft">Fokus halaman ini:</span> pergerakan &amp; pelacakan per-pegawai lintas waktu.
-          {isHrdFull && <>
-            {' '}· Butuh <span className="text-ink-soft">klasifikasi talenta &amp; snapshot (4-Box, scatter, kategori)</span>?{' '}
-            <Link href="/admin/dashboard" className="text-brand-ink hover:underline font-semibold">Dashboard Organisasi →</Link>
-          </>}
-        </p>
-      </div>
-      <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
-    </div>
+    <PageTitle title="Monitor Kinerja Pegawai">
+      <p>
+        Pemantauan kinerja {scopeLabel ? <span className="font-semibold text-ink">{scopeLabel}</span> : 'seluruh pegawai'} — snapshot per periode &amp; tren lintas waktu.
+        Skor Akhir dihitung langsung (live).
+      </p>
+      <p className="text-xs text-ink-soft mt-1">
+        <span className="font-semibold text-ink">Fokus halaman ini:</span> pergerakan &amp; pelacakan per-pegawai lintas waktu.
+        {isHrdFull && <>
+          {' '}· Butuh <span className="text-ink">klasifikasi talenta &amp; snapshot (4-Box, scatter, kategori)</span>?{' '}
+          <Link href="/admin/dashboard" className="text-brand-ink hover:underline font-semibold">Dashboard Organisasi →</Link>
+        </>}
+      </p>
+    </PageTitle>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>
+    <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>{children}</main>
   );
 }

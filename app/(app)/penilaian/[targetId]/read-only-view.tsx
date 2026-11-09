@@ -1,4 +1,6 @@
 import { formatWib } from '@/lib/late';
+import { Note } from '@/components/infarm-ui';
+import { StatusChip } from '@/components/status-chip';
 
 type Group = { id: string; name: string; indicators: { id: string; text: string; ratingKeyPoints?: Record<string, string> | null }[] };
 
@@ -17,17 +19,14 @@ export function ReadOnlyView({ groups, questions, scores, answers, deadline }: {
   const startNo = groups.map((_, gi) => groups.slice(0, gi).reduce((s, g) => s + g.indicators.length, 0));
   return (
     <div className="space-y-4">
-      <div className="rounded-panel border border-line bg-neutral-tint p-3.5">
-        <p className="text-[13px] font-bold text-ink">Penilaian terkunci — deadline sudah lewat</p>
-        <p className="text-[12px] text-ink-soft mt-0.5 leading-relaxed">
-          Penilaian ini sudah Anda kirim dan deadline{deadline ? <> (<span className="data-value">{formatWib(deadline)}</span>)</> : null} sudah
-          lewat, sehingga jawaban hanya dapat dilihat. Bila ada kekeliruan, hubungi HRD.
-        </p>
-      </div>
+      <Note title="Penilaian terkunci — deadline sudah lewat">
+        Penilaian ini sudah Anda kirim dan deadline{deadline ? <> (<span className="data-value">{formatWib(deadline)}</span>)</> : null} sudah
+        lewat, sehingga jawaban hanya dapat dilihat. Bila ada kekeliruan, hubungi HRD.
+      </Note>
 
       {groups.map((g, gi) => (
-        <section key={g.id} className="rounded-panel border border-line">
-          <h2 className="px-4 py-2.5 border-b border-line text-[12.5px] font-bold text-ink bg-neutral-tint rounded-t-panel">{g.name}</h2>
+        <section key={g.id} className="bg-surface border border-line rounded-card shadow-card overflow-hidden">
+          <h2 className="px-4 py-3 border-b border-line text-base font-bold text-ink bg-infarm-surface">{g.name}</h2>
           <ul className="divide-y divide-line-soft">
             {g.indicators.map((ind, ii) => {
               const n = startNo[gi] + ii + 1;
@@ -37,11 +36,11 @@ export function ReadOnlyView({ groups, questions, scores, answers, deadline }: {
                 <li key={ind.id} className="px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-[13px] font-semibold text-ink"><span className="data-value text-ink-faint mr-1.5">{n}.</span>{ind.text}</p>
-                    <span className={`shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-control border whitespace-nowrap ${s?.rating != null ? 'bg-brand-tint text-brand-ink border-brand-ink/20' : 'bg-neutral-tint text-ink-faint border-line'}`}>
+                    <StatusChip tone={s?.rating != null ? 'brand' : 'neutral'} className="shrink-0 whitespace-nowrap">
                       {s?.rating != null ? <>Skor <span className="data-value">{s.rating}</span>{kp ? ` · ${kp}` : ''}</> : 'Belum dinilai'}
-                    </span>
+                    </StatusChip>
                   </div>
-                  <p className="text-[12px] text-ink-soft mt-1.5 leading-relaxed whitespace-pre-wrap">{s?.comment?.trim() || '—'}</p>
+                  <p className="text-[13px] text-ink-soft mt-1.5 leading-relaxed whitespace-pre-wrap">{s?.comment?.trim() || '—'}</p>
                 </li>
               );
             })}
@@ -50,13 +49,13 @@ export function ReadOnlyView({ groups, questions, scores, answers, deadline }: {
       ))}
 
       {questions.length > 0 && (
-        <section className="rounded-panel border border-line">
-          <h2 className="px-4 py-2.5 border-b border-line text-[12.5px] font-bold text-ink bg-neutral-tint rounded-t-panel">Umpan Balik Kualitatif</h2>
+        <section className="bg-surface border border-line rounded-card shadow-card overflow-hidden">
+          <h2 className="px-4 py-3 border-b border-line text-base font-bold text-ink bg-infarm-surface">Umpan Balik Kualitatif</h2>
           <ul className="divide-y divide-line-soft">
             {questions.map((q) => (
               <li key={q.id} className="px-4 py-3">
                 <p className="text-[13px] font-semibold text-ink">{q.text}</p>
-                <p className="text-[12px] text-ink-soft mt-1.5 leading-relaxed whitespace-pre-wrap">{answers[q.id]?.trim() || '—'}</p>
+                <p className="text-[13px] text-ink-soft mt-1.5 leading-relaxed whitespace-pre-wrap">{answers[q.id]?.trim() || '—'}</p>
               </li>
             ))}
           </ul>

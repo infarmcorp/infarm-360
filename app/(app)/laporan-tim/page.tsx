@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
+import { ClipboardCheck } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { playerClassOf, finalScoreOf, displayedFinalOf } from '@/lib/scoring';
 import { trendOf } from '@/lib/trend';
@@ -7,6 +7,8 @@ import { scoreMaps, companyAverages, teamAverages } from '@/lib/team-metrics';
 import { TeamTable, type TeamRow } from './team-table';
 import { TeamScorecards } from './scorecards';
 import { PeriodFilter } from '@/app/(app)/monitor/period-filter';
+import { CARD, CardTitle, Note, PageTitle } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 /** Periode yang dipilih lewat `?period=` (default: periode AKTIF, lalu yang terbaru). */
 type PeriodRow = { id: string; label: string; has_360: boolean; status: string };
@@ -61,12 +63,11 @@ export default async function LaporanTimPage({
     // Koordinator (grant is_coordinator): lihat-saja Laporan Kinerja Tim untuk daftar
     // pegawai eksplisit yang dinaunginya (coordinator_team_members). Tanpa ACC/Status/KPI.
     if (me?.is_coordinator) return <CoordinatorTeamReport userId={user.id} periodParam={periodParam} />;
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini untuk Supervisor.</p>
-      <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></Shell>;
+    return <Shell><p className="text-[13px] text-ink-soft">Halaman ini untuk Supervisor.</p></Shell>;
   }
 
   const { list: periods, sel: ap } = await resolvePeriod(supabase, periodParam);
-  if (!ap) return <Shell><p className="text-sm text-ink-soft">Belum ada periode penilaian.</p></Shell>;
+  if (!ap) return <Shell><p className="text-[13px] text-ink-soft">Belum ada periode penilaian.</p></Shell>;
   const periodActive = ap.status === 'active';
 
   // Resolusi lingkup anggota per peran. Laporan DIRI SENDIRI TIDAK ditampilkan di sini —
@@ -155,30 +156,25 @@ export default async function LaporanTimPage({
 
   return (
     <Shell>
-      <div className="flex items-start justify-between gap-4 mb-5">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Laporan Kinerja Tim</h1>
-          <p className="text-[13.5px] text-ink-soft mt-1">
-            {periodActive
-              ? <>Periode aktif: <span className="font-semibold text-ink">{ap.label}</span> · beri ACC laporan anggota tim Anda.</>
-              : <>Meninjau periode lampau: <span className="font-semibold text-ink">{ap.label}</span> · lihat-saja.</>}
-          </p>
-        </div>
-        <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
-      </div>
+      <PageTitle title="Laporan Kinerja Tim">
+        {periodActive
+          ? <>Periode aktif: <span className="font-semibold text-ink">{ap.label}</span> · beri ACC laporan anggota tim Anda.</>
+          : <>Meninjau periode lampau: <span className="font-semibold text-ink">{ap.label}</span> · lihat-saja.</>}
+      </PageTitle>
 
       <div className="mb-4"><PeriodFilter periods={periods} current={ap.id} basePath="/laporan-tim" /></div>
       <PastPeriodNote active={periodActive} />
 
       {rows.length === 0 ? (
-        <p className="text-sm text-ink-soft">Belum ada anggota tim yang ditugaskan.</p>
+        <p className="text-[13px] text-ink-soft">Belum ada anggota tim yang ditugaskan.</p>
       ) : (
         <>
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
-          {/* Bingkai section (kartu) hanya di halaman ini; Monitor menaruh tabel langsung di kanvas. */}
-          <div className="bg-surface border border-line rounded-panel p-5">
+          {/* Bingkai kartu (CARD) dipasang di halaman ini; TeamTable sendiri tanpa bingkai (dipakai juga di Monitor). */}
+          <div className={CARD}>
+            <CardTitle icon={ClipboardCheck} className="mb-4">Daftar Laporan</CardTitle>
             <TeamTable rows={rows} pageSize={5} periodId={ap.id} has360={ap.has_360} />
           </div>
         </>
@@ -196,7 +192,7 @@ export default async function LaporanTimPage({
 async function DireksiTeamReport({ periodParam }: { periodParam?: string }) {
   const supabase = await createClient();
   const { list: periods, sel: ap } = await resolvePeriod(supabase, periodParam);
-  if (!ap) return <Shell><p className="text-sm text-ink-soft">Belum ada periode penilaian.</p></Shell>;
+  if (!ap) return <Shell><p className="text-[13px] text-ink-soft">Belum ada periode penilaian.</p></Shell>;
   const periodActive = ap.status === 'active';
 
   const admin = createAdminClient();
@@ -246,28 +242,23 @@ async function DireksiTeamReport({ periodParam }: { periodParam?: string }) {
 
   return (
     <Shell>
-      <div className="flex items-start justify-between gap-4 mb-5">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Laporan Kinerja Tim</h1>
-          <p className="text-[13.5px] text-ink-soft mt-1">
-            {periodActive
-              ? <>Periode aktif: <span className="font-semibold text-ink">{ap.label}</span> · tinjau &amp; beri ACC laporan hasil akhir para Supervisor (SPV).</>
-              : <>Meninjau periode lampau: <span className="font-semibold text-ink">{ap.label}</span> · lihat-saja.</>}
-          </p>
-        </div>
-        <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
-      </div>
+      <PageTitle title="Laporan Kinerja Tim">
+        {periodActive
+          ? <>Periode aktif: <span className="font-semibold text-ink">{ap.label}</span> · tinjau &amp; beri ACC laporan hasil akhir para Supervisor (SPV).</>
+          : <>Meninjau periode lampau: <span className="font-semibold text-ink">{ap.label}</span> · lihat-saja.</>}
+      </PageTitle>
       <div className="mb-4"><PeriodFilter periods={periods} current={ap.id} basePath="/laporan-tim" /></div>
       <PastPeriodNote active={periodActive} />
       {rows.length === 0 ? (
-        <p className="text-sm text-ink-soft">Belum ada laporan SPV untuk ditinjau.</p>
+        <p className="text-[13px] text-ink-soft">Belum ada laporan SPV untuk ditinjau.</p>
       ) : (
         <>
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
-          {/* Bingkai section (kartu) hanya di halaman ini; Monitor menaruh tabel langsung di kanvas. */}
-          <div className="bg-surface border border-line rounded-panel p-5">
+          {/* Bingkai kartu (CARD) dipasang di halaman ini; TeamTable sendiri tanpa bingkai (dipakai juga di Monitor). */}
+          <div className={CARD}>
+            <CardTitle icon={ClipboardCheck} className="mb-4">Daftar Laporan</CardTitle>
             <TeamTable rows={rows} pageSize={5} periodId={ap.id} has360={ap.has_360} />
           </div>
         </>
@@ -287,7 +278,7 @@ async function DireksiTeamReport({ periodParam }: { periodParam?: string }) {
 async function CoordinatorTeamReport({ userId, periodParam }: { userId: string; periodParam?: string }) {
   const supabase = await createClient();
   const { list: periods, sel: ap } = await resolvePeriod(supabase, periodParam);
-  if (!ap) return <Shell><p className="text-sm text-ink-soft">Belum ada periode penilaian.</p></Shell>;
+  if (!ap) return <Shell><p className="text-[13px] text-ink-soft">Belum ada periode penilaian.</p></Shell>;
   const periodActive = ap.status === 'active';
 
   const admin = createAdminClient();
@@ -338,28 +329,23 @@ async function CoordinatorTeamReport({ userId, periodParam }: { userId: string; 
 
   return (
     <Shell>
-      <div className="flex items-start justify-between gap-4 mb-5">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Laporan Kinerja Tim</h1>
-          <p className="text-[13.5px] text-ink-soft mt-1">
-            {periodActive
-              ? <>Periode aktif: <span className="font-semibold text-ink">{ap.label}</span> · tinjau &amp; beri ACC laporan pegawai yang Anda koordinasikan.</>
-              : <>Meninjau periode lampau: <span className="font-semibold text-ink">{ap.label}</span> · lihat-saja.</>}
-          </p>
-        </div>
-        <Link href="/" className="text-xs text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
-      </div>
+      <PageTitle title="Laporan Kinerja Tim">
+        {periodActive
+          ? <>Periode aktif: <span className="font-semibold text-ink">{ap.label}</span> · tinjau &amp; beri ACC laporan pegawai yang Anda koordinasikan.</>
+          : <>Meninjau periode lampau: <span className="font-semibold text-ink">{ap.label}</span> · lihat-saja.</>}
+      </PageTitle>
       <div className="mb-4"><PeriodFilter periods={periods} current={ap.id} basePath="/laporan-tim" /></div>
       <PastPeriodNote active={periodActive} />
       {rows.length === 0 ? (
-        <p className="text-sm text-ink-soft">Belum ada pegawai yang ditugaskan di bawah koordinasi Anda.</p>
+        <p className="text-[13px] text-ink-soft">Belum ada pegawai yang ditugaskan di bawah koordinasi Anda.</p>
       ) : (
         <>
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
             team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
             kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
-          {/* Bingkai section (kartu) hanya di halaman ini; Monitor menaruh tabel langsung di kanvas. */}
-          <div className="bg-surface border border-line rounded-panel p-5">
+          {/* Bingkai kartu (CARD) dipasang di halaman ini; TeamTable sendiri tanpa bingkai (dipakai juga di Monitor). */}
+          <div className={CARD}>
+            <CardTitle icon={ClipboardCheck} className="mb-4">Daftar Laporan</CardTitle>
             <TeamTable rows={rows} pageSize={5} periodId={ap.id} has360={ap.has_360} />
           </div>
         </>
@@ -375,16 +361,18 @@ async function CoordinatorTeamReport({ userId, periodParam }: { userId: string; 
 function PastPeriodNote({ active }: { active: boolean }) {
   if (active) return null;
   return (
-    <p className="mb-4 rounded-control border border-warn-ink/25 bg-warn-tint px-3 py-2 text-[12px] text-warn-ink">
-      Periode ini sudah <strong>tidak aktif</strong> — halaman menampilkan hasil apa adanya untuk ditinjau.
-      Pemberian <strong>ACC</strong> hanya tersedia pada periode yang sedang berjalan.
-    </p>
+    <div className="mb-4">
+      <Note tone="warn">
+        Periode ini sudah <strong>tidak aktif</strong> — halaman menampilkan hasil apa adanya untuk ditinjau.
+        Pemberian <strong>ACC</strong> hanya tersedia pada periode yang sedang berjalan.
+      </Note>
+    </div>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  // Kanvas ber-token (tanpa wrapper putih besar + shadow), sesuai pola redesign halaman lain.
+  // Kanvas Design System Infarm (INFARM_PAGE: font + latar), tanpa wrapper putih besar.
   // `scorecards.tsx`/`team-table.tsx` dipakai bersama Monitor Kinerja (SPV & HRD) — sejak 2026-10-12
   // ikut ber-token (keputusan pengguna: opsi 2), jadi perubahan gayanya terlihat di kedua halaman.
-  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
+  return <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>{children}</main>;
 }

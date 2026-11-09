@@ -1,10 +1,11 @@
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { isFullHrd, GRANTABLE_PAGES, GRANTABLE_PAGE_LABELS, GRANTABLE_PAGE_KIND, PAGE_SCOPES, PAGE_SCOPE_LABELS } from '@/lib/auth/roles';
 import { ACCESS_AUDIT_ACTIONS } from '@/lib/audit/log';
 import { AksesClient, type AksesEmployee } from './akses-client';
 import { type AksesLogRow } from './akses-log';
+import { CARD, PageTitle } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 const LOG_PAGE_SIZE = 5;
 
@@ -30,8 +31,9 @@ export default async function AdminAksesPage({
     return (
       <Shell>
         <Header />
-        <p className="text-sm text-ink-soft mt-4">Halaman ini hanya untuk HRD Admin dengan akses penuh.</p>
-        <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link>
+        <div className={CARD}>
+          <p className="text-[13px] text-ink-soft">Halaman ini hanya untuk HRD Admin dengan akses penuh.</p>
+        </div>
       </Shell>
     );
   }
@@ -108,21 +110,17 @@ export default async function AdminAksesPage({
 
 function Header() {
   return (
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Manajemen Akses</h1>
-        <p className="text-[13.5px] text-ink-soft max-w-3xl mt-1 leading-relaxed">
-          Berikan akses halaman tertentu kepada SPV/Koordinator/Direksi/pegawai, lengkap dengan
-          <span className="font-semibold text-ink"> lingkup data</span>: seluruh pegawai, hanya divisinya,
-          atau selain divisinya. Akses ini <span className="font-semibold text-ink">menambah</span> —
-          tak mengubah akses bawaan tiap peran.
-        </p>
-      </div>
-      <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
+    <div className="max-w-3xl">
+      <PageTitle title="Manajemen Akses">
+        Berikan akses halaman tertentu kepada SPV/Koordinator/Direksi/pegawai, lengkap dengan
+        <span className="font-semibold text-ink"> lingkup data</span>: seluruh pegawai, hanya divisinya,
+        atau selain divisinya. Akses ini <span className="font-semibold text-ink">menambah</span> —
+        tak mengubah akses bawaan tiap peran.
+      </PageTitle>
     </div>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
+  return <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>{children}</main>;
 }

@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { FIELD_LABEL } from '@/components/infarm-ui';
 import { PasswordInput } from '@/components/password-input';
 
 /** Form sandi baru + konfirmasi. Sandi min. 8 karakter. Setelah sukses → ke beranda. */
@@ -35,8 +37,9 @@ export function PerbaruiSandiForm() {
 
   if (done) {
     return (
-      <div className="rounded-control bg-brand-tint p-4 text-sm text-brand-ink">
-        Sandi berhasil diperbarui. Mengalihkan…
+      <div className="flex items-start gap-2 rounded-xl bg-brand-tint p-4 text-[13px] leading-relaxed text-brand-ink">
+        <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
+        <div>Sandi berhasil diperbarui. Mengalihkan…</div>
       </div>
     );
   }
@@ -44,18 +47,18 @@ export function PerbaruiSandiForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
-        <label className="block text-xs font-semibold text-ink-soft mb-1">Sandi Baru</label>
+        <label className={FIELD_LABEL}>Sandi Baru</label>
         <PasswordInput autoComplete="new-password" value={password} onChange={setPassword} placeholder="Minimal 8 karakter" />
       </div>
       <div>
-        <label className="block text-xs font-semibold text-ink-soft mb-1">Ulangi Sandi Baru</label>
+        <label className={FIELD_LABEL}>Ulangi Sandi Baru</label>
         <PasswordInput autoComplete="new-password" value={confirm} onChange={setConfirm} />
       </div>
-      {error && <p className="text-xs text-danger-ink font-semibold">{error}</p>}
+      {error && <p className="flex items-start gap-1.5 rounded-control bg-danger-tint px-3 py-2 text-xs text-danger-ink font-semibold"><AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden />{error}</p>}
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-brand hover:bg-brand-ink disabled:opacity-60 text-white text-sm font-bold py-2 rounded-control transition-colors"
+        className="w-full min-h-9 bg-brand hover:bg-brand-ink disabled:opacity-60 text-white text-[13px] font-bold rounded-xl transition-colors"
       >
         {loading ? 'Menyimpan…' : 'Simpan Sandi Baru'}
       </button>

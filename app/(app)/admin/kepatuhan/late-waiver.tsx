@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { setLateWaiver } from './actions';
 import { LATE_PENALTY_360 } from '@/lib/late';
 
+/** Isian ringkas di sel tabel (setinggi kontrol standar 36px; padding diatur per isian). */
+const INPUT = 'text-[13px] min-h-9 border border-line rounded-control bg-infarm-surface text-ink placeholder:text-ink-soft focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint';
+
 /**
  * Potongan keterlambatan menilai per pegawai (Skor 360°): OTOMATIS −3 bila ada kewajiban yang belum
  * selesai saat deadline — Wajib maupun AJUAN (Opsional hasil permohonan yang disetujui HRD). HRD bisa
@@ -39,7 +42,7 @@ export function LateWaiver({
     router.refresh();
   }
 
-  if (auto === 0 && override == null) return <span className="text-[11px] text-ink-faint">—</span>;
+  if (auto === 0 && override == null) return <span className="text-[13px] text-ink-soft">—</span>;
 
   // Asal potongan: Wajib / Ajuan — agar HRD tahu bila potongan muncul karena AJUAN (opsional) yang
   // diajukan pegawai sendiri tapi tak dituntaskan.
@@ -50,56 +53,56 @@ export function LateWaiver({
   return (
     <div className="flex flex-col items-center gap-1">
       {override === 0 ? (
-        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-control border bg-neutral-tint text-ink-soft border-line"
+        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft"
           title={reason ?? ''}>Dikecualikan</span>
       ) : (
-        <span className="text-sm font-bold data-value text-danger-ink">−{penalty}</span>
+        <span className="text-[13px] font-bold font-mono text-danger-ink">−{penalty}</span>
       )}
       {override != null && override > 0 && (
-        <span className="text-[9.5px] font-semibold px-1.5 py-0.5 rounded-control bg-warn-tint text-warn-ink"
+        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink"
           title={`Otomatis −${auto}. Alasan: ${reason ?? '—'}`}>diubah HRD</span>
       )}
       {source && (
-        <span className={`text-[9.5px] ${lateAjuan > 0 && lateWajib === 0 ? 'text-warn-ink font-semibold' : 'text-ink-faint'}`}
+        <span className={`text-[11px] font-mono ${lateAjuan > 0 && lateWajib === 0 ? 'text-warn-ink font-semibold' : 'text-ink-soft'}`}
           title={lateAjuan > 0 ? 'Ajuan = penilaian Opsional yang diajukan pegawai sendiri & disetujui HRD, tapi belum selesai saat deadline.' : undefined}>
           {source}
         </span>
       )}
       {!readOnly && !open && (
-        <span className="flex items-center gap-2">
+        <span className="flex items-center gap-3">
           <button type="button" onClick={() => { setPts(String(override ?? auto)); setOpen(true); }}
-            className="text-[10.5px] text-ink-faint hover:text-ink-soft hover:underline">Ubah</button>
+            className="text-xs font-semibold text-ink-soft hover:text-brand-ink hover:underline">Ubah</button>
           {override != null && (
             <button type="button" disabled={busy} onClick={() => submit(null)}
-              className="text-[10.5px] text-ink-faint hover:text-ink-soft hover:underline disabled:opacity-50">
+              className="text-xs font-semibold text-ink-soft hover:text-brand-ink hover:underline disabled:opacity-50">
               {busy ? '…' : 'Kembalikan otomatis'}
             </button>
           )}
         </span>
       )}
       {open && (
-        <div className="flex flex-col items-center gap-1">
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] text-ink-soft">−</span>
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[13px] text-ink-soft">−</span>
             <input value={pts} onChange={(e) => setPts(e.target.value)} inputMode="decimal"
-              className="w-12 text-[11px] text-center data-value px-1 py-1 border border-line rounded-control text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+              className={`${INPUT} w-14 px-1 text-center font-mono`} />
             <input value={why} onChange={(e) => setWhy(e.target.value)} placeholder="Alasan (mis. cuti sakit)"
               maxLength={300} autoFocus
-              className="w-40 text-[11px] px-2 py-1 border border-line rounded-control text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+              className={`${INPUT} w-44 px-2.5`} />
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <button type="button" disabled={busy || !ptsValid || why.trim().length < 3}
               onClick={() => submit({ reason: why, points: ptsNum })}
-              className="text-[11px] font-semibold px-2.5 py-1 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
+              className="text-[13px] font-bold min-h-9 px-4 rounded-xl bg-brand hover:bg-brand-ink text-white disabled:opacity-50">
               {busy ? '…' : 'Simpan'}
             </button>
             <button type="button" onClick={() => { setOpen(false); setErr(null); }}
-              className="text-[11px] text-ink-faint hover:text-ink-soft">Batal</button>
+              className="text-[13px] font-semibold min-h-9 px-3 rounded-xl text-ink-soft hover:text-ink">Batal</button>
           </div>
-          <span className="text-[9.5px] text-ink-faint">0 = dikecualikan · otomatis −{LATE_PENALTY_360}</span>
+          <span className="text-[11px] text-ink-soft">0 = dikecualikan · otomatis <span className="font-mono text-danger-ink">−{LATE_PENALTY_360}</span></span>
         </div>
       )}
-      {err && <span className="text-[10px] text-danger-ink max-w-[200px] text-center">{err}</span>}
+      {err && <span className="text-xs text-danger-ink max-w-[200px] text-center">{err}</span>}
     </div>
   );
 }

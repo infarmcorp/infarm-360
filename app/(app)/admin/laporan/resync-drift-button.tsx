@@ -34,10 +34,10 @@ export function ResyncDriftButton({ count }: { count: number }) {
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <button type="button" onClick={() => setOpen(true)} disabled={busy}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-control border border-warn-ink/40 bg-warn-tint text-warn-ink hover:bg-warn-tint/70 disabled:opacity-50">
+        className="inline-flex items-center gap-1.5 text-xs font-semibold min-h-9 px-3 rounded-control border border-warn-ink/40 bg-warn-tint text-warn-ink hover:bg-warn-tint/70 disabled:opacity-50">
         <RefreshCcwDot className="w-3.5 h-3.5" /> ② Perbarui Laporan Final yang Berubah ({count})
       </button>
-      {msg && <span className={`text-[11px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
+      {msg && <span className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
 
       <ConfirmDialog
         open={open} icon="🔄" tone="primary"

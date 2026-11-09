@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { deleteMapping, mappingDeleteInfo, setAssessmentValidity, type PairStatus } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { formatWib } from '@/lib/late';
+import { ArrowRight } from 'lucide-react';
+import { FIELD, FIELD_LABEL } from '@/components/infarm-ui';
 
 type Info = { assessor: string; target: string; relation: string; status: PairStatus; invalidReason: string | null; invalidatedAt: string | null };
 
@@ -48,8 +50,8 @@ export function DeleteButton({ mappingId, status }: { mappingId: string; status:
 
   const label = status === 'submitted' ? 'Periksa Validitas' : status === 'invalidated' ? 'Dibatalkan' : 'Hapus';
   const btnCls = status === 'submitted'
-    ? 'border-line text-brand-ink hover:border-brand'
-    : status === 'invalidated' ? 'border-line text-ink-faint hover:text-ink-soft' : 'border-line text-danger-ink hover:border-danger-ink';
+    ? 'border-line text-brand-ink hover:border-brand hover:bg-brand-tint'
+    : status === 'invalidated' ? 'border-line text-ink-soft hover:text-ink' : 'border-line text-danger-ink hover:border-danger-ink hover:bg-danger-tint';
 
   const s = info?.status;
   const title = s === 'submitted' ? 'Batalkan Validitas Penilaian?'
@@ -63,11 +65,11 @@ export function DeleteButton({ mappingId, status }: { mappingId: string; status:
   return (
     <div className="flex flex-col items-end gap-0.5">
       <button type="button" disabled={busy} onClick={open}
-        className={`text-[11px] font-semibold px-2.5 py-1 rounded-control border leading-tight disabled:opacity-50 ${btnCls}`}>
+        className={`min-h-9 text-xs font-semibold px-2.5 rounded-control border bg-surface leading-tight disabled:opacity-50 ${btnCls}`}>
         {busy && !info ? '…' : label}
       </button>
-      {err && !info && <span className="text-[10px] text-danger-ink">{err}</span>}
-      {warn && !info && <span className="text-[10px] text-warn-ink font-semibold max-w-[280px] text-right">{warn}</span>}
+      {err && !info && <span className="text-[11px] text-danger-ink">{err}</span>}
+      {warn && !info && <span className="text-[11px] text-warn-ink font-semibold max-w-[280px] text-right">{warn}</span>}
 
       <ConfirmDialog
         open={!!info}
@@ -82,7 +84,7 @@ export function DeleteButton({ mappingId, status }: { mappingId: string; status:
       >
         <div className="text-left space-y-2">
           <p>
-            <strong>{info?.assessor}</strong> → <strong>{info?.target}</strong> · relasi {info?.relation}
+            <strong>{info?.assessor}</strong> <ArrowRight className="inline w-3.5 h-3.5 align-[-2px]" aria-hidden /> <strong>{info?.target}</strong> · relasi {info?.relation}
           </p>
           {s === 'none' && (
             <p>Assignment ini akan dihapus dari daftar penilaian rater. Rater tidak lagi memiliki kewajiban menyelesaikan penilaian ini.</p>
@@ -104,21 +106,21 @@ export function DeleteButton({ mappingId, status }: { mappingId: string; status:
           )}
           {s === 'invalidated' && (
             <p>
-              Validitas penilaian ini dibatalkan{info?.invalidatedAt ? <> pada <span className="data-value">{formatWib(info.invalidatedAt)}</span></> : null}.
+              Validitas penilaian ini dibatalkan{info?.invalidatedAt ? <> pada <span className="font-mono">{formatWib(info.invalidatedAt)}</span></> : null}.
               <span className="block mt-1">Alasan: <em>{info?.invalidReason ?? '—'}</em></span>
               <span className="block mt-1">Memulihkan akan mengembalikan penilaian ke perhitungan Skor 360°.</span>
             </p>
           )}
           <label className="block">
-            <span className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">
+            <span className={FIELD_LABEL}>
               {s === 'invalidated' ? 'Alasan pemulihan' : s === 'submitted' ? 'Alasan pembatalan' : 'Alasan penghapusan'} *
             </span>
             <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={300} disabled={busy}
               placeholder={s === 'submitted' ? 'mis. Tidak ada interaksi kerja selama periode — dikonfirmasi ke leader' : 'mis. Assignment ganda, perubahan struktur organisasi'}
-              className="w-full text-[12.5px] px-2.5 py-1.5 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
-            <span className="block text-[10px] text-ink-faint text-right data-value">{reason.trim().length}/300 · min. 5</span>
+              className={`${FIELD} w-full py-2 bg-surface`} />
+            <span className="block text-[11px] text-ink-soft text-right font-mono">{reason.trim().length}/300 · min. 5</span>
           </label>
-          {err && <p className="text-[11.5px] font-semibold text-danger-ink">{err}</p>}
+          {err && <p className="text-xs font-semibold text-danger-ink">{err}</p>}
         </div>
       </ConfirmDialog>
     </div>

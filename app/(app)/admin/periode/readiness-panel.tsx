@@ -1,11 +1,13 @@
 import Link from 'next/link';
+import { Check as CheckIcon, Rocket } from 'lucide-react';
 import { StatusChip } from '@/components/status-chip';
+import { CardTitle } from '@/components/infarm-ui';
 
 // Komponen kecil di tingkat modul (bukan di dalam ReadinessPanel) agar tak dibuat ulang tiap render.
 const Check = ({ ok }: { ok: boolean }) => (
   ok
-    ? <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] bg-brand text-[10px] text-white">✓</span>
-    : <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] border border-line-strong text-[10px] text-ink-faint">·</span>
+    ? <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand text-white"><CheckIcon className="w-3 h-3" strokeWidth={3} /></span>
+    : <span className="flex h-4 w-4 shrink-0 rounded-full border border-line-strong" />
 );
 
 const Item = ({ ok, value, label, href, linkLabel }: {
@@ -16,7 +18,7 @@ const Item = ({ ok, value, label, href, linkLabel }: {
     {value && <span className="data-value font-semibold text-ink">{value}</span>}
     <span className="text-ink-soft">{label}</span>
     {href && (
-      <Link href={href} className="ml-auto text-[12px] text-ink-faint border-b border-dotted border-ink-faint hover:text-ink-soft">
+      <Link href={href} className="ml-auto shrink-0 text-[12px] font-semibold text-brand-ink hover:underline">
         {linkLabel}
       </Link>
     )}
@@ -42,10 +44,10 @@ export function ReadinessPanel({
   const ready = indCount > 0 && mapCount > 0;
 
   return (
-    <div className="mb-5 flex flex-col lg:flex-row items-stretch overflow-hidden rounded-panel border border-line bg-surface">
-      <div className="flex-1 p-5 lg:p-6 lg:border-r border-line-soft">
-        <div className="flex items-center justify-between gap-2 mb-3.5">
-          <h3 className="text-[14.5px] font-bold text-ink">Kesiapan Peluncuran 360° — {periodLabel}</h3>
+    <div className="mb-4 flex flex-col lg:flex-row items-stretch overflow-hidden rounded-card border border-line bg-surface shadow-card">
+      <div className="flex-1 p-4 lg:border-r border-line-soft">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <CardTitle icon={Rocket}>Kesiapan Peluncuran 360° — {periodLabel}</CardTitle>
           <StatusChip tone={has360 ? 'brand' : ready ? 'brand' : 'warn'}>
             {has360 ? 'Form terbuka' : ready ? 'Siap diluncurkan' : 'Belum lengkap'}
           </StatusChip>
@@ -63,18 +65,18 @@ export function ReadinessPanel({
 
         {/* Catatan alur (bukan link) — no-underline eksplisit + spasi terjamin agar tak
             ke-render seperti tautan/warna tautan dari konteks tetangga. */}
-        <p className="mt-4 pt-3.5 border-t border-line-soft text-[12px] text-ink-faint no-underline">
+        <p className="mt-4 pt-3 border-t border-line-soft text-[12px] text-ink-soft no-underline">
           <span className="font-semibold text-ink-soft">Urutan tutup periode:</span>{' '}
           Hitung ulang skor 360° → finalisasi laporan → Kunci &amp; Akhiri.
         </p>
       </div>
 
-      <div className="w-full lg:w-[270px] shrink-0 p-5 lg:p-6 bg-[#FBFBFA] flex flex-col justify-center">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.05em] text-ink-faint mb-2">Aksi Periode</div>
-        <p className="text-[12.5px] text-ink-soft leading-relaxed">
+      <div className="w-full lg:w-[270px] shrink-0 p-4 bg-infarm-surface flex flex-col justify-center">
+        <div className="text-[12px] font-bold uppercase tracking-[0.08em] text-ink mb-2">Aksi Periode</div>
+        <p className="text-[12px] text-ink-soft leading-relaxed">
           <span className="font-semibold text-ink">Aktivasi / Kunci &amp; Akhiri</span> — hidup-mati seluruh periode (KPI dan 360°).
         </p>
-        <p className="mt-2.5 text-[12.5px] text-ink-soft leading-relaxed">
+        <p className="mt-2.5 text-[12px] text-ink-soft leading-relaxed">
           <span className="font-semibold text-ink">Set Tanpa 360°</span> — tutup sementara bagian 360° saja, KPI tetap berjalan.
         </p>
       </div>

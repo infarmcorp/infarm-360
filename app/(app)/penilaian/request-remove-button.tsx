@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react';
 import { requestMappingRemoval } from './request-actions';
 import { Modal, ModalActions } from './modal';
+import { FIELD_LABEL } from '@/components/infarm-ui';
+import { CHIP_PENDING, FIELD_AREA } from './penilaian-ui';
 
 /**
  * Tombol + modal "Ajukan Hapus": pegawai memberi tahu HRD bahwa sebuah pemetaan tak sesuai
@@ -21,7 +23,7 @@ export function RequestRemoveButton({
 
   // Satu permohonan pending per rekan (jenis apa pun) — cerminkan aturan server.
   if (pending) {
-    return <span className="text-[10px] font-bold text-warn-ink bg-warn-tint border border-warn-ink/25 px-2 py-0.5 rounded-control">Menunggu HRD</span>;
+    return <span className={CHIP_PENDING}>Menunggu HRD</span>;
   }
 
   function close() { setOpen(false); setErr(null); }
@@ -38,23 +40,23 @@ export function RequestRemoveButton({
   return (
     <>
       <button type="button" onClick={() => setOpen(true)}
-        className="text-[11px] font-semibold text-ink-faint hover:text-danger-ink hover:underline">
+        className="inline-flex items-center gap-1 text-xs font-semibold text-ink-soft hover:text-danger-ink hover:underline underline-offset-2">
         Ajukan Hapus
       </button>
 
       <Modal open={open} title="Ajukan Hapus Pemetaan" busy={busy} onClose={close}>
-        <p className="text-xs text-ink-soft">
+        <p className="text-[13px] text-ink-soft leading-relaxed">
           Mengajukan agar Anda <strong>tidak perlu menilai {targetName}</strong> pada periode ini.
           Permohonan diperiksa HRD — pemetaan baru hilang setelah disetujui.
         </p>
         <div>
-          <label className="block text-[10px] uppercase font-extrabold text-brand-ink mb-1">Alasan Pengajuan</label>
+          <label className={FIELD_LABEL}>Alasan Pengajuan</label>
           <textarea value={reason} onChange={(e) => setReason(e.target.value)} disabled={busy} rows={3}
             placeholder="Mis. 'Kami tidak pernah bekerja sama sepanjang kuartal ini, jadi saya tak punya dasar menilai.'"
-            className="w-full text-xs p-2.5 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
-          <p className="text-[10px] text-ink-faint mt-1">Minimal 5 karakter.</p>
+            className={FIELD_AREA} />
+          <p className="text-xs text-ink-soft mt-1">Minimal 5 karakter.</p>
         </div>
-        {err && <p className="text-[11px] text-danger-ink font-semibold">{err}</p>}
+        {err && <p className="text-xs text-danger-ink font-semibold">{err}</p>}
         <ModalActions busy={busy} confirmLabel="Kirim Pengajuan" onCancel={close} onConfirm={submit} />
       </Modal>
     </>

@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Undo2 } from 'lucide-react';
+import { Check, MessageSquare, Undo2 } from 'lucide-react';
 import { Button } from '@/components/button';
+import { CARD, CardTitle, FIELD } from '@/components/infarm-ui';
 import { callAction } from '@/lib/call-action';
 import { SUP_MIN, supervisorApproveBlocker } from '@/lib/dev-plan';
 import { decideAsSupervisor } from './actions';
@@ -44,39 +45,39 @@ export function SupervisorForm({ planId, initial }: { planId: string; initial: C
   }
 
   return (
-    <div className="rounded-panel border border-line p-4 space-y-3">
-      <p className="text-xs font-extrabold text-ink uppercase tracking-wide">Komentar Atasan Langsung</p>
-      <p className="text-[12px] text-ink-soft">Diisi setelah sesi empat mata dengan pegawai. Bertanda * wajib sebelum Setujui.</p>
+    <section className={`${CARD} space-y-3`}>
+      <CardTitle icon={MessageSquare}>Komentar Atasan Langsung</CardTitle>
+      <p className="text-xs text-ink-soft">Diisi setelah sesi empat mata dengan pegawai. Bertanda * wajib sebelum Setujui.</p>
       {FIELDS.map((f) => (
         <label key={f.key} className="block">
-          <span className="text-[12.5px] font-semibold text-ink">{f.label}{f.required && <span className="text-danger-ink"> *</span>}</span>
-          <span className="block text-[11.5px] text-ink-faint">{f.hint}</span>
+          <span className="text-[13px] font-semibold text-ink">{f.label}{f.required && <span className="text-danger-ink"> *</span>}</span>
+          <span className="block text-xs text-ink-soft">{f.hint}</span>
           <textarea value={c[f.key]} onChange={(e) => setC((x) => ({ ...x, [f.key]: e.target.value }))} disabled={busy} rows={3}
-            className="mt-1 w-full text-[13px] px-2.5 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint resize-y" />
+            className={`${FIELD} mt-1.5 w-full py-2 resize-y`} />
         </label>
       ))}
       {revising && (
         <label className="block">
-          <span className="text-[12.5px] font-semibold text-danger-ink">Alasan perbaikan *</span>
+          <span className="text-[13px] font-semibold text-danger-ink">Alasan perbaikan *</span>
           <textarea value={reason} onChange={(e) => setReason(e.target.value)} disabled={busy} rows={2}
             placeholder="Bagian mana yang perlu diperbaiki pegawai?"
-            className="mt-1 w-full text-[13px] px-2.5 py-2 border border-line rounded-control bg-surface text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint resize-y" />
+            className={`${FIELD} mt-1.5 w-full py-2 resize-y`} />
         </label>
       )}
-      {err && <p className="text-[12px] text-danger-ink font-semibold">{err}</p>}
+      {err && <p className="text-xs text-danger-ink font-semibold">{err}</p>}
       <div className="flex flex-wrap justify-end gap-2">
         {revising ? (
           <>
-            <Button variant="ghost" disabled={busy} onClick={() => { setRevising(false); setErr(null); }}>Batal</Button>
-            <Button variant="danger" disabled={busy} onClick={() => decide('revise')}><Undo2 className="w-4 h-4" /> Kirim Permintaan Perbaikan</Button>
+            <Button variant="ghost" className="min-h-9" disabled={busy} onClick={() => { setRevising(false); setErr(null); }}>Batal</Button>
+            <Button variant="danger" className="min-h-9" disabled={busy} onClick={() => decide('revise')}><Undo2 className="w-4 h-4" /> Kirim Permintaan Perbaikan</Button>
           </>
         ) : (
           <>
-            <Button variant="ghost" disabled={busy} onClick={() => setRevising(true)}><Undo2 className="w-4 h-4" /> Minta Perbaikan</Button>
-            <Button disabled={busy} onClick={() => decide('approve')}><Check className="w-4 h-4" /> Setujui</Button>
+            <Button variant="ghost" className="min-h-9" disabled={busy} onClick={() => setRevising(true)}><Undo2 className="w-4 h-4" /> Minta Perbaikan</Button>
+            <Button className="min-h-9" disabled={busy} onClick={() => decide('approve')}><Check className="w-4 h-4" /> Setujui</Button>
           </>
         )}
       </div>
-    </div>
+    </section>
   );
 }

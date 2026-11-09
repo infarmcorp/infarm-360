@@ -10,11 +10,10 @@
  * SMTP_FROM (mis. "Infarm 360 <infarmcorp@gmail.com>"), SMTP_HOST, SMTP_PORT.
  */
 import nodemailer from 'nodemailer';
-import { panduanFor } from '@/lib/panduan';
 
 export type SendResult = { ok: true } | { ok: false; reason: 'not_configured' | 'error'; detail?: string };
 
-/** Lampiran email: file diambil provider dari URL publik (mis. /panduan/x.pdf). `cid` diisi → gambar
+/** Lampiran email: file diambil provider dari URL publik. `cid` diisi → gambar
  *  ditampilkan INLINE di badan email lewat `<img src="cid:…">` (email rilis laporan). */
 export type EmailAttachment = { filename: string; path: string; cid?: string };
 
@@ -145,17 +144,6 @@ function htmlToText(html: string): string {
 const ROLE_LABEL_ID: Record<string, string> = {
   employee: 'Pegawai', spv: 'Supervisor', hrd: 'HRD Admin', direksi: 'Direksi',
 };
-
-/**
- * Lampiran panduan PDF sesuai peran penerima (mapping terpusat di lib/panduan.ts, dipakai bersama
- * section "Panduan Pengguna" di aplikasi). Mengembalikan null bila base URL kosong (tak bisa
- * membentuk tautan) — pemanggil cukup mengirim tanpa lampiran.
- */
-export function panduanAttachment(role: string, isHrdAdmin: boolean, base: string, isCoordinator = false): EmailAttachment | null {
-  if (!base) return null;
-  const def = panduanFor(role, isHrdAdmin, isCoordinator);
-  return { filename: def.filename, path: `${base.replace(/\/+$/, '')}/panduan/${def.file}` };
-}
 
 /** Panduan ringkas per peran untuk email onboarding (3–5 langkah inti). */
 function roleGuide(role: string, isHrdAdmin: boolean): string[] {

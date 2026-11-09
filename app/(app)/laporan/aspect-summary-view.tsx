@@ -1,4 +1,5 @@
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Star } from 'lucide-react';
+import { CARD, CardTitle } from '@/components/infarm-ui';
 import { SummaryText } from './summary-text';
 
 /**
@@ -20,22 +21,18 @@ export function AspectSummaryView({
   if (entries.length === 0) return null;
 
   return (
-    <section className="mt-6 break-inside-avoid">
-      <div className="bg-brand text-white rounded-t-panel px-4 py-2.5">
-        <h2 className="text-sm font-extrabold uppercase tracking-wide flex items-center gap-2">
-          <Sparkles className="w-4 h-4" /> {title}
-        </h2>
-      </div>
-      <div className="border border-t-0 border-line rounded-b-panel p-4 space-y-3">
-        <p className="text-[11px] text-ink-soft bg-brand-tint/60 border border-brand-ink/15 rounded-control p-2">
-          {intro}
-        </p>
+    <section className={`${CARD} print:shadow-none mt-4 break-inside-avoid`}>
+      <CardTitle icon={Sparkles}>{title}</CardTitle>
+      <p className="text-xs text-ink-soft mt-1.5">{intro}</p>
+      <div className="mt-3 space-y-3">
         {entries.map(([name, text]) => (
-          <div key={name} className="border border-line rounded-panel overflow-hidden">
-            <div className="px-3 py-2 bg-neutral-tint border-b border-line-soft">
-              <span className="text-xs font-bold text-brand-ink flex items-center gap-1.5">★ {name}</span>
+          <div key={name} className="border border-line rounded-control bg-infarm-surface print:bg-white overflow-hidden">
+            <div className="px-3 py-2 border-b border-line">
+              <span className="text-[13px] font-bold text-brand-ink flex items-center gap-1.5">
+                <Star className="w-3.5 h-3.5 shrink-0" aria-hidden /> {name}
+              </span>
             </div>
-            <SummaryText text={text} className="text-xs p-3 text-ink-soft leading-relaxed" />
+            <SummaryText text={text} className="text-[13px] p-3 text-ink leading-relaxed" />
           </div>
         ))}
       </div>

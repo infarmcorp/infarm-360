@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { colPercents } from '@/lib/table-cols';
+import { Check, CheckCircle2 } from 'lucide-react';
+import { TABLE_HEAD } from '@/components/infarm-ui';
 import { LateWaiver } from './late-waiver';
 import { usePager, StableHeight, Pager, CheckboxFilter, MultiCheckFilter } from '@/components/table-controls';
 
@@ -42,8 +44,8 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-[11.5px] text-ink-soft">
-          <span className="data-value font-semibold text-ink">{flagged.length}</span> perlu perhatian{showAll ? ` · ${rows.length} total pegawai` : ''}
+        <span className="text-xs text-ink-soft">
+          <span className="font-mono font-semibold text-ink">{flagged.length}</span> perlu perhatian{showAll ? ` · ${rows.length} total pegawai` : ''}
         </span>
         <div className="flex items-center gap-3">
           <MultiCheckFilter label="Divisi"
@@ -54,10 +56,13 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
       </div>
 
       {list.length === 0 ? (
-        <div className="text-center py-10 text-sm text-ink-soft">
-          ✅ Semua pegawai patuh — tak ada yang perlu ditindak.
+        <div className="text-center py-10 text-[13px] text-ink-soft">
+          <span className="inline-flex items-center gap-1.5">
+            <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
+            Semua pegawai patuh — tak ada yang perlu ditindak.
+          </span>
           {rows.length > 0 && (
-            <div className="text-[11px] mt-1 text-ink-faint">
+            <div className="text-xs mt-1 text-ink-soft">
               Ingin melihat atau mengubah potongan pegawai lain? Centang <strong className="font-semibold text-ink-soft">&quot;Tampilkan semua pegawai&quot;</strong> di atas.
             </div>
           )}
@@ -67,7 +72,7 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
           <StableHeight>
           <div className="overflow-x-auto">
             {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}
-            <table className="w-full table-fixed table-1line text-left text-sm min-w-[580px]">
+            <table className="w-full table-fixed table-1line text-left text-[13px] min-w-[580px]">
               <colgroup>
                 {colPercents([
                   220, // Pegawai + divisi
@@ -77,41 +82,45 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
                 ]).map((w, i) => <col key={i} style={{ width: w }} />)}
               </colgroup>
               <thead>
-                <tr className="text-[11px] uppercase tracking-[0.05em] text-ink-faint border-b border-line">
-                  <th className="py-2 pr-3 font-semibold">Pegawai</th>
-                  <th className="py-2 px-3 text-center font-semibold">Belum Kirim</th>
-                  <th className="py-2 px-3 text-center font-semibold">Kirim Terlambat</th>
-                  <th className="py-2 pl-3 text-center font-semibold">Potongan 360°</th>
+                <tr className={TABLE_HEAD}>
+                  <th className="py-2.5 px-3 rounded-l-lg">Pegawai</th>
+                  <th className="py-2.5 px-3 text-center">Belum Kirim</th>
+                  <th className="py-2.5 px-3 text-center">Kirim Terlambat</th>
+                  <th className="py-2.5 px-3 text-center rounded-r-lg">Potongan 360°</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line-soft">
                 {shown.map((r) => (
-                  <tr key={r.id}>
-                    <td className="py-3 pr-3 break-words">
+                  <tr key={r.id} className="align-top hover:bg-infarm-surface/60">
+                    <td className="py-3 px-3 break-words">
                       <span className="font-bold text-ink block">{r.name}</span>
-                      <span className="text-[11px] text-ink-faint">{r.dept}</span>
+                      <span className="text-xs text-ink-soft">{r.dept}</span>
                     </td>
                     <td className="py-3 px-3 text-center">
                       {r.lateCount > 0 ? (
-                        <span className="text-[11px] font-semibold text-danger-ink" title={readOnly ? undefined : r.lateTargets.join(', ')}>
-                          <span className="data-value">{r.lateCount}</span> belum
+                        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-danger-tint text-danger-ink" title={readOnly ? undefined : r.lateTargets.join(', ')}>
+                          <span className="font-mono">{r.lateCount}</span> belum
                         </span>
-                      ) : <span className="text-[11px] text-brand-ink">✔ lengkap</span>}
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-brand-tint text-brand-ink">
+                          <Check className="w-3 h-3" /> lengkap
+                        </span>
+                      )}
                       {r.ajuanPending.length > 0 && (
-                        <span className="block text-[10px] font-semibold text-warn-ink mt-0.5"
+                        <span className="block text-[11px] font-semibold text-warn-ink mt-1"
                           title={readOnly ? 'Ajuan (opsional, diajukan sendiri & disetujui HRD) belum dikirim sampai deadline' : `Ajuan (opsional, diajukan sendiri & disetujui HRD) belum dikirim sampai deadline: ${r.ajuanPending.join(', ')}`}>
-                          + <span className="data-value">{r.ajuanPending.length}</span> ajuan belum
+                          + <span className="font-mono">{r.ajuanPending.length}</span> ajuan belum
                         </span>
                       )}
                     </td>
                     <td className="py-3 px-3 text-center">
                       {r.lateSubmitted.length > 0 ? (
-                        <span className="text-[11px] font-semibold text-warn-ink" title={readOnly ? undefined : r.lateSubmitted.join('\n')}>
-                          <span className="data-value">{r.lateSubmitted.length}</span> terlambat
+                        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-danger-tint text-danger-ink" title={readOnly ? undefined : r.lateSubmitted.join('\n')}>
+                          <span className="font-mono">{r.lateSubmitted.length}</span> terlambat
                         </span>
-                      ) : <span className="text-[11px] text-ink-faint">—</span>}
+                      ) : <span className="text-[13px] text-ink-soft">—</span>}
                     </td>
-                    <td className="py-3 pl-3 text-center">
+                    <td className="py-3 px-3 text-center">
                       <LateWaiver employeeId={r.id} penalty={r.latePenalty} auto={r.lateAuto} override={r.lateOverride}
                         reason={r.lateWaiveReason} lateWajib={r.lateWajib} lateAjuan={r.lateAjuan} readOnly={readOnly} />
                     </td>
@@ -123,7 +132,7 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
           <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pegawai" />
           </StableHeight>
           {!showAll && hiddenCount > 0 && (
-            <p className="text-[11px] text-ink-faint italic">
+            <p className="text-xs text-ink-soft">
               {hiddenCount} pegawai patuh disembunyikan — centang &quot;Tampilkan semua pegawai&quot; untuk melihat.
             </p>
           )}

@@ -5,6 +5,12 @@ import { useRouter } from 'next/navigation';
 import { ChevronDown, ChevronRight, Trash2, ChevronUp, Pencil, Check, X } from 'lucide-react';
 import { updateIndicator, toggleIndicator, deleteIndicator, renameAspect, deleteAspect, moveAspect } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { FIELD, FIELD_LABEL } from '@/components/infarm-ui';
+
+// Tombol ikon kecil (ubah/geser/hapus aspek) & tombol teks baris indikator — skala rapat Design System Infarm.
+const ICON_BTN = 'inline-flex items-center justify-center w-8 h-8 rounded-xl text-ink-soft hover:bg-neutral-tint disabled:opacity-30';
+const ROW_BTN = 'inline-flex items-center justify-center min-h-9 px-3 rounded-xl text-[13px] font-semibold bg-surface border border-line disabled:opacity-50 shrink-0';
+const SAVE_BTN = 'inline-flex items-center justify-center min-h-9 px-4 rounded-xl text-[13px] font-bold bg-brand text-white hover:bg-brand-ink disabled:opacity-50 shrink-0';
 
 type Ind = {
   id: string; text: string; is_active: boolean; description: string;
@@ -37,13 +43,13 @@ export function IndicatorManager({
   }
 
   return (
-    <section className="border border-line rounded-panel p-4">
+    <section className="border border-line rounded-xl p-3.5">
       <AspectHeader aspectId={aspectId} aspectName={aspectName} canUp={canUp} canDown={canDown} run={run} busy={busy} count={indicators.length} />
       <div className="space-y-2">
         {indicators.map((ind) => <IndicatorRow key={ind.id} ind={ind} run={run} busy={busy} />)}
-        {indicators.length === 0 && <p className="text-[12px] text-ink-faint italic">Belum ada indikator.</p>}
+        {indicators.length === 0 && <p className="text-[13px] text-ink-soft italic">Belum ada indikator.</p>}
       </div>
-      {err && <p className="text-[11px] text-danger-ink mt-1">{err}</p>}
+      {err && <p className="text-[12px] text-danger-ink mt-1.5">{err}</p>}
     </section>
   );
 }
@@ -76,22 +82,22 @@ function AspectHeader({
         <div className="flex items-center gap-1 flex-1">
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') save(); if (e.key === 'Escape') { setEditing(false); setName(aspectName); } }}
-            className="flex-1 text-[13px] font-bold px-2 py-1 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
-          <button type="button" onClick={save} disabled={busy} title="Simpan" className="text-brand hover:text-brand-ink p-0.5"><Check className="w-4 h-4" /></button>
-          <button type="button" onClick={() => { setEditing(false); setName(aspectName); }} title="Batal" className="text-ink-faint hover:text-ink-soft p-0.5"><X className="w-4 h-4" /></button>
+            className={`${FIELD} flex-1 bg-surface font-bold`} />
+          <button type="button" onClick={save} disabled={busy} title="Simpan" className={`${ICON_BTN} text-brand hover:text-brand-ink`}><Check className="w-4 h-4" /></button>
+          <button type="button" onClick={() => { setEditing(false); setName(aspectName); }} title="Batal" className={ICON_BTN}><X className="w-4 h-4" /></button>
         </div>
       ) : (
-        <h3 className="text-[13.5px] font-bold text-ink flex items-center gap-1.5">
+        <h3 className="text-[13px] font-bold text-ink flex items-center gap-1.5">
           {aspectName}
-          <span className="text-[11px] font-semibold text-ink-faint">· <span className="data-value">{count}</span> indikator</span>
+          <span className="text-[12px] font-semibold text-ink-soft">· <span className="data-value">{count}</span> indikator</span>
         </h3>
       )}
       {!editing && (
         <div className="flex items-center gap-0.5 shrink-0">
-          <button type="button" onClick={() => setEditing(true)} disabled={busy} title="Ubah nama" className="text-ink-faint hover:text-brand p-1"><Pencil className="w-3.5 h-3.5" /></button>
-          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'up'))} disabled={busy || !canUp} title="Naik" className="text-ink-faint hover:text-ink p-1 disabled:opacity-30"><ChevronUp className="w-4 h-4" /></button>
-          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'down'))} disabled={busy || !canDown} title="Turun" className="text-ink-faint hover:text-ink p-1 disabled:opacity-30"><ChevronDown className="w-4 h-4" /></button>
-          <button type="button" onClick={remove} disabled={busy} title="Hapus aspek" className="text-ink-faint hover:text-danger-ink p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+          <button type="button" onClick={() => setEditing(true)} disabled={busy} title="Ubah nama" className={`${ICON_BTN} hover:text-brand`}><Pencil className="w-3.5 h-3.5" /></button>
+          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'up'))} disabled={busy || !canUp} title="Naik" className={`${ICON_BTN} hover:text-ink`}><ChevronUp className="w-4 h-4" /></button>
+          <button type="button" onClick={() => run(() => moveAspect(aspectId, 'down'))} disabled={busy || !canDown} title="Turun" className={`${ICON_BTN} hover:text-ink`}><ChevronDown className="w-4 h-4" /></button>
+          <button type="button" onClick={remove} disabled={busy} title="Hapus aspek" className={`${ICON_BTN} hover:text-danger-ink`}><Trash2 className="w-3.5 h-3.5" /></button>
         </div>
       )}
     </div>
@@ -134,64 +140,64 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
 
   return (
     <>
-    <div className={`rounded-control ${ind.is_active ? '' : 'opacity-50'}`}>
-      <div className="flex items-center gap-1.5 flex-wrap">
+    <div className={`rounded-xl ${ind.is_active ? '' : 'opacity-50'}`}>
+      <div className="flex items-center gap-2 flex-wrap">
         <button type="button" onClick={() => setOpen((o) => !o)} title="Panduan penilaian"
-          className="text-ink-faint hover:text-ink-soft shrink-0">
-          {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+          className={`${ICON_BTN} shrink-0`}>
+          {open ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>
         <input value={text} onChange={(e) => setText(e.target.value)}
-          className="flex-1 min-w-[140px] text-[12.5px] px-2.5 py-1.5 border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
-        {hasGuide && !open && <span className="text-[10px] font-semibold text-brand-ink bg-brand-tint border border-brand/20 px-1.5 py-0.5 rounded-full shrink-0">panduan</span>}
+          className={`${FIELD} flex-1 min-w-[140px] bg-surface`} />
+        {hasGuide && !open && <span className="text-[12px] font-semibold text-brand-ink bg-brand-tint px-2.5 py-0.5 rounded-full shrink-0">panduan</span>}
         {dirtyText && (
           <button type="button" disabled={busy} onClick={() => run(() => updateIndicator(ind.id, text))}
-            className="text-[11px] font-semibold px-2.5 py-1.5 rounded-control bg-brand text-white hover:bg-brand-ink disabled:opacity-50 shrink-0">Simpan</button>
+            className={SAVE_BTN}>Simpan</button>
         )}
         <button type="button" disabled={busy} onClick={() => run(() => toggleIndicator(ind.id, !ind.is_active))}
-          className="text-[11px] font-semibold px-2.5 py-1.5 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-50 shrink-0">
+          className={`${ROW_BTN} text-ink-soft hover:text-ink hover:border-line-strong`}>
           {ind.is_active ? 'Nonaktif' : 'Aktifkan'}
         </button>
         <button type="button" disabled={busy} title="Hapus indikator (hanya bila belum dipakai penilaian)"
           onClick={() => setConfirmDel(true)}
-          className="text-[11px] font-semibold px-2 py-1.5 rounded-control border border-line text-danger-ink hover:border-danger-ink disabled:opacity-50 shrink-0">
-          <Trash2 className="w-3.5 h-3.5" />
+          className={`${ROW_BTN} px-2.5 text-danger-ink hover:border-danger-ink`}>
+          <Trash2 className="w-4 h-4" />
         </button>
       </div>
 
       {open && (
-        <div className="mt-2 ml-5 p-3 bg-neutral-tint border border-line rounded-control space-y-2.5">
+        <div className="mt-2 ml-10 p-3.5 bg-neutral-tint rounded-xl space-y-3">
           <div>
-            <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-0.5">Deskripsi Perilaku (kotak penjelasan di form)</label>
+            <label className={FIELD_LABEL}>Deskripsi Perilaku (kotak penjelasan di form)</label>
             <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2}
               placeholder="Penjelasan singkat indikator ini bagi penilai…"
-              className="w-full text-[12px] p-2 bg-surface border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint resize-none" />
+              className={`${FIELD} w-full py-2 bg-surface leading-relaxed resize-none`} />
           </div>
           <div>
-            <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-1">Panduan BARS per Level</label>
-            <p className="text-[10px] text-ink-faint mb-1.5 leading-relaxed">
+            <label className={FIELD_LABEL}>Panduan BARS per Level</label>
+            <p className="text-[12px] text-ink-soft mb-2 leading-relaxed">
               Key point = label pendek yang tampil besar di form penilaian (khusus indikator ini, dari Instrumen Final Q3 2026 — jangan disamakan antar indikator).
               Deskripsi = penjelasan panjang di bawahnya.
             </p>
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {['1', '2', '3', '4', '5'].map((lv) => (
-                <div key={lv} className="flex items-start gap-1.5">
-                  <span className="text-[11px] font-bold text-brand-ink data-value w-4 text-center shrink-0 mt-1.5">{lv}</span>
+                <div key={lv} className="flex items-start gap-2">
+                  <span className="text-[13px] font-bold text-brand-ink data-value w-4 text-center shrink-0 mt-2">{lv}</span>
                   <div className="flex-1 space-y-1">
                     <input value={keyPoints[lv]} onChange={(e) => setKeyPoints((p) => ({ ...p, [lv]: e.target.value }))}
                       placeholder={`Key point — ${KEY_POINT_PLACEHOLDER[lv]}`}
-                      className="w-full text-[12px] font-semibold px-2 py-1 bg-surface border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+                      className={`${FIELD} w-full bg-surface font-semibold`} />
                     <input value={guide[lv]} onChange={(e) => setGuide((p) => ({ ...p, [lv]: e.target.value }))}
                       placeholder="Deskripsi — contoh/kriteria perilaku…"
-                      className="w-full text-[12px] px-2 py-1 bg-surface border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
+                      className={`${FIELD} w-full bg-surface`} />
                   </div>
                 </div>
               ))}
             </div>
           </div>
-          <div className="flex gap-2 pt-0.5">
+          <div className="flex items-center gap-2 pt-0.5">
             <button type="button" disabled={busy} onClick={saveGuide}
-              className="text-[11px] font-semibold px-3 py-1.5 rounded-control bg-brand text-white hover:bg-brand-ink disabled:opacity-50">Simpan Panduan</button>
-            <button type="button" onClick={() => setOpen(false)} className="text-[11px] font-semibold text-ink-faint hover:text-ink-soft">Tutup</button>
+              className={SAVE_BTN}>Simpan Panduan</button>
+            <button type="button" onClick={() => setOpen(false)} className="min-h-9 px-3 rounded-xl text-[13px] font-semibold text-ink-soft hover:text-ink">Tutup</button>
           </div>
         </div>
       )}

@@ -5,6 +5,9 @@ import { loadReport } from '@/lib/report';
 import { ReportDoc } from './report-doc';
 import { AspectSummaryView } from './aspect-summary-view';
 import { planTitle } from '@/lib/dev-plan';
+import { ArrowRight, FileText, NotebookPen } from 'lucide-react';
+import { CARD, PageTitle, pillCls } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 /**
  * Laporan Hasil Saya (pegawai). Tampil bila HRD sudah FINALISASI (RLS fr_read:
@@ -36,17 +39,17 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
   if (finalIds.length === 0) {
     return (
       <Shell>
-        <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Laporan Hasil Saya</h1>
-        {ap ? (
-          <>
-            <p className="text-[13.5px] text-ink-soft mt-1">Periode: {ap.label}</p>
-            <p className="text-sm text-ink-soft mt-4">
-              Laporan Anda <strong>belum difinalisasi</strong> oleh HRD. Silakan cek kembali nanti.
+        <PageTitle title="Laporan Hasil Saya">{ap ? <>Periode: {ap.label}</> : null}</PageTitle>
+        <div className={`${CARD} flex items-start gap-2.5`}>
+          <FileText className="w-4 h-4 text-brand shrink-0 mt-0.5" aria-hidden />
+          {ap ? (
+            <p className="text-[13px] text-ink-soft">
+              Laporan Anda <strong className="text-ink">belum difinalisasi</strong> oleh HRD. Silakan cek kembali nanti.
             </p>
-          </>
-        ) : (
-          <p className="text-sm text-ink-soft mt-4">Belum ada laporan yang difinalisasi.</p>
-        )}
+          ) : (
+            <p className="text-[13px] text-ink-soft">Belum ada laporan yang difinalisasi.</p>
+          )}
+        </div>
       </Shell>
     );
   }
@@ -56,7 +59,7 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
     .from('periods').select('id, label, has_360, start_date').in('id', finalIds)
     .order('start_date', { ascending: false });
   const list = periods ?? [];
-  if (list.length === 0) return <Shell><p className="text-sm text-ink-soft">Data laporan tidak ditemukan.</p></Shell>;
+  if (list.length === 0) return <Shell><p className={`${CARD} text-[13px] text-ink-soft`}>Data laporan tidak ditemukan.</p></Shell>;
 
   // Periode terpilih: dari ?period= bila valid (harus ber-laporan final), else terbaru.
   const selected = list.find((p) => p.id === periodParam) ?? list[0];
@@ -65,7 +68,7 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
   // mentah (identitas penilai) lewat RLS. Aman — `selected` sudah dibatasi ke laporan FINAL miliknya
   // sendiri (query user-scoped di atas, RLS fr_read), dan data mentah dibuang sebelum render (`safe`).
   const data = await loadReport(createAdminClient(), user.id, { id: selected.id, label: selected.label, has_360: selected.has_360 });
-  if (!data) return <Shell><p className="text-sm text-ink-soft">Data laporan tidak ditemukan.</p></Shell>;
+  if (!data) return <Shell><p className={`${CARD} text-[13px] text-ink-soft`}>Data laporan tidak ditemukan.</p></Shell>;
 
   // Buang lapis 3 (komentar mentah per penilai) sebelum render — pegawai hanya melihat
   // agregat (L1+L2). Array dikosongkan agar tak ikut terserialisasi ke browser.
@@ -82,18 +85,16 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
   return (
     <Shell>
       {(list.length > 1 || activePending) && (
-        <div className="mb-4">
-          <p className="text-xs font-medium text-ink-faint mb-1.5">Pilih periode</p>
-          <div className="flex flex-wrap gap-2">
+        <div className="mb-4 no-print">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-ink-soft mr-1">Pilih periode</span>
             {list.map((p) => {
               const isSel = p.id === selected.id;
               return (
                 <Link
                   key={p.id}
                   href={`/laporan?period=${p.id}`}
-                  className={`px-3 py-1.5 rounded-control text-sm border transition-colors ${
-                    isSel ? 'bg-brand text-white border-brand' : 'bg-surface text-ink-soft border-line hover:bg-neutral-tint'
-                  }`}
+                  className={pillCls(isSel)}
                 >
                   {p.label}
                 </Link>
@@ -101,18 +102,21 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
             })}
           </div>
           {activePending && (
-            <p className="text-xs text-ink-faint mt-2">
-              Laporan periode berjalan (<strong>{ap!.label}</strong>) belum difinalisasi oleh HRD.
+            <p className="text-xs text-ink-soft mt-2">
+              Laporan periode berjalan (<strong className="text-ink">{ap!.label}</strong>) belum difinalisasi oleh HRD.
             </p>
           )}
         </div>
       )}
       {/* Rencana Pengembangan (0055): diisi setelah sesi empat mata, melekat ke periode laporan ini. */}
-      <div className="no-print mb-4 flex flex-wrap items-center justify-between gap-2 rounded-panel border border-line bg-neutral-tint px-3.5 py-2.5">
-        <p className="text-[12.5px] text-ink-soft">
-          <strong className="text-ink">{planTitle(selected.label)}</strong> — isi setelah sesi empat mata dengan atasan Anda.
+      <div className="no-print mb-5 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-infarm-cream/60 px-3.5 py-2.5">
+        <p className="flex items-start gap-2 text-[13px] text-ink-soft">
+          <NotebookPen className="w-4 h-4 text-infarm-soil shrink-0 mt-0.5" aria-hidden />
+          <span><strong className="text-ink">{planTitle(selected.label)}</strong> — isi setelah sesi empat mata dengan atasan Anda.</span>
         </p>
-        <Link href={`/pengembangan?tab=saya&period=${selected.id}`} className="text-xs font-bold text-brand-ink hover:underline">Buka Rencana →</Link>
+        <Link href={`/pengembangan?tab=saya&period=${selected.id}`} className="inline-flex items-center gap-1 text-[13px] font-bold text-brand-ink hover:underline">
+          Buka Rencana <ArrowRight className="w-3.5 h-3.5" aria-hidden />
+        </Link>
       </div>
       <ReportDoc data={safe} anonymize hideAssessorComments pdfFolder={{ url: folder?.url ?? null }} />
       {safe.has360 && <AspectSummaryView summaries={safe.aspectSummaries} />}
@@ -129,8 +133,9 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
-      <div className="bg-surface border border-line rounded-panel p-5">{children}</div>
+    // Kanvas Design System Infarm; saat cetak latar putih tanpa padding (globals.css @media print).
+    <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7 print:bg-white print:p-0`}>
+      <div>{children}</div>
     </main>
   );
 }

@@ -21,7 +21,7 @@ vi.mock('@/lib/audit/log', () => ({ logHrdAction: vi.fn(async () => {}), logAudi
 vi.mock('@/app/(app)/admin/360/actions', () => ({ computeResult360: vi.fn(async () => ({ ok: true })) }));
 vi.mock('@/lib/backfill-guard', () => ({ backfillLockReason: vi.fn(async () => null), BACKFILL_LOCK_MSG: 'x' }));
 vi.mock('@/lib/email/mailer', () => ({
-  emailConfigured: vi.fn(() => false), sendEmail: vi.fn(), reminderHtml: vi.fn(), onboardingHtml: vi.fn(), panduanAttachment: vi.fn(),
+  emailConfigured: vi.fn(() => false), sendEmail: vi.fn(), reminderHtml: vi.fn(), onboardingHtml: vi.fn(),
 }));
 vi.mock('@/lib/final-lock', async (orig) => ({
   ...(await orig<typeof import('@/lib/final-lock')>()),

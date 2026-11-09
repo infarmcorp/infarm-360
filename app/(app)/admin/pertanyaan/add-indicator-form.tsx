@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { PlusCircle, Plus } from 'lucide-react';
 import { addIndicator } from './actions';
 import { Button } from '@/components/button';
+import { FIELD, FIELD_LABEL } from '@/components/infarm-ui';
 
 /**
  * Section khusus "Tambah Indikator Kuantitatif Baru" (ala legacy): pilih Aspek →
@@ -35,32 +36,32 @@ export function AddIndicatorForm({ aspects }: { aspects: { id: string; name: str
 
   return (
     <section className="border-t border-line-soft pt-4 mt-4">
-      <span className="flex items-center gap-1.5 text-[12px] font-bold text-ink mb-2">
-        <PlusCircle className="w-4 h-4 text-ink-faint" /> Tambah Indikator Kuantitatif Baru
+      <span className="flex items-center gap-1.5 text-[13px] font-bold text-ink mb-2">
+        <PlusCircle className="w-4 h-4 text-brand" /> Tambah Indikator Kuantitatif Baru
       </span>
-      <form onSubmit={submit} className="space-y-3 bg-neutral-tint p-3 rounded-control">
+      <form onSubmit={submit} className="space-y-3 bg-neutral-tint p-3.5 rounded-xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
-            <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-0.5">Aspek Kelompok</label>
+            <label className={FIELD_LABEL}>Aspek Kelompok</label>
             <select value={aspectId} onChange={(e) => setAspectId(e.target.value)}
-              className="w-full text-[12px] px-2.5 py-1.5 bg-surface border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint text-ink-soft font-semibold cursor-pointer">
+              className={`${FIELD} w-full bg-surface font-semibold cursor-pointer`}>
               {aspects.length === 0 && <option value="">— belum ada aspek —</option>}
               {aspects.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-0.5">Judul Ringkas</label>
+            <label className={FIELD_LABEL}>Judul Ringkas</label>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Contoh: Kejujuran Finansial"
-              className="w-full text-[12.5px] px-2.5 py-1.5 bg-surface border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint font-semibold text-ink" />
+              className={`${FIELD} w-full bg-surface font-semibold`} />
           </div>
         </div>
         <div>
-          <label className="block text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em] mb-0.5">Deskripsi Perilaku (opsional)</label>
+          <label className={FIELD_LABEL}>Deskripsi Perilaku (opsional)</label>
           <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2}
             placeholder="Contoh: Senantiasa memelihara transparansi & ketepatan laporan operasional…"
-            className="w-full text-[12.5px] px-2.5 py-1.5 bg-surface border border-line rounded-control focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint text-ink leading-relaxed resize-none" />
+            className={`${FIELD} w-full py-2 bg-surface leading-relaxed resize-none`} />
         </div>
-        {msg && <p className={`text-[12px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
+        {msg && <p className={`text-[13px] font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</p>}
         <Button type="submit" disabled={busy} className="w-full">
           <Plus className="w-3.5 h-3.5" /> {busy ? 'Menyimpan…' : 'Tambah Indikator ke Aspek'}
         </Button>

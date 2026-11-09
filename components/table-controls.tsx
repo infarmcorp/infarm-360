@@ -1,6 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+
+// Tombol pager (Design System Infarm): putih bergaris, tinggi 36px, sudut membulat.
+const PAGER_BTN = 'inline-flex items-center gap-1 min-h-9 px-3 rounded-xl border border-line bg-surface text-[13px] text-ink-soft font-semibold transition-colors hover:text-brand hover:border-infarm-light disabled:opacity-40 disabled:pointer-events-none';
 
 /**
  * Kontrol tabel bersama — fondasi paginasi 5-baris & filter checkbox yang dipakai
@@ -36,23 +40,23 @@ export function Pager({
   if (pageCount <= 1) return null;
   return (
     // mt-auto: di dalam StableHeight pager menempel di dasar bingkai (posisinya tetap).
-    <div className="mt-auto flex items-center justify-between gap-2 text-xs text-gray-600">
+    <div className="mt-auto flex items-center justify-between gap-2 text-[13px] text-ink-soft">
       <button
         onClick={() => setPage(Math.max(0, page - 1))}
         disabled={page === 0}
-        className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50"
-      >← Sebelumnya</button>
+        className={PAGER_BTN}
+      ><ChevronLeft className="w-4 h-4" aria-hidden /> Sebelumnya</button>
       <span className="text-center">
-        Halaman {page + 1} / {pageCount}
+        Halaman <span className="font-mono font-semibold text-ink">{page + 1} / {pageCount}</span>
         {total != null && rangeFrom != null && rangeTo != null && (
-          <span className="block text-[10px] text-gray-400">{rangeFrom}–{rangeTo} dari {total} {unit}</span>
+          <span className="block text-[11px] text-ink-soft font-mono">{rangeFrom}–{rangeTo} dari {total} {unit}</span>
         )}
       </span>
       <button
         onClick={() => setPage(Math.min(pageCount - 1, page + 1))}
         disabled={page >= pageCount - 1}
-        className="px-3 py-1.5 rounded-lg border border-gray-300 disabled:opacity-40 hover:bg-gray-50"
-      >Berikutnya →</button>
+        className={PAGER_BTN}
+      >Berikutnya <ChevronRight className="w-4 h-4" aria-hidden /></button>
     </div>
   );
 }
@@ -109,14 +113,14 @@ export function CheckboxFilter({
   checked: boolean; onChange: (v: boolean) => void; label: string; count?: number;
 }) {
   return (
-    <label className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 cursor-pointer select-none">
+    <label className="flex items-center gap-1.5 min-h-9 text-xs font-semibold text-ink-soft cursor-pointer select-none hover:text-ink">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="accent-indigo-600"
+        className="w-3.5 h-3.5 accent-brand"
       />
-      {label}{count != null && <span className="text-gray-400 font-normal">({count})</span>}
+      {label}{count != null && <span className="text-ink-faint font-normal font-mono">({count})</span>}
     </label>
   );
 }
@@ -161,27 +165,28 @@ export function MultiCheckFilter({
   return (
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 text-xs px-3 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-emerald-600">
-        <span className="font-semibold text-gray-700">{label}:</span>
-        <span className={selected.size ? 'text-emerald-700 font-bold' : 'text-gray-500'}>{summary}</span>
-        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden className="text-gray-400"><path d="M2 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" fill="none" /></svg>
+        className={`flex items-center gap-1.5 min-h-9 text-[13px] px-3 border rounded-control bg-infarm-surface transition-colors focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint ${
+          open ? 'border-brand' : 'border-line hover:border-line-strong'}`}>
+        <span className="font-semibold text-ink-soft">{label}:</span>
+        <span className={selected.size ? 'text-brand-ink font-bold' : 'text-ink'}>{summary}</span>
+        <ChevronDown className="w-3.5 h-3.5 text-ink-faint" aria-hidden />
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 w-56 max-h-72 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg p-1.5">
-          <div className="flex items-center justify-between px-2 py-1 mb-1 border-b border-gray-100">
+        <div className="absolute z-50 mt-1 w-56 max-h-72 overflow-y-auto rounded-xl border border-line bg-surface shadow-card p-1.5">
+          <div className="flex items-center justify-between px-2 py-1 mb-1 border-b border-line-soft">
             <button type="button" onClick={() => onChange(new Set(options.map((o) => o.value)))}
-              className="text-[10px] font-bold text-emerald-700 hover:underline">Pilih semua</button>
+              className="text-[11px] font-bold text-brand-ink hover:underline">Pilih semua</button>
             <button type="button" onClick={() => onChange(new Set())}
-              className="text-[10px] font-bold text-gray-500 hover:underline">Bersihkan</button>
+              className="text-[11px] font-bold text-ink-soft hover:underline">Bersihkan</button>
           </div>
-          {options.length === 0 && <p className="text-[11px] text-gray-400 italic px-2 py-1.5">Tak ada pilihan.</p>}
+          {options.length === 0 && <p className="text-xs text-ink-soft italic px-2 py-1.5">Tak ada pilihan.</p>}
           {options.map((o) => {
             const on = selected.has(o.value);
             return (
-              <label key={o.value} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer text-xs ${on ? 'bg-emerald-50/60' : 'hover:bg-gray-50'}`}>
-                <input type="checkbox" checked={on} onChange={() => toggle(o.value)} className="accent-emerald-600" />
-                <span className="flex-1 min-w-0 truncate text-gray-800">{o.label}</span>
-                {o.count != null && <span className="text-[10px] text-gray-400">{o.count}</span>}
+              <label key={o.value} className={`flex items-center gap-2 px-2 py-1.5 rounded-control cursor-pointer text-[13px] ${on ? 'bg-brand-tint' : 'hover:bg-infarm-surface'}`}>
+                <input type="checkbox" checked={on} onChange={() => toggle(o.value)} className="accent-brand" />
+                <span className="flex-1 min-w-0 truncate text-ink">{o.label}</span>
+                {o.count != null && <span className="text-[11px] text-ink-faint font-mono">{o.count}</span>}
               </label>
             );
           })}

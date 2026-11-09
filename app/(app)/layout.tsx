@@ -38,6 +38,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // DEFAULT = base/posisi-asli (lebih aman; masuk Admin harus disengaja via toggle).
   const jar = await cookies();
   const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
+  // Sidebar desktop ditutup? (cookie diset AppShell saat tombol ☰ ditekan) — dibaca di server agar tak berkedip.
+  const sidebarCollapsed = jar.get('sidebar_collapsed')?.value === '1';
 
   // Tugas & Notifikasi (diturunkan dari data; best-effort, tak memblokir render).
   const todos = await getTodos(supabase, user.id, role, hrdMode);
@@ -57,6 +59,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       periodActive={ap?.status === 'active'}
       periodDaysLeft={periodDaysLeft}
       todos={todos}
+      initialCollapsed={sidebarCollapsed}
     >
       {children}
     </AppShell>

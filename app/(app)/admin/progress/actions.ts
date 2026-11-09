@@ -9,30 +9,7 @@ import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
 import { finalLockError } from '@/lib/final-lock';
 import { randomBytes } from 'crypto';
-import { emailConfigured, sendEmail, reminderHtml, onboardingHtml, panduanAttachment, type EmailAttachment } from '@/lib/email/mailer';
-
-/**
- * Cek PDF panduan benar-benar ada di URL publik sebelum dilampirkan — cegah file
- * hilang (404) memblokir pengiriman onboarding (Resend menolak lampiran tak terjangkau).
- * `cache` opsional untuk dedup dalam loop massal (Map baru tiap pemanggilan → tak basi).
- */
-async function pdfReachable(url: string, cache?: Map<string, boolean>): Promise<boolean> {
-  if (cache?.has(url)) return cache.get(url)!;
-  let ok = false;
-  try {
-    const r = await fetch(url, { method: 'HEAD' });
-    ok = r.ok && (r.headers.get('content-type') ?? '').toLowerCase().includes('pdf');
-  } catch { ok = false; }
-  cache?.set(url, ok);
-  return ok;
-}
-
-/** Lampiran panduan PDF utk penerima, atau undefined bila tak ada/ tak terjangkau. */
-async function panduanFor(role: string, isHrdAdmin: boolean, base: string, isCoordinator: boolean, cache?: Map<string, boolean>): Promise<EmailAttachment[] | undefined> {
-  const att = panduanAttachment(role, isHrdAdmin, base, isCoordinator);
-  if (att && await pdfReachable(att.path, cache)) return [att];
-  return undefined;
-}
+import { emailConfigured, sendEmail, reminderHtml, onboardingHtml } from '@/lib/email/mailer';
 
 /**
  * Progress 360 (HRD): pantau kelengkapan pengisian + intervensi.
@@ -272,7 +249,6 @@ export async function sendOnboarding(employeeId: string): Promise<Result> {
   const names = (targetEmps ?? []).map((e) => e.name);
 
   const base = await appBaseUrl();
-  const attachments = await panduanFor(emp.role, emp.is_hrd_admin, base, emp.is_coordinator);
   const send = await sendEmail({
     to: email,
     subject: `Undangan & Info Akun — Infarm 360° (${ap.label})`,
@@ -280,7 +256,6 @@ export async function sendOnboarding(employeeId: string): Promise<Result> {
       name: emp.name, role: emp.role, isHrdAdmin: emp.is_hrd_admin, email, password,
       periodLabel: ap.label, pendingNames: names, appUrl: base ? `${base}/login` : undefined,
     }),
-    attachments,
   });
   if (!send.ok) {
     return send.reason === 'not_configured'
@@ -325,7 +300,6 @@ export async function massOnboarding(): Promise<Result> {
 
   const base = await appBaseUrl();
   const link = base ? `${base}/login` : undefined;
-  const pdfCache = new Map<string, boolean>(); // dedup cek PDF per peran dalam satu run
   let sent = 0, failed = 0, skipped = 0;
   for (const emp of list) {
     const email = emailById.get(emp.id);
@@ -334,7 +308,6 @@ export async function massOnboarding(): Promise<Result> {
     const { error: pwErr } = await admin.auth.admin.updateUserById(emp.id, { password });
     if (pwErr) { failed++; continue; }
     const names = (pending.get(emp.id) ?? []).map((id) => nameById.get(id) ?? '—');
-    const attachments = await panduanFor(emp.role, emp.is_hrd_admin, base, emp.is_coordinator, pdfCache);
     const r = await sendEmail({
       to: email!,
       subject: `Undangan & Info Akun — Infarm 360° (${ap.label})`,
@@ -342,7 +315,6 @@ export async function massOnboarding(): Promise<Result> {
         name: emp.name, role: emp.role, isHrdAdmin: emp.is_hrd_admin, email: email!, password,
         periodLabel: ap.label, pendingNames: names, appUrl: link,
       }),
-      attachments,
     });
     if (r.ok) sent++; else failed++;
   }

@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import { AuditClient, type AuditRow } from './audit-client';
+import { CARD, PageTitle } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 /**
  * Log Aktivitas HRD — jejak audit aksi sensitif (kunci periode, bobot, finalisasi,
@@ -35,9 +37,9 @@ export default async function AuditPage({
   const role = me?.role ?? 'employee';
   if (!canSection(me, 'audit') && role !== 'direksi') {
     return (
-      <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
-        <div className="bg-surface border border-line rounded-panel p-5">
-          <p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD &amp; Direksi.</p>
+      <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>
+        <div className={CARD}>
+          <p className="text-[13px] text-ink-soft">Halaman ini hanya untuk HRD &amp; Direksi.</p>
         </div>
       </main>
     );
@@ -83,14 +85,11 @@ export default async function AuditPage({
   }));
 
   return (
-    <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">
-      <div className="mb-5">
-        <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Log Aktivitas HRD</h1>
-        <p className="mt-1 text-[13.5px] text-ink-soft">
-          Jejak audit aksi sensitif (kunci/aktivasi periode, bobot, finalisasi, potongan keterlambatan,
-          kelola akun, pemetaan, pertanyaan). Hanya-baca &amp; tak dapat diubah.
-        </p>
-      </div>
+    <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>
+      <PageTitle title="Log Aktivitas HRD">
+        Jejak audit aksi sensitif (kunci/aktivasi periode, bobot, finalisasi, potongan keterlambatan,
+        kelola akun, pemetaan, pertanyaan). Hanya-baca &amp; tak dapat diubah.
+      </PageTitle>
       <AuditClient
         rows={rows}
         page={page}

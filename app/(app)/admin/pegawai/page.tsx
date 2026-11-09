@@ -3,6 +3,8 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import { PegawaiClient, type EmpRow, type SpvOpt } from './pegawai-client';
 import { PegawaiImport } from './pegawai-import';
+import { CARD, PageTitle } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 /**
  * Kelola Pegawai (HRD): direktori akun + tambah/edit/nonaktif + reset sandi + atasan.
@@ -14,7 +16,7 @@ export default async function PegawaiPage() {
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'pegawai')) {
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin.</p></Shell>;
+    return <Shell><div className={CARD}><p className="text-[13px] text-ink-soft">Halaman ini hanya untuk HRD Admin.</p></div></Shell>;
   }
 
   const { data: emps } = await supabase
@@ -63,12 +65,11 @@ export default async function PegawaiPage() {
 
   return (
     <Shell>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Kelola Pegawai</h1>
-          <p className="text-[13.5px] text-ink-soft mt-1 max-w-2xl leading-relaxed">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="max-w-2xl">
+          <PageTitle title="Kelola Pegawai">
             Tambah, ubah, atau nonaktifkan akun pegawai. Email boleh placeholder — login pakai sandi, ganti email asli kapan saja.
-          </p>
+          </PageTitle>
         </div>
         <PegawaiImport rows={rows} />
       </div>
@@ -78,5 +79,5 @@ export default async function PegawaiPage() {
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
+  return <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>{children}</main>;
 }

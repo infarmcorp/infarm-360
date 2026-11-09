@@ -5,6 +5,11 @@ import { forceComplete, sendReminder, massReminder, sendOnboarding, massOnboardi
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { usePager, Pager, MultiCheckFilter } from '@/components/table-controls';
 import { PROGRESS_STATUS_LABEL, type ProgressStatus } from '@/lib/late';
+import {
+  AlarmClock, AlertCircle, Ban, Bell, CheckCircle2, ChevronDown, ChevronUp, Circle, Clock, FilePlus2, Mail, PenLine, Percent, Users,
+  type LucideIcon,
+} from 'lucide-react';
+import { CARD, CardTitle, Note, StatCard, FIELD, type StatTone } from '@/components/infarm-ui';
 
 export type Pending = { targetId: string; targetName: string; relation: string; mandatory: boolean; ajuan: boolean; progress: ProgressStatus; reason?: string | null };
 export type AssessorRow = {
@@ -81,214 +86,224 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
   return (
     <div className="space-y-4">
       {/* Stats: kiri = WAJIB (kelengkapan + 4 status BR-07); kanan = panel AJUAN terpisah (tetap Opsional). */}
-      <div className="grid gap-2 lg:grid-cols-[minmax(0,3fr)_minmax(220px,1fr)]">
-        <div className="space-y-2">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <Stat label="Total Penilai" value={stats.total} c="text-ink" />
-            <Stat label="Lengkap (wajib)" value={stats.done} c="text-brand-ink" />
-            <Stat label="Belum (wajib)" value={stats.pending} c="text-warn-ink" />
-            <Stat label="Progres Wajib" value={`${stats.pct}%`} c="text-brand-ink" />
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(240px,1fr)]">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <StatCard item={{ icon: Users, tone: 'neutral', value: String(stats.total), label: 'Total Penilai' }} />
+            <StatCard item={{ icon: CheckCircle2, tone: 'brand', value: String(stats.done), label: 'Lengkap (wajib)' }} />
+            <StatCard item={{ icon: Clock, tone: 'warn', value: String(stats.pending), label: 'Belum (wajib)' }} />
+            <StatCard item={{ icon: Percent, tone: 'brand', value: `${stats.pct}%`, label: 'Progres Wajib' }} />
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             {STATUS_ORDER.map((k) => (
-              <Stat key={k} label={PROGRESS_STATUS_LABEL[k]} value={stats.byStatus[k]} c={STATUS_TEXT[k]} />
+              <StatCard key={k} item={{ icon: STATUS_ICON[k], tone: STATUS_TONE[k], value: String(stats.byStatus[k]), label: PROGRESS_STATUS_LABEL[k] }} />
             ))}
           </div>
         </div>
-        <aside aria-label="Penilaian Ajuan" className="border border-dashed border-line-strong rounded-panel bg-surface p-3 flex flex-col gap-1.5">
-          <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em]">Penilaian Ajuan</div>
-          <div className="text-xl font-bold text-ink">
-            <span className="data-value">{stats.ajuan.on_time + stats.ajuan.late} / {stats.ajuanTotal}</span>
-            <span className="text-[11px] font-semibold text-ink-faint ml-1">selesai</span>
+        <aside aria-label="Penilaian Ajuan" className={`${CARD} flex flex-col gap-2`}>
+          <CardTitle icon={FilePlus2}>Penilaian Ajuan</CardTitle>
+          <div className="text-ink">
+            <span className="font-mono text-lg font-bold">{stats.ajuan.on_time + stats.ajuan.late} / {stats.ajuanTotal}</span>
+            <span className="text-xs font-semibold text-ink-soft ml-1">selesai</span>
           </div>
           {STATUS_ORDER.map((k) => (
-            <div key={k} className="flex justify-between text-[12px] text-ink-soft">
+            <div key={k} className="flex justify-between text-[13px] text-ink-soft">
               <span>{PROGRESS_STATUS_LABEL[k]}</span>
-              <span className={`data-value font-semibold ${stats.ajuan[k] > 0 ? STATUS_TEXT[k] : ''}`}>{stats.ajuan[k]}</span>
+              <span className={`font-mono font-semibold ${stats.ajuan[k] > 0 ? STATUS_TEXT[k] : ''}`}>{stats.ajuan[k]}</span>
             </div>
           ))}
-          <p className="text-[10px] text-ink-faint mt-auto pt-1">
-            Opsional, diajukan pegawai &amp; disetujui HRD{stats.ajuanAssessors > 0 ? <> · <span className="data-value">{stats.ajuanAssessors}</span> penilai</> : ''}. Tidak masuk Progres Wajib.
+          <p className="text-xs text-ink-soft mt-auto pt-2 border-t border-line-soft">
+            Opsional, diajukan pegawai &amp; disetujui HRD{stats.ajuanAssessors > 0 ? <> · <span className="font-mono">{stats.ajuanAssessors}</span> penilai</> : ''}. Tidak masuk Progres Wajib.
           </p>
         </aside>
       </div>
       {stats.byStatus.invalidated > 0 && (
-        <p className="text-[11px] text-ink-faint">
-          <span className="data-value font-semibold text-ink-soft">{stats.byStatus.invalidated}</span> penilaian wajib
+        <Note>
+          <span className="font-mono font-semibold text-ink">{stats.byStatus.invalidated}</span> penilaian wajib
           dibatalkan validitasnya oleh HRD — dikeluarkan dari kewajiban &amp; perhitungan skor.
-        </p>
+        </Note>
       )}
 
-      {/* Controls */}
-      <div className="flex flex-wrap gap-2 items-center">
-        <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama penilai…"
-          className="text-xs px-3 py-2 border border-line rounded-control bg-surface flex-1 min-w-[160px] focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
-        <MultiCheckFilter label="Divisi"
-          options={depts.map((d) => ({ value: d, label: d }))}
-          selected={deptSel} onChange={(s) => { setDeptSel(s); setPage(0); }} />
-        <MultiCheckFilter label="Status"
-          options={[{ value: 'lengkap', label: 'Lengkap' }, { value: 'belum', label: 'Belum Lengkap' }]}
-          selected={statusSel} onChange={(s) => { setStatusSel(s); setPage(0); }} />
-        <MultiCheckFilter label="Status Penilaian"
-          options={[...STATUS_ORDER.map((k) => ({ value: k, label: PROGRESS_STATUS_LABEL[k] })), { value: 'ajuan', label: 'Punya Ajuan' }]}
-          selected={progSel} onChange={(s) => { setProgSel(s); setPage(0); }} />
-        {!readOnly && (
-          <>
-            <button type="button" onClick={() => act(massReminder)} disabled={pending}
-              className="text-xs font-semibold px-3.5 py-2 rounded-control bg-brand hover:bg-brand-ink text-white disabled:opacity-60">
-              🔔 Kirim Pengingat Massal
-            </button>
-            <button type="button" disabled={pending}
-              onClick={() => setConfirm({
-                title: 'Kirim Undangan Massal?',
-                onYes: () => act(massOnboarding),
-                body: (
-                  <>
-                    <p>Kirim <strong>Undangan &amp; Info Akun</strong> ke semua pegawai.</p>
-                    <p>Sandi mereka akan <strong>DISETEL ULANG</strong> (acak unik) lalu dikirim via email.</p>
-                    <p className="font-semibold text-danger-ink">Lakukan sekali di awal periode, sebelum mereka mengganti sandi sendiri.</p>
-                  </>
-                ),
-              })}
-              className="text-xs font-semibold px-3.5 py-2 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-60">
-              📨 Kirim Undangan Massal
-            </button>
-          </>
-        )}
-      </div>
-      {toast && <p className={`text-xs font-semibold ${toast.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{toast.text}</p>}
-
-      {/* Catatan tampilan bawaan: fokus ke yang perlu tindakan. */}
-      {statusSel.size === 1 && statusSel.has('belum') && (
-        <p className="text-[11px] text-ink-faint italic">
-          Menampilkan penilai yang <strong className="font-semibold text-ink-soft">belum lengkap</strong> (perlu tindakan). Ubah filter <strong className="font-semibold text-ink-soft">Status</strong> untuk melihat semua.
-        </p>
-      )}
-
-      {/* Rows (per penilai) */}
-      <div className="space-y-2">
-        {shown.length === 0 && (
-          <p className="text-sm text-ink-soft">
-            {stats.pending === 0 ? '✅ Semua penilai sudah lengkap (wajib).' : 'Tidak ada penilai sesuai filter.'}
-            <span className="block text-[11px] mt-0.5 text-ink-faint">Ubah filter <strong className="font-semibold text-ink-soft">Status</strong> (mis. tambahkan “Lengkap”) untuk melihat penilai lain.</span>
+      <div className={`${CARD} space-y-3`}>
+        {/* Controls */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <input value={q} onChange={(e) => { setQ(e.target.value); setPage(0); }} placeholder="Cari nama penilai…"
+            className={`${FIELD} flex-1 min-w-[160px]`} />
+          <MultiCheckFilter label="Divisi"
+            options={depts.map((d) => ({ value: d, label: d }))}
+            selected={deptSel} onChange={(s) => { setDeptSel(s); setPage(0); }} />
+          <MultiCheckFilter label="Status"
+            options={[{ value: 'lengkap', label: 'Lengkap' }, { value: 'belum', label: 'Belum Lengkap' }]}
+            selected={statusSel} onChange={(s) => { setStatusSel(s); setPage(0); }} />
+          <MultiCheckFilter label="Status Penilaian"
+            options={[...STATUS_ORDER.map((k) => ({ value: k, label: PROGRESS_STATUS_LABEL[k] })), { value: 'ajuan', label: 'Punya Ajuan' }]}
+            selected={progSel} onChange={(s) => { setProgSel(s); setPage(0); }} />
+          {!readOnly && (
+            <>
+              <button type="button" onClick={() => act(massReminder)} disabled={pending}
+                className="inline-flex items-center gap-1.5 text-[13px] font-bold min-h-9 px-4 rounded-xl bg-brand hover:bg-brand-ink text-white disabled:opacity-60">
+                <Bell className="w-4 h-4" /> Kirim Pengingat Massal
+              </button>
+              <button type="button" disabled={pending}
+                onClick={() => setConfirm({
+                  title: 'Kirim Undangan Massal?',
+                  onYes: () => act(massOnboarding),
+                  body: (
+                    <>
+                      <p>Kirim <strong>Undangan &amp; Info Akun</strong> ke semua pegawai.</p>
+                      <p>Sandi mereka akan <strong>DISETEL ULANG</strong> (acak unik) lalu dikirim via email.</p>
+                      <p className="font-semibold text-danger-ink">Lakukan sekali di awal periode, sebelum mereka mengganti sandi sendiri.</p>
+                    </>
+                  ),
+                })}
+                className={BTN_GHOST}>
+                <Mail className="w-4 h-4" /> Kirim Undangan Massal
+              </button>
+            </>
+          )}
+        </div>
+        {toast && (
+          <p className={`flex items-center gap-1.5 text-[13px] font-semibold ${toast.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>
+            {toast.ok ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+            {toast.text}
           </p>
         )}
-        {paged.map((r) => {
-          const complete = isComplete(r);
-          const pct = r.mandatoryTotal ? Math.round((r.mandatoryDone / r.mandatoryTotal) * 100) : 100;
-          const optionalPending = r.pending.filter((p) => !p.mandatory && !p.ajuan).length;
-          const by = dinilaiBy.get(r.id);
-          const byComplete = !!by && by.total > 0 && by.done === by.total;
-          const byPct = by && by.total ? Math.round((by.done / by.total) * 100) : 0;
-          return (
-            <div key={r.id} className="border border-line rounded-panel bg-surface p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
-                <div className="min-w-0">
-                  <span className="font-bold text-ink text-sm">{r.name}</span>
-                  <span className="text-[11px] text-ink-faint"> · {r.dept}</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${complete ? 'bg-brand-tint text-brand-ink' : 'bg-warn-tint text-warn-ink'}`}>
-                    <span className="data-value">{r.mandatoryDone}/{r.mandatoryTotal}</span> wajib · {complete ? 'Lengkap' : 'Belum'}
-                  </span>
-                  {!readOnly && (
-                    <button type="button" disabled={pending}
-                      onClick={() => setConfirm({
-                        title: `Kirim Undangan ke ${r.name}?`,
-                        onYes: () => act(() => sendOnboarding(r.id)),
-                        body: (
-                          <p>Sandi <strong>{r.name}</strong> akan <strong>disetel ulang</strong> (acak) lalu dikirim via email berisi info akun &amp; panduan.</p>
-                        ),
-                      })}
-                      title="Kirim undangan + info akun (peran, email, sandi baru, panduan)"
-                      className="text-[11px] font-semibold px-2.5 py-1 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-60">
-                      Undangan
-                    </button>
-                  )}
-                  {!readOnly && !complete && (
-                    <button type="button" onClick={() => act(() => sendReminder(r.id))} disabled={pending}
-                      className="text-[11px] font-semibold px-2.5 py-1 rounded-control border border-line text-brand-ink hover:border-brand disabled:opacity-60">
-                      Kirim Pengingat
-                    </button>
-                  )}
-                  {/* Rincian (nama target = siapa-menilai-siapa) hanya untuk HRD, bukan pemegang grant. */}
-                  {!readOnly && r.pending.length > 0 && (
-                    <button type="button" onClick={() => setExpanded(expanded === r.id ? null : r.id)}
-                      className="text-[11px] font-semibold text-ink-faint hover:text-ink-soft">
-                      {expanded === r.id ? 'Tutup' : `Rincian (${r.pending.length})`}
-                    </button>
-                  )}
-                </div>
-              </div>
-              {/* Dua progres berdampingan (paritas legacy): "Menilai" vs "Dinilai oleh". */}
-              <div className="grid sm:grid-cols-2 gap-x-4 gap-y-2 mt-2">
-                <div>
-                  <div className="flex justify-between items-center text-[10px] font-semibold text-ink-faint mb-0.5">
-                    <span>Menilai (wajib)</span>
-                    <span className="data-value">{r.mandatoryDone}/{r.mandatoryTotal} · {pct}%</span>
-                  </div>
-                  <div className="h-2 bg-line-soft rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${complete ? 'bg-brand' : 'bg-warn-ink'}`} style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {CHIP_ORDER.filter((k) => r.statusCounts[k] > 0).map((k) => (
-                      <span key={k} className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_CHIP[k]}`}>
-                        {PROGRESS_STATUS_LABEL[k]} <span className="data-value">{r.statusCounts[k]}</span>
-                      </span>
-                    ))}
-                    {STATUS_ORDER.filter((k) => r.ajuanCounts[k] > 0).map((k) => (
-                      <span key={`aj-${k}`} title="Penilaian Ajuan (opsional, diajukan pegawai & disetujui HRD)"
-                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-dashed border-line-strong text-ink-soft">
-                        Ajuan · {PROGRESS_STATUS_LABEL[k]} <span className="data-value">{r.ajuanCounts[k]}</span>
-                      </span>
-                    ))}
-                  </div>
-                  {optionalPending > 0 && (
-                    <p className="text-[10px] text-ink-faint mt-0.5">+{optionalPending} opsional belum (tak memengaruhi status)</p>
-                  )}
-                </div>
-                <div>
-                  <div className="flex justify-between items-center text-[10px] font-semibold text-ink-faint mb-0.5">
-                    <span>Dinilai oleh</span>
-                    <span className="data-value">{by ? `${by.done}/${by.total} orang · ${byPct}%` : '—'}</span>
-                  </div>
-                  <div className="h-2 bg-line-soft rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${byComplete ? 'bg-brand' : 'bg-warn-ink'}`} style={{ width: `${byPct}%` }} />
-                  </div>
-                </div>
-              </div>
-              {expanded === r.id && r.pending.length > 0 && (
-                <div className="mt-3 space-y-1.5 border-t border-line-soft pt-2">
-                  <p className="text-[10px] uppercase tracking-[0.05em] text-ink-faint font-semibold">Belum dinilai:</p>
-                  {r.pending.map((p) => (
-                    <div key={p.targetId} className="flex items-center justify-between gap-2 text-xs">
-                      <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                        <span className="text-ink-soft font-semibold">{p.targetName}</span>
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft">{p.relation}</span>
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${STATUS_CHIP[p.progress]}`}>{PROGRESS_STATUS_LABEL[p.progress]}</span>
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${p.mandatory ? 'bg-danger-tint text-danger-ink' : p.ajuan ? 'border border-dashed border-line-strong text-ink-soft' : 'bg-neutral-tint text-ink-faint'}`}>
-                          {p.mandatory ? 'Wajib' : p.ajuan ? 'Ajuan' : 'Opsional'}
-                        </span>
-                      </div>
-                      {!readOnly && (
-                        <button type="button" onClick={() => act(() => forceComplete(r.id, p.targetId))} disabled={pending}
-                          className="text-[11px] font-semibold px-2.5 py-1 rounded-control border border-line text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-60 shrink-0">
-                          Paksa Selesai
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+
+        {/* Catatan tampilan bawaan: fokus ke yang perlu tindakan. */}
+        {statusSel.size === 1 && statusSel.has('belum') && (
+          <p className="text-xs text-ink-soft">
+            Menampilkan penilai yang <strong className="font-semibold text-ink">belum lengkap</strong> (perlu tindakan). Ubah filter <strong className="font-semibold text-ink">Status</strong> untuk melihat semua.
+          </p>
+        )}
+
+        {/* Rows (per penilai) — baris bisa dibuka-tutup → dikecualikan dari StableHeight (CLAUDE.md §8). */}
+        <div className="divide-y divide-line-soft border-y border-line-soft">
+          {shown.length === 0 && (
+            <div className="py-6 text-center">
+              <p className="inline-flex items-center gap-1.5 text-[13px] text-ink-soft">
+                {stats.pending === 0 && <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />}
+                {stats.pending === 0 ? 'Semua penilai sudah lengkap (wajib).' : 'Tidak ada penilai sesuai filter.'}
+              </p>
+              <span className="block text-xs mt-1 text-ink-soft">Ubah filter <strong className="font-semibold text-ink">Status</strong> (mis. tambahkan “Lengkap”) untuk melihat penilai lain.</span>
             </div>
-          );
-        })}
+          )}
+          {paged.map((r) => {
+            const complete = isComplete(r);
+            const pct = r.mandatoryTotal ? Math.round((r.mandatoryDone / r.mandatoryTotal) * 100) : 100;
+            const optionalPending = r.pending.filter((p) => !p.mandatory && !p.ajuan).length;
+            const by = dinilaiBy.get(r.id);
+            const byPct = by && by.total ? Math.round((by.done / by.total) * 100) : 0;
+            return (
+              <div key={r.id} className="py-3.5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+                  <div className="min-w-0 text-[13px]">
+                    <span className="font-bold text-ink">{r.name}</span>
+                    <span className="text-xs text-ink-soft"> · {r.dept}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                    <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${complete ? 'bg-brand-tint text-brand-ink' : 'bg-warn-tint text-warn-ink'}`}>
+                      <span className="font-mono">{r.mandatoryDone}/{r.mandatoryTotal}</span> wajib · {complete ? 'Lengkap' : 'Belum'}
+                    </span>
+                    {!readOnly && (
+                      <button type="button" disabled={pending}
+                        onClick={() => setConfirm({
+                          title: `Kirim Undangan ke ${r.name}?`,
+                          onYes: () => act(() => sendOnboarding(r.id)),
+                          body: (
+                            <p>Sandi <strong>{r.name}</strong> akan <strong>disetel ulang</strong> (acak) lalu dikirim via email berisi info akun &amp; panduan.</p>
+                          ),
+                        })}
+                        title="Kirim undangan + info akun (peran, email, sandi baru, panduan)"
+                        className={BTN_GHOST}>
+                        Undangan
+                      </button>
+                    )}
+                    {!readOnly && !complete && (
+                      <button type="button" onClick={() => act(() => sendReminder(r.id))} disabled={pending}
+                        className="inline-flex items-center gap-1.5 text-[13px] font-semibold min-h-9 px-3.5 rounded-xl border border-line bg-surface text-brand-ink hover:border-brand disabled:opacity-60">
+                        Kirim Pengingat
+                      </button>
+                    )}
+                    {/* Rincian (nama target = siapa-menilai-siapa) hanya untuk HRD, bukan pemegang grant. */}
+                    {!readOnly && r.pending.length > 0 && (
+                      <button type="button" onClick={() => setExpanded(expanded === r.id ? null : r.id)}
+                        className="inline-flex items-center gap-1 text-[13px] font-semibold min-h-9 px-2 text-ink-soft hover:text-ink">
+                        {expanded === r.id ? 'Tutup' : `Rincian (${r.pending.length})`}
+                        {expanded === r.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {/* Dua progres berdampingan (paritas legacy): "Menilai" vs "Dinilai oleh". */}
+                <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 mt-2">
+                  <div>
+                    <div className="flex justify-between items-center text-xs font-semibold text-ink-soft mb-1">
+                      <span>Menilai (wajib)</span>
+                      <span className="font-mono">{r.mandatoryDone}/{r.mandatoryTotal} · {pct}%</span>
+                    </div>
+                    <div className="h-2 bg-neutral-tint rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${complete ? 'bg-brand' : 'bg-warn-ink'}`} style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {CHIP_ORDER.filter((k) => r.statusCounts[k] > 0).map((k) => (
+                        <span key={k} className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_CHIP[k]}`}>
+                          {PROGRESS_STATUS_LABEL[k]} <span className="font-mono">{r.statusCounts[k]}</span>
+                        </span>
+                      ))}
+                      {STATUS_ORDER.filter((k) => r.ajuanCounts[k] > 0).map((k) => (
+                        <span key={`aj-${k}`} title="Penilaian Ajuan (opsional, diajukan pegawai & disetujui HRD)"
+                          className="text-[11px] font-semibold px-2 py-0.5 rounded-full border border-dashed border-line-strong text-ink-soft">
+                          Ajuan · {PROGRESS_STATUS_LABEL[k]} <span className="font-mono">{r.ajuanCounts[k]}</span>
+                        </span>
+                      ))}
+                    </div>
+                    {optionalPending > 0 && (
+                      <p className="text-xs text-ink-soft mt-1">+<span className="font-mono">{optionalPending}</span> opsional belum (tak memengaruhi status)</p>
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex justify-between items-center text-xs font-semibold text-ink-soft mb-1">
+                      <span>Dinilai oleh</span>
+                      <span className="font-mono">{by ? `${by.done}/${by.total} orang · ${byPct}%` : '—'}</span>
+                    </div>
+                    <div className="h-2 bg-neutral-tint rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${by && by.total > 0 && by.done === by.total ? 'bg-brand' : 'bg-warn-ink'}`} style={{ width: `${byPct}%` }} />
+                    </div>
+                  </div>
+                </div>
+                {expanded === r.id && r.pending.length > 0 && (
+                  <div className="mt-3 space-y-1.5 border-t border-line-soft pt-2.5">
+                    <p className="text-xs uppercase tracking-[0.08em] text-ink-soft font-bold">Belum dinilai:</p>
+                    {r.pending.map((p) => (
+                      <div key={p.targetId} className="flex items-center justify-between gap-2 text-[13px]">
+                        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                          <span className="text-ink font-semibold">{p.targetName}</span>
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-neutral-tint text-ink-soft">{p.relation}</span>
+                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_CHIP[p.progress]}`}>{PROGRESS_STATUS_LABEL[p.progress]}</span>
+                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${p.mandatory ? 'bg-warn-tint text-warn-ink' : p.ajuan ? 'border border-dashed border-line-strong text-ink-soft' : 'bg-neutral-tint text-ink-soft'}`}>
+                            {p.mandatory ? 'Wajib' : p.ajuan ? 'Ajuan' : 'Opsional'}
+                          </span>
+                        </div>
+                        {!readOnly && (
+                          <button type="button" onClick={() => act(() => forceComplete(r.id, p.targetId))} disabled={pending}
+                            className={`${BTN_GHOST} shrink-0`}>
+                            Paksa Selesai
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="penilai" />
       </div>
-      <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="penilai" />
-      <p className="text-[11px] text-ink-faint leading-relaxed">
-        <strong className="font-semibold text-ink-soft">Status &quot;Lengkap&quot;</strong> dihitung dari penilaian <strong className="font-semibold text-ink-soft">WAJIB</strong> saja — penilaian
+      <Note>
+        <strong className="font-semibold text-ink">Status &quot;Lengkap&quot;</strong> dihitung dari penilaian <strong className="font-semibold text-ink">WAJIB</strong> saja — penilaian
         opsional tak memengaruhi status/kartu (tetap ditampilkan di Rincian untuk dipantau). Penilaian
-        <strong className="font-semibold text-ink-soft"> Ajuan</strong> (opsional yang diajukan pegawai &amp; disetujui HRD) dipantau di panel
+        <strong className="font-semibold text-ink"> Ajuan</strong> (opsional yang diajukan pegawai &amp; disetujui HRD) dipantau di panel
         <strong> Penilaian Ajuan</strong> &amp; chip bergaris putus-putus. Tiap baris:
         <strong> Menilai (wajib)</strong> (tugas wajib penilai) &amp; <strong>Dinilai oleh</strong> (berapa
         penilai sudah menilai pegawai ini). <strong>Status penilaian</strong> (tugas wajib): Belum Mulai · Sedang Diisi
@@ -296,7 +311,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
         deadline periode, tak berubah bila penilaian diedit; Paksa Selesai dihitung tepat waktu. “Paksa Selesai” menandai penilaian terkirim; “Kirim Pengingat”
         mengirim email berisi daftar yang belum dinilai; “Undangan” / “Kirim Undangan Massal” mengirim
         info akun (peran, email, sandi baru, panduan) sekali di awal periode — sandi disetel ulang.
-      </p>
+      </Note>
 
       <ConfirmDialog
         open={!!confirm}
@@ -318,18 +333,19 @@ const STATUS_ORDER: ProgressStatus[] = ['not_started', 'in_progress', 'on_time',
 /** Chip per penilai: 4 status BR-07 + "Dibatalkan" (0046) bila ada. */
 const CHIP_ORDER: ProgressStatus[] = [...STATUS_ORDER, 'invalidated'];
 const STATUS_TEXT: Record<ProgressStatus, string> = {
-  not_started: 'text-ink-soft', in_progress: 'text-warn-ink', on_time: 'text-brand-ink', late: 'text-danger-ink', invalidated: 'text-ink-faint',
+  not_started: 'text-ink-soft', in_progress: 'text-warn-ink', on_time: 'text-brand-ink', late: 'text-danger-ink', invalidated: 'text-ink-soft',
 };
 const STATUS_CHIP: Record<ProgressStatus, string> = {
   not_started: 'bg-neutral-tint text-ink-soft', in_progress: 'bg-warn-tint text-warn-ink',
-  on_time: 'bg-brand-tint text-brand-ink', late: 'bg-danger-tint text-danger-ink', invalidated: 'bg-neutral-tint text-ink-faint',
+  on_time: 'bg-brand-tint text-brand-ink', late: 'bg-danger-tint text-danger-ink', invalidated: 'bg-neutral-tint text-ink-soft',
 };
 
-function Stat({ label, value, c }: { label: string; value: number | string; c: string }) {
-  return (
-    <div className="border border-line rounded-panel bg-surface p-3 text-center">
-      <div className={`text-xl font-bold data-value ${c}`}>{value}</div>
-      <div className="text-[10px] font-semibold text-ink-faint uppercase tracking-[0.05em]">{label}</div>
-    </div>
-  );
-}
+/** Ikon + nada kartu ringkasan per status (Belum Mulai & dibatalkan = netral). */
+const STATUS_ICON: Record<ProgressStatus, LucideIcon> = {
+  not_started: Circle, in_progress: PenLine, on_time: CheckCircle2, late: AlarmClock, invalidated: Ban,
+};
+const STATUS_TONE: Record<ProgressStatus, StatTone> = {
+  not_started: 'neutral', in_progress: 'warn', on_time: 'brand', late: 'danger', invalidated: 'neutral',
+};
+/** Tombol sekunder (garis) setinggi kontrol standar 36px. */
+const BTN_GHOST = 'inline-flex items-center gap-1.5 text-[13px] font-semibold min-h-9 px-3.5 rounded-xl border border-line bg-surface text-ink-soft hover:text-ink hover:border-line-strong disabled:opacity-60';

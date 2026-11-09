@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { Scale, UserCog, Calculator, ArrowRight, type LucideIcon } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import type { WeightValues, RelationKind } from '@/lib/database.types';
@@ -8,7 +9,8 @@ import { WeightForm } from './weight-form';
 import { EmployeeWeights, type Override } from './employee-weights';
 import { Kalkulasi360Table, type MergedRow } from './bobot-tables';
 import { EmptyState } from '@/components/empty-state';
-import { Panel, PanelLabel } from '@/components/panel';
+import { CARD, CardTitle, PageTitle, Note } from '@/components/infarm-ui';
+import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
 
 /**
@@ -33,7 +35,7 @@ export default async function BobotPage() {
   if (!user) redirect('/login');
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'bobot')) {
-    return <Shell><p className="text-sm text-ink-soft">Halaman ini hanya untuk HRD Admin.</p></Shell>;
+    return <Shell><div className={CARD}><p className="text-[13px] text-ink-soft">Halaman ini hanya untuk HRD Admin.</p></div></Shell>;
   }
 
   const { data: ap } = await supabase
@@ -41,7 +43,7 @@ export default async function BobotPage() {
   if (!ap) return (
     <Shell>
       <EmptyState
-        icon="⚖️"
+        icon={<Scale className="w-6 h-6" aria-hidden />}
         title="Belum ada periode aktif"
         description="Bobot penilai diatur per periode aktif. Aktifkan periode dulu, lalu tentukan skema bobotnya."
         actions={[{ label: 'Ke Kelola Periode', href: '/admin/periode', primary: true }]}
@@ -162,47 +164,43 @@ export default async function BobotPage() {
 
   return (
     <Shell>
-      <div className="flex items-start justify-between mb-7">
-        <div>
-          <h1 className="text-[22px] font-bold tracking-[-0.01em] text-ink">Bobot &amp; Kalkulasi Skor 360°</h1>
-          <p className="text-[13.5px] text-ink-soft mt-1">Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span></p>
-        </div>
-        <Link href="/" className="text-[12.5px] text-ink-faint hover:text-ink-soft whitespace-nowrap mt-1">← Beranda</Link>
-      </div>
+      <PageTitle title="Bobot & Kalkulasi Skor 360°">
+        Periode aktif <span className="font-mono font-semibold text-ink">{ap.label}</span>
+      </PageTitle>
 
       {/* 1. Bobot Penilai */}
-      <Section title="Bobot Penilai">
+      <Section title="Bobot Penilai" icon={Scale}>
         <WeightForm initial={initial} auto2={auto2} />
-        <p className="text-[12px] text-ink-faint mt-4 leading-relaxed">
+        <div className="mt-4"><Note>
           Skor 360 = rata-rata rating tiap kelas penilai ×20, dibobot di sini. Evaluasi diri (Self)
           tak punya bobot &amp; tak pernah ikut dihitung, jadi tidak ada kolomnya.
           Perubahan berlaku setelah <strong className="font-semibold text-ink-soft">Hitung Ulang Skor 360°</strong> di Review &amp; Finalisasi (tautan di bawah).
-        </p>
+        </Note></div>
       </Section>
 
       {/* 1b. Bobot Khusus per Pegawai (override skema di atas) */}
-      <Section title="Bobot Khusus per Pegawai">
-        <p className="text-[12px] text-ink-soft mb-4 max-w-3xl leading-relaxed">
+      <Section title="Bobot Khusus per Pegawai" icon={UserCog}>
+        <p className="text-[13px] text-ink-soft mb-4 max-w-3xl leading-relaxed">
           Sebagian pegawai bisa memakai bobot berbeda dari skema periode di atas. Pegawai dengan bobot khusus
           memakai model &amp; nilai di sini; sisanya tetap skema periode. Berlaku setelah <strong className="font-semibold text-ink">Hitung Ulang Skor 360°</strong> di Review &amp; Finalisasi.
-          <span className="block mt-1 text-ink-faint">Catatan: kelas tanpa data (mis. pegawai tanpa bawahan) sudah otomatis diabaikan &amp; bobotnya dinormalisasi — bobot khusus hanya perlu bila kebijakan bobotnya memang berbeda.</span>
+          <span className="block mt-1 text-xs text-ink-soft">Catatan: kelas tanpa data (mis. pegawai tanpa bawahan) sudah otomatis diabaikan &amp; bobotnya dinormalisasi — bobot khusus hanya perlu bila kebijakan bobotnya memang berbeda.</span>
         </p>
         <EmployeeWeights employees={empList} overrides={overrides} />
       </Section>
 
       {/* 2. Kalkulasi & Perbandingan (hasil resmi + dampak bobot khusus + banding model). Tombol Hitung Ulang
           SENGAJA hanya satu, di Review & Finalisasi (kokpit Sinkronkan Skor) — di sini cukup tautan. */}
-      <Section title="Kalkulasi Skor 360°">
+      <Section title="Kalkulasi Skor 360°" icon={Calculator}>
         <div className="mb-4">
-          <div className="flex flex-wrap items-center gap-2 border border-line bg-neutral-tint rounded-panel px-3 py-2.5">
-            <span className="text-[12px] text-ink-soft">Bobot berubah? Skor 360° perlu dihitung ulang agar bobot baru berlaku.</span>
-            <Link href="/admin/laporan" className="text-[12px] font-semibold px-3 py-1.5 rounded-control bg-brand hover:bg-brand-ink text-white">
-              Buka Review &amp; Finalisasi →
+          <div className="flex flex-wrap items-center gap-3 border border-line bg-infarm-surface rounded-xl px-3.5 py-2.5">
+            <span className="text-[13px] text-ink-soft">Bobot berubah? Skor 360° perlu dihitung ulang agar bobot baru berlaku.</span>
+            <Link href="/admin/laporan" className="inline-flex items-center gap-1.5 min-h-9 px-4 rounded-xl bg-brand hover:bg-brand-ink text-white text-[13px] font-bold">
+              Buka Review &amp; Finalisasi <ArrowRight className="w-4 h-4" aria-hidden />
             </Link>
           </div>
-          <p className="text-[12px] text-ink-faint mt-2 leading-relaxed">
-            Hitung ulang menulis hasil resmi ke <code className="data-value text-ink-soft bg-neutral-tint px-1 py-0.5 rounded">result_360</code> memakai model aktif:
-            <strong className="font-semibold text-ink-soft"> {model === '4class' ? '4-Kelas' : '2-Kelas'}</strong> (bobot global <span className="data-value">{globalLabel}</span>). Pegawai dengan
+          <p className="text-xs text-ink-soft mt-2 leading-relaxed">
+            Hitung ulang menulis hasil resmi ke <code className="font-mono text-ink-soft bg-neutral-tint px-1 py-0.5 rounded">result_360</code> memakai model aktif:
+            <strong className="font-semibold text-ink-soft"> {model === '4class' ? '4-Kelas' : '2-Kelas'}</strong> (bobot global <span className="font-mono">{globalLabel}</span>). Pegawai dengan
             <strong className="font-semibold text-ink-soft"> bobot khusus</strong> memakai bobotnya sendiri. Evaluasi diri (Self) tak ikut dihitung.
           </p>
         </div>
@@ -212,15 +210,15 @@ export default async function BobotPage() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, icon, children }: { title: string; icon: LucideIcon; children: React.ReactNode }) {
   return (
-    <Panel className="mb-5">
-      <PanelLabel className="mb-4">{title}</PanelLabel>
+    <section className={`${CARD} mb-4`}>
+      <CardTitle icon={icon} className="mb-4">{title}</CardTitle>
       {children}
-    </Panel>
+    </section>
   );
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
-  return <main className="w-full min-h-full bg-bg px-5 py-7 lg:px-6">{children}</main>;
+  return <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>{children}</main>;
 }

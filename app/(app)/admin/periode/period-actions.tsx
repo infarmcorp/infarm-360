@@ -6,6 +6,7 @@ import { activatePeriod, endPeriod, toggleHas360, toggleFormOpen, toggleMappingP
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Button } from '@/components/button';
 import { OverflowMenu, type OverflowItem } from '@/components/overflow-menu';
+import { FIELD } from '@/components/infarm-ui';
 
 type DelState = {
   label: string;
@@ -143,7 +144,7 @@ export function PeriodActions({
           <p>Mengunci & mengakhiri akan <strong>menutup periode</strong>: penilaian/KPI tak bisa
             diisi/edit lagi, dan Anda <strong>tidak bisa memfinalisasi</strong> laporan tanpa
             mengaktifkan ulang periode.</p>
-          {issues.length > 0 && <p className="font-semibold text-rose-700">Sebaiknya finalisasi dulu yang tersisa.</p>}
+          {issues.length > 0 && <p className="font-semibold text-danger-ink">Sebaiknya finalisasi dulu yang tersisa.</p>}
         </>
       ),
       onConfirm: () => fromDialog(() => endPeriod(periodId)),
@@ -214,13 +215,13 @@ export function PeriodActions({
     <div className="flex flex-col items-end gap-1">
       <div className="flex items-center justify-end gap-2">
         {status === 'active' ? (
-          <Button variant="ghost" size="sm" disabled={busy} onClick={endWithGuard}>Kunci &amp; Akhiri</Button>
+          <Button variant="ghost" disabled={busy} onClick={endWithGuard}>Kunci &amp; Akhiri</Button>
         ) : (
-          <Button variant="primary" size="sm" disabled={busy} onClick={activateWithGuard}>Aktivasi</Button>
+          <Button variant="primary" disabled={busy} onClick={activateWithGuard}>Aktivasi</Button>
         )}
         <OverflowMenu items={menuItems} />
       </div>
-      {err && <span className="text-[11px] text-danger-ink max-w-[180px] text-right">{err}</span>}
+      {err && <span className="text-[12px] text-danger-ink max-w-[180px] text-right">{err}</span>}
 
       <ConfirmDialog
         open={!!dialog}
@@ -259,13 +260,13 @@ export function PeriodActions({
             <p>Juga aspek, indikator/pertanyaan, bobot, koreksi relasi, dan hasil 360° periode ini.</p>
           </>
         )}
-        <p className="font-semibold text-rose-700">Tindakan ini tidak bisa dibatalkan.</p>
+        <p className="font-semibold text-danger-ink">Tindakan ini tidak bisa dibatalkan.</p>
         <label className="block">
-          <span className="text-[12px] text-gray-600">Ketik <strong>HAPUS</strong> untuk mengonfirmasi:</span>
+          <span className="text-[12px] text-ink-soft">Ketik <strong>HAPUS</strong> untuk mengonfirmasi:</span>
           <input
             type="text" value={delText} onChange={(e) => setDelText(e.target.value)}
             autoFocus disabled={busy} placeholder="HAPUS"
-            className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-rose-200"
+            className={`${FIELD} mt-1 w-full`}
           />
         </label>
       </ConfirmDialog>

@@ -8,6 +8,20 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-10 — Catatan di Luar Pemetaan menjadi Laporkan Pelanggaran (branch terpisah, belum di `dev`)
+- Kartu di tab Pengajuan berganti nama **Laporkan Pelanggaran** dengan teks baru: pegawai menceritakan kejadian yang
+  dialami dan diamati langsung dengan rekan yang dilaporkan, yang tidak harus rekan kerja langsungnya (permintaan
+  pemilik). Rekan yang sudah ada di daftar penilaian pelapor tetap disampaikan lewat formulir penilaian.
+- Pop-up mengikuti gaya formulir pengaduan: panduan (waktu, tempat, pihak terlibat, kronologi, dampak) dan penjelasan
+  kerahasiaan di atas; isian **tanggal kejadian** (wajib), **kategori** budaya kerja atau **Lainnya** (wajib), dan
+  **catatan** (opsional). Judul, instansi, dan lokasi sengaja tidak ada.
+- HRD membaca laporan di halaman baru **Laporan Pelanggaran**, bukan lagi di rincian komentar laporan pegawai, supaya
+  laporan bisa dipantau per pegawai yang dilaporkan dan per laporan. Pelapor tetap anonim: nama dan waktu kirim tidak
+  disimpan; tanggal yang tersimpan adalah tanggal kejadian yang ditulis pelapor.
+- Ekspor Bahan Laporan lembar 4 kini bernama Laporan Pelanggaran dan memuat tanggal kejadian, kategori, isi, dan catatan.
+- Kode laporan dan Cek Status untuk pelapor dibahas tetapi **belum dibangun** (keputusan pemilik). Status tindak lanjut
+  HRD juga belum diperlukan.
+
 ### 2026-11-06 — PDF panduan lama tidak dibagikan lagi (di `dev`, belum dirilis)
 - Kartu **Panduan Pengguna** di Akun Saya, penanda **PANDUAN** di sidebar, dan lampiran PDF di email **Undangan** dihapus,
   karena PDF-nya sudah usang dan pegawai bisa memakai panduan yang salah (permintaan pemilik). Kelak Akun Saya menaut ke

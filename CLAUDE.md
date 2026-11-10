@@ -41,7 +41,7 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
   typecheck + lint + build; lint bersih sejak 2026-10-16 — jangan tambah temuan baru). Backup harian `.github/workflows/backup.yml`. npm.
 - Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 30 tabel publik, migrasi
-  `supabase/migrations/0001`–`0057`. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
+  `supabase/migrations/0001`–`0058`. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
   → **wajib** cek `Bearer $CRON_SECRET` sendiri, gagal tertutup. Email Rilis terjadwal dipicu GitHub Actions
   (`release-email-cron.yml`); inti kirim email rilis satu-satunya = `lib/release-delivery.ts` (manual & jadwal).
 - `app/` — `login/`, `maintenance/`, `auth/` (callback, lupa-sandi, perbarui-sandi, signout),
@@ -104,16 +104,19 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   pemegang grant Review non-HRD tetap ditolak untuk laporannya sendiri; ACC laporan sendiri tetap ditolak (0049).
   Aturan database yang melarang membaca penilaian atas diri sendiri **tidak** dibuat (keputusan yang sama).
 - Employee hanya membaca laporannya saat `finalized` (dimuat via service_role). Direksi read-only + ACC.
-- **Catatan di Luar Pemetaan** (`outside_mapping_notes`, 0054, keputusan pemilik 2026-11-03) — rincian TEKNIS.md §5.4:
+- **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan"; tabel `outside_mapping_notes`, 0054 + 0058, keputusan
+  pemilik 2026-11-03 & 2026-11-10) — rincian TEKNIS.md §5.4:
   - **Anonim secara skema:** tabel **tanpa** kolom penulis (id/email/hash/token) dan **tanpa** waktu kirim; jangan
-    tambahkan. Identitas pengirim di `submitOutsideNote` hanya untuk validasi — **jangan** tulis ke tabel, audit log,
-    `console`, pesan error, atau notifikasi. Urutan tampil = abjad isi (`sortOutsideNotes`), bukan id/urutan masuk.
-    Tanpa riwayat untuk pengirim; tak bisa diubah/dihapus pegawai.
-  - **Baca hanya HRD Mode Admin**, termasuk catatan tentang dirinya sendiri (tetap anonim): opt-in `withOutsideNotes`
-    di `laporan/[employeeId]` saat `outsideNotesAllowed(route)`. `loadReport` & loader lain **tak** memuatnya —
-    jangan mengandalkan `withoutRaw`. Blok `RawFeedback` `no-print`. Akses DB hanya service_role (RLS tanpa policy).
-    Satu jalur baca lain: ekspor **Bahan Laporan per Pegawai** lembar 4 (`outsideNotesForExport`), hanya bila
-    cookie `hrd_mode='admin'`; kolom = periode/pegawai/divisi/aspek/isi, tanpa penulis/relasi/waktu.
+    tambahkan. `incident_date` = tanggal **kejadian** isian pelapor (bukan waktu kirim). Identitas pengirim di
+    `submitOutsideNote` hanya untuk validasi — **jangan** tulis ke tabel, audit log, `console`, pesan error, atau
+    notifikasi. Urutan tampil = tanggal kejadian terbaru lalu abjad isi (`sortViolations`), bukan id/urutan masuk.
+    Tanpa riwayat untuk pengirim; tak bisa diubah/dihapus pegawai. Kode laporan / Cek Status **belum** dibangun.
+  - **Baca hanya HRD Mode Admin** berbagian Review & Finalisasi (`violationPageAllowed`), termasuk laporan tentang
+    dirinya sendiri (tetap anonim), lewat `loadViolationReports` di dua jalur saja: halaman **Laporan Pelanggaran**
+    (`admin/pelanggaran`) dan ekspor **Bahan Laporan per Pegawai** lembar 4 (cookie `hrd_mode='admin'`; kolom =
+    periode/pegawai/divisi/tanggal kejadian/kategori/laporan/catatan, tanpa pelapor/relasi/waktu kirim). Sejak 0058
+    laporan **tidak** lagi tampil di rincian komentar laporan; `loadReport` & loader lain tak memuatnya. Akses DB
+    hanya service_role (RLS tanpa policy).
   - **Bukan Ad-Hoc:** tak menyentuh `mappings`/`assessments`/skor; tak masuk Skor 360°, Skor Akhir, Progress,
     Kepatuhan, potongan telat, tugas. Hanya `outside-note-actions.ts` & `lib/outside-notes.ts` yang menyebut
     tabelnya (dikunci `tests/outside-notes.test.ts`). Pengirim eksternal ditolak (sementara).

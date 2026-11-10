@@ -191,9 +191,10 @@ export interface Database {
         Relationships: [];
       };
       outside_mapping_notes: {
-        // Catatan di Luar Pemetaan (0054) — anonim secara skema: tanpa kolom penulis & tanpa waktu kirim.
-        Row: { id: string; period_id: string; target_id: string; aspect_id: string; body: string };
-        Insert: { period_id: string; target_id: string; aspect_id: string; body: string };
+        // Laporkan Pelanggaran (0054 + 0058; dulu Catatan di Luar Pemetaan) — anonim secara skema: tanpa kolom
+        // penulis & tanpa waktu kirim. incident_date = tanggal KEJADIAN dari pelapor; is_other = kategori Lainnya.
+        Row: { id: string; period_id: string; target_id: string; aspect_id: string | null; is_other: boolean; incident_date: string | null; body: string; note: string | null };
+        Insert: { period_id: string; target_id: string; aspect_id?: string | null; is_other?: boolean; incident_date?: string | null; body: string; note?: string | null };
         Update: never;
         Relationships: [];
       };

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { KPI_AUDIT_HREF } from '@/lib/kpi-links';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
-  Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck,
+  Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck, Flag,
   Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, ChevronDown, ChevronRight, Check, Sprout,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
@@ -93,6 +93,8 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
 
     const hasil = filterAdmin([
       { href: '/admin/laporan', label: 'Review & Finalisasi', icon: ClipboardCheck, section: 'laporan' },
+      // Laporan Pelanggaran: gerbang = bagian Review & Finalisasi + Mode Admin (menu admin hanya tampil di Mode Admin).
+      { href: '/admin/pelanggaran', label: 'Laporan Pelanggaran', icon: Flag, section: 'laporan' },
       { href: '/admin/pengembangan', label: 'Pantauan Rencana Pengembangan', icon: Sprout, section: 'pengembangan' },
       { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award, section: 'suksesi' },
     ]);

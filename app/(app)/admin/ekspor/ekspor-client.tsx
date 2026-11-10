@@ -22,7 +22,7 @@ const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').r
  *  2. Konfigurasi Periode Lengkap — Ringkasan/Bobot/Bulan KPI/Aspek & Indikator/Esai + Pemetaan.
  *  3. Kinerja Lengkap per Periode — Rekap/KPI Bulanan/Audit KPI/Potongan Keterlambatan.
  *  4. Penilaian 360° Lengkap      — Kuantitatif/Kualitatif/Ringkasan Naratif HRD (anonim penilai).
- *  5. Bahan Laporan per Pegawai   — Skor/Komentar Aspek/Komentar Esai/Catatan di Luar Pemetaan, untuk diringkas jadi laporan.
+ *  5. Bahan Laporan per Pegawai   — Skor/Komentar Aspek/Komentar Esai/Laporan Pelanggaran, untuk diringkas jadi laporan.
  */
 export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
   const [periodId, setPeriodId] = useState<string>(''); // '' = semua periode
@@ -115,7 +115,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
     },
     {
       key: 'bahan', title: 'Bahan Laporan per Pegawai', icon: FileText, scoped: true,
-      desc: <>Untuk diringkas menjadi laporan per pegawai — <strong>4 lembar</strong> (anonim penilai, tanpa Self): <strong>Skor</strong> (Skor Akhir · KPI · 360° · potongan telat · skor tiap aspek budaya + kategori) · <strong>Komentar Aspek</strong> (rating &amp; komentar per indikator) · <strong>Komentar Esai</strong> · <strong>Catatan di Luar Pemetaan</strong> (isi saja, tanpa penulis). Disertai divisi &amp; rentang periode.</>,
+      desc: <>Untuk diringkas menjadi laporan per pegawai — <strong>4 lembar</strong> (anonim penilai, tanpa Self): <strong>Skor</strong> (Skor Akhir · KPI · 360° · potongan telat · skor tiap aspek budaya + kategori) · <strong>Komentar Aspek</strong> (rating &amp; komentar per indikator) · <strong>Komentar Esai</strong> · <strong>Laporan Pelanggaran</strong> (tanggal kejadian, kategori, laporan, catatan — tanpa pelapor). Disertai divisi &amp; rentang periode.</>,
       go: () => run('bahan', async () => {
         const res = await exportReportMaterials(pid());
         if (!res.ok) throw new Error(res.error);

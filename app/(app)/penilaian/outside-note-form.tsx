@@ -57,7 +57,7 @@ export function OutsideNoteButton({ candidates, aspects }: { candidates: Candida
         <PenLine className="w-4 h-4" /> Tulis Laporan
       </button>
 
-      <Modal open={open} title={sent ? 'Laporan Terkirim' : 'Laporkan Pelanggaran'} size="lg" busy={busy} onClose={close}>
+      <Modal open={open} title={sent ? 'Laporan Terkirim' : 'Laporkan Pelanggaran'} size="xl" busy={busy} onClose={close}>
         {sent ? (
           <>
             <p className="flex items-center gap-2 text-[13px] font-bold text-brand-ink"><CheckCircle2 className="w-4 h-4 shrink-0" /> Laporan terkirim ke HRD</p>

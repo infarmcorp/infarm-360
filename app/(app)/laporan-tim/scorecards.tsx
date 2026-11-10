@@ -23,7 +23,7 @@ function Delta({ team, company }: { team: number | null; company: number | null 
 
 /**
  * Kartu metrik — meniru StatCard (components/infarm-ui.tsx), tetapi baris keterangannya `<div>`
- * (bukan `<span>`) karena memuat blok (FilledNote, baris "belum terbaca").
+ * (bukan `<span>`) karena memuat blok (FilledNote).
  */
 function Card({ icon: Icon, label, value, sub }: { icon: LucideIcon; label: string; value: React.ReactNode; sub?: React.ReactNode }) {
   return (
@@ -41,14 +41,13 @@ function Card({ icon: Icon, label, value, sub }: { icon: LucideIcon; label: stri
 }
 
 export function TeamScorecards({
-  total, teamKpi, companyKpi, team360, company360, has360, kpiUnread = 0,
+  total, teamKpi, companyKpi, team360, company360, has360,
   fillTotal, kpiFilled, s360Filled,
 }: {
   total: number;
   teamKpi: number | null; companyKpi: number | null;
   team360: number | null; company360: number | null;
   has360: boolean;
-  kpiUnread?: number; // jumlah pegawai KPI "belum terbaca" — dikecualikan dari Avg KPI Tim
   // Kelengkapan data (opsional) — ditampilkan sebagai baris ringkas di bawah kartu KPI & 360°.
   fillTotal?: number; kpiFilled?: number; s360Filled?: number;
 }) {
@@ -60,9 +59,7 @@ export function TeamScorecards({
         label="Avg KPI Tim"
         value={teamKpi != null ? fmt2(teamKpi) : '—'}
         sub={<>
-          <Delta team={teamKpi} company={companyKpi} />
-          {kpiUnread > 0 && <div className="text-xs text-ink-soft">· <span className="font-mono">{kpiUnread}</span> belum terbaca (dikecualikan)</div>}
-          {fillTotal != null && kpiFilled != null && <FilledNote n={kpiFilled} total={fillTotal} />}
+          <Delta team={teamKpi} company={companyKpi} />          {fillTotal != null && kpiFilled != null && <FilledNote n={kpiFilled} total={fillTotal} />}
         </>}
       />
       {has360 && (

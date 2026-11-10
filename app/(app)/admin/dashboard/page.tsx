@@ -195,27 +195,19 @@ export default async function DashboardPage({
       : Promise.resolve([] as { assessment_id: string; indicator_id: string; rating: number | null }[]),
   ]);
 
-  // "KPI belum terbaca" per pegawai = Trend 'unread' (2 dari 3 bulan kuartal KOSONG) — lib/trend.ts.
-  // Dikecualikan dari KATEGORISASI & rerata KPI/Skor Akhir (Kompilasi & KPI) — bukan pekerja rendah,
-  // melainkan data belum masuk. Tetap tampil sebagai bucket "Belum Terbaca" sendiri (dan di 360°/Tabel).
+  // KPI per (pegawai, bulan). Trend 'unread' ("Belum terbaca", 1 dari 3 bulan terisi) hanya label
+  // fluktuasi di Trend KPI — pegawainya TETAP dihitung di semua rerata/distribusi/klasifikasi
+  // (keputusan pemilik 2026-11-10; dulu dikecualikan).
   const empYm = new Map<string, Map<string, { s: number; n: number }>>();
   kpiAll.forEach((r) => {
     let m = empYm.get(r.employee_id); if (!m) { m = new Map(); empYm.set(r.employee_id, m); }
     const a = m.get(r.ym) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; m.set(r.ym, a);
   });
   const ymFirst3 = [...ymList].sort().slice(0, 3);
-  const unreadIds = new Set<string>();
-  for (const [id, m] of empYm) {
-    const months = ymFirst3.map((ym) => (m.has(ym) ? m.get(ym)!.s / m.get(ym)!.n : null));
-    if (trendOf(months) === 'unread') unreadIds.add(id);
-  }
 
-  // Rerata KPI organisasi per bulan (untuk Analisis KPI). Rerata KPI per pegawai (kpiAvgOf dari
-  // empYm) dihitung untuk SEMUA agar baris tetap punya nilai utk Tabel/bucket; rerata bulanan
-  // organisasi (monthAgg) MENGECUALIKAN yang belum terbaca (data 1 bulan belum menggambarkan kuartal).
+  // Rerata KPI organisasi per bulan (untuk Analisis KPI).
   const monthAgg = new Map<string, { sum: number; n: number }>();
   kpiAll.forEach((r) => {
-    if (unreadIds.has(r.employee_id)) return;
     const m = monthAgg.get(r.ym) ?? { sum: 0, n: 0 };
     m.sum += r.score; m.n += 1; monthAgg.set(r.ym, m);
   });
@@ -229,7 +221,6 @@ export default async function DashboardPage({
   const empDept = new Map(emps.map((e) => [e.id, e.dept]));
   const dmAgg = new Map<string, { sum: number; n: number }>(); // key `${dept}|${ym}`
   kpiAll.forEach((r) => {
-    if (unreadIds.has(r.employee_id)) return; // "belum terbaca" tak mewarnai heatmap divisi
     const d = empDept.get(r.employee_id);
     if (!d) return;
     const k = `${d}|${r.ym}`;
@@ -279,10 +270,6 @@ export default async function DashboardPage({
       : Promise.resolve([] as { employee_id: string; period_id: string; status: string; final_score: number | null }[]),
   ]);
   const repOfY = new Map(yearRepRows.map((r) => [`${r.employee_id}|${r.period_id}`, r]));
-  // "Belum terbaca" PER (pegawai × kuartal) — dikecualikan dari tren bulanan tahunan & distribusi
-  // per kuartal, selaras kartu kuartal terpilih (unreadIds). Kunci `${employee_id}|${period_id}`.
-  const ymToPeriodY = new Map<string, string>();
-  (yearPmRes.data ?? []).forEach((m) => ymToPeriodY.set(m.ym, m.period_id));
   const ymsByPeriodY = new Map<string, string[]>();
   (yearPmRes.data ?? []).forEach((m) => ymsByPeriodY.set(m.period_id, [...(ymsByPeriodY.get(m.period_id) ?? []), m.ym]));
   const empYmScoreY = new Map<string, Map<string, number>>();
@@ -290,21 +277,8 @@ export default async function DashboardPage({
     let m = empYmScoreY.get(r.employee_id); if (!m) { m = new Map(); empYmScoreY.set(r.employee_id, m); }
     m.set(r.ym, r.score);
   });
-  const unreadEmpPeriodY = new Set<string>();
-  for (const [id, m] of empYmScoreY) {
-    for (const [pid, pYms] of ymsByPeriodY) {
-      const first3 = [...pYms].sort().slice(0, 3);
-      if (trendOf(first3.map((ym) => m.get(ym) ?? null)) === 'unread') unreadEmpPeriodY.add(`${id}|${pid}`);
-    }
-  }
-  const isUnreadY = (empId: string, ym: string): boolean => {
-    const pid = ymToPeriodY.get(ym);
-    return pid != null && unreadEmpPeriodY.has(`${empId}|${pid}`);
-  };
-
   const ymAgg = new Map<string, { sum: number; n: number }>();
   yearKpiRows.forEach((r) => {
-    if (isUnreadY(r.employee_id, r.ym)) return;
     const a = ymAgg.get(r.ym) ?? { sum: 0, n: 0 }; a.sum += r.score; a.n += 1; ymAgg.set(r.ym, a);
   });
   const yearMonthly = [...ymAgg.entries()]
@@ -324,7 +298,6 @@ export default async function DashboardPage({
   // Distribusi kategori kinerja PER KUARTAL (band Skor Akhir) — untuk grafik tren komposisi.
   // Skor Akhir per pegawai per kuartal = Skor Akhir RESMI (finalScoreOf),
   // atau angka TERSIMPAN bila laporannya final (displayedFinalOf) — sama dengan halaman lain.
-  // Pegawai "belum terbaca" di kuartal itu dikecualikan (selaras kategorisasi kuartal terpilih).
   const empPer360Y = new Map<string, Map<string, number>>();
   year360Rows.forEach((r) => {
     if (r.score == null) return;
@@ -334,7 +307,6 @@ export default async function DashboardPage({
   const quarterlyDist = periodsInYear.map((p) => {
     let exceed = 0, meet = 0, improve = 0, below = 0;
     for (const e of emps) {
-      if (unreadEmpPeriodY.has(`${e.id}|${p.id}`)) continue;
       const m = empYmScoreY.get(e.id);
       const kpiAvg = kpiAvgOf((ymsByPeriodY.get(p.id) ?? []).map((ym) => m?.get(ym) ?? null));
       const s360 = empPer360Y.get(e.id)?.get(p.id) ?? null;
@@ -369,7 +341,7 @@ export default async function DashboardPage({
     const em = empYm.get(e.id);
     const kpiMonths = ymFirst3.map((ym) => (em?.has(ym) ? em.get(ym)!.s / em.get(ym)!.n : null));
     const trend = trendOf(kpiMonths);
-    return { id: e.id, name: e.name, nickname: e.nickname, dept: e.dept, is_active: e.is_active, kpiAvg, s360, final, player, axisIncomplete, overlaps, kpiUnread: unreadIds.has(e.id), trend, kpiMonths };
+    return { id: e.id, name: e.name, nickname: e.nickname, dept: e.dept, is_active: e.is_active, kpiAvg, s360, final, player, axisIncomplete, overlaps, trend, kpiMonths };
   }).sort((a, b) => (b.final ?? -1) - (a.final ?? -1))
     // HIBRIDA: tampil bila masa kerjanya menyentuh kuartal INI (overlaps) ATAU punya data nyata
     // (KPI/360°) di kuartal ini — jaring pengaman agar angka nyata tak pernah hilang meski tgl keliru.
@@ -378,7 +350,7 @@ export default async function DashboardPage({
   // Rerata KPI per departemen (untuk bar chart visual).
   const deptAgg = new Map<string, { sum: number; n: number }>();
   rows.forEach((r) => {
-    if (r.kpiAvg == null || r.kpiUnread) return; // kecualikan "belum terbaca" dari rerata divisi
+    if (r.kpiAvg == null) return;
     const a = deptAgg.get(r.dept) ?? { sum: 0, n: 0 };
     a.sum += r.kpiAvg; a.n += 1; deptAgg.set(r.dept, a);
   });
@@ -459,7 +431,7 @@ export default async function DashboardPage({
 
   // ── Pembanding periode SEBELUMNYA (delta naik/turun scorecard) ─────────────────
   // Periode sebelumnya = start_date terbesar yang < periode terpilih (lintas tahun boleh).
-  // Rata-rata dihitung dengan logika SAMA (kecuali "belum terbaca", finalScoreOf, populasi
+  // Rata-rata dihitung dengan logika SAMA (finalScoreOf, populasi
   // ber-Skor-Akhir) dalam lingkup divisi yang sama → delta apel-ke-apel. Bila tak ada periode
   // sebelumnya / tak ada data → null (kartu tak menampilkan delta).
   const meanN = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
@@ -480,34 +452,23 @@ export default async function DashboardPage({
       // id SELURUH organisasi → dipecah per kelompok + paginasi (dulu satu .in() raksasa).
       loadPrevPeriodScores(db, prevPeriod.id, empIds),
     ]);
-    // Rerata KPI per pegawai + deteksi "belum terbaca" (trend unread 3 bulan pertama).
+    // Rerata KPI per pegawai.
     const pEmpYm = new Map<string, Map<string, { s: number; n: number }>>();
     pKpiAll.forEach((r) => {
       let m = pEmpYm.get(r.employee_id); if (!m) { m = new Map(); pEmpYm.set(r.employee_id, m); }
       const a = m.get(r.ym) ?? { s: 0, n: 0 }; a.s += r.score; a.n += 1; m.set(r.ym, a);
     });
     const pRepBy = new Map(prev.reports.map((r) => [r.employee_id, r]));
-    const pYmFirst3 = [...pYms].sort().slice(0, 3);
-    const pUnread = new Set<string>();
-    for (const [id, m] of pEmpYm) {
-      const months = pYmFirst3.map((ym) => (m.has(ym) ? m.get(ym)!.s / m.get(ym)!.n : null));
-      if (trendOf(months) === 'unread') pUnread.add(id);
-    }
     const p360By = new Map(prev.r360.map((r) => [r.employee_id, r.score]));
     // Tiap rata-rata memakai POPULASI yang sama dgn kartunya masing-masing agar delta apel-ke-apel:
-    //  - Skor Akhir (Kompilasi): readable (bukan unread) & final != null.
-    //  - KPI (tab Analisis KPI): readable (bukan unread) & kpiAvg != null.
-    //  - 360° (tab 360 Feedback): SEMUA yang punya skor 360° (tak kecualikan unread — selaras FeedbackTab).
+    // Skor Akhir = final != null · KPI = kpiAvg != null · 360° = punya skor 360°.
     for (const id of empIds) {
       const kpiAvg = kpiAvgOf([...(pEmpYm.get(id)?.values() ?? [])].map((a) => a.s / a.n));
       const s360 = p360By.get(id) ?? null;
-      const unread = pUnread.has(id);
       if (s360 != null) prev360ById.set(id, s360);
-      if (!unread && kpiAvg != null) prevKpiById.set(id, kpiAvg);
-      if (!unread) {
-        const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, prevPeriod.has_360), pRepBy.get(id));
-        if (final != null) prevFinalById.set(id, final);
-      }
+      if (kpiAvg != null) prevKpiById.set(id, kpiAvg);
+      const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, prevPeriod.has_360), pRepBy.get(id));
+      if (final != null) prevFinalById.set(id, final);
     }
   }
   const prevFinalAvg = prevFinalById.size ? meanN([...prevFinalById.values()]) : null;
@@ -516,13 +477,13 @@ export default async function DashboardPage({
 
   // Rincian pergerakan (efek NILAI vs KOMPOSISI): kohort = pegawai berdata di KEDUA periode
   // (perubahan nilai murni); "masuk" = baru berdata periode ini; "keluar" = tak lagi berdata.
-  // Populasi tiap metrik = populasi kartunya (Skor Akhir/KPI kecualikan unread; 360° semua berdata).
+  // Populasi tiap metrik = populasi kartunya (semua yang berdata).
   const currFinalById = new Map<string, number>();
   const currKpiById = new Map<string, number>();
   const curr360ById = new Map<string, number>();
   for (const r of rows) {
-    if (!r.kpiUnread && r.final != null) currFinalById.set(r.id, r.final);
-    if (!r.kpiUnread && r.kpiAvg != null) currKpiById.set(r.id, r.kpiAvg);
+    if (r.final != null) currFinalById.set(r.id, r.final);
+    if (r.kpiAvg != null) currKpiById.set(r.id, r.kpiAvg);
     if (r.s360 != null) curr360ById.set(r.id, r.s360);
   }
   const moveOf = (curr: Map<string, number>, prev: Map<string, number>): MoveBreakdown => {
@@ -557,7 +518,7 @@ export default async function DashboardPage({
           rows={rows.map((r) => ({
             id: r.id, name: r.name, nickname: r.nickname, dept: r.dept,
             kpiAvg: r.kpiAvg, s360: r.s360, final: r.final,
-            player: r.player, axisIncomplete: r.axisIncomplete, isActive: r.is_active, kpiUnread: r.kpiUnread,
+            player: r.player, axisIncomplete: r.axisIncomplete, isActive: r.is_active,
             trend: r.trend, kpiMonths: r.kpiMonths,
           }))}
           deptScores={deptScores}

@@ -8,6 +8,15 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-10 — "Belum terbaca" kini hanya label tren (rilis lebih awal ke `main`)
+- Dulu pegawai yang KPI-nya baru terisi 1 dari 3 bulan kuartal **dikeluarkan** dari rata-rata, sebaran, peringkat,
+  heatmap, klasifikasi 4-Box, dan kategori. Akibatnya di awal kuartal (mis. Q4 setelah KPI Oktober masuk) Dashboard
+  kosong: Rerata KPI 0,00 dan seolah turun jauh dari kuartal lalu.
+- Keputusan pemilik: **"Belum terbaca" hanya untuk membaca naik-turun (kolom Trend KPI)**, bukan alasan
+  menyembunyikan angka. Kini pegawai itu dihitung seperti biasa di Dashboard (semua tab dan mode "semua kuartal"),
+  Monitor, Laporan Kinerja Tim, Rekap KPI, dan Ekspor Rekap. Kotak "Belum Terbaca (Tak Terkategori)" dan pilihan
+  filter "Belum Terbaca" dihapus. Label "Belum terbaca" tetap ada di kolom Trend KPI.
+
 ### 2026-11-06 — PDF panduan lama tidak dibagikan lagi (di `dev`, belum dirilis)
 - Kartu **Panduan Pengguna** di Akun Saya, penanda **PANDUAN** di sidebar, dan lampiran PDF di email **Undangan** dihapus,
   karena PDF-nya sudah usang dan pegawai bisa memakai panduan yang salah (permintaan pemilik). Kelak Akun Saya menaut ke

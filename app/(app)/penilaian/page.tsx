@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { CalendarClock, ClipboardCheck, ClipboardList, Clock, Inbox, ListChecks, Lock, MessageSquareText, UserPlus } from 'lucide-react';
+import { CalendarClock, ClipboardCheck, ClipboardList, Clock, Flag, Inbox, ListChecks, Lock, UserPlus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { CorrectionButton } from './correction-button';
 import { AdhocDeleteButton } from './adhoc-delete-button';
@@ -154,7 +154,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
     .map((e) => ({ id: e.id, name: e.name, dept: e.dept }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  // Catatan di Luar Pemetaan (0054): kandidat = daftar yang sama dengan Ajukan Penilaian; aspek dari
+  // Laporkan Pelanggaran (0054 + 0058): kandidat = daftar yang sama dengan Ajukan Penilaian; aspek dari
   // culture_aspects periode aktif. Penilai eksternal tak melihat kartunya.
   const { data: meRow } = await supabase.from('employees').select('is_external').eq('id', user.id).maybeSingle();
   const showNoteCard = !!meRow && !meRow.is_external;
@@ -315,10 +315,10 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
           </section>
           {showNoteCard && (
             <section className="bg-infarm-cream border border-line rounded-card shadow-card p-4 flex flex-col">
-              <CardTitle icon={MessageSquareText}>Catatan di Luar Pemetaan</CardTitle>
+              <CardTitle icon={Flag}>Laporkan Pelanggaran</CardTitle>
               <p className="text-[13px] text-ink-soft mt-1.5 leading-relaxed">
-                Ada kejadian yang perlu HRD ketahui tentang rekan di luar daftar penilaian Anda? Tulis di sini
-                tanpa rating dan tanpa nama Anda.
+                Ceritakan kejadian yang Anda alami dan amati secara langsung dengan rekan yang dilaporkan. Rekan ini tidak
+                selalu rekan yang berhubungan atau berkoordinasi langsung dengan Anda.
               </p>
               {ap.form_open ? (
                 <>
@@ -329,7 +329,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
                 </>
               ) : (
                 <p className="text-xs text-ink-soft mt-2 leading-relaxed">
-                  Belum bisa dikirim — catatan dibuka bersamaan dengan form penilaian oleh HRD.
+                  Belum bisa dikirim — laporan dibuka bersamaan dengan form penilaian oleh HRD.
                 </p>
               )}
             </section>
@@ -339,7 +339,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
           <div>
           {showNoteCard && (
             <p className="mb-2 text-xs text-ink-soft">
-              Catatan di luar pemetaan tidak tercantum di sini, karena tidak tersimpan dengan nama Anda.
+              Laporan pelanggaran tidak tercantum di sini, karena tidak tersimpan dengan nama Anda.
             </p>
           )}
           {myRequestRows.length === 0 ? (

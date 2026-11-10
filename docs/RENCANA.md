@@ -82,13 +82,19 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
     tidak menambah pemicu untuk Preview);
   - 🔑 uji pemicu sekali di production (Actions → Email Rilis Terjadwal → Run workflow), lalu jadwalkan ke akun
     sendiri dari UI untuk memastikan terkirim otomatis.
-- 🔑🔄 **Catatan di Luar Pemetaan** (untuk Q4 2026) — **sudah di production** (ikut rilis 2026-11-03). Pegawai bisa menulis catatan anonim kepada HRD tentang rekan yang tidak ada di daftar
-  penilaiannya (pilih rekan + aspek budaya, tanpa nilai). Hanya HRD di Mode Admin yang membacanya, di rincian
-  komentar laporan. Sisa:
-  - ✅ perubahan database **0054** terpasang di staging (2026-11-03, `verify:rls` lolos) dan production (dicek
-    2026-11-09);
-  - 🔑 uji per peran di Preview `dev`;
+- 🔑🔄 **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan", untuk Q4 2026). Versi lama sudah di production
+  (rilis 2026-11-03). Versi baru (keputusan pemilik 2026-11-10) dikerjakan di branch `feat/laporkan-pelanggaran`,
+  **belum** di `dev`: kartu & pop-up berganti nama dan teks, isian baru (tanggal kejadian wajib, kategori budaya kerja
+  atau Lainnya, catatan opsional, panduan & kerahasiaan di pop-up), dan halaman HRD baru **Laporan Pelanggaran**
+  (daftar pegawai yang dilaporkan + satu kartu per laporan). Laporan tidak lagi tampil di rincian komentar laporan;
+  ekspor Bahan Laporan lembar 4 kini memuat tanggal kejadian, kategori, laporan, dan catatan. Sisa:
+  - ✅ perubahan database **0054** terpasang di staging dan production;
+  - 🔑 setelah rilis yang sedang berjalan di-merge: gabungkan branch ke `dev`, jalankan perubahan database **0058** di
+    staging lalu production **sebelum** versi baru dirilis (tanpa 0058 pengiriman laporan ditolak "sedang diperbarui");
+  - 🔑 uji per peran di Preview;
   - 🔑 sebelum Q4 dibuka: umumkan fiturnya ke pegawai.
+  - Belum dibangun (pemilik): kode laporan + Cek Status untuk pelapor. Laporan yang masuk tanpa kode tidak bisa
+    dihubungkan ke pelapornya di kemudian hari.
 - ✅ **Perubahan database** — 0001–0057 terpasang di staging dan production (0050–0057 dicek pemilik 2026-11-09
   dengan `scripts/check-migrations.sql` di kedua database).
 
@@ -199,7 +205,7 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   - Perubahan database 0054 dan 0055 sudah terpasang di staging (2026-11-03; `verify:rls` 74 lolos). Sisa:
   - ✅ **0056** terpasang di staging (`verify:rls` 78 lolos);
   - ✅ **0057** (pengaman database) terpasang di staging (`verify:rls` 83 lolos, 2026-11-03);
-  - 🔑 uji end-to-end per peran di Preview `dev` (Catatan di Luar Pemetaan + Rencana Pengembangan bersamaan);
+  - 🔑 uji end-to-end per peran di Preview `dev` (Laporkan Pelanggaran + Rencana Pengembangan bersamaan);
   - ✅ 0054–0057 terpasang di production (dicek 2026-11-09);
   - 🔑 sebelum dipakai: HRD menetapkan batas rencana disepakati untuk laporan Q3 2026.
 - Keputusan pemilik (diskusi 2026-11-03), sebagai acuan tahap berikutnya:

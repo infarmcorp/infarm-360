@@ -10,7 +10,7 @@ Status & pekerjaan terbuka di [RENCANA.md](RENCANA.md). Riwayat di [CHANGELOG.md
 3. [Aktivasi fitur dorman & Mode Maintenance](#3-aktivasi-fitur-dorman--mode-maintenance)
 4. [Rumus skor & klasifikasi](#4-rumus-skor--klasifikasi)
 5. [Manajemen Akses — model & penegakan](#5-manajemen-akses--model--penegakan)
-6. [Daftar migrasi 0001–0057](#6-daftar-migrasi-00010057)
+6. [Daftar migrasi 0001–0058](#6-daftar-migrasi-00010058)
 7. [Pengujian](#7-pengujian)
 8. [Backup & restore](#8-backup--restore)
 9. [PDF panduan in-app](#9-pdf-panduan-in-app)
@@ -379,29 +379,33 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
 7. Data sensitif (laporan/dashboard/ekspor/raw 360°) tidak boleh hanya disembunyikan di menu — wajib
    penyaringan server/RLS. Konfigurasi (pertanyaan/bobot/periode/pemetaan) cukup `canSection`.
 
-### 5.4 Catatan di Luar Pemetaan (0054) — anonimitas & akses
-- **Tabel** `outside_mapping_notes` = `id` (uuid acak) · `period_id` · `target_id` · `aspect_id` · `body`. **Tanpa**
-  kolom penulis (id/email/hash/token) dan **tanpa** waktu kirim. Check `char_length(btrim(body))` 20–2000; trigger
-  `trg_outside_note_aspect_in_period` (aspek wajib milik periode catatan); FK aspek `NO ACTION` (aspek bercatatan
-  tak bisa terhapus diam-diam), periode & target `cascade`. RLS aktif **tanpa policy** + `revoke all` dari
-  `anon`/`authenticated` → hanya `service_role`.
-- **Tulis** `submitOutsideNote` (`penilaian/outside-note-actions.ts`): Zod → login → periode aktif + `has_360` +
-  `form_open` (tahap tinjau ditolak; deadline tidak dicek) → pengirim bukan eksternal → target bukan diri/Direksi/
-  eksternal/nonaktif & tak ada di `mappings` aktif penilai → aspek milik periode aktif → insert service_role.
-  Identitas pengirim **hanya** untuk validasi: tak ditulis ke tabel, `hrd_audit_log`, `console`, pesan error, atau
-  notifikasi. Tanpa `revalidatePath` (tak ada tampilan yang berubah).
-- **Baca** opt-in `withOutsideNotes` (`lib/outside-notes.ts`) → `AspectRaw.outsideNotes`. Dipanggil **hanya** di
-  `laporan/[employeeId]` saat `outsideNotesAllowed(route)` (= rute `hrd`: izin HRD + Mode Admin), termasuk laporan
-  HRD sendiri (keputusan pemilik 2026-11-03). `loadReport` & semua loader turunan tak memuatnya — jangan
-  mengandalkan `withoutRaw`. Urutan tampil = abjad isi (`sortOutsideNotes`), bukan urutan kirim / id.
-  Blok di `RawFeedback` diberi `no-print` (tak ikut Unduh PDF → tak terbawa ke PDF di Folder Laporan).
-- **Ekspor** (permintaan pemilik 2026-11-03): Bahan Laporan per Pegawai lembar 4 "Catatan di Luar Pemetaan" via
-  `outsideNotesForExport` — kolom periode · kode · nama · divisi · aspek · catatan (tanpa penulis/relasi/waktu), urut
-  periode → pegawai → aspek → abjad isi. Hanya bila cookie `hrd_mode='admin'` (di luar itu lembarnya tak ada); tabel
-  belum ada → lembar kosong. Diuji `tests/ekspor-outside-notes.test.ts`. File Excel bisa beredar di luar aplikasi.
-- **Isolasi** (diuji `tests/outside-notes.test.ts`): hanya dua file yang menyebut tabelnya; `withOutsideNotes` hanya
-  dipanggil detail laporan, `outsideNotesForExport` hanya ekspor → skor 360°, Skor Akhir, Progress 360, Kepatuhan,
-  potongan telat, tugas, ekspor lain, `final_reports`/`final_report_history` tak terpengaruh.
+### 5.4 Laporkan Pelanggaran (0054 + 0058; dulu Catatan di Luar Pemetaan) — anonimitas & akses
+- **Tabel** `outside_mapping_notes` = `id` (uuid acak) · `period_id` · `target_id` · `aspect_id` (kosong bila
+  Lainnya) · `is_other` · `incident_date` · `body` · `note`. **Tanpa** kolom penulis (id/email/hash/token) dan
+  **tanpa** waktu kirim; `incident_date` = tanggal **kejadian** isian pelapor. Check `char_length(btrim(body))`
+  20–2000, `note` ≤ 1000, kategori = tepat salah satu (aspek **atau** `is_other`), `incident_date` wajib untuk baris
+  baru (`NOT VALID` → baris sebelum 0058 tetap sah tanpa tanggal); trigger `trg_outside_note_aspect_in_period` (aspek
+  wajib milik periode; dilewati bila Lainnya); FK aspek `NO ACTION`, periode & target `cascade`. RLS aktif **tanpa
+  policy** + `revoke all` dari `anon`/`authenticated` → hanya `service_role`. Nama tabel sengaja tidak diganti.
+- **Tulis** `submitOutsideNote(target, kategori, tanggal, isi, catatan)` (`penilaian/outside-note-actions.ts`): Zod
+  (tanggal ISO valid & tidak setelah hari ini WIB, kategori = UUID aspek atau `other`) → login → periode aktif +
+  `has_360` + `form_open` (tahap tinjau ditolak; deadline tidak dicek) → pengirim bukan eksternal → target bukan diri/
+  Direksi/eksternal/nonaktif & tak ada di `mappings` aktif penilai → aspek milik periode aktif (dilewati bila Lainnya)
+  → insert service_role. Kolom 0058 belum ada → pesan "sedang diperbarui" (tidak menyimpan tanpa tanggal). Identitas
+  pengirim **hanya** untuk validasi: tak ditulis ke tabel, `hrd_audit_log`, `console`, pesan error, atau notifikasi.
+- **Baca** `loadViolationReports` (`lib/outside-notes.ts`; kolom 0058 belum ada → baca kolom lama) hanya di dua jalur,
+  keduanya HRD Mode Admin: halaman **Laporan Pelanggaran** (`admin/pelanggaran`, gerbang `violationPageAllowed` =
+  `canSection('laporan')` + Mode Admin; menu grup Hasil & Tindak Lanjut) — daftar pegawai yang dilaporkan + satu
+  kartu per laporan, urut `sortViolations` (tanggal kejadian terbaru → abjad isi, bukan id/urutan kirim); dan ekspor
+  Bahan Laporan per Pegawai lembar 4 **"Laporan Pelanggaran"** (kolom periode · kode · nama · divisi ·
+  tanggal_kejadian · kategori · laporan · catatan; hanya bila cookie `hrd_mode='admin'`; diuji
+  `tests/ekspor-outside-notes.test.ts`; file Excel bisa beredar di luar aplikasi). Sejak 2026-11-10 laporan **tidak**
+  lagi ditempel ke rincian komentar laporan (`withOutsideNotes`/`AspectRaw.outsideNotes` dihapus).
+- **Isolasi** (diuji `tests/outside-notes.test.ts`): hanya dua file yang menyebut tabelnya; `loadViolationReports`
+  hanya dipanggil halaman Laporan Pelanggaran & ekspor → skor 360°, Skor Akhir, Progress 360, Kepatuhan,
+  potongan telat, tugas, laporan pegawai, `final_reports`/`final_report_history` tak terpengaruh.
+- **Belum dibangun (keputusan pemilik 2026-11-10):** kode laporan + Cek Status untuk pelapor. Laporan yang masuk
+  tanpa kode tidak pernah bisa dihubungkan kembali ke pelapornya.
   `clone-anon-to-staging` mengosongkan tabel di staging dan **tidak** menyalinnya dari production. Backup harian
   ikut mencakupnya (terenkripsi).
 - **Sisa risiko (diterima, tanpa pengaman tambahan):** log permintaan Vercel/Supabase mencatat waktu & sesi pengirim;
@@ -450,7 +454,7 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
 
 ---
 
-## 6. Daftar migrasi 0001–0057
+## 6. Daftar migrasi 0001–0058
 
 Status penerapan per DB → `scripts/check-migrations.sql`.
 
@@ -507,10 +511,11 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0051 | bucket Storage `email-assets` (publik baca, 2 MB, JPG/PNG/WebP) untuk gambar Email Rilis Laporan per periode (`release/<period_id>/<kunci>.<ext>`); tulis/hapus hanya Server Action via service_role; tanpa bucket, dialog menampilkan "penyimpanan gambar belum aktif" dan email terkirim tanpa gambar |
 | 0052 | tabel `final_report_history` + trigger `trg_final_reports_history` (after insert/update `final_reports`): catat tiap perubahan `spv_acc`/`status`/`final_score` (lama→baru, waktu, `auth.uid()`; NULL untuk service_role → app melengkapi dari `hrd_audit_log` ±15 detik, `lib/report-history.ts`); baca `is_hrd()`, tanpa policy tulis (append-only); snapshot awal saat migrasi. Dipakai panel Riwayat Laporan & tooltip ACC; tanpa tabel → panel "belum aktif" |
 | 0053 | tabel `release_email_schedules` (jadwal Email Rilis: `send_at`, `content`, `recipient_ids` terkunci, `status` scheduled/sending/done/cancelled, hasil `sent_ids`/`skipped`/`failed`); unik satu jadwal aktif per periode; baca `is_hrd()`, tulis hanya service_role (Server Action & route cron, §3.5). Tanpa tabel → pilihan Jadwalkan "belum aktif", kirim manual tak terpengaruh |
-| 0054 | tabel `outside_mapping_notes` (Catatan di Luar Pemetaan): tanpa kolom penulis & waktu kirim; check isi 20–2000; trigger `trg_outside_note_aspect_in_period`; RLS tanpa policy + `revoke all` anon/authenticated (hanya service_role). Rincian §5.4. Tanpa tabel → kirim "belum aktif", laporan tampil tanpa catatan |
+| 0054 | tabel `outside_mapping_notes` (Catatan di Luar Pemetaan → Laporkan Pelanggaran sejak 0058): tanpa kolom penulis & waktu kirim; check isi 20–2000; trigger `trg_outside_note_aspect_in_period`; RLS tanpa policy + `revoke all` anon/authenticated (hanya service_role). Rincian §5.4. Tanpa tabel → kirim "belum aktif", laporan tampil tanpa catatan |
 | 0055 | Rencana Pengembangan: tabel `development_plans` + `development_plan_items`, kolom `periods.dev_plan_closed_at`/`dev_plan_due`; RLS baca pemilik/`is_hrd()`/`is_direksi()`, tulis hanya service_role. Rincian §5.5. Tanpa tabel → halaman "belum aktif" |
 | 0056 | Rencana Pengembangan Tahap 2: tabel `development_plan_sessions` (sesi 1-on-1 & tinjauan bulanan HRD, kemajuan per prioritas, tanggapan pegawai); RLS baca mengikuti rencana, tulis hanya service_role. Rincian §5.5. Tanpa tabel → panel sesi tak tampil |
 | 0057 | Pengaman Rencana Pengembangan: trigger `trg_periods_guard_dev_plan_cols` (kolom `dev_plan_*` hanya diubah server — tutup celah `periods_write`), trigger `trg_dev_plan_items_guard` (prioritas hanya berubah saat `draft`/`revision`, Direksi bebas; berlaku juga untuk service_role), fungsi `dev_plan_replace_items` (ganti prioritas atomik, kunci baris rencana; service_role; kode punya cadangan `rpcMissing`) |
+| 0058 | Laporkan Pelanggaran (perluasan 0054): kolom `incident_date` (tanggal kejadian, wajib untuk baris baru lewat check `NOT VALID`), `is_other` (kategori Lainnya → `aspect_id` boleh kosong, check tepat salah satu), `note` (≤ 1000); trigger aspek dilewati bila Lainnya. Tanpa kolom penulis/waktu kirim. Tanpa migrasi: kirim laporan "sedang diperbarui", halaman HRD membaca kolom lama. Rincian §5.4 |
 
 ---
 

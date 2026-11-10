@@ -2,9 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fakeDb } from './helpers/fake-postgrest';
 
 /**
- * Ekspor Bahan Laporan per Pegawai — lembar 4 "Catatan di Luar Pemetaan" (0054).
- * Dikunci: hanya isi + periode + pegawai + aspek (tanpa kolom penulis/relasi/tanggal), urut abjad isi per aspek,
- * dan HANYA saat pengekspor di Mode Admin (aturan baca catatan). Tabel belum ada → lembar kosong, ekspor tetap jalan.
+ * Ekspor Bahan Laporan per Pegawai — lembar 4 "Laporan Pelanggaran" (tabel catatan 0054 + 0058).
+ * Dikunci: hanya isian pelapor (tanggal kejadian, kategori, laporan, catatan) + periode + pegawai — TANPA kolom
+ * pelapor/relasi/waktu kirim; urut pegawai → tanggal kejadian terbaru → abjad isi; HANYA saat pengekspor di Mode
+ * Admin. Tabel belum ada → lembar kosong, ekspor tetap jalan.
  */
 let mode = 'admin';
 vi.mock('next/headers', () => ({ cookies: vi.fn(async () => ({ get: () => ({ value: mode }) })) }));
@@ -18,11 +19,13 @@ const mockAdmin = vi.mocked(createAdminClient);
 const U = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const T = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
 
+const base = { period_id: 'p1', target_id: T, is_other: false, note: null };
 const NOTES = [
-  { id: 'n1', period_id: 'p1', target_id: T, aspect_id: 'asp2', body: 'Zona gudang selalu rapi setelah shift malam.' },
-  { id: 'n2', period_id: 'p1', target_id: T, aspect_id: 'asp1', body: 'Mengembalikan uang kembalian yang berlebih.' },
-  { id: 'n3', period_id: 'p1', target_id: T, aspect_id: 'asp1', body: 'Berani mengakui salah input stok di depan tim.' },
-  { id: 'n4', period_id: 'p0', target_id: T, aspect_id: 'asp1', body: 'Catatan periode lain yang tak boleh ikut.' },
+  { ...base, id: 'n1', aspect_id: 'asp2', incident_date: '2026-10-05', body: 'Zona gudang dibiarkan berantakan setelah shift malam.' },
+  { ...base, id: 'n2', aspect_id: null, is_other: true, incident_date: '2026-11-02', body: 'Datang terlambat tanpa kabar.', note: 'Pelanggaran jam kerja.' },
+  { ...base, id: 'n3', aspect_id: 'asp1', incident_date: '2026-10-05', body: 'Berbohong soal salah input stok.' },
+  { ...base, id: 'n4', aspect_id: 'asp1', incident_date: null, body: 'Laporan lama sebelum pembaruan formulir.' },
+  { ...base, id: 'n5', period_id: 'p0', aspect_id: 'asp1', incident_date: '2026-07-01', body: 'Laporan periode lain yang tak boleh ikut.' },
 ];
 
 function setup(tables: Record<string, Record<string, unknown>[]>) {
@@ -40,42 +43,45 @@ function setup(tables: Record<string, Record<string, unknown>[]>) {
 }
 
 const notesSheet = (r: Awaited<ReturnType<typeof exportReportMaterials>>) =>
-  r.ok ? r.sheets.find((s) => s.name === 'Catatan di Luar Pemetaan') : undefined;
+  r.ok ? r.sheets.find((s) => s.name === 'Laporan Pelanggaran') : undefined;
 
 beforeEach(() => { vi.clearAllMocks(); mode = 'admin'; });
 
-describe('Bahan Laporan — lembar Catatan di Luar Pemetaan', () => {
-  it('Mode Admin: lembar ke-4 berisi isi saja, tersaring periode, urut aspek → abjad isi', async () => {
+describe('Bahan Laporan — lembar Laporan Pelanggaran', () => {
+  it('Mode Admin: lembar ke-4 berisi isian pelapor saja, tersaring periode, urut tanggal kejadian terbaru → abjad isi', async () => {
     setup({ outside_mapping_notes: NOTES });
     const r = await exportReportMaterials('p1');
     expect(r.ok).toBe(true);
     const s = notesSheet(r)!;
-    expect(r.ok && r.sheets.map((x) => x.name)).toEqual(['Skor', 'Komentar Aspek', 'Komentar Esai', 'Catatan di Luar Pemetaan']);
-    expect(s.rows.map((x) => x.catatan)).toEqual([
-      'Berani mengakui salah input stok di depan tim.',
-      'Mengembalikan uang kembalian yang berlebih.',
-      'Zona gudang selalu rapi setelah shift malam.',
+    expect(r.ok && r.sheets.map((x) => x.name)).toEqual(['Skor', 'Komentar Aspek', 'Komentar Esai', 'Laporan Pelanggaran']);
+    expect(s.rows.map((x) => x.laporan)).toEqual([
+      'Datang terlambat tanpa kabar.',
+      'Berbohong soal salah input stok.',
+      'Zona gudang dibiarkan berantakan setelah shift malam.',
+      'Laporan lama sebelum pembaruan formulir.',
     ]);
     expect(s.rows[0]).toEqual({
       periode: expect.stringContaining('Q4 2026'), kode: 'E1', nama: 'Target', divisi: 'Gudang',
-      aspek: 'Jujur & Tanggung Jawab', catatan: 'Berani mengakui salah input stok di depan tim.',
+      tanggal_kejadian: '2026-11-02', kategori: 'Lainnya', laporan: 'Datang terlambat tanpa kabar.', catatan: 'Pelanggaran jam kerja.',
     });
-    // Tak ada kolom penulis / relasi / waktu dalam bentuk apa pun.
+    expect(s.rows[1]).toMatchObject({ kategori: 'Jujur & Tanggung Jawab', catatan: '' });
+    expect(s.rows[3]).toMatchObject({ tanggal_kejadian: '' });
+    // Tak ada kolom pelapor / relasi / waktu kirim dalam bentuk apa pun.
     for (const row of s.rows) {
-      expect(Object.keys(row).sort()).toEqual(['aspek', 'catatan', 'divisi', 'kode', 'nama', 'periode']);
+      expect(Object.keys(row).sort()).toEqual(['catatan', 'divisi', 'kategori', 'kode', 'laporan', 'nama', 'periode', 'tanggal_kejadian']);
     }
   });
 
-  it('di luar Mode Admin → lembar catatan tidak ikut (tanpa petunjuk ada yang disembunyikan)', async () => {
+  it('di luar Mode Admin → lembar laporan tidak ikut (tanpa petunjuk ada yang disembunyikan)', async () => {
     mode = 'spv';
     setup({ outside_mapping_notes: NOTES });
     const r = await exportReportMaterials('p1');
     expect(r.ok).toBe(true);
     expect(notesSheet(r)).toBeUndefined();
-    expect(JSON.stringify(r)).not.toContain('kembalian');
+    expect(JSON.stringify(r)).not.toContain('terlambat tanpa kabar');
   });
 
-  it('tanpa catatan → lembar ada tapi kosong', async () => {
+  it('tanpa laporan → lembar ada tapi kosong', async () => {
     setup({ outside_mapping_notes: [] });
     const r = await exportReportMaterials('p1');
     expect(notesSheet(r)?.rows).toEqual([]);

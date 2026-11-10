@@ -7,10 +7,9 @@ import { TABLE_HEAD } from '@/components/infarm-ui';
  * Section 5 — RINCIAN KOMENTAR MURNI (RAW FEEDBACK) per Aspek & Indikator.
  * Anonim: TIDAK menampilkan nama/identitas penilai. Per aspek → per indikator, tabel pasangan
  * Rating | Komentar per penilai (urut rating) untuk kalibrasi. Esai dikelompokkan per pertanyaan.
- * Catatan di Luar Pemetaan (`outsideNotes`, 0054) tampil di akhir kartu aspeknya — hanya ada bila loader
- * jalur HRD Mode Admin memuatnya; isi saja (tanpa nama/tanggal/relasi/divisi), tak ikut dicetak (`no-print`).
+ * Laporan pelanggaran (dulu Catatan di Luar Pemetaan) TIDAK tampil di sini sejak 2026-11-10 — pindah ke
+ * halaman HRD "Laporan Pelanggaran".
  */
-const notesOf = (a: AspectRaw) => a.outsideNotes ?? [];
 const sortEntries = (xs: RawEntry[]) =>
   [...xs].sort((a, b) => (a.rating ?? 99) - (b.rating ?? 99)); // tanpa rating → paling bawah
 
@@ -20,7 +19,7 @@ const RATING_COLOR = (r: number) =>
 const avg = (xs: number[]) => (xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length) : null);
 
 export function RawFeedback({ byAspect, essays, badge = 'HRD VIEW' }: { byAspect: AspectRaw[]; essays: EssayGroup[]; badge?: string }) {
-  const hasAny = byAspect.some((a) => a.indicators.length > 0 || notesOf(a).length > 0) || essays.length > 0;
+  const hasAny = byAspect.some((a) => a.indicators.length > 0) || essays.length > 0;
   return (
     <section className="mt-4 break-inside-avoid bg-surface border border-line rounded-card shadow-card print:shadow-none overflow-hidden">
       {/* Pita gelap di layar; saat cetak putih bergaris (warna latar tak dijamin ikut tercetak). */}
@@ -36,7 +35,7 @@ export function RawFeedback({ byAspect, essays, badge = 'HRD VIEW' }: { byAspect
           Raw text &amp; rating
         </p>
 
-        {byAspect.filter((a) => a.indicators.length > 0 || notesOf(a).length > 0).map((a) => (
+        {byAspect.filter((a) => a.indicators.length > 0).map((a) => (
           <div key={a.name} className="border border-line rounded-control overflow-hidden">
             <div className="px-3 py-2 bg-brand-tint border-b border-line flex items-center justify-between gap-2">
               <span className="text-[13px] font-bold text-brand-ink flex items-center gap-1.5">
@@ -90,21 +89,6 @@ export function RawFeedback({ byAspect, essays, badge = 'HRD VIEW' }: { byAspect
                 );
               })}
             </div>
-            {notesOf(a).length > 0 && (
-              <div className="no-print border-t border-line bg-infarm-cream/50 p-3">
-                <p className="text-[13px] font-bold text-ink">
-                  Catatan di Luar Pemetaan{' '}
-                  <span className="text-xs font-semibold text-ink-soft">
-                    <span className="data-value">{notesOf(a).length}</span> catatan · tanpa rating · hanya HRD
-                  </span>
-                </p>
-                <ul className="mt-1.5 space-y-1 list-disc pl-4 marker:text-ink-faint">
-                  {notesOf(a).map((n, i) => (
-                    <li key={i} className="text-[13px] text-ink"><span className="italic">“{n}”</span></li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
         ))}
 

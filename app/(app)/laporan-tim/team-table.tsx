@@ -52,13 +52,9 @@ const CHIP = 'text-[11px] font-semibold px-2.5 py-0.5 rounded-full whitespace-no
 /** Tombol pager (selaras tabel Dashboard Organisasi). */
 const PAGER_BTN = 'text-[13px] font-semibold min-h-10 px-3.5 rounded-control bg-neutral-tint text-ink-soft hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed';
 
-/** Badge kategori 4-Box (KPI×360). KPI "belum terbaca" tak diklasifikasi — selaras Dashboard.
+/** Badge kategori 4-Box (KPI×360). Trend "Belum terbaca" tetap diklasifikasi — selaras Dashboard.
  *  Warna = PLAYER_TONE (Design System Infarm); HRD Review (BR-11) = tone warn. */
-function PlayerBadge({ p, unread }: { p: PlayerClass | null; unread?: boolean }) {
-  if (unread) return (
-    <span title="KPI baru 1 dari 3 bulan kuartal terisi — tidak diklasifikasi"
-      className={`${CHIP} border bg-neutral-tint text-ink-soft border-neutral-tint`}>Belum Terbaca</span>
-  );
+function PlayerBadge({ p }: { p: PlayerClass | null }) {
   if (!p) return <span className="text-xs text-ink-faint">—</span>;
   return (
     <span title={p === 'HRD_REVIEW' ? 'HRD Review — KPI atau Skor 360° belum tersedia; tidak diklasifikasi otomatis' : playerLabelOf(p)}
@@ -218,7 +214,7 @@ export function TeamTable({
                   <td className="py-3 px-3 text-center font-mono font-bold text-brand">
                     {r.finalScore != null ? fmt2(r.finalScore) : '—'}
                   </td>
-                  <td className="py-3 px-3 text-center"><PlayerBadge p={r.player} unread={r.trend === 'unread'} /></td>
+                  <td className="py-3 px-3 text-center"><PlayerBadge p={r.player} /></td>
                   <td className="py-3 px-3 text-center"><TrendBadge t={r.trend} months={r.kpiMonths} /></td>
                   {showStatus && (
                     <td className="py-3 px-3 text-center">

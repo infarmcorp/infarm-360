@@ -111,8 +111,8 @@ describe('Ekspor — gangguan baca → pesan gagal, bukan file terpotong', () =>
   });
 });
 
-describe('Ekspor Rekap — KPI "belum terbaca" selaras Dashboard', () => {
-  it('pegawai dengan KPI 1 dari 3 bulan → kategori & player "Belum Terbaca"; angka tetap ada', async () => {
+describe('Ekspor Rekap — Trend "belum terbaca" tetap dikategorikan (pemilik 2026-11-10)', () => {
+  it('pegawai dengan KPI 1 dari 3 bulan → tetap berkategori & berkelas seperti biasa', async () => {
     const full = id('e', 1), baru = id('e', 2);
     const yms = ['2026-07', '2026-08', '2026-09'];
     mockAdmin.mockReturnValue(fakeDb({
@@ -130,7 +130,7 @@ describe('Ekspor Rekap — KPI "belum terbaca" selaras Dashboard', () => {
     if (!r.ok) return;
     const byName = new Map(r.rows.map((x) => [x.nama, x]));
     expect(byName.get('Lengkap')).toMatchObject({ kategori: 'Memenuhi Ekspektasi', player: 'A Player', skor_akhir: 83.5 });
-    expect(byName.get('Baru')).toMatchObject({ kategori: 'Belum Terbaca', player: 'Belum Terbaca', kpi_rerata: 85, skor_akhir: 83.5 });
+    expect(byName.get('Baru')).toMatchObject({ kategori: 'Memenuhi Ekspektasi', player: 'A Player', kpi_rerata: 85, skor_akhir: 83.5 });
   });
 });
 

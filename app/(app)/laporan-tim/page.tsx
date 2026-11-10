@@ -170,8 +170,7 @@ export default async function LaporanTimPage({
       ) : (
         <>
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
-            team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
-            kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
+            team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360} />
           {/* Bingkai kartu (CARD) dipasang di halaman ini; TeamTable sendiri tanpa bingkai (dipakai juga di Monitor). */}
           <div className={CARD}>
             <CardTitle icon={ClipboardCheck} className="mb-4">Daftar Laporan</CardTitle>
@@ -254,8 +253,7 @@ async function DireksiTeamReport({ periodParam }: { periodParam?: string }) {
       ) : (
         <>
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
-            team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
-            kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
+            team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360} />
           {/* Bingkai kartu (CARD) dipasang di halaman ini; TeamTable sendiri tanpa bingkai (dipakai juga di Monitor). */}
           <div className={CARD}>
             <CardTitle icon={ClipboardCheck} className="mb-4">Daftar Laporan</CardTitle>
@@ -341,8 +339,7 @@ async function CoordinatorTeamReport({ userId, periodParam }: { userId: string; 
       ) : (
         <>
           <TeamScorecards total={rows.length} teamKpi={tAvg.kpi} companyKpi={cAvg.kpi}
-            team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360}
-            kpiUnread={rows.filter((r) => r.trend === 'unread').length} />
+            team360={tAvg.s360} company360={cAvg.s360} has360={ap.has_360} />
           {/* Bingkai kartu (CARD) dipasang di halaman ini; TeamTable sendiri tanpa bingkai (dipakai juga di Monitor). */}
           <div className={CARD}>
             <CardTitle icon={ClipboardCheck} className="mb-4">Daftar Laporan</CardTitle>

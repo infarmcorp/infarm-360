@@ -89,39 +89,30 @@ export function OutsideNoteButton({ candidates, aspects }: { candidates: Candida
               </div>
             </div>
 
-            <div>
-              <label className={FIELD_LABEL}>Rekan yang dilaporkan {REQ}</label>
-              <SearchableSelect
-                value={targetId}
-                onChange={setTargetId}
-                disabled={busy || candidates.length === 0}
-                options={candidates.map((c) => ({ value: c.id, label: `${c.name} — ${c.dept}` }))}
-                placeholder={candidates.length ? '— Cari & pilih rekan kerja —' : 'Tidak ada rekan yang bisa dipilih'}
-                searchPlaceholder="Cari rekan…"
-                className={FIELD}
-              />
-            </div>
-
-            <div>
-              <label className={FIELD_LABEL}>Laporan Anda {REQ}</label>
-              <textarea value={body} onChange={(e) => setBody(e.target.value)} disabled={busy} rows={6}
-                maxLength={OUTSIDE_NOTE_MAX} placeholder="Ketik isi laporan Anda" className={FIELD_AREA} />
-              <p className={`text-xs mt-1 ${len >= OUTSIDE_NOTE_MIN ? 'text-ink-soft' : 'text-warn-ink'}`}>
-                <span className="data-value">{len}</span> karakter · minimal <span className="data-value">{OUTSIDE_NOTE_MIN}</span>
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
+            {/* Satu baris di layar lebar: rekan (lebih lebar) · tanggal kejadian · kategori — agar pop-up muat tanpa digulir. */}
+            <div className="grid gap-3 sm:grid-cols-4">
+              <div className="sm:col-span-2 min-w-0">
+                <label className={FIELD_LABEL}>Rekan yang dilaporkan {REQ}</label>
+                <SearchableSelect
+                  value={targetId}
+                  onChange={setTargetId}
+                  disabled={busy || candidates.length === 0}
+                  options={candidates.map((c) => ({ value: c.id, label: `${c.name} — ${c.dept}` }))}
+                  placeholder={candidates.length ? '— Cari & pilih rekan kerja —' : 'Tidak ada rekan yang bisa dipilih'}
+                  searchPlaceholder="Cari rekan…"
+                  className={FIELD}
+                />
+              </div>
+              <div className="min-w-0">
                 <label className={FIELD_LABEL}>Tanggal kejadian {REQ}</label>
                 <input type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} disabled={busy}
                   className={`${FIELD} w-full font-mono`} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <label className={FIELD_LABEL}>Kategori {REQ}</label>
                 <select value={category} onChange={(e) => setCategory(e.target.value)} disabled={busy}
                   className={`${FIELD} w-full`}>
-                  <option value="">— Pilih kategori laporan —</option>
+                  <option value="">— Pilih kategori —</option>
                   {aspects.length > 0 && (
                     <optgroup label="Budaya kerja">
                       {aspects.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -133,13 +124,22 @@ export function OutsideNoteButton({ candidates, aspects }: { candidates: Candida
             </div>
 
             <div>
-              <label className={FIELD_LABEL}>Catatan <span className="font-medium">(opsional)</span></label>
-              {category === OTHER && (
-                <p className="text-xs text-warn-ink bg-warn-tint rounded-control px-2.5 py-1.5 mb-1.5">
-                  Kategori Lainnya: sebutkan jenis pelanggarannya di sini agar HRD mudah mengelompokkan.
-                </p>
-              )}
-              <textarea value={note} onChange={(e) => setNote(e.target.value)} disabled={busy} rows={3}
+              <label className={FIELD_LABEL}>Laporan Anda {REQ}</label>
+              <textarea value={body} onChange={(e) => setBody(e.target.value)} disabled={busy} rows={5}
+                maxLength={OUTSIDE_NOTE_MAX} placeholder="Ketik isi laporan Anda" className={FIELD_AREA} />
+              <p className={`text-xs mt-1 ${len >= OUTSIDE_NOTE_MIN ? 'text-ink-soft' : 'text-warn-ink'}`}>
+                <span className="data-value">{len}</span> karakter · minimal <span className="data-value">{OUTSIDE_NOTE_MIN}</span>
+              </p>
+            </div>
+
+            <div>
+              <label className={FIELD_LABEL}>
+                Catatan <span className="font-medium">(opsional)</span>
+                {category === OTHER && (
+                  <span className="ml-1.5 font-semibold text-warn-ink">· Kategori Lainnya: sebutkan jenis pelanggarannya di sini</span>
+                )}
+              </label>
+              <textarea value={note} onChange={(e) => setNote(e.target.value)} disabled={busy} rows={2}
                 maxLength={OUTSIDE_NOTE_EXTRA_MAX} placeholder="Informasi tambahan untuk HRD, misalnya bukti yang Anda punya"
                 className={FIELD_AREA} />
             </div>

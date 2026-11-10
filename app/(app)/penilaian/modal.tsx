@@ -20,7 +20,7 @@ export function Modal({
   open: boolean;
   title: string;
   busy?: boolean;
-  /** 'lg' untuk form berkolom dua (mis. Ajukan Penilaian); 'xl' untuk form panjang (Laporkan Pelanggaran). */
+  /** 'lg' untuk form berkolom dua (mis. Ajukan Penilaian); 'xl' (±896px) untuk form panjang (Laporkan Pelanggaran). */
   size?: 'sm' | 'lg' | 'xl';
   onClose: () => void;
   children: React.ReactNode;
@@ -38,7 +38,7 @@ export function Modal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-black/40" onClick={() => !busy && onClose()} />
-      <div className={`relative bg-surface border border-line rounded-card shadow-[0_8px_32px_rgba(0,0,0,0.18)] w-full ${size === 'xl' ? 'max-w-3xl' : size === 'lg' ? 'max-w-lg' : 'max-w-sm'} max-h-[calc(100vh-2rem)] overflow-y-auto p-5 space-y-3.5 text-left text-[13px]`}>
+      <div className={`relative bg-surface border border-line rounded-card shadow-[0_8px_32px_rgba(0,0,0,0.18)] w-full ${size === 'xl' ? 'max-w-4xl' : size === 'lg' ? 'max-w-lg' : 'max-w-sm'} max-h-[calc(100vh-2rem)] overflow-y-auto p-5 space-y-3.5 text-left text-[13px]`}>
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-base font-bold text-ink leading-snug">{title}</h3>
           <button type="button" onClick={onClose} disabled={busy} className="text-ink-faint hover:text-ink disabled:opacity-40 shrink-0">

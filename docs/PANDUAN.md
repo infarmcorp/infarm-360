@@ -975,8 +975,9 @@ Direksi tidak punya halaman ini, kecuali diberi akses lewat Manajemen Akses.
 
 **Dashboard Organisasi** — filter **Tahun**, **Periode/Kuartal**, **Divisi** (bawaan: periode aktif, semua
 divisi). Ada mode **"Semua Kuartal (tahun X)"** dan **"Semua kuartal (semua tahun)"** = rata-rata antar-kuartal
-(Skor Akhir = rerata Skor Akhir tiap kuartal). Laporan Final memakai angka tersimpan. Pegawai **"KPI belum
-terbaca"** tidak dihitung dalam rerata, sebaran, dan peringkat KPI (jumlahnya dicatat). Empat tab:
+(Skor Akhir = rerata Skor Akhir tiap kuartal). Laporan Final memakai angka tersimpan. Semua pegawai yang sudah punya
+KPI ikut dihitung, termasuk yang Trend KPI-nya **"Belum terbaca"** (label itu hanya berarti naik-turunnya belum bisa
+dibaca). Empat tab:
 - **Kompilasi Kinerja Organisasi** — statistik talenta, Distribusi Kategori Kinerja, Rencana Tindak Lanjut,
   Skor KPI per Divisi, Evaluasi Budaya 360° per sub-aspek, **Matriks 4-Box** (satu kartu: grafik sebaran KPI × 360°
   di tengah, nama pegawai per kelas di kiri & kanan sesuai kuadrannya), distribusi per kuartal, 10 teratas & 10 terbawah

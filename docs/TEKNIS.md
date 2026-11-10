@@ -234,8 +234,9 @@ Bagian ini hanya menjabarkan. **Ubah ambang di kode → sinkronkan tabel ini + t
 - **Trend KPI** (`trendOf`, input 3 bulan pertama `period_months` terurut, null = belum diisi):
   0 bulan terisi → `empty` · 1 → `unread` ("Belum terbaca") · 2 → `stable` (selisih ≤ 2) / `up` / `down`
   · 3 → `stable` (tiap selisih ≤ 2) / `up` / `down` / `volatile` (Fluktuatif hanya di sini).
-  Pegawai `unread` dikecualikan dari rerata/distribusi/ranking KPI di Dashboard, Monitor, Laporan Kinerja Tim,
-  termasuk tren tahunan & mode "semua kuartal" (`lib/dashboard/aggregate.ts`). Baris tetap tampil; 360° tetap dihitung.
+  `unread` **hanya label fluktuasi** di kolom Trend KPI (pemilik 2026-11-10): pegawainya tetap dihitung di
+  rerata/distribusi/ranking/heatmap KPI, Skor Akhir, 4-Box, kategori, dan ekspor — di semua halaman. Jangan
+  pakai `trend === 'unread'` sebagai penyaring populasi.
 
 ### 4.2 Skor 360°
 - Rating 1–5 per indikator → skala 0–100. **Self selalu dikecualikan** (dan Self Assessment nonaktif sejak Q3 2026).
@@ -585,7 +586,7 @@ Uji per peran; HRD dua mode. Tiap perubahan perilaku SPV → ulangi untuk HRD Mo
   rilis ulang beda skor; PDF rapi.
 - **Dashboard:** filter Periode/Divisi/Tahun; KPI tertinggi/terendah, "KPI Di Atas Standar (≥N)" ikut
   `kpi_standard`; heatmap divisi×bulan; donut & palet diskrit; trendline; 4-Box + HRD Review; "No Score";
-  "Belum terbaca" dikecualikan.
+  Trend "Belum terbaca" hanya label (tidak mengecualikan).
 - **Admin:** periode (buat, aktivasi + peringatan, deadline, umumkan pemetaan, tutup/buka form, kunci,
   buka kembali, hapus ketik `HAPUS`); pertanyaan (salin, BARS key point, hapus hanya bila belum dipakai);
   bobot (total 100, 2 kelas otomatis terkunci, bobot khusus); pemetaan (selalu Wajib, Self ditolak, impor

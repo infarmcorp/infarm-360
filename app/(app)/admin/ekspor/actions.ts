@@ -6,7 +6,6 @@ import { canSection } from '@/lib/auth/roles';
 import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf, playerLabelOf, perfLabelOf } from '@/lib/scoring';
 import { classOf, avg, weightedScore360, effectiveModel, type Groups360, type Model360 } from '@/lib/score360';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
-import { trendOf } from '@/lib/trend';
 import { cookies } from 'next/headers';
 import { loadViolationReports, sortViolations, OTHER_CATEGORY_LABEL } from '@/lib/outside-notes';
 import { tableMissing } from '@/lib/report-folder';
@@ -37,7 +36,6 @@ async function requireHrd(): Promise<boolean> {
 }
 
 const KAT = (f: number | null) => perfLabelOf(f);
-const UNREAD_LABEL = 'Belum Terbaca';
 // 2 desimal — selaras tampilan app (round2) & perhitungan manual HRD dari ekspor.
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -163,15 +161,13 @@ async function exportRekapImpl(periodId?: string | null): Promise<ExportResult> 
       // Rumus resmi tunggal (tanpa KPI → 360° saja); laporan FINAL → angka tersimpan (yang dilihat pegawai).
       const final = displayedFinalOf(finalScoreOf(kpiAvg, s360, p.has_360), repBy.get(`${e.id}|${p.id}`));
       const player = playerClassOf(kpiAvg, s360); // s360 sudah null bila 360 nonaktif
-      // KPI "belum terbaca" (1 dari 3 bulan pertama terisi) → tak dikategorikan & tak berkelas, selaras Dashboard.
-      const unread = trendOf([...yms].sort().slice(0, 3).map((ym) => { const a = kpiByCell.get(`${e.id}|${ym}`); return a ? a.s / a.n : null; })) === 'unread';
       rows.push({
         periode: p.label, kode: e.emp_code, nama: e.name, divisi: e.dept,
         kpi_rerata: kpiAvg != null ? r2(kpiAvg) : null, skor_360: s360 != null ? r2(s360) : null,
         // Potongan keterlambatan menilai — SUDAH termasuk di skor_360 (bukan pengurang tambahan).
         potongan_telat_360: p.has_360 ? (lateBy.get(`${e.id}|${p.id}`) ?? 0) : null,
         skor_akhir: final != null ? r2(final) : null,
-        kategori: unread ? UNREAD_LABEL : KAT(final), player: unread ? UNREAD_LABEL : playerLabelOf(player),
+        kategori: KAT(final), player: playerLabelOf(player),
       });
     }
   }

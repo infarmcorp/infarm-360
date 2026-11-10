@@ -1,5 +1,4 @@
 import { createAdminClient } from '@/lib/supabase/server';
-import { trendOf, type Trend } from '@/lib/trend';
 import { fetchAllByIds } from '@/lib/supabase/paginate';
 import { kpiAvgOf } from '@/lib/scoring';
 
@@ -48,30 +47,24 @@ export async function scoreMaps(periodId: string, ids: string[]): Promise<ScoreM
   return { kpiBy, s360By, monthlyBy };
 }
 
-/** KPI "belum terbaca" = trend 3 bulan pertama 'unread' (2 dari 3 bulan kosong). Dikecualikan dari
- *  rerata KPI (selaras Dashboard) — belum menggambarkan kuartal, bukan berkinerja rendah. 360° tetap dihitung. */
-const isUnreadMonths = (months: (number | null)[] | undefined): boolean =>
-  trendOf((months ?? []).slice(0, 3)) === 'unread';
-
 /** Rata-rata perusahaan (mean rerata per-pegawai) KPI & 360° — pembanding scorecard.
- *  Lingkup: semua pegawai internal non-Direksi (selaras cakupan dashboard). KPI "belum terbaca"
- *  dikecualikan dari rerata KPI (bukan dari 360°) agar pembanding konsisten dengan Dashboard. */
+ *  Lingkup: semua pegawai internal non-Direksi (selaras cakupan dashboard). Trend "Belum terbaca"
+ *  hanya label fluktuasi — pegawainya tetap dihitung (keputusan pemilik 2026-11-10). */
 export async function companyAverages(periodId: string): Promise<{ kpi: number | null; s360: number | null }> {
   const admin = createAdminClient();
   const { data: emps } = await admin.from('employees').select('id').eq('is_external', false).neq('role', 'direksi');
   const ids = (emps ?? []).map((e) => e.id);
   if (!ids.length) return { kpi: null, s360: null };
-  const { kpiBy, s360By, monthlyBy } = await scoreMaps(periodId, ids);
-  const kpiVals = [...kpiBy.entries()].filter(([id]) => !isUnreadMonths(monthlyBy.get(id))).map(([, v]) => v);
+  const { kpiBy, s360By } = await scoreMaps(periodId, ids);
+  const kpiVals = [...kpiBy.values()];
   const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
   return { kpi: mean(kpiVals), s360: mean([...s360By.values()]) };
 }
 
-/** Rata-rata tim (mean rerata per-pegawai) dari baris yang ditampilkan. KPI "belum terbaca"
- *  (trend 'unread') dikecualikan dari rerata KPI — baris tetap tampil, hanya tak dihitung; 360°
- *  tetap ikut. Selaras perlakuan Dashboard organisasi. */
-export function teamAverages(rows: { kpiAvg: number | null; s360: number | null; trend?: Trend }[]): { kpi: number | null; s360: number | null } {
-  const k = rows.filter((r) => r.trend !== 'unread').map((r) => r.kpiAvg).filter((v): v is number => v != null);
+/** Rata-rata tim (mean rerata per-pegawai) dari baris yang ditampilkan (semua pegawai berdata,
+ *  termasuk Trend "Belum terbaca"). Selaras perlakuan Dashboard organisasi. */
+export function teamAverages(rows: { kpiAvg: number | null; s360: number | null }[]): { kpi: number | null; s360: number | null } {
+  const k = rows.map((r) => r.kpiAvg).filter((v): v is number => v != null);
   const s = rows.map((r) => r.s360).filter((v): v is number => v != null);
   return {
     kpi: k.length ? k.reduce((a, b) => a + b, 0) / k.length : null,

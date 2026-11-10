@@ -286,14 +286,13 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
           <SectionHeader label="Ringkasan" hint="keadaan lingkup terpilih" />
           <ScopeScorecards total={rows.length} kpi={sAvg.kpi} s360={sAvg.s360} has360={sel.has_360}
             scopeLabel={scopeLabel} periodLabel={sel.label}
-            kpiUnread={rows.filter((r) => r.trend === 'unread').length}
             orgKpi={orgAvg?.kpi ?? null} orgS360={orgAvg?.s360 ?? null}
             fillTotal={rows.length} kpiFilled={kpiBy.size} s360Filled={s360By.size} />
 
           {/* B. KOMPOSISI */}
           <SectionHeader label="Komposisi" hint="sebaran kategori & profil aspek" />
           <DistBars
-            kpiPeople={rows.filter((r) => r.trend !== 'unread' && r.kpiAvg != null).map((r) => ({ name: r.name, nickname: r.nickname, value: r.kpiAvg as number }))}
+            kpiPeople={rows.filter((r) => r.kpiAvg != null).map((r) => ({ name: r.name, nickname: r.nickname, value: r.kpiAvg as number }))}
             s360People={sel.has_360 ? rows.filter((r) => r.s360 != null).map((r) => ({ name: r.name, nickname: r.nickname, value: r.s360 as number })) : null} />
           {teamAspect.length > 0 && <TeamAspectProfile aspects={teamAspect} scopeLabel={scopeLabel} />}
         </>
@@ -370,16 +369,16 @@ function Card({ label, value, subtext, delta, note, icon: Icon }: { label: strin
 
 /** Kartu ringkas lingkup terpilih: Total Pegawai · Avg KPI · Avg 360° (org atau divisi). */
 function ScopeScorecards({
-  total, kpi, s360, has360, scopeLabel, periodLabel, kpiUnread = 0, orgKpi = null, orgS360 = null,
+  total, kpi, s360, has360, scopeLabel, periodLabel, orgKpi = null, orgS360 = null,
   fillTotal, kpiFilled, s360Filled,
-}: { total: number; kpi: number | null; s360: number | null; has360: boolean; scopeLabel: string; periodLabel: string; kpiUnread?: number; orgKpi?: number | null; orgS360?: number | null; fillTotal?: number; kpiFilled?: number; s360Filled?: number }) {
+}: { total: number; kpi: number | null; s360: number | null; has360: boolean; scopeLabel: string; periodLabel: string; orgKpi?: number | null; orgS360?: number | null; fillTotal?: number; kpiFilled?: number; s360Filled?: number }) {
   const sub = `${scopeLabel} · ${periodLabel}`;
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
       <Card icon={Users} label="Total Pegawai" value={total} subtext={scopeLabel} />
       <Card icon={Target} label="Avg KPI" value={kpi != null ? fmt2(kpi) : '—'}
         delta={orgKpi != null ? <OrgDelta scope={kpi} org={orgKpi} /> : undefined}
-        subtext={kpiUnread > 0 ? `${sub} · ${kpiUnread} belum terbaca (dikecualikan)` : sub}
+        subtext={sub}
         note={fillTotal != null && kpiFilled != null ? <FilledNote n={kpiFilled} total={fillTotal} /> : undefined} />
       {has360 && <Card icon={MessagesSquare} label="Avg 360°" value={s360 != null ? fmt2(s360) : '—'}
         delta={orgS360 != null ? <OrgDelta scope={s360} org={orgS360} /> : undefined}

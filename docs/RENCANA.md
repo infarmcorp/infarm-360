@@ -82,25 +82,17 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
     tidak menambah pemicu untuk Preview);
   - 🔑 uji pemicu sekali di production (Actions → Email Rilis Terjadwal → Run workflow), lalu jadwalkan ke akun
     sendiri dari UI untuk memastikan terkirim otomatis.
-- 🔑🔄 **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan", untuk Q4 2026). Versi lama sudah di production
-  (rilis 2026-11-03). Versi baru (keputusan pemilik 2026-11-10) dikerjakan di branch `feat/laporkan-pelanggaran`,
-  **belum** di `dev`: kartu & pop-up berganti nama dan teks, isian baru (tanggal kejadian wajib, kategori budaya kerja
-  atau Lainnya, catatan opsional, panduan & kerahasiaan di pop-up), dan halaman HRD baru **Laporan Pelanggaran**
-  (daftar pegawai yang dilaporkan + satu kartu per laporan; sejak 2026-11-11 juga dibaca Direksi). Laporan tidak lagi tampil di rincian komentar laporan;
-  ekspor Bahan Laporan lembar 4 kini memuat tanggal kejadian, kategori, laporan, dan catatan. Sisa:
-  - ✅ perubahan database **0054** terpasang di staging dan production;
-  - 🔑 setelah rilis yang sedang berjalan di-merge: gabungkan branch ke `dev`, jalankan perubahan database **0058** di
-    staging lalu production **sebelum** versi baru dirilis (tanpa 0058 pengiriman laporan ditolak "sedang diperbarui");
-  - 🔑 uji per peran di Preview;
-  - 🔑 jalankan perubahan database **0059** (Direksi hanya bisa membaca rencana pengembangan timnya) di staging lalu
-    production, lalu jalankan pemeriksaan keamanan database;
+- 🔑 **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan", untuk Q4 2026). Versi baru (keputusan pemilik
+  2026-11-10) sudah dirilis ke production (2026-11-11): kartu & pop-up berganti nama dan teks, isian baru (tanggal
+  kejadian wajib, kategori budaya kerja atau Lainnya, catatan opsional, panduan & kerahasiaan di pop-up), dan halaman
+  HRD baru **Laporan Pelanggaran** (daftar pegawai yang dilaporkan + satu kartu per laporan; juga dibaca Direksi).
+  Laporan tidak lagi tampil di rincian komentar laporan; ekspor Bahan Laporan lembar 4 memuat tanggal kejadian,
+  kategori, laporan, dan catatan. Sisa:
   - 🔑 sebelum Q4 dibuka: umumkan fiturnya ke pegawai.
   - Belum dibangun (pemilik): kode laporan + Cek Status untuk pelapor. Laporan yang masuk tanpa kode tidak bisa
     dihubungkan ke pelapornya di kemudian hari.
-- ✅ **Perubahan database** — 0001–0057 terpasang di staging dan production (0050–0057 dicek pemilik 2026-11-09
-  dengan `scripts/check-migrations.sql` di kedua database).
-
-### Keamanan
+- ✅ **Perubahan database** — 0001–0059 terpasang di production (0050–0057 dicek pemilik 2026-11-09 dengan
+  `scripts/check-migrations.sql` di staging & production; 0058 dan 0059 dijalankan pemilik, dikonfirmasi 2026-11-11).
 - 🔑⬜ **Ganti kunci rahasia database** (kunci admin Supabase dan lainnya) sebelum produksi penuh. Kunci admin
   bisa membuka seluruh data; bila pernah dibagikan saat pengembangan, anggap bocor. **Ditunda** sampai ada
   waktu sepi (luar jam kerja atau akhir periode), agar pengguna yang sedang login tidak terputus.

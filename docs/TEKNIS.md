@@ -528,7 +528,7 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 
 ### 7.1 Vitest (`npm test`, `npm run test:watch`)
 Kenapa: kesalahan rumus tidak memunculkan error ("salah diam-diam"). Tes mengunci rumus; dijalankan
-saat kode disentuh, bukan per kuartal. **307 tes / 18 file** (per 2026-10-12). CI menjalankan test +
+saat kode disentuh, bukan per kuartal. **1146 tes / 68 file** (per 2026-11-11). CI menjalankan test +
 typecheck + build tiap push/PR.
 - Rumus: `scoring`, `score360`, `late`, `trend`, `rated-completeness` (`ratedCompletion` = "Dinilai oleh", selaras Progress 360).
 - Impor Excel: `import` (`parseKpiRows`/`isValidKpiRow`/`parseMappingRows`/`classifyMappingRows` + round-trip `xlsx`).

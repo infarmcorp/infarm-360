@@ -274,7 +274,7 @@ bersama (2026-11-03/04). Aturan token & "kartu flat tanpa bayangan / font sistem
   > 1000 baris — PostgREST memotong diam-diam (bug 2026-07-08: 51/52 Skor 360° salah).
 - **Jangan** `npm audit fix --force` (menurunkan Next 16 → 9). `xlsx@0.20.3` dari CDN SheetJS.
 - Rumus menentukan keputusan SDM nyata dan salahnya tak memunculkan error → `npm test` wajib hijau saat kode
-  disentuh (±1100 tes / 63 file). Server Action diuji dengan mock `tests/helpers/mock-supabase.ts`.
+  disentuh (±1150 tes / 68 file). Server Action diuji dengan mock `tests/helpers/mock-supabase.ts`.
 - `npm run verify:rls` (85 pemeriksaan, fixture `RLSTEST-*` self-cleaning) manual pra-rilis & tiap ubah RLS.
 - Migrasi baru: idempoten, nomor urut, terapkan ke staging dulu; urutan rilis → TEKNIS.md §1. Kode yang memanggil
   fungsi database baru WAJIB punya cadangan cara lama bila fungsinya belum ada (`rpcMissing`, `lib/supabase/rpc.ts`),

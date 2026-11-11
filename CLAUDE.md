@@ -111,9 +111,9 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
     `submitOutsideNote` hanya untuk validasi — **jangan** tulis ke tabel, audit log, `console`, pesan error, atau
     notifikasi. Urutan tampil = tanggal kejadian terbaru lalu abjad isi (`sortViolations`), bukan id/urutan masuk.
     Tanpa riwayat untuk pengirim; tak bisa diubah/dihapus pegawai. Kode laporan / Cek Status **belum** dibangun.
-  - **Baca hanya HRD Mode Admin** berbagian Review & Finalisasi (`violationPageAllowed`), termasuk laporan tentang
-    dirinya sendiri (tetap anonim), lewat `loadViolationReports` di dua jalur saja: halaman **Laporan Pelanggaran**
-    (`admin/pelanggaran`) dan ekspor **Bahan Laporan per Pegawai** lembar 4 (cookie `hrd_mode='admin'`; kolom =
+  - **Baca hanya HRD Mode Admin** berbagian Review & Finalisasi **dan Direksi** (`violationPageAllowed`; Direksi = semua
+    laporan, hanya baca, tanpa ekspor — pemilik 2026-11-11), termasuk laporan tentang dirinya sendiri (tetap anonim),
+    lewat `loadViolationReports` di dua jalur saja: halaman **Laporan Pelanggaran** (`admin/pelanggaran`) dan ekspor **Bahan Laporan per Pegawai** lembar 4 (cookie `hrd_mode='admin'`; kolom =
     periode/pegawai/divisi/tanggal kejadian/kategori/laporan/catatan, tanpa pelapor/relasi/waktu kirim). Sejak 0058
     laporan **tidak** lagi tampil di rincian komentar laporan; `loadReport` & loader lain tak memuatnya. Akses DB
     hanya service_role (RLS tanpa policy).

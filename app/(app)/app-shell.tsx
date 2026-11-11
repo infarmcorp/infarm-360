@@ -127,6 +127,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
         { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
         { href: '/laporan-tim', label: 'Laporan Kinerja Tim', icon: Users },
         { href: '/review-hasil', label: 'Tinjauan Hasil Akhir', icon: ClipboardCheck },
+        { href: '/admin/pelanggaran', label: 'Laporan Pelanggaran', icon: Flag },
         { href: '/admin/pengembangan', label: 'Pantauan Rencana Pengembangan', icon: Sprout },
         { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText },
         { href: '/suksesi', label: 'Promosi & Suksesi', icon: Award },

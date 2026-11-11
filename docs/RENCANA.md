@@ -86,7 +86,7 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   (rilis 2026-11-03). Versi baru (keputusan pemilik 2026-11-10) dikerjakan di branch `feat/laporkan-pelanggaran`,
   **belum** di `dev`: kartu & pop-up berganti nama dan teks, isian baru (tanggal kejadian wajib, kategori budaya kerja
   atau Lainnya, catatan opsional, panduan & kerahasiaan di pop-up), dan halaman HRD baru **Laporan Pelanggaran**
-  (daftar pegawai yang dilaporkan + satu kartu per laporan). Laporan tidak lagi tampil di rincian komentar laporan;
+  (daftar pegawai yang dilaporkan + satu kartu per laporan; sejak 2026-11-11 juga dibaca Direksi). Laporan tidak lagi tampil di rincian komentar laporan;
   ekspor Bahan Laporan lembar 4 kini memuat tanggal kejadian, kategori, laporan, dan catatan. Sisa:
   - ✅ perubahan database **0054** terpasang di staging dan production;
   - 🔑 setelah rilis yang sedang berjalan di-merge: gabungkan branch ke `dev`, jalankan perubahan database **0058** di

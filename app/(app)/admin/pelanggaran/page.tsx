@@ -12,8 +12,8 @@ import { ViolationBoard, type BoardPerson } from './violation-board';
 /**
  * LAPORAN PELANGGARAN (HRD) — pemantauan laporan pegawai tentang rekan (tabel catatan 0054 + 0058).
  *
- * Akses: HRD berbagian Review & Finalisasi di Mode Admin (`violationPageAllowed`) — SAMA dengan gerbang jalur
- * baca lama (rincian komentar laporan). Tidak masuk katalog grant halaman.
+ * Akses (`violationPageAllowed`): HRD berbagian Review & Finalisasi di Mode Admin, atau Direksi (semua laporan, hanya
+ * baca; keputusan pemilik 2026-11-11). Tidak masuk katalog grant halaman. Tautan Ekspor hanya untuk HRD.
  * Anonim: tabel tak menyimpan pelapor maupun waktu kirim; halaman hanya menampilkan pegawai yang DILAPORKAN dan
  * isian pelapor (tanggal kejadian, kategori, laporan, catatan), satu kartu per laporan. Urutan = tanggal kejadian
  * terbaru, lalu abjad isi (`sortViolations`) — bukan id/urutan masuk. Termasuk laporan tentang HRD sendiri.
@@ -26,8 +26,9 @@ export default async function LaporanPelanggaranPage({ searchParams }: { searchP
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   const hrdMode = (await cookies()).get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   if (!violationPageAllowed(me, hrdMode)) {
-    return <Shell><p className="text-[13px] text-ink-soft">Halaman ini untuk HRD di Mode Admin dengan akses Review &amp; Finalisasi.</p></Shell>;
+    return <Shell><p className="text-[13px] text-ink-soft">Halaman ini untuk Direksi dan HRD di Mode Admin dengan akses Review &amp; Finalisasi.</p></Shell>;
   }
+  const isDireksi = me?.role === 'direksi';
 
   const admin = createAdminClient();
   const { period: periodParam } = await searchParams;
@@ -102,9 +103,14 @@ export default async function LaporanPelanggaranPage({ searchParams }: { searchP
 
         <Note>
           Laporan tidak memengaruhi Skor 360° maupun Skor Akhir dan tidak tampil di laporan pegawai. Laporan sebelum
-          pembaruan formulir tidak memiliki tanggal kejadian (tampil &quot;—&quot;). Unduh semua laporan lewat{' '}
-          <Link prefetch={false} href="/admin/ekspor" className="font-semibold text-brand-ink hover:underline">Ekspor Dataset</Link>
-          {' '}→ Bahan Laporan per Pegawai (lembar Laporan Pelanggaran).
+          pembaruan formulir tidak memiliki tanggal kejadian (tampil &quot;—&quot;).
+          {!isDireksi && (
+            <>
+              {' '}Unduh semua laporan lewat{' '}
+              <Link prefetch={false} href="/admin/ekspor" className="font-semibold text-brand-ink hover:underline">Ekspor Dataset</Link>
+              {' '}→ Bahan Laporan per Pegawai (lembar Laporan Pelanggaran).
+            </>
+          )}
         </Note>
       </div>
     </Shell>

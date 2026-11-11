@@ -874,8 +874,8 @@ hanya ada untuk periode aktif.
 - **Laporan pelanggaran** dari pegawai **tidak** tampil di Rincian Komentar Murni. Laporan dibaca di halaman
   tersendiri, **Laporan Pelanggaran** (lihat di bawah).
 
-**Laporan Pelanggaran** (menu Hasil & Tindak Lanjut, mulai Q4 2026; hanya HRD di Mode Admin yang punya akses Review &
-Finalisasi)
+**Laporan Pelanggaran** (menu Hasil & Tindak Lanjut, mulai Q4 2026; HRD di Mode Admin yang punya akses Review &
+Finalisasi. Direksi juga bisa membuka halaman ini dari Menu Direksi.)
 - Isinya laporan dari pegawai tentang rekan kerja (fitur **Laporkan Pelanggaran** di Daftar Penilaian Saya).
   **Pelapor anonim**: laporan tidak menyimpan nama maupun waktu kirim pelapor, jadi HRD pun tidak bisa tahu siapa
   pelapornya.
@@ -886,8 +886,8 @@ Finalisasi)
   pelapor (bila ada). Urutannya menurut tanggal kejadian terbaru, bukan urutan kirim.
 - Filter **Divisi**, **Kategori**, dan **cari nama pegawai** hanya menyaring tampilan.
 - Laporan yang masuk sebelum formulir diperbarui tidak punya tanggal kejadian (tampil "—").
-- Laporan tidak memengaruhi angka apa pun dan tidak terlihat oleh SPV, Koordinator, Direksi, pemegang akses halaman,
-  maupun HRD di Mode SPV. HRD juga melihat laporan tentang dirinya sendiri (tetap tanpa nama pelapor).
+- Laporan tidak memengaruhi angka apa pun dan tidak terlihat oleh SPV, Koordinator, pemegang akses halaman, maupun
+  HRD di Mode SPV. HRD juga melihat laporan tentang dirinya sendiri (tetap tanpa nama pelapor).
 - Untuk diunduh: **Ekspor Dataset → Bahan Laporan per Pegawai**, lembar **Laporan Pelanggaran**.
 - Kedua ringkasan **tersimpan otomatis** (sekitar 5 detik setelah berhenti mengetik dan saat pindah kotak),
   dengan status "belum disimpan / menyimpan… / ✓ tersimpan otomatis". Tidak ada tombol simpan manual. Saat
@@ -1089,8 +1089,12 @@ flowchart TD
   pegawai yang tidak ada di daftar penilaiannya (tab Pengajuan di Daftar Penilaian Saya → **Tulis Laporan**): pilih
   pegawai, tulis laporan (minimal 20 karakter), isi tanggal kejadian dan kategori (budaya kerja yang dilanggar atau
   Lainnya), tambahkan catatan bila perlu. Nama dan waktu kirim pelapor tidak tersimpan; laporan tanpa nilai dan
-  tidak memengaruhi skor. Laporan semacam ini **tidak** tampil di Laporan Kinerja Tim maupun Tinjauan Hasil Akhir;
-  hanya HRD di Mode Admin yang membacanya, di halaman Laporan Pelanggaran.
+  tidak memengaruhi skor. Laporan semacam ini **tidak** tampil di Laporan Kinerja Tim maupun Tinjauan Hasil Akhir.
+- **Laporan Pelanggaran** (Menu Direksi) — hanya baca: **semua** laporan pelanggaran yang masuk, per periode,
+  termasuk laporan tentang Direksi sendiri. Tampilannya sama dengan halaman HRD: daftar pegawai yang dilaporkan di
+  kiri, satu kartu per laporan di kanan (tanggal kejadian, kategori, isi laporan, catatan pelapor), dengan filter
+  Divisi, Kategori, dan cari nama. Nama pelapor tidak pernah terlihat, karena memang tidak disimpan. Unduhan Excel
+  laporan ini hanya tersedia untuk HRD.
 - **Rencana Pengembangan** — Direksi adalah **atasan** rencana pengembangan para **SPV** dan HRD/pegawai yang
   memimpin tim: menu **Rencana Pengembangan** → tab **Tim Saya** → **Buka**. Saat status **Menunggu Atasan**, isi
   **Komentar Atasan Langsung** (Konfirmasi Kinerja dan Dukungan yang Diberikan wajib; Konteks Tambahan dan Harapan
@@ -1202,8 +1206,8 @@ flowchart TD
 4. **Siapa menilai siapa** — **hanya HRD**, lewat Pemetaan dan Progress 360. Tidak pernah ke SPV, Koordinator,
    Direksi, atau pegawai. Komentar bernama per penilai tidak ditampilkan di layar laporan mana pun.
 
-**Laporan pelanggaran** berada di luar empat lapis ini: hanya **HRD di Mode Admin** yang membacanya, di halaman
-Laporan Pelanggaran, kapan pun. Pelapornya tidak tersimpan, jadi tidak ada yang bisa melihat siapa pelapornya,
+**Laporan pelanggaran** berada di luar empat lapis ini: hanya **HRD di Mode Admin** dan **Direksi** yang membacanya,
+di halaman Laporan Pelanggaran, kapan pun. Pelapornya tidak tersimpan, jadi tidak ada yang bisa melihat siapa pelapornya,
 termasuk HRD.
 
 ---

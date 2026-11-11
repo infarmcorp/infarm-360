@@ -12,9 +12,10 @@ type SB = Awaited<ReturnType<typeof createClient>>;
  * Anonim secara skema: tabel TANPA kolom penulis dan TANPA waktu kirim. `incident_date` = tanggal KEJADIAN
  * yang ditulis pelapor, bukan waktu kirim. Urutan tampil tak boleh memakai id atau urutan masuk.
  *
- * Baca HANYA dua jalur, keduanya HRD di Mode Admin (termasuk laporan tentang dirinya sendiri — tetap anonim):
- *  - halaman "Laporan Pelanggaran" (app/(app)/admin/pelanggaran) → `violationPageAllowed`;
- *  - ekspor Bahan Laporan per Pegawai (lembar 4), cookie `hrd_mode='admin'`.
+ * Baca HANYA dua jalur (pembaca juga melihat laporan tentang dirinya sendiri — tetap anonim):
+ *  - halaman "Laporan Pelanggaran" (app/(app)/admin/pelanggaran) → `violationPageAllowed` = HRD Mode Admin
+ *    berbagian Review & Finalisasi, ATAU Direksi (keputusan pemilik 2026-11-11: semua laporan, hanya baca);
+ *  - ekspor Bahan Laporan per Pegawai (lembar 4), cookie `hrd_mode='admin'` (HRD saja).
  * Sejak 0058 laporan TIDAK lagi ditempel ke rincian komentar laporan (keputusan pemilik 2026-11-10).
  */
 
@@ -26,8 +27,12 @@ export const OUTSIDE_NOTE_EXTRA_MAX = 1000;
 /** Label kategori "Lainnya" (laporan di luar budaya kerja). */
 export const OTHER_CATEGORY_LABEL = 'Lainnya';
 
-/** Halaman Laporan Pelanggaran: HRD berbagian Review & Finalisasi, di Mode Admin (gerbang yang sama dengan jalur baca lama). */
+/**
+ * Halaman Laporan Pelanggaran: HRD berbagian Review & Finalisasi di Mode Admin, atau Direksi (semua laporan, termasuk
+ * tentang dirinya sendiri; hanya baca — keputusan pemilik 2026-11-11). Direksi tak punya mode, jadi cookie diabaikan.
+ */
 export function violationPageAllowed(m: ActorRow | null | undefined, hrdMode: 'admin' | 'spv'): boolean {
+  if (m?.role === 'direksi') return true;
   return canSection(m, 'laporan') && hrdMode === 'admin';
 }
 

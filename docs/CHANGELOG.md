@@ -8,6 +8,12 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-11 — Direksi bisa membaca Laporan Pelanggaran (di `dev`, belum dirilis)
+- Keputusan pemilik: Direksi melihat **semua** laporan pelanggaran, termasuk laporan tentang dirinya sendiri. Halaman
+  Laporan Pelanggaran kini ada di Menu Direksi, hanya baca, tampilannya sama dengan HRD. Pelapor tetap anonim karena
+  namanya memang tidak disimpan.
+- Unduhan Excel (Ekspor Bahan Laporan) tetap hanya untuk HRD, supaya salinan laporan di luar aplikasi tidak bertambah.
+
 ### 2026-11-10 — "Belum terbaca" kini hanya label tren (di `dev`, belum dirilis)
 - Dulu pegawai yang KPI-nya baru terisi 1 dari 3 bulan kuartal **dikeluarkan** dari rata-rata, sebaran, peringkat,
   heatmap, klasifikasi 4-Box, dan kategori. Akibatnya di awal kuartal (mis. Q4 setelah KPI Oktober masuk) Dashboard

@@ -395,8 +395,9 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
   → insert service_role. Kolom 0058 belum ada → pesan "sedang diperbarui" (tidak menyimpan tanpa tanggal). Identitas
   pengirim **hanya** untuk validasi: tak ditulis ke tabel, `hrd_audit_log`, `console`, pesan error, atau notifikasi.
 - **Baca** `loadViolationReports` (`lib/outside-notes.ts`; kolom 0058 belum ada → baca kolom lama) hanya di dua jalur,
-  keduanya HRD Mode Admin: halaman **Laporan Pelanggaran** (`admin/pelanggaran`, gerbang `violationPageAllowed` =
-  `canSection('laporan')` + Mode Admin; menu grup Hasil & Tindak Lanjut) — daftar pegawai yang dilaporkan + satu
+  halaman **Laporan Pelanggaran** (`admin/pelanggaran`, gerbang `violationPageAllowed` = `canSection('laporan')` + Mode
+  Admin, **atau** `role='direksi'` apa pun cookie-nya — pemilik 2026-11-11: Direksi semua laporan termasuk tentang
+  dirinya, hanya baca, tautan ekspor disembunyikan; menu grup Hasil & Tindak Lanjut + Menu Direksi) — daftar pegawai yang dilaporkan + satu
   kartu per laporan, urut `sortViolations` (tanggal kejadian terbaru → abjad isi, bukan id/urutan kirim); dan ekspor
   Bahan Laporan per Pegawai lembar 4 **"Laporan Pelanggaran"** (kolom periode · kode · nama · divisi ·
   tanggal_kejadian · kategori · laporan · catatan; hanya bila cookie `hrd_mode='admin'`; diuji

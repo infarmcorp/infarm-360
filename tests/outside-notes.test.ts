@@ -9,7 +9,7 @@ import { makeClient } from './helpers/mock-supabase';
  * Laporkan Pelanggaran (tabel catatan 0054 + 0058; dulu Catatan di Luar Pemetaan) — sisi BACA & isolasi.
  *
  * Yang dikunci:
- *  1. Halaman Laporan Pelanggaran hanya untuk HRD berbagian Review & Finalisasi di Mode Admin.
+ *  1. Halaman Laporan Pelanggaran hanya untuk HRD berbagian Review & Finalisasi di Mode Admin, atau Direksi.
  *  2. Semua loader laporan (SPV, Koordinator, HRD Mode-SPV, Direksi, Tinjauan Hasil Akhir, grant Review, pegawai)
  *     tak pernah menyentuh tabel laporan — sejak 2026-11-10 laporan juga TIDAK lagi tampil di rincian komentar HRD.
  *  3. Pembacaan: isian pelapor saja (tanpa penulis/waktu kirim), cadangan bila kolom 0058 belum ada, urutan tampil
@@ -31,7 +31,7 @@ const mockAdmin = vi.mocked(createAdminClient);
 beforeEach(() => { vi.clearAllMocks(); });
 
 // ── 1. Gerbang halaman ─────────────────────────────────────────────────────────────────────────
-describe('violationPageAllowed — HRD (bagian Review & Finalisasi) di Mode Admin', () => {
+describe('violationPageAllowed — HRD (bagian Review & Finalisasi) di Mode Admin, atau Direksi', () => {
   const cases: [string, ActorRow, 'admin' | 'spv', boolean][] = [
     ['HRD Mode Admin', { role: 'hrd' }, 'admin', true],
     ['pegawai ber-izin HRD Mode Admin', { role: 'employee', is_hrd_admin: true }, 'admin', true],
@@ -40,7 +40,8 @@ describe('violationPageAllowed — HRD (bagian Review & Finalisasi) di Mode Admi
     ['HRD dengan bagian Laporan saja', { role: 'hrd', hrd_sections: ['laporan'] }, 'admin', true],
     ['SPV', { role: 'spv' }, 'admin', false],
     ['Koordinator', { role: 'employee', is_coordinator: true }, 'admin', false],
-    ['Direksi', { role: 'direksi' }, 'admin', false],
+    ['Direksi', { role: 'direksi' }, 'admin', true],
+    ['Direksi (cookie mode apa pun)', { role: 'direksi' }, 'spv', true],
     ['pegawai biasa', { role: 'employee' }, 'admin', false],
   ];
   it.each(cases)('%s', (_l, actor, mode, expected) => {

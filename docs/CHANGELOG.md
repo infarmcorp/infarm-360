@@ -20,7 +20,7 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 - Aturan yang sama dipasang juga di database (perubahan database 0059), supaya batasnya tidak hanya ada di tampilan:
   akun Direksi hanya bisa membaca rencana miliknya sendiri dan rencana SPV/pemimpin tim.
 
-### 2026-11-10 — "Belum terbaca" kini hanya label tren (di `dev`, belum dirilis)
+### 2026-11-10 — "Belum terbaca" kini hanya label tren (rilis lebih awal ke `main`)
 - Dulu pegawai yang KPI-nya baru terisi 1 dari 3 bulan kuartal **dikeluarkan** dari rata-rata, sebaran, peringkat,
   heatmap, klasifikasi 4-Box, dan kategori. Akibatnya di awal kuartal (mis. Q4 setelah KPI Oktober masuk) Dashboard
   kosong: Rerata KPI 0,00 dan seolah turun jauh dari kuartal lalu.
@@ -29,7 +29,7 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   Monitor, Laporan Kinerja Tim, Rekap KPI, dan Ekspor Rekap. Kotak "Belum Terbaca (Tak Terkategori)" dan pilihan
   filter "Belum Terbaca" dihapus. Label "Belum terbaca" tetap ada di kolom Trend KPI.
 
-### 2026-11-10 — Catatan di Luar Pemetaan menjadi Laporkan Pelanggaran (branch terpisah, belum di `dev`)
+### 2026-11-10 — Catatan di Luar Pemetaan menjadi Laporkan Pelanggaran (di `dev`, belum dirilis)
 - Kartu di tab Pengajuan berganti nama **Laporkan Pelanggaran** dengan teks baru: pegawai menceritakan kejadian yang
   dialami dan diamati langsung dengan rekan yang dilaporkan, yang tidak harus rekan kerja langsungnya (permintaan
   pemilik). Rekan yang sudah ada di daftar penilaian pelapor tetap disampaikan lewat formulir penilaian.

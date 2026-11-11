@@ -1098,8 +1098,8 @@ flowchart TD
 - **Rencana Pengembangan** — Direksi adalah **atasan** rencana pengembangan para **SPV** dan HRD/pegawai yang
   memimpin tim: menu **Rencana Pengembangan** → tab **Tim Saya** → **Buka**. Saat status **Menunggu Atasan**, isi
   **Komentar Atasan Langsung** (Konfirmasi Kinerja dan Dukungan yang Diberikan wajib; Konteks Tambahan dan Harapan
-  ke Depan opsional), lalu **Setujui** (lanjut ke HRD) atau **Minta Perbaikan** dengan alasan. Menu **Pantauan
-  Rencana Pengembangan** (Menu Direksi) menampilkan status rencana **semua pegawai**, hanya baca. Direksi juga punya
+  ke Depan opsional), lalu **Setujui** (lanjut ke HRD) atau **Minta Perbaikan** dengan alasan. Direksi hanya melihat
+  rencananya sendiri dan rencana timnya; rencana pegawai lain dipantau HRD. Direksi juga punya
   rencana sendiri di tab **Rencana Saya**: cukup diisi dan disimpan (label "Tersimpan"), tanpa komentar atasan
   maupun persetujuan. Setelah rencana SPV **Disepakati**, Direksi mencatat **Sesi 1-on-1** di halaman rencananya
   (**Catat Sesi 1-on-1**: tanggal, catatan, status umum, kemajuan per prioritas).

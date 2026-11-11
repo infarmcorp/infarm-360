@@ -64,10 +64,11 @@ describe('canActAsSupervisor / canViewPlan', () => {
   it('tak ada yang bertindak sebagai atasan atas rencananya sendiri', () => {
     expect(canActAsSupervisor({ kind: 'spv', ids: [S], viewerIds: [] }, actor(S, { role: 'spv' }), S, 'spv')).toBe(false);
   });
-  it('melihat: pemilik, Direksi, HRD Mode Admin; bukan pegawai lain / HRD Mode SPV', () => {
+  it('melihat: pemilik, HRD Mode Admin; bukan pegawai lain / HRD Mode SPV', () => {
     const info = { kind: 'spv' as const, ids: [S], viewerIds: [] };
     expect(canViewPlan(info, actor(E, { role: 'employee' }), E, 'spv')).toBe(true);
-    expect(canViewPlan(info, actor(D, { role: 'direksi' }), E, 'spv')).toBe(true);
+    expect(canViewPlan(info, actor(D, { role: 'direksi' }), E, 'spv')).toBe(false); // bukan tim Direksi
+    expect(canViewPlan({ kind: 'direksi', ids: [], viewerIds: [] }, actor(D, { role: 'direksi' }), S, 'spv')).toBe(true); // SPV = tim Direksi
     expect(canViewPlan(info, actor(H, { role: 'hrd' }), E, 'admin')).toBe(true);
     expect(canViewPlan(info, actor(H, { role: 'hrd' }), E, 'spv')).toBe(false);
     expect(canViewPlan(info, actor('lain', { role: 'employee' }), E, 'spv')).toBe(false);

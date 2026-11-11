@@ -14,6 +14,10 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   namanya memang tidak disimpan.
 - Unduhan Excel (Ekspor Bahan Laporan) tetap hanya untuk HRD, supaya salinan laporan di luar aplikasi tidak bertambah.
 
+### 2026-11-11 — Pantauan Rencana Pengembangan tidak lagi untuk Direksi (di `dev`, belum dirilis)
+- Keputusan pemilik: Direksi cukup memakai menu Rencana Pengembangan (rencana sendiri dan rencana timnya). Menu
+  Pantauan dihapus dari Menu Direksi, dan Direksi tidak bisa lagi membuka rencana pegawai di luar timnya.
+
 ### 2026-11-10 — "Belum terbaca" kini hanya label tren (di `dev`, belum dirilis)
 - Dulu pegawai yang KPI-nya baru terisi 1 dari 3 bulan kuartal **dikeluarkan** dari rata-rata, sebaran, peringkat,
   heatmap, klasifikasi 4-Box, dan kategori. Akibatnya di awal kuartal (mis. Q4 setelah KPI Oktober masuk) Dashboard

@@ -439,7 +439,8 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
   `pengembangan`, `logAuditAsService`).
 - **Baca**: RLS `dp_read`/`dpi_read` = pemilik, `is_hrd()`, `is_direksi()`; atasan & SPV-pengamat via service_role
   setelah `canViewPlan`. Halaman: `/pengembangan` (Rencana Saya / Tim Saya), `/pengembangan/[employeeId]`,
-  `/admin/pengembangan` (pantauan HRD + Direksi baca). Tugas & Notifikasi: `devPlanTodos` (`lib/todos/compute.ts`).
+  `/admin/pengembangan` (pantauan HRD saja; Direksi dicabut 2026-11-11 — `canViewPlan` Direksi = rencana sendiri + yang
+  ia atasi; RLS `is_direksi()` belum dicabut, tak dipakai halaman). Tugas & Notifikasi: `devPlanTodos` (`lib/todos/compute.ts`).
 - **Tahap 2 (0056) — catatan sesi** `development_plan_sessions` (`kind` `one_on_one` | `hrd_monthly`, tanggal, catatan,
   `overall_status`, `item_progress` jsonb divalidasi Zod, `employee_note`). Hanya untuk rencana `agreed` & bukan Direksi
   (`sessionsOpen`), selama periode terbuka. 1-on-1 dicatat atasan (`canRecordSession` = `canActAsSupervisor`, termasuk

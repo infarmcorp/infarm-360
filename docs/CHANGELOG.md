@@ -8,6 +8,18 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-11 — Direksi bisa membaca Laporan Pelanggaran (di `dev`, belum dirilis)
+- Keputusan pemilik: Direksi melihat **semua** laporan pelanggaran, termasuk laporan tentang dirinya sendiri. Halaman
+  Laporan Pelanggaran kini ada di Menu Direksi, hanya baca, tampilannya sama dengan HRD. Pelapor tetap anonim karena
+  namanya memang tidak disimpan.
+- Unduhan Excel (Ekspor Bahan Laporan) tetap hanya untuk HRD, supaya salinan laporan di luar aplikasi tidak bertambah.
+
+### 2026-11-11 — Pantauan Rencana Pengembangan tidak lagi untuk Direksi (di `dev`, belum dirilis)
+- Keputusan pemilik: Direksi cukup memakai menu Rencana Pengembangan (rencana sendiri dan rencana timnya). Menu
+  Pantauan dihapus dari Menu Direksi, dan Direksi tidak bisa lagi membuka rencana pegawai di luar timnya.
+- Aturan yang sama dipasang juga di database (perubahan database 0059), supaya batasnya tidak hanya ada di tampilan:
+  akun Direksi hanya bisa membaca rencana miliknya sendiri dan rencana SPV/pemimpin tim.
+
 ### 2026-11-10 — "Belum terbaca" kini hanya label tren (rilis lebih awal ke `main`)
 - Dulu pegawai yang KPI-nya baru terisi 1 dari 3 bulan kuartal **dikeluarkan** dari rata-rata, sebaran, peringkat,
   heatmap, klasifikasi 4-Box, dan kategori. Akibatnya di awal kuartal (mis. Q4 setelah KPI Oktober masuk) Dashboard
@@ -16,6 +28,20 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   menyembunyikan angka. Kini pegawai itu dihitung seperti biasa di Dashboard (semua tab dan mode "semua kuartal"),
   Monitor, Laporan Kinerja Tim, Rekap KPI, dan Ekspor Rekap. Kotak "Belum Terbaca (Tak Terkategori)" dan pilihan
   filter "Belum Terbaca" dihapus. Label "Belum terbaca" tetap ada di kolom Trend KPI.
+
+### 2026-11-10 — Catatan di Luar Pemetaan menjadi Laporkan Pelanggaran (di `dev`, belum dirilis)
+- Kartu di tab Pengajuan berganti nama **Laporkan Pelanggaran** dengan teks baru: pegawai menceritakan kejadian yang
+  dialami dan diamati langsung dengan rekan yang dilaporkan, yang tidak harus rekan kerja langsungnya (permintaan
+  pemilik). Rekan yang sudah ada di daftar penilaian pelapor tetap disampaikan lewat formulir penilaian.
+- Pop-up mengikuti gaya formulir pengaduan: panduan (waktu, tempat, pihak terlibat, kronologi, dampak) dan penjelasan
+  kerahasiaan di atas; isian **tanggal kejadian** (wajib), **kategori** budaya kerja atau **Lainnya** (wajib), dan
+  **catatan** (opsional). Judul, instansi, dan lokasi sengaja tidak ada.
+- HRD membaca laporan di halaman baru **Laporan Pelanggaran**, bukan lagi di rincian komentar laporan pegawai, supaya
+  laporan bisa dipantau per pegawai yang dilaporkan dan per laporan. Pelapor tetap anonim: nama dan waktu kirim tidak
+  disimpan; tanggal yang tersimpan adalah tanggal kejadian yang ditulis pelapor.
+- Ekspor Bahan Laporan lembar 4 kini bernama Laporan Pelanggaran dan memuat tanggal kejadian, kategori, isi, dan catatan.
+- Kode laporan dan Cek Status untuk pelapor dibahas tetapi **belum dibangun** (keputusan pemilik). Status tindak lanjut
+  HRD juga belum diperlukan.
 
 ### 2026-11-06 — PDF panduan lama tidak dibagikan lagi (di `dev`, belum dirilis)
 - Kartu **Panduan Pengguna** di Akun Saya, penanda **PANDUAN** di sidebar, dan lampiran PDF di email **Undangan** dihapus,

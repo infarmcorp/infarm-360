@@ -143,26 +143,32 @@ Bila disetujui, rekan itu masuk daftar sebagai **Opsional** berlabel **"Ajuan ·
 sendiri yang meminta, mulai Q3 2026 penilaian ini wajib dikirim sebelum deadline. Panel **Permohonan Saya**
 menampilkan semua pengajuan (koreksi, hapus, tambah) beserta status dan alasan penolakan HRD.
 
-**Tab Pengajuan — Catatan di Luar Pemetaan** (mulai Q4 2026)
-Kartu ini ada di samping kartu "Menambah Rekan yang Anda Nilai" (di HP: di bawahnya). Gunanya: memberi tahu HRD
-tentang kejadian atau informasi mengenai rekan yang **tidak ada** di daftar penilaian Anda, tanpa memberi nilai.
-1. Klik **Tulis Catatan**.
-2. Pilih rekan (pegawai aktif, bukan Direksi, bukan penilai eksternal, bukan Anda sendiri, dan belum ada di
-   daftar penilaian Anda).
-3. Pilih **satu aspek budaya** yang paling sesuai. Pilihannya mengikuti aspek periode berjalan.
-4. Tulis isinya, minimal 20 karakter. Penghitung karakter ada di bawah kotak. Hanya teks, tanpa lampiran.
-5. Klik **Kirim Catatan**. Muncul "Catatan terkirim ke HRD" dengan tombol **Tutup** dan **Tulis Catatan Lain**.
+**Tab Pengajuan — Laporkan Pelanggaran** (mulai Q4 2026)
+Kartu ini ada di samping kartu "Menambah Rekan yang Anda Nilai" (di HP: di bawahnya). Gunanya: melaporkan kepada
+HRD kejadian yang Anda alami dan amati secara langsung dengan rekan yang **tidak ada** di daftar penilaian Anda.
+Rekan ini tidak harus rekan yang berhubungan atau berkoordinasi langsung dengan Anda.
+1. Klik **Tulis Laporan**. Di bagian atas pop-up ada **Panduan** (jelaskan waktu, tempat, pihak yang terlibat,
+   kronologi kejadian, dan dampaknya) dan penjelasan **Kerahasiaan**.
+2. **Rekan yang dilaporkan** (wajib): pegawai aktif, bukan Direksi, bukan penilai eksternal, bukan Anda sendiri,
+   dan belum ada di daftar penilaian Anda.
+3. **Laporan Anda** (wajib): minimal 20 karakter. Penghitung karakter ada di bawah kotak. Hanya teks, tanpa lampiran.
+4. **Tanggal kejadian** (wajib): tidak boleh setelah hari ini.
+5. **Kategori** (wajib): pilih budaya kerja yang dilanggar (mengikuti aspek budaya periode berjalan), atau
+   **Lainnya (di luar budaya kerja)**.
+6. **Catatan** (opsional): informasi tambahan untuk HRD. Bila memilih Lainnya, sebutkan jenis pelanggarannya di sini.
+7. Klik **Kirim Laporan**. Muncul "Laporan terkirim ke HRD" dengan tombol **Tutup** dan **Tulis Laporan Lain**.
 
 Yang perlu diketahui:
-- **Nama Anda tidak ikut tersimpan**, begitu juga waktu kirimnya. Hanya HRD yang membaca catatan ini. Hindari
-  menulis detail yang bisa menunjukkan siapa Anda.
-- Catatan **tanpa nilai** dan **tidak memengaruhi** Skor 360°, Skor Akhir, maupun hitungan "X dari Y" penilaian
+- **Nama dan identitas Anda tidak disimpan**, begitu juga waktu kirimnya. Laporan hanya dibaca HRD untuk verifikasi
+  dan tindak lanjut; tidak dapat dilihat rekan yang dilaporkan maupun karyawan lain. Hindari menulis detail yang bisa
+  menunjukkan siapa Anda.
+- Laporan **tanpa nilai** dan **tidak memengaruhi** Skor 360°, Skor Akhir, maupun hitungan "X dari Y" penilaian
   wajib Anda. Tidak ada potongan keterlambatan untuk fitur ini.
-- Catatan **tidak bisa diubah atau dihapus** setelah dikirim. Anda boleh mengirim lebih dari satu catatan.
-- Catatan **tidak muncul** di Permohonan Saya atau di mana pun untuk Anda, karena tidak tersimpan dengan nama Anda.
+- Laporan **tidak bisa diubah atau dihapus** setelah dikirim. Anda boleh mengirim lebih dari satu laporan.
+- Laporan **tidak muncul** di Permohonan Saya atau di mana pun untuk Anda, karena tidak tersimpan dengan nama Anda.
 - Bisa dikirim selama HRD membuka form penilaian, termasuk sesudah deadline. Saat masa tinjau pemetaan atau saat
   form ditutup, kartu hanya berisi penjelasan.
-- Untuk rekan yang **sudah** ada di daftar Anda, sampaikan lewat formulir penilaiannya. Catatan ini bukan pengganti
+- Untuk rekan yang **sudah** ada di daftar Anda, sampaikan lewat formulir penilaiannya. Laporan ini bukan pengganti
   **Ajukan Penilaian** dan bukan penilaian Ad-Hoc.
 - Penilai eksternal (vendor/freelance) belum bisa memakai fitur ini.
 
@@ -262,10 +268,13 @@ Notifikasi. Aplikasi hanya mencatat: tidak ada penanda terlambat.
 SPV memakai semua menu Pegawai, ditambah menu di bawah ini. HRD yang sedang di **Mode SPV** mendapat
 pengalaman yang sama persis, dengan lingkup pegawai sedivisinya (termasuk dirinya).
 
-SPV juga bisa menulis **Catatan di Luar Pemetaan** di tab Pengajuan pada Daftar Penilaian Saya: catatan tanpa
-nilai kepada HRD tentang rekan yang tidak ada di daftar penilaian SPV. Nama pengirim tidak tersimpan. Catatan
-yang ditulis orang lain tentang anggota tim **tidak** tampil di Laporan Kinerja Tim maupun Monitor; hanya HRD di
-Mode Admin yang membacanya.
+**Laporkan Pelanggaran** (tab Pengajuan pada Daftar Penilaian Saya): SPV bisa melaporkan kepada HRD kejadian yang
+dialami atau diamati langsung dengan rekan yang tidak ada di daftar penilaian SPV. Klik **Tulis Laporan**, lalu isi
+rekan yang dilaporkan, isi laporan (minimal 20 karakter), tanggal kejadian, kategori (budaya kerja yang dilanggar
+atau Lainnya), dan catatan bila perlu. Nama dan waktu kirim pelapor tidak tersimpan; laporan tanpa nilai, tidak
+memengaruhi skor apa pun, dan tidak bisa diubah setelah dikirim. Bisa dikirim selama form penilaian dibuka.
+Laporan yang ditulis orang lain tentang anggota tim **tidak** tampil di Laporan Kinerja Tim maupun Monitor; hanya HRD
+di Mode Admin yang membacanya.
 
 ### 3.1 Input KPI Anggota (bulanan)
 - Daftar berisi anggota tim **dan SPV sendiri**. SPV hanya bisa menulis KPI timnya dan dirinya, bukan KPI tim SPV lain.
@@ -862,13 +871,24 @@ hanya ada untuk periode aktif.
   Perilaku 360°** (ringkasan HRD per aspek) · **Ringkasan Umpan Balik Kualitatif 360°** (per pertanyaan esai) ·
   **Rincian Komentar Murni** (semua nilai dan komentar tanpa nama penilai, per aspek → indikator, tabel
   Rating | Komentar + rerata; esai per pertanyaan; penilaian diri tidak disertakan).
-- **Catatan di Luar Pemetaan** (mulai Q4 2026, hanya di Mode Admin): di Rincian Komentar Murni, kartu tiap aspek
-  bisa memuat blok **"Catatan di Luar Pemetaan · n catatan · tanpa rating · hanya HRD"** setelah semua indikator.
-  Isinya catatan dari pegawai yang tidak memetakan orang ini. Yang tampil hanya isi catatan, tanpa nama,
-  tanggal, hubungan kerja, atau divisi penulis, dan diurutkan menurut abjad (bukan urutan kirim). Aspek tanpa
-  catatan tidak menampilkan blok ini. Catatan tidak memengaruhi angka apa pun, **tidak ikut tercetak** saat Unduh
-  PDF, dan tidak terlihat oleh SPV, Koordinator, Direksi, pemegang akses Review, maupun HRD di Mode SPV. HRD juga
-  melihat catatan tentang dirinya sendiri di laporannya (tetap tanpa nama penulis).
+- **Laporan pelanggaran** dari pegawai **tidak** tampil di Rincian Komentar Murni. Laporan dibaca di halaman
+  tersendiri, **Laporan Pelanggaran** (lihat di bawah).
+
+**Laporan Pelanggaran** (menu Hasil & Tindak Lanjut, mulai Q4 2026; HRD di Mode Admin yang punya akses Review &
+Finalisasi. Direksi juga bisa membuka halaman ini dari Menu Direksi.)
+- Isinya laporan dari pegawai tentang rekan kerja (fitur **Laporkan Pelanggaran** di Daftar Penilaian Saya).
+  **Pelapor anonim**: laporan tidak menyimpan nama maupun waktu kirim pelapor, jadi HRD pun tidak bisa tahu siapa
+  pelapornya.
+- **Periode** dipilih di bagian atas. Kartu ringkas menunjukkan jumlah laporan masuk, jumlah pegawai dilaporkan, dan
+  jumlah laporan berkategori Lainnya.
+- Kiri: daftar **pegawai yang dilaporkan**, yang laporannya terbanyak di atas, dengan kategori laporannya. Kanan:
+  laporan pegawai yang dipilih, **satu kartu per laporan** berisi tanggal kejadian, kategori, isi laporan, dan catatan
+  pelapor (bila ada). Urutannya menurut tanggal kejadian terbaru, bukan urutan kirim.
+- Filter **Divisi**, **Kategori**, dan **cari nama pegawai** hanya menyaring tampilan.
+- Laporan yang masuk sebelum formulir diperbarui tidak punya tanggal kejadian (tampil "—").
+- Laporan tidak memengaruhi angka apa pun dan tidak terlihat oleh SPV, Koordinator, pemegang akses halaman, maupun
+  HRD di Mode SPV. HRD juga melihat laporan tentang dirinya sendiri (tetap tanpa nama pelapor).
+- Untuk diunduh: **Ekspor Dataset → Bahan Laporan per Pegawai**, lembar **Laporan Pelanggaran**.
 - Kedua ringkasan **tersimpan otomatis** (sekitar 5 detik setelah berhenti mengetik dan saat pindah kotak),
   dengan status "belum disimpan / menyimpan… / ✓ tersimpan otomatis". Tidak ada tombol simpan manual. Saat
   Final, ringkasan terkunci.
@@ -1009,7 +1029,7 @@ berperiode. Nama file menyertakan periode. Data ini sensitif — simpan dan bagi
 | **Konfigurasi Periode Lengkap** | 6 lembar: Ringkasan · Bobot Penilai · Bulan KPI · Aspek & Indikator · Pertanyaan Esai · Pemetaan 360° (siapa menilai siapa — hanya untuk HRD) |
 | **Kinerja Lengkap per Periode** | 4 lembar: Rekap (KPI rerata · Skor 360° · potongan telat · Skor Akhir · kategori · 4-Box) · KPI Bulanan · Audit KPI · Potongan Keterlambatan (nilai, otomatis/diubah/dikecualikan, skor sebelum & sesudah, alasan) |
 | **Penilaian 360° Lengkap** | 5 lembar, tanpa nama penilai: Ringkasan per Pegawai (per kelas penilai + nilai 360° & selisih) · Rekap Aspek (skor terbobot per aspek, cocok dengan radar) · Kuantitatif · Kualitatif · Ringkasan Naratif HRD |
-| **Bahan Laporan per Pegawai** | 4 lembar, tanpa nama penilai dan tanpa penilaian diri: Skor (Skor Akhir · KPI · 360° · potongan · skor tiap aspek + kategori) · Komentar Aspek (nilai & komentar per indikator) · Komentar Esai · **Catatan di Luar Pemetaan** (isi catatan per aspek, tanpa nama, hubungan kerja, atau tanggal penulis; hanya ikut bila diekspor dari Mode Admin). Disertai divisi & rentang periode |
+| **Bahan Laporan per Pegawai** | 4 lembar, tanpa nama penilai dan tanpa penilaian diri: Skor (Skor Akhir · KPI · 360° · potongan · skor tiap aspek + kategori) · Komentar Aspek (nilai & komentar per indikator) · Komentar Esai · **Laporan Pelanggaran** (tanggal kejadian, kategori, isi laporan, dan catatan; tanpa nama pelapor, hubungan kerja, atau waktu kirim; hanya ikut bila diekspor dari Mode Admin). Disertai divisi & rentang periode |
 | **Rencana Pengembangan & 1-on-1** | 3 lembar, **bernama**, disaring menurut periode laporan asal rencana: Rencana (per prioritas) · Komentar & Persetujuan (komentar atasan, alasan perbaikan, siapa menyetujui dan kapan) · Sesi & Tinjauan (sesi 1-on-1, tinjauan bulanan HRD, kemajuan per prioritas, tanggapan pegawai) |
 | **Log Aktivitas HRD** | 1 lembar, lintas periode: waktu · pelaku · kategori · aksi · ringkasan · target · detail, terbaru di atas |
 
@@ -1065,15 +1085,21 @@ flowchart TD
   ulang dengan skor berbeda.
 - **Tinjauan Hasil Akhir** — hanya baca: hasil **semua pegawai** (termasuk yang masih draf) dengan umpan balik
   tanpa nama, tanpa Hitung Ulang / Rilis / Finalisasi / ACC / edit ringkasan.
-- **Catatan di Luar Pemetaan** — Direksi bisa menulis catatan tanpa nilai kepada HRD tentang pegawai yang tidak
-  ada di daftar penilaiannya (tab Pengajuan di Daftar Penilaian Saya; nama pengirim tidak tersimpan). Catatan
-  semacam ini **tidak** tampil di Laporan Kinerja Tim maupun Tinjauan Hasil Akhir; hanya HRD di Mode Admin yang
-  membacanya.
+- **Laporkan Pelanggaran** — Direksi bisa melaporkan kepada HRD kejadian yang dialami atau diamati langsung dengan
+  pegawai yang tidak ada di daftar penilaiannya (tab Pengajuan di Daftar Penilaian Saya → **Tulis Laporan**): pilih
+  pegawai, tulis laporan (minimal 20 karakter), isi tanggal kejadian dan kategori (budaya kerja yang dilanggar atau
+  Lainnya), tambahkan catatan bila perlu. Nama dan waktu kirim pelapor tidak tersimpan; laporan tanpa nilai dan
+  tidak memengaruhi skor. Laporan semacam ini **tidak** tampil di Laporan Kinerja Tim maupun Tinjauan Hasil Akhir.
+- **Laporan Pelanggaran** (Menu Direksi) — hanya baca: **semua** laporan pelanggaran yang masuk, per periode,
+  termasuk laporan tentang Direksi sendiri. Tampilannya sama dengan halaman HRD: daftar pegawai yang dilaporkan di
+  kiri, satu kartu per laporan di kanan (tanggal kejadian, kategori, isi laporan, catatan pelapor), dengan filter
+  Divisi, Kategori, dan cari nama. Nama pelapor tidak pernah terlihat, karena memang tidak disimpan. Unduhan Excel
+  laporan ini hanya tersedia untuk HRD.
 - **Rencana Pengembangan** — Direksi adalah **atasan** rencana pengembangan para **SPV** dan HRD/pegawai yang
   memimpin tim: menu **Rencana Pengembangan** → tab **Tim Saya** → **Buka**. Saat status **Menunggu Atasan**, isi
   **Komentar Atasan Langsung** (Konfirmasi Kinerja dan Dukungan yang Diberikan wajib; Konteks Tambahan dan Harapan
-  ke Depan opsional), lalu **Setujui** (lanjut ke HRD) atau **Minta Perbaikan** dengan alasan. Menu **Pantauan
-  Rencana Pengembangan** (Menu Direksi) menampilkan status rencana **semua pegawai**, hanya baca. Direksi juga punya
+  ke Depan opsional), lalu **Setujui** (lanjut ke HRD) atau **Minta Perbaikan** dengan alasan. Direksi hanya melihat
+  rencananya sendiri dan rencana timnya; rencana pegawai lain dipantau HRD. Direksi juga punya
   rencana sendiri di tab **Rencana Saya**: cukup diisi dan disimpan (label "Tersimpan"), tanpa komentar atasan
   maupun persetujuan. Setelah rencana SPV **Disepakati**, Direksi mencatat **Sesi 1-on-1** di halaman rencananya
   (**Catat Sesi 1-on-1**: tanggal, catatan, status umum, kemajuan per prioritas).
@@ -1180,8 +1206,9 @@ flowchart TD
 4. **Siapa menilai siapa** — **hanya HRD**, lewat Pemetaan dan Progress 360. Tidak pernah ke SPV, Koordinator,
    Direksi, atau pegawai. Komentar bernama per penilai tidak ditampilkan di layar laporan mana pun.
 
-**Catatan di Luar Pemetaan** berada di luar empat lapis ini: hanya **HRD di Mode Admin** yang membacanya, di
-tahap laporan apa pun. Penulisnya tidak tersimpan, jadi tidak ada yang bisa melihat siapa penulisnya, termasuk HRD.
+**Laporan pelanggaran** berada di luar empat lapis ini: hanya **HRD di Mode Admin** dan **Direksi** yang membacanya,
+di halaman Laporan Pelanggaran, kapan pun. Pelapornya tidak tersimpan, jadi tidak ada yang bisa melihat siapa pelapornya,
+termasuk HRD.
 
 ---
 

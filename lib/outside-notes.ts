@@ -1,95 +1,104 @@
 import type { createClient } from '@/lib/supabase/server';
 import { fetchAllPaged } from '@/lib/supabase/paginate';
-import type { ReportData } from '@/lib/report';
-import type { ReportDetailRoute } from '@/lib/auth/roles';
+import { canSection, type ActorRow } from '@/lib/auth/roles';
 import { tableMissing } from '@/lib/report-folder';
 
 type SB = Awaited<ReturnType<typeof createClient>>;
 
 /**
- * CATATAN DI LUAR PEMETAAN (migrasi 0054) — sisi BACA.
+ * LAPORKAN PELANGGARAN (tabel `outside_mapping_notes`, migrasi 0054 + 0058) — sisi BACA & aturan bersama.
+ * Di layar dulu bernama "Catatan di Luar Pemetaan"; nama tabel & aturan anonimitas tidak berubah.
  *
- * Opt-in: `loadReport` dan semua loader turunan (SPV/Koordinator/HRD Mode-SPV/Direksi/Tinjauan Hasil Akhir/
- * grant Review/laporan pegawai) TIDAK memuat catatan. Hanya jalur HRD Mode Admin di detail laporan yang
- * memanggil `withOutsideNotes` di SERVER — ReportDoc/RawFeedback komponen klien, jadi data yang tak dimuat
- * tak mungkin bocor ke browser peran lain. Jangan mengandalkan `withoutRaw` untuk fitur ini.
+ * Anonim secara skema: tabel TANPA kolom penulis dan TANPA waktu kirim. `incident_date` = tanggal KEJADIAN
+ * yang ditulis pelapor, bukan waktu kirim. Urutan tampil tak boleh memakai id atau urutan masuk.
  *
- * HRD Mode Admin juga menerima catatan tentang DIRINYA (keputusan pemilik 2026-11-03) — tetap anonim:
- * tabel memang tak menyimpan penulis maupun waktu kirim.
+ * Baca HANYA dua jalur (pembaca juga melihat laporan tentang dirinya sendiri — tetap anonim):
+ *  - halaman "Laporan Pelanggaran" (app/(app)/admin/pelanggaran) → `violationPageAllowed` = HRD Mode Admin
+ *    berbagian Review & Finalisasi, ATAU Direksi (keputusan pemilik 2026-11-11: semua laporan, hanya baca);
+ *  - ekspor Bahan Laporan per Pegawai (lembar 4), cookie `hrd_mode='admin'` (HRD saja).
+ * Sejak 0058 laporan TIDAK lagi ditempel ke rincian komentar laporan (keputusan pemilik 2026-11-10).
  */
 
-/**
- * Satu-satunya jalur yang boleh memuat catatan: detail laporan rute 'hrd' (izin HRD + Mode Admin, lihat
- * reportDetailRoute). SPV, Koordinator, Direksi, grant Review, HRD Mode-SPV, need-admin → tidak.
- */
-export function outsideNotesAllowed(route: ReportDetailRoute): boolean {
-  return route === 'hrd';
-}
-
-/** Batas isi catatan (sama dengan Zod di Server Action & check database). */
+/** Batas isi laporan (sama dengan Zod di Server Action & check database). */
 export const OUTSIDE_NOTE_MIN = 20;
 export const OUTSIDE_NOTE_MAX = 2000;
+/** Batas catatan opsional (check database 0058). */
+export const OUTSIDE_NOTE_EXTRA_MAX = 1000;
+/** Label kategori "Lainnya" (laporan di luar budaya kerja). */
+export const OTHER_CATEGORY_LABEL = 'Lainnya';
 
 /**
- * Urutan tampil = abjad isi (keputusan pemilik 2026-11-03). Bukan urutan kirim (baris fisik Postgres
- * cenderung urut masuk) dan bukan id (acak, tapi tak boleh dipakai mengurutkan).
+ * Halaman Laporan Pelanggaran: HRD berbagian Review & Finalisasi di Mode Admin, atau Direksi (semua laporan, termasuk
+ * tentang dirinya sendiri; hanya baca — keputusan pemilik 2026-11-11). Direksi tak punya mode, jadi cookie diabaikan.
  */
-export function sortOutsideNotes(bodies: string[]): string[] {
-  return [...bodies].sort((a, b) => a.localeCompare(b, 'id', { sensitivity: 'base' }) || (a < b ? -1 : a > b ? 1 : 0));
+export function violationPageAllowed(m: ActorRow | null | undefined, hrdMode: 'admin' | 'spv'): boolean {
+  if (m?.role === 'direksi') return true;
+  return canSection(m, 'laporan') && hrdMode === 'admin';
 }
 
-export type OutsideNoteRow = { period_id: string; target_id: string; aspect_id: string; body: string };
+export type ViolationRow = {
+  period_id: string;
+  target_id: string;
+  aspect_id: string | null;
+  is_other: boolean;
+  incident_date: string | null; // null = laporan sebelum 0058
+  body: string;
+  note: string | null;
+};
 
 /**
- * Semua catatan (opsional satu periode) untuk ekspor Bahan Laporan per Pegawai — HANYA isi + periode + target +
- * aspek (tabel memang tak menyimpan penulis/waktu). Dipanggil ekspor setelah gerbang HRD Mode Admin.
- * Tabel belum ada (migrasi 0054 belum dijalankan) → kosong; gangguan baca lain dilempar (ekspor gagal utuh).
+ * Urutan tampil: tanggal kejadian terbaru dulu (tanpa tanggal paling bawah), lalu abjad isi.
+ * Bukan id (acak, tak boleh dipakai mengurutkan) dan bukan urutan kirim.
  */
-export async function outsideNotesForExport(admin: SB, periodId?: string | null): Promise<OutsideNoteRow[]> {
+export function sortViolations<T extends Pick<ViolationRow, 'incident_date' | 'body'>>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => {
+    const da = a.incident_date ?? '', db = b.incident_date ?? '';
+    if (da !== db) return da < db ? 1 : -1;
+    return a.body.localeCompare(b.body, 'id', { sensitivity: 'base' }) || (a.body < b.body ? -1 : a.body > b.body ? 1 : 0);
+  });
+}
+
+/** Kolom baru 0058 belum ada di database ini. */
+const columnMissing = (msg: string) => /column|could not find the '.*' column|42703|PGRST204/i.test(msg);
+
+/**
+ * Semua laporan (opsional satu periode). Hanya isian pelapor + periode + pegawai yang dilaporkan — tabel memang
+ * tak menyimpan penulis/waktu kirim. Dipanggil SETELAH gerbang HRD Mode Admin, dengan klien service_role.
+ * Tabel belum ada (0054) → kosong. Kolom 0058 belum ada → baca kolom lama (tanpa tanggal/Lainnya/catatan).
+ * Gangguan baca lain dilempar (halaman/ekspor gagal utuh, bukan data terpotong diam-diam).
+ */
+export async function loadViolationReports(admin: SB, periodId?: string | null): Promise<ViolationRow[]> {
+  // id hanya untuk paginasi stabil; tampilan diurutkan ulang (sortViolations).
+  const readFull = () => fetchAllPaged<ViolationRow>((from, to) => {
+    let q = admin.from('outside_mapping_notes').select('period_id, target_id, aspect_id, is_other, incident_date, body, note');
+    if (periodId) q = q.eq('period_id', periodId);
+    return q.order('id').range(from, to);
+  });
+  const readLegacy = () => fetchAllPaged<Pick<ViolationRow, 'period_id' | 'target_id' | 'aspect_id' | 'body'>>((from, to) => {
+    let q = admin.from('outside_mapping_notes').select('period_id, target_id, aspect_id, body');
+    if (periodId) q = q.eq('period_id', periodId);
+    return q.order('id').range(from, to);
+  });
+  let raw: Partial<ViolationRow>[];
   try {
-    return await fetchAllPaged<OutsideNoteRow>((from, to) => {
-      let q = admin.from('outside_mapping_notes').select('period_id, target_id, aspect_id, body');
-      if (periodId) q = q.eq('period_id', periodId);
-      return q.order('id').range(from, to); // id hanya untuk paginasi stabil; ekspor mengurutkan ulang
-    });
+    raw = await readFull();
   } catch (e) {
-    if (tableMissing({ message: e instanceof Error ? e.message : '' })) return [];
-    throw e;
+    const msg = e instanceof Error ? e.message : '';
+    if (columnMissing(msg) && !/table/i.test(msg)) {
+      raw = await readLegacy();
+    } else if (tableMissing({ message: msg })) {
+      return [];
+    } else {
+      throw e;
+    }
   }
-}
-
-/**
- * Tempel catatan ke `byAspect[i].outsideNotes` (hanya aspek yang punya catatan). Dipanggil dengan klien
- * service_role setelah pemanggil lolos gerbang HRD Mode Admin. Tabel belum ada (migrasi belum dijalankan)
- * atau gagal baca → laporan dikembalikan apa adanya (tanpa catatan), tak menggagalkan halaman.
- */
-export async function withOutsideNotes(
-  admin: SB, data: ReportData, employeeId: string, periodId: string,
-): Promise<ReportData> {
-  let rows: { aspect_id: string; body: string }[];
-  try {
-    rows = await fetchAllPaged((from, to) => admin.from('outside_mapping_notes')
-      .select('aspect_id, body').eq('period_id', periodId).eq('target_id', employeeId)
-      .order('id').range(from, to)); // urutan id hanya untuk paginasi stabil; tampilan diurutkan ulang
-  } catch {
-    return data;
-  }
-  if (!rows.length) return data;
-
-  const { data: aspects } = await admin.from('culture_aspects').select('id, name').eq('period_id', periodId);
-  const nameById = new Map((aspects ?? []).map((a) => [a.id, a.name]));
-  const byName = new Map<string, string[]>();
-  for (const r of rows) {
-    const name = nameById.get(r.aspect_id);
-    const body = r.body?.trim();
-    if (!name || !body) continue;
-    byName.set(name, [...(byName.get(name) ?? []), body]);
-  }
-  return {
-    ...data,
-    byAspect: data.byAspect.map((a) => {
-      const notes = byName.get(a.name);
-      return notes?.length ? { ...a, outsideNotes: sortOutsideNotes(notes) } : a;
-    }),
-  };
+  return raw.map((r) => ({
+    period_id: String(r.period_id),
+    target_id: String(r.target_id),
+    aspect_id: r.aspect_id ?? null,
+    is_other: r.is_other === true,
+    incident_date: r.incident_date ?? null,
+    body: String(r.body ?? '').trim(),
+    note: typeof r.note === 'string' && r.note.trim() ? r.note.trim() : null,
+  }));
 }

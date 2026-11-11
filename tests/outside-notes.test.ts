@@ -6,49 +6,46 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { makeClient } from './helpers/mock-supabase';
 
 /**
- * Catatan di Luar Pemetaan (migrasi 0054) — sisi BACA & isolasi.
+ * Laporkan Pelanggaran (tabel catatan 0054 + 0058; dulu Catatan di Luar Pemetaan) — sisi BACA & isolasi.
  *
  * Yang dikunci:
- *  1. Hanya rute detail laporan 'hrd' (izin HRD + Mode Admin) yang boleh memuat catatan.
- *  2. Semua loader non-HRD-Admin (SPV, Koordinator, HRD Mode-SPV, Direksi, Tinjauan Hasil Akhir, grant Review)
- *     tak pernah menyentuh tabel catatan & tak membawa `outsideNotes` — fitur ini OPT-IN, bukan mengandalkan withoutRaw.
- *  3. HRD Mode Admin menerima catatan tentang dirinya sendiri (keputusan pemilik 2026-11-03), tetap tanpa identitas.
- *  4. Tabel catatan hanya disentuh dua file → skor/progress/kepatuhan/potongan telat/ekspor/final_reports tak mungkin
- *     terpengaruh, dengan atau tanpa catatan.
- *  5. Blok tampilan muncul/tersembunyi sesuai data.
+ *  1. Halaman Laporan Pelanggaran hanya untuk HRD berbagian Review & Finalisasi di Mode Admin, atau Direksi.
+ *  2. Semua loader laporan (SPV, Koordinator, HRD Mode-SPV, Direksi, Tinjauan Hasil Akhir, grant Review, pegawai)
+ *     tak pernah menyentuh tabel laporan — sejak 2026-11-10 laporan juga TIDAK lagi tampil di rincian komentar HRD.
+ *  3. Pembacaan: isian pelapor saja (tanpa penulis/waktu kirim), cadangan bila kolom 0058 belum ada, urutan tampil
+ *     = tanggal kejadian terbaru lalu abjad isi (bukan urutan masuk).
+ *  4. Tabel hanya disentuh dua file; pembacanya hanya halaman Laporan Pelanggaran & ekspor Bahan Laporan.
  */
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn(), createAdminClient: vi.fn() }));
 
 import { createAdminClient } from '@/lib/supabase/server';
-import { reportDetailRoute, type ActorRow } from '@/lib/auth/roles';
-import { outsideNotesAllowed, withOutsideNotes, sortOutsideNotes } from '@/lib/outside-notes';
+import type { ActorRow } from '@/lib/auth/roles';
+import { violationPageAllowed, loadViolationReports, sortViolations } from '@/lib/outside-notes';
 import {
   loadTeamReportForSpv, loadTeamReportForCoordinator, loadTeamReportForHrdSpv, loadSpvReportForDireksi,
-  loadReportForDireksiReview, loadReport, reportForGrantViewer, withoutNamedFeedback, type ReportData,
+  loadReportForDireksiReview, loadReport, reportForGrantViewer, type ReportData,
 } from '@/lib/report';
 import { RawFeedback } from '@/app/(app)/laporan/raw-feedback';
 
 const mockAdmin = vi.mocked(createAdminClient);
 beforeEach(() => { vi.clearAllMocks(); });
 
-// ── 1. Gerbang rute ────────────────────────────────────────────────────────────────────────────
-describe('outsideNotesAllowed — hanya HRD di Mode Admin', () => {
-  const hrd: ActorRow = { role: 'hrd' };
-  const empHrd: ActorRow = { role: 'employee', is_hrd_admin: true };
-  const cases: [string, ActorRow, 'admin' | 'spv', boolean, boolean][] = [
-    ['HRD Mode Admin', hrd, 'admin', false, true],
-    ['pegawai ber-izin HRD Mode Admin', empHrd, 'admin', false, true],
-    ['HRD Mode-SPV', hrd, 'spv', false, false],
-    ['pegawai ber-izin HRD mode posisi-asli', empHrd, 'spv', false, false],
-    ['SPV', { role: 'spv' }, 'spv', false, false],
-    ['Koordinator', { role: 'employee', is_coordinator: true }, 'spv', false, false],
-    ['Direksi', { role: 'direksi' }, 'spv', false, false],
-    ['pemegang grant Review', { role: 'employee' }, 'spv', true, false],
-    ['HRD tanpa bagian Laporan + grant Review', { role: 'hrd', hrd_sections: ['pegawai'] }, 'admin', true, false],
-    ['pegawai biasa', { role: 'employee' }, 'spv', false, false],
+// ── 1. Gerbang halaman ─────────────────────────────────────────────────────────────────────────
+describe('violationPageAllowed — HRD (bagian Review & Finalisasi) di Mode Admin, atau Direksi', () => {
+  const cases: [string, ActorRow, 'admin' | 'spv', boolean][] = [
+    ['HRD Mode Admin', { role: 'hrd' }, 'admin', true],
+    ['pegawai ber-izin HRD Mode Admin', { role: 'employee', is_hrd_admin: true }, 'admin', true],
+    ['HRD Mode-SPV', { role: 'hrd' }, 'spv', false],
+    ['HRD tanpa bagian Laporan', { role: 'hrd', hrd_sections: ['pegawai'] }, 'admin', false],
+    ['HRD dengan bagian Laporan saja', { role: 'hrd', hrd_sections: ['laporan'] }, 'admin', true],
+    ['SPV', { role: 'spv' }, 'admin', false],
+    ['Koordinator', { role: 'employee', is_coordinator: true }, 'admin', false],
+    ['Direksi', { role: 'direksi' }, 'admin', true],
+    ['Direksi (cookie mode apa pun)', { role: 'direksi' }, 'spv', true],
+    ['pegawai biasa', { role: 'employee' }, 'admin', false],
   ];
-  it.each(cases)('%s', (_l, actor, mode, grant, expected) => {
-    expect(outsideNotesAllowed(reportDetailRoute(actor, mode, grant))).toBe(expected);
+  it.each(cases)('%s', (_l, actor, mode, expected) => {
+    expect(violationPageAllowed(actor, mode)).toBe(expected);
   });
 });
 
@@ -106,8 +103,8 @@ const NOTES = [
   { aspect_id: 'a1', body: 'Bersikap adil saat membagi lembur tim.' },
 ];
 
-// ── 2. Loader non-HRD-Admin ────────────────────────────────────────────────────────────────────
-describe('loader non-HRD-Admin tak pernah memuat catatan', () => {
+// ── 2. Loader laporan tak pernah memuat laporan pelanggaran ────────────────────────────────────
+describe('loader laporan tak pernah memuat laporan pelanggaran', () => {
   const run: [string, () => Promise<ReportData | null>][] = [
     ['SPV (loadTeamReportForSpv)', () => loadTeamReportForSpv(ACTOR, EMP, PERIOD)],
     ['Koordinator (loadTeamReportForCoordinator)', () => loadTeamReportForCoordinator(ACTOR, EMP, PERIOD)],
@@ -117,7 +114,7 @@ describe('loader non-HRD-Admin tak pernah memuat catatan', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ['grant Review (loadReport → reportForGrantViewer)', async () => { const d = await loadReport(createAdminClient() as any, EMP, PERIOD); return d && reportForGrantViewer(d, { isSelf: false, isDireksi: false }); }],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ['laporan pegawai sendiri (loadReport)', () => loadReport(createAdminClient() as any, EMP, PERIOD)],
+    ['laporan HRD / pegawai (loadReport)', () => loadReport(createAdminClient() as any, EMP, PERIOD)],
   ];
   it.each(run)('%s', async (_l, fn) => {
     const fake = fakeAdmin(NOTES);
@@ -126,63 +123,60 @@ describe('loader non-HRD-Admin tak pernah memuat catatan', () => {
     const data = await fn();
     expect(data).not.toBeNull(); // loader benar-benar berjalan sampai akhir (bukan lolos karena ditolak)
     expect(fake.calls.some((c) => c.table === 'outside_mapping_notes')).toBe(false);
-    expect(data!.byAspect.every((a) => a.outsideNotes === undefined)).toBe(true);
     expect(JSON.stringify(data)).not.toContain('shift malam');
   });
 });
 
-// ── 3. Jalur HRD Mode Admin ────────────────────────────────────────────────────────────────────
-describe('withOutsideNotes — jalur HRD Mode Admin', () => {
-  async function hrdView(notes = NOTES, employeeId = EMP) {
-    const fake = fakeAdmin(notes);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    mockAdmin.mockReturnValue(fake as any);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const base = withoutNamedFeedback((await loadReport(fake as any, employeeId, PERIOD))!);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return { data: await withOutsideNotes(fake as any, base, employeeId, PERIOD.id), fake };
-  }
+// ── 3. Pembacaan untuk halaman & ekspor ───────────────────────────────────────────────────────
+describe('loadViolationReports', () => {
+  const ROW = {
+    period_id: 'p4', target_id: EMP, aspect_id: null, is_other: true,
+    incident_date: '2026-10-20', body: '  Isi laporan yang cukup panjang.  ', note: '   ',
+  };
 
-  it('menempel catatan ke aspeknya, urut abjad isi (bukan urutan kirim), aspek tanpa catatan tak berubah', async () => {
-    const { data, fake } = await hrdView();
-    const integritas = data.byAspect.find((a) => a.name === 'Integritas')!;
-    expect(integritas.outsideNotes).toEqual([
-      'Bersikap adil saat membagi lembur tim.',
-      'Sering membantu shift malam tanpa diminta.',
-    ]);
-    expect(data.byAspect.find((a) => a.name === 'Kolaborasi')!.outsideNotes).toBeUndefined();
-    const q = fake.calls.find((c) => c.table === 'outside_mapping_notes')!;
-    expect(q.filters).toEqual(expect.arrayContaining([['eq', 'period_id', 'p4'], ['eq', 'target_id', EMP]]));
+  it('isian pelapor saja, di-trim; catatan kosong → null; filter periode', async () => {
+    const c = makeClient({ tables: { outside_mapping_notes: [{ data: [ROW] }] } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = await loadViolationReports(c as any, 'p4');
+    expect(rows).toEqual([{ ...ROW, body: 'Isi laporan yang cukup panjang.', note: null }]);
+    expect(c.calls[0].filters).toEqual(expect.arrayContaining([['eq', 'period_id', 'p4']]));
   });
 
-  it('HRD membuka laporannya SENDIRI → catatan tentang dirinya tetap tampil (anonim)', async () => {
-    const { data } = await hrdView(NOTES, ACTOR);
-    expect(data.byAspect.find((a) => a.name === 'Integritas')!.outsideNotes).toHaveLength(2);
-  });
-
-  it('isi saja — tak ada nama/tanggal/relasi/divisi penulis di data', async () => {
-    const { data } = await hrdView();
-    const notes = data.byAspect.flatMap((a) => a.outsideNotes ?? []);
-    expect(notes.every((n) => typeof n === 'string')).toBe(true);
-    expect(data.assessors).toEqual([]); // L3 tetap dibuang
-  });
-
-  it('tabel belum ada / gagal baca → laporan dikembalikan apa adanya', async () => {
-    const c = makeClient({ tables: { outside_mapping_notes: [{ error: { code: 'PGRST205', message: 'Could not find the table' } }] } });
-    const base = { byAspect: [{ name: 'Integritas', indicators: [] }] } as unknown as ReportData;
+  it('kolom 0058 belum ada → baca kolom lama (tanpa tanggal/Lainnya/catatan)', async () => {
+    const c = makeClient({ tables: { outside_mapping_notes: [
+      { error: { code: '42703', message: 'column outside_mapping_notes.is_other does not exist' } },
+      { data: [{ period_id: 'p4', target_id: EMP, aspect_id: 'a1', body: 'Laporan lama sebelum pembaruan.' }] },
+    ] } });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(await withOutsideNotes(c as any, base, EMP, 'p4')).toBe(base);
+    const rows = await loadViolationReports(c as any, 'p4');
+    expect(rows).toEqual([{ period_id: 'p4', target_id: EMP, aspect_id: 'a1', is_other: false, incident_date: null, body: 'Laporan lama sebelum pembaruan.', note: null }]);
   });
 
-  it('sortOutsideNotes tak bergantung urutan masuk', () => {
-    const a = ['Charlie datang tepat waktu.', 'alpha membantu.', 'Bravo jujur.'];
-    expect(sortOutsideNotes(a)).toEqual(sortOutsideNotes([...a].reverse()));
-    expect(sortOutsideNotes(a)[0]).toBe('alpha membantu.');
+  it('tabel belum ada (0054) → kosong; gangguan lain dilempar', async () => {
+    const missing = makeClient({ tables: { outside_mapping_notes: [{ error: { code: 'PGRST205', message: 'Could not find the table' } }] } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await loadViolationReports(missing as any)).toEqual([]);
+    const broken = makeClient({ tables: { outside_mapping_notes: [{ error: { code: '57014', message: 'canceling statement due to statement timeout' } }] } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await expect(loadViolationReports(broken as any)).rejects.toThrow();
   });
 });
 
-// ── 4. Isolasi: tabel hanya disentuh dua file ─────────────────────────────────────────────────
-describe('tabel catatan terisolasi dari skor, progress, kepatuhan, potongan telat, ekspor, final_reports', () => {
+describe('sortViolations — tanggal kejadian terbaru, lalu abjad isi; tak bergantung urutan masuk', () => {
+  const xs = [
+    { incident_date: null, body: 'Tanpa tanggal.' },
+    { incident_date: '2026-10-01', body: 'Bravo.' },
+    { incident_date: '2026-11-04', body: 'Terbaru.' },
+    { incident_date: '2026-10-01', body: 'alpha.' },
+  ];
+  it('urutan', () => {
+    expect(sortViolations(xs).map((x) => x.body)).toEqual(['Terbaru.', 'alpha.', 'Bravo.', 'Tanpa tanggal.']);
+    expect(sortViolations([...xs].reverse())).toEqual(sortViolations(xs));
+  });
+});
+
+// ── 4. Isolasi ────────────────────────────────────────────────────────────────────────────────
+describe('tabel laporan terisolasi dari skor, progress, kepatuhan, potongan telat, laporan pegawai, final_reports', () => {
   const ROOT = join(__dirname, '..');
   function walk(dir: string, out: string[] = []): string[] {
     for (const f of readdirSync(dir)) {
@@ -193,54 +187,45 @@ describe('tabel catatan terisolasi dari skor, progress, kepatuhan, potongan tela
     }
     return out;
   }
+  const src = () => [...walk(join(ROOT, 'app')), ...walk(join(ROOT, 'lib'))];
   it('hanya outside-note-actions.ts (tulis) & lib/outside-notes.ts (baca) yang menyebut tabelnya', () => {
-    const files = [...walk(join(ROOT, 'app')), ...walk(join(ROOT, 'lib'))]
+    const files = src()
       .filter((p) => readFileSync(p, 'utf8').includes('outside_mapping_notes'))
       .map((p) => relative(ROOT, p).replace(/\\/g, '/'))
       .sort();
     expect(files).toEqual(['app/(app)/penilaian/outside-note-actions.ts', 'lib/outside-notes.ts']);
   });
-  it('withOutsideNotes hanya dipanggil di detail laporan (jalur HRD Mode Admin)', () => {
-    const callers = [...walk(join(ROOT, 'app')), ...walk(join(ROOT, 'lib'))]
-      .filter((p) => !p.endsWith('outside-notes.ts') && readFileSync(p, 'utf8').includes('withOutsideNotes('))
-      .map((p) => relative(ROOT, p).replace(/\\/g, '/'));
-    expect(callers).toEqual(['app/(app)/laporan/[employeeId]/page.tsx']);
+  it('loadViolationReports hanya dipanggil halaman Laporan Pelanggaran & ekspor Bahan Laporan', () => {
+    const callers = src()
+      .filter((p) => !p.endsWith('outside-notes.ts') && readFileSync(p, 'utf8').includes('loadViolationReports('))
+      .map((p) => relative(ROOT, p).replace(/\\/g, '/'))
+      .sort();
+    expect(callers).toEqual(['app/(app)/admin/ekspor/actions.ts', 'app/(app)/admin/pelanggaran/page.tsx']);
   });
-  it('outsideNotesForExport hanya dipanggil ekspor Bahan Laporan (gerbang Mode Admin di sana)', () => {
-    const callers = [...walk(join(ROOT, 'app')), ...walk(join(ROOT, 'lib'))]
-      .filter((p) => !p.endsWith('outside-notes.ts') && readFileSync(p, 'utf8').includes('outsideNotesForExport('))
-      .map((p) => relative(ROOT, p).replace(/\\/g, '/'));
-    expect(callers).toEqual(['app/(app)/admin/ekspor/actions.ts']);
+  it('halaman Laporan Pelanggaran memeriksa gerbang sebelum membaca', () => {
+    const page = readFileSync(join(ROOT, 'app/(app)/admin/pelanggaran/page.tsx'), 'utf8');
+    expect(page.indexOf('violationPageAllowed(')).toBeGreaterThan(-1);
+    expect(page.indexOf('violationPageAllowed(')).toBeLessThan(page.indexOf('loadViolationReports('));
+  });
+  it('detail laporan pegawai tak lagi memuat laporan pelanggaran', () => {
+    const detail = readFileSync(join(ROOT, 'app/(app)/laporan/[employeeId]/page.tsx'), 'utf8');
+    expect(detail).not.toMatch(/outside-notes|withOutsideNotes/);
   });
 });
 
-// ── 5. Tampilan RawFeedback ───────────────────────────────────────────────────────────────────
-describe('RawFeedback — blok Catatan di Luar Pemetaan', () => {
+// ── 5. Rincian komentar laporan ───────────────────────────────────────────────────────────────
+describe('RawFeedback tanpa blok laporan pelanggaran', () => {
   const ind = { num: 1, text: 'Jujur', ratings: [4], entries: [{ rating: 4, comment: 'Konsisten jujur di lapangan.' }] };
   const html = (byAspect: ReportData['byAspect'], essays: ReportData['essays'] = []) =>
     renderToStaticMarkup(createElement(RawFeedback, { byAspect, essays }));
 
-  it('aspek dengan catatan → blok tampil setelah indikator, dengan label jumlah & tanpa ikut dicetak', () => {
-    const out = html([{ name: 'Integritas', indicators: [ind], outsideNotes: ['Catatan pertama yang cukup panjang.'] }]);
-    expect(out).toContain('Catatan di Luar Pemetaan');
-    expect(out).toContain('catatan · tanpa rating · hanya HRD');
-    expect(out).toContain('no-print');
-    expect(out.indexOf('Pertanyaan #1')).toBeLessThan(out.indexOf('Catatan di Luar Pemetaan'));
-  });
-
-  it('aspek tanpa catatan → blok tidak tampil', () => {
+  it('aspek berindikator tampil tanpa blok catatan/laporan', () => {
     const out = html([{ name: 'Integritas', indicators: [ind] }]);
-    expect(out).not.toContain('Catatan di Luar Pemetaan');
+    expect(out).toContain('Konsisten jujur di lapangan.');
+    expect(out).not.toMatch(/Catatan di Luar Pemetaan|Laporan Pelanggaran/);
   });
 
-  it('aspek yang isinya HANYA catatan tetap tampil & "Belum ada umpan balik" tidak muncul', () => {
-    const out = html([{ name: 'Kolaborasi', indicators: [], outsideNotes: ['Satu-satunya catatan untuk aspek ini.'] }]);
-    expect(out).toContain('Kolaborasi');
-    expect(out).toContain('Satu-satunya catatan');
-    expect(out).not.toContain('Belum ada umpan balik');
-  });
-
-  it('tanpa indikator, esai, maupun catatan → "Belum ada umpan balik"', () => {
+  it('tanpa indikator maupun esai → "Belum ada umpan balik"', () => {
     expect(html([{ name: 'Kolaborasi', indicators: [] }])).toContain('Belum ada umpan balik');
   });
 });

@@ -460,7 +460,7 @@ async function main() {
         check('Isi catatan < 20 karakter DITOLAK database [0054]', !!error); }
     }
 
-    console.log('\n0055 — Rencana Pengembangan (baca: pemilik/HRD/Direksi; tulis hanya server):');
+    console.log('\n0055/0059 — Rencana Pengembangan (baca: pemilik/HRD/Direksi atas timnya; tulis hanya server):');
     {
       const { data: dp, error: dpErr } = await admin.from('development_plans')
         .insert({ employee_id: id.EMP, source_period_id: aid.periodId }).select('id').single();
@@ -481,7 +481,23 @@ async function main() {
         const spv = await seen('SPV');
         check('SPV BACA rencana anggota lewat API DITOLAK (atasan baca lewat server) [0055]', spv.plan === 0);
         check('HRD BACA rencana DIIZINKAN', (await seen('HRD')).plan === 1);
-        check('Direksi BACA rencana DIIZINKAN', (await seen('DIR')).plan === 1);
+        check('Direksi BACA rencana pegawai biasa (bukan timnya) DITOLAK [0059]', (await seen('DIR')).plan === 0);
+        {
+          // Rencana SPV = tim Direksi → boleh dibaca Direksi; SPV lain (SP2) tetap tidak.
+          const { data: sp, error: spErr } = await admin.from('development_plans')
+            .insert({ employee_id: id.SPV, source_period_id: aid.periodId }).select('id').single();
+          if (sp) {
+            const d = await loginAs(FIX.DIR.email);
+            const { data } = await d.from('development_plans').select('id').eq('id', sp.id);
+            await d.auth.signOut();
+            check('Direksi BACA rencana SPV (timnya) DIIZINKAN [0059]', (data?.length ?? 0) === 1);
+            const o = await loginAs(FIX.SP2.email);
+            const { data: o2 } = await o.from('development_plans').select('id').eq('id', sp.id);
+            await o.auth.signOut();
+            check('SPV lain BACA rencana SPV DITOLAK [0059]', (o2?.length ?? 0) === 0);
+            await admin.from('development_plans').delete().eq('id', sp.id);
+          } else check('Server MEMBUAT rencana SPV (kontrol positif) [0059]', false, spErr?.message ?? '');
+        }
         const c = await loginAs(FIX.EMP.email);
         { const { data, error } = await c.from('development_plans').update({ status: 'agreed' }).eq('id', dp.id).select('id');
           check('Pemilik MENGUBAH status rencana lewat API DITOLAK [0055]', !!error || (data?.length ?? 0) === 0); }

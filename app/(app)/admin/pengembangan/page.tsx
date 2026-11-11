@@ -30,7 +30,8 @@ const STATUS_CARD: Record<DevPlanStatus | 'none', { icon: LucideIcon; tone: Stat
 
 /**
  * Pantauan Rencana Pengembangan (migrasi 0055). HRD Mode Admin berbagian "Rencana Pengembangan" (+ atur batas &
- * tutup/buka rencana per periode laporan) dan Direksi (hanya baca). Satu baris per pegawai yang laporannya Final
+ * tutup/buka rencana per periode laporan). Direksi tidak memakai halaman ini (pemilik 2026-11-11) — rencana sendiri &
+ * timnya ada di /pengembangan. Satu baris per pegawai yang laporannya Final
  * di periode terpilih: atasan, status, jumlah prioritas, terakhir diperbarui. Keterlambatan tidak dicatat.
  */
 export default async function PantauanRencanaPage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
@@ -42,8 +43,8 @@ export default async function PantauanRencanaPage({ searchParams }: { searchPara
   const jar = await cookies();
   const mode: HrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   const manage = canHrdManage(me ? { id: user.id, ...me } : null, mode);
-  if (!manage && me?.role !== 'direksi') {
-    return <Shell><div className={CARD}><p className="text-[13px] text-ink-soft">Halaman ini untuk HRD (Mode Admin) dan Direksi.</p></div></Shell>;
+  if (!manage) {
+    return <Shell><div className={CARD}><p className="text-[13px] text-ink-soft">Halaman ini untuk HRD (Mode Admin).</p></div></Shell>;
   }
   const admin = createAdminClient() as unknown as SB;
   if ((await loadPlan(admin, user.id, '00000000-0000-0000-0000-000000000000')).missing) {

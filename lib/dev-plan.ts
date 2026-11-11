@@ -79,11 +79,13 @@ export function canActAsSupervisor(info: SupervisorInfo, actor: PlanActor | null
   }
 }
 
-/** Boleh MELIHAT rencana: pemilik, atasan, SPV-pengamat, HRD (Mode Admin), Direksi. */
+/**
+ * Boleh MELIHAT rencana: pemilik, atasan, SPV-pengamat, HRD (Mode Admin). Direksi hanya rencananya sendiri & rencana
+ * yang ia atasi (SPV/pemimpin tim) — tanpa pantauan semua pegawai (keputusan pemilik 2026-11-11).
+ */
 export function canViewPlan(info: SupervisorInfo, actor: PlanActor | null | undefined, employeeId: string, mode: HrdMode): boolean {
   if (!actor) return false;
   if (actor.id === employeeId) return true;
-  if (actor.role === 'direksi') return true;
   if (canAdmin(actor) && mode === 'admin') return true;
   return canActAsSupervisor(info, actor, employeeId, mode) || info.viewerIds.includes(actor.id);
 }

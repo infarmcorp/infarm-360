@@ -17,6 +17,8 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 ### 2026-11-11 — Pantauan Rencana Pengembangan tidak lagi untuk Direksi (di `dev`, belum dirilis)
 - Keputusan pemilik: Direksi cukup memakai menu Rencana Pengembangan (rencana sendiri dan rencana timnya). Menu
   Pantauan dihapus dari Menu Direksi, dan Direksi tidak bisa lagi membuka rencana pegawai di luar timnya.
+- Aturan yang sama dipasang juga di database (perubahan database 0059), supaya batasnya tidak hanya ada di tampilan:
+  akun Direksi hanya bisa membaca rencana miliknya sendiri dan rencana SPV/pemimpin tim.
 
 ### 2026-11-10 — "Belum terbaca" kini hanya label tren (di `dev`, belum dirilis)
 - Dulu pegawai yang KPI-nya baru terisi 1 dari 3 bulan kuartal **dikeluarkan** dari rata-rata, sebaran, peringkat,

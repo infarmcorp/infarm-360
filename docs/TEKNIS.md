@@ -10,7 +10,7 @@ Status & pekerjaan terbuka di [RENCANA.md](RENCANA.md). Riwayat di [CHANGELOG.md
 3. [Aktivasi fitur dorman & Mode Maintenance](#3-aktivasi-fitur-dorman--mode-maintenance)
 4. [Rumus skor & klasifikasi](#4-rumus-skor--klasifikasi)
 5. [Manajemen Akses — model & penegakan](#5-manajemen-akses--model--penegakan)
-6. [Daftar migrasi 0001–0058](#6-daftar-migrasi-00010058)
+6. [Daftar migrasi 0001–0059](#6-daftar-migrasi-00010059)
 7. [Pengujian](#7-pengujian)
 8. [Backup & restore](#8-backup--restore)
 9. [PDF panduan in-app](#9-pdf-panduan-in-app)
@@ -437,10 +437,11 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
   sendiri dibuka hanya-baca di `/pengembangan/[id]`. `setPlanWindow` (`canHrdManage` = bagian
   `pengembangan` + Mode Admin). Ganti status bersyarat status lama. Semua tercatat di Log Aktivitas (kategori
   `pengembangan`, `logAuditAsService`).
-- **Baca**: RLS `dp_read`/`dpi_read` = pemilik, `is_hrd()`, `is_direksi()`; atasan & SPV-pengamat via service_role
-  setelah `canViewPlan`. Halaman: `/pengembangan` (Rencana Saya / Tim Saya), `/pengembangan/[employeeId]`,
-  `/admin/pengembangan` (pantauan HRD saja; Direksi dicabut 2026-11-11 — `canViewPlan` Direksi = rencana sendiri + yang
-  ia atasi; RLS `is_direksi()` belum dicabut, tak dipakai halaman). Tugas & Notifikasi: `devPlanTodos` (`lib/todos/compute.ts`).
+- **Baca**: RLS `dp_read`/`dpi_read`/`dps_read` = pemilik, `is_hrd()`, `dev_plan_direksi_reads(owner)` (0059: Direksi
+  hanya rencana SPV / pemimpin tim `spv_team_members`, bukan Direksi — sama dengan `resolveSupervisor` kind `direksi`);
+  atasan & SPV-pengamat via service_role setelah `canViewPlan`. Halaman: `/pengembangan` (Rencana Saya / Tim Saya),
+  `/pengembangan/[employeeId]`, `/admin/pengembangan` (pantauan HRD saja; Direksi dicabut 2026-11-11 — `canViewPlan`
+  Direksi = rencana sendiri + yang ia atasi). Aturan baca Direksi di app & RLS wajib sinkron. Tugas & Notifikasi: `devPlanTodos` (`lib/todos/compute.ts`).
 - **Tahap 2 (0056) — catatan sesi** `development_plan_sessions` (`kind` `one_on_one` | `hrd_monthly`, tanggal, catatan,
   `overall_status`, `item_progress` jsonb divalidasi Zod, `employee_note`). Hanya untuk rencana `agreed` & bukan Direksi
   (`sessionsOpen`), selama periode terbuka. 1-on-1 dicatat atasan (`canRecordSession` = `canActAsSupervisor`, termasuk
@@ -457,7 +458,7 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
 
 ---
 
-## 6. Daftar migrasi 0001–0058
+## 6. Daftar migrasi 0001–0059
 
 Status penerapan per DB → `scripts/check-migrations.sql`.
 
@@ -519,6 +520,7 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0056 | Rencana Pengembangan Tahap 2: tabel `development_plan_sessions` (sesi 1-on-1 & tinjauan bulanan HRD, kemajuan per prioritas, tanggapan pegawai); RLS baca mengikuti rencana, tulis hanya service_role. Rincian §5.5. Tanpa tabel → panel sesi tak tampil |
 | 0057 | Pengaman Rencana Pengembangan: trigger `trg_periods_guard_dev_plan_cols` (kolom `dev_plan_*` hanya diubah server — tutup celah `periods_write`), trigger `trg_dev_plan_items_guard` (prioritas hanya berubah saat `draft`/`revision`, Direksi bebas; berlaku juga untuk service_role), fungsi `dev_plan_replace_items` (ganti prioritas atomik, kunci baris rencana; service_role; kode punya cadangan `rpcMissing`) |
 | 0058 | Laporkan Pelanggaran (perluasan 0054): kolom `incident_date` (tanggal kejadian, wajib untuk baris baru lewat check `NOT VALID`), `is_other` (kategori Lainnya → `aspect_id` boleh kosong, check tepat salah satu), `note` (≤ 1000); trigger aspek dilewati bila Lainnya. Tanpa kolom penulis/waktu kirim. Tanpa migrasi: kirim laporan "sedang diperbarui", halaman HRD membaca kolom lama. Rincian §5.4 |
+| 0059 | Rencana Pengembangan — baca Direksi dibatasi: fungsi `dev_plan_direksi_reads(owner)` (security definer; Direksi + pemilik rencana posisi SPV atau pemimpin tim, bukan Direksi) menggantikan `is_direksi()` di `dp_read`/`dpi_read`/`dps_read`. Aplikasi baca via service_role → tanpa cadangan kode. Rincian §5.5 |
 
 ---
 
@@ -539,7 +541,7 @@ Skrip integrasi `scripts/verify-rls.ts` (bukan unit test): membuat fixture `RLST
 login per peran (anon key), menguji `kpi_scores` (SPV → tim+diri, Employee → diri, HRD/Direksi → semua;
 tulis lintas-SPV ditolak; SPV tulis diri diizinkan) dan raw 360° (SPV ditolak; HRD, penilai, target sesuai
 aturan), plus celah 0045 (HRD terbatas, isi penilaian saat form ditutup, permohonan palsu, bobot ≠ 100,
-respons suksesi draf, log ACC, Catatan di Luar Pemetaan hanya service_role, Rencana Pengembangan & catatan sesi baca pemilik/HRD/Direksi). **83 pemeriksaan.** Menghapus seluruh fixture di `finally`; tulis memakai
+respons suksesi draf, log ACC, Catatan di Luar Pemetaan hanya service_role, Rencana Pengembangan & catatan sesi baca pemilik/HRD/Direksi atas timnya). **85 pemeriksaan.** Menghapus seluruh fixture di `finally`; tulis memakai
 `UPDATE score=score`. Butuh anon + service role key di `.env.local`. Manual pra-rilis, tak di CI.
 Ulangi tiap ada migrasi/perubahan RLS.
 

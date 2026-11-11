@@ -92,6 +92,8 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   - 🔑 setelah rilis yang sedang berjalan di-merge: gabungkan branch ke `dev`, jalankan perubahan database **0058** di
     staging lalu production **sebelum** versi baru dirilis (tanpa 0058 pengiriman laporan ditolak "sedang diperbarui");
   - 🔑 uji per peran di Preview;
+  - 🔑 jalankan perubahan database **0059** (Direksi hanya bisa membaca rencana pengembangan timnya) di staging lalu
+    production, lalu jalankan pemeriksaan keamanan database;
   - 🔑 sebelum Q4 dibuka: umumkan fiturnya ke pegawai.
   - Belum dibangun (pemilik): kode laporan + Cek Status untuk pelapor. Laporan yang masuk tanpa kode tidak bisa
     dihubungkan ke pelapornya di kemudian hari.

@@ -70,7 +70,8 @@ select * from (values
   ('0055', 'tabel development_plans (rencana pengembangan)', to_regclass('public.development_plans') is not null),
   ('0056', 'tabel development_plan_sessions (sesi 1-on-1)', to_regclass('public.development_plan_sessions') is not null),
   ('0057', 'fungsi dev_plan_replace_items & pengaman rencana', exists(select 1 from pg_proc where proname='dev_plan_replace_items') and exists(select 1 from pg_trigger where tgname='trg_dev_plan_items_guard')),
-  ('0058', 'kolom outside_mapping_notes.incident_date (laporkan pelanggaran)', exists(select 1 from information_schema.columns where table_name='outside_mapping_notes' and column_name='incident_date'))
+  ('0058', 'kolom outside_mapping_notes.incident_date (laporkan pelanggaran)', exists(select 1 from information_schema.columns where table_name='outside_mapping_notes' and column_name='incident_date')),
+  ('0059', 'fungsi dev_plan_direksi_reads (baca Direksi = timnya)', exists(select 1 from pg_proc where proname='dev_plan_direksi_reads'))
 ) as t(migrasi, penanda_skema, applied)
 order by migrasi;
 

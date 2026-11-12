@@ -12,6 +12,7 @@ import { loadReportHistory } from '@/lib/report-history';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
 import { AspectSummaryView } from '../aspect-summary-view';
 import { RawFeedback } from '../raw-feedback';
+import { ReportSplit } from '../report-split';
 import { saveQualSummaries } from '@/app/(app)/admin/laporan/actions';
 import { AlertTriangle, ArrowLeft, Info } from 'lucide-react';
 import { CARD } from '@/components/infarm-ui';
@@ -62,7 +63,7 @@ export default async function LaporanDetailPage({
   // posisi-asli tak lagi mendapat tampilan HRD penuh (sisa temuan no. 11, Gelombang 3).
   const route = reportDetailRoute(me, hrdModeEarly, !!reviewGrant);
   if (route === 'denied') {
-    return <Shell><p className={MSG}>Halaman ini untuk SPV / HRD / Direksi.</p></Shell>;
+    return <Shell><p className={MSG}>Halaman ini untuk SPV / HRD / Direksi.</p></Shell>;
   }
 
   // Jalur "seperti SPV": SPV biasa ATAU HRD-posisi di mode posisi-asli (dibatasi setara SPV, tanpa raw 360°).
@@ -179,6 +180,8 @@ export default async function LaporanDetailPage({
               subjectIsSpv={subjectIsSpv}
             />
           )}
+          {(() => {
+            const leftCol = (<>
           <ReportDoc data={data} anonymize hideAssessorComments />
           {data.has360 && (canEditReport ? (
             <>
@@ -202,7 +205,12 @@ export default async function LaporanDetailPage({
               <AspectSummaryView summaries={data.qualSummaries} title={QUAL_TITLE} intro={QUAL_INTRO} />
             </>
           ))}
-          {data.has360 && !hideOwnRaw && <RawFeedback byAspect={data.byAspect} essays={data.essays} badge="AKSES HRD" />}
+            </>);
+            // Dua kolom (kiri laporan, kanan komentar murni) bila ada komentar untuk ditampilkan.
+            return data.has360 && !hideOwnRaw
+              ? <ReportSplit left={leftCol} right={<RawFeedback byAspect={data.byAspect} essays={data.essays} badge="AKSES HRD" className="" />} />
+              : leftCol;
+          })()}
         </div>
       </Shell>
     );
@@ -315,7 +323,7 @@ export default async function LaporanDetailPage({
   // Review) → tak ada tampilan untuknya di sini; tampilan HRD penuh hanya di Mode Admin.
   if (route === 'need-admin') {
     return <Shell><p className={MSG}>Detail laporan pegawai lain hanya tersedia di <strong>Mode Admin</strong>.
-      Pindah ke Mode Admin lewat tombol di sidebar, lalu buka lagi dari Review &amp; Finalisasi.</p></Shell>;
+      Pindah ke Mode Admin lewat tombol di sidebar, lalu buka lagi dari Review &amp; Finalisasi.</p></Shell>;
   }
 
   // Jalur HRD (mode admin): laporan penuh (tunduk RLS; raw 360° untuk HRD anonim).
@@ -327,7 +335,7 @@ export default async function LaporanDetailPage({
   // halaman HRD "Laporan Pelanggaran" (admin/pelanggaran).
   const data = loadedFull ? withoutNamedFeedback(loadedFull) : null;
   if (!data) {
-    return <Shell><p className={MSG}>Data tidak ditemukan atau di luar lingkup akses Anda.</p></Shell>;
+    return <Shell><p className={MSG}>Data tidak ditemukan atau di luar lingkup akses Anda.</p></Shell>;
   }
 
   // Deteksi "Skor 360° basi": skor usang bila ada perubahan SETELAH hitung ulang terakhir —
@@ -426,9 +434,14 @@ export default async function LaporanDetailPage({
           {history && <ReportHistoryPanel history={history} />}
           {/* HRD: sembunyikan blok komentar-per-penilai (bernama) → diganti raw feedback anonim;
               tombol Unduh PDF bawaan disembunyikan karena sudah ada di panel aksi. */}
-          <ReportDoc data={data} anonymize={false} hideAssessorComments={isAdmin} hidePrint={isAdmin} />
-          {isAdmin && data.has360 && (
-            <>
+          {(() => {
+            const doc = <ReportDoc data={data} anonymize={false} hideAssessorComments={isAdmin} hidePrint={isAdmin} />;
+            if (!(isAdmin && data.has360)) return doc;
+            // HRD: dua kolom — kiri laporan + editor ringkasan, kanan komentar murni (menempel, gulir sendiri).
+            return (
+              <ReportSplit
+                left={<>
+              {doc}
               <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} locked={data.status === 'finalized' || !periodActive} />
               {data.qualQuestions.length > 0 && (
                 <AspectSummaryEditor
@@ -442,9 +455,11 @@ export default async function LaporanDetailPage({
                   noun="pertanyaan"
                 />
               )}
-              <RawFeedback byAspect={data.byAspect} essays={data.essays} />
-            </>
-          )}
+                </>}
+                right={<RawFeedback byAspect={data.byAspect} essays={data.essays} className="" />}
+              />
+            );
+          })()}
         </div>
     </Shell>
   );

@@ -67,9 +67,10 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint, pd
 
       {/* Radar aspek 360 */}
       {data.has360 && aspectsWith.length >= 3 && (
-        <div className={`${DOC_CARD} mt-4 break-inside-avoid`}>
+        <div className={`${DOC_CARD} mt-4 break-inside-avoid @container`}>
           <CardTitle icon={RadarIcon}>Rincian Aspek Budaya (360°)</CardTitle>
-          <div className="mt-3 grid md:grid-cols-2 print:grid-cols-2 gap-4 items-center">
+          {/* Dua kolom bila KARTU ≥ 42rem (container query) — juga rapi di kolom kiri tinjau dua kolom. */}
+          <div className="mt-3 grid @2xl:grid-cols-2 print:grid-cols-2 gap-4 items-center">
             <div className="break-inside-avoid">
               <Radar aspects={data.aspects} />
               {/* Legenda radar — perjelas mana garis Rekan vs Self */}

@@ -215,3 +215,28 @@ describe('summarizeWithGemini — coba ulang saat Google sibuk', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('summarizeWithGemini — tingkat thinking', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const env = { GEMINI_API_KEY: 'kunci-uji' };
+  const okRes = () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '[]' }] } }] }), { status: 200 });
+  const bodyOf = (call: unknown[]) => JSON.parse(String((call[1] as RequestInit).body));
+
+  it("'low' → thinkingLevel low", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okRes());
+    vi.stubGlobal('fetch', fetchMock);
+    await summarizeWithGemini('P', 'B', ['a'], 100, { model: 'gemini-3.8-flash', thinking: 'low' }, env);
+    expect(bodyOf(fetchMock.mock.calls[0]).generationConfig.thinkingConfig).toEqual({ thinkingLevel: 'low' });
+  });
+
+  it('pengaturan thinking ditolak (400) → ulang sekali tanpa thinkingConfig', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: { message: 'Invalid value for thinking_level' } }), { status: 400 }))
+      .mockResolvedValueOnce(okRes());
+    vi.stubGlobal('fetch', fetchMock);
+    const r = await summarizeWithGemini('P', 'B', ['a'], 100, { model: 'm', thinking: 'minimal' }, env, async () => {});
+    expect(r.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(bodyOf(fetchMock.mock.calls[1]).generationConfig.thinkingConfig).toBeUndefined();
+  });
+});

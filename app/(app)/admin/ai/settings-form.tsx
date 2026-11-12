@@ -11,6 +11,13 @@ import { KNOWN_PRICES, PROMPT_MAX_LEN, thinkingFor, type AiSettings } from '@/li
 import type { GeminiModelInfo } from '@/lib/ai/gemini';
 import { saveAiSettings } from './actions';
 
+const THINKING_TEXT = {
+  off: 'Thinking dimatikan agar cepat dan hemat token.',
+  minimal: 'Thinking diatur ke tingkat terendah (minimal) agar cepat dan hemat token.',
+  low: 'Thinking diatur ke tingkat terendah yang didukung model ini (low) agar cepat dan hemat token.',
+  auto: 'Thinking mengikuti bawaan model (model belum dikenal aplikasi) — bisa lebih lambat, dan token output (ditagih) bisa lebih banyak dari panjang ringkasan.',
+} as const;
+
 const fmtRp = (n: number) => `Rp ${n.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtDate = (iso: string) => new Date(iso).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Jakarta' });
 
@@ -100,9 +107,7 @@ export function AiSettingsForm({ initial, models, defaults }: {
             <p><strong className="text-ink">{info.label}</strong> · <span className="data-value">{info.id}</span>
               {info.inputTokenLimit != null && <> · batas input <span className="data-value">{info.inputTokenLimit.toLocaleString('id-ID')}</span> token</>}</p>
             {info.description && <p>{info.description}</p>}
-            <p>{thinkingFor(info.id) === 'off'
-              ? 'Thinking dimatikan agar hemat token.'
-              : 'Thinking mengikuti bawaan model — token output (ditagih) bisa lebih banyak dari panjang ringkasan.'}</p>
+            <p>{THINKING_TEXT[thinkingFor(info.id)]}</p>
           </div>
         )}
       </section>

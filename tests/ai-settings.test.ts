@@ -65,10 +65,12 @@ describe('loadAiSettings', () => {
     const s = await loadAiSettings(makeClient({ tables: { ai_settings: [{ data: { ...ROW, model: 'gemini-3.8-flash' } }] } }));
     expect(s.model).toBe('gemini-3.8-flash');
   });
-  it('thinking: hanya model yang diketahui bisa dimatikan; lainnya bawaan model', () => {
+  it('thinking: tingkat terendah yang didukung model dikenal; model tak dikenal = bawaan', () => {
     expect(thinkingFor('gemini-2.5-flash')).toBe('off');
     expect(thinkingFor('gemini-2.5-pro')).toBe('auto');
-    expect(thinkingFor('gemini-3.8-flash')).toBe('auto');
+    expect(thinkingFor('gemini-3.8-flash')).toBe('low');
+    expect(thinkingFor('gemini-3.1-flash-lite')).toBe('minimal');
+    expect(thinkingFor('gemini-9-baru')).toBe('auto');
   });
 });
 

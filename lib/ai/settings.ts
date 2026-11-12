@@ -42,9 +42,27 @@ export function effectivePrices(s: Pick<AiSettings, 'model' | 'priceIn' | 'price
   return { priceIn, priceOut, usdIdr: s.usdIdr, priced: priceIn > 0 || priceOut > 0 };
 }
 
-/** Model yang thinking-nya bisa dimatikan (hemat token). Model lain → bawaan model (tanpa thinkingConfig). */
-const THINKING_OFF_OK = new Set(['gemini-2.5-flash-lite', 'gemini-2.5-flash']);
-export const thinkingFor = (model: string): 'off' | 'auto' => (THINKING_OFF_OK.has(model) ? 'off' : 'auto');
+/**
+ * Tingkat thinking per model. Meringkas komentar tak butuh penalaran dalam → pakai yang TERENDAH yang didukung,
+ * agar cepat (bawaan gemini-3.8-flash = medium → sering melewati batas 55 dtk) & hemat token output.
+ *  - 'off'     = thinkingBudget 0 (seri 2.5 Flash/Flash-Lite yang bisa dimatikan)
+ *  - 'minimal' / 'low' = thinkingLevel (seri 3.x; nilai terendah per model dari dokumentasi Google, 2026-11-12)
+ *  - 'auto'    = bawaan model (model yang tak dikenal — jangan menebak)
+ * Bila Google menolak pengaturan ini, summarizeWithGemini mencoba sekali lagi tanpa pengaturan thinking.
+ */
+export type ThinkingMode = 'off' | 'minimal' | 'low' | 'auto';
+const THINKING: Record<string, ThinkingMode> = {
+  'gemini-2.5-flash-lite': 'off',
+  'gemini-2.5-flash': 'off',
+  'gemini-3.8-flash': 'low',
+  'gemini-3.6-flash': 'minimal',
+  'gemini-3.5-flash-lite': 'minimal',
+  'gemini-3.1-pro-preview': 'low',
+  'gemini-3.1-flash-lite': 'minimal',
+  'gemini-3-flash-preview': 'minimal',
+  'gemini-3-pro-preview': 'low',
+};
+export const thinkingFor = (model: string): ThinkingMode => THINKING[model] ?? 'auto';
 
 /** Bentuk id model yang sah (tanpa awalan "models/"). */
 export const MODEL_ID_RE = /^[a-z0-9][a-z0-9.\-]{1,79}$/;

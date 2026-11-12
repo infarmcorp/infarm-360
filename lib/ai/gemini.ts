@@ -94,14 +94,15 @@ export function parseSummaries(text: string, keys: string[], maxLen: number): Re
 /** Panggil Gemini (REST generateContent) dengan keluaran JSON terstruktur per kunci. */
 export async function summarizeWithGemini(
   prompt: string, material: string, keys: string[], maxLen: number,
-  opts: { model: string; thinking: 'off' | 'auto' }, env: Env = process.env,
+  opts: { model: string; thinking: 'off' | 'minimal' | 'low' | 'auto' }, env: Env = process.env,
   sleep: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
 ): Promise<SummaryResult> {
   const key = env.GEMINI_API_KEY?.trim();
   if (!key) return { ok: false, error: 'Ringkas otomatis belum diaktifkan.' };
-  const { model, thinking } = opts;
+  const { model } = opts;
+  let thinking = opts.thinking;
 
-  const body = {
+  const buildBody = () => ({
     contents: [{
       role: 'user',
       parts: [{ text: `${prompt}\n\nKembalikan satu entri untuk setiap KUNCI berikut, dengan teks kunci persis sama:\n${keys.map((k) => `- ${k}`).join('\n')}\n\nBAHAN:\n${material}` }],
@@ -117,10 +118,11 @@ export async function summarizeWithGemini(
           required: ['kunci', 'ringkasan'],
         },
       },
-      // 'off' = matikan thinking (hemat token); 'auto' = bawaan model (model yang tak bisa mematikannya).
-      ...(thinking === 'off' ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+      // 'off' = matikan thinking (seri 2.5); 'minimal'/'low' = tingkat terendah (seri 3.x); 'auto' = bawaan model.
+      ...(thinking === 'off' ? { thinkingConfig: { thinkingBudget: 0 } }
+        : thinking === 'auto' ? {} : { thinkingConfig: { thinkingLevel: thinking } }),
     },
-  };
+  });
 
   let res: Response;
   const started = Date.now();
@@ -135,13 +137,18 @@ export async function summarizeWithGemini(
       res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-        body: JSON.stringify(body),
+        body: JSON.stringify(buildBody()),
         signal: AbortSignal.timeout(Math.max(1000, remaining)),
       });
     } catch (e) {
       return { ok: false, error: fetchFailMessage(e, Date.now() - started), model };
     }
     try { json = (await res.json()) as GeminiResponse; } catch { json = {}; }
+    // Pengaturan thinking ditolak model (400 menyebut thinking) → ulang sekali dengan bawaan model.
+    if (res.status === 400 && thinking !== 'auto' && /thinking/i.test(json.error?.message ?? '')) {
+      thinking = 'auto';
+      continue;
+    }
     const delay = RETRY_DELAYS_MS[attempt - 1];
     const left = GEMINI_TIMEOUT_MS - (Date.now() - started);
     if (!TRANSIENT.has(res.status) || delay == null || left < delay + MIN_ATTEMPT_MS) break;

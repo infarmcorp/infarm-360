@@ -707,7 +707,7 @@ panduan Notion per peran.
 | `import-360-backfill.mjs` | impor skor 360° eksternal (dry-run default; `--apply`, `--create-missing`, `--period=`); CSV `BACKFILL-*.csv` di-gitignore |
 | `reset-data` / `reset-full` / `reset-mappings` / `reset-people` (`.mjs`/`.sql`), `delete-people.mjs` | kosongkan data hasil · sisakan hanya pegawai · kosongkan pemetaan · hapus data 360°/KPI orang tertentu · hapus orang permanen — **berbahaya**; skrip reset mem-backup dulu |
 | `check-unread.mjs`, `check-single-axis.mjs`, `readiness-check.mjs` | diagnostik read-only (KPI belum terbaca · data satu sumbu · kesiapan 360° periode aktif) |
-| `clone-anon-to-staging.ts` | isi staging dengan replika production yang disamarkan (`npx tsx`) |
+| `clone-anon-to-staging.ts` | isi staging dengan replika production yang disamarkan (`npx tsx`); `--keep-comments` = komentar 360°, esai & ringkasan HRD laporan disalin apa adanya (pegawai tetap anonim) |
 | `setup-coordinators.mjs`, `fix-period-start-year.mjs` | perbaikan data sekali pakai (riwayat) |
 | `loadtest/` | §7.5 |
 

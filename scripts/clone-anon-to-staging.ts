@@ -1,6 +1,13 @@
 /**
  * CLONE ANONIM: production → staging.
  * Jalankan: npx tsx scripts/clone-anon-to-staging.ts
+ *          npx tsx scripts/clone-anon-to-staging.ts --keep-comments
+ *
+ * --keep-comments: komentar 360° per indikator, jawaban esai, dan ringkasan HRD di laporan
+ *   (final_reports.content) disalin APA ADANYA dari production
+ *   (pegawai tetap anonim "Pegawai NNN"). Untuk membandingkan hasil fitur AI di dev dengan data
+ *   nyata. Teks asli bisa menyebut nama orang — staging berisi umpan balik asli selama opsi ini
+ *   dipakai; jalankan ulang tanpa opsi untuk menyamarkannya lagi.
  *
  * TUJUAN: mengisi DB STAGING dengan REPLIKA production yang disamarkan, agar perubahan
  * (mis. Manajemen Akses) bisa diuji dengan volume & distribusi data yang realistis TANPA
@@ -82,6 +89,16 @@ async function insertBatch(table: string, rows: Record<string, unknown>[]) {
 }
 
 const PLACEHOLDER = '[teks disamarkan]';
+
+// Opsi --keep-comments: kolom teks ini disalin apa adanya (lihat header).
+const KEEP_COMMENTS = process.argv.includes('--keep-comments');
+// final_reports.content = ringkasan HRD per aspek/pertanyaan (pembanding hasil AI).
+const RAW_TEXT_COLS = new Set([
+  'assessment_indicator_scores.comment',
+  'assessment_qual_answers.answer',
+  'final_reports.content',
+]);
+const keepText = (table: string, col: string) => KEEP_COMMENTS && RAW_TEXT_COLS.has(`${table}.${col}`);
 
 // Konfigurasi remap/skrub per tabel (employees & wipe ditangani terpisah).
 // empCols: kolom yang berisi employee-id (dipetakan via idMap).
@@ -171,6 +188,7 @@ async function main() {
   console.log('== CLONE ANONIM prod → staging ==');
   console.log('  BACA :', PROD_URL);
   console.log('  TULIS:', STG_URL);
+  if (KEEP_COMMENTS) console.log('  ⚠ --keep-comments: komentar 360°, esai & ringkasan HRD disalin APA ADANYA (pegawai tetap anonim)');
 
   // 1) Baca employees prod + bangun peta id.
   const prodEmps = await fetchAll('employees');
@@ -224,7 +242,7 @@ async function main() {
       const r: Record<string, unknown> = { ...row };
       for (const c of cfg.empCols ?? []) if (c in r) r[c] = mapId(r[c]);
       for (const c of cfg.textCols ?? []) {
-        if (!(c in r)) continue;
+        if (!(c in r) || keepText(cfg.name, c)) continue;
         r[c] = c === 'content' ? {} : (r[c] == null ? r[c] : PLACEHOLDER);
       }
       for (const c of cfg.dropCols ?? []) delete r[c];

@@ -12,12 +12,35 @@
  */
 import { ASPECT_PROMPT, QUAL_PROMPT } from './summary-prompt';
 
-/** Harga perkiraan (USD per 1 juta token) untuk model yang diketahui; selebihnya diisi HRD. */
+/**
+ * Harga resmi paket berbayar (USD per 1 juta token, input teks · output termasuk thinking) untuk model yang
+ * diketahui — sumber: aistudio.google.com/docs/pricing, dicek 2026-11-12. Model ber-tier konteks memakai tier
+ * ≤200k (bahan ringkasan jauh di bawahnya). Google sudah mengumumkan kenaikan untuk gemini-3.8-flash &
+ * gemini-3.6-flash (×2 mulai 2027-01-01) — perbarui di sini / koreksi di halaman Pengaturan AI saat berlaku.
+ * Model lain: HRD mengisi harga sendiri.
+ */
 export const KNOWN_PRICES: Record<string, { priceIn: number; priceOut: number }> = {
+  'gemini-3.8-flash': { priceIn: 0.75, priceOut: 3.75 },
+  'gemini-3.6-flash': { priceIn: 0.75, priceOut: 3.75 },
+  'gemini-3.5-flash-lite': { priceIn: 0.3, priceOut: 2.5 },
+  'gemini-3.1-pro-preview': { priceIn: 2, priceOut: 12 },
+  'gemini-3.1-flash-lite': { priceIn: 0.25, priceOut: 1.5 },
+  'gemini-3-flash-preview': { priceIn: 0.5, priceOut: 3 },
   'gemini-2.5-flash-lite': { priceIn: 0.1, priceOut: 0.4 },
   'gemini-2.5-flash': { priceIn: 0.3, priceOut: 2.5 },
   'gemini-2.5-pro': { priceIn: 1.25, priceOut: 10 },
 };
+
+/**
+ * Harga yang dipakai menghitung biaya: isian Pengaturan AI; bila kosong (0) → harga resmi yang diketahui.
+ * `priced` = false bila keduanya tak ada (biaya tak bisa dihitung — layar menjelaskan, bukan "Rp 0").
+ */
+export function effectivePrices(s: Pick<AiSettings, 'model' | 'priceIn' | 'priceOut' | 'usdIdr'>): { priceIn: number; priceOut: number; usdIdr: number; priced: boolean } {
+  const known = KNOWN_PRICES[s.model];
+  const priceIn = s.priceIn > 0 ? s.priceIn : known?.priceIn ?? 0;
+  const priceOut = s.priceOut > 0 ? s.priceOut : known?.priceOut ?? 0;
+  return { priceIn, priceOut, usdIdr: s.usdIdr, priced: priceIn > 0 || priceOut > 0 };
+}
 
 /** Model yang thinking-nya bisa dimatikan (hemat token). Model lain → bawaan model (tanpa thinkingConfig). */
 const THINKING_OFF_OK = new Set(['gemini-2.5-flash-lite', 'gemini-2.5-flash']);

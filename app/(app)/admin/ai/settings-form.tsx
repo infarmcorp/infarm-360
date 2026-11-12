@@ -25,8 +25,10 @@ export function AiSettingsForm({ initial, models, defaults }: {
 }) {
   const router = useRouter();
   const [model, setModel] = useState(initial.model);
-  const [priceIn, setPriceIn] = useState(String(initial.priceIn));
-  const [priceOut, setPriceOut] = useState(String(initial.priceOut));
+  // Harga kosong (0) untuk model yang harganya diketahui → isi awal dengan harga resmi.
+  const startKnown = !initial.priceIn && !initial.priceOut ? KNOWN_PRICES[initial.model] : undefined;
+  const [priceIn, setPriceIn] = useState(String(startKnown?.priceIn ?? initial.priceIn));
+  const [priceOut, setPriceOut] = useState(String(startKnown?.priceOut ?? initial.priceOut));
   const [usdIdr, setUsdIdr] = useState(String(initial.usdIdr));
   const [aspectPrompt, setAspectPrompt] = useState(initial.aspectPrompt);
   const [qualPrompt, setQualPrompt] = useState(initial.qualPrompt);
@@ -113,7 +115,7 @@ export function AiSettingsForm({ initial, models, defaults }: {
         <p className="text-xs text-ink-soft mt-2.5">
           {info && !priceKnown
             ? <strong className="text-warn-ink">Harga model ini belum diketahui aplikasi — isi dari halaman harga Gemini API (ai.google.dev/pricing) agar perkiraan rupiah benar. </strong>
-            : 'Harga terisi otomatis untuk model yang dikenal; koreksi bila daftar harga Google berubah. '}
+            : 'Harga resmi Google terisi otomatis untuk model yang dikenal (dicek 12 Nov 2026); koreksi bila daftar harga berubah. '}
           {sampleIdr != null && <> Contoh: <span className="data-value">{SAMPLE_IN.toLocaleString('id-ID')}</span> token input + <span className="data-value">{SAMPLE_OUT.toLocaleString('id-ID')}</span> token output ≈ <strong className="data-value">{fmtRp(sampleIdr)}</strong> per sekali ringkas.</>}
         </p>
       </section>

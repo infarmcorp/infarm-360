@@ -18,7 +18,7 @@ vi.mock('@/lib/ai/gemini', async (orig) => ({
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { aiSummaryEnabled, listGeminiModels } from '@/lib/ai/gemini';
 import { logHrdAction } from '@/lib/audit/log';
-import { loadAiSettings, defaultAiSettings, thinkingFor } from '@/lib/ai/settings';
+import { loadAiSettings, defaultAiSettings, thinkingFor, effectivePrices } from '@/lib/ai/settings';
 import { ASPECT_PROMPT } from '@/lib/ai/summary-prompt';
 import { saveAiSettings } from '@/app/(app)/admin/ai/actions';
 
@@ -126,5 +126,17 @@ describe('saveAiSettings', () => {
     useAdmin(makeClient({ tables: { ai_settings: [{ data: ROW }, { data: null }] } }));
     const r = await saveAiSettings({ ...VALID, model: 'gemini-2.5-flash', usdIdr: 17000 });
     expect(r).toEqual({ ok: true, version: 3 });
+  });
+});
+
+describe('effectivePrices', () => {
+  it('harga isian dipakai bila ada', () => {
+    expect(effectivePrices({ model: 'gemini-3.1-flash-lite', priceIn: 1, priceOut: 2, usdIdr: 16000 })).toEqual({ priceIn: 1, priceOut: 2, usdIdr: 16000, priced: true });
+  });
+  it('harga kosong → harga resmi model yang diketahui', () => {
+    expect(effectivePrices({ model: 'gemini-3.1-flash-lite', priceIn: 0, priceOut: 0, usdIdr: 16500 })).toEqual({ priceIn: 0.25, priceOut: 1.5, usdIdr: 16500, priced: true });
+  });
+  it('harga kosong + model tak dikenal → priced false', () => {
+    expect(effectivePrices({ model: 'gemini-9-baru', priceIn: 0, priceOut: 0, usdIdr: 16500 }).priced).toBe(false);
   });
 });

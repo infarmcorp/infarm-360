@@ -47,13 +47,14 @@ export function aiSummaryEnabled(env: Env = process.env): boolean {
 }
 
 export type AiUsage = { inputTokens: number; outputTokens: number; thoughtTokens: number };
-export type AiCost = { usd: number; idr: number; priceIn: number; priceOut: number; usdIdr: number };
+/** priced = false bila harga model tak diketahui (0/0) — layar menjelaskan, bukan menampilkan "Rp 0". */
+export type AiCost = { usd: number; idr: number; priceIn: number; priceOut: number; usdIdr: number; priced: boolean };
 
 /** Perkiraan biaya: output yang ditagih = token jawaban + token thinking. */
 export function costOf(usage: AiUsage, prices: { priceIn: number; priceOut: number; usdIdr: number }): AiCost {
   const { priceIn, priceOut, usdIdr } = prices;
   const usd = (usage.inputTokens * priceIn + (usage.outputTokens + usage.thoughtTokens) * priceOut) / 1_000_000;
-  return { usd, idr: usd * usdIdr, priceIn, priceOut, usdIdr };
+  return { usd, idr: usd * usdIdr, priceIn, priceOut, usdIdr, priced: priceIn > 0 || priceOut > 0 };
 }
 
 export type SummaryResult =

@@ -19,6 +19,12 @@ const PROD_SUPABASE_REF = 'beajoczjpywozavatzmf';
  */
 export const GEMINI_TIMEOUT_MS = 55_000;
 
+/** Status sementara dari Google yang layak dicoba ulang (sibuk, kuota per menit, galat server). */
+const TRANSIENT = new Set([429, 500, 503]);
+/** Jeda sebelum coba ke-2 dan ke-3; dicoba ulang hanya bila sisa waktu cukup untuk satu percobaan lagi. */
+export const RETRY_DELAYS_MS = [2_000, 5_000];
+const MIN_ATTEMPT_MS = 15_000;
+
 /** Pesan gagal koneksi yang membedakan "terlalu lama" vs "terputus" (+ kode penyebab bila ada). */
 export function fetchFailMessage(e: unknown, elapsedMs: number): string {
   const err = e as { name?: string; message?: string; cause?: { code?: string; message?: string } } | null;
@@ -88,6 +94,7 @@ export function parseSummaries(text: string, keys: string[], maxLen: number): Re
 export async function summarizeWithGemini(
   prompt: string, material: string, keys: string[], maxLen: number,
   opts: { model: string; thinking: 'off' | 'auto' }, env: Env = process.env,
+  sleep: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
 ): Promise<SummaryResult> {
   const key = env.GEMINI_API_KEY?.trim();
   if (!key) return { ok: false, error: 'Ringkas otomatis belum diaktifkan.' };
@@ -116,19 +123,36 @@ export async function summarizeWithGemini(
 
   let res: Response;
   const started = Date.now();
-  try {
-    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
-    });
-  } catch (e) {
-    return { ok: false, error: fetchFailMessage(e, Date.now() - started), model };
+  let json: GeminiResponse = {};
+  let attempt = 0;
+  // Coba ulang singkat untuk gangguan sementara di sisi Google (sibuk/kuota per menit/galat server),
+  // selama sisa waktu masih cukup. Permintaan yang ditolak dengan status ini tidak memakai token.
+  for (;;) {
+    attempt++;
+    const remaining = GEMINI_TIMEOUT_MS - (Date.now() - started);
+    try {
+      res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(Math.max(1000, remaining)),
+      });
+    } catch (e) {
+      return { ok: false, error: fetchFailMessage(e, Date.now() - started), model };
+    }
+    try { json = (await res.json()) as GeminiResponse; } catch { json = {}; }
+    const delay = RETRY_DELAYS_MS[attempt - 1];
+    const left = GEMINI_TIMEOUT_MS - (Date.now() - started);
+    if (!TRANSIENT.has(res.status) || delay == null || left < delay + MIN_ATTEMPT_MS) break;
+    await sleep(delay);
   }
-  let json: GeminiResponse;
-  try { json = (await res.json()) as GeminiResponse; } catch { json = {}; }
   const usage = usageOf(json);
+  if (TRANSIENT.has(res.status)) {
+    return {
+      ok: false, usage, model,
+      error: `Model sedang sibuk di Google (${res.status}) — sudah dicoba ${attempt} kali. Coba lagi beberapa saat lagi, atau pilih model lain di Pengaturan AI. Tidak ada token yang terpakai. (${json.error?.message ?? 'tanpa pesan'})`,
+    };
+  }
   // Pesan error Google tak memuat isi permintaan; aman ditampilkan ke HRD untuk diagnosis.
   if (!res.ok) return { ok: false, error: `Gemini menolak permintaan (${res.status}): ${json.error?.message ?? 'tanpa pesan'}`, usage, model };
   if (json.promptFeedback?.blockReason) return { ok: false, error: `Gemini memblokir bahan (${json.promptFeedback.blockReason}).`, usage, model };

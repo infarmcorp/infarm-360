@@ -178,3 +178,40 @@ describe('fetchFailMessage', () => {
     expect(fetchFailMessage(e, 300)).toBe('Gagal menghubungi Gemini setelah 0 detik (ENOTFOUND).');
   });
 });
+
+describe('summarizeWithGemini — coba ulang saat Google sibuk', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const env = { GEMINI_API_KEY: 'kunci-uji' };
+  const OFF = { model: 'm', thinking: 'off' as const };
+  const busy = () => new Response(JSON.stringify({ error: { message: 'high demand' } }), { status: 503 });
+  const okRes = () => new Response(JSON.stringify({
+    candidates: [{ content: { parts: [{ text: JSON.stringify([{ kunci: 'a', ringkasan: 'Baik.' }]) }] } }],
+    usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5 },
+  }), { status: 200 });
+
+  it('503 lalu sukses → berhasil, jeda dipakai', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(busy()).mockResolvedValueOnce(okRes());
+    vi.stubGlobal('fetch', fetchMock);
+    const sleep = vi.fn(async () => {});
+    const r = await summarizeWithGemini('P', 'B', ['a'], 100, OFF, env, sleep);
+    expect(r.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(sleep).toHaveBeenCalledWith(2000);
+  });
+
+  it('503 terus → berhenti setelah 3 percobaan dengan pesan jelas', async () => {
+    const fetchMock = vi.fn().mockImplementation(async () => busy());
+    vi.stubGlobal('fetch', fetchMock);
+    const r = await summarizeWithGemini('P', 'B', ['a'], 100, OFF, env, async () => {});
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/sedang sibuk.*3 kali/);
+  });
+
+  it('400 (bukan sementara) → tidak dicoba ulang', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { message: 'bad' } }), { status: 400 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await summarizeWithGemini('P', 'B', ['a'], 100, OFF, env, async () => {});
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});

@@ -35,18 +35,29 @@ export function AiSettingsForm({ initial, models, defaults }: {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  // Harga terakhir diubah tangan? → jangan ditimpa saat ganti model ke model tanpa harga diketahui.
+  // Harga melekat ke model: ganti model → harga resmi bila diketahui, selain itu DIKOSONGKAN (jangan
+  // mewarisi harga model sebelumnya — perkiraan rupiah akan salah diam-diam).
   function pickModel(id: string) {
     setModel(id);
     const known = KNOWN_PRICES[id];
-    if (known) { setPriceIn(String(known.priceIn)); setPriceOut(String(known.priceOut)); }
+    setPriceIn(known ? String(known.priceIn) : '');
+    setPriceOut(known ? String(known.priceOut) : '');
     setMsg(null);
   }
+  function applyOfficial() {
+    const known = KNOWN_PRICES[model];
+    if (!known) return;
+    setPriceIn(String(known.priceIn)); setPriceOut(String(known.priceOut));
+  }
   const info = models.find((m) => m.id === model) ?? null;
-  const priceKnown = !!KNOWN_PRICES[model];
+  const official = KNOWN_PRICES[model];
+  const priceKnown = !!official;
   const savedModelGone = !!model && models.length > 0 && !info;
 
-  const pIn = Number(priceIn), pOut = Number(priceOut), kurs = Number(usdIdr);
+  // Kolom kosong = 0 = harga belum diketahui (biaya tampil "belum bisa dihitung"). Koma desimal diterima.
+  const num = (v: string) => Number(v.trim().replace(',', '.') || '0');
+  const pIn = num(priceIn), pOut = num(priceOut), kurs = num(usdIdr);
+  const differsFromOfficial = !!official && (pIn !== official.priceIn || pOut !== official.priceOut);
   const numbersOk = [pIn, pOut, kurs].every((n) => Number.isFinite(n) && n >= 0) && kurs > 0;
   const canSave = numbersOk && !!info;
   const sampleIdr = numbersOk ? ((SAMPLE_IN * pIn + SAMPLE_OUT * pOut) / 1_000_000) * kurs : null;
@@ -101,23 +112,39 @@ export function AiSettingsForm({ initial, models, defaults }: {
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <label className="block">
             <span className={FIELD_LABEL}>Input — US$ per 1 juta token</span>
-            <input className={`${FIELD} w-full data-value`} inputMode="decimal" value={priceIn} onChange={(e) => setPriceIn(e.target.value)} />
+            <input className={`${FIELD} w-full data-value`} inputMode="decimal" placeholder="belum diisi" value={priceIn} onChange={(e) => setPriceIn(e.target.value)} />
           </label>
           <label className="block">
             <span className={FIELD_LABEL}>Output — US$ per 1 juta token</span>
-            <input className={`${FIELD} w-full data-value`} inputMode="decimal" value={priceOut} onChange={(e) => setPriceOut(e.target.value)} />
+            <input className={`${FIELD} w-full data-value`} inputMode="decimal" placeholder="belum diisi" value={priceOut} onChange={(e) => setPriceOut(e.target.value)} />
           </label>
           <label className="block">
             <span className={FIELD_LABEL}>Kurs — Rp per US$ 1</span>
             <input className={`${FIELD} w-full data-value`} inputMode="decimal" value={usdIdr} onChange={(e) => setUsdIdr(e.target.value)} />
           </label>
         </div>
-        <p className="text-xs text-ink-soft mt-2.5">
-          {info && !priceKnown
-            ? <strong className="text-warn-ink">Harga model ini belum diketahui aplikasi — isi dari halaman harga Gemini API (ai.google.dev/pricing) agar perkiraan rupiah benar. </strong>
-            : 'Harga resmi Google terisi otomatis untuk model yang dikenal (dicek 12 Nov 2026); koreksi bila daftar harga berubah. '}
-          {sampleIdr != null && <> Contoh: <span className="data-value">{SAMPLE_IN.toLocaleString('id-ID')}</span> token input + <span className="data-value">{SAMPLE_OUT.toLocaleString('id-ID')}</span> token output ≈ <strong className="data-value">{fmtRp(sampleIdr)}</strong> per sekali ringkas.</>}
-        </p>
+        <div className="mt-2.5 space-y-1.5 text-xs text-ink-soft">
+          <p>
+            Harga berlaku untuk <strong className="text-ink">model yang dipilih</strong> dan hanya dipakai menghitung perkiraan rupiah — tagihan sebenarnya
+            tetap dari Google. Lihat harga per model di{' '}
+            <a href="https://aistudio.google.com/docs/pricing" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-brand-ink">halaman harga Gemini API</a>
+            {' '}(cari baris dengan id model persis sama; pakai harga &quot;Standard&quot; / paket berbayar, input teks, dan output yang sudah termasuk thinking).
+          </p>
+          {info && !priceKnown && (
+            <p className="font-semibold text-warn-ink">
+              Harga resmi model ini belum dikenal aplikasi — isi kedua kolom harga. Bila dibiarkan kosong, biaya tampil &quot;belum bisa dihitung&quot;.
+            </p>
+          )}
+          {info && priceKnown && (
+            <p className="flex flex-wrap items-center gap-2">
+              <span>Harga resmi yang dikenal aplikasi (dicek 12 Nov 2026): <span className="data-value">US$ {official.priceIn} / {official.priceOut}</span>.</span>
+              {differsFromOfficial && <Button variant="ghost" size="sm" type="button" onClick={applyOfficial}>Pakai harga resmi</Button>}
+            </p>
+          )}
+          {sampleIdr != null && (pIn > 0 || pOut > 0) && (
+            <p>Contoh: <span className="data-value">{SAMPLE_IN.toLocaleString('id-ID')}</span> token input + <span className="data-value">{SAMPLE_OUT.toLocaleString('id-ID')}</span> token output ≈ <strong className="data-value">{fmtRp(sampleIdr)}</strong> per sekali ringkas.</p>
+          )}
+        </div>
       </section>
 
       <PromptCard

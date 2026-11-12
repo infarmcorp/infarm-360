@@ -19,6 +19,10 @@ import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { aiSummaryEnabled } from '@/lib/ai/gemini';
 import { loadAiSettings } from '@/lib/ai/settings';
 
+// Server Action "Ringkas otomatis" (Gemini) berjalan di route ini dan bisa menunggu jawaban AI hingga ±55 dtk
+// (GEMINI_TIMEOUT_MS). 60 dtk = batas yang aman untuk semua paket Vercel.
+export const maxDuration = 60;
+
 // Label ringkasan pertanyaan kualitatif (dipakai editor & tampilan read-only).
 const QUAL_TITLE = 'Ringkasan Umpan Balik Kualitatif 360°';
 const QUAL_INTRO = 'Rangkuman kalibrasi HRD atas jawaban pertanyaan kualitatif (esai) 360° — anonim, tanpa menyebut identitas penilai.';

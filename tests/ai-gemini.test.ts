@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { aiSummaryEnabled, costOf, parseSummaries, summarizeWithGemini, listGeminiModels } from '@/lib/ai/gemini';
+import { aiSummaryEnabled, costOf, parseSummaries, summarizeWithGemini, listGeminiModels, fetchFailMessage } from '@/lib/ai/gemini';
 import { buildAspectMaterial, buildQualMaterial } from '@/lib/ai/summary-prompt';
 
 const STG = 'https://twgdlhmsoifvmiqpkqsr.supabase.co';
@@ -165,5 +165,16 @@ describe('listGeminiModels — daftar model langsung dari Google', () => {
     vi.stubGlobal('fetch', f);
     expect((await listGeminiModels({})).ok).toBe(false);
     expect(f).not.toHaveBeenCalled();
+  });
+});
+
+describe('fetchFailMessage', () => {
+  it('waktu habis → sebut detik & saran', () => {
+    const e = Object.assign(new Error('timeout'), { name: 'TimeoutError' });
+    expect(fetchFailMessage(e, 55_200)).toMatch(/tidak menjawab dalam 55 detik/);
+  });
+  it('koneksi gagal → sertakan kode penyebab', () => {
+    const e = Object.assign(new TypeError('fetch failed'), { cause: { code: 'ENOTFOUND' } });
+    expect(fetchFailMessage(e, 300)).toBe('Gagal menghubungi Gemini setelah 0 detik (ENOTFOUND).');
   });
 });

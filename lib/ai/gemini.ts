@@ -13,6 +13,23 @@
 
 const PROD_SUPABASE_REF = 'beajoczjpywozavatzmf';
 
+/**
+ * Batas tunggu jawaban Gemini. Di bawah maxDuration halaman laporan (60 dtk — aman untuk semua paket
+ * Vercel) agar pesan yang jelas sempat sampai ke layar, bukan fungsi diputus Vercel.
+ */
+export const GEMINI_TIMEOUT_MS = 55_000;
+
+/** Pesan gagal koneksi yang membedakan "terlalu lama" vs "terputus" (+ kode penyebab bila ada). */
+export function fetchFailMessage(e: unknown, elapsedMs: number): string {
+  const err = e as { name?: string; message?: string; cause?: { code?: string; message?: string } } | null;
+  const secs = Math.round(elapsedMs / 1000);
+  if (err?.name === 'TimeoutError' || err?.name === 'AbortError') {
+    return `Gemini tidak menjawab dalam ${secs} detik sehingga dihentikan. Model dengan thinking bawaan bisa lambat untuk bahan panjang — coba lagi, atau pilih model yang lebih ringan di Pengaturan AI. Token mungkin tetap ditagih Google.`;
+  }
+  const detail = err?.cause?.code ?? err?.cause?.message ?? err?.message ?? 'tanpa keterangan';
+  return `Gagal menghubungi Gemini setelah ${secs} detik (${detail}).`;
+}
+
 type Env = Record<string, string | undefined>;
 
 export function aiSummaryEnabled(env: Env = process.env): boolean {
@@ -98,15 +115,16 @@ export async function summarizeWithGemini(
   };
 
   let res: Response;
+  const started = Date.now();
   try {
     res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(60_000),
+      signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS),
     });
-  } catch {
-    return { ok: false, error: 'Gagal menghubungi Gemini (koneksi / waktu habis).', model };
+  } catch (e) {
+    return { ok: false, error: fetchFailMessage(e, Date.now() - started), model };
   }
   let json: GeminiResponse;
   try { json = (await res.json()) as GeminiResponse; } catch { json = {}; }

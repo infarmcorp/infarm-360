@@ -113,15 +113,27 @@ describe('saveAiSettings', () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toMatch(/0060/);
   });
-  it('model berubah → versi naik, ditulis via service_role, dicatat', async () => {
+  it('ganti model saja → prompt versi TETAP (tak menyesatkan), tetap tersimpan & dicatat', async () => {
     use(makeClient({ user: { id: UID }, tables: { employees: [{ data: HRD }] } }));
     const admin = makeClient({ tables: { ai_settings: [{ data: ROW }, { data: null }] } });
     useAdmin(admin);
-    const r = await saveAiSettings(VALID);
-    expect(r).toEqual({ ok: true, version: 4 });
+    const r = await saveAiSettings(VALID); // VALID: model beda, prompt sama dengan ROW
+    expect(r).toEqual({ ok: true, version: 3 });
     const w = admin.calls.find((c) => c.op === 'upsert');
-    expect(w?.payload).toMatchObject({ id: 1, model: 'gemini-3.8-flash', version: 4, updated_by: UID });
+    expect(w?.payload).toMatchObject({ id: 1, model: 'gemini-3.8-flash', version: 3, updated_by: UID });
     expect(logHrdAction).toHaveBeenCalledWith(expect.objectContaining({ action: 'ai.settings_save' }));
+  });
+  it('teks prompt berubah → prompt versi naik', async () => {
+    use(makeClient({ user: { id: UID }, tables: { employees: [{ data: HRD }] } }));
+    useAdmin(makeClient({ tables: { ai_settings: [{ data: ROW }, { data: null }] } }));
+    const r = await saveAiSettings({ ...VALID, qualPrompt: 'Prompt kualitatif yang sudah direvisi' });
+    expect(r).toEqual({ ok: true, version: 4 });
+  });
+  it('simpan pertama (belum ada baris) → versi 1', async () => {
+    use(makeClient({ user: { id: UID }, tables: { employees: [{ data: HRD }] } }));
+    useAdmin(makeClient({ tables: { ai_settings: [{ data: null }, { data: null }] } }));
+    const r = await saveAiSettings(VALID);
+    expect(r).toEqual({ ok: true, version: 1 });
   });
   it('hanya harga/kurs berubah → versi tetap', async () => {
     use(makeClient({ user: { id: UID }, tables: { employees: [{ data: HRD }] } }));

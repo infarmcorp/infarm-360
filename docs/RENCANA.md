@@ -233,7 +233,7 @@ Dipindah ke §2 bila diputuskan dikerjakan.
   gemini-2.5-flash sudah ditolak untuk pengguna baru per 2026-11-12), harga model baru diisi HRD dari daftar harga Google.
   Model, harga, kurs, dan teks perintah (prompt) diatur sekali di halaman
   **Pengaturan AI** (menu Administrasi, khusus HRD Mode Admin) dan berlaku untuk semua ringkasan agar hasilnya seragam;
-  tiap perubahan model/prompt menaikkan nomor versi yang tercatat di tiap hasil. Butuh perubahan database ke-60 di
+  tiap perubahan teks prompt menaikkan nomor "prompt versi" yang tercatat di tiap hasil (ganti model tidak; model dicatat terpisah). Butuh perubahan database ke-60 di
   staging. Prompt resmi menyusul dari pemilik. Sebelum dibawa ke production perlu: kunci API milik perusahaan berbayar,
   persetujuan kebijakan internal, perubahan database ke-60 di production, dan pembaruan panduan.
 - **Pengaman warna otomatis**: pengecekan otomatis yang menolak warna di luar palet resmi agar halaman baru

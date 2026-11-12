@@ -165,7 +165,7 @@ export function AiSettingsForm({ initial, models, defaults }: {
 
       <Note>
         Cukup atur isi dan gaya ringkasan. Pembagian hasil per aspek/pertanyaan diatur sistem. Yang dikirim ke AI hanya
-        komentar dan rating tanpa nama penilai, tanpa nama atau divisi pegawai. Mengubah model atau prompt menaikkan nomor versi.
+        komentar dan rating tanpa nama penilai, tanpa nama atau divisi pegawai. &quot;Prompt versi&quot; hanya naik bila teks prompt diubah; mengganti model, harga, atau kurs tidak mengubahnya.
       </Note>
 
       <div className="flex flex-wrap items-center gap-3">

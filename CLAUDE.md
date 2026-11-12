@@ -48,7 +48,9 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
   typecheck + lint + build; lint bersih sejak 2026-10-16 — jangan tambah temuan baru). Backup harian `.github/workflows/backup.yml`. npm.
 - Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 31 tabel publik, migrasi
-  `supabase/migrations/0001`–`0060` (0060 `ai_settings` = eksperimen dev, belum wajib di production). Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
+  `supabase/migrations/0001`–`0060` (0060 `ai_settings` = eksperimen dev, belum wajib di production). **Production berjalan tanpa API LLM**:
+  "Ringkas otomatis"/Pengaturan AI (`lib/ai/`, `GEMINI_API_KEY`) hanya dev/staging dan mati otomatis di production; ringkasan
+  HRD ditulis manual. Jangan sebut fitur AI di PANDUAN/Notion selama belum dirilis. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
   → **wajib** cek `Bearer $CRON_SECRET` sendiri, gagal tertutup. Email Rilis terjadwal dipicu GitHub Actions
   (`release-email-cron.yml`); inti kirim email rilis satu-satunya = `lib/release-delivery.ts` (manual & jadwal).
 - `app/` — `login/`, `maintenance/`, `auth/` (callback, lupa-sandi, perbarui-sandi, signout),
@@ -261,6 +263,9 @@ bersama (2026-11-03/04). Aturan token & "kartu flat tanpa bayangan / font sistem
   periode/Tugas/mode. Isi `menuFor` (menu, urutan, gate akses) tidak berubah; HP tetap laci.
 - ⚠️ `laporan-tim/team-table.tsx` & `scorecards.tsx` dipakai bersama Monitor; `admin/laporan/report-table.tsx` dipakai juga
   Tinjauan Hasil Akhir (Direksi) — mengubahnya mengubah halaman lain.
+- **Tinjau laporan dua kolom** (2026-11-12, `laporan/report-split.tsx` `ReportSplit`): detail laporan untuk HRD Mode Admin &
+  pemegang akses Review di layar ≥ xl = kiri dokumen + editor ringkasan, kanan Rincian Komentar Murni (sticky, gulir
+  sendiri). Layar kecil & cetak tetap bertumpuk. Radar aspek dua kolom lewat container query kartu (`@2xl`), bukan lebar layar.
 - **Tabel berpager wajib stabil** (2026-10-15): `table-fixed` + `<colgroup>` (`colPercents`), kelas `table-1line`
   (isi sel 1 baris, keputusan pengguna), dan tabel + pager dibungkus `StableHeight` (`components/table-controls.tsx`)
   — ukuran tak boleh bergeser saat paging/filter/tab. Daftar yang barisnya bisa dibuka-tutup (Progress 360) dikecualikan.
@@ -281,7 +286,7 @@ bersama (2026-11-03/04). Aturan token & "kartu flat tanpa bayangan / font sistem
   > 1000 baris — PostgREST memotong diam-diam (bug 2026-07-08: 51/52 Skor 360° salah).
 - **Jangan** `npm audit fix --force` (menurunkan Next 16 → 9). `xlsx@0.20.3` dari CDN SheetJS.
 - Rumus menentukan keputusan SDM nyata dan salahnya tak memunculkan error → `npm test` wajib hijau saat kode
-  disentuh (±1150 tes / 68 file). Server Action diuji dengan mock `tests/helpers/mock-supabase.ts`.
+  disentuh (±1200 tes / 71 file). Server Action diuji dengan mock `tests/helpers/mock-supabase.ts`.
 - `npm run verify:rls` (85 pemeriksaan, fixture `RLSTEST-*` self-cleaning) manual pra-rilis & tiap ubah RLS.
 - Migrasi baru: idempoten, nomor urut, terapkan ke staging dulu; urutan rilis → TEKNIS.md §1. Kode yang memanggil
   fungsi database baru WAJIB punya cadangan cara lama bila fungsinya belum ada (`rpcMissing`, `lib/supabase/rpc.ts`),

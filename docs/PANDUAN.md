@@ -871,6 +871,9 @@ hanya ada untuk periode aktif.
   Perilaku 360°** (ringkasan HRD per aspek) · **Ringkasan Umpan Balik Kualitatif 360°** (per pertanyaan esai) ·
   **Rincian Komentar Murni** (semua nilai dan komentar tanpa nama penilai, per aspek → indikator, tabel
   Rating | Komentar + rerata; esai per pertanyaan; penilaian diri tidak disertakan).
+- Di layar lebar (laptop/monitor), halaman ini **terbagi dua**: kiri laporan dan kotak ringkasan, kanan **Rincian
+  Komentar Murni** yang bisa digulir sendiri. Jadi komentar bisa dibaca sambil menulis ringkasan tanpa menggulir ke
+  bawah halaman. Di HP/tablet dan saat dicetak, susunannya tetap bertumpuk (komentar di bawah).
 - **Laporan pelanggaran** dari pegawai **tidak** tampil di Rincian Komentar Murni. Laporan dibaca di halaman
   tersendiri, **Laporan Pelanggaran** (lihat di bawah).
 

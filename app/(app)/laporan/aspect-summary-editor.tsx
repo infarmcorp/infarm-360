@@ -37,7 +37,9 @@ function usageLine(r: Pick<AiOk, 'model' | 'version' | 'usage' | 'cost'>) {
       Token input <span className="data-value">{fmtInt(r.usage.inputTokens)}</span> · output{' '}
       <span className="data-value">{fmtInt(out)}</span>
       {r.usage.thoughtTokens > 0 && <> (termasuk thinking <span className="data-value">{fmtInt(r.usage.thoughtTokens)}</span>)</>}
-      {' '}· {r.cost.priced ? (
+      {' '}· {r.usage.inputTokens + out === 0 ? (
+        <strong className="data-value">tidak ada biaya</strong>
+      ) : r.cost.priced ? (
         <>
           perkiraan biaya <strong className="data-value">{fmtRp(r.cost.idr)}</strong>{' '}
           <span className="data-value">(US$ {r.cost.usd.toFixed(6)}; tarif US$ {r.cost.priceIn}/{r.cost.priceOut} per 1 jt token, kurs Rp {r.cost.usdIdr.toLocaleString('id-ID')})</span>

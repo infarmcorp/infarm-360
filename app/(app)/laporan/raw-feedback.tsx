@@ -18,10 +18,10 @@ const RATING_COLOR = (r: number) =>
 
 const avg = (xs: number[]) => (xs.length ? (xs.reduce((a, b) => a + b, 0) / xs.length) : null);
 
-export function RawFeedback({ byAspect, essays, badge = 'HRD VIEW' }: { byAspect: AspectRaw[]; essays: EssayGroup[]; badge?: string }) {
+export function RawFeedback({ byAspect, essays, badge = 'HRD VIEW', className = 'mt-4' }: { byAspect: AspectRaw[]; essays: EssayGroup[]; badge?: string; className?: string }) {
   const hasAny = byAspect.some((a) => a.indicators.length > 0) || essays.length > 0;
   return (
-    <section className="mt-4 break-inside-avoid bg-surface border border-line rounded-card shadow-card print:shadow-none overflow-hidden">
+    <section className={`${className} break-inside-avoid bg-surface border border-line rounded-card shadow-card print:shadow-none overflow-hidden`}>
       {/* Pita gelap di layar; saat cetak putih bergaris (warna latar tak dijamin ikut tercetak). */}
       <div className="bg-infarm-dark text-white print:bg-white print:text-ink print:border-b print:border-line px-4 py-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[13px] font-bold uppercase tracking-[0.04em] flex items-center gap-2">

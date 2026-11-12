@@ -12,6 +12,7 @@ import { loadReportHistory } from '@/lib/report-history';
 import { AspectSummaryEditor } from '../aspect-summary-editor';
 import { AspectSummaryView } from '../aspect-summary-view';
 import { RawFeedback } from '../raw-feedback';
+import { ReportSplit } from '../report-split';
 import { saveQualSummaries } from '@/app/(app)/admin/laporan/actions';
 import { AlertTriangle, ArrowLeft, Info } from 'lucide-react';
 import { CARD } from '@/components/infarm-ui';
@@ -189,6 +190,8 @@ export default async function LaporanDetailPage({
               subjectIsSpv={subjectIsSpv}
             />
           )}
+          {(() => {
+            const leftCol = (<>
           <ReportDoc data={data} anonymize hideAssessorComments />
           {data.has360 && (canEditReport ? (
             <>
@@ -214,7 +217,12 @@ export default async function LaporanDetailPage({
               <AspectSummaryView summaries={data.qualSummaries} title={QUAL_TITLE} intro={QUAL_INTRO} />
             </>
           ))}
-          {data.has360 && !hideOwnRaw && <RawFeedback byAspect={data.byAspect} essays={data.essays} badge="AKSES HRD" />}
+            </>);
+            // Dua kolom (kiri laporan, kanan komentar murni) bila ada komentar untuk ditampilkan.
+            return data.has360 && !hideOwnRaw
+              ? <ReportSplit left={leftCol} right={<RawFeedback byAspect={data.byAspect} essays={data.essays} badge="AKSES HRD" className="" />} />
+              : leftCol;
+          })()}
         </div>
       </Shell>
     );
@@ -438,9 +446,14 @@ export default async function LaporanDetailPage({
           {history && <ReportHistoryPanel history={history} />}
           {/* HRD: sembunyikan blok komentar-per-penilai (bernama) → diganti raw feedback anonim;
               tombol Unduh PDF bawaan disembunyikan karena sudah ada di panel aksi. */}
-          <ReportDoc data={data} anonymize={false} hideAssessorComments={isAdmin} hidePrint={isAdmin} />
-          {isAdmin && data.has360 && (
-            <>
+          {(() => {
+            const doc = <ReportDoc data={data} anonymize={false} hideAssessorComments={isAdmin} hidePrint={isAdmin} />;
+            if (!(isAdmin && data.has360)) return doc;
+            // HRD: dua kolom — kiri laporan + editor ringkasan, kanan komentar murni (menempel, gulir sendiri).
+            return (
+              <ReportSplit
+                left={<>
+              {doc}
               <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} locked={data.status === 'finalized' || !periodActive} aiKind={aiOn ? 'aspect' : undefined} aiInfo={aiInfoBase && { ...aiInfoBase, settingsHref: '/admin/ai' }} />
               {data.qualQuestions.length > 0 && (
                 <AspectSummaryEditor
@@ -456,9 +469,11 @@ export default async function LaporanDetailPage({
                   noun="pertanyaan"
                 />
               )}
-              <RawFeedback byAspect={data.byAspect} essays={data.essays} />
-            </>
-          )}
+                </>}
+                right={<RawFeedback byAspect={data.byAspect} essays={data.essays} className="" />}
+              />
+            );
+          })()}
         </div>
     </Shell>
   );

@@ -33,6 +33,13 @@ Acuan fungsional: `PANDUAN Infarm 360 Portal.pdf` dan [docs/PANDUAN.md](docs/PAN
 | [docs/PESAN-HRD-RILIS-Q3.md](docs/PESAN-HRD-RILIS-Q3.md) | sementara — pesan siap kirim ke HRD tentang perubahan rilis Q3; hapus setelah rilis |
 
 Selalu perbarui RENCANA/CHANGELOG saat status fitur bergeser, dan file ini hanya bila aturan berubah.
+
+**Notion ikut diperbarui** (pemilik, 2026-11-12): panduan pengguna yang dibaca pegawai ada di Notion "Infarm Performance
+Appraisal — Docs" (panduan per peran 2A–2F, Bab 1–11, Peta Aplikasi). Tiap perubahan yang mengubah PANDUAN.md
+(perilaku, tombol, menu, teks yang terlihat pengguna) → di sesi yang sama perbarui halaman Notion terkait (bahasa awam,
+susunan Notion — jangan salin PANDUAN.md mentah) dan tambah entri di database **Daily Report** (di bawah "Catatan Teknis
+(internal)"). Bila tampilan berubah, tandai gambar layar yang usang di entri Daily Report (diambil ulang terpisah). Panduan
+pegawai/SPV/koordinator menyebut laporan pelanggaran "hanya diakses HRD" (sesuai teks pop-up) — sengaja.
 PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fungsi, path, nomor migrasi).
 
 ## 3. Stack & struktur

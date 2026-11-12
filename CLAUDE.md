@@ -41,7 +41,9 @@ susunan Notion — jangan salin PANDUAN.md mentah) dan tambah entri di database 
 (internal)"). Bila tampilan berubah, tandai gambar layar yang usang di entri Daily Report (diambil ulang terpisah). Panduan
 pegawai/SPV/koordinator menyebut laporan pelanggaran "hanya diakses HRD" (sesuai teks pop-up) — sengaja.
 Kartu **Panduan Saya** di Akun Saya menautkan halaman Notion per peran (`lib/panduan.ts`, `guidesFor` dari izin terkini,
-diuji `tests/panduan.test.ts`) — bila halaman Notion dipindah/diganti, perbarui URL-nya di sana.
+diuji `tests/panduan.test.ts`) — bila halaman Notion dipindah/diganti, perbarui URL-nya di sana. Hanya 2A–2F yang
+di-publish ke web (Bab 1–8 & halaman induk sengaja tertutup, pemilik 2026-11-12), jadi isi 2A–2F **tidak boleh merujuk
+halaman lain** ("lihat Bab 5", "sama dengan Panduan Pegawai") — tulis ulang informasinya di halaman itu.
 PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fungsi, path, nomor migrasi).
 
 ## 3. Stack & struktur

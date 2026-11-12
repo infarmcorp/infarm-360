@@ -10,7 +10,7 @@ Status & pekerjaan terbuka di [RENCANA.md](RENCANA.md). Riwayat di [CHANGELOG.md
 3. [Aktivasi fitur dorman & Mode Maintenance](#3-aktivasi-fitur-dorman--mode-maintenance)
 4. [Rumus skor & klasifikasi](#4-rumus-skor--klasifikasi)
 5. [Manajemen Akses — model & penegakan](#5-manajemen-akses--model--penegakan)
-6. [Daftar migrasi 0001–0059](#6-daftar-migrasi-00010059)
+6. [Daftar migrasi 0001–0060](#6-daftar-migrasi-00010060)
 7. [Pengujian](#7-pengujian)
 8. [Backup & restore](#8-backup--restore)
 9. [PDF panduan in-app](#9-pdf-panduan-in-app)
@@ -119,9 +119,7 @@ Semua di Vercel Dashboard (jangan commit). Hanya `NEXT_PUBLIC_*` yang boleh samp
 | `VERCEL_ENV` · `VERCEL_PROJECT_PRODUCTION_URL` | otomatis Vercel | `VERCEL_ENV=production` = satu-satunya kondisi maintenance ditegakkan |
 | `BACKUP_PASSPHRASE` | secret GitHub | kata sandi enkripsi backup harian (§8.2) |
 | `ALLOW_PROD`, `VU`, dll. | skrip uji beban | lihat §7.5 |
-| `GEMINI_API_KEY` | server, **Preview/Development saja** | aktifkan "Ringkas otomatis" (eksperimen, `lib/ai/gemini.ts`). Mati otomatis bila `VERCEL_ENV=production` **atau** `NEXT_PUBLIC_SUPABASE_URL` = project production. Jangan set di scope Production |
-| `GEMINI_MODEL` · `GEMINI_THINKING_BUDGET` | server, opsional | default `gemini-2.5-flash` · `0` (thinking mati; `auto` = bawaan model, wajib untuk model yang tak bisa mematikannya) |
-| `GEMINI_PRICE_INPUT_USD` · `GEMINI_PRICE_OUTPUT_USD` · `USD_IDR_RATE` | server, opsional | harga per 1 juta token & kurs untuk perkiraan biaya (default 0.30 · 2.50 · 16500). Sesuaikan dengan daftar harga Google terkini |
+| `GEMINI_API_KEY` | server, **Preview/Development saja** | aktifkan "Ringkas otomatis" + halaman Pengaturan AI (eksperimen, `lib/ai/gemini.ts`). Mati otomatis bila `VERCEL_ENV=production` **atau** `NEXT_PUBLIC_SUPABASE_URL` = project production. Jangan set di scope Production. Model, harga, kurs & prompt diatur di halaman **Pengaturan AI** (tabel `ai_settings`, 0060); daftar model tetap di `lib/ai/settings.ts` (`AI_MODELS`) |
 
 ---
 
@@ -461,7 +459,7 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
 
 ---
 
-## 6. Daftar migrasi 0001–0059
+## 6. Daftar migrasi 0001–0060
 
 Status penerapan per DB → `scripts/check-migrations.sql`.
 
@@ -524,6 +522,7 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0057 | Pengaman Rencana Pengembangan: trigger `trg_periods_guard_dev_plan_cols` (kolom `dev_plan_*` hanya diubah server — tutup celah `periods_write`), trigger `trg_dev_plan_items_guard` (prioritas hanya berubah saat `draft`/`revision`, Direksi bebas; berlaku juga untuk service_role), fungsi `dev_plan_replace_items` (ganti prioritas atomik, kunci baris rencana; service_role; kode punya cadangan `rpcMissing`) |
 | 0058 | Laporkan Pelanggaran (perluasan 0054): kolom `incident_date` (tanggal kejadian, wajib untuk baris baru lewat check `NOT VALID`), `is_other` (kategori Lainnya → `aspect_id` boleh kosong, check tepat salah satu), `note` (≤ 1000); trigger aspek dilewati bila Lainnya. Tanpa kolom penulis/waktu kirim. Tanpa migrasi: kirim laporan "sedang diperbarui", halaman HRD membaca kolom lama. Rincian §5.4 |
 | 0059 | Rencana Pengembangan — baca Direksi dibatasi: fungsi `dev_plan_direksi_reads(owner)` (security definer; Direksi + pemilik rencana posisi SPV atau pemimpin tim, bukan Direksi) menggantikan `is_direksi()` di `dp_read`/`dpi_read`/`dps_read`. Aplikasi baca via service_role → tanpa cadangan kode. Rincian §5.5 |
+| 0060 | **Eksperimen dev** — tabel `ai_settings` (satu baris `id=1`): model, harga per 1 juta token, kurs, prompt aspek & kualitatif, `version`, pengubah terakhir. RLS tanpa policy (service_role saja). Dipakai halaman Pengaturan AI & "Ringkas otomatis"; tanpa tabel → pengaturan bawaan kode (`lib/ai/settings.ts`). Cukup di staging; production saat fitur dirilis |
 
 ---
 

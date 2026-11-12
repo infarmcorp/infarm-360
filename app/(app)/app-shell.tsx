@@ -7,7 +7,7 @@ import { KPI_AUDIT_HREF } from '@/lib/kpi-links';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck, Flag,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, ChevronDown, ChevronRight, Check, Sprout,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, ChevronDown, ChevronRight, Check, Sprout, Bot,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 import { BrandLogo } from '@/components/brand-logo';
@@ -26,7 +26,7 @@ const ROLE_LABEL: Record<Role, string> = {
 
 type AdminItem = Item & { section?: string };
 
-function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator: boolean, hrdSections: string[] | null, pageGrants: { section: string; scope: string }[] = []): Section[] {
+function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator: boolean, hrdSections: string[] | null, pageGrants: { section: string; scope: string }[] = [], aiSettings = false): Section[] {
   // Akses HRD granular (Jalur A, migrasi 0023): hrd_sections NULL/kosong = akses penuh;
   // berisi daftar = hanya bagian tercantum. Item tanpa `section` (mis. Suksesi) selalu tampil.
   const allowSec = (s?: string) => !s || !hrdSections || hrdSections.length === 0 || hrdSections.includes(s);
@@ -114,6 +114,8 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
     // HANYA HRD PENUH (tak dibatasi hrd_sections) — cegah rekan HRD terbatas menaikkan aksesnya sendiri.
     const pengaturan = filterAdmin([
       { href: '/admin/pegawai', label: 'Kelola Pegawai', icon: UserCog, section: 'pegawai' },
+      // Pengaturan AI (Ringkas otomatis) — eksperimen dev/staging; tampil hanya bila fitur aktif.
+      ...(aiSettings ? [{ href: '/admin/ai', label: 'Pengaturan AI', icon: Bot, section: 'laporan' }] : []),
     ]);
     const isFullHrd = !hrdSections || hrdSections.length === 0;
     if (isFullHrd) pengaturan.push({ href: '/admin/akses', label: 'Manajemen Akses', icon: KeyRound });
@@ -175,9 +177,9 @@ const TODO_DOT: Record<TodoTone, string> = {
 const SIDEBAR_COOKIE = 'sidebar_collapsed';
 
 export function AppShell({
-  role, canAdmin, isCoordinator = false, hrdSections = null, pageGrants = [], hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, initialCollapsed = false, children,
+  role, canAdmin, isCoordinator = false, hrdSections = null, pageGrants = [], aiSettings = false, hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, initialCollapsed = false, children,
 }: {
-  role: Role; canAdmin: boolean; isCoordinator?: boolean; hrdSections?: string[] | null; pageGrants?: { section: string; scope: string }[]; hrdMode: HrdMode; name: string; dept: string; empCode: string;
+  role: Role; canAdmin: boolean; isCoordinator?: boolean; hrdSections?: string[] | null; pageGrants?: { section: string; scope: string }[]; aiSettings?: boolean; hrdMode: HrdMode; name: string; dept: string; empCode: string;
   periodLabel: string | null; periodActive: boolean; periodDaysLeft?: number | null;
   todos: TodoItem[]; initialCollapsed?: boolean; children: React.ReactNode;
 }) {
@@ -185,7 +187,7 @@ export function AppShell({
   const [open, setOpen] = useState(false);                        // laci menu (HP)
   const [collapsed, setCollapsed] = useState(initialCollapsed);   // sidebar desktop ditutup
   const [popover, setPopover] = useState<'pages' | 'todos' | null>(null);
-  const sections = menuFor(role, canAdmin, hrdMode, isCoordinator, hrdSections, pageGrants);
+  const sections = menuFor(role, canAdmin, hrdMode, isCoordinator, hrdSections, pageGrants, aiSettings);
 
   const isActive = (href: string) => {
     const path = href.split('?')[0];

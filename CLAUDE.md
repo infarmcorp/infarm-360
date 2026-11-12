@@ -47,8 +47,8 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   + RLS), Zod, `xlsx` (parse di klien), `nodemailer`/Resend, `@vercel/edge-config`, `motion`, `lucide-react`,
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
   typecheck + lint + build; lint bersih sejak 2026-10-16 — jangan tambah temuan baru). Backup harian `.github/workflows/backup.yml`. npm.
-- Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 30 tabel publik, migrasi
-  `supabase/migrations/0001`–`0059`. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
+- Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 31 tabel publik, migrasi
+  `supabase/migrations/0001`–`0060` (0060 `ai_settings` = eksperimen dev, belum wajib di production). Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
   → **wajib** cek `Bearer $CRON_SECRET` sendiri, gagal tertutup. Email Rilis terjadwal dipicu GitHub Actions
   (`release-email-cron.yml`); inti kirim email rilis satu-satunya = `lib/release-delivery.ts` (manual & jadwal).
 - `app/` — `login/`, `maintenance/`, `auth/` (callback, lupa-sandi, perbarui-sandi, signout),

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import { getTodos } from '@/lib/todos/compute';
 import { AppShell, type Role } from './app-shell';
+import { aiSummaryEnabled } from '@/lib/ai/gemini';
 
 /**
  * Shell aplikasi (route group `(app)`): sidebar persisten + konten yang berganti,
@@ -51,6 +52,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       isCoordinator={isCoordinator}
       hrdSections={emp?.hrd_sections ?? null}
       pageGrants={grantRows ?? []}
+      aiSettings={aiSummaryEnabled()}
       hrdMode={hrdMode}
       name={emp?.name ?? user.email ?? 'Pengguna'}
       dept={emp?.dept ?? '—'}

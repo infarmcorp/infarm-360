@@ -24,17 +24,15 @@ describe('aiSummaryEnabled — gerbang dev saja (gagal tertutup)', () => {
 });
 
 describe('costOf — perkiraan biaya', () => {
-  it('pakai harga bawaan; thinking ditagih sebagai output', () => {
-    const c = costOf({ inputTokens: 1_000_000, outputTokens: 500_000, thoughtTokens: 500_000 }, {});
+  it('thinking ditagih sebagai output; rupiah = USD × kurs', () => {
+    const c = costOf({ inputTokens: 1_000_000, outputTokens: 500_000, thoughtTokens: 500_000 }, { priceIn: 0.3, priceOut: 2.5, usdIdr: 16500 });
     expect(c.usd).toBeCloseTo(0.3 + 2.5, 10);
     expect(c.idr).toBeCloseTo((0.3 + 2.5) * 16500, 6);
   });
-  it('harga & kurs bisa diatur env; nilai rusak → bawaan', () => {
-    const c = costOf({ inputTokens: 2_000_000, outputTokens: 1_000_000, thoughtTokens: 0 },
-      { GEMINI_PRICE_INPUT_USD: '0.1', GEMINI_PRICE_OUTPUT_USD: '0.4', USD_IDR_RATE: '10000' });
+  it('harga & kurs dari pengaturan', () => {
+    const c = costOf({ inputTokens: 2_000_000, outputTokens: 1_000_000, thoughtTokens: 0 }, { priceIn: 0.1, priceOut: 0.4, usdIdr: 10000 });
     expect(c.usd).toBeCloseTo(0.6, 10);
     expect(c.idr).toBeCloseTo(6000, 6);
-    expect(costOf({ inputTokens: 1_000_000, outputTokens: 0, thoughtTokens: 0 }, { GEMINI_PRICE_INPUT_USD: 'abc' }).usd).toBeCloseTo(0.3, 10);
   });
 });
 
@@ -79,7 +77,8 @@ describe('bahan prompt — tanpa identitas', () => {
 
 describe('summarizeWithGemini', () => {
   afterEach(() => vi.unstubAllGlobals());
-  const env = { GEMINI_API_KEY: 'kunci-uji', GEMINI_MODEL: 'gemini-uji' };
+  const env = { GEMINI_API_KEY: 'kunci-uji' };
+  const OFF = { model: 'gemini-uji', thinking: 'off' as const };
 
   it('kirim kunci lewat header (bukan URL), baca usage & ringkasan', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
@@ -87,7 +86,7 @@ describe('summarizeWithGemini', () => {
       usageMetadata: { promptTokenCount: 120, candidatesTokenCount: 30, thoughtsTokenCount: 5 },
     }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
-    const r = await summarizeWithGemini('P', 'BAHAN', ['Jujur'], 2000, env);
+    const r = await summarizeWithGemini('P', 'BAHAN', ['Jujur'], 2000, OFF, env);
     expect(r).toEqual({ ok: true, summaries: { Jujur: 'Baik.' }, usage: { inputTokens: 120, outputTokens: 30, thoughtTokens: 5 }, model: 'gemini-uji' });
     const [url, init] = fetchMock.mock.calls[0];
     expect(String(url)).toContain('/models/gemini-uji:generateContent');
@@ -95,25 +94,34 @@ describe('summarizeWithGemini', () => {
     expect((init as RequestInit).headers).toMatchObject({ 'x-goog-api-key': 'kunci-uji' });
     const body = JSON.parse(String((init as RequestInit).body));
     expect(body.generationConfig.thinkingConfig).toEqual({ thinkingBudget: 0 });
+    expect(body.contents[0].parts[0].text.startsWith('P\n')).toBe(true);
+  });
+
+  it("thinking 'auto' → tanpa thinkingConfig (model yang tak bisa mematikannya)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '[]' }] } }] }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await summarizeWithGemini('P', 'B', ['a'], 100, { model: 'm', thinking: 'auto' }, env);
+    const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body));
+    expect(body.generationConfig.thinkingConfig).toBeUndefined();
   });
 
   it('error HTTP → gagal dengan pesan + usage', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { message: 'API key not valid' } }), { status: 400 })));
-    const r = await summarizeWithGemini('P', 'B', ['a'], 100, env);
+    const r = await summarizeWithGemini('P', 'B', ['a'], 100, OFF, env);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toContain('API key not valid');
   });
 
   it('koneksi gagal → pesan, tanpa melempar', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('net')));
-    const r = await summarizeWithGemini('P', 'B', ['a'], 100, env);
+    const r = await summarizeWithGemini('P', 'B', ['a'], 100, OFF, env);
     expect(r).toMatchObject({ ok: false });
   });
 
   it('tanpa kunci → tak memanggil fetch', async () => {
     const f = vi.fn();
     vi.stubGlobal('fetch', f);
-    const r = await summarizeWithGemini('P', 'B', ['a'], 100, {});
+    const r = await summarizeWithGemini('P', 'B', ['a'], 100, OFF, {});
     expect(r.ok).toBe(false);
     expect(f).not.toHaveBeenCalled();
   });

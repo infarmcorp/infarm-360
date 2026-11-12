@@ -7,6 +7,10 @@ vi.mock('@/lib/audit/log', () => ({ logHrdAction: vi.fn(async () => {}), logAudi
 vi.mock('@/lib/late-server', () => ({ refreshLatePenalties: vi.fn(async () => 0) }));
 vi.mock('next/headers', () => ({ cookies: vi.fn(async () => ({ get: () => ({ value: 'admin' }) })) }));
 vi.mock('@/lib/report', async (orig) => ({ ...(await orig<typeof import('@/lib/report')>()), loadReport: vi.fn() }));
+vi.mock('@/lib/ai/settings', async (orig) => {
+  const m = await orig<typeof import('@/lib/ai/settings')>();
+  return { ...m, loadAiSettings: vi.fn(async () => ({ ...m.defaultAiSettings('db'), aspectPrompt: 'PROMPT ASPEK UJI', version: 7 })) };
+});
 vi.mock('@/lib/ai/gemini', async (orig) => ({
   ...(await orig<typeof import('@/lib/ai/gemini')>()),
   aiSummaryEnabled: vi.fn(() => true),
@@ -93,9 +97,13 @@ describe('suggestSummariesAI', () => {
     if (!r.ok) return;
     expect(r.summaries).toEqual({ Jujur: 'Konsisten.' });
     expect(r.skipped).toEqual(['Gigih']);
+    expect(r.version).toBe(7);
+    expect(r.model).toBe('Gemini 2.5 Flash');
     expect(r.cost.idr).toBeGreaterThan(0);
 
-    const [, material, keys] = vi.mocked(summarizeWithGemini).mock.calls[0];
+    const [prompt, material, keys, , opts] = vi.mocked(summarizeWithGemini).mock.calls[0];
+    expect(prompt).toBe('PROMPT ASPEK UJI'); // prompt dari Pengaturan AI, bukan bawaan kode
+    expect(opts).toEqual({ model: 'gemini-2.5-flash', thinking: 'off' });
     expect(keys).toEqual(['Jujur']);
     expect(material).toContain('Selalu tepat waktu');
     expect(material).not.toContain('Nama Penilai Rahasia');

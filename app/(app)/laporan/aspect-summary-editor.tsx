@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Sparkles, Lock, Star, Check, X, WandSparkles, Loader2 } from 'lucide-react';
 import { CARD, CardTitle } from '@/components/infarm-ui';
 import { saveAspectSummaries, suggestSummariesAI, type AiSummaryResult } from '@/app/(app)/admin/laporan/actions';
@@ -29,7 +30,7 @@ const fmtInt = (n: number) => n.toLocaleString('id-ID');
 const fmtRp = (n: number) => `Rp ${n.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /** Baris pemakaian token + perkiraan biaya (Gemini). */
-function usageLine(r: Pick<AiOk, 'model' | 'usage' | 'cost'>) {
+function usageLine(r: Pick<AiOk, 'model' | 'version' | 'usage' | 'cost'>) {
   const out = r.usage.outputTokens + r.usage.thoughtTokens;
   return (
     <>
@@ -37,7 +38,7 @@ function usageLine(r: Pick<AiOk, 'model' | 'usage' | 'cost'>) {
       <span className="data-value">{fmtInt(out)}</span>
       {r.usage.thoughtTokens > 0 && <> (termasuk thinking <span className="data-value">{fmtInt(r.usage.thoughtTokens)}</span>)</>}
       {' '}· perkiraan biaya <strong className="data-value">{fmtRp(r.cost.idr)}</strong>{' '}
-      <span className="data-value">(US$ {r.cost.usd.toFixed(6)})</span> · model <span className="data-value">{r.model}</span>
+      <span className="data-value">(US$ {r.cost.usd.toFixed(6)})</span> · <span className="data-value">{r.model}</span> · prompt versi <span className="data-value">{r.version}</span>
     </>
   );
 }
@@ -48,6 +49,7 @@ export function AspectSummaryEditor({
   intro = 'Rangkuman evaluasi 360° pelaku budaya perusahaan dari seluruh komentar penilai. Pihak manajemen (HRD) melakukan kalibrasi atas aspek ini secara adil & transparan — tanpa menyebut identitas penilai.',
   noun = 'aspek',
   aiKind,
+  aiInfo,
 }: {
   employeeId: string; aspects: string[]; initial: Record<string, string>; locked?: boolean;
   // Jalur HRD memakai saveAspectSummaries (default); jalur Peninjau Lintas Divisi
@@ -60,6 +62,8 @@ export function AspectSummaryEditor({
   noun?: string;
   /** Diisi hanya bila Ringkas otomatis (Gemini) aktif di lingkungan ini (dev/staging). */
   aiKind?: 'aspect' | 'qual';
+  /** Model & versi prompt dari Pengaturan AI (satu untuk semua); tautan ubah hanya untuk HRD Mode Admin. */
+  aiInfo?: { model: string; version: number; settingsHref?: string };
 }) {
   const [vals, setVals] = useState<Record<string, string>>(() => {
     const o: Record<string, string> = {};
@@ -142,13 +146,19 @@ export function AspectSummaryEditor({
         {intro}
         {!locked && <> Tersimpan <strong>otomatis</strong> — tak perlu tombol Simpan.</>}
       </p>
+      {aiKind && !locked && aiInfo && (
+        <p className="text-xs text-ink-soft mt-1.5 no-print">
+          Ringkas otomatis: <span className="data-value">{aiInfo.model}</span> · prompt versi <span className="data-value">{aiInfo.version}</span>
+          {aiInfo.settingsHref && <> · <Link href={aiInfo.settingsHref} prefetch={false} className="underline font-semibold text-brand-ink">Ubah di Pengaturan AI</Link></>}
+        </p>
+      )}
       {aiKind && !locked && (aiError || ai) && (
         <div className={`mt-3 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed no-print ${aiError ? 'bg-danger-tint text-danger-ink' : 'bg-neutral-tint text-ink-soft'}`}>
           {aiError ? (
             <>
               <p className="font-semibold">{aiError.msg}</p>
               {aiError.detail && !aiError.detail.ok && aiError.detail.usage && aiError.detail.cost && aiError.detail.model && (
-                <p className="mt-1">{usageLine({ model: aiError.detail.model, usage: aiError.detail.usage, cost: aiError.detail.cost })}</p>
+                <p className="mt-1">{usageLine({ model: aiError.detail.model, version: aiError.detail.version ?? 0, usage: aiError.detail.usage, cost: aiError.detail.cost })}</p>
               )}
             </>
           ) : ai && (

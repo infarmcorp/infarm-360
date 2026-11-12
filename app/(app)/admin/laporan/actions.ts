@@ -12,7 +12,8 @@ import { finalLockError } from '@/lib/final-lock';
 import { mergeSummaryOverwrite, SUMMARY_MAX_LEN } from '@/lib/import/summaries';
 import { loadReport, withoutNamedFeedback } from '@/lib/report';
 import { aiSummaryEnabled, summarizeWithGemini, costOf, type AiUsage, type AiCost } from '@/lib/ai/gemini';
-import { ASPECT_PROMPT, QUAL_PROMPT, buildAspectMaterial, buildQualMaterial } from '@/lib/ai/summary-prompt';
+import { buildAspectMaterial, buildQualMaterial } from '@/lib/ai/summary-prompt';
+import { loadAiSettings, modelById } from '@/lib/ai/settings';
 
 /**
  * Review Hasil Akhir: hitung Skor Akhir kalibrasi & tulis final_reports.
@@ -668,14 +669,15 @@ export async function importSummaries(raw: unknown): Promise<ImportSummariesResu
  * HRD Mode Admin / grant Review Meringkas+ berlingkup, bukan laporan sendiri untuk grant).
  * Bahan = komentar mentah ANONIM (byAspect/essays) yang dimuat di server — L3 (nama penilai) tak ikut,
  * nama & divisi pegawai juga tak dikirim. Hasil = SARAN; tidak disimpan — HRD memilih memakainya.
+ * Model, harga, kurs & prompt = Pengaturan AI (satu untuk semua, lib/ai/settings.ts); versinya dicatat.
  */
 const AiSummaryInput = z.object({
   employeeId: z.string().uuid(),
   kind: z.enum(['aspect', 'qual']),
 });
 export type AiSummaryResult =
-  | { ok: true; summaries: Record<string, string>; skipped: string[]; model: string; usage: AiUsage; cost: AiCost }
-  | { ok: false; error: string; model?: string; usage?: AiUsage; cost?: AiCost };
+  | { ok: true; summaries: Record<string, string>; skipped: string[]; model: string; version: number; usage: AiUsage; cost: AiCost }
+  | { ok: false; error: string; model?: string; version?: number; usage?: AiUsage; cost?: AiCost };
 
 export async function suggestSummariesAI(raw: unknown): Promise<AiSummaryResult> {
   if (!aiSummaryEnabled()) return { ok: false, error: 'Ringkas otomatis tidak aktif di lingkungan ini.' };
@@ -702,20 +704,24 @@ export async function suggestSummariesAI(raw: unknown): Promise<AiSummaryResult>
   const mat = kind === 'aspect' ? buildAspectMaterial(data.byAspect, allKeys) : buildQualMaterial(data.essays, allKeys);
   if (!mat.keys.length) return { ok: false, error: 'Belum ada komentar penilai untuk diringkas.' };
 
-  const res = await summarizeWithGemini(kind === 'aspect' ? ASPECT_PROMPT : QUAL_PROMPT, mat.text, mat.keys, SUMMARY_MAX_LEN);
-  const cost = res.usage ? costOf(res.usage) : undefined;
+  const cfg = await loadAiSettings(admin);
+  const m = modelById(cfg.model);
+  if (!m) return { ok: false, error: 'Model di Pengaturan AI tidak dikenal.' };
+  const res = await summarizeWithGemini(kind === 'aspect' ? cfg.aspectPrompt : cfg.qualPrompt, mat.text, mat.keys, SUMMARY_MAX_LEN, { model: m.id, thinking: m.thinking });
+  const cost = res.usage ? costOf(res.usage, cfg) : undefined;
+  const label = m.label;
 
   // Catat pemakaian (tanpa isi komentar/ringkasan) agar total token bisa ditelusuri.
   await logReportAction(actor, {
     action: 'report.ai_summary', category: 'laporan',
     summary: `Ringkas otomatis (${kind === 'aspect' ? 'aspek' : 'kualitatif'}) — ${res.ok ? 'berhasil' : 'gagal'}`,
     targetType: 'employee', targetId: employeeId, targetLabel: data.emp.name,
-    meta: { via_grant: actor.viaGrant, model: res.model ?? null, ...(res.usage ?? {}), cost_idr: cost ? Math.round(cost.idr * 100) / 100 : null },
+    meta: { via_grant: actor.viaGrant, model: res.model ?? null, prompt_version: cfg.version, ...(res.usage ?? {}), cost_idr: cost ? Math.round(cost.idr * 100) / 100 : null },
   });
 
-  if (!res.ok) return { ok: false, error: res.error, model: res.model, usage: res.usage, cost };
+  if (!res.ok) return { ok: false, error: res.error, model: label, version: cfg.version, usage: res.usage, cost };
   return {
-    ok: true, summaries: res.summaries, model: res.model, usage: res.usage, cost: cost!,
+    ok: true, summaries: res.summaries, model: label, version: cfg.version, usage: res.usage, cost: cost!,
     skipped: allKeys.filter((k) => !res.summaries[k]),
   };
 }

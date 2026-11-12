@@ -7,16 +7,11 @@
  *  - URL Supabase bukan project production — komentar production tak pernah dikirim dari
  *    instalasi mana pun (termasuk `npm run dev` lokal yang kebetulan menunjuk production).
  *
- * Biaya = token × harga per 1 juta token (USD) × kurs. Harga & kurs bisa diubah lewat env karena
- * daftar harga Google berubah; nilai bawaan hanya perkiraan. Token "thinking" ditagih sebagai output.
+ * Model, harga, kurs, dan prompt diambil dari Pengaturan AI (lib/ai/settings.ts, satu untuk semua).
+ * Biaya = token × harga per 1 juta token (USD) × kurs. Token "thinking" ditagih sebagai output.
  */
 
 const PROD_SUPABASE_REF = 'beajoczjpywozavatzmf';
-
-export const DEFAULT_MODEL = 'gemini-2.5-flash';
-const DEFAULT_PRICE_IN = 0.3;    // USD per 1 juta token input (gemini-2.5-flash, teks)
-const DEFAULT_PRICE_OUT = 2.5;   // USD per 1 juta token output (termasuk thinking)
-const DEFAULT_USD_IDR = 16500;
 
 type Env = Record<string, string | undefined>;
 
@@ -28,19 +23,12 @@ export function aiSummaryEnabled(env: Env = process.env): boolean {
   return true;
 }
 
-function num(v: string | undefined, fallback: number): number {
-  const n = Number(v);
-  return v != null && v.trim() !== '' && Number.isFinite(n) && n >= 0 ? n : fallback;
-}
-
 export type AiUsage = { inputTokens: number; outputTokens: number; thoughtTokens: number };
 export type AiCost = { usd: number; idr: number; priceIn: number; priceOut: number; usdIdr: number };
 
 /** Perkiraan biaya: output yang ditagih = token jawaban + token thinking. */
-export function costOf(usage: AiUsage, env: Env = process.env): AiCost {
-  const priceIn = num(env.GEMINI_PRICE_INPUT_USD, DEFAULT_PRICE_IN);
-  const priceOut = num(env.GEMINI_PRICE_OUTPUT_USD, DEFAULT_PRICE_OUT);
-  const usdIdr = num(env.USD_IDR_RATE, DEFAULT_USD_IDR);
+export function costOf(usage: AiUsage, prices: { priceIn: number; priceOut: number; usdIdr: number }): AiCost {
+  const { priceIn, priceOut, usdIdr } = prices;
   const usd = (usage.inputTokens * priceIn + (usage.outputTokens + usage.thoughtTokens) * priceOut) / 1_000_000;
   return { usd, idr: usd * usdIdr, priceIn, priceOut, usdIdr };
 }
@@ -81,12 +69,12 @@ export function parseSummaries(text: string, keys: string[], maxLen: number): Re
 
 /** Panggil Gemini (REST generateContent) dengan keluaran JSON terstruktur per kunci. */
 export async function summarizeWithGemini(
-  prompt: string, material: string, keys: string[], maxLen: number, env: Env = process.env,
+  prompt: string, material: string, keys: string[], maxLen: number,
+  opts: { model: string; thinking: 'off' | 'auto' }, env: Env = process.env,
 ): Promise<SummaryResult> {
   const key = env.GEMINI_API_KEY?.trim();
   if (!key) return { ok: false, error: 'Ringkas otomatis belum diaktifkan.' };
-  const model = env.GEMINI_MODEL?.trim() || DEFAULT_MODEL;
-  const thinking = env.GEMINI_THINKING_BUDGET?.trim() ?? '0';
+  const { model, thinking } = opts;
 
   const body = {
     contents: [{
@@ -104,8 +92,8 @@ export async function summarizeWithGemini(
           required: ['kunci', 'ringkasan'],
         },
       },
-      // 'auto' = biarkan bawaan model (wajib untuk model yang tak bisa mematikan thinking).
-      ...(thinking !== 'auto' ? { thinkingConfig: { thinkingBudget: num(thinking, 0) } } : {}),
+      // 'off' = matikan thinking (hemat token); 'auto' = bawaan model (model yang tak bisa mematikannya).
+      ...(thinking === 'off' ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
     },
   };
 

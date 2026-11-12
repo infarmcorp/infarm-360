@@ -119,6 +119,9 @@ Semua di Vercel Dashboard (jangan commit). Hanya `NEXT_PUBLIC_*` yang boleh samp
 | `VERCEL_ENV` · `VERCEL_PROJECT_PRODUCTION_URL` | otomatis Vercel | `VERCEL_ENV=production` = satu-satunya kondisi maintenance ditegakkan |
 | `BACKUP_PASSPHRASE` | secret GitHub | kata sandi enkripsi backup harian (§8.2) |
 | `ALLOW_PROD`, `VU`, dll. | skrip uji beban | lihat §7.5 |
+| `GEMINI_API_KEY` | server, **Preview/Development saja** | aktifkan "Ringkas otomatis" (eksperimen, `lib/ai/gemini.ts`). Mati otomatis bila `VERCEL_ENV=production` **atau** `NEXT_PUBLIC_SUPABASE_URL` = project production. Jangan set di scope Production |
+| `GEMINI_MODEL` · `GEMINI_THINKING_BUDGET` | server, opsional | default `gemini-2.5-flash` · `0` (thinking mati; `auto` = bawaan model, wajib untuk model yang tak bisa mematikannya) |
+| `GEMINI_PRICE_INPUT_USD` · `GEMINI_PRICE_OUTPUT_USD` · `USD_IDR_RATE` | server, opsional | harga per 1 juta token & kurs untuk perkiraan biaya (default 0.30 · 2.50 · 16500). Sesuaikan dengan daftar harga Google terkini |
 
 ---
 

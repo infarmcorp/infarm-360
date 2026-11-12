@@ -223,12 +223,14 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 
 Dipindah ke §2 bila diputuskan dikerjakan.
 
-- **Ringkasan Aspek otomatis dengan AI (Claude).** Tombol "✨ Buat Ringkasan Otomatis" di editor ringkasan HRD:
-  nilai dan komentar **tanpa nama penilai** dikirim ke Claude, hasilnya mengisi kotak ringkasan, lalu HRD
-  menyunting. Butuh kunci API Claude (hanya di server), aktif lewat saklar, khusus HRD, memakai model termurah
-  (Haiku). Perkiraan biaya: ~$0,04 per pegawai → ~$2–4 per kuartal untuk 50–100 pegawai, hanya saat tombol
-  ditekan. Privasi: komentar (sudah anonim) dikirim ke Anthropic, disimpan 30 hari, tidak dipakai melatih
-  model. Perlu persetujuan kebijakan internal.
+- **Ringkas otomatis dengan AI — sedang dicoba di dev saja (2026-11-12, Gemini, kunci API pribadi).** Tombol
+  "Ringkas otomatis" di kartu ringkasan aspek dan ringkasan kualitatif pada laporan pegawai. HRD menekannya sendiri
+  (hemat biaya); hasilnya tampil sebagai **saran** di bawah tiap kotak beserta jumlah token masuk/keluar dan perkiraan
+  biaya dalam rupiah, dan baru tersimpan bila HRD menekan "Pakai saran ini"/"Pakai semua". Yang dikirim hanya nilai dan
+  komentar tanpa nama penilai, tanpa nama/divisi pegawai. **Tidak pernah aktif di production** (juga mati bila aplikasi
+  tersambung ke database production). Data staging diisi komentar asli lewat penyalinan dengan opsi khusus agar hasil bisa
+  dibandingkan dengan ringkasan HRD. Teks perintah (prompt) resmi menyusul dari pemilik. Sebelum dibawa ke production
+  perlu: kunci API milik perusahaan berbayar, persetujuan kebijakan internal, dan pembaruan panduan.
 - **Pengaman warna otomatis**: pengecekan otomatis yang menolak warna di luar palet resmi agar halaman baru
   tidak kembali ke gaya lama.
 - **Design System Infarm — rapikan sisa.** Seluruh halaman sudah memakainya (2026-11-04). Sisa kecil: pemanggil kotak

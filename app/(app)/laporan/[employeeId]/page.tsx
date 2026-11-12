@@ -16,6 +16,7 @@ import { saveQualSummaries } from '@/app/(app)/admin/laporan/actions';
 import { AlertTriangle, ArrowLeft, Info } from 'lucide-react';
 import { CARD } from '@/components/infarm-ui';
 import { INFARM_PAGE } from '@/app/infarm-fonts';
+import { aiSummaryEnabled } from '@/lib/ai/gemini';
 
 // Label ringkasan pertanyaan kualitatif (dipakai editor & tampilan read-only).
 const QUAL_TITLE = 'Ringkasan Umpan Balik Kualitatif 360°';
@@ -47,6 +48,8 @@ export default async function LaporanDetailPage({
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, is_coordinator, hrd_sections, dept').eq('id', user.id).maybeSingle();
   const role = me?.role;
   const isAdmin = canAdmin(me);
+  // Ringkas otomatis (Gemini) — hanya dev/staging; aksi server menegakkan gerbang yang sama.
+  const aiOn = aiSummaryEnabled();
   // Pemegang grant "Review & Finalisasi" (Manajemen Akses) juga boleh membuka detail dalam lingkupnya
   // (dicek di cabang grant di bawah). Tanpa itu, gate kasar tetap: SPV / HRD / Direksi / Koordinator.
   // SADAR-MODE: HRD "penuh" HANYA di Mode Admin; di Mode-SPV, akses detail lewat grant (bila ada).
@@ -182,7 +185,7 @@ export default async function LaporanDetailPage({
           <ReportDoc data={data} anonymize hideAssessorComments />
           {data.has360 && (canEditReport ? (
             <>
-              <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} locked={locked} />
+              <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} locked={locked} aiKind={aiOn ? 'aspect' : undefined} />
               {data.qualQuestions.length > 0 && (
                 <AspectSummaryEditor
                   employeeId={employeeId}
@@ -190,6 +193,7 @@ export default async function LaporanDetailPage({
                   initial={data.qualSummaries}
                   locked={locked}
                   saveAction={saveQualSummaries}
+                  aiKind={aiOn ? 'qual' : undefined}
                   title={QUAL_TITLE}
                   intro={QUAL_INTRO}
                   noun="pertanyaan"
@@ -429,7 +433,7 @@ export default async function LaporanDetailPage({
           <ReportDoc data={data} anonymize={false} hideAssessorComments={isAdmin} hidePrint={isAdmin} />
           {isAdmin && data.has360 && (
             <>
-              <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} locked={data.status === 'finalized' || !periodActive} />
+              <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} locked={data.status === 'finalized' || !periodActive} aiKind={aiOn ? 'aspect' : undefined} />
               {data.qualQuestions.length > 0 && (
                 <AspectSummaryEditor
                   employeeId={employeeId}
@@ -437,6 +441,7 @@ export default async function LaporanDetailPage({
                   initial={data.qualSummaries}
                   locked={data.status === 'finalized' || !periodActive}
                   saveAction={saveQualSummaries}
+                  aiKind={aiOn ? 'qual' : undefined}
                   title={QUAL_TITLE}
                   intro={QUAL_INTRO}
                   noun="pertanyaan"

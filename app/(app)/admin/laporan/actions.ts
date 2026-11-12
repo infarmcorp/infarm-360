@@ -10,6 +10,9 @@ import { finalScoreOf, kpiAvgOf, hasScoreDrift, fmt2 } from '@/lib/scoring';
 import { refreshLatePenalties } from '@/lib/late-server';
 import { finalLockError } from '@/lib/final-lock';
 import { mergeSummaryOverwrite, SUMMARY_MAX_LEN } from '@/lib/import/summaries';
+import { loadReport, withoutNamedFeedback } from '@/lib/report';
+import { aiSummaryEnabled, summarizeWithGemini, costOf, type AiUsage, type AiCost } from '@/lib/ai/gemini';
+import { ASPECT_PROMPT, QUAL_PROMPT, buildAspectMaterial, buildQualMaterial } from '@/lib/ai/summary-prompt';
 
 /**
  * Review Hasil Akhir: hitung Skor Akhir kalibrasi & tulis final_reports.
@@ -657,4 +660,62 @@ export async function importSummaries(raw: unknown): Promise<ImportSummariesResu
   revalidatePath('/admin/laporan');
   revalidatePath('/laporan/[employeeId]', 'page');
   return { ok: true, saved, skipped, failed };
+}
+
+/**
+ * RINGKAS OTOMATIS (Gemini) — EKSPERIMEN, hanya dev/staging (gerbang `aiSummaryEnabled`, gagal tertutup).
+ * HRD menekan tombol sendiri (hemat token). Otorisasi = penulis ringkasan (resolveReportWriteActor:
+ * HRD Mode Admin / grant Review Meringkas+ berlingkup, bukan laporan sendiri untuk grant).
+ * Bahan = komentar mentah ANONIM (byAspect/essays) yang dimuat di server — L3 (nama penilai) tak ikut,
+ * nama & divisi pegawai juga tak dikirim. Hasil = SARAN; tidak disimpan — HRD memilih memakainya.
+ */
+const AiSummaryInput = z.object({
+  employeeId: z.string().uuid(),
+  kind: z.enum(['aspect', 'qual']),
+});
+export type AiSummaryResult =
+  | { ok: true; summaries: Record<string, string>; skipped: string[]; model: string; usage: AiUsage; cost: AiCost }
+  | { ok: false; error: string; model?: string; usage?: AiUsage; cost?: AiCost };
+
+export async function suggestSummariesAI(raw: unknown): Promise<AiSummaryResult> {
+  if (!aiSummaryEnabled()) return { ok: false, error: 'Ringkas otomatis tidak aktif di lingkungan ini.' };
+  const parsed = AiSummaryInput.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'Permintaan tidak valid' };
+  const { employeeId, kind } = parsed.data;
+
+  const supabase = await createClient();
+  const actor = await resolveReportWriteActor(supabase, employeeId);
+  if (!actor.ok) return { ok: false, error: actor.error };
+
+  const admin = createAdminClient();
+  const { data: ap } = await admin.from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+  if (!ap.has_360) return { ok: false, error: 'Periode aktif tanpa 360°.' };
+  const { data: fr } = await admin.from('final_reports').select('status').eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
+  if (fr?.status === 'finalized') return { ok: false, error: 'Laporan sudah final — Buka Kembali (ke Draf) dulu.' };
+
+  const loaded = await loadReport(admin, employeeId, ap);
+  if (!loaded) return { ok: false, error: 'Data tidak ditemukan.' };
+  const data = withoutNamedFeedback(loaded); // L3 dibuang sebelum apa pun disusun
+
+  const allKeys = kind === 'aspect' ? data.aspects.map((a) => a.name) : data.qualQuestions;
+  const mat = kind === 'aspect' ? buildAspectMaterial(data.byAspect, allKeys) : buildQualMaterial(data.essays, allKeys);
+  if (!mat.keys.length) return { ok: false, error: 'Belum ada komentar penilai untuk diringkas.' };
+
+  const res = await summarizeWithGemini(kind === 'aspect' ? ASPECT_PROMPT : QUAL_PROMPT, mat.text, mat.keys, SUMMARY_MAX_LEN);
+  const cost = res.usage ? costOf(res.usage) : undefined;
+
+  // Catat pemakaian (tanpa isi komentar/ringkasan) agar total token bisa ditelusuri.
+  await logReportAction(actor, {
+    action: 'report.ai_summary', category: 'laporan',
+    summary: `Ringkas otomatis (${kind === 'aspect' ? 'aspek' : 'kualitatif'}) — ${res.ok ? 'berhasil' : 'gagal'}`,
+    targetType: 'employee', targetId: employeeId, targetLabel: data.emp.name,
+    meta: { via_grant: actor.viaGrant, model: res.model ?? null, ...(res.usage ?? {}), cost_idr: cost ? Math.round(cost.idr * 100) / 100 : null },
+  });
+
+  if (!res.ok) return { ok: false, error: res.error, model: res.model, usage: res.usage, cost };
+  return {
+    ok: true, summaries: res.summaries, model: res.model, usage: res.usage, cost: cost!,
+    skipped: allKeys.filter((k) => !res.summaries[k]),
+  };
 }

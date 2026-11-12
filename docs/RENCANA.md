@@ -49,8 +49,10 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 ### Rilis & operasional
 - 🔑⬜ **Panduan pindah ke Notion per peran** (keputusan pemilik 2026-11-06). Kartu Panduan, penanda PANDUAN, lampiran PDF
   di email Undangan, dan 4 berkas PDF lama sudah dihapus dari `dev` agar pegawai tidak memakai panduan yang salah. Rilisnya
-  ikut rilis menuju Q4 (keputusan pemilik), jadi sampai itu production masih memakai yang lama. Sisa: siapkan halaman Notion
-  tiap peran, lalu pasang tautannya di Akun Saya. Revisi 4 PDF tidak jadi dikerjakan.
+  ikut rilis menuju Q4 (keputusan pemilik), jadi sampai itu production masih memakai yang lama. Halaman Notion tiap peran
+  sudah ada, dan kartu **Panduan Saya** di Akun Saya sudah dipasang di `dev` (2026-11-12). Sisa: 🔑 bagikan halaman
+  "Panduan Pengguna" di Notion ke web (hanya halaman itu beserta isinya, **bukan** halaman induk yang memuat catatan
+  internal), lalu coba buka tautannya dari akun pegawai yang tidak punya akun Notion. Revisi 4 PDF tidak jadi dikerjakan.
 - 🔑🔄 **Rilis Q3** — sudah di production (2026-10-16), 0048 & 0049 terpasang. Sisa:
   - 🔑 kirim [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md) ke HRD (dan bagian untuk SPV/Koordinator & pegawai);
   - 🔑 jalankan bagian 16–21 [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md) di Preview `dev` (staging);

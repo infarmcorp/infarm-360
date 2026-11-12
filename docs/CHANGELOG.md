@@ -8,6 +8,14 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-12 — Panduan Saya di Akun Saya (di `dev`, belum dirilis)
+- Menggantikan kartu Panduan dan lampiran PDF lama yang sudah dihapus: Akun Saya kini berisi tautan ke panduan Notion.
+- Keputusan pemilik: tiap panduan peran sudah berdiri sendiri (termasuk tugas sebagai penilai 360°), jadi cukup **satu
+  panduan utama** per orang. Pengecualian: SPV yang memegang izin HRD Admin mendapat Panduan HRD Admin **dan** Panduan
+  SPV, dan siapa pun yang menerima akses halaman atau izin HRD terbatas mendapat tambahan Akses Khusus.
+- Daftar dihitung dari izin terkini tiap kali halaman dibuka, sama seperti menu. Pegawai yang diberi izin Koordinator
+  langsung melihat Panduan Koordinator, dan kembali ke Panduan Pegawai begitu izinnya dicabut, tanpa data yang diubah.
+
 ### 2026-11-11 — Direksi bisa membaca Laporan Pelanggaran (di `dev`, belum dirilis)
 - Keputusan pemilik: Direksi melihat **semua** laporan pelanggaran, termasuk laporan tentang dirinya sendiri. Halaman
   Laporan Pelanggaran kini ada di Menu Direksi, hanya baca, tampilannya sama dengan HRD. Pelapor tetap anonim karena

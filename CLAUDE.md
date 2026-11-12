@@ -40,6 +40,8 @@ Appraisal — Docs" (panduan per peran 2A–2F, Bab 1–11, Peta Aplikasi). Tiap
 susunan Notion — jangan salin PANDUAN.md mentah) dan tambah entri di database **Daily Report** (di bawah "Catatan Teknis
 (internal)"). Bila tampilan berubah, tandai gambar layar yang usang di entri Daily Report (diambil ulang terpisah). Panduan
 pegawai/SPV/koordinator menyebut laporan pelanggaran "hanya diakses HRD" (sesuai teks pop-up) — sengaja.
+Kartu **Panduan Saya** di Akun Saya menautkan halaman Notion per peran (`lib/panduan.ts`, `guidesFor` dari izin terkini,
+diuji `tests/panduan.test.ts`) — bila halaman Notion dipindah/diganti, perbarui URL-nya di sana.
 PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fungsi, path, nomor migrasi).
 
 ## 3. Stack & struktur

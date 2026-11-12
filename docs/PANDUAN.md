@@ -47,9 +47,25 @@ Bila muncul, aplikasi sedang diperbaiki developer. Semua pengguna, termasuk HRD,
 Data tetap aman. Coba lagi setelah "Perkiraan selesai" yang tertera. Bila mendesak, hubungi HRD.
 Setelah perbaikan selesai, halaman ini otomatis kembali ke aplikasi.
 
-### 1.3 Akun Saya — ganti sandi
+### 1.3 Akun Saya — panduan dan ganti sandi
 Tautan **Akun Saya** ada di bagian bawah sidebar, dekat **Keluar**. Halaman ini menampilkan nama, email login,
 divisi, peran, dan kode pegawai.
+
+**Panduan Saya** berisi tautan ke panduan di Notion yang sesuai peran dan izin Anda **saat ini**. Tautan terbuka di
+tab baru.
+
+| Keadaan Anda | Panduan yang tampil |
+|---|---|
+| Pegawai | Panduan Pegawai |
+| Pegawai yang diberi izin Koordinator | Panduan Koordinator (sudah mencakup tugas sebagai pegawai) |
+| SPV | Panduan SPV |
+| Direksi | Panduan Direksi |
+| Pemegang izin HRD Admin | Panduan HRD Admin; bila posisi Anda SPV, juga Panduan SPV |
+| Menerima akses halaman dari HRD, atau izin HRD yang dibatasi | ditambah Akses Khusus dari HRD |
+
+Daftar ini menyesuaikan sendiri. Bila izin Koordinator dicabut, misalnya, yang tampil kembali Panduan Pegawai.
+
+**Ganti sandi:**
 1. Isi **Sandi Saat Ini**, **Sandi Baru** (minimal 8 karakter), dan **Ulangi Sandi Baru**.
 2. Klik **Simpan Sandi Baru**.
 

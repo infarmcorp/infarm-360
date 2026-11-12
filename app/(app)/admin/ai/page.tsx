@@ -4,7 +4,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import { Note, PageTitle } from '@/components/infarm-ui';
 import { INFARM_PAGE } from '@/app/infarm-fonts';
-import { aiSummaryEnabled } from '@/lib/ai/gemini';
+import { aiSummaryEnabled, listGeminiModels } from '@/lib/ai/gemini';
 import { loadAiSettings } from '@/lib/ai/settings';
 import { ASPECT_PROMPT, QUAL_PROMPT } from '@/lib/ai/summary-prompt';
 import { AiSettingsForm } from './settings-form';
@@ -28,7 +28,7 @@ export default async function AiSettingsPage() {
     return <Shell><PageTitle title="Pengaturan AI" /><Note>Halaman ini untuk HRD di Mode Admin dengan akses Review &amp; Finalisasi.</Note></Shell>;
   }
 
-  const settings = await loadAiSettings(createAdminClient());
+  const [settings, list] = await Promise.all([loadAiSettings(createAdminClient()), listGeminiModels()]);
 
   return (
     <Shell>
@@ -38,10 +38,17 @@ export default async function AiSettingsPage() {
       </PageTitle>
       {settings.source === 'missing' && (
         <div className="mb-4">
-          <Note tone="warn">Tabel pengaturan belum ada di database ini (migrasi 0060). Ringkas otomatis tetap jalan dengan pengaturan bawaan, tetapi perubahan belum bisa disimpan.</Note>
+          <Note tone="warn">Tabel pengaturan belum ada di database ini (migrasi 0060). Model belum bisa disimpan, jadi Ringkas otomatis belum bisa dipakai sampai migrasi dijalankan.</Note>
         </div>
       )}
-      <AiSettingsForm initial={settings} defaults={{ aspectPrompt: ASPECT_PROMPT, qualPrompt: QUAL_PROMPT }} />
+      {!list.ok && (
+        <div className="mb-4"><Note tone="warn">Daftar model tidak bisa dimuat: {list.error} Pengaturan belum bisa disimpan sampai daftar ini termuat.</Note></div>
+      )}
+      <AiSettingsForm
+        initial={settings}
+        models={list.ok ? list.models : []}
+        defaults={{ aspectPrompt: ASPECT_PROMPT, qualPrompt: QUAL_PROMPT }}
+      />
     </Shell>
   );
 }

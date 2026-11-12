@@ -2,13 +2,13 @@
 --
 -- Satu baris (id = 1) berisi pengaturan yang BERLAKU UNTUK SEMUA ringkasan otomatis — agar hasil antarpegawai
 -- seragam (keputusan pemilik 2026-11-12: diatur di halaman terpisah "Pengaturan AI", bukan per laporan):
---   model (daftar tetap di kode, lib/ai/settings.ts) · harga per 1 juta token (perkiraan biaya) · kurs ·
+--   model (id dari daftar model Google, divalidasi server saat simpan) · harga per 1 juta token (perkiraan biaya) · kurs ·
 --   prompt aspek & prompt kualitatif · version (naik tiap prompt/model berubah; dicatat di tiap hasil & audit).
 -- Kunci API TIDAK disimpan di sini (tetap env server GEMINI_API_KEY).
 --
 -- Akses: hanya server (service_role) — RLS aktif TANPA policy, jadi anon/authenticated tak bisa membaca
--- maupun menulis. Aplikasi tetap jalan tanpa migrasi ini (pengaturan bawaan di kode; halaman Pengaturan AI
--- menampilkan "belum aktif").
+-- maupun menulis. Aplikasi tetap jalan tanpa migrasi ini, tetapi model belum bisa dipilih sehingga
+-- Ringkas otomatis menolak (halaman Pengaturan AI menampilkan peringatan).
 --
 -- Idempoten. Terapkan ke STAGING dulu (TEKNIS.md §1). Production cukup saat fitur dirilis.
 

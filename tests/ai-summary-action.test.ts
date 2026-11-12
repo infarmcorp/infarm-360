@@ -9,7 +9,7 @@ vi.mock('next/headers', () => ({ cookies: vi.fn(async () => ({ get: () => ({ val
 vi.mock('@/lib/report', async (orig) => ({ ...(await orig<typeof import('@/lib/report')>()), loadReport: vi.fn() }));
 vi.mock('@/lib/ai/settings', async (orig) => {
   const m = await orig<typeof import('@/lib/ai/settings')>();
-  return { ...m, loadAiSettings: vi.fn(async () => ({ ...m.defaultAiSettings('db'), aspectPrompt: 'PROMPT ASPEK UJI', version: 7 })) };
+  return { ...m, loadAiSettings: vi.fn(async () => ({ ...m.defaultAiSettings('db'), model: 'gemini-2.5-flash', priceIn: 0.3, priceOut: 2.5, aspectPrompt: 'PROMPT ASPEK UJI', version: 7 })) };
 });
 vi.mock('@/lib/ai/gemini', async (orig) => ({
   ...(await orig<typeof import('@/lib/ai/gemini')>()),
@@ -98,7 +98,7 @@ describe('suggestSummariesAI', () => {
     expect(r.summaries).toEqual({ Jujur: 'Konsisten.' });
     expect(r.skipped).toEqual(['Gigih']);
     expect(r.version).toBe(7);
-    expect(r.model).toBe('Gemini 2.5 Flash');
+    expect(r.model).toBe('gemini-2.5-flash');
     expect(r.cost.idr).toBeGreaterThan(0);
 
     const [prompt, material, keys, , opts] = vi.mocked(summarizeWithGemini).mock.calls[0];
@@ -113,6 +113,20 @@ describe('suggestSummariesAI', () => {
     // Saran saja — final_reports tak ditulis.
     expect(admin.calls.filter((c) => c.op !== 'select')).toEqual([]);
     expect(logHrdAction).toHaveBeenCalledWith(expect.objectContaining({ action: 'report.ai_summary' }));
+  });
+
+  it('model belum dipilih di Pengaturan AI → tolak tanpa memanggil Gemini', async () => {
+    const { loadAiSettings, defaultAiSettings } = await import('@/lib/ai/settings');
+    vi.mocked(loadAiSettings).mockResolvedValueOnce(defaultAiSettings('default'));
+    use(makeClient({ user: { id: UID }, tables: { employees: [{ data: HRD }] } }));
+    useAdmin(makeClient({ tables: {
+      periods: [{ data: { id: 'p1', label: 'Q3 2026', has_360: true } }],
+      final_reports: [{ data: null }],
+    } }));
+    const r = await suggestSummariesAI({ employeeId: EMP, kind: 'aspect' });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/Pengaturan AI/);
+    expect(summarizeWithGemini).not.toHaveBeenCalled();
   });
 
   it('tanpa komentar → tolak tanpa memanggil Gemini', async () => {

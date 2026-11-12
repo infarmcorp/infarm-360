@@ -17,7 +17,7 @@ import { AlertTriangle, ArrowLeft, Info } from 'lucide-react';
 import { CARD } from '@/components/infarm-ui';
 import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { aiSummaryEnabled } from '@/lib/ai/gemini';
-import { loadAiSettings, modelById } from '@/lib/ai/settings';
+import { loadAiSettings } from '@/lib/ai/settings';
 
 // Label ringkasan pertanyaan kualitatif (dipakai editor & tampilan read-only).
 const QUAL_TITLE = 'Ringkasan Umpan Balik Kualitatif 360°';
@@ -52,7 +52,7 @@ export default async function LaporanDetailPage({
   // Ringkas otomatis (Gemini) — hanya dev/staging; aksi server menegakkan gerbang yang sama.
   const aiOn = aiSummaryEnabled();
   const aiCfg = aiOn ? await loadAiSettings(createAdminClient()) : null;
-  const aiInfoBase = aiCfg ? { model: modelById(aiCfg.model)?.label ?? aiCfg.model, version: aiCfg.version } : undefined;
+  const aiInfoBase = aiCfg ? { model: aiCfg.model || 'model belum dipilih', version: aiCfg.version } : undefined;
   // Pemegang grant "Review & Finalisasi" (Manajemen Akses) juga boleh membuka detail dalam lingkupnya
   // (dicek di cabang grant di bawah). Tanpa itu, gate kasar tetap: SPV / HRD / Direksi / Koordinator.
   // SADAR-MODE: HRD "penuh" HANYA di Mode Admin; di Mode-SPV, akses detail lewat grant (bila ada).

@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bot, MessageSquareText, Coins, Check, X, RotateCcw } from 'lucide-react';
+import { SearchableSelect } from '@/components/searchable-select';
 import { CARD, CardTitle, FIELD, FIELD_LABEL, Note } from '@/components/infarm-ui';
 import { Button } from '@/components/button';
 import { callAction } from '@/lib/call-action';
-import { AI_MODELS, PROMPT_MAX_LEN, modelById, type AiSettings } from '@/lib/ai/settings';
+import { KNOWN_PRICES, PROMPT_MAX_LEN, thinkingFor, type AiSettings } from '@/lib/ai/settings';
+import type { GeminiModelInfo } from '@/lib/ai/gemini';
 import { saveAiSettings } from './actions';
 
 const fmtRp = (n: number) => `Rp ${n.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -16,8 +18,9 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleString('id-ID', { dateSty
 const SAMPLE_IN = 3000;
 const SAMPLE_OUT = 600;
 
-export function AiSettingsForm({ initial, defaults }: {
+export function AiSettingsForm({ initial, models, defaults }: {
   initial: AiSettings;
+  models: GeminiModelInfo[];
   defaults: { aspectPrompt: string; qualPrompt: string };
 }) {
   const router = useRouter();
@@ -30,17 +33,20 @@ export function AiSettingsForm({ initial, defaults }: {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  // Harga terakhir diubah tangan? → jangan ditimpa saat ganti model ke model tanpa harga diketahui.
   function pickModel(id: string) {
-    const m = modelById(id);
-    if (!m) return;
     setModel(id);
-    setPriceIn(String(m.priceIn));
-    setPriceOut(String(m.priceOut));
+    const known = KNOWN_PRICES[id];
+    if (known) { setPriceIn(String(known.priceIn)); setPriceOut(String(known.priceOut)); }
     setMsg(null);
   }
+  const info = models.find((m) => m.id === model) ?? null;
+  const priceKnown = !!KNOWN_PRICES[model];
+  const savedModelGone = !!model && models.length > 0 && !info;
 
   const pIn = Number(priceIn), pOut = Number(priceOut), kurs = Number(usdIdr);
   const numbersOk = [pIn, pOut, kurs].every((n) => Number.isFinite(n) && n >= 0) && kurs > 0;
+  const canSave = numbersOk && !!info;
   const sampleIdr = numbersOk ? ((SAMPLE_IN * pIn + SAMPLE_OUT * pOut) / 1_000_000) * kurs : null;
 
   async function save() {
@@ -61,23 +67,31 @@ export function AiSettingsForm({ initial, defaults }: {
 
       <section className={CARD}>
         <CardTitle icon={Bot}>Model</CardTitle>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          {AI_MODELS.map((m) => {
-            const active = m.id === model;
-            return (
-              <button
-                key={m.id} type="button" onClick={() => pickModel(m.id)}
-                className={`text-left rounded-control border p-3 transition-colors ${active ? 'border-brand bg-brand-tint' : 'border-line bg-surface hover:border-infarm-light'}`}
-              >
-                <span className={`flex items-center gap-1.5 text-[13px] font-bold ${active ? 'text-brand-ink' : 'text-ink'}`}>
-                  {active && <Check className="w-3.5 h-3.5" aria-hidden />}{m.label}
-                </span>
-                <span className="block text-xs text-ink-soft mt-1">{m.note}</span>
-                <span className="block text-xs text-ink-soft mt-1.5 data-value">US$ {m.priceIn} / {m.priceOut} per 1 jt token</span>
-              </button>
-            );
-          })}
+        <p className="text-xs text-ink-soft mt-1.5">
+          Daftar diambil langsung dari Google sesuai kunci API yang terpasang (<span className="data-value">{models.length}</span> model teks), jadi model baru muncul sendiri.
+        </p>
+        <div className="mt-3 max-w-xl">
+          <SearchableSelect
+            value={info ? model : ''}
+            onChange={pickModel}
+            options={models.map((m) => ({ value: m.id, label: m.label === m.id ? m.id : `${m.label} — ${m.id}` }))}
+            placeholder={models.length ? '— pilih model —' : 'Daftar model belum termuat'}
+            disabled={!models.length}
+          />
         </div>
+        {savedModelGone && (
+          <div className="mt-3"><Note tone="warn">Model tersimpan <span className="data-value">{model}</span> sudah tidak tersedia untuk kunci ini. Pilih model lain lalu simpan.</Note></div>
+        )}
+        {info && (
+          <div className="mt-3 rounded-control border border-line bg-infarm-surface p-3 text-xs text-ink-soft space-y-1">
+            <p><strong className="text-ink">{info.label}</strong> · <span className="data-value">{info.id}</span>
+              {info.inputTokenLimit != null && <> · batas input <span className="data-value">{info.inputTokenLimit.toLocaleString('id-ID')}</span> token</>}</p>
+            {info.description && <p>{info.description}</p>}
+            <p>{thinkingFor(info.id) === 'off'
+              ? 'Thinking dimatikan agar hemat token.'
+              : 'Thinking mengikuti bawaan model — token output (ditagih) bisa lebih banyak dari panjang ringkasan.'}</p>
+          </div>
+        )}
       </section>
 
       <section className={CARD}>
@@ -97,7 +111,9 @@ export function AiSettingsForm({ initial, defaults }: {
           </label>
         </div>
         <p className="text-xs text-ink-soft mt-2.5">
-          Harga terisi otomatis saat memilih model; koreksi bila daftar harga Google berubah.
+          {info && !priceKnown
+            ? <strong className="text-warn-ink">Harga model ini belum diketahui aplikasi — isi dari halaman harga Gemini API (ai.google.dev/pricing) agar perkiraan rupiah benar. </strong>
+            : 'Harga terisi otomatis untuk model yang dikenal; koreksi bila daftar harga Google berubah. '}
           {sampleIdr != null && <> Contoh: <span className="data-value">{SAMPLE_IN.toLocaleString('id-ID')}</span> token input + <span className="data-value">{SAMPLE_OUT.toLocaleString('id-ID')}</span> token output ≈ <strong className="data-value">{fmtRp(sampleIdr)}</strong> per sekali ringkas.</>}
         </p>
       </section>
@@ -119,7 +135,7 @@ export function AiSettingsForm({ initial, defaults }: {
       </Note>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button onClick={() => { void save(); }} disabled={busy || !numbersOk}>{busy ? 'Menyimpan…' : 'Simpan pengaturan'}</Button>
+        <Button onClick={() => { void save(); }} disabled={busy || !canSave}>{busy ? 'Menyimpan…' : 'Simpan pengaturan'}</Button>
         {msg && (
           <span className={`flex items-center gap-1 text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>
             {msg.ok ? <Check className="w-3.5 h-3.5" aria-hidden /> : <X className="w-3.5 h-3.5" aria-hidden />}{msg.text}

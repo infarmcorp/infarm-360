@@ -229,7 +229,9 @@ Dipindah ke §2 bila diputuskan dikerjakan.
   biaya dalam rupiah, dan baru tersimpan bila HRD menekan "Pakai saran ini"/"Pakai semua". Yang dikirim hanya nilai dan
   komentar tanpa nama penilai, tanpa nama/divisi pegawai. **Tidak pernah aktif di production** (juga mati bila aplikasi
   tersambung ke database production). Data staging diisi komentar asli lewat penyalinan dengan opsi khusus agar hasil bisa
-  dibandingkan dengan ringkasan HRD. Model, harga, kurs, dan teks perintah (prompt) diatur sekali di halaman
+  dibandingkan dengan ringkasan HRD. Daftar model diambil langsung dari Google (model lama bisa ditarik Google kapan saja —
+  gemini-2.5-flash sudah ditolak untuk pengguna baru per 2026-11-12), harga model baru diisi HRD dari daftar harga Google.
+  Model, harga, kurs, dan teks perintah (prompt) diatur sekali di halaman
   **Pengaturan AI** (menu Administrasi, khusus HRD Mode Admin) dan berlaku untuk semua ringkasan agar hasilnya seragam;
   tiap perubahan model/prompt menaikkan nomor versi yang tercatat di tiap hasil. Butuh perubahan database ke-60 di
   staging. Prompt resmi menyusul dari pemilik. Sebelum dibawa ke production perlu: kunci API milik perusahaan berbayar,

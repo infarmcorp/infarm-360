@@ -123,3 +123,47 @@ export async function summarizeWithGemini(
   }
   return { ok: true, summaries, usage, model };
 }
+
+export type GeminiModelInfo = { id: string; label: string; description: string; inputTokenLimit: number | null };
+
+type ModelsResponse = {
+  models?: { name?: string; displayName?: string; description?: string; inputTokenLimit?: number; supportedGenerationMethods?: string[] }[];
+  nextPageToken?: string;
+  error?: { message?: string };
+};
+
+// Model yang bukan untuk menulis teks ringkasan (embedding, gambar, suara, realtime).
+const NON_TEXT = /(embedding|embed|imagen|image|tts|audio|live|veo|aqa|robotics|computer-use)/i;
+
+/**
+ * Daftar model Gemini yang tersedia untuk kunci ini & bisa generateContent (teks). Kunci lewat header.
+ * Gagal → { ok:false } (halaman menampilkan pesan; simpan pengaturan ditolak karena tak bisa divalidasi).
+ */
+export async function listGeminiModels(env: Env = process.env): Promise<{ ok: true; models: GeminiModelInfo[] } | { ok: false; error: string }> {
+  const key = env.GEMINI_API_KEY?.trim();
+  if (!key) return { ok: false, error: 'Kunci API Gemini belum dipasang.' };
+  const out: GeminiModelInfo[] = [];
+  let token = '';
+  for (let page = 0; page < 10; page++) {
+    let json: ModelsResponse;
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000${token ? `&pageToken=${encodeURIComponent(token)}` : ''}`, {
+        headers: { 'x-goog-api-key': key }, signal: AbortSignal.timeout(20_000), cache: 'no-store',
+      });
+      json = (await res.json().catch(() => ({}))) as ModelsResponse;
+      if (!res.ok) return { ok: false, error: `Google menolak permintaan daftar model (${res.status}): ${json.error?.message ?? 'tanpa pesan'}` };
+    } catch {
+      return { ok: false, error: 'Gagal menghubungi Google untuk daftar model.' };
+    }
+    for (const m of json.models ?? []) {
+      const id = (m.name ?? '').replace(/^models\//, '');
+      if (!id || NON_TEXT.test(id)) continue;
+      if (!(m.supportedGenerationMethods ?? []).includes('generateContent')) continue;
+      out.push({ id, label: m.displayName?.trim() || id, description: m.description?.trim() ?? '', inputTokenLimit: m.inputTokenLimit ?? null });
+    }
+    if (!json.nextPageToken) break;
+    token = json.nextPageToken;
+  }
+  out.sort((a, b) => b.id.localeCompare(a.id, 'en', { numeric: true })); // versi terbaru di atas
+  return { ok: true, models: out };
+}

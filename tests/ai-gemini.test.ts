@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { aiSummaryEnabled, costOf, parseSummaries, summarizeWithGemini } from '@/lib/ai/gemini';
+import { aiSummaryEnabled, costOf, parseSummaries, summarizeWithGemini, listGeminiModels } from '@/lib/ai/gemini';
 import { buildAspectMaterial, buildQualMaterial } from '@/lib/ai/summary-prompt';
 
 const STG = 'https://twgdlhmsoifvmiqpkqsr.supabase.co';
@@ -123,6 +123,47 @@ describe('summarizeWithGemini', () => {
     vi.stubGlobal('fetch', f);
     const r = await summarizeWithGemini('P', 'B', ['a'], 100, OFF, {});
     expect(r.ok).toBe(false);
+    expect(f).not.toHaveBeenCalled();
+  });
+});
+
+describe('listGeminiModels — daftar model langsung dari Google', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const env = { GEMINI_API_KEY: 'kunci-uji' };
+
+  it('hanya model teks yang bisa generateContent; terbaru di atas; kunci lewat header; ikut halaman berikutnya', async () => {
+    const page1 = { models: [
+      { name: 'models/gemini-2.5-flash', displayName: 'Gemini 2.5 Flash', supportedGenerationMethods: ['generateContent'] },
+      { name: 'models/text-embedding-004', supportedGenerationMethods: ['embedContent'] },
+      { name: 'models/gemini-2.5-flash-preview-tts', supportedGenerationMethods: ['generateContent'] },
+    ], nextPageToken: 'p2' };
+    const page2 = { models: [
+      { name: 'models/gemini-3.8-flash', displayName: 'Gemini 3.8 Flash', description: 'Terbaru', inputTokenLimit: 1048576, supportedGenerationMethods: ['generateContent', 'countTokens'] },
+    ] };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(page1), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(page2), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const r = await listGeminiModels(env);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.models.map((m) => m.id)).toEqual(['gemini-3.8-flash', 'gemini-2.5-flash']);
+    expect(r.models[0]).toMatchObject({ label: 'Gemini 3.8 Flash', inputTokenLimit: 1048576 });
+    expect(String(fetchMock.mock.calls[1][0])).toContain('pageToken=p2');
+    expect(String(fetchMock.mock.calls[0][0])).not.toContain('kunci-uji');
+  });
+
+  it('error dari Google → ok:false dengan pesan', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { message: 'API key not valid' } }), { status: 400 })));
+    const r = await listGeminiModels(env);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain('API key not valid');
+  });
+
+  it('tanpa kunci → tak memanggil Google', async () => {
+    const f = vi.fn();
+    vi.stubGlobal('fetch', f);
+    expect((await listGeminiModels({})).ok).toBe(false);
     expect(f).not.toHaveBeenCalled();
   });
 });

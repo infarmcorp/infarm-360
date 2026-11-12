@@ -119,7 +119,7 @@ Semua di Vercel Dashboard (jangan commit). Hanya `NEXT_PUBLIC_*` yang boleh samp
 | `VERCEL_ENV` · `VERCEL_PROJECT_PRODUCTION_URL` | otomatis Vercel | `VERCEL_ENV=production` = satu-satunya kondisi maintenance ditegakkan |
 | `BACKUP_PASSPHRASE` | secret GitHub | kata sandi enkripsi backup harian (§8.2) |
 | `ALLOW_PROD`, `VU`, dll. | skrip uji beban | lihat §7.5 |
-| `GEMINI_API_KEY` | server, **Preview/Development saja** | aktifkan "Ringkas otomatis" + halaman Pengaturan AI (eksperimen, `lib/ai/gemini.ts`). Mati otomatis bila `VERCEL_ENV=production` **atau** `NEXT_PUBLIC_SUPABASE_URL` = project production. Jangan set di scope Production. Model, harga, kurs & prompt diatur di halaman **Pengaturan AI** (tabel `ai_settings`, 0060); daftar model tetap di `lib/ai/settings.ts` (`AI_MODELS`) |
+| `GEMINI_API_KEY` | server, **Preview/Development saja** | aktifkan "Ringkas otomatis" + halaman Pengaturan AI (eksperimen, `lib/ai/gemini.ts`). Mati otomatis bila `VERCEL_ENV=production` **atau** `NEXT_PUBLIC_SUPABASE_URL` = project production. Jangan set di scope Production. Model, harga, kurs & prompt diatur di halaman **Pengaturan AI** (tabel `ai_settings`, 0060); daftar model diambil langsung dari Google sesuai kunci (`listGeminiModels`), harga model baru diisi HRD |
 
 ---
 
@@ -522,7 +522,7 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0057 | Pengaman Rencana Pengembangan: trigger `trg_periods_guard_dev_plan_cols` (kolom `dev_plan_*` hanya diubah server — tutup celah `periods_write`), trigger `trg_dev_plan_items_guard` (prioritas hanya berubah saat `draft`/`revision`, Direksi bebas; berlaku juga untuk service_role), fungsi `dev_plan_replace_items` (ganti prioritas atomik, kunci baris rencana; service_role; kode punya cadangan `rpcMissing`) |
 | 0058 | Laporkan Pelanggaran (perluasan 0054): kolom `incident_date` (tanggal kejadian, wajib untuk baris baru lewat check `NOT VALID`), `is_other` (kategori Lainnya → `aspect_id` boleh kosong, check tepat salah satu), `note` (≤ 1000); trigger aspek dilewati bila Lainnya. Tanpa kolom penulis/waktu kirim. Tanpa migrasi: kirim laporan "sedang diperbarui", halaman HRD membaca kolom lama. Rincian §5.4 |
 | 0059 | Rencana Pengembangan — baca Direksi dibatasi: fungsi `dev_plan_direksi_reads(owner)` (security definer; Direksi + pemilik rencana posisi SPV atau pemimpin tim, bukan Direksi) menggantikan `is_direksi()` di `dp_read`/`dpi_read`/`dps_read`. Aplikasi baca via service_role → tanpa cadangan kode. Rincian §5.5 |
-| 0060 | **Eksperimen dev** — tabel `ai_settings` (satu baris `id=1`): model, harga per 1 juta token, kurs, prompt aspek & kualitatif, `version`, pengubah terakhir. RLS tanpa policy (service_role saja). Dipakai halaman Pengaturan AI & "Ringkas otomatis"; tanpa tabel → pengaturan bawaan kode (`lib/ai/settings.ts`). Cukup di staging; production saat fitur dirilis |
+| 0060 | **Eksperimen dev** — tabel `ai_settings` (satu baris `id=1`): model (id dari daftar Google, divalidasi saat simpan), harga per 1 juta token, kurs, prompt aspek & kualitatif, `version`, pengubah terakhir. RLS tanpa policy (service_role saja). Dipakai halaman Pengaturan AI & "Ringkas otomatis"; tanpa tabel → model belum bisa dipilih, Ringkas otomatis menolak. Cukup di staging; production saat fitur dirilis |
 
 ---
 

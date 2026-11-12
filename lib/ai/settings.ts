@@ -2,35 +2,35 @@
  * Pengaturan "Ringkas otomatis" (tabel ai_settings, migrasi 0060) — SATU pengaturan untuk semua ringkasan
  * agar hasil antarpegawai seragam (diatur di halaman Pengaturan AI, bukan per laporan).
  *
- * Model hanya dari daftar tetap `AI_MODELS` (divalidasi server). Harga bawaan per model = perkiraan saat
- * kode ditulis; HRD bisa mengoreksinya di halaman Pengaturan AI bila daftar harga Google berubah.
- * Tabel belum ada (migrasi belum diterapkan) → pakai bawaan di kode (`source: 'default'`).
+ * MODEL: daftar diambil LANGSUNG dari Google (`listGeminiModels`, memakai kunci server) — model baru muncul
+ * tanpa ubah kode; daftar tetap di kode cepat usang (2026-11-12: gemini-2.5-flash ditolak untuk pengguna
+ * baru). Server tetap memvalidasi model terhadap daftar itu saat menyimpan. Tak ada model bawaan: selama
+ * HRD belum memilih model, Ringkas otomatis menolak dengan arahan ke Pengaturan AI.
+ * HARGA: Google tak menyertakan harga di daftar model → HRD mengisi dari daftar harga Google;
+ * `KNOWN_PRICES` hanya mengisi otomatis model yang harganya diketahui saat kode ditulis.
+ * Tabel belum ada (migrasi belum diterapkan) → bawaan (`source: 'missing'`).
  */
 import { ASPECT_PROMPT, QUAL_PROMPT } from './summary-prompt';
 
-export type AiModel = {
-  id: string;
-  label: string;
-  priceIn: number;   // USD per 1 juta token input
-  priceOut: number;  // USD per 1 juta token output (termasuk thinking)
-  /** 'off' = thinking dimatikan (hemat); 'auto' = bawaan model (model yang tak bisa mematikan thinking). */
-  thinking: 'off' | 'auto';
-  note: string;
+/** Harga perkiraan (USD per 1 juta token) untuk model yang diketahui; selebihnya diisi HRD. */
+export const KNOWN_PRICES: Record<string, { priceIn: number; priceOut: number }> = {
+  'gemini-2.5-flash-lite': { priceIn: 0.1, priceOut: 0.4 },
+  'gemini-2.5-flash': { priceIn: 0.3, priceOut: 2.5 },
+  'gemini-2.5-pro': { priceIn: 1.25, priceOut: 10 },
 };
 
-export const AI_MODELS: AiModel[] = [
-  { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite', priceIn: 0.1, priceOut: 0.4, thinking: 'off', note: 'Paling murah & cepat; ringkasan lebih sederhana.' },
-  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', priceIn: 0.3, priceOut: 2.5, thinking: 'off', note: 'Seimbang antara mutu dan biaya.' },
-  { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', priceIn: 1.25, priceOut: 10, thinking: 'auto', note: 'Mutu tertinggi, paling mahal; selalu memakai thinking (token output lebih banyak).' },
-];
+/** Model yang thinking-nya bisa dimatikan (hemat token). Model lain → bawaan model (tanpa thinkingConfig). */
+const THINKING_OFF_OK = new Set(['gemini-2.5-flash-lite', 'gemini-2.5-flash']);
+export const thinkingFor = (model: string): 'off' | 'auto' => (THINKING_OFF_OK.has(model) ? 'off' : 'auto');
 
-export const DEFAULT_MODEL_ID = 'gemini-2.5-flash';
+/** Bentuk id model yang sah (tanpa awalan "models/"). */
+export const MODEL_ID_RE = /^[a-z0-9][a-z0-9.\-]{1,79}$/;
+
 export const DEFAULT_USD_IDR = 16500;
 export const PROMPT_MAX_LEN = 8000;
 
-export const modelById = (id: string): AiModel | undefined => AI_MODELS.find((m) => m.id === id);
-
 export type AiSettings = {
+  /** '' = belum dipilih HRD. */
   model: string;
   priceIn: number;
   priceOut: number;
@@ -45,9 +45,8 @@ export type AiSettings = {
 };
 
 export function defaultAiSettings(source: AiSettings['source'] = 'default'): AiSettings {
-  const m = modelById(DEFAULT_MODEL_ID)!;
   return {
-    model: m.id, priceIn: m.priceIn, priceOut: m.priceOut, usdIdr: DEFAULT_USD_IDR,
+    model: '', priceIn: 0, priceOut: 0, usdIdr: DEFAULT_USD_IDR,
     aspectPrompt: ASPECT_PROMPT, qualPrompt: QUAL_PROMPT, version: 0,
     updatedByName: null, updatedAt: null, source,
   };
@@ -70,10 +69,10 @@ export async function loadAiSettings(admin: AnyClient): Promise<AiSettings> {
   if (error) return defaultAiSettings(tableMissing(error) ? 'missing' : 'default');
   const r = data as Row | null;
   if (!r) return defaultAiSettings('default');
-  // Model yang sudah dikeluarkan dari daftar → kembali ke bawaan (gagal aman, tak memanggil model sembarang).
-  if (!modelById(r.model)) return { ...defaultAiSettings('default'), aspectPrompt: r.aspect_prompt, qualPrompt: r.qual_prompt, version: r.version };
   return {
-    model: r.model, priceIn: Number(r.price_input_usd), priceOut: Number(r.price_output_usd), usdIdr: Number(r.usd_idr),
+    // Id tersimpan yang bentuknya tak sah → anggap belum dipilih (gagal aman).
+    model: MODEL_ID_RE.test(r.model) ? r.model : '',
+    priceIn: Number(r.price_input_usd), priceOut: Number(r.price_output_usd), usdIdr: Number(r.usd_idr),
     aspectPrompt: r.aspect_prompt, qualPrompt: r.qual_prompt, version: r.version,
     updatedByName: r.updated_by_name, updatedAt: r.updated_at, source: 'db',
   };

@@ -6,16 +6,17 @@ import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
-import { aiSummaryEnabled } from '@/lib/ai/gemini';
-import { AI_MODELS, PROMPT_MAX_LEN, loadAiSettings, tableMissing } from '@/lib/ai/settings';
+import { aiSummaryEnabled, listGeminiModels } from '@/lib/ai/gemini';
+import { MODEL_ID_RE, PROMPT_MAX_LEN, loadAiSettings, tableMissing } from '@/lib/ai/settings';
 
 /**
  * Simpan Pengaturan AI (migrasi 0060) — SATU pengaturan untuk semua "Ringkas otomatis".
  * Hanya HRD Mode Admin berbagian Review & Finalisasi, dan hanya saat fitur aktif (dev/staging).
  * Tulis via service_role (tabel tanpa policy). Versi naik bila model atau prompt berubah.
+ * Model WAJIB ada di daftar model Google untuk kunci ini (listGeminiModels) — daftar gagal dimuat = tolak.
  */
 const Input = z.object({
-  model: z.enum(AI_MODELS.map((m) => m.id) as [string, ...string[]]),
+  model: z.string().trim().regex(MODEL_ID_RE, 'Pilih model dari daftar'),
   priceIn: z.number().finite().min(0).max(1000),
   priceOut: z.number().finite().min(0).max(1000),
   usdIdr: z.number().finite().min(1000).max(100000),
@@ -37,6 +38,10 @@ export async function saveAiSettings(raw: unknown): Promise<{ ok: true; version:
   if (!(canSection(me, 'laporan') && hrdMode === 'admin')) {
     return { ok: false, error: 'Hanya HRD (Mode Admin) dengan akses Review & Finalisasi yang dapat mengubah Pengaturan AI.' };
   }
+
+  const list = await listGeminiModels();
+  if (!list.ok) return { ok: false, error: list.error };
+  if (!list.models.some((m) => m.id === v.model)) return { ok: false, error: 'Model tidak tersedia untuk kunci API ini — pilih dari daftar.' };
 
   const admin = createAdminClient();
   const cur = await loadAiSettings(admin);

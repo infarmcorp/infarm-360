@@ -13,7 +13,7 @@ import { mergeSummaryOverwrite, SUMMARY_MAX_LEN } from '@/lib/import/summaries';
 import { loadReport, withoutNamedFeedback } from '@/lib/report';
 import { aiSummaryEnabled, summarizeWithGemini, costOf, type AiUsage, type AiCost } from '@/lib/ai/gemini';
 import { buildAspectMaterial, buildQualMaterial } from '@/lib/ai/summary-prompt';
-import { loadAiSettings, modelById } from '@/lib/ai/settings';
+import { loadAiSettings, thinkingFor } from '@/lib/ai/settings';
 
 /**
  * Review Hasil Akhir: hitung Skor Akhir kalibrasi & tulis final_reports.
@@ -705,11 +705,10 @@ export async function suggestSummariesAI(raw: unknown): Promise<AiSummaryResult>
   if (!mat.keys.length) return { ok: false, error: 'Belum ada komentar penilai untuk diringkas.' };
 
   const cfg = await loadAiSettings(admin);
-  const m = modelById(cfg.model);
-  if (!m) return { ok: false, error: 'Model di Pengaturan AI tidak dikenal.' };
-  const res = await summarizeWithGemini(kind === 'aspect' ? cfg.aspectPrompt : cfg.qualPrompt, mat.text, mat.keys, SUMMARY_MAX_LEN, { model: m.id, thinking: m.thinking });
+  if (!cfg.model) return { ok: false, error: 'Model AI belum dipilih — atur dulu di halaman Pengaturan AI (menu Administrasi).' };
+  const res = await summarizeWithGemini(kind === 'aspect' ? cfg.aspectPrompt : cfg.qualPrompt, mat.text, mat.keys, SUMMARY_MAX_LEN, { model: cfg.model, thinking: thinkingFor(cfg.model) });
   const cost = res.usage ? costOf(res.usage, cfg) : undefined;
-  const label = m.label;
+  const label = cfg.model;
 
   // Catat pemakaian (tanpa isi komentar/ringkasan) agar total token bisa ditelusuri.
   await logReportAction(actor, {

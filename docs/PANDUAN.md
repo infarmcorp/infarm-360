@@ -898,9 +898,8 @@ Finalisasi. Direksi juga bisa membuka halaman ini dari Menu Direksi.)
 - Isinya laporan dari pegawai tentang rekan kerja (fitur **Laporkan Pelanggaran** di Daftar Penilaian Saya).
   **Pelapor anonim**: laporan tidak menyimpan nama maupun waktu kirim pelapor, jadi HRD pun tidak bisa tahu siapa
   pelapornya.
-- **Periode** dipilih di bagian atas. Kartu ringkas menunjukkan jumlah laporan masuk, jumlah pegawai dilaporkan, dan
-  jumlah laporan berkategori Lainnya.
-- Kiri: daftar **pegawai yang dilaporkan**, yang laporannya terbanyak di atas, dengan kategori laporannya. Kanan:
+- **Periode** dipilih di bagian atas. Kartu ringkas: **Total laporan**, **Pegawai terlapor**, dan **Kategori Lainnya**.
+- Kiri: daftar **Nama Pegawai** dan **Jumlah Laporan**, yang laporannya terbanyak di atas, dengan kategori laporannya. Kanan:
   laporan pegawai yang dipilih, **satu kartu per laporan** berisi tanggal kejadian, kategori, isi laporan, dan catatan
   pelapor (bila ada). Urutannya menurut tanggal kejadian terbaru, bukan urutan kirim.
 - Filter **Divisi**, **Kategori**, dan **cari nama pegawai** hanya menyaring tampilan.

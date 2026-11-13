@@ -54,13 +54,13 @@ export function ViolationBoard({ people, categories }: { people: BoardPerson[]; 
       </div>
 
       {visible.length === 0 ? (
-        <div className={CARD}><p className="text-[13px] text-ink-soft">Tidak ada laporan yang cocok dengan filter.</p></div>
+        <div className={CARD}><p className="text-[13px] text-ink-soft">Tidak ada laporan untuk filter ini.</p></div>
       ) : (
         <div className="flex flex-wrap gap-4 items-start">
           <div className="flex-[1_1_280px] max-w-sm min-w-0 bg-surface border border-line rounded-card shadow-card overflow-hidden">
-            <div className="px-4 py-3 border-b border-line-soft flex items-baseline justify-between gap-2">
-              <h2 className="text-base font-bold text-ink">Pegawai dilaporkan</h2>
-              <span className="text-xs text-ink-soft">terbanyak dulu</span>
+            <div className="px-4 py-2.5 border-b border-line-soft flex items-center justify-between gap-2 text-xs font-bold text-ink-soft whitespace-nowrap">
+              <span>Nama Pegawai</span>
+              <span className="w-28 shrink-0 text-center">Jumlah Laporan</span>
             </div>
             <div className="max-h-[560px] overflow-y-auto">
               {visible.map((p) => {
@@ -76,7 +76,9 @@ export function ViolationBoard({ people, categories }: { people: BoardPerson[]; 
                         </p>
                         <p className="text-xs text-ink-soft truncate">{p.dept}</p>
                       </div>
-                      <span className="shrink-0 min-w-7 h-6 px-2 rounded-full bg-danger-tint text-danger-ink font-mono text-xs font-semibold inline-flex items-center justify-center">{p.reports.length}</span>
+                      <span className="w-28 shrink-0 flex justify-center">
+                        <span className="min-w-7 h-6 px-2 rounded-full bg-danger-tint text-danger-ink font-mono text-xs font-semibold inline-flex items-center justify-center">{p.reports.length}</span>
+                      </span>
                     </div>
                     <div className="flex flex-wrap gap-1 mt-2">
                       {[...new Set(p.reports.map((r) => r.category))].map((c) => (
@@ -95,7 +97,7 @@ export function ViolationBoard({ people, categories }: { people: BoardPerson[]; 
                 <div>
                   <h2 className="text-base font-bold text-ink">{sel.name}</h2>
                   <p className="text-xs text-ink-soft mt-0.5">
-                    {sel.dept} · <span className="font-mono">{sel.reports.length}</span> laporan · urut tanggal kejadian terbaru
+                    {sel.dept} · <span className="font-mono">{sel.reports.length}</span> laporan, kejadian terbaru di atas
                   </p>
                 </div>
               </div>
@@ -105,7 +107,7 @@ export function ViolationBoard({ people, categories }: { people: BoardPerson[]; 
                     <span className="text-xs font-bold uppercase tracking-[0.06em] text-ink-soft">Laporan {i + 1}</span>
                     <span className="inline-flex items-center gap-1 text-xs text-ink bg-infarm-surface border border-brand-tint rounded-full px-2.5 py-0.5">
                       <CalendarDays className="w-3 h-3 text-brand-ink" aria-hidden />
-                      Kejadian <span className="font-mono">{r.date ? formatDateWib(r.date) : '—'}</span>
+                      Tanggal kejadian <span className="font-mono">{r.date ? formatDateWib(r.date) : '—'}</span>
                     </span>
                     <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${r.isOther ? 'bg-infarm-cream text-infarm-soil' : 'bg-brand-tint text-brand-ink'}`}>{r.category}</span>
                   </div>

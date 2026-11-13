@@ -74,7 +74,7 @@ export default async function LaporanPelanggaranPage({ searchParams }: { searchP
   return (
     <Shell>
       <PageTitle title="Laporan Pelanggaran">
-        Laporan dari pegawai tentang rekan kerja. Pelapor anonim: laporan tidak menyimpan nama maupun waktu kirim pelapor.
+        Laporan pegawai tentang rekan kerja. Nama pelapor dan waktu kirim tidak disimpan.
       </PageTitle>
 
       <div className="space-y-4">
@@ -90,25 +90,25 @@ export default async function LaporanPelanggaranPage({ searchParams }: { searchP
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard item={{ icon: Flag, tone: 'brand', value: String(reports.length), label: 'Laporan masuk' }} />
-          <StatCard item={{ icon: Users, tone: 'danger', value: String(people.length), label: 'Pegawai dilaporkan' }} />
+          <StatCard item={{ icon: Flag, tone: 'brand', value: String(reports.length), label: 'Total laporan' }} />
+          <StatCard item={{ icon: Users, tone: 'danger', value: String(people.length), label: 'Pegawai terlapor' }} />
           <StatCard item={{ icon: Info, tone: 'soil', value: String(otherCount), label: `Kategori ${OTHER_CATEGORY_LABEL}` }} />
         </div>
 
         {people.length === 0 ? (
-          <div className={CARD}><p className="text-[13px] text-ink-soft">Belum ada laporan pelanggaran di {sel.label}.</p></div>
+          <div className={CARD}><p className="text-[13px] text-ink-soft">Belum ada laporan di {sel.label}.</p></div>
         ) : (
           <ViolationBoard people={people} categories={categories} />
         )}
 
         <Note>
-          Laporan tidak memengaruhi Skor 360° maupun Skor Akhir dan tidak tampil di laporan pegawai. Laporan sebelum
-          pembaruan formulir tidak memiliki tanggal kejadian (tampil &quot;—&quot;).
+          Laporan tidak memengaruhi skor dan tidak tampil di laporan pegawai. Laporan lama tanpa tanggal kejadian
+          ditandai &quot;—&quot;.
           {!isDireksi && (
             <>
-              {' '}Unduh semua laporan lewat{' '}
+              {' '}Unduh semua laporan:{' '}
               <Link prefetch={false} href="/admin/ekspor" className="font-semibold text-brand-ink hover:underline">Ekspor Dataset</Link>
-              {' '}→ Bahan Laporan per Pegawai (lembar Laporan Pelanggaran).
+              {' '}→ Bahan Laporan per Pegawai, lembar Laporan Pelanggaran.
             </>
           )}
         </Note>

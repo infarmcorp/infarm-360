@@ -8,6 +8,11 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-13 — Tanggal kejadian di Laporkan Pelanggaran memakai kalender aplikasi (di `dev`, belum dirilis)
+- Kolom **Tanggal kejadian** dulu memakai kalender bawaan browser (tampilan berbeda tiap perangkat, bahasa Inggris).
+  Kini memakai kalender yang sama dengan Kelola Periode. Tanggal setelah hari ini (WIB) tidak bisa dipilih; aturan di
+  server tetap sama.
+
 ### 2026-11-12 — Panduan Saya di Akun Saya (di `dev`, belum dirilis)
 - Menggantikan kartu Panduan dan lampiran PDF lama yang sudah dihapus: Akun Saya kini berisi tautan ke panduan Notion.
 - Keputusan pemilik: tiap panduan peran sudah berdiri sendiri (termasuk tugas sebagai penilai 360°), jadi cukup **satu

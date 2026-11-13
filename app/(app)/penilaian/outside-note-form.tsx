@@ -4,6 +4,12 @@ import { useState, useTransition } from 'react';
 import { BookOpen, CheckCircle2, Lock, PenLine } from 'lucide-react';
 import { submitOutsideNote } from './outside-note-actions';
 import { SearchableSelect } from '@/components/searchable-select';
+import { DatePicker } from '@/components/date-picker';
+
+/** Hari ini menurut WIB (`YYYY-MM-DD`) — batas yang sama dengan validasi server. */
+function todayWib(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+}
 import { callAction } from '@/lib/call-action';
 import { OUTSIDE_NOTE_MIN, OUTSIDE_NOTE_MAX, OUTSIDE_NOTE_EXTRA_MAX } from '@/lib/outside-notes';
 import { Modal, ModalActions } from './modal';
@@ -105,8 +111,9 @@ export function OutsideNoteButton({ candidates, aspects }: { candidates: Candida
               </div>
               <div className="min-w-0">
                 <label className={FIELD_LABEL}>Tanggal kejadian {REQ}</label>
-                <input type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} disabled={busy}
-                  className={`${FIELD} w-full font-mono`} />
+                {/* Pemilih tanggal yang sama dengan Kelola Periode; tanggal setelah hari ini (WIB) tak bisa dipilih. */}
+                <DatePicker value={incidentDate} onChange={setIncidentDate} max={todayWib()}
+                  placeholder="Pilih tanggal" ariaLabel="Tanggal kejadian" className="w-full" />
               </div>
               <div className="min-w-0">
                 <label className={FIELD_LABEL}>Kategori {REQ}</label>

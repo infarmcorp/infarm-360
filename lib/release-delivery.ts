@@ -72,7 +72,7 @@ export async function deliverReleaseEmails(db: Db, args: {
       ...(attachments.length ? { attachments } : {}),
     });
     if (r.ok) sent.push(id);
-    else failed.push({ id, name, reason: r.reason === 'error' ? (r.detail ?? 'gagal kirim') : 'email belum aktif' });
+    else failed.push({ id, name, reason: r.reason === 'error' ? (r.detail ?? 'gagal dikirim') : 'email belum aktif' });
   }
   return { ok: true, sent, skipped, failed };
 }

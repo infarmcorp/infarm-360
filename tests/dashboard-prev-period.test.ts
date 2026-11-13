@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { fakeDb } from './helpers/fake-postgrest';
 import { loadPrevPeriodScores } from '@/lib/dashboard/prev-period';
 
-// Dashboard Organisasi, selisih "vs periode lalu": Skor 360° & laporan periode sebelumnya untuk id
+// Dasbor Organisasi, selisih "vs periode lalu": Skor 360° & laporan periode sebelumnya untuk id
 // SELURUH organisasi. Dulu `.in('employee_id', empIds)` tanpa pemecahan (URL raksasa / terpotong).
 const id = (i: number) => `00000000-0000-0000-0000-${String(i).padStart(12, '0')}`;
 const asSet = (rows: Record<string, unknown>[]) => rows.map((r) => JSON.stringify(Object.keys(r).sort().map((k) => [k, r[k]]))).sort();

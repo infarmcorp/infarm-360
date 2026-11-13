@@ -30,7 +30,7 @@ export default async function PerbaruiSandiPage() {
         ) : (
           <>
             <p className="text-[13px] text-ink-soft mt-1.5 mb-4 text-center">
-              Tautan tidak valid atau sudah kedaluwarsa. Silakan minta tautan reset baru.
+              Tautan tidak berlaku atau sudah kedaluwarsa. Silakan minta tautan baru.
             </p>
             <Link href="/auth/lupa-sandi" className="flex items-center justify-center min-h-9 bg-brand hover:bg-brand-ink text-white text-[13px] font-bold rounded-xl transition-colors">
               Minta Tautan Baru

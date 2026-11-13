@@ -76,8 +76,8 @@ export default async function KpiPage({
 
     return (
       <Shell>
-        <PageTitle title="Monitoring & Audit KPI">
-          Rekapitulasi kuartal &amp; jejak audit perubahan KPI dalam lingkup akses Anda (lihat-saja).
+        <PageTitle title="Pemantauan & Audit KPI">
+          Rekapitulasi kuartal &amp; jejak audit perubahan KPI dalam lingkup akses Anda (hanya lihat).
         </PageTitle>
         {deptOptions.length > 1 && <div className="-mt-1 mb-5"><DeptSelect depts={deptOptions} current={dept} /></div>}
         <MonitoringTabs view={view} period={period} dept={dept} />
@@ -105,7 +105,7 @@ export default async function KpiPage({
     const dept = resolveDeptParam(deptParam, deptOptions);
     return (
       <Shell>
-        <PageTitle title="Monitoring & Audit KPI">
+        <PageTitle title="Pemantauan & Audit KPI">
           Rekapitulasi kuartal &amp; jejak audit perubahan KPI seluruh pegawai.
         </PageTitle>
         {deptOptions.length > 1 && <div className="-mt-1 mb-5"><DeptSelect depts={deptOptions} current={dept} /></div>}
@@ -147,17 +147,17 @@ export default async function KpiPage({
 
   return (
     <Shell>
-      <PageTitle title={isCoord ? 'Input KPI' : 'Kinerja Tim'}>
+      <PageTitle title={isCoord ? 'Pengisian KPI' : 'Kinerja Tim'}>
         {isCoord
-          ? 'Input KPI bulanan untuk pegawai yang Anda koordinasikan.'
-          : 'Input KPI bulanan, riwayat audit, & rekapitulasi per kuartal anggota tim.'}
+          ? 'Pengisian KPI bulanan untuk pegawai yang Anda koordinasikan.'
+          : 'Pengisian KPI bulanan, riwayat audit, dan rekapitulasi per kuartal anggota tim.'}
       </PageTitle>
 
       {/* Sub-tab disembunyikan untuk koordinator (hanya Input KPI) → isi langsung di kanvas. */}
       {isCoord ? <div className="mt-5">{content}</div> : (
         <>
           <TabBar>
-            <Tab href="/kpi?tab=input" active={tab === 'input'} icon={PencilLine}>Input KPI</Tab>
+            <Tab href="/kpi?tab=input" active={tab === 'input'} icon={PencilLine}>Pengisian KPI</Tab>
             <Tab href="/kpi?tab=riwayat" active={tab === 'riwayat'} icon={History}>Riwayat &amp; Audit</Tab>
             <Tab href="/kpi?tab=rekap" active={tab === 'rekap'} icon={LayoutList}>Rekapitulasi Kuartal</Tab>
           </TabBar>

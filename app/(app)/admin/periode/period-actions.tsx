@@ -80,8 +80,7 @@ export function PeriodActions({
           <>
             <p>Periode aktif <strong>“{label}”</strong> masih punya:</p>
             <ul className="list-disc pl-5">{issues.map((s, i) => <li key={i}>{s}</li>)}</ul>
-            <p>Mengaktifkan periode ini akan <strong>MENGUNCI “{label}”</strong> — penilaian/KPI-nya
-              tak bisa diisi/edit lagi, dan draf yang tersisa ikut terkunci.</p>
+            <p>Mengaktifkan periode ini akan <strong>MENGUNCI “{label}”</strong>: penilaian, KPI, dan draf yang tersisa tidak bisa diubah lagi.</p>
           </>
         ),
         onConfirm: () => fromDialog(() => activatePeriod(periodId)),
@@ -110,9 +109,7 @@ export function PeriodActions({
         body: (
           <>
             <p>Sudah ada <strong>{r.count} penilaian 360° terkirim</strong> di periode ini.</p>
-            <p>Mematikan 360° akan <strong>menyembunyikan form penilaian</strong> dari pegawai &amp;
-              mengubah <strong>Skor Akhir menjadi 100% KPI</strong> (komponen 360° tak dihitung &amp;
-              klasifikasi talenta berubah). Lanjut?</p>
+            <p>Mematikan 360° menyembunyikan formulir penilaian dan mengubah <strong>Skor Akhir menjadi 100% KPI</strong>. Klasifikasi talenta ikut berubah. Lanjutkan?</p>
           </>
         ),
         onConfirm: () => fromDialog(() => toggleHas360(periodId, false)),
@@ -141,10 +138,8 @@ export function PeriodActions({
               <ul className="list-disc pl-5">{issues.map((s, i) => <li key={i}>{s}</li>)}</ul>
             </>
           )}
-          <p>Mengunci & mengakhiri akan <strong>menutup periode</strong>: penilaian/KPI tak bisa
-            diisi/edit lagi, dan Anda <strong>tidak bisa memfinalisasi</strong> laporan tanpa
-            mengaktifkan ulang periode.</p>
-          {issues.length > 0 && <p className="font-semibold text-danger-ink">Sebaiknya finalisasi dulu yang tersisa.</p>}
+          <p>Periode akan ditutup: penilaian dan KPI tidak bisa diubah, dan laporan tidak bisa difinalisasi tanpa mengaktifkan ulang periode.</p>
+          {issues.length > 0 && <p className="font-semibold text-danger-ink">Sebaiknya finalisasi dulu laporan yang tersisa.</p>}
         </>
       ),
       onConfirm: () => fromDialog(() => endPeriod(periodId)),
@@ -176,12 +171,12 @@ export function PeriodActions({
   // Satu primary action per state; sisanya (toggle 360°, form, hapus) ke menu ⋯.
   const menuItems: OverflowItem[] = [
     {
-      label: has360 ? 'Set Tanpa 360°' : 'Aktifkan 360°',
+      label: has360 ? 'Atur Tanpa 360°' : 'Aktifkan 360°',
       onSelect: toggle360Guard,
       disabled: busy,
       title: has360
-        ? 'Menutup komponen 360°: form penilaian disembunyikan dari pegawai & skor 360° tak dihitung.'
-        : 'Membuka komponen 360°: form penilaian tampil ke pegawai yang punya pemetaan & skor 360° dihitung.',
+        ? 'Menutup komponen 360°: formulir penilaian disembunyikan dari pegawai & skor 360° tak dihitung.'
+        : 'Membuka 360°: formulir penilaian tampil ke pegawai yang punya pemetaan, dan skor 360° dihitung.',
     },
     // Fase tinjau pemetaan — hanya relevan selagi periode aktif & 360° menyala.
     ...(status === 'active' && has360 ? [{
@@ -190,15 +185,15 @@ export function PeriodActions({
       disabled: busy,
       title: mappingPublished
         ? 'Menyembunyikan kembali daftar pemetaan dari pegawai (pengajuan hapus/tambah ikut ditutup).'
-        : 'Menampilkan daftar "siapa menilai siapa" ke pegawai untuk ditinjau — mereka bisa mengajukan penghapusan atau penambahan sebelum form dibuka.',
+        : 'Tampilkan daftar "siapa menilai siapa" ke pegawai. Mereka bisa mengajukan penghapusan atau penambahan sebelum formulir dibuka.',
     } as OverflowItem] : []),
     ...(status === 'active' && has360 ? [{
-      label: formOpen ? 'Tutup Form' : 'Buka Form',
+      label: formOpen ? 'Tutup Formulir' : 'Buka Formulir',
       onSelect: () => run(() => toggleFormOpen(periodId, !formOpen)),
       disabled: busy,
       title: formOpen
-        ? 'Menutup form: pegawai berhenti mengisi (tahap review). 360° TETAP dihitung & Hitung Ulang tetap tersedia.'
-        : 'Membuka kembali form agar pegawai bisa melanjutkan pengisian 360°.',
+        ? 'Menutup formulir: pegawai berhenti mengisi. Skor 360° TETAP dihitung dan Hitung Ulang tetap tersedia.'
+        : 'Membuka kembali formulir agar pegawai bisa melanjutkan pengisian 360°.',
     } as OverflowItem] : []),
     {
       label: 'Hapus periode',
@@ -206,7 +201,7 @@ export function PeriodActions({
       tone: 'danger',
       disabled: busy || status === 'active',
       title: status === 'active'
-        ? 'Periode aktif tidak bisa dihapus — "Kunci & Akhiri" dulu.'
+        ? 'Periode aktif tidak bisa dihapus — jalankan "Kunci & Akhiri" terlebih dahulu.'
         : 'Hapus periode ini beserta seluruh datanya (permanen).',
     },
   ];
@@ -217,7 +212,7 @@ export function PeriodActions({
         {status === 'active' ? (
           <Button variant="ghost" disabled={busy} onClick={endWithGuard}>Kunci &amp; Akhiri</Button>
         ) : (
-          <Button variant="primary" disabled={busy} onClick={activateWithGuard}>Aktivasi</Button>
+          <Button variant="primary" disabled={busy} onClick={activateWithGuard}>Aktifkan</Button>
         )}
         <OverflowMenu items={menuItems} />
       </div>
@@ -252,7 +247,7 @@ export function PeriodActions({
           <>
             <p>Periode ini berisi data berikut yang akan <strong>ikut terhapus permanen</strong>:</p>
             <ul className="list-disc pl-5">
-              {del && del.counts.assessments > 0 && <li>{del.counts.assessments} penilaian 360° (+ jawaban rating &amp; esai)</li>}
+              {del && del.counts.assessments > 0 && <li>{del.counts.assessments} penilaian 360° (+ jawaban nilai &amp; esai)</li>}
               {del && del.counts.kpi > 0 && <li>{del.counts.kpi} skor KPI (bulan khusus periode ini)</li>}
               {del && del.counts.finalReports > 0 && <li>{del.counts.finalReports} laporan final</li>}
               {del && del.counts.mappings > 0 && <li>{del.counts.mappings} pemetaan penilai→target</li>}

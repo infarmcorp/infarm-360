@@ -59,11 +59,11 @@ export function PeriodForm() {
 
       <label className="flex items-start gap-2.5 mt-4 text-[13px] text-ink-soft leading-relaxed">
         <input type="checkbox" checked={has360} onChange={(e) => setHas360(e.target.checked)} className="mt-0.5 accent-brand" />
-        <span>Sertakan Evaluasi 360° <span className="text-ink font-semibold">(Skor Akhir = blend KPI 50% + 360° 50%; jika tidak, 100% KPI)</span></span>
+        <span>Sertakan Evaluasi 360° <span className="text-ink font-semibold">(Skor Akhir = KPI 50% + 360° 50%; tanpa 360° = 100% KPI)</span></span>
       </label>
 
       <div className="flex flex-wrap items-center gap-2.5 mt-4 text-[13px] text-ink-soft">
-        <label htmlFor="kpiStandard">Standar/Target KPI untuk metrik dashboard</label>
+        <label htmlFor="kpiStandard">Standar/Target KPI untuk metrik dasbor</label>
         <input id="kpiStandard" type="number" min={0} max={100} value={kpiStandard}
           onChange={(e) => setKpiStandard(e.target.value)}
           className={`${FIELD} w-16 text-center data-value`} />

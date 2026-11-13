@@ -189,8 +189,7 @@ export function AspectSummaryEditor({
           <p className="flex items-center gap-1.5 text-xs font-semibold text-brand-ink bg-brand-tint rounded-xl px-3.5 py-2.5 no-print">
             <Lock className="w-3.5 h-3.5 shrink-0" />
             <span>
-              Laporan sudah <strong>final</strong> &amp; terlihat pegawai. Untuk mengubah ringkasan,
-              klik <strong>&quot;Buka Kembali (ke Draf)&quot;</strong> di panel atas.
+              Laporan sudah <strong>final</strong> dan terlihat oleh pegawai. Untuk mengubah ringkasan, klik <strong>&quot;Buka Kembali (ke Draf)&quot;</strong> di panel atas.
             </span>
           </p>
         )}

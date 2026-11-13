@@ -85,7 +85,7 @@ export async function processDueReleaseSchedules(db: Db, opts: { now?: number; m
   const { data, error } = await db.from('release_email_schedules').select(COLS)
     .or(`and(status.eq.scheduled,send_at.lte.${nowIso}),and(status.eq.sending,started_at.lt.${staleIso})`)
     .order('send_at', { ascending: true }).limit(5);
-  if (error) return { ok: false, error: tableMissing(error) ? 'tabel jadwal belum ada (migrasi 0053)' : error.message, results: [] };
+  if (error) return { ok: false, error: tableMissing(error) ? 'fitur jadwal belum aktif' : error.message, results: [] };
 
   const results: ProcessResult[] = [];
   for (const raw of (data ?? []) as Row[]) {
@@ -98,7 +98,7 @@ export async function processDueReleaseSchedules(db: Db, opts: { now?: number; m
       .update({ status: 'sending', started_at: nowIso, updated_at: nowIso }).eq('id', s.id).eq('status', s.status);
     claim = s.startedAt ? claim.eq('started_at', s.startedAt) : claim.is('started_at', null);
     const { data: claimed, error: cErr } = await claim.select('id');
-    if (cErr || !claimed?.length) { results.push({ id: s.id, sent: 0, skipped: 0, failed: 0, done: false, note: 'diambil pemanggil lain' }); continue; }
+    if (cErr || !claimed?.length) { results.push({ id: s.id, sent: 0, skipped: 0, failed: 0, done: false, note: 'sedang diproses oleh pengiriman lain' }); continue; }
 
     const finish = async (patch: { sent: string[]; skipped: ReleasePerson[]; failed: ReleasePerson[]; done: boolean }) => {
       await db.from('release_email_schedules').update({

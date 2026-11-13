@@ -174,14 +174,14 @@ describe('sendReleaseEmails', () => {
     const form = (file: File, key = 'panduan') => { const f = new FormData(); f.set('periodId', PID); f.set('key', key); f.set('file', file); return f; };
     expect(await uploadReleaseImage(form(new File(['x'], 'a.gif', { type: 'image/gif' })))).toEqual({ ok: false, error: 'Format gambar harus JPG, PNG, atau WebP.' });
     expect(await uploadReleaseImage(form(new File([new Uint8Array(2 * 1024 * 1024 + 1)], 'a.jpg', { type: 'image/jpeg' })))).toEqual({ ok: false, error: 'Ukuran gambar maksimal 2 MB.' });
-    expect(await uploadReleaseImage(form(new File(['x'], 'a.jpg', { type: 'image/jpeg' }), 'lain'))).toEqual({ ok: false, error: 'Input tidak valid' });
+    expect(await uploadReleaseImage(form(new File(['x'], 'a.jpg', { type: 'image/jpeg' }), 'lain'))).toEqual({ ok: false, error: 'Isian tidak valid' });
     expect(createAdminClient).not.toHaveBeenCalled();
   });
 
   it('batas gelombang 20 pegawai per panggilan', async () => {
     const ids = Array.from({ length: 21 }, (_, i) => `66666666-6666-4666-8666-${String(i).padStart(12, '0')}`);
     const r = await sendReleaseEmails({ periodId: PID, employeeIds: ids, content: CONTENT });
-    expect(r).toEqual({ ok: false, error: 'Input tidak valid' });
+    expect(r).toEqual({ ok: false, error: 'Isian tidak valid' });
   });
 
   it('kirim uji ke email HRD sendiri, tak dicatat sebagai terkirim', async () => {

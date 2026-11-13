@@ -59,13 +59,12 @@ export function Recompute360Button({ stale, primary, blocked = false }: { stale:
 
       <ConfirmDialog
         open={confirmForce} icon="🔄" tone="primary"
-        title="Hitung ulang paksa Skor 360°?"
+        title="Paksa hitung ulang Skor 360°?"
         confirmLabel="Ya, hitung ulang" busy={busy}
         onConfirm={run} onCancel={() => setConfirmForce(false)}
       >
         <p>Aplikasi tidak mendeteksi perubahan sejak Skor 360° terakhir dihitung, jadi biasanya ini <strong>tidak perlu</strong>.</p>
-        <p>Pakai hanya bila Anda yakin ada perubahan yang belum masuk. Pegawai yang laporannya sudah Final dilewati
-          (laporan Final terkunci; Buka Kembali dulu bila angkanya memang harus berubah).</p>
+        <p>Gunakan hanya bila yakin ada perubahan yang belum masuk. Laporan Final dilewati — Buka Kembali dulu bila angkanya harus berubah.</p>
       </ConfirmDialog>
     </div>
   );

@@ -71,7 +71,7 @@ beforeEach(() => { vi.clearAllMocks(); mockBackfill.mockResolvedValue(null); moc
 describe('setAssessmentValidity — otorisasi & validasi input', () => {
   it('tolak bila sesi berakhir', async () => {
     use(makeClient({ user: null }));
-    expect(await setAssessmentValidity(MAP, 'invalidate', REASON)).toEqual({ ok: false, error: 'Sesi berakhir, silakan login ulang' });
+    expect(await setAssessmentValidity(MAP, 'invalidate', REASON)).toEqual({ ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' });
     expect(mockAdmin).not.toHaveBeenCalled();
   });
 

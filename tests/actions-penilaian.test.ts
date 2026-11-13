@@ -46,7 +46,7 @@ describe('submitAssessment — kelengkapan indikator (audit 2026-09-30)', () => 
     const c = use(base());
     const r = await submitAssessment({ targetId: TARGET, status: 'submitted', scores: [{ indicatorId: I1, rating: 5, comment: EVID }], answers: [] });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toMatch(/Lengkapi seluruh rating/i);
+    if (!r.ok) expect(r.error).toMatch(/Beri nilai untuk semua indikator/i);
     expect(c.calls.filter((x) => x.op !== 'select')).toHaveLength(0);
   });
 

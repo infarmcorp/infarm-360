@@ -91,7 +91,7 @@ export function PlanEditor({ periodId, initialItems, canSubmit }: { periodId: st
       </div>
       {canSubmit && (
         <p className="text-xs text-ink-soft text-right">
-          Kirim ke Atasan = persetujuan Anda atas rencana ini. Setelah dikirim, isi tidak bisa diubah kecuali atasan meminta perbaikan.
+          Mengirim ke atasan berarti Anda menyetujui rencana ini. Isinya terkunci kecuali atasan meminta perbaikan.
         </p>
       )}
     </div>

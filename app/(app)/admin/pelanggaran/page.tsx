@@ -26,7 +26,7 @@ export default async function LaporanPelanggaranPage({ searchParams }: { searchP
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   const hrdMode = (await cookies()).get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   if (!violationPageAllowed(me, hrdMode)) {
-    return <Shell><p className="text-[13px] text-ink-soft">Halaman ini untuk Direksi dan HRD di Mode Admin dengan akses Review &amp; Finalisasi.</p></Shell>;
+    return <Shell><p className="text-[13px] text-ink-soft">Halaman ini untuk Direksi dan HRD di Mode Admin dengan akses Tinjauan &amp; Finalisasi.</p></Shell>;
   }
   const isDireksi = me?.role === 'direksi';
 

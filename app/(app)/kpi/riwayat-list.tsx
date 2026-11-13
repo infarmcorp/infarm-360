@@ -47,7 +47,7 @@ export function RiwayatList({ entries, page, total, pageSize, query }: { entries
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Note>
-          Jejak perubahan KPI bersifat <strong>append-only</strong> — tidak dapat diubah/dihapus. Urut <strong>terbaru di atas</strong>.
+          Jejak perubahan KPI tidak dapat diubah atau dihapus. Terbaru di atas.
         </Note>
         <form onSubmit={submitSearch} className="flex items-center gap-2">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari nama / divisi… (Enter)"
@@ -62,7 +62,7 @@ export function RiwayatList({ entries, page, total, pageSize, query }: { entries
 
       <StableHeight>
       {entries.length === 0 ? (
-        <p className="text-[13px] text-ink-soft">{query ? 'Tidak ada jejak audit yang cocok dengan pencarian.' : 'Belum ada jejak audit KPI. Riwayat tercatat otomatis setiap input skor.'}</p>
+        <p className="text-[13px] text-ink-soft">{query ? 'Tidak ada jejak audit yang cocok dengan pencarian.' : 'Belum ada jejak audit KPI. Riwayat tercatat otomatis setiap kali skor diisi.'}</p>
       ) : (
         <div className="overflow-x-auto">
           {/* table-fixed + colgroup: lebar kolom TETAP antar halaman (tak bergeser saat paging). */}

@@ -56,7 +56,7 @@ export function TeamScorecards({
       <Card icon={Users} label="Total Pegawai" value={total} />
       <Card
         icon={Award}
-        label="Avg KPI Tim"
+        label="Rerata KPI Tim"
         value={teamKpi != null ? fmt2(teamKpi) : '—'}
         sub={<>
           <Delta team={teamKpi} company={companyKpi} />          {fillTotal != null && kpiFilled != null && <FilledNote n={kpiFilled} total={fillTotal} />}
@@ -65,7 +65,7 @@ export function TeamScorecards({
       {has360 && (
         <Card
           icon={TrendingUp}
-          label="Avg 360° Tim"
+          label="Rerata 360° Tim"
           value={team360 != null ? fmt2(team360) : '—'}
           sub={<>
             <Delta team={team360} company={company360} />

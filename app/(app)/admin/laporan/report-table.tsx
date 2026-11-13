@@ -89,7 +89,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
         <span className={`${SUM_PILL} bg-brand-tint text-brand-ink`}><strong className="data-value">{sum.final}</strong> final</span>
         {sum.review > 0 && <span className={`${SUM_PILL} bg-neutral-tint text-ink-soft`}><strong className="data-value">{sum.review}</strong> ditinjau</span>}
         {sum.draft > 0 && <span className={`${SUM_PILL} bg-warn-tint text-warn-ink`}><strong className="data-value">{sum.draft}</strong> draf</span>}
-        {has360 && <span className={`${SUM_PILL} bg-neutral-tint text-ink-soft`}><strong className="data-value">{readyCount}</strong> siap review</span>}
+        {has360 && <span className={`${SUM_PILL} bg-neutral-tint text-ink-soft`}><strong className="data-value">{readyCount}</strong> siap ditinjau</span>}
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
@@ -149,7 +149,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
               {has360 && <th className="py-2.5 px-3 text-center font-semibold" title="Potongan keterlambatan menilai — sudah termasuk di Skor 360°">Potongan</th>}
               <th className="py-2.5 px-3 text-center font-semibold">Skor Akhir</th>
               {has360 && <th className="py-2.5 px-3 text-center font-semibold">Dinilai oleh</th>}
-              <th className="py-2.5 px-3 text-center font-semibold">ACC</th>
+              <th className="py-2.5 px-3 text-center font-semibold">Persetujuan</th>
               <th className="py-2.5 px-3 text-center font-semibold">Status</th>
               <th className="py-2.5 px-3 text-right font-semibold">Aksi</th>
             </tr>
@@ -178,14 +178,14 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                   )}
                 </td>
                 <td className="py-3 px-3 text-center data-value text-ink-soft">
-                  {!has360 ? <span className="text-[11px] text-ink-faint">N/A</span>
+                  {!has360 ? <span className="text-[11px] text-ink-faint">T/A</span>
                     : r.s360 == null ? <span className="text-[11px] text-warn-ink" title={NO_SCORE_TITLE}>{NO_SCORE_LABEL}</span>
                     : (
                       <div className="flex flex-col items-center gap-0.5">
                         <span>{fmt2(r.s360)}</span>
                         {r.needsRecompute && (
                           <span title="Penilaian, koreksi relasi, atau bobot berubah sejak skor 360° terakhir dihitung — klik Hitung Ulang Skor 360°."
-                            className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-warn-ink bg-warn-tint px-1.5 py-0.5 rounded-full"><AlertTriangle className="w-3 h-3" aria-hidden />perlu hitung</span>
+                            className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-warn-ink bg-warn-tint px-1.5 py-0.5 rounded-full"><AlertTriangle className="w-3 h-3" aria-hidden />perlu dihitung ulang</span>
                         )}
                       </div>
                     )}
@@ -208,7 +208,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                         <div className="flex flex-col items-center gap-0.5">
                           <span>{stored != null ? fmt2(stored) : '—'}</span>
                           {drift && (
-                            <span title={`Skor terkini ${fmt2(r.final!)} berbeda dari yang difinalisasi — Buka Kembali (ke Draf) lalu Finalisasi ulang untuk memperbarui.`}
+                            <span title={`Skor terkini ${fmt2(r.final!)} berbeda dari skor final. Buka Kembali (ke Draf), lalu finalisasi ulang.`}
                               className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-warn-tint text-warn-ink">
                               berubah → {fmt2(r.final!)}
                             </span>
@@ -231,9 +231,9 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                 <td className="py-3 px-3 text-center">
                   <div className="flex flex-col items-center gap-0.5">
                     {r.spvAcc
-                      ? <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand-tint text-brand-ink" title={r.accInfo ?? undefined}><Check className="w-3 h-3" aria-hidden />ACC</span>
+                      ? <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand-tint text-brand-ink" title={r.accInfo ?? undefined}><Check className="w-3 h-3" aria-hidden />Disetujui</span>
                       : <span className="text-[11px] text-ink-faint">belum</span>}
-                    {r.isSpvSubject && <span className="text-[10px] text-ink-soft" title="Laporan SPV di-ACC oleh Direksi">oleh Direksi</span>}
+                    {r.isSpvSubject && <span className="text-[10px] text-ink-soft" title="Laporan SPV disetujui oleh Direksi">oleh Direksi</span>}
                   </div>
                 </td>
                 <td className="py-3 px-3 text-center">
@@ -258,13 +258,13 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                           <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink" title="Skor Akhir dihitung dari 360° saja (belum/tak ada KPI)">Tanpa KPI</span>
                         )}
                         {r.final == null && (
-                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-neutral-tint text-ink-soft" title="Sudah ada penilaian masuk, tetapi KPI kosong dan Skor 360° belum dihitung — tekan ① Hitung Ulang Skor 360°">Skor belum ada</span>
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-neutral-tint text-ink-soft" title="Penilaian sudah masuk, tetapi KPI kosong dan Skor 360° belum dihitung. Tekan ① Hitung Ulang Skor 360°">Skor belum ada</span>
                         )}
                         {releaseBy.has(r.id) && (() => {
                           const rc = releaseBy.get(r.id)!;
                           return (
                             <button type="button" onClick={() => setReleaseFor(r.id)}
-                              title={!rc.hasFolder ? 'Email rilis: Folder Laporan belum diisi' : rc.sent ? 'Email rilis sudah dikirim — klik untuk kirim ulang' : 'Kirim email rilis laporan ke pegawai ini'}
+                              title={!rc.hasFolder ? 'Email rilis: Folder Laporan belum diisi' : rc.sent ? 'Email rilis sudah dikirim — klik untuk mengirim ulang' : 'Kirim email rilis laporan ke pegawai ini'}
                               className={`inline-flex items-center gap-0.5 rounded-control border px-1.5 py-1 text-[11px] font-semibold ${rc.sent ? 'border-line text-ink-faint hover:text-ink' : rc.hasFolder ? 'border-brand/30 text-brand-ink hover:bg-brand-tint' : 'border-line text-warn-ink'}`}>
                               <Mail className="w-3.5 h-3.5" />{rc.sent && <Check className="w-3 h-3" aria-hidden />}
                             </button>

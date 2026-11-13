@@ -160,20 +160,20 @@ export function TeamTable({
                   KPI <InfoTip text="Rata-rata capaian KPI bulanan pegawai pada kuartal ini (0–100)." />
                 </th>
                 <th className="py-2.5 px-3 text-center whitespace-nowrap">
-                  360° <InfoTip text="Skor umpan balik 360° kuartal ini — gabungan berbobot penilaian rekan/atasan/bawahan/lintas divisi (Self dikecualikan)." />
+                  360° <InfoTip text="Skor 360° kuartal ini — gabungan berbobot penilaian atasan, rekan, bawahan, dan lintas divisi (tanpa evaluasi diri)." />
                 </th>
                 <th className="py-2.5 px-3 text-center">
                   Skor Akhir <span className="font-normal">({scoreBasis === 'live' ? 'live' : 'tersimpan'})</span>
                   <InfoTip text={scoreBasis === 'live'
-                    ? 'Dihitung langsung (live): 50% KPI + 50% Skor 360°. Bila 360° nonaktif = 100% KPI.'
-                    : 'Angka finalisasi tersimpan dari laporan: 50% KPI + 50% Skor 360° (100% KPI bila 360° nonaktif).'} />
+                    ? 'Dihitung langsung: 50% KPI + 50% Skor 360°. Bila 360° nonaktif, 100% KPI.'
+                    : 'Skor final tersimpan: 50% KPI + 50% Skor 360° (100% KPI bila 360° nonaktif).'} />
                 </th>
                 <th className="py-2.5 px-3 text-center whitespace-nowrap">
                   4-Box <InfoTip text="Klasifikasi talenta KPI×360° (ambang 80): A (keduanya ≥80), B-Culture (360°≥80), B-KPI (KPI≥80), C (keduanya <80). KPI atau 360° kosong → HRD Review." />
                 </th>
-                <th className={`py-2.5 px-3 text-center ${showStatus || showAcc ? '' : 'rounded-r-lg'}`}>Trend KPI</th>
+                <th className={`py-2.5 px-3 text-center ${showStatus || showAcc ? '' : 'rounded-r-lg'}`}>Tren KPI</th>
                 {showStatus && <th className={`py-2.5 px-3 text-center ${showAcc ? '' : 'rounded-r-lg'}`}>Status</th>}
-                {showAcc && <th className="py-2.5 px-3 text-right rounded-r-lg">ACC</th>}
+                {showAcc && <th className="py-2.5 px-3 text-right rounded-r-lg">Persetujuan</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-line-soft">
@@ -238,18 +238,18 @@ export function TeamTable({
                         !r.hasReport ? (
                           <span className="text-xs text-ink-soft italic">tanpa laporan</span>
                         ) : r.spvAcc ? (
-                          <span className="text-xs font-semibold text-brand-ink">✔ Di-ACC</span>
+                          <span className="text-xs font-semibold text-brand-ink">✔ Disetujui</span>
                         ) : (
-                          <span className="text-xs text-ink-soft italic">tidak di-ACC</span>
+                          <span className="text-xs text-ink-soft italic">tidak disetujui</span>
                         )
                       ) : r.accReadonly ? (
                         // Pegawai berkoordinator: ACC dilakukan koordinatornya → SPV lihat status saja.
                         !r.hasReport ? (
                           <span className="text-xs text-ink-soft italic">menunggu HRD</span>
                         ) : r.spvAcc ? (
-                          <span className="text-xs font-semibold text-brand-ink">✔ Di-ACC koordinator</span>
+                          <span className="text-xs font-semibold text-brand-ink">✔ Disetujui koordinator</span>
                         ) : (
-                          <span className="text-xs text-ink-soft italic">belum di-ACC koordinator</span>
+                          <span className="text-xs text-ink-soft italic">belum disetujui koordinator</span>
                         )
                       ) : (
                         <AccButton employeeId={r.id} acc={r.spvAcc} hasReport={r.hasReport} canAcc={r.canAcc} />
@@ -283,7 +283,7 @@ export function TeamTable({
 
       <p className="text-xs text-ink-soft mt-3">
         {scoreBasis === 'live' ? (
-          <>Kolom <strong>Skor Akhir (live)</strong> dihitung langsung dari KPI + 360° periode ini —
+          <>Kolom <strong>Skor Akhir (terkini)</strong> dihitung langsung dari KPI + 360° periode ini —
           bisa berbeda dari angka <strong>finalisasi tersimpan</strong> di Laporan Kinerja Tim (yang mengikuti saat laporan difinalisasi).</>
         ) : (
           <>Kolom <strong>Skor Akhir (tersimpan)</strong> = angka finalisasi dari laporan; kosong (—) bila laporan belum dibuat/difinalisasi.

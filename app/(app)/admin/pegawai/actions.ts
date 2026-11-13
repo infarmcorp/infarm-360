@@ -31,7 +31,7 @@ const BAN_FOREVER = '876000h'; // ~100 tahun
  */
 async function requireHrd(supabase: Awaited<ReturnType<typeof createClient>>, level: 'section' | 'full' = 'section') {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false as const, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canAdmin(me)) return { ok: false as const, error: 'Hanya HRD yang dapat mengelola pegawai' };
   if (level === 'full' && !isFullHrd(me)) {
@@ -103,7 +103,7 @@ export async function setHrdAdmin(employeeId: string, value: boolean): Promise<R
  * (coordinator_team_members) ikut dibersihkan. Hanya HRD; tercatat di Log Aktivitas HRD.
  */
 export async function setCoordinator(employeeId: string, value: boolean): Promise<Result> {
-  if (!z.string().uuid().safeParse(employeeId).success) return { ok: false, error: 'Input tidak valid' };
+  if (!z.string().uuid().safeParse(employeeId).success) return { ok: false, error: 'Isian tidak valid' };
   const supabase = await createClient();
   const auth = await requireHrd(supabase, 'full');
   if (!auth.ok) return auth;
@@ -133,7 +133,7 @@ export async function setCoordinatorTeam(coordinatorId: string, employeeIds: unk
     coordinatorId: z.string().uuid(),
     ids: z.array(z.string().uuid()),
   }).safeParse({ coordinatorId, ids: employeeIds });
-  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
   const { coordinatorId: cid, ids } = parsed.data;
 
   const supabase = await createClient();
@@ -185,7 +185,7 @@ export async function setHrdSections(employeeId: string, sections: unknown): Pro
     // null = akses penuh; array = subset katalog (nilai di luar katalog ditolak).
     sections: z.array(z.enum(HRD_SECTIONS)).nullable(),
   }).safeParse({ employeeId, sections });
-  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
   const { employeeId: id, sections: secs } = parsed.data;
 
   const supabase = await createClient();
@@ -247,7 +247,7 @@ const CreateInput = z.object({
 /** Tambah pegawai baru: buat akun auth → baris employees → (opsional) tautkan ke tim SPV. */
 export async function createEmployee(raw: unknown): Promise<Result> {
   const parsed = CreateInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
   const { name, nickname, empCode, dept, role, email, password, spvId, isExternal, joinedOn } = parsed.data;
 
   const supabase = await createClient();
@@ -279,7 +279,7 @@ export async function createEmployee(raw: unknown): Promise<Result> {
   // 3) Tautkan ke tim SPV (opsional).
   if (spvId && spvId !== newId) {
     const { error: tErr } = await supabase.from('spv_team_members').insert({ spv_id: spvId, employee_id: newId });
-    if (tErr) { revalidate(); return { ok: true, msg: 'Pegawai dibuat, tapi gagal menautkan atasan: ' + tErr.message }; }
+    if (tErr) { revalidate(); return { ok: true, msg: 'Pegawai dibuat, tetapi gagal menautkan atasan: ' + tErr.message }; }
   }
 
   await logHrdAction({
@@ -397,7 +397,7 @@ const UpdateInput = z.object({
 /** Ubah data pegawai: name/dept/role/emp_code + email (akun) + atasan + tgl masuk/nonaktif. */
 export async function updateEmployee(raw: unknown): Promise<Result> {
   const parsed = UpdateInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
   const { id, name, nickname, empCode, dept, role, email, spvId, isExternal, joinedOn, leftOn } = parsed.data;
 
   const supabase = await createClient();
@@ -428,7 +428,7 @@ export async function updateEmployee(raw: unknown): Promise<Result> {
   await supabase.from('spv_team_members').delete().eq('employee_id', id);
   if (spvId && spvId !== id) {
     const { error: tErr } = await supabase.from('spv_team_members').insert({ spv_id: spvId, employee_id: id });
-    if (tErr) { revalidate(); return { ok: true, msg: 'Data tersimpan, tapi gagal menautkan atasan: ' + tErr.message }; }
+    if (tErr) { revalidate(); return { ok: true, msg: 'Data tersimpan, tetapi gagal menautkan atasan: ' + tErr.message }; }
   }
 
   await logHrdAction({
@@ -442,7 +442,7 @@ export async function updateEmployee(raw: unknown): Promise<Result> {
 
 /** Aktif/nonaktif: toggle is_active + ban/unban akun auth (nonaktif → tak bisa login). */
 export async function setEmployeeActive(id: string, active: boolean): Promise<Result> {
-  if (!z.string().uuid().safeParse(id).success) return { ok: false, error: 'Input tidak valid' };
+  if (!z.string().uuid().safeParse(id).success) return { ok: false, error: 'Isian tidak valid' };
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
@@ -461,7 +461,7 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
   // Hanya periode yang BELUM BERAKHIR per tanggal aksi (lib/employee-activation.ts, keputusan 2026-11-09):
   // periode yang sudah lewat tak tersentuh, jadi riwayat & kewajiban lamanya tetap.
   const { data: openPeriods, error: pErr } = await supabase.from('periods').select('id').gte('end_date', today);
-  if (pErr) return { ok: false, error: 'Status diubah, tapi gagal membaca periode: ' + pErr.message };
+  if (pErr) return { ok: false, error: 'Status diubah, tetapi gagal membaca periode: ' + pErr.message };
   const openPeriodIds = (openPeriods ?? []).map((p) => p.id);
   let releasedMembers = 0;
   if (!active) {
@@ -469,13 +469,13 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
     if (openPeriodIds.length) {
       const { error: mErr } = await supabase.from('mappings')
         .update({ is_active: false }).in('period_id', openPeriodIds).or(`assessor_id.eq.${id},target_id.eq.${id}`);
-      if (mErr) return { ok: false, error: 'Status diubah, tapi gagal memperbarui pemetaan: ' + mErr.message };
+      if (mErr) return { ok: false, error: 'Status diubah, tetapi gagal memperbarui pemetaan: ' + mErr.message };
     }
     // Koordinator nonaktif → anggota timnya dilepas & kembali menjadi tanggung jawab SPV (keputusan 2026-11-09).
     // Anggota yang masih punya koordinator lain (pengganti) tetap di bawah koordinator tsb.
     const { data: released, error: cErr } = await supabase.from('coordinator_team_members')
       .delete().eq('coordinator_id', id).select('employee_id');
-    if (cErr) return { ok: false, error: 'Status diubah, tapi gagal melepas anggota tim koordinator: ' + cErr.message };
+    if (cErr) return { ok: false, error: 'Status diubah, tetapi gagal melepas anggota tim koordinator: ' + cErr.message };
     releasedMembers = released?.length ?? 0;
   } else if (openPeriodIds.length) {
     const { data: myMaps } = await supabase.from('mappings')
@@ -490,18 +490,18 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
     const { data: removed, error: rErr } = await supabase.from('relation_correction_requests')
       .select('period_id, assessor_id, target_id').in('period_id', openPeriodIds).eq('kind', 'remove').eq('status', 'approved')
       .or(`assessor_id.eq.${id},target_id.eq.${id}`);
-    if (rErr) return { ok: false, error: 'Status diubah, tapi gagal membaca permohonan hapus pemetaan: ' + rErr.message };
+    if (rErr) return { ok: false, error: 'Status diubah, tetapi gagal membaca permohonan hapus pemetaan: ' + rErr.message };
     const removedPairs = new Set((removed ?? []).map((r) => pairKey(r.period_id, r.assessor_id, r.target_id)));
     const toEnable = mappingsToReactivate(myMaps ?? [], id, { openPeriodIds: new Set(openPeriodIds), activeOthers, removedPairs });
     if (toEnable.length) {
       const { error: mErr } = await supabase.from('mappings').update({ is_active: true }).in('id', toEnable);
-      if (mErr) return { ok: false, error: 'Status diubah, tapi gagal memperbarui pemetaan: ' + mErr.message };
+      if (mErr) return { ok: false, error: 'Status diubah, tetapi gagal memperbarui pemetaan: ' + mErr.message };
     }
   }
 
   const admin = createAdminClient();
   const { error: bErr } = await admin.auth.admin.updateUserById(id, { ban_duration: active ? 'none' : BAN_FOREVER });
-  if (bErr) return { ok: false, error: 'Status diubah, tapi gagal mengunci akun: ' + bErr.message };
+  if (bErr) return { ok: false, error: 'Status diubah, tetapi gagal mengunci akun: ' + bErr.message };
 
   const { data: emp } = await supabase.from('employees').select('name').eq('id', id).maybeSingle();
   await logHrdAction({
@@ -523,7 +523,7 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
  */
 export async function setReportFolder(employeeId: string, url: string): Promise<Result> {
   const parsed = z.object({ employeeId: z.string().uuid(), url: ReportFolderUrl }).safeParse({ employeeId, url });
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
   const { employeeId: id, url: value } = parsed.data;
 
   const supabase = await createClient();
@@ -540,7 +540,7 @@ export async function setReportFolder(employeeId: string, url: string): Promise<
     : await supabase.from('employee_report_folders').delete().eq('employee_id', id);
   if (error) {
     return { ok: false, error: tableMissing(error)
-      ? 'Fitur Folder Laporan belum aktif di database (migrasi 0050 belum diterapkan).'
+      ? 'Fitur Folder Laporan belum aktif. Hubungi admin aplikasi untuk mengaktifkannya.'
       : 'Gagal menyimpan folder: ' + error.message };
   }
 
@@ -556,7 +556,7 @@ export async function setReportFolder(employeeId: string, url: string): Promise<
 
 /** Reset sandi pegawai (HRD). Pegawai sebaiknya menggantinya sendiri setelah login. */
 export async function resetPassword(id: string, newPassword: string): Promise<Result> {
-  if (!z.string().uuid().safeParse(id).success) return { ok: false, error: 'Input tidak valid' };
+  if (!z.string().uuid().safeParse(id).success) return { ok: false, error: 'Isian tidak valid' };
   if (!Password.safeParse(newPassword).success) return { ok: false, error: 'Sandi minimal 6 karakter' };
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
@@ -572,8 +572,8 @@ export async function resetPassword(id: string, newPassword: string): Promise<Re
   const { data: emp } = await supabase.from('employees').select('name').eq('id', id).maybeSingle();
   await logHrdAction({
     action: 'employee.reset_password', category: 'pegawai',
-    summary: `Mereset sandi pegawai ${emp?.name ?? id}`, // sandi TIDAK dicatat
+    summary: `Mengatur ulang sandi pegawai ${emp?.name ?? id}`, // sandi TIDAK dicatat
     targetType: 'employee', targetId: id, targetLabel: emp?.name ?? null,
   });
-  return { ok: true, msg: 'Sandi berhasil direset.' };
+  return { ok: true, msg: 'Sandi berhasil diatur ulang.' };
 }

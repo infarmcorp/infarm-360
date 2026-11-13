@@ -57,7 +57,7 @@ describe('backfillLockReason / isBackfilledPeriod — gagal baca = terkunci', ()
     expect(await isBackfilledPeriod(auditClient({ count: 0 }) as unknown as Admin, 'p')).toBe(false);
   });
   it('pesan gagal-cek jelas & berbahasa Indonesia', () => {
-    expect(BACKFILL_CHECK_FAILED_MSG).toMatch(/Tidak dapat memastikan.*hasil impor resmi.*ditolak/);
+    expect(BACKFILL_CHECK_FAILED_MSG).toMatch(/Gagal memastikan.*hasil impor resmi.*ditolak/);
   });
 });
 

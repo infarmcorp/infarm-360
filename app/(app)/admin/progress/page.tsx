@@ -29,7 +29,7 @@ export default async function ProgressPage() {
     grantScopes = grantedAccess(g, 'progress')?.scopes ?? null;
   }
   if (!isHrdFull && !grantScopes) {
-    return <Shell><p className="text-[13px] text-ink-soft">Halaman ini untuk HRD Admin atau pemegang akses Progress 360°.</p></Shell>;
+    return <Shell><p className="text-[13px] text-ink-soft">Halaman ini untuk HRD Admin atau pemegang akses Progres Umpan Balik 360°.</p></Shell>;
   }
   const viaGrant = !isHrdFull;
   const ownDept = (me?.dept ?? '').trim();
@@ -142,10 +142,10 @@ export default async function ProgressPage() {
 
   return (
     <Shell>
-      <PageTitle title="Progress 360 Feedback">
-        <p>Periode aktif <span className="font-mono font-semibold text-ink">{ap.label}</span> · kelengkapan pengisian 360°.{viaGrant ? ' (lihat-saja)' : ''}</p>
+      <PageTitle title="Progres Umpan Balik 360°">
+        <p>Periode aktif <span className="font-mono font-semibold text-ink">{ap.label}</span> · kelengkapan pengisian 360°.{viaGrant ? ' (hanya lihat)' : ''}</p>
         <p className="text-xs mt-0.5">
-          Deadline: {ap.assessment_deadline
+          Tenggat: {ap.assessment_deadline
             ? <span className="font-mono font-semibold text-ink">{formatWib(ap.assessment_deadline)}</span>
             : <span className="font-semibold text-warn-ink">belum ditetapkan — status Tepat Waktu/Terlambat belum bisa dibedakan (atur di Kelola Periode)</span>}
         </p>

@@ -23,7 +23,7 @@ export async function requestCorrection(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
 
   // Boleh saat FASE TINJAU PEMETAAN (mapping_published) maupun saat form terbuka — koreksi relasi
   // justru paling berguna SEBELUM pengisian dimulai (migrasi 0035).
@@ -35,7 +35,7 @@ export async function requestCorrection(
   // Verifikasi mapping milik penilai ini (otorisasi tambahan selain RLS).
   const { data: map } = await supabase
     .from('mappings').select('id, relation').eq('id', mappingId).eq('assessor_id', user.id).eq('target_id', targetId).maybeSingle();
-  if (!map) return { ok: false, error: 'Mapping tidak ditemukan / bukan milik Anda' };
+  if (!map) return { ok: false, error: 'Pemetaan tidak ditemukan atau bukan milik Anda' };
 
   // Tolak bila sudah ada permohonan pending untuk pasangan ini.
   const { data: existing } = await supabase

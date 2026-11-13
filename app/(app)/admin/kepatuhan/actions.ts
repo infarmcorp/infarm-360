@@ -29,14 +29,14 @@ const WaiverInput = z.object({
 
 export async function setLateWaiver(raw: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
   const parsed = WaiverInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
   const { employeeId, points } = parsed.data;
   const reason = parsed.data.reason?.trim() || null;
   if (reason !== null && reason.length < 3) return { ok: false, error: 'Alasan pengecualian minimal 3 karakter' };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'kepatuhan')) return { ok: false, error: 'Hanya HRD yang dapat mengecualikan potongan' };
 
@@ -72,12 +72,12 @@ export async function setLateWaiver(raw: unknown): Promise<{ ok: true } | { ok: 
   if (error) {
     const needMigration = /points/i.test(error.message);
     return { ok: false, error: needMigration
-      ? 'Mengubah nilai potongan (selain 0) memerlukan migrasi database 0043 — hubungi admin sistem.'
+      ? 'Nilai potongan (selain 0) belum dapat diubah. Hubungi admin sistem.'
       : 'Gagal menyimpan: ' + error.message };
   }
 
   try { await refreshLatePenalties(ap.id, [employeeId]); } catch (e) {
-    return { ok: false, error: 'Pengecualian tersimpan, tapi gagal menerapkan ke Skor 360°: ' + (e instanceof Error ? e.message : String(e)) };
+    return { ok: false, error: 'Pengecualian tersimpan, tetapi gagal diterapkan ke Skor 360°: ' + (e instanceof Error ? e.message : String(e)) };
   }
 
   const { data: emp } = await supabase.from('employees').select('name').eq('id', employeeId).maybeSingle();
@@ -108,7 +108,7 @@ export async function setLateWaiver(raw: unknown): Promise<{ ok: true } | { ok: 
 export async function applyLatePenalties(): Promise<{ ok: true; changed: number; skippedFinal: number } | { ok: false; error: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'kepatuhan')) return { ok: false, error: 'Hanya HRD yang dapat menerapkan potongan keterlambatan' };
 

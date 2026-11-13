@@ -16,7 +16,7 @@ import { finalLockError, finalizedEmployees } from '@/lib/final-lock';
  */
 async function requireHrd(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false as const, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'pemetaan')) return { ok: false as const, error: 'Hanya HRD yang dapat mengelola pemetaan' };
   return { ok: true as const };
@@ -33,17 +33,17 @@ type Result = { ok: true } | { ok: false; error: string };
 
 export async function createMapping(raw: unknown): Promise<Result> {
   const parsed = CreateInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
   const { assessorId, targetId, relation } = parsed.data;
   const mandatory = true; // kebijakan: penilaian yang ditugaskan HRD selalu WAJIB
   // BR-02 (Q3 2026): Self Assessment DINONAKTIFKAN — tidak boleh membuat pemetaan
   // penilai=target maupun relasi 'Self'. 'Self' tetap ada di enum untuk kompatibilitas
   // baca data historis (periode lama), bukan untuk dibuat baru.
   if (relation === 'Self') {
-    return { ok: false, error: 'Self Assessment dinonaktifkan untuk periode ini' };
+    return { ok: false, error: 'Evaluasi diri dinonaktifkan untuk periode ini' };
   }
   if (assessorId === targetId) {
-    return { ok: false, error: 'Penilai = target tidak diperbolehkan (Self Assessment dinonaktifkan)' };
+    return { ok: false, error: 'Penilai tidak boleh sama dengan yang dinilai (evaluasi diri dinonaktifkan)' };
   }
 
   const supabase = await createClient();
@@ -66,7 +66,7 @@ export async function createMapping(raw: unknown): Promise<Result> {
   const { error } = await supabase.from('mappings')
     .insert({ period_id: ap.id, assessor_id: assessorId, target_id: targetId, relation, mandatory, is_active: true });
   if (error) {
-    return { ok: false, error: error.code === '23505' ? 'Pasangan penilai→target ini sudah ada' : 'Gagal: ' + error.message };
+    return { ok: false, error: error.code === '23505' ? 'Pasangan penilai dan yang dinilai ini sudah ada' : 'Gagal: ' + error.message };
   }
   await logHrdAction({
     action: 'mapping.create', category: 'pemetaan',
@@ -106,7 +106,7 @@ export async function createMappingsBulk(rawRows: unknown): Promise<{ ok: true; 
     .filter((r) => r.relation !== 'Self' && r.assessorId !== r.targetId)
     .filter((r) => !externalIds.has(r.targetId))
     .filter((r) => !inactiveIds.has(r.assessorId) && !inactiveIds.has(r.targetId));
-  if (rows.length === 0) return { ok: false, error: 'Tidak ada baris valid (Self Assessment dinonaktifkan; eksternal tak boleh jadi target; pegawai nonaktif dilewati)' };
+  if (rows.length === 0) return { ok: false, error: 'Tidak ada baris valid. Evaluasi diri nonaktif, pegawai eksternal tidak boleh dinilai, dan pegawai nonaktif dilewati.' };
 
   const { error, count } = await supabase.from('mappings').upsert(
     rows.map((r) => ({ period_id: ap.id, assessor_id: r.assessorId, target_id: r.targetId, relation: r.relation, mandatory: true, is_active: true })),
@@ -142,7 +142,7 @@ export async function copyMappingsFromPeriod(sourcePeriodId: string): Promise<{ 
 
   const { data: srcAll } = await supabase.from('mappings')
     .select('assessor_id, target_id, relation, mandatory').eq('period_id', sourcePeriodId).eq('is_active', true);
-  if (!srcAll || srcAll.length === 0) return { ok: false, error: 'Periode sumber tidak memiliki pemetaan untuk disalin' };
+  if (!srcAll || srcAll.length === 0) return { ok: false, error: 'Periode sumber tidak memiliki pemetaan yang dapat disalin' };
 
   // Eksternal tak boleh jadi target & pegawai NONAKTIF tak boleh masuk siklus (mis. status
   // berubah sejak periode sumber) → buang baris dengan penilai/target eksternal/nonaktif.
@@ -152,7 +152,7 @@ export async function copyMappingsFromPeriod(sourcePeriodId: string): Promise<{ 
   const src = srcAll
     .filter((m) => !externalIds.has(m.target_id))
     .filter((m) => !inactiveIds.has(m.assessor_id) && !inactiveIds.has(m.target_id));
-  if (src.length === 0) return { ok: false, error: 'Periode sumber tak punya pasangan valid untuk disalin (target eksternal / pegawai nonaktif dilewati)' };
+  if (src.length === 0) return { ok: false, error: 'Periode sumber tidak punya pasangan valid untuk disalin (pegawai eksternal dan nonaktif dilewati)' };
 
   const { error, count } = await supabase.from('mappings').upsert(
     src.map((m) => ({ period_id: ap.id, assessor_id: m.assessor_id, target_id: m.target_id, relation: m.relation, mandatory: true, is_active: true })),
@@ -270,7 +270,7 @@ export async function deleteMapping(mappingId: string, rawReason: string): Promi
     if (asmts && asmts.length) {
       const { error: delErr } = await admin.from('assessments').delete()
         .eq('period_id', m.period_id).eq('assessor_id', m.assessor_id).eq('target_id', m.target_id);
-      if (delErr) return { ok: false, error: 'Pemetaan terhapus tapi gagal hapus penilaian: ' + delErr.message };
+      if (delErr) return { ok: false, error: 'Pemetaan terhapus, tetapi penilaian gagal dihapus: ' + delErr.message };
       removedAssessment = true;
     }
 
@@ -305,7 +305,7 @@ export async function setAssessmentValidity(mappingId: string, action: 'invalida
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const reason = Reason.safeParse(rawReason ?? '');
   if (!reason.success) return { ok: false, error: reason.error.issues[0]?.message ?? 'Alasan wajib diisi' };
 
@@ -355,7 +355,7 @@ export async function setAssessmentValidity(mappingId: string, action: 'invalida
   if (recalcErr) {
     return {
       ok: true,
-      warning: `Validitas penilaian ${pair} sudah ${action === 'invalidate' ? 'dibatalkan' : 'dipulihkan'}, tetapi Skor 360° ${nm.get(m.target_id) ?? 'pegawai'} BELUM diperbarui (${recalcErr}). Buka Review & Finalisasi lalu tekan "Hitung Ulang Skor 360°".`,
+      warning: `Validitas penilaian ${pair} sudah ${action === 'invalidate' ? 'dibatalkan' : 'dipulihkan'}, tetapi Skor 360° ${nm.get(m.target_id) ?? 'pegawai'} BELUM diperbarui (${recalcErr}). Tekan "Hitung Ulang Skor 360°" di Tinjauan & Finalisasi.`,
     };
   }
   return { ok: true };
@@ -419,10 +419,10 @@ export async function reviewCorrection(
 
     if (kind === 'relation') {
       if (!pairMap?.is_active) return { ok: false, error: 'Pemetaan pasangan ini sudah tidak aktif — tolak permohonan ini' };
-      if (pairMap.relation === 'Self') return { ok: false, error: 'Relasi Self tidak dapat dikoreksi lewat permohonan' };
+      if (pairMap.relation === 'Self') return { ok: false, error: 'Relasi Diri Sendiri tidak dapat dikoreksi lewat permohonan' };
       if (req.new_relation) {
         const upd = await supabase.from('mappings').update({ relation: req.new_relation }).eq('id', pairMap.id);
-        if (upd.error) return { ok: false, error: 'Gagal memperbarui mapping: ' + upd.error.message };
+        if (upd.error) return { ok: false, error: 'Gagal memperbarui pemetaan: ' + upd.error.message };
       }
     } else if (kind === 'remove') {
       if (!pairMap?.is_active) return { ok: false, error: 'Pemetaan pasangan ini sudah tidak aktif — tolak permohonan ini' };
@@ -432,7 +432,7 @@ export async function reviewCorrection(
       const { data: asmt } = await admin.from('assessments').select('id, status')
         .eq('period_id', req.period_id).eq('assessor_id', req.assessor_id).eq('target_id', req.target_id).maybeSingle();
       if (asmt?.status === 'submitted') {
-        return { ok: false, error: 'Penilaian untuk pasangan ini sudah dikirim — pemetaan tak dapat dihapus. Tolak permohonan ini; bila rater memang tidak layak menilai, gunakan "Periksa Validitas" di daftar Pemetaan.' };
+        return { ok: false, error: 'Penilaian pasangan ini sudah dikirim, jadi pemetaan tidak bisa dihapus. Tolak permohonan ini; bila penilai tidak layak, gunakan "Periksa Validitas" di daftar Pemetaan.' };
       }
       if (asmt?.status === 'invalidated') {
         return { ok: false, error: 'Penilaian pasangan ini sudah dibatalkan validitasnya — tolak permohonan ini.' };

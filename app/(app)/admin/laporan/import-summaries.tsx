@@ -43,10 +43,10 @@ export function ImportSummaries({ employees, aspects, questions, periodLabel, se
       const sheet = wb.SheetNames.includes(SUMMARY_SHEET) ? SUMMARY_SHEET : wb.SheetNames[0];
       const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[sheet], { defval: '' });
       const out = classifySummaryRows(raw, { employees, aspects, questions, periodLabel, selfId });
-      if (out.length === 0) { setParseErr('Tidak menemukan baris ringkasan. Pastikan kolom kode, jenis, aspek_atau_pertanyaan, ringkasan ada.'); return; }
+      if (out.length === 0) { setParseErr('Baris ringkasan tidak ditemukan. Pastikan kolom kode, jenis, aspek_atau_pertanyaan, dan ringkasan tersedia.'); return; }
       setRows(out);
     } catch {
-      setParseErr('Gagal membaca file. Pastikan .xlsx/.xls/.csv valid.');
+      setParseErr('Gagal membaca berkas. Pastikan berkas berformat .xlsx, .xls, atau .csv.');
     } finally { if (fileRef.current) fileRef.current.value = ''; }
   }
 
@@ -61,7 +61,7 @@ export function ImportSummaries({ employees, aspects, questions, periodLabel, se
   }, [rows]);
 
   function apply() {
-    if (payload.length === 0) { setMsg({ ok: false, text: 'Tidak ada ringkasan valid untuk diimpor.' }); return; }
+    if (payload.length === 0) { setMsg({ ok: false, text: 'Tidak ada ringkasan valid yang dapat diimpor.' }); return; }
     setMsg(null);
     start(async () => {
       const res = await importSummaries(payload);
@@ -113,11 +113,10 @@ export function ImportSummaries({ employees, aspects, questions, periodLabel, se
       </div>
       <p className="text-[13px] text-ink-soft leading-relaxed">
         Format sama dengan lembar <strong>Ringkasan Naratif</strong> di Ekspor: {code('kode')}, {code('jenis')} (Aspek / Pertanyaan Kualitatif),
-        {' '}{code('aspek_atau_pertanyaan')}, {code('ringkasan')}. <button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh template (berisi ringkasan saat ini)</button>.
+        {' '}{code('aspek_atau_pertanyaan')}, {code('ringkasan')}. <button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh templat (berisi ringkasan saat ini)</button>.
       </p>
       <p className="text-xs text-ink-soft leading-relaxed">
-        Per pegawai, ringkasan jenis yang ada di file <strong>menggantikan</strong> seluruh ringkasan jenis itu — item yang tidak tercantum akan terhapus.
-        Sel ringkasan kosong dilewati (isi lama tetap). Laporan Final tidak diubah.
+        Ringkasan di berkas <strong>menggantikan</strong> seluruh ringkasan jenis yang sama per pegawai; item yang tidak tercantum terhapus. Sel kosong dilewati. Laporan Final tidak diubah.
       </p>
       <p className="text-xs text-ink-soft leading-relaxed">
         Format di dalam sel (pindah baris = Alt+Enter): {code('**teks**')} = tebal · baris diawali {code('- ')} atau {code('* ')} = poin

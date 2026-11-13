@@ -26,7 +26,7 @@ export default async function AkunPage() {
     // Lebar PENUH (tanpa max-w/mx-auto) + tata letak 2 kolom di layar lebar: identitas di kiri,
     // ganti sandi di kanan → seluruh isi muat satu layar tanpa perlu digulir.
     <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>
-      <PageTitle title="Akun Saya">Informasi akun, panduan, &amp; ganti sandi Anda.</PageTitle>
+      <PageTitle title="Akun Saya">Informasi akun, panduan, dan penggantian sandi Anda.</PageTitle>
 
       <div className="grid gap-4 lg:grid-cols-2 items-start">
         {/* Kolom kiri — identitas + panduan */}
@@ -34,7 +34,7 @@ export default async function AkunPage() {
           <Section title="Informasi Akun" icon={UserRound}>
             <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
               <Row label="Nama" value={me?.name ?? '—'} />
-              <Row label="Email (login)" value={user.email ?? '—'} mono />
+              <Row label="Email (untuk masuk)" value={user.email ?? '—'} mono />
               <Row label="Divisi" value={me?.dept ?? '—'} />
               <Row label="Peran" value={ROLE_LABEL[me?.role ?? ''] ?? (me?.role ?? '—')} />
               <Row label="Kode Pegawai" value={me?.emp_code ?? '—'} mono />
@@ -71,8 +71,7 @@ export default async function AkunPage() {
         <Section title="Ganti Sandi" icon={KeyRound}>
           <div className="mb-4">
             <Note tone="warn">
-              Jika akun Anda masih memakai <strong>sandi awal bersama</strong>, segera ganti dengan
-              sandi pribadi yang hanya Anda ketahui — demi menjaga integritas penilaian 360°.
+              Masih memakai <strong>sandi awal bersama</strong>? Segera ganti dengan sandi pribadi demi menjaga integritas penilaian 360°.
             </Note>
           </div>
           <AkunForm />

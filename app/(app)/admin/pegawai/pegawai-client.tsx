@@ -231,9 +231,9 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                 className={`${dupCode ? INP_ERR : INP} font-mono`} placeholder="mis. FT2021-001" />
               {dupCode
                 ? <span className="flex items-center gap-1 text-xs text-danger-ink font-semibold mt-1"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /> Kode sudah dipakai oleh {dupCode.name} ({dupCode.dept}).</span>
-                : <span className="block text-xs text-ink-faint mt-1">Bebas mengikuti skema perusahaan; saran melanjutkan nomor terakhir.</span>}
+                : <span className="block text-xs text-ink-faint mt-1">Bebas mengikuti skema perusahaan; disarankan melanjutkan nomor terakhir.</span>}
             </Field>
-            <Field label="Email (boleh placeholder)">
+            <Field label="Email (boleh sementara)">
               <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)} required
                 className={`${dupEmail ? INP_ERR : INP} font-mono`} placeholder="nama@infarm.test" />
               {dupEmail && <span className="flex items-center gap-1 text-xs text-danger-ink font-semibold mt-1"><AlertTriangle className="w-3.5 h-3.5 shrink-0" /> Email sudah dipakai oleh {dupEmail.name}.</span>}
@@ -256,7 +256,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
             </Field>
             <Field label="Tanggal Masuk / Aktif">
               <DatePicker value={form.joinedOn} onChange={(v) => set('joinedOn', v)} allowClear ariaLabel="Pilih tanggal masuk" />
-              <span className="block text-xs text-ink-faint mt-1">{form.id ? 'Dapat dikoreksi ke tanggal masuk sebenarnya.' : 'Default hari ini; ubah bila tanggal masuk berbeda.'}</span>
+              <span className="block text-xs text-ink-faint mt-1">{form.id ? 'Dapat dikoreksi ke tanggal masuk sebenarnya.' : 'Bawaan hari ini; ubah bila tanggal masuk berbeda.'}</span>
             </Field>
             {form.id && (
               <Field label="Tanggal Nonaktif (opsional)">
@@ -270,8 +270,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
             <label className="sm:col-span-2 flex items-start gap-2 rounded-xl bg-warn-tint px-3.5 py-2.5 cursor-pointer">
               <input type="checkbox" checked={form.isExternal} onChange={(e) => set('isExternal', e.target.checked)} className="mt-0.5 accent-brand" />
               <span className="text-xs text-warn-ink leading-relaxed">
-                <span className="font-bold">Penilai eksternal</span> (vendor/freelance/mitra) — hanya <strong>menilai</strong> pegawai
-                (relasi Cross), <strong>tanpa</strong> KPI/Skor Akhir/laporan & disembunyikan dari dashboard. Bukan untuk pegawai internal Infarm.
+                <span className="font-bold">Penilai eksternal</span> (vendor/pekerja lepas/mitra) — hanya <strong>menilai</strong> (relasi Lintas Divisi), <strong>tanpa</strong> KPI, Skor Akhir, dan laporan. Bukan untuk pegawai Infarm.
               </span>
             </label>
           </div>
@@ -345,7 +344,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                 <td className="py-3 px-3">
                   <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft">{ROLE_LABEL[r.role]}</span>
                   {r.isExternal && (
-                    <span className="ml-1 inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink" title="Penilai eksternal (vendor/freelance) — hanya menilai, bukan dinilai">Eksternal</span>
+                    <span className="ml-1 inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink" title="Penilai eksternal (vendor/pekerja lepas) — hanya menilai, tidak dinilai">Eksternal</span>
                   )}
                 </td>
                 <td className="py-3 px-3 text-ink-soft break-words">{r.spvName ?? '—'}</td>
@@ -361,7 +360,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                 <td className="py-3 px-3 text-right whitespace-nowrap">
                   <button type="button" onClick={() => openEdit(r)} disabled={pending} title="Ubah"
                     className={`${ICON_BTN} text-ink-soft hover:bg-neutral-tint`}><Pencil className="w-4 h-4" /></button>
-                  <button type="button" onClick={() => doReset(r)} disabled={pending} title="Reset sandi"
+                  <button type="button" onClick={() => doReset(r)} disabled={pending} title="Atur ulang sandi"
                     className={`${ICON_BTN} text-brand-ink hover:bg-brand-tint`}><KeyRound className="w-4 h-4" /></button>
                   {/* Folder Laporan (Drive): hijau = sudah diisi, pudar = belum. */}
                   <button type="button" onClick={() => { setToast(null); setFolder({ r, url: r.reportFolderUrl ?? '' }); }} disabled={pending}
@@ -381,20 +380,20 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
       </div>
 
       <Note>
-        Nonaktif mengunci akun (tak bisa login) tanpa menghapus riwayat penilaian/KPI. Email boleh placeholder dan diganti kapan saja lewat “Ubah”.
+        Akun nonaktif dikunci (tidak bisa masuk), tetapi riwayat penilaian dan KPI tetap tersimpan. Email sementara bisa diganti lewat “Ubah”.
       </Note>
 
       <ConfirmDialog
         open={!!reset}
         icon="🔑"
-        title={reset ? `Reset sandi — ${reset.r.name}` : ''}
+        title={reset ? `Atur ulang sandi — ${reset.r.name}` : ''}
         tone="primary"
         confirmLabel="Setel Sandi"
         busy={pending}
         onConfirm={submitReset}
         onCancel={() => { if (!pending) setReset(null); }}
       >
-        <p>Setel sandi baru untuk pegawai ini. Disarankan pegawai menggantinya sendiri setelah login lewat <strong>Akun Saya</strong>.</p>
+        <p>Setel sandi baru untuk pegawai ini. Minta pegawai menggantinya sendiri lewat <strong>Akun Saya</strong>.</p>
         <div className="flex gap-1.5">
           <input
             value={reset?.pw ?? ''}
@@ -420,8 +419,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
         onCancel={() => { if (!pending) setFolder(null); }}
       >
         <p>
-          Tempel tautan folder Google Drive pegawai ini. Tombol <strong>Unduh PDF</strong> di Laporan Hasil Saya
-          akan membuka folder tersebut. Kosongkan untuk menghapus tautan.
+          Tempel tautan folder Google Drive pegawai ini. Tombol <strong>Unduh PDF</strong> di Laporan Hasil Saya akan membukanya. Kosongkan untuk menghapus.
         </p>
         <input
           value={folder?.url ?? ''}

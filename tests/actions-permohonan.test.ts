@@ -110,7 +110,7 @@ describe('requestMappingRemoval — validasi & gerbang fase', () => {
     if (!r.ok) expect(r.error).toMatch(/belum diumumkan/i);
   });
 
-  it('IZINKAN saat form terbuka meski pemetaan belum diumumkan', async () => {
+  it('IZINKAN saat formulir terbuka meski pemetaan belum diumumkan', async () => {
     use(makeClient({ user: { id: UID }, tables: {
       periods: [{ data: { id: 'p1', has_360: true, form_open: true, mapping_published: false } }],
       mappings: [MINE],
@@ -379,7 +379,7 @@ describe('reviewCorrection — jenis "relation" (koreksi garis hubungan)', () =>
     } }));
     const r = await reviewCorrection('r1', 'approved');
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toMatch(/Gagal memperbarui mapping/i);
+    if (!r.ok) expect(r.error).toMatch(/Gagal memperbarui pemetaan/i);
     expect(updateOf(c.calls, 'relation_correction_requests')).toHaveLength(0);
   });
 });

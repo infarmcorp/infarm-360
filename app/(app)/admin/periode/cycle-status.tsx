@@ -29,8 +29,7 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
       <div className={CARD}>
         <CardTitle icon={ListChecks}>Status Siklus</CardTitle>
         <p className="mt-2 text-[13px] text-ink-soft">
-          Belum ada periode aktif, jadi belum ada siklus yang berjalan. Buat atau aktifkan periode
-          di tab <Link href="/admin/periode" className="font-semibold text-brand-ink hover:underline">Kelola Periode</Link>.
+          Belum ada periode aktif. Buat atau aktifkan periode di tab <Link href="/admin/periode" className="font-semibold text-brand-ink hover:underline">Kelola Periode</Link>.
         </p>
       </div>
     );
@@ -90,14 +89,14 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
   const defs: { label: string; detail?: string; href?: string; base: StageStatus }[] = [
     { label: 'Periode dibuat & diaktifkan', detail: ap.label, href: '/admin/periode', base: 'done' },
     { label: 'Pertanyaan, bobot & pemetaan 360°', detail: skip ? off : `${nMap} pemetaan aktif`, href: '/admin/pemetaan', base: skip ? 'skipped' : (nMap > 0 ? 'done' : 'todo') },
-    { label: 'Aktifkan / luncurkan 360°', detail: skip ? off : (ap.form_open ? 'form terbuka' : 'form ditutup'), href: '/admin/periode', base: skip ? 'skipped' : 'done' },
-    { label: 'Input KPI bulanan (SPV)', detail: `${kpiFilled}/${nEmp} pegawai ada KPI`, href: '/kpi?tab=riwayat', base: nEmp > 0 && kpiFilled >= nEmp ? 'done' : 'todo' },
+    { label: 'Aktifkan / luncurkan 360°', detail: skip ? off : (ap.form_open ? 'formulir terbuka' : 'formulir ditutup'), href: '/admin/periode', base: skip ? 'skipped' : 'done' },
+    { label: 'Pengisian KPI bulanan (SPV)', detail: `${kpiFilled}/${nEmp} pegawai ada KPI`, href: '/kpi?tab=riwayat', base: nEmp > 0 && kpiFilled >= nEmp ? 'done' : 'todo' },
     { label: 'Pengisian 360° oleh pegawai', detail: skip ? off : `${nSub}/${nMap} penilaian terkirim`, href: '/admin/progress', base: skip ? 'skipped' : (nMap > 0 && nSub >= nMap ? 'done' : 'todo') },
     { label: '① Hitung Ulang Skor 360°', detail: skip ? off : `${scoredN}/${targetsN} target berskor 360°`, href: '/admin/laporan', base: skip ? 'skipped' : (targetsN > 0 && scoredN >= targetsN ? 'done' : 'todo') },
-    { label: 'Review & susun ringkasan', detail: skip ? off : (nReview > 0 ? `${nReview} sedang ditinjau` : 'tulis Ringkasan Aspek, opsional rilis ke SPV'), href: '/admin/laporan', base: skip ? 'skipped' : (nFinal > 0 || nReview > 0 ? 'done' : 'todo') },
+    { label: 'Tinjau & susun ringkasan', detail: skip ? off : (nReview > 0 ? `${nReview} sedang ditinjau` : 'tulis Ringkasan Aspek, opsional rilis ke SPV'), href: '/admin/laporan', base: skip ? 'skipped' : (nFinal > 0 || nReview > 0 ? 'done' : 'todo') },
     { label: 'Finalisasi laporan', detail: `${nFinal}/${nEmp} pegawai difinalkan`, href: '/admin/laporan', base: nEmp > 0 && nFinal >= nEmp ? 'done' : 'todo' },
-    { label: 'Kunci & akhiri periode', detail: 'setelah semua difinalkan', href: '/admin/periode', base: 'todo' },
-    { label: 'Ekspor & backup arsip', detail: 'simpanan kuartal (opsional)', href: '/admin/ekspor', base: 'todo' },
+    { label: 'Kunci & akhiri periode', detail: 'setelah semua difinalisasi', href: '/admin/periode', base: 'todo' },
+    { label: 'Ekspor & cadangkan arsip', detail: 'simpanan kuartal (opsional)', href: '/admin/ekspor', base: 'todo' },
   ];
   let currentAssigned = false;
   const stages: Stage[] = defs.map((d) => {
@@ -153,7 +152,7 @@ export async function CycleStatus({ variant = 'summary' }: { variant?: 'summary'
           ? <AlertTriangle className="w-4 h-4 text-warn-ink" />
           : <CheckCircle2 className="w-4 h-4 text-brand" />}
         <h4 className="text-[12px] font-bold uppercase tracking-[0.08em] text-ink">
-          Apa yang memblokir finalisasi{blockers.length > 0 && <span className="data-value"> ({blockers.length})</span>}
+          Penghambat finalisasi{blockers.length > 0 && <span className="data-value"> ({blockers.length})</span>}
         </h4>
       </div>
       {blockers.length === 0 ? (

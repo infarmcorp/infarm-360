@@ -81,7 +81,7 @@ export default async function PertanyaanPage() {
   return (
     <Shell>
       <PageTitle title="Kelola Pertanyaan">
-        Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span> · indikator (rating 1–5) &amp; esai. Perubahan langsung tampil di form penilaian.
+        Periode aktif <span className="data-value font-semibold text-ink">{ap.label}</span> · indikator (nilai 1–5) &amp; esai. Perubahan langsung tampil di formulir.
       </PageTitle>
 
       <CopyQuestionsForm sources={sourcePeriods} />
@@ -122,8 +122,7 @@ export default async function PertanyaanPage() {
       </div>
 
       <div className="mt-4"><Note>
-        Indikator <strong className="font-semibold text-ink">dinonaktifkan</strong> (bukan dihapus) agar skor historis tetap utuh — yang nonaktif
-        tak muncul di form penilaian baru. Pertanyaan esai dihapus permanen (beserta jawabannya).
+        Indikator <strong className="font-semibold text-ink">dinonaktifkan</strong>, bukan dihapus, agar skor lama tetap utuh. Pertanyaan esai dihapus permanen beserta jawabannya.
       </Note></div>
     </Shell>
   );

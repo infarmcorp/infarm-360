@@ -21,7 +21,7 @@ export type AuditRow = {
 const CAT_LABEL: Record<string, string> = {
   periode: 'Periode', bobot: 'Bobot', skor: 'Skor 360°', laporan: 'Laporan',
   kepatuhan: 'Kepatuhan', pegawai: 'Pegawai', pemetaan: 'Pemetaan',
-  pertanyaan: 'Pertanyaan', progress: 'Progress', suksesi: 'Suksesi', pengembangan: 'Rencana Pengembangan', lain: 'Lain',
+  pertanyaan: 'Pertanyaan', progress: 'Progres', suksesi: 'Suksesi', pengembangan: 'Rencana Pengembangan', lain: 'Lainnya',
 };
 // Soft-tint monokrom (pil rounded-full): kategori dibedakan lewat LABEL, bukan pelangi warna. Aksi
 // berlingkup-skor/kepatuhan (berkonsekuensi) diberi aksen warn; pengaturan siklus brand; sisanya netral.

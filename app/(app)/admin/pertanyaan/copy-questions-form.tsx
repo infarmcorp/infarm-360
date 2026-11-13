@@ -43,8 +43,7 @@ export function CopyQuestionsForm({ sources }: { sources: SourcePeriod[] }) {
     <div className={CARD}>
       <CardTitle icon={Copy}>Pakai Pertanyaan Periode Sebelumnya</CardTitle>
       <p className="text-[13px] text-ink-soft mt-1.5 leading-relaxed">
-        Salin aspek, indikator aktif, &amp; esai dari periode lain ke periode aktif. Yang
-        <strong className="font-semibold text-ink"> sudah ada</strong> (nama/teks sama) otomatis dilewati — tak menimpa.
+        Salin aspek, indikator aktif, dan esai dari periode lain. Yang <strong className="font-semibold text-ink"> sudah ada</strong> otomatis dilewati.
       </p>
 
       <div className="flex flex-wrap items-center gap-2 mt-3">

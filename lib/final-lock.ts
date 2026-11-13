@@ -13,7 +13,7 @@ import { fetchAllByIds, fetchAllPaged } from '@/lib/supabase/paginate';
 type Admin = ReturnType<typeof createAdminClient>;
 
 export const FINAL_CHECK_FAILED_MSG =
-  'Tidak dapat memastikan status laporan (gagal membaca data). Demi keamanan, perubahan ditolak — coba lagi beberapa saat lagi.';
+  'Gagal memastikan status laporan. Demi keamanan, perubahan ditolak. Coba lagi sebentar lagi.';
 
 /** Pesan baku penolakan untuk pegawai yang laporannya Final. */
 export function finalLockMsg(names: string[]): string {

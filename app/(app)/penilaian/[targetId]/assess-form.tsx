@@ -238,12 +238,12 @@ export function AssessForm({
     for (const f of flat) {
       if (ratings[f.id] == null) {
         setActiveGroup(f.gid); setActiveId(f.id);
-        setError(`Beri rating untuk Q${f.qNum}: ${f.text}`);
+        setError(`Beri nilai untuk Q${f.qNum}: ${f.text}`);
         return;
       }
       if ((comments[f.id] ?? '').trim().length < EVIDENCE_MIN) {
         setActiveGroup(f.gid); setActiveId(f.id);
-        setError(`Isi komentar/bukti perilaku (evidence) Q${f.qNum} minimal ${EVIDENCE_MIN} karakter.`);
+        setError(`Isi komentar/bukti perilaku Q${f.qNum} minimal ${EVIDENCE_MIN} karakter.`);
         return;
       }
     }
@@ -315,7 +315,7 @@ export function AssessForm({
           Penilaian untuk <span className="font-bold text-ink">{targetName}</span> berhasil dikirim.
           {deadlinePassed
             ? <>Deadline sudah lewat, sehingga penilaian ini <span className="font-semibold">tidak dapat diubah lagi</span>.</>
-            : <>Anda masih bisa <span className="font-semibold">mengeditnya sampai deadline</span> dari Daftar Penilaian.</>}
+            : <>Anda masih bisa <span className="font-semibold">mengubahnya sampai tenggat</span> dari Daftar Penilaian.</>}
         </p>
         {mandatoryTotal > 0 && (
           <div className={`mt-4 px-4 py-2.5 rounded-xl text-[13px] font-semibold ${remaining > 0 ? 'bg-warn-tint text-warn-ink' : 'bg-brand-tint text-brand-ink'}`}>
@@ -409,8 +409,7 @@ export function AssessForm({
             <div className={`${CARD} space-y-4`}>
               <h3 className="text-base font-bold text-ink">Umpan Balik Kualitatif <span className="text-xs font-semibold text-danger-ink">(wajib diisi semua)</span></h3>
               <p className="text-xs text-ink-soft -mt-2">
-                Tekan <kbd className={KBD}>Enter</kbd> untuk pindah ke pertanyaan berikutnya
-                · <kbd className={KBD}>Shift+Enter</kbd> baris baru.
+                Tekan <kbd className={KBD}>Enter</kbd> untuk pindah ke pertanyaan berikutnya · <kbd className={KBD}>Shift+Enter</kbd> untuk baris baru.
               </p>
               {questions.map((q, qi) => {
                 const filled = (answers[q.id] ?? '').trim().length > 0;
@@ -496,7 +495,7 @@ export function AssessForm({
 
                 {/* Rating 1–5 (fitur N/A dicabut 2026-09-29 — semua indikator wajib diberi rating). */}
                 <div>
-                  <span className="text-xs font-bold text-ink-soft uppercase tracking-[0.08em] block mb-2">Rating (klik untuk pilih)</span>
+                  <span className="text-xs font-bold text-ink-soft uppercase tracking-[0.08em] block mb-2">Nilai (klik untuk memilih)</span>
                   <div className="grid gap-1.5 sm:gap-2 grid-cols-5">
                     {[1, 2, 3, 4, 5].map((n) => {
                       const sel = ratings[cur.id] === n;
@@ -513,7 +512,7 @@ export function AssessForm({
                     {ratings[cur.id] != null ? (
                       <span className="text-[13px] font-bold text-brand-ink">Pilihan Anda: <span className="data-value">{ratings[cur.id]}</span></span>
                     ) : (
-                      <span className="text-[13px] font-semibold text-ink-soft">Pilih rating 1–5.</span>
+                      <span className="text-[13px] font-semibold text-ink-soft">Pilih nilai 1–5.</span>
                     )}
                   </div>
                 </div>
@@ -521,7 +520,7 @@ export function AssessForm({
                 {/* Komentar — WAJIB (BR-06, evidence). */}
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-ink-soft uppercase tracking-[0.08em] flex items-center gap-1">
-                    Komentar / Bukti Perilaku (Evidence) <span className="text-danger-ink">*</span>
+                    Komentar / Bukti Perilaku <span className="text-danger-ink">*</span>
                   </label>
                   {evidencePeriod && (
                     <p className="inline-block text-xs text-warn-ink bg-warn-tint rounded-control px-2.5 py-1">
@@ -532,13 +531,13 @@ export function AssessForm({
                   <textarea rows={3} value={comments[cur.id] ?? ''} onChange={(e) => setComments((p) => ({ ...p, [cur.id]: e.target.value }))}
                     onKeyDown={onCommentKeyDown}
                     placeholder={evidencePeriod
-                      ? `Jelaskan rating dengan contoh konkret selama ${evidencePeriod.range} (situasi nyata, perilaku yang terlihat, frekuensi).`
-                      : 'Jelaskan rating dengan contoh konkret (situasi nyata, perilaku yang terlihat, frekuensi).'}
+                      ? `Jelaskan nilai dengan contoh konkret selama ${evidencePeriod.range} (situasi nyata, perilaku yang terlihat, frekuensi).`
+                      : 'Jelaskan nilai dengan contoh konkret (situasi nyata, perilaku yang terlihat, frekuensi).'}
                     className={`${FIELD_AREA} resize-y`} />
                   <div className="flex flex-wrap justify-between items-center gap-2 text-xs">
                     <span className="text-ink-soft">
                       Tekan <kbd className={KBD}>Enter</kbd> untuk lanjut ke pertanyaan berikutnya
-                      · <kbd className={KBD}>Shift+Enter</kbd> baris baru
+                      · <kbd className={KBD}>Shift+Enter</kbd> untuk baris baru
                     </span>
                     <span className={`data-value font-bold ${(comments[cur.id] ?? '').trim().length >= EVIDENCE_MIN ? 'text-brand-ink' : 'text-danger-ink'}`}>
                       {(comments[cur.id] ?? '').trim().length >= EVIDENCE_MIN ? `${(comments[cur.id] ?? '').trim().length} karakter` : `${(comments[cur.id] ?? '').trim().length}/${EVIDENCE_MIN} karakter · wajib min. ${EVIDENCE_MIN}`}
@@ -574,8 +573,8 @@ export function AssessForm({
           <p className="text-[13px] text-brand-ink font-semibold">
             Kirim penilaian untuk <span className="font-bold">{targetName}</span>?
             <span className="block text-xs font-normal text-brand-ink mt-0.5">{deadlinePassed
-              ? 'Deadline sudah lewat — setelah dikirim, penilaian ini tidak dapat diubah lagi dan tercatat Terlambat.'
-              : 'Setelah dikirim, Anda masih bisa mengeditnya sampai deadline. Sesudah deadline, penilaian terkunci.'}</span>
+              ? 'Tenggat sudah lewat. Setelah dikirim, penilaian ini terkunci dan tercatat Terlambat.'
+              : 'Setelah dikirim, Anda masih bisa mengubahnya sampai tenggat. Sesudah tenggat, penilaian terkunci.'}</span>
           </p>
           <div className="flex gap-2 shrink-0">
             <button type="button" disabled={busy} onClick={cancelSend} className={BTN_GHOST}>
@@ -593,7 +592,7 @@ export function AssessForm({
         <div className="flex gap-2">
           {reviewing ? (
             <button type="button" disabled={busy} onClick={() => { cancelSend(); setReviewing(false); }} className={BTN_GHOST}>
-              <ChevronLeft className="w-4 h-4 text-ink-faint" /> Kembali ke Form
+              <ChevronLeft className="w-4 h-4 text-ink-faint" />Kembali ke Formulir
             </button>
           ) : (
           <button type="button" disabled={busy} onClick={() => router.push('/penilaian')} className={BTN_GHOST}>
@@ -626,7 +625,7 @@ export function AssessForm({
           <button type="button" disabled={busy || total === 0 || saveState === 'saving' || confirmSend} onClick={submit}
             className={allComplete ? BTN_PRIMARY : BTN_WARN}>
             {allComplete ? <ListChecks className="w-4 h-4 text-white/85" /> : <Send className="w-4 h-4 text-ink" />}
-            {busy ? 'Memproses…' : allComplete ? 'Review Penilaian' : `Lengkapi Penilaian (${remaining} tersisa)`}
+            {busy ? 'Memproses…' : allComplete ? 'Tinjau Penilaian' : `Lengkapi Penilaian (${remaining} tersisa)`}
           </button>
           )}
         </div>
@@ -640,7 +639,7 @@ export function AssessForm({
         onConfirm={doDiscard}
         onCancel={() => { if (!busy) setConfirmDiscard(false); }}
       >
-        <p>Semua rating &amp; komentar yang tersimpan sebagai draf akan <strong>dihapus</strong>. Tindakan ini tak bisa dibatalkan.</p>
+        <p>Semua nilai dan komentar di draf akan <strong>dihapus</strong> permanen.</p>
       </ConfirmDialog>
     </div>
   );
@@ -667,14 +666,14 @@ function ReviewPanel({ flat, ratings, comments, questions, answers, onEdit }: {
   const editBtn = (target: string) => (
     <button type="button" onClick={(e) => { e.preventDefault(); onEdit(target); }}
       className="inline-flex items-center gap-1 text-xs font-bold px-2.5 min-h-7 rounded-xl border border-line text-brand-ink bg-surface hover:border-brand shrink-0">
-      <Pencil className="w-3 h-3" /> Edit
+      <Pencil className="w-3 h-3" />Ubah
     </button>
   );
   return (
     <div className="space-y-3">
       <div className={CARD}>
-        <h3 className="text-base font-bold text-ink">Review Penilaian</h3>
-        <p className="text-[13px] text-ink-soft mt-0.5">Periksa kembali seluruh jawaban sebelum dikirim. Klik baris untuk melihat bukti perilaku, atau <strong>Edit</strong> untuk memperbaiki.</p>
+        <h3 className="text-base font-bold text-ink">Tinjau Penilaian</h3>
+        <p className="text-[13px] text-ink-soft mt-0.5">Periksa semua jawaban sebelum mengirim. Klik baris untuk melihat bukti perilaku, atau Ubah untuk memperbaiki.</p>
         <p className="mt-2 text-xs font-bold text-brand-ink">
           <CheckCircle2 className="w-4 h-4 inline -mt-0.5 mr-1" />
           <span className="data-value">{doneN}/{flat.length}</span> indikator lengkap

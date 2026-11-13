@@ -37,7 +37,7 @@ export function OrgChart({ roots }: { roots: OrgNode[] }) {
       <li className={n.active ? '' : 'opacity-60'}>
         <button type="button" onClick={() => kids.length && toggle(n.id)}
           className={`vt-box border ${box} ${kids.length ? 'cursor-pointer hover:border-brand' : 'cursor-default'}`}
-          title={kids.length ? (isC ? 'Klik untuk buka bawahan' : 'Klik untuk tutup bawahan') : undefined}>
+          title={kids.length ? (isC ? 'Klik untuk membuka daftar bawahan' : 'Klik untuk menutup daftar bawahan') : undefined}>
           {kids.length > 0
             ? (isC ? <ChevronRight className="w-4 h-4 shrink-0 opacity-80" /> : <ChevronDown className="w-4 h-4 shrink-0 opacity-80" />)
             : <span className="w-4 shrink-0" />}

@@ -68,7 +68,7 @@ export default async function PegawaiPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
           <PageTitle title="Kelola Pegawai">
-            Tambah, ubah, atau nonaktifkan akun pegawai. Email boleh placeholder — login pakai sandi, ganti email asli kapan saja.
+            Tambah, ubah, atau nonaktifkan akun pegawai. Email sementara boleh dipakai dan bisa diganti kapan saja.
           </PageTitle>
         </div>
         <PegawaiImport rows={rows} />

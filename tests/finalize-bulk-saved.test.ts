@@ -47,7 +47,7 @@ describe('bulkFinalizeAccepted — hitung hanya yang tersimpan', () => {
     expect(r.skipped).toEqual([]);
     expect(r.failed).toHaveLength(1);
     expect(r.failed[0].name).toBe('Budi');
-    expect(r.failed[0].reason).toMatch(/tidak tersimpan/i);
+    expect(r.failed[0].reason).toMatch(/laporan sudah berubah/i);
   });
 
   it('error database saat menyimpan → masuk daftar gagal beserta nama & pesannya', async () => {
@@ -88,7 +88,7 @@ describe('bulkFinalizeAccepted — hitung hanya yang tersimpan', () => {
     ) }));
     await bulkFinalizeAccepted();
     const log = vi.mocked(logHrdAction).mock.calls[0][0];
-    expect(log.summary).toBe('Finalisasi massal 1 laporan ber-ACC (1 gagal disimpan: Budi)');
+    expect(log.summary).toBe('Finalisasi massal 1 laporan yang sudah disetujui (1 gagal disimpan: Budi)');
     expect(log.meta).toMatchObject({ finalized: 1, skipped: 0, failed: 1, finalized_names: ['Andi'], failed_list: [{ name: 'Budi' }] });
   });
 });

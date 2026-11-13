@@ -54,15 +54,15 @@ export function WeightForm({ initial, auto2 = false }: { initial: Init; auto2?: 
         <label className={FIELD_LABEL}>Model Bobot</label>
         <select value={model} onChange={(e) => setModel(e.target.value as '4class' | '2class')}
           className={FIELD}>
-          <option value="4class">4-Kelas (Atasan / Peer / Cross / Bawahan)</option>
+          <option value="4class">4-Kelas (Atasan / Rekan / Lintas Divisi / Bawahan)</option>
           <option value="2class">2-Kelas (Atasan / Internal)</option>
         </select>
       </div>
 
       {autoMode ? (
         <div className="border border-line bg-infarm-surface rounded-xl p-3.5 text-xs text-ink-soft leading-relaxed">
-          <p className="text-[13px] font-semibold text-ink">Bobot otomatis (BR-10) — tidak perlu diisi</p>
-          <p className="mt-1">Mulai Q3 2026, bobot 2-Kelas ditentukan dari jumlah penilai <strong>Internal</strong> (Peer, Cross, Bawahan — dihitung per orang yang sudah mengirim):</p>
+          <p className="text-[13px] font-semibold text-ink">Bobot otomatis — tidak perlu diisi</p>
+          <p className="mt-1">Mulai Q3 2026, bobot 2-Kelas mengikuti jumlah penilai <strong>Internal</strong> (Rekan, Lintas Divisi, Bawahan) yang sudah mengirim:</p>
           <ul className="mt-1.5 space-y-0.5">
             <li className="flex flex-wrap items-center gap-1.5">Atasan + ≥2 Internal <ArrowRight className="w-3.5 h-3.5 text-ink-faint" aria-hidden /> <span className="font-mono font-semibold text-ink">Atasan 40% · Internal 60%</span></li>
             <li className="flex flex-wrap items-center gap-1.5">Atasan + 1 Internal <ArrowRight className="w-3.5 h-3.5 text-ink-faint" aria-hidden /> <span className="font-mono font-semibold text-ink">Atasan 60% · Internal 40%</span></li>
@@ -72,7 +72,7 @@ export function WeightForm({ initial, auto2 = false }: { initial: Init; auto2?: 
         </div>
       ) : model === '4class' ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {field('Atasan', 'atasan')}{field('Peer', 'peer')}{field('Cross', 'cross')}{field('Bawahan', 'bawahan')}
+          {field('Atasan', 'atasan')}{field('Rekan', 'peer')}{field('Lintas Divisi', 'cross')}{field('Bawahan', 'bawahan')}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
@@ -84,8 +84,7 @@ export function WeightForm({ initial, auto2 = false }: { initial: Init; auto2?: 
         {!autoMode && <>Total bobot: <span className="font-mono font-bold text-ink">{total}</span></>}
         {total !== 100 && <span className="text-danger-ink"> — harus tepat 100 untuk bisa disimpan</span>}
         <span className="block text-xs text-ink-soft mt-0.5">
-          Evaluasi diri (Self) tidak punya bobot — nilainya tak pernah masuk Skor 360°, hanya tampil
-          sebagai pembanding di laporan pegawai.
+          Evaluasi diri tidak berbobot dan tidak masuk Skor 360° — hanya pembanding di laporan pegawai.
         </span>
       </p>
 

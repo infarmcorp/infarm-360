@@ -258,7 +258,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
                       ))}
                     </div>
                     {optionalPending > 0 && (
-                      <p className="text-xs text-ink-soft mt-1">+<span className="font-mono">{optionalPending}</span> opsional belum (tak memengaruhi status)</p>
+                      <p className="text-xs text-ink-soft mt-1">+<span className="font-mono">{optionalPending}</span> opsional belum selesai (tidak memengaruhi status)</p>
                     )}
                   </div>
                   <div>
@@ -301,16 +301,7 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
         <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="penilai" />
       </div>
       <Note>
-        <strong className="font-semibold text-ink">Status &quot;Lengkap&quot;</strong> dihitung dari penilaian <strong className="font-semibold text-ink">WAJIB</strong> saja — penilaian
-        opsional tak memengaruhi status/kartu (tetap ditampilkan di Rincian untuk dipantau). Penilaian
-        <strong className="font-semibold text-ink"> Ajuan</strong> (opsional yang diajukan pegawai &amp; disetujui HRD) dipantau di panel
-        <strong> Penilaian Ajuan</strong> &amp; chip bergaris putus-putus. Tiap baris:
-        <strong> Menilai (wajib)</strong> (tugas wajib penilai) &amp; <strong>Dinilai oleh</strong> (berapa
-        penilai sudah menilai pegawai ini). <strong>Status penilaian</strong> (tugas wajib): Belum Mulai · Sedang Diisi
-        (draf) · Selesai – Tepat Waktu · Selesai – Terlambat — ditentukan dari waktu kirim <em>pertama</em> dibanding
-        deadline periode, tak berubah bila penilaian diedit; Paksa Selesai dihitung tepat waktu. “Paksa Selesai” menandai penilaian terkirim; “Kirim Pengingat”
-        mengirim email berisi daftar yang belum dinilai; “Undangan” / “Kirim Undangan Massal” mengirim
-        info akun (peran, email, sandi baru, panduan) sekali di awal periode — sandi disetel ulang.
+        <strong className="font-semibold text-ink">Status &quot;Lengkap&quot;</strong> hanya menghitung penilaian <strong className="font-semibold text-ink">WAJIB</strong>. Penilaian opsional tetap tampil di Rincian; Penilaian <strong className="font-semibold text-ink"> Ajuan</strong> dipantau di panelnya sendiri. Status ditentukan dari waktu kirim <em>pertama</em> dibanding tenggat. &quot;Paksa Selesai&quot; menandai penilaian terkirim tepat waktu. &quot;Kirim Pengingat&quot; mengirim daftar yang belum dinilai. &quot;Undangan&quot; mengirim info akun dan sandi baru, sekali di awal periode.
       </Note>
 
       <ConfirmDialog

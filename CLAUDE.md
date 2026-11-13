@@ -278,6 +278,12 @@ bersama (2026-11-03/04). Aturan token & "kartu flat tanpa bayangan / font sistem
 ## 9. Konvensi & pengujian
 - TS strict; hindari `any`. Komentar & label UI bahasa Indonesia mengikuti istilah PANDUAN ("Mulai Nilai",
   "Final Report", "Garis Hubungan").
+- **Istilah UI baku** (audit kalimat pemilik, 2026-11-13): Tinjauan & Finalisasi · Dasbor · Progres Umpan Balik 360° ·
+  Pemantauan & Audit KPI · Pengisian KPI · persetujuan/Setujui (bukan ACC) · tenggat (bukan deadline) · formulir · nilai
+  (bukan rating) · berkas · templat · peta panas · Rerata · atur ulang sandi · sesi empat mata · Rekan/Lintas Divisi/Diri
+  Sendiri (label saja — **nilai data** relasi `Peer`/`Cross`/`Self` di DB, enum Zod, impor Excel, dan rumus tetap). Pesan
+  ke pengguna tidak menyebut nomor migrasi/nama tabel ("Hubungi admin aplikasi"). Istilah yang ditetapkan HRD (status
+  BR-07, No Score, HRD Review, nama kelas 4-Box termasuk "B-Culture", kategori/RTL lama) **tidak** diubah tanpa HRD.
 - Tipe skema di `lib/database.types.ts`; tipe per-fitur inline/di lib terkait — jangan duplikasi.
 - **Lint React hooks:** jangan definisikan komponen di dalam komponen (pakai tingkat modul atau fungsi render
   biasa); jangan `setState` di effect untuk "reset saat nilai berubah" — lakukan di handler atau pola "bandingkan

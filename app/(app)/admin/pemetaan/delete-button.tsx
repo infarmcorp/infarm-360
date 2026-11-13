@@ -56,10 +56,10 @@ export function DeleteButton({ mappingId, status }: { mappingId: string; status:
   const s = info?.status;
   const title = s === 'submitted' ? 'Batalkan Validitas Penilaian?'
     : s === 'invalidated' ? 'Penilaian Dibatalkan'
-    : s === 'draft' ? 'Hapus Assignment dan Draft?' : 'Hapus Assignment?';
+    : s === 'draft' ? 'Hapus Penugasan dan Draf?' : 'Hapus Penugasan?';
   const confirmLabel = s === 'submitted' ? 'Batalkan Validitas'
     : s === 'invalidated' ? 'Pulihkan Validitas'
-    : s === 'draft' ? 'Hapus Assignment dan Draft' : 'Hapus Assignment';
+    : s === 'draft' ? 'Hapus Penugasan dan Draf' : 'Hapus Penugasan';
   const reasonOk = reason.trim().length >= 5;
 
   return (
@@ -87,28 +87,23 @@ export function DeleteButton({ mappingId, status }: { mappingId: string; status:
             <strong>{info?.assessor}</strong> <ArrowRight className="inline w-3.5 h-3.5 align-[-2px]" aria-hidden /> <strong>{info?.target}</strong> · relasi {info?.relation}
           </p>
           {s === 'none' && (
-            <p>Assignment ini akan dihapus dari daftar penilaian rater. Rater tidak lagi memiliki kewajiban menyelesaikan penilaian ini.</p>
+            <p>Penugasan ini akan dihapus. Penilai tidak lagi wajib menilai.</p>
           )}
           {s === 'draft' && (
             <p className="text-danger-ink">
-              Assignment ini sudah memiliki jawaban <strong>Draft</strong>. Bila dilanjutkan, assignment dan seluruh jawaban
-              Draft pada periode ini akan <strong>terhapus</strong> dan tidak dapat dipulihkan. Assignment yang dihapus tidak
-              lagi menjadi kewajiban rater.
+              Penugasan ini sudah punya jawaban draf. Penugasan dan draf akan <strong>terhapus</strong> permanen, dan penilai tidak lagi wajib menilai.
             </p>
           )}
           {s === 'submitted' && (
             <p>
-              Penilaian ini sudah <strong>terkirim</strong> sehingga tidak dapat dihapus. Bila setelah diverifikasi rater
-              ternyata tidak layak menilai, batalkan validitasnya: penilaian <strong>dikeluarkan dari perhitungan Skor 360°</strong>,
-              jawaban &amp; evidence <strong>tetap disimpan sebagai arsip</strong>, dan tidak memicu potongan keterlambatan.
-              Pembatalan tidak boleh dilakukan semata-mata karena skor yang diberikan tidak diinginkan.
+              Penilaian sudah <strong>terkirim</strong> dan tidak bisa dihapus. Bila penilai terbukti tidak layak, batalkan validitasnya: penilaian dikeluarkan dari Skor 360°, jawaban tetap diarsipkan, dan tidak ada potongan keterlambatan. Jangan batalkan hanya karena skornya tidak diinginkan.
             </p>
           )}
           {s === 'invalidated' && (
             <p>
               Validitas penilaian ini dibatalkan{info?.invalidatedAt ? <> pada <span className="font-mono">{formatWib(info.invalidatedAt)}</span></> : null}.
               <span className="block mt-1">Alasan: <em>{info?.invalidReason ?? '—'}</em></span>
-              <span className="block mt-1">Memulihkan akan mengembalikan penilaian ke perhitungan Skor 360°.</span>
+              <span className="block mt-1">Pulihkan untuk memasukkannya kembali ke Skor 360°.</span>
             </p>
           )}
           <label className="block">
@@ -116,7 +111,7 @@ export function DeleteButton({ mappingId, status }: { mappingId: string; status:
               {s === 'invalidated' ? 'Alasan pemulihan' : s === 'submitted' ? 'Alasan pembatalan' : 'Alasan penghapusan'} *
             </span>
             <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={300} disabled={busy}
-              placeholder={s === 'submitted' ? 'mis. Tidak ada interaksi kerja selama periode — dikonfirmasi ke leader' : 'mis. Assignment ganda, perubahan struktur organisasi'}
+              placeholder={s === 'submitted' ? 'mis. Tidak ada interaksi kerja selama periode — dikonfirmasi ke atasan' : 'mis. Penugasan ganda, perubahan struktur organisasi'}
               className={`${FIELD} w-full py-2 bg-surface`} />
             <span className="block text-[11px] text-ink-soft text-right font-mono">{reason.trim().length}/300 · min. 5</span>
           </label>

@@ -32,12 +32,12 @@ export const HRD_SECTION_LABELS: Record<HrdSection, string> = {
   pemetaan: 'Pemetaan 360°',
   pertanyaan: 'Kelola Pertanyaan',
   bobot: 'Bobot & Kalkulasi 360°',
-  progress: 'Progress 360°',
+  progress: 'Progres Umpan Balik 360°',
   kepatuhan: 'Flag Kepatuhan',
-  laporan: 'Review & Finalisasi',
+  laporan: 'Tinjauan & Finalisasi',
   pengembangan: 'Rencana Pengembangan',
   suksesi: 'Promosi & Suksesi',
-  dashboard: 'Dashboard Organisasi',
+  dashboard: 'Dasbor Organisasi',
   ekspor: 'Ekspor Dataset',
   audit: 'Log Aktivitas & Audit KPI',
 };
@@ -86,12 +86,12 @@ export type GrantablePage = (typeof GRANTABLE_PAGES)[number];
 /** Label Indonesia tiap halaman yang bisa diberikan — dipakai di halaman Manajemen Akses. */
 export const GRANTABLE_PAGE_LABELS: Record<GrantablePage, string> = {
   monitor: 'Monitor Kinerja Pegawai',
-  review: 'Review & Finalisasi',
-  dashboard: 'Dashboard Organisasi',
+  review: 'Tinjauan & Finalisasi',
+  dashboard: 'Dasbor Organisasi',
   struktur: 'Struktur Organisasi',
-  progress: 'Progress 360 Feedback',
+  progress: 'Progres Umpan Balik 360°',
   kepatuhan: 'Flag Kepatuhan',
-  kpi: 'Monitoring & Audit KPI',
+  kpi: 'Pemantauan & Audit KPI',
 };
 
 /**

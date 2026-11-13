@@ -42,7 +42,7 @@ export default async function PemetaanPage({
       <EmptyState
         icon={<MapIcon className="w-6 h-6" aria-hidden />}
         title="Belum ada periode aktif"
-        description="Pemetaan penilai mengikat ke periode aktif. Aktifkan sebuah periode dulu, baru atur siapa menilai siapa."
+        description="Pemetaan berlaku per periode. Aktifkan periode dulu, lalu atur siapa menilai siapa."
         steps={[
           { text: <>Buka <strong>Kelola Siklus Periode</strong></> },
           { text: <>Buat / pilih periode lalu tekan <strong>Aktivasi</strong></> },
@@ -172,16 +172,12 @@ async function KoreksiTab({ supabase, periodId }: { supabase: Awaited<ReturnType
               )}
               {kind === 'remove' && (
                 <p className="text-xs text-ink-soft">
-                  Minta <strong>dikeluarkan</strong> dari daftar penilaiannya
-                  {r.old_relation && <> (saat ini <span className="font-semibold">{r.old_relation}</span>)</>}.
-                  Disetujui → pemetaan dinonaktifkan.
+                  Minta <strong>dikeluarkan</strong> dari daftar penilaiannya {r.old_relation && <> (saat ini <span className="font-semibold">{r.old_relation}</span>)</>}. Bila disetujui, pemetaan dinonaktifkan.
                 </p>
               )}
               {kind === 'add' && (
                 <p className="text-xs text-ink-soft">
-                  Minta <strong>menilai rekan ini</strong> sebagai{' '}
-                  <span className="bg-brand-tint text-brand-ink font-semibold px-2 py-0.5 rounded-full">{r.new_relation ?? '—'}</span>.
-                  Disetujui → pemetaan baru dibuat (sifat Opsional).
+                  Minta <strong>menilai rekan ini</strong> sebagai <span className="bg-brand-tint text-brand-ink font-semibold px-2 py-0.5 rounded-full">{r.new_relation ?? '—'}</span>. Bila disetujui, pemetaan baru dibuat (sifat Opsional).
                 </p>
               )}
 

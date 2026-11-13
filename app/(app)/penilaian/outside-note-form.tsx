@@ -152,7 +152,7 @@ export function OutsideNoteButton({ candidates, aspects }: { candidates: Candida
             </div>
 
             <p className="text-xs text-ink-soft">
-              Laporan tanpa rating, tidak memengaruhi Skor 360°, dan tidak bisa diubah atau dihapus setelah dikirim.
+              Laporan ini tidak memengaruhi Skor 360° dan tidak bisa diubah atau dihapus setelah dikirim.
             </p>
 
             {err && <p className="text-xs text-danger-ink font-semibold">{err}</p>}

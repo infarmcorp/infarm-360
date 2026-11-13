@@ -20,11 +20,11 @@ export type GuideKey = '2A' | '2B' | '2C' | '2D' | '2E' | '2F';
 
 export const GUIDES: Record<GuideKey, { title: string; desc: string; url: string }> = {
   '2A': { title: 'Panduan Pegawai', desc: 'Menilai rekan, membaca laporan, dan mengisi Rencana Pengembangan.', url: 'https://www.notion.so/3eb357aaede581d89775d6dbb7e1ec12' },
-  '2B': { title: 'Panduan SPV (Supervisor)', desc: 'Input KPI tim, ACC laporan anggota, Monitor, dan rencana tim — termasuk tugas Anda sebagai penilai.', url: 'https://www.notion.so/3eb357aaede58135a201e6604b9c0d91' },
-  '2C': { title: 'Panduan Koordinator', desc: 'KPI, ACC, dan rencana pegawai binaan — termasuk tugas Anda sebagai penilai.', url: 'https://www.notion.so/3eb357aaede581b6bef5d8bd18d1d14a' },
+  '2B': { title: 'Panduan SPV (Supervisor)', desc: 'Isi KPI tim, setujui laporan anggota, pantau kinerja, dan susun rencana tim — termasuk tugas Anda sebagai penilai.', url: 'https://www.notion.so/3eb357aaede58135a201e6604b9c0d91' },
+  '2C': { title: 'Panduan Koordinator', desc: 'Isi KPI, setujui laporan, dan susun rencana pegawai binaan — termasuk tugas Anda sebagai penilai.', url: 'https://www.notion.so/3eb357aaede581b6bef5d8bd18d1d14a' },
   '2D': { title: 'Panduan HRD Admin', desc: 'Siklus penilaian dari persiapan sampai laporan Final, serta tugas di Mode SPV/Pegawai.', url: 'https://www.notion.so/3eb357aaede58157a483ebf9ce2f914d' },
-  '2E': { title: 'Panduan Direksi', desc: 'Dashboard, ACC laporan SPV, Promosi & Suksesi — termasuk tugas Anda sebagai penilai.', url: 'https://www.notion.so/3eb357aaede581c091b3dedaeaa891e1' },
-  '2F': { title: 'Akses Khusus dari HRD', desc: 'Apa yang bisa dilakukan dengan akses halaman atau izin HRD terbatas yang Anda terima.', url: 'https://www.notion.so/3eb357aaede58130a96cfc66d9c1536e' },
+  '2E': { title: 'Panduan Direksi', desc: 'Dasbor, persetujuan laporan SPV, serta Promosi & Suksesi, termasuk tugas Anda sebagai penilai.', url: 'https://www.notion.so/3eb357aaede581c091b3dedaeaa891e1' },
+  '2F': { title: 'Akses Khusus dari HRD', desc: 'Hal yang dapat Anda lakukan dengan akses halaman atau izin terbatas dari HRD.', url: 'https://www.notion.so/3eb357aaede58130a96cfc66d9c1536e' },
 };
 
 /**

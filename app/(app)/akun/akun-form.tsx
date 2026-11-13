@@ -41,7 +41,7 @@ export function AkunForm() {
         {busy ? 'Menyimpan…' : 'Simpan Sandi Baru'}
       </button>
       <p className="text-xs text-ink-soft">
-        Demi keamanan, masukkan sandi saat ini untuk mengonfirmasi. Sandi tidak pernah dicatat.
+        Masukkan sandi saat ini untuk konfirmasi. Sandi tidak disimpan.
       </p>
     </form>
   );

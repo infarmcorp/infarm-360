@@ -15,13 +15,13 @@ const Input = z.object({
 
 export async function changeOwnPassword(raw: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
   const parsed = Input.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
   const { current, next } = parsed.data;
   if (current === next) return { ok: false, error: 'Sandi baru harus berbeda dari sandi saat ini' };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user?.email) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user?.email) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
 
   // 1) Verifikasi sandi saat ini (re-autentikasi sebagai user yang sama).
   const { error: signInErr } = await supabase.auth.signInWithPassword({ email: user.email, password: current });

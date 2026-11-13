@@ -198,8 +198,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
               {single && <span className="text-ink-soft font-semibold"> · {single.name}</span>}
             </h2>
             <p className="mt-0.5 text-[13px] text-ink-soft">
-              Mengabarkan pegawai bahwa PDF laporannya sudah bisa diunduh di <strong>Laporan Hasil Saya</strong>.
-              Email tidak memuat skor atau isi laporan.
+              Memberi tahu pegawai bahwa PDF laporannya siap diunduh di <strong>Laporan Hasil Saya</strong>. Email tidak memuat skor.
             </p>
           </div>
           <button type="button" onClick={onClose} disabled={!!busy} className="text-ink-faint hover:text-ink disabled:opacity-40">
@@ -230,7 +229,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
                 )}
                 {editingId && (
                   <p className="font-semibold text-warn-ink">
-                    Sedang mengubah jadwal ini — penerima, isi, dan jam di formulir adalah isi jadwal. Simpan dengan tombol di bawah.
+                    Anda sedang mengubah jadwal ini. Simpan perubahan penerima, isi, dan jam dengan tombol di bawah.
                   </p>
                 )}
               </section>
@@ -242,7 +241,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
                 <>
                   <p>Penerima: <strong className="text-ink">{single.name}</strong> · {single.dept}</p>
                   {!single.hasFolder && <p className="font-semibold text-danger-ink">Folder Laporan pegawai ini belum diisi — isi dulu di Kelola Pegawai.</p>}
-                  {single.hasFolder && single.sent && <p className="font-semibold text-warn-ink">Pegawai ini sudah pernah dikirimi email rilis periode ini — mengirim lagi = kirim ulang.</p>}
+                  {single.hasFolder && single.sent && <p className="font-semibold text-warn-ink">Pegawai ini sudah dikirimi email rilis periode ini. Mengirim lagi berarti kirim ulang.</p>}
                 </>
               ) : (
                 <>
@@ -280,7 +279,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
                   {noFolder.length > 0 && (
                     <details className="text-warn-ink">
                       <summary className="cursor-pointer font-semibold">
-                        {noFolder.length} pegawai Final belum punya Folder Laporan → tidak dikirimi
+                        {noFolder.length} pegawai Final belum punya Folder Laporan sehingga tidak dikirimi
                       </summary>
                       <p className="mt-1 text-ink-soft">{noFolder.map((r) => r.name).join(', ')}. Isi tautannya di Kelola Pegawai.</p>
                     </details>
@@ -292,7 +291,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
             <section>
               <span className={labelCls}>Gambar pendamping periode ini</span>
               {!storageOk ? (
-                <p className="mt-1 text-xs text-warn-ink">Penyimpanan gambar belum aktif (perubahan database 0051 belum dijalankan). Email tetap bisa dikirim tanpa gambar.</p>
+                <p className="mt-1 text-xs text-warn-ink">Penyimpanan gambar belum aktif. Email tetap bisa dikirim tanpa gambar.</p>
               ) : (
                 <div className="mt-1.5 grid grid-cols-2 gap-2">
                   {RELEASE_IMAGES.map((def) => (
@@ -390,13 +389,11 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
                 </div>
               )}
             </div>
-            {!schedule.ok && <p className="mt-1.5 text-ink-faint">Jadwal belum aktif — perubahan database 0053 belum dijalankan.</p>}
+            {!schedule.ok && <p className="mt-1.5 text-ink-faint">Fitur jadwal belum aktif. Hubungi admin aplikasi untuk mengaktifkannya.</p>}
             {schedule.ok && active && !editingId && <p className="mt-1.5 text-ink-faint">Sudah ada jadwal aktif (di atas) — ubah atau batalkan dulu untuk membuat jadwal baru.</p>}
             {mode === 'schedule' && (
               <p className="mt-1.5 text-ink-faint">
-                Penerima dan isi email di atas <strong>dikunci</strong> bersama jadwal. Email terkirim mulai jam itu sampai ±30 menit
-                sesudahnya. Jadwal bisa diubah atau dibatalkan sebelum mulai terkirim. Saat jam tiba, yang laporannya sudah tidak Final,
-                foldernya kosong, atau sudah pernah dikirimi akan dilewati.
+                Penerima dan isi email <strong>dikunci</strong> bersama jadwal. Email terkirim mulai jam itu hingga ±30 menit sesudahnya, dan jadwal bisa diubah atau dibatalkan sebelumnya. Pegawai yang laporannya tidak lagi Final, foldernya kosong, atau sudah pernah dikirimi akan dilewati.
               </p>
             )}
           </section>
@@ -430,11 +427,11 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
               {editingId && (
                 <Button type="button" variant="ghost" size="sm" disabled={!!busy}
                   onClick={() => { setEditingId(null); setMode('now'); setPicked(null); setOnlyUnsent(true); setMsg(null); }}>
-                  Batal ubah
+                  Batalkan perubahan
                 </Button>
               )}
               <Button type="button" variant="ghost" size="sm" onClick={sendTest} disabled={!!busy}>
-                {busy === 'test' ? 'Mengirim uji…' : 'Kirim Uji ke Email Saya'}
+                {busy === 'test' ? 'Mengirim email uji…' : 'Kirim Uji ke Email Saya'}
               </Button>
               {mode === 'schedule' && !single ? (
                 <Button type="button" size="sm" onClick={() => setConfirming(true)} disabled={!!busy || targets.length === 0 || !sendAtIso}>

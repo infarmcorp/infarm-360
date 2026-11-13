@@ -87,8 +87,7 @@ export default async function AuditPage({
   return (
     <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>
       <PageTitle title="Log Aktivitas HRD">
-        Jejak audit aksi sensitif (kunci/aktivasi periode, bobot, finalisasi, potongan keterlambatan,
-        kelola akun, pemetaan, pertanyaan). Hanya-baca &amp; tak dapat diubah.
+        Jejak audit tindakan penting (periode, bobot, finalisasi, potongan, akun, pemetaan, pertanyaan). Tidak dapat diubah.
       </PageTitle>
       <AuditClient
         rows={rows}

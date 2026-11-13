@@ -40,7 +40,7 @@ export function SessionsSection({ planId, sessions, items, canAddOneOnOne, canAd
         <CardTitle icon={CalendarCheck}>Catatan Sesi &amp; Tinjauan</CardTitle>
         {!locked && !form && (
           <div className="flex gap-2">
-            {canAddOneOnOne && <Button size="sm" className="min-h-9" onClick={() => setForm({ kind: 'one_on_one' })}><Plus className="w-3.5 h-3.5" /> Catat Sesi 1-on-1</Button>}
+            {canAddOneOnOne && <Button size="sm" className="min-h-9" onClick={() => setForm({ kind: 'one_on_one' })}><Plus className="w-3.5 h-3.5" />Catat Sesi Empat Mata</Button>}
             {canAddHrd && <Button size="sm" variant="ghost" className="min-h-9" onClick={() => setForm({ kind: 'hrd_monthly' })}><Plus className="w-3.5 h-3.5" /> Catat Tinjauan HRD</Button>}
           </div>
         )}

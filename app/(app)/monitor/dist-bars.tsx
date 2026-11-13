@@ -61,7 +61,7 @@ function SegBar({ title, people }: { title: string; people: Person[] }) {
               return (
                 <button key={c.key} type="button"
                   onClick={() => setSel(active ? null : c.key)}
-                  title={`${c.label}: ${n} (${pct(n)}%) — klik untuk lihat nama`}
+                  title={`${c.label}: ${n} (${pct(n)}%) — klik untuk melihat nama`}
                   aria-pressed={active}
                   style={{ width: `${(n / total) * 100}%`, backgroundColor: c.color, color: c.text }}
                   className={`flex items-center justify-center text-[11px] font-bold font-mono transition-opacity hover:opacity-90 ${
@@ -125,7 +125,7 @@ export function DistBars({ kpiPeople, s360People }: { kpiPeople: Person[]; s360P
         <SegBar title="Sebaran KPI" people={kpiPeople} />
         {s360People && <SegBar title="Sebaran 360°" people={s360People} />}
       </div>
-      <p className="text-xs text-ink-soft mt-3">Kategori seragam dengan Dashboard Organisasi (band Skor 90/80/70) — distribusi skor, bukan klasifikasi 4-Box.</p>
+      <p className="text-xs text-ink-soft mt-3">Kategori sama dengan Dasbor Organisasi (batas 90/80/70) — sebaran skor, bukan klasifikasi 4-Box.</p>
     </div>
   );
 }

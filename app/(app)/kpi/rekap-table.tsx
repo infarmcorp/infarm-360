@@ -49,7 +49,7 @@ export function RekapTable({ rows, monthLabels, has360 }: {
             <tr className={TABLE_HEAD}>
               <th className="py-2.5 px-3 rounded-l-lg">Pegawai</th>
               {monthLabels.map((m, i) => <th key={i} className="py-2.5 px-3 text-center">{m}</th>)}
-              <th className="py-2.5 px-3 text-center">Rataan KPI</th>
+              <th className="py-2.5 px-3 text-center">Rerata KPI</th>
               {has360 && <th className="py-2.5 px-3 text-center">Hasil 360°</th>}
               <th className="py-2.5 px-3 text-center">Skor Akhir</th>
               <th className="py-2.5 px-3 text-right rounded-r-lg">Kategori</th>

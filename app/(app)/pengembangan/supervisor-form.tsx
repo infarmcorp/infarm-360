@@ -47,7 +47,7 @@ export function SupervisorForm({ planId, initial }: { planId: string; initial: C
   return (
     <section className={`${CARD} space-y-3`}>
       <CardTitle icon={MessageSquare}>Komentar Atasan Langsung</CardTitle>
-      <p className="text-xs text-ink-soft">Diisi setelah sesi empat mata dengan pegawai. Bertanda * wajib sebelum Setujui.</p>
+      <p className="text-xs text-ink-soft">Isi setelah sesi empat mata dengan pegawai. Kolom bertanda * wajib diisi sebelum Setujui.</p>
       {FIELDS.map((f) => (
         <label key={f.key} className="block">
           <span className="text-[13px] font-semibold text-ink">{f.label}{f.required && <span className="text-danger-ink"> *</span>}</span>

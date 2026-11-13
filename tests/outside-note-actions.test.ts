@@ -83,11 +83,11 @@ describe('submitOutsideNote — gerbang fase', () => {
     expect((await submitOutsideNote(TARGET, ASPECT, DATE, BODY, '')).ok).toBe(false);
   });
 
-  it('tolak saat form ditutup — termasuk TAHAP TINJAU pemetaan (form belum dibuka)', async () => {
+  it('tolak saat formulir ditutup — termasuk TAHAP TINJAU pemetaan (form belum dibuka)', async () => {
     const admin = svc(makeClient({}));
     happy({ periods: [{ data: { id: 'p1', has_360: true, form_open: false } }] });
     const r = await submitOutsideNote(TARGET, ASPECT, DATE, BODY, '');
-    expect(r).toEqual({ ok: false, error: expect.stringMatching(/Form penilaian sedang ditutup/) });
+    expect(r).toEqual({ ok: false, error: expect.stringMatching(/Formulir penilaian sedang ditutup/) });
     expect(admin.calls).toHaveLength(0);
   });
 });

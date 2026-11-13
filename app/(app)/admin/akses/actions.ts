@@ -24,7 +24,7 @@ const SELF_GRANT_MSG = 'Anda tidak dapat memberi atau mengubah akses halaman unt
 
 async function requireFullHrd(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false as const, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!isFullHrd(me)) return { ok: false as const, error: 'Hanya HRD Admin dengan akses penuh yang dapat mengatur akses.' };
   return { ok: true as const, userId: user.id };
@@ -47,7 +47,7 @@ const GrantInput = z.object({
 export async function setPageGrant(employeeId: string, section: unknown, scopes: unknown, canEdit: unknown = false, canFinalize: unknown = false): Promise<Result> {
   // Izin divalidasi sebagai boolean SUNGGUHAN (Zod) — dulu `!!` membuat teks "false" terbaca true.
   const parsed = GrantInput.safeParse({ employeeId, section, scopes, canEdit, canFinalize });
-  if (!parsed.success) return { ok: false, error: 'Input tidak valid (pilih minimal satu lingkup).' };
+  if (!parsed.success) return { ok: false, error: 'Isian tidak valid (pilih minimal satu lingkup).' };
   const { employeeId: id, section: sec } = parsed.data;
   // Normalisasi: buang duplikat; 'all' menyerap semua → simpan ['all'] saja (paling ringkas).
   let scps: PageScope[] = [...new Set(parsed.data.scopes)];
@@ -114,7 +114,7 @@ const RoleGrantInput = z.object({
  */
 export async function setPageGrantForRole(roleTarget: unknown, section: unknown, scopes: unknown, canEdit: unknown = false, canFinalize: unknown = false): Promise<Result> {
   const parsed = RoleGrantInput.safeParse({ roleTarget, section, scopes, canEdit, canFinalize });
-  if (!parsed.success) return { ok: false, error: 'Input tidak valid (pilih peran, halaman, & minimal satu lingkup).' };
+  if (!parsed.success) return { ok: false, error: 'Isian tidak valid (pilih peran, halaman, & minimal satu lingkup).' };
   const { roleTarget: rt, section: sec } = parsed.data;
   let scps: PageScope[] = [...new Set(parsed.data.scopes)];
   if (scps.includes('all')) scps = ['all'];
@@ -158,7 +158,7 @@ export async function setPageGrantForRole(roleTarget: unknown, section: unknown,
 /** Cabut akses halaman untuk seorang pegawai. Ditulis via service_role. */
 export async function removePageGrant(employeeId: string, section: unknown): Promise<Result> {
   const parsed = z.object({ employeeId: z.string().uuid(), section: z.enum(GRANTABLE_PAGES) }).safeParse({ employeeId, section });
-  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
   const { employeeId: id, section: sec } = parsed.data;
 
   const supabase = await createClient();
@@ -186,7 +186,7 @@ export async function removePageGrant(employeeId: string, section: unknown): Pro
  */
 export async function removePageGrantForAll(section: unknown): Promise<Result & { removedIds?: string[] }> {
   const parsed = z.enum(GRANTABLE_PAGES).safeParse(section);
-  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
   const sec = parsed.data;
 
   const supabase = await createClient();
@@ -217,7 +217,7 @@ export async function removePageGrantForAll(section: unknown): Promise<Result & 
  */
 export async function removeAllPageGrantsForEmployee(employeeId: unknown): Promise<Result & { removedSections?: string[] }> {
   const parsed = z.string().uuid().safeParse(employeeId);
-  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
   const id = parsed.data;
 
   const supabase = await createClient();
@@ -249,7 +249,7 @@ export async function removeAllPageGrantsForEmployee(employeeId: unknown): Promi
  */
 export async function markAccessReviewed(employeeId: unknown): Promise<Result> {
   const parsed = z.string().uuid().safeParse(employeeId);
-  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
   const id = parsed.data;
 
   const supabase = await createClient();

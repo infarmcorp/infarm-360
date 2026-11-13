@@ -167,7 +167,7 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
       {open && (
         <div className="mt-2 ml-10 p-3.5 bg-neutral-tint rounded-xl space-y-3">
           <div>
-            <label className={FIELD_LABEL}>Deskripsi Perilaku (kotak penjelasan di form)</label>
+            <label className={FIELD_LABEL}>Deskripsi Perilaku (kotak penjelasan di formulir)</label>
             <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2}
               placeholder="Penjelasan singkat indikator ini bagi penilai…"
               className={`${FIELD} w-full py-2 bg-surface leading-relaxed resize-none`} />
@@ -175,8 +175,7 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
           <div>
             <label className={FIELD_LABEL}>Panduan BARS per Level</label>
             <p className="text-[12px] text-ink-soft mb-2 leading-relaxed">
-              Key point = label pendek yang tampil besar di form penilaian (khusus indikator ini, dari Instrumen Final Q3 2026 — jangan disamakan antar indikator).
-              Deskripsi = penjelasan panjang di bawahnya.
+              Poin kunci = label besar di formulir penilaian (khusus indikator ini, sesuai Instrumen Final Q3 2026). Deskripsi = penjelasan di bawahnya.
             </p>
             <div className="space-y-2">
               {['1', '2', '3', '4', '5'].map((lv) => (
@@ -184,7 +183,7 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
                   <span className="text-[13px] font-bold text-brand-ink data-value w-4 text-center shrink-0 mt-2">{lv}</span>
                   <div className="flex-1 space-y-1">
                     <input value={keyPoints[lv]} onChange={(e) => setKeyPoints((p) => ({ ...p, [lv]: e.target.value }))}
-                      placeholder={`Key point — ${KEY_POINT_PLACEHOLDER[lv]}`}
+                      placeholder={`Poin kunci — ${KEY_POINT_PLACEHOLDER[lv]}`}
                       className={`${FIELD} w-full bg-surface font-semibold`} />
                     <input value={guide[lv]} onChange={(e) => setGuide((p) => ({ ...p, [lv]: e.target.value }))}
                       placeholder="Deskripsi — contoh/kriteria perilaku…"

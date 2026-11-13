@@ -18,7 +18,7 @@ async function ctx(): Promise<
 > {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   const role = me?.role ?? '';
   // HRD path butuh bagian 'suksesi' (akses granular); Direksi (merespons) lewat cek role.
@@ -62,7 +62,7 @@ export async function upsertPlan(employeeId: string, rawPlan: string, rawJust: s
     action: submit ? 'succession.submit' : 'succession.save_draft', category: 'suksesi',
     summary: submit
       ? `Mengajukan rencana suksesi ${emp?.name ?? employeeId} ke Direksi: "${plan.data}"`
-      : `Menyimpan draft rencana suksesi ${emp?.name ?? employeeId}: "${plan.data}"`,
+      : `Menyimpan draf rencana suksesi ${emp?.name ?? employeeId}: "${plan.data}"`,
     targetType: 'employee', targetId: employeeId, targetLabel: emp?.name ?? null,
   });
   revalidatePath('/suksesi');

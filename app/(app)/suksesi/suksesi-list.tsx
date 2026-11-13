@@ -52,7 +52,7 @@ export function SuksesiList({ rows }: { rows: SuksesiRow[] }) {
   const summary: StatItem[] = [
     { value: String(rows.length), label: 'Pegawai', icon: Users, tone: 'soil' },
     { value: String(candidateCount), label: 'Kandidat (≥90)', icon: Award, tone: 'brand' },
-    ...(stat.submitted > 0 ? [{ value: String(stat.submitted), label: 'Menunggu ACC Direksi', icon: Clock, tone: 'warn' as const }] : []),
+    ...(stat.submitted > 0 ? [{ value: String(stat.submitted), label: 'Menunggu Persetujuan Direksi', icon: Clock, tone: 'warn' as const }] : []),
     { value: String(stat.approved), label: 'Disetujui', icon: CheckCircle2, tone: 'brand' },
   ];
 

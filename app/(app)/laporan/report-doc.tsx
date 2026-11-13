@@ -8,7 +8,7 @@ import type { ReportData } from '@/lib/report';
 import { CARD, CardTitle, Note } from '@/components/infarm-ui';
 
 const RELATION_LABEL: Record<string, string> = {
-  Atasan: 'Atasan', Peer: 'Rekan Sejawat', Cross: 'Lintas Unit', Bawahan: 'Bawahan', Self: 'Evaluasi Diri',
+  Atasan: 'Atasan', Peer: 'Rekan Sejawat', Cross: 'Lintas Divisi', Bawahan: 'Bawahan', Self: 'Evaluasi Diri',
 };
 
 /** Kartu dokumen (Design System Infarm) — bayangan dimatikan saat cetak. */
@@ -83,7 +83,7 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint, pd
                   {/* Oranye solid (--color-warn) — sengaja lebih kontras dari warn-ink agar garis
                       "Evaluasi Diri" langsung terbaca berbeda dari garis hijau "Rekan" (keputusan pemilik). */}
                   <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#F08C00" strokeWidth="2.5" strokeDasharray="6,3" /></svg>
-                  <span className="font-bold text-warn-ink">Evaluasi Diri (Self)</span>
+                  <span className="font-bold text-warn-ink">Evaluasi Diri</span>
                 </span>
               </div>
             </div>
@@ -116,8 +116,7 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint, pd
                 </div>
               ))}
               <p className="text-xs text-ink-soft">
-                Bar <span className="text-brand-ink font-bold">Rekan</span> = gabungan penilai (Self dikecualikan);
-                bar <span className="text-warn-ink font-bold">Diri</span> = evaluasi diri sebagai pembanding.
+                Batang <span className="text-brand-ink font-bold">Rekan</span> = gabungan penilai tanpa evaluasi diri; batang <span className="text-warn-ink font-bold">Diri</span> = evaluasi diri sebagai pembanding.
               </p>
             </div>
           </div>
@@ -125,7 +124,7 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint, pd
       )}
       {!data.has360 && (
         <div className="mt-4">
-          <Note tone="warn">Periode ini tanpa Evaluasi 360° — radar &amp; komentar perilaku tidak ditampilkan; Skor Akhir = 100% KPI.</Note>
+          <Note tone="warn">Periode ini tanpa Evaluasi 360°, jadi radar dan komentar perilaku tidak ditampilkan. Skor Akhir = 100% KPI.</Note>
         </div>
       )}
 
@@ -140,7 +139,7 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint, pd
                   <span className="text-[13px] font-bold text-ink">
                     {anonymize ? (RELATION_LABEL[b.relation] ?? b.relation) : b.assessorName}
                   </span>
-                  {b.isSelf && <span className="text-[10px] font-bold bg-warn-tint text-warn-ink px-1.5 py-0.5 rounded-full">Self</span>}
+                  {b.isSelf && <span className="text-[10px] font-bold bg-warn-tint text-warn-ink px-1.5 py-0.5 rounded-full">Diri Sendiri</span>}
                   {!anonymize && <span className="text-xs text-ink-soft">· {RELATION_LABEL[b.relation] ?? b.relation}</span>}
                 </div>
                 {b.answers.map((a, j) => (

@@ -30,7 +30,7 @@ export default async function AssessPage({
   // Komponen 360° belum dibuka HRD → form penilaian tidak tersedia.
   if (!ap.has_360) return <Notice>Penilaian 360° untuk periode ini belum dibuka oleh HRD.</Notice>;
   // Form ditutup HRD (tahap review) — pengisian dihentikan sementara, data lama aman.
-  if (!ap.form_open) return <Notice>Form penilaian 360° sedang ditutup HRD (tahap peninjauan hasil). Penilaian yang sudah dikirim tetap tersimpan.</Notice>;
+  if (!ap.form_open) return <Notice>Formulir penilaian 360° sedang ditutup HRD untuk peninjauan hasil. Penilaian yang sudah dikirim tetap tersimpan.</Notice>;
 
   // Mapping wajib ada (otorisasi + ambil relasi/sifat).
   const { data: mapping } = await supabase
@@ -119,7 +119,7 @@ export default async function AssessPage({
             <span>· Periode {ap.label}</span>
             {existing?.status === 'submitted' && (
               <StatusChip tone="brand">
-                {locked ? 'Terkirim — terkunci (deadline lewat)' : 'Sudah terkirim — mengedit (sampai deadline) akan memperbarui'}
+                {locked ? 'Terkirim — terkunci (tenggat lewat)' : 'Sudah terkirim — perubahan sebelum tenggat akan memperbarui penilaian'}
               </StatusChip>
             )}
           </span>
@@ -139,10 +139,9 @@ export default async function AssessPage({
         {existing?.status === 'invalidated' ? (
           // Dibatalkan validitasnya oleh HRD (0046): arsip, tak bisa diubah; DB juga menolak tulis.
           <div className={CARD}>
-            <p className="text-[13px] font-bold text-ink">Penilaian ini dibatalkan validitasnya oleh HRD</p>
+            <p className="text-[13px] font-bold text-ink">Penilaian ini dinyatakan tidak berlaku oleh HRD</p>
             <p className="text-[13px] text-ink-soft mt-1 leading-relaxed">
-              Penilaian Anda untuk rekan ini dinyatakan tidak valid, sehingga tidak dihitung dalam Skor 360° dan
-              bukan lagi kewajiban Anda. Jawaban tidak dapat diubah. Hubungi HRD bila ada pertanyaan.
+              Penilaian Anda untuk rekan ini dinyatakan tidak valid: tidak dihitung dalam Skor 360° dan bukan lagi kewajiban Anda. Ada pertanyaan? Hubungi HRD.
             </p>
           </div>
         ) : locked ? (

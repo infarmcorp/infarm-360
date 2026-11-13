@@ -150,7 +150,7 @@ export default async function StrukturPage() {
 
   return (
     <Shell>
-      <PageTitle title="Struktur Organisasi">Pandangan menyeluruh struktur saat ini — hanya membaca, tak mengubah data.</PageTitle>
+      <PageTitle title="Struktur Organisasi">Gambaran menyeluruh struktur saat ini (hanya lihat, tidak mengubah data).</PageTitle>
       <StrukturView
         direksi={direksi} spvNodes={spvNodes} coordNodes={coordNodes}
         orphans={orphans} deptStats={deptStats} stats={stats} treeRoots={treeRoots}

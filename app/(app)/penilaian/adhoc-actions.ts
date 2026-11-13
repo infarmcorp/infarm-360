@@ -16,7 +16,7 @@ type Result = { ok: true } | { ok: false; error: string };
 const TargetId = z.string().uuid();
 
 export async function addAdhocTarget(_rawTargetId: string): Promise<Result> {
-  return { ok: false, error: 'Penambahan Ad-Hoc instan dinonaktifkan. Gunakan "Ajukan Penilaian" — pengajuan Anda akan diproses HRD.' };
+  return { ok: false, error: 'Rekan tidak bisa ditambahkan langsung. Gunakan "Ajukan Penilaian" agar diproses HRD.' };
 }
 
 /**
@@ -31,7 +31,7 @@ export async function removeAdhocTarget(rawTargetId: string): Promise<Result> {
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
 
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
@@ -42,16 +42,16 @@ export async function removeAdhocTarget(rawTargetId: string): Promise<Result> {
     .select('id, is_adhoc')
     .eq('period_id', ap.id).eq('assessor_id', user.id).eq('target_id', targetId).maybeSingle();
   if (!map) return { ok: false, error: 'Pemetaan tidak ditemukan' };
-  if (!map.is_adhoc) return { ok: false, error: 'Hanya penilaian Ad-Hoc (tambahan mandiri) yang bisa dihapus' };
+  if (!map.is_adhoc) return { ok: false, error: 'Hanya penilaian tambahan mandiri yang bisa dihapus' };
 
   // Tolak bila penilaiannya sudah dikirim (jaga data 360°).
   const { data: asmt } = await admin.from('assessments')
     .select('id, status').eq('period_id', ap.id).eq('assessor_id', user.id).eq('target_id', targetId).maybeSingle();
   if (asmt?.status === 'submitted') {
-    return { ok: false, error: 'Penilaian ad-hoc ini sudah dikirim — tidak bisa dihapus' };
+    return { ok: false, error: 'Penilaian tambahan ini sudah dikirim sehingga tidak bisa dihapus' };
   }
   if (asmt?.status === 'invalidated') {
-    return { ok: false, error: 'Penilaian ini dibatalkan validitasnya oleh HRD — disimpan sebagai arsip, tidak bisa dihapus' };
+    return { ok: false, error: 'Penilaian ini dinyatakan tidak berlaku oleh HRD dan disimpan sebagai arsip. Tidak bisa dihapus.' };
   }
   if (asmt) await admin.from('assessments').delete().eq('id', asmt.id); // draf → hapus (skor/esai cascade)
 

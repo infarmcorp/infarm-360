@@ -2,7 +2,7 @@
  * KUNCI LAPORAN FINAL (lib/final-lock) pada jalur:
  *   - Kelola Pertanyaan (semua aksi tulis lewat ctx()) → pengaturan seluruh periode;
  *   - Kelola Periode: toggleHas360 & deletePeriod → pengaturan seluruh periode;
- *   - Review & Finalisasi: saveOrFinalizeReport → finalisasi ULANG laporan Final ditolak,
+ *   - Tinjauan & Finalisasi: saveOrFinalizeReport → finalisasi ULANG laporan Final ditolak,
  *     sedangkan "Buka Kembali (ke Draf)" (finalize=false) tetap boleh.
  * Tiap jalur: (a) belum ada Final → berjalan seperti biasa; (b) ada Final → ditolak tanpa tulis;
  * (c) setelah dibuka kembali (helper → null) → berjalan lagi.
@@ -208,7 +208,7 @@ describe('deletePeriod — dikunci bila periode punya laporan Final', () => {
     mockPeriodLock.mockResolvedValue(periodFinalLockMsg(4, 'periode ini'));
     use(makeClient({ user: { id: UID }, tables: { employees: [HRD] } }));
     useAdmin(adminWith({ periods: [{ data: { label: 'Q3 2026', status: 'active' } }] }));
-    expect(await deletePeriod(PID, 'HAPUS')).toEqual({ ok: false, error: 'Periode aktif tidak bisa dihapus. "Kunci & Akhiri" dulu.' });
+    expect(await deletePeriod(PID, 'HAPUS')).toEqual({ ok: false, error: 'Periode aktif tidak bisa dihapus. Jalankan "Kunci & Akhiri" terlebih dahulu.' });
     expect(mockPeriodLock).not.toHaveBeenCalled();
   });
 
@@ -234,7 +234,7 @@ describe('deletePeriod — dikunci bila periode punya laporan Final', () => {
   });
 });
 
-// ── Review & Finalisasi: saveOrFinalizeReport ───────────────────────────────────────────────
+// ── Tinjauan & Finalisasi: saveOrFinalizeReport ───────────────────────────────────────────────
 describe('saveOrFinalizeReport — finalisasi ULANG laporan Final ditolak; Buka Kembali tetap boleh', () => {
   const ACTIVE = { data: { id: PID, has_360: true, status: 'active' } };
   const COMPUTE: Record<string, QResult[]> = {

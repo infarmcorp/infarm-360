@@ -19,7 +19,7 @@ import { emailConfigured, sendEmail, reminderHtml, onboardingHtml } from '@/lib/
  */
 type Result = { ok: true; msg?: string } | { ok: false; error: string };
 
-const NOT_ACTIVE = 'Fitur email pengingat belum aktif (set SMTP_USER+SMTP_PASS [Gmail] atau RESEND_API_KEY di Vercel).';
+const NOT_ACTIVE = 'Fitur email pengingat belum aktif. Hubungi admin aplikasi untuk mengaktifkannya.';
 
 /** Pasangan assessor→target yang BELUM submitted untuk periode aktif. */
 async function pendingByAssessor(
@@ -48,9 +48,9 @@ async function pendingByAssessor(
 
 async function requireHrd(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false as const, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
-  if (!canSection(me, 'progress')) return { ok: false as const, error: 'Hanya HRD yang dapat mengakses Progress 360' };
+  if (!canSection(me, 'progress')) return { ok: false as const, error: 'Hanya HRD yang dapat mengakses Progres Umpan Balik 360°' };
   return { ok: true as const, userId: user.id };
 }
 
@@ -77,7 +77,7 @@ function genPassword(): string {
 }
 
 export async function forceComplete(assessorId: string, targetId: string): Promise<Result> {
-  if (!Id.safeParse(assessorId).success || !Id.safeParse(targetId).success) return { ok: false, error: 'Input tidak valid' };
+  if (!Id.safeParse(assessorId).success || !Id.safeParse(targetId).success) return { ok: false, error: 'Isian tidak valid' };
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
@@ -104,7 +104,7 @@ export async function forceComplete(assessorId: string, targetId: string): Promi
 
   await logHrdAction({
     action: 'progress.force_complete', category: 'progress',
-    summary: 'Memaksa-selesai satu penilaian 360° (penyesuaian manual)',
+    summary: 'Menandai satu penilaian 360° selesai secara paksa (penyesuaian manual)',
     targetType: 'assessment', meta: { assessor_id: assessorId, target_id: targetId },
   });
   revalidatePath('/admin/progress');
@@ -114,7 +114,7 @@ export async function forceComplete(assessorId: string, targetId: string): Promi
 
 /** Kirim email pengingat 360° ke satu penilai (daftar target yang belum ia nilai). */
 export async function sendReminder(assessorId: string): Promise<Result> {
-  if (!Id.safeParse(assessorId).success) return { ok: false, error: 'Input tidak valid' };
+  if (!Id.safeParse(assessorId).success) return { ok: false, error: 'Isian tidak valid' };
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
@@ -168,7 +168,7 @@ export async function massReminder(): Promise<Result> {
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
   const pending = await pendingByAssessor(supabase, ap.id);
-  if (pending.size === 0) return { ok: true, msg: 'Semua penilai sudah lengkap — tak ada pengingat dikirim.' };
+  if (pending.size === 0) return { ok: true, msg: 'Semua penilai sudah lengkap — tidak ada pengingat yang dikirim.' };
 
   // Peta nama (semua employee) + peta email (auth, via admin listUsers berhalaman).
   const { data: emps } = await supabase.from('employees').select('id, name');
@@ -218,7 +218,7 @@ export async function massReminder(): Promise<Result> {
  * mengubah sandi (cegah akun terkunci dgn sandi yang tak pernah terkirim).
  */
 export async function sendOnboarding(employeeId: string): Promise<Result> {
-  if (!Id.safeParse(employeeId).success) return { ok: false, error: 'Input tidak valid' };
+  if (!Id.safeParse(employeeId).success) return { ok: false, error: 'Isian tidak valid' };
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
@@ -236,7 +236,7 @@ export async function sendOnboarding(employeeId: string): Promise<Result> {
   const { data: u } = await admin.auth.admin.getUserById(employeeId);
   const email = u.user?.email;
   if (!email) return { ok: false, error: 'Pegawai belum punya email akun.' };
-  if (!onboardingAllowed(email)) return { ok: true, msg: `Dilewati: ${email} bukan @gmail.com (mode trial).` };
+  if (!onboardingAllowed(email)) return { ok: true, msg: `Dilewati: ${email} bukan @gmail.com (mode uji coba).` };
 
   // Set sandi acak unik LALU kirim (urutan penting: jangan reset bila gagal kirim email).
   const password = genPassword();
@@ -260,12 +260,12 @@ export async function sendOnboarding(employeeId: string): Promise<Result> {
   if (!send.ok) {
     return send.reason === 'not_configured'
       ? { ok: true, msg: NOT_ACTIVE }
-      : { ok: false, error: 'Sandi sudah diubah tapi email gagal dikirim' + (send.detail ? `: ${send.detail}` : '') };
+      : { ok: false, error: 'Sandi sudah diubah, tetapi email gagal dikirim' + (send.detail ? `: ${send.detail}` : '') };
   }
 
   await logHrdAction({
     action: 'progress.onboarding', category: 'progress',
-    summary: `Kirim undangan & info akun ke ${emp.name} (sandi di-set ulang)`,
+    summary: `Kirim undangan & info akun ke ${emp.name} (sandi diatur ulang)`,
     targetType: 'employee', targetId: employeeId, targetLabel: emp.name,
   });
   return { ok: true, msg: `Undangan terkirim ke ${emp.name} (${email}).` };
@@ -321,12 +321,12 @@ export async function massOnboarding(): Promise<Result> {
 
   await logHrdAction({
     action: 'progress.mass_onboarding', category: 'progress',
-    summary: `Undangan massal "${ap.label}": ${sent} terkirim, ${failed} gagal, ${skipped} dilewati (non-gmail/tanpa email)`,
+    summary: `Undangan massal "${ap.label}": ${sent} terkirim, ${failed} gagal, ${skipped} dilewati (bukan Gmail/tanpa email)`,
     targetType: 'period', targetId: ap.id, targetLabel: ap.label,
     meta: { sent, failed, skipped },
   });
   return {
     ok: true,
-    msg: `Undangan massal: ${sent} terkirim${failed ? `, ${failed} gagal` : ''}${skipped ? `, ${skipped} dilewati (non-gmail)` : ''}.`,
+    msg: `Undangan massal: ${sent} terkirim${failed ? `, ${failed} gagal` : ''}${skipped ? `, ${skipped} dilewati (bukan Gmail)` : ''}.`,
   };
 }

@@ -88,13 +88,11 @@ export function StrukturView({
           <CardTitle icon={Network} className="mb-3">Bagan Lini Pelaporan</CardTitle>
           <div className="mb-4">
             <Note>
-              Bagan lini pelaporan (atasan → bawahan, pegawai aktif) — tersusun <strong>menurun</strong>: bawahan
-              menjorok masuk di bawah atasannya. <strong>Klik kotak</strong> yang punya bawahan untuk melipat/membuka.
-              Koordinasi lintas-jalur lihat tab <strong>Daftar</strong>.
+              Bagan atasan → bawahan (pegawai aktif). <strong>Klik kotak</strong> untuk membuka atau menutup bawahannya. Koordinasi lintas jalur ada di tab <strong>Daftar</strong>.
             </Note>
           </div>
           {treeRoots.length === 0
-            ? <p className="text-[13px] text-ink-soft italic">Belum ada lini pelaporan untuk ditampilkan.</p>
+            ? <p className="text-[13px] text-ink-soft italic">Belum ada lini pelaporan yang dapat ditampilkan.</p>
             : <OrgChart roots={treeRoots} />}
         </section>
       ) : (
@@ -149,7 +147,7 @@ export function StrukturView({
         <section className={CARD}>
           <CardTitle icon={Users} className="mb-3">Koordinasi (pembinaan lintas-jalur)</CardTitle>
           <div className="mb-3">
-            <Note>Koordinator membina beberapa pegawai (bisa beda atasan formal). Ini lapisan tambahan, bukan garis atasan.</Note>
+            <Note>Koordinator membina pegawai yang bisa berbeda atasan formal. Ini lapisan tambahan, bukan garis atasan.</Note>
           </div>
           <div className="space-y-2">
             {shownCoord.map(({ coord, members }) => (
@@ -172,7 +170,7 @@ export function StrukturView({
         <section className={CARD}>
           <CardTitle icon={AlertTriangle} className="mb-3">Pegawai tanpa atasan langsung (<span className="font-mono">{shownOrphans.length}</span>)</CardTitle>
           <div className="mb-3">
-            <Note tone="warn">Aktif tapi belum terhubung ke Supervisor mana pun — periksa di Kelola Pegawai bila ini tak disengaja.</Note>
+            <Note tone="warn">Aktif, tetapi belum punya atasan. Periksa di Kelola Pegawai bila tidak disengaja.</Note>
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {shownOrphans.map((p) => <div key={p.id} className="border border-warn-tint bg-warn-tint/40 rounded-control px-3 py-2.5"><PersonChip p={p} sub={p.dept} /></div>)}

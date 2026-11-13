@@ -5,7 +5,7 @@ import { readMaintenance } from '@/lib/maintenance';
 import { INFARM_PAGE } from '@/app/infarm-fonts';
 
 export const metadata: Metadata = {
-  title: 'Sedang Maintenance — Infarm 360°',
+  title: 'Sedang Dalam Perbaikan — Infarm 360°',
   robots: { index: false, follow: false },
 };
 
@@ -26,10 +26,9 @@ export default async function MaintenancePage() {
         <div className="mx-auto mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-warn-tint text-warn-ink">
           <Wrench className="h-5 w-5" aria-hidden />
         </div>
-        <h1 className="text-[22px] leading-tight font-bold text-ink">Sedang Maintenance</h1>
+        <h1 className="text-[22px] leading-tight font-bold text-ink">Sedang Dalam Perbaikan</h1>
         <p className="mt-2 text-[13px] text-ink-soft leading-relaxed">
-          Infarm 360° sedang dalam perbaikan dan untuk sementara tidak bisa diakses.
-          Data penilaian Anda tetap aman.
+          Infarm 360° sedang dalam perbaikan dan belum bisa diakses. Data penilaian Anda aman.
         </p>
         {until && (
           <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-neutral-tint px-3 py-1 text-xs text-ink">

@@ -21,10 +21,10 @@ export function ReportHistoryPanel({ history }: { history: { ok: true; events: H
         <History className="inline w-4 h-4 mr-1.5 -mt-0.5 text-brand align-middle" aria-hidden />
         Riwayat Laporan
         {history.ok && <span className="ml-1 font-normal text-ink-soft">(<span className="data-value">{history.events.length}</span> catatan)</span>}
-        <span className="ml-2 text-xs font-normal text-ink-soft">— kapan ACC diberikan/dibatalkan, perubahan status &amp; Skor Akhir</span>
+        <span className="ml-2 text-xs font-normal text-ink-soft">— kapan persetujuan diberikan/dibatalkan, perubahan status &amp; Skor Akhir</span>
       </summary>
       {!history.ok ? (
-        <p className="mt-2 text-warn-ink">Riwayat belum aktif — perubahan database 0052 belum dijalankan.</p>
+        <p className="mt-2 text-warn-ink">Riwayat belum aktif. Hubungi admin aplikasi untuk mengaktifkannya.</p>
       ) : history.events.length === 0 ? (
         <p className="mt-2 text-ink-soft">Belum ada perubahan tercatat sejak riwayat diaktifkan.</p>
       ) : (
@@ -43,8 +43,7 @@ export function ReportHistoryPanel({ history }: { history: { ok: true; events: H
         </ol>
       )}
       <p className="mt-2 text-xs text-ink-soft">
-        Dicatat otomatis oleh database untuk setiap perubahan, apa pun jalurnya. Klik yang gagal terkirim ke server tidak
-        akan muncul di sini — artinya perubahan itu memang tidak pernah tersimpan.
+        Semua perubahan dicatat otomatis. Perubahan yang gagal terkirim ke server tidak muncul di sini karena tidak pernah tersimpan.
       </p>
     </details>
   );

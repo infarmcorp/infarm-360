@@ -28,7 +28,7 @@ export function PerbaruiSandiForm() {
       setLoading(false);
       setError(/different from the old/i.test(error.message)
         ? 'Sandi baru harus berbeda dari sandi lama.'
-        : 'Gagal menyimpan sandi. Minta tautan reset baru lalu coba lagi.');
+        : 'Gagal menyimpan sandi. Minta tautan baru, lalu coba lagi.');
       return;
     }
     setDone(true);

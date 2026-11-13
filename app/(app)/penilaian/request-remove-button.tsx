@@ -46,8 +46,7 @@ export function RequestRemoveButton({
 
       <Modal open={open} title="Ajukan Hapus Pemetaan" busy={busy} onClose={close}>
         <p className="text-[13px] text-ink-soft leading-relaxed">
-          Mengajukan agar Anda <strong>tidak perlu menilai {targetName}</strong> pada periode ini.
-          Permohonan diperiksa HRD — pemetaan baru hilang setelah disetujui.
+          Ajukan agar Anda <strong>tidak perlu menilai {targetName}</strong> periode ini. Nama rekan hilang dari daftar setelah HRD menyetujui.
         </p>
         <div>
           <label className={FIELD_LABEL}>Alasan Pengajuan</label>

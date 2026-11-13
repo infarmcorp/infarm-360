@@ -50,7 +50,7 @@ export async function submitOutsideNote(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   if (targetId === user.id) return { ok: false, error: 'Tidak dapat melaporkan diri sendiri' };
 
   // Gerbang fase: periode aktif + 360° aktif + form DIBUKA. Tahap tinjau pemetaan (form belum dibuka) ditolak.
@@ -59,7 +59,7 @@ export async function submitOutsideNote(
     .from('periods').select('id, has_360, form_open').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
   if (!ap.has_360) return { ok: false, error: 'Penilaian 360° untuk periode ini belum dibuka oleh HRD' };
-  if (!ap.form_open) return { ok: false, error: 'Form penilaian sedang ditutup — laporan belum bisa dikirim' };
+  if (!ap.form_open) return { ok: false, error: 'Formulir penilaian sedang ditutup — laporan belum bisa dikirim' };
 
   // Pengirim: penilai eksternal (vendor/freelance) belum boleh mengirim (keputusan pemilik 2026-11-03).
   const { data: me } = await supabase.from('employees').select('is_external').eq('id', user.id).maybeSingle();
@@ -77,7 +77,7 @@ export async function submitOutsideNote(
   const { data: mapped } = await supabase.from('mappings').select('id')
     .eq('period_id', ap.id).eq('assessor_id', user.id).eq('target_id', targetId)
     .eq('is_active', true).maybeSingle();
-  if (mapped) return { ok: false, error: 'Rekan ini sudah ada di daftar penilaian Anda — sampaikan lewat form penilaian' };
+  if (mapped) return { ok: false, error: 'Rekan ini sudah ada di daftar penilaian Anda — sampaikan lewat formulir penilaian' };
 
   // Kategori budaya kerja = aspek milik periode aktif (database juga menegakkannya lewat trigger).
   const isOther = category === 'other';

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fakeDb } from './helpers/fake-postgrest';
 
 /**
- * Ekspor "Rencana Pengembangan & 1-on-1" (Tahap 3): 3 lembar bernama, disaring periode LAPORAN asal rencana,
+ * Ekspor "Rencana Pengembangan & Sesi Empat Mata" (Tahap 3): 3 lembar bernama, disaring periode LAPORAN asal rencana,
  * rencana tanpa prioritas tetap satu baris, kemajuan per prioritas ditulis "P<n> <status>: catatan".
  */
 let mode = 'admin';

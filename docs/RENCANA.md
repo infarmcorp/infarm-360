@@ -47,6 +47,10 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 ## 2. Harus dikerjakan
 
 ### Rilis & operasional
+- 🔑⬜ **Sisa audit kalimat (2026-11-13).** Perubahan "Ubah" sudah di `dev`. Sisa: 🔑 31 usulan "Tanya HRD" (nama
+  kelas 4-Box, kategori lama, HRD Review/No Score, alasan Ajukan Penilaian, panduan skala BARS, teks Kerahasiaan) menunggu
+  jawaban HRD; 🔑 putuskan apakah sandi yang diatur HRD wajib minimal 8 karakter seperti ganti sandi sendiri (sekarang 6).
+  Gambar layar Notion yang menampilkan nama menu lama perlu diambil ulang.
 - 🔑⬜ **Panduan pindah ke Notion per peran** (keputusan pemilik 2026-11-06). Kartu Panduan, penanda PANDUAN, lampiran PDF
   di email Undangan, dan 4 berkas PDF lama sudah dihapus dari `dev` agar pegawai tidak memakai panduan yang salah. Rilisnya
   ikut rilis menuju Q4 (keputusan pemilik), jadi sampai itu production masih memakai yang lama. Halaman Notion tiap peran

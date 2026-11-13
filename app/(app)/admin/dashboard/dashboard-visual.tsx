@@ -129,7 +129,7 @@ const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.l
 const TABS: { key: SubTab; label: string; icon: React.ElementType }[] = [
   { key: 'compilation', label: 'Kompilasi Kinerja Organisasi', icon: Building2 },
   { key: 'kpi', label: 'Analisis Hasil KPI', icon: Award },
-  { key: 'feedback', label: 'Analisis 360 Feedback', icon: TrendingUp },
+  { key: 'feedback', label: 'Analisis Umpan Balik 360°', icon: TrendingUp },
   { key: 'table', label: 'Tabel Hasil Seluruh Pegawai', icon: Users },
 ];
 
@@ -265,9 +265,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
 
       {/* Legenda ambang — menjelaskan kenapa "A Player" bisa beda band dengan Skor Akhir. */}
       <Note title="Catatan ambang">
-        <strong>4-Box &amp; scatter</strong> memakai ambang <strong>80</strong> pada KPI &amp; 360° sebagai <em>dua sumbu terpisah</em>;
-        <strong> band kategori Skor Akhir</strong> (kartu distribusi &amp; tindak lanjut) memakai <strong>90 / 80 / 70</strong> atas <em>satu</em> angka Skor Akhir.
-        Karena beda dasar, seorang pegawai bisa berkelas <strong>A</strong> (KPI &amp; 360° ≥80) tetapi Skor Akhirnya jatuh di band <strong>Memenuhi (80–89)</strong> — itu wajar, bukan inkonsistensi.
+        4-Box memakai ambang <strong>80</strong> pada KPI dan 360° secara terpisah, sedangkan kategori Skor Akhir memakai batas 90/80/70. Jadi pegawai berkelas <strong>A</strong> (KPI &amp; 360° ≥80) bisa saja masuk kategori <strong>Memenuhi (80–89)</strong>. Itu wajar.
       </Note>
 
       <SectionHeader label="Distribusi Organisasi" hint="komposisi & tindak lanjut" />
@@ -275,7 +273,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
       {/* Distribusi Kategori Kinerja + Rencana Tindak Lanjut */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card icon={BarChart3} title="Distribusi Kategori Kinerja — Skor Akhir">
-          <p className="text-xs text-ink-soft mb-4 -mt-2">Skor Akhir = blend KPI 50% + 360° 50% (KPI murni bila 360° nonaktif; 360° saja bila KPI kosong). Berbeda dari tab <strong>Analisis Hasil KPI</strong> (KPI saja).{aggregate && <span className="text-infarm-soil font-semibold"> Mode agregat: rata-rata Skor Akhir per kuartal.</span>}</p>
+          <p className="text-xs text-ink-soft mb-4 -mt-2">Skor Akhir = KPI 50% + 360° 50% (KPI saja bila 360° nonaktif; 360° saja bila KPI kosong). Berbeda dari tab <strong>Analisis Hasil KPI</strong>.{aggregate && <span className="text-infarm-soil font-semibold"> Mode agregat: rata-rata Skor Akhir per kuartal.</span>}</p>
           <CountBars items={categories} denom={denom} />
         </Card>
         <Card icon={Target} title="Rencana Tindak Lanjut Organisasi — Skor Akhir"><CountBars items={recommendations} denom={denom} /></Card>
@@ -292,7 +290,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
           <ScoreBars items={deptScores.map(([dept, score]) => ({ label: dept, score }))} empty="Belum ada data KPI." />
         </Card>
         <Card icon={Sparkles} title="Evaluasi Budaya 360° (Skor Terbobot Sub-Aspek)">
-          {!has360 && <p className="text-xs text-warn-ink font-semibold mb-3 bg-warn-tint rounded-xl px-3 py-2">360° nonaktif di {periodLabel} — aspek dari penilaian terkirim (bila ada).</p>}
+          {!has360 && <p className="text-xs text-warn-ink font-semibold mb-3 bg-warn-tint rounded-xl px-3 py-2">360° nonaktif di {periodLabel}; aspek dihitung dari penilaian yang sudah terkirim (bila ada).</p>}
           <ScoreBars items={aspectScores.map((a) => ({ label: a.aspek, score: a.score }))} suffix=" / 100" empty="Belum ada skor 360° terkirim." />
         </Card>
       </div>
@@ -302,7 +300,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
       {/* 4-Box + sebaran dalam SATU kartu: grafik di tengah, tiap kotak nama di sisi kuadrannya
           (kiri B Culture/C · kanan A/B KPI) agar kotak & titik terbaca berkaitan, tanpa scroll atas-bawah. */}
       <div className={CARD}>
-        <CardTitle icon={LayoutGrid}>Klasifikasi Pemain — Matriks 4-Box &amp; Sebaran KPI × 360°</CardTitle>
+        <CardTitle icon={LayoutGrid}>Klasifikasi Talenta — Matriks 4-Box &amp; Sebaran KPI × 360°</CardTitle>
         <p className="text-xs text-ink-soft mt-1 mb-4">Pemetaan {[...playerGroups.values()].reduce((s, a) => s + a.length, 0)} pegawai berdasarkan KPI × 360° (ambang 80){incomplete.length > 0 ? ` · ${incomplete.length} HRD Review (dikecualikan)` : ''}.{showScatter ? ' Tiap titik = 1 pegawai.' : ''}</p>
         {showScatter ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)_minmax(0,1fr)] gap-x-6 gap-y-3">
@@ -328,7 +326,7 @@ function CompilationTab({ rows, deptScores, aspectScores, has360, periodLabel, p
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="rounded-xl px-3.5 py-2.5 bg-warn-tint text-xs">
             <div className="text-[13px] font-bold text-ink">HRD Review <span className="font-mono text-warn-ink">{incomplete.length}</span></div>
-            <p className="text-ink-soft mt-0.5">KPI atau Skor 360° belum tersedia, jadi tidak diklasifikasi otomatis (bukan berarti di bawah 80). Diputuskan HRD, atau lengkapi datanya lalu Hitung Ulang.</p>
+            <p className="text-ink-soft mt-0.5">KPI atau Skor 360° belum tersedia, jadi belum diklasifikasi (bukan berarti di bawah 80). HRD yang memutuskan, atau lengkapi data lalu Hitung Ulang.</p>
             <NameList emps={incomplete} titleOf={(e) => `${e.name} · KPI ${e.kpiAvg != null ? fmt2(e.kpiAvg) : 'kosong'} · 360 ${e.s360 != null ? fmt2(e.s360) : has360 ? NO_SCORE_LABEL : 'tanpa 360°'}`} />
           </div>
         </div>
@@ -359,7 +357,7 @@ function QuarterlyDist({ data, yearLabel }: { data: QuarterDist[]; yearLabel: nu
   return (
     <div className={CARD}>
       <CardTitle icon={CalendarRange}>Distribusi Kategori Kinerja per Kuartal {yearLabel}</CardTitle>
-      <p className="text-xs text-ink-soft mt-1 mb-4">Komposisi pegawai per band Skor Akhir tiap kuartal — untuk melihat pergerakan komposisi (mis. Di Bawah → Memenuhi) antar waktu.</p>
+      <p className="text-xs text-ink-soft mt-1 mb-4">Komposisi pegawai per kategori Skor Akhir tiap kuartal, untuk melihat pergerakannya dari waktu ke waktu.</p>
       <div className="space-y-3">
         {data.map((q) => (
           <div key={q.label} className="space-y-1">
@@ -507,7 +505,7 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
           { icon: BarChart3, tone: 'soil', value: `${monthly.length} Bulan`, label: 'Siklus Penilaian Terpilih' },
         ]} />
 
-      <SectionHeader label="Sebaran & Tren" hint="heatmap divisi×bulan · distribusi · tren tahunan" />
+      <SectionHeader label="Sebaran & Tren" hint="peta panas divisi×bulan · distribusi · tren tahunan" />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2"><KpiHeatmap deptMonthly={deptMonthly} months={months} /></div>
@@ -516,7 +514,7 @@ function KpiTab({ rows, deptScores, monthly, deptMonthly, months, kpiStandard, y
       </div>
 
       <Card icon={TrendingUp} title={`Tren KPI Bulanan ${yearLabel} (Jan–Des)`}>
-        <YearTrendCaption value={yearKpiAvg} label={`Rerata KPI ${yearLabel}`} unit="org-level, ikut filter divisi" />
+        <YearTrendCaption value={yearKpiAvg} label={`Rerata KPI ${yearLabel}`} unit="tingkat organisasi, mengikuti filter divisi" />
         <TrendLine points={yearMonthly.map((m) => ({ label: ymShort(m.ym), value: m.avg }))} />
       </Card>
 
@@ -553,7 +551,7 @@ function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, deptIn
       <SectionHeader label="Ringkasan 360°" hint="metrik utama umpan balik budaya" />
       {!has360 && (
         <Note tone="warn" title={`${periodLabel} tanpa Evaluasi 360°`}>
-          Komponen 360° tidak aktif, sehingga Skor Akhir = 100% KPI. Data di bawah hanya muncul bila ada penilaian terkirim.
+          Komponen 360° tidak aktif, jadi Skor Akhir = 100% KPI. Data di bawah hanya muncul bila ada penilaian terkirim.
         </Note>
       )}
 
@@ -566,7 +564,7 @@ function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, deptIn
           { icon: Users, tone: 'soil', value: String(assessed), label: 'Pegawai Ternilai 360°' },
         ]} />
 
-      <SectionHeader label="Sebaran, Tren & Aspek" hint="heatmap divisi×aspek · divisi×indikator · tren kuartal · sub-aspek" />
+      <SectionHeader label="Sebaran, Tren & Aspek" hint="peta panas divisi×aspek · divisi×indikator · tren kuartal · sub-aspek" />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2"><Aspect360Heatmap deptAspect={deptAspect360} aspects={aspect360Names} /></div>
@@ -579,7 +577,7 @@ function FeedbackTab({ rows, aspectScores, deptAspect360, aspect360Names, deptIn
       {/* Tren 360° & Evaluasi Sub-Aspek — sejajar (berdampingan) di layar lebar. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <Card icon={TrendingUp} title={`Tren 360° per Kuartal ${yearLabel}`}>
-          <YearTrendCaption value={year360Avg} label={`Rerata 360° ${yearLabel}`} unit="org-level, ikut filter divisi · hanya kuartal ber-360°" />
+          <YearTrendCaption value={year360Avg} label={`Rerata 360° ${yearLabel}`} unit="tingkat organisasi, mengikuti filter divisi · hanya kuartal yang memiliki skor 360°" />
           <TrendLine points={year360.map((q) => ({ label: q.label, value: q.avg }))} />
         </Card>
 
@@ -624,7 +622,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
             className="text-[13px] min-h-9 px-3 border border-line rounded-control w-52 bg-infarm-surface text-ink placeholder:text-ink-soft focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint" />
           <select value={player} onChange={(e) => { setPlayer(e.target.value as typeof player); setPage(0); }} aria-label="Filter player"
             className="text-[13px] min-h-9 px-3 border border-line rounded-control bg-infarm-surface text-ink font-semibold focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint">
-            <option value="all">Semua Player</option>
+            <option value="all">Semua Kelas Talenta</option>
             {PLAYER_BOXES.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
             <option value="HRD_REVIEW">HRD Review</option>
           </select>
@@ -648,10 +646,10 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
             <tr className="text-xs font-semibold text-ink-soft bg-infarm-surface">
               <th className="py-2.5 px-3 rounded-l-lg">Pegawai</th>
               <th className="py-2.5 px-3 text-center">Rerata KPI</th>
-              <th className="py-2.5 px-3 text-center">Trend KPI</th>
+              <th className="py-2.5 px-3 text-center">Tren KPI</th>
               <th className="py-2.5 px-3 text-center">Skor 360°</th>
               <th className="py-2.5 px-3 text-center" title="Laporan Final → angka tersimpan; selain itu dihitung dari KPI + 360° periode ini">Skor Akhir</th>
-              <th className="py-2.5 px-3 text-center rounded-r-lg">Player</th>
+              <th className="py-2.5 px-3 text-center rounded-r-lg">Kelas Talenta</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line-soft">
@@ -663,7 +661,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
                     <span className="font-semibold text-ink block" title={r.name}>
                       {displayName(r.nickname, r.name)}
                       {r.isActive === false && (
-                        <span className="ml-1.5 align-middle text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft" title="Pegawai nonaktif (resign) — data periode ini tetap dihitung">nonaktif</span>
+                        <span className="ml-1.5 align-middle text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-neutral-tint text-ink-soft" title="Pegawai nonaktif (mengundurkan diri) — data periode ini tetap dihitung">nonaktif</span>
                       )}
                     </span>
                     <span className="text-xs text-ink-soft">{r.dept}</span>
@@ -700,9 +698,7 @@ function TableTab({ rows, has360 }: { rows: Row[]; has360: boolean }) {
       )}
       </StableHeight>
       <p className="text-xs text-ink-soft mt-3">
-        Skor Akhir = blend KPI+360 (50/50); laporan yang sudah Final memakai angka tersimpannya.
-        Player (A/B/C) berbasis KPI × 360° (ambang 80); <strong>HRD Review</strong> = KPI atau Skor 360° kosong → tidak diklasifikasi otomatis;
-        Trend KPI <strong>Belum terbaca</strong> = baru 1 dari 3 bulan kuartal terisi, jadi fluktuasinya belum bisa dibaca (angka tetap dihitung).{!has360 && ' Periode tanpa 360° → semua pegawai berstatus HRD Review.'}
+        Skor Akhir = KPI 50% + 360° 50%; laporan Final memakai angka tersimpan. Kelas talenta (A/B/C) memakai ambang 80 pada KPI dan 360°; <strong>HRD Review</strong> = KPI atau 360° kosong. Tren &quot;<strong>Belum terbaca</strong>&quot; = baru 1 dari 3 bulan terisi.{!has360 && ' Periode tanpa 360° → semua pegawai berstatus HRD Review.'}
       </p>
     </div>
   );
@@ -897,7 +893,7 @@ function KpiHeatmap({ deptMonthly, months }: { deptMonthly: DeptMonthRow[]; mont
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-ink-soft mt-3">Sel = rerata KPI seluruh pegawai divisi pada bulan itu (filter divisi aktif). &ldquo;—&rdquo; = belum ada input KPI.</p>
+      <p className="text-xs text-ink-soft mt-3">Sel = rerata KPI seluruh pegawai divisi pada bulan itu (filter divisi aktif). Tanda “—” = KPI belum diisi.</p>
     </div>
   );
 }
@@ -962,7 +958,7 @@ function Aspect360Heatmap({ deptAspect, aspects }: { deptAspect: DeptAspectRow[]
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-ink-soft mt-3">Sel = skor aspek 0–100 <strong>terbobot per kelas penilai</strong> (skema bobot aktif, mis. Atasan/Peer/Cross/Bawahan; Self dikecualikan) — selaras Skor 360° resmi. Lingkup filter divisi aktif. &ldquo;—&rdquo; = belum ada penilaian.</p>
+      <p className="text-xs text-ink-soft mt-3">Sel = skor aspek 0–100, dibobot per kelas penilai (tanpa evaluasi diri), sama dengan Skor 360° resmi. Mengikuti filter divisi. Tanda “—” = belum ada penilaian.</p>
     </div>
   );
 }
@@ -991,7 +987,7 @@ function DeptIndicatorHeatmap({ rows, cols }: { rows: DeptIndicatorRow[]; cols: 
       <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
         <div>
           <CardTitle icon={Grid3X3}>Capaian 360° / Divisi × Indikator</CardTitle>
-          <p className="text-xs text-ink-soft mt-1">Skor tiap indikator terbobot (skala 100) per divisi, mengikuti indikator aktif di Kelola Pertanyaan (indikator yang sudah dinonaktifkan tetap tampil bila sudah dinilai)</p>
+          <p className="text-xs text-ink-soft mt-1">Skor tiap indikator (skala 100) per divisi, sesuai indikator aktif di Kelola Pertanyaan. Indikator nonaktif tetap tampil bila sudah dinilai.</p>
         </div>
         <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft">
           <span>Rendah</span>
@@ -1039,7 +1035,7 @@ function DeptIndicatorHeatmap({ rows, cols }: { rows: DeptIndicatorRow[]; cols: 
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-ink-soft mt-3">Sel = skor indikator 0–100 <strong>terbobot per kelas penilai</strong>, cara hitung sama dengan Divisi × Aspek (Self dikecualikan). Lingkup filter divisi aktif. Mode Semua Kuartal = rata-rata antar-kuartal untuk indikator bernama sama. &ldquo;—&rdquo; = belum ada penilaian.</p>
+      <p className="text-xs text-ink-soft mt-3">Sel = skor indikator 0–100, dibobot seperti Divisi × Aspek. Mengikuti filter divisi. Mode Semua Kuartal merata-ratakan indikator bernama sama. Tanda “—” = belum ada penilaian.</p>
     </div>
   );
 }
@@ -1168,7 +1164,7 @@ function LeaderboardPanel({ metric, top, bottom, valueOf }: {
     <div className={`${CARD} space-y-3`}>
       <div>
         <CardTitle icon={Trophy}>Peringkat {metric}</CardTitle>
-        <p className="text-xs text-ink-soft mt-0.5">10 tertinggi &amp; 10 terendah; yang sudah tampil di Teratas tidak diulang. Terbawah #1 = skor terendah (prioritas mentoring/coaching).</p>
+        <p className="text-xs text-ink-soft mt-0.5">10 tertinggi dan 10 terendah, tanpa pengulangan. Terbawah #1 = skor terendah (prioritas pembinaan).</p>
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-4">
         <LeaderboardSide title="Teratas" icon={Trophy} items={top} valueOf={valueOf} bottom={false} />

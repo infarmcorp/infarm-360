@@ -21,7 +21,7 @@ async function requireHrd(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'periode')) return { ok: false, error: 'Hanya HRD yang dapat mengelola periode' };
   return { ok: true, userId: user.id };
@@ -51,7 +51,7 @@ const CreateInput = z.object({
 
 export async function createPeriod(raw: unknown): Promise<Result> {
   const parsed = CreateInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
   const { label, startDate, endDate, has360, kpiStandard } = parsed.data;
   if (endDate < startDate) return { ok: false, error: 'Tanggal selesai sebelum tanggal mulai' };
 
@@ -71,7 +71,7 @@ export async function createPeriod(raw: unknown): Promise<Result> {
   }
   const { error: mErr } = await supabase.from('period_months')
     .insert(months.map((ym) => ({ period_id: period.id, ym })));
-  if (mErr) return { ok: false, error: 'Periode dibuat tapi gagal isi bulan: ' + mErr.message };
+  if (mErr) return { ok: false, error: 'Periode dibuat, tetapi bulan gagal diisi: ' + mErr.message };
 
   await logHrdAction({
     action: 'period.create', category: 'periode',
@@ -197,14 +197,14 @@ export async function setKpiStandard(periodId: string, value: number): Promise<R
  * status On Time / Late & potongan −3 pada Skor 360° penilai yang terlambat (lib/late.ts).
  * Mengubah deadline menerapkan ulang potongan ke seluruh Skor 360° yang sudah dihitung.
  */
-const DeadlineInput = z.union([z.literal(''), z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Format deadline tidak valid')]);
+const DeadlineInput = z.union([z.literal(''), z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Format tenggat tidak valid')]);
 
 export async function setAssessmentDeadline(periodId: string, value: string): Promise<Result> {
-  if (!z.string().uuid().safeParse(periodId).success) return { ok: false, error: 'Input tidak valid' };
+  if (!z.string().uuid().safeParse(periodId).success) return { ok: false, error: 'Isian tidak valid' };
   const parsed = DeadlineInput.safeParse(value);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
   const deadline = parsed.data ? new Date(`${parsed.data}:00+07:00`) : null;
-  if (deadline && Number.isNaN(deadline.getTime())) return { ok: false, error: 'Tanggal deadline tidak valid' };
+  if (deadline && Number.isNaN(deadline.getTime())) return { ok: false, error: 'Tanggal tenggat tidak valid' };
 
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
@@ -215,15 +215,15 @@ export async function setAssessmentDeadline(periodId: string, value: string): Pr
 
   let changed = 0;
   try { changed = await refreshLatePenalties(periodId); } catch (e) {
-    return { ok: false, error: 'Deadline tersimpan, tapi gagal menerapkan potongan: ' + (e instanceof Error ? e.message : String(e)) + '. Jalankan Hitung Ulang Skor 360°.' };
+    return { ok: false, error: 'Tenggat tersimpan, tetapi potongan gagal diterapkan: ' + (e instanceof Error ? e.message : String(e)) + '. Jalankan Hitung Ulang Skor 360°.' };
   }
 
   const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();
   await logHrdAction({
     action: 'period.setDeadline', category: 'periode',
     summary: deadline
-      ? `Mengatur deadline penilaian 360° periode "${pr?.label ?? periodId}" → ${parsed.data.replace('T', ' ')} WIB`
-      : `Menghapus deadline penilaian 360° periode "${pr?.label ?? periodId}"`,
+      ? `Mengatur tenggat penilaian 360° periode "${pr?.label ?? periodId}" → ${parsed.data.replace('T', ' ')} WIB`
+      : `Menghapus tenggat penilaian 360° periode "${pr?.label ?? periodId}"`,
     targetType: 'period', targetId: periodId, targetLabel: pr?.label ?? null,
     meta: { assessment_deadline: deadline ? deadline.toISOString() : null, rescored: changed },
   });
@@ -309,14 +309,14 @@ export async function toggleFormOpen(periodId: string, value: boolean): Promise<
         : { data: [] as { id: string; text: string; rating_guide: Record<string, string> | null }[] };
       const list = inds ?? [];
       if (list.length !== 10) {
-        return { ok: false, error: `Jumlah indikator aktif harus tepat 10 (saat ini ${list.length}). Sesuaikan di Kelola Pertanyaan sebelum membuka form (BR-06).` };
+        return { ok: false, error: `Indikator aktif harus tepat 10 (saat ini ${list.length}). Sesuaikan di Kelola Pertanyaan sebelum membuka formulir.` };
       }
       const incomplete = list.filter((i) => {
         const g = i.rating_guide;
         return !g || !['1', '2', '3', '4', '5'].every((k) => (g[k] ?? '').trim().length > 0);
       });
       if (incomplete.length > 0) {
-        return { ok: false, error: `${incomplete.length} indikator belum punya panduan perilaku (BARS) lengkap untuk level 1–5: ${incomplete.slice(0, 3).map((i) => i.text).join(', ')}${incomplete.length > 3 ? ', …' : ''}. Lengkapi di Kelola Pertanyaan sebelum membuka form.` };
+        return { ok: false, error: `${incomplete.length} indikator belum punya panduan perilaku (BARS) lengkap level 1–5: ${incomplete.slice(0, 3).map((i) => i.text).join(', ')}${incomplete.length > 3 ? ', …' : ''}. Lengkapi di Kelola Pertanyaan sebelum membuka formulir.` };
       }
     }
   }
@@ -326,7 +326,7 @@ export async function toggleFormOpen(periodId: string, value: boolean): Promise<
   const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();
   await logHrdAction({
     action: 'period.toggleForm', category: 'periode',
-    summary: `${value ? 'Membuka' : 'Menutup'} form penilaian 360° pada periode "${pr?.label ?? periodId}"`,
+    summary: `${value ? 'Membuka' : 'Menutup'} formulir penilaian 360° pada periode "${pr?.label ?? periodId}"`,
     targetType: 'period', targetId: periodId, targetLabel: pr?.label ?? null, meta: { form_open: value },
   });
   revalidatePath('/admin/periode');
@@ -395,7 +395,7 @@ export async function deletePeriod(periodId: string, confirmText: string): Promi
   const admin = createAdminClient();
   const { data: p } = await admin.from('periods').select('label, status').eq('id', periodId).maybeSingle();
   if (!p) return { ok: false, error: 'Periode tidak ditemukan' };
-  if (p.status === 'active') return { ok: false, error: 'Periode aktif tidak bisa dihapus. "Kunci & Akhiri" dulu.' };
+  if (p.status === 'active') return { ok: false, error: 'Periode aktif tidak bisa dihapus. Jalankan "Kunci & Akhiri" terlebih dahulu.' };
   // KUNCI LAPORAN FINAL: menghapus periode ikut menghapus laporan Final di dalamnya → ditolak selama
   // masih ada laporan Final (gagal baca → ditolak). Pesan baku helper berbunyi "untuk mengubah …";
   // untuk hapus diganti "untuk menghapus periode ini" agar kalimatnya wajar.

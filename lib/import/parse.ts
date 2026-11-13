@@ -105,8 +105,8 @@ export function classifyMappingRows(rows: MapParsedRow[]): MapClassified[] {
     if (!r.assessor) { status = 'invalid'; reason = `Kode penilai "${r.aCode || '?'}" tak dikenal`; }
     else if (!r.target) { status = 'invalid'; reason = `Kode dinilai "${r.tCode || '?'}" tak dikenal`; }
     else if (!r.relOk) { status = 'invalid'; reason = 'Relasi kosong/tak valid'; }
-    else if (r.assessor.id === r.target.id) { status = 'invalid'; reason = 'Penilai = Dinilai tidak diperbolehkan (Self Assessment dinonaktifkan)'; }
-    else if (r.relation === 'Self') { status = 'invalid'; reason = 'Relasi Self dinonaktifkan untuk periode ini'; }
+    else if (r.assessor.id === r.target.id) { status = 'invalid'; reason = 'Penilai tidak boleh sama dengan yang dinilai (evaluasi diri dinonaktifkan)'; }
+    else if (r.relation === 'Self') { status = 'invalid'; reason = 'Evaluasi diri dinonaktifkan untuk periode ini'; }
     else {
       const key = `${r.assessor.id}|${r.target.id}`;
       if (seen.has(key)) { status = 'dup'; reason = `Duplikat — pasangan sama dengan baris ${seen.get(key)}`; }

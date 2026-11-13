@@ -230,7 +230,7 @@ describe('computeResult360 — otorisasi', () => {
   it('tolak bila sesi berakhir (tanpa menyentuh service_role)', async () => {
     setup({ user: null });
     const r = await computeResult360();
-    expect(r).toEqual({ ok: false, error: 'Sesi berakhir, silakan login ulang' });
+    expect(r).toEqual({ ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' });
     expect(mockAdmin).not.toHaveBeenCalled();
   });
 
@@ -314,7 +314,7 @@ describe('computeResult360 — prasyarat & kegagalan', () => {
     const data = fixture();
     data.assessments = data.assessments.map((a) => (a.status === 'submitted' ? { ...a, status: 'draft' } : a));
     const db = setup({ data });
-    expect(await computeResult360()).toEqual({ ok: false, error: 'Belum ada penilaian terkirim untuk dihitung' });
+    expect(await computeResult360()).toEqual({ ok: false, error: 'Belum ada penilaian terkirim yang dapat dihitung' });
     expect(db.calls.some((c) => c.table === 'assessment_indicator_scores')).toBe(false);
   });
 
@@ -341,7 +341,7 @@ describe('computeResult360 — prasyarat & kegagalan', () => {
 
   it('gagal upsert result_360 → pesan error, tanpa hapus yatim & tanpa log audit', async () => {
     const db = setup({ fail: (c) => (c.table === 'result_360' && c.op === 'upsert' ? 'constraint' : null) });
-    expect(await computeResult360()).toEqual({ ok: false, error: 'Gagal menulis result_360: constraint' });
+    expect(await computeResult360()).toEqual({ ok: false, error: 'Gagal menyimpan hasil Skor 360°: constraint' });
     expect(db.calls.some((c) => c.table === 'result_360' && c.op === 'delete')).toBe(false);
     expect(mockLog).not.toHaveBeenCalled();
   });
@@ -380,7 +380,7 @@ describe('computeResult360 — relasi dari pemetaan', () => {
   });
 });
 
-describe('computeResult360 — angka result_360 (Q3 2026, 2 kelas → bobot otomatis BR-10)', () => {
+describe('computeResult360 — angka result_360 (Q3 2026, 2 kelas → bobot otomatis)', () => {
   it('menulis score_raw / late_penalty / score per pegawai sesuai rumus', async () => {
     const db = setup({});
     const r = await computeResult360();

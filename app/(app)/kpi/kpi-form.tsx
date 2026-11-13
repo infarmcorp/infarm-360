@@ -191,7 +191,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
     const missingNote = rows.filter((r) => existing[`${r.employeeId}|${ym}`] !== undefined && !(r.note && r.note.trim()));
     if (missingNote.length > 0) {
       const names = missingNote.map((r) => shown.find((m) => m.id === r.employeeId)?.name ?? r.employeeId);
-      setMsg({ ok: false, text: `Perubahan capaian (edit) bulan ${ym} wajib disertai Komentar Audit: ${names.join(', ')}.` });
+      setMsg({ ok: false, text: `Perubahan capaian bulan ${ym} wajib disertai Komentar Audit: ${names.join(', ')}.` });
       return;
     }
     startTransition(async () => {
@@ -235,15 +235,15 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
       const wb = XLSX.read(buf, { type: 'array' });
       const sheet = wb.Sheets[wb.SheetNames[0]];
       const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
-      if (raw.length === 0) { setParseErr('File kosong atau tanpa baris data.'); return; }
+      if (raw.length === 0) { setParseErr('Berkas kosong atau tidak berisi data.'); return; }
 
       // `eligible`, bukan `members`: baris Excel untuk pegawai yang sudah keluar sebelum bulan
       // ini jadi "kode tak dikenal" → ditandai tak valid di pratinjau, bukan diam-diam tersimpan.
       const rows = parseKpiRows(raw, eligible);
-      if (rows.length === 0) { setParseErr('Tidak menemukan kolom kode pegawai (emp_code/kode).'); return; }
+      if (rows.length === 0) { setParseErr('Kolom kode pegawai (emp_code/kode) tidak ditemukan.'); return; }
       setParsed(rows);
     } catch {
-      setParseErr('Gagal membaca file. Pastikan format .xlsx/.xls/.csv yang valid.');
+      setParseErr('Gagal membaca berkas. Pastikan berkas berformat .xlsx, .xls, atau .csv.');
     } finally {
       if (fileRef.current) fileRef.current.value = '';
     }
@@ -282,7 +282,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
             {(['manual', 'excel'] as const).map((mo) => (
               <button key={mo} type="button" onClick={() => { setMode(mo); setMsg(null); }}
                 className={`px-4 min-h-9 rounded-full text-[13px] font-semibold transition-colors ${mode === mo ? 'bg-brand text-white' : 'text-ink-soft hover:text-ink'}`}>
-                {mo === 'manual' ? 'Input Manual' : 'Impor Excel'}
+                {mo === 'manual' ? 'Isi Manual' : 'Impor Excel'}
               </button>
             ))}
           </div>
@@ -328,7 +328,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
               <tr className={TABLE_HEAD}>
                 <th className="py-2.5 px-3 rounded-l-lg">Pegawai</th>
                 <th className="py-2.5 px-3">Skor (0–100)</th>
-                <th className="py-2.5 px-3">Komentar Audit (jika edit)</th>
+                <th className="py-2.5 px-3">Komentar Audit (jika diubah)</th>
                 <th className="py-2.5 px-3 text-right whitespace-nowrap rounded-r-lg">Tersimpan</th>
               </tr>
             </thead>
@@ -429,9 +429,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
             return (
               <div className="flex flex-col gap-3 bg-danger-tint border border-danger-ink/25 rounded-xl p-4">
                 <p className="text-[13px] text-danger-ink">
-                  Hapus skor KPI <strong>{m?.name ?? 'pegawai'}</strong> bulan <strong className="font-mono">{ym}</strong>
-                  {saved !== undefined && <> (nilai <strong className="font-mono">{fmt2(saved)}</strong>)</>}? Penghapusan
-                  <strong> tercatat di Riwayat &amp; Audit</strong> dan mengurangi rerata KPI.
+                  Hapus skor KPI <strong>{m?.name ?? 'pegawai'}</strong> bulan <strong className="font-mono">{ym}</strong> {saved !== undefined && <> (nilai <strong className="font-mono">{fmt2(saved)}</strong>)</>}? Penghapusan <strong> tercatat di Riwayat &amp; Audit</strong> dan memengaruhi rerata KPI.
                 </p>
                 <input type="text" value={delNote} autoFocus
                   onChange={(e) => setDelNote(e.target.value)}
@@ -460,8 +458,8 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
       ) : (
         <div className={`${CARD} space-y-4`}>
           <Note>
-            Unggah file <strong className="text-ink">.xlsx/.xls/.csv</strong> berkolom <code className={CODE}>emp_code</code> &amp; <code className={CODE}>score</code> (opsional <code className={CODE}>note</code>).
-            Skor disimpan untuk bulan <strong className="text-ink font-mono">{ym}</strong>. <button type="button" onClick={downloadTemplate} className="text-brand-ink font-semibold hover:underline">Unduh template</button>.
+            Unggah berkas <strong className="text-ink">.xlsx/.xls/.csv</strong> berkolom <code className={CODE}>emp_code</code> dan <code className={CODE}>score</code> (<code className={CODE}>note</code> opsional).
+            Skor disimpan untuk bulan <strong className="text-ink font-mono">{ym}</strong>. <button type="button" onClick={downloadTemplate} className="text-brand-ink font-semibold hover:underline">Unduh templat</button>.
           </Note>
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile}
             className="block text-[13px] text-ink-soft file:mr-3 file:rounded-xl file:border-0 file:bg-brand file:min-h-9 file:px-5 file:text-white file:text-[13px] file:font-bold file:cursor-pointer" />
@@ -506,7 +504,7 @@ export function KpiForm({ members, months, existing = {} }: { members: Member[];
                 const overwriteN = parsed.filter((r) => isValidKpiRow(r) && r.member && existing[`${r.member.id}|${ym}`] !== undefined).length;
                 return overwriteN > 0 ? (
                   <Note tone="warn">
-                    <strong><span className="font-mono">{overwriteN}</span> baris akan menimpa</strong> skor bulan <span className="font-mono">{ym}</span> yang sudah ada (lihat tanda <span className="font-bold">↻ Menimpa</span>). Nilai lama tetap tersimpan di Riwayat &amp; Audit.
+                    <strong><span className="font-mono">{overwriteN}</span> baris akan menimpa</strong> skor bulan <span className="font-mono">{ym}</span> (tanda <span className="font-bold">↻ Menimpa</span>). Nilai lama tetap tersimpan di Riwayat &amp; Audit.
                   </Note>
                 ) : null;
               })()}

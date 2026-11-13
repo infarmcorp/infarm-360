@@ -160,7 +160,7 @@ export function LoginForm({ next, users }: { next: string; users: LoginOption[] 
         </Link>
       ) : (
         <p className="text-center text-xs text-ink-soft">
-          Lupa sandi? <span className="font-semibold text-ink">Hubungi HRD untuk reset.</span>
+          Lupa sandi? <span className="font-semibold text-ink">Hubungi HRD untuk mengatur ulang sandi.</span>
         </p>
       )}
     </form>

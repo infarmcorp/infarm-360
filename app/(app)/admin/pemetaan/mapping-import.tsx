@@ -26,10 +26,10 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
       const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
       const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]], { defval: '' });
       const rows = parseMappingRows(raw, employees);
-      if (rows.length === 0) { setParseErr('Tidak menemukan kolom penilai/dinilai.'); return; }
+      if (rows.length === 0) { setParseErr('Kolom penilai/dinilai tidak ditemukan.'); return; }
       setParsed(rows);
     } catch {
-      setParseErr('Gagal membaca file. Pastikan .xlsx/.xls/.csv valid.');
+      setParseErr('Gagal membaca berkas. Pastikan berkas berformat .xlsx, .xls, atau .csv.');
     } finally { if (fileRef.current) fileRef.current.value = ''; }
   }
 
@@ -40,7 +40,7 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
   const skips = classified.filter((c) => c.status !== 'ok');
 
   function apply() {
-    if (oks.length === 0) { setMsg({ ok: false, text: 'Tidak ada baris valid untuk diimpor.' }); return; }
+    if (oks.length === 0) { setMsg({ ok: false, text: 'Tidak ada baris valid yang dapat diimpor.' }); return; }
     setMsg(null);
     const payload = oks.map((c) => ({ assessorId: c.r.assessor!.id, targetId: c.r.target!.id, relation: c.r.relation, mandatory: c.r.mandatory }));
     start(async () => {
@@ -57,7 +57,7 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
     const sample = employees.slice(0, 2);
     const data = [{ penilai: sample[0]?.code ?? 'SPV001', dinilai: sample[1]?.code ?? 'EMP001', relasi: 'Atasan', wajib: 'wajib' }];
     const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Mapping');
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Pemetaan');
     XLSX.writeFile(wb, 'template-mapping.xlsx');
   }
 
@@ -68,10 +68,10 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
   return (
     <div className={`${CARD} space-y-2`}>
       <div className="flex items-center justify-between gap-2">
-        <CardTitle icon={FileSpreadsheet}>Impor Mapping Massal</CardTitle>
+        <CardTitle icon={FileSpreadsheet}>Impor Pemetaan Massal</CardTitle>
         <button type="button" onClick={() => { setOpen(false); setParsed(null); setMsg(null); }} className="inline-flex items-center gap-1 text-ink-soft hover:text-ink text-xs font-semibold shrink-0">Tutup <X className="w-3.5 h-3.5" aria-hidden /></button>
       </div>
-      <p className="text-xs text-ink-soft leading-relaxed">Kolom: <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">penilai</code>, <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">dinilai</code> (kode pegawai), <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">relasi</code> (Atasan/Peer/Cross/Bawahan — Self dinonaktifkan), <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">wajib</code> (wajib/opsional). <button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh template</button>.</p>
+      <p className="text-xs text-ink-soft leading-relaxed">Kolom: <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">penilai</code>, <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">dinilai</code> (kode pegawai), <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">relasi</code> (Atasan/Peer/Cross/Bawahan — Self dinonaktifkan), <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">wajib</code> (wajib/opsional). <button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh templat</button>.</p>
       <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile}
         className="block text-xs text-ink-soft file:mr-3 file:min-h-9 file:rounded-xl file:border-0 file:bg-brand file:px-4 file:text-white file:text-[13px] file:font-bold file:cursor-pointer" />
       {parseErr && <p className="text-[13px] text-danger-ink font-semibold">{parseErr}</p>}

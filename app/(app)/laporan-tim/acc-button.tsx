@@ -18,7 +18,7 @@ export function AccButton({ employeeId, acc, hasReport, canAcc }: { employeeId: 
     const res = await callAction(() => setSpvAcc(employeeId, !acc));
     setBusy(false);
     if (!res.ok) { setErr(res.error); return; }
-    setSaved(`${res.acc ? 'ACC tersimpan' : 'ACC dibatalkan'} pukul ${savedAtLabel()}`);
+    setSaved(`${res.acc ? 'Persetujuan tersimpan' : 'Persetujuan dibatalkan'} pukul ${savedAtLabel()}`);
     router.refresh();
   }
 
@@ -33,7 +33,7 @@ export function AccButton({ employeeId, acc, hasReport, canAcc }: { employeeId: 
         className={`text-xs font-bold min-h-9 px-3 rounded-xl border transition-colors disabled:opacity-50 ${
           acc ? 'bg-surface text-brand-ink border-brand-ink hover:bg-brand-tint' : 'bg-brand text-white border-brand hover:bg-brand-ink'
         }`}>
-        {busy ? '…' : acc ? '✔ Di-ACC · batalkan' : 'Beri ACC'}
+        {busy ? '…' : acc ? '✔ Disetujui · batalkan' : 'Setujui'}
       </button>
       {err && <span className="text-xs font-semibold text-danger-ink max-w-[170px] text-right">{err}</span>}
       {saved && <span className="text-xs text-brand-ink max-w-[170px] text-right">✓ {saved}</span>}

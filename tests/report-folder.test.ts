@@ -110,7 +110,7 @@ describe('setReportFolder', () => {
     } }));
     const r = await setReportFolder(EMP, URL_OK);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toMatch(/migrasi 0050/);
+    if (!r.ok) expect(r.error).toMatch(/Folder Laporan belum aktif/);
   });
 
   it('pegawai tak ditemukan → tolak', async () => {

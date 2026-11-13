@@ -112,10 +112,9 @@ function Header() {
   return (
     <div className="max-w-3xl">
       <PageTitle title="Manajemen Akses">
-        Berikan akses halaman tertentu kepada SPV/Koordinator/Direksi/pegawai, lengkap dengan
-        <span className="font-semibold text-ink"> lingkup data</span>: seluruh pegawai, hanya divisinya,
-        atau selain divisinya. Akses ini <span className="font-semibold text-ink">menambah</span> —
-        tak mengubah akses bawaan tiap peran.
+        Berikan akses halaman tertentu kepada SPV, Koordinator, Direksi, atau pegawai, dengan
+        <span className="font-semibold text-ink"> lingkup data</span>: seluruh pegawai, divisinya saja,
+        atau selain divisinya. Akses bawaan peran tidak berubah.
       </PageTitle>
     </div>
   );

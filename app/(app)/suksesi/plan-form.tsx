@@ -6,7 +6,7 @@ import { upsertPlan, deletePlan } from './actions';
 
 const PLAN_OPTIONS = [
   'Promosi ke Jabatan Lebih Tinggi (Senior/Lead)',
-  'Rencana Suksesi Manajemen (High Talent Pool)',
+  'Rencana Suksesi Manajemen (Kelompok Talenta Unggul)',
   'Penyesuaian Skema Kompensasi & Gaji',
   'Pengembangan / Pelatihan Terarah',
   'Penangguhan Promosi & Penyesuaian',

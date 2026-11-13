@@ -8,6 +8,19 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-13 — Audit kalimat: 567 teks layar ditulis ulang (di `dev`, belum dirilis)
+- Pemilik mengaudit seluruh kalimat aplikasi lewat berkas Excel dan menetapkan teks baru untuk kalimat yang kaku,
+  memakai istilah Inggris, atau tidak konsisten. Semua keputusan "Ubah" sudah diterapkan.
+- Nama menu ikut berubah: **Tinjauan & Finalisasi** (dulu Review & Finalisasi), **Dasbor Organisasi**, **Progres Umpan
+  Balik 360°**, **Pemantauan & Audit KPI**, **Pengisian KPI Anggota**. Istilah lain: ACC → persetujuan (tombol
+  **Setujui**), deadline → tenggat, form → formulir, rating → nilai, sesi 1-on-1 → sesi empat mata, Peer/Cross/Self →
+  Rekan/Lintas Divisi/Diri Sendiri.
+- Pesan yang dulu menyebut nomor perubahan database kini meminta pengguna menghubungi admin aplikasi.
+- Yang **tidak** diubah: istilah yang ditetapkan HRD (ditandai "Tanya HRD", 31 baris), nama kelas "B · Culture" dan
+  keterangan "HRD Review"/"No Score" yang terkait istilah HRD, serta pilihan relasi di formulir & impor pemetaan
+  (Atasan/Peer/Cross/Bawahan) karena itu nilai data. Aturan sandi minimal 6 karakter saat HRD mengatur sandi juga tetap;
+  usulan menjadi 8 karakter menunggu keputusan pemilik.
+
 ### 2026-11-13 — Tanggal kejadian di Laporkan Pelanggaran memakai kalender aplikasi (di `dev`, belum dirilis)
 - Kolom **Tanggal kejadian** dulu memakai kalender bawaan browser (tampilan berbeda tiap perangkat, bahasa Inggris).
   Kini memakai kalender yang sama dengan Kelola Periode. Tanggal setelah hari ini (WIB) tidak bisa dipilih; aturan di

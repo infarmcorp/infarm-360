@@ -25,7 +25,7 @@ export async function fetchAllPaged<T>(
       throw new Error(
         typeof error === 'object' && error && 'message' in error
           ? String((error as { message: unknown }).message)
-          : 'query gagal',
+          : 'Permintaan data gagal',
       );
     }
     if (data?.length) out.push(...data);

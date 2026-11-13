@@ -1,6 +1,6 @@
 /**
- * Uji KARAKTERISASI aksi massal Review & Finalisasi (app/(app)/admin/laporan/actions.ts):
- *   - bulkFinalizeAccepted : finalisasi massal laporan ber-ACC (`spv_acc=true`) berstatus `in_review`.
+ * Uji KARAKTERISASI aksi massal Tinjauan & Finalisasi (app/(app)/admin/laporan/actions.ts):
+ *   - bulkFinalizeAccepted : finalisasi massal laporan yang sudah disetujui (`spv_acc=true`) berstatus `in_review`.
  *   - resyncDriftedFinals  : sinkronkan `final_score` laporan `finalized` yang skornya berubah (drift).
  * Mengunci perilaku SAAT INI (bukan spesifikasi ideal). finalScoreOf/hasScoreDrift (lib/scoring)
  * SENGAJA tidak di-mock — rumus asli ikut terjaga.
@@ -64,7 +64,7 @@ describe('bulkFinalizeAccepted — otorisasi (HRD penuh, sadar-mode)', () => {
   it('tolak bila sesi berakhir', async () => {
     use(makeClient({ user: null }));
     const r = await bulkFinalizeAccepted();
-    expect(r).toEqual({ ok: false, error: 'Sesi berakhir, silakan login ulang' });
+    expect(r).toEqual({ ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' });
   });
 
   it('tolak SPV / pegawai biasa', async () => {
@@ -237,7 +237,7 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
     use(c);
     const r = await bulkFinalizeAccepted();
     expect(r).toEqual({ ok: true, finalized: 0, skipped: [
-      { name: 'Andi', reason: 'Skor Akhir berubah sejak di-ACC (75.00 → 80.00) — rilis ulang ke SPV untuk ACC baru' },
+      { name: 'Andi', reason: 'Skor Akhir berubah sejak disetujui (75.00 → 80.00). Rilis ulang ke SPV untuk persetujuan baru' },
     ], failed: [] });
     expect(updates(c)).toHaveLength(0);
   });
@@ -325,10 +325,10 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
     expect(mockLog).toHaveBeenCalledTimes(1);
     expect(mockLog).toHaveBeenCalledWith({
       action: 'report.bulk_finalize', category: 'laporan',
-      summary: 'Finalisasi massal 1 laporan ber-ACC (1 dilewati: Budi)',
+      summary: 'Finalisasi massal 1 laporan yang sudah disetujui (1 dilewati: Budi)',
       meta: {
         finalized: 1, skipped: 1, failed: 0, period_id: 'p1',
-        finalized_names: ['Andi'], skipped_list: [{ name: 'Budi', reason: expect.stringContaining('berubah sejak di-ACC') }], failed_list: [],
+        finalized_names: ['Andi'], skipped_list: [{ name: 'Budi', reason: expect.stringContaining('berubah sejak disetujui') }], failed_list: [],
       },
     });
     expect(vi.mocked(logAuditAsService)).not.toHaveBeenCalled();
@@ -342,7 +342,7 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
       compute(null, null),
     ) }));
     await bulkFinalizeAccepted();
-    expect(mockLog).toHaveBeenCalledWith(expect.objectContaining({ summary: 'Finalisasi massal 0 laporan ber-ACC (1 dilewati: Andi)' }));
+    expect(mockLog).toHaveBeenCalledWith(expect.objectContaining({ summary: 'Finalisasi massal 0 laporan yang sudah disetujui (1 dilewati: Andi)' }));
   });
 
   it('TIDAK memeriksa pengaman backfill (tak memanggil isBackfilledPeriod)', async () => {
@@ -362,7 +362,7 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
 describe('resyncDriftedFinals — otorisasi', () => {
   it('tolak bila sesi berakhir', async () => {
     use(makeClient({ user: null }));
-    expect(await resyncDriftedFinals()).toEqual({ ok: false, error: 'Sesi berakhir, silakan login ulang' });
+    expect(await resyncDriftedFinals()).toEqual({ ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' });
   });
 
   it('tolak non-HRD', async () => {

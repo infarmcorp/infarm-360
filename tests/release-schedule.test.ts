@@ -140,11 +140,11 @@ describe('processDueReleaseSchedules', () => {
     expect(vi.mocked(deliverReleaseEmails).mock.calls[0][1].ids).toEqual([C]);
   });
 
-  it('klaim gagal (diambil pemanggil lain) → tidak mengirim apa pun', async () => {
+  it('klaim gagal (sedang diproses oleh pengiriman lain) → tidak mengirim apa pun', async () => {
     const { db } = fakeDb({ release_email_schedules: [{ data: [row()] }, { data: [] }] });
     const out = await processDueReleaseSchedules(db, { now: NOW });
     expect(deliverReleaseEmails).not.toHaveBeenCalled();
-    expect(out.results[0].note).toMatch(/pemanggil lain/);
+    expect(out.results[0].note).toMatch(/pengiriman lain/);
   });
 
   it('email belum aktif → jadwal dibiarkan menunggu (tidak "hangus")', async () => {
@@ -167,6 +167,6 @@ describe('processDueReleaseSchedules', () => {
   it('tabel jadwal belum ada (0053) → ok=false dengan pesan jelas', async () => {
     const { db } = fakeDb({ release_email_schedules: [{ data: null, error: { code: '42P01', message: 'relation does not exist' } }] });
     const out = await processDueReleaseSchedules(db, { now: NOW });
-    expect(out).toMatchObject({ ok: false, error: expect.stringMatching(/0053/) });
+    expect(out).toMatchObject({ ok: false, error: expect.stringMatching(/jadwal belum aktif/i) });
   });
 });

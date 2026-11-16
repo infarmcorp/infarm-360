@@ -2,14 +2,16 @@
 
 import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
 import { tableMissing } from '@/lib/report-folder';
+import { reporterRef } from '@/lib/violation-ref';
 import {
   OUTSIDE_NOTE_MIN, OUTSIDE_NOTE_MAX, OUTSIDE_NOTE_EXTRA_MAX,
   loadViolationPeriod, loadViolationCategories, matchCategory,
 } from '@/lib/outside-notes';
 
 /**
- * LAPORKAN PELANGGARAN (tabel `outside_mapping_notes`, migrasi 0054 + 0058 + 0061; dulu "Catatan di Luar Pemetaan") —
+ * LAPORKAN PELANGGARAN (tabel `outside_mapping_notes`, migrasi 0054 + 0058 + 0061 + 0062; dulu "Catatan di Luar Pemetaan") —
  * pegawai melaporkan kejadian kepada HRD tentang rekan: rekan + tanggal kejadian + kategori (nama aspek budaya kerja
  * atau "Lainnya") + isi laporan (≥ 20 karakter) + catatan opsional. Tanpa rating.
  *
@@ -20,9 +22,10 @@ import {
  * BUKAN Ad-Hoc (addAdhocTarget tetap ditolak): tak membaca maupun menyentuh mappings/assessments/assessment_indicator_scores,
  * jadi tak pernah masuk Skor 360°, Progress 360, Kepatuhan, potongan keterlambatan, atau angka "x dari y".
  *
- * ANONIM: identitas pengirim HANYA dipakai untuk validasi di bawah. Tidak ditulis ke tabel (skemanya tak punya
- * kolom penulis maupun waktu kirim), tidak ke Log Aktivitas, tidak ke console, tidak ke pesan error, tidak ke
- * notifikasi. `incident_date` = tanggal KEJADIAN yang diisi pelapor, bukan waktu kirim. Insert lewat service_role
+ * ANONIM TERSEMBUNYI (0062, pemilik 2026-11-16): id pengirim TIDAK ditulis ke tabel. Yang ditulis hanya penanda
+ * `reporter_ref` = HMAC(kunci rahasia server, id) agar pelapor bisa melihat "Laporan Saya" & tanggapan HRD; penanda tak
+ * pernah keluar ke HRD/Direksi. Identitas & penanda tidak ke Log Aktivitas, console, pesan error, atau notifikasi;
+ * tetap tanpa waktu kirim. `incident_date` = tanggal KEJADIAN yang diisi pelapor, bukan waktu kirim. Insert lewat service_role
  * karena tabel tanpa policy (RLS tertutup untuk anon/authenticated).
  */
 type Result = { ok: true } | { ok: false; error: string };
@@ -96,12 +99,16 @@ export async function submitOutsideNote(
     if (!categoryName) return { ok: false, error: 'Kategori tidak ditemukan' };
   }
 
-  // Baris hanya berisi isian pelapor + periode + rekan — tanpa identitas & tanpa waktu kirim.
+  // Baris = isian pelapor + periode + rekan + penanda tersembunyi — tanpa id pengirim & tanpa waktu kirim.
   const admin = createAdminClient();
   const row = { period_id: ap.id, target_id: targetId, incident_date: incidentDate, body, note: note || null };
-  let { error } = await admin.from('outside_mapping_notes').insert({
-    ...row, aspect_id: null, category: categoryName, is_other: isOther,
-  });
+  const ref = reporterRef(user.id);
+  const insert0061 = () => admin.from('outside_mapping_notes').insert({ ...row, aspect_id: null, category: categoryName, is_other: isOther });
+  let { error } = ref
+    ? await admin.from('outside_mapping_notes').insert({ ...row, aspect_id: null, category: categoryName, is_other: isOther, reporter_ref: ref })
+    : await insert0061();
+  // Kolom penanda (0062) belum ada → kirim tanpa penanda (laporan tetap masuk; tak tampil di Laporan Saya).
+  if (error && columnMissing(error) && /reporter_ref/i.test(error.message ?? '')) ({ error } = await insert0061());
   // Kolom kategori (0061) belum ada → cara lama: rujukan aspek periode laporan dengan nama yang sama.
   if (error && columnMissing(error) && /category/i.test(error.message ?? '')) {
     let aspectId: string | null = null;
@@ -116,6 +123,6 @@ export async function submitOutsideNote(
     if (columnMissing(error)) return { ok: false, error: 'Fitur Laporkan Pelanggaran sedang diperbarui — coba lagi nanti' };
     return { ok: false, error: tableMissing(error) ? 'Fitur Laporkan Pelanggaran belum aktif' : 'Gagal mengirim laporan, coba lagi' };
   }
-  // Sengaja tanpa revalidatePath: tak ada tampilan pegawai yang berubah (laporan tak punya riwayat).
+  revalidatePath('/lapor-pelanggaran');
   return { ok: true };
 }

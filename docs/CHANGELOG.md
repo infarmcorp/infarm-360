@@ -8,6 +8,22 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-16 — Laporkan Pelanggaran: tindak lanjut HRD dan tab Laporan Saya (di `dev`, belum dirilis)
+- Permintaan HRD: memberi kabar ke pelapor bila laporannya sudah ditindaklanjuti. HRD kini memberi **status**
+  (Diterima → Sedang ditindaklanjuti → Selesai) dan **tanggapan untuk pelapor** (satu arah) di halaman Laporan
+  Pelanggaran. Pelapor melihat semua laporannya beserta status dan tanggapan di tab **Laporan Saya**.
+- Kode laporan per laporan sempat diusulkan, tetapi ditolak: merepotkan, pelapor belum tentu menyimpan kodenya, dan
+  satu orang bisa melapor berkali-kali. Gantinya, laporan menyimpan **penanda tersembunyi** dari akun pelapor yang
+  hanya dipakai untuk tab Laporan Saya.
+- Akibatnya anonimitas berubah dari "pelapor sama sekali tidak tersimpan" menjadi "pelapor tersembunyi": HRD dan
+  Direksi tetap tidak melihat siapa pelapornya di aplikasi mana pun, tetapi pengelola sistem yang memegang kunci
+  rahasia secara teori bisa melacaknya. Risiko ini diterima pemilik. Teks pop-up diubah dari "Nama dan identitas Anda
+  tidak disimpan" menjadi "Identitas Anda tidak ditampilkan".
+- HRD tidak bisa menindaklanjuti laporan tentang dirinya sendiri (benturan kepentingan); HRD lain yang menangani.
+- Ekspor Bahan Laporan lembar Laporan Pelanggaran mendapat kolom status dan tanggapan HRD.
+- Butuh perubahan database baru (0062) dan kunci rahasia baru di server. Laporan yang masuk sebelumnya tidak tampil di
+  Laporan Saya (fitur belum dipakai, diterima pemilik).
+
 ### 2026-11-16 — Laporkan Pelanggaran lepas dari penilaian 360° (di `dev`, belum dirilis)
 - Permintaan pengguna: laporan pelanggaran harus bisa dibuka dan ditutup sendiri, tidak bergantung pada formulir 360°.
   Dulu laporan hanya bisa dikirim selama 360° aktif dan formulir penilaian dibuka, dan kartunya ada di tab Pengajuan

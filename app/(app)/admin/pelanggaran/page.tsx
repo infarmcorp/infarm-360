@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { Flag, Info, Users } from 'lucide-react';
+import { Flag, Hourglass, Info, Users } from 'lucide-react';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllByIds } from '@/lib/supabase/paginate';
 import { CARD, Note, PageTitle, StatCard, pillCls } from '@/components/infarm-ui';
@@ -59,7 +59,11 @@ export default async function LaporanPelanggaranPage({ searchParams }: { searchP
       byTarget.set(r.target_id, p);
     }
     p.reports.push({
-      key: String(i),
+      key: r.id || String(i),
+      id: r.id,
+      status: r.status,
+      response: r.hrd_response,
+      respondedAt: r.responded_at,
       date: r.incident_date,
       category: violationCategoryLabel(r, aspectName),
       isOther: r.is_other,
@@ -76,11 +80,12 @@ export default async function LaporanPelanggaranPage({ searchParams }: { searchP
     ...people.flatMap((p) => p.reports.filter((r) => !r.isOther).map((r) => r.category)),
   ])].filter((c) => c !== '—' && c !== OTHER_CATEGORY_LABEL).concat(OTHER_CATEGORY_LABEL);
   const otherCount = reports.filter((r) => r.is_other).length;
+  const openCount = reports.filter((r) => r.status !== 'done').length;
 
   return (
     <Shell>
       <PageTitle title="Laporan Pelanggaran">
-        Laporan pegawai tentang rekan kerja. Nama pelapor dan waktu kirim tidak disimpan.
+        Laporan pegawai tentang rekan kerja. Pelapor tidak ditampilkan dan waktu kirim tidak disimpan.
       </PageTitle>
 
       <div className="space-y-4">
@@ -95,20 +100,23 @@ export default async function LaporanPelanggaranPage({ searchParams }: { searchP
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard item={{ icon: Flag, tone: 'brand', value: String(reports.length), label: 'Total laporan' }} />
           <StatCard item={{ icon: Users, tone: 'danger', value: String(people.length), label: 'Pegawai terlapor' }} />
           <StatCard item={{ icon: Info, tone: 'soil', value: String(otherCount), label: `Kategori ${OTHER_CATEGORY_LABEL}` }} />
+          <StatCard item={{ icon: Hourglass, tone: 'warn', value: String(openCount), label: 'Belum selesai' }} />
         </div>
 
         {people.length === 0 ? (
           <div className={CARD}><p className="text-[13px] text-ink-soft">Belum ada laporan di {sel.label}.</p></div>
         ) : (
-          <ViolationBoard people={people} categories={categories} />
+          <ViolationBoard people={people} categories={categories} canEdit={!isDireksi} selfId={user.id} />
         )}
 
         <Note>
-          Laporan tidak memengaruhi skor dan tidak tampil di laporan pegawai. Laporan lama tanpa tanggal kejadian
+          Laporan tidak memengaruhi skor dan tidak tampil di laporan pegawai. Status dan tanggapan untuk pelapor dibaca
+          pelapor di menu Laporkan Pelanggaran → Laporan Saya; tulis tanggapan seperlunya (pelapor bisa menunjukkannya ke orang
+          lain). Laporan lama tanpa tanggal kejadian
           ditandai &quot;—&quot;.
           {!isDireksi && (
             <>

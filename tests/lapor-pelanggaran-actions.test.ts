@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { makeClient, type MockClient } from './helpers/mock-supabase';
 
 /**
@@ -262,5 +262,31 @@ describe('submitOutsideNote — tanggal, kategori Lainnya, catatan', () => {
   it('tolak catatan > 1000 karakter', async () => {
     rls(makeClient({ user: { id: UID } }));
     expect((await submitOutsideNote(TARGET, CAT, DATE, BODY, 'x'.repeat(1001))).ok).toBe(false);
+  });
+});
+
+describe('submitOutsideNote — penanda tersembunyi pelapor (0062)', () => {
+  beforeEach(() => { vi.stubEnv('VIOLATION_REPORTER_SECRET', 'x'.repeat(40)); });
+  afterEach(() => { vi.unstubAllEnvs(); });
+
+  it('menulis reporter_ref = HMAC hex 64 — bukan id pengirim', async () => {
+    const admin = svc(makeClient({ tables: { outside_mapping_notes: [{ data: null }] } }));
+    happy();
+    expect(await submitOutsideNote(TARGET, CAT, DATE, BODY, '')).toEqual({ ok: true });
+    const p = admin.calls.find((x) => x.op === 'insert')!.payload as Record<string, unknown>;
+    expect(p.reporter_ref).toMatch(/^[0-9a-f]{64}$/);
+    expect(JSON.stringify(p)).not.toContain(UID);
+    expect(Object.keys(p).sort()).toEqual(['aspect_id', 'body', 'category', 'incident_date', 'is_other', 'note', 'period_id', 'reporter_ref', 'target_id']);
+  });
+
+  it('kolom penanda belum ada → laporan tetap terkirim tanpa penanda', async () => {
+    const admin = svc(makeClient({ tables: { outside_mapping_notes: [
+      { error: { code: 'PGRST204', message: "Could not find the 'reporter_ref' column" } }, { data: null },
+    ] } }));
+    happy();
+    expect(await submitOutsideNote(TARGET, CAT, DATE, BODY, '')).toEqual({ ok: true });
+    const inserts = admin.calls.filter((x) => x.op === 'insert');
+    expect(inserts).toHaveLength(2);
+    expect(inserts[1].payload).not.toHaveProperty('reporter_ref');
   });
 });

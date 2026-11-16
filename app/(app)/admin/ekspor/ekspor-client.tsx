@@ -115,7 +115,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
     },
     {
       key: 'bahan', title: 'Bahan Laporan per Pegawai', icon: FileText, scoped: true,
-      desc: <>Untuk diringkas menjadi laporan per pegawai — <strong>4 lembar</strong> (anonim penilai, tanpa Self): <strong>Skor</strong> (Skor Akhir · KPI · 360° · potongan telat · skor tiap aspek budaya + kategori) · <strong>Komentar Aspek</strong> (rating &amp; komentar per indikator) · <strong>Komentar Esai</strong> · <strong>Laporan Pelanggaran</strong> (tanggal kejadian, kategori, laporan, catatan — tanpa pelapor). Disertai divisi &amp; rentang periode.</>,
+      desc: <>Untuk diringkas menjadi laporan per pegawai — <strong>4 lembar</strong> (anonim penilai, tanpa Self): <strong>Skor</strong> (Skor Akhir · KPI · 360° · potongan telat · skor tiap aspek budaya + kategori) · <strong>Komentar Aspek</strong> (rating &amp; komentar per indikator) · <strong>Komentar Esai</strong> · <strong>Laporan Pelanggaran</strong> (tanggal kejadian, kategori, laporan, catatan, status &amp; tanggapan HRD — tanpa pelapor). Disertai divisi &amp; rentang periode.</>,
       go: () => run('bahan', async () => {
         const res = await exportReportMaterials(pid());
         if (!res.ok) throw new Error(res.error);

@@ -100,8 +100,13 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
     rilis HRD perlu membuka saklarnya pada periode aktif (bila formulir sedang terbuka saat perubahan database
     dijalankan, saklar ikut terbuka). Uji di Preview: kirim laporan saat formulir ditutup, dan saat periode tanpa 360°.
   - 🔑 sebelum Q4 dibuka: umumkan fiturnya ke pegawai.
-  - Belum dibangun (pemilik): kode laporan + Cek Status untuk pelapor. Laporan yang masuk tanpa kode tidak bisa
-    dihubungkan ke pelapornya di kemudian hari.
+  - 🔑 **Tindak lanjut HRD + Laporan Saya** (permintaan HRD, keputusan pemilik 2026-11-16; di `dev`, belum dirilis):
+    HRD memberi status (Diterima → Sedang ditindaklanjuti → Selesai) dan tanggapan satu arah; pelapor melihat semua
+    laporannya di tab Laporan Saya tanpa kode. Anonimitas berubah menjadi "tersembunyi": HRD tetap tidak melihat
+    pelapor, tetapi pengelola sistem yang memegang kunci rahasia secara teori bisa melacak. Sebelum dirilis:
+    jalankan **perubahan database 0062** di staging lalu production, dan isi kunci rahasia
+    **VIOLATION_REPORTER_SECRET** di Vercel (Preview & Production) — sekali saja, jangan pernah diganti. Laporan yang
+    masuk sebelumnya tidak tampil di Laporan Saya (diterima pemilik; fitur belum dipakai).
 - ✅ **Perubahan database** — 0001–0059 terpasang di production (0050–0057 dicek pemilik 2026-11-09 dengan
   `scripts/check-migrations.sql` di staging & production; 0058 dan 0059 dijalankan pemilik, dikonfirmasi 2026-11-11).
 - 🔑⬜ **Ganti kunci rahasia database** (kunci admin Supabase dan lainnya) sebelum produksi penuh. Kunci admin

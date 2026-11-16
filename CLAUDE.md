@@ -52,7 +52,7 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
   typecheck + lint + build; lint bersih sejak 2026-10-16 — jangan tambah temuan baru). Backup harian `.github/workflows/backup.yml`. npm.
 - Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 31 tabel publik, migrasi
-  `supabase/migrations/0001`–`0061` (0060 `ai_settings` = eksperimen dev, belum wajib di production). **Production berjalan tanpa API LLM**:
+  `supabase/migrations/0001`–`0062` (0060 `ai_settings` = eksperimen dev, belum wajib di production). **Production berjalan tanpa API LLM**:
   "Ringkas otomatis"/Pengaturan AI (`lib/ai/`, `GEMINI_API_KEY`) hanya dev/staging dan mati otomatis di production; ringkasan
   HRD ditulis manual. Jangan sebut fitur AI di PANDUAN/Notion selama belum dirilis. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
   → **wajib** cek `Bearer $CRON_SECRET` sendiri, gagal tertutup. Email Rilis terjadwal dipicu GitHub Actions
@@ -117,17 +117,26 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   pemegang grant Review non-HRD tetap ditolak untuk laporannya sendiri; ACC laporan sendiri tetap ditolak (0049).
   Aturan database yang melarang membaca penilaian atas diri sendiri **tidak** dibuat (keputusan yang sama).
 - Employee hanya membaca laporannya saat `finalized` (dimuat via service_role). Direksi read-only + ACC.
-- **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan"; tabel `outside_mapping_notes`, 0054 + 0058 + 0061,
+- **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan"; tabel `outside_mapping_notes`, 0054 + 0058 + 0061 + 0062,
   keputusan pemilik 2026-11-03, 2026-11-10 & 2026-11-16) — rincian TEKNIS.md §5.4:
-  - **Anonim secara skema:** tabel **tanpa** kolom penulis (id/email/hash/token) dan **tanpa** waktu kirim; jangan
-    tambahkan. `incident_date` = tanggal **kejadian** isian pelapor (bukan waktu kirim). Identitas pengirim di
-    `submitOutsideNote` hanya untuk validasi — **jangan** tulis ke tabel, audit log, `console`, pesan error, atau
-    notifikasi. Urutan tampil = tanggal kejadian terbaru lalu abjad isi (`sortViolations`), bukan id/urutan masuk.
-    Tanpa riwayat untuk pengirim; tak bisa diubah/dihapus pegawai. Kode laporan / Cek Status **belum** dibangun.
+  - **Anonim tersembunyi** (0062, RISIKO DITERIMA pemilik 2026-11-16 — dulu anonim secara skema): tabel **tanpa** id/
+    email/nama pengirim dan **tanpa** waktu kirim; satu-satunya penanda = `reporter_ref` = HMAC(`VIOLATION_REPORTER_SECRET`,
+    id) (`lib/violation-ref.ts`), hanya untuk tab **Laporan Saya** pelapor sendiri. Penanda **tak pernah** ke klien,
+    halaman/ekspor HRD/Direksi, log, `console`, pesan error, notifikasi (dikunci `tests/outside-notes.test.ts`:
+    hanya `lapor-pelanggaran/actions.ts` & `lib/outside-notes.ts` menyebut kolomnya; `reporterRef(` hanya di kirim &
+    halaman pelapor). Pemegang akses DB + kunci rahasia secara teori bisa melacak — jangan tambah penanda lain,
+    jangan ganti kunci. `incident_date` = tanggal **kejadian** (bukan waktu kirim). Urutan tampil = tanggal kejadian
+    terbaru lalu abjad isi (`sortViolations`), bukan id/urutan masuk. Pegawai tak bisa mengubah/menghapus laporan.
+    Kode laporan per laporan **ditolak** (merepotkan) — diganti Laporan Saya.
+  - **Tindak lanjut HRD** (0062): status Diterima → Sedang ditindaklanjuti → Selesai + tanggapan satu arah untuk
+    pelapor (`setViolationFollowUp`, `admin/pelanggaran/actions.ts`): hanya HRD Mode Admin berbagian Tinjauan &
+    Finalisasi (Direksi baca saja), **tolak laporan tentang diri sendiri**, tulis hanya kolom tindak lanjut, Log Aktivitas
+    tanpa isi tanggapan & tanpa nama terlapor.
   - **Baca hanya HRD Mode Admin** berbagian Review & Finalisasi **dan Direksi** (`violationPageAllowed`; Direksi = semua
     laporan, hanya baca, tanpa ekspor — pemilik 2026-11-11), termasuk laporan tentang dirinya sendiri (tetap anonim),
     lewat `loadViolationReports` di dua jalur saja: halaman **Laporan Pelanggaran** (`admin/pelanggaran`) dan ekspor **Bahan Laporan per Pegawai** lembar 4 (cookie `hrd_mode='admin'`; kolom =
-    periode/pegawai/divisi/tanggal kejadian/kategori/laporan/catatan, tanpa pelapor/relasi/waktu kirim). Sejak 0058
+    periode/pegawai/divisi/tanggal kejadian/kategori/laporan/catatan/status/tanggapan HRD, tanpa pelapor/penanda/relasi/
+    waktu kirim). Sejak 0058
     laporan **tidak** lagi tampil di rincian komentar laporan; `loadReport` & loader lain tak memuatnya. Akses DB
     hanya service_role (RLS tanpa policy).
   - **Bukan Ad-Hoc:** tak menyentuh `mappings`/`assessments`/skor; tak masuk Skor 360°, Skor Akhir, Progress,

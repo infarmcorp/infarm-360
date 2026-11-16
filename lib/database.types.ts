@@ -191,11 +191,13 @@ export interface Database {
         Relationships: [];
       };
       outside_mapping_notes: {
-        // Laporkan Pelanggaran (0054 + 0058 + 0061; dulu Catatan di Luar Pemetaan) — anonim secara skema: tanpa kolom
-        // penulis & tanpa waktu kirim. incident_date = tanggal KEJADIAN dari pelapor; is_other = kategori Lainnya.
-        Row: { id: string; period_id: string; target_id: string; aspect_id: string | null; category: string | null; is_other: boolean; incident_date: string | null; body: string; note: string | null };
-        Insert: { period_id: string; target_id: string; aspect_id?: string | null; category?: string | null; is_other?: boolean; incident_date?: string | null; body: string; note?: string | null };
-        Update: never;
+        // Laporkan Pelanggaran (0054 + 0058 + 0061 + 0062; dulu Catatan di Luar Pemetaan) — tanpa id penulis & tanpa waktu
+        // kirim; reporter_ref = penanda tersembunyi (HMAC, server saja — jangan pernah ke klien/HRD). incident_date =
+        // tanggal KEJADIAN dari pelapor; is_other = Lainnya; status/hrd_response/responded_at = tindak lanjut HRD.
+        Row: { id: string; period_id: string; target_id: string; aspect_id: string | null; category: string | null; is_other: boolean; incident_date: string | null; body: string; note: string | null; reporter_ref: string | null; status: 'received' | 'in_progress' | 'done'; hrd_response: string | null; responded_at: string | null };
+        Insert: { period_id: string; target_id: string; aspect_id?: string | null; category?: string | null; is_other?: boolean; incident_date?: string | null; body: string; note?: string | null; reporter_ref?: string | null };
+        // Hanya kolom tindak lanjut HRD yang boleh diubah (saveViolationFollowUp).
+        Update: { status?: 'received' | 'in_progress' | 'done'; hrd_response?: string | null; responded_at?: string | null };
         Relationships: [];
       };
       result_360: {

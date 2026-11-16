@@ -177,13 +177,16 @@ ditutup atau periode itu tidak memakai penilaian 360°.
 7. Klik **Kirim Laporan**. Muncul "Laporan terkirim ke HRD" dengan tombol **Tutup** dan **Tulis Laporan Lain**.
 
 Yang perlu diketahui:
-- **Nama dan identitas Anda tidak disimpan**, begitu juga waktu kirimnya. Laporan hanya dibaca HRD untuk verifikasi
-  dan tindak lanjut; tidak dapat dilihat rekan yang dilaporkan maupun karyawan lain. Hindari menulis detail yang bisa
-  menunjukkan siapa Anda.
+- **Identitas Anda tidak ditampilkan kepada HRD** maupun siapa pun, dan waktu kirimnya tidak disimpan. Laporan hanya
+  dibaca HRD untuk verifikasi dan tindak lanjut; tidak dapat dilihat rekan yang dilaporkan maupun karyawan lain.
+  Hindari menulis detail yang bisa menunjukkan siapa Anda.
 - Laporan **tanpa nilai** dan **tidak memengaruhi** Skor 360°, Skor Akhir, maupun hitungan "X dari Y" penilaian
   wajib Anda. Tidak ada potongan keterlambatan untuk fitur ini.
 - Laporan **tidak bisa diubah atau dihapus** setelah dikirim. Anda boleh mengirim lebih dari satu laporan.
-- Laporan **tidak muncul** di Permohonan Saya atau di mana pun untuk Anda, karena tidak tersimpan dengan nama Anda.
+- **Tab Laporan Saya** menampilkan semua laporan yang pernah Anda kirim (rekan, tanggal kejadian, kategori, isi, catatan),
+  hanya untuk Anda. Tiap laporan punya **status** dari HRD — **Diterima**, **Sedang ditindaklanjuti**, atau **Selesai** —
+  dan **Tanggapan HRD** bila HRD menuliskannya. Tidak ada pemberitahuan; buka tab ini untuk memantau. Tanggapan bersifat
+  satu arah (tidak bisa dibalas). Tab ini tetap bisa dibuka walaupun pengiriman laporan sedang ditutup.
 - Bisa dikirim selama HRD membuka **Laporkan Pelanggaran** untuk periode berjalan. Bila sedang ditutup, halaman hanya
   berisi keterangan "Laporkan Pelanggaran sedang ditutup".
 - Laporan ini bukan pengganti **Ajukan Penilaian** dan bukan penilaian Ad-Hoc.
@@ -287,9 +290,9 @@ pengalaman yang sama persis, dengan lingkup pegawai sedivisinya (termasuk diriny
 
 **Laporkan Pelanggaran** (menu sendiri di Menu Utama): SPV bisa melaporkan kepada HRD kejadian yang dialami atau
 diamati langsung terkait seorang rekan. Klik **Tulis Laporan**, lalu isi rekan yang dilaporkan, isi laporan (minimal
-20 karakter), tanggal kejadian, kategori (budaya kerja yang dilanggar atau Lainnya), dan catatan bila perlu. Nama dan
-waktu kirim pelapor tidak tersimpan; laporan tanpa nilai, tidak memengaruhi skor apa pun, dan tidak bisa diubah
-setelah dikirim. Bisa dikirim selama HRD membuka Laporkan Pelanggaran, tidak bergantung pada formulir penilaian 360°.
+20 karakter), tanggal kejadian, kategori (budaya kerja yang dilanggar atau Lainnya), dan catatan bila perlu. Identitas
+pelapor tidak ditampilkan kepada HRD dan waktu kirim tidak disimpan; laporan tanpa nilai, tidak memengaruhi skor apa
+pun, dan tidak bisa diubah setelah dikirim. Status dan tanggapan HRD bisa dipantau di tab **Laporan Saya**. Bisa dikirim selama HRD membuka Laporkan Pelanggaran, tidak bergantung pada formulir penilaian 360°.
 Rekan di daftar penilaian SPV juga bisa dilaporkan; penilaian kinerjanya tetap lewat formulir penilaian.
 Laporan yang ditulis orang lain tentang anggota tim **tidak** tampil di Laporan Kinerja Tim maupun Monitor; hanya HRD
 di Mode Admin yang membacanya.
@@ -906,13 +909,20 @@ Finalisasi. Direksi juga bisa membuka halaman ini dari Menu Direksi.)
 - Isinya laporan dari pegawai tentang rekan kerja (menu **Laporkan Pelanggaran** pegawai, dibuka/ditutup HRD di Kelola
   Periode). Kategori budaya kerja tercatat menurut nama aspek, jadi laporan dari periode mana pun masuk ke kategori
   yang sama.
-  **Pelapor anonim**: laporan tidak menyimpan nama maupun waktu kirim pelapor, jadi HRD pun tidak bisa tahu siapa
-  pelapornya.
-- **Periode** dipilih di bagian atas. Kartu ringkas: **Total laporan**, **Pegawai terlapor**, dan **Kategori Lainnya**.
+  **Pelapor anonim**: aplikasi tidak menampilkan siapa pelapornya kepada HRD maupun Direksi, dan waktu kirim tidak
+  disimpan. Pelapor sendiri bisa melihat laporannya di tab Laporan Saya.
+- **Periode** dipilih di bagian atas. Kartu ringkas: **Total laporan**, **Pegawai terlapor**, **Kategori Lainnya**, dan
+  **Belum selesai**.
 - Kiri: daftar **Nama Pegawai** dan **Jumlah Laporan**, yang laporannya terbanyak di atas, dengan kategori laporannya. Kanan:
   laporan pegawai yang dipilih, **satu kartu per laporan** berisi tanggal kejadian, kategori, isi laporan, dan catatan
   pelapor (bila ada). Urutannya menurut tanggal kejadian terbaru, bukan urutan kirim.
 - Filter **Divisi**, **Kategori**, dan **cari nama pegawai** hanya menyaring tampilan.
+- **Tindak lanjut** (di bawah tiap kartu laporan): pilih **Status** — Diterima, Sedang ditindaklanjuti, atau Selesai —
+  dan tulis **Tanggapan untuk pelapor** bila perlu, lalu klik **Simpan Tindak Lanjut**. Status dan tanggapan langsung
+  terlihat oleh pelapor di tab Laporan Saya miliknya; waktu perubahan terakhir tercatat. Tulis tanggapan seperlunya,
+  misalnya "Laporan sudah ditindaklanjuti sesuai peraturan perusahaan" — pelapor bisa menunjukkannya ke orang lain, jadi
+  hindari rincian sanksi. Laporan tentang diri Anda sendiri tidak bisa Anda tindak lanjuti; HRD lain yang menanganinya.
+  Perubahan tercatat di Log Aktivitas tanpa isi tanggapan. Laporan baru berstatus **Diterima**.
 - Laporan yang masuk sebelum formulir diperbarui tidak punya tanggal kejadian (tampil "—").
 - Laporan tidak memengaruhi angka apa pun dan tidak terlihat oleh SPV, Koordinator, pemegang akses halaman, maupun
   HRD di Mode SPV. HRD juga melihat laporan tentang dirinya sendiri (tetap tanpa nama pelapor).
@@ -1116,12 +1126,13 @@ flowchart TD
 - **Laporkan Pelanggaran** — Direksi bisa melaporkan kepada HRD kejadian yang dialami atau diamati langsung terkait
   seorang pegawai (menu **Laporkan Pelanggaran** → **Tulis Laporan**, selama HRD membukanya; pegawai di daftar
   penilaian Direksi juga bisa dilaporkan, penilaian kinerjanya tetap lewat formulir penilaian): pilih pegawai, tulis laporan (minimal 20 karakter), isi tanggal kejadian dan kategori (budaya kerja yang dilanggar atau
-  Lainnya), tambahkan catatan bila perlu. Nama dan waktu kirim pelapor tidak tersimpan; laporan tanpa nilai dan
-  tidak memengaruhi skor. Laporan semacam ini **tidak** tampil di Laporan Kinerja Tim maupun Tinjauan Hasil Akhir.
+  Lainnya), tambahkan catatan bila perlu. Identitas pelapor tidak ditampilkan kepada HRD dan waktu kirim tidak
+  disimpan; laporan tanpa nilai dan tidak memengaruhi skor. Status dan tanggapan HRD terlihat di tab **Laporan Saya**. Laporan semacam ini **tidak** tampil di Laporan Kinerja Tim maupun Tinjauan Hasil Akhir.
 - **Laporan Pelanggaran** (Menu Direksi) — hanya baca: **semua** laporan pelanggaran yang masuk, per periode,
   termasuk laporan tentang Direksi sendiri. Tampilannya sama dengan halaman HRD: daftar pegawai yang dilaporkan di
   kiri, satu kartu per laporan di kanan (tanggal kejadian, kategori, isi laporan, catatan pelapor), dengan filter
-  Divisi, Kategori, dan cari nama. Nama pelapor tidak pernah terlihat, karena memang tidak disimpan. Unduhan Excel
+  Divisi, Kategori, dan cari nama. Status dan tanggapan HRD ikut terlihat (hanya baca; yang
+  mengubahnya HRD). Nama pelapor tidak pernah terlihat. Unduhan Excel
   laporan ini hanya tersedia untuk HRD.
 - **Rencana Pengembangan** — Direksi adalah **atasan** rencana pengembangan para **SPV** dan HRD/pegawai yang
   memimpin tim: menu **Rencana Pengembangan** → tab **Tim Saya** → **Buka**. Saat status **Menunggu Atasan**, isi
@@ -1235,8 +1246,8 @@ flowchart TD
    Direksi, atau pegawai. Komentar bernama per penilai tidak ditampilkan di layar laporan mana pun.
 
 **Laporan pelanggaran** berada di luar empat lapis ini: hanya **HRD di Mode Admin** dan **Direksi** yang membacanya,
-di halaman Laporan Pelanggaran, kapan pun. Pelapornya tidak tersimpan, jadi tidak ada yang bisa melihat siapa pelapornya,
-termasuk HRD.
+di halaman Laporan Pelanggaran, kapan pun. Aplikasi tidak menampilkan siapa pelapornya kepada siapa pun,
+termasuk HRD; hanya pelapor sendiri yang melihat laporannya (tab Laporan Saya).
 
 ---
 

@@ -7,7 +7,7 @@ import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf, playerLabelOf,
 import { classOf, avg, weightedScore360, effectiveModel, type Groups360, type Model360 } from '@/lib/score360';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 import { cookies } from 'next/headers';
-import { loadViolationReports, sortViolations, violationCategoryLabel } from '@/lib/outside-notes';
+import { loadViolationReports, sortViolations, violationCategoryLabel, VIOLATION_STATUS_LABEL } from '@/lib/outside-notes';
 import { tableMissing } from '@/lib/report-folder';
 import { formatDateTimeWib } from '@/lib/datetime';
 import { planTitle, planStatusLabel, ITEM_PROGRESS_LABEL, SESSION_KIND_LABEL, OVERALL_LABEL } from '@/lib/dev-plan';
@@ -959,8 +959,8 @@ async function exportReportMaterialsImpl(periodId?: string | null): Promise<Conf
   esai.sort(cmp);
 
   // ── Lembar 4: Laporan Pelanggaran (0054 + 0058 + 0061; dulu Catatan di Luar Pemetaan) — hanya HRD di Mode Admin.
-  // Isian pelapor saja (tanggal kejadian, kategori, laporan, catatan) — TANPA pelapor/relasi/waktu kirim (tabel tak
-  // menyimpannya). Urut periode → pegawai → tanggal kejadian terbaru → abjad isi (sortViolations + sort stabil).
+  // Isian pelapor (tanggal kejadian, kategori, laporan, catatan) + tindak lanjut HRD (status, tanggapan; 0062) — TANPA
+  // pelapor/penanda pelapor/relasi/waktu kirim. Urut periode → pegawai → tanggal kejadian terbaru → abjad isi (sortViolations + sort stabil).
   const jar = await cookies();
   const catatan: Sorted[] = [];
   const withNotes = jar.get('hrd_mode')?.value === 'admin';
@@ -977,6 +977,8 @@ async function exportReportMaterialsImpl(periodId?: string | null): Promise<Conf
           kategori: (() => { const k = violationCategoryLabel(n, aspectNameById); return k === '—' ? '' : k; })(),
           laporan: n.body,
           catatan: n.note ?? '',
+          status: VIOLATION_STATUS_LABEL[n.status],
+          tanggapan_hrd: n.hrd_response ?? '',
         },
       });
     }

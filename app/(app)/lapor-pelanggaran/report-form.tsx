@@ -25,8 +25,8 @@ const REQ = <span className="text-danger-ink">*</span>;
 /**
  * "Tulis Laporan" — Laporkan Pelanggaran (tabel catatan 0054 + 0058 + 0061). Pola sama dengan Ajukan Penilaian
  * (request-assessment-form.tsx): pop-up, SearchableSelect rekan, validasi ulang di server.
- * Tanpa riwayat: sesudah terkirim hanya konfirmasi — laporan tak tersimpan dengan nama pengirim,
- * jadi tak bisa ditampilkan kembali kepadanya.
+ * Sesudah terkirim: konfirmasi + arahan ke tab Laporan Saya (0062: laporan dikenali lewat penanda tersembunyi,
+ * bukan nama pengirim; HRD tak melihat pengirimnya).
  */
 export function OutsideNoteButton({ candidates, categories }: { candidates: Candidate[]; categories: string[] }) {
   const [open, setOpen] = useState(false);
@@ -67,7 +67,7 @@ export function OutsideNoteButton({ candidates, categories }: { candidates: Cand
         {sent ? (
           <>
             <p className="flex items-center gap-2 text-[13px] font-bold text-brand-ink"><CheckCircle2 className="w-4 h-4 shrink-0" /> Laporan terkirim ke HRD</p>
-            <p className="text-[13px] text-ink-soft">Terima kasih. Nama dan identitas Anda tidak tersimpan bersama laporan ini.</p>
+            <p className="text-[13px] text-ink-soft">Terima kasih. Identitas Anda tidak ditampilkan kepada HRD. Pantau status dan tanggapan HRD di tab Laporan Saya.</p>
             <div className="flex justify-end gap-2 pt-1">
               <button type="button" onClick={close} className={BTN_GHOST}>Tutup</button>
               <button type="button" onClick={reset} className={BTN_PRIMARY}>Tulis Laporan Lain</button>
@@ -88,7 +88,7 @@ export function OutsideNoteButton({ candidates, categories }: { candidates: Cand
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.06em] text-infarm-soil mb-1">Kerahasiaan</p>
                   <p className="text-xs leading-relaxed text-ink">
-                    Nama dan identitas Anda tidak disimpan dalam laporan. Laporan hanya dapat diakses oleh HRD untuk keperluan
+                    Identitas Anda tidak ditampilkan dalam laporan. Laporan hanya dapat diakses oleh HRD untuk keperluan
                     verifikasi dan tindak lanjut, serta tidak dapat dilihat oleh rekan yang dilaporkan maupun karyawan lain.
                   </p>
                 </div>

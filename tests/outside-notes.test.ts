@@ -22,7 +22,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import type { ActorRow } from '@/lib/auth/roles';
 import {
   violationPageAllowed, loadViolationReports, sortViolations, loadViolationPeriod, loadViolationCategories, matchCategory,
-  violationCategoryLabel,
+  violationCategoryLabel, loadMyViolationReports, saveViolationFollowUp,
 } from '@/lib/outside-notes';
 import {
   loadTeamReportForSpv, loadTeamReportForCoordinator, loadTeamReportForHrdSpv, loadSpvReportForDireksi,
@@ -133,37 +133,41 @@ describe('loader laporan tak pernah memuat laporan pelanggaran', () => {
 // ── 3. Pembacaan untuk halaman & ekspor ───────────────────────────────────────────────────────
 describe('loadViolationReports', () => {
   const ROW = {
-    period_id: 'p4', target_id: EMP, aspect_id: null, category: null, is_other: true,
+    id: 'r1', period_id: 'p4', target_id: EMP, aspect_id: null, category: null, is_other: true,
     incident_date: '2026-10-20', body: '  Isi laporan yang cukup panjang.  ', note: '   ',
+    status: 'in_progress', hrd_response: ' Sedang diperiksa. ', responded_at: '2026-11-16T03:00:00Z',
   };
 
-  it('isian pelapor saja, di-trim; catatan kosong → null; filter periode', async () => {
-    const c = makeClient({ tables: { outside_mapping_notes: [{ data: [ROW] }] } });
+  it('isian pelapor + tindak lanjut, di-trim; catatan kosong → null; filter periode; penanda pelapor tak ikut', async () => {
+    const c = makeClient({ tables: { outside_mapping_notes: [{ data: [{ ...ROW, reporter_ref: 'f'.repeat(64) }] }] } });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows = await loadViolationReports(c as any, 'p4');
-    expect(rows).toEqual([{ ...ROW, body: 'Isi laporan yang cukup panjang.', note: null }]);
+    expect(rows).toEqual([{ ...ROW, body: 'Isi laporan yang cukup panjang.', note: null, hrd_response: 'Sedang diperiksa.' }]);
+    expect(JSON.stringify(rows)).not.toContain('reporter_ref');
     expect(c.calls[0].filters).toEqual(expect.arrayContaining([['eq', 'period_id', 'p4']]));
   });
 
   it('kolom 0061 (kategori) belum ada → baca kolom 0058', async () => {
     const c = makeClient({ tables: { outside_mapping_notes: [
+      { error: { code: '42703', message: 'column outside_mapping_notes.status does not exist' } },
       { error: { code: '42703', message: 'column outside_mapping_notes.category does not exist' } },
-      { data: [{ period_id: 'p4', target_id: EMP, aspect_id: 'a1', is_other: false, incident_date: '2026-10-01', body: 'Laporan sebelum 0061.', note: null }] },
+      { data: [{ id: 'r2', period_id: 'p4', target_id: EMP, aspect_id: 'a1', is_other: false, incident_date: '2026-10-01', body: 'Laporan sebelum 0061.', note: null }] },
     ] } });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows = await loadViolationReports(c as any, 'p4');
-    expect(rows).toEqual([{ period_id: 'p4', target_id: EMP, aspect_id: 'a1', category: null, is_other: false, incident_date: '2026-10-01', body: 'Laporan sebelum 0061.', note: null }]);
+    expect(rows).toEqual([{ id: 'r2', period_id: 'p4', target_id: EMP, aspect_id: 'a1', category: null, is_other: false, incident_date: '2026-10-01', body: 'Laporan sebelum 0061.', note: null, status: 'received', hrd_response: null, responded_at: null }]);
   });
 
   it('kolom 0058 belum ada → baca kolom lama (tanpa tanggal/Lainnya/catatan)', async () => {
     const c = makeClient({ tables: { outside_mapping_notes: [
+      { error: { code: '42703', message: 'column outside_mapping_notes.status does not exist' } },
       { error: { code: '42703', message: 'column outside_mapping_notes.category does not exist' } },
       { error: { code: '42703', message: 'column outside_mapping_notes.is_other does not exist' } },
-      { data: [{ period_id: 'p4', target_id: EMP, aspect_id: 'a1', body: 'Laporan lama sebelum pembaruan.' }] },
+      { data: [{ id: 'r3', period_id: 'p4', target_id: EMP, aspect_id: 'a1', body: 'Laporan lama sebelum pembaruan.' }] },
     ] } });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows = await loadViolationReports(c as any, 'p4');
-    expect(rows).toEqual([{ period_id: 'p4', target_id: EMP, aspect_id: 'a1', category: null, is_other: false, incident_date: null, body: 'Laporan lama sebelum pembaruan.', note: null }]);
+    expect(rows).toEqual([{ id: 'r3', period_id: 'p4', target_id: EMP, aspect_id: 'a1', category: null, is_other: false, incident_date: null, body: 'Laporan lama sebelum pembaruan.', note: null, status: 'received', hrd_response: null, responded_at: null }]);
   });
 
   it('tabel belum ada (0054) → kosong; gangguan lain dilempar', async () => {
@@ -278,6 +282,72 @@ describe('tabel laporan terisolasi dari skor, progress, kepatuhan, potongan tela
   it('detail laporan pegawai tak lagi memuat laporan pelanggaran', () => {
     const detail = readFileSync(join(ROOT, 'app/(app)/laporan/[employeeId]/page.tsx'), 'utf8');
     expect(detail).not.toMatch(/outside-notes|withOutsideNotes/);
+  });
+  // 0062: penanda pelapor hanya dikenal jalur tulis & "Laporan Saya" — tak pernah ke halaman/ekspor HRD/Direksi.
+  it('kolom penanda pelapor hanya disebut file tulis & lib baca', () => {
+    const files = src()
+      .filter((p) => readFileSync(p, 'utf8').includes('reporter_ref'))
+      .map((p) => relative(ROOT, p).replace(/\\/g, '/'))
+      .sort();
+    expect(files).toEqual(['app/(app)/lapor-pelanggaran/actions.ts', 'lib/outside-notes.ts']);
+  });
+  it('reporterRef hanya dipanggil saat kirim laporan & halaman Laporan Saya pelapor', () => {
+    const callers = src()
+      .filter((p) => !p.endsWith('violation-ref.ts') && readFileSync(p, 'utf8').includes('reporterRef('))
+      .map((p) => relative(ROOT, p).replace(/\\/g, '/'))
+      .sort();
+    expect(callers).toEqual(['app/(app)/lapor-pelanggaran/actions.ts', 'app/(app)/lapor-pelanggaran/page.tsx']);
+  });
+});
+
+// ── 6. Tindak lanjut & Laporan Saya (0062) ────────────────────────────────────────────────────
+/** Klien perekam: mencatat kolom select, filter, dan payload update. */
+function recorder(result: { data?: unknown; error?: unknown } = { data: [] }) {
+  const log: { table: string; select?: string; filters: unknown[][]; update?: unknown }[] = [];
+  return {
+    log,
+    from(table: string) {
+      const entry: (typeof log)[number] = { table, filters: [] };
+      log.push(entry);
+      const b: Record<string, unknown> = {};
+      b.select = (cols: string) => { entry.select = entry.select ?? cols; return b; };
+      b.update = (p: unknown) => { entry.update = p; return b; };
+      for (const m of ['order', 'range', 'limit']) b[m] = () => b;
+      b.eq = (col: string, val: unknown) => { entry.filters.push(['eq', col, val]); return b; };
+      b.maybeSingle = () => Promise.resolve(result);
+      b.then = (ok: (v: unknown) => unknown, bad?: (e: unknown) => unknown) => Promise.resolve(result).then(ok, bad);
+      return b;
+    },
+  };
+}
+
+describe('0062 — penanda pelapor tak pernah dibaca untuk HRD; Laporan Saya & tindak lanjut', () => {
+  it('loadViolationReports tak pernah memilih kolom penanda pelapor', async () => {
+    const r = recorder({ data: [] });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await loadViolationReports(r as any, 'p1');
+    expect(r.log[0].select).toBeTruthy();
+    expect(r.log[0].select).not.toContain('reporter_ref');
+  });
+  it('loadMyViolationReports menyaring penanda pelapor; kolom belum ada → kosong', async () => {
+    const r = recorder({ data: [{ id: 'x', period_id: 'p1', target_id: EMP, body: 'Isi laporan yang cukup panjang.', status: 'done', hrd_response: 'Selesai ditangani.' }] });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = await loadMyViolationReports(r as any, 'a'.repeat(64));
+    expect(r.log[0].filters).toEqual([['eq', 'reporter_ref', 'a'.repeat(64)]]);
+    expect(rows[0]).toMatchObject({ id: 'x', status: 'done', hrd_response: 'Selesai ditangani.' });
+    const missing = makeClient({ tables: { outside_mapping_notes: [{ error: { code: '42703', message: 'column outside_mapping_notes.reporter_ref does not exist' } }] } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await loadMyViolationReports(missing as any, 'a'.repeat(64))).toEqual([]);
+  });
+  it('saveViolationFollowUp hanya mengubah kolom tindak lanjut', async () => {
+    const r = recorder({ data: [{ id: 'x' }] });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await saveViolationFollowUp(r as any, 'x', 'in_progress', 'Sedang diperiksa.')).toEqual({ ok: true });
+    expect(Object.keys(r.log[0].update as object).sort()).toEqual(['hrd_response', 'responded_at', 'status']);
+    expect(r.log[0].filters).toEqual([['eq', 'id', 'x']]);
+    const none = recorder({ data: [] });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await saveViolationFollowUp(none as any, 'x', 'done', null)).toEqual({ ok: false, missing: false });
   });
 });
 

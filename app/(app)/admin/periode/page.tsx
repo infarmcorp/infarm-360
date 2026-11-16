@@ -41,6 +41,9 @@ export default async function PeriodePage({
   const { data: periods } = await supabase
     .from('periods').select('id, code, label, start_date, end_date, status, has_360, form_open, mapping_published, kpi_standard, assessment_deadline').order('start_date', { ascending: false });
   const list = periods ?? [];
+  // Saklar Laporkan Pelanggaran (0061) dibaca terpisah: kolom belum ada → null (menu disembunyikan, halaman tetap jalan).
+  const { data: violRows, error: violErr } = await supabase.from('periods').select('id, violation_open');
+  const violationOpenById = new Map<string, boolean>(violErr ? [] : (violRows ?? []).map((r) => [r.id, r.violation_open === true]));
 
   const { data: monthRows } = await supabase.from('period_months').select('period_id');
   const monthCount = new Map<string, number>();
@@ -134,6 +137,9 @@ export default async function PeriodePage({
               <td className="py-3 px-3">
                 <span className="block text-[13px] font-bold text-ink">{p.label}</span>
                 <span className="text-[12px] text-ink-soft data-value">{p.code} · {monthCount.get(p.id) ?? 0} bln</span>
+                {violationOpenById.get(p.id) && (
+                  <span className="block mt-1"><StatusChip tone="brand">Laporkan Pelanggaran dibuka</StatusChip></span>
+                )}
               </td>
               <td className="py-3 px-3"><DateRange start={p.start_date} end={p.end_date} /></td>
               <td className="py-3 px-3 text-center">
@@ -155,7 +161,8 @@ export default async function PeriodePage({
                   : <StatusChip tone="neutral">Terkunci</StatusChip>}
               </td>
               <td className="py-3 px-3 text-right">
-                <PeriodActions periodId={p.id} status={p.status} has360={p.has_360} formOpen={p.form_open} mappingPublished={p.mapping_published} />
+                <PeriodActions periodId={p.id} status={p.status} has360={p.has_360} formOpen={p.form_open} mappingPublished={p.mapping_published}
+                  violationOpen={violErr ? null : violationOpenById.get(p.id) ?? false} />
               </td>
             </tr>
           ))}

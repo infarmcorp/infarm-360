@@ -1,6 +1,6 @@
 -- ============================================================================
 -- CEK STATUS MIGRASI — jalankan di Supabase SQL Editor project mana pun
--- (production ATAU staging) untuk melihat migrasi 0001–0058 mana yang SUDAH
+-- (production ATAU staging) untuk melihat migrasi 0001–0061 mana yang SUDAH
 -- diterapkan ke database tsb, tanpa perlu mengingat riwayatnya secara manual.
 --
 -- Cara pakai: copy-paste seluruh isi file ini ke SQL Editor → Run. Kolom
@@ -72,7 +72,8 @@ select * from (values
   ('0057', 'fungsi dev_plan_replace_items & pengaman rencana', exists(select 1 from pg_proc where proname='dev_plan_replace_items') and exists(select 1 from pg_trigger where tgname='trg_dev_plan_items_guard')),
   ('0058', 'kolom outside_mapping_notes.incident_date (laporkan pelanggaran)', exists(select 1 from information_schema.columns where table_name='outside_mapping_notes' and column_name='incident_date')),
   ('0059', 'fungsi dev_plan_direksi_reads (baca Direksi = timnya)', exists(select 1 from pg_proc where proname='dev_plan_direksi_reads')),
-  ('0060', 'tabel ai_settings (Pengaturan AI — eksperimen dev)', to_regclass('public.ai_settings') is not null)
+  ('0060', 'tabel ai_settings (Pengaturan AI — eksperimen dev)', to_regclass('public.ai_settings') is not null),
+  ('0061', 'kolom periods.violation_open & outside_mapping_notes.category (saklar laporkan pelanggaran)', exists(select 1 from information_schema.columns where table_name='periods' and column_name='violation_open') and exists(select 1 from information_schema.columns where table_name='outside_mapping_notes' and column_name='category'))
 ) as t(migrasi, penanda_skema, applied)
 order by migrasi;
 

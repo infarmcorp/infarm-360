@@ -159,17 +159,19 @@ Bila disetujui, rekan itu masuk daftar sebagai **Opsional** berlabel **"Ajuan ·
 sendiri yang meminta, mulai Q3 2026 penilaian ini wajib dikirim sebelum tenggat. Panel **Permohonan Saya**
 menampilkan semua pengajuan (koreksi, hapus, tambah) beserta status dan alasan penolakan HRD.
 
-**Tab Pengajuan — Laporkan Pelanggaran** (mulai Q4 2026)
-Kartu ini ada di samping kartu "Menambah Rekan yang Anda Nilai" (di HP: di bawahnya). Gunanya: melaporkan kepada
-HRD kejadian yang Anda alami dan amati secara langsung dengan rekan yang **tidak ada** di daftar penilaian Anda.
-Rekan ini tidak harus rekan yang berhubungan atau berkoordinasi langsung dengan Anda.
-1. Klik **Tulis Laporan**. Di bagian atas pop-up ada **Panduan** (jelaskan waktu, tempat, pihak yang terlibat,
-   kronologi kejadian, dan dampaknya) dan penjelasan **Kerahasiaan**.
-2. **Rekan yang dilaporkan** (wajib): pegawai aktif, bukan Direksi, bukan penilai eksternal, bukan Anda sendiri,
-   dan belum ada di daftar penilaian Anda.
+**Menu Laporkan Pelanggaran** (mulai Q4 2026; menu sendiri di Menu Utama)
+Gunanya: melaporkan kepada HRD kejadian yang Anda alami dan amati secara langsung terkait seorang rekan. Rekan ini
+tidak harus rekan yang berhubungan atau berkoordinasi langsung dengan Anda. Fitur ini **tidak bergantung pada
+penilaian 360°**: HRD membuka dan menutupnya sendiri, jadi laporan bisa dikirim walaupun formulir penilaian sedang
+ditutup atau periode itu tidak memakai penilaian 360°.
+1. Buka menu **Laporkan Pelanggaran**, lalu klik **Tulis Laporan**. Di bagian atas pop-up ada **Panduan** (jelaskan
+   waktu, tempat, pihak yang terlibat, kronologi kejadian, dan dampaknya) dan penjelasan **Kerahasiaan**.
+2. **Rekan yang dilaporkan** (wajib): pegawai aktif, bukan Direksi, bukan penilai eksternal, dan bukan Anda sendiri.
+   Selama formulir penilaian 360° dibuka, rekan yang ada di daftar penilaian Anda tidak bisa dipilih — sampaikan
+   lewat formulir penilaiannya. Saat formulir ditutup, semua rekan bisa dipilih.
 3. **Laporan Anda** (wajib): minimal 20 karakter. Penghitung karakter ada di bawah kotak. Hanya teks, tanpa lampiran.
 4. **Tanggal kejadian** (wajib): tidak boleh setelah hari ini.
-5. **Kategori** (wajib): pilih budaya kerja yang dilanggar (mengikuti aspek budaya periode berjalan), atau
+5. **Kategori** (wajib): pilih budaya kerja yang dilanggar (aspek budaya kerja Infarm), atau
    **Lainnya (di luar budaya kerja)**.
 6. **Catatan** (opsional): informasi tambahan untuk HRD. Bila memilih Lainnya, sebutkan jenis pelanggarannya di sini.
 7. Klik **Kirim Laporan**. Muncul "Laporan terkirim ke HRD" dengan tombol **Tutup** dan **Tulis Laporan Lain**.
@@ -182,11 +184,10 @@ Yang perlu diketahui:
   wajib Anda. Tidak ada potongan keterlambatan untuk fitur ini.
 - Laporan **tidak bisa diubah atau dihapus** setelah dikirim. Anda boleh mengirim lebih dari satu laporan.
 - Laporan **tidak muncul** di Permohonan Saya atau di mana pun untuk Anda, karena tidak tersimpan dengan nama Anda.
-- Bisa dikirim selama HRD membuka formulir penilaian, termasuk sesudah tenggat. Saat masa tinjau pemetaan atau saat
-  formulir ditutup, kartu hanya berisi penjelasan.
-- Untuk rekan yang **sudah** ada di daftar Anda, sampaikan lewat formulir penilaiannya. Laporan ini bukan pengganti
-  **Ajukan Penilaian** dan bukan penilaian Ad-Hoc.
-- Penilai eksternal (vendor/freelance) belum bisa memakai fitur ini.
+- Bisa dikirim selama HRD membuka **Laporkan Pelanggaran** untuk periode berjalan. Bila sedang ditutup, halaman hanya
+  berisi keterangan "Laporkan Pelanggaran sedang ditutup".
+- Laporan ini bukan pengganti **Ajukan Penilaian** dan bukan penilaian Ad-Hoc.
+- Penilai eksternal (vendor/freelance) belum bisa memakai fitur ini dan tidak melihat menunya.
 
 ### 2.2 Formulir penilaian (Mulai Nilai)
 - **Panduan Penilaian Umum** (bisa dibuka/tutup) berlaku untuk semua soal.
@@ -284,11 +285,12 @@ Notifikasi. Aplikasi hanya mencatat: tidak ada penanda terlambat.
 SPV memakai semua menu Pegawai, ditambah menu di bawah ini. HRD yang sedang di **Mode SPV** mendapat
 pengalaman yang sama persis, dengan lingkup pegawai sedivisinya (termasuk dirinya).
 
-**Laporkan Pelanggaran** (tab Pengajuan pada Daftar Penilaian Saya): SPV bisa melaporkan kepada HRD kejadian yang
-dialami atau diamati langsung dengan rekan yang tidak ada di daftar penilaian SPV. Klik **Tulis Laporan**, lalu isi
-rekan yang dilaporkan, isi laporan (minimal 20 karakter), tanggal kejadian, kategori (budaya kerja yang dilanggar
-atau Lainnya), dan catatan bila perlu. Nama dan waktu kirim pelapor tidak tersimpan; laporan tanpa nilai, tidak
-memengaruhi skor apa pun, dan tidak bisa diubah setelah dikirim. Bisa dikirim selama formulir penilaian dibuka.
+**Laporkan Pelanggaran** (menu sendiri di Menu Utama): SPV bisa melaporkan kepada HRD kejadian yang dialami atau
+diamati langsung terkait seorang rekan. Klik **Tulis Laporan**, lalu isi rekan yang dilaporkan, isi laporan (minimal
+20 karakter), tanggal kejadian, kategori (budaya kerja yang dilanggar atau Lainnya), dan catatan bila perlu. Nama dan
+waktu kirim pelapor tidak tersimpan; laporan tanpa nilai, tidak memengaruhi skor apa pun, dan tidak bisa diubah
+setelah dikirim. Bisa dikirim selama HRD membuka Laporkan Pelanggaran, tidak bergantung pada formulir penilaian 360°.
+Selama formulir penilaian dibuka, rekan yang ada di daftar penilaian SPV disampaikan lewat formulir penilaiannya.
 Laporan yang ditulis orang lain tentang anggota tim **tidak** tampil di Laporan Kinerja Tim maupun Monitor; hanya HRD
 di Mode Admin yang membacanya.
 
@@ -588,8 +590,13 @@ peluncuran → KPI → pengisian → ① Hitung Ulang → review → finalisasi 
 - **Umumkan Pemetaan / Tarik Pengumuman Pemetaan**: menampilkan daftar "siapa harus dinilai" ke masing-masing
   penilai **sebelum** formulir dibuka (masa tinjau). Pegawai boleh mengajukan hapus/tambah/koreksi; prosesnya
   di Pemetaan → tab Permohonan.
-- **Tutup Formulirulir / Buka Formulirulir**: membekukan pengisian **tanpa** mematikan 360°. Skor 360° tetap dihitung dan
+- **Tutup Formulir / Buka Formulir**: membekukan pengisian **tanpa** mematikan 360°. Skor 360° tetap dihitung dan
   bisa dihitung ulang; penilaian terkirim tetap tersimpan. Pakai saat review/finalisasi dengan data beku.
+- **Buka / Tutup Laporkan Pelanggaran**: saklar sendiri untuk menu Laporkan Pelanggaran pegawai, **terpisah** dari
+  360° dan formulir penilaian. Menutup formulir tidak menutup laporan, dan sebaliknya. Saklar berlaku per periode:
+  periode baru yang diaktifkan mulai dalam keadaan **tertutup**, jadi buka lagi bila pegawai perlu melapor. Selama
+  terbuka, baris periode menampilkan tanda **Laporkan Pelanggaran dibuka**. Laporan yang sudah masuk tetap tersimpan
+  saat saklar ditutup.
 - **Kunci & Akhiri Periode**: menutup seluruh periode; semua isian dan edit ditolak sistem, **termasuk
   finalisasi**. Jadi **finalisasi semua dulu, baru kunci**.
 - **Membuka kembali**: periode terkunci bisa **diaktifkan** lagi untuk koreksi (periode aktif lain ikut
@@ -615,6 +622,7 @@ peluncuran → KPI → pengisian → ① Hitung Ulang → review → finalisasi 
 | **⋯ → Atur Tanpa 360°** | Matikan bagian 360° | 360° menyala | Bersyarat — bila sudah ada penilaian terkirim |
 | **⋯ → Umumkan Pemetaan** / **Tarik Pengumuman Pemetaan** | Masa tinjau | Periode aktif & 360° menyala | — |
 | **⋯ → Tutup Formulir** / **Buka Formulir** | Bekukan/buka pengisian | Periode aktif & 360° menyala | — |
+| **⋯ → Buka Laporkan Pelanggaran** / **Tutup Laporkan Pelanggaran** | Buka/tutup pengiriman laporan pelanggaran pegawai | Periode aktif (Tutup juga muncul pada periode lain yang saklarnya masih terbuka) | — |
 | **⋯ → Hapus periode** | Hapus permanen | Bukan periode aktif | Ya — wajib mengetik `HAPUS` |
 | **Lengkapi →** | Ke halaman prasyarat yang belum lengkap | Panel Kesiapan | — |
 
@@ -895,7 +903,9 @@ hanya ada untuk periode aktif.
 
 **Laporan Pelanggaran** (menu Hasil & Tindak Lanjut, mulai Q4 2026; HRD di Mode Admin yang punya akses Tinjauan &
 Finalisasi. Direksi juga bisa membuka halaman ini dari Menu Direksi.)
-- Isinya laporan dari pegawai tentang rekan kerja (fitur **Laporkan Pelanggaran** di Daftar Penilaian Saya).
+- Isinya laporan dari pegawai tentang rekan kerja (menu **Laporkan Pelanggaran** pegawai, dibuka/ditutup HRD di Kelola
+  Periode). Kategori budaya kerja tercatat menurut nama aspek, jadi laporan dari periode mana pun masuk ke kategori
+  yang sama.
   **Pelapor anonim**: laporan tidak menyimpan nama maupun waktu kirim pelapor, jadi HRD pun tidak bisa tahu siapa
   pelapornya.
 - **Periode** dipilih di bagian atas. Kartu ringkas: **Total laporan**, **Pegawai terlapor**, dan **Kategori Lainnya**.
@@ -1103,9 +1113,9 @@ flowchart TD
   ulang dengan skor berbeda.
 - **Tinjauan Hasil Akhir** — hanya baca: hasil **semua pegawai** (termasuk yang masih draf) dengan umpan balik
   tanpa nama, tanpa Hitung Ulang / Rilis / Finalisasi / persetujuan / edit ringkasan.
-- **Laporkan Pelanggaran** — Direksi bisa melaporkan kepada HRD kejadian yang dialami atau diamati langsung dengan
-  pegawai yang tidak ada di daftar penilaiannya (tab Pengajuan di Daftar Penilaian Saya → **Tulis Laporan**): pilih
-  pegawai, tulis laporan (minimal 20 karakter), isi tanggal kejadian dan kategori (budaya kerja yang dilanggar atau
+- **Laporkan Pelanggaran** — Direksi bisa melaporkan kepada HRD kejadian yang dialami atau diamati langsung terkait
+  seorang pegawai (menu **Laporkan Pelanggaran** → **Tulis Laporan**, selama HRD membukanya; selama formulir penilaian
+  dibuka, pegawai di daftar penilaian Direksi disampaikan lewat formulir penilaiannya): pilih pegawai, tulis laporan (minimal 20 karakter), isi tanggal kejadian dan kategori (budaya kerja yang dilanggar atau
   Lainnya), tambahkan catatan bila perlu. Nama dan waktu kirim pelapor tidak tersimpan; laporan tanpa nilai dan
   tidak memengaruhi skor. Laporan semacam ini **tidak** tampil di Laporan Kinerja Tim maupun Tinjauan Hasil Akhir.
 - **Laporan Pelanggaran** (Menu Direksi) — hanya baca: **semua** laporan pelanggaran yang masuk, per periode,

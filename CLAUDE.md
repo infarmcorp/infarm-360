@@ -52,7 +52,7 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
   typecheck + lint + build; lint bersih sejak 2026-10-16 — jangan tambah temuan baru). Backup harian `.github/workflows/backup.yml`. npm.
 - Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 31 tabel publik, migrasi
-  `supabase/migrations/0001`–`0060` (0060 `ai_settings` = eksperimen dev, belum wajib di production). **Production berjalan tanpa API LLM**:
+  `supabase/migrations/0001`–`0061` (0060 `ai_settings` = eksperimen dev, belum wajib di production). **Production berjalan tanpa API LLM**:
   "Ringkas otomatis"/Pengaturan AI (`lib/ai/`, `GEMINI_API_KEY`) hanya dev/staging dan mati otomatis di production; ringkasan
   HRD ditulis manual. Jangan sebut fitur AI di PANDUAN/Notion selama belum dirilis. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
   → **wajib** cek `Bearer $CRON_SECRET` sendiri, gagal tertutup. Email Rilis terjadwal dipicu GitHub Actions
@@ -117,8 +117,8 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   pemegang grant Review non-HRD tetap ditolak untuk laporannya sendiri; ACC laporan sendiri tetap ditolak (0049).
   Aturan database yang melarang membaca penilaian atas diri sendiri **tidak** dibuat (keputusan yang sama).
 - Employee hanya membaca laporannya saat `finalized` (dimuat via service_role). Direksi read-only + ACC.
-- **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan"; tabel `outside_mapping_notes`, 0054 + 0058, keputusan
-  pemilik 2026-11-03 & 2026-11-10) — rincian TEKNIS.md §5.4:
+- **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan"; tabel `outside_mapping_notes`, 0054 + 0058 + 0061,
+  keputusan pemilik 2026-11-03, 2026-11-10 & 2026-11-16) — rincian TEKNIS.md §5.4:
   - **Anonim secara skema:** tabel **tanpa** kolom penulis (id/email/hash/token) dan **tanpa** waktu kirim; jangan
     tambahkan. `incident_date` = tanggal **kejadian** isian pelapor (bukan waktu kirim). Identitas pengirim di
     `submitOutsideNote` hanya untuk validasi — **jangan** tulis ke tabel, audit log, `console`, pesan error, atau
@@ -131,8 +131,13 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
     laporan **tidak** lagi tampil di rincian komentar laporan; `loadReport` & loader lain tak memuatnya. Akses DB
     hanya service_role (RLS tanpa policy).
   - **Bukan Ad-Hoc:** tak menyentuh `mappings`/`assessments`/skor; tak masuk Skor 360°, Skor Akhir, Progress,
-    Kepatuhan, potongan telat, tugas. Hanya `outside-note-actions.ts` & `lib/outside-notes.ts` yang menyebut
+    Kepatuhan, potongan telat, tugas. Hanya `lapor-pelanggaran/actions.ts` & `lib/outside-notes.ts` yang menyebut
     tabelnya (dikunci `tests/outside-notes.test.ts`). Pengirim eksternal ditolak (sementara).
+  - **Lepas dari 360°** (0061, pemilik 2026-11-16): gerbang kirim = periode aktif + saklar sendiri per periode
+    `periods.violation_open` (HRD, Kelola Periode) — **jangan** kaitkan lagi ke `has_360`/`form_open`/tenggat. Halaman
+    pegawai sendiri `/lapor-pelanggaran`. Rekan di pemetaan aktif hanya ditolak **selama formulir 360° terbuka**.
+    Kategori = **nama** aspek budaya (`category`, dari periode terbaru yang punya aspek — aspek sama antarperiode,
+    hanya indikator berganti), bukan FK aspek periode aktif.
 - **Rencana Pengembangan** (0055, TEKNIS.md §5.5): melekat ke periode **laporan** (terbuka bila laporan Final & HRD
   belum menutup; periode aktif tak berpengaruh). Atasan = `resolveSupervisor` (koordinator → SPV → Direksi untuk SPV/
   pemimpin tim → HRD cadangan; atasan **nonaktif** dilewati di `loadSupervisorResolver`); SPV dari pegawai

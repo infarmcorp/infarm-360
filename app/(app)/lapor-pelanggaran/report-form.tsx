@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { BookOpen, CheckCircle2, Lock, PenLine } from 'lucide-react';
-import { submitOutsideNote } from './outside-note-actions';
+import { submitOutsideNote } from './actions';
 import { SearchableSelect } from '@/components/searchable-select';
 import { DatePicker } from '@/components/date-picker';
 
@@ -12,23 +12,23 @@ function todayWib(): string {
 }
 import { callAction } from '@/lib/call-action';
 import { OUTSIDE_NOTE_MIN, OUTSIDE_NOTE_MAX, OUTSIDE_NOTE_EXTRA_MAX } from '@/lib/outside-notes';
-import { Modal, ModalActions } from './modal';
+import { Modal, ModalActions } from '../penilaian/modal';
 import { FIELD, FIELD_LABEL } from '@/components/infarm-ui';
-import { BTN_GHOST, BTN_PRIMARY, FIELD_AREA } from './penilaian-ui';
+import { BTN_GHOST, BTN_PRIMARY, FIELD_AREA } from '../penilaian/penilaian-ui';
 
 type Candidate = { id: string; name: string; dept: string };
-type Aspect = { id: string; name: string };
+/** Kategori budaya kerja = nama aspek (nilai yang dikirim = nama). */
 
 const OTHER = 'other';
 const REQ = <span className="text-danger-ink">*</span>;
 
 /**
- * "Tulis Laporan" — Laporkan Pelanggaran (tabel catatan 0054 + 0058). Pola sama dengan Ajukan Penilaian
+ * "Tulis Laporan" — Laporkan Pelanggaran (tabel catatan 0054 + 0058 + 0061). Pola sama dengan Ajukan Penilaian
  * (request-assessment-form.tsx): pop-up, SearchableSelect rekan, validasi ulang di server.
  * Tanpa riwayat: sesudah terkirim hanya konfirmasi — laporan tak tersimpan dengan nama pengirim,
  * jadi tak bisa ditampilkan kembali kepadanya.
  */
-export function OutsideNoteButton({ candidates, aspects }: { candidates: Candidate[]; aspects: Aspect[] }) {
+export function OutsideNoteButton({ candidates, categories }: { candidates: Candidate[]; categories: string[] }) {
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
   const [targetId, setTargetId] = useState('');
@@ -120,9 +120,9 @@ export function OutsideNoteButton({ candidates, aspects }: { candidates: Candida
                 <select value={category} onChange={(e) => setCategory(e.target.value)} disabled={busy}
                   className={`${FIELD} w-full`}>
                   <option value="">— Pilih kategori —</option>
-                  {aspects.length > 0 && (
+                  {categories.length > 0 && (
                     <optgroup label="Budaya kerja">
-                      {aspects.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                      {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                     </optgroup>
                   )}
                   <option value={OTHER}>Lainnya (di luar budaya kerja)</option>

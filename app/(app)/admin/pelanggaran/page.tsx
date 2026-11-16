@@ -6,11 +6,11 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllByIds } from '@/lib/supabase/paginate';
 import { CARD, Note, PageTitle, StatCard, pillCls } from '@/components/infarm-ui';
 import { INFARM_PAGE } from '@/app/infarm-fonts';
-import { loadViolationReports, sortViolations, violationPageAllowed, OTHER_CATEGORY_LABEL } from '@/lib/outside-notes';
+import { loadViolationReports, loadViolationCategories, sortViolations, violationPageAllowed, violationCategoryLabel, OTHER_CATEGORY_LABEL } from '@/lib/outside-notes';
 import { ViolationBoard, type BoardPerson } from './violation-board';
 
 /**
- * LAPORAN PELANGGARAN (HRD) — pemantauan laporan pegawai tentang rekan (tabel catatan 0054 + 0058).
+ * LAPORAN PELANGGARAN (HRD) — pemantauan laporan pegawai tentang rekan (tabel catatan 0054 + 0058 + 0061).
  *
  * Akses (`violationPageAllowed`): HRD berbagian Review & Finalisasi di Mode Admin, atau Direksi (semua laporan, hanya
  * baca; keputusan pemilik 2026-11-11). Tidak masuk katalog grant halaman. Tautan Ekspor hanya untuk HRD.
@@ -39,12 +39,13 @@ export default async function LaporanPelanggaranPage({ searchParams }: { searchP
 
   const reports = sortViolations(await loadViolationReports(admin as unknown as Parameters<typeof loadViolationReports>[0], sel.id));
   const targetIds = [...new Set(reports.map((r) => r.target_id))];
-  const [emps, { data: aspects }] = await Promise.all([
+  const [emps, { data: aspects }, baseCategories] = await Promise.all([
     targetIds.length
       ? fetchAllByIds<{ id: string; name: string; dept: string; is_active: boolean }>(targetIds, (chunk, from, to) =>
         admin.from('employees').select('id, name, dept, is_active').in('id', chunk).order('id').range(from, to))
       : Promise.resolve([]),
     admin.from('culture_aspects').select('id, name, order_idx').eq('period_id', sel.id).order('order_idx'),
+    loadViolationCategories(admin as unknown as Parameters<typeof loadViolationCategories>[0]),
   ]);
   const empById = new Map(emps.map((e) => [e.id, e]));
   const aspectName = new Map((aspects ?? []).map((a) => [a.id, a.name]));
@@ -60,7 +61,7 @@ export default async function LaporanPelanggaranPage({ searchParams }: { searchP
     p.reports.push({
       key: String(i),
       date: r.incident_date,
-      category: r.is_other ? OTHER_CATEGORY_LABEL : (r.aspect_id ? aspectName.get(r.aspect_id) ?? '—' : '—'),
+      category: violationCategoryLabel(r, aspectName),
       isOther: r.is_other,
       body: r.body,
       note: r.note,
@@ -68,7 +69,12 @@ export default async function LaporanPelanggaranPage({ searchParams }: { searchP
   });
   const people = [...byTarget.values()]
     .sort((a, b) => b.reports.length - a.reports.length || a.name.localeCompare(b.name, 'id'));
-  const categories = [...(aspects ?? []).map((a) => a.name), OTHER_CATEGORY_LABEL];
+  // Filter kategori: nama aspek baku + kategori yang muncul di laporan periode ini (laporan lama / nama lama), lalu Lainnya.
+  const categories = [...new Set([
+    ...baseCategories,
+    ...(aspects ?? []).map((a) => a.name),
+    ...people.flatMap((p) => p.reports.filter((r) => !r.isOther).map((r) => r.category)),
+  ])].filter((c) => c !== '—' && c !== OTHER_CATEGORY_LABEL).concat(OTHER_CATEGORY_LABEL);
   const otherCount = reports.filter((r) => r.is_other).length;
 
   return (

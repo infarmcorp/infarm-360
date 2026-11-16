@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { activatePeriod, endPeriod, toggleHas360, toggleFormOpen, toggleMappingPublished, activePeriodReadiness, count360Submitted, periodDataCounts, deletePeriod } from './actions';
+import { activatePeriod, endPeriod, toggleHas360, toggleFormOpen, toggleViolationOpen, toggleMappingPublished, activePeriodReadiness, count360Submitted, periodDataCounts, deletePeriod } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { Button } from '@/components/button';
 import { OverflowMenu, type OverflowItem } from '@/components/overflow-menu';
@@ -22,11 +22,13 @@ type Dialog = {
 };
 
 export function PeriodActions({
-  periodId, status, has360, formOpen, mappingPublished,
+  periodId, status, has360, formOpen, mappingPublished, violationOpen = null,
 }: {
   periodId: string; status: 'active' | 'ended'; has360: boolean; formOpen: boolean;
   /** Pemetaan sudah diumumkan ke pegawai untuk ditinjau (fase sebelum form dibuka). */
   mappingPublished: boolean;
+  /** Saklar Laporkan Pelanggaran (0061). Null = kolom belum ada di database → menu disembunyikan. */
+  violationOpen?: boolean | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -194,6 +196,15 @@ export function PeriodActions({
       title: formOpen
         ? 'Menutup formulir: pegawai berhenti mengisi. Skor 360° TETAP dihitung dan Hitung Ulang tetap tersedia.'
         : 'Membuka kembali formulir agar pegawai bisa melanjutkan pengisian 360°.',
+    } as OverflowItem] : []),
+    // Laporkan Pelanggaran (0061) — saklar sendiri, tidak bergantung pada 360° maupun formulir.
+    ...(violationOpen !== null && (status === 'active' || violationOpen) ? [{
+      label: violationOpen ? 'Tutup Laporkan Pelanggaran' : 'Buka Laporkan Pelanggaran',
+      onSelect: () => run(() => toggleViolationOpen(periodId, !violationOpen)),
+      disabled: busy,
+      title: violationOpen
+        ? 'Menutup pengiriman laporan pelanggaran oleh pegawai. Laporan yang sudah masuk tetap tersimpan.'
+        : 'Membuka pengiriman laporan pelanggaran oleh pegawai pada periode ini, terlepas dari status penilaian 360°.',
     } as OverflowItem] : []),
     {
       label: 'Hapus periode',

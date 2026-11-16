@@ -8,6 +8,21 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-16 — Laporkan Pelanggaran lepas dari penilaian 360° (di `dev`, belum dirilis)
+- Permintaan pengguna: laporan pelanggaran harus bisa dibuka dan ditutup sendiri, tidak bergantung pada formulir 360°.
+  Dulu laporan hanya bisa dikirim selama 360° aktif dan formulir penilaian dibuka, dan kartunya ada di tab Pengajuan
+  Daftar Penilaian Saya (yang tertutup saat formulir ditutup).
+- Kini: menu sendiri **Laporkan Pelanggaran** di Menu Utama (tidak tampil untuk penilai eksternal), dan HRD membuka/
+  menutupnya lewat **Kelola Periode → ⋯ → Buka/Tutup Laporkan Pelanggaran**. Saklar berlaku per periode (keputusan
+  pemilik), jadi laporan tetap tercatat per periode dan halaman Laporan Pelanggaran tetap disaring per periode.
+  Periode baru mulai dalam keadaan tertutup.
+- Rekan yang ada di daftar penilaian pelapor hanya ditolak **selama formulir 360° terbuka** (disampaikan lewat
+  formulirnya). Saat formulir ditutup pelapor tak punya jalur lain, jadi laporan tentang rekan itu diterima (pemilik).
+- Kategori kini tercatat menurut **nama** aspek budaya, bukan aspek milik periode aktif: aspek budaya sama antarperiode
+  (hanya indikatornya berganti, penjelasan pemilik). Pilihan kategori diambil dari periode terbaru yang punya aspek, jadi
+  periode tanpa 360° tetap punya pilihan, dan laporan baru tidak lagi menghalangi HRD mengubah aspek.
+- Butuh perubahan database baru (0061). Sebelum dijalankan, aplikasi tetap memakai aturan lama.
+
 ### 2026-11-13 — Audit kalimat: 567 teks layar ditulis ulang (di `dev`, belum dirilis)
 - Pemilik mengaudit seluruh kalimat aplikasi lewat berkas Excel dan menetapkan teks baru untuk kalimat yang kaku,
   memakai istilah Inggris, atau tidak konsisten. Semua keputusan "Ubah" sudah diterapkan.

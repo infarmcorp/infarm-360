@@ -94,6 +94,11 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   HRD baru **Laporan Pelanggaran** (daftar pegawai yang dilaporkan + satu kartu per laporan; juga dibaca Direksi).
   Laporan tidak lagi tampil di rincian komentar laporan; ekspor Bahan Laporan lembar 4 memuat tanggal kejadian,
   kategori, laporan, dan catatan. Sisa:
+  - 🔑 **Lepas dari penilaian 360°** (permintaan pengguna, keputusan pemilik 2026-11-16; di `dev`, belum dirilis): menu
+    sendiri **Laporkan Pelanggaran** untuk pegawai, saklar Buka/Tutup sendiri per periode di Kelola Periode, kategori
+    menurut nama aspek budaya. **Butuh perubahan database 0061** di staging lalu production sebelum dirilis. Sesudah
+    rilis HRD perlu membuka saklarnya pada periode aktif (bila formulir sedang terbuka saat perubahan database
+    dijalankan, saklar ikut terbuka). Uji di Preview: kirim laporan saat formulir ditutup, dan saat periode tanpa 360°.
   - 🔑 sebelum Q4 dibuka: umumkan fiturnya ke pegawai.
   - Belum dibangun (pemilik): kode laporan + Cek Status untuk pelapor. Laporan yang masuk tanpa kode tidak bisa
     dihubungkan ke pelapornya di kemudian hari.

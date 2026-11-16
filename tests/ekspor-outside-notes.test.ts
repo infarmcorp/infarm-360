@@ -81,6 +81,14 @@ describe('Bahan Laporan — lembar Laporan Pelanggaran', () => {
     expect(JSON.stringify(r)).not.toContain('terlambat tanpa kabar');
   });
 
+  it('laporan 0061: kategori = nama tersimpan, tak bergantung aspek periode', async () => {
+    setup({ outside_mapping_notes: [
+      { period_id: 'p1', target_id: T, aspect_id: null, category: 'Kolaborasi Lintas Tim', is_other: false, incident_date: '2026-11-10', body: 'Menolak berbagi data stok ke tim lain.', note: null },
+    ] });
+    const r = await exportReportMaterials('p1');
+    expect(notesSheet(r)?.rows[0]).toMatchObject({ kategori: 'Kolaborasi Lintas Tim' });
+  });
+
   it('tanpa laporan → lembar ada tapi kosong', async () => {
     setup({ outside_mapping_notes: [] });
     const r = await exportReportMaterials('p1');

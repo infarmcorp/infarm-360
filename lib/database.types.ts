@@ -49,8 +49,8 @@ export interface Database {
         Relationships: [];
       };
       periods: {
-        Row: { id: string; code: string; label: string; start_date: string; end_date: string; status: 'active' | 'ended'; has_360: boolean; form_open: boolean; mapping_published: boolean; kpi_standard: number; assessment_deadline: string | null; dev_plan_closed_at: string | null; dev_plan_due: string | null; created_at: string };
-        Insert: { code: string; label: string; start_date: string; end_date: string; status?: 'active' | 'ended'; has_360?: boolean; form_open?: boolean; mapping_published?: boolean; kpi_standard?: number; assessment_deadline?: string | null; dev_plan_closed_at?: string | null; dev_plan_due?: string | null };
+        Row: { id: string; code: string; label: string; start_date: string; end_date: string; status: 'active' | 'ended'; has_360: boolean; form_open: boolean; violation_open: boolean; mapping_published: boolean; kpi_standard: number; assessment_deadline: string | null; dev_plan_closed_at: string | null; dev_plan_due: string | null; created_at: string };
+        Insert: { code: string; label: string; start_date: string; end_date: string; status?: 'active' | 'ended'; has_360?: boolean; form_open?: boolean; violation_open?: boolean; mapping_published?: boolean; kpi_standard?: number; assessment_deadline?: string | null; dev_plan_closed_at?: string | null; dev_plan_due?: string | null };
         Update: Partial<Database['public']['Tables']['periods']['Insert']>;
         Relationships: [];
       };
@@ -191,10 +191,10 @@ export interface Database {
         Relationships: [];
       };
       outside_mapping_notes: {
-        // Laporkan Pelanggaran (0054 + 0058; dulu Catatan di Luar Pemetaan) — anonim secara skema: tanpa kolom
+        // Laporkan Pelanggaran (0054 + 0058 + 0061; dulu Catatan di Luar Pemetaan) — anonim secara skema: tanpa kolom
         // penulis & tanpa waktu kirim. incident_date = tanggal KEJADIAN dari pelapor; is_other = kategori Lainnya.
-        Row: { id: string; period_id: string; target_id: string; aspect_id: string | null; is_other: boolean; incident_date: string | null; body: string; note: string | null };
-        Insert: { period_id: string; target_id: string; aspect_id?: string | null; is_other?: boolean; incident_date?: string | null; body: string; note?: string | null };
+        Row: { id: string; period_id: string; target_id: string; aspect_id: string | null; category: string | null; is_other: boolean; incident_date: string | null; body: string; note: string | null };
+        Insert: { period_id: string; target_id: string; aspect_id?: string | null; category?: string | null; is_other?: boolean; incident_date?: string | null; body: string; note?: string | null };
         Update: never;
         Relationships: [];
       };

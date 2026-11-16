@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { CalendarClock, ClipboardCheck, ClipboardList, Clock, Flag, Inbox, ListChecks, Lock, UserPlus } from 'lucide-react';
+import { CalendarClock, ClipboardCheck, ClipboardList, Clock, Inbox, ListChecks, Lock, UserPlus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { CorrectionButton } from './correction-button';
 import { AdhocDeleteButton } from './adhoc-delete-button';
@@ -14,7 +14,6 @@ import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { BTN_GHOST, BTN_PRIMARY } from './penilaian-ui';
 import { RequestAssessmentButton } from './request-assessment-form';
 import { MyRequests, type MyRequest } from './my-requests';
-import { OutsideNoteButton } from './outside-note-form';
 import { LATE_PENALTY_360, formatWib, isPastDeadline, ajuanPenaltyApplies, progressStatusOf, PROGRESS_STATUS_LABEL, type ProgressStatus } from '@/lib/late';
 
 const REL_LABEL: Record<string, string> = {
@@ -154,15 +153,6 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
     .map((e) => ({ id: e.id, name: e.name, dept: e.dept }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  // Laporkan Pelanggaran (0054 + 0058): kandidat = daftar yang sama dengan Ajukan Penilaian; aspek dari
-  // culture_aspects periode aktif. Penilai eksternal tak melihat kartunya.
-  const { data: meRow } = await supabase.from('employees').select('is_external').eq('id', user.id).maybeSingle();
-  const showNoteCard = !!meRow && !meRow.is_external;
-  const { data: aspRows } = showNoteCard && ap.form_open
-    ? await supabase.from('culture_aspects').select('id, name').eq('period_id', ap.id).order('order_idx')
-    : { data: [] as { id: string; name: string }[] };
-  const noteAspects = (aspRows ?? []).map((a) => ({ id: a.id, name: a.name }));
-
   // Nama untuk SEMUA target permohonan: target 'add' belum jadi mapping, jadi tak ada di empById.
   const nameByAny = new Map<string, string>([
     ...[...empById.entries()].map(([id, e]) => [id, e.name] as const),
@@ -297,9 +287,8 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
         <>
           {/* Satu jalur menambah rekan yang dinilai (BR-04, Q3 2026): Ad-Hoc instan
               dinonaktifkan — semua penambahan wajib alasan + ACC HRD. */}
-          {/* Berdampingan di layar lebar, bertumpuk di HP. Kartu catatan disembunyikan untuk penilai
-              eksternal (belum boleh mengirim — keputusan pemilik 2026-11-03; server juga menolak). */}
-          <div className={`grid gap-4 ${showNoteCard ? 'sm:grid-cols-2' : ''}`}>
+          {/* Laporkan Pelanggaran pindah ke menu sendiri (0061, pemilik 2026-11-16) — lepas dari formulir 360°. */}
+          <div className="grid gap-4">
           <section className={`${CARD} flex flex-col`}>
             <CardTitle icon={UserPlus}>Menambah Rekan yang Anda Nilai</CardTitle>
             <p className="text-[13px] text-ink-soft mt-1.5 leading-relaxed">
@@ -309,34 +298,9 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
               <RequestAssessmentButton candidates={candidates} />
             </div>
           </section>
-          {showNoteCard && (
-            <section className="bg-infarm-cream border border-line rounded-card shadow-card p-4 flex flex-col">
-              <CardTitle icon={Flag}>Laporkan Pelanggaran</CardTitle>
-              <p className="text-[13px] text-ink-soft mt-1.5 leading-relaxed">
-                Ceritakan kejadian yang Anda alami atau lihat langsung terkait rekan yang dilaporkan, meskipun ia bukan rekan kerja langsung Anda.
-              </p>
-              {ap.form_open ? (
-                <>
-                  <p className="text-xs text-ink-soft mt-1">Bisa dikirim selama penilaian {ap.label} berlangsung.</p>
-                  <div className="mt-auto pt-3 flex flex-wrap items-center gap-2">
-                    <OutsideNoteButton candidates={candidates} aspects={noteAspects} />
-                  </div>
-                </>
-              ) : (
-                <p className="text-xs text-ink-soft mt-2 leading-relaxed">
-                  Belum bisa dikirim — laporan dibuka bersamaan dengan formulir penilaian oleh HRD.
-                </p>
-              )}
-            </section>
-          )}
           </div>
 
           <div>
-          {showNoteCard && (
-            <p className="mb-2 text-xs text-ink-soft">
-              Laporan pelanggaran tidak tercantum di sini, karena tidak tersimpan dengan nama Anda.
-            </p>
-          )}
           {myRequestRows.length === 0 ? (
             <section className={CARD}>
               <CardTitle icon={ListChecks}>Permohonan Saya</CardTitle>

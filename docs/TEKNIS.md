@@ -10,7 +10,7 @@ Status & pekerjaan terbuka di [RENCANA.md](RENCANA.md). Riwayat di [CHANGELOG.md
 3. [Aktivasi fitur dorman & Mode Maintenance](#3-aktivasi-fitur-dorman--mode-maintenance)
 4. [Rumus skor & klasifikasi](#4-rumus-skor--klasifikasi)
 5. [Manajemen Akses — model & penegakan](#5-manajemen-akses--model--penegakan)
-6. [Daftar migrasi 0001–0060](#6-daftar-migrasi-00010060)
+6. [Daftar migrasi 0001–0061](#6-daftar-migrasi-00010061)
 7. [Pengujian](#7-pengujian)
 8. [Backup & restore](#8-backup--restore)
 9. [PDF panduan in-app](#9-pdf-panduan-in-app)
@@ -381,21 +381,31 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
 7. Data sensitif (laporan/dashboard/ekspor/raw 360°) tidak boleh hanya disembunyikan di menu — wajib
    penyaringan server/RLS. Konfigurasi (pertanyaan/bobot/periode/pemetaan) cukup `canSection`.
 
-### 5.4 Laporkan Pelanggaran (0054 + 0058; dulu Catatan di Luar Pemetaan) — anonimitas & akses
-- **Tabel** `outside_mapping_notes` = `id` (uuid acak) · `period_id` · `target_id` · `aspect_id` (kosong bila
-  Lainnya) · `is_other` · `incident_date` · `body` · `note`. **Tanpa** kolom penulis (id/email/hash/token) dan
+### 5.4 Laporkan Pelanggaran (0054 + 0058 + 0061; dulu Catatan di Luar Pemetaan) — anonimitas & akses
+- **Tabel** `outside_mapping_notes` = `id` (uuid acak) · `period_id` · `target_id` · `aspect_id` (hanya laporan
+  sebelum 0061) · `category` (nama aspek budaya, 0061; kosong bila Lainnya) · `is_other` · `incident_date` · `body` · `note`. **Tanpa** kolom penulis (id/email/hash/token) dan
   **tanpa** waktu kirim; `incident_date` = tanggal **kejadian** isian pelapor. Check `char_length(btrim(body))`
-  20–2000, `note` ≤ 1000, kategori = tepat salah satu (aspek **atau** `is_other`), `incident_date` wajib untuk baris
+  20–2000, `note` ≤ 1000, `category` 1–100, kategori = tepat salah satu (`is_other` tanpa aspek/nama, **atau** aspek/nama), `incident_date` wajib untuk baris
   baru (`NOT VALID` → baris sebelum 0058 tetap sah tanpa tanggal); trigger `trg_outside_note_aspect_in_period` (aspek
   wajib milik periode; dilewati bila Lainnya); FK aspek `NO ACTION`, periode & target `cascade`. RLS aktif **tanpa
   policy** + `revoke all` dari `anon`/`authenticated` → hanya `service_role`. Nama tabel sengaja tidak diganti.
-- **Tulis** `submitOutsideNote(target, kategori, tanggal, isi, catatan)` (`penilaian/outside-note-actions.ts`): Zod
-  (tanggal ISO valid & tidak setelah hari ini WIB, kategori = UUID aspek atau `other`) → login → periode aktif +
-  `has_360` + `form_open` (tahap tinjau ditolak; deadline tidak dicek) → pengirim bukan eksternal → target bukan diri/
-  Direksi/eksternal/nonaktif & tak ada di `mappings` aktif penilai → aspek milik periode aktif (dilewati bila Lainnya)
-  → insert service_role. Kolom 0058 belum ada → pesan "sedang diperbarui" (tidak menyimpan tanpa tanggal). Identitas
+- **Lepas dari 360° (0061, pemilik 2026-11-16):** gerbang = periode aktif + saklar `periods.violation_open` (HRD,
+  Kelola Periode → ⋯ → Buka/Tutup Laporkan Pelanggaran, `toggleViolationOpen`: Zod, `canSection('periode')`, buka hanya
+  periode aktif, dicatat `period.toggleViolation` — log saklar saja). Bawaan kolom = tutup; saat kolom dibuat, periode
+  aktif yang formulirnya terbuka ikut dibuka. Halaman pegawai sendiri `/lapor-pelanggaran` (Menu Utama, mode base,
+  disembunyikan untuk eksternal). Kategori = **nama** aspek dari periode terbaru yang punya aspek
+  (`loadViolationCategories`; aspek sama antarperiode, hanya indikatornya berganti), divalidasi `matchCategory`,
+  disimpan sebagai teks → laporan baru tak terikat FK aspek. Kolom 0061 belum ada → gerbang lama (`has_360` +
+  `form_open`, `loadViolationPeriod`) dan insert cara lama (aspek periode aktif bernama sama).
+- **Tulis** `submitOutsideNote(target, kategori, tanggal, isi, catatan)` (`lapor-pelanggaran/actions.ts`): Zod
+  (tanggal ISO valid & tidak setelah hari ini WIB, kategori = nama aspek atau `other`) → login → periode aktif +
+  saklar terbuka (status 360°, formulir & tenggat tidak dicek) → pengirim bukan eksternal → target bukan diri/
+  Direksi/eksternal/nonaktif → **hanya bila formulir 360° terbuka**: tak ada di `mappings` aktif penilai → kategori
+  cocok dengan daftar (dilewati bila Lainnya) → insert service_role. Kolom 0058 belum ada → pesan "sedang diperbarui"
+  (tidak menyimpan tanpa tanggal). Identitas
   pengirim **hanya** untuk validasi: tak ditulis ke tabel, `hrd_audit_log`, `console`, pesan error, atau notifikasi.
-- **Baca** `loadViolationReports` (`lib/outside-notes.ts`; kolom 0058 belum ada → baca kolom lama) hanya di dua jalur,
+- **Baca** `loadViolationReports` (`lib/outside-notes.ts`; kolom 0061 lalu 0058 belum ada → baca kolom lebih lama;
+  label kategori `violationCategoryLabel` = Lainnya · nama tersimpan · nama aspek laporan lama) hanya di dua jalur,
   halaman **Laporan Pelanggaran** (`admin/pelanggaran`, gerbang `violationPageAllowed` = `canSection('laporan')` + Mode
   Admin, **atau** `role='direksi'` apa pun cookie-nya — pemilik 2026-11-11: Direksi semua laporan termasuk tentang
   dirinya, hanya baca, tautan ekspor disembunyikan; menu grup Hasil & Tindak Lanjut + Menu Direksi) — daftar pegawai yang dilaporkan + satu
@@ -459,7 +469,7 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
 
 ---
 
-## 6. Daftar migrasi 0001–0060
+## 6. Daftar migrasi 0001–0061
 
 Status penerapan per DB → `scripts/check-migrations.sql`.
 
@@ -523,6 +533,7 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0058 | Laporkan Pelanggaran (perluasan 0054): kolom `incident_date` (tanggal kejadian, wajib untuk baris baru lewat check `NOT VALID`), `is_other` (kategori Lainnya → `aspect_id` boleh kosong, check tepat salah satu), `note` (≤ 1000); trigger aspek dilewati bila Lainnya. Tanpa kolom penulis/waktu kirim. Tanpa migrasi: kirim laporan "sedang diperbarui", halaman HRD membaca kolom lama. Rincian §5.4 |
 | 0059 | Rencana Pengembangan — baca Direksi dibatasi: fungsi `dev_plan_direksi_reads(owner)` (security definer; Direksi + pemilik rencana posisi SPV atau pemimpin tim, bukan Direksi) menggantikan `is_direksi()` di `dp_read`/`dpi_read`/`dps_read`. Aplikasi baca via service_role → tanpa cadangan kode. Rincian §5.5 |
 | 0060 | **Eksperimen dev** — tabel `ai_settings` (satu baris `id=1`): model (id dari daftar Google, divalidasi saat simpan), harga per 1 juta token, kurs, prompt aspek & kualitatif, `version`, pengubah terakhir. RLS tanpa policy (service_role saja). Dipakai halaman Pengaturan AI & "Ringkas otomatis"; tanpa tabel → model belum bisa dipilih, Ringkas otomatis menolak. Cukup di staging; production saat fitur dirilis |
+| 0061 | Laporkan Pelanggaran lepas dari 360°: kolom `periods.violation_open` (saklar per periode, bawaan tutup; saat kolom dibuat periode aktif yang formulirnya terbuka ikut dibuka) + kolom `outside_mapping_notes.category` (nama aspek budaya, check 1–100) + check kategori diperbarui (Lainnya tanpa aspek/nama, atau aspek/nama). Tanpa kolom → gerbang & kategori cara lama. **Staging lalu production** sebelum dirilis |
 
 ---
 

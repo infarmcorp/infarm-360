@@ -20,7 +20,10 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn(), createAdminClie
 
 import { createAdminClient } from '@/lib/supabase/server';
 import type { ActorRow } from '@/lib/auth/roles';
-import { violationPageAllowed, loadViolationReports, sortViolations } from '@/lib/outside-notes';
+import {
+  violationPageAllowed, loadViolationReports, sortViolations, loadViolationPeriod, loadViolationCategories, matchCategory,
+  violationCategoryLabel,
+} from '@/lib/outside-notes';
 import {
   loadTeamReportForSpv, loadTeamReportForCoordinator, loadTeamReportForHrdSpv, loadSpvReportForDireksi,
   loadReportForDireksiReview, loadReport, reportForGrantViewer, type ReportData,
@@ -130,7 +133,7 @@ describe('loader laporan tak pernah memuat laporan pelanggaran', () => {
 // ── 3. Pembacaan untuk halaman & ekspor ───────────────────────────────────────────────────────
 describe('loadViolationReports', () => {
   const ROW = {
-    period_id: 'p4', target_id: EMP, aspect_id: null, is_other: true,
+    period_id: 'p4', target_id: EMP, aspect_id: null, category: null, is_other: true,
     incident_date: '2026-10-20', body: '  Isi laporan yang cukup panjang.  ', note: '   ',
   };
 
@@ -142,14 +145,25 @@ describe('loadViolationReports', () => {
     expect(c.calls[0].filters).toEqual(expect.arrayContaining([['eq', 'period_id', 'p4']]));
   });
 
+  it('kolom 0061 (kategori) belum ada → baca kolom 0058', async () => {
+    const c = makeClient({ tables: { outside_mapping_notes: [
+      { error: { code: '42703', message: 'column outside_mapping_notes.category does not exist' } },
+      { data: [{ period_id: 'p4', target_id: EMP, aspect_id: 'a1', is_other: false, incident_date: '2026-10-01', body: 'Laporan sebelum 0061.', note: null }] },
+    ] } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = await loadViolationReports(c as any, 'p4');
+    expect(rows).toEqual([{ period_id: 'p4', target_id: EMP, aspect_id: 'a1', category: null, is_other: false, incident_date: '2026-10-01', body: 'Laporan sebelum 0061.', note: null }]);
+  });
+
   it('kolom 0058 belum ada → baca kolom lama (tanpa tanggal/Lainnya/catatan)', async () => {
     const c = makeClient({ tables: { outside_mapping_notes: [
+      { error: { code: '42703', message: 'column outside_mapping_notes.category does not exist' } },
       { error: { code: '42703', message: 'column outside_mapping_notes.is_other does not exist' } },
       { data: [{ period_id: 'p4', target_id: EMP, aspect_id: 'a1', body: 'Laporan lama sebelum pembaruan.' }] },
     ] } });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows = await loadViolationReports(c as any, 'p4');
-    expect(rows).toEqual([{ period_id: 'p4', target_id: EMP, aspect_id: 'a1', is_other: false, incident_date: null, body: 'Laporan lama sebelum pembaruan.', note: null }]);
+    expect(rows).toEqual([{ period_id: 'p4', target_id: EMP, aspect_id: 'a1', category: null, is_other: false, incident_date: null, body: 'Laporan lama sebelum pembaruan.', note: null }]);
   });
 
   it('tabel belum ada (0054) → kosong; gangguan lain dilempar', async () => {
@@ -159,6 +173,60 @@ describe('loadViolationReports', () => {
     const broken = makeClient({ tables: { outside_mapping_notes: [{ error: { code: '57014', message: 'canceling statement due to statement timeout' } }] } });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await expect(loadViolationReports(broken as any)).rejects.toThrow();
+  });
+});
+
+// ── 3b. Saklar & kategori (0061 — lepas dari 360°) ───────────────────────────────────────────
+describe('loadViolationPeriod — periode aktif + saklar sendiri', () => {
+  it('saklar menentukan; formOpen = 360° aktif DAN formulir dibuka', async () => {
+    const c = makeClient({ tables: { periods: [{ data: { id: 'p1', label: 'Q4', has_360: false, form_open: true, violation_open: true } }] } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await loadViolationPeriod(c as any)).toEqual({ id: 'p1', label: 'Q4', formOpen: false, open: true });
+  });
+  it('tak ada periode aktif → null', async () => {
+    const c = makeClient({ tables: { periods: [{ data: null }] } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await loadViolationPeriod(c as any)).toBeNull();
+  });
+  it('kolom saklar belum ada → gerbang lama (terbuka = 360° aktif + formulir dibuka)', async () => {
+    const c = makeClient({ tables: { periods: [
+      { error: { code: '42703', message: 'column periods.violation_open does not exist' } },
+      { data: { id: 'p1', label: 'Q4', has_360: true, form_open: true } },
+    ] } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await loadViolationPeriod(c as any)).toEqual({ id: 'p1', label: 'Q4', formOpen: true, open: true });
+  });
+});
+
+describe('loadViolationCategories — nama aspek periode TERBARU yang punya aspek', () => {
+  it('periode aktif tanpa aspek → aspek periode sebelumnya; urutan dijaga; nama kembar dibuang', async () => {
+    const c = makeClient({ tables: {
+      periods: [{ data: [{ id: 'p3', start_date: '2026-10-01' }, { id: 'p2', start_date: '2026-07-01' }, { id: 'p1', start_date: '2026-04-01' }] }],
+      culture_aspects: [{ data: [
+        { period_id: 'p1', name: 'Lama', order_idx: 1 },
+        { period_id: 'p2', name: 'Integritas', order_idx: 1 },
+        { period_id: 'p2', name: ' Kolaborasi ', order_idx: 2 },
+        { period_id: 'p2', name: 'integritas', order_idx: 3 },
+      ] }],
+    } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await loadViolationCategories(c as any)).toEqual(['Integritas', 'Kolaborasi']);
+  });
+  it('belum ada aspek sama sekali → kosong (hanya Lainnya di formulir)', async () => {
+    const c = makeClient({ tables: { periods: [{ data: [{ id: 'p1', start_date: '2026-10-01' }] }], culture_aspects: [{ data: [] }] } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(await loadViolationCategories(c as any)).toEqual([]);
+  });
+  it('matchCategory: tanpa beda huruf besar/kecil & spasi → nama baku; tak dikenal → null', () => {
+    expect(matchCategory(['Integritas', 'Kolaborasi'], '  KOLABORASI ')).toBe('Kolaborasi');
+    expect(matchCategory(['Integritas'], 'Lainnya')).toBeNull();
+  });
+  it('violationCategoryLabel: Lainnya · nama tersimpan · nama aspek laporan lama · —', () => {
+    const names = new Map([['a1', 'Integritas']]);
+    expect(violationCategoryLabel({ is_other: true, category: null, aspect_id: null }, names)).toBe('Lainnya');
+    expect(violationCategoryLabel({ is_other: false, category: 'Kolaborasi', aspect_id: null }, names)).toBe('Kolaborasi');
+    expect(violationCategoryLabel({ is_other: false, category: null, aspect_id: 'a1' }, names)).toBe('Integritas');
+    expect(violationCategoryLabel({ is_other: false, category: null, aspect_id: 'zz' }, names)).toBe('—');
   });
 });
 
@@ -188,12 +256,12 @@ describe('tabel laporan terisolasi dari skor, progress, kepatuhan, potongan tela
     return out;
   }
   const src = () => [...walk(join(ROOT, 'app')), ...walk(join(ROOT, 'lib'))];
-  it('hanya outside-note-actions.ts (tulis) & lib/outside-notes.ts (baca) yang menyebut tabelnya', () => {
+  it('hanya lapor-pelanggaran/actions.ts (tulis) & lib/outside-notes.ts (baca) yang menyebut tabelnya', () => {
     const files = src()
       .filter((p) => readFileSync(p, 'utf8').includes('outside_mapping_notes'))
       .map((p) => relative(ROOT, p).replace(/\\/g, '/'))
       .sort();
-    expect(files).toEqual(['app/(app)/penilaian/outside-note-actions.ts', 'lib/outside-notes.ts']);
+    expect(files).toEqual(['app/(app)/lapor-pelanggaran/actions.ts', 'lib/outside-notes.ts']);
   });
   it('loadViolationReports hanya dipanggil halaman Laporan Pelanggaran & ekspor Bahan Laporan', () => {
     const callers = src()

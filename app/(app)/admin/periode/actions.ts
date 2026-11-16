@@ -335,6 +335,42 @@ export async function toggleFormOpen(periodId: string, value: boolean): Promise<
 }
 
 /**
+ * Buka/Tutup LAPORKAN PELANGGARAN (periods.violation_open, migrasi 0061; pemilik 2026-11-16) — saklar sendiri per
+ * periode, TERPISAH dari has_360 & form_open: pegawai bisa mengirim laporan selama periode aktif + saklar terbuka,
+ * apa pun status 360°-nya. Membuka hanya untuk periode aktif; menutup selalu boleh. Log hanya mencatat saklar
+ * (bukan laporan apa pun), jadi anonimitas laporan tidak tersentuh.
+ */
+const ToggleViolation = z.object({ periodId: z.string().uuid('Periode tidak valid'), value: z.boolean() });
+
+export async function toggleViolationOpen(periodId: string, value: boolean): Promise<Result> {
+  const parsed = ToggleViolation.safeParse({ periodId, value });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase);
+  if (!auth.ok) return { ok: false, error: auth.error };
+
+  const { data: pr } = await supabase.from('periods').select('label, status').eq('id', periodId).maybeSingle();
+  if (!pr) return { ok: false, error: 'Periode tidak ditemukan' };
+  if (value && pr.status !== 'active') return { ok: false, error: 'Laporkan Pelanggaran hanya bisa dibuka pada periode aktif' };
+
+  const { error } = await supabase.from('periods').update({ violation_open: value }).eq('id', periodId);
+  if (error) {
+    if (error.code === '42703' || error.code === 'PGRST204' || /violation_open/i.test(error.message ?? '')) {
+      return { ok: false, error: 'Fitur ini belum aktif di database. Hubungi admin aplikasi.' };
+    }
+    return { ok: false, error: 'Gagal: ' + error.message };
+  }
+  await logHrdAction({
+    action: 'period.toggleViolation', category: 'periode',
+    summary: `${value ? 'Membuka' : 'Menutup'} Laporkan Pelanggaran pada periode "${pr.label}"`,
+    targetType: 'period', targetId: periodId, targetLabel: pr.label, meta: { violation_open: value },
+  });
+  revalidatePath('/admin/periode');
+  revalidatePath('/lapor-pelanggaran');
+  return { ok: true };
+}
+
+/**
  * Bulan yang UNIK milik sebuah periode (tak dipakai periode lain). KPI dikunci per
  * (employee, ym) — TIDAK cascade dari periods & bisa dipakai bersama bila dua periode
  * berbagi bulan. Maka KPI hanya boleh dihapus untuk bulan yang khusus periode ini.

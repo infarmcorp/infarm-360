@@ -6,7 +6,9 @@ import { tableMissing } from '@/lib/report-folder';
 type SB = Awaited<ReturnType<typeof createClient>>;
 
 /**
- * LAPORKAN PELANGGARAN (tabel `outside_mapping_notes`, migrasi 0054 + 0058) — sisi BACA & aturan bersama.
+ * LAPORKAN PELANGGARAN (tabel `outside_mapping_notes`, migrasi 0054 + 0058 + 0061) — sisi BACA & aturan bersama.
+ * Sejak 0061 lepas dari 360°: gerbang kirim = periode aktif + saklar `periods.violation_open` (`loadViolationPeriod`),
+ * kategori = NAMA aspek budaya (`loadViolationCategories`), tak terikat ke aspek periode tertentu.
  * Di layar dulu bernama "Catatan di Luar Pemetaan"; nama tabel & aturan anonimitas tidak berubah.
  *
  * Anonim secara skema: tabel TANPA kolom penulis dan TANPA waktu kirim. `incident_date` = tanggal KEJADIAN
@@ -36,10 +38,75 @@ export function violationPageAllowed(m: ActorRow | null | undefined, hrdMode: 'a
   return canSection(m, 'laporan') && hrdMode === 'admin';
 }
 
+/**
+ * Periode aktif + saklar Laporkan Pelanggaran (0061: `periods.violation_open`, keputusan pemilik 2026-11-16) — lepas
+ * dari 360°: cukup periode aktif + saklar terbuka. `formOpen` tetap dibaca karena aturan "rekan di daftar penilaian
+ * → lewat formulir" hanya berlaku selama formulir 360° terbuka. Kolom 0061 belum ada → gerbang lama
+ * (360° aktif + formulir dibuka). Null = tak ada periode aktif.
+ */
+export type ViolationPeriod = { id: string; label: string; formOpen: boolean; open: boolean };
+export async function loadViolationPeriod(sb: SB): Promise<ViolationPeriod | null> {
+  const { data, error } = await sb.from('periods')
+    .select('id, label, has_360, form_open, violation_open').eq('status', 'active').limit(1).maybeSingle();
+  if (!error) {
+    if (!data) return null;
+    return { id: data.id, label: data.label, formOpen: !!(data.has_360 && data.form_open), open: data.violation_open === true };
+  }
+  if (!columnMissing(error.message ?? '') && error.code !== '42703' && error.code !== 'PGRST204') return null;
+  const { data: old } = await sb.from('periods')
+    .select('id, label, has_360, form_open').eq('status', 'active').limit(1).maybeSingle();
+  if (!old) return null;
+  const formOpen = !!(old.has_360 && old.form_open);
+  return { id: old.id, label: old.label, formOpen, open: formOpen };
+}
+
+/**
+ * Pilihan kategori budaya kerja = NAMA aspek budaya dari periode TERBARU yang punya aspek (urutan order_idx).
+ * Aspek sama antarperiode (hanya indikatornya berganti — pemilik 2026-11-16), jadi kategori tak dikunci ke aspek
+ * periode aktif; periode tanpa 360° / belum menginput aspek tetap punya pilihan. Nama kembar dibuang.
+ */
+export async function loadViolationCategories(sb: SB): Promise<string[]> {
+  const [{ data: periods }, { data: aspects }] = await Promise.all([
+    sb.from('periods').select('id, start_date').order('start_date', { ascending: false }),
+    sb.from('culture_aspects').select('period_id, name, order_idx').order('order_idx'),
+  ]);
+  const byPeriod = new Map<string, string[]>();
+  (aspects ?? []).forEach((a) => {
+    const name = String(a.name ?? '').trim();
+    if (!name) return;
+    byPeriod.set(a.period_id, [...(byPeriod.get(a.period_id) ?? []), name]);
+  });
+  for (const p of periods ?? []) {
+    const names = byPeriod.get(p.id);
+    if (names?.length) return dedupeNames(names);
+  }
+  return [];
+}
+
+const dedupeNames = (names: string[]) => {
+  const seen = new Set<string>();
+  return names.filter((n) => { const k = n.toLocaleLowerCase('id'); if (seen.has(k)) return false; seen.add(k); return true; });
+};
+
+/** Nama kategori kiriman pelapor → nama baku dari daftar (tanpa beda huruf besar/kecil & spasi tepi); tak ada → null. */
+export function matchCategory(list: string[], raw: string): string | null {
+  const k = raw.trim().toLocaleLowerCase('id');
+  return list.find((n) => n.toLocaleLowerCase('id') === k) ?? null;
+}
+
+/** Label kategori satu laporan: Lainnya · nama tersimpan (0061) · nama aspek rujukan (laporan lama) · '—'. */
+export function violationCategoryLabel(r: Pick<ViolationRow, 'is_other' | 'category' | 'aspect_id'>, aspectName: Map<string, string>): string {
+  if (r.is_other) return OTHER_CATEGORY_LABEL;
+  if (r.category) return r.category;
+  return (r.aspect_id ? aspectName.get(r.aspect_id) : undefined) ?? '—';
+}
+
 export type ViolationRow = {
   period_id: string;
   target_id: string;
   aspect_id: string | null;
+  /** Nama kategori budaya kerja (0061). Null = Lainnya, atau laporan lama yang memakai aspect_id. */
+  category: string | null;
   is_other: boolean;
   incident_date: string | null; // null = laporan sebelum 0058
   body: string;
@@ -70,6 +137,12 @@ const columnMissing = (msg: string) => /column|could not find the '.*' column|42
 export async function loadViolationReports(admin: SB, periodId?: string | null): Promise<ViolationRow[]> {
   // id hanya untuk paginasi stabil; tampilan diurutkan ulang (sortViolations).
   const readFull = () => fetchAllPaged<ViolationRow>((from, to) => {
+    let q = admin.from('outside_mapping_notes').select('period_id, target_id, aspect_id, category, is_other, incident_date, body, note');
+    if (periodId) q = q.eq('period_id', periodId);
+    return q.order('id').range(from, to);
+  });
+  // Kolom 0061 (category) belum ada → kolom 0058.
+  const read0058 = () => fetchAllPaged<Omit<ViolationRow, 'category'>>((from, to) => {
     let q = admin.from('outside_mapping_notes').select('period_id, target_id, aspect_id, is_other, incident_date, body, note');
     if (periodId) q = q.eq('period_id', periodId);
     return q.order('id').range(from, to);
@@ -80,12 +153,19 @@ export async function loadViolationReports(admin: SB, periodId?: string | null):
     return q.order('id').range(from, to);
   });
   let raw: Partial<ViolationRow>[];
+  const isColumnMissing = (msg: string) => columnMissing(msg) && !/table/i.test(msg);
   try {
     raw = await readFull();
   } catch (e) {
     const msg = e instanceof Error ? e.message : '';
-    if (columnMissing(msg) && !/table/i.test(msg)) {
-      raw = await readLegacy();
+    if (isColumnMissing(msg)) {
+      try {
+        raw = await read0058();
+      } catch (e2) {
+        const msg2 = e2 instanceof Error ? e2.message : '';
+        if (!isColumnMissing(msg2)) throw e2;
+        raw = await readLegacy();
+      }
     } else if (tableMissing({ message: msg })) {
       return [];
     } else {
@@ -96,6 +176,7 @@ export async function loadViolationReports(admin: SB, periodId?: string | null):
     period_id: String(r.period_id),
     target_id: String(r.target_id),
     aspect_id: r.aspect_id ?? null,
+    category: typeof r.category === 'string' && r.category.trim() ? r.category.trim() : null,
     is_other: r.is_other === true,
     incident_date: r.incident_date ?? null,
     body: String(r.body ?? '').trim(),

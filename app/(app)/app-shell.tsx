@@ -26,7 +26,7 @@ const ROLE_LABEL: Record<Role, string> = {
 
 type AdminItem = Item & { section?: string };
 
-function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator: boolean, hrdSections: string[] | null, pageGrants: { section: string; scope: string }[] = [], aiSettings = false): Section[] {
+function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator: boolean, hrdSections: string[] | null, pageGrants: { section: string; scope: string }[] = [], aiSettings = false, isExternal = false): Section[] {
   // Akses HRD granular (Jalur A, migrasi 0023): hrd_sections NULL/kosong = akses penuh;
   // berisi daftar = hanya bagian tercantum. Item tanpa `section` (mis. Suksesi) selalu tampil.
   const allowSec = (s?: string) => !s || !hrdSections || hrdSections.length === 0 || hrdSections.includes(s);
@@ -41,6 +41,8 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
   if (!adminView) main.push({ href: '/laporan', label: 'Laporan Hasil Saya', icon: FileText });
   // Rencana Pengembangan (0055): rencana sendiri + tab Tim Saya bagi atasan — semua peran di mode base.
   if (!adminView) main.push({ href: '/pengembangan', label: 'Rencana Pengembangan', icon: Sprout });
+  // Laporkan Pelanggaran (0061): halaman sendiri, lepas dari formulir 360°. Penilai eksternal belum boleh mengirim.
+  if (!adminView && !isExternal) main.push({ href: '/lapor-pelanggaran', label: 'Laporkan Pelanggaran', icon: Flag });
   // Peninjau Hasil Lintas Divisi kini = GRANT halaman "Review Hasil Akhir" (lingkup selain divisinya) —
   // tampil di section "Akses dari HRD" di bawah, bukan menu khusus. (is_cross_reviewer dipensiunkan, migrasi 0033.)
   const sections: Section[] = main.length ? [{ title: 'Menu Utama', items: main }] : [];
@@ -177,9 +179,9 @@ const TODO_DOT: Record<TodoTone, string> = {
 const SIDEBAR_COOKIE = 'sidebar_collapsed';
 
 export function AppShell({
-  role, canAdmin, isCoordinator = false, hrdSections = null, pageGrants = [], aiSettings = false, hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, initialCollapsed = false, children,
+  role, canAdmin, isCoordinator = false, hrdSections = null, pageGrants = [], aiSettings = false, isExternal = false, hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, initialCollapsed = false, children,
 }: {
-  role: Role; canAdmin: boolean; isCoordinator?: boolean; hrdSections?: string[] | null; pageGrants?: { section: string; scope: string }[]; aiSettings?: boolean; hrdMode: HrdMode; name: string; dept: string; empCode: string;
+  role: Role; canAdmin: boolean; isCoordinator?: boolean; hrdSections?: string[] | null; pageGrants?: { section: string; scope: string }[]; aiSettings?: boolean; isExternal?: boolean; hrdMode: HrdMode; name: string; dept: string; empCode: string;
   periodLabel: string | null; periodActive: boolean; periodDaysLeft?: number | null;
   todos: TodoItem[]; initialCollapsed?: boolean; children: React.ReactNode;
 }) {
@@ -187,7 +189,7 @@ export function AppShell({
   const [open, setOpen] = useState(false);                        // laci menu (HP)
   const [collapsed, setCollapsed] = useState(initialCollapsed);   // sidebar desktop ditutup
   const [popover, setPopover] = useState<'pages' | 'todos' | null>(null);
-  const sections = menuFor(role, canAdmin, hrdMode, isCoordinator, hrdSections, pageGrants, aiSettings);
+  const sections = menuFor(role, canAdmin, hrdMode, isCoordinator, hrdSections, pageGrants, aiSettings, isExternal);
 
   const isActive = (href: string) => {
     const path = href.split('?')[0];

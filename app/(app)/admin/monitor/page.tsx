@@ -277,7 +277,7 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
       <Toolbar periods={periodList} current={sel.id} depts={depts} dept={dept} />
 
       {rows.length === 0 && (
-        <p className="text-[13px] text-ink-soft mt-4">Belum ada data kinerja untuk lingkup ini — grafik tren lintas periode tetap tampil di bawah.</p>
+        <p className="text-[13px] text-ink-soft mt-4">Belum ada data kinerja di lingkup ini. Grafik tren lintas periode tetap tampil di bawah.</p>
       )}
 
       {rows.length > 0 && (
@@ -308,7 +308,7 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
       {rows.length > 0 && (
         <>
           {/* D. RINCIAN PER PEGAWAI — tabel & heatmap */}
-          <SectionHeader label="Rincian per Pegawai" hint="tabel & heatmap" />
+          <SectionHeader label="Rincian per Pegawai" hint="tabel & peta panas" />
           <div className={`${CARD} mb-4`}>
             <CardTitle icon={Users} className="mb-4">Tabel Kinerja Pegawai</CardTitle>
             <TeamTable rows={rows} linkNames={false} showStatus={false} showAcc={false} scoreBasis="live" pageSize={5} />
@@ -316,17 +316,17 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
           {heat && heat.aspectRows.length > 0 && (
             <ExtremesHeatmap
               pieTitle="Aspek Terlemah & Terkuat (Frekuensi)"
-              pieSubtitle="Aspek budaya yang paling sering jadi titik terlemah/terkuat tiap pegawai dalam lingkup ini — klik irisan untuk menyaring heatmap."
-              heatTitle="Heatmap Aspek per Pegawai"
-              heatSubtitle="Skor 360° per aspek budaya tiap pegawai (0–100). Cari nama / geser halaman; kolom Terlemah/Terkuat menyebut aspek terendah & tertinggi tiap orang."
+              pieSubtitle="Aspek budaya yang paling sering menjadi titik terlemah/terkuat pegawai di lingkup ini. Klik irisan untuk menyaring peta panas."
+              heatTitle="Peta Panas Aspek per Pegawai"
+              heatSubtitle="Skor 360° per aspek budaya tiap pegawai (0–100). Kolom Terlemah/Terkuat menunjukkan aspek terendah dan tertinggi."
               columns={heat.aspectCols} rows={heat.aspectRows} pageSize={5} />
           )}
           {heat && heat.indRows.length > 0 && (
             <ExtremesHeatmap
               pieTitle="Indikator Terlemah & Terkuat (Frekuensi)"
-              pieSubtitle="Indikator yang paling sering jadi titik terlemah/terkuat tiap pegawai — klik irisan untuk menyaring heatmap."
-              heatTitle="Heatmap Indikator per Pegawai"
-              heatSubtitle="Skor 360° per indikator penilaian tiap pegawai (0–100), dikelompokkan per aspek. Cari nama / geser halaman untuk lingkup besar."
+              pieSubtitle="Indikator yang paling sering menjadi titik terlemah/terkuat pegawai. Klik irisan untuk menyaring peta panas."
+              heatTitle="Peta Panas Indikator per Pegawai"
+              heatSubtitle="Skor 360° per indikator tiap pegawai (0–100), dikelompokkan per aspek."
               columns={heat.indCols} rows={heat.indRows} pageSize={5} />
           )}
         </>
@@ -376,11 +376,11 @@ function ScopeScorecards({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
       <Card icon={Users} label="Total Pegawai" value={total} subtext={scopeLabel} />
-      <Card icon={Target} label="Avg KPI" value={kpi != null ? fmt2(kpi) : '—'}
+      <Card icon={Target} label="Rerata KPI" value={kpi != null ? fmt2(kpi) : '—'}
         delta={orgKpi != null ? <OrgDelta scope={kpi} org={orgKpi} /> : undefined}
         subtext={sub}
         note={fillTotal != null && kpiFilled != null ? <FilledNote n={kpiFilled} total={fillTotal} /> : undefined} />
-      {has360 && <Card icon={MessagesSquare} label="Avg 360°" value={s360 != null ? fmt2(s360) : '—'}
+      {has360 && <Card icon={MessagesSquare} label="Rerata 360°" value={s360 != null ? fmt2(s360) : '—'}
         delta={orgS360 != null ? <OrgDelta scope={s360} org={orgS360} /> : undefined}
         subtext={sub}
         note={fillTotal != null && s360Filled != null ? <FilledNote n={s360Filled} total={fillTotal} /> : undefined} />}
@@ -396,14 +396,13 @@ function Header({ isHrdFull = true, scopeLabel }: { isHrdFull?: boolean; scopeLa
   return (
     <PageTitle title="Monitor Kinerja Pegawai">
       <p>
-        Pemantauan kinerja {scopeLabel ? <span className="font-semibold text-ink">{scopeLabel}</span> : 'seluruh pegawai'} — snapshot per periode &amp; tren lintas waktu.
-        Skor Akhir dihitung langsung (live).
+        Pemantauan kinerja {scopeLabel ? <span className="font-semibold text-ink">{scopeLabel}</span> : 'seluruh pegawai'} — per periode dan dari waktu ke waktu. Skor Akhir dihitung langsung.
       </p>
       <p className="text-xs text-ink-soft mt-1">
         <span className="font-semibold text-ink">Fokus halaman ini:</span> pergerakan &amp; pelacakan per-pegawai lintas waktu.
         {isHrdFull && <>
-          {' '}· Butuh <span className="text-ink">klasifikasi talenta &amp; snapshot (4-Box, scatter, kategori)</span>?{' '}
-          <Link href="/admin/dashboard" className="text-brand-ink hover:underline font-semibold">Dashboard Organisasi →</Link>
+          {' '}· Butuh <span className="text-ink">klasifikasi talenta &amp; gambaran (4-Box, diagram sebar, kategori)</span>?{' '}
+          <Link href="/admin/dashboard" className="text-brand-ink hover:underline font-semibold">Dasbor Organisasi →</Link>
         </>}
       </p>
     </PageTitle>

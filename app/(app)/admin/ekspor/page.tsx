@@ -31,13 +31,12 @@ export default async function EksporPage() {
   return (
     <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>
       <PageTitle title="Ekspor Dataset">
-        Unduh data mentah dalam format <strong>Excel (.xlsx)</strong> untuk olah data lanjutan
-        (pivot, statistik, atau alat BI). Pilih <strong>periode</strong> atau seluruh periode.
+        Unduh data mentah (.xlsx) untuk olah data lanjutan. Pilih satu atau semua <strong>periode</strong>.
       </PageTitle>
       <EksporClient periods={periodOpts} />
       <div className="mt-5">
         <Note tone="warn">
-          Data bersifat sensitif (memuat nama, skor, &amp; komentar). Simpan &amp; bagikan file secara bertanggung jawab.
+          Data ini sensitif (nama, skor, komentar). Simpan dan bagikan dengan hati-hati.
         </Note>
       </div>
     </main>

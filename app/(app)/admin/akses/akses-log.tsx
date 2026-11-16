@@ -33,8 +33,7 @@ export function AksesLog({ rows, page, pageSize, total }: { rows: AksesLogRow[];
     <section id="log-akses" className={CARD}>
       <CardTitle icon={ScrollText}>Log Akses</CardTitle>
       <p className="text-xs text-ink-soft mt-1 mb-3 max-w-3xl leading-relaxed">
-        Jejak perubahan akses (grant halaman + izin peran/HRD) — hanya-baca &amp; tak dapat diubah.
-        Terpisah dari <span className="font-semibold text-ink-soft">Log Aktivitas HRD</span> umum yang mencatat semua kategori.
+        Jejak perubahan akses halaman dan izin peran/HRD. Tidak dapat diubah. <span className="font-semibold text-ink-soft">Log Aktivitas HRD</span> mencatat semua kategori lainnya.
       </p>
 
       <StableHeight>

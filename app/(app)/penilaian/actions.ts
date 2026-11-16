@@ -38,20 +38,20 @@ export type SubmitResult = { ok: true; status: 'draft' | 'submitted' } | { ok: f
 export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
   const parsed = SubmitInput.safeParse(raw);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
   }
   const { targetId, status, scores, answers } = parsed.data;
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!auth.user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
 
   // Periode aktif + komponen 360° harus dibuka (locked/ended → bukan aktif → ditolak).
   const { data: ap } = await supabase
     .from('periods').select('id, has_360, form_open, assessment_deadline').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
   if (!ap.has_360) return { ok: false, error: 'Penilaian 360° untuk periode ini belum dibuka oleh HRD' };
-  if (!ap.form_open) return { ok: false, error: 'Form penilaian 360° sedang ditutup HRD (tahap peninjauan hasil)' };
+  if (!ap.form_open) return { ok: false, error: 'Formulir penilaian 360° sedang ditutup HRD (tahap peninjauan hasil)' };
 
   // Penilai harus ditugaskan menilai target ini (mapping aktif).
   const { data: mapping } = await supabase
@@ -67,12 +67,12 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
     .eq('assessor_id', auth.user.id).eq('target_id', targetId).eq('period_id', ap.id).maybeSingle();
   // Dibatalkan validitasnya oleh HRD (0046) → arsip, tak bisa diubah (DB juga menolak lewat trigger).
   if (exExisting?.status === 'invalidated') {
-    return { ok: false, error: 'Penilaian ini telah dibatalkan validitasnya oleh HRD dan tidak dapat diubah' };
+    return { ok: false, error: 'Penilaian ini telah dinyatakan tidak berlaku oleh HRD dan tidak dapat diubah' };
   }
   // Decision 01 (Screen 01/04): penilaian TERKIRIM hanya bisa diedit sampai deadline; sesudahnya read-only.
   // Yang belum terkirim tetap boleh dikirim sesudah deadline (tercatat Terlambat). DB juga menolak (0047).
   if (exExisting?.status === 'submitted' && isPastDeadline(ap.assessment_deadline)) {
-    return { ok: false, error: 'Deadline sudah lewat — penilaian yang sudah terkirim tidak dapat diubah lagi' };
+    return { ok: false, error: 'Tenggat sudah lewat — penilaian yang sudah terkirim tidak dapat diubah lagi' };
   }
   // Penilaian yang SUDAH terkirim tak boleh turun ke draf: nilainya sudah masuk laporan pegawai yang
   // dinilai. Sebelum deadline pegawai tetap boleh mengedit — lewat "Kirim Ulang" (status tetap 'submitted').
@@ -124,10 +124,10 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
   if (status === 'submitted') {
     const byInd = new Map(sanitized.map((x) => [x.indicatorId, x]));
     if ([...activeInd].some((id) => byInd.get(id)?.rating == null)) {
-      return { ok: false, error: 'Lengkapi seluruh rating indikator sebelum mengirim' };
+      return { ok: false, error: 'Beri nilai untuk semua indikator sebelum mengirim' };
     }
     if ([...activeInd].some((id) => (byInd.get(id)?.comment ?? '').trim().length < 20)) {
-      return { ok: false, error: 'Setiap indikator wajib komentar/bukti perilaku (evidence) minimal 20 karakter' };
+      return { ok: false, error: 'Setiap indikator wajib diberi komentar/bukti perilaku minimal 20 karakter' };
     }
     // Semua pertanyaan kualitatif (esai) periode ini wajib terisi.
     const answeredQ = new Set(answers.filter((a) => (a.answer ?? '').trim().length > 0).map((a) => a.questionId));
@@ -200,7 +200,7 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
     const { error: uErr } = await supabase.from('assessments')
       .update({ status: 'submitted', submitted_at: new Date().toISOString() })
       .eq('id', header.id);
-    if (uErr) return { ok: false, error: 'Penilaian tersimpan sebagai draf, tapi gagal dikirim: ' + uErr.message };
+    if (uErr) return { ok: false, error: 'Penilaian tersimpan sebagai draf, tetapi gagal dikirim: ' + uErr.message };
   }
 
   // Kirim SESUDAH deadline → potongan keterlambatan penilai langsung masuk ke Skor 360°
@@ -222,17 +222,17 @@ export async function submitAssessment(raw: unknown): Promise<SubmitResult> {
  * RLS asmt_write membatasi delete ke assessor sendiri + periode aktif.
  */
 export async function discardAssessment(targetId: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (!z.string().uuid().safeParse(targetId).success) return { ok: false, error: 'Input tidak valid' };
+  if (!z.string().uuid().safeParse(targetId).success) return { ok: false, error: 'Isian tidak valid' };
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!auth.user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
 
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
 
   const { data: ex } = await supabase.from('assessments').select('id, status')
     .eq('assessor_id', auth.user.id).eq('target_id', targetId).eq('period_id', ap.id).maybeSingle();
-  if (!ex) return { ok: false, error: 'Tidak ada draf untuk dibuang' };
+  if (!ex) return { ok: false, error: 'Tidak ada draf yang dapat dibuang' };
   if (ex.status !== 'draft') return { ok: false, error: 'Penilaian sudah terkirim — tidak bisa dibuang dari sini' };
 
   const { error } = await supabase.from('assessments').delete().eq('id', ex.id);

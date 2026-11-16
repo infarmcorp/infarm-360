@@ -17,6 +17,12 @@ import { saveQualSummaries } from '@/app/(app)/admin/laporan/actions';
 import { AlertTriangle, ArrowLeft, Info } from 'lucide-react';
 import { CARD } from '@/components/infarm-ui';
 import { INFARM_PAGE } from '@/app/infarm-fonts';
+import { aiSummaryEnabled } from '@/lib/ai/gemini';
+import { loadAiSettings } from '@/lib/ai/settings';
+
+// Server Action "Ringkas otomatis" (Gemini) berjalan di route ini dan bisa menunggu jawaban AI hingga ±55 dtk
+// (GEMINI_TIMEOUT_MS). 60 dtk = batas yang aman untuk semua paket Vercel.
+export const maxDuration = 60;
 
 // Label ringkasan pertanyaan kualitatif (dipakai editor & tampilan read-only).
 const QUAL_TITLE = 'Ringkasan Umpan Balik Kualitatif 360°';
@@ -48,6 +54,10 @@ export default async function LaporanDetailPage({
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, is_coordinator, hrd_sections, dept').eq('id', user.id).maybeSingle();
   const role = me?.role;
   const isAdmin = canAdmin(me);
+  // Ringkas otomatis (Gemini) — hanya dev/staging; aksi server menegakkan gerbang yang sama.
+  const aiOn = aiSummaryEnabled();
+  const aiCfg = aiOn ? await loadAiSettings(createAdminClient()) : null;
+  const aiInfoBase = aiCfg ? { model: aiCfg.model || 'model belum dipilih', version: aiCfg.version } : undefined;
   // Pemegang grant "Review & Finalisasi" (Manajemen Akses) juga boleh membuka detail dalam lingkupnya
   // (dicek di cabang grant di bawah). Tanpa itu, gate kasar tetap: SPV / HRD / Direksi / Koordinator.
   // SADAR-MODE: HRD "penuh" HANYA di Mode Admin; di Mode-SPV, akses detail lewat grant (bila ada).
@@ -102,14 +112,14 @@ export default async function LaporanDetailPage({
     const inScope = !!tgt && employeeInScopes(reviewGrant.scopes, me?.dept ?? '', user.id, { id: employeeId, dept: tgt.dept ?? null }, teamIds);
     if (!inScope) {
       return <Shell>
-        <BackLink href="/admin/laporan">Review & Finalisasi</BackLink>
+        <BackLink href="/admin/laporan">Tinjauan &amp; Finalisasi</BackLink>
         <p className={MSG}>Pegawai ini di luar lingkup akses yang diberikan kepada Anda.</p>
       </Shell>;
     }
     const loaded = await loadReport(admin, employeeId, ap);
     if (!loaded) {
       return <Shell>
-        <BackLink href="/admin/laporan">Review & Finalisasi</BackLink>
+        <BackLink href="/admin/laporan">Tinjauan &amp; Finalisasi</BackLink>
         <p className={MSG}>Data tidak ditemukan.</p>
       </Shell>;
     }
@@ -151,20 +161,20 @@ export default async function LaporanDetailPage({
 
     return (
       <Shell>
-        <BackLink href="/admin/laporan">Review & Finalisasi</BackLink>
+        <BackLink href="/admin/laporan">Tinjauan &amp; Finalisasi</BackLink>
         <div>
           {!canEditReport && (
             <div className="mb-4 flex gap-2 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed bg-neutral-tint text-ink-soft no-print">
               <Info className="w-4 h-4 shrink-0 mt-px" aria-hidden />
               <span>
-              Tampilan <strong>lihat-saja</strong> — akses dari HRD (lingkup terbatas). Perubahan laporan hanya oleh yang berwenang.</span>
+              Hanya lihat (akses terbatas dari HRD). Laporan hanya dapat diubah oleh pihak berwenang.</span>
             </div>
           )}
           {canEditReport && !canFinalizeReport && (
             <div className="mb-4 flex gap-2 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed bg-warn-tint text-warn-ink no-print">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-px" aria-hidden />
               <span>
-              Akses <strong>meringkas</strong> — Anda dapat menulis <strong>Ringkasan Aspek</strong>. Finalisasi &amp; kalibrasi skor tetap wewenang HRD.</span>
+              Anda dapat menulis <strong>Ringkasan Aspek</strong>. Finalisasi dan kalibrasi skor tetap wewenang HRD.</span>
             </div>
           )}
           {canFinalizeReport && (
@@ -185,7 +195,7 @@ export default async function LaporanDetailPage({
           <ReportDoc data={data} anonymize hideAssessorComments />
           {data.has360 && (canEditReport ? (
             <>
-              <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} locked={locked} />
+              <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} locked={locked} aiKind={aiOn ? 'aspect' : undefined} aiInfo={aiInfoBase} />
               {data.qualQuestions.length > 0 && (
                 <AspectSummaryEditor
                   employeeId={employeeId}
@@ -193,6 +203,8 @@ export default async function LaporanDetailPage({
                   initial={data.qualSummaries}
                   locked={locked}
                   saveAction={saveQualSummaries}
+                  aiKind={aiOn ? 'qual' : undefined}
+                  aiInfo={aiInfoBase}
                   title={QUAL_TITLE}
                   intro={QUAL_INTRO}
                   noun="pertanyaan"
@@ -322,8 +334,7 @@ export default async function LaporanDetailPage({
   // Sisa di luar Mode Admin = pegawai ber-izin HRD di mode posisi-asli (bukan SPV/Koordinator, tanpa grant
   // Review) → tak ada tampilan untuknya di sini; tampilan HRD penuh hanya di Mode Admin.
   if (route === 'need-admin') {
-    return <Shell><p className={MSG}>Detail laporan pegawai lain hanya tersedia di <strong>Mode Admin</strong>.
-      Pindah ke Mode Admin lewat tombol di sidebar, lalu buka lagi dari Review &amp; Finalisasi.</p></Shell>;
+    return <Shell><p className={MSG}>Detail laporan pegawai lain hanya ada di <strong>Mode Admin</strong>. Pindah lewat tombol di menu samping, lalu buka dari Tinjauan &amp; Finalisasi.</p></Shell>;
   }
 
   // Jalur HRD (mode admin): laporan penuh (tunduk RLS; raw 360° untuk HRD anonim).
@@ -365,7 +376,7 @@ export default async function LaporanDetailPage({
       staleReasons.push('Skor 360° belum pernah dihitung untuk pegawai ini, padahal sudah ada penilaian yang masuk.');
     } else {
       if (staleByAssessment) staleReasons.push('Ada penilaian 360° yang dikirim atau diubah oleh penilai setelah Skor 360° terakhir dihitung.');
-      if (staleByCorrection) staleReasons.push('Ada Koreksi Garis Hubungan yang disetujui (ACC) setelah Skor 360° terakhir dihitung — kelas bobot penilai berubah sehingga skor perlu dihitung ulang.');
+      if (staleByCorrection) staleReasons.push('Ada Koreksi Garis Hubungan yang disetujui setelah Skor 360° terakhir dihitung. Hitung ulang skor karena kelas bobot penilai berubah.');
     }
     score360Stale = staleReasons.length > 0;
   }
@@ -405,7 +416,7 @@ export default async function LaporanDetailPage({
                   {staleReasons.map((r, i) => <li key={i}>{r}</li>)}
                 </ul>
                 Jalankan <strong>&quot;Hitung Ulang Skor 360°&quot;</strong> (kokpit di halaman{' '}
-                <Link href="/admin/laporan" className="underline font-bold">Review & Finalisasi</Link>), lalu
+                <Link href="/admin/laporan" className="underline font-bold">Tinjauan &amp; Finalisasi</Link>), lalu
                 Simpan Draf / Rilis / Finalisasi ulang agar Skor Akhir mencerminkan kondisi terbaru.
               </div>
             </div>
@@ -442,7 +453,7 @@ export default async function LaporanDetailPage({
               <ReportSplit
                 left={<>
               {doc}
-              <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} locked={data.status === 'finalized' || !periodActive} />
+              <AspectSummaryEditor employeeId={employeeId} aspects={data.aspects.map((a) => a.name)} initial={data.aspectSummaries} locked={data.status === 'finalized' || !periodActive} aiKind={aiOn ? 'aspect' : undefined} aiInfo={aiInfoBase && { ...aiInfoBase, settingsHref: '/admin/ai' }} />
               {data.qualQuestions.length > 0 && (
                 <AspectSummaryEditor
                   employeeId={employeeId}
@@ -450,6 +461,8 @@ export default async function LaporanDetailPage({
                   initial={data.qualSummaries}
                   locked={data.status === 'finalized' || !periodActive}
                   saveAction={saveQualSummaries}
+                  aiKind={aiOn ? 'qual' : undefined}
+                  aiInfo={aiInfoBase && { ...aiInfoBase, settingsHref: '/admin/ai' }}
                   title={QUAL_TITLE}
                   intro={QUAL_INTRO}
                   noun="pertanyaan"

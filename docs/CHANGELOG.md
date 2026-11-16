@@ -8,6 +8,66 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-16 — Laporkan Pelanggaran: tindak lanjut HRD dan tab Laporan Saya (di `dev`, belum dirilis)
+- Permintaan HRD: memberi kabar ke pelapor bila laporannya sudah ditindaklanjuti. HRD kini memberi **status**
+  (Diterima → Sedang ditindaklanjuti → Selesai) dan **tanggapan untuk pelapor** (satu arah) di halaman Laporan
+  Pelanggaran. Pelapor melihat semua laporannya beserta status dan tanggapan di tab **Laporan Saya**.
+- Kode laporan per laporan sempat diusulkan, tetapi ditolak: merepotkan, pelapor belum tentu menyimpan kodenya, dan
+  satu orang bisa melapor berkali-kali. Gantinya, laporan menyimpan **penanda tersembunyi** dari akun pelapor yang
+  hanya dipakai untuk tab Laporan Saya.
+- Akibatnya anonimitas berubah dari "pelapor sama sekali tidak tersimpan" menjadi "pelapor tersembunyi": HRD dan
+  Direksi tetap tidak melihat siapa pelapornya di aplikasi mana pun, tetapi pengelola sistem yang memegang kunci
+  rahasia secara teori bisa melacaknya. Risiko ini diterima pemilik. Teks pop-up diubah dari "Nama dan identitas Anda
+  tidak disimpan" menjadi "Identitas Anda tidak ditampilkan".
+- HRD tidak bisa menindaklanjuti laporan tentang dirinya sendiri (benturan kepentingan); HRD lain yang menangani.
+- Ekspor Bahan Laporan lembar Laporan Pelanggaran mendapat kolom status dan tanggapan HRD.
+- Butuh perubahan database baru (0062) dan kunci rahasia baru di server. Laporan yang masuk sebelumnya tidak tampil di
+  Laporan Saya (fitur belum dipakai, diterima pemilik).
+
+### 2026-11-16 — Laporkan Pelanggaran lepas dari penilaian 360° (di `dev`, belum dirilis)
+- Permintaan pengguna: laporan pelanggaran harus bisa dibuka dan ditutup sendiri, tidak bergantung pada formulir 360°.
+  Dulu laporan hanya bisa dikirim selama 360° aktif dan formulir penilaian dibuka, dan kartunya ada di tab Pengajuan
+  Daftar Penilaian Saya (yang tertutup saat formulir ditutup).
+- Kini: menu sendiri **Laporkan Pelanggaran** di Menu Utama (tidak tampil untuk penilai eksternal), dan HRD membuka/
+  menutupnya lewat **Kelola Periode → ⋯ → Buka/Tutup Laporkan Pelanggaran**. Saklar berlaku per periode (keputusan
+  pemilik), jadi laporan tetap tercatat per periode dan halaman Laporan Pelanggaran tetap disaring per periode.
+  Periode baru mulai dalam keadaan tertutup.
+- Rekan yang ada di daftar penilaian pelapor kini **boleh dilaporkan** kapan pun (pemilik; membalik keputusan
+  2026-11-10). Alasannya: penilaian 360° menilai kinerja satu periode, sedangkan laporan mencatat satu kejadian untuk
+  ditindaklanjuti HRD; aturan yang bergantung pada buka/tutup formulir membingungkan; dan mengecualikan rekan yang
+  dinilai memberi petunjuk bahwa pelapor bukan penilai rekan itu. Halaman dan pop-up menjelaskan bahwa penilaian
+  kinerja tetap lewat formulir penilaian.
+- Kategori kini tercatat menurut **nama** aspek budaya, bukan aspek milik periode aktif: aspek budaya sama antarperiode
+  (hanya indikatornya berganti, penjelasan pemilik). Pilihan kategori diambil dari periode terbaru yang punya aspek, jadi
+  periode tanpa 360° tetap punya pilihan, dan laporan baru tidak lagi menghalangi HRD mengubah aspek.
+- Butuh perubahan database baru (0061). Sebelum dijalankan, aplikasi tetap memakai aturan lama.
+
+### 2026-11-13 — Audit kalimat: 567 teks layar ditulis ulang (di `dev`, belum dirilis)
+- Pemilik mengaudit seluruh kalimat aplikasi lewat berkas Excel dan menetapkan teks baru untuk kalimat yang kaku,
+  memakai istilah Inggris, atau tidak konsisten. Semua keputusan "Ubah" sudah diterapkan.
+- Nama menu ikut berubah: **Tinjauan & Finalisasi** (dulu Review & Finalisasi), **Dasbor Organisasi**, **Progres Umpan
+  Balik 360°**, **Pemantauan & Audit KPI**, **Pengisian KPI Anggota**. Istilah lain: ACC → persetujuan (tombol
+  **Setujui**), deadline → tenggat, form → formulir, rating → nilai, sesi 1-on-1 → sesi empat mata, Peer/Cross/Self →
+  Rekan/Lintas Divisi/Diri Sendiri.
+- Pesan yang dulu menyebut nomor perubahan database kini meminta pengguna menghubungi admin aplikasi.
+- Yang **tidak** diubah: istilah yang ditetapkan HRD (ditandai "Tanya HRD", 31 baris), nama kelas "B · Culture" dan
+  keterangan "HRD Review"/"No Score" yang terkait istilah HRD, serta pilihan relasi di formulir & impor pemetaan
+  (Atasan/Peer/Cross/Bawahan) karena itu nilai data. Aturan sandi minimal 6 karakter saat HRD mengatur sandi juga tetap;
+  usulan menjadi 8 karakter menunggu keputusan pemilik.
+
+### 2026-11-13 — Tanggal kejadian di Laporkan Pelanggaran memakai kalender aplikasi (di `dev`, belum dirilis)
+- Kolom **Tanggal kejadian** dulu memakai kalender bawaan browser (tampilan berbeda tiap perangkat, bahasa Inggris).
+  Kini memakai kalender yang sama dengan Kelola Periode. Tanggal setelah hari ini (WIB) tidak bisa dipilih; aturan di
+  server tetap sama.
+
+### 2026-11-12 — Panduan Saya di Akun Saya (di `dev`, belum dirilis)
+- Menggantikan kartu Panduan dan lampiran PDF lama yang sudah dihapus: Akun Saya kini berisi tautan ke panduan Notion.
+- Keputusan pemilik: tiap panduan peran sudah berdiri sendiri (termasuk tugas sebagai penilai 360°), jadi cukup **satu
+  panduan utama** per orang. Pengecualian: SPV yang memegang izin HRD Admin mendapat Panduan HRD Admin **dan** Panduan
+  SPV, dan siapa pun yang menerima akses halaman atau izin HRD terbatas mendapat tambahan Akses Khusus.
+- Daftar dihitung dari izin terkini tiap kali halaman dibuka, sama seperti menu. Pegawai yang diberi izin Koordinator
+  langsung melihat Panduan Koordinator, dan kembali ke Panduan Pegawai begitu izinnya dicabut, tanpa data yang diubah.
+
 ### 2026-11-11 — Direksi bisa membaca Laporan Pelanggaran (di `dev`, belum dirilis)
 - Keputusan pemilik: Direksi melihat **semua** laporan pelanggaran, termasuk laporan tentang dirinya sendiri. Halaman
   Laporan Pelanggaran kini ada di Menu Direksi, hanya baca, tampilannya sama dengan HRD. Pelapor tetap anonim karena

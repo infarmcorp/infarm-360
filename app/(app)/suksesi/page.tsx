@@ -83,7 +83,7 @@ async function HrdView({
     <Shell>
       <Header />
       <p className="text-xs text-ink-soft -mt-2 mb-4">
-        Periode aktif <span className="font-mono font-semibold text-ink">{period.label}</span>. Pertimbangkan kandidat (umumnya Skor Akhir ≥ 90), ajukan rencana ke Direksi.
+        Periode aktif <span className="font-mono font-semibold text-ink">{period.label}</span>. Pilih kandidat (umumnya Skor Akhir ≥ 90), lalu ajukan rencananya ke Direksi.
       </p>
       {/* SuksesiList merender kartu ringkasan + kartu daftar sendiri (agar ringkasan tak bersarang di kartu). */}
       <SuksesiList rows={rows} />

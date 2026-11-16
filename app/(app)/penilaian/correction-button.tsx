@@ -7,7 +7,7 @@ import { FIELD, FIELD_LABEL } from '@/components/infarm-ui';
 import { CHIP_PENDING, FIELD_AREA, LINK_SECONDARY } from './penilaian-ui';
 
 const REL_OPTS = ['Atasan', 'Peer', 'Cross', 'Bawahan'];
-const REL_LABEL: Record<string, string> = { Atasan: 'Atasan', Peer: 'Rekan (Peer)', Cross: 'Lintas Divisi', Bawahan: 'Bawahan' };
+const REL_LABEL: Record<string, string> = { Atasan: 'Atasan', Peer: 'Rekan', Cross: 'Lintas Divisi', Bawahan: 'Bawahan' };
 
 /** Tombol + modal "Minta Koreksi" garis hubungan terhadap satu rekan (penilai). */
 export function CorrectionButton({
@@ -43,7 +43,7 @@ export function CorrectionButton({
       </button>
 
       <Modal open={open} title="Koreksi Relasi Kerja" busy={busy} onClose={close}>
-        <p className="text-[13px] text-ink-soft leading-relaxed">Ajukan penyesuaian garis hubungan penilaian terhadap <strong>{targetName}</strong>. Akan divalidasi HRD.</p>
+        <p className="text-[13px] text-ink-soft leading-relaxed">Ajukan penyesuaian garis hubungan penilaian dengan <strong>{targetName}</strong>. HRD akan memeriksa pengajuan ini.</p>
         <div>
           <label className={FIELD_LABEL}>Garis Hubungan Saat Ini</label>
           <div className="flex items-center min-h-9 text-[13px] font-semibold text-ink bg-neutral-tint px-3 rounded-control border border-line">{REL_LABEL[currentRelation] ?? currentRelation}</div>

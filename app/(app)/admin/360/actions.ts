@@ -30,7 +30,7 @@ export async function computeResult360(): Promise<ComputeResult> {
   // 1) Otorisasi: harus HRD.
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   // Dipicu dari Review & Finalisasi (Hitung Ulang), Bobot, dan persetujuan koreksi Pemetaan.
   if (!(canSection(me, 'laporan') || canSection(me, 'bobot') || canSection(me, 'pemetaan'))) return { ok: false, error: 'Hanya HRD yang dapat menghitung skor 360' };
@@ -49,7 +49,7 @@ export async function computeResult360(): Promise<ComputeResult> {
   const { data: ws } = await admin
     .from('weight_schemes').select('model, weights')
     .eq('period_id', ap.id).eq('is_active', true).maybeSingle();
-  if (!ws) return { ok: false, error: 'Bobot penilai periode ini belum disimpan. Buka Bobot & Kalkulasi 360° lalu tekan "Simpan & Terapkan Bobot", kemudian ulangi Hitung Ulang.' };
+  if (!ws) return { ok: false, error: 'Bobot penilai periode ini belum disimpan. Tekan "Simpan & Terapkan Bobot" di Bobot & Kalkulasi 360°, lalu ulangi Hitung Ulang.' };
   const defScheme: WeightScheme = { model: ws.model, weights: ws.weights as WeightValues };
 
   // Bobot KHUSUS per pegawai (migrasi 0031): baris ada → pakai model+weights ini untuk pegawai itu.
@@ -70,7 +70,7 @@ export async function computeResult360(): Promise<ComputeResult> {
         .eq('period_id', ap.id).eq('status', 'submitted')
         .order('id').range(from, to));
     if (asmts.length === 0) {
-      return { ok: false, error: 'Belum ada penilaian terkirim untuk dihitung' };
+      return { ok: false, error: 'Belum ada penilaian terkirim yang dapat dihitung' };
     }
     scores = await fetchAllByIds<{ assessment_id: string; rating: number | null }>(asmts.map((a) => a.id), (chunk, from, to) =>
       admin.from('assessment_indicator_scores').select('assessment_id, rating')
@@ -161,7 +161,7 @@ export async function computeResult360(): Promise<ComputeResult> {
 
   if (writable.length) {
     const { error } = await admin.from('result_360').upsert(writable, { onConflict: 'employee_id,period_id' });
-    if (error) return { ok: false, error: 'Gagal menulis result_360: ' + error.message };
+    if (error) return { ok: false, error: 'Gagal menyimpan hasil Skor 360°: ' + error.message };
   }
 
   // Buang Skor 360° YATIM: pegawai yang punya baris result_360 periode ini tetapi kini tak punya

@@ -91,10 +91,10 @@ export function PegawaiImport({ rows }: { rows: EmpRow[] }) {
           email, password, spvCode,
         };
       }).filter((r) => r.name || r.empCode || r.email);
-      if (base.length === 0) { setParseErr('Tidak menemukan kolom nama/kode. Periksa header file.'); return; }
+      if (base.length === 0) { setParseErr('Kolom nama/kode tidak ditemukan. Periksa judul kolom pada berkas.'); return; }
       setParsed(validate(base));
     } catch {
-      setParseErr('Gagal membaca file. Pastikan .xlsx/.xls/.csv valid.');
+      setParseErr('Gagal membaca berkas. Pastikan berkas berformat .xlsx, .xls, atau .csv.');
     } finally { if (fileRef.current) fileRef.current.value = ''; }
   }
 
@@ -110,7 +110,7 @@ export function PegawaiImport({ rows }: { rows: EmpRow[] }) {
   const valids = (parsed ?? []).filter((r) => r.status === 'ok');
 
   function apply() {
-    if (valids.length === 0) { setMsg({ ok: false, text: 'Tidak ada baris valid untuk diimpor.' }); return; }
+    if (valids.length === 0) { setMsg({ ok: false, text: 'Tidak ada baris valid yang dapat diimpor.' }); return; }
     setMsg(null);
     const payload = valids.map((r) => ({
       name: r.name, empCode: r.empCode, dept: r.dept, role: r.role,
@@ -159,13 +159,13 @@ export function PegawaiImport({ rows }: { rows: EmpRow[] }) {
       </div>
       <p className="text-xs text-ink-soft leading-relaxed">
         Kolom: <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">nama</code>, <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">kode</code>, <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">divisi</code>, <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">peran</code> (employee/spv/hrd/direksi),
-        <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded"> email</code> (opsional → otomatis dari nama), <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">sandi</code> (opsional → Sandi Default), <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">atasan</code> (kode pegawai, opsional).
-        {' '}<button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh template</button>.
+        <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded"> email</code> (opsional), <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">sandi</code> (opsional → Sandi Bawaan), <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">atasan</code> (kode pegawai, opsional).
+        {' '}<button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh templat</button>.
       </p>
 
       <div className="flex flex-wrap items-end gap-2">
         <label className="block">
-          <span className={FIELD_LABEL}>Sandi Default (untuk baris tanpa kolom sandi)</span>
+          <span className={FIELD_LABEL}>Sandi Bawaan (untuk baris tanpa kolom sandi)</span>
           <input value={defPass} onChange={(e) => reapplyDefault(e.target.value)} placeholder="min. 6 karakter"
             className={`${FIELD} font-mono`} />
         </label>

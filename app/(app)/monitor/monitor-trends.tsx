@@ -227,7 +227,7 @@ function CauseBlock({ label, cause }: { label: string; cause: DeltaCause | null 
       {showBreak && (
         <div className="ml-3 pl-2 border-l border-line space-y-0.5 text-[11px] text-ink-soft">
           {real == null ? (
-            <div>Seluruhnya dari perubahan komposisi — tak ada pegawai yang dinilai di kedua periode.</div>
+            <div>Seluruh selisih berasal dari perubahan komposisi; tidak ada pegawai yang dinilai di kedua periode.</div>
           ) : (
             <>
               <div>
@@ -267,9 +267,9 @@ function DeltaSummary({
         {prev ? <>Perubahan <span className="text-ink">{prev.label} → {curr.label}</span></> : <>Periode <span className="text-ink">{curr.label}</span></>}
       </div>
       <div className="space-y-2">
-        <DeltaMetric label="Avg KPI" curr={curr.kpi} prev={prev?.kpi ?? null} />
-        {has360 && <DeltaMetric label="Avg 360°" curr={curr.s360} prev={prev?.s360 ?? null} />}
-        <DeltaMetric label="Avg Skor Akhir" curr={curr.final} prev={prev?.final ?? null} />
+        <DeltaMetric label="Rerata KPI" curr={curr.kpi} prev={prev?.kpi ?? null} />
+        {has360 && <DeltaMetric label="Rerata 360°" curr={curr.s360} prev={prev?.s360 ?? null} />}
+        <DeltaMetric label="Rerata Skor Akhir" curr={curr.final} prev={prev?.final ?? null} />
       </div>
       {hasCause && (
         <div className="mt-3 pt-3 border-t border-line-soft">
@@ -280,7 +280,7 @@ function DeltaSummary({
           </div>
         </div>
       )}
-      {!prev && <p className="text-xs text-ink-soft mt-2">Perlu ≥2 periode berdata untuk selisih.</p>}
+      {!prev && <p className="text-xs text-ink-soft mt-2">Selisih baru bisa dihitung bila ada minimal 2 periode yang berisi data.</p>}
     </div>
   );
 }
@@ -337,7 +337,7 @@ function TopMovers({ movers, labels }: { movers: MoverRow[]; labels: { prev: str
   return (
     <ChartCard icon={ArrowUpDown} title="Pergerakan KPI" hint={labels && <span className="text-xs text-ink-soft">{labels.prev} → {labels.curr}</span>}>
       {!labels || movers.length === 0 ? (
-        <p className="text-[13px] text-ink-soft py-6 text-center">Perlu ≥2 periode berdata (pegawai bernilai di keduanya) untuk pergerakan.</p>
+        <p className="text-[13px] text-ink-soft py-6 text-center">Pergerakan tampil bila ada minimal 2 periode berdata dengan pegawai yang sama.</p>
       ) : (
         <>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-3">
@@ -367,7 +367,7 @@ function TopMovers({ movers, labels }: { movers: MoverRow[]; labels: { prev: str
 function AspectChips({ aspects }: { aspects: AspectDelta[] }) {
   // Penurunan dulu (delta menaik: paling negatif di depan), maksimal 4 aspek bermakna.
   const shown = [...aspects].sort((a, b) => a.delta - b.delta).slice(0, 4);
-  if (shown.length === 0) return <span className="text-[11px] text-ink-faint italic">tak ada perubahan aspek berarti</span>;
+  if (shown.length === 0) return <span className="text-[11px] text-ink-faint italic">tidak ada perubahan aspek yang berarti</span>;
   return (
     <div className="flex flex-wrap gap-x-2 gap-y-0.5">
       {shown.map((a) => {
@@ -410,7 +410,7 @@ function TopMovers360({ movers, labels }: { movers: MoverRow360[]; labels: { pre
   return (
     <ChartCard icon={Activity} title="Pergerakan 360°" hint={labels && <span className="text-xs text-ink-soft">{labels.prev} → {labels.curr}</span>}>
       {!labels || movers.length === 0 ? (
-        <p className="text-[13px] text-ink-soft py-6 text-center">Perlu ≥2 periode ber-360° (pegawai bernilai di keduanya) untuk pergerakan.</p>
+        <p className="text-[13px] text-ink-soft py-6 text-center">Pergerakan tampil bila ada minimal 2 periode berskor 360° dengan pegawai yang sama.</p>
       ) : (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-3">
@@ -475,9 +475,9 @@ export function MonitorTrends({
 
   const periodLabels = periodsTrend.map((p) => p.label);
   const periodSeries: Series[] = [
-    { label: 'Avg KPI', color: C_KPI, points: periodsTrend.map((p) => p.kpi), labelDy: -6 },
-    ...(has360 ? [{ label: 'Avg 360°', color: C_360, points: periodsTrend.map((p) => p.s360), labelDy: 13 }] : []),
-    { label: 'Avg Skor Akhir', color: C_FINAL, points: periodsTrend.map((p) => p.final), labelDy: has360 ? 24 : 13, dash: DASH_FINAL },
+    { label: 'Rerata KPI', color: C_KPI, points: periodsTrend.map((p) => p.kpi), labelDy: -6 },
+    ...(has360 ? [{ label: 'Rerata 360°', color: C_360, points: periodsTrend.map((p) => p.s360), labelDy: 13 }] : []),
+    { label: 'Rerata Skor Akhir', color: C_FINAL, points: periodsTrend.map((p) => p.final), labelDy: has360 ? 24 : 13, dash: DASH_FINAL },
   ];
 
   // Overview "Semua Anggota" (grafik kiri): pita rentang-TENGAH tim (p25–p75) + rata tim (tebal)
@@ -519,7 +519,7 @@ export function MonitorTrends({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
             <div className="lg:col-span-2 min-w-0">
               <LineChart xLabels={periodLabels} series={periodSeries} />
-              <Legend items={[{ label: 'Avg KPI', color: C_KPI }, ...(has360 ? [{ label: 'Avg 360°', color: C_360 }] : []), { label: 'Avg Skor Akhir', color: C_FINAL, dash: true }]} />
+              <Legend items={[{ label: 'Rerata KPI', color: C_KPI }, ...(has360 ? [{ label: 'Rerata 360°', color: C_360 }] : []), { label: 'Rerata Skor Akhir', color: C_FINAL, dash: true }]} />
             </div>
             <DeltaSummary periodsTrend={periodsTrend} has360={has360} kpiCause={kpiCause} s360Cause={s360Cause} />
           </div>
@@ -537,7 +537,7 @@ export function MonitorTrends({
               <LineChart xLabels={monthLabels} series={overviewSeries} band={overviewBand} />
               <Legend items={overviewLegend} />
               <p className="mt-2 text-xs leading-snug text-ink-soft">
-                <span className="inline-block w-3 h-2 align-middle rounded-sm" style={{ backgroundColor: C_BAND }} /> Area = rentang tengah tim (p25–p75, tempat mayoritas anggota berada); makin lebar = tim makin timpang. Garis tebal = rata-rata tim; cokelat/merah = anggota rerata tertinggi/terendah.
+                <span className="inline-block w-3 h-2 align-middle rounded-sm" style={{ backgroundColor: C_BAND }} /> Area = rentang tengah tim; makin lebar, makin timpang. Garis tebal = rata-rata tim; garis cokelat/merah = anggota tertinggi/terendah.
               </p>
             </>
           )}

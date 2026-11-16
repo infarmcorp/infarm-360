@@ -109,8 +109,7 @@ async function MyPlan({ admin, userId, role, name, periodParam, resolve, people,
         due={sel.dev_plan_due} closed={closed} supervisorLabel={supLabel} />
       {role !== 'direksi' && (
         <Note>
-          Isi setelah sesi empat mata dengan atasan. Prioritas 1 mengacu pada &quot;Prioritas utama&quot; di bagian Perlu
-          Dikembangkan pada laporan Anda. Setelah dikirim, atasan memberi komentar lalu HRD menyetujui.
+          Isi setelah sesi empat mata dengan atasan. Prioritas 1 = &quot;Prioritas utama&quot; di bagian Perlu Dikembangkan pada laporan Anda. Setelah dikirim, atasan memberi komentar, lalu HRD menyetujui.
         </Note>
       )}
       {plan && <RevisionNotice plan={plan} />}

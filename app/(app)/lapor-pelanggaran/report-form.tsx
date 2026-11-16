@@ -2,27 +2,33 @@
 
 import { useState, useTransition } from 'react';
 import { BookOpen, CheckCircle2, Lock, PenLine } from 'lucide-react';
-import { submitOutsideNote } from './outside-note-actions';
+import { submitOutsideNote } from './actions';
 import { SearchableSelect } from '@/components/searchable-select';
+import { DatePicker } from '@/components/date-picker';
+
+/** Hari ini menurut WIB (`YYYY-MM-DD`) — batas yang sama dengan validasi server. */
+function todayWib(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+}
 import { callAction } from '@/lib/call-action';
 import { OUTSIDE_NOTE_MIN, OUTSIDE_NOTE_MAX, OUTSIDE_NOTE_EXTRA_MAX } from '@/lib/outside-notes';
-import { Modal, ModalActions } from './modal';
+import { Modal, ModalActions } from '../penilaian/modal';
 import { FIELD, FIELD_LABEL } from '@/components/infarm-ui';
-import { BTN_GHOST, BTN_PRIMARY, FIELD_AREA } from './penilaian-ui';
+import { BTN_GHOST, BTN_PRIMARY, FIELD_AREA } from '../penilaian/penilaian-ui';
 
 type Candidate = { id: string; name: string; dept: string };
-type Aspect = { id: string; name: string };
+/** Kategori budaya kerja = nama aspek (nilai yang dikirim = nama). */
 
 const OTHER = 'other';
 const REQ = <span className="text-danger-ink">*</span>;
 
 /**
- * "Tulis Laporan" — Laporkan Pelanggaran (tabel catatan 0054 + 0058). Pola sama dengan Ajukan Penilaian
+ * "Tulis Laporan" — Laporkan Pelanggaran (tabel catatan 0054 + 0058 + 0061). Pola sama dengan Ajukan Penilaian
  * (request-assessment-form.tsx): pop-up, SearchableSelect rekan, validasi ulang di server.
- * Tanpa riwayat: sesudah terkirim hanya konfirmasi — laporan tak tersimpan dengan nama pengirim,
- * jadi tak bisa ditampilkan kembali kepadanya.
+ * Sesudah terkirim: konfirmasi + arahan ke tab Laporan Saya (0062: laporan dikenali lewat penanda tersembunyi,
+ * bukan nama pengirim; HRD tak melihat pengirimnya).
  */
-export function OutsideNoteButton({ candidates, aspects }: { candidates: Candidate[]; aspects: Aspect[] }) {
+export function OutsideNoteButton({ candidates, categories }: { candidates: Candidate[]; categories: string[] }) {
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
   const [targetId, setTargetId] = useState('');
@@ -61,7 +67,7 @@ export function OutsideNoteButton({ candidates, aspects }: { candidates: Candida
         {sent ? (
           <>
             <p className="flex items-center gap-2 text-[13px] font-bold text-brand-ink"><CheckCircle2 className="w-4 h-4 shrink-0" /> Laporan terkirim ke HRD</p>
-            <p className="text-[13px] text-ink-soft">Terima kasih. Nama dan identitas Anda tidak tersimpan bersama laporan ini.</p>
+            <p className="text-[13px] text-ink-soft">Terima kasih. Identitas Anda tidak ditampilkan kepada HRD. Pantau status dan tanggapan HRD di tab Laporan Saya.</p>
             <div className="flex justify-end gap-2 pt-1">
               <button type="button" onClick={close} className={BTN_GHOST}>Tutup</button>
               <button type="button" onClick={reset} className={BTN_PRIMARY}>Tulis Laporan Lain</button>
@@ -82,7 +88,7 @@ export function OutsideNoteButton({ candidates, aspects }: { candidates: Candida
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.06em] text-infarm-soil mb-1">Kerahasiaan</p>
                   <p className="text-xs leading-relaxed text-ink">
-                    Nama dan identitas Anda tidak disimpan dalam laporan. Laporan hanya dapat diakses oleh HRD untuk keperluan
+                    Identitas Anda tidak ditampilkan dalam laporan. Laporan hanya dapat diakses oleh HRD untuk keperluan
                     verifikasi dan tindak lanjut, serta tidak dapat dilihat oleh rekan yang dilaporkan maupun karyawan lain.
                   </p>
                 </div>
@@ -105,17 +111,18 @@ export function OutsideNoteButton({ candidates, aspects }: { candidates: Candida
               </div>
               <div className="min-w-0">
                 <label className={FIELD_LABEL}>Tanggal kejadian {REQ}</label>
-                <input type="date" value={incidentDate} onChange={(e) => setIncidentDate(e.target.value)} disabled={busy}
-                  className={`${FIELD} w-full font-mono`} />
+                {/* Pemilih tanggal yang sama dengan Kelola Periode; tanggal setelah hari ini (WIB) tak bisa dipilih. */}
+                <DatePicker value={incidentDate} onChange={setIncidentDate} max={todayWib()}
+                  placeholder="Pilih tanggal" ariaLabel="Tanggal kejadian" className="w-full" />
               </div>
               <div className="min-w-0">
                 <label className={FIELD_LABEL}>Kategori {REQ}</label>
                 <select value={category} onChange={(e) => setCategory(e.target.value)} disabled={busy}
                   className={`${FIELD} w-full`}>
                   <option value="">— Pilih kategori —</option>
-                  {aspects.length > 0 && (
+                  {categories.length > 0 && (
                     <optgroup label="Budaya kerja">
-                      {aspects.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                      {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                     </optgroup>
                   )}
                   <option value={OTHER}>Lainnya (di luar budaya kerja)</option>
@@ -145,7 +152,8 @@ export function OutsideNoteButton({ candidates, aspects }: { candidates: Candida
             </div>
 
             <p className="text-xs text-ink-soft">
-              Laporan tanpa rating, tidak memengaruhi Skor 360°, dan tidak bisa diubah atau dihapus setelah dikirim.
+              Penilaian kinerja rekan tetap lewat formulir penilaian; laporan ini untuk kejadian pelanggaran. Laporan tidak
+              memengaruhi Skor 360° dan tidak bisa diubah atau dihapus setelah dikirim.
             </p>
 
             {err && <p className="text-xs text-danger-ink font-semibold">{err}</p>}

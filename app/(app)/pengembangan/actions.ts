@@ -46,7 +46,7 @@ const Comments = z.object({
 async function ctx(): Promise<{ ok: true; actor: PlanActor & { name: string | null }; mode: HrdMode; admin: SB } | { ok: false; error: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees')
     .select('role, is_hrd_admin, is_coordinator, hrd_sections, name').eq('id', user.id).maybeSingle();
   if (!me) return { ok: false, error: 'Akun tidak ditemukan' };
@@ -219,7 +219,7 @@ export async function approveAsHrd(rawPlanId: string): Promise<Result> {
   if (!planId.success) return { ok: false, error: 'Rencana tidak valid' };
   const c = await ctx(); if (!c.ok) return c;
   const { actor, admin, mode } = c;
-  if (!canHrdSign(actor, mode)) return { ok: false, error: 'Persetujuan HRD hanya oleh pegawai berposisi HRD di Mode Admin' };
+  if (!canHrdSign(actor, mode)) return { ok: false, error: 'Persetujuan HRD hanya dapat diberikan oleh pegawai HRD di Mode Admin' };
 
   const p = await planById(admin, planId.data); if (!p.ok) return p;
   const { plan, emp } = p;
@@ -273,7 +273,7 @@ export async function setPlanWindow(rawPeriodId: string, closed: boolean, rawDue
   if (!due.success) return { ok: false, error: due.error.issues[0].message };
   const c = await ctx(); if (!c.ok) return c;
   const { actor, admin, mode } = c;
-  if (!canHrdManage(actor, mode)) return { ok: false, error: 'Hanya HRD (bagian Rencana Pengembangan) di Mode Admin' };
+  if (!canHrdManage(actor, mode)) return { ok: false, error: 'Hanya dapat dilakukan HRD (bagian Rencana Pengembangan) di Mode Admin' };
 
   const { data: cur, error: readErr } = await admin.from('periods').select('label, dev_plan_closed_at').eq('id', pid.data).maybeSingle();
   if (readErr) return { ok: false, error: /dev_plan/.test(readErr.message) ? OFF : 'Gagal membaca periode' };
@@ -327,7 +327,7 @@ export async function saveSession(rawPlanId: string, rawSessionId: string | null
   const { actor, admin, mode, plan, emp, info } = s;
   const v = input.data;
   if (!canRecordSession(v.kind, info, actor, emp.id, mode)) {
-    return { ok: false, error: v.kind === 'one_on_one' ? 'Sesi 1-on-1 dicatat oleh atasan rencana ini' : 'Tinjauan bulanan dicatat oleh HRD di Mode Admin' };
+    return { ok: false, error: v.kind === 'one_on_one' ? 'Sesi empat mata dicatat oleh atasan pemilik rencana ini' : 'Tinjauan bulanan dicatat oleh HRD di Mode Admin' };
   }
   // Kemajuan hanya untuk prioritas milik rencana ini; tinjauan HRD tanpa status/kemajuan.
   const { data: items } = await admin.from('development_plan_items').select('id').eq('plan_id', plan.id);
@@ -395,7 +395,7 @@ export async function saveSessionResponse(rawSessionId: string, rawNote: string)
   if (error) return { ok: false, error: tableMissing(error) ? SESSION_OFF : 'Gagal membaca catatan' };
   if (!cur || cur.kind !== 'one_on_one') return { ok: false, error: 'Catatan tidak ditemukan' };
   const s = await sessionCtx(c, cur.plan_id); if (!s.ok) return s;
-  if (s.emp.id !== s.actor.id) return { ok: false, error: 'Tanggapan hanya ditulis pemilik rencana' };
+  if (s.emp.id !== s.actor.id) return { ok: false, error: 'Tanggapan hanya dapat ditulis oleh pemilik rencana' };
   if (inAdminView(s.actor, s.mode)) return { ok: false, error: OWNER_IN_ADMIN };
   const { error: upErr } = await s.admin.from('development_plan_sessions')
     .update({ employee_note: note.data || null, employee_note_at: note.data ? new Date().toISOString() : null }).eq('id', cur.id);

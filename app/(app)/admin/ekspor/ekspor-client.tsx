@@ -55,11 +55,11 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
     try {
       const { sheets, filename } = await build();
       const total = sheets.reduce((a, s) => a + s.rows.length, 0);
-      if (total === 0) { setMsg({ key, ok: false, text: 'Belum ada data untuk diekspor.' }); return; }
+      if (total === 0) { setMsg({ key, ok: false, text: 'Belum ada data yang dapat diekspor.' }); return; }
       await writeWorkbook(sheets, filename);
       setMsg({ key, ok: true, text: `${total} baris diunduh (${sheets.length} lembar).` });
     } catch (e) {
-      setMsg({ key, ok: false, text: e instanceof Error ? e.message : 'Gagal menyiapkan file.' });
+      setMsg({ key, ok: false, text: e instanceof Error ? e.message : 'Gagal menyiapkan berkas.' });
     } finally { setBusy(null); }
   }
 
@@ -115,7 +115,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
     },
     {
       key: 'bahan', title: 'Bahan Laporan per Pegawai', icon: FileText, scoped: true,
-      desc: <>Untuk diringkas menjadi laporan per pegawai — <strong>4 lembar</strong> (anonim penilai, tanpa Self): <strong>Skor</strong> (Skor Akhir · KPI · 360° · potongan telat · skor tiap aspek budaya + kategori) · <strong>Komentar Aspek</strong> (rating &amp; komentar per indikator) · <strong>Komentar Esai</strong> · <strong>Laporan Pelanggaran</strong> (tanggal kejadian, kategori, laporan, catatan — tanpa pelapor). Disertai divisi &amp; rentang periode.</>,
+      desc: <>Untuk diringkas menjadi laporan per pegawai — <strong>4 lembar</strong> (anonim penilai, tanpa Self): <strong>Skor</strong> (Skor Akhir · KPI · 360° · potongan telat · skor tiap aspek budaya + kategori) · <strong>Komentar Aspek</strong> (rating &amp; komentar per indikator) · <strong>Komentar Esai</strong> · <strong>Laporan Pelanggaran</strong> (tanggal kejadian, kategori, laporan, catatan, status &amp; tanggapan HRD — tanpa pelapor). Disertai divisi &amp; rentang periode.</>,
       go: () => run('bahan', async () => {
         const res = await exportReportMaterials(pid());
         if (!res.ok) throw new Error(res.error);
@@ -123,7 +123,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
       }),
     },
     {
-      key: 'idp', title: 'Rencana Pengembangan & 1-on-1', icon: Sprout, scoped: true,
+      key: 'idp', title: 'Rencana Pengembangan & Sesi Empat Mata', icon: Sprout, scoped: true,
       desc: <>Rencana pengembangan pegawai (<strong>bernama</strong>), disaring menurut periode <strong>laporan</strong> asalnya — <strong>3 lembar</strong>: <strong>Rencana</strong> (per prioritas) · <strong>Komentar &amp; Persetujuan</strong> (komentar atasan, siapa menyetujui &amp; kapan) · <strong>Sesi &amp; Tinjauan</strong> (sesi 1-on-1, tinjauan bulanan HRD, kemajuan per prioritas, tanggapan pegawai).</>,
       go: () => run('idp', async () => {
         const res = await exportDevPlans(pid());
@@ -156,7 +156,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
       </div>
 
       <Note>
-        Tiap unduhan = <strong>satu file Excel dengan beberapa lembar (sheet)</strong> yang setema — buka file, pindah antar-lembar di bawah. Tak perlu mengunduh berkali-kali untuk data yang berkaitan.
+        Setiap unduhan berupa satu berkas Excel dengan beberapa lembar yang saling berkaitan, jadi cukup diunduh sekali.
       </Note>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

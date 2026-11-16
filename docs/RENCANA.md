@@ -47,10 +47,16 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 ## 2. Harus dikerjakan
 
 ### Rilis & operasional
+- 🔑⬜ **Sisa audit kalimat (2026-11-13).** Perubahan "Ubah" sudah di `dev`. Sisa: 🔑 31 usulan "Tanya HRD" (nama
+  kelas 4-Box, kategori lama, HRD Review/No Score, alasan Ajukan Penilaian, panduan skala BARS, teks Kerahasiaan) menunggu
+  jawaban HRD; 🔑 putuskan apakah sandi yang diatur HRD wajib minimal 8 karakter seperti ganti sandi sendiri (sekarang 6).
+  Gambar layar Notion yang menampilkan nama menu lama perlu diambil ulang.
 - 🔑⬜ **Panduan pindah ke Notion per peran** (keputusan pemilik 2026-11-06). Kartu Panduan, penanda PANDUAN, lampiran PDF
   di email Undangan, dan 4 berkas PDF lama sudah dihapus dari `dev` agar pegawai tidak memakai panduan yang salah. Rilisnya
-  ikut rilis menuju Q4 (keputusan pemilik), jadi sampai itu production masih memakai yang lama. Sisa: siapkan halaman Notion
-  tiap peran, lalu pasang tautannya di Akun Saya. Revisi 4 PDF tidak jadi dikerjakan.
+  ikut rilis menuju Q4 (keputusan pemilik), jadi sampai itu production masih memakai yang lama. Halaman Notion tiap peran
+  sudah ada, dan kartu **Panduan Saya** di Akun Saya sudah dipasang di `dev` (2026-11-12). Sisa: 🔑 bagikan halaman
+  "Panduan Pengguna" di Notion ke web (hanya halaman itu beserta isinya, **bukan** halaman induk yang memuat catatan
+  internal), lalu coba buka tautannya dari akun pegawai yang tidak punya akun Notion. Revisi 4 PDF tidak jadi dikerjakan.
 - 🔑🔄 **Rilis Q3** — sudah di production (2026-10-16), 0048 & 0049 terpasang. Sisa:
   - 🔑 kirim [PESAN-HRD-RILIS-Q3.md](PESAN-HRD-RILIS-Q3.md) ke HRD (dan bagian untuk SPV/Koordinator & pegawai);
   - 🔑 jalankan bagian 16–21 [UJI-RILIS-Q3.md](UJI-RILIS-Q3.md) di Preview `dev` (staging);
@@ -82,25 +88,29 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
     tidak menambah pemicu untuk Preview);
   - 🔑 uji pemicu sekali di production (Actions → Email Rilis Terjadwal → Run workflow), lalu jadwalkan ke akun
     sendiri dari UI untuk memastikan terkirim otomatis.
-- 🔑🔄 **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan", untuk Q4 2026). Versi lama sudah di production
-  (rilis 2026-11-03). Versi baru (keputusan pemilik 2026-11-10) dikerjakan di branch `feat/laporkan-pelanggaran`,
-  **belum** di `dev`: kartu & pop-up berganti nama dan teks, isian baru (tanggal kejadian wajib, kategori budaya kerja
-  atau Lainnya, catatan opsional, panduan & kerahasiaan di pop-up), dan halaman HRD baru **Laporan Pelanggaran**
-  (daftar pegawai yang dilaporkan + satu kartu per laporan; sejak 2026-11-11 juga dibaca Direksi). Laporan tidak lagi tampil di rincian komentar laporan;
-  ekspor Bahan Laporan lembar 4 kini memuat tanggal kejadian, kategori, laporan, dan catatan. Sisa:
-  - ✅ perubahan database **0054** terpasang di staging dan production;
-  - 🔑 setelah rilis yang sedang berjalan di-merge: gabungkan branch ke `dev`, jalankan perubahan database **0058** di
-    staging lalu production **sebelum** versi baru dirilis (tanpa 0058 pengiriman laporan ditolak "sedang diperbarui");
-  - 🔑 uji per peran di Preview;
-  - 🔑 jalankan perubahan database **0059** (Direksi hanya bisa membaca rencana pengembangan timnya) di staging lalu
-    production, lalu jalankan pemeriksaan keamanan database;
+- 🔑 **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan", untuk Q4 2026). Versi baru (keputusan pemilik
+  2026-11-10) sudah dirilis ke production (2026-11-11): kartu & pop-up berganti nama dan teks, isian baru (tanggal
+  kejadian wajib, kategori budaya kerja atau Lainnya, catatan opsional, panduan & kerahasiaan di pop-up), dan halaman
+  HRD baru **Laporan Pelanggaran** (daftar pegawai yang dilaporkan + satu kartu per laporan; juga dibaca Direksi).
+  Laporan tidak lagi tampil di rincian komentar laporan; ekspor Bahan Laporan lembar 4 memuat tanggal kejadian,
+  kategori, laporan, dan catatan. Sisa:
+  - 🔑 **Lepas dari penilaian 360°** (permintaan pengguna, keputusan pemilik 2026-11-16; di `dev`, belum dirilis): menu
+    sendiri **Laporkan Pelanggaran** untuk pegawai, saklar Buka/Tutup sendiri per periode di Kelola Periode, kategori
+    menurut nama aspek budaya. Perubahan database 0061 sudah dijalankan pemilik (2026-11-16). Panduan Notion 2A–2F
+    sudah diperbarui; gambar layar yang usang tercatat di Daily Report (ambil ulang terpisah). Sesudah
+    rilis HRD perlu membuka saklarnya pada periode aktif (bila formulir sedang terbuka saat perubahan database
+    dijalankan, saklar ikut terbuka). Uji di Preview: kirim laporan saat formulir ditutup, dan saat periode tanpa 360°.
   - 🔑 sebelum Q4 dibuka: umumkan fiturnya ke pegawai.
-  - Belum dibangun (pemilik): kode laporan + Cek Status untuk pelapor. Laporan yang masuk tanpa kode tidak bisa
-    dihubungkan ke pelapornya di kemudian hari.
-- ✅ **Perubahan database** — 0001–0057 terpasang di staging dan production (0050–0057 dicek pemilik 2026-11-09
-  dengan `scripts/check-migrations.sql` di kedua database).
-
-### Keamanan
+  - 🔑 **Tindak lanjut HRD + Laporan Saya** (permintaan HRD, keputusan pemilik 2026-11-16; di `dev`, belum dirilis):
+    HRD memberi status (Diterima → Sedang ditindaklanjuti → Selesai) dan tanggapan satu arah; pelapor melihat semua
+    laporannya di tab Laporan Saya tanpa kode. Anonimitas berubah menjadi "tersembunyi": HRD tetap tidak melihat
+    pelapor, tetapi pengelola sistem yang memegang kunci rahasia secara teori bisa melacak. Perubahan database 0062
+    sudah dijalankan pemilik (2026-11-16). Sebelum dirilis: pastikan kunci rahasia **VIOLATION_REPORTER_SECRET** terisi
+    di Vercel (Preview & Production) — sekali saja, jangan pernah diganti — lalu uji kirim laporan baru sampai muncul
+    di Laporan Saya. Laporan yang
+    masuk sebelumnya tidak tampil di Laporan Saya (diterima pemilik; fitur belum dipakai).
+- ✅ **Perubahan database** — 0001–0059 terpasang di production (0050–0057 dicek pemilik 2026-11-09 dengan
+  `scripts/check-migrations.sql` di staging & production; 0058 dan 0059 dijalankan pemilik, dikonfirmasi 2026-11-11).
 - 🔑⬜ **Ganti kunci rahasia database** (kunci admin Supabase dan lainnya) sebelum produksi penuh. Kunci admin
   bisa membuka seluruh data; bila pernah dibagikan saat pengembangan, anggap bocor. **Ditunda** sampai ada
   waktu sepi (luar jam kerja atau akhir periode), agar pengguna yang sedang login tidak terputus.
@@ -231,12 +241,19 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 
 Dipindah ke §2 bila diputuskan dikerjakan.
 
-- **Ringkasan Aspek otomatis dengan AI (Claude).** Tombol "✨ Buat Ringkasan Otomatis" di editor ringkasan HRD:
-  nilai dan komentar **tanpa nama penilai** dikirim ke Claude, hasilnya mengisi kotak ringkasan, lalu HRD
-  menyunting. Butuh kunci API Claude (hanya di server), aktif lewat saklar, khusus HRD, memakai model termurah
-  (Haiku). Perkiraan biaya: ~$0,04 per pegawai → ~$2–4 per kuartal untuk 50–100 pegawai, hanya saat tombol
-  ditekan. Privasi: komentar (sudah anonim) dikirim ke Anthropic, disimpan 30 hari, tidak dipakai melatih
-  model. Perlu persetujuan kebijakan internal.
+- **Ringkas otomatis dengan AI — sedang dicoba di dev saja (2026-11-12, Gemini, kunci API pribadi).** Tombol
+  "Ringkas otomatis" di kartu ringkasan aspek dan ringkasan kualitatif pada laporan pegawai. HRD menekannya sendiri
+  (hemat biaya); hasilnya tampil sebagai **saran** di bawah tiap kotak beserta jumlah token masuk/keluar dan perkiraan
+  biaya dalam rupiah, dan baru tersimpan bila HRD menekan "Pakai saran ini"/"Pakai semua". Yang dikirim hanya nilai dan
+  komentar tanpa nama penilai, tanpa nama/divisi pegawai. **Tidak pernah aktif di production** (juga mati bila aplikasi
+  tersambung ke database production). Data staging diisi komentar asli lewat penyalinan dengan opsi khusus agar hasil bisa
+  dibandingkan dengan ringkasan HRD. Daftar model diambil langsung dari Google (model lama bisa ditarik Google kapan saja —
+  gemini-2.5-flash sudah ditolak untuk pengguna baru per 2026-11-12), harga model baru diisi HRD dari daftar harga Google.
+  Model, harga, kurs, dan teks perintah (prompt) diatur sekali di halaman
+  **Pengaturan AI** (menu Administrasi, khusus HRD Mode Admin) dan berlaku untuk semua ringkasan agar hasilnya seragam;
+  tiap perubahan teks prompt menaikkan nomor "prompt versi" yang tercatat di tiap hasil (ganti model tidak; model dicatat terpisah). Butuh perubahan database ke-60 di
+  staging. Prompt resmi menyusul dari pemilik. Sebelum dibawa ke production perlu: kunci API milik perusahaan berbayar,
+  persetujuan kebijakan internal, perubahan database ke-60 di production, dan pembaruan panduan.
 - **Pengaman warna otomatis**: pengecekan otomatis yang menolak warna di luar palet resmi agar halaman baru
   tidak kembali ke gaya lama.
 - **Design System Infarm — rapikan sisa.** Seluruh halaman sudah memakainya (2026-11-04). Sisa kecil: pemanggil kotak

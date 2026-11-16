@@ -12,7 +12,7 @@ type Candidate = { id: string; name: string; dept: string };
 
 const REL_OPTS = ['Atasan', 'Peer', 'Cross', 'Bawahan'] as const;
 const REL_LABEL: Record<string, string> = {
-  Atasan: 'Atasan saya', Peer: 'Rekan sejawat (Peer)', Cross: 'Lintas Divisi', Bawahan: 'Bawahan saya',
+  Atasan: 'Atasan saya', Peer: 'Rekan sejawat', Cross: 'Lintas Divisi', Bawahan: 'Bawahan saya',
 };
 
 // BR-04 (Q3 2026, keputusan HRD): pilihan alasan pengajuan lewat dropdown, bukan teks bebas.
@@ -70,10 +70,7 @@ export function RequestAssessmentButton({ candidates }: { candidates: Candidate[
 
       <Modal open={open} title="Ajukan Penilaian atas Rekan Lain" size="lg" busy={busy} onClose={close}>
         <p className="text-[13px] text-ink-soft leading-relaxed">
-          Merasa perlu menilai rekan yang belum ada di daftar? Ajukan di sini beserta hubungan kerjanya.
-          <strong> Berlaku setelah disetujui HRD.</strong> Penilaian yang disetujui bersifat Opsional, tetapi
-          karena Anda sendiri yang mengajukannya, <strong>wajib dikirim sebelum deadline</strong> — bila tidak,
-          Skor 360° Anda terkena potongan keterlambatan (berlaku mulai periode Q3 2026).
+          Perlu menilai rekan yang belum ada di daftar? Ajukan di sini beserta hubungan kerjanya. Setelah disetujui HRD, penilaian ini wajib Anda kirim sebelum tenggat. Bila terlambat, Skor 360° Anda dipotong (mulai Q3 2026).
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">

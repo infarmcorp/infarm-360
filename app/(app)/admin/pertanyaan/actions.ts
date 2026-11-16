@@ -17,7 +17,7 @@ async function ctx(): Promise<
 > {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'pertanyaan')) return { ok: false, error: 'Hanya HRD yang dapat mengelola pertanyaan' };
   const { data: ap } = await supabase.from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
@@ -100,7 +100,7 @@ export async function renameAspect(aspectId: string, rawName: string): Promise<R
 
 /** Hapus aspek — AMAN: hanya bila belum punya indikator (mencegah cascade ke skor). */
 export async function deleteAspect(aspectId: string): Promise<Result> {
-  if (!z.string().uuid().safeParse(aspectId).success) return { ok: false, error: 'Input tidak valid' };
+  if (!z.string().uuid().safeParse(aspectId).success) return { ok: false, error: 'Isian tidak valid' };
   const c = await ctx(); if (!c.ok) return c;
   const { data: own } = await c.supabase.from('culture_aspects').select('id').eq('id', aspectId).eq('period_id', c.periodId).maybeSingle();
   if (!own) return { ok: false, error: 'Aspek tidak ditemukan di periode aktif' };
@@ -201,7 +201,7 @@ export async function toggleIndicator(indicatorId: string, isActive: boolean): P
  * historis. Bila sudah ada skor → tolak & sarankan "Nonaktifkan" agar histori utuh.
  */
 export async function deleteIndicator(indicatorId: string): Promise<Result> {
-  if (!z.string().uuid().safeParse(indicatorId).success) return { ok: false, error: 'Input tidak valid' };
+  if (!z.string().uuid().safeParse(indicatorId).success) return { ok: false, error: 'Isian tidak valid' };
   const c = await ctx(); if (!c.ok) return c;
   if (!(await indicatorInActivePeriod(c, indicatorId))) return { ok: false, error: 'Indikator tidak ditemukan di periode aktif' };
 
@@ -234,7 +234,7 @@ export type ImportResult =
   | { ok: false; error: string };
 
 export async function importQuestionsFromPeriod(sourcePeriodId: string): Promise<ImportResult> {
-  if (!z.string().uuid().safeParse(sourcePeriodId).success) return { ok: false, error: 'Input tidak valid' };
+  if (!z.string().uuid().safeParse(sourcePeriodId).success) return { ok: false, error: 'Isian tidak valid' };
   const c = await ctx(); if (!c.ok) return c;
   if (sourcePeriodId === c.periodId) return { ok: false, error: 'Periode sumber sama dengan periode aktif' };
 
@@ -244,7 +244,7 @@ export async function importQuestionsFromPeriod(sourcePeriodId: string): Promise
   const { data: srcQuals } = await admin.from('qualitative_questions')
     .select('text, order_idx').eq('period_id', sourcePeriodId).order('order_idx');
   if ((srcAspects?.length ?? 0) === 0 && (srcQuals?.length ?? 0) === 0) {
-    return { ok: false, error: 'Periode sumber tidak punya pertanyaan untuk disalin' };
+    return { ok: false, error: 'Periode sumber tidak punya pertanyaan yang dapat disalin' };
   }
   const srcAspectIds = (srcAspects ?? []).map((a) => a.id);
   const { data: srcInds } = srcAspectIds.length

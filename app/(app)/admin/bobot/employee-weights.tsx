@@ -143,7 +143,7 @@ export function EmployeeWeights({ employees, overrides }: { employees: Emp[]; ov
             <label className={FIELD_LABEL}>Model Bobot</label>
             <select value={model} onChange={(e) => setModel(e.target.value as '4class' | '2class')}
               className={`${FIELD} w-full bg-surface`}>
-              <option value="4class">4-Kelas (Atasan / Peer / Cross / Bawahan)</option>
+              <option value="4class">4-Kelas (Atasan / Rekan / Lintas Divisi / Bawahan)</option>
               <option value="2class">2-Kelas (Atasan / Internal)</option>
             </select>
           </div>
@@ -152,7 +152,7 @@ export function EmployeeWeights({ employees, overrides }: { employees: Emp[]; ov
         {model === '4class' ? (
           // Tanpa kolom Self — Self selalu dikecualikan dari Skor 360°, jadi bobotnya tak berguna.
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {field('Atasan', 'atasan')}{field('Peer', 'peer')}{field('Cross', 'cross')}{field('Bawahan', 'bawahan')}
+            {field('Atasan', 'atasan')}{field('Rekan', 'peer')}{field('Lintas Divisi', 'cross')}{field('Bawahan', 'bawahan')}
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">

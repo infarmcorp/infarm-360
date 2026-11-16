@@ -72,13 +72,13 @@ export function ExtremesHeatmap({
         <CardTitle icon={PieChart}>{pieTitle}</CardTitle>
         {pieSubtitle && <p className="text-xs text-ink-soft mt-1 mb-4">{pieSubtitle}</p>}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <PieBlock heading="Paling Sering Terlemah" kind="weak" slices={weak} activeId={activeId} onPick={toggle} tone="danger" />
-          <PieBlock heading="Paling Sering Terkuat" kind="strong" slices={strong} activeId={activeId} onPick={toggle} tone="brand" />
+          <PieBlock heading="Paling Sering Menjadi Terlemah" kind="weak" slices={weak} activeId={activeId} onPick={toggle} tone="danger" />
+          <PieBlock heading="Paling Sering Menjadi Terkuat" kind="strong" slices={strong} activeId={activeId} onPick={toggle} tone="brand" />
         </div>
         <p className="text-xs text-ink-soft mt-4">
-          <strong>Klik satu irisan</strong> untuk menyaring heatmap di bawah — hanya pegawai yang{' '}
-          <span className="text-danger-ink font-semibold">terlemah</span>/<span className="text-brand-ink font-semibold">terkuat</span>-nya
-          di aspek/indikator itu. Irisan menjumlah 100% (4 teratas + Lainnya); ini titik ekstrem <em>relatif</em> tiap orang, bukan skor mutlak.
+          <strong>Klik irisan</strong> untuk menyaring peta panas di bawah ke pegawai yang titik{' '}
+          <span className="text-danger-ink font-semibold">terlemah</span>/<span className="text-brand-ink font-semibold">terkuat</span>nya
+          ada di aspek/indikator itu. Ini posisi <em>relatif</em> tiap orang, bukan skor mutlak.
         </p>
       </div>
 
@@ -166,7 +166,7 @@ function PieBlock({ heading, kind, slices, activeId, onPick, tone }: {
                   stroke="#fff" strokeWidth={id === activeId ? 2.5 : 1.5}
                   className="cursor-pointer transition-opacity" style={{ opacity: dim ? 0.32 : 1 }}
                   onClick={() => onPick(kind, s)}>
-                  <title>{`${s.label}: ${s.n} · ${((s.n / total) * 100).toFixed(0)}% — klik untuk saring`}</title>
+                  <title>{`${s.label}: ${s.n} · ${((s.n / total) * 100).toFixed(0)}% — klik untuk menyaring`}</title>
                 </path>
               );
             })
@@ -181,7 +181,7 @@ function PieBlock({ heading, kind, slices, activeId, onPick, tone }: {
               <li key={id}>
                 <button type="button" onClick={() => onPick(kind, s)}
                   className={`w-full flex items-start gap-2 text-xs text-left rounded-md px-1.5 py-1 -mx-1.5 transition-colors hover:bg-infarm-surface ${active ? 'bg-neutral-tint ring-1 ring-line-strong' : ''}`}
-                  title="Klik untuk saring heatmap">
+                  title="Klik untuk menyaring peta panas">
                   <span className="w-3 h-3 rounded-sm shrink-0 mt-0.5" style={{ backgroundColor: s.color }} />
                   <span className={`break-words leading-tight flex-1 min-w-0 ${active ? 'font-bold text-ink' : 'font-semibold text-ink'}`}>{s.label}</span>
                   <span className="font-mono text-ink-soft shrink-0 whitespace-nowrap">{s.n} · {(frac * 100).toFixed(0)}%</span>

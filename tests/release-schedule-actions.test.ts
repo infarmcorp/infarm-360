@@ -96,7 +96,7 @@ describe('scheduleReleaseEmail', () => {
     asHrd();
     admin({ employees: [{ data: [{ id: A }] }], release_email_schedules: [{ error: { code: '42P01', message: 'relation does not exist' } }] });
     expect(await scheduleReleaseEmail({ periodId: PID, sendAt: inAnHour(), employeeIds: [A], content: CONTENT }))
-      .toMatchObject({ ok: false, error: expect.stringMatching(/0053/) });
+      .toMatchObject({ ok: false, error: expect.stringMatching(/jadwal belum aktif/i) });
   });
 
   it('penerima yang tidak ditemukan ditolak', async () => {

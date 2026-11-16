@@ -70,8 +70,7 @@ export default async function ReviewHasilDireksiPage() {
   return (
     <Shell>
       <PageTitle title="Tinjauan Hasil Akhir">
-        {ap.label} · tinjauan eksekutif (read-only) hasil akhir seluruh pegawai. Kalibrasi &amp;
-        finalisasi tetap wewenang HRD.
+        {ap.label} · tinjauan hasil akhir seluruh pegawai (hanya lihat). Kalibrasi dan finalisasi wewenang HRD.
       </PageTitle>
       <div className={CARD}><ReportTable rows={rows} depts={depts} has360={ap.has_360} hrefBase="/review-hasil" /></div>
     </Shell>

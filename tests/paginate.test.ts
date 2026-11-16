@@ -51,9 +51,9 @@ describe('fetchAllPaged — paginasi 1000 baris/request', () => {
     await expect(fetchAllPaged(run)).rejects.toThrow('halaman 2 gagal');
   });
 
-  it('error tanpa message → pesan baku "query gagal"', async () => {
-    await expect(fetchAllPaged<number>(async () => ({ data: null, error: 'x' }))).rejects.toThrow('query gagal');
-    await expect(fetchAllPaged<number>(async () => ({ data: null, error: { code: '1' } }))).rejects.toThrow('query gagal');
+  it('error tanpa message → pesan baku "Permintaan data gagal"', async () => {
+    await expect(fetchAllPaged<number>(async () => ({ data: null, error: 'x' }))).rejects.toThrow('Permintaan data gagal');
+    await expect(fetchAllPaged<number>(async () => ({ data: null, error: { code: '1' } }))).rejects.toThrow('Permintaan data gagal');
   });
 
   it('error bernilai falsy (mis. "") dianggap tidak ada error', async () => {

@@ -197,7 +197,7 @@ describe('approveAsHrd / setPlanWindow', () => {
     mode = 'admin';
     asUser('99999999-9999-9999-9999-999999999999', { role: 'employee', is_hrd_admin: true });
     adminWith(hrdBase('waiting_hrd'));
-    expect(await approveAsHrd(PLAN)).toEqual({ ok: false, error: expect.stringMatching(/berposisi HRD/) });
+    expect(await approveAsHrd(PLAN)).toEqual({ ok: false, error: expect.stringMatching(/hanya dapat diberikan oleh pegawai HRD/) });
   });
 
   it('posisi HRD di Mode SPV tidak bisa menyetujui', async () => {

@@ -147,7 +147,7 @@ export function PerEmployeeHeatmap({
       </div>
       <div className="mt-auto pt-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-ink-soft">
-          Sel = skor 360° pegawai pada aspek/indikator itu (rendah → tinggi mengikuti gradien). Kolom <span className="text-danger-ink font-semibold">Terlemah</span> / <span className="text-brand-ink font-semibold">Terkuat</span> menyebut yang terendah &amp; tertinggi tiap orang. &ldquo;—&rdquo; = tanpa data.
+          Sel = skor 360° pegawai pada aspek/indikator itu. Kolom <span className="text-danger-ink font-semibold">Terlemah</span>/<span className="text-brand-ink font-semibold">Terkuat</span> menunjukkan yang terendah dan tertinggi tiap orang. Tanda “—” = tanpa data.
         </p>
         {filtered.length > pageSize && (
           <div className="flex items-center gap-2 shrink-0">

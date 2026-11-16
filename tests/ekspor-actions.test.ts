@@ -61,7 +61,7 @@ describe('Ekspor — isi file saat normal tidak berubah', () => {
 });
 
 describe('Ekspor — gangguan baca → pesan gagal, bukan file terpotong', () => {
-  const GAGAL = /Gagal mengambil data.*File tidak dibuat/;
+  const GAGAL = /Gagal mengambil data.*Berkas tidak dibuat/;
 
   it('skor per-indikator gagal dibaca', async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

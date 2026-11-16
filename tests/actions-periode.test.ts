@@ -118,7 +118,7 @@ describe.each(ACTIONS)('$name — gerbang otorisasi', ({ run }) => {
     const c = mk({ user: null });
     use(c);
     const r = await run();
-    expect(r).toEqual({ ok: false, error: 'Sesi berakhir, silakan login ulang' });
+    expect(r).toEqual({ ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' });
     expect(c.calls).toHaveLength(0);
     expect(mockAdmin).not.toHaveBeenCalled();
     expect(mockLog).not.toHaveBeenCalled();
@@ -361,7 +361,7 @@ describe('toggleFormOpen — buka/tutup form 360° (BR-06)', () => {
     expect(p).toHaveLength(2);
     expect(mockLog).toHaveBeenCalledWith({
       action: 'period.toggleForm', category: 'periode',
-      summary: 'Menutup form penilaian 360° pada periode "Q3 2026"',
+      summary: 'Menutup formulir penilaian 360° pada periode "Q3 2026"',
       targetType: 'period', targetId: PID, targetLabel: 'Q3 2026', meta: { form_open: false },
     });
     expect(mockReval.mock.calls).toEqual([['/admin/periode'], ['/penilaian']]);
@@ -387,7 +387,7 @@ describe('toggleFormOpen — buka/tutup form 360° (BR-06)', () => {
     expect(r).toEqual({ ok: true });
     expect(opsOn(c, 'indicators')[0].filters).toEqual([['in', 'aspect_id', ['asp1']], ['eq', 'is_active', true]]);
     expect(mockLog).toHaveBeenCalledWith(expect.objectContaining({
-      summary: 'Membuka form penilaian 360° pada periode "Q3 2026"', meta: { form_open: true },
+      summary: 'Membuka formulir penilaian 360° pada periode "Q3 2026"', meta: { form_open: true },
     }));
   });
 
@@ -399,7 +399,7 @@ describe('toggleFormOpen — buka/tutup form 360° (BR-06)', () => {
     });
     use(c);
     const r = await toggleFormOpen(PID, true);
-    expect(r).toEqual({ ok: false, error: 'Jumlah indikator aktif harus tepat 10 (saat ini 9). Sesuaikan di Kelola Pertanyaan sebelum membuka form (BR-06).' });
+    expect(r).toEqual({ ok: false, error: 'Indikator aktif harus tepat 10 (saat ini 9). Sesuaikan di Kelola Pertanyaan sebelum membuka formulir.' });
     expect(opsOn(c, 'periods').filter((x) => x.op === 'update')).toHaveLength(0);
     expect(mockLog).not.toHaveBeenCalled();
   });
@@ -423,7 +423,7 @@ describe('toggleFormOpen — buka/tutup form 360° (BR-06)', () => {
     const r = await toggleFormOpen(PID, true);
     expect(r).toEqual({
       ok: false,
-      error: '4 indikator belum punya panduan perilaku (BARS) lengkap untuk level 1–5: Indikator 1, Indikator 2, Indikator 3, …. Lengkapi di Kelola Pertanyaan sebelum membuka form.',
+      error: '4 indikator belum punya panduan perilaku (BARS) lengkap level 1–5: Indikator 1, Indikator 2, Indikator 3, …. Lengkapi di Kelola Pertanyaan sebelum membuka formulir.',
     });
   });
 
@@ -433,7 +433,7 @@ describe('toggleFormOpen — buka/tutup form 360° (BR-06)', () => {
     use(hrd({ periods: [{ data: { has_360: true } }], culture_aspects: [{ data: [{ id: 'a' }] }], indicators: [{ data: inds }] }));
     const r = await toggleFormOpen(PID, true);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toBe('1 indikator belum punya panduan perilaku (BARS) lengkap untuk level 1–5: Indikator 5. Lengkapi di Kelola Pertanyaan sebelum membuka form.');
+    if (!r.ok) expect(r.error).toBe('1 indikator belum punya panduan perilaku (BARS) lengkap level 1–5: Indikator 5. Lengkapi di Kelola Pertanyaan sebelum membuka formulir.');
   });
 
   it('periode tak ditemukan (has_360 null) → validasi dilewati, update tetap dijalankan', async () => {
@@ -470,7 +470,7 @@ describe('deletePeriod — hapus periode beserta datanya', () => {
 
   it('konfirmasi tanpa sesi → pesan sesi (otorisasi didahulukan)', async () => {
     use(mk({ user: null }));
-    expect(await deletePeriod(PID, 'salah')).toEqual({ ok: false, error: 'Sesi berakhir, silakan login ulang' });
+    expect(await deletePeriod(PID, 'salah')).toEqual({ ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' });
   });
 
   it('konfirmasi dinormalisasi: "  hapus " (huruf kecil + spasi) diterima', async () => {
@@ -494,7 +494,7 @@ describe('deletePeriod — hapus periode beserta datanya', () => {
     const admin = mk({ tables: { periods: [{ data: { label: 'Q3 2026', status: 'active' } }] } });
     useAdmin(admin);
     const r = await deletePeriod(PID, 'HAPUS');
-    expect(r).toEqual({ ok: false, error: 'Periode aktif tidak bisa dihapus. "Kunci & Akhiri" dulu.' });
+    expect(r).toEqual({ ok: false, error: 'Periode aktif tidak bisa dihapus. Jalankan "Kunci & Akhiri" terlebih dahulu.' });
     expect(admin.calls.filter((x) => x.op === 'delete')).toHaveLength(0);
   });
 

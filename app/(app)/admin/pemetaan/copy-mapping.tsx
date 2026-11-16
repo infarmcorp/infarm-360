@@ -44,8 +44,8 @@ export function CopyMapping({ periods }: { periods: P[] }) {
         <button type="button" onClick={() => { setOpen(false); setMsg(null); }} className="inline-flex items-center gap-1 text-ink-soft hover:text-ink text-xs font-semibold shrink-0">Tutup <X className="w-3.5 h-3.5" aria-hidden /></button>
       </div>
       <p className="text-xs text-ink-soft leading-relaxed">
-        Menyalin seluruh pasangan penilai→target dari periode terpilih ke periode aktif. Pasangan yang
-        sudah ada <strong className="font-semibold text-ink">dilewati</strong>, dan hasil salinan <strong className="font-semibold text-ink">tetap bisa diedit/dihapus</strong>.
+        Salin semua pasangan penilai dari periode terpilih ke periode aktif. Pasangan yang
+        sudah ada <strong className="font-semibold text-ink">dilewati</strong>; hasil salinan tetap bisa diubah.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <select value={src} onChange={(e) => setSrc(e.target.value)}

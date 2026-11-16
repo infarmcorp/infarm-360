@@ -25,14 +25,13 @@ export function RawFeedback({ byAspect, essays, badge = 'HRD VIEW', className = 
       {/* Pita gelap di layar; saat cetak putih bergaris (warna latar tak dijamin ikut tercetak). */}
       <div className="bg-infarm-dark text-white print:bg-white print:text-ink print:border-b print:border-line px-4 py-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[13px] font-bold uppercase tracking-[0.04em] flex items-center gap-2">
-          <ClipboardList className="w-4 h-4 shrink-0" aria-hidden />
-          Rincian Komentar Murni (Raw Feedback) per Aspek &amp; Indikator
+          <ClipboardList className="w-4 h-4 shrink-0" aria-hidden />Rincian Komentar Asli per Aspek &amp; Indikator
         </h2>
         <span className="text-[10px] font-bold bg-brand text-white print:bg-white print:text-brand-ink print:border print:border-brand px-2 py-1 rounded-control">{badge}</span>
       </div>
       <div className="p-4 space-y-4">
         <p className="text-xs uppercase tracking-[0.08em] text-ink-soft font-bold">
-          Raw text &amp; rating
+          Teks asli &amp; nilai
         </p>
 
         {byAspect.filter((a) => a.indicators.length > 0).map((a) => (
@@ -55,7 +54,7 @@ export function RawFeedback({ byAspect, essays, badge = 'HRD VIEW', className = 
                     <p className="text-xs text-ink-soft mb-2">
                       {m != null
                         ? <>Rerata <strong className="data-value text-ink">{fmt2(m)}</strong> · <span className="data-value">{ind.ratings.length}</span> penilai</>
-                        : <span className="italic">Belum ada rating</span>}
+                        : <span className="italic">Belum ada nilai</span>}
                     </p>
                     {/* Pasangan rating-komentar per penilai (anonim), urut rating terendah → tertinggi
                         untuk kalibrasi rating vs evidence. */}
@@ -63,7 +62,7 @@ export function RawFeedback({ byAspect, essays, badge = 'HRD VIEW', className = 
                       <table className="w-full text-[13px] border border-line rounded-control overflow-hidden">
                         <thead>
                           <tr className={`${TABLE_HEAD} print:bg-white`}>
-                            <th className="text-left px-2.5 py-1.5 w-16">Rating</th>
+                            <th className="text-left px-2.5 py-1.5 w-16">Nilai</th>
                             <th className="text-left px-2.5 py-1.5">Komentar</th>
                           </tr>
                         </thead>

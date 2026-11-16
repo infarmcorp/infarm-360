@@ -53,8 +53,8 @@ export default async function AdminLaporanPage() {
     grantCanFinalize = !!access?.canFinalize;
   }
   if (!isHrdFull && !reviewScopes) {
-    return <Shell><PageTitle title="Review & Finalisasi" />
-      <p className="text-[13px] text-ink-soft">Halaman ini hanya untuk HRD Admin atau pemegang akses Review & Finalisasi.</p></Shell>;
+    return <Shell><PageTitle title="Tinjauan & Finalisasi" />
+      <p className="text-[13px] text-ink-soft">Halaman ini hanya untuk HRD Admin atau pemegang akses Tinjauan &amp; Finalisasi.</p></Shell>;
   }
 
   // "Tinjau" (buka detail) tampil bila HRD penuh ATAU pemegang grant (baik lihat-saja maupun edit —
@@ -65,7 +65,7 @@ export default async function AdminLaporanPage() {
 
   const { data: ap } = await supabase
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><PageTitle title="Review & Finalisasi" /><p className="text-[13px] text-ink-soft">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><PageTitle title="Tinjauan & Finalisasi" /><p className="text-[13px] text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
   // Pelaporan: ambil TANPA filter is_active; nonaktif disaring belakangan kecuali punya data
   // periode (KPI/360°/laporan) → pegawai yang resign di akhir periode tetap bisa difinalisasi.
@@ -179,7 +179,7 @@ export default async function AdminLaporanPage() {
     const a = lastAcc.get(id);
     if (!a) return null;
     const when = new Date(a.at).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
-    return `ACC oleh ${a.actor ?? 'pelaku tak tercatat'} · ${when} WIB`;
+    return `Disetujui oleh ${a.actor ?? 'pelaku tak tercatat'} · ${when} WIB`;
   };
 
   const rows: ReportRow[] = employees.map((e) => {
@@ -267,7 +267,7 @@ export default async function AdminLaporanPage() {
   const draftCount = shownRows.filter((r) => r.status === 'draft').length;
   const noReportCount = shownRows.filter((r) => r.status == null).length;
   // Tulisan tombol ② saat tak ada yang bisa difinalisasi massal — sebut sebabnya, bukan "belum siap".
-  const finalizeIdleLabel = waitingAccCount > 0 ? `Menunggu ACC (${waitingAccCount})`
+  const finalizeIdleLabel = waitingAccCount > 0 ? `Menunggu persetujuan (${waitingAccCount})`
     : draftCount > 0 ? `Masih ada draf (${draftCount})`
     : noReportCount > 0 ? `Laporan belum dibuat (${noReportCount})`
     : finalCount > 0 ? 'Semua sudah Final' : 'Belum ada laporan';
@@ -311,11 +311,11 @@ export default async function AdminLaporanPage() {
 
   return (
     <Shell>
-      <PageTitle title="Review & Finalisasi">
+      <PageTitle title="Tinjauan & Finalisasi">
         {!isHrdFull && !grantCanEdit && (
-          <span className="mr-2 inline-flex items-center rounded-full bg-neutral-tint px-2.5 py-0.5 text-xs font-semibold text-ink-soft">Lihat-saja</span>
+          <span className="mr-2 inline-flex items-center rounded-full bg-neutral-tint px-2.5 py-0.5 text-xs font-semibold text-ink-soft">Hanya lihat</span>
         )}
-        Periode aktif <span className="font-mono font-semibold text-ink">{ap.label}</span> · {isHrdFull ? 'finalisasi Skor Akhir kalibrasi.' : grantCanFinalize ? 'akses dari HRD — boleh tinjau & finalisasi (lingkup terbatas).' : grantCanEdit ? 'akses dari HRD — boleh tinjau & meringkas, tanpa finalisasi (lingkup terbatas).' : 'lihat-saja (akses dari HRD, lingkup terbatas).'}
+        Periode aktif <span className="font-mono font-semibold text-ink">{ap.label}</span> · {isHrdFull ? 'finalisasi Skor Akhir kalibrasi.' : grantCanFinalize ? 'akses dari HRD — boleh meninjau & memfinalisasi (lingkup terbatas).' : grantCanEdit ? 'akses dari HRD — boleh meninjau & meringkas, tanpa finalisasi (lingkup terbatas).' : 'hanya lihat (akses dari HRD, lingkup terbatas).'}
       </PageTitle>
 
       {/* Kokpit "Langkah Rilis Laporan" — HANYA HRD penuh (pemegang grant = read-only). Tiga langkah
@@ -325,7 +325,7 @@ export default async function AdminLaporanPage() {
       <div className={`${CARD} mb-4`}>
         <div className="mb-3 flex items-center gap-1.5">
           <CardTitle icon={ListChecks}>Langkah Rilis Laporan</CardTitle>
-          <InfoTip label="Penjelasan langkah rilis" text={'Skor hanya diperbarui saat Anda menekan tombolnya di sini. ① Hitung Ulang: penilaian 360°, koreksi Garis Hubungan, atau bobot berubah sejak terakhir dihitung. ② Finalisasi: laporan yang sudah di-ACC dikunci dan tampil ke pegawai; "laporan Final berubah" = angka tersimpan ketinggalan dari data terkini. ③ Kabari Pegawai: email bahwa PDF sudah bisa diunduh — hanya untuk laporan Final yang Folder Laporan-nya terisi.'} />
+          <InfoTip label="Penjelasan langkah rilis" text={'Skor hanya diperbarui lewat tombol di sini. ① Hitung Ulang: bila penilaian, Garis Hubungan, atau bobot berubah. ② Finalisasi: laporan yang disetujui dikunci dan tampil ke pegawai. ③ Kabari Pegawai: email bahwa PDF siap diunduh, untuk laporan Final yang Folder Laporan-nya terisi.'} />
         </div>
 
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-stretch">
@@ -356,8 +356,8 @@ export default async function AdminLaporanPage() {
           </StepCard>
           <StepArrow />
           <StepCard n={2} title="Finalisasi Laporan" state={stepState(2)}>
-            <p><span className="data-value font-semibold text-ink">{finalCount}</span> Final · <span className="data-value font-semibold text-ink">{accReadyCount}</span> siap difinalisasi (sudah ACC)</p>
-            <p><span className="data-value">{waitingAccCount}</span> menunggu ACC · <span className="data-value">{draftCount}</span> draf</p>
+            <p><span className="data-value font-semibold text-ink">{finalCount}</span> Final · <span className="data-value font-semibold text-ink">{accReadyCount}</span> siap difinalisasi (sudah disetujui)</p>
+            <p><span className="data-value">{waitingAccCount}</span> menunggu persetujuan · <span className="data-value">{draftCount}</span> draf</p>
             {driftCount > 0 && (
               <p className="font-semibold text-warn-ink"><span className="data-value">{driftCount}</span> laporan Final angkanya berubah — perbarui agar pegawai melihat skor terbaru.</p>
             )}
@@ -405,26 +405,19 @@ export default async function AdminLaporanPage() {
       <div className={CARD}><ReportTable rows={shownRows} depts={depts} has360={ap.has_360} readOnly={readOnly} release={release ?? undefined} /></div>
       {isHrdFull ? (
         <div className="mt-4"><Note>
-          Klik <strong>Tinjau</strong> untuk membuka & mengelola laporan pegawai (Simpan Draf → Rilis ke SPV →
-          Finalisasi) di panel detail. Setelah <strong>Final</strong>, kolom Skor Akhir menampilkan angka
-          tersimpan yang dilihat pegawai; badge <strong>berubah</strong> muncul bila data terkini berbeda —
-          tekan <strong>② Perbarui Laporan Final yang Berubah</strong> di atas untuk menyegarkan semuanya sekaligus
-          (atau kembalikan satu laporan ke draf lalu finalisasi ulang manual).
+          Klik <strong>Tinjau</strong> untuk mengelola laporan (Simpan Draf → Rilis ke SPV → Finalisasi). Label &quot;berubah&quot; muncul bila skor final berbeda dari data terkini — tekan ② Perbarui Laporan <strong>Final</strong> yang Berubah untuk memperbarui semuanya.
         </Note></div>
       ) : grantCanFinalize ? (
         <div className="mt-4"><Note>
-          Klik <strong>Tinjau</strong> untuk membuka laporan pegawai dalam lingkup akses Anda dan
-          mengelolanya (Simpan Draf → Rilis → Finalisasi). Akses ini diberikan HRD dan dibatasi lingkup.
+          Klik <strong>Tinjau</strong> untuk membuka dan mengelola laporan pegawai sesuai akses dari HRD (Simpan Draf → Rilis → Finalisasi).
         </Note></div>
       ) : grantCanEdit ? (
         <div className="mt-4"><Note>
-          Klik <strong>Tinjau</strong> untuk membuka laporan pegawai dalam lingkup akses Anda dan menulis
-          <strong> Ringkasan Aspek</strong>. Finalisasi &amp; kalibrasi skor tetap wewenang HRD.
+          Klik <strong>Tinjau</strong> untuk membuka laporan pegawai dan menulis <strong> Ringkasan Aspek</strong>. Finalisasi dan kalibrasi skor wewenang HRD.
         </Note></div>
       ) : (
         <div className="mt-4"><Note>
-          Klik <strong>Tinjau</strong> untuk membuka laporan (tampilan <strong>lihat-saja</strong>) sesuai
-          akses yang diberikan HRD (lingkup terbatas). Finalisasi & perubahan laporan hanya oleh HRD.
+          Klik <strong>Tinjau</strong> untuk melihat laporan sesuai akses dari HRD. Finalisasi dan perubahan hanya oleh HRD.
         </Note></div>
       )}
     </Shell>

@@ -49,7 +49,7 @@ export function ReadinessPanel({
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <CardTitle icon={Rocket}>Kesiapan Peluncuran 360° — {periodLabel}</CardTitle>
           <StatusChip tone={has360 ? 'brand' : ready ? 'brand' : 'warn'}>
-            {has360 ? 'Form terbuka' : ready ? 'Siap diluncurkan' : 'Belum lengkap'}
+            {has360 ? 'Formulir terbuka' : ready ? 'Siap diluncurkan' : 'Belum lengkap'}
           </StatusChip>
         </div>
 
@@ -74,10 +74,10 @@ export function ReadinessPanel({
       <div className="w-full lg:w-[270px] shrink-0 p-4 bg-infarm-surface flex flex-col justify-center">
         <div className="text-[12px] font-bold uppercase tracking-[0.08em] text-ink mb-2">Aksi Periode</div>
         <p className="text-[12px] text-ink-soft leading-relaxed">
-          <span className="font-semibold text-ink">Aktivasi / Kunci &amp; Akhiri</span> — hidup-mati seluruh periode (KPI dan 360°).
+          <span className="font-semibold text-ink">Aktivasi / Kunci &amp; Akhiri</span> — menyalakan atau mematikan seluruh periode (KPI dan 360°).
         </p>
         <p className="mt-2.5 text-[12px] text-ink-soft leading-relaxed">
-          <span className="font-semibold text-ink">Set Tanpa 360°</span> — tutup sementara bagian 360° saja, KPI tetap berjalan.
+          <span className="font-semibold text-ink">Atur Tanpa 360°</span> — tutup sementara bagian 360° saja, KPI tetap berjalan.
         </p>
       </div>
     </div>

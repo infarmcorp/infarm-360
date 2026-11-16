@@ -109,8 +109,7 @@ export default async function KepatuhanPage() {
   return (
     <Shell>
       <PageTitle title="Flag Kepatuhan Penilaian">
-        Periode aktif <span className="font-mono font-semibold text-ink">{ap.label}</span>
-        {' · '}Deadline 360° {deadline
+        Periode aktif <span className="font-mono font-semibold text-ink">{ap.label}</span> · Tenggat 360° {deadline
           ? <span className="font-mono font-semibold text-ink">{formatWib(deadline)}</span>
           : <span className="text-ink-soft">belum diatur (atur di Kelola Periode)</span>}
       </PageTitle>
@@ -120,8 +119,7 @@ export default async function KepatuhanPage() {
           <Note tone="warn">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <p>
-                <strong>{pendingLate.length} pegawai</strong> punya potongan keterlambatan yang <strong>belum masuk Skor 360°</strong> tersimpan
-                (mis. penilai yang belum mengirim sampai deadline lewat). Terapkan sebelum memfinalisasi laporan.
+                <strong>{pendingLate.length} pegawai</strong> punya potongan keterlambatan yang <strong>belum masuk Skor 360°</strong>. Terapkan sebelum memfinalisasi laporan.
               </p>
               {!viaGrant && <ApplyLateButton pending={pendingLate.length} />}
             </div>
@@ -132,7 +130,7 @@ export default async function KepatuhanPage() {
           <StatCard item={{ icon: MailX, tone: 'danger', value: String(totalLate), label: 'Belum kirim (penilaian wajib)' }} />
           <StatCard item={{ icon: Clock, tone: 'danger', value: String(totalLateSubmit), label: 'Kirim terlambat' }} />
           <div className="min-w-0 grid"
-            title="Penilaian Opsional yang diajukan pegawai sendiri & disetujui HRD, tapi belum selesai saat deadline — ikut kena potongan.">
+            title="Penilaian opsional yang diajukan pegawai dan disetujui HRD, tetapi belum selesai saat tenggat — ikut dipotong.">
             <StatCard item={{ icon: FilePlus2, tone: 'warn', value: String(totalAjuan), label: 'Kena potongan krn ajuan' }} />
           </div>
         </div>
@@ -141,18 +139,14 @@ export default async function KepatuhanPage() {
           <KepatuhanTable rows={rows} readOnly={viaGrant} />
         </div>
         <Note>
-          Default menampilkan pegawai yang <strong className="font-semibold text-ink">perlu perhatian</strong> (penilaian wajib/ajuan belum
-          selesai, terlambat, atau sudah punya penetapan potongan HRD). &quot;Belum Kirim&quot; = penilaian bersifat Wajib (mapping)
-          yang belum dikirim{viaGrant ? '' : ' (arahkan kursor untuk daftar nama)'}. &quot;Kirim Terlambat&quot; = penilaian Wajib yang pertama kali
-          dikirim sesudah deadline{viaGrant ? '' : ' (arahkan kursor untuk nama & waktu kirim)'}.
-          <strong className="font-semibold text-ink"> Potongan Skor 360° <span className="font-mono">{LATE_PENALTY_360}</span> poin (otomatis, sekali per periode)</strong> berlaku
-          untuk KEDUA kondisi — sudah kirim tapi telat, MAUPUN belum kirim sama sekali sampai deadline lewat (kolom &quot;Belum Kirim&quot;
-          yang masih &gt;0 saat deadline terlampaui ikut kena potongan yang sama; gugur bila penilai tak punya Skor 360° sendiri).
-          Penilaian yang telat tetap dihitung penuh untuk pegawai yang dinilai — potongan hanya menyentuh Skor 360° milik si penilai.
-          {' '}<strong className="font-semibold text-ink">Ajuan</strong> (penilaian Opsional yang diajukan pegawai sendiri &amp; disetujui HRD) ikut dihitung
-          mulai periode Q3 2026 dan ditandai terpisah. Opsional biasa, Ad-Hoc Mandiri lama, Paksa Selesai HRD, dan pemetaan yang dibuat sesudah deadline tidak dihitung.
-          Nilai potongan bisa <strong className="font-semibold text-ink">diubah HRD</strong> per pegawai (tombol Ubah, alasan wajib; 0 = dikecualikan).
-          Potongan ini satu-satunya sanksi kepatuhan — Skor Akhir tidak dipotong lagi secara terpisah.
+          Daftar menampilkan pegawai yang <strong className="font-semibold text-ink">perlu perhatian</strong>. &quot;Belum Kirim&quot; = penilaian Wajib
+          yang belum dikirim{viaGrant ? '' : ' (arahkan kursor untuk daftar nama)'}. &quot;Kirim Terlambat&quot; = dikirim pertama kali
+          sesudah tenggat{viaGrant ? '' : ' (arahkan kursor untuk nama & waktu kirim)'}. Keduanya dikenai
+          <strong className="font-semibold text-ink"> potongan Skor 360° <span className="font-mono">{LATE_PENALTY_360}</span> poin</strong> (otomatis, sekali per periode);
+          potongan gugur bila penilai tidak punya Skor 360°. Potongan hanya mengenai skor penilai, bukan pegawai yang dinilai.
+          {' '}<strong className="font-semibold text-ink">Ajuan</strong> dihitung mulai Q3 2026; penilaian opsional biasa, Ad-Hoc lama, Paksa Selesai,
+          dan pemetaan sesudah tenggat tidak dihitung. HRD bisa <strong className="font-semibold text-ink">mengubah potongan</strong> per pegawai
+          (alasan wajib; 0 = dikecualikan). Skor Akhir tidak dipotong lagi.
         </Note>
       </div>
     </Shell>

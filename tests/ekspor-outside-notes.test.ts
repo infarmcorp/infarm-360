@@ -19,7 +19,9 @@ const mockAdmin = vi.mocked(createAdminClient);
 const U = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const T = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
 
-const base = { period_id: 'p1', target_id: T, is_other: false, note: null };
+// reporter_ref ikut di baris database untuk memastikan penanda pelapor TIDAK pernah ikut terekspor.
+const REF = 'f'.repeat(64);
+const base = { period_id: 'p1', target_id: T, is_other: false, note: null, reporter_ref: REF };
 const NOTES = [
   { ...base, id: 'n1', aspect_id: 'asp2', incident_date: '2026-10-05', body: 'Zona gudang dibiarkan berantakan setelah shift malam.' },
   { ...base, id: 'n2', aspect_id: null, is_other: true, incident_date: '2026-11-02', body: 'Datang terlambat tanpa kabar.', note: 'Pelanggaran jam kerja.' },
@@ -63,13 +65,15 @@ describe('Bahan Laporan — lembar Laporan Pelanggaran', () => {
     expect(s.rows[0]).toEqual({
       periode: expect.stringContaining('Q4 2026'), kode: 'E1', nama: 'Target', divisi: 'Gudang',
       tanggal_kejadian: '2026-11-02', kategori: 'Lainnya', laporan: 'Datang terlambat tanpa kabar.', catatan: 'Pelanggaran jam kerja.',
+      status: 'Diterima', tanggapan_hrd: '',
     });
     expect(s.rows[1]).toMatchObject({ kategori: 'Jujur & Tanggung Jawab', catatan: '' });
     expect(s.rows[3]).toMatchObject({ tanggal_kejadian: '' });
     // Tak ada kolom pelapor / relasi / waktu kirim dalam bentuk apa pun.
     for (const row of s.rows) {
-      expect(Object.keys(row).sort()).toEqual(['catatan', 'divisi', 'kategori', 'kode', 'laporan', 'nama', 'periode', 'tanggal_kejadian']);
+      expect(Object.keys(row).sort()).toEqual(['catatan', 'divisi', 'kategori', 'kode', 'laporan', 'nama', 'periode', 'status', 'tanggal_kejadian', 'tanggapan_hrd']);
     }
+    expect(JSON.stringify(r)).not.toContain(REF);
   });
 
   it('di luar Mode Admin → lembar laporan tidak ikut (tanpa petunjuk ada yang disembunyikan)', async () => {
@@ -79,6 +83,22 @@ describe('Bahan Laporan — lembar Laporan Pelanggaran', () => {
     expect(r.ok).toBe(true);
     expect(notesSheet(r)).toBeUndefined();
     expect(JSON.stringify(r)).not.toContain('terlambat tanpa kabar');
+  });
+
+  it('tindak lanjut HRD (0062): status & tanggapan ikut terekspor', async () => {
+    setup({ outside_mapping_notes: [
+      { ...base, id: 'n9', aspect_id: null, category: 'Integritas', incident_date: '2026-11-10', body: 'Mengubah catatan stok tanpa izin.', status: 'done', hrd_response: 'Sudah ditindaklanjuti.' },
+    ] });
+    const r = await exportReportMaterials('p1');
+    expect(notesSheet(r)?.rows[0]).toMatchObject({ status: 'Selesai', tanggapan_hrd: 'Sudah ditindaklanjuti.' });
+  });
+
+  it('laporan 0061: kategori = nama tersimpan, tak bergantung aspek periode', async () => {
+    setup({ outside_mapping_notes: [
+      { period_id: 'p1', target_id: T, aspect_id: null, category: 'Kolaborasi Lintas Tim', is_other: false, incident_date: '2026-11-10', body: 'Menolak berbagi data stok ke tim lain.', note: null },
+    ] });
+    const r = await exportReportMaterials('p1');
+    expect(notesSheet(r)?.rows[0]).toMatchObject({ kategori: 'Kolaborasi Lintas Tim' });
   });
 
   it('tanpa laporan → lembar ada tapi kosong', async () => {

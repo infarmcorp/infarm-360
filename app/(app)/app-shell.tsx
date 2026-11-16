@@ -7,7 +7,7 @@ import { KPI_AUDIT_HREF } from '@/lib/kpi-links';
 import {
   Star, FileText, Target, Users, TrendingUp, LayoutDashboard, CalendarRange,
   Network, HelpCircle, Scale, ShieldAlert, ClipboardCheck, Flag,
-  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, ChevronDown, ChevronRight, Check, Sprout,
+  Menu, X, LogOut, Building2, Briefcase, Award, Clock, CircleCheckBig, UserCog, ScrollText, Bell, Download, KeyRound, AlertTriangle, ChevronDown, ChevronRight, Check, Sprout, Bot,
 } from 'lucide-react';
 import { setHrdMode } from './mode-actions';
 import { BrandLogo } from '@/components/brand-logo';
@@ -26,7 +26,7 @@ const ROLE_LABEL: Record<Role, string> = {
 
 type AdminItem = Item & { section?: string };
 
-function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator: boolean, hrdSections: string[] | null, pageGrants: { section: string; scope: string }[] = []): Section[] {
+function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator: boolean, hrdSections: string[] | null, pageGrants: { section: string; scope: string }[] = [], aiSettings = false, isExternal = false): Section[] {
   // Akses HRD granular (Jalur A, migrasi 0023): hrd_sections NULL/kosong = akses penuh;
   // berisi daftar = hanya bagian tercantum. Item tanpa `section` (mis. Suksesi) selalu tampil.
   const allowSec = (s?: string) => !s || !hrdSections || hrdSections.length === 0 || hrdSections.includes(s);
@@ -41,6 +41,8 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
   if (!adminView) main.push({ href: '/laporan', label: 'Laporan Hasil Saya', icon: FileText });
   // Rencana Pengembangan (0055): rencana sendiri + tab Tim Saya bagi atasan — semua peran di mode base.
   if (!adminView) main.push({ href: '/pengembangan', label: 'Rencana Pengembangan', icon: Sprout });
+  // Laporkan Pelanggaran (0061): halaman sendiri, lepas dari formulir 360°. Penilai eksternal belum boleh mengirim.
+  if (!adminView && !isExternal) main.push({ href: '/lapor-pelanggaran', label: 'Laporkan Pelanggaran', icon: Flag });
   // Peninjau Hasil Lintas Divisi kini = GRANT halaman "Review Hasil Akhir" (lingkup selain divisinya) —
   // tampil di section "Akses dari HRD" di bawah, bukan menu khusus. (is_cross_reviewer dipensiunkan, migrasi 0033.)
   const sections: Section[] = main.length ? [{ title: 'Menu Utama', items: main }] : [];
@@ -52,7 +54,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
     sections.push({
       title: 'Menu Koordinator',
       items: [
-        { href: '/kpi', label: 'Input KPI Anggota', icon: Target },
+        { href: '/kpi', label: 'Pengisian KPI Anggota', icon: Target },
         { href: '/laporan-tim', label: 'Laporan Kinerja Tim', icon: Users },
         { href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp },
       ],
@@ -65,7 +67,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
     sections.push({
       title: 'Menu Supervisor',
       items: [
-        { href: '/kpi', label: 'Input KPI Anggota', icon: Target },
+        { href: '/kpi', label: 'Pengisian KPI Anggota', icon: Target },
         { href: '/laporan-tim', label: 'Laporan Kinerja Tim', icon: Users },
         { href: '/monitor', label: 'Monitor Kinerja', icon: TrendingUp },
       ],
@@ -86,13 +88,13 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
     if (konfig.length) sections.push({ title: 'Persiapan Siklus', items: konfig });
 
     const pelaksanaan = filterAdmin([
-      { href: '/admin/progress', label: 'Progress 360 Feedback', icon: CircleCheckBig, section: 'progress' },
+      { href: '/admin/progress', label: 'Progres Umpan Balik 360°', icon: CircleCheckBig, section: 'progress' },
       { href: '/admin/kepatuhan', label: 'Flag Kepatuhan', icon: ShieldAlert, section: 'kepatuhan' },
     ]);
     if (pelaksanaan.length) sections.push({ title: 'Pelaksanaan', items: pelaksanaan });
 
     const hasil = filterAdmin([
-      { href: '/admin/laporan', label: 'Review & Finalisasi', icon: ClipboardCheck, section: 'laporan' },
+      { href: '/admin/laporan', label: 'Tinjauan & Finalisasi', icon: ClipboardCheck, section: 'laporan' },
       // Laporan Pelanggaran: gerbang = bagian Review & Finalisasi + Mode Admin (menu admin hanya tampil di Mode Admin).
       { href: '/admin/pelanggaran', label: 'Laporan Pelanggaran', icon: Flag, section: 'laporan' },
       { href: '/admin/pengembangan', label: 'Pantauan Rencana Pengembangan', icon: Sprout, section: 'pengembangan' },
@@ -101,10 +103,10 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
     if (hasil.length) sections.push({ title: 'Hasil & Tindak Lanjut', items: hasil });
 
     const pemantauan = filterAdmin([
-      { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard, section: 'dashboard' },
+      { href: '/admin/dashboard', label: 'Dasbor Organisasi', icon: LayoutDashboard, section: 'dashboard' },
       { href: '/admin/monitor', label: 'Monitor Kinerja Pegawai', icon: TrendingUp, section: 'dashboard' },
       { href: '/admin/struktur', label: 'Struktur Organisasi', icon: Building2, section: 'struktur' },
-      { href: KPI_AUDIT_HREF, label: 'Monitoring & Audit KPI', icon: Clock, section: 'audit' },
+      { href: KPI_AUDIT_HREF, label: 'Pemantauan & Audit KPI', icon: Clock, section: 'audit' },
       { href: '/admin/audit', label: 'Log Aktivitas HRD', icon: ScrollText, section: 'audit' },
       { href: '/admin/ekspor', label: 'Ekspor Dataset', icon: Download, section: 'ekspor' },
     ]);
@@ -114,6 +116,8 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
     // HANYA HRD PENUH (tak dibatasi hrd_sections) — cegah rekan HRD terbatas menaikkan aksesnya sendiri.
     const pengaturan = filterAdmin([
       { href: '/admin/pegawai', label: 'Kelola Pegawai', icon: UserCog, section: 'pegawai' },
+      // Pengaturan AI (Ringkas otomatis) — eksperimen dev/staging; tampil hanya bila fitur aktif.
+      ...(aiSettings ? [{ href: '/admin/ai', label: 'Pengaturan AI', icon: Bot, section: 'laporan' }] : []),
     ]);
     const isFullHrd = !hrdSections || hrdSections.length === 0;
     if (isFullHrd) pengaturan.push({ href: '/admin/akses', label: 'Manajemen Akses', icon: KeyRound });
@@ -124,7 +128,7 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
     sections.push({
       title: 'Menu Direksi',
       items: [
-        { href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard },
+        { href: '/admin/dashboard', label: 'Dasbor Organisasi', icon: LayoutDashboard },
         { href: '/laporan-tim', label: 'Laporan Kinerja Tim', icon: Users },
         { href: '/review-hasil', label: 'Tinjauan Hasil Akhir', icon: ClipboardCheck },
         { href: '/admin/pelanggaran', label: 'Laporan Pelanggaran', icon: Flag },
@@ -143,22 +147,22 @@ function menuFor(role: Role, canAdmin: boolean, hrdMode: HrdMode, isCoordinator:
       grantItems.push({ href: '/admin/monitor', label: 'Monitor Kinerja Pegawai', icon: TrendingUp });
     }
     if (pageGrants.some((g) => g.section === 'review')) {
-      grantItems.push({ href: '/admin/laporan', label: 'Review & Finalisasi', icon: ClipboardCheck });
+      grantItems.push({ href: '/admin/laporan', label: 'Tinjauan & Finalisasi', icon: ClipboardCheck });
     }
     if (pageGrants.some((g) => g.section === 'dashboard')) {
-      grantItems.push({ href: '/admin/dashboard', label: 'Dashboard Organisasi', icon: LayoutDashboard });
+      grantItems.push({ href: '/admin/dashboard', label: 'Dasbor Organisasi', icon: LayoutDashboard });
     }
     if (pageGrants.some((g) => g.section === 'struktur')) {
       grantItems.push({ href: '/admin/struktur', label: 'Struktur Organisasi', icon: Building2 });
     }
     if (pageGrants.some((g) => g.section === 'progress')) {
-      grantItems.push({ href: '/admin/progress', label: 'Progress 360 Feedback', icon: CircleCheckBig });
+      grantItems.push({ href: '/admin/progress', label: 'Progres Umpan Balik 360°', icon: CircleCheckBig });
     }
     if (pageGrants.some((g) => g.section === 'kepatuhan')) {
       grantItems.push({ href: '/admin/kepatuhan', label: 'Flag Kepatuhan', icon: ShieldAlert });
     }
     if (pageGrants.some((g) => g.section === 'kpi')) {
-      grantItems.push({ href: KPI_AUDIT_HREF, label: 'Monitoring & Audit KPI', icon: Clock });
+      grantItems.push({ href: KPI_AUDIT_HREF, label: 'Pemantauan & Audit KPI', icon: Clock });
     }
     if (grantItems.length) sections.push({ title: 'Akses dari HRD', items: grantItems });
   }
@@ -175,9 +179,9 @@ const TODO_DOT: Record<TodoTone, string> = {
 const SIDEBAR_COOKIE = 'sidebar_collapsed';
 
 export function AppShell({
-  role, canAdmin, isCoordinator = false, hrdSections = null, pageGrants = [], hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, initialCollapsed = false, children,
+  role, canAdmin, isCoordinator = false, hrdSections = null, pageGrants = [], aiSettings = false, isExternal = false, hrdMode, name, dept, empCode, periodLabel, periodActive, periodDaysLeft, todos, initialCollapsed = false, children,
 }: {
-  role: Role; canAdmin: boolean; isCoordinator?: boolean; hrdSections?: string[] | null; pageGrants?: { section: string; scope: string }[]; hrdMode: HrdMode; name: string; dept: string; empCode: string;
+  role: Role; canAdmin: boolean; isCoordinator?: boolean; hrdSections?: string[] | null; pageGrants?: { section: string; scope: string }[]; aiSettings?: boolean; isExternal?: boolean; hrdMode: HrdMode; name: string; dept: string; empCode: string;
   periodLabel: string | null; periodActive: boolean; periodDaysLeft?: number | null;
   todos: TodoItem[]; initialCollapsed?: boolean; children: React.ReactNode;
 }) {
@@ -185,7 +189,7 @@ export function AppShell({
   const [open, setOpen] = useState(false);                        // laci menu (HP)
   const [collapsed, setCollapsed] = useState(initialCollapsed);   // sidebar desktop ditutup
   const [popover, setPopover] = useState<'pages' | 'todos' | null>(null);
-  const sections = menuFor(role, canAdmin, hrdMode, isCoordinator, hrdSections, pageGrants);
+  const sections = menuFor(role, canAdmin, hrdMode, isCoordinator, hrdSections, pageGrants, aiSettings, isExternal);
 
   const isActive = (href: string) => {
     const path = href.split('?')[0];
@@ -299,7 +303,7 @@ export function AppShell({
           )}
         </div>
         {todos.length === 0 ? (
-          <p className="text-[11px] text-ink-faint px-1">Tak ada tugas tertunda.</p>
+          <p className="text-[11px] text-ink-faint px-1">Belum ada tugas yang perlu dikerjakan.</p>
         ) : (
           <div className="space-y-0.5">
             {todos.map((t) => (
@@ -425,7 +429,7 @@ export function AppShell({
           {popover && <div className="fixed inset-0 z-20" onClick={() => setPopover(null)} aria-hidden />}
           <button type="button" onClick={toggleSidebar}
             className="w-8 h-8 rounded-control border border-white/40 text-white hover:bg-white/15 flex items-center justify-center shrink-0"
-            aria-label={collapsed ? 'Buka sidebar' : 'Tutup sidebar'} title={collapsed ? 'Buka sidebar' : 'Tutup sidebar'} aria-expanded={!collapsed}>
+            aria-label={collapsed ? 'Buka menu samping' : 'Tutup menu samping'} title={collapsed ? 'Buka menu samping' : 'Tutup menu samping'} aria-expanded={!collapsed}>
             <Menu className="w-[18px] h-[18px]" />
           </button>
           {pageLabel && (
@@ -483,7 +487,7 @@ export function AppShell({
                   <div className="absolute right-0 top-full mt-2 w-80 bg-surface border border-line rounded-card shadow-card p-2">
                     <div className="px-2.5 pt-1.5 pb-1 text-[11px] font-bold uppercase tracking-[0.08em] text-infarm-soil">Tugas &amp; Notifikasi</div>
                     {todos.length === 0
-                      ? <p className="px-2.5 py-2 text-xs text-ink-faint">Tak ada tugas tertunda.</p>
+                      ? <p className="px-2.5 py-2 text-xs text-ink-faint">Belum ada tugas yang perlu dikerjakan.</p>
                       : todos.map((t) => (
                         <Link key={t.id} href={t.href} prefetch={false} onClick={() => setPopover(null)}
                           className="flex items-start gap-2 px-2.5 py-2 rounded-lg text-[13px] leading-snug text-ink-soft hover:bg-infarm-surface hover:text-ink">

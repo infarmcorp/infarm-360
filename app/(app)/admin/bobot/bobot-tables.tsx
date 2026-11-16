@@ -37,7 +37,7 @@ export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
   const { page, setPage, pageCount, shown, total, rangeFrom, rangeTo } = usePager(filtered);
 
   if (rows.length === 0) {
-    return <p className="text-[13px] text-ink-soft">Belum ada data. Jalankan <strong className="font-semibold text-ink">Hitung Ulang Skor 360°</strong> di Review &amp; Finalisasi setelah ada penilaian terkirim.</p>;
+    return <p className="text-[13px] text-ink-soft">Belum ada data. Jalankan <strong className="font-semibold text-ink">Hitung Ulang Skor 360°</strong> di Tinjauan &amp; Finalisasi setelah penilaian masuk.</p>;
   }
 
   return (
@@ -105,7 +105,7 @@ export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
                         )}
                       </span>
                     ) : (
-                      <span className="inline-flex text-[11px] font-semibold text-ink-soft bg-neutral-tint rounded-full px-2 py-0.5">Default</span>
+                      <span className="inline-flex text-[11px] font-semibold text-ink-soft bg-neutral-tint rounded-full px-2 py-0.5">Bawaan</span>
                     )}
                   </td>
                   <td className="py-2.5 px-3 text-right font-mono font-bold text-brand-ink">{fmt(r.scoreResmi)}</td>
@@ -126,9 +126,9 @@ export function Kalkulasi360Table({ rows, model, overrideCount, globalLabel }: {
       </StableHeight>
 
       <p className="text-xs text-ink-soft leading-relaxed">
-        <strong className="font-semibold text-ink-soft">Skor Resmi</strong> = hasil tersimpan (result_360) dari Hitung Ulang terakhir — dipakai dashboard/laporan.
-        <strong className="font-semibold text-ink-soft"> vs default</strong> = dampak bobot khusus (simulasi: skor bobot khusus − skor bobot global). <strong className="font-semibold text-ink-soft">Perbandingan Model</strong> =
-        simulasi 4/2-Kelas memakai bobot global periode (Δ Model = 4-Kelas − 2-Kelas); tak mengubah data.
+        <strong className="font-semibold text-ink-soft">Skor Resmi</strong> = hasil Hitung Ulang terakhir (dipakai dasbor &amp; laporan).
+        <strong className="font-semibold text-ink-soft"> Selisih vs bawaan</strong> = dampak bobot khusus. <strong className="font-semibold text-ink-soft">Perbandingan Model</strong> =
+        simulasi 4-Kelas vs 2-Kelas dengan bobot global; tidak mengubah data.
       </p>
     </div>
   );

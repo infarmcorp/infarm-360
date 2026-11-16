@@ -108,7 +108,7 @@ export function KepatuhanTable({ rows, readOnly = false }: { rows: KepatuhanRow[
                       )}
                       {r.ajuanPending.length > 0 && (
                         <span className="block text-[11px] font-semibold text-warn-ink mt-1"
-                          title={readOnly ? 'Ajuan (opsional, diajukan sendiri & disetujui HRD) belum dikirim sampai deadline' : `Ajuan (opsional, diajukan sendiri & disetujui HRD) belum dikirim sampai deadline: ${r.ajuanPending.join(', ')}`}>
+                          title={readOnly ? 'Ajuan (opsional, diajukan sendiri & disetujui HRD) belum dikirim sampai tenggat' : `Ajuan (opsional, diajukan sendiri & disetujui HRD) belum dikirim sampai tenggat: ${r.ajuanPending.join(', ')}`}>
                           + <span className="font-mono">{r.ajuanPending.length}</span> ajuan belum
                         </span>
                       )}

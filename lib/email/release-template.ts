@@ -86,7 +86,7 @@ export function defaultSteps(release: Date, periodLabel: string): ReleaseStep[] 
     { when: dayRange(release, addDays(release, 4)),
       text: 'pelajari laporan secara mandiri, lalu catat pertanyaan dan ide perbaikan untuk dibawa ke sesi empat mata.' },
     { when: dayRange(s2a, s2b),
-      text: `sesi empat mata bersama atasan langsung. Setelah sesi, Anda mengisi Rencana Pengembangan ${nextQ ?? 'periode berikutnya'} (bagian 5) berdasarkan hasil diskusi, atasan mengisi komentar (bagian 7), dan laporan ditandatangani kedua pihak.` },
+      text: `sesi empat mata bersama atasan langsung. Setelah itu, Anda mengisi Rencana Pengembangan ${nextQ ?? 'periode berikutnya'} (bagian 5), atasan mengisi komentar (bagian 7), lalu laporan ditandatangani kedua pihak.` },
     { when: `Mulai ${dayMonthYear(addDays(release, 25))}`,
       text: 'tinjauan kemajuan setiap dua minggu bersama atasan langsung.' },
     { when: monthly, text: 'tinjauan bulanan bersama Tim HRD.' },

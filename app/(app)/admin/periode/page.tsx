@@ -41,6 +41,9 @@ export default async function PeriodePage({
   const { data: periods } = await supabase
     .from('periods').select('id, code, label, start_date, end_date, status, has_360, form_open, mapping_published, kpi_standard, assessment_deadline').order('start_date', { ascending: false });
   const list = periods ?? [];
+  // Saklar Laporkan Pelanggaran (0061) dibaca terpisah: kolom belum ada → null (menu disembunyikan, halaman tetap jalan).
+  const { data: violRows, error: violErr } = await supabase.from('periods').select('id, violation_open');
+  const violationOpenById = new Map<string, boolean>(violErr ? [] : (violRows ?? []).map((r) => [r.id, r.violation_open === true]));
 
   const { data: monthRows } = await supabase.from('period_months').select('period_id');
   const monthCount = new Map<string, number>();
@@ -103,7 +106,7 @@ export default async function PeriodePage({
         <EmptyState
           icon={<CalendarX className="w-6 h-6" />}
           title="Belum ada periode"
-          description="Periode (kuartal) adalah gerbang seluruh proses penilaian. Buat yang pertama lewat form di atas, lalu lengkapi langkah berikut sebelum penilaian dapat diisi."
+          description="Penilaian dimulai dari periode (kuartal). Buat periode pertama lewat formulir di atas, lalu lengkapi langkah berikutnya."
           steps={[
             { text: <>Buat periode/kuartal pertama (form di atas)</> },
             { text: <>Susun <strong>Pertanyaan</strong> & atur <strong>Bobot Penilai</strong></> },
@@ -122,7 +125,7 @@ export default async function PeriodePage({
             <th className="py-2.5 px-3 font-semibold">Periode</th>
             <th className="py-2.5 px-3 font-semibold">Rentang</th>
             <th className="py-2.5 px-3 text-center font-semibold">360°</th>
-            <th className="py-2.5 px-3 text-center font-semibold">Deadline 360°</th>
+            <th className="py-2.5 px-3 text-center font-semibold">Tenggat 360°</th>
             <th className="py-2.5 px-3 text-center font-semibold">Standar KPI</th>
             <th className="py-2.5 px-3 text-center font-semibold">Status</th>
             <th className="py-2.5 px-3 text-right font-semibold"></th>
@@ -134,6 +137,9 @@ export default async function PeriodePage({
               <td className="py-3 px-3">
                 <span className="block text-[13px] font-bold text-ink">{p.label}</span>
                 <span className="text-[12px] text-ink-soft data-value">{p.code} · {monthCount.get(p.id) ?? 0} bln</span>
+                {violationOpenById.get(p.id) && (
+                  <span className="block mt-1"><StatusChip tone="brand">Laporkan Pelanggaran dibuka</StatusChip></span>
+                )}
               </td>
               <td className="py-3 px-3"><DateRange start={p.start_date} end={p.end_date} /></td>
               <td className="py-3 px-3 text-center">
@@ -155,7 +161,8 @@ export default async function PeriodePage({
                   : <StatusChip tone="neutral">Terkunci</StatusChip>}
               </td>
               <td className="py-3 px-3 text-right">
-                <PeriodActions periodId={p.id} status={p.status} has360={p.has_360} formOpen={p.form_open} mappingPublished={p.mapping_published} />
+                <PeriodActions periodId={p.id} status={p.status} has360={p.has_360} formOpen={p.form_open} mappingPublished={p.mapping_published}
+                  violationOpen={violErr ? null : violationOpenById.get(p.id) ?? false} />
               </td>
             </tr>
           ))}
@@ -165,8 +172,7 @@ export default async function PeriodePage({
       </div>
       )}
       <div className="mt-4"><Note>
-        Hanya satu periode aktif pada satu waktu — mengaktivasi periode akan mengunci yang lain.
-        Periode baru harus diisi pertanyaan &amp; pemetaan (kelola terpisah) sebelum penilaian.
+        Hanya satu periode yang bisa aktif; mengaktifkan periode ini mengunci periode lain. Isi pertanyaan dan pemetaan sebelum penilaian dimulai.
       </Note></div>
       </>
       )}

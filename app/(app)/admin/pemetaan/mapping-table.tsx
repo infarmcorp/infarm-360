@@ -16,7 +16,7 @@ export type MapRow = {
   status: PairStatus;
 };
 
-const STATUS_LABEL: Record<PairStatus, string> = { none: 'Belum Mulai', draft: 'Draft', submitted: 'Terkirim', invalidated: 'Dibatalkan' };
+const STATUS_LABEL: Record<PairStatus, string> = { none: 'Belum Mulai', draft: 'Draf', submitted: 'Terkirim', invalidated: 'Dibatalkan' };
 const STATUS_CLS: Record<PairStatus, string> = {
   none: 'bg-neutral-tint text-ink-soft', draft: 'bg-warn-tint text-warn-ink',
   submitted: 'bg-brand-tint text-brand-ink', invalidated: 'bg-neutral-tint text-ink-soft',
@@ -55,8 +55,7 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
       <span className="w-10 h-10 mx-auto mb-2 rounded-xl bg-brand-tint text-brand-ink flex items-center justify-center" aria-hidden><Link2 className="w-5 h-5" /></span>
       <p className="text-[13px] font-bold text-ink">Belum ada pemetaan penilai untuk periode ini</p>
       <p className="text-xs text-ink-soft mt-1 max-w-sm mx-auto leading-relaxed">
-        Tentukan siapa menilai siapa dengan salah satu cara di atas:
-        <strong className="font-semibold text-ink"> tambah manual</strong>, <strong className="font-semibold text-ink">impor Excel</strong>, atau <strong className="font-semibold text-ink">salin dari periode sebelumnya</strong> (tetap bisa diedit).
+        Tentukan siapa menilai siapa: <strong className="font-semibold text-ink"> tambah manual</strong>, <strong className="font-semibold text-ink">impor Excel</strong>, atau <strong className="font-semibold text-ink">salin dari periode sebelumnya</strong>.
       </p>
     </div>
   );
@@ -157,10 +156,7 @@ export function MappingTable({ rows }: { rows: MapRow[] }) {
       <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="pasangan" />
       </StableHeight>
       <p className="text-xs text-ink-soft leading-relaxed">
-        Relasi menentukan kelas bobot 360 (Atasan/Peer/Cross/Self). Sifat Wajib jadi dasar Flag Kepatuhan.
-        Hapus hanya untuk status Belum Mulai &amp; Draft (alasan wajib). Penilaian Terkirim tidak dapat dihapus —
-        gunakan <strong className="font-semibold text-ink-soft">Periksa Validitas</strong> untuk membatalkan validitasnya
-        (dikeluarkan dari Skor 360°, jawaban tetap tersimpan sebagai arsip). Semua tindakan tercatat di Log Aktivitas.
+        Relasi menentukan kelas bobot 360°. Sifat Wajib menjadi dasar Flag Kepatuhan. Hanya status Belum Mulai dan Draf yang bisa dihapus (alasan wajib). Penilaian Terkirim dibatalkan lewat <strong className="font-semibold text-ink-soft">Periksa Validitas</strong> — keluar dari Skor 360°, jawaban tetap diarsipkan. Semua tindakan tercatat di Log Aktivitas.
       </p>
     </div>
   );

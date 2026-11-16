@@ -139,7 +139,7 @@ describe('setLateWaiver — database sebelum migrasi 0043 (tanpa kolom points)',
   it('menetapkan nilai selain 0 → pesan perlu migrasi (seperti sebelumnya)', async () => {
     db({ noPointsColumn: true });
     const r = await setLateWaiver({ employeeId: EMP, reason: 'Sakit', points: 5 });
-    expect(r).toEqual({ ok: false, error: 'Mengubah nilai potongan (selain 0) memerlukan migrasi database 0043 — hubungi admin sistem.' });
+    expect(r).toEqual({ ok: false, error: 'Nilai potongan (selain 0) belum dapat diubah. Hubungi admin sistem.' });
     expect(logHrdAction).not.toHaveBeenCalled();
   });
 });

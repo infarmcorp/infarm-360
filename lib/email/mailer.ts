@@ -149,23 +149,23 @@ const ROLE_LABEL_ID: Record<string, string> = {
 function roleGuide(role: string, isHrdAdmin: boolean): string[] {
   if (role === 'hrd' || isHrdAdmin) return [
     'Atur siklus di Kelola Siklus Periode, Pemetaan (siapa menilai siapa), dan Kelola Pertanyaan.',
-    'Pantau pengisian di Progress 360 dan kirim pengingat bila perlu.',
-    'Setelah cukup terisi, buka Review & Finalisasi → Finalisasi & rilis laporan.',
+    'Pantau pengisian di Progres Umpan Balik 360° dan kirim pengingat bila perlu.',
+    'Setelah cukup terisi, buka Tinjauan & Finalisasi → Finalisasi & rilis laporan.',
     'Gunakan tombol Mode Admin ↔ Mode posisi-asli untuk berganti peran.',
   ];
   if (role === 'spv') return [
-    'Isi Input KPI Anggota tiap bulan (termasuk KPI Anda sendiri).',
+    'Isi KPI anggota setiap bulan, termasuk KPI Anda sendiri.',
     'Isi Daftar Penilaian Saya (penilaian 360°) seperti pegawai lain.',
-    'Pantau tim di Monitor Kinerja & Laporan Kinerja Tim, lalu beri ACC laporan.',
+    'Pantau tim di Monitor Kinerja & Laporan Kinerja Tim, lalu setujui laporan.',
   ];
   if (role === 'direksi') return [
-    'Lihat Dashboard eksekutif untuk ringkasan kinerja organisasi.',
-    'Tinjau & ACC usulan Promosi/Suksesi.',
+    'Lihat Dasbor eksekutif untuk ringkasan kinerja organisasi.',
+    'Tinjau & setujui usulan Promosi/Suksesi.',
   ];
   return [
     'Buka menu Daftar Penilaian Saya.',
-    'Klik Mulai Nilai pada tiap rekan: isi rating + komentar (wajib) + esai kualitatif.',
-    'Tekan Kirim Penilaian 360° (kerja Anda tersimpan otomatis tiap 5 detik).',
+    'Klik Mulai Nilai pada tiap rekan: isi nilai, komentar (wajib), dan esai kualitatif.',
+    'Tekan Kirim Penilaian 360° (isian Anda tersimpan otomatis setiap 5 detik).',
     'Hasil Anda muncul di Laporan Hasil Saya setelah HRD memfinalisasi periode.',
   ];
 }

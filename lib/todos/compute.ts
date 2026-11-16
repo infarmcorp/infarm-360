@@ -39,7 +39,7 @@ export async function getTodos(
     const items: TodoItem[] = [];
     if (assessPending > 0) items.push({ id: 'assess', tone: 'amber', href: '/penilaian', label: `${assessPending} penilaian 360° menunggu diisi` });
     // Keputusan HRD atas permohonan pegawai — dulu hanya terlihat di tab Pengajuan (audit 2026-10-02).
-    if (requestNews.ajuanToDo > 0) items.push({ id: 'ajuan-approved', tone: 'rose', href: '/penilaian', label: `${requestNews.ajuanToDo} ajuan Anda disetujui HRD — wajib dinilai sebelum deadline` });
+    if (requestNews.ajuanToDo > 0) items.push({ id: 'ajuan-approved', tone: 'rose', href: '/penilaian', label: `${requestNews.ajuanToDo} ajuan Anda disetujui HRD — wajib dinilai sebelum tenggat` });
     if (requestNews.decided > 0) items.push({ id: 'request-decided', tone: 'blue', href: '/penilaian?tab=pengajuan', label: `${requestNews.decided} permohonan Anda sudah diputuskan HRD` });
     if (reportReady > 0) items.push({ id: 'report', tone: 'emerald', href: '/laporan', label: 'Laporan Hasil Anda sudah final' });
     if (kpiMissing && kpiMissing.missing > 0) items.push({ id: 'kpi', tone: 'indigo', href: '/kpi', label: `${kpiMissing.missing} anggota belum ada KPI ${kpiMissing.ym}` });
@@ -165,7 +165,7 @@ async function hrdAdminTodos(supabase: SB, periodId: string, has360: boolean): P
   // Laporan FINAL yang skornya sudah usang (KPI/360° berubah sejak difinalisasi).
   // Gagal baca → tanpa notifikasi ini (bukan angka salah), tugas HRD lain tetap tampil.
   const stale = await countStaleFinalReports(supabase, periodId, has360).catch(() => 0);
-  if (stale > 0) out.push({ id: 'hrd-stale', tone: 'amber', href: '/admin/laporan', label: `${stale} laporan Final skornya berubah — perbarui di Review & Finalisasi` });
+  if (stale > 0) out.push({ id: 'hrd-stale', tone: 'amber', href: '/admin/laporan', label: `Skor ${stale} laporan Final berubah — perbarui di Tinjauan & Finalisasi` });
   return out;
 }
 
@@ -208,7 +208,7 @@ async function direksiSuksesi(supabase: SB): Promise<TodoItem[]> {
   const { count } = await supabase
     .from('succession_plans').select('*', { count: 'exact', head: true }).eq('status', 'submitted');
   return (count ?? 0) > 0
-    ? [{ id: 'dir-suksesi', tone: 'indigo', href: '/suksesi', label: `${count} usulan suksesi menunggu ACC` }]
+    ? [{ id: 'dir-suksesi', tone: 'indigo', href: '/suksesi', label: `${count} usulan suksesi menunggu persetujuan` }]
     : [];
 }
 
@@ -244,7 +244,7 @@ async function devPlanTodos(userId: string, hrdMode: 'admin' | 'spv'): Promise<T
       if (myPlans?.length) {
         const { data: open } = await admin.from('development_plan_sessions').select('id')
           .in('plan_id', myPlans.map((p) => p.id)).eq('kind', 'one_on_one').is('employee_note', null);
-        if (open?.length) out.push({ id: 'devplan-respond', tone: 'blue', href: '/pengembangan?tab=saya', label: `${open.length} catatan sesi 1-on-1 menunggu tanggapan Anda` });
+        if (open?.length) out.push({ id: 'devplan-respond', tone: 'blue', href: '/pengembangan?tab=saya', label: `${open.length} catatan sesi empat mata menunggu tanggapan Anda` });
       }
     }
 

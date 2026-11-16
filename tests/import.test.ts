@@ -178,7 +178,7 @@ describe('classifyMappingRows', () => {
 
   it('invalid: relasi Self dinonaktifkan meski penilai ≠ dinilai', () => {
     const c = parse([{ penilai: 'SPV001', dinilai: 'EMP001', relasi: 'Self' }]);
-    expect(c[0]).toMatchObject({ status: 'invalid', reason: 'Relasi Self dinonaktifkan untuk periode ini' });
+    expect(c[0]).toMatchObject({ status: 'invalid', reason: 'Evaluasi diri dinonaktifkan untuk periode ini' });
   });
 
   it('dup: pasangan penilai→target berulang (relasi tak dihitung untuk keunikan)', () => {

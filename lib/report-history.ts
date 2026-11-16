@@ -35,7 +35,7 @@ export function describeHistory(r: HistoryRow): HistoryItem[] {
   if (r.kind === 'snapshot' || r.kind === 'created') {
     const head = r.kind === 'snapshot' ? 'Awal pencatatan riwayat' : 'Laporan dibuat';
     return [{
-      text: `${head}: ${statusLabel(r.new_status)} · ${r.new_acc ? '✔ sudah ACC' : 'belum ACC'} · Skor Akhir ${score(r.new_score)}`,
+      text: `${head}: ${statusLabel(r.new_status)} · ${r.new_acc ? '✔ sudah disetujui' : 'belum disetujui'} · Skor Akhir ${score(r.new_score)}`,
       tone: r.new_acc ? 'brand' : 'neutral',
     }];
   }
@@ -44,12 +44,12 @@ export function describeHistory(r: HistoryRow): HistoryItem[] {
   const accOff = r.old_acc === true && r.new_acc === false;
   const statusChanged = r.old_status !== r.new_status;
   const scoreChanged = !sameScore(r.old_score, r.new_score);
-  if (accOn) items.push({ text: '✔ ACC diberikan', tone: 'brand' });
+  if (accOn) items.push({ text: '✔ persetujuan diberikan', tone: 'brand' });
   if (accOff) {
     const why = statusChanged && r.new_status === 'draft' ? ' — karena laporan disimpan sebagai Draf'
       : r.new_status === 'in_review' && scoreChanged ? ' — karena dirilis ulang dengan Skor Akhir berbeda'
       : '';
-    items.push({ text: `✖ ACC dibatalkan${why}`, tone: 'danger' });
+    items.push({ text: `✖ persetujuan dibatalkan${why}`, tone: 'danger' });
   }
   if (statusChanged) items.push({ text: `Status: ${statusLabel(r.old_status)} → ${statusLabel(r.new_status)}`, tone: 'neutral' });
   if (scoreChanged) items.push({ text: `Skor Akhir ${score(r.old_score)} → ${score(r.new_score)}`, tone: 'neutral' });

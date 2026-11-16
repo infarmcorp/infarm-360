@@ -7,7 +7,7 @@ import { finalScoreOf, kpiAvgOf, displayedFinalOf, playerClassOf, playerLabelOf,
 import { classOf, avg, weightedScore360, effectiveModel, type Groups360, type Model360 } from '@/lib/score360';
 import type { RelationKind, WeightValues } from '@/lib/database.types';
 import { cookies } from 'next/headers';
-import { loadViolationReports, sortViolations, OTHER_CATEGORY_LABEL } from '@/lib/outside-notes';
+import { loadViolationReports, sortViolations, violationCategoryLabel, VIOLATION_STATUS_LABEL } from '@/lib/outside-notes';
 import { tableMissing } from '@/lib/report-folder';
 import { formatDateTimeWib } from '@/lib/datetime';
 import { planTitle, planStatusLabel, ITEM_PROGRESS_LABEL, SESSION_KIND_LABEL, OVERALL_LABEL } from '@/lib/dev-plan';
@@ -958,13 +958,14 @@ async function exportReportMaterialsImpl(periodId?: string | null): Promise<Conf
   komentar.sort(cmp);
   esai.sort(cmp);
 
-  // ── Lembar 4: Laporan Pelanggaran (0054 + 0058; dulu Catatan di Luar Pemetaan) — hanya HRD di Mode Admin.
-  // Isian pelapor saja (tanggal kejadian, kategori, laporan, catatan) — TANPA pelapor/relasi/waktu kirim (tabel tak
-  // menyimpannya). Urut periode → pegawai → tanggal kejadian terbaru → abjad isi (sortViolations + sort stabil).
+  // ── Lembar 4: Laporan Pelanggaran (0054 + 0058 + 0061; dulu Catatan di Luar Pemetaan) — hanya HRD di Mode Admin.
+  // Isian pelapor (tanggal kejadian, kategori, laporan, catatan) + tindak lanjut HRD (status, tanggapan; 0062) — TANPA
+  // pelapor/penanda pelapor/relasi/waktu kirim. Urut periode → pegawai → tanggal kejadian terbaru → abjad isi (sortViolations + sort stabil).
   const jar = await cookies();
   const catatan: Sorted[] = [];
   const withNotes = jar.get('hrd_mode')?.value === 'admin';
   if (withNotes) {
+    const aspectNameById = new Map([...aspectMeta].map(([id, m]) => [id, m.name] as const));
     const reports = sortViolations(await loadViolationReports(admin as unknown as Parameters<typeof loadViolationReports>[0], periodId));
     for (const n of reports) {
       const h = head(n);
@@ -973,9 +974,11 @@ async function exportReportMaterialsImpl(periodId?: string | null): Promise<Conf
         row: {
           ...h,
           tanggal_kejadian: n.incident_date ?? '',
-          kategori: n.is_other ? OTHER_CATEGORY_LABEL : (n.aspect_id ? aspectMeta.get(n.aspect_id)?.name ?? '' : ''),
+          kategori: (() => { const k = violationCategoryLabel(n, aspectNameById); return k === '—' ? '' : k; })(),
           laporan: n.body,
           catatan: n.note ?? '',
+          status: VIOLATION_STATUS_LABEL[n.status],
+          tanggapan_hrd: n.hrd_response ?? '',
         },
       });
     }
@@ -1110,7 +1113,7 @@ async function guarded<R>(run: () => Promise<R>): Promise<R | { ok: false; error
     const detail = e instanceof Error && e.message ? ` (${e.message})` : '';
     return {
       ok: false,
-      error: `Gagal mengambil data dari database${detail}. File tidak dibuat agar tidak ada data yang terpotong. Silakan coba lagi beberapa saat lagi.`,
+      error: `Gagal mengambil data${detail}. Berkas tidak dibuat agar data tidak terpotong. Coba lagi sebentar lagi.`,
     };
   }
 }

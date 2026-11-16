@@ -33,6 +33,17 @@ Acuan fungsional: `PANDUAN Infarm 360 Portal.pdf` dan [docs/PANDUAN.md](docs/PAN
 | [docs/PESAN-HRD-RILIS-Q3.md](docs/PESAN-HRD-RILIS-Q3.md) | sementara — pesan siap kirim ke HRD tentang perubahan rilis Q3; hapus setelah rilis |
 
 Selalu perbarui RENCANA/CHANGELOG saat status fitur bergeser, dan file ini hanya bila aturan berubah.
+
+**Notion ikut diperbarui** (pemilik, 2026-11-12): panduan pengguna yang dibaca pegawai ada di Notion "Infarm Performance
+Appraisal — Docs" (panduan per peran 2A–2F, Bab 1–11, Peta Aplikasi). Tiap perubahan yang mengubah PANDUAN.md
+(perilaku, tombol, menu, teks yang terlihat pengguna) → di sesi yang sama perbarui halaman Notion terkait (bahasa awam,
+susunan Notion — jangan salin PANDUAN.md mentah) dan tambah entri di database **Daily Report** (di bawah "Catatan Teknis
+(internal)"). Bila tampilan berubah, tandai gambar layar yang usang di entri Daily Report (diambil ulang terpisah). Panduan
+pegawai/SPV/koordinator menyebut laporan pelanggaran "hanya diakses HRD" (sesuai teks pop-up) — sengaja.
+Kartu **Panduan Saya** di Akun Saya menautkan halaman Notion per peran (`lib/panduan.ts`, `guidesFor` dari izin terkini,
+diuji `tests/panduan.test.ts`) — bila halaman Notion dipindah/diganti, perbarui URL-nya di sana. Hanya 2A–2F yang
+di-publish ke web (Bab 1–8 & halaman induk sengaja tertutup, pemilik 2026-11-12), jadi isi 2A–2F **tidak boleh merujuk
+halaman lain** ("lihat Bab 5", "sama dengan Panduan Pegawai") — tulis ulang informasinya di halaman itu.
 PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fungsi, path, nomor migrasi).
 
 ## 3. Stack & struktur
@@ -40,8 +51,10 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   + RLS), Zod, `xlsx` (parse di klien), `nodemailer`/Resend, `@vercel/edge-config`, `motion`, `lucide-react`,
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
   typecheck + lint + build; lint bersih sejak 2026-10-16 — jangan tambah temuan baru). Backup harian `.github/workflows/backup.yml`. npm.
-- Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 30 tabel publik, migrasi
-  `supabase/migrations/0001`–`0059`. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
+- Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 31 tabel publik, migrasi
+  `supabase/migrations/0001`–`0062` (0060 `ai_settings` = eksperimen dev, belum wajib di production). **Production berjalan tanpa API LLM**:
+  "Ringkas otomatis"/Pengaturan AI (`lib/ai/`, `GEMINI_API_KEY`) hanya dev/staging dan mati otomatis di production; ringkasan
+  HRD ditulis manual. Jangan sebut fitur AI di PANDUAN/Notion selama belum dirilis. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
   → **wajib** cek `Bearer $CRON_SECRET` sendiri, gagal tertutup. Email Rilis terjadwal dipicu GitHub Actions
   (`release-email-cron.yml`); inti kirim email rilis satu-satunya = `lib/release-delivery.ts` (manual & jadwal).
 - `app/` — `login/`, `maintenance/`, `auth/` (callback, lupa-sandi, perbarui-sandi, signout),
@@ -104,22 +117,36 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   pemegang grant Review non-HRD tetap ditolak untuk laporannya sendiri; ACC laporan sendiri tetap ditolak (0049).
   Aturan database yang melarang membaca penilaian atas diri sendiri **tidak** dibuat (keputusan yang sama).
 - Employee hanya membaca laporannya saat `finalized` (dimuat via service_role). Direksi read-only + ACC.
-- **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan"; tabel `outside_mapping_notes`, 0054 + 0058, keputusan
-  pemilik 2026-11-03 & 2026-11-10) — rincian TEKNIS.md §5.4:
-  - **Anonim secara skema:** tabel **tanpa** kolom penulis (id/email/hash/token) dan **tanpa** waktu kirim; jangan
-    tambahkan. `incident_date` = tanggal **kejadian** isian pelapor (bukan waktu kirim). Identitas pengirim di
-    `submitOutsideNote` hanya untuk validasi — **jangan** tulis ke tabel, audit log, `console`, pesan error, atau
-    notifikasi. Urutan tampil = tanggal kejadian terbaru lalu abjad isi (`sortViolations`), bukan id/urutan masuk.
-    Tanpa riwayat untuk pengirim; tak bisa diubah/dihapus pegawai. Kode laporan / Cek Status **belum** dibangun.
+- **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan"; tabel `outside_mapping_notes`, 0054 + 0058 + 0061 + 0062,
+  keputusan pemilik 2026-11-03, 2026-11-10 & 2026-11-16) — rincian TEKNIS.md §5.4:
+  - **Anonim tersembunyi** (0062, RISIKO DITERIMA pemilik 2026-11-16 — dulu anonim secara skema): tabel **tanpa** id/
+    email/nama pengirim dan **tanpa** waktu kirim; satu-satunya penanda = `reporter_ref` = HMAC(`VIOLATION_REPORTER_SECRET`,
+    id) (`lib/violation-ref.ts`), hanya untuk tab **Laporan Saya** pelapor sendiri. Penanda **tak pernah** ke klien,
+    halaman/ekspor HRD/Direksi, log, `console`, pesan error, notifikasi (dikunci `tests/outside-notes.test.ts`:
+    hanya `lapor-pelanggaran/actions.ts` & `lib/outside-notes.ts` menyebut kolomnya; `reporterRef(` hanya di kirim &
+    halaman pelapor). Pemegang akses DB + kunci rahasia secara teori bisa melacak — jangan tambah penanda lain,
+    jangan ganti kunci. `incident_date` = tanggal **kejadian** (bukan waktu kirim). Urutan tampil = tanggal kejadian
+    terbaru lalu abjad isi (`sortViolations`), bukan id/urutan masuk. Pegawai tak bisa mengubah/menghapus laporan.
+    Kode laporan per laporan **ditolak** (merepotkan) — diganti Laporan Saya.
+  - **Tindak lanjut HRD** (0062): status Diterima → Sedang ditindaklanjuti → Selesai + tanggapan satu arah untuk
+    pelapor (`setViolationFollowUp`, `admin/pelanggaran/actions.ts`): hanya HRD Mode Admin berbagian Tinjauan &
+    Finalisasi (Direksi baca saja), **tolak laporan tentang diri sendiri**, tulis hanya kolom tindak lanjut, Log Aktivitas
+    tanpa isi tanggapan & tanpa nama terlapor.
   - **Baca hanya HRD Mode Admin** berbagian Review & Finalisasi **dan Direksi** (`violationPageAllowed`; Direksi = semua
     laporan, hanya baca, tanpa ekspor — pemilik 2026-11-11), termasuk laporan tentang dirinya sendiri (tetap anonim),
     lewat `loadViolationReports` di dua jalur saja: halaman **Laporan Pelanggaran** (`admin/pelanggaran`) dan ekspor **Bahan Laporan per Pegawai** lembar 4 (cookie `hrd_mode='admin'`; kolom =
-    periode/pegawai/divisi/tanggal kejadian/kategori/laporan/catatan, tanpa pelapor/relasi/waktu kirim). Sejak 0058
+    periode/pegawai/divisi/tanggal kejadian/kategori/laporan/catatan/status/tanggapan HRD, tanpa pelapor/penanda/relasi/
+    waktu kirim). Sejak 0058
     laporan **tidak** lagi tampil di rincian komentar laporan; `loadReport` & loader lain tak memuatnya. Akses DB
     hanya service_role (RLS tanpa policy).
   - **Bukan Ad-Hoc:** tak menyentuh `mappings`/`assessments`/skor; tak masuk Skor 360°, Skor Akhir, Progress,
-    Kepatuhan, potongan telat, tugas. Hanya `outside-note-actions.ts` & `lib/outside-notes.ts` yang menyebut
+    Kepatuhan, potongan telat, tugas. Hanya `lapor-pelanggaran/actions.ts` & `lib/outside-notes.ts` yang menyebut
     tabelnya (dikunci `tests/outside-notes.test.ts`). Pengirim eksternal ditolak (sementara).
+  - **Lepas dari 360°** (0061, pemilik 2026-11-16): gerbang kirim = periode aktif + saklar sendiri per periode
+    `periods.violation_open` (HRD, Kelola Periode) — **jangan** kaitkan lagi ke `has_360`/`form_open`/tenggat. Halaman
+    pegawai sendiri `/lapor-pelanggaran`. Rekan di pemetaan pelapor **boleh** dilaporkan kapan pun — **jangan** pasang lagi pengecualian berdasarkan `mappings` (membocorkan "pelapor bukan penilainya").
+    Kategori = **nama** aspek budaya (`category`, dari periode terbaru yang punya aspek — aspek sama antarperiode,
+    hanya indikator berganti), bukan FK aspek periode aktif.
 - **Rencana Pengembangan** (0055, TEKNIS.md §5.5): melekat ke periode **laporan** (terbuka bila laporan Final & HRD
   belum menutup; periode aktif tak berpengaruh). Atasan = `resolveSupervisor` (koordinator → SPV → Direksi untuk SPV/
   pemimpin tim → HRD cadangan; atasan **nonaktif** dilewati di `loadSupervisorResolver`); SPV dari pegawai
@@ -254,6 +281,9 @@ bersama (2026-11-03/04). Aturan token & "kartu flat tanpa bayangan / font sistem
   periode/Tugas/mode. Isi `menuFor` (menu, urutan, gate akses) tidak berubah; HP tetap laci.
 - ⚠️ `laporan-tim/team-table.tsx` & `scorecards.tsx` dipakai bersama Monitor; `admin/laporan/report-table.tsx` dipakai juga
   Tinjauan Hasil Akhir (Direksi) — mengubahnya mengubah halaman lain.
+- **Tinjau laporan dua kolom** (2026-11-12, `laporan/report-split.tsx` `ReportSplit`): detail laporan untuk HRD Mode Admin &
+  pemegang akses Review di layar ≥ xl = kiri dokumen + editor ringkasan, kanan Rincian Komentar Murni (sticky, gulir
+  sendiri). Layar kecil & cetak tetap bertumpuk. Radar aspek dua kolom lewat container query kartu (`@2xl`), bukan lebar layar.
 - **Tabel berpager wajib stabil** (2026-10-15): `table-fixed` + `<colgroup>` (`colPercents`), kelas `table-1line`
   (isi sel 1 baris, keputusan pengguna), dan tabel + pager dibungkus `StableHeight` (`components/table-controls.tsx`)
   — ukuran tak boleh bergeser saat paging/filter/tab. Daftar yang barisnya bisa dibuka-tutup (Progress 360) dikecualikan.
@@ -262,6 +292,12 @@ bersama (2026-11-03/04). Aturan token & "kartu flat tanpa bayangan / font sistem
 ## 9. Konvensi & pengujian
 - TS strict; hindari `any`. Komentar & label UI bahasa Indonesia mengikuti istilah PANDUAN ("Mulai Nilai",
   "Final Report", "Garis Hubungan").
+- **Istilah UI baku** (audit kalimat pemilik, 2026-11-13): Tinjauan & Finalisasi · Dasbor · Progres Umpan Balik 360° ·
+  Pemantauan & Audit KPI · Pengisian KPI · persetujuan/Setujui (bukan ACC) · tenggat (bukan deadline) · formulir · nilai
+  (bukan rating) · berkas · templat · peta panas · Rerata · atur ulang sandi · sesi empat mata · Rekan/Lintas Divisi/Diri
+  Sendiri (label saja — **nilai data** relasi `Peer`/`Cross`/`Self` di DB, enum Zod, impor Excel, dan rumus tetap). Pesan
+  ke pengguna tidak menyebut nomor migrasi/nama tabel ("Hubungi admin aplikasi"). Istilah yang ditetapkan HRD (status
+  BR-07, No Score, HRD Review, nama kelas 4-Box termasuk "B-Culture", kategori/RTL lama) **tidak** diubah tanpa HRD.
 - Tipe skema di `lib/database.types.ts`; tipe per-fitur inline/di lib terkait — jangan duplikasi.
 - **Lint React hooks:** jangan definisikan komponen di dalam komponen (pakai tingkat modul atau fungsi render
   biasa); jangan `setState` di effect untuk "reset saat nilai berubah" — lakukan di handler atau pola "bandingkan
@@ -274,7 +310,7 @@ bersama (2026-11-03/04). Aturan token & "kartu flat tanpa bayangan / font sistem
   > 1000 baris — PostgREST memotong diam-diam (bug 2026-07-08: 51/52 Skor 360° salah).
 - **Jangan** `npm audit fix --force` (menurunkan Next 16 → 9). `xlsx@0.20.3` dari CDN SheetJS.
 - Rumus menentukan keputusan SDM nyata dan salahnya tak memunculkan error → `npm test` wajib hijau saat kode
-  disentuh (±1100 tes / 63 file). Server Action diuji dengan mock `tests/helpers/mock-supabase.ts`.
+  disentuh (±1200 tes / 71 file). Server Action diuji dengan mock `tests/helpers/mock-supabase.ts`.
 - `npm run verify:rls` (85 pemeriksaan, fixture `RLSTEST-*` self-cleaning) manual pra-rilis & tiap ubah RLS.
 - Migrasi baru: idempoten, nomor urut, terapkan ke staging dulu; urutan rilis → TEKNIS.md §1. Kode yang memanggil
   fungsi database baru WAJIB punya cadangan cara lama bila fungsinya belum ada (`rpcMissing`, `lib/supabase/rpc.ts`),

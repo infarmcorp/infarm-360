@@ -70,7 +70,7 @@ export async function requestMappingRemoval(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
 
   const gate = await activePeriodForRequest(supabase);
   if (!gate.ok) return gate;
@@ -115,7 +115,7 @@ export async function requestNewAssessment(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   if (tid.data === user.id) return { ok: false, error: 'Tidak dapat mengajukan penilaian untuk diri sendiri' };
 
   const gate = await activePeriodForRequest(supabase);

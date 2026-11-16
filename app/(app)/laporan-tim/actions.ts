@@ -31,7 +31,7 @@ async function logAcc(actor: { id: string; name: string | null }, via: string, e
     const { data: t } = await createAdminClient().from('employees').select('name').eq('id', employeeId).maybeSingle();
     await logAuditAsService({
       action: acc ? 'report.acc' : 'report.acc_revoke', category: 'laporan',
-      summary: `${acc ? 'Memberi ACC' : 'Membatalkan ACC'} Laporan Kinerja ${t?.name ?? employeeId} (${via})`,
+      summary: `${acc ? 'Menyetujui' : 'Membatalkan persetujuan'} Laporan Kinerja ${t?.name ?? employeeId} (${via})`,
       targetType: 'employee', targetId: employeeId, targetLabel: t?.name ?? null, meta: { acc, via },
     }, actor);
   } catch {
@@ -42,11 +42,11 @@ async function logAcc(actor: { id: string; name: string | null }, via: string, e
 export async function setSpvAcc(employeeId: string, acc: boolean): Promise<AccResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_coordinator, is_hrd_admin, hrd_sections, name, dept').eq('id', user.id).maybeSingle();
   const actor = { id: user.id, name: me?.name ?? null };
   // Laporan SENDIRI tak pernah boleh di-ACC pelakunya (juga ditegakkan DB, migrasi 0049).
-  if (employeeId === user.id) return { ok: false, error: 'Anda tidak dapat meng-ACC laporan Anda sendiri.' };
+  if (employeeId === user.id) return { ok: false, error: 'Anda tidak dapat menyetujui laporan Anda sendiri.' };
 
   const { data: ap } = await supabase
     .from('periods').select('id').eq('status', 'active').limit(1).maybeSingle();
@@ -64,11 +64,11 @@ export async function setSpvAcc(employeeId: string, acc: boolean): Promise<AccRe
       .eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
     if (!rep) return { ok: false, error: 'Laporan belum tersedia (menunggu HRD membuat draf)' };
     if (rep.status !== 'in_review' && rep.status !== 'finalized') {
-      return { ok: false, error: 'Laporan belum dirilis HRD untuk ditinjau — ACC belum bisa diberikan' };
+      return { ok: false, error: 'Laporan belum dirilis HRD untuk ditinjau — persetujuan belum bisa diberikan' };
     }
     const { error } = await admin.from('final_reports').update({ spv_acc: acc })
       .eq('employee_id', employeeId).eq('period_id', ap.id);
-    if (error) return { ok: false, error: 'Gagal menyimpan ACC: ' + error.message };
+    if (error) return { ok: false, error: 'Gagal menyimpan persetujuan: ' + error.message };
     await logAcc(actor, 'Koordinator', employeeId, acc);
     revalidatePath('/laporan-tim');
     revalidatePath('/admin/laporan');
@@ -80,17 +80,17 @@ export async function setSpvAcc(employeeId: string, acc: boolean): Promise<AccRe
   if (me?.role === 'direksi') {
     const admin = createAdminClient();
     if (!(await isDireksiReviewSubject(employeeId))) {
-      return { ok: false, error: 'Direksi hanya dapat meng-ACC laporan SPV / pemimpin tim' };
+      return { ok: false, error: 'Direksi hanya dapat menyetujui laporan SPV / pemimpin tim' };
     }
     const { data: rep } = await admin.from('final_reports').select('status')
       .eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
     if (!rep) return { ok: false, error: 'Laporan belum tersedia (menunggu HRD membuat draf)' };
     if (rep.status !== 'in_review' && rep.status !== 'finalized') {
-      return { ok: false, error: 'Laporan belum dirilis HRD untuk ditinjau — ACC belum bisa diberikan' };
+      return { ok: false, error: 'Laporan belum dirilis HRD untuk ditinjau — persetujuan belum bisa diberikan' };
     }
     const { error } = await admin.from('final_reports').update({ spv_acc: acc })
       .eq('employee_id', employeeId).eq('period_id', ap.id);
-    if (error) return { ok: false, error: 'Gagal menyimpan ACC: ' + error.message };
+    if (error) return { ok: false, error: 'Gagal menyimpan persetujuan: ' + error.message };
     await logAcc(actor, 'Direksi', employeeId, acc);
     revalidatePath('/laporan-tim');
     revalidatePath('/admin/laporan');
@@ -108,18 +108,18 @@ export async function setSpvAcc(employeeId: string, acc: boolean): Promise<AccRe
   } else if (me?.role === 'hrd') {
     const { data: t } = await admin.from('employees').select('dept, role, is_external').eq('id', employeeId).maybeSingle();
     if (!t || !me.dept || t.dept !== me.dept || t.role === 'direksi' || t.is_external) {
-      return { ok: false, error: 'HRD (Mode SPV) hanya dapat meng-ACC pegawai di divisinya sendiri (bukan Direksi atau pegawai eksternal).' };
+      return { ok: false, error: 'HRD (Mode SPV) hanya dapat menyetujui laporan pegawai di divisinya sendiri, kecuali Direksi dan pegawai eksternal.' };
     }
     via = 'HRD (Mode SPV)';
   } else {
-    return { ok: false, error: 'Hanya SPV, Koordinator, Direksi, atau HRD (Mode SPV) yang dapat memberi ACC.' };
+    return { ok: false, error: 'Hanya SPV, Koordinator, Direksi, atau HRD (Mode SPV) yang dapat memberi persetujuan.' };
   }
 
   // Pegawai yang punya KOORDINATOR di-ACC oleh koordinatornya, bukan SPV — tolak di server
   // (bukan sekadar menyembunyikan tombol).
   const { data: coordLink } = await admin
     .from('coordinator_team_members').select('employee_id').eq('employee_id', employeeId).maybeSingle();
-  if (coordLink) return { ok: false, error: 'Laporan ini di-ACC oleh koordinatornya, bukan SPV' };
+  if (coordLink) return { ok: false, error: 'Laporan ini disetujui oleh koordinatornya, bukan SPV' };
 
   // ACC baru boleh setelah HRD "Rilis ke SPV" (status in_review/finalized). Saat masih
   // draf, SPV belum boleh meng-ACC — tegakkan di server (bukan hanya menyembunyikan tombol).
@@ -128,7 +128,7 @@ export async function setSpvAcc(employeeId: string, acc: boolean): Promise<AccRe
     .eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
   if (!rep) return { ok: false, error: 'Laporan belum tersedia (menunggu HRD membuat draf)' };
   if (rep.status !== 'in_review' && rep.status !== 'finalized') {
-    return { ok: false, error: 'Laporan belum dirilis HRD untuk ditinjau — ACC belum bisa diberikan' };
+    return { ok: false, error: 'Laporan belum dirilis HRD untuk ditinjau — persetujuan belum bisa diberikan' };
   }
 
   const { data, error } = await admin
@@ -136,7 +136,7 @@ export async function setSpvAcc(employeeId: string, acc: boolean): Promise<AccRe
     .update({ spv_acc: acc })
     .eq('employee_id', employeeId).eq('period_id', ap.id)
     .select('employee_id');
-  if (error) return { ok: false, error: 'Gagal menyimpan ACC: ' + error.message };
+  if (error) return { ok: false, error: 'Gagal menyimpan persetujuan: ' + error.message };
   if (!data || data.length === 0) return { ok: false, error: 'Laporan belum tersedia (menunggu HRD membuat draf)' };
   // Ditulis via service_role → trigger DB tak mencatatnya (auth.uid() kosong) → catat di sini.
   await logAcc(actor, via, employeeId, acc);

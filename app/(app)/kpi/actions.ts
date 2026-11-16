@@ -62,9 +62,9 @@ async function writeKpi(svc: Svc, actorId: string, ym: string, rows: { employeeI
   );
   if (upErr) return 'Gagal menyimpan: ' + upErr.message;
   const { error: auErr } = await svc.from('kpi_audit').insert(
-    rows.map((r) => ({ employee_id: r.employeeId, ym, score: r.score, changed_by: actorId, note: r.note ?? 'Input bulanan' })),
+    rows.map((r) => ({ employee_id: r.employeeId, ym, score: r.score, changed_by: actorId, note: r.note ?? 'Pengisian bulanan' })),
   );
-  return auErr ? 'Skor tersimpan tapi audit gagal: ' + auErr.message : null;
+  return auErr ? 'Skor tersimpan, tetapi pencatatan audit gagal: ' + auErr.message : null;
 }
 const ScoreRow = z.object({
   employeeId: z.string().uuid(),
@@ -73,8 +73,8 @@ const ScoreRow = z.object({
 });
 
 const SaveKpiInput = z.object({
-  ym: z.string().regex(/^\d{4}-\d{2}$/, 'Format bulan harus YYYY-MM'),
-  rows: z.array(ScoreRow).min(1, 'Tidak ada skor untuk disimpan'),
+  ym: z.string().regex(/^\d{4}-\d{2}$/, 'Format bulan harus tahun-bulan (contoh: 2026-11)'),
+  rows: z.array(ScoreRow).min(1, 'Tidak ada skor yang perlu disimpan'),
 });
 
 export type SaveKpiResult =
@@ -84,13 +84,13 @@ export type SaveKpiResult =
 export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
   const parsed = SaveKpiInput.safeParse(raw);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
   }
   const { ym, rows } = parsed.data;
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!auth.user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_coordinator, is_hrd_admin, dept').eq('id', auth.user.id).maybeSingle();
   const empIds = rows.map((r) => r.employeeId);
   const isPureCoordinator = !!me?.is_coordinator && me.role !== 'spv' && me.role !== 'hrd' && me.role !== 'direksi';
@@ -151,7 +151,7 @@ export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
       .from('coordinator_team_members').select('employee_id').in('employee_id', empIds);
     const coordinated = new Set((ct ?? []).map((r) => r.employee_id));
     if (empIds.some((id) => coordinated.has(id))) {
-      return { ok: false, error: 'Sebagian pegawai dikoordinasikan oleh Koordinator — KPI mereka diinput koordinatornya, bukan SPV.' };
+      return { ok: false, error: 'Sebagian pegawai dikoordinasikan oleh Koordinator — KPI mereka diisi oleh koordinatornya, bukan SPV.' };
     }
   }
 
@@ -180,7 +180,7 @@ export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
     const label = names.length ? names.join(', ') : `${missingNote.length} pegawai`;
     return {
       ok: false,
-      error: `Perubahan capaian KPI bulan ${ym} wajib disertai Komentar Audit (input kedua = edit): ${label}.`,
+      error: `Perubahan capaian KPI bulan ${ym} wajib disertai Komentar Audit: ${label}.`,
     };
   }
 
@@ -224,7 +224,7 @@ async function saveKpiAsCoordinator(
     const { data: emps } = await svc.from('employees').select('id, name').in('id', missingNote.map((r) => r.employeeId));
     const names = (emps ?? []).map((e) => e.name);
     const label = names.length ? names.join(', ') : `${missingNote.length} pegawai`;
-    return { ok: false, error: `Perubahan capaian KPI bulan ${ym} wajib disertai Komentar Audit (input kedua = edit): ${label}.` };
+    return { ok: false, error: `Perubahan capaian KPI bulan ${ym} wajib disertai Komentar Audit: ${label}.` };
   }
 
   const writeErr = await writeKpi(svc, coordId, ym, rows);
@@ -245,7 +245,7 @@ async function saveKpiAsCoordinator(
  */
 const DeleteKpiInput = z.object({
   employeeId: z.string().uuid(),
-  ym: z.string().regex(/^\d{4}-\d{2}$/, 'Format bulan harus YYYY-MM'),
+  ym: z.string().regex(/^\d{4}-\d{2}$/, 'Format bulan harus tahun-bulan (contoh: 2026-11)'),
   note: z.string().trim().min(1, 'Alasan penghapusan wajib diisi').max(500),
 });
 
@@ -253,12 +253,12 @@ export type DeleteKpiResult = { ok: true } | { ok: false; error: string };
 
 export async function deleteKpiScore(raw: unknown): Promise<DeleteKpiResult> {
   const parsed = DeleteKpiInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
   const { employeeId, ym, note } = parsed.data;
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!auth.user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_coordinator, is_hrd_admin, dept').eq('id', auth.user.id).maybeSingle();
 
   // KOORDINATOR "murni": hapus KPI HANYA pegawai naungannya, via service_role (RLS menolaknya).
@@ -296,7 +296,7 @@ export async function deleteKpiScore(raw: unknown): Promise<DeleteKpiResult> {
   // Skor lama (dicatat di audit + pastikan memang ada).
   const { data: cur } = await db
     .from('kpi_scores').select('score').eq('employee_id', employeeId).eq('ym', ym).maybeSingle();
-  if (!cur) return { ok: false, error: `Tidak ada skor KPI bulan ${ym} untuk dihapus` };
+  if (!cur) return { ok: false, error: `Tidak ada skor KPI bulan ${ym} yang dapat dihapus` };
 
   // Hapus + jejak audit (action='delete', skor lama) dalam satu transaksi via service_role.
   const { data: oldScore, error: rpcErr } = await svc.rpc('kpi_delete_with_audit', {
@@ -312,7 +312,7 @@ export async function deleteKpiScore(raw: unknown): Promise<DeleteKpiResult> {
     const { error: auditErr } = await svc.from('kpi_audit').insert({
       employee_id: employeeId, ym, score: cur.score, changed_by: auth.user.id, note, action: 'delete',
     });
-    if (auditErr) return { ok: false, error: 'Skor dihapus tapi audit gagal: ' + auditErr.message };
+    if (auditErr) return { ok: false, error: 'Skor dihapus, tetapi pencatatan audit gagal: ' + auditErr.message };
   } else if (oldScore == null) {
     return { ok: false, error: 'Skor tak ditemukan atau di luar lingkup Anda' };
   }

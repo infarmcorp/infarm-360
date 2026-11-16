@@ -41,7 +41,7 @@ describe('withoutRaw — laporan diri sendiri tanpa umpan balik mentah', () => {
   });
 });
 
-describe('reportForGrantViewer — jalur grant Review & Finalisasi tak pernah menerima L3', () => {
+describe('reportForGrantViewer — jalur grant Tinjauan & Finalisasi tak pernah menerima L3', () => {
   const full = () => ({
     s360: 82, aspects: [{ name: 'X', score: 80, self: null }],
     aspectSummaries: { X: 'ringkasan' },

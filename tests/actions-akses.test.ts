@@ -191,7 +191,7 @@ describe('setPageGrant — penulisan & audit', () => {
     const r = await setPageGrant(EMP, 'dashboard', ['other_divisions', 'self', 'other_divisions']);
     expect(r.ok).toBe(true);
     expect(admin.calls[0].payload).toMatchObject({ scope: 'other_divisions', scopes: ['other_divisions', 'self'] });
-    if (r.ok) expect(r.msg).toBe('Akses "Dashboard Organisasi" diberikan (Selain divisinya + Diri sendiri).');
+    if (r.ok) expect(r.msg).toBe('Akses "Dasbor Organisasi" diberikan (Selain divisinya + Diri sendiri).');
   });
 
   it("'all' menyerap lingkup lain → disimpan ['all'] saja", async () => {
@@ -221,7 +221,7 @@ describe('setPageGrant — penulisan & audit', () => {
     useAdmin(admin);
     const r = await setPageGrant(EMP, 'review', ['own_division']);
     expect(admin.calls[0].payload).toMatchObject({ can_edit: false, can_finalize: false });
-    expect(r).toEqual({ ok: true, msg: 'Akses "Review & Finalisasi" diberikan (Hanya divisinya, hanya lihat).' });
+    expect(r).toEqual({ ok: true, msg: 'Akses "Tinjauan & Finalisasi" diberikan (Hanya divisinya, hanya lihat).' });
   });
 
   it("halaman 'review': Meringkas → can_edit true, can_finalize false", async () => {
@@ -246,7 +246,7 @@ describe('setPageGrant — penulisan & audit', () => {
   it('izin harus boolean sungguhan: teks "false" / angka DITOLAK (dulu "false" terbaca true)', async () => {
     for (const [e, f] of [['false', false], [true, 'true'], [1, false], [false, 0]] as [unknown, unknown][]) {
       const r = await setPageGrant(EMP, 'review', ['all'], e, f);
-      expect(r).toEqual({ ok: false, error: 'Input tidak valid (pilih minimal satu lingkup).' });
+      expect(r).toEqual({ ok: false, error: 'Isian tidak valid (pilih minimal satu lingkup).' });
     }
     expect(mockCreate).not.toHaveBeenCalled();
     expect(mockAdmin).not.toHaveBeenCalled();
@@ -359,7 +359,7 @@ describe('setPageGrantForRole — materialisasi ke anggota peran', () => {
     const admin = makeAdmin({ employees: [{ data: [{ id: EMP }, { id: EMP2 }] }], page_grants: [{ error: null }] });
     useAdmin(admin);
     const r = await setPageGrantForRole('koordinator', 'review', ['coordinator_team', 'coordinator_team'], true, false);
-    expect(r).toEqual({ ok: true, msg: 'Akses "Review & Finalisasi" diberikan ke 2 Koordinator (Tim naungannya, boleh meringkas).' });
+    expect(r).toEqual({ ok: true, msg: 'Akses "Tinjauan & Finalisasi" diberikan ke 2 Koordinator (Tim naungannya, boleh meringkas).' });
     const row = { section: 'review', scope: 'coordinator_team', scopes: ['coordinator_team'], can_edit: true, can_finalize: false, created_by: UID };
     expect(admin.calls[1]).toMatchObject({
       table: 'page_grants', op: 'upsert',
@@ -368,7 +368,7 @@ describe('setPageGrantForRole — materialisasi ke anggota peran', () => {
     expect(admin.upsertOpts[0]).toEqual({ onConflict: 'employee_id,section' });
     expect(mockLog).toHaveBeenCalledWith({
       action: 'access.set_page_grant_role', category: 'pegawai',
-      summary: 'Memberi akses "Review & Finalisasi" (Tim naungannya, boleh meringkas) ke SEMUA Koordinator (2 orang)',
+      summary: 'Memberi akses "Tinjauan & Finalisasi" (Tim naungannya, boleh meringkas) ke SEMUA Koordinator (2 orang)',
       targetType: 'role', targetId: 'koordinator', targetLabel: 'Koordinator',
       meta: { section: 'review', scopes: ['coordinator_team'], can_edit: true, can_finalize: false, count: 2 },
     });
@@ -439,13 +439,13 @@ describe('removePageGrant', () => {
     const admin = makeAdmin({ page_grants: [{ error: null }] });
     useAdmin(admin);
     const r = await removePageGrant(EMP, 'progress');
-    expect(r).toEqual({ ok: true, msg: 'Akses "Progress 360 Feedback" dicabut.' });
+    expect(r).toEqual({ ok: true, msg: 'Akses "Progres Umpan Balik 360°" dicabut.' });
     expect(admin.calls).toEqual([
       { table: 'page_grants', op: 'delete', filters: [['eq', 'employee_id', EMP], ['eq', 'section', 'progress']] },
     ]);
     expect(mockLog).toHaveBeenCalledWith({
       action: 'access.remove_page_grant', category: 'pegawai',
-      summary: 'Mencabut akses "Progress 360 Feedback" untuk Budi',
+      summary: 'Mencabut akses "Progres Umpan Balik 360°" untuk Budi',
       targetType: 'employee', targetId: EMP, targetLabel: 'Budi', meta: { section: 'progress' },
     });
     expect(mockRevalidate).toHaveBeenCalledWith('/', 'layout');
@@ -457,7 +457,7 @@ describe('removePageGrant', () => {
     useAdmin(admin);
     const r = await removePageGrant(EMP, 'kpi');
     expect(r.ok).toBe(true);
-    expect(mockLog.mock.calls[0][0]).toMatchObject({ summary: `Mencabut akses "Monitoring & Audit KPI" untuk ${EMP}`, targetLabel: null });
+    expect(mockLog.mock.calls[0][0]).toMatchObject({ summary: `Mencabut akses "Pemantauan & Audit KPI" untuk ${EMP}`, targetLabel: null });
   });
 
   it('galat delete → gagal tanpa audit', async () => {
@@ -475,7 +475,7 @@ describe('removePageGrant', () => {
 describe('removePageGrantForAll', () => {
   it('tolak halaman di luar katalog sebelum menyentuh DB', async () => {
     const r = await removePageGrantForAll('pegawai');
-    expect(r).toEqual({ ok: false, error: 'Input tidak valid' });
+    expect(r).toEqual({ ok: false, error: 'Isian tidak valid' });
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
@@ -495,13 +495,13 @@ describe('removePageGrantForAll', () => {
     const admin = makeAdmin({ page_grants: [{ data: [{ employee_id: EMP }, { employee_id: EMP2 }, { employee_id: EMP }] }, { error: null }] });
     useAdmin(admin);
     const r = await removePageGrantForAll('review');
-    expect(r).toEqual({ ok: true, msg: 'Akses "Review & Finalisasi" dicabut dari 2 pegawai.', removedIds: [EMP, EMP2] });
+    expect(r).toEqual({ ok: true, msg: 'Akses "Tinjauan & Finalisasi" dicabut dari 2 pegawai.', removedIds: [EMP, EMP2] });
     expect(admin.calls[0]).toMatchObject({ table: 'page_grants', op: 'select', filters: [['eq', 'section', 'review']] });
     expect(admin.calls[1]).toEqual({ table: 'page_grants', op: 'delete', filters: [['eq', 'section', 'review']] });
     expect(mockLog).toHaveBeenCalledWith({
       action: 'access.remove_page_grant_all', category: 'pegawai',
-      summary: 'Mencabut akses "Review & Finalisasi" dari SEMUA pemegang (2 orang)',
-      targetType: 'page', targetId: 'review', targetLabel: 'Review & Finalisasi', meta: { section: 'review', count: 2 },
+      summary: 'Mencabut akses "Tinjauan & Finalisasi" dari SEMUA pemegang (2 orang)',
+      targetType: 'page', targetId: 'review', targetLabel: 'Tinjauan & Finalisasi', meta: { section: 'review', count: 2 },
     });
   });
 
@@ -528,7 +528,7 @@ describe('removePageGrantForAll', () => {
 describe('removeAllPageGrantsForEmployee', () => {
   it('tolak id bukan UUID sebelum menyentuh DB', async () => {
     const r = await removeAllPageGrantsForEmployee(123);
-    expect(r).toEqual({ ok: false, error: 'Input tidak valid' });
+    expect(r).toEqual({ ok: false, error: 'Isian tidak valid' });
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
@@ -577,7 +577,7 @@ describe('removeAllPageGrantsForEmployee', () => {
 describe('markAccessReviewed', () => {
   it('tolak id bukan UUID sebelum menyentuh DB', async () => {
     const r = await markAccessReviewed('abc');
-    expect(r).toEqual({ ok: false, error: 'Input tidak valid' });
+    expect(r).toEqual({ ok: false, error: 'Isian tidak valid' });
     expect(mockCreate).not.toHaveBeenCalled();
   });
 

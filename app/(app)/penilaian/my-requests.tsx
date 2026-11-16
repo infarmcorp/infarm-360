@@ -15,7 +15,7 @@ export type MyRequest = {
 };
 
 const REL_LABEL: Record<string, string> = {
-  Atasan: 'Atasan', Peer: 'Rekan (Peer)', Cross: 'Lintas Divisi', Bawahan: 'Bawahan', Self: 'Diri Sendiri',
+  Atasan: 'Atasan', Peer: 'Rekan', Cross: 'Lintas Divisi', Bawahan: 'Bawahan', Self: 'Diri Sendiri',
 };
 
 /** Judul per jenis permohonan — bahasa pengaju, bukan istilah tabel. */
@@ -63,8 +63,7 @@ export function MyRequests({ requests }: { requests: MyRequest[] }) {
                 )}
                 {r.kind === 'add' && r.status === 'approved' && (
                   <p className="text-xs text-brand-ink mt-2 bg-brand-tint rounded-control px-3 py-2 leading-relaxed">
-                    Disetujui — buka tab <strong>Penilaian</strong>, cari {r.targetName}, lalu mulai menilai
-                    (sifat <strong>Opsional</strong>).
+                    Disetujui. Buka tab <strong>Penilaian</strong>, cari {r.targetName}, lalu mulai menilai (penilaian ini bersifat <strong>Opsional</strong>).
                   </p>
                 )}
               </div>

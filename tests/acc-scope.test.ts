@@ -16,8 +16,8 @@ import { setSpvAcc } from '@/app/(app)/laporan-tim/actions';
 const UID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const EMP = '11111111-1111-1111-1111-111111111111';
 const AP = { data: { id: 'p1' } };
-const SELF_MSG = 'Anda tidak dapat meng-ACC laporan Anda sendiri.';
-const HRD_SCOPE_MSG = 'HRD (Mode SPV) hanya dapat meng-ACC pegawai di divisinya sendiri (bukan Direksi atau pegawai eksternal).';
+const SELF_MSG = 'Anda tidak dapat menyetujui laporan Anda sendiri.';
+const HRD_SCOPE_MSG = 'HRD (Mode SPV) hanya dapat menyetujui laporan pegawai di divisinya sendiri, kecuali Direksi dan pegawai eksternal.';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const use = (me: unknown) => vi.mocked(createClient).mockResolvedValue(makeClient({ user: { id: UID }, tables: { employees: [{ data: me }], periods: [AP] } }) as any);
@@ -101,6 +101,6 @@ describe('setSpvAcc — ditolak', () => {
   it('pegawai ber-izin HRD tanpa posisi SPV/HRD → ditolak (tak punya Menu Supervisor)', async () => {
     use({ role: 'employee', is_coordinator: false, is_hrd_admin: true, hrd_sections: null, dept: 'HRD-GA', name: 'Rina' });
     useAdmin({});
-    expect(await setSpvAcc(EMP, true)).toEqual({ ok: false, error: 'Hanya SPV, Koordinator, Direksi, atau HRD (Mode SPV) yang dapat memberi ACC.' });
+    expect(await setSpvAcc(EMP, true)).toEqual({ ok: false, error: 'Hanya SPV, Koordinator, Direksi, atau HRD (Mode SPV) yang dapat memberi persetujuan.' });
   });
 });

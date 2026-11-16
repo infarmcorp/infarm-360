@@ -31,7 +31,7 @@ const BaseInput = z.object({
  */
 const weightTotal = (v: z.infer<typeof BaseInput>): number =>
   v.model === '4class' ? v.atasan + v.peer + v.cross + v.bawahan : v.atasan + v.internal;
-const TOTAL_100 = { message: 'Total bobot kelas penilai (tanpa Self) harus tepat 100%' };
+const TOTAL_100 = { message: 'Total bobot kelas penilai (tanpa evaluasi diri) harus tepat 100%' };
 const is100 = (v: z.infer<typeof BaseInput>) => Math.abs(weightTotal(v) - 100) < 1e-9;
 const Input = BaseInput.refine(is100, TOTAL_100);
 
@@ -39,12 +39,12 @@ export type SaveResult = { ok: true } | { ok: false; error: string };
 
 export async function saveWeights(raw: unknown): Promise<SaveResult> {
   const parsed = Input.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
   const v = parsed.data;
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'bobot')) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
 
@@ -94,12 +94,12 @@ const OverrideInput = BaseInput.extend({ employeeId: z.string().uuid() }).refine
  */
 export async function saveEmployeeWeightOverride(raw: unknown): Promise<SaveResult> {
   const parsed = OverrideInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
   const v = parsed.data;
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'bobot')) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
 
@@ -135,12 +135,12 @@ export async function saveEmployeeWeightOverride(raw: unknown): Promise<SaveResu
 /** Hapus bobot khusus seorang pegawai → kembali ke skema default periode. HRD-only. */
 export async function removeEmployeeWeightOverride(employeeId: unknown): Promise<SaveResult> {
   const parsed = z.string().uuid().safeParse(employeeId);
-  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
+  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
   const id = parsed.data;
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'bobot')) return { ok: false, error: 'Hanya HRD yang dapat mengubah bobot' };
 

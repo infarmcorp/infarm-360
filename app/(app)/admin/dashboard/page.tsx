@@ -48,7 +48,7 @@ export default async function DashboardPage({
   }
   if (!isHrdFull && !isDireksi && !grantScopes) {
     return <Shell><div className="bg-surface rounded-card shadow-card p-5">
-      <p className="text-[13px] text-ink-soft">Halaman ini untuk HRD / Direksi atau pemegang akses Dashboard.</p>
+      <p className="text-[13px] text-ink-soft">Halaman ini untuk HRD / Direksi atau pemegang akses Dasbor.</p>
       <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></div></Shell>;
   }
   // canMonitor = tautan silang ke Monitor Kinerja Pegawai (hanya HRD penuh).
@@ -72,8 +72,8 @@ export default async function DashboardPage({
     <Shell>
       <EmptyState
         icon="📊"
-        title="Dashboard belum punya data"
-        description="Dashboard merangkum KPI, 360°, & Skor Akhir per periode. Belum ada periode, jadi belum ada yang bisa ditampilkan."
+        title="Dasbor belum punya data"
+        description="Dasbor merangkum KPI, 360°, dan Skor Akhir per periode. Belum ada periode yang bisa ditampilkan."
         steps={[
           { text: <>Buat & aktifkan periode di <strong>Kelola Siklus Periode</strong></> },
           { text: <>Isi KPI bulanan & jalankan penilaian 360°</> },
@@ -115,7 +115,7 @@ export default async function DashboardPage({
       emps.map((e) => ({ id: e.id, name: e.name, nickname: e.nickname, dept: e.dept, is_active: e.is_active })),
       empIds,
     );
-    const scopeLabel = aggScope === 'all' ? 'Semua Tahun (all-time)' : `Tahun ${selY} · Semua Kuartal`;
+    const scopeLabel = aggScope === 'all' ? 'Semua Tahun' : `Tahun ${selY} · Semua Kuartal`;
     const kpiStd = aggPeriods[aggPeriods.length - 1]?.kpi_standard ?? ap.kpi_standard ?? 80;
     return (
       <Shell>
@@ -500,7 +500,7 @@ export default async function DashboardPage({
   return (
     <Shell>
       <PageHeader canMonitor={canMonitor}>
-        {ap.label}{ap.status === 'active' ? ' (aktif)' : ''} · {dept === 'all' ? 'semua divisi' : `divisi ${dept}`} · {ap.has_360 ? '360° aktif (blend 50/50)' : '360° nonaktif (KPI murni)'}
+        {ap.label}{ap.status === 'active' ? ' (aktif)' : ''} · {dept === 'all' ? 'semua divisi' : `divisi ${dept}`} · {ap.has_360 ? '360° aktif (gabungan 50/50)' : '360° nonaktif (KPI murni)'}
       </PageHeader>
 
       <DashboardFilters
@@ -560,8 +560,7 @@ export default async function DashboardPage({
 function PagePurpose({ canMonitor }: { canMonitor: boolean }) {
   return (
     <p className="text-xs text-ink-soft mt-1">
-      <span className="font-semibold">Fokus halaman ini:</span> klasifikasi talenta &amp; snapshot analitik organisasi.
-      {canMonitor && (
+      <span className="font-semibold">Fokus halaman ini:</span> klasifikasi talenta &amp; gambaran analitik organisasi. {canMonitor && (
         <> · Butuh pergerakan &amp; pelacakan per-pegawai lintas waktu?{' '}
           <Link href="/admin/monitor" className="text-brand-ink hover:underline font-semibold">Monitor Kinerja Pegawai →</Link></>
       )}
@@ -573,7 +572,7 @@ function PagePurpose({ canMonitor }: { canMonitor: boolean }) {
 function PageHeader({ canMonitor, children }: { canMonitor: boolean; children: React.ReactNode }) {
   return (
     <div className="mb-5">
-      <h1 className="text-[22px] leading-tight font-bold tracking-[-0.01em] text-ink">Dashboard Organisasi</h1>
+      <h1 className="text-[22px] leading-tight font-bold tracking-[-0.01em] text-ink">Dasbor Organisasi</h1>
       <p className="text-[13px] text-ink-soft mt-1.5">{children}</p>
       <PagePurpose canMonitor={canMonitor} />
     </div>

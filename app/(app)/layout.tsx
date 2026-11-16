@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { canAdmin } from '@/lib/auth/roles';
 import { getTodos } from '@/lib/todos/compute';
 import { AppShell, type Role } from './app-shell';
+import { aiSummaryEnabled } from '@/lib/ai/gemini';
 
 /**
  * Shell aplikasi (route group `(app)`): sidebar persisten + konten yang berganti,
@@ -16,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect('/login');
 
   const { data: emp } = await supabase
-    .from('employees').select('emp_code, name, dept, role, is_hrd_admin, is_coordinator, hrd_sections').eq('id', user.id).maybeSingle();
+    .from('employees').select('emp_code, name, dept, role, is_hrd_admin, is_coordinator, is_external, hrd_sections').eq('id', user.id).maybeSingle();
   const role = (emp?.role ?? 'employee') as Role;
   const isAdmin = canAdmin(emp);
   const isCoordinator = !!emp?.is_coordinator;
@@ -51,6 +52,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       isCoordinator={isCoordinator}
       hrdSections={emp?.hrd_sections ?? null}
       pageGrants={grantRows ?? []}
+      aiSettings={aiSummaryEnabled()}
+      isExternal={!!emp?.is_external}
       hrdMode={hrdMode}
       name={emp?.name ?? user.email ?? 'Pengguna'}
       dept={emp?.dept ?? '—'}

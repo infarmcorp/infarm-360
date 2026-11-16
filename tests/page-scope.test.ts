@@ -263,7 +263,7 @@ describe('Review Hasil Akhir — grant halaman (Tahap 1: lihat-saja berlingkup)'
   });
 });
 
-describe('Dashboard Organisasi — grant halaman (pemantauan, lihat-saja berlingkup)', () => {
+describe('Dasbor Organisasi — grant halaman (pemantauan, lihat-saja berlingkup)', () => {
   it("'dashboard' ada di katalog grant, berjenis pemantauan (selalu lihat-saja)", () => {
     expect(GRANTABLE_PAGES).toContain('dashboard');
     expect(GRANTABLE_PAGE_KIND.dashboard).toBe('pemantauan');
@@ -286,7 +286,7 @@ describe('Struktur Organisasi — grant halaman (pemantauan, lihat-saja berlingk
   });
 });
 
-describe('Progress 360 Feedback — grant halaman (pemantauan, lihat-saja berlingkup)', () => {
+describe('Progres Umpan Balik 360° — grant halaman (pemantauan, lihat-saja berlingkup)', () => {
   it("'progress' ada di katalog grant, berjenis pemantauan", () => {
     expect(GRANTABLE_PAGES).toContain('progress');
     expect(GRANTABLE_PAGE_KIND.progress).toBe('pemantauan');
@@ -308,7 +308,7 @@ describe('Flag Kepatuhan — grant halaman (pemantauan/lihat-saja; ubah potongan
   });
 });
 
-describe('Monitoring & Audit KPI — grant halaman (pemantauan/lihat-saja; input KPI tetap SPV/HRD)', () => {
+describe('Pemantauan & Audit KPI — grant halaman (pemantauan/lihat-saja; input KPI tetap SPV/HRD)', () => {
   it("'kpi' ada di katalog grant, berjenis pemantauan (lihat-saja)", () => {
     expect(GRANTABLE_PAGES).toContain('kpi');
     expect(GRANTABLE_PAGE_KIND.kpi).toBe('pemantauan');

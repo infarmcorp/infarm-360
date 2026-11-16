@@ -4,11 +4,11 @@ type Admin = ReturnType<typeof createAdminClient>;
 
 /** Pesan baku saat Skor 360° periode hasil impor Looker dilindungi dari hitung ulang. */
 export const BACKFILL_LOCK_MSG =
-  'Skor 360° periode ini hasil impor resmi (Looker) dan dikunci — tidak boleh dihitung ulang dari aplikasi agar angkanya tidak tertimpa.';
+  'Skor 360° periode ini hasil impor resmi (Looker) dan dikunci agar tidak tertimpa.';
 
 /** Pesan saat status "hasil impor" tak bisa dipastikan (gagal baca) — ditolak demi keamanan. */
 export const BACKFILL_CHECK_FAILED_MSG =
-  'Tidak dapat memastikan apakah Skor 360° periode ini hasil impor resmi (gagal membaca data). Demi keamanan, perubahan Skor 360° ditolak — coba lagi beberapa saat lagi.';
+  'Gagal memastikan apakah Skor 360° periode ini hasil impor resmi. Demi keamanan, perubahan ditolak. Coba lagi sebentar lagi.';
 
 /**
  * Periode yang Skor 360°-nya DI-IMPOR (skrip `import-360-backfill`, tercatat sebagai

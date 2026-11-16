@@ -1,19 +1,35 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { CalendarDays, Search } from 'lucide-react';
-import { CARD, FIELD } from '@/components/infarm-ui';
-import { formatDateWib } from '@/lib/datetime';
+import { useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { CalendarDays, MessageSquareReply, Search } from 'lucide-react';
+import { CARD, FIELD, FIELD_LABEL } from '@/components/infarm-ui';
+import { Button } from '@/components/button';
+import { StatusChip } from '@/components/status-chip';
+import { formatDateWib, formatDateTimeWib } from '@/lib/datetime';
+import { callAction } from '@/lib/call-action';
+import {
+  VIOLATION_STATUSES, VIOLATION_STATUS_LABEL, VIOLATION_STATUS_TONE, VIOLATION_RESPONSE_MAX, type ViolationStatus,
+} from '@/lib/outside-notes';
+import { setViolationFollowUp } from './actions';
 
-export type BoardReport = { key: string; date: string | null; category: string; isOther: boolean; body: string; note: string | null };
+export type BoardReport = {
+  key: string; id: string; date: string | null; category: string; isOther: boolean; body: string; note: string | null;
+  /** Tindak lanjut HRD (0062) — dibaca pelapor di Laporan Saya. */
+  status: ViolationStatus; response: string | null; respondedAt: string | null;
+};
 export type BoardPerson = { id: string; name: string; dept: string; isActive: boolean; reports: BoardReport[] };
 
 /**
  * Papan Laporan Pelanggaran: kiri = pegawai yang dilaporkan (terbanyak dulu), kanan = laporan pegawai terpilih,
  * satu kartu per laporan. Data sudah anonim dari server (tanpa pelapor/waktu kirim) dan sudah diurutkan
  * (tanggal kejadian terbaru → abjad isi). Filter divisi/kategori/nama hanya menyaring tampilan.
+ * Tindak lanjut (status + tanggapan untuk pelapor): HRD bisa mengubah (`canEdit`), kecuali laporan tentang dirinya
+ * sendiri (`selfId`, juga ditolak server); Direksi hanya membaca.
  */
-export function ViolationBoard({ people, categories }: { people: BoardPerson[]; categories: string[] }) {
+export function ViolationBoard({ people, categories, canEdit, selfId }: {
+  people: BoardPerson[]; categories: string[]; canEdit: boolean; selfId: string;
+}) {
   const [dept, setDept] = useState('');
   const [cat, setCat] = useState('');
   const [q, setQ] = useState('');
@@ -54,13 +70,13 @@ export function ViolationBoard({ people, categories }: { people: BoardPerson[]; 
       </div>
 
       {visible.length === 0 ? (
-        <div className={CARD}><p className="text-[13px] text-ink-soft">Tidak ada laporan yang cocok dengan filter.</p></div>
+        <div className={CARD}><p className="text-[13px] text-ink-soft">Tidak ada laporan untuk filter ini.</p></div>
       ) : (
         <div className="flex flex-wrap gap-4 items-start">
           <div className="flex-[1_1_280px] max-w-sm min-w-0 bg-surface border border-line rounded-card shadow-card overflow-hidden">
-            <div className="px-4 py-3 border-b border-line-soft flex items-baseline justify-between gap-2">
-              <h2 className="text-base font-bold text-ink">Pegawai dilaporkan</h2>
-              <span className="text-xs text-ink-soft">terbanyak dulu</span>
+            <div className="px-4 py-2.5 border-b border-line-soft flex items-center justify-between gap-2 text-xs font-bold text-ink-soft whitespace-nowrap">
+              <span>Nama Pegawai</span>
+              <span className="w-28 shrink-0 text-center">Jumlah Laporan</span>
             </div>
             <div className="max-h-[560px] overflow-y-auto">
               {visible.map((p) => {
@@ -76,7 +92,9 @@ export function ViolationBoard({ people, categories }: { people: BoardPerson[]; 
                         </p>
                         <p className="text-xs text-ink-soft truncate">{p.dept}</p>
                       </div>
-                      <span className="shrink-0 min-w-7 h-6 px-2 rounded-full bg-danger-tint text-danger-ink font-mono text-xs font-semibold inline-flex items-center justify-center">{p.reports.length}</span>
+                      <span className="w-28 shrink-0 flex justify-center">
+                        <span className="min-w-7 h-6 px-2 rounded-full bg-danger-tint text-danger-ink font-mono text-xs font-semibold inline-flex items-center justify-center">{p.reports.length}</span>
+                      </span>
                     </div>
                     <div className="flex flex-wrap gap-1 mt-2">
                       {[...new Set(p.reports.map((r) => r.category))].map((c) => (
@@ -95,7 +113,7 @@ export function ViolationBoard({ people, categories }: { people: BoardPerson[]; 
                 <div>
                   <h2 className="text-base font-bold text-ink">{sel.name}</h2>
                   <p className="text-xs text-ink-soft mt-0.5">
-                    {sel.dept} · <span className="font-mono">{sel.reports.length}</span> laporan · urut tanggal kejadian terbaru
+                    {sel.dept} · <span className="font-mono">{sel.reports.length}</span> laporan, kejadian terbaru di atas
                   </p>
                 </div>
               </div>
@@ -103,9 +121,10 @@ export function ViolationBoard({ people, categories }: { people: BoardPerson[]; 
                 <article key={r.key} className={`${CARD} space-y-2.5`}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs font-bold uppercase tracking-[0.06em] text-ink-soft">Laporan {i + 1}</span>
+                    <StatusChip tone={VIOLATION_STATUS_TONE[r.status]}>{VIOLATION_STATUS_LABEL[r.status]}</StatusChip>
                     <span className="inline-flex items-center gap-1 text-xs text-ink bg-infarm-surface border border-brand-tint rounded-full px-2.5 py-0.5">
                       <CalendarDays className="w-3 h-3 text-brand-ink" aria-hidden />
-                      Kejadian <span className="font-mono">{r.date ? formatDateWib(r.date) : '—'}</span>
+                      Tanggal kejadian <span className="font-mono">{r.date ? formatDateWib(r.date) : '—'}</span>
                     </span>
                     <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${r.isOther ? 'bg-infarm-cream text-infarm-soil' : 'bg-brand-tint text-brand-ink'}`}>{r.category}</span>
                   </div>
@@ -116,12 +135,84 @@ export function ViolationBoard({ people, categories }: { people: BoardPerson[]; 
                       <p className="text-[13px] leading-relaxed text-ink whitespace-pre-line">{r.note}</p>
                     </div>
                   )}
+                  {/* key ikut status/tanggapan tersimpan → isian editor kembali ke data terbaru setelah disimpan. */}
+                  <FollowUp key={`${r.key}:${r.status}:${r.respondedAt ?? ''}`} report={r}
+                    editable={canEdit && !!r.id && sel.id !== selfId} self={canEdit && sel.id === selfId} />
                 </article>
               ))}
             </div>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Tindak lanjut satu laporan. `editable` → pilih status + tulis tanggapan untuk pelapor + Simpan; selain itu hanya baca
+ * (Direksi, atau HRD atas laporan tentang dirinya sendiri — `self` menampilkan alasannya).
+ */
+function FollowUp({ report, editable, self }: { report: BoardReport; editable: boolean; self: boolean }) {
+  const router = useRouter();
+  const [status, setStatus] = useState<ViolationStatus>(report.status);
+  const [response, setResponse] = useState(report.response ?? '');
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [busy, start] = useTransition();
+  const dirty = status !== report.status || response.trim() !== (report.response ?? '');
+  // Simpan pertama boleh tanpa perubahan (mengonfirmasi "Diterima", tanggapan opsional). Sesudahnya hanya bila ada
+  // perubahan — tombol mati diberi keterangan agar tak terkesan tanggapan wajib.
+  const canSave = dirty || !report.respondedAt;
+
+  function save() {
+    setMsg(null);
+    start(async () => {
+      const res = await callAction(() => setViolationFollowUp(report.id, status, response));
+      if (res.ok) { setMsg({ ok: true, text: 'Tersimpan' }); router.refresh(); }
+      else setMsg({ ok: false, text: res.error });
+    });
+  }
+
+  const stamp = report.respondedAt ? <span className="font-mono">{formatDateTimeWib(report.respondedAt)}</span> : null;
+
+  if (!editable) {
+    return (
+      <div className="border-t border-line-soft pt-2.5">
+        <p className="flex items-center gap-1.5 text-xs font-bold text-ink-soft mb-1">
+          <MessageSquareReply className="w-3.5 h-3.5" aria-hidden /> Tanggapan untuk pelapor
+          {stamp && <span className="font-normal">· {stamp}</span>}
+        </p>
+        <p className="text-[13px] leading-relaxed text-ink whitespace-pre-line">{report.response ?? <span className="text-ink-soft">Belum ada tanggapan.</span>}</p>
+        {self && <p className="text-xs text-ink-soft mt-1">Laporan tentang diri Anda ditindaklanjuti HRD lain.</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t border-line-soft pt-2.5 space-y-2">
+      <p className="flex items-center gap-1.5 text-xs font-bold text-ink-soft">
+        <MessageSquareReply className="w-3.5 h-3.5" aria-hidden /> Tindak lanjut
+        {stamp && <span className="font-normal">· terakhir diubah {stamp}</span>}
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="inline-flex items-center gap-2 text-[13px] text-ink-soft">Status:
+          <select value={status} onChange={(e) => setStatus(e.target.value as ViolationStatus)} disabled={busy}
+            className={`${FIELD} bg-surface`}>
+            {VIOLATION_STATUSES.map((s) => <option key={s} value={s}>{VIOLATION_STATUS_LABEL[s]}</option>)}
+          </select>
+        </label>
+      </div>
+      <div>
+        <label className={FIELD_LABEL}>Tanggapan untuk pelapor <span className="font-medium">(opsional, dibaca pelapor)</span></label>
+        <textarea value={response} onChange={(e) => setResponse(e.target.value)} disabled={busy} rows={2}
+          maxLength={VIOLATION_RESPONSE_MAX} placeholder="Misalnya: Laporan sudah ditindaklanjuti sesuai peraturan perusahaan."
+          className={`${FIELD} w-full h-auto py-2 leading-relaxed`} />
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="primary" size="sm" disabled={busy || !canSave} onClick={save}>{busy ? 'Menyimpan…' : 'Simpan Tindak Lanjut'}</Button>
+        {msg
+          ? <span className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>
+          : !canSave && <span className="text-xs text-ink-soft">Sudah tersimpan — ubah status atau tanggapan untuk menyimpan lagi.</span>}
+      </div>
     </div>
   );
 }

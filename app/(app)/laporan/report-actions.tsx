@@ -45,7 +45,7 @@ export function ReportActions({
   //  - Skor 360° usang (sebaiknya Hitung Ulang dulu) — bisa membekukan skor lama.
   //  - KPI belum lengkap semua bulan (mungkin sah bila pegawai baru aktif sebagian periode).
   const finalIssues: string[] = [];
-  if (stale360) finalIssues.push('Skor 360° belum dihitung ulang (perlu hitung ulang) — finalisasi sekarang membekukan skor 360° lama.');
+  if (stale360) finalIssues.push('Skor 360° perlu dihitung ulang. Bila difinalisasi sekarang, Skor 360° lama yang dipakai.');
   if (missingMonths.length > 0) finalIssues.push(`KPI baru terisi ${totalMonths - missingMonths.length} dari ${totalMonths} bulan (belum ada: ${missingMonths.join(', ')}).`);
 
   function finalGuard() {
@@ -83,7 +83,7 @@ export function ReportActions({
   return (
     <div className="no-print mb-4 flex flex-wrap items-center gap-2 bg-surface border border-line rounded-card shadow-card p-4">
       <div className="flex items-center gap-2 mr-auto">
-        <span className="text-[13px] font-bold text-ink">Review & Finalisasi</span>
+        <span className="text-[13px] font-bold text-ink">Tinjauan &amp; Finalisasi</span>
         {isFinal
           ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-tint text-brand-ink">Final</span>
           : status === 'in_review'
@@ -93,7 +93,7 @@ export function ReportActions({
           : <span className="text-xs text-ink-soft">belum disimpan</span>}
         {finalScore != null && <span className="text-[13px] data-value font-bold text-ink">Skor Akhir {fmt2(finalScore)}</span>}
         {drift && (
-          <span title={`Skor terkini ${fmt2(liveFinal!)} berbeda dari yang difinalisasi (${fmt2(finalScore!)}) — KPI/360° berubah. Tekan ② Perbarui Laporan Final yang Berubah di Review & Finalisasi (atau Buka Kembali (ke Draf) lalu Finalisasi ulang) untuk memperbarui.`}
+          <span title={`Skor terkini ${fmt2(liveFinal!)} berbeda dari skor final (${fmt2(finalScore!)}). Perbarui lewat ② Perbarui Laporan Final yang Berubah.`}
             className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-warn-tint text-warn-ink">
             berubah <ArrowRight className="w-3 h-3" aria-hidden /> <span className="data-value">{fmt2(liveFinal!)}</span>
           </span>
@@ -140,8 +140,7 @@ export function ReportActions({
           <span className="flex items-center gap-1.5 text-xs font-semibold text-warn-ink mr-auto">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>
-              Laporan ini <strong>sudah final</strong>. ACC SPV/Direksi akan dihapus dan perlu diulang.
-              Selama dibuka kembali, pegawai tidak bisa melihat laporannya. Lanjut?
+              Laporan ini <strong>sudah final</strong>. Persetujuan SPV/Direksi akan dihapus dan perlu diberikan ulang, dan pegawai tidak bisa melihat laporannya selama dibuka kembali. Lanjutkan?
             </span>
           </span>
           <button type="button" disabled={busy !== null} onClick={() => setConfirmRevert(false)}

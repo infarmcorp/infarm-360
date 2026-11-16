@@ -10,6 +10,10 @@ import { finalScoreOf, kpiAvgOf, hasScoreDrift, fmt2 } from '@/lib/scoring';
 import { refreshLatePenalties } from '@/lib/late-server';
 import { finalLockError } from '@/lib/final-lock';
 import { mergeSummaryOverwrite, SUMMARY_MAX_LEN } from '@/lib/import/summaries';
+import { loadReport, withoutNamedFeedback } from '@/lib/report';
+import { aiSummaryEnabled, summarizeWithGemini, costOf, type AiUsage, type AiCost } from '@/lib/ai/gemini';
+import { buildAspectMaterial, buildQualMaterial } from '@/lib/ai/summary-prompt';
+import { loadAiSettings, thinkingFor, effectivePrices } from '@/lib/ai/settings';
 
 /**
  * Review Hasil Akhir: hitung Skor Akhir kalibrasi & tulis final_reports.
@@ -56,7 +60,7 @@ type ReportWriter =
 
 async function resolveReportWriter(supabase: Awaited<ReturnType<typeof createClient>>): Promise<ReportWriter> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase
     .from('employees').select('role, is_hrd_admin, hrd_sections, dept, name').eq('id', user.id).maybeSingle();
 
@@ -71,8 +75,8 @@ async function resolveReportWriter(supabase: Awaited<ReturnType<typeof createCli
   // Tiga tingkat: Lihat (tolak tulis) · Meringkas (canEdit, tulis ringkasan) · Finalisasi (canFinalize).
   const { data: grantRows } = await supabase.from('page_grants').select('section, scope, scopes, can_edit, can_finalize').eq('employee_id', user.id);
   const access = grantedAccess(grantRows, 'review');
-  if (!access) return { ok: false, error: 'Hanya HRD atau pemegang akses Review & Finalisasi yang dapat mengubah laporan.' };
-  if (!access.canEdit) return { ok: false, error: 'Akses Anda ke Review & Finalisasi bersifat hanya-lihat.' };
+  if (!access) return { ok: false, error: 'Hanya HRD atau pemegang akses Tinjauan & Finalisasi yang dapat mengubah laporan.' };
+  if (!access.canEdit) return { ok: false, error: 'Akses Anda ke Tinjauan & Finalisasi bersifat hanya-lihat.' };
 
   // dept target dibaca via service_role (pemegang grant bukan is_hrd() → RLS memblokir baca lintas-pegawai).
   const admin = createAdminClient();
@@ -207,7 +211,7 @@ export async function saveOrFinalizeReport(employeeId: string, finalize: boolean
     action: finalize ? 'report.finalize' : 'report.save_draft', category: 'laporan',
     summary: finalize
       ? `Memfinalisasi Hasil Akhir ${emp?.name ?? employeeId} (Skor Akhir ${final}) — laporan dirilis ke pegawai`
-      : `Menyimpan draft Hasil Akhir ${emp?.name ?? employeeId} (Skor Akhir ${final})`,
+      : `Menyimpan draf Hasil Akhir ${emp?.name ?? employeeId} (Skor Akhir ${final})`,
     targetType: 'employee', targetId: employeeId, targetLabel: emp?.name ?? null,
     meta: { final_score: final, period_id: ap.id, via_grant: actor.viaGrant },
   });
@@ -294,7 +298,7 @@ export type BulkFinalizeResult =
 export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   const jar = await cookies();
   const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
@@ -330,7 +334,7 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
     if (final == null) { skipped.push({ name: label, reason: 'Skor Akhir belum bisa dihitung (KPI & 360° kosong)' }); continue; }
     // ACC diberikan atas angka yang dirilis; bila Skor Akhir kini berbeda, jangan finalisasi otomatis.
     if (r.final_score != null && hasScoreDrift(final, r.final_score)) {
-      skipped.push({ name: label, reason: `Skor Akhir berubah sejak di-ACC (${Number(r.final_score).toFixed(2)} → ${fmt2(final)}) — rilis ulang ke SPV untuk ACC baru` });
+      skipped.push({ name: label, reason: `Skor Akhir berubah sejak disetujui (${Number(r.final_score).toFixed(2)} → ${fmt2(final)}). Rilis ulang ke SPV untuk persetujuan baru` });
       continue;
     }
     // Baca balik baris yang benar-benar berubah: update yang ditolak RLS/trigger secara diam-diam
@@ -340,7 +344,7 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
       .select('id');
     if (error) { failed.push({ name: label, reason: 'Gagal disimpan: ' + error.message }); continue; }
     if (!saved?.length) {
-      failed.push({ name: label, reason: 'Tidak tersimpan — laporan sudah berubah atau ditolak database. Muat ulang halaman lalu coba lagi.' });
+      failed.push({ name: label, reason: 'Gagal menyimpan karena laporan sudah berubah. Muat ulang halaman lalu coba lagi.' });
       continue;
     }
     finalized++;
@@ -351,7 +355,7 @@ export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
   // "1 dilewati" tak bisa dilacak siapa (kasus 2026-10-16).
   await logHrdAction({
     action: 'report.bulk_finalize', category: 'laporan',
-    summary: `Finalisasi massal ${finalized} laporan ber-ACC${[
+    summary: `Finalisasi massal ${finalized} laporan yang sudah disetujui${[
       skipped.length ? `${skipped.length} dilewati: ${skipped.map((x) => x.name).join(', ')}` : '',
       failed.length ? `${failed.length} gagal disimpan: ${failed.map((x) => x.name).join(', ')}` : '',
     ].filter(Boolean).map((x, i, a) => (i === 0 ? ' (' : '') + x + (i === a.length - 1 ? ')' : '')).join('; ')}`,
@@ -379,7 +383,7 @@ export type ResyncResult =
 export async function resyncDriftedFinals(): Promise<ResyncResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   const jar = await cookies();
   const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
@@ -450,7 +454,7 @@ export async function saveAspectSummaries(employeeId: string, raw: unknown): Pro
   // Laporan FINAL terkunci: ringkasan tak bisa diubah sampai dikembalikan ke draf
   // (selaras penguncian editor di UI — sumber kebenaran yang dilihat pegawai tak berubah diam-diam).
   if (existing?.status === 'finalized') {
-    return { ok: false, error: 'Laporan sudah final — Buka Kembali (ke Draf) dulu untuk mengedit ringkasan.' };
+    return { ok: false, error: 'Laporan sudah final — Buka Kembali (ke Draf) terlebih dahulu untuk mengubah ringkasan.' };
   }
 
   if (existing) {
@@ -506,7 +510,7 @@ export async function saveQualSummaries(employeeId: string, raw: unknown): Promi
     .select('id, content, status').eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
 
   if (existing?.status === 'finalized') {
-    return { ok: false, error: 'Laporan sudah final — Buka Kembali (ke Draf) dulu untuk mengedit ringkasan.' };
+    return { ok: false, error: 'Laporan sudah final — Buka Kembali (ke Draf) terlebih dahulu untuk mengubah ringkasan.' };
   }
 
   if (existing) {
@@ -570,7 +574,7 @@ export async function importSummaries(raw: unknown): Promise<ImportSummariesResu
 
   const { data: ap } = await db.from('periods').select('id, has_360').eq('status', 'active').limit(1).maybeSingle();
   if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
-  if (!ap.has_360) return { ok: false, error: 'Periode aktif tanpa penilaian 360° — tidak ada ringkasan untuk diimpor.' };
+  if (!ap.has_360) return { ok: false, error: 'Periode aktif tanpa penilaian 360° — tidak ada ringkasan yang dapat diimpor.' };
 
   const [{ data: aspRows, error: aspErr }, { data: qualRows, error: qualErr }] = await Promise.all([
     db.from('culture_aspects').select('name').eq('period_id', ap.id),
@@ -657,4 +661,67 @@ export async function importSummaries(raw: unknown): Promise<ImportSummariesResu
   revalidatePath('/admin/laporan');
   revalidatePath('/laporan/[employeeId]', 'page');
   return { ok: true, saved, skipped, failed };
+}
+
+/**
+ * RINGKAS OTOMATIS (Gemini) — EKSPERIMEN, hanya dev/staging (gerbang `aiSummaryEnabled`, gagal tertutup).
+ * HRD menekan tombol sendiri (hemat token). Otorisasi = penulis ringkasan (resolveReportWriteActor:
+ * HRD Mode Admin / grant Review Meringkas+ berlingkup, bukan laporan sendiri untuk grant).
+ * Bahan = komentar mentah ANONIM (byAspect/essays) yang dimuat di server — L3 (nama penilai) tak ikut,
+ * nama & divisi pegawai juga tak dikirim. Hasil = SARAN; tidak disimpan — HRD memilih memakainya.
+ * Model, harga, kurs & prompt = Pengaturan AI (satu untuk semua, lib/ai/settings.ts); versinya dicatat.
+ */
+const AiSummaryInput = z.object({
+  employeeId: z.string().uuid(),
+  kind: z.enum(['aspect', 'qual']),
+});
+export type AiSummaryResult =
+  | { ok: true; summaries: Record<string, string>; skipped: string[]; model: string; version: number; usage: AiUsage; cost: AiCost }
+  | { ok: false; error: string; model?: string; version?: number; usage?: AiUsage; cost?: AiCost };
+
+export async function suggestSummariesAI(raw: unknown): Promise<AiSummaryResult> {
+  if (!aiSummaryEnabled()) return { ok: false, error: 'Ringkas otomatis tidak aktif di lingkungan ini.' };
+  const parsed = AiSummaryInput.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'Permintaan tidak valid' };
+  const { employeeId, kind } = parsed.data;
+
+  const supabase = await createClient();
+  const actor = await resolveReportWriteActor(supabase, employeeId);
+  if (!actor.ok) return { ok: false, error: actor.error };
+
+  const admin = createAdminClient();
+  const { data: ap } = await admin.from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
+  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
+  if (!ap.has_360) return { ok: false, error: 'Periode aktif tanpa 360°.' };
+  const { data: fr } = await admin.from('final_reports').select('status').eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
+  if (fr?.status === 'finalized') return { ok: false, error: 'Laporan sudah final — Buka Kembali (ke Draf) dulu.' };
+
+  const loaded = await loadReport(admin, employeeId, ap);
+  if (!loaded) return { ok: false, error: 'Data tidak ditemukan.' };
+  const data = withoutNamedFeedback(loaded); // L3 dibuang sebelum apa pun disusun
+
+  const allKeys = kind === 'aspect' ? data.aspects.map((a) => a.name) : data.qualQuestions;
+  const mat = kind === 'aspect' ? buildAspectMaterial(data.byAspect, allKeys) : buildQualMaterial(data.essays, allKeys);
+  if (!mat.keys.length) return { ok: false, error: 'Belum ada komentar penilai yang dapat diringkas.' };
+
+  const cfg = await loadAiSettings(admin);
+  if (!cfg.model) return { ok: false, error: 'Model AI belum dipilih — atur dulu di halaman Pengaturan AI (menu Administrasi).' };
+  const res = await summarizeWithGemini(kind === 'aspect' ? cfg.aspectPrompt : cfg.qualPrompt, mat.text, mat.keys, SUMMARY_MAX_LEN, { model: cfg.model, thinking: thinkingFor(cfg.model) });
+  // Harga kosong di Pengaturan AI → harga resmi yang diketahui (effectivePrices).
+  const cost = res.usage ? costOf(res.usage, effectivePrices(cfg)) : undefined;
+  const label = cfg.model;
+
+  // Catat pemakaian (tanpa isi komentar/ringkasan) agar total token bisa ditelusuri.
+  await logReportAction(actor, {
+    action: 'report.ai_summary', category: 'laporan',
+    summary: `Ringkas otomatis (${kind === 'aspect' ? 'aspek' : 'kualitatif'}) — ${res.ok ? 'berhasil' : 'gagal'}`,
+    targetType: 'employee', targetId: employeeId, targetLabel: data.emp.name,
+    meta: { via_grant: actor.viaGrant, model: res.model ?? null, prompt_version: cfg.version, ...(res.usage ?? {}), cost_idr: cost ? Math.round(cost.idr * 100) / 100 : null },
+  });
+
+  if (!res.ok) return { ok: false, error: res.error, model: label, version: cfg.version, usage: res.usage, cost };
+  return {
+    ok: true, summaries: res.summaries, model: label, version: cfg.version, usage: res.usage, cost: cost!,
+    skipped: allKeys.filter((k) => !res.summaries[k]),
+  };
 }

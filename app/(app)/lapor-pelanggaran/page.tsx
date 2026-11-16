@@ -60,7 +60,7 @@ export default async function LaporPelanggaranPage() {
 
   return (
     <Shell periodLabel={ap.label}>
-      <div className="space-y-4 max-w-3xl">
+      <div className="space-y-4">
         <section className={`${CARD} flex flex-col`}>
           <CardTitle icon={Flag}>Tulis Laporan</CardTitle>
           <p className="text-[13px] text-ink-soft mt-1.5 leading-relaxed">

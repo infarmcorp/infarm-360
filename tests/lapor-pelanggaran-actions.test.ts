@@ -10,7 +10,7 @@ import { makeClient, type MockClient } from './helpers/mock-supabase';
  *
  * Sejak 0061 (pemilik 2026-11-16): gerbang = periode aktif + saklar `violation_open` — status 360° & formulir
  * tidak menentukan; kategori = NAMA aspek budaya dari periode terbaru yang punya aspek; rekan di daftar penilaian
- * hanya ditolak selama formulir 360° terbuka.
+ * boleh dilaporkan kapan pun (pemetaan tak dibaca).
  */
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn(), createAdminClient: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
@@ -38,7 +38,6 @@ const period = (o: Partial<{ has_360: boolean; form_open: boolean; violation_ope
   ({ data: { id: 'p1', label: 'Q4 2026', has_360: true, form_open: true, violation_open: true, ...o } });
 const ME = { data: { is_external: false } };
 const TGT_OK = { data: { id: TARGET, role: 'employee', is_external: false, is_active: true } };
-const NOT_MAPPED = { data: null };
 /** Daftar kategori: periode aktif p1 belum punya aspek → pakai aspek periode p0 (periode terbaru yang punya aspek). */
 const PERIOD_LIST = { data: [{ id: 'p1', start_date: '2026-10-01' }, { id: 'p0', start_date: '2026-07-01' }] };
 const ASPECTS = { data: [{ period_id: 'p0', name: 'Integritas', order_idx: 1 }, { period_id: 'p0', name: 'Kolaborasi', order_idx: 2 }] };
@@ -50,7 +49,6 @@ function happy(over: Record<string, { data?: unknown; error?: unknown }[]> = {})
     tables: {
       periods: [period(), PERIOD_LIST],
       employees: [ME, TGT_OK],
-      mappings: [NOT_MAPPED],
       culture_aspects: [ASPECTS],
       ...over,
     },
@@ -101,7 +99,6 @@ describe('submitOutsideNote — gerbang = periode aktif + saklar Laporkan Pelang
     svc(makeClient({ tables: { outside_mapping_notes: [{ data: null }] } }));
     const c = happy({ periods: [period(o), PERIOD_LIST] });
     expect(await submitOutsideNote(TARGET, CAT, DATE, BODY, '')).toEqual({ ok: true });
-    // Formulir tertutup → aturan "rekan di daftar penilaian" tidak dicek sama sekali.
     expect(c.calls.some((x) => x.table === 'mappings')).toBe(false);
   });
 
@@ -124,10 +121,11 @@ describe('submitOutsideNote — kandidat (divalidasi ulang di server)', () => {
     expect(c.calls).toHaveLength(0);
   });
 
-  it('tolak rekan yang ada di pemetaan aktif SELAMA formulir 360° terbuka', async () => {
-    happy({ mappings: [{ data: { id: 'm1' } }] });
-    const r = await submitOutsideNote(TARGET, CAT, DATE, BODY, '');
-    expect(r).toEqual({ ok: false, error: expect.stringMatching(/sudah ada di daftar penilaian/) });
+  it('TERIMA rekan di daftar penilaian pelapor, juga selama formulir 360° terbuka — pemetaan tak dibaca', async () => {
+    svc(makeClient({ tables: { outside_mapping_notes: [{ data: null }] } }));
+    const c = happy({ mappings: [{ data: { id: 'm1' } }] });
+    expect(await submitOutsideNote(TARGET, CAT, DATE, BODY, '')).toEqual({ ok: true });
+    expect(c.calls.some((x) => x.table === 'mappings')).toBe(false);
   });
 
   it.each([

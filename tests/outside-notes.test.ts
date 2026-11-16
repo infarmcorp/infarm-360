@@ -178,10 +178,10 @@ describe('loadViolationReports', () => {
 
 // ── 3b. Saklar & kategori (0061 — lepas dari 360°) ───────────────────────────────────────────
 describe('loadViolationPeriod — periode aktif + saklar sendiri', () => {
-  it('saklar menentukan; formOpen = 360° aktif DAN formulir dibuka', async () => {
+  it('saklar menentukan, apa pun status 360°/formulir', async () => {
     const c = makeClient({ tables: { periods: [{ data: { id: 'p1', label: 'Q4', has_360: false, form_open: true, violation_open: true } }] } });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(await loadViolationPeriod(c as any)).toEqual({ id: 'p1', label: 'Q4', formOpen: false, open: true });
+    expect(await loadViolationPeriod(c as any)).toEqual({ id: 'p1', label: 'Q4', open: true });
   });
   it('tak ada periode aktif → null', async () => {
     const c = makeClient({ tables: { periods: [{ data: null }] } });
@@ -194,7 +194,7 @@ describe('loadViolationPeriod — periode aktif + saklar sendiri', () => {
       { data: { id: 'p1', label: 'Q4', has_360: true, form_open: true } },
     ] } });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect(await loadViolationPeriod(c as any)).toEqual({ id: 'p1', label: 'Q4', formOpen: true, open: true });
+    expect(await loadViolationPeriod(c as any)).toEqual({ id: 'p1', label: 'Q4', open: true });
   });
 });
 

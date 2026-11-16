@@ -11,8 +11,8 @@ import { OutsideNoteButton } from './report-form';
  * LAPORKAN PELANGGARAN (pegawai) — halaman sendiri sejak 0061 (pemilik 2026-11-16), lepas dari Daftar Penilaian Saya:
  * bisa dipakai kapan pun HRD membuka saklarnya pada periode aktif, terlepas dari status 360° / formulir penilaian.
  *
- * Kandidat = aturan Ajukan Penilaian (bukan diri, Direksi, eksternal, nonaktif). Rekan di daftar penilaian dikeluarkan
- * HANYA selama formulir 360° terbuka (mereka disampaikan lewat formulir); server menegakkan aturan yang sama.
+ * Kandidat = pegawai aktif selain diri, Direksi, dan eksternal — TERMASUK rekan di daftar penilaian pelapor (pemilik
+ * 2026-11-16: penilaian kinerja ≠ laporan kejadian); server menegakkan aturan yang sama.
  * Penilai eksternal tak bisa mengirim (pemilik 2026-11-03). Tanpa riwayat: laporan tak tersimpan dengan nama pengirim.
  */
 export default async function LaporPelanggaranPage() {
@@ -49,16 +49,12 @@ export default async function LaporPelanggaranPage() {
     );
   }
 
-  const [{ data: emps }, { data: maps }, categories] = await Promise.all([
+  const [{ data: emps }, categories] = await Promise.all([
     supabase.from('employees').select('id, name, dept').neq('role', 'direksi').eq('is_external', false).eq('is_active', true),
-    ap.formOpen
-      ? supabase.from('mappings').select('target_id').eq('assessor_id', user.id).eq('period_id', ap.id).eq('is_active', true)
-      : Promise.resolve({ data: [] as { target_id: string }[] }),
     loadViolationCategories(supabase),
   ]);
-  const excluded = new Set<string>([user.id, ...(maps ?? []).map((m) => m.target_id)]);
   const candidates = (emps ?? [])
-    .filter((e) => !excluded.has(e.id))
+    .filter((e) => e.id !== user.id)
     .map((e) => ({ id: e.id, name: e.name, dept: e.dept }))
     .sort((a, b) => a.name.localeCompare(b.name, 'id'));
 
@@ -70,11 +66,9 @@ export default async function LaporPelanggaranPage() {
           <p className="text-[13px] text-ink-soft mt-1.5 leading-relaxed">
             Ceritakan kejadian yang Anda alami atau lihat langsung terkait rekan yang dilaporkan, meskipun ia bukan rekan kerja langsung Anda.
           </p>
-          {ap.formOpen && (
-            <p className="text-xs text-ink-soft mt-1.5 leading-relaxed">
-              Selama formulir penilaian 360° dibuka, rekan yang ada di daftar penilaian Anda tidak tercantum di sini — sampaikan lewat formulir penilaiannya.
-            </p>
-          )}
+          <p className="text-xs text-ink-soft mt-1.5 leading-relaxed">
+            Penilaian kinerja rekan tetap lewat formulir penilaian; laporan ini untuk kejadian pelanggaran.
+          </p>
           <div className="pt-3 flex flex-wrap items-center gap-2">
             <OutsideNoteButton candidates={candidates} categories={categories} />
           </div>

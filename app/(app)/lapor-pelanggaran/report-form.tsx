@@ -152,7 +152,8 @@ export function OutsideNoteButton({ candidates, categories }: { candidates: Cand
             </div>
 
             <p className="text-xs text-ink-soft">
-              Laporan ini tidak memengaruhi Skor 360° dan tidak bisa diubah atau dihapus setelah dikirim.
+              Penilaian kinerja rekan tetap lewat formulir penilaian; laporan ini untuk kejadian pelanggaran. Laporan tidak
+              memengaruhi Skor 360° dan tidak bisa diubah atau dihapus setelah dikirim.
             </p>
 
             {err && <p className="text-xs text-danger-ink font-semibold">{err}</p>}

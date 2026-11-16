@@ -400,7 +400,7 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
 - **Tulis** `submitOutsideNote(target, kategori, tanggal, isi, catatan)` (`lapor-pelanggaran/actions.ts`): Zod
   (tanggal ISO valid & tidak setelah hari ini WIB, kategori = nama aspek atau `other`) → login → periode aktif +
   saklar terbuka (status 360°, formulir & tenggat tidak dicek) → pengirim bukan eksternal → target bukan diri/
-  Direksi/eksternal/nonaktif → **hanya bila formulir 360° terbuka**: tak ada di `mappings` aktif penilai → kategori
+  Direksi/eksternal/nonaktif (rekan di `mappings` pelapor **boleh**, pemetaan tak dibaca — pemilik 2026-11-16) → kategori
   cocok dengan daftar (dilewati bila Lainnya) → insert service_role. Kolom 0058 belum ada → pesan "sedang diperbarui"
   (tidak menyimpan tanpa tanggal). Identitas
   pengirim **hanya** untuk validasi: tak ditulis ke tabel, `hrd_audit_log`, `console`, pesan error, atau notifikasi.

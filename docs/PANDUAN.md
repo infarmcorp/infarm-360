@@ -167,8 +167,8 @@ ditutup atau periode itu tidak memakai penilaian 360°.
 1. Buka menu **Laporkan Pelanggaran**, lalu klik **Tulis Laporan**. Di bagian atas pop-up ada **Panduan** (jelaskan
    waktu, tempat, pihak yang terlibat, kronologi kejadian, dan dampaknya) dan penjelasan **Kerahasiaan**.
 2. **Rekan yang dilaporkan** (wajib): pegawai aktif, bukan Direksi, bukan penilai eksternal, dan bukan Anda sendiri.
-   Selama formulir penilaian 360° dibuka, rekan yang ada di daftar penilaian Anda tidak bisa dipilih — sampaikan
-   lewat formulir penilaiannya. Saat formulir ditutup, semua rekan bisa dipilih.
+   Rekan yang ada di daftar penilaian Anda juga bisa dipilih. Penilaian kinerjanya tetap lewat formulir penilaian;
+   laporan ini untuk kejadian pelanggaran.
 3. **Laporan Anda** (wajib): minimal 20 karakter. Penghitung karakter ada di bawah kotak. Hanya teks, tanpa lampiran.
 4. **Tanggal kejadian** (wajib): tidak boleh setelah hari ini.
 5. **Kategori** (wajib): pilih budaya kerja yang dilanggar (aspek budaya kerja Infarm), atau
@@ -290,7 +290,7 @@ diamati langsung terkait seorang rekan. Klik **Tulis Laporan**, lalu isi rekan y
 20 karakter), tanggal kejadian, kategori (budaya kerja yang dilanggar atau Lainnya), dan catatan bila perlu. Nama dan
 waktu kirim pelapor tidak tersimpan; laporan tanpa nilai, tidak memengaruhi skor apa pun, dan tidak bisa diubah
 setelah dikirim. Bisa dikirim selama HRD membuka Laporkan Pelanggaran, tidak bergantung pada formulir penilaian 360°.
-Selama formulir penilaian dibuka, rekan yang ada di daftar penilaian SPV disampaikan lewat formulir penilaiannya.
+Rekan di daftar penilaian SPV juga bisa dilaporkan; penilaian kinerjanya tetap lewat formulir penilaian.
 Laporan yang ditulis orang lain tentang anggota tim **tidak** tampil di Laporan Kinerja Tim maupun Monitor; hanya HRD
 di Mode Admin yang membacanya.
 
@@ -1114,8 +1114,8 @@ flowchart TD
 - **Tinjauan Hasil Akhir** — hanya baca: hasil **semua pegawai** (termasuk yang masih draf) dengan umpan balik
   tanpa nama, tanpa Hitung Ulang / Rilis / Finalisasi / persetujuan / edit ringkasan.
 - **Laporkan Pelanggaran** — Direksi bisa melaporkan kepada HRD kejadian yang dialami atau diamati langsung terkait
-  seorang pegawai (menu **Laporkan Pelanggaran** → **Tulis Laporan**, selama HRD membukanya; selama formulir penilaian
-  dibuka, pegawai di daftar penilaian Direksi disampaikan lewat formulir penilaiannya): pilih pegawai, tulis laporan (minimal 20 karakter), isi tanggal kejadian dan kategori (budaya kerja yang dilanggar atau
+  seorang pegawai (menu **Laporkan Pelanggaran** → **Tulis Laporan**, selama HRD membukanya; pegawai di daftar
+  penilaian Direksi juga bisa dilaporkan, penilaian kinerjanya tetap lewat formulir penilaian): pilih pegawai, tulis laporan (minimal 20 karakter), isi tanggal kejadian dan kategori (budaya kerja yang dilanggar atau
   Lainnya), tambahkan catatan bila perlu. Nama dan waktu kirim pelapor tidak tersimpan; laporan tanpa nilai dan
   tidak memengaruhi skor. Laporan semacam ini **tidak** tampil di Laporan Kinerja Tim maupun Tinjauan Hasil Akhir.
 - **Laporan Pelanggaran** (Menu Direksi) — hanya baca: **semua** laporan pelanggaran yang masuk, per periode,

@@ -135,7 +135,7 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
     tabelnya (dikunci `tests/outside-notes.test.ts`). Pengirim eksternal ditolak (sementara).
   - **Lepas dari 360°** (0061, pemilik 2026-11-16): gerbang kirim = periode aktif + saklar sendiri per periode
     `periods.violation_open` (HRD, Kelola Periode) — **jangan** kaitkan lagi ke `has_360`/`form_open`/tenggat. Halaman
-    pegawai sendiri `/lapor-pelanggaran`. Rekan di pemetaan aktif hanya ditolak **selama formulir 360° terbuka**.
+    pegawai sendiri `/lapor-pelanggaran`. Rekan di pemetaan pelapor **boleh** dilaporkan kapan pun — **jangan** pasang lagi pengecualian berdasarkan `mappings` (membocorkan "pelapor bukan penilainya").
     Kategori = **nama** aspek budaya (`category`, dari periode terbaru yang punya aspek — aspek sama antarperiode,
     hanya indikator berganti), bukan FK aspek periode aktif.
 - **Rencana Pengembangan** (0055, TEKNIS.md §5.5): melekat ke periode **laporan** (terbuka bila laporan Final & HRD

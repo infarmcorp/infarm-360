@@ -17,7 +17,7 @@ import {
  * (`periods.violation_open`, diatur HRD di Kelola Periode). Status 360° & formulir penilaian tidak menentukan.
  * Kategori = NAMA aspek (aspek sama antarperiode), divalidasi terhadap daftar `loadViolationCategories`.
  *
- * BUKAN Ad-Hoc (addAdhocTarget tetap ditolak): tak menyentuh mappings/assessments/assessment_indicator_scores,
+ * BUKAN Ad-Hoc (addAdhocTarget tetap ditolak): tak membaca maupun menyentuh mappings/assessments/assessment_indicator_scores,
  * jadi tak pernah masuk Skor 360°, Progress 360, Kepatuhan, potongan keterlambatan, atau angka "x dari y".
  *
  * ANONIM: identitas pengirim HANYA dipakai untuk validasi di bawah. Tidak ditulis ke tabel (skemanya tak punya
@@ -84,14 +84,9 @@ export async function submitOutsideNote(
   if (target.role === 'direksi') return { ok: false, error: 'Direksi tidak dapat dipilih' };
   if (target.is_external) return { ok: false, error: 'Pegawai eksternal tidak dapat dipilih' };
 
-  // Rekan yang ada di pemetaan aktif → sampaikan lewat formulir penilaian, TETAPI hanya selama formulir 360° terbuka
-  // (pemilik 2026-11-10 & 2026-11-16). Saat formulir ditutup pegawai tak punya jalur lain, jadi laporan diterima.
-  if (ap.formOpen) {
-    const { data: mapped } = await supabase.from('mappings').select('id')
-      .eq('period_id', ap.id).eq('assessor_id', user.id).eq('target_id', targetId)
-      .eq('is_active', true).maybeSingle();
-    if (mapped) return { ok: false, error: 'Rekan ini sudah ada di daftar penilaian Anda — sampaikan lewat formulir penilaian' };
-  }
+  // Rekan di daftar penilaian pelapor SENGAJA boleh dilaporkan (pemilik 2026-11-16, membalik keputusan 2026-11-10):
+  // penilaian 360° = kinerja satu periode, laporan = satu kejadian untuk HRD. Mengecualikan rekan yang dinilai juga
+  // membocorkan petunjuk "pelapor bukan penilai rekan ini" — jangan pasang lagi pengecualian berdasarkan mappings.
 
   // Kategori budaya kerja = nama aspek dari daftar baku (tak terikat ke aspek periode aktif).
   const isOther = category === OTHER_CATEGORY_VALUE;

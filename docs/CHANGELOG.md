@@ -16,8 +16,11 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   menutupnya lewat **Kelola Periode → ⋯ → Buka/Tutup Laporkan Pelanggaran**. Saklar berlaku per periode (keputusan
   pemilik), jadi laporan tetap tercatat per periode dan halaman Laporan Pelanggaran tetap disaring per periode.
   Periode baru mulai dalam keadaan tertutup.
-- Rekan yang ada di daftar penilaian pelapor hanya ditolak **selama formulir 360° terbuka** (disampaikan lewat
-  formulirnya). Saat formulir ditutup pelapor tak punya jalur lain, jadi laporan tentang rekan itu diterima (pemilik).
+- Rekan yang ada di daftar penilaian pelapor kini **boleh dilaporkan** kapan pun (pemilik; membalik keputusan
+  2026-11-10). Alasannya: penilaian 360° menilai kinerja satu periode, sedangkan laporan mencatat satu kejadian untuk
+  ditindaklanjuti HRD; aturan yang bergantung pada buka/tutup formulir membingungkan; dan mengecualikan rekan yang
+  dinilai memberi petunjuk bahwa pelapor bukan penilai rekan itu. Halaman dan pop-up menjelaskan bahwa penilaian
+  kinerja tetap lewat formulir penilaian.
 - Kategori kini tercatat menurut **nama** aspek budaya, bukan aspek milik periode aktif: aspek budaya sama antarperiode
   (hanya indikatornya berganti, penjelasan pemilik). Pilihan kategori diambil dari periode terbaru yang punya aspek, jadi
   periode tanpa 360° tetap punya pilihan, dan laporan baru tidak lagi menghalangi HRD mengubah aspek.

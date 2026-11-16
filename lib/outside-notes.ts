@@ -40,24 +40,22 @@ export function violationPageAllowed(m: ActorRow | null | undefined, hrdMode: 'a
 
 /**
  * Periode aktif + saklar Laporkan Pelanggaran (0061: `periods.violation_open`, keputusan pemilik 2026-11-16) — lepas
- * dari 360°: cukup periode aktif + saklar terbuka. `formOpen` tetap dibaca karena aturan "rekan di daftar penilaian
- * → lewat formulir" hanya berlaku selama formulir 360° terbuka. Kolom 0061 belum ada → gerbang lama
- * (360° aktif + formulir dibuka). Null = tak ada periode aktif.
+ * dari 360°: cukup periode aktif + saklar terbuka. Kolom 0061 belum ada → gerbang lama (360° aktif + formulir
+ * dibuka). Null = tak ada periode aktif.
  */
-export type ViolationPeriod = { id: string; label: string; formOpen: boolean; open: boolean };
+export type ViolationPeriod = { id: string; label: string; open: boolean };
 export async function loadViolationPeriod(sb: SB): Promise<ViolationPeriod | null> {
   const { data, error } = await sb.from('periods')
-    .select('id, label, has_360, form_open, violation_open').eq('status', 'active').limit(1).maybeSingle();
+    .select('id, label, violation_open').eq('status', 'active').limit(1).maybeSingle();
   if (!error) {
     if (!data) return null;
-    return { id: data.id, label: data.label, formOpen: !!(data.has_360 && data.form_open), open: data.violation_open === true };
+    return { id: data.id, label: data.label, open: data.violation_open === true };
   }
   if (!columnMissing(error.message ?? '') && error.code !== '42703' && error.code !== 'PGRST204') return null;
   const { data: old } = await sb.from('periods')
     .select('id, label, has_360, form_open').eq('status', 'active').limit(1).maybeSingle();
   if (!old) return null;
-  const formOpen = !!(old.has_360 && old.form_open);
-  return { id: old.id, label: old.label, formOpen, open: formOpen };
+  return { id: old.id, label: old.label, open: !!(old.has_360 && old.form_open) };
 }
 
 /**

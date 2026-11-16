@@ -96,16 +96,18 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   kategori, laporan, dan catatan. Sisa:
   - 🔑 **Lepas dari penilaian 360°** (permintaan pengguna, keputusan pemilik 2026-11-16; di `dev`, belum dirilis): menu
     sendiri **Laporkan Pelanggaran** untuk pegawai, saklar Buka/Tutup sendiri per periode di Kelola Periode, kategori
-    menurut nama aspek budaya. **Butuh perubahan database 0061** di staging lalu production sebelum dirilis. Sesudah
+    menurut nama aspek budaya. Perubahan database 0061 sudah dijalankan pemilik (2026-11-16). Panduan Notion 2A–2F
+    sudah diperbarui; gambar layar yang usang tercatat di Daily Report (ambil ulang terpisah). Sesudah
     rilis HRD perlu membuka saklarnya pada periode aktif (bila formulir sedang terbuka saat perubahan database
     dijalankan, saklar ikut terbuka). Uji di Preview: kirim laporan saat formulir ditutup, dan saat periode tanpa 360°.
   - 🔑 sebelum Q4 dibuka: umumkan fiturnya ke pegawai.
   - 🔑 **Tindak lanjut HRD + Laporan Saya** (permintaan HRD, keputusan pemilik 2026-11-16; di `dev`, belum dirilis):
     HRD memberi status (Diterima → Sedang ditindaklanjuti → Selesai) dan tanggapan satu arah; pelapor melihat semua
     laporannya di tab Laporan Saya tanpa kode. Anonimitas berubah menjadi "tersembunyi": HRD tetap tidak melihat
-    pelapor, tetapi pengelola sistem yang memegang kunci rahasia secara teori bisa melacak. Sebelum dirilis:
-    jalankan **perubahan database 0062** di staging lalu production, dan isi kunci rahasia
-    **VIOLATION_REPORTER_SECRET** di Vercel (Preview & Production) — sekali saja, jangan pernah diganti. Laporan yang
+    pelapor, tetapi pengelola sistem yang memegang kunci rahasia secara teori bisa melacak. Perubahan database 0062
+    sudah dijalankan pemilik (2026-11-16). Sebelum dirilis: pastikan kunci rahasia **VIOLATION_REPORTER_SECRET** terisi
+    di Vercel (Preview & Production) — sekali saja, jangan pernah diganti — lalu uji kirim laporan baru sampai muncul
+    di Laporan Saya. Laporan yang
     masuk sebelumnya tidak tampil di Laporan Saya (diterima pemilik; fitur belum dipakai).
 - ✅ **Perubahan database** — 0001–0059 terpasang di production (0050–0057 dicek pemilik 2026-11-09 dengan
   `scripts/check-migrations.sql` di staging & production; 0058 dan 0059 dijalankan pemilik, dikonfirmasi 2026-11-11).

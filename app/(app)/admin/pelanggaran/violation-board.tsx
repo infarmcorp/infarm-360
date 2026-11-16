@@ -159,6 +159,9 @@ function FollowUp({ report, editable, self }: { report: BoardReport; editable: b
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, start] = useTransition();
   const dirty = status !== report.status || response.trim() !== (report.response ?? '');
+  // Simpan pertama boleh tanpa perubahan (mengonfirmasi "Diterima", tanggapan opsional). Sesudahnya hanya bila ada
+  // perubahan — tombol mati diberi keterangan agar tak terkesan tanggapan wajib.
+  const canSave = dirty || !report.respondedAt;
 
   function save() {
     setMsg(null);
@@ -205,8 +208,10 @@ function FollowUp({ report, editable, self }: { report: BoardReport; editable: b
           className={`${FIELD} w-full h-auto py-2 leading-relaxed`} />
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="primary" size="sm" disabled={busy || !dirty} onClick={save}>{busy ? 'Menyimpan…' : 'Simpan Tindak Lanjut'}</Button>
-        {msg && <span className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
+        <Button variant="primary" size="sm" disabled={busy || !canSave} onClick={save}>{busy ? 'Menyimpan…' : 'Simpan Tindak Lanjut'}</Button>
+        {msg
+          ? <span className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>
+          : !canSave && <span className="text-xs text-ink-soft">Sudah tersimpan — ubah status atau tanggapan untuk menyimpan lagi.</span>}
       </div>
     </div>
   );

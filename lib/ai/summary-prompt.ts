@@ -36,6 +36,7 @@ CARA MEMPROSES KOMENTAR
 
 ANONIMITAS
 - JANGAN menyebut atau menebak identitas maupun jenis penilai (atasan, rekan, lintas divisi, bawahan) — atasan biasanya hanya satu orang.
+- JANGAN menulis nama pegawai yang dinilai maupun nama orang lain, walaupun tertulis di komentar (mis. "Pak Adi"); sapa pegawai dengan "Anda".
 - Bila jumlah penilai pada bahan hanya 2: JANGAN sebut jumlah penilai sama sekali, dan pakai contoh yang lebih umum, bukan kejadian yang sangat spesifik.
 
 KOMENTAR SENSITIF

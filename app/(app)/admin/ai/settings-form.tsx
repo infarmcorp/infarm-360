@@ -94,7 +94,7 @@ export function AiSettingsForm({ initial, models, defaults }: {
       <section className={CARD}>
         <CardTitle icon={Bot}>Model</CardTitle>
         <p className="text-xs text-ink-soft mt-1.5">
-          <span className="data-value">{models.length}</span> model tersedia: tiga model Claude (bila kunci Claude terpasang) dan model Gemini yang diambil langsung dari Google sesuai kunci API, jadi model Gemini baru muncul sendiri.
+          <span className="data-value">{models.length}</span> model tersedia: tiga model Claude dan empat model Gemini pilihan (sesuai kunci API yang terpasang). Model Gemini yang sudah ditarik Google otomatis hilang dari daftar.
         </p>
         <div className="mt-3 max-w-xl">
           <SearchableSelect

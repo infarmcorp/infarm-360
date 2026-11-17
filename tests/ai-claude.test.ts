@@ -20,7 +20,7 @@ vi.mock('@anthropic-ai/sdk', async (orig) => {
 
 import { summarizeWithClaude, claudeUsageOf, parseClaudeSummaries, CLAUDE_MODELS, isClaudeModel } from '@/lib/ai/claude';
 import { aiSummaryEnabled, costOf } from '@/lib/ai/gemini';
-import { listAiModels, providerOf } from '@/lib/ai/provider';
+import { listAiModels, providerOf, GEMINI_ALLOWED } from '@/lib/ai/provider';
 import { KNOWN_PRICES } from '@/lib/ai/settings';
 
 const STG = 'https://twgdlhmsoifvmiqpkqsr.supabase.co';
@@ -41,6 +41,10 @@ describe('daftar model Claude — dibatasi tiga model', () => {
     expect(CLAUDE_MODELS.map((m) => m.id)).toEqual(['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5']);
     for (const m of CLAUDE_MODELS) expect(KNOWN_PRICES[m.id]).toBeDefined();
     expect(isClaudeModel('claude-fable-5-2')).toBe(false);
+  });
+  it('Gemini dibatasi empat model, semuanya punya harga resmi', () => {
+    expect(GEMINI_ALLOWED).toHaveLength(4);
+    for (const id of GEMINI_ALLOWED) expect(KNOWN_PRICES[id]).toBeDefined();
   });
   it('penyedia dipilih dari nama model', () => {
     expect(providerOf('claude-haiku-5-5')).toBe('claude');

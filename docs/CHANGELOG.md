@@ -12,7 +12,9 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 - Permintaan pemilik: mencoba Claude untuk Ringkas otomatis. Claude ditambahkan sebagai penyedia kedua, bukan pengganti
   Gemini, supaya hasilnya bisa dibandingkan pada laporan yang sama.
 - Pilihan model Claude dibatasi ke tiga model (keputusan pemilik): Haiku 5.5, Sonnet 5.5, Opus 5.5. Model lain dan model
-  lama tidak ditampilkan agar pilihan HRD tetap rapi.
+  lama tidak ditampilkan agar pilihan HRD tetap rapi. Daftar Gemini ikut dibatasi ke empat model yang harganya
+  dikenal aplikasi: 3.8 Flash, 3.6 Flash, 3.5 Flash-Lite, dan 3.1 Pro (pratinjau); model Gemini lain (Gemma, eksperimen,
+  seri lama) tidak ditampilkan.
 - Perbandingan dilakukan bergantian lewat Pengaturan AI (satu model untuk semua ringkasan tetap berlaku); tombol
   "bandingkan berdampingan" ditawarkan tetapi tidak dipilih.
 - Pengaman tetap sama: tidak pernah aktif di production, dan yang dikirim hanya komentar tanpa nama penilai/pegawai.

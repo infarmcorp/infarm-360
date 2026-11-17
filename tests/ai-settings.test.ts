@@ -11,6 +11,7 @@ vi.mock('@/lib/ai/gemini', async (orig) => ({
   aiSummaryEnabled: vi.fn(() => true),
   listGeminiModels: vi.fn(async () => ({ ok: true, models: [
     { id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash', description: '', inputTokenLimit: null },
+    { id: 'gemini-3.6-flash', label: 'Gemini 3.6 Flash', description: '', inputTokenLimit: null },
     { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', description: '', inputTokenLimit: null },
   ] })),
 }));
@@ -105,6 +106,11 @@ describe('saveAiSettings', () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toMatch(/tidak tersedia/);
   });
+  it('model Gemini di luar empat pilihan → tolak walau tersedia dari Google', async () => {
+    use(makeClient({ user: { id: UID }, tables: { employees: [{ data: HRD }] } }));
+    const r = await saveAiSettings({ ...VALID, model: 'gemini-2.5-flash' });
+    expect(r.ok).toBe(false);
+  });
   it('daftar model gagal dimuat → tolak (tak bisa divalidasi)', async () => {
     vi.mocked(listGeminiModels).mockResolvedValueOnce({ ok: false, error: 'Gagal menghubungi Google untuk daftar model.' });
     use(makeClient({ user: { id: UID }, tables: { employees: [{ data: HRD }] } }));
@@ -153,7 +159,7 @@ describe('saveAiSettings', () => {
   it('hanya harga/kurs berubah → versi tetap', async () => {
     use(makeClient({ user: { id: UID }, tables: { employees: [{ data: HRD }] } }));
     useAdmin(makeClient({ tables: { ai_settings: [{ data: ROW }, { data: null }] } }));
-    const r = await saveAiSettings({ ...VALID, model: 'gemini-2.5-flash', usdIdr: 17000 });
+    const r = await saveAiSettings({ ...VALID, model: 'gemini-3.6-flash', usdIdr: 17000 });
     expect(r).toEqual({ ok: true, version: 3 });
   });
 });

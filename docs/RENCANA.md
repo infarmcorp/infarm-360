@@ -247,7 +247,7 @@ Dipindah ke §2 bila diputuskan dikerjakan.
 
 - **Ringkas otomatis bisa memakai Claude (2026-11-17, dev saja).** Selain Gemini, Pengaturan AI kini menawarkan tiga model
   Claude: Haiku 5.5 (paling cepat dan murah), Sonnet 5.5 (menengah), dan Opus 5.5 (paling teliti). Daftar sengaja dibatasi
-  ke tiga model ini. Model dibandingkan **bergantian**: pilih satu model, ringkas laporan, catat hasil dan biayanya, lalu
+  ke tiga model ini; daftar Gemini juga dibatasi ke empat model (3.8 Flash, 3.6 Flash, 3.5 Flash-Lite, 3.1 Pro pratinjau). Model dibandingkan **bergantian**: pilih satu model, ringkas laporan, catat hasil dan biayanya, lalu
   ganti model dan ulangi pada laporan yang sama. 🔑 Pasang kunci API Claude di lingkungan dev/staging (tidak di production).
 - **Ringkas otomatis mengikuti Prompt Laporan PA v2.0 (2026-11-17, dev saja).** Perintah AI dipecah menjadi aturan umum
   (sumber data, angka, anonimitas, penghalusan komentar tajam, gaya bahasa) + tiga perintah: aspek budaya (kalimat

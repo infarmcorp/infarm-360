@@ -9,17 +9,20 @@ import {
   classifySummaryRows, buildSummaryPayload, SUMMARY_SHEET, SUMMARY_KIND_LABEL,
   type SummaryEmp, type SummaryRow,
 } from '@/lib/import/summaries';
+import { PDF_NOTE_KEYS } from '@/lib/pa-pdf';
 
 export type ImportSummaryEmp = SummaryEmp & {
   dept: string;
   aspectSummaries: Record<string, string>;
   qualSummaries: Record<string, string>;
+  /** Isian PDF Pegawai (Kesimpulan, Masukan Lain dari Penilai). */
+  pdfNotes: Record<string, string>;
 };
 
 const STATUS_LABEL: Record<string, string> = { draft: 'Draf', in_review: 'Ditinjau SPV', finalized: 'Final' };
 
 /**
- * Impor Ringkasan Aspek & Pertanyaan Kualitatif dari Excel (format lembar "Ringkasan Naratif" Ekspor).
+ * Impor Ringkasan Aspek, Pertanyaan Kualitatif & Isian PDF Pegawai (Kesimpulan, Masukan Lain) dari Excel (format lembar "Ringkasan Naratif" Ekspor).
  * Pratinjau dulu → server menegakkan ulang semua aturan (importSummaries).
  */
 export function ImportSummaries({ employees, aspects, questions, periodLabel, selfId }: {
@@ -88,6 +91,7 @@ export function ImportSummaries({ employees, aspects, questions, periodLabel, se
       return [
         ...aspects.map((a) => ({ ...base, jenis: SUMMARY_KIND_LABEL.aspect, aspek_atau_pertanyaan: a, ringkasan: e.aspectSummaries[a] ?? '' })),
         ...questions.map((q) => ({ ...base, jenis: SUMMARY_KIND_LABEL.qual, aspek_atau_pertanyaan: q, ringkasan: e.qualSummaries[q] ?? '' })),
+        ...PDF_NOTE_KEYS.map((k) => ({ ...base, jenis: SUMMARY_KIND_LABEL.notes, aspek_atau_pertanyaan: k, ringkasan: e.pdfNotes[k] ?? '' })),
       ];
     });
     const ws = XLSX.utils.json_to_sheet(data);
@@ -108,12 +112,12 @@ export function ImportSummaries({ employees, aspects, questions, periodLabel, se
   return (
     <div className={`${CARD} space-y-2.5 w-full`}>
       <div className="flex items-center justify-between">
-        <CardTitle icon={FileUp}>Impor Ringkasan Aspek &amp; Kualitatif</CardTitle>
+        <CardTitle icon={FileUp}>Impor Ringkasan Aspek, Kualitatif &amp; Isian PDF Pegawai</CardTitle>
         <button type="button" onClick={() => { setOpen(false); setRows(null); setMsg(null); }} className="inline-flex items-center gap-1 text-ink-soft hover:text-ink text-xs font-semibold">Tutup <X className="w-3.5 h-3.5" aria-hidden /></button>
       </div>
       <p className="text-[13px] text-ink-soft leading-relaxed">
-        Format sama dengan lembar <strong>Ringkasan Naratif</strong> di Ekspor: {code('kode')}, {code('jenis')} (Aspek / Pertanyaan Kualitatif),
-        {' '}{code('aspek_atau_pertanyaan')}, {code('ringkasan')}. <button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh templat (berisi ringkasan saat ini)</button>.
+        Format sama dengan lembar <strong>Ringkasan Naratif</strong> di Ekspor: {code('kode')}, {code('jenis')} (Aspek / Pertanyaan Kualitatif / Isian PDF Pegawai),
+        {' '}{code('aspek_atau_pertanyaan')}, {code('ringkasan')}. Isian PDF Pegawai berisi dua baris per pegawai: {code('Kesimpulan')} dan {code('Masukan Lain dari Penilai')}. <button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh templat (berisi ringkasan saat ini)</button>.
       </p>
       <p className="text-xs text-ink-soft leading-relaxed">
         Ringkasan di berkas <strong>menggantikan</strong> seluruh ringkasan jenis yang sama per pegawai; item yang tidak tercantum terhapus. Sel kosong dilewati. Laporan Final tidak diubah.

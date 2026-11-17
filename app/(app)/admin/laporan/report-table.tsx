@@ -135,9 +135,9 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
               has360 && 80, // Potongan
               112, // Skor Akhir (+ chip "berubah → 84.50")
               has360 && 92, // Dinilai oleh
-              64, // ACC
+              100, // Persetujuan ("belum" + "oleh Direksi" tanpa terpotong)
               110, // Status ("Ditinjau Direksi")
-              165, // Aksi ("Tanpa KPI" / ✉ email rilis + Tinjau)
+              140, // Aksi (✉ email rilis + Tinjau; chip tambahan boleh turun baris)
             ]).map((w, i) => <col key={i} style={{ width: w }} />)}
           </colgroup>
           <thead>

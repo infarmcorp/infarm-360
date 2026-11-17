@@ -298,10 +298,11 @@ export default async function AdminLaporanPage() {
       employees: employees.flatMap((e) => {
         if (!e.emp_code) return [];
         const rep = repBy.get(e.id);
-        const content = (rep?.content ?? {}) as { aspectSummaries?: Record<string, string>; qualSummaries?: Record<string, string> };
+        const content = (rep?.content ?? {}) as { aspectSummaries?: Record<string, string>; qualSummaries?: Record<string, string>; pdfNotes?: Record<string, string> };
         return [{
           id: e.id, code: e.emp_code, name: e.name, dept: e.dept, status: rep?.status ?? null,
           aspectSummaries: content.aspectSummaries ?? {}, qualSummaries: content.qualSummaries ?? {},
+          pdfNotes: content.pdfNotes ?? {},
         }];
       }),
     };

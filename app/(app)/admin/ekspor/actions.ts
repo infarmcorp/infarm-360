@@ -10,6 +10,7 @@ import { cookies } from 'next/headers';
 import { loadViolationReports, sortViolations, violationCategoryLabel, VIOLATION_STATUS_LABEL } from '@/lib/outside-notes';
 import { tableMissing } from '@/lib/report-folder';
 import { formatDateTimeWib } from '@/lib/datetime';
+import { SUMMARY_KIND_LABEL } from '@/lib/import/summaries';
 import { planTitle, planStatusLabel, ITEM_PROGRESS_LABEL, SESSION_KIND_LABEL, OVERALL_LABEL } from '@/lib/dev-plan';
 import type { PlanRow as DevPlanRow, PlanItemRow as DevItemRow, SessionRow as DevSessionRow } from '@/lib/dev-plan-server';
 
@@ -228,8 +229,9 @@ async function exportLatePenaltiesImpl(periodId?: string | null): Promise<Export
 /**
  * Dataset Ringkasan Naratif (HRD/Peninjau): teks evaluasi yang ditulis di Review Hasil Akhir,
  * tersimpan di final_reports.content — baik ringkasan ASPEK 360° (aspectSummaries) maupun
- * ringkasan PERTANYAAN KUALITATIF (qualSummaries). Satu baris per (pegawai × item) yang punya
- * ringkasan; entri kosong dilewati. Kolom `jenis` membedakan Aspek vs Pertanyaan Kualitatif.
+ * ringkasan PERTANYAAN KUALITATIF (qualSummaries), dan Isian PDF Pegawai (pdfNotes: Kesimpulan, Masukan Lain
+ * dari Penilai). Satu baris per (pegawai × item) yang punya isi; entri kosong dilewati. Kolom `jenis`
+ * membedakan ketiganya (label = SUMMARY_KIND_LABEL, sama dengan Impor Ringkasan).
  */
 async function exportAspectSummariesImpl(periodId?: string | null): Promise<ExportResult> {
   if (!(await requireHrd())) return { ok: false, error: 'Hanya HRD' };
@@ -251,6 +253,7 @@ async function exportAspectSummariesImpl(periodId?: string | null): Promise<Expo
     const content = (r.content ?? {}) as {
       aspectSummaries?: Record<string, string>;
       qualSummaries?: Record<string, string>;
+      pdfNotes?: Record<string, string>;
     };
     const e = empById.get(r.employee_id);
     const emit = (jenis: string, obj: Record<string, string>) => {
@@ -266,6 +269,8 @@ async function exportAspectSummariesImpl(periodId?: string | null): Promise<Expo
     };
     emit('Aspek', content.aspectSummaries ?? {});
     emit('Pertanyaan Kualitatif', content.qualSummaries ?? {});
+    // Isian PDF Pegawai (Kesimpulan, Masukan Lain) — tulisan HRD, sama formatnya agar bisa diimpor kembali.
+    emit(SUMMARY_KIND_LABEL.notes, content.pdfNotes ?? {});
   }
   rows.sort((a, b) =>
     String(a.periode).localeCompare(String(b.periode)) ||

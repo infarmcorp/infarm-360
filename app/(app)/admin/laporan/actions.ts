@@ -566,6 +566,8 @@ const ImportInput = z.array(z.object({
   employeeId: z.string().uuid(),
   aspect: ImportItems.optional(),
   qual: ImportItems.optional(),
+  // Isian PDF Pegawai (Kesimpulan, Masukan Lain dari Penilai) → content.pdfNotes.
+  notes: ImportItems.optional(),
 })).min(1).max(2000);
 
 export type ImportSummariesResult =
@@ -622,8 +624,9 @@ export async function importSummaries(raw: unknown): Promise<ImportSummariesResu
     if (denied) { skipped.push({ name, reason: denied }); continue; }
     if (repBy.get(it.employeeId)?.status === 'finalized') { skipped.push({ name, reason: 'Laporan sudah Final' }); continue; }
     const badKey = [...Object.keys(it.aspect ?? {}).filter((k) => !aspectNames.has(k)),
-      ...Object.keys(it.qual ?? {}).filter((k) => !questionTexts.has(k))][0];
-    if (badKey != null) { skipped.push({ name, reason: `"${badKey}" bukan aspek/pertanyaan periode aktif` }); continue; }
+      ...Object.keys(it.qual ?? {}).filter((k) => !questionTexts.has(k)),
+      ...Object.keys(it.notes ?? {}).filter((k) => !(PDF_NOTE_KEYS as readonly string[]).includes(k))][0];
+    if (badKey != null) { skipped.push({ name, reason: `"${badKey}" bukan aspek/pertanyaan/isian PDF periode aktif` }); continue; }
     todo.push(it);
   }
 
@@ -643,6 +646,7 @@ export async function importSummaries(raw: unknown): Promise<ImportSummariesResu
     const next: Record<string, unknown> = { ...prev };
     if (it.aspect) next.aspectSummaries = mergeSummaryOverwrite(prev.aspectSummaries as Record<string, string> | undefined, it.aspect);
     if (it.qual) next.qualSummaries = mergeSummaryOverwrite(prev.qualSummaries as Record<string, string> | undefined, it.qual);
+    if (it.notes) next.pdfNotes = mergeSummaryOverwrite(prev.pdfNotes as Record<string, string> | undefined, it.notes);
 
     if (existing) {
       const { data: upd, error } = await db.from('final_reports').update({ content: next }).eq('id', existing.id).select('id');
@@ -658,12 +662,12 @@ export async function importSummaries(raw: unknown): Promise<ImportSummariesResu
       if (error) { failed.push({ name, reason: error.message }); return; }
     }
     saved += 1;
-    const kinds = [it.aspect && 'aspek', it.qual && 'pertanyaan kualitatif'].filter(Boolean).join(' & ');
+    const kinds = [it.aspect && 'ringkasan aspek', it.qual && 'ringkasan pertanyaan kualitatif', it.notes && 'isian PDF Pegawai'].filter(Boolean).join(' & ');
     await logReportAction(writer, {
       action: 'report.import_summary', category: 'laporan',
-      summary: `Mengimpor ringkasan ${kinds} 360° dari Excel untuk ${name}`,
+      summary: `Mengimpor ${kinds} dari Excel untuk ${name}`,
       targetType: 'employee', targetId: it.employeeId, targetLabel: name,
-      meta: { via_grant: writer.viaGrant, aspect_items: Object.keys(it.aspect ?? {}).length, qual_items: Object.keys(it.qual ?? {}).length },
+      meta: { via_grant: writer.viaGrant, aspect_items: Object.keys(it.aspect ?? {}).length, qual_items: Object.keys(it.qual ?? {}).length, notes_items: Object.keys(it.notes ?? {}).length },
     });
   };
   // Paralel terbatas (8) — ratusan pegawai tetap selesai dalam batas waktu Server Action.

@@ -26,7 +26,7 @@ export type PaLoadResult =
 export async function loadPaPdf(employeeId: string, periodParam: string | undefined, opts: { allowSelf?: boolean } = {}): Promise<PaLoadResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, status: 401, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false, status: 401, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   const mode = (await cookies()).get('hrd_mode')?.value;
   const isHrd = canSection(me, 'laporan') && mode === 'admin';

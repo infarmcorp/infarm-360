@@ -47,7 +47,7 @@ describe('bulkFinalizeAccepted — hitung hanya yang tersimpan', () => {
     expect(r.skipped).toEqual([]);
     expect(r.failed).toHaveLength(1);
     expect(r.failed[0].name).toBe('Budi');
-    expect(r.failed[0].reason).toMatch(/laporan sudah berubah/i);
+    expect(r.failed[0].reason).toMatch(/Gagal menyimpan karena laporan sudah berubah/i);
   });
 
   it('error database saat menyimpan → masuk daftar gagal beserta nama & pesannya', async () => {

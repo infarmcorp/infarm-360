@@ -110,7 +110,7 @@ describe('requestMappingRemoval — validasi & gerbang fase', () => {
     if (!r.ok) expect(r.error).toMatch(/belum diumumkan/i);
   });
 
-  it('IZINKAN saat formulir terbuka meski pemetaan belum diumumkan', async () => {
+  it('IZINKAN saat form terbuka meski pemetaan belum diumumkan', async () => {
     use(makeClient({ user: { id: UID }, tables: {
       periods: [{ data: { id: 'p1', has_360: true, form_open: true, mapping_published: false } }],
       mappings: [MINE],

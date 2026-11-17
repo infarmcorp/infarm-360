@@ -30,7 +30,7 @@ const BAN_FOREVER = '876000h'; // ~100 tahun
  */
 async function requireHrd(supabase: Awaited<ReturnType<typeof createClient>>, level: 'section' | 'full' = 'section') {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false as const, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canAdmin(me)) return { ok: false as const, error: 'Hanya HRD yang dapat mengelola pegawai' };
   if (level === 'full' && !isFullHrd(me)) {
@@ -102,7 +102,7 @@ export async function setHrdAdmin(employeeId: string, value: boolean): Promise<R
  * (coordinator_team_members) ikut dibersihkan. Hanya HRD; tercatat di Log Aktivitas HRD.
  */
 export async function setCoordinator(employeeId: string, value: boolean): Promise<Result> {
-  if (!z.string().uuid().safeParse(employeeId).success) return { ok: false, error: 'Isian tidak valid' };
+  if (!z.string().uuid().safeParse(employeeId).success) return { ok: false, error: 'Input tidak valid' };
   const supabase = await createClient();
   const auth = await requireHrd(supabase, 'full');
   if (!auth.ok) return auth;
@@ -132,7 +132,7 @@ export async function setCoordinatorTeam(coordinatorId: string, employeeIds: unk
     coordinatorId: z.string().uuid(),
     ids: z.array(z.string().uuid()),
   }).safeParse({ coordinatorId, ids: employeeIds });
-  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
   const { coordinatorId: cid, ids } = parsed.data;
 
   const supabase = await createClient();
@@ -184,7 +184,7 @@ export async function setHrdSections(employeeId: string, sections: unknown): Pro
     // null = akses penuh; array = subset katalog (nilai di luar katalog ditolak).
     sections: z.array(z.enum(HRD_SECTIONS)).nullable(),
   }).safeParse({ employeeId, sections });
-  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
   const { employeeId: id, sections: secs } = parsed.data;
 
   const supabase = await createClient();
@@ -246,7 +246,7 @@ const CreateInput = z.object({
 /** Tambah pegawai baru: buat akun auth → baris employees → (opsional) tautkan ke tim SPV. */
 export async function createEmployee(raw: unknown): Promise<Result> {
   const parsed = CreateInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
   const { name, nickname, empCode, dept, role, email, password, spvId, isExternal, joinedOn } = parsed.data;
 
   const supabase = await createClient();
@@ -396,7 +396,7 @@ const UpdateInput = z.object({
 /** Ubah data pegawai: name/dept/role/emp_code + email (akun) + atasan + tgl masuk/nonaktif. */
 export async function updateEmployee(raw: unknown): Promise<Result> {
   const parsed = UpdateInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
   const { id, name, nickname, empCode, dept, role, email, spvId, isExternal, joinedOn, leftOn } = parsed.data;
 
   const supabase = await createClient();
@@ -441,7 +441,7 @@ export async function updateEmployee(raw: unknown): Promise<Result> {
 
 /** Aktif/nonaktif: toggle is_active + ban/unban akun auth (nonaktif → tak bisa login). */
 export async function setEmployeeActive(id: string, active: boolean): Promise<Result> {
-  if (!z.string().uuid().safeParse(id).success) return { ok: false, error: 'Isian tidak valid' };
+  if (!z.string().uuid().safeParse(id).success) return { ok: false, error: 'Input tidak valid' };
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
@@ -494,7 +494,7 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
     const toEnable = mappingsToReactivate(myMaps ?? [], id, { openPeriodIds: new Set(openPeriodIds), activeOthers, removedPairs });
     if (toEnable.length) {
       const { error: mErr } = await supabase.from('mappings').update({ is_active: true }).in('id', toEnable);
-      if (mErr) return { ok: false, error: 'Status diubah, tetapi gagal memperbarui pemetaan: ' + mErr.message };
+      if (mErr) return { ok: false, error: 'Status diubah, tapi gagal memperbarui pemetaan: ' + mErr.message };
     }
   }
 
@@ -517,7 +517,7 @@ export async function setEmployeeActive(id: string, active: boolean): Promise<Re
 
 /** Reset sandi pegawai (HRD). Pegawai sebaiknya menggantinya sendiri setelah login. */
 export async function resetPassword(id: string, newPassword: string): Promise<Result> {
-  if (!z.string().uuid().safeParse(id).success) return { ok: false, error: 'Isian tidak valid' };
+  if (!z.string().uuid().safeParse(id).success) return { ok: false, error: 'Input tidak valid' };
   if (!Password.safeParse(newPassword).success) return { ok: false, error: 'Sandi minimal 6 karakter' };
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
@@ -533,8 +533,8 @@ export async function resetPassword(id: string, newPassword: string): Promise<Re
   const { data: emp } = await supabase.from('employees').select('name').eq('id', id).maybeSingle();
   await logHrdAction({
     action: 'employee.reset_password', category: 'pegawai',
-    summary: `Mengatur ulang sandi pegawai ${emp?.name ?? id}`, // sandi TIDAK dicatat
+    summary: `Mereset sandi pegawai ${emp?.name ?? id}`, // sandi TIDAK dicatat
     targetType: 'employee', targetId: id, targetLabel: emp?.name ?? null,
   });
-  return { ok: true, msg: 'Sandi berhasil diatur ulang.' };
+  return { ok: true, msg: 'Sandi berhasil direset.' };
 }

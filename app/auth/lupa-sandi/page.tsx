@@ -20,7 +20,7 @@ export default function LupaSandiPage() {
         </div>
         <h1 className="text-[22px] leading-tight font-bold text-ink text-center">Lupa Sandi</h1>
         <p className="text-[13px] text-ink-soft mt-1.5 mb-5 text-center">
-          Masukkan email Anda. Kami kirimkan tautan untuk membuat sandi baru.
+          Masukkan email Anda. Kami kirimkan link untuk membuat sandi baru.
         </p>
         <LupaSandiForm />
         <Link href="/login" className="mt-4 block text-center text-xs font-semibold text-brand-ink hover:underline">

@@ -125,7 +125,8 @@ export async function RekapView({ role, userId, periodParam, hrdMode = 'admin', 
       )}
       <RekapTable rows={rows} monthLabels={ymList.map(labelOf)} has360={sel.has_360} />
       <p className="text-xs text-ink-soft mt-3 leading-relaxed">
-        Rerata KPI = rerata bulan yang berskor di kuartal ini. Skor Akhir = KPI 50% + 360° 50% {sel.has_360 ? '' : ' (kuartal KPI saja → 100% KPI)'}. Kategori: ≥90 Melampaui · ≥80 Memenuhi · ≥70 Perlu Peningkatan · &lt;70 Di Bawah Ekspektasi.      </p>
+        Rerata KPI = rerata bulan yang berskor di kuartal ini. Skor Akhir = KPI 50% + 360° 50%
+        {sel.has_360 ? '' : ' (kuartal KPI saja → 100% KPI)'}. Kategori: ≥90 Melampaui · ≥80 Memenuhi · ≥70 Perlu Peningkatan · &lt;70 Di Bawah Ekspektasi.      </p>
     </div>
   );
 }

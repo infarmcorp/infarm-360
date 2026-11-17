@@ -88,7 +88,8 @@ export function StrukturView({
           <CardTitle icon={Network} className="mb-3">Bagan Lini Pelaporan</CardTitle>
           <div className="mb-4">
             <Note>
-              Bagan atasan → bawahan (pegawai aktif). <strong>Klik kotak</strong> untuk membuka atau menutup bawahannya. Koordinasi lintas jalur ada di tab <strong>Daftar</strong>.
+              Bagan atasan → bawahan (pegawai aktif). <strong>Klik kotak</strong> untuk membuka atau menutup bawahannya.
+              Koordinasi lintas jalur ada di tab <strong>Daftar</strong>.
             </Note>
           </div>
           {treeRoots.length === 0

@@ -113,14 +113,14 @@ export default async function LaporanDetailPage({
     const inScope = !!tgt && employeeInScopes(reviewGrant.scopes, me?.dept ?? '', user.id, { id: employeeId, dept: tgt.dept ?? null }, teamIds);
     if (!inScope) {
       return <Shell>
-        <BackLink href="/admin/laporan">Tinjauan &amp; Finalisasi</BackLink>
+        <BackLink href="/admin/laporan">Review & Finalisasi</BackLink>
         <p className={MSG}>Pegawai ini di luar lingkup akses yang diberikan kepada Anda.</p>
       </Shell>;
     }
     const loaded = await loadReport(admin, employeeId, ap);
     if (!loaded) {
       return <Shell>
-        <BackLink href="/admin/laporan">Tinjauan &amp; Finalisasi</BackLink>
+        <BackLink href="/admin/laporan">Review & Finalisasi</BackLink>
         <p className={MSG}>Data tidak ditemukan.</p>
       </Shell>;
     }
@@ -162,13 +162,13 @@ export default async function LaporanDetailPage({
 
     return (
       <Shell>
-        <BackLink href="/admin/laporan">Tinjauan &amp; Finalisasi</BackLink>
+        <BackLink href="/admin/laporan">Review & Finalisasi</BackLink>
         <div>
           {!canEditReport && (
             <div className="mb-4 flex gap-2 rounded-xl px-3.5 py-2.5 text-xs leading-relaxed bg-neutral-tint text-ink-soft no-print">
               <Info className="w-4 h-4 shrink-0 mt-px" aria-hidden />
               <span>
-              Hanya lihat (akses terbatas dari HRD). Laporan hanya dapat diubah oleh pihak berwenang.</span>
+              <strong>Hanya lihat</strong> (akses terbatas dari HRD). Laporan hanya dapat diubah oleh pihak berwenang.</span>
             </div>
           )}
           {canEditReport && !canFinalizeReport && (
@@ -335,7 +335,8 @@ export default async function LaporanDetailPage({
   // Sisa di luar Mode Admin = pegawai ber-izin HRD di mode posisi-asli (bukan SPV/Koordinator, tanpa grant
   // Review) → tak ada tampilan untuknya di sini; tampilan HRD penuh hanya di Mode Admin.
   if (route === 'need-admin') {
-    return <Shell><p className={MSG}>Detail laporan pegawai lain hanya ada di <strong>Mode Admin</strong>. Pindah lewat tombol di menu samping, lalu buka dari Tinjauan &amp; Finalisasi.</p></Shell>;
+    return <Shell><p className={MSG}>Detail laporan pegawai lain hanya ada di <strong>Mode Admin</strong>.
+      Pindah lewat tombol di menu samping, lalu buka dari Review &amp; Finalisasi.</p></Shell>;
   }
 
   // Jalur HRD (mode admin): laporan penuh (tunduk RLS; raw 360° untuk HRD anonim).
@@ -419,7 +420,7 @@ export default async function LaporanDetailPage({
                   {staleReasons.map((r, i) => <li key={i}>{r}</li>)}
                 </ul>
                 Jalankan <strong>&quot;Hitung Ulang Skor 360°&quot;</strong> (kokpit di halaman{' '}
-                <Link href="/admin/laporan" className="underline font-bold">Tinjauan &amp; Finalisasi</Link>), lalu
+                <Link href="/admin/laporan" className="underline font-bold">Review & Finalisasi</Link>), lalu
                 Simpan Draf / Rilis / Finalisasi ulang agar Skor Akhir mencerminkan kondisi terbaru.
               </div>
             </div>

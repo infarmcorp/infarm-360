@@ -172,7 +172,8 @@ export default async function BobotPage() {
       <Section title="Bobot Penilai" icon={Scale}>
         <WeightForm initial={initial} auto2={auto2} />
         <div className="mt-4"><Note>
-          Skor 360° = rata-rata nilai tiap kelas penilai ×20, dibobot di sini. Evaluasi diri tidak berbobot dan tidak dihitung. Perubahan berlaku setelah <strong className="font-semibold text-ink-soft">Hitung Ulang Skor 360°</strong> di Tinjauan &amp; Finalisasi.
+          Skor 360° = rata-rata rating tiap kelas penilai ×20, dibobot di sini. Evaluasi diri tidak berbobot dan tidak dihitung.
+          Perubahan berlaku setelah <strong className="font-semibold text-ink-soft">Hitung Ulang Skor 360°</strong> di Review &amp; Finalisasi.
         </Note></div>
       </Section>
 
@@ -190,15 +191,15 @@ export default async function BobotPage() {
       <Section title="Kalkulasi Skor 360°" icon={Calculator}>
         <div className="mb-4">
           <div className="flex flex-wrap items-center gap-3 border border-line bg-infarm-surface rounded-xl px-3.5 py-2.5">
-            <span className="text-[13px] text-ink-soft">Bobot berubah? Hitung ulang Skor 360° agar bobot baru berlaku.</span>
+            <span className="text-[13px] text-ink-soft">Bobot berubah? Hitung ulang Skor 360° di Review &amp; Finalisasi agar bobot baru berlaku.</span>
             <Link href="/admin/laporan" className="inline-flex items-center gap-1.5 min-h-9 px-4 rounded-xl bg-brand hover:bg-brand-ink text-white text-[13px] font-bold">
-              Buka Tinjauan &amp; Finalisasi <ArrowRight className="w-4 h-4" aria-hidden />
+              Buka Review &amp; Finalisasi <ArrowRight className="w-4 h-4" aria-hidden />
             </Link>
           </div>
           <p className="text-xs text-ink-soft mt-2 leading-relaxed">
             Hitung ulang memakai model aktif:
-            <strong className="font-semibold text-ink-soft"> {model === '4class' ? '4-Kelas' : '2-Kelas'}</strong> (bobot global <span className="font-mono">{globalLabel}</span>). Pegawai
-            berbobot khusus memakai bobotnya sendiri. Evaluasi diri tidak dihitung.
+            <strong className="font-semibold text-ink-soft"> {model === '4class' ? '4-Kelas' : '2-Kelas'}</strong> (bobot global <span className="font-mono">{globalLabel}</span>). Pegawai berbobot
+            <strong className="font-semibold text-ink-soft"> khusus</strong> memakai bobotnya sendiri. Evaluasi diri tidak dihitung.
           </p>
         </div>
         <Kalkulasi360Table rows={merged} model={model} overrideCount={overrideCount} globalLabel={globalLabel} />

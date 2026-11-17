@@ -37,7 +37,7 @@ export async function saveAiSettings(raw: unknown): Promise<{ ok: true; version:
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir, silakan login ulang' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections, name').eq('id', user.id).maybeSingle();
   const hrdMode = (await cookies()).get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
   if (!(canSection(me, 'laporan') && hrdMode === 'admin')) {

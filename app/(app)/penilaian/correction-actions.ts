@@ -23,7 +23,7 @@ export async function requestCorrection(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
 
   // Boleh saat FASE TINJAU PEMETAAN (mapping_published) maupun saat form terbuka — koreksi relasi
   // justru paling berguna SEBELUM pengisian dimulai (migrasi 0035).

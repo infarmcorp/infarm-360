@@ -230,7 +230,7 @@ describe('computeResult360 — otorisasi', () => {
   it('tolak bila sesi berakhir (tanpa menyentuh service_role)', async () => {
     setup({ user: null });
     const r = await computeResult360();
-    expect(r).toEqual({ ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' });
+    expect(r).toEqual({ ok: false, error: 'Sesi berakhir. Silakan login ulang.' });
     expect(mockAdmin).not.toHaveBeenCalled();
   });
 

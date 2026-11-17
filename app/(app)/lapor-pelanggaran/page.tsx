@@ -101,7 +101,7 @@ async function WriteTab({ userId, period }: { userId: string; period: Awaited<Re
           Ceritakan kejadian yang Anda alami atau lihat langsung terkait rekan yang dilaporkan, meskipun ia bukan rekan kerja langsung Anda.
         </p>
         <p className="text-xs text-ink-soft mt-1.5 leading-relaxed">
-          Penilaian kinerja rekan tetap lewat formulir penilaian; laporan ini untuk kejadian pelanggaran.
+          Penilaian kinerja rekan tetap lewat form penilaian; laporan ini untuk kejadian pelanggaran.
         </p>
         <div className="pt-3 flex flex-wrap items-center gap-2">
           <OutsideNoteButton candidates={candidates} categories={categories} />

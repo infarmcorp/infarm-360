@@ -16,7 +16,7 @@ import { finalLockError, finalizedEmployees } from '@/lib/final-lock';
  */
 async function requireHrd(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false as const, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'pemetaan')) return { ok: false as const, error: 'Hanya HRD yang dapat mengelola pemetaan' };
   return { ok: true as const };
@@ -33,7 +33,7 @@ type Result = { ok: true } | { ok: false; error: string };
 
 export async function createMapping(raw: unknown): Promise<Result> {
   const parsed = CreateInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
   const { assessorId, targetId, relation } = parsed.data;
   const mandatory = true; // kebijakan: penilaian yang ditugaskan HRD selalu WAJIB
   // BR-02 (Q3 2026): Self Assessment DINONAKTIFKAN — tidak boleh membuat pemetaan
@@ -305,7 +305,7 @@ export async function setAssessmentValidity(mappingId: string, action: 'invalida
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
   const reason = Reason.safeParse(rawReason ?? '');
   if (!reason.success) return { ok: false, error: reason.error.issues[0]?.message ?? 'Alasan wajib diisi' };
 
@@ -355,7 +355,7 @@ export async function setAssessmentValidity(mappingId: string, action: 'invalida
   if (recalcErr) {
     return {
       ok: true,
-      warning: `Validitas penilaian ${pair} sudah ${action === 'invalidate' ? 'dibatalkan' : 'dipulihkan'}, tetapi Skor 360° ${nm.get(m.target_id) ?? 'pegawai'} BELUM diperbarui (${recalcErr}). Tekan "Hitung Ulang Skor 360°" di Tinjauan & Finalisasi.`,
+      warning: `Validitas penilaian ${pair} sudah ${action === 'invalidate' ? 'dibatalkan' : 'dipulihkan'}, tetapi Skor 360° ${nm.get(m.target_id) ?? 'pegawai'} BELUM diperbarui (${recalcErr}). Tekan "Hitung Ulang Skor 360°" di Review & Finalisasi.`,
     };
   }
   return { ok: true };

@@ -34,7 +34,7 @@ export function LupaSandiForm() {
       <div className="flex items-start gap-2 rounded-xl bg-brand-tint p-4 text-[13px] leading-relaxed text-brand-ink">
         <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />
         <div>
-          Bila email <strong>{email}</strong> terdaftar, tautan pembuatan sandi baru sudah dikirim. Cek kotak masuk dan folder spam.
+          Bila email <strong>{email}</strong> terdaftar, link pembuatan sandi baru sudah dikirim. Cek kotak masuk dan folder spam.
         </div>
       </div>
     );
@@ -60,7 +60,7 @@ export function LupaSandiForm() {
         disabled={loading}
         className="w-full min-h-9 bg-brand hover:bg-brand-ink disabled:opacity-60 text-white text-[13px] font-bold rounded-xl transition-colors"
       >
-        {loading ? 'Mengirim…' : 'Kirim Tautan Sandi Baru'}
+        {loading ? 'Mengirim…' : 'Kirim Link Reset'}
       </button>
     </form>
   );

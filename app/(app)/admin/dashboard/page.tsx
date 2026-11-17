@@ -48,7 +48,7 @@ export default async function DashboardPage({
   }
   if (!isHrdFull && !isDireksi && !grantScopes) {
     return <Shell><div className="bg-surface rounded-card shadow-card p-5">
-      <p className="text-[13px] text-ink-soft">Halaman ini untuk HRD / Direksi atau pemegang akses Dasbor.</p>
+      <p className="text-[13px] text-ink-soft">Halaman ini untuk HRD / Direksi atau pemegang akses Dashboard.</p>
       <Link href="/" className="text-xs text-brand-ink hover:underline mt-3 inline-block">← Beranda</Link></div></Shell>;
   }
   // canMonitor = tautan silang ke Monitor Kinerja Pegawai (hanya HRD penuh).
@@ -72,8 +72,8 @@ export default async function DashboardPage({
     <Shell>
       <EmptyState
         icon="📊"
-        title="Dasbor belum punya data"
-        description="Dasbor merangkum KPI, 360°, dan Skor Akhir per periode. Belum ada periode yang bisa ditampilkan."
+        title="Dashboard belum punya data"
+        description="Dashboard merangkum KPI, 360°, dan Skor Akhir per periode. Belum ada periode yang bisa ditampilkan."
         steps={[
           { text: <>Buat & aktifkan periode di <strong>Kelola Siklus Periode</strong></> },
           { text: <>Isi KPI bulanan & jalankan penilaian 360°</> },
@@ -560,7 +560,8 @@ export default async function DashboardPage({
 function PagePurpose({ canMonitor }: { canMonitor: boolean }) {
   return (
     <p className="text-xs text-ink-soft mt-1">
-      <span className="font-semibold">Fokus halaman ini:</span> klasifikasi talenta &amp; gambaran analitik organisasi. {canMonitor && (
+      <span className="font-semibold">Fokus halaman ini:</span> klasifikasi talenta &amp; gambaran analitik organisasi.
+      {canMonitor && (
         <> · Butuh pergerakan &amp; pelacakan per-pegawai lintas waktu?{' '}
           <Link href="/admin/monitor" className="text-brand-ink hover:underline font-semibold">Monitor Kinerja Pegawai →</Link></>
       )}
@@ -572,7 +573,7 @@ function PagePurpose({ canMonitor }: { canMonitor: boolean }) {
 function PageHeader({ canMonitor, children }: { canMonitor: boolean; children: React.ReactNode }) {
   return (
     <div className="mb-5">
-      <h1 className="text-[22px] leading-tight font-bold tracking-[-0.01em] text-ink">Dasbor Organisasi</h1>
+      <h1 className="text-[22px] leading-tight font-bold tracking-[-0.01em] text-ink">Dashboard Organisasi</h1>
       <p className="text-[13px] text-ink-soft mt-1.5">{children}</p>
       <PagePurpose canMonitor={canMonitor} />
     </div>

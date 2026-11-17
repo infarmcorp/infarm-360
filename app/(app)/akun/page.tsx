@@ -34,7 +34,7 @@ export default async function AkunPage() {
           <Section title="Informasi Akun" icon={UserRound}>
             <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
               <Row label="Nama" value={me?.name ?? '—'} />
-              <Row label="Email (untuk masuk)" value={user.email ?? '—'} mono />
+              <Row label="Email (untuk login)" value={user.email ?? '—'} mono />
               <Row label="Divisi" value={me?.dept ?? '—'} />
               <Row label="Peran" value={ROLE_LABEL[me?.role ?? ''] ?? (me?.role ?? '—')} />
               <Row label="Kode Pegawai" value={me?.emp_code ?? '—'} mono />

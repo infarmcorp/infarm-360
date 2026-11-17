@@ -360,7 +360,8 @@ function PastPeriodNote({ active }: { active: boolean }) {
   return (
     <div className="mb-4">
       <Note tone="warn">
-        Periode ini sudah <strong>tidak aktif</strong> dan hanya bisa ditinjau. Persetujuan hanya bisa diberikan pada periode berjalan.
+        Periode ini sudah <strong>tidak aktif</strong> dan hanya bisa direview.
+        <strong>Persetujuan</strong> hanya bisa diberikan pada periode berjalan.
       </Note>
     </div>
   );

@@ -34,7 +34,7 @@ export const HRD_REVIEW_LABEL = 'HRD Review';
 /** BR-09 (Q3 2026): Skor 360° tak bisa dihitung (tak ada penilaian terkirim) pada periode BER-360° →
  *  tampilkan status ini, BUKAN nilai 0 / kosong. */
 export const NO_SCORE_LABEL = 'No Score';
-export const NO_SCORE_TITLE = 'No Score / Insufficient Data — belum ada penilaian 360° terkirim yang bisa dihitung (bukan nilai 0)';
+export const NO_SCORE_TITLE = 'No Score / Insufficient Data — belum ada penilaian 360° yang bisa dihitung (bukan nilai 0)';
 
 export const PLAYER_BOXES: { key: PlayerClass; label: string; color: string }[] = [
   { key: 'A',         label: 'A Player',                color: '#059669' },

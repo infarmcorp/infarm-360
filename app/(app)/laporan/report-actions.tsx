@@ -85,7 +85,7 @@ export function ReportActions({
   return (
     <div className="no-print mb-4 flex flex-wrap items-center gap-2 bg-surface border border-line rounded-card shadow-card p-4">
       <div className="flex items-center gap-2 mr-auto">
-        <span className="text-[13px] font-bold text-ink">Tinjauan &amp; Finalisasi</span>
+        <span className="text-[13px] font-bold text-ink">Review & Finalisasi</span>
         {isFinal
           ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-tint text-brand-ink">Final</span>
           : status === 'in_review'
@@ -149,7 +149,8 @@ export function ReportActions({
           <span className="flex items-center gap-1.5 text-xs font-semibold text-warn-ink mr-auto">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>
-              Laporan ini <strong>sudah final</strong>. Persetujuan SPV/Direksi akan dihapus dan perlu diberikan ulang, dan pegawai tidak bisa melihat laporannya selama dibuka kembali. Lanjutkan?
+              Laporan ini <strong>sudah final</strong>. Persetujuan SPV/Direksi akan dihapus dan perlu diberikan ulang, dan
+              pegawai tidak bisa melihat laporannya selama dibuka kembali. Lanjutkan?
             </span>
           </span>
           <button type="button" disabled={busy !== null} onClick={() => setConfirmRevert(false)}

@@ -475,9 +475,9 @@ export function MonitorTrends({
 
   const periodLabels = periodsTrend.map((p) => p.label);
   const periodSeries: Series[] = [
-    { label: 'Rerata KPI', color: C_KPI, points: periodsTrend.map((p) => p.kpi), labelDy: -6 },
-    ...(has360 ? [{ label: 'Rerata 360°', color: C_360, points: periodsTrend.map((p) => p.s360), labelDy: 13 }] : []),
-    { label: 'Rerata Skor Akhir', color: C_FINAL, points: periodsTrend.map((p) => p.final), labelDy: has360 ? 24 : 13, dash: DASH_FINAL },
+    { label: 'Avg KPI', color: C_KPI, points: periodsTrend.map((p) => p.kpi), labelDy: -6 },
+    ...(has360 ? [{ label: 'Avg 360°', color: C_360, points: periodsTrend.map((p) => p.s360), labelDy: 13 }] : []),
+    { label: 'Avg Skor Akhir', color: C_FINAL, points: periodsTrend.map((p) => p.final), labelDy: has360 ? 24 : 13, dash: DASH_FINAL },
   ];
 
   // Overview "Semua Anggota" (grafik kiri): pita rentang-TENGAH tim (p25–p75) + rata tim (tebal)
@@ -519,7 +519,7 @@ export function MonitorTrends({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
             <div className="lg:col-span-2 min-w-0">
               <LineChart xLabels={periodLabels} series={periodSeries} />
-              <Legend items={[{ label: 'Rerata KPI', color: C_KPI }, ...(has360 ? [{ label: 'Rerata 360°', color: C_360 }] : []), { label: 'Rerata Skor Akhir', color: C_FINAL, dash: true }]} />
+              <Legend items={[{ label: 'Avg KPI', color: C_KPI }, ...(has360 ? [{ label: 'Avg 360°', color: C_360 }] : []), { label: 'Avg Skor Akhir', color: C_FINAL, dash: true }]} />
             </div>
             <DeltaSummary periodsTrend={periodsTrend} has360={has360} kpiCause={kpiCause} s360Cause={s360Cause} />
           </div>

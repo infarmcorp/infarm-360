@@ -301,7 +301,10 @@ export function ProgressClient({ rows, targetRows, readOnly = false }: { rows: A
         <Pager page={page} pageCount={pageCount} setPage={setPage} total={total} rangeFrom={rangeFrom} rangeTo={rangeTo} unit="penilai" />
       </div>
       <Note>
-        <strong className="font-semibold text-ink">Status &quot;Lengkap&quot;</strong> hanya menghitung penilaian <strong className="font-semibold text-ink">WAJIB</strong>. Penilaian opsional tetap tampil di Rincian; Penilaian <strong className="font-semibold text-ink"> Ajuan</strong> dipantau di panelnya sendiri. Status ditentukan dari waktu kirim <em>pertama</em> dibanding tenggat. &quot;Paksa Selesai&quot; menandai penilaian terkirim tepat waktu. &quot;Kirim Pengingat&quot; mengirim daftar yang belum dinilai. &quot;Undangan&quot; mengirim info akun dan sandi baru, sekali di awal periode.
+        <strong className="font-semibold text-ink">Status &quot;Lengkap&quot;</strong> hanya menghitung penilaian <strong className="font-semibold text-ink">WAJIB</strong>.
+        Penilaian opsional tetap tampil di Rincian; Penilaian <strong className="font-semibold text-ink">Ajuan</strong> dipantau di panelnya sendiri.
+        Status ditentukan dari waktu kirim <em>pertama</em> dibanding deadline. “Paksa Selesai” menandai penilaian terkirim tepat
+        waktu. “Kirim Pengingat” mengirim daftar yang belum dinilai. “Undangan” mengirim info akun dan sandi baru, sekali di awal periode.
       </Note>
 
       <ConfirmDialog

@@ -109,7 +109,8 @@ export default async function KepatuhanPage() {
   return (
     <Shell>
       <PageTitle title="Flag Kepatuhan Penilaian">
-        Periode aktif <span className="font-mono font-semibold text-ink">{ap.label}</span> · Tenggat 360° {deadline
+        Periode aktif <span className="font-mono font-semibold text-ink">{ap.label}</span>
+        {' · '}Deadline 360° {deadline
           ? <span className="font-mono font-semibold text-ink">{formatWib(deadline)}</span>
           : <span className="text-ink-soft">belum diatur (atur di Kelola Periode)</span>}
       </PageTitle>
@@ -119,7 +120,8 @@ export default async function KepatuhanPage() {
           <Note tone="warn">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <p>
-                <strong>{pendingLate.length} pegawai</strong> punya potongan keterlambatan yang <strong>belum masuk Skor 360°</strong>. Terapkan sebelum memfinalisasi laporan.
+                <strong>{pendingLate.length} pegawai</strong> punya potongan keterlambatan yang <strong>belum masuk Skor 360°</strong>.
+                Terapkan sebelum memfinalisasi laporan.
               </p>
               {!viaGrant && <ApplyLateButton pending={pendingLate.length} />}
             </div>
@@ -130,7 +132,7 @@ export default async function KepatuhanPage() {
           <StatCard item={{ icon: MailX, tone: 'danger', value: String(totalLate), label: 'Belum kirim (penilaian wajib)' }} />
           <StatCard item={{ icon: Clock, tone: 'danger', value: String(totalLateSubmit), label: 'Kirim terlambat' }} />
           <div className="min-w-0 grid"
-            title="Penilaian opsional yang diajukan pegawai dan disetujui HRD, tetapi belum selesai saat tenggat — ikut dipotong.">
+            title="Penilaian opsional yang diajukan pegawai dan disetujui HRD, tetapi belum selesai saat deadline — ikut dipotong.">
             <StatCard item={{ icon: FilePlus2, tone: 'warn', value: String(totalAjuan), label: 'Kena potongan krn ajuan' }} />
           </div>
         </div>
@@ -141,11 +143,11 @@ export default async function KepatuhanPage() {
         <Note>
           Daftar menampilkan pegawai yang <strong className="font-semibold text-ink">perlu perhatian</strong>. &quot;Belum Kirim&quot; = penilaian Wajib
           yang belum dikirim{viaGrant ? '' : ' (arahkan kursor untuk daftar nama)'}. &quot;Kirim Terlambat&quot; = dikirim pertama kali
-          sesudah tenggat{viaGrant ? '' : ' (arahkan kursor untuk nama & waktu kirim)'}. Keduanya dikenai
-          <strong className="font-semibold text-ink"> potongan Skor 360° <span className="font-mono">{LATE_PENALTY_360}</span> poin</strong> (otomatis, sekali per periode);
+          sesudah deadline{viaGrant ? '' : ' (arahkan kursor untuk nama & waktu kirim)'}. Keduanya dikenai
+          <strong className="font-semibold text-ink"> potongan Skor 360° <span className="font-mono">{LATE_PENALTY_360}</span> poin (otomatis, sekali per periode)</strong>;
           potongan gugur bila penilai tidak punya Skor 360°. Potongan hanya mengenai skor penilai, bukan pegawai yang dinilai.
-          {' '}<strong className="font-semibold text-ink">Ajuan</strong> dihitung mulai Q3 2026; penilaian opsional biasa, Ad-Hoc lama, Paksa Selesai,
-          dan pemetaan sesudah tenggat tidak dihitung. HRD bisa <strong className="font-semibold text-ink">mengubah potongan</strong> per pegawai
+          {' '}<strong className="font-semibold text-ink">Ajuan</strong> dihitung mulai Q3 2026; penilaian opsional biasa, Ad-Hoc lama, Paksa Selesai, dan
+          pemetaan sesudah deadline tidak dihitung. HRD bisa <strong className="font-semibold text-ink">mengubah potongan</strong> per pegawai
           (alasan wajib; 0 = dikecualikan). Skor Akhir tidak dipotong lagi.
         </Note>
       </div>

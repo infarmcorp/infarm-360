@@ -369,7 +369,7 @@ describe('setLateWaiver — otorisasi & periode', () => {
 
   it('tolak bila sesi berakhir', async () => {
     setup({ user: null });
-    expect(await setLateWaiver(INPUT)).toEqual({ ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' });
+    expect(await setLateWaiver(INPUT)).toEqual({ ok: false, error: 'Sesi berakhir. Silakan login ulang.' });
   });
 
   it.each([
@@ -482,7 +482,7 @@ describe('setLateWaiver — penulisan & penerapan ke Skor 360°', () => {
     const db = setup({ data: base(), fail: (c) => (c.table === 'late_penalty_waivers' && c.op === 'upsert' ? 'column "points" does not exist' : null) });
     const r = await setLateWaiver({ employeeId: EMP, reason: 'Berulang', points: 5 });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toMatch(/belum dapat diubah/);
+    if (!r.ok) expect(r.error).toMatch(/belum dapat diubah. Hubungi admin/);
     expect(db.calls.some((c) => c.table === 'result_360')).toBe(false);
     expect(mockLog).not.toHaveBeenCalled();
   });
@@ -512,7 +512,7 @@ describe('setLateWaiver — penulisan & penerapan ke Skor 360°', () => {
 describe('applyLatePenalties', () => {
   it('tolak bila sesi berakhir', async () => {
     setup({ user: null });
-    expect(await applyLatePenalties()).toEqual({ ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' });
+    expect(await applyLatePenalties()).toEqual({ ok: false, error: 'Sesi berakhir. Silakan login ulang.' });
   });
 
   it('tolak non-HRD & HRD berlingkup tanpa kepatuhan (tanpa service_role)', async () => {

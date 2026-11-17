@@ -2,6 +2,10 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // PDF Pegawai (lib/pdf/pa-report.tsx) membaca font Inter & logo dari disk saat render di server.
+  outputFileTracingIncludes: {
+    '/laporan/[employeeId]/pdf-pegawai/unduh': ['./lib/pdf/fonts/**', './lib/pdf/assets/**'],
+  },
   env: {
     // Id build yang tertanam di halaman & server → ActionGuard mendeteksi "aplikasi baru di-deploy saat
     // halaman lama terbuka" (/api/version). Lokal tanpa Vercel = 'dev' (banner dimatikan).

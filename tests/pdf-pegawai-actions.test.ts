@@ -22,7 +22,7 @@ const HRD = { role: 'hrd', is_hrd_admin: false };
 const UID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const EMP = '11111111-1111-1111-1111-111111111111';
 const PID = '22222222-2222-2222-2222-222222222222';
-const SETTINGS = { reportDate: '2026-10-12', tenggat: ['a', 'b', 'c', 'd'] };
+const SETTINGS = { reportDate: '2026-10-12', rows: [{ aksi: 'Pelajari laporan ini', target: 't', tenggat: 'x', pendamping: 'p', selesai: 's' }] };
 
 beforeEach(() => { vi.clearAllMocks(); mode = 'admin'; });
 
@@ -83,7 +83,7 @@ describe('savePaPdfSettings — pengaturan per periode (HRD Mode Admin)', () => 
   });
 
   it('isian tidak valid ditolak sebelum menyentuh database', async () => {
-    const r = await savePaPdfSettings(PID, { reportDate: '12-10-2026', tenggat: ['a'] });
+    const r = await savePaPdfSettings(PID, { reportDate: '12-10-2026', rows: [] });
     expect(r.ok).toBe(false);
     expect(mockCreate).not.toHaveBeenCalled();
   });

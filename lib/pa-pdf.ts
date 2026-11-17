@@ -1,11 +1,11 @@
 /**
- * PDF PEGAWAI (format "Laporan Performance Appraisal") — helper murni untuk halaman cetak
- * `/laporan/[employeeId]/pdf-pegawai` (HRD Mode Admin). Mengikuti templat paket PDF HRD Q3 2026.
+ * PDF PEGAWAI (format "Laporan Performance Appraisal", mengikuti paket templat PDF HRD Q3 2026) — helper murni.
+ * PDF dibuat di server (lib/pdf/pa-report.tsx, route .../pdf-pegawai/unduh), HRD Mode Admin saja.
  * Tanpa komentar mentah & tanpa nama penilai: hanya skor + ringkasan HRD.
  *
- * Pengaturan per periode (migrasi 0063, `periods.pa_pdf`): tanggal laporan + tenggat 4 langkah
- * tindak lanjut. Bila belum diisi HRD → bawaan dihitung dari tanggal akhir periode (pola Q3 2026:
- * laporan +12 hari, pelajari +16..+20, sesi +21..+27, dua mingguan mulai +41, bulanan bulan ke-2..3).
+ * Pengaturan per periode (migrasi 0063, periods.pa_pdf): tanggal laporan + baris tabel tindak lanjut.
+ * Bila belum diisi HRD, bawaan dihitung dari tanggal akhir periode (pola Q3 2026: laporan +12 hari,
+ * pelajari +16..+20, sesi +21..+27, dua mingguan mulai +41, bulanan bulan ke-2..3).
  */
 import { z } from 'zod';
 
@@ -70,47 +70,60 @@ export function methodText(hasKpi: boolean, has360: boolean): string {
 
 // ── Pengaturan per periode ────────────────────────────────────────────────────────────────────────
 
-export type PaPdfSettings = { reportDate: string; tenggat: [string, string, string, string] };
+export type FollowRow = { aksi: string; target: string; tenggat: string; pendamping: string; selesai: string };
+export type PaPdfSettings = { reportDate: string; rows: FollowRow[] };
+export const FOLLOW_MAX_ROWS = 8;
 
+const cell = (max: number) => z.string().trim().max(max, `Maksimal ${max} karakter`);
+export const FollowRowSchema = z.object({
+  aksi: cell(120).min(1, 'Kolom Aksi wajib diisi'),
+  target: cell(200),
+  tenggat: cell(120),
+  pendamping: cell(120),
+  selesai: cell(200),
+});
 export const PaPdfSettingsSchema = z.object({
   reportDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal laporan tidak valid'),
-  tenggat: z.array(z.string().trim().min(1, 'Tenggat wajib diisi').max(80, 'Tenggat maksimal 80 karakter')).length(4),
+  rows: z.array(FollowRowSchema).min(1, 'Minimal satu baris tindak lanjut').max(FOLLOW_MAX_ROWS, `Maksimal ${FOLLOW_MAX_ROWS} baris`),
 });
 
-/** Bawaan dari tanggal akhir periode (pola templat Q3 2026). */
-export function defaultPaPdfSettings(periodEndIso: string): PaPdfSettings {
+/** Nomor bagian dokumen yang dirujuk teks tindak lanjut bawaan ("isi bagian 5", "bagian 5 dan 7"). */
+export type SectionRefs = { plan: number; comment: number };
+
+/** Baris tindak lanjut bawaan (templat HRD Q3 2026) dengan tenggat dari tanggal akhir periode. */
+export function defaultFollowRows(periodEndIso: string, nextLabel: string, sec: SectionRefs = { plan: 5, comment: 7 }): FollowRow[] {
   const end = parseIso(periodEndIso);
   const m2 = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() + 2, 1));
   const m3 = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() + 3, 1));
   const monthly = m2.getUTCFullYear() === m3.getUTCFullYear()
     ? `${MONTHS[m2.getUTCMonth()]} sampai ${MONTHS[m3.getUTCMonth()]} ${m3.getUTCFullYear()}`
     : `${MONTHS[m2.getUTCMonth()]} ${m2.getUTCFullYear()} sampai ${MONTHS[m3.getUTCMonth()]} ${m3.getUTCFullYear()}`;
-  return {
-    reportDate: toIso(addDays(end, 12)),
-    tenggat: [
-      fmtRangeId(addDays(end, 16), addDays(end, 20)),
-      fmtRangeId(addDays(end, 21), addDays(end, 27)),
-      `Mulai ${fmtDateId(toIso(addDays(end, 41)))}, setiap dua minggu`,
-      monthly,
-    ],
-  };
-}
-
-/** Isi tersimpan (bila valid) atau bawaan. Data rusak/kosong tak pernah menggagalkan halaman. */
-export function resolvePaPdfSettings(stored: unknown, periodEndIso: string): { settings: PaPdfSettings; isDefault: boolean } {
-  const p = PaPdfSettingsSchema.safeParse(stored);
-  if (p.success) return { settings: { reportDate: p.data.reportDate, tenggat: p.data.tenggat as PaPdfSettings['tenggat'] }, isDefault: false };
-  return { settings: defaultPaPdfSettings(periodEndIso), isDefault: true };
-}
-
-/** Baris tetap tabel "Tindak Lanjut" (templat HRD); tenggat diambil dari pengaturan periode. */
-export function followUpRows(nextLabel: string, tenggat: readonly string[], sec: { plan: number; comment: number } = { plan: 5, comment: 7 }) {
   return [
-    { aksi: 'Pelajari laporan ini', target: 'Memahami hasil penilaian serta mencatat pertanyaan dan ide perbaikan', pendamping: 'Mandiri (Tim HRD bila ada pertanyaan)', selesai: 'Catatan siap dibawa ke sesi empat mata' },
-    { aksi: `Sesi empat mata, lalu isi bagian ${sec.plan} bersama atasan`, target: `Prioritas dan rencana pengembangan ${nextLabel} disepakati`, pendamping: 'Atasan langsung', selesai: `Bagian ${sec.plan} dan ${sec.comment} terisi, laporan ditandatangani kedua pihak` },
-    { aksi: 'Tinjauan kemajuan dua mingguan', target: 'Kemajuan rencana aksi terpantau dan hasil IDP diserahkan ke Tim HRD', pendamping: 'Atasan langsung', selesai: 'Catatan kemajuan setiap sesi' },
-    { aksi: 'Tinjauan bulanan dengan HRD', target: 'Dukungan pengembangan dari HR', pendamping: 'Tim HRD', selesai: 'Rekap perkembangan bulanan' },
-  ].map((r, i) => ({ no: i + 1, ...r, tenggat: tenggat[i] ?? '' }));
+    { aksi: 'Pelajari laporan ini', target: 'Memahami hasil penilaian serta mencatat pertanyaan dan ide perbaikan', tenggat: fmtRangeId(addDays(end, 16), addDays(end, 20)), pendamping: 'Mandiri (Tim HRD bila ada pertanyaan)', selesai: 'Catatan siap dibawa ke sesi empat mata' },
+    { aksi: `Sesi empat mata, lalu isi bagian ${sec.plan} bersama atasan`, target: `Prioritas dan rencana pengembangan ${nextLabel} disepakati`, tenggat: fmtRangeId(addDays(end, 21), addDays(end, 27)), pendamping: 'Atasan langsung', selesai: `Bagian ${sec.plan} dan ${sec.comment} terisi, laporan ditandatangani kedua pihak` },
+    { aksi: 'Tinjauan kemajuan dua mingguan', target: 'Kemajuan rencana aksi terpantau dan hasil IDP diserahkan ke Tim HRD', tenggat: `Mulai ${fmtDateId(toIso(addDays(end, 41)))}, setiap dua minggu`, pendamping: 'Atasan langsung', selesai: 'Catatan kemajuan setiap sesi' },
+    { aksi: 'Tinjauan bulanan dengan HRD', target: 'Dukungan pengembangan dari HR', tenggat: monthly, pendamping: 'Tim HRD', selesai: 'Rekap perkembangan bulanan' },
+  ];
+}
+
+/** Pengaturan bawaan dari tanggal akhir periode (tanggal laporan = akhir periode + 12 hari). */
+export function defaultPaPdfSettings(periodEndIso: string, nextLabel: string, sec?: SectionRefs): PaPdfSettings {
+  return { reportDate: toIso(addDays(parseIso(periodEndIso), 12)), rows: defaultFollowRows(periodEndIso, nextLabel, sec) };
+}
+
+/** Isi tersimpan (bila valid) atau bawaan. Data rusak/kosong tak pernah menggagalkan PDF. */
+export function resolvePaPdfSettings(
+  stored: unknown, periodEndIso: string, nextLabel: string, sec?: SectionRefs,
+): { settings: PaPdfSettings; isDefault: boolean } {
+  const p = PaPdfSettingsSchema.safeParse(stored);
+  if (p.success) return { settings: p.data, isDefault: false };
+  return { settings: defaultPaPdfSettings(periodEndIso, nextLabel, sec), isDefault: true };
+}
+
+/** Nama berkas seperti paket HRD: "Divisi - Nama - Q3 2026.pdf" (karakter terlarang di nama berkas dibuang). */
+export function pdfFileName(dept: string | null, name: string, periodLabel: string): string {
+  const clean = (s: string) => s.replace(/[\\/:*?"<>|\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return `${[dept, name, periodLabel].filter(Boolean).map((x) => clean(x as string)).join(' - ')}.pdf`;
 }
 
 // ── Ringkasan kualitatif → kolom Kekuatan Utama / Perlu Dikembangkan ───────────────────────────────
@@ -125,28 +138,17 @@ export function classifyQualQuestions(questions: readonly string[]): { strength:
   return { strength, growth, others: questions.filter((q) => q !== strength && q !== growth) };
 }
 
-// ── CSS @page (kepala & kaki halaman cetak) ────────────────────────────────────────────────────────
-
-/** String CSS aman untuk `content:` — kutip/backslash di-escape, baris baru dibuang, `<` di-escape (tak bisa menutup <style>). */
-export function cssString(s: string): string {
-  return '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\r\n]+/g, ' ').replace(/</g, '\\3c ') + '"';
-}
-
-/** Aturan @page: A4, kaki halaman bernomor di semua halaman, kepala berjalan mulai halaman 2. */
-export function pageCss(runningTitle: string, employeeName: string): string {
-  const box = 'font-family: Arial, Helvetica, sans-serif; font-size: 7.5pt; color: #6b7280;';
-  return `@media print {
-  @page {
-    size: A4;
-    margin: 16mm 14mm 15mm 14mm;
-    @top-left { content: ${cssString(runningTitle)}; ${box} font-weight: 700; color: #006B31; }
-    @top-right { content: ${cssString(employeeName)}; ${box} }
-    @bottom-left { content: ${cssString(`KONFIDENSIAL · ${CONFIDENTIAL_NOTE} · ${COMPANY_NAME}`)}; ${box} }
-    @bottom-right { content: "Halaman " counter(page) " dari " counter(pages); ${box} }
-  }
-  @page :first {
-    @top-left { content: none; }
-    @top-right { content: none; }
-  }
-}`;
+/** Nomor bagian dokumen: periode tanpa 360° tak punya bagian umpan balik (2–4), nomor sesudahnya maju. */
+export function sectionNumbers(has360: boolean) {
+  let n = 0;
+  return {
+    score: ++n,
+    qual: has360 ? ++n : 0,
+    aspects: has360 ? ++n : 0,
+    narr: has360 ? ++n : 0,
+    plan: ++n,
+    follow: ++n,
+    comment: ++n,
+    sign: ++n,
+  };
 }

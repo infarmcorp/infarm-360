@@ -889,14 +889,17 @@ hanya ada untuk periode aktif.
 - **Unduh PDF Pegawai** (selalu ada, juga untuk periode lampau) membuka halaman **PDF Pegawai**: laporan berformat
   "Laporan Performance Appraisal" untuk pegawai dan atasan langsung — skor, ringkasan HRD, kotak Rencana Pengembangan,
   jadwal tindak lanjut, komentar atasan, dan tanda tangan. **Tanpa** komentar mentah dan tanpa nama penilai, jadi PDF ini
-  yang ditaruh di Folder Laporan pegawai (bukan Unduh PDF biasa, yang ikut memuat Rincian Komentar Asli). Tekan
-  **Cetak / Simpan PDF**, pilih Simpan sebagai PDF, kertas A4, dan matikan "Header dan footer". Halaman ini memberi tanda
-  bila laporan belum Final atau ada ringkasan yang belum diisi.
+  yang ditaruh di Folder Laporan pegawai (bukan Unduh PDF biasa, yang ikut memuat Rincian Komentar Asli). Halaman ini
+  menampilkan pratinjau dan tombol **Unduh PDF** (berkas langsung terunduh, nama "Divisi - Nama - Periode"). Kotak biru di
+  PDF (catatan per aspek, prioritas, komentar atasan, nama & tanggal tanda tangan) bisa diketik di Acrobat atau pembaca
+  PDF lain. Laporan Direksi hanya berisi bagian 1–4 (tanpa KPI); pegawai yang KPI-nya belum ada tampil "Menunggu data
+  KPI". Halaman ini memberi tanda bila laporan belum Final atau ada ringkasan yang belum diisi.
 - **Isian PDF Pegawai** (kotak di bawah ringkasan, tersimpan otomatis, terkunci saat Final): **Kesimpulan** (1–3 kalimat
   di awal Ringkasan Umpan Balik Kualitatif) dan **Masukan Lain dari Penilai** (opsional). Hanya tampil di PDF Pegawai.
   Kolom Kekuatan Utama dan Perlu Dikembangkan diambil dari ringkasan dua pertanyaan esai.
-- **Tanggal & jadwal tindak lanjut** di PDF Pegawai diatur sekali per periode lewat **Ubah** di halaman PDF Pegawai
-  (berlaku untuk semua pegawai periode itu). Bila belum diatur, dipakai jadwal bawaan dari tanggal akhir periode.
+- **Tanggal laporan & tabel tindak lanjut** di PDF Pegawai diatur sekali per periode lewat **Ubah** di halaman PDF Pegawai:
+  semua kolom (Aksi, Target, Tenggat, Pendamping, Indikator Selesai) bisa diubah, baris bisa ditambah/dihapus/diurutkan
+  (maks. 8). Berlaku untuk semua pegawai periode itu. Bila belum diatur, dipakai isi bawaan dari tanggal akhir periode.
 - **Laporan Final terkunci.** Selama laporan seorang pegawai Final, angka di laporannya tidak bisa berubah:
   KPI-nya tidak bisa diisi/diubah/dihapus, penilaian 360° untuknya tidak bisa dikirim atau dibatalkan, potongan
   telat dan bobot khususnya tidak bisa diubah, dan Hitung Ulang Skor 360° / Terapkan Potongan **melewatinya**

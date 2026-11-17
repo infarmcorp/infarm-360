@@ -48,7 +48,7 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
 
 ## 3. Stack & struktur
 - Next.js 16 App Router (Turbopack, React 19, TS strict), Tailwind v4, Supabase (Postgres + Auth `@supabase/ssr`
-  + RLS), Zod, `xlsx` (parse di klien), `nodemailer`/Resend, `@vercel/edge-config`, `motion`, `lucide-react`,
+  + RLS), Zod, `xlsx` (parse di klien), `nodemailer`/Resend, `@vercel/edge-config`, `motion`, `lucide-react`, `@react-pdf/renderer` (PDF Pegawai),
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
   typecheck + lint + build; lint bersih sejak 2026-10-16 — jangan tambah temuan baru). Backup harian `.github/workflows/backup.yml`. npm.
 - Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 31 tabel publik, migrasi
@@ -116,7 +116,7 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   permintaan. Yang tetap berlaku: L3 (nama penilai) dibuang di server untuk tampilan HRD (`withoutNamedFeedback`);
   pemegang grant Review non-HRD tetap ditolak untuk laporannya sendiri; ACC laporan sendiri tetap ditolak (0049).
   Aturan database yang melarang membaca penilaian atas diri sendiri **tidak** dibuat (keputusan yang sama).
-- **PDF Pegawai** (`laporan/[employeeId]/pdf-pegawai`, TEKNIS.md §5.6): HRD Mode Admin saja; hanya skor + ringkasan HRD +
+- **PDF Pegawai** (`laporan/[employeeId]/pdf-pegawai`, dibuat server `lib/pdf/pa-report.tsx`, TEKNIS.md §5.6): HRD Mode Admin saja; hanya skor + ringkasan HRD +
   `content.pdfNotes` — **jangan** render raw (`byAspect`/`essays`) atau L3 di sana: PDF ini yang masuk Folder Laporan pegawai.
 - Employee hanya membaca laporannya saat `finalized` (dimuat via service_role). Direksi read-only + ACC.
 - **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan"; tabel `outside_mapping_notes`, 0054 + 0058 + 0061 + 0062,

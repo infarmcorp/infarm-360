@@ -439,15 +439,22 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
   penulis — pegawai diingatkan di modal.
 
 ### 5.6 PDF Pegawai (0063) — format Laporan Performance Appraisal
-- Halaman `/laporan/[employeeId]/pdf-pegawai` (`?period=`), gerbang `canSection(laporan)` + `hrd_mode=admin`. Server
-  component: `loadReport` → `withoutNamedFeedback`; hanya skor, `aspectSummaries`, `qualSummaries`, `pdfNotes` yang dirender —
-  **tanpa** `byAspect`/`essays` (raw) dan tanpa L3. Komponen klien hanya tombol cetak & form pengaturan.
+- PDF dibuat **di server** dengan `@react-pdf/renderer` (`lib/pdf/pa-report.tsx`), bukan jendela cetak browser — agar
+  kotak isian AcroForm bisa diketik, font Inter tertanam utuh (cetak Chrome dengan font web membuat huruf "i" rusak di
+  Acrobat), dan kepala/kaki/margin persis `make_pdf.py` paket HRD (margin 16 mm, kepala berjalan mulai hlm 2, kaki +
+  "Halaman x dari y", strip hijau tepi kiri). Font & logo di `lib/pdf/fonts|assets` (disertakan ke fungsi lewat
+  `outputFileTracingIncludes` di `next.config.ts`).
+- Route `GET /laporan/[employeeId]/pdf-pegawai/unduh` (`?period=`, `?inline=1` untuk pratinjau) + halaman kontrol
+  `/laporan/[employeeId]/pdf-pegawai`. Gerbang `loadPaPdf` (`lib/pdf/pa-load.ts`): `canSection(laporan)` + `hrd_mode=admin`.
+  Hanya skor, `aspectSummaries`, `qualSummaries`, `pdfNotes` yang masuk ke dokumen — **tanpa** raw dan tanpa L3.
+- Mode (Prompt PA v2.0): Direksi = "ringkasan" (Skor Akhir = 360°, hanya bagian 1–4); tanpa KPI = "KPI menyusul" (KPI &
+  Skor Akhir "—"); selain itu normal. Kalimat "Skor 360 = rata-rata lima aspek (− potongan)" & baris "Rata-rata 360°"
+  hanya bila rata-rata aspek − potongan = Skor 360° tersimpan (`aspectMean`), selain itu kalimat umum.
+- Potong halaman: blok bermakna `wrap={false}`, judul bagian `minPresenceAhead`. Ukuran huruf Kekuatan/Perlu
+  Dikembangkan 8,5 → 7,9 dipilih dengan render uji halaman 1 (seperti `fits_page1` make_pdf.py).
 - Isian `final_reports.content.pdfNotes` (`Kesimpulan`, `Masukan Lain dari Penilai`) lewat `savePdfNotes` — helper bersama
-  `saveContentRecord` (sama dengan ringkasan aspek/kualitatif: kunci Final, draf dibuat bila belum ada, audit).
-- Kolom Kekuatan/Perlu Dikembangkan = `classifyQualQuestions` (kata kunci "kekuatan" / "kembang|perbaik|tingkatkan");
-  pertanyaan lain jadi blok terpisah. Nomor bagian dinamis (periode tanpa 360° tanpa bagian umpan balik).
-- Cetak: `@page` A4 + margin box (kepala berjalan mulai hlm 2, kaki KONFIDENSIAL + "Halaman x dari y") disuntik via
-  `pageCss` (string di-escape `cssString`); `print-color-adjust: exact`. Margin box butuh Chromium ≥ 131.
+  `saveContentRecord`. Pengaturan per periode `periods.pa_pdf` = `{reportDate, rows[1..8]{aksi,target,tenggat,pendamping,selesai}}`
+  lewat `savePaPdfSettings`; kosong → `defaultPaPdfSettings` dari `end_date`.
 
 ### 5.5 Rencana Pengembangan (0055–0056) — alur & akses
 - **Tabel** `development_plans` (unik per `employee_id` + `source_period_id`; status `draft` → `waiting_supervisor` →

@@ -11,6 +11,7 @@ import { refreshLatePenalties } from '@/lib/late-server';
 import { finalLockError } from '@/lib/final-lock';
 import { mergeSummaryOverwrite, SUMMARY_MAX_LEN } from '@/lib/import/summaries';
 import { loadReport, withoutNamedFeedback } from '@/lib/report';
+import { PDF_NOTE_KEYS, PaPdfSettingsSchema } from '@/lib/pa-pdf';
 import { aiSummaryEnabled, summarizeWithGemini, costOf, type AiUsage, type AiCost } from '@/lib/ai/gemini';
 import { buildAspectMaterial, buildQualMaterial } from '@/lib/ai/summary-prompt';
 import { loadAiSettings, thinkingFor, effectivePrices } from '@/lib/ai/settings';
@@ -429,16 +430,19 @@ export async function resyncDriftedFinals(): Promise<ResyncResult> {
 }
 
 /**
- * Simpan ringkasan HRD per aspek (kalibrasi naratif) ke final_reports.content.aspectSummaries.
- * Tidak mengubah status/skor — hanya menulis narasi. Membuat baris draft bila belum ada.
+ * Simpan satu kelompok narasi HRD ke final_reports.content[field] (ringkasan aspek, ringkasan pertanyaan
+ * kualitatif, isian PDF Pegawai). Tidak mengubah status/skor — hanya menulis narasi. Membuat baris draf
+ * bila belum ada. Terkunci bila laporan sudah 'finalized' (Buka Kembali dulu) — sumber kebenaran yang
+ * dilihat pegawai tak berubah diam-diam. Entri kosong dibuang.
  */
 const SummariesInput = z.record(z.string(), z.string().trim().max(2000));
-export async function saveAspectSummaries(employeeId: string, raw: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
-  const parsed = SummariesInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: 'Ringkasan tidak valid' };
-  // Buang entri kosong.
+type ContentField = 'aspectSummaries' | 'qualSummaries' | 'pdfNotes';
+async function saveContentRecord(
+  employeeId: string, values: Record<string, string>, field: ContentField,
+  log: { action: string; what: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
   const summaries: Record<string, string> = {};
-  for (const [k, v] of Object.entries(parsed.data)) { if (v.trim()) summaries[k] = v.trim(); }
+  for (const [k, v] of Object.entries(values)) { if (v.trim()) summaries[k] = v.trim(); }
 
   const supabase = await createClient();
   const actor = await resolveReportWriteActor(supabase, employeeId);
@@ -451,14 +455,12 @@ export async function saveAspectSummaries(employeeId: string, raw: unknown): Pro
   const { data: existing } = await db.from('final_reports')
     .select('id, content, status').eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
 
-  // Laporan FINAL terkunci: ringkasan tak bisa diubah sampai dikembalikan ke draf
-  // (selaras penguncian editor di UI — sumber kebenaran yang dilihat pegawai tak berubah diam-diam).
   if (existing?.status === 'finalized') {
     return { ok: false, error: 'Laporan sudah final — Buka Kembali (ke Draf) terlebih dahulu untuk mengubah ringkasan.' };
   }
 
   if (existing) {
-    const content = { ...(existing.content as Record<string, unknown> ?? {}), aspectSummaries: summaries };
+    const content = { ...(existing.content as Record<string, unknown> ?? {}), [field]: summaries };
     // .select() agar tahu jumlah baris terupdate — RLS yang menolak diam-diam (0 baris,
     // tanpa error) tak lagi lolos sebagai "tersimpan".
     const { data: upd, error } = await db.from('final_reports')
@@ -467,19 +469,18 @@ export async function saveAspectSummaries(employeeId: string, raw: unknown): Pro
     if (!upd || upd.length === 0) return { ok: false, error: 'Gagal menyimpan ringkasan (akses ditolak / laporan tak ditemukan)' };
   } else {
     const cf = await computeFinalSafe(db, ap.id, ap.has_360, employeeId);
-  if (!cf.ok) return { ok: false, error: cf.error };
-  const { final } = cf;
+    if (!cf.ok) return { ok: false, error: cf.error };
     const { error } = await db.from('final_reports').insert({
-      employee_id: employeeId, period_id: ap.id, final_score: final, status: 'draft',
-      content: { aspectSummaries: summaries },
+      employee_id: employeeId, period_id: ap.id, final_score: cf.final, status: 'draft',
+      content: { [field]: summaries },
     });
     if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
   }
 
   const { data: emp } = await db.from('employees').select('name').eq('id', employeeId).maybeSingle();
   await logReportAction(actor, {
-    action: 'report.save_summary', category: 'laporan',
-    summary: `Menyimpan ringkasan aspek 360° untuk ${emp?.name ?? employeeId}`,
+    action: log.action, category: 'laporan',
+    summary: `Menyimpan ${log.what} untuk ${emp?.name ?? employeeId}`,
     targetType: 'employee', targetId: employeeId, targetLabel: emp?.name ?? null,
     meta: { via_grant: actor.viaGrant },
   });
@@ -487,57 +488,67 @@ export async function saveAspectSummaries(employeeId: string, raw: unknown): Pro
   return { ok: true };
 }
 
-/**
- * Simpan ringkasan HRD per PERTANYAAN KUALITATIF (esai) → final_reports.content.qualSummaries.
- * Kembar dari saveAspectSummaries; hanya field content yang berbeda. Tidak mengubah status/skor;
- * membuat baris draft bila belum ada. Terkunci bila laporan sudah 'finalized'.
- */
+/** Ringkasan HRD per aspek (kalibrasi naratif) → content.aspectSummaries. */
+export async function saveAspectSummaries(employeeId: string, raw: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = SummariesInput.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'Ringkasan tidak valid' };
+  return saveContentRecord(employeeId, parsed.data, 'aspectSummaries', { action: 'report.save_summary', what: 'ringkasan aspek 360°' });
+}
+
+/** Ringkasan HRD per PERTANYAAN KUALITATIF (esai) → content.qualSummaries. */
 export async function saveQualSummaries(employeeId: string, raw: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
   const parsed = SummariesInput.safeParse(raw);
   if (!parsed.success) return { ok: false, error: 'Ringkasan tidak valid' };
-  const summaries: Record<string, string> = {};
-  for (const [k, v] of Object.entries(parsed.data)) { if (v.trim()) summaries[k] = v.trim(); }
+  return saveContentRecord(employeeId, parsed.data, 'qualSummaries', { action: 'report.save_qual_summary', what: 'ringkasan pertanyaan kualitatif 360°' });
+}
+
+/**
+ * Isian tambahan PDF Pegawai (Kesimpulan, Masukan Lain dari Penilai) → content.pdfNotes.
+ * Hanya kunci yang dikenal (PDF_NOTE_KEYS) yang disimpan.
+ */
+export async function savePdfNotes(employeeId: string, raw: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
+  const parsed = SummariesInput.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
+  const known = Object.fromEntries(Object.entries(parsed.data).filter(([k]) => (PDF_NOTE_KEYS as readonly string[]).includes(k)));
+  return saveContentRecord(employeeId, known, 'pdfNotes', { action: 'report.save_pdf_notes', what: 'isian PDF Pegawai (kesimpulan / masukan lain)' });
+}
+
+/**
+ * Pengaturan PDF Pegawai per periode (migrasi 0063, periods.pa_pdf): tanggal laporan + tenggat
+ * 4 langkah tindak lanjut. Hanya HRD (bagian Laporan) di Mode Admin; ditulis via service_role.
+ * Tidak menyentuh skor/laporan — boleh untuk periode mana pun. `null` = kembali ke bawaan.
+ */
+export async function savePaPdfSettings(rawPeriodId: string, raw: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
+  const pid = z.string().uuid().safeParse(rawPeriodId);
+  if (!pid.success) return { ok: false, error: 'Periode tidak valid' };
+  const parsed = raw === null ? { success: true as const, data: null } : PaPdfSettingsSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
 
   const supabase = await createClient();
-  const actor = await resolveReportWriteActor(supabase, employeeId);
-  if (!actor.ok) return { ok: false, error: actor.error };
-  const db = actor.db;
-
-  const { data: ap } = await db.from('periods').select('id, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return { ok: false, error: 'Tidak ada periode aktif' };
-
-  const { data: existing } = await db.from('final_reports')
-    .select('id, content, status').eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
-
-  if (existing?.status === 'finalized') {
-    return { ok: false, error: 'Laporan sudah final — Buka Kembali (ke Draf) terlebih dahulu untuk mengubah ringkasan.' };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Sesi berakhir — silakan masuk lagi' };
+  const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
+  const mode = (await cookies()).get('hrd_mode')?.value;
+  if (!canSection(me, 'laporan') || mode !== 'admin') {
+    return { ok: false, error: 'Hanya dapat dilakukan HRD (bagian Laporan) di Mode Admin' };
   }
 
-  if (existing) {
-    const content = { ...(existing.content as Record<string, unknown> ?? {}), qualSummaries: summaries };
-    const { data: upd, error } = await db.from('final_reports')
-      .update({ content }).eq('id', existing.id).select('id');
-    if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
-    if (!upd || upd.length === 0) return { ok: false, error: 'Gagal menyimpan ringkasan (akses ditolak / laporan tak ditemukan)' };
-  } else {
-    const cf = await computeFinalSafe(db, ap.id, ap.has_360, employeeId);
-  if (!cf.ok) return { ok: false, error: cf.error };
-  const { final } = cf;
-    const { error } = await db.from('final_reports').insert({
-      employee_id: employeeId, period_id: ap.id, final_score: final, status: 'draft',
-      content: { qualSummaries: summaries },
-    });
-    if (error) return { ok: false, error: 'Gagal menyimpan: ' + error.message };
+  const admin = createAdminClient();
+  const { data: cur, error: readErr } = await admin.from('periods').select('label').eq('id', pid.data).maybeSingle();
+  if (readErr) return { ok: false, error: 'Gagal membaca periode' };
+  if (!cur) return { ok: false, error: 'Periode tidak ditemukan' };
+  const { error } = await admin.from('periods').update({ pa_pdf: parsed.data }).eq('id', pid.data);
+  if (error) {
+    return { ok: false, error: /pa_pdf/.test(error.message) ? 'Pengaturan PDF Pegawai belum aktif. Hubungi admin aplikasi.' : 'Gagal menyimpan: ' + error.message };
   }
-
-  const { data: emp } = await db.from('employees').select('name').eq('id', employeeId).maybeSingle();
-  await logReportAction(actor, {
-    action: 'report.save_qual_summary', category: 'laporan',
-    summary: `Menyimpan ringkasan pertanyaan kualitatif 360° untuk ${emp?.name ?? employeeId}`,
-    targetType: 'employee', targetId: employeeId, targetLabel: emp?.name ?? null,
-    meta: { via_grant: actor.viaGrant },
+  await logHrdAction({
+    action: 'report.pdf_settings', category: 'laporan',
+    summary: parsed.data
+      ? `Mengatur PDF Pegawai ${cur.label}: tanggal laporan ${parsed.data.reportDate}`
+      : `Mengembalikan pengaturan PDF Pegawai ${cur.label} ke bawaan`,
+    targetType: 'period', targetId: pid.data, targetLabel: cur.label,
   });
-  revalidatePath(`/laporan/${employeeId}`);
+  revalidatePath('/laporan');
   return { ok: true };
 }
 

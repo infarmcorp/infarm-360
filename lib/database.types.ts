@@ -49,8 +49,8 @@ export interface Database {
         Relationships: [];
       };
       periods: {
-        Row: { id: string; code: string; label: string; start_date: string; end_date: string; status: 'active' | 'ended'; has_360: boolean; form_open: boolean; violation_open: boolean; mapping_published: boolean; kpi_standard: number; assessment_deadline: string | null; dev_plan_closed_at: string | null; dev_plan_due: string | null; created_at: string };
-        Insert: { code: string; label: string; start_date: string; end_date: string; status?: 'active' | 'ended'; has_360?: boolean; form_open?: boolean; violation_open?: boolean; mapping_published?: boolean; kpi_standard?: number; assessment_deadline?: string | null; dev_plan_closed_at?: string | null; dev_plan_due?: string | null };
+        Row: { id: string; code: string; label: string; start_date: string; end_date: string; status: 'active' | 'ended'; has_360: boolean; form_open: boolean; violation_open: boolean; mapping_published: boolean; kpi_standard: number; assessment_deadline: string | null; dev_plan_closed_at: string | null; dev_plan_due: string | null; pa_pdf: unknown | null; created_at: string };
+        Insert: { code: string; label: string; start_date: string; end_date: string; status?: 'active' | 'ended'; has_360?: boolean; form_open?: boolean; violation_open?: boolean; mapping_published?: boolean; kpi_standard?: number; assessment_deadline?: string | null; dev_plan_closed_at?: string | null; dev_plan_due?: string | null; pa_pdf?: unknown | null };
         Update: Partial<Database['public']['Tables']['periods']['Insert']>;
         Relationships: [];
       };

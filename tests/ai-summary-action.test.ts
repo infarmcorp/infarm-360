@@ -41,7 +41,7 @@ const REPORT: ReportData = {
   assessors: [{ assessorId: 'x', assessorName: 'Nama Penilai Rahasia', relation: 'Atasan', isSelf: false,
     comments: [{ indicator: 'Menepati komitmen', rating: 4, comment: 'komentar bernama' }], answers: [] }],
   byAspect: [{ name: 'Jujur', indicators: [{ num: 1, text: 'Menepati komitmen', ratings: [4], entries: [{ rating: 4, comment: 'Selalu tepat waktu' }] }] }],
-  essays: [], aspectSummaries: {}, qualSummaries: {}, qualQuestions: [],
+  essays: [], aspectSummaries: {}, qualSummaries: {}, qualQuestions: [], pdfNotes: {},
 };
 
 beforeEach(() => {

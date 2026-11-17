@@ -41,6 +41,8 @@ export type ReportData = {
   aspectSummaries: Record<string, string>; // ringkasan HRD per aspek (tersimpan di content)
   qualSummaries: Record<string, string>;   // ringkasan HRD per pertanyaan kualitatif (content)
   qualQuestions: string[];        // teks semua pertanyaan kualitatif periode (urut) — untuk editor
+  /** Isian tambahan HRD untuk PDF Pegawai (Kesimpulan, Masukan Lain dari Penilai) — content.pdfNotes. */
+  pdfNotes: Record<string, string>;
 };
 
 /**
@@ -68,6 +70,7 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
   const frContent = (fr?.content ?? {}) as {
     aspectSummaries?: Record<string, string>;
     qualSummaries?: Record<string, string>;
+    pdfNotes?: Record<string, string>;
   };
   const aspectSummaries = frContent.aspectSummaries ?? {};
   const qualSummaries = frContent.qualSummaries ?? {};
@@ -206,6 +209,7 @@ export async function loadReport(supabase: SB, employeeId: string, period: { id:
     finalScore, kpiAvg, s360, latePenalty360, aspects, assessors,
     byAspect, essays, aspectSummaries,
     qualSummaries, qualQuestions: (quals ?? []).map((q) => q.text),
+    pdfNotes: frContent.pdfNotes ?? {},
   };
 }
 

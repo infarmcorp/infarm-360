@@ -13,8 +13,9 @@ import { AspectSummaryEditor } from '../aspect-summary-editor';
 import { AspectSummaryView } from '../aspect-summary-view';
 import { RawFeedback } from '../raw-feedback';
 import { ReportSplit } from '../report-split';
-import { saveQualSummaries } from '@/app/(app)/admin/laporan/actions';
-import { AlertTriangle, ArrowLeft, Info } from 'lucide-react';
+import { saveQualSummaries, savePdfNotes } from '@/app/(app)/admin/laporan/actions';
+import { PDF_NOTE_KEYS } from '@/lib/pa-pdf';
+import { AlertTriangle, ArrowLeft, FileText, Info } from 'lucide-react';
 import { CARD } from '@/components/infarm-ui';
 import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { aiSummaryEnabled } from '@/lib/ai/gemini';
@@ -400,6 +401,8 @@ export default async function LaporanDetailPage({
   // HRD saja; dibaca via service_role (pemanggil sudah lolos gerbang HRD di atas).
   const history = isAdmin ? await loadReportHistory(createAdminClient(), employeeId, ap.id) : null;
 
+  // PDF Pegawai (format templat HRD, tanpa komentar mentah) — halaman cetak terpisah.
+  const pdfHref = `/laporan/${employeeId}/pdf-pegawai${periodParam ? `?period=${ap.id}` : ''}`;
   // isAdmin (pemegang izin HRD, bukan asSpv) → tampilan admin penuh (panel aksi + raw
   // feedback anonim). Direksi tak sampai di sini (hanya laporan SPV L2, diblok di atas).
   return (
@@ -440,14 +443,33 @@ export default async function LaporanDetailPage({
               missingMonths={kpiMissingMonths}
               stale360={score360Stale}
               subjectIsSpv={subjectIsSpv}
+              pdfHref={pdfHref}
             />
+          )}
+          {isAdmin && !periodActive && (
+            <Link href={pdfHref} prefetch={false} className="no-print mb-4 inline-flex items-center gap-1.5 text-[13px] font-semibold min-h-9 px-3.5 rounded-control border border-line bg-surface text-ink-soft hover:text-ink hover:border-line-strong">
+              <FileText className="w-4 h-4" aria-hidden /> Unduh PDF Pegawai
+            </Link>
           )}
           {history && <ReportHistoryPanel history={history} />}
           {/* HRD: sembunyikan blok komentar-per-penilai (bernama) → diganti raw feedback anonim;
               tombol Unduh PDF bawaan disembunyikan karena sudah ada di panel aksi. */}
           {(() => {
             const doc = <ReportDoc data={data} anonymize={false} hideAssessorComments={isAdmin} hidePrint={isAdmin} />;
-            if (!(isAdmin && data.has360)) return doc;
+            // Isian PDF Pegawai (Kesimpulan & Masukan Lain) — HRD saja, ikut kunci Final seperti ringkasan.
+            const notesEditor = isAdmin ? (
+              <AspectSummaryEditor
+                employeeId={employeeId}
+                aspects={[...PDF_NOTE_KEYS]}
+                initial={data.pdfNotes}
+                locked={data.status === 'finalized' || !periodActive}
+                saveAction={savePdfNotes}
+                title="Isian PDF Pegawai"
+                intro="Hanya tampil di PDF Pegawai. Kesimpulan: 1–3 kalimat di awal Ringkasan Umpan Balik Kualitatif. Masukan Lain dari Penilai (opsional): masukan penilai di luar topik indikator."
+                noun="isian"
+              />
+            ) : null;
+            if (!(isAdmin && data.has360)) return <>{doc}{notesEditor}</>;
             // HRD: dua kolom — kiri laporan + editor ringkasan, kanan komentar murni (menempel, gulir sendiri).
             return (
               <ReportSplit
@@ -468,6 +490,7 @@ export default async function LaporanDetailPage({
                   noun="pertanyaan"
                 />
               )}
+              {notesEditor}
                 </>}
                 right={<RawFeedback byAspect={data.byAspect} essays={data.essays} className="" />}
               />

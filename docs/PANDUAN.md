@@ -495,7 +495,8 @@ Mengelola akun dan data pegawai. Pemberian izin dan akses **tidak** di sini, tet
 4. Salin tautan folder → **Kelola Pegawai → ikon folder** → tempel → **Simpan**.
 5. Tiap kuartal cukup taruh PDF baru (mis. *Nama - Q4 2026*) di folder yang sama, tanpa membagikan ulang.
 - Bila ada email **"Minta akses"** dari Google, setujui **hanya** bila emailnya milik pegawai pemilik folder.
-- PDF tidak boleh memuat nama penilai. Bila laporan dibuka kembali dan angkanya berubah, ganti juga PDF-nya.
+- PDF tidak boleh memuat nama penilai maupun komentar mentah — pakai **Unduh PDF Pegawai** di detail laporan. Bila
+  laporan dibuka kembali dan angkanya berubah, ganti juga PDF-nya.
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |
 |---|---|---|---|
@@ -885,6 +886,17 @@ hanya ada untuk periode aktif.
 - **Belum Final** (Draf / belum ada / Ditinjau): **Unduh PDF · Simpan Draf · Rilis ke SPV · Finalisasi Hasil**.
   "Rilis ke SPV" hilang setelah Ditinjau. Untuk laporan pegawai berperan SPV tombolnya **Rilis ke Direksi**.
 - **Final**: hanya **Unduh PDF** + **↩ Buka Kembali (ke Draf)**. Untuk mengubah apa pun, buka kembali dulu.
+- **Unduh PDF Pegawai** (selalu ada, juga untuk periode lampau) membuka halaman **PDF Pegawai**: laporan berformat
+  "Laporan Performance Appraisal" untuk pegawai dan atasan langsung — skor, ringkasan HRD, kotak Rencana Pengembangan,
+  jadwal tindak lanjut, komentar atasan, dan tanda tangan. **Tanpa** komentar mentah dan tanpa nama penilai, jadi PDF ini
+  yang ditaruh di Folder Laporan pegawai (bukan Unduh PDF biasa, yang ikut memuat Rincian Komentar Asli). Tekan
+  **Cetak / Simpan PDF**, pilih Simpan sebagai PDF, kertas A4, dan matikan "Header dan footer". Halaman ini memberi tanda
+  bila laporan belum Final atau ada ringkasan yang belum diisi.
+- **Isian PDF Pegawai** (kotak di bawah ringkasan, tersimpan otomatis, terkunci saat Final): **Kesimpulan** (1–3 kalimat
+  di awal Ringkasan Umpan Balik Kualitatif) dan **Masukan Lain dari Penilai** (opsional). Hanya tampil di PDF Pegawai.
+  Kolom Kekuatan Utama dan Perlu Dikembangkan diambil dari ringkasan dua pertanyaan esai.
+- **Tanggal & jadwal tindak lanjut** di PDF Pegawai diatur sekali per periode lewat **Ubah** di halaman PDF Pegawai
+  (berlaku untuk semua pegawai periode itu). Bila belum diatur, dipakai jadwal bawaan dari tanggal akhir periode.
 - **Laporan Final terkunci.** Selama laporan seorang pegawai Final, angka di laporannya tidak bisa berubah:
   KPI-nya tidak bisa diisi/diubah/dihapus, penilaian 360° untuknya tidak bisa dikirim atau dibatalkan, potongan
   telat dan bobot khususnya tidak bisa diubah, dan Hitung Ulang Skor 360° / Terapkan Potongan **melewatinya**
@@ -937,7 +949,8 @@ Finalisasi. Direksi juga bisa membuka halaman ini dari Menu Direksi.)
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |
 |---|---|---|---|
-| **Unduh PDF** | Cetak/simpan PDF | Selalu | — |
+| **Unduh PDF** | Cetak/simpan PDF lengkap untuk HRD (termasuk Rincian Komentar Asli) | Selalu | — |
+| **Unduh PDF Pegawai** | Buka PDF Pegawai (format Laporan Performance Appraisal, tanpa komentar mentah) untuk Folder Laporan | Selalu (HRD Mode Admin) | — |
 | **Simpan Draf** | Simpan tanpa merilis; SPV hanya melihat angka Skor Akhir. Persetujuan lama batal | Belum Final | — |
 | **Rilis ke SPV** / **Rilis ke Direksi** | Status Ditinjau; peninjau bisa membuka detail & memberi persetujuan. Rilis ulang dengan skor berbeda membatalkan persetujuan lama. Opsional | Belum Final & belum Ditinjau | — |
 | **Finalisasi Hasil** | Laporan tampil ke pegawai. Bisa dari Draf atau Ditinjau; **tidak** menunggu persetujuan | Belum Final | Bersyarat — bila Skor 360° perlu dihitung ulang atau KPI belum lengkap semua bulan (tidak memblokir) |

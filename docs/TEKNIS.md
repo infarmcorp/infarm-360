@@ -10,7 +10,7 @@ Status & pekerjaan terbuka di [RENCANA.md](RENCANA.md). Riwayat di [CHANGELOG.md
 3. [Aktivasi fitur dorman & Mode Maintenance](#3-aktivasi-fitur-dorman--mode-maintenance)
 4. [Rumus skor & klasifikasi](#4-rumus-skor--klasifikasi)
 5. [Manajemen Akses — model & penegakan](#5-manajemen-akses--model--penegakan)
-6. [Daftar migrasi 0001–0062](#6-daftar-migrasi-00010062)
+6. [Daftar migrasi 0001–0063](#6-daftar-migrasi-00010063)
 7. [Pengujian](#7-pengujian)
 8. [Backup & restore](#8-backup--restore)
 9. [PDF panduan in-app](#9-pdf-panduan-in-app)
@@ -438,6 +438,17 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
   pihak berakses infrastruktur secara teori bisa mencocokkan waktu kirim. Isi catatan sendiri bisa mengungkap
   penulis — pegawai diingatkan di modal.
 
+### 5.6 PDF Pegawai (0063) — format Laporan Performance Appraisal
+- Halaman `/laporan/[employeeId]/pdf-pegawai` (`?period=`), gerbang `canSection(laporan)` + `hrd_mode=admin`. Server
+  component: `loadReport` → `withoutNamedFeedback`; hanya skor, `aspectSummaries`, `qualSummaries`, `pdfNotes` yang dirender —
+  **tanpa** `byAspect`/`essays` (raw) dan tanpa L3. Komponen klien hanya tombol cetak & form pengaturan.
+- Isian `final_reports.content.pdfNotes` (`Kesimpulan`, `Masukan Lain dari Penilai`) lewat `savePdfNotes` — helper bersama
+  `saveContentRecord` (sama dengan ringkasan aspek/kualitatif: kunci Final, draf dibuat bila belum ada, audit).
+- Kolom Kekuatan/Perlu Dikembangkan = `classifyQualQuestions` (kata kunci "kekuatan" / "kembang|perbaik|tingkatkan");
+  pertanyaan lain jadi blok terpisah. Nomor bagian dinamis (periode tanpa 360° tanpa bagian umpan balik).
+- Cetak: `@page` A4 + margin box (kepala berjalan mulai hlm 2, kaki KONFIDENSIAL + "Halaman x dari y") disuntik via
+  `pageCss` (string di-escape `cssString`); `print-color-adjust: exact`. Margin box butuh Chromium ≥ 131.
+
 ### 5.5 Rencana Pengembangan (0055–0056) — alur & akses
 - **Tabel** `development_plans` (unik per `employee_id` + `source_period_id`; status `draft` → `waiting_supervisor` →
   `waiting_hrd` → `agreed`, cabang `revision`; 4 komentar atasan; persetujuan pegawai/atasan/HRD = id + nama + waktu)
@@ -482,7 +493,7 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
 
 ---
 
-## 6. Daftar migrasi 0001–0062
+## 6. Daftar migrasi 0001–0063
 
 Status penerapan per DB → `scripts/check-migrations.sql`.
 
@@ -548,6 +559,7 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0060 | **Eksperimen dev** — tabel `ai_settings` (satu baris `id=1`): model (id dari daftar Google, divalidasi saat simpan), harga per 1 juta token, kurs, prompt aspek & kualitatif, `version`, pengubah terakhir. RLS tanpa policy (service_role saja). Dipakai halaman Pengaturan AI & "Ringkas otomatis"; tanpa tabel → model belum bisa dipilih, Ringkas otomatis menolak. Cukup di staging; production saat fitur dirilis |
 | 0061 | Laporkan Pelanggaran lepas dari 360°: kolom `periods.violation_open` (saklar per periode, bawaan tutup; saat kolom dibuat periode aktif yang formulirnya terbuka ikut dibuka) + kolom `outside_mapping_notes.category` (nama aspek budaya, check 1–100) + check kategori diperbarui (Lainnya tanpa aspek/nama, atau aspek/nama). Tanpa kolom → gerbang & kategori cara lama. **Staging lalu production** sebelum dirilis |
 | 0062 | Laporkan Pelanggaran: tindak lanjut HRD + Laporan Saya — kolom `outside_mapping_notes.reporter_ref` (HMAC hex 64, check format, index parsial), `status` (received/in_progress/done, bawaan received), `hrd_response` (≤ 2000), `responded_at`. Butuh env `VIOLATION_REPORTER_SECRET`. Tanpa kolom → kirim tanpa penanda, tindak lanjut "belum aktif". **Staging lalu production** sebelum dirilis |
+| 0063 | PDF Pegawai: kolom `periods.pa_pdf` (jsonb `{reportDate, tenggat[4]}`) — tanggal laporan & tenggat tindak lanjut per periode. Ditulis hanya `savePaPdfSettings` (HRD Mode Admin, service_role). Tanpa kolom → bawaan dari `end_date` (`lib/pa-pdf.ts`), simpan "belum aktif". **Staging lalu production** |
 
 ---
 

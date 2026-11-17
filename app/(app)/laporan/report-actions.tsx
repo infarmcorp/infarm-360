@@ -4,7 +4,8 @@ import { fmt2, hasScoreDrift } from '@/lib/scoring';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Download, Save, CheckCircle2, Send, Undo2, AlertTriangle, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import { Download, FileText, Save, CheckCircle2, Send, Undo2, AlertTriangle, ArrowRight } from 'lucide-react';
 import { saveOrFinalizeReport, releaseToSpv } from '@/app/(app)/admin/laporan/actions';
 import { callAction } from '@/lib/call-action';
 
@@ -19,7 +20,7 @@ import { callAction } from '@/lib/call-action';
  */
 export function ReportActions({
   employeeId, status, finalScore, liveFinal, canCompute, totalMonths, missingMonths, stale360,
-  subjectIsSpv = false,
+  subjectIsSpv = false, pdfHref,
 }: {
   employeeId: string;
   status: string | null;
@@ -30,6 +31,7 @@ export function ReportActions({
   missingMonths: string[];     // bulan KPI yang belum terisi
   stale360: boolean;           // Skor 360° perlu dihitung ulang (penilaian/koreksi berubah)
   subjectIsSpv?: boolean;      // subjek laporan berperan SPV → peninjau/ACC = DIREKSI (bukan SPV)
+  pdfHref?: string;            // halaman PDF Pegawai (format templat, tanpa komentar mentah)
 }) {
   // Eskalasi: laporan pegawai ditinjau SPV; laporan SPV ditinjau DIREKSI. Ubah label agar jelas.
   const reviewer = subjectIsSpv ? 'Direksi' : 'SPV';
@@ -100,10 +102,17 @@ export function ReportActions({
         )}
       </div>
 
-      <button type="button" onClick={() => window.print()}
+      <button type="button" onClick={() => window.print()} title="Cetak laporan lengkap untuk HRD, termasuk Rincian Komentar Asli"
         className="inline-flex items-center gap-1.5 text-[13px] font-semibold min-h-9 px-3.5 rounded-control border border-line bg-surface text-ink-soft hover:text-ink hover:border-line-strong">
         <Download className="w-4 h-4" /> Unduh PDF
       </button>
+
+      {pdfHref && (
+        <Link href={pdfHref} prefetch={false} title="PDF untuk pegawai & atasan: tanpa komentar mentah dan tanpa nama penilai"
+          className="inline-flex items-center gap-1.5 text-[13px] font-semibold min-h-9 px-3.5 rounded-control border border-line bg-surface text-ink-soft hover:text-ink hover:border-line-strong">
+          <FileText className="w-4 h-4" /> Unduh PDF Pegawai
+        </Link>
+      )}
 
       {!canCompute ? (
         <span className="text-xs text-ink-soft italic">KPI & Skor 360° pegawai masih kosong — belum bisa disimpan.</span>

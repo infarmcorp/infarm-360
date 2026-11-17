@@ -74,7 +74,8 @@ select * from (values
   ('0059', 'fungsi dev_plan_direksi_reads (baca Direksi = timnya)', exists(select 1 from pg_proc where proname='dev_plan_direksi_reads')),
   ('0060', 'tabel ai_settings (Pengaturan AI — eksperimen dev)', to_regclass('public.ai_settings') is not null),
   ('0061', 'kolom periods.violation_open & outside_mapping_notes.category (saklar laporkan pelanggaran)', exists(select 1 from information_schema.columns where table_name='periods' and column_name='violation_open') and exists(select 1 from information_schema.columns where table_name='outside_mapping_notes' and column_name='category')),
-  ('0062', 'kolom outside_mapping_notes.reporter_ref & status (tindak lanjut laporkan pelanggaran)', exists(select 1 from information_schema.columns where table_name='outside_mapping_notes' and column_name='reporter_ref') and exists(select 1 from information_schema.columns where table_name='outside_mapping_notes' and column_name='status'))
+  ('0062', 'kolom outside_mapping_notes.reporter_ref & status (tindak lanjut laporkan pelanggaran)', exists(select 1 from information_schema.columns where table_name='outside_mapping_notes' and column_name='reporter_ref') and exists(select 1 from information_schema.columns where table_name='outside_mapping_notes' and column_name='status')),
+  ('0063', 'kolom periods.pa_pdf (pengaturan PDF Pegawai)', exists(select 1 from information_schema.columns where table_name='periods' and column_name='pa_pdf'))
 ) as t(migrasi, penanda_skema, applied)
 order by migrasi;
 

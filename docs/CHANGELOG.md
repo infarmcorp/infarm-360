@@ -8,6 +8,20 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-17 — PDF Pegawai format Laporan Performance Appraisal (di `dev`, belum dirilis)
+- Permintaan pengguna: PDF laporan untuk pegawai dibuat dari aplikasi dengan susunan paket templat PDF HRD Q3 2026
+  (dulu disusun di luar aplikasi). Tombol baru **Unduh PDF Pegawai** di detail laporan HRD membuka halaman cetak A4:
+  skor, ringkasan HRD, skor dan narasi per aspek, kotak Rencana Pengembangan, jadwal tindak lanjut, komentar atasan, dan
+  tanda tangan, dengan nomor halaman dan tanda KONFIDENSIAL. Tanpa komentar mentah dan tanpa nama penilai.
+- **Unduh PDF** lama tetap ada untuk HRD (memuat Rincian Komentar Asli). Keputusan pemilik: tombol baru, bukan mengganti.
+- HRD mendapat dua isian baru per laporan: **Kesimpulan** dan **Masukan Lain dari Penilai** (tanpa perubahan database).
+  Kekuatan Utama dan Perlu Dikembangkan diambil dari ringkasan dua pertanyaan esai.
+- Tanggal laporan dan tenggat tindak lanjut diatur HRD per periode (perubahan database 0063); bawaannya dihitung dari
+  tanggal akhir periode, sama dengan jadwal templat Q3.
+- Warna kategori mengikuti aplikasi (cokelat/hijau/kuning/merah), bukan warna templat, sesuai design system.
+- Perbaikan terkait: Unduh PDF dulu hanya mencetak satu halaman karena kerangka aplikasi setinggi layar; kini seluruh
+  laporan tercetak.
+
 ### 2026-11-16 — Laporkan Pelanggaran: tindak lanjut HRD dan tab Laporan Saya (di `dev`, belum dirilis)
 - Permintaan HRD: memberi kabar ke pelapor bila laporannya sudah ditindaklanjuti. HRD kini memberi **status**
   (Diterima → Sedang ditindaklanjuti → Selesai) dan **tanggapan untuk pelapor** (satu arah) di halaman Laporan

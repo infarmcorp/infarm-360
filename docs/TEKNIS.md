@@ -10,7 +10,7 @@ Status & pekerjaan terbuka di [RENCANA.md](RENCANA.md). Riwayat di [CHANGELOG.md
 3. [Aktivasi fitur dorman & Mode Maintenance](#3-aktivasi-fitur-dorman--mode-maintenance)
 4. [Rumus skor & klasifikasi](#4-rumus-skor--klasifikasi)
 5. [Manajemen Akses — model & penegakan](#5-manajemen-akses--model--penegakan)
-6. [Daftar migrasi 0001–0063](#6-daftar-migrasi-00010063)
+6. [Daftar migrasi 0001–0064](#6-daftar-migrasi-00010064)
 7. [Pengujian](#7-pengujian)
 8. [Backup & restore](#8-backup--restore)
 9. [PDF panduan in-app](#9-pdf-panduan-in-app)
@@ -500,7 +500,7 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
 
 ---
 
-## 6. Daftar migrasi 0001–0063
+## 6. Daftar migrasi 0001–0064
 
 Status penerapan per DB → `scripts/check-migrations.sql`.
 
@@ -567,6 +567,7 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0061 | Laporkan Pelanggaran lepas dari 360°: kolom `periods.violation_open` (saklar per periode, bawaan tutup; saat kolom dibuat periode aktif yang formulirnya terbuka ikut dibuka) + kolom `outside_mapping_notes.category` (nama aspek budaya, check 1–100) + check kategori diperbarui (Lainnya tanpa aspek/nama, atau aspek/nama). Tanpa kolom → gerbang & kategori cara lama. **Staging lalu production** sebelum dirilis |
 | 0062 | Laporkan Pelanggaran: tindak lanjut HRD + Laporan Saya — kolom `outside_mapping_notes.reporter_ref` (HMAC hex 64, check format, index parsial), `status` (received/in_progress/done, bawaan received), `hrd_response` (≤ 2000), `responded_at`. Butuh env `VIOLATION_REPORTER_SECRET`. Tanpa kolom → kirim tanpa penanda, tindak lanjut "belum aktif". **Staging lalu production** sebelum dirilis |
 | 0063 | PDF Pegawai: kolom `periods.pa_pdf` (jsonb `{reportDate, tenggat[4]}`) — tanggal laporan & tenggat tindak lanjut per periode. Ditulis hanya `savePaPdfSettings` (HRD Mode Admin, service_role). Tanpa kolom → bawaan dari `end_date` (`lib/pa-pdf.ts`), simpan "belum aktif". **Staging lalu production** |
+| 0064 | **Eksperimen dev** — kolom `ai_settings.rules_prompt` (aturan umum Prompt PA v2.0, ditempel di depan semua prompt via `composePrompt`) & `notes_prompt` (Kesimpulan + Masukan Lain, `kind: notes`). Null = bawaan `lib/ai/summary-prompt.ts`. Tanpa kolom → `promptsReady=false`, keduanya bawaan & read-only. Cukup di staging; production saat fitur dirilis |
 
 ---
 

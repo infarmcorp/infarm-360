@@ -18,8 +18,8 @@ vi.mock('@/lib/ai/gemini', async (orig) => ({
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { aiSummaryEnabled, listGeminiModels } from '@/lib/ai/gemini';
 import { logHrdAction } from '@/lib/audit/log';
-import { loadAiSettings, defaultAiSettings, thinkingFor, effectivePrices } from '@/lib/ai/settings';
-import { ASPECT_PROMPT } from '@/lib/ai/summary-prompt';
+import { loadAiSettings, defaultAiSettings, thinkingFor, effectivePrices, composePrompt } from '@/lib/ai/settings';
+import { ASPECT_PROMPT, NOTES_PROMPT, RULES_PROMPT } from '@/lib/ai/summary-prompt';
 import { saveAiSettings } from '@/app/(app)/admin/ai/actions';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -60,6 +60,21 @@ describe('loadAiSettings', () => {
     const s = await loadAiSettings(makeClient({ tables: { ai_settings: [{ data: { ...ROW, model: '../evil?x=1' } }] } }));
     expect(s.model).toBe('');
     expect(s.aspectPrompt).toBe(ROW.aspect_prompt);
+  });
+  it('kolom 0064 belum ada → baca kolom lama; aturan umum & prompt kesimpulan = bawaan, tak bisa disimpan', async () => {
+    const s = await loadAiSettings(makeClient({ tables: { ai_settings: [
+      { data: null, error: { code: '42703', message: 'column ai_settings.rules_prompt does not exist' } },
+      { data: ROW },
+    ] } }));
+    expect(s).toMatchObject({ source: 'db', promptsReady: false, rulesPrompt: RULES_PROMPT, notesPrompt: NOTES_PROMPT, aspectPrompt: ROW.aspect_prompt });
+  });
+  it('kolom 0064 ada: isi tersimpan dipakai; kosong → bawaan', async () => {
+    const s = await loadAiSettings(makeClient({ tables: { ai_settings: [{ data: { ...ROW, rules_prompt: 'ATURAN TERSIMPAN', notes_prompt: null } }] } }));
+    expect(s).toMatchObject({ promptsReady: true, rulesPrompt: 'ATURAN TERSIMPAN', notesPrompt: NOTES_PROMPT });
+  });
+  it('aturan umum ditempel di depan prompt tugas', () => {
+    expect(composePrompt('ATURAN', 'TUGAS')).toBe('ATURAN\n\nTUGAS');
+    expect(composePrompt('  ', 'TUGAS')).toBe('TUGAS');
   });
   it('model baru (tak dikenal kode) diterima apa adanya', async () => {
     const s = await loadAiSettings(makeClient({ tables: { ai_settings: [{ data: { ...ROW, model: 'gemini-3.8-flash' } }] } }));

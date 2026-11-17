@@ -245,6 +245,13 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 
 Dipindah ke §2 bila diputuskan dikerjakan.
 
+- **Ringkas otomatis mengikuti Prompt Laporan PA v2.0 (2026-11-17, dev saja).** Perintah AI dipecah menjadi aturan umum
+  (sumber data, angka, anonimitas, penghalusan komentar tajam, gaya bahasa) + tiga perintah: aspek budaya (kalimat
+  pembuka + poin, "Catatan:"), Kekuatan Utama / Perlu Dikembangkan, serta Kesimpulan & Masukan Lain (satu kali ringkas).
+  Bahan kini ikut memuat skor aspek, penanda skor tertinggi/terendah, sebaran nilai per indikator, dan untuk
+  Kesimpulan juga skor keseluruhan + ringkasan HRD yang sudah ada (nama pegawai disamarkan). Sapaan "Anda" (nama
+  pegawai tidak dikirim ke AI). 🔑 Jalankan perubahan database 0064 di staging agar aturan umum dan perintah
+  Kesimpulan bisa diubah di layar; tanpa itu dipakai isi bawaan.
 - **Ringkas otomatis dengan AI — sedang dicoba di dev saja (2026-11-12, Gemini, kunci API pribadi).** Tombol
   "Ringkas otomatis" di kartu ringkasan aspek dan ringkasan kualitatif pada laporan pegawai. HRD menekannya sendiri
   (hemat biaya); hasilnya tampil sebagai **saran** di bawah tiap kotak beserta jumlah token masuk/keluar dan perkiraan

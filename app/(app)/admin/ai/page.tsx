@@ -6,7 +6,7 @@ import { Note, PageTitle } from '@/components/infarm-ui';
 import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { aiSummaryEnabled, listGeminiModels } from '@/lib/ai/gemini';
 import { loadAiSettings } from '@/lib/ai/settings';
-import { ASPECT_PROMPT, QUAL_PROMPT } from '@/lib/ai/summary-prompt';
+import { ASPECT_PROMPT, NOTES_PROMPT, QUAL_PROMPT, RULES_PROMPT } from '@/lib/ai/summary-prompt';
 import { AiSettingsForm } from './settings-form';
 
 /**
@@ -47,7 +47,7 @@ export default async function AiSettingsPage() {
       <AiSettingsForm
         initial={settings}
         models={list.ok ? list.models : []}
-        defaults={{ aspectPrompt: ASPECT_PROMPT, qualPrompt: QUAL_PROMPT }}
+        defaults={{ rulesPrompt: RULES_PROMPT, aspectPrompt: ASPECT_PROMPT, qualPrompt: QUAL_PROMPT, notesPrompt: NOTES_PROMPT }}
       />
     </Shell>
   );

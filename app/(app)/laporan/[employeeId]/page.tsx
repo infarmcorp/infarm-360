@@ -467,6 +467,8 @@ export default async function LaporanDetailPage({
                 title="Isian PDF Pegawai"
                 intro="Hanya tampil di PDF Pegawai. Kesimpulan: 1–3 kalimat di awal Ringkasan Umpan Balik Kualitatif. Masukan Lain dari Penilai (opsional): masukan penilai di luar topik indikator."
                 noun="isian"
+                aiKind={aiOn && data.has360 ? 'notes' : undefined}
+                aiInfo={aiInfoBase && { ...aiInfoBase, settingsHref: '/admin/ai' }}
               />
             ) : null;
             if (!(isAdmin && data.has360)) return <>{doc}{notesEditor}</>;

@@ -10,7 +10,7 @@
  * `KNOWN_PRICES` hanya mengisi otomatis model yang harganya diketahui saat kode ditulis.
  * Tabel belum ada (migrasi belum diterapkan) → bawaan (`source: 'missing'`).
  */
-import { ASPECT_PROMPT, QUAL_PROMPT } from './summary-prompt';
+import { ASPECT_PROMPT, NOTES_PROMPT, QUAL_PROMPT, RULES_PROMPT } from './summary-prompt';
 
 /**
  * Harga resmi paket berbayar (USD per 1 juta token, input teks · output termasuk thinking) untuk model yang
@@ -76,8 +76,14 @@ export type AiSettings = {
   priceIn: number;
   priceOut: number;
   usdIdr: number;
+  /** Aturan umum (Prompt PA v2.0) — ditempel di depan ketiga prompt tugas. Kolom 0064. */
+  rulesPrompt: string;
   aspectPrompt: string;
   qualPrompt: string;
+  /** Kesimpulan + Masukan Lain dari Penilai (satu panggilan). Kolom 0064. */
+  notesPrompt: string;
+  /** false = kolom rules_prompt/notes_prompt belum ada (migrasi 0064) → keduanya bawaan kode & tak bisa disimpan. */
+  promptsReady: boolean;
   version: number;
   updatedByName: string | null;
   updatedAt: string | null;
@@ -88,10 +94,20 @@ export type AiSettings = {
 export function defaultAiSettings(source: AiSettings['source'] = 'default'): AiSettings {
   return {
     model: '', priceIn: 0, priceOut: 0, usdIdr: DEFAULT_USD_IDR,
-    aspectPrompt: ASPECT_PROMPT, qualPrompt: QUAL_PROMPT, version: 0,
+    rulesPrompt: RULES_PROMPT, aspectPrompt: ASPECT_PROMPT, qualPrompt: QUAL_PROMPT, notesPrompt: NOTES_PROMPT,
+    promptsReady: true, version: 0,
     updatedByName: null, updatedAt: null, source,
   };
 }
+
+/** Gabungkan aturan umum + prompt tugas menjadi satu instruksi untuk model. */
+export function composePrompt(rules: string, task: string): string {
+  return rules.trim() ? `${rules.trim()}\n\n${task.trim()}` : task.trim();
+}
+
+/** Kolom belum ada (migrasi 0064 belum diterapkan). */
+export const columnMissing = (e: { code?: string; message?: string } | null) =>
+  !!e && (e.code === '42703' || e.code === 'PGRST204' || /column .* does not exist|could not find the .* column/i.test(e.message ?? ''));
 
 /** Tabel belum ada di database ini (migrasi belum diterapkan). */
 export const tableMissing = (e: { code?: string; message?: string } | null) =>
@@ -100,21 +116,32 @@ export const tableMissing = (e: { code?: string; message?: string } | null) =>
 type Row = {
   model: string; price_input_usd: number | string; price_output_usd: number | string; usd_idr: number | string;
   aspect_prompt: string; qual_prompt: string; version: number; updated_by_name: string | null; updated_at: string | null;
+  rules_prompt?: string | null; notes_prompt?: string | null;
 };
+const BASE_COLS = 'model, price_input_usd, price_output_usd, usd_idr, aspect_prompt, qual_prompt, version, updated_by_name, updated_at';
 
 // Klien service_role (tabel tanpa policy). Tipe longgar: ai_settings belum ada di database.types.
 type AnyClient = { from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export async function loadAiSettings(admin: AnyClient): Promise<AiSettings> {
-  const { data, error } = await admin.from('ai_settings').select('model, price_input_usd, price_output_usd, usd_idr, aspect_prompt, qual_prompt, version, updated_by_name, updated_at').eq('id', 1).maybeSingle();
+  let promptsReady = true;
+  let { data, error } = await admin.from('ai_settings').select(`${BASE_COLS}, rules_prompt, notes_prompt`).eq('id', 1).maybeSingle();
+  if (error && columnMissing(error)) {
+    // Migrasi 0064 belum diterapkan: baca kolom lama; aturan umum & prompt kesimpulan = bawaan kode.
+    promptsReady = false;
+    ({ data, error } = await admin.from('ai_settings').select(BASE_COLS).eq('id', 1).maybeSingle());
+  }
   if (error) return defaultAiSettings(tableMissing(error) ? 'missing' : 'default');
   const r = data as Row | null;
-  if (!r) return defaultAiSettings('default');
+  if (!r) return { ...defaultAiSettings('default'), promptsReady };
   return {
     // Id tersimpan yang bentuknya tak sah → anggap belum dipilih (gagal aman).
     model: MODEL_ID_RE.test(r.model) ? r.model : '',
     priceIn: Number(r.price_input_usd), priceOut: Number(r.price_output_usd), usdIdr: Number(r.usd_idr),
-    aspectPrompt: r.aspect_prompt, qualPrompt: r.qual_prompt, version: r.version,
+    rulesPrompt: r.rules_prompt?.trim() ? r.rules_prompt : RULES_PROMPT,
+    aspectPrompt: r.aspect_prompt, qualPrompt: r.qual_prompt,
+    notesPrompt: r.notes_prompt?.trim() ? r.notes_prompt : NOTES_PROMPT,
+    promptsReady, version: r.version,
     updatedByName: r.updated_by_name, updatedAt: r.updated_at, source: 'db',
   };
 }

@@ -13,8 +13,8 @@ import { mergeSummaryOverwrite, SUMMARY_MAX_LEN } from '@/lib/import/summaries';
 import { loadReport, withoutNamedFeedback } from '@/lib/report';
 import { PDF_NOTE_KEYS, PaPdfSettingsSchema } from '@/lib/pa-pdf';
 import { aiSummaryEnabled, summarizeWithGemini, costOf, type AiUsage, type AiCost } from '@/lib/ai/gemini';
-import { buildAspectMaterial, buildQualMaterial } from '@/lib/ai/summary-prompt';
-import { loadAiSettings, thinkingFor, effectivePrices } from '@/lib/ai/settings';
+import { buildAspectMaterial, buildNotesMaterial, buildQualMaterial } from '@/lib/ai/summary-prompt';
+import { composePrompt, loadAiSettings, thinkingFor, effectivePrices } from '@/lib/ai/settings';
 
 /**
  * Review Hasil Akhir: hitung Skor Akhir kalibrasi & tulis final_reports.
@@ -684,7 +684,8 @@ export async function importSummaries(raw: unknown): Promise<ImportSummariesResu
  */
 const AiSummaryInput = z.object({
   employeeId: z.string().uuid(),
-  kind: z.enum(['aspect', 'qual']),
+  // aspect = per aspek · qual = per pertanyaan esai · notes = Kesimpulan + Masukan Lain (isian PDF Pegawai)
+  kind: z.enum(['aspect', 'qual', 'notes']),
 });
 export type AiSummaryResult =
   | { ok: true; summaries: Record<string, string>; skipped: string[]; model: string; version: number; usage: AiUsage; cost: AiCost }
@@ -711,13 +712,18 @@ export async function suggestSummariesAI(raw: unknown): Promise<AiSummaryResult>
   if (!loaded) return { ok: false, error: 'Data tidak ditemukan.' };
   const data = withoutNamedFeedback(loaded); // L3 dibuang sebelum apa pun disusun
 
-  const allKeys = kind === 'aspect' ? data.aspects.map((a) => a.name) : data.qualQuestions;
-  const mat = kind === 'aspect' ? buildAspectMaterial(data.byAspect, allKeys) : buildQualMaterial(data.essays, allKeys);
+  // Bahan per jenis (Prompt PA v2.0): skor aspek & sebaran nilai ikut dikirim; tanpa nama/divisi/jenis penilai.
+  const scores = data.aspects.map((a) => ({ name: a.name, score: a.score }));
+  const allKeys = kind === 'aspect' ? data.aspects.map((a) => a.name) : kind === 'qual' ? data.qualQuestions : [...PDF_NOTE_KEYS];
+  const mat = kind === 'aspect' ? buildAspectMaterial(data.byAspect, allKeys, scores)
+    : kind === 'qual' ? buildQualMaterial(data.essays, allKeys, data.byAspect, scores)
+    : (() => { const text = buildNotesMaterial(data); return { text, keys: text ? allKeys : [] }; })();
   if (!mat.keys.length) return { ok: false, error: 'Belum ada komentar penilai yang dapat diringkas.' };
 
   const cfg = await loadAiSettings(admin);
   if (!cfg.model) return { ok: false, error: 'Model AI belum dipilih — atur dulu di halaman Pengaturan AI (menu Administrasi).' };
-  const res = await summarizeWithGemini(kind === 'aspect' ? cfg.aspectPrompt : cfg.qualPrompt, mat.text, mat.keys, SUMMARY_MAX_LEN, { model: cfg.model, thinking: thinkingFor(cfg.model) });
+  const task = kind === 'aspect' ? cfg.aspectPrompt : kind === 'qual' ? cfg.qualPrompt : cfg.notesPrompt;
+  const res = await summarizeWithGemini(composePrompt(cfg.rulesPrompt, task), mat.text, mat.keys, SUMMARY_MAX_LEN, { model: cfg.model, thinking: thinkingFor(cfg.model) });
   // Harga kosong di Pengaturan AI → harga resmi yang diketahui (effectivePrices).
   const cost = res.usage ? costOf(res.usage, effectivePrices(cfg)) : undefined;
   const label = cfg.model;
@@ -725,7 +731,7 @@ export async function suggestSummariesAI(raw: unknown): Promise<AiSummaryResult>
   // Catat pemakaian (tanpa isi komentar/ringkasan) agar total token bisa ditelusuri.
   await logReportAction(actor, {
     action: 'report.ai_summary', category: 'laporan',
-    summary: `Ringkas otomatis (${kind === 'aspect' ? 'aspek' : 'kualitatif'}) — ${res.ok ? 'berhasil' : 'gagal'}`,
+    summary: `Ringkas otomatis (${kind === 'aspect' ? 'aspek' : kind === 'qual' ? 'kualitatif' : 'kesimpulan & masukan lain'}) — ${res.ok ? 'berhasil' : 'gagal'}`,
     targetType: 'employee', targetId: employeeId, targetLabel: data.emp.name,
     meta: { via_grant: actor.viaGrant, model: res.model ?? null, prompt_version: cfg.version, ...(res.usage ?? {}), cost_idr: cost ? Math.round(cost.idr * 100) / 100 : null },
   });

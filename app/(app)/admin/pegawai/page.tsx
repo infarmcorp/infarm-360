@@ -42,9 +42,6 @@ export default async function PegawaiPage() {
     }
   } catch { /* tanpa email bila service key tak tersedia */ }
 
-  // Folder Laporan (Drive) per pegawai (migrasi 0050; RLS erf_read = HRD). Tabel belum ada → kosong.
-  const { data: folders } = await supabase.from('employee_report_folders').select('employee_id, url');
-  const folderById = new Map((folders ?? []).map((f) => [f.employee_id, f.url]));
 
   const nameById = new Map(list.map((e) => [e.id, e.name]));
   const rows: EmpRow[] = list.map((e) => {
@@ -52,7 +49,7 @@ export default async function PegawaiPage() {
     return {
       id: e.id, empCode: e.emp_code, name: e.name, nickname: e.nickname, dept: e.dept, role: e.role,
       isHrdAdmin: e.is_hrd_admin, isExternal: e.is_external, isCoordinator: e.is_coordinator, hrdSections: e.hrd_sections, active: e.is_active, email: emailById.get(e.id) ?? '',
-      joinedOn: e.joined_on, leftOn: e.left_on, reportFolderUrl: folderById.get(e.id) ?? null,
+      joinedOn: e.joined_on, leftOn: e.left_on,
       spvId, spvName: spvId ? nameById.get(spvId) ?? null : null,
     };
   });

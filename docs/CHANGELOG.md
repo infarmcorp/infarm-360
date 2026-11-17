@@ -25,6 +25,9 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   dan margin harus sama dengan PDF HRD. Aturan dari Prompt Laporan PA v2.0 ikut diterapkan: mode Direksi (bagian 1–4),
   KPI menyusul, kalimat rata-rata lima aspek, dan huruf ringkasan mengecil agar muat di halaman 1. Blok tidak boleh
   terpotong antarhalaman. Seluruh kolom tabel tindak lanjut kini bisa diubah per periode.
+- **Folder Laporan (Google Drive) dipensiunkan** (keputusan pemilik): HRD tidak lagi menyiapkan folder per pegawai. Ikon
+  folder di Kelola Pegawai dihapus, dan Email Rilis cukup mensyaratkan laporan Final (tidak lagi "Folder Laporan terisi").
+  Isi email rilis diubah: Unduh PDF langsung mengunduh berkas, bukan membuka folder Drive. Data tautan lama dibiarkan.
 - Pegawai mengunduh PDF ini langsung dari **Laporan Hasil Saya** (tombol Unduh PDF), tidak lagi lewat folder Google
   Drive. Hanya laporan miliknya sendiri yang sudah Final.
 - Perbaikan terkait: Unduh PDF dulu hanya mencetak satu halaman karena kerangka aplikasi setinggi layar; kini seluruh

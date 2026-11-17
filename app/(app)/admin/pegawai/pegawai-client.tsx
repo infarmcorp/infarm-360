@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { colPercents } from '@/lib/table-cols';
-import { UserPlus, Pencil, KeyRound, Power, X, FolderOpen, Users, UserCheck, UserCog, AlertTriangle, CalendarCheck, CalendarX } from 'lucide-react';
-import { createEmployee, updateEmployee, setEmployeeActive, resetPassword, setReportFolder } from './actions';
-import { isDriveUrl } from '@/lib/report-folder';
+import { UserPlus, Pencil, KeyRound, Power, X, Users, UserCheck, UserCog, AlertTriangle, CalendarCheck, CalendarX } from 'lucide-react';
+import { createEmployee, updateEmployee, setEmployeeActive, resetPassword } from './actions';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { usePager, StableHeight, Pager } from '@/components/table-controls';
 import { Button } from '@/components/button';
@@ -16,7 +15,6 @@ export type EmpRow = {
   id: string; empCode: string; name: string; nickname: string | null; dept: string; role: Role;
   isHrdAdmin: boolean; isExternal: boolean; isCoordinator: boolean; hrdSections: string[] | null; active: boolean; email: string; spvId: string | null; spvName: string | null;
   joinedOn: string | null; leftOn: string | null; // tgl masuk/aktif & tgl nonaktif (YYYY-MM-DD)
-  reportFolderUrl: string | null; // Folder Laporan (Google Drive) — dibuka tombol "Unduh PDF" pegawai
 };
 export type SpvOpt = { id: string; name: string; dept: string; role: Role };
 
@@ -74,7 +72,6 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
   const [form, setForm] = useState<FormState | null>(null);
   const [toast, setToast] = useState<{ ok: boolean; text: string } | null>(null);
   const [reset, setReset] = useState<{ r: EmpRow; pw: string } | null>(null); // dialog reset sandi
-  const [folder, setFolder] = useState<{ r: EmpRow; url: string } | null>(null); // dialog Folder Laporan
   const [pending, start] = useTransition();
   // Gulir ke form saat dibuka (tambah/edit) — form dirender di atas, jadi tanpa ini
   // edit baris bawah membuat form muncul di luar layar. openTick memicu efek tiap buka.
@@ -174,14 +171,6 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
     const { r, pw } = reset;
     setReset(null);
     act(() => resetPassword(r.id, pw.trim()));
-  }
-
-  const folderInvalid = !!folder && folder.url.trim() !== '' && !isDriveUrl(folder.url.trim());
-  function submitFolder() {
-    if (!folder || folderInvalid) return;
-    const { r, url } = folder;
-    setFolder(null);
-    act(() => setReportFolder(r.id, url.trim()));
   }
 
   return (
@@ -362,10 +351,6 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                     className={`${ICON_BTN} text-ink-soft hover:bg-neutral-tint`}><Pencil className="w-4 h-4" /></button>
                   <button type="button" onClick={() => doReset(r)} disabled={pending} title="Atur ulang sandi"
                     className={`${ICON_BTN} text-brand-ink hover:bg-brand-tint`}><KeyRound className="w-4 h-4" /></button>
-                  {/* Folder Laporan (Drive): hijau = sudah diisi, pudar = belum. */}
-                  <button type="button" onClick={() => { setToast(null); setFolder({ r, url: r.reportFolderUrl ?? '' }); }} disabled={pending}
-                    title={r.reportFolderUrl ? 'Folder Laporan (Drive) — sudah diisi' : 'Folder Laporan (Drive) — belum diisi'}
-                    className={`${ICON_BTN} ${r.reportFolderUrl ? 'text-brand-ink hover:bg-brand-tint' : 'text-ink-faint hover:bg-neutral-tint'}`}><FolderOpen className="w-4 h-4" /></button>
                   <button type="button" onClick={() => act(() => setEmployeeActive(r.id, !r.active))} disabled={pending}
                     title={r.active ? 'Nonaktifkan' : 'Aktifkan'}
                     className={`${ICON_BTN} ${r.active ? 'text-danger-ink hover:bg-danger-tint' : 'text-brand-ink hover:bg-brand-tint'}`}><Power className="w-4 h-4" /></button>
@@ -405,32 +390,6 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
           <button type="button" onClick={() => setReset((s) => (s ? { ...s, pw: randPass() } : s))}
             className={SIDE_BTN}>Acak</button>
         </div>
-      </ConfirmDialog>
-
-      <ConfirmDialog
-        open={!!folder}
-        icon="📁"
-        title={folder ? `Folder Laporan — ${folder.r.name}` : ''}
-        tone="primary"
-        confirmLabel={folder && folder.url.trim() === '' && folder.r.reportFolderUrl ? 'Hapus Tautan' : 'Simpan'}
-        confirmDisabled={folderInvalid}
-        busy={pending}
-        onConfirm={submitFolder}
-        onCancel={() => { if (!pending) setFolder(null); }}
-      >
-        <p>
-          Tempel tautan folder Google Drive pegawai ini. Tombol <strong>Unduh PDF</strong> di Laporan Hasil Saya akan membukanya. Kosongkan untuk menghapus.
-        </p>
-        <input
-          value={folder?.url ?? ''}
-          onChange={(e) => setFolder((s) => (s ? { ...s, url: e.target.value } : s))}
-          placeholder="https://drive.google.com/drive/folders/…"
-          className={`${folderInvalid ? INP_ERR : INP} font-mono`}
-        />
-        {folderInvalid && <p className="text-xs text-danger-ink font-semibold">Tautan harus diawali https://drive.google.com/</p>}
-        <p className="text-xs text-ink-faint">
-          Bagikan folder di Drive ke email Google pegawai sebagai <strong>Pelihat</strong>, dengan Akses umum <strong>Dibatasi</strong>.
-        </p>
       </ConfirmDialog>
     </div>
   );

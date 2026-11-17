@@ -240,20 +240,19 @@ export default async function AdminLaporanPage() {
   // halaman Flag Kepatuhan. Diperingatkan di sini agar tak terlanjur difinalisasi tanpa potongan.
   const pendingLate = isHrdFull && ap.has_360 ? (await loadPendingLatePenalties(ap.id)).length : 0;
 
-  // Email Rilis Laporan (HRD penuh): penerima = pegawai ber-laporan Final; Folder Laporan & status
-  // "sudah dikirimi" ditampilkan di dialog. Server menegakkan ulang semua syarat saat mengirim.
+  // Email Rilis Laporan (HRD penuh): penerima = pegawai ber-laporan Final; status "sudah dikirimi" ditampilkan
+  // di dialog (Folder Laporan Drive dipensiunkan 2026-11-17 — PDF diunduh langsung dari Laporan Hasil Saya). Server menegakkan ulang semua syarat saat mengirim.
   let release: ReleaseProps | null = null;
   if (isHrdFull) {
     const finalRows = shownRows.filter((r) => r.status === 'finalized');
-    const [relPeriod, cycle, sentIds, { data: folders }, base, imgs, schedule] = await Promise.all([
+    const [relPeriod, cycle, sentIds, base, imgs, schedule] = await Promise.all([
       loadReleasePeriod(cfg, ap.id), defaultCycle(cfg, ap.id), loadReleaseSentIds(cfg, ap.id),
-      cfg.from('employee_report_folders').select('employee_id, url'), appBaseUrl(), loadReleaseImages(cfg, ap.id),
+      appBaseUrl(), loadReleaseImages(cfg, ap.id),
       loadReleaseSchedules(cfg, ap.id),
     ]);
-    const folderSet = new Set((folders ?? []).filter((f) => f.url).map((f) => f.employee_id));
     if (relPeriod) release = {
       period: relPeriod, defaultCycle: cycle, appUrl: base ? `${base}/laporan` : '',
-      recipients: finalRows.map((r) => ({ id: r.id, name: r.name, dept: r.dept, hasFolder: folderSet.has(r.id), sent: sentIds.has(r.id) })),
+      recipients: finalRows.map((r) => ({ id: r.id, name: r.name, dept: r.dept, sent: sentIds.has(r.id) })),
       images: Object.fromEntries(Object.entries(imgs.images).map(([k, v]) => [k, v.url])), storageOk: imgs.ok,
       schedule,
     };
@@ -261,7 +260,7 @@ export default async function AdminLaporanPage() {
 
   // Ringkasan per langkah kokpit + langkah yang SEDANG perlu dikerjakan (satu-satunya tombol hijau):
   // ① bila ada Skor 360° usang/potongan telat tertunda → ② bila ada yang siap difinalisasi/berubah →
-  // ③ bila ada laporan Final ber-folder yang belum dikabari. 0 = tak ada yang perlu dikerjakan.
+  // ③ bila ada laporan Final yang belum dikabari. 0 = tak ada yang perlu dikerjakan.
   const finalCount = shownRows.filter((r) => r.status === 'finalized').length;
   const waitingAccCount = shownRows.filter((r) => r.status === 'in_review' && !r.spvAcc).length;
   const draftCount = shownRows.filter((r) => r.status === 'draft').length;
@@ -271,9 +270,8 @@ export default async function AdminLaporanPage() {
     : draftCount > 0 ? `Masih ada draf (${draftCount})`
     : noReportCount > 0 ? `Laporan belum dibuat (${noReportCount})`
     : finalCount > 0 ? 'Semua sudah Final' : 'Belum ada laporan';
-  const releaseReady = release?.recipients.filter((r) => r.hasFolder).length ?? 0;
-  const releaseSent = release?.recipients.filter((r) => r.hasFolder && r.sent).length ?? 0;
-  const releaseNoFolder = release?.recipients.filter((r) => !r.hasFolder).length ?? 0;
+  const releaseReady = release?.recipients.length ?? 0;
+  const releaseSent = release?.recipients.filter((r) => r.sent).length ?? 0;
   const step1Need = ap.has_360 && !backfilled && (staleCount > 0 || pendingLate > 0);
   const step2Need = accReadyCount > 0 || driftCount > 0;
   const step3Need = releaseReady - releaseSent > 0;
@@ -282,7 +280,7 @@ export default async function AdminLaporanPage() {
     if (n === activeStep) return 'active';
     if (n === 1) return step1Need ? 'idle' : 'done';
     if (n === 2) return !step2Need && finalCount > 0 && waitingAccCount + draftCount === 0 ? 'done' : 'idle';
-    return releaseReady > 0 && !step3Need && releaseNoFolder === 0 ? 'done' : 'idle';
+    return releaseReady > 0 && !step3Need ? 'done' : 'idle';
   };
 
   // Impor Ringkasan dari Excel: HRD penuh atau grant boleh-meringkas, hanya saat 360° aktif. Daftar
@@ -325,7 +323,7 @@ export default async function AdminLaporanPage() {
       <div className={`${CARD} mb-4`}>
         <div className="mb-3 flex items-center gap-1.5">
           <CardTitle icon={ListChecks}>Langkah Rilis Laporan</CardTitle>
-          <InfoTip label="Penjelasan langkah rilis" text={'Skor hanya diperbarui lewat tombol di sini. ① Hitung Ulang: bila penilaian, Garis Hubungan, atau bobot berubah. ② Finalisasi: laporan yang disetujui dikunci dan tampil ke pegawai. ③ Kabari Pegawai: email bahwa PDF siap diunduh, untuk laporan Final yang Folder Laporan-nya terisi.'} />
+          <InfoTip label="Penjelasan langkah rilis" text={'Skor hanya diperbarui lewat tombol di sini. ① Hitung Ulang: bila penilaian, Garis Hubungan, atau bobot berubah. ② Finalisasi: laporan yang disetujui dikunci dan tampil ke pegawai. ③ Kabari Pegawai: email bahwa PDF laporan siap diunduh di Laporan Hasil Saya, untuk laporan Final.'} />
         </div>
 
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-stretch">
@@ -371,9 +369,6 @@ export default async function AdminLaporanPage() {
             {release && release.recipients.length > 0 ? (
               <>
                 <p><span className="data-value font-semibold text-ink">{releaseReady - releaseSent}</span> siap dikirim · <span className="data-value font-semibold text-ink">{releaseSent}</span> sudah dikirimi</p>
-                {releaseNoFolder > 0 && (
-                  <p className="text-warn-ink"><span className="data-value">{releaseNoFolder}</span> Final belum punya Folder Laporan — <Link href="/admin/pegawai" className="underline">isi di Kelola Pegawai</Link>.</p>
-                )}
                 {release.schedule.active && (
                   <p className="font-semibold text-brand-ink">
                     {release.schedule.active.status === 'sending' || release.schedule.active.sentIds.length > 0 ? 'Sedang dikirim terjadwal' : 'Terjadwal'}:{' '}

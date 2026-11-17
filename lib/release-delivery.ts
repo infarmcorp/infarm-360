@@ -2,13 +2,12 @@ import type { createAdminClient } from '@/lib/supabase/server';
 import { sendEmail, type EmailAttachment } from '@/lib/email/mailer';
 import { releaseEmailHtml, releaseSubject, type ReleaseContent, type ReleaseImageSrc, type ReleasePeriod } from '@/lib/email/release-template';
 import { loadReleaseImages, RELEASE_IMAGES } from '@/lib/report-release';
-import { tableMissing } from '@/lib/report-folder';
 
 /**
  * INTI pengiriman Email Rilis Laporan — dipakai bersama tombol manual (Server Action, HRD Mode Admin)
  * dan jadwal (route cron). Pemanggil WAJIB sudah lolos otorisasi; fungsi ini membaca via service_role.
- * Syarat penerima ditegakkan DI SINI (sumber tunggal): laporan periode itu FINAL + Folder Laporan terisi +
- * punya email akun. Yang tak memenuhi dilewati beserta alasan (bukan error). Tidak menulis log — pemanggil
+ * Syarat penerima ditegakkan DI SINI (sumber tunggal): laporan periode itu FINAL + punya email akun (Folder Laporan
+ * Drive dipensiunkan 2026-11-17 — pegawai mengunduh PDF langsung dari Laporan Hasil Saya). Yang tak memenuhi dilewati beserta alasan (bukan error). Tidak menulis log — pemanggil
  * mencatat (aksi RELEASE_EMAIL_ACTION, `meta.sent_ids`) agar "sudah dikirimi" terhitung lintas jalur.
  */
 type Db = ReturnType<typeof createAdminClient>;
@@ -44,15 +43,12 @@ export async function deliverReleaseEmails(db: Db, args: {
 }): Promise<({ ok: true } & DeliveryResult) | { ok: false; error: string }> {
   const { period, content, appUrl, alreadySent } = args;
   const ids = [...new Set(args.ids)];
-  const [{ data: emps }, { data: reports }, folderRes] = await Promise.all([
+  const [{ data: emps }, { data: reports }] = await Promise.all([
     db.from('employees').select('id, name').in('id', ids),
     db.from('final_reports').select('employee_id').eq('period_id', period.id).eq('status', 'finalized').in('employee_id', ids),
-    db.from('employee_report_folders').select('employee_id, url').in('employee_id', ids),
   ]);
-  if (folderRes.error && !tableMissing(folderRes.error)) return { ok: false, error: 'Gagal membaca Folder Laporan: ' + folderRes.error.message };
   const nameById = new Map((emps ?? []).map((e) => [e.id, e.name]));
   const finalSet = new Set((reports ?? []).map((r) => r.employee_id));
-  const folderSet = new Set((folderRes.data ?? []).filter((f) => f.url).map((f) => f.employee_id));
 
   const { attachments, src } = await releaseImageParts(db, period.id);
   const sent: string[] = []; const skipped: ReleasePerson[] = []; const failed: ReleasePerson[] = [];
@@ -61,7 +57,6 @@ export async function deliverReleaseEmails(db: Db, args: {
     if (!nameById.has(id)) { skipped.push({ id, name, reason: 'pegawai tidak ditemukan' }); continue; }
     if (alreadySent?.has(id)) { skipped.push({ id, name, reason: 'sudah pernah dikirimi email rilis periode ini' }); continue; }
     if (!finalSet.has(id)) { skipped.push({ id, name, reason: 'laporan belum Final' }); continue; }
-    if (!folderSet.has(id)) { skipped.push({ id, name, reason: 'Folder Laporan (PDF) belum diisi' }); continue; }
     const { data: u } = await db.auth.admin.getUserById(id);
     const email = u.user?.email;
     if (!email) { skipped.push({ id, name, reason: 'tanpa email akun' }); continue; }

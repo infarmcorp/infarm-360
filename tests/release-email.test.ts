@@ -26,8 +26,8 @@ import { sendReleaseEmails, sendReleaseEmailTest, uploadReleaseImage } from '@/a
 
 const PID = '11111111-1111-4111-8111-111111111111';
 const UID = '22222222-2222-4222-8222-222222222222';
-const A = '33333333-3333-4333-8333-333333333333'; // Final + folder + email → terkirim
-const B = '44444444-4444-4444-8444-444444444444'; // Final tanpa folder → dilewati
+const A = '33333333-3333-4333-8333-333333333333'; // Final + email → terkirim
+const B = '44444444-4444-4444-8444-444444444444'; // Final tanpa email akun → dilewati
 const C = '55555555-5555-4555-8555-555555555555'; // belum Final → dilewati
 
 const PERIOD: ReleasePeriod = {
@@ -126,18 +126,17 @@ describe('sendReleaseEmails', () => {
     expect(sendEmail).not.toHaveBeenCalled();
   });
 
-  it('kirim hanya ke yang Final + punya folder + email; sisanya dilewati dengan alasan; log sent_ids', async () => {
+  it('kirim hanya ke yang Final + punya email (tanpa syarat folder); sisanya dilewati dengan alasan; log sent_ids', async () => {
     vi.mocked(createClient).mockResolvedValue(hrdClient(HRD) as never);
     vi.mocked(createAdminClient).mockReturnValue(adminClient({
       employees: [{ data: [{ id: A, name: 'Ani' }, { id: B, name: 'Bayu' }, { id: C, name: 'Citra' }] }],
       final_reports: [{ data: [{ employee_id: A }, { employee_id: B }] }],
-      employee_report_folders: [{ data: [{ employee_id: A, url: 'https://drive.google.com/x' }] }],
     }, { [A]: 'ani@infarm.co.id' }) as never);
 
     const r = await sendReleaseEmails({ periodId: PID, employeeIds: [A, B, C], content: CONTENT });
     expect(r).toEqual({
       ok: true, sent: [A], failed: [],
-      skipped: [{ id: B, name: 'Bayu', reason: 'Folder Laporan (PDF) belum diisi' }, { id: C, name: 'Citra', reason: 'laporan belum Final' }],
+      skipped: [{ id: B, name: 'Bayu', reason: 'tanpa email akun' }, { id: C, name: 'Citra', reason: 'laporan belum Final' }],
     });
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(vi.mocked(sendEmail).mock.calls[0][0]).toMatchObject({
@@ -152,7 +151,6 @@ describe('sendReleaseEmails', () => {
     vi.mocked(createAdminClient).mockReturnValue(adminClient({
       employees: [{ data: [{ id: A, name: 'Ani' }] }],
       final_reports: [{ data: [{ employee_id: A }] }],
-      employee_report_folders: [{ data: [{ employee_id: A, url: 'https://drive.google.com/x' }] }],
     }, { [A]: 'ani@infarm.co.id' }) as never);
     vi.mocked(loadReleaseImages).mockResolvedValueOnce({ ok: true, images: {
       panduan: { url: 'https://s.test/panduan.jpg?v=1', path: `release/${PID}/panduan.jpg`, contentType: 'image/jpeg' },

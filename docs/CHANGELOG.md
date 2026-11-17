@@ -18,7 +18,8 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   Kekuatan Utama dan Perlu Dikembangkan diambil dari ringkasan dua pertanyaan esai.
 - Tanggal laporan dan tenggat tindak lanjut diatur HRD per periode (perubahan database 0063); bawaannya dihitung dari
   tanggal akhir periode, sama dengan jadwal templat Q3.
-- Warna kategori mengikuti aplikasi (cokelat/hijau/kuning/merah), bukan warna templat, sesuai design system.
+- Warna kategori di PDF mengikuti PDF HRD (Melampaui hijau, Memenuhi biru, Perlu Peningkatan kuning, Di Bawah merah),
+  berbeda dari warna layar aplikasi — keputusan pemilik agar sama dengan dokumen HRD.
 - Revisi setelah dibandingkan dengan PDF HRD (masukan pengguna): PDF kini dibuat di server, bukan lewat jendela cetak
   browser. Alasannya: kotak isian harus bisa diketik, huruf "i" sempat tampil rusak di Acrobat, serta kepala/kaki halaman
   dan margin harus sama dengan PDF HRD. Aturan dari Prompt Laporan PA v2.0 ikut diterapkan: mode Direksi (bagian 1–4),

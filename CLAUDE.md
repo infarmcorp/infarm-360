@@ -290,6 +290,8 @@ bersama (2026-11-03/04). Aturan token & "kartu flat tanpa bayangan / font sistem
   (isi sel 1 baris, keputusan pengguna), dan tabel + pager dibungkus `StableHeight` (`components/table-controls.tsx`)
   — ukuran tak boleh bergeser saat paging/filter/tab. Daftar yang barisnya bisa dibuka-tutup (Progress 360) dikecualikan.
 - Label di dalam SVG chart (radar `report-doc`, grafik Monitor) boleh < 10px agar grafik tak berdesakan.
+- **Pengecualian: PDF Pegawai** (`lib/pdf/pa-report.tsx`) mengikuti PDF HRD, bukan design system: font Inter, warna kategori
+  HRD (Memenuhi = biru, Melampaui = hijau), ukuran huruf < 10px boleh (pemilik 2026-11-17). Jangan diseragamkan ke token aplikasi.
 
 ## 9. Konvensi & pengujian
 - TS strict; hindari `any`. Komentar & label UI bahasa Indonesia mengikuti istilah PANDUAN ("Mulai Nilai",

@@ -46,16 +46,17 @@ function ensureFonts() {
 let logoCache: Buffer | null = null;
 const logo = () => (logoCache ??= fs.readFileSync(path.join(DIR, 'assets', 'infarm-logo.png')));
 
-// ── Palet (selaras token aplikasi; warna kategori = CAT_COLOR) ────────────────────────────────────
+// ── Palet. Warna KATEGORI mengikuti PDF HRD (make_pdf.py), bukan design system aplikasi: Memenuhi = biru,
+//    Melampaui = hijau (keputusan pemilik 2026-11-17 — dokumen HRD, pengecualian sadar dari aturan tanpa biru).
 const C = {
   ink: '#1B1F1C', soft: '#5B615C', faint: '#8B918C', line: '#D5E2DA', lineSoft: '#EDEFEB',
   dark: '#006B31', leaf: '#4DAF4A', tint: '#F2F7F3', field: '#EAF1FB', fieldLine: '#C9D6E8', dangerTint: '#F9DEDA',
 };
 const CAT: Record<PerfCategory | 'none', { bar: string; ink: string; bg: string }> = {
-  exceed: { bar: '#6b4e3d', ink: '#6B4E3D', bg: '#EDE3D0' },
-  meet: { bar: '#388e3c', ink: '#006B31', bg: '#E4F3E9' },
-  improve: { bar: '#E0A800', ink: '#8A5A12', bg: '#FBF0DE' },
-  below: { bar: '#b71c1c', ink: '#A23C33', bg: '#FBEAE7' },
+  exceed: { bar: '#17603A', ink: '#17603A', bg: '#DCF1E3' },
+  meet: { bar: '#1E5F8C', ink: '#1E5F8C', bg: '#DDEEF8' },
+  improve: { bar: '#8A5A00', ink: '#8A5A00', bg: '#FBEFD4' },
+  below: { bar: '#9B2C22', ink: '#9B2C22', bg: '#F9DEDA' },
   none: { bar: '#D5E2DA', ink: '#5F6B65', bg: '#E9EEEB' },
 };
 
@@ -452,8 +453,10 @@ function Bar({ score }: { score: number | null }) {
   const c = perfCategoryOf(score) ?? 'none';
   const w = score == null ? 0 : Math.max(0, Math.min(100, score));
   return (
-    <View style={{ height: 6, borderRadius: 3, backgroundColor: C.lineSoft }}>
-      <View style={{ width: `${w}%`, height: 6, borderRadius: 3, backgroundColor: CAT[c].bar }} />
+    <View style={{ height: 7, borderRadius: 3.5, backgroundColor: '#E8EFEA' }}>
+      <View style={{ width: `${w}%`, height: 7, borderRadius: 3.5, backgroundColor: CAT[c].bar }} />
+      {/* Garis bantu ambang 70 / 80 / 90 (seperti PDF HRD) */}
+      {[70, 80, 90].map((t) => <View key={t} style={{ position: 'absolute', left: `${t}%`, top: 0, width: 1, height: 7, backgroundColor: '#fff' }} />)}
     </View>
   );
 }

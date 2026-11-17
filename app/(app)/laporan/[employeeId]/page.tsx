@@ -21,7 +21,7 @@ import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { aiSummaryEnabled } from '@/lib/ai/gemini';
 import { loadAiSettings } from '@/lib/ai/settings';
 
-// Server Action "Ringkas otomatis" (Gemini) berjalan di route ini dan bisa menunggu jawaban AI hingga ±55 dtk
+// Server Action "Ringkas otomatis" (Gemini/Claude) berjalan di route ini dan bisa menunggu jawaban AI hingga ±55 dtk
 // (GEMINI_TIMEOUT_MS). 60 dtk = batas yang aman untuk semua paket Vercel.
 export const maxDuration = 60;
 
@@ -55,7 +55,7 @@ export default async function LaporanDetailPage({
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, is_coordinator, hrd_sections, dept').eq('id', user.id).maybeSingle();
   const role = me?.role;
   const isAdmin = canAdmin(me);
-  // Ringkas otomatis (Gemini) — hanya dev/staging; aksi server menegakkan gerbang yang sama.
+  // Ringkas otomatis (Gemini/Claude) — hanya dev/staging; aksi server menegakkan gerbang yang sama.
   const aiOn = aiSummaryEnabled();
   const aiCfg = aiOn ? await loadAiSettings(createAdminClient()) : null;
   const aiInfoBase = aiCfg ? { model: aiCfg.model || 'model belum dipilih', version: aiCfg.version } : undefined;

@@ -12,9 +12,10 @@ import { finalLockError } from '@/lib/final-lock';
 import { mergeSummaryOverwrite, SUMMARY_MAX_LEN } from '@/lib/import/summaries';
 import { loadReport, withoutNamedFeedback } from '@/lib/report';
 import { PDF_NOTE_KEYS, PaPdfSettingsSchema } from '@/lib/pa-pdf';
-import { aiSummaryEnabled, summarizeWithGemini, costOf, type AiUsage, type AiCost } from '@/lib/ai/gemini';
+import { aiSummaryEnabled, costOf, type AiUsage, type AiCost } from '@/lib/ai/gemini';
+import { summarize } from '@/lib/ai/provider';
 import { buildAspectMaterial, buildNotesMaterial, buildQualMaterial } from '@/lib/ai/summary-prompt';
-import { composePrompt, loadAiSettings, thinkingFor, effectivePrices } from '@/lib/ai/settings';
+import { composePrompt, loadAiSettings, effectivePrices } from '@/lib/ai/settings';
 
 /**
  * Review Hasil Akhir: hitung Skor Akhir kalibrasi & tulis final_reports.
@@ -675,7 +676,7 @@ export async function importSummaries(raw: unknown): Promise<ImportSummariesResu
 }
 
 /**
- * RINGKAS OTOMATIS (Gemini) — EKSPERIMEN, hanya dev/staging (gerbang `aiSummaryEnabled`, gagal tertutup).
+ * RINGKAS OTOMATIS (Gemini / Claude) — EKSPERIMEN, hanya dev/staging (gerbang `aiSummaryEnabled`, gagal tertutup).
  * HRD menekan tombol sendiri (hemat token). Otorisasi = penulis ringkasan (resolveReportWriteActor:
  * HRD Mode Admin / grant Review Meringkas+ berlingkup, bukan laporan sendiri untuk grant).
  * Bahan = komentar mentah ANONIM (byAspect/essays) yang dimuat di server — L3 (nama penilai) tak ikut,
@@ -723,8 +724,10 @@ export async function suggestSummariesAI(raw: unknown): Promise<AiSummaryResult>
   const cfg = await loadAiSettings(admin);
   if (!cfg.model) return { ok: false, error: 'Model AI belum dipilih — atur dulu di halaman Pengaturan AI (menu Administrasi).' };
   const task = kind === 'aspect' ? cfg.aspectPrompt : kind === 'qual' ? cfg.qualPrompt : cfg.notesPrompt;
-  const res = await summarizeWithGemini(composePrompt(cfg.rulesPrompt, task), mat.text, mat.keys, SUMMARY_MAX_LEN, { model: cfg.model, thinking: thinkingFor(cfg.model) });
-  // Harga kosong di Pengaturan AI → harga resmi yang diketahui (effectivePrices).
+  // Penyedia (Claude/Gemini) dipilih dari nama model — lib/ai/provider.ts.
+  const res = await summarize(composePrompt(cfg.rulesPrompt, task), mat.text, mat.keys, SUMMARY_MAX_LEN, cfg.model);
+  // Harga kosong di Pengaturan AI → harga resmi yang diketahui (effectivePrices). Bila fallback server
+  // Claude melayani dengan model lain, biaya tetap dihitung dengan harga model yang dipilih (perkiraan).
   const cost = res.usage ? costOf(res.usage, effectivePrices(cfg)) : undefined;
   const label = cfg.model;
 

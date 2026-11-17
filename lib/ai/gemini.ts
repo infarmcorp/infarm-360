@@ -2,7 +2,7 @@
  * Klien Gemini untuk "Ringkas otomatis" — EKSPERIMEN, HANYA dev/staging.
  *
  * GERBANG (gagal tertutup, `aiSummaryEnabled`):
- *  - GEMINI_API_KEY wajib ada (env server; JANGAN pernah NEXT_PUBLIC_*),
+ *  - GEMINI_API_KEY atau ANTHROPIC_API_KEY wajib ada (env server; JANGAN pernah NEXT_PUBLIC_*),
  *  - VERCEL_ENV bukan 'production',
  *  - URL Supabase bukan project production — komentar production tak pernah dikirim dari
  *    instalasi mana pun (termasuk `npm run dev` lokal yang kebetulan menunjuk production).
@@ -39,7 +39,8 @@ export function fetchFailMessage(e: unknown, elapsedMs: number): string {
 type Env = Record<string, string | undefined>;
 
 export function aiSummaryEnabled(env: Env = process.env): boolean {
-  if (!env.GEMINI_API_KEY?.trim()) return false;
+  // Kunci salah satu penyedia (Gemini atau Claude, lib/ai/claude.ts) cukup; pengaman production tetap sama.
+  if (!env.GEMINI_API_KEY?.trim() && !env.ANTHROPIC_API_KEY?.trim()) return false;
   if (env.VERCEL_ENV === 'production') return false;
   const url = env.NEXT_PUBLIC_SUPABASE_URL ?? '';
   if (!url || url.includes(PROD_SUPABASE_REF)) return false;

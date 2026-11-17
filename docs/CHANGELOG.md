@@ -8,6 +8,16 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-17 — Ringkas otomatis bisa memakai Claude (di `dev`, hanya dev/staging)
+- Permintaan pemilik: mencoba Claude untuk Ringkas otomatis. Claude ditambahkan sebagai penyedia kedua, bukan pengganti
+  Gemini, supaya hasilnya bisa dibandingkan pada laporan yang sama.
+- Pilihan model Claude dibatasi ke tiga model (keputusan pemilik): Haiku 5.5, Sonnet 5.5, Opus 5.5. Model lain dan model
+  lama tidak ditampilkan agar pilihan HRD tetap rapi.
+- Perbandingan dilakukan bergantian lewat Pengaturan AI (satu model untuk semua ringkasan tetap berlaku); tombol
+  "bandingkan berdampingan" ditawarkan tetapi tidak dipilih.
+- Pengaman tetap sama: tidak pernah aktif di production, dan yang dikirim hanya komentar tanpa nama penilai/pegawai.
+  Untuk Sonnet dan Opus, bila model menolak bahan, permintaan otomatis diulang di model Claude lain.
+
 ### 2026-11-17 — PDF Pegawai format Laporan Performance Appraisal (di `dev`, belum dirilis)
 - Permintaan pengguna: PDF laporan untuk pegawai dibuat dari aplikasi dengan susunan paket templat PDF HRD Q3 2026
   (dulu disusun di luar aplikasi). Tombol baru **Unduh PDF Pegawai** di detail laporan HRD membuka halaman cetak A4:

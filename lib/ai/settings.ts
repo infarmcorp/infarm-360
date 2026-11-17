@@ -29,6 +29,10 @@ export const KNOWN_PRICES: Record<string, { priceIn: number; priceOut: number }>
   'gemini-2.5-flash-lite': { priceIn: 0.1, priceOut: 0.4 },
   'gemini-2.5-flash': { priceIn: 0.3, priceOut: 2.5 },
   'gemini-2.5-pro': { priceIn: 1.25, priceOut: 10 },
+  // Claude (harga API Anthropic, dicek 2026-11-17). Haiku 5.5: harga untuk bahan ≤ 100 ribu token.
+  'claude-haiku-5-5': { priceIn: 0.1, priceOut: 0.5 },
+  'claude-sonnet-5-5': { priceIn: 2, priceOut: 10 },
+  'claude-opus-5-5': { priceIn: 4, priceOut: 20 },
 };
 
 /**

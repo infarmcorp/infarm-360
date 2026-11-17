@@ -29,7 +29,7 @@ type AiOk = Extract<AiSummaryResult, { ok: true }>;
 const fmtInt = (n: number) => n.toLocaleString('id-ID');
 const fmtRp = (n: number) => `Rp ${n.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-/** Baris pemakaian token + perkiraan biaya (Gemini). */
+/** Baris pemakaian token + perkiraan biaya (Gemini/Claude). */
 function usageLine(r: Pick<AiOk, 'model' | 'version' | 'usage' | 'cost'>) {
   const out = r.usage.outputTokens + r.usage.thoughtTokens;
   return (
@@ -68,7 +68,7 @@ export function AspectSummaryEditor({
   title?: string;
   intro?: string;
   noun?: string;
-  /** Diisi hanya bila Ringkas otomatis (Gemini) aktif di lingkungan ini (dev/staging). */
+  /** Diisi hanya bila Ringkas otomatis (Gemini/Claude) aktif di lingkungan ini (dev/staging). */
   aiKind?: 'aspect' | 'qual' | 'notes';
   /** Model & versi prompt dari Pengaturan AI (satu untuk semua); tautan ubah hanya untuk HRD Mode Admin. */
   aiInfo?: { model: string; version: number; settingsHref?: string };

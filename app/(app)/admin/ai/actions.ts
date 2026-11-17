@@ -6,7 +6,8 @@ import { z } from 'zod';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { canSection } from '@/lib/auth/roles';
 import { logHrdAction } from '@/lib/audit/log';
-import { aiSummaryEnabled, listGeminiModels } from '@/lib/ai/gemini';
+import { aiSummaryEnabled } from '@/lib/ai/gemini';
+import { listAiModels } from '@/lib/ai/provider';
 import { MODEL_ID_RE, PROMPT_MAX_LEN, loadAiSettings, tableMissing } from '@/lib/ai/settings';
 
 /**
@@ -14,7 +15,7 @@ import { MODEL_ID_RE, PROMPT_MAX_LEN, loadAiSettings, tableMissing } from '@/lib
  * Hanya HRD Mode Admin berbagian Review & Finalisasi, dan hanya saat fitur aktif (dev/staging).
  * Tulis via service_role (tabel tanpa policy). "Prompt versi" naik HANYA bila teks prompt berubah — model
  * sudah tampil terpisah di layar & log, jadi ganti model tak boleh terbaca sebagai "prompt diubah".
- * Model WAJIB ada di daftar model Google untuk kunci ini (listGeminiModels) — daftar gagal dimuat = tolak.
+ * Model WAJIB ada di daftar model yang tersedia (listAiModels: tiga model Claude + daftar Google) — tak ada = tolak.
  */
 const Input = z.object({
   model: z.string().trim().regex(MODEL_ID_RE, 'Pilih model dari daftar'),
@@ -43,9 +44,10 @@ export async function saveAiSettings(raw: unknown): Promise<{ ok: true; version:
     return { ok: false, error: 'Hanya HRD (Mode Admin) dengan akses Review & Finalisasi yang dapat mengubah Pengaturan AI.' };
   }
 
-  const list = await listGeminiModels();
-  if (!list.ok) return { ok: false, error: list.error };
-  if (!list.models.some((m) => m.id === v.model)) return { ok: false, error: 'Model tidak tersedia untuk kunci API ini — pilih dari daftar.' };
+  const list = await listAiModels();
+  if (!list.models.some((m) => m.id === v.model)) {
+    return { ok: false, error: list.warning ?? 'Model tidak tersedia untuk kunci API ini — pilih dari daftar.' };
+  }
 
   const admin = createAdminClient();
   const cur = await loadAiSettings(admin);

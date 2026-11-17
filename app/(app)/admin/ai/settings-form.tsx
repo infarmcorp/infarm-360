@@ -11,6 +11,10 @@ import { KNOWN_PRICES, PROMPT_MAX_LEN, thinkingFor, type AiSettings } from '@/li
 import type { GeminiModelInfo } from '@/lib/ai/gemini';
 import { saveAiSettings } from './actions';
 
+// Komponen klien: jangan impor lib/ai/provider (memuat SDK server) — cukup cek awalan nama model.
+const isClaude = (id: string) => id.startsWith('claude-');
+const CLAUDE_THINKING_TEXT = 'Thinking pada model Claude tidak bisa dimatikan — kedalamannya diatur ke tingkat terendah (effort low) agar cepat dan hemat token.';
+
 const THINKING_TEXT = {
   off: 'Thinking dimatikan agar cepat dan hemat token.',
   minimal: 'Thinking diatur ke tingkat terendah (minimal) agar cepat dan hemat token.',
@@ -90,7 +94,7 @@ export function AiSettingsForm({ initial, models, defaults }: {
       <section className={CARD}>
         <CardTitle icon={Bot}>Model</CardTitle>
         <p className="text-xs text-ink-soft mt-1.5">
-          Daftar diambil langsung dari Google sesuai kunci API yang terpasang (<span className="data-value">{models.length}</span> model teks), jadi model baru muncul sendiri.
+          <span className="data-value">{models.length}</span> model tersedia: tiga model Claude (bila kunci Claude terpasang) dan model Gemini yang diambil langsung dari Google sesuai kunci API, jadi model Gemini baru muncul sendiri.
         </p>
         <div className="mt-3 max-w-xl">
           <SearchableSelect
@@ -109,7 +113,7 @@ export function AiSettingsForm({ initial, models, defaults }: {
             <p><strong className="text-ink">{info.label}</strong> · <span className="data-value">{info.id}</span>
               {info.inputTokenLimit != null && <> · batas input <span className="data-value">{info.inputTokenLimit.toLocaleString('id-ID')}</span> token</>}</p>
             {info.description && <p>{info.description}</p>}
-            <p>{THINKING_TEXT[thinkingFor(info.id)]}</p>
+            <p>{isClaude(info.id) ? CLAUDE_THINKING_TEXT : THINKING_TEXT[thinkingFor(info.id)]}</p>
           </div>
         )}
       </section>
@@ -133,9 +137,14 @@ export function AiSettingsForm({ initial, models, defaults }: {
         <div className="mt-2.5 space-y-1.5 text-xs text-ink-soft">
           <p>
             Harga berlaku untuk <strong className="text-ink">model yang dipilih</strong> dan hanya dipakai menghitung perkiraan rupiah — tagihan sebenarnya
-            tetap dari Google. Lihat harga per model di{' '}
-            <a href="https://aistudio.google.com/docs/pricing" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-brand-ink">halaman harga Gemini API</a>
-            {' '}(cari baris dengan id model persis sama; pakai harga &quot;Standard&quot; / paket berbayar, input teks, dan output yang sudah termasuk thinking).
+            tetap dari {isClaude(model) ? 'Anthropic' : 'Google'}. Lihat harga per model di{' '}
+            {isClaude(model) ? (
+              <><a href="https://platform.claude.com/docs/en/about-claude/pricing" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-brand-ink">halaman harga Claude API</a>
+              {' '}(pakai harga input dan output dasar; output sudah termasuk thinking).</>
+            ) : (
+              <><a href="https://aistudio.google.com/docs/pricing" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-brand-ink">halaman harga Gemini API</a>
+              {' '}(cari baris dengan id model persis sama; pakai harga &quot;Standard&quot; / paket berbayar, input teks, dan output yang sudah termasuk thinking).</>
+            )}
           </p>
           {info && !priceKnown && (
             <p className="font-semibold text-warn-ink">
@@ -144,7 +153,7 @@ export function AiSettingsForm({ initial, models, defaults }: {
           )}
           {info && priceKnown && (
             <p className="flex flex-wrap items-center gap-2">
-              <span>Harga resmi yang dikenal aplikasi (dicek 12 Nov 2026): <span className="data-value">US$ {official.priceIn} / {official.priceOut}</span>.</span>
+              <span>Harga resmi yang dikenal aplikasi (dicek {isClaude(model) ? '17' : '12'} Nov 2026): <span className="data-value">US$ {official.priceIn} / {official.priceOut}</span>.</span>
               {differsFromOfficial && <Button variant="ghost" size="sm" type="button" onClick={applyOfficial}>Pakai harga resmi</Button>}
             </p>
           )}

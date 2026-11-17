@@ -396,7 +396,9 @@ export function AppShell({
   const deadline = periodActive && periodDaysLeft != null ? deadlineInfo(periodDaysLeft) : null;
 
   return (
-    <div className="flex h-screen bg-bg text-ink">
+    // Cetak/Unduh PDF: kerangka setinggi layar + gulir di dalam kotak membuat cetak hanya 1 halaman →
+    // saat print tinggi & overflow dilepas agar seluruh dokumen ikut tercetak.
+    <div className="flex h-screen bg-bg text-ink print:block print:h-auto">
       {/* Desktop sidebar (bisa ditutup; pilihan disimpan di cookie) */}
       {!collapsed && <div className="hidden md:block h-full">{Sidebar}</div>}
 
@@ -409,7 +411,7 @@ export function AppShell({
       )}
 
       {/* Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 print:block">
         <header className="app-mobile-header no-print md:hidden flex items-center gap-3 px-4 py-3 bg-brand">
           <button type="button" onClick={() => setOpen((v) => !v)} className="relative text-white"
             aria-label={open ? 'Tutup menu navigasi' : 'Buka menu navigasi'} aria-expanded={open}>
@@ -505,7 +507,7 @@ export function AppShell({
 
         {/* scrollbar-gutter: tempat scrollbar selalu disediakan → lebar konten (dan kolom tabel ber-persen)
             tak berubah saat halaman/tab berganti antara pendek (tanpa scrollbar) dan panjang. */}
-        <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">{children}</div>
+        <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable] print:overflow-visible">{children}</div>
         <ActionGuard />
       </div>
     </div>

@@ -80,7 +80,7 @@ export function AiSettingsForm({ initial, models, defaults }: {
   }
 
   return (
-    <div className="space-y-4 max-w-4xl">
+    <div className="space-y-4 w-full">
       <p className="text-xs text-ink-soft">
         {initial.source === 'db' && initial.updatedAt
           ? <>Versi <span className="data-value">{initial.version}</span> · terakhir diubah {initial.updatedByName ?? '—'} pada <span className="data-value">{fmtDate(initial.updatedAt)}</span></>

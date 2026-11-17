@@ -74,11 +74,9 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
   // agregat (L1+L2). Array dikosongkan agar tak ikut terserialisasi ke browser.
   const safe = { ...data, assessors: [], byAspect: [], essays: [] };
 
-  // Folder Laporan (Drive) — "Unduh PDF" membuka folder ini (PDF semua kuartal dari HRD). Dibaca via
-  // service_role (RLS erf_read = HRD saja) dan HANYA di cabang ini, yaitu bila pegawai sudah punya laporan
-  // Final. Tabel belum ada (migrasi 0050) / tak diisi → null → pesan "PDF belum tersedia".
-  const { data: folder } = await createAdminClient()
-    .from('employee_report_folders').select('url').eq('employee_id', user.id).maybeSingle();
+  // "Unduh PDF" = PDF Pegawai (format Laporan Performance Appraisal) dibuat server dari laporan Final ini —
+  // route unduh menegakkan sendiri: hanya pemilik laporan & hanya bila Final (lib/pdf/pa-load.ts).
+  const pdfHref = `/laporan/${user.id}/pdf-pegawai/unduh?period=${selected.id}`;
 
   const activePending = ap && !finalIds.includes(ap.id); // periode berjalan belum final
 
@@ -118,7 +116,7 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
           Buka Rencana <ArrowRight className="w-3.5 h-3.5" aria-hidden />
         </Link>
       </div>
-      <ReportDoc data={safe} anonymize hideAssessorComments pdfFolder={{ url: folder?.url ?? null }} />
+      <ReportDoc data={safe} anonymize hideAssessorComments pdfHref={pdfHref} />
       {safe.has360 && <AspectSummaryView summaries={safe.aspectSummaries} />}
       {safe.has360 && (
         <AspectSummaryView

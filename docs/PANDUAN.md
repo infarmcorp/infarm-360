@@ -236,11 +236,9 @@ Yang perlu diketahui:
 ### 2.3 Laporan Hasil Saya
 Muncul **hanya setelah HRD memfinalisasi** laporan Anda. Sebelum itu tertulis "belum difinalisasi".
 1. Pilih laporan di baris **Pilih periode**. Laporan final periode lama tetap bisa dibuka.
-2. Klik **Unduh PDF**: folder Google Drive Anda terbuka di tab baru. Folder ini berisi laporan PDF semua kuartal
-   yang disiapkan HRD (mis. *Nama - Q3 2026*). Pilih laporan yang dibutuhkan, lalu unduh. Anda hanya bisa
-   melihat dan mengunduh, tidak bisa menghapus atau mengubah isinya.
-   - Buka dengan akun Google yang didaftarkan ke HRD. Bila muncul "Anda memerlukan akses", ganti ke akun itu.
-   - Bila muncul pesan **"PDF belum tersedia, hubungi HRD"**, folder Anda belum disiapkan HRD.
+2. Klik **Unduh PDF**: laporan periode yang dipilih langsung terunduh sebagai berkas PDF (format Laporan Performance
+   Appraisal, nama berkas "Divisi - Nama - Periode"). Tunggu beberapa detik sampai unduhan muncul. Kotak isian di PDF
+   (Rencana Pengembangan, komentar atasan, nama dan tanggal tanda tangan) bisa diketik di Acrobat atau pembaca PDF lain.
 3. Isi laporan:
    - **Ringkasan skor**: Rerata KPI · Evaluasi 360° · Skor Akhir. Angkanya adalah angka resmi saat finalisasi.
    - **Radar Aspek 360°**: garis hijau = penilaian rekan. Garis oranye putus-putus (penilaian diri) hanya ada

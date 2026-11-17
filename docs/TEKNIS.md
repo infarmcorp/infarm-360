@@ -444,6 +444,8 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
   Acrobat), dan kepala/kaki/margin persis `make_pdf.py` paket HRD (margin 16 mm, kepala berjalan mulai hlm 2, kaki +
   "Halaman x dari y", strip hijau tepi kiri). Font & logo di `lib/pdf/fonts|assets` (disertakan ke fungsi lewat
   `outputFileTracingIncludes` di `next.config.ts`).
+- Laporan Hasil Saya: tombol Unduh PDF = route unduh dengan `allowSelf` — pegawai atas laporannya SENDIRI yang `finalized`
+  (baca via service_role; raw & L3 tak masuk PDF). Halaman kontrol `pdf-pegawai` tetap HRD Mode Admin saja.
 - Route `GET /laporan/[employeeId]/pdf-pegawai/unduh` (`?period=`, `?inline=1` untuk pratinjau) + halaman kontrol
   `/laporan/[employeeId]/pdf-pegawai`. Gerbang `loadPaPdf` (`lib/pdf/pa-load.ts`): `canSection(laporan)` + `hrd_mode=admin`.
   Hanya skor, `aspectSummaries`, `qualSummaries`, `pdfNotes` yang masuk ke dokumen — **tanpa** raw dan tanpa L3.

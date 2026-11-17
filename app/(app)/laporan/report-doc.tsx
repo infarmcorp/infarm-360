@@ -16,11 +16,11 @@ const DOC_CARD = `${CARD} print:shadow-none`;
 
 /** Dokumen Laporan rinci: radar aspek, ringkasan skor, komentar mentah per penilai.
  * `anonymize`=true (pegawai melihat laporannya sendiri) menyamarkan nama penilai.
- * `pdfFolder` (Laporan Hasil Saya): "Unduh PDF" membuka Folder Laporan Drive pegawai, bukan mencetak;
- * url null → pesan "PDF belum tersedia". Tanpa prop ini tombol tetap mencetak (HRD/SPV/Direksi). */
-export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint, pdfFolder }: { data: ReportData; anonymize: boolean; hideAssessorComments?: boolean; hidePrint?: boolean; pdfFolder?: { url: string | null } }) {
+ * `pdfHref` (Laporan Hasil Saya): "Unduh PDF" langsung mengunduh PDF Pegawai (format Laporan Performance Appraisal,
+ * dibuat server) — bukan mencetak halaman. Tanpa prop ini tombol tetap mencetak (HRD/SPV/Direksi). */
+export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint, pdfHref }: { data: ReportData; anonymize: boolean; hideAssessorComments?: boolean; hidePrint?: boolean; pdfHref?: string }) {
   const aspectsWith = data.aspects.filter((a) => a.score != null);
-  const [noPdf, setNoPdf] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
   const btnCls = 'shrink-0 inline-flex items-center gap-1.5 text-[13px] font-bold min-h-9 px-4 rounded-control bg-brand hover:bg-brand-ink text-white';
   return (
     <div>
@@ -29,25 +29,17 @@ export function ReportDoc({ data, anonymize, hideAssessorComments, hidePrint, pd
           <h1 className="text-[22px] leading-tight font-bold tracking-[-0.01em] text-ink">Dokumen Laporan Kinerja</h1>
           <p className="text-[13px] text-ink-soft mt-1.5">{data.emp.name} · {data.emp.dept} · {data.periodLabel}</p>
         </div>
-        {!hidePrint && (pdfFolder ? (
-          pdfFolder.url ? (
-            <a href={pdfFolder.url} target="_blank" rel="noopener noreferrer" className={btnCls}>
-              <Download className="w-4 h-4" /> Unduh PDF
-            </a>
-          ) : (
-            <button type="button" onClick={() => setNoPdf(true)} className={btnCls}>
-              <Download className="w-4 h-4" /> Unduh PDF
-            </button>
-          )
+        {!hidePrint && (pdfHref ? (
+          // Unduhan berkas biasa (Content-Disposition: attachment); PDF dibuat beberapa detik di server.
+          <a href={pdfHref} download className={btnCls} onClick={() => { setPdfBusy(true); setTimeout(() => setPdfBusy(false), 6000); }}>
+            <Download className="w-4 h-4" /> {pdfBusy ? 'Menyiapkan PDF…' : 'Unduh PDF'}
+          </a>
         ) : (
           <button type="button" onClick={() => window.print()} className={btnCls}>
             <Download className="w-4 h-4" /> Unduh PDF
           </button>
         ))}
       </div>
-      {noPdf && (
-        <div className="no-print mt-3"><Note tone="warn">PDF belum tersedia, hubungi HRD.</Note></div>
-      )}
 
       {/* Kop cetak (hanya saat print) */}
       <div className="hidden print:block mb-4">

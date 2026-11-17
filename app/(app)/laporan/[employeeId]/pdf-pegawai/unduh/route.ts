@@ -6,13 +6,15 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * Unduh PDF Pegawai (format Laporan Performance Appraisal) — HRD Mode Admin saja (gerbang di loadPaPdf).
+ * Unduh PDF Pegawai (format Laporan Performance Appraisal) — HRD Mode Admin, atau pegawai atas laporannya sendiri
+ * yang sudah Final (gerbang di loadPaPdf).
  * `?inline=1` = tampil di browser (pratinjau di halaman kontrol); bawaan = unduh berkas.
  */
 export async function GET(req: Request, { params }: { params: Promise<{ employeeId: string }> }) {
   const { employeeId } = await params;
   const url = new URL(req.url);
-  const res = await loadPaPdf(employeeId, url.searchParams.get('period') ?? undefined);
+  // allowSelf: pegawai mengunduh laporannya sendiri yang sudah Final dari Laporan Hasil Saya.
+  const res = await loadPaPdf(employeeId, url.searchParams.get('period') ?? undefined, { allowSelf: true });
   if (!res.ok) return new Response(res.error, { status: res.status, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 
   const pdf = await renderPaReport(res.input, res.settings);

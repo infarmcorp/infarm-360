@@ -9,8 +9,10 @@
  *  - kotak isian AcroForm (bisa diketik di Acrobat/pembaca PDF): catatan per aspek, prioritas, komentar atasan, nama &
  *    tanggal tanda tangan.
  *
- * ATURAN POTONG HALAMAN: blok bermakna (kartu, baris tabel, satu aspek, kotak prioritas, tanda tangan) `wrap={false}`
- * → dipindah utuh ke halaman berikutnya bila tak muat; judul bagian `minPresenceAhead` agar tak tertinggal sendirian.
+ * ATURAN POTONG HALAMAN (padat tanpa celah besar, pemilik 2026-11-17): JUDUL selalu menempel dengan awal isinya
+ * (`minPresenceAhead` pada judul bagian/aspek/kolom/prioritas/tabel). Isi panjang (narasi aspek, kolom Kekuatan/Perlu,
+ * kotak prioritas, tabel) BOLEH berlanjut ke halaman berikutnya — tetapi per baris/poin/baris tabel utuh (`wrap={false}`
+ * pada satu poin, satu baris tabel, satu kotak isian). Blok kecil (kartu skor, identitas, tanda tangan) tetap utuh.
  * Blok yang lebih tinggi dari satu halaman tetap dipecah (terpaksa).
  *
  * PRIVASI: hanya menerima skor + ringkasan HRD (PaReportInput) — tak ada raw (byAspect/essays) maupun L3.
@@ -191,8 +193,8 @@ function PaReport({ d, settings, fs: fsz }: { d: PaReportInput; settings: PaPdfS
             {d.aspects.map((a) => {
               const c = perfCategoryOf(a.score) ?? 'none';
               return (
-                <View key={a.name} wrap={false} style={{ marginBottom: 10 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: CAT[c].bg }}>
+                <View key={a.name} style={{ marginBottom: 9 }}>
+                  <View wrap={false} minPresenceAhead={42} style={{ flexDirection: 'row', alignItems: 'center', paddingBottom: 3, borderBottomWidth: 1, borderBottomColor: CAT[c].bg }}>
                     <Text style={{ flex: 1, fontSize: 9, fontWeight: 700 }}>{a.name}</Text>
                     <Text style={{ width: 60, fontSize: 9, fontWeight: 700, color: CAT[c].ink }}>{num(a.score)}</Text>
                     <View style={{ width: 92, alignItems: 'flex-end' }}><Chip score={a.score} /></View>
@@ -202,8 +204,8 @@ function PaReport({ d, settings, fs: fsz }: { d: PaReportInput; settings: PaPdfS
               );
             })}
             {other ? (
-              <View wrap={false} style={{ marginTop: 4, backgroundColor: C.tint, borderWidth: 0.6, borderColor: C.line, borderLeftWidth: 2.5, borderLeftColor: '#1A9BE0', paddingHorizontal: 9, paddingVertical: 7 }}>
-                <Text style={{ fontWeight: 700, color: C.dark, fontSize: 8.6 }}>MASUKAN LAIN DARI PENILAI</Text>
+              <View style={{ marginTop: 4, backgroundColor: C.tint, borderWidth: 0.6, borderColor: C.line, borderLeftWidth: 2.5, borderLeftColor: '#1A9BE0', paddingHorizontal: 9, paddingVertical: 7 }}>
+                <Text minPresenceAhead={42} style={{ fontWeight: 700, color: C.dark, fontSize: 8.6 }}>MASUKAN LAIN DARI PENILAI</Text>
                 <Text style={[s.small, { marginTop: 1, marginBottom: 4 }]}>
                   Masukan berikut ditulis penilai di luar topik indikator yang sedang dinilai, tetapi tetap disampaikan karena relevan untuk
                   pengembangan Anda.
@@ -229,7 +231,7 @@ function PaReport({ d, settings, fs: fsz }: { d: PaReportInput; settings: PaPdfS
             {/* Tindak lanjut */}
             <Sec n={sec.follow} title="TINDAK LANJUT SETELAH MENERIMA LAPORAN INI" />
             <View style={{ borderWidth: 0.6, borderColor: C.line }}>
-              <View wrap={false} style={{ flexDirection: 'row', backgroundColor: C.dark, paddingVertical: 5 }}>
+              <View wrap={false} minPresenceAhead={42} style={{ flexDirection: 'row', backgroundColor: C.dark, paddingVertical: 5 }}>
                 {FOLLOW_COLS.map(([h, w]) => <Text key={h} style={[s.th, { width: w, paddingHorizontal: 5 }]}>{h}</Text>)}
               </View>
               {settings.rows.map((r, i) => (
@@ -245,7 +247,7 @@ function PaReport({ d, settings, fs: fsz }: { d: PaReportInput; settings: PaPdfS
             </View>
 
             {/* Komentar atasan */}
-            <View wrap={false}>
+            <View wrap={false} minPresenceAhead={70}>
               <Sec n={sec.comment} title="KOMENTAR ATASAN LANGSUNG" />
               <Text style={s.small}>
                 <Text style={{ fontWeight: 700, color: C.ink }}>Untuk atasan langsung: </Text>
@@ -384,15 +386,15 @@ function FirstPage({ d, settings, fs: fsz }: { d: PaReportInput; settings: PaPdf
             </View>
           ) : null}
           {(qual.strength || qual.growth) && (
-            <View wrap={false} style={{ flexDirection: 'row', marginTop: 8 }}>
+            <View style={{ flexDirection: 'row', marginTop: 8 }}>
               <QualCol title="KEKUATAN UTAMA" color={C.dark} text={qual.strength ? d.qualSummaries[qual.strength] ?? '' : ''} size={fsz} />
               <View style={{ width: 8 }} />
               <QualCol title="PERLU DIKEMBANGKAN" color="#B5772A" text={qual.growth ? d.qualSummaries[qual.growth] ?? '' : ''} size={fsz} />
             </View>
           )}
           {qual.others.map((q) => (
-            <View key={q} wrap={false} style={{ marginTop: 8, borderWidth: 0.6, borderColor: C.line }}>
-              <Text style={{ backgroundColor: C.dark, color: '#fff', fontWeight: 700, paddingHorizontal: 8, paddingVertical: 4 }}>{q}</Text>
+            <View key={q} style={{ marginTop: 8, borderWidth: 0.6, borderColor: C.line }}>
+              <Text minPresenceAhead={42} style={{ backgroundColor: C.dark, color: '#fff', fontWeight: 700, paddingHorizontal: 8, paddingVertical: 4 }}>{q}</Text>
               <View style={{ padding: 8 }}><Rich text={d.qualSummaries[q] ?? ''} size={fsz} /></View>
             </View>
           ))}
@@ -490,7 +492,7 @@ function Legend() {
 function QualCol({ title, color, text, size }: { title: string; color: string; text: string; size: number }) {
   return (
     <View style={{ flex: 1, borderWidth: 0.6, borderColor: C.line }}>
-      <Text style={{ backgroundColor: color, color: '#fff', fontWeight: 700, fontSize: 8, paddingHorizontal: 8, paddingVertical: 5 }}>{title}</Text>
+      <Text minPresenceAhead={42} style={{ backgroundColor: color, color: '#fff', fontWeight: 700, fontSize: 8, paddingHorizontal: 8, paddingVertical: 5 }}>{title}</Text>
       <View style={{ padding: 8 }}><Rich text={text} size={size} /></View>
     </View>
   );
@@ -502,10 +504,10 @@ function Priority({ n }: { n: number }) {
     ['Tenggat', 17, false], ['Pendamping', 17, false], ['Indikator berhasil', 22, false],
   ];
   return (
-    <View wrap={false} style={{ marginTop: 8, borderWidth: 0.6, borderColor: C.line }}>
-      <Text style={{ backgroundColor: C.dark, color: '#fff', fontWeight: 700, paddingHorizontal: 7, paddingVertical: 5 }}>PRIORITAS {n}</Text>
+    <View style={{ marginTop: 8, borderWidth: 0.6, borderColor: C.line }}>
+      <Text minPresenceAhead={60} style={{ backgroundColor: C.dark, color: '#fff', fontWeight: 700, paddingHorizontal: 7, paddingVertical: 5 }}>PRIORITAS {n}</Text>
       {rows.map(([label, h, multi], i) => (
-        <View key={label} style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: i ? 0.6 : 0, borderTopColor: C.line }}>
+        <View key={label} wrap={false} style={{ flexDirection: 'row', alignItems: 'center', borderTopWidth: i ? 0.6 : 0, borderTopColor: C.line }}>
           <Text style={{ width: '24%', alignSelf: 'stretch', backgroundColor: C.tint, paddingHorizontal: 7, paddingVertical: 4, fontWeight: 600 }}>{label}</Text>
           <View style={{ width: '76%', padding: 3 }}>
             <Field name={`prioritas_${n}_${i + 1}`} height={h} multiline={multi} />
@@ -543,7 +545,7 @@ function Rich({ text, lead, size = 8.5, headline = false }: { text: string; lead
       ) : (
         <View key={i} style={{ marginTop: i ? 4 : 0 }}>
           {b.items.map((lines, j) => (
-            <View key={j} style={{ flexDirection: 'row', marginTop: j ? 2.5 : 0 }}>
+            <View key={j} wrap={false} style={{ flexDirection: 'row', marginTop: j ? 2.5 : 0 }}>
               <Text style={{ width: 9, fontSize: size }}>•</Text>
               <Text style={{ flex: 1, fontSize: size }}><Lines lines={lines} autoLabel boldTitle={lines.length > 1} /></Text>
             </View>

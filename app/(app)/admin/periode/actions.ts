@@ -21,7 +21,7 @@ async function requireHrd(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'periode')) return { ok: false, error: 'Hanya HRD yang dapat mengelola periode' };
   return { ok: true, userId: user.id };
@@ -51,7 +51,7 @@ const CreateInput = z.object({
 
 export async function createPeriod(raw: unknown): Promise<Result> {
   const parsed = CreateInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
   const { label, startDate, endDate, has360, kpiStandard } = parsed.data;
   if (endDate < startDate) return { ok: false, error: 'Tanggal selesai sebelum tanggal mulai' };
 
@@ -197,14 +197,14 @@ export async function setKpiStandard(periodId: string, value: number): Promise<R
  * status On Time / Late & potongan −3 pada Skor 360° penilai yang terlambat (lib/late.ts).
  * Mengubah deadline menerapkan ulang potongan ke seluruh Skor 360° yang sudah dihitung.
  */
-const DeadlineInput = z.union([z.literal(''), z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Format tenggat tidak valid')]);
+const DeadlineInput = z.union([z.literal(''), z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, 'Format deadline tidak valid')]);
 
 export async function setAssessmentDeadline(periodId: string, value: string): Promise<Result> {
-  if (!z.string().uuid().safeParse(periodId).success) return { ok: false, error: 'Isian tidak valid' };
+  if (!z.string().uuid().safeParse(periodId).success) return { ok: false, error: 'Input tidak valid' };
   const parsed = DeadlineInput.safeParse(value);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
   const deadline = parsed.data ? new Date(`${parsed.data}:00+07:00`) : null;
-  if (deadline && Number.isNaN(deadline.getTime())) return { ok: false, error: 'Tanggal tenggat tidak valid' };
+  if (deadline && Number.isNaN(deadline.getTime())) return { ok: false, error: 'Tanggal deadline tidak valid' };
 
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
@@ -215,15 +215,15 @@ export async function setAssessmentDeadline(periodId: string, value: string): Pr
 
   let changed = 0;
   try { changed = await refreshLatePenalties(periodId); } catch (e) {
-    return { ok: false, error: 'Tenggat tersimpan, tetapi potongan gagal diterapkan: ' + (e instanceof Error ? e.message : String(e)) + '. Jalankan Hitung Ulang Skor 360°.' };
+    return { ok: false, error: 'Deadline tersimpan, tetapi potongan gagal diterapkan: ' + (e instanceof Error ? e.message : String(e)) + '. Jalankan Hitung Ulang Skor 360°.' };
   }
 
   const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();
   await logHrdAction({
     action: 'period.setDeadline', category: 'periode',
     summary: deadline
-      ? `Mengatur tenggat penilaian 360° periode "${pr?.label ?? periodId}" → ${parsed.data.replace('T', ' ')} WIB`
-      : `Menghapus tenggat penilaian 360° periode "${pr?.label ?? periodId}"`,
+      ? `Mengatur deadline penilaian 360° periode "${pr?.label ?? periodId}" → ${parsed.data.replace('T', ' ')} WIB`
+      : `Menghapus deadline penilaian 360° periode "${pr?.label ?? periodId}"`,
     targetType: 'period', targetId: periodId, targetLabel: pr?.label ?? null,
     meta: { assessment_deadline: deadline ? deadline.toISOString() : null, rescored: changed },
   });
@@ -309,14 +309,14 @@ export async function toggleFormOpen(periodId: string, value: boolean): Promise<
         : { data: [] as { id: string; text: string; rating_guide: Record<string, string> | null }[] };
       const list = inds ?? [];
       if (list.length !== 10) {
-        return { ok: false, error: `Indikator aktif harus tepat 10 (saat ini ${list.length}). Sesuaikan di Kelola Pertanyaan sebelum membuka formulir.` };
+        return { ok: false, error: `Indikator aktif harus tepat 10 (saat ini ${list.length}). Sesuaikan di Kelola Pertanyaan sebelum membuka form.` };
       }
       const incomplete = list.filter((i) => {
         const g = i.rating_guide;
         return !g || !['1', '2', '3', '4', '5'].every((k) => (g[k] ?? '').trim().length > 0);
       });
       if (incomplete.length > 0) {
-        return { ok: false, error: `${incomplete.length} indikator belum punya panduan perilaku (BARS) lengkap level 1–5: ${incomplete.slice(0, 3).map((i) => i.text).join(', ')}${incomplete.length > 3 ? ', …' : ''}. Lengkapi di Kelola Pertanyaan sebelum membuka formulir.` };
+        return { ok: false, error: `${incomplete.length} indikator belum punya panduan perilaku (BARS) lengkap level 1–5: ${incomplete.slice(0, 3).map((i) => i.text).join(', ')}${incomplete.length > 3 ? ', …' : ''}. Lengkapi di Kelola Pertanyaan sebelum membuka form.` };
       }
     }
   }
@@ -326,7 +326,7 @@ export async function toggleFormOpen(periodId: string, value: boolean): Promise<
   const { data: pr } = await supabase.from('periods').select('label').eq('id', periodId).maybeSingle();
   await logHrdAction({
     action: 'period.toggleForm', category: 'periode',
-    summary: `${value ? 'Membuka' : 'Menutup'} formulir penilaian 360° pada periode "${pr?.label ?? periodId}"`,
+    summary: `${value ? 'Membuka' : 'Menutup'} form penilaian 360° pada periode "${pr?.label ?? periodId}"`,
     targetType: 'period', targetId: periodId, targetLabel: pr?.label ?? null, meta: { form_open: value },
   });
   revalidatePath('/admin/periode');

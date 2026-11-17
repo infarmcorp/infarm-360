@@ -91,10 +91,10 @@ export function PegawaiImport({ rows }: { rows: EmpRow[] }) {
           email, password, spvCode,
         };
       }).filter((r) => r.name || r.empCode || r.email);
-      if (base.length === 0) { setParseErr('Kolom nama/kode tidak ditemukan. Periksa judul kolom pada berkas.'); return; }
+      if (base.length === 0) { setParseErr('Kolom nama/kode tidak ditemukan. Periksa judul kolom pada file.'); return; }
       setParsed(validate(base));
     } catch {
-      setParseErr('Gagal membaca berkas. Pastikan berkas berformat .xlsx, .xls, atau .csv.');
+      setParseErr('Gagal membaca file. Pastikan file berformat .xlsx, .xls, atau .csv.');
     } finally { if (fileRef.current) fileRef.current.value = ''; }
   }
 
@@ -159,13 +159,13 @@ export function PegawaiImport({ rows }: { rows: EmpRow[] }) {
       </div>
       <p className="text-xs text-ink-soft leading-relaxed">
         Kolom: <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">nama</code>, <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">kode</code>, <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">divisi</code>, <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">peran</code> (employee/spv/hrd/direksi),
-        <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded"> email</code> (opsional), <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">sandi</code> (opsional → Sandi Bawaan), <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">atasan</code> (kode pegawai, opsional).
-        {' '}<button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh templat</button>.
+        <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded"> email</code> (opsional), <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">sandi</code> (opsional → Sandi Default), <code className="data-value text-ink-soft bg-neutral-tint px-1 rounded">atasan</code> (kode pegawai, opsional).
+        {' '}<button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh template</button>.
       </p>
 
       <div className="flex flex-wrap items-end gap-2">
         <label className="block">
-          <span className={FIELD_LABEL}>Sandi Bawaan (untuk baris tanpa kolom sandi)</span>
+          <span className={FIELD_LABEL}>Sandi Default (untuk baris tanpa kolom sandi)</span>
           <input value={defPass} onChange={(e) => reapplyDefault(e.target.value)} placeholder="min. 6 karakter"
             className={`${FIELD} font-mono`} />
         </label>

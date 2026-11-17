@@ -62,7 +62,7 @@ async function writeKpi(svc: Svc, actorId: string, ym: string, rows: { employeeI
   );
   if (upErr) return 'Gagal menyimpan: ' + upErr.message;
   const { error: auErr } = await svc.from('kpi_audit').insert(
-    rows.map((r) => ({ employee_id: r.employeeId, ym, score: r.score, changed_by: actorId, note: r.note ?? 'Pengisian bulanan' })),
+    rows.map((r) => ({ employee_id: r.employeeId, ym, score: r.score, changed_by: actorId, note: r.note ?? 'Input bulanan' })),
   );
   return auErr ? 'Skor tersimpan, tetapi pencatatan audit gagal: ' + auErr.message : null;
 }
@@ -84,13 +84,13 @@ export type SaveKpiResult =
 export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
   const parsed = SaveKpiInput.safeParse(raw);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
   }
   const { ym, rows } = parsed.data;
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!auth.user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_coordinator, is_hrd_admin, dept').eq('id', auth.user.id).maybeSingle();
   const empIds = rows.map((r) => r.employeeId);
   const isPureCoordinator = !!me?.is_coordinator && me.role !== 'spv' && me.role !== 'hrd' && me.role !== 'direksi';
@@ -151,7 +151,7 @@ export async function saveKpiScores(raw: unknown): Promise<SaveKpiResult> {
       .from('coordinator_team_members').select('employee_id').in('employee_id', empIds);
     const coordinated = new Set((ct ?? []).map((r) => r.employee_id));
     if (empIds.some((id) => coordinated.has(id))) {
-      return { ok: false, error: 'Sebagian pegawai dikoordinasikan oleh Koordinator — KPI mereka diisi oleh koordinatornya, bukan SPV.' };
+      return { ok: false, error: 'Sebagian pegawai dikoordinasikan oleh Koordinator — KPI mereka diinput koordinatornya, bukan SPV.' };
     }
   }
 
@@ -224,7 +224,7 @@ async function saveKpiAsCoordinator(
     const { data: emps } = await svc.from('employees').select('id, name').in('id', missingNote.map((r) => r.employeeId));
     const names = (emps ?? []).map((e) => e.name);
     const label = names.length ? names.join(', ') : `${missingNote.length} pegawai`;
-    return { ok: false, error: `Perubahan capaian KPI bulan ${ym} wajib disertai Komentar Audit: ${label}.` };
+    return { ok: false, error: `Perubahan capaian KPI bulan ${ym} wajib disertai Komentar Audit (input kedua = edit): ${label}.` };
   }
 
   const writeErr = await writeKpi(svc, coordId, ym, rows);
@@ -245,7 +245,7 @@ async function saveKpiAsCoordinator(
  */
 const DeleteKpiInput = z.object({
   employeeId: z.string().uuid(),
-  ym: z.string().regex(/^\d{4}-\d{2}$/, 'Format bulan harus tahun-bulan (contoh: 2026-11)'),
+  ym: z.string().regex(/^\d{4}-\d{2}$/, 'Format bulan harus YYYY-MM'),
   note: z.string().trim().min(1, 'Alasan penghapusan wajib diisi').max(500),
 });
 
@@ -253,12 +253,12 @@ export type DeleteKpiResult = { ok: true } | { ok: false; error: string };
 
 export async function deleteKpiScore(raw: unknown): Promise<DeleteKpiResult> {
   const parsed = DeleteKpiInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
   const { employeeId, ym, note } = parsed.data;
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!auth.user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_coordinator, is_hrd_admin, dept').eq('id', auth.user.id).maybeSingle();
 
   // KOORDINATOR "murni": hapus KPI HANYA pegawai naungannya, via service_role (RLS menolaknya).

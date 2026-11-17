@@ -36,7 +36,8 @@ export function AddAspectForm({ hasAspects }: { hasAspects: boolean }) {
       </span>
       {!hasAspects && (
         <p className="text-[13px] text-ink-soft mb-2 leading-relaxed">
-          Belum ada aspek. Buat aspek pertama (mis. <strong className="font-semibold text-ink">Integritas</strong>, <strong className="font-semibold text-ink"> Kepemimpinan</strong>, <strong className="font-semibold text-ink">Kolaborasi</strong>), lalu tambahkan indikatornya.
+          Belum ada aspek. Buat aspek pertama (mis. <strong className="font-semibold text-ink">Integritas</strong>,
+          <strong className="font-semibold text-ink"> Kepemimpinan</strong>, <strong className="font-semibold text-ink">Kolaborasi</strong>), lalu tambahkan indikatornya.
         </p>
       )}
       <form onSubmit={submit} className="flex flex-col sm:flex-row gap-2">

@@ -45,7 +45,7 @@ export function CopyMapping({ periods }: { periods: P[] }) {
       </div>
       <p className="text-xs text-ink-soft leading-relaxed">
         Salin semua pasangan penilai dari periode terpilih ke periode aktif. Pasangan yang
-        sudah ada <strong className="font-semibold text-ink">dilewati</strong>; hasil salinan tetap bisa diubah.
+        sudah ada <strong className="font-semibold text-ink">dilewati</strong>; hasil salinan <strong className="font-semibold text-ink">tetap bisa diedit</strong>.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <select value={src} onChange={(e) => setSrc(e.target.value)}

@@ -51,7 +51,7 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
   production (tanpa itu PDF tetap jalan dengan jadwal bawaan, hanya simpan pengaturan yang "belum aktif"). Uji di
   Preview: cetak satu laporan Final ke PDF dan bandingkan dengan templat HRD (pemotongan halaman, warna, nomor halaman).
   HRD perlu mengisi Kesimpulan per pegawai sebelum mencetak.
-- 🔑⬜ **Sisa audit kalimat (2026-11-13).** Perubahan "Ubah" sudah di `dev`. Sisa: 🔑 31 usulan "Tanya HRD" (nama
+- 🔑⬜ **Sisa audit kalimat (v2, 2026-11-17).** Perubahan "Ubah" versi 2 sudah di `dev` (menggantikan versi 1). Sisa: 🔑 31 usulan "Tanya HRD" (nama
   kelas 4-Box, kategori lama, HRD Review/No Score, alasan Ajukan Penilaian, panduan skala BARS, teks Kerahasiaan) menunggu
   jawaban HRD; 🔑 putuskan apakah sandi yang diatur HRD wajib minimal 8 karakter seperti ganti sandi sendiri (sekarang 6).
   Gambar layar Notion yang menampilkan nama menu lama perlu diambil ulang.

@@ -308,7 +308,7 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
       {rows.length > 0 && (
         <>
           {/* D. RINCIAN PER PEGAWAI — tabel & heatmap */}
-          <SectionHeader label="Rincian per Pegawai" hint="tabel & peta panas" />
+          <SectionHeader label="Rincian per Pegawai" hint="tabel & heatmap" />
           <div className={`${CARD} mb-4`}>
             <CardTitle icon={Users} className="mb-4">Tabel Kinerja Pegawai</CardTitle>
             <TeamTable rows={rows} linkNames={false} showStatus={false} showAcc={false} scoreBasis="live" pageSize={5} />
@@ -316,16 +316,16 @@ export default async function AdminMonitorPage({ searchParams }: { searchParams:
           {heat && heat.aspectRows.length > 0 && (
             <ExtremesHeatmap
               pieTitle="Aspek Terlemah & Terkuat (Frekuensi)"
-              pieSubtitle="Aspek budaya yang paling sering menjadi titik terlemah/terkuat pegawai di lingkup ini. Klik irisan untuk menyaring peta panas."
-              heatTitle="Peta Panas Aspek per Pegawai"
+              pieSubtitle="Aspek budaya yang paling sering menjadi titik terlemah/terkuat pegawai di lingkup ini. Klik irisan untuk menyaring heatmap."
+              heatTitle="Heatmap Aspek per Pegawai"
               heatSubtitle="Skor 360° per aspek budaya tiap pegawai (0–100). Kolom Terlemah/Terkuat menunjukkan aspek terendah dan tertinggi."
               columns={heat.aspectCols} rows={heat.aspectRows} pageSize={5} />
           )}
           {heat && heat.indRows.length > 0 && (
             <ExtremesHeatmap
               pieTitle="Indikator Terlemah & Terkuat (Frekuensi)"
-              pieSubtitle="Indikator yang paling sering menjadi titik terlemah/terkuat pegawai. Klik irisan untuk menyaring peta panas."
-              heatTitle="Peta Panas Indikator per Pegawai"
+              pieSubtitle="Indikator yang paling sering menjadi titik terlemah/terkuat pegawai. Klik irisan untuk menyaring heatmap."
+              heatTitle="Heatmap Indikator per Pegawai"
               heatSubtitle="Skor 360° per indikator tiap pegawai (0–100), dikelompokkan per aspek."
               columns={heat.indCols} rows={heat.indRows} pageSize={5} />
           )}
@@ -396,13 +396,14 @@ function Header({ isHrdFull = true, scopeLabel }: { isHrdFull?: boolean; scopeLa
   return (
     <PageTitle title="Monitor Kinerja Pegawai">
       <p>
-        Pemantauan kinerja {scopeLabel ? <span className="font-semibold text-ink">{scopeLabel}</span> : 'seluruh pegawai'} — per periode dan dari waktu ke waktu. Skor Akhir dihitung langsung.
+        Pemantauan kinerja {scopeLabel ? <span className="font-semibold text-ink">{scopeLabel}</span> : 'seluruh pegawai'} — per periode dan dari waktu ke waktu.
+        Skor Akhir dihitung langsung.
       </p>
       <p className="text-xs text-ink-soft mt-1">
         <span className="font-semibold text-ink">Fokus halaman ini:</span> pergerakan &amp; pelacakan per-pegawai lintas waktu.
         {isHrdFull && <>
           {' '}· Butuh <span className="text-ink">klasifikasi talenta &amp; gambaran (4-Box, diagram sebar, kategori)</span>?{' '}
-          <Link href="/admin/dashboard" className="text-brand-ink hover:underline font-semibold">Dasbor Organisasi →</Link>
+          <Link href="/admin/dashboard" className="text-brand-ink hover:underline font-semibold">Dashboard Organisasi →</Link>
         </>}
       </p>
     </PageTitle>

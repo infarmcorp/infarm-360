@@ -31,7 +31,7 @@ export default async function EksporPage() {
   return (
     <main className={`${INFARM_PAGE} w-full min-h-full px-5 py-7 lg:px-7`}>
       <PageTitle title="Ekspor Dataset">
-        Unduh data mentah (.xlsx) untuk olah data lanjutan. Pilih satu atau semua <strong>periode</strong>.
+        Unduh data mentah <strong>(.xlsx)</strong> untuk olah data lanjutan. Pilih satu atau semua <strong>periode</strong>.
       </PageTitle>
       <EksporClient periods={periodOpts} />
       <div className="mt-5">

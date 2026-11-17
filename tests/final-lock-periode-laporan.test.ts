@@ -2,7 +2,7 @@
  * KUNCI LAPORAN FINAL (lib/final-lock) pada jalur:
  *   - Kelola Pertanyaan (semua aksi tulis lewat ctx()) → pengaturan seluruh periode;
  *   - Kelola Periode: toggleHas360 & deletePeriod → pengaturan seluruh periode;
- *   - Tinjauan & Finalisasi: saveOrFinalizeReport → finalisasi ULANG laporan Final ditolak,
+ *   - Review & Finalisasi: saveOrFinalizeReport → finalisasi ULANG laporan Final ditolak,
  *     sedangkan "Buka Kembali (ke Draf)" (finalize=false) tetap boleh.
  * Tiap jalur: (a) belum ada Final → berjalan seperti biasa; (b) ada Final → ditolak tanpa tulis;
  * (c) setelah dibuka kembali (helper → null) → berjalan lagi.
@@ -234,7 +234,7 @@ describe('deletePeriod — dikunci bila periode punya laporan Final', () => {
   });
 });
 
-// ── Tinjauan & Finalisasi: saveOrFinalizeReport ───────────────────────────────────────────────
+// ── Review & Finalisasi: saveOrFinalizeReport ───────────────────────────────────────────────
 describe('saveOrFinalizeReport — finalisasi ULANG laporan Final ditolak; Buka Kembali tetap boleh', () => {
   const ACTIVE = { data: { id: PID, has_360: true, status: 'active' } };
   const COMPUTE: Record<string, QResult[]> = {

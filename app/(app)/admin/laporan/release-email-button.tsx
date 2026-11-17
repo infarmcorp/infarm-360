@@ -197,7 +197,8 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
               {single && <span className="text-ink-soft font-semibold"> · {single.name}</span>}
             </h2>
             <p className="mt-0.5 text-[13px] text-ink-soft">
-              Memberi tahu pegawai bahwa PDF laporannya siap diunduh di <strong>Laporan Hasil Saya</strong>. Email tidak memuat skor.
+              Memberi tahu pegawai bahwa PDF laporannya siap diunduh di <strong>Laporan Hasil Saya</strong>.
+              Email tidak memuat skor.
             </p>
           </div>
           <button type="button" onClick={onClose} disabled={!!busy} className="text-ink-faint hover:text-ink disabled:opacity-40">

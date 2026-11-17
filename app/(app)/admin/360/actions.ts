@@ -30,7 +30,7 @@ export async function computeResult360(): Promise<ComputeResult> {
   // 1) Otorisasi: harus HRD.
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   // Dipicu dari Review & Finalisasi (Hitung Ulang), Bobot, dan persetujuan koreksi Pemetaan.
   if (!(canSection(me, 'laporan') || canSection(me, 'bobot') || canSection(me, 'pemetaan'))) return { ok: false, error: 'Hanya HRD yang dapat menghitung skor 360' };

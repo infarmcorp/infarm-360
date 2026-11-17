@@ -46,7 +46,7 @@ const Comments = z.object({
 async function ctx(): Promise<{ ok: true; actor: PlanActor & { name: string | null }; mode: HrdMode; admin: SB } | { ok: false; error: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees')
     .select('role, is_hrd_admin, is_coordinator, hrd_sections, name').eq('id', user.id).maybeSingle();
   if (!me) return { ok: false, error: 'Akun tidak ditemukan' };
@@ -327,7 +327,7 @@ export async function saveSession(rawPlanId: string, rawSessionId: string | null
   const { actor, admin, mode, plan, emp, info } = s;
   const v = input.data;
   if (!canRecordSession(v.kind, info, actor, emp.id, mode)) {
-    return { ok: false, error: v.kind === 'one_on_one' ? 'Sesi empat mata dicatat oleh atasan pemilik rencana ini' : 'Tinjauan bulanan dicatat oleh HRD di Mode Admin' };
+    return { ok: false, error: v.kind === 'one_on_one' ? 'Sesi 1-on-1 dicatat oleh atasan pemilik rencana ini' : 'Tinjauan bulanan dicatat oleh HRD di Mode Admin' };
   }
   // Kemajuan hanya untuk prioritas milik rencana ini; tinjauan HRD tanpa status/kemajuan.
   const { data: items } = await admin.from('development_plan_items').select('id').eq('plan_id', plan.id);

@@ -125,7 +125,7 @@ export function DistBars({ kpiPeople, s360People }: { kpiPeople: Person[]; s360P
         <SegBar title="Sebaran KPI" people={kpiPeople} />
         {s360People && <SegBar title="Sebaran 360°" people={s360People} />}
       </div>
-      <p className="text-xs text-ink-soft mt-3">Kategori sama dengan Dasbor Organisasi (batas 90/80/70) — sebaran skor, bukan klasifikasi 4-Box.</p>
+      <p className="text-xs text-ink-soft mt-3">Kategori sama dengan Dashboard Organisasi (batas 90/80/70) — sebaran skor, bukan klasifikasi 4-Box.</p>
     </div>
   );
 }

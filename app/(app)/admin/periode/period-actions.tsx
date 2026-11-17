@@ -82,7 +82,8 @@ export function PeriodActions({
           <>
             <p>Periode aktif <strong>“{label}”</strong> masih punya:</p>
             <ul className="list-disc pl-5">{issues.map((s, i) => <li key={i}>{s}</li>)}</ul>
-            <p>Mengaktifkan periode ini akan <strong>MENGUNCI “{label}”</strong>: penilaian, KPI, dan draf yang tersisa tidak bisa diubah lagi.</p>
+            <p>Mengaktifkan periode ini akan <strong>MENGUNCI “{label}”</strong>: penilaian, KPI, dan draf
+              yang tersisa tidak bisa diedit lagi.</p>
           </>
         ),
         onConfirm: () => fromDialog(() => activatePeriod(periodId)),
@@ -111,7 +112,8 @@ export function PeriodActions({
         body: (
           <>
             <p>Sudah ada <strong>{r.count} penilaian 360° terkirim</strong> di periode ini.</p>
-            <p>Mematikan 360° menyembunyikan formulir penilaian dan mengubah <strong>Skor Akhir menjadi 100% KPI</strong>. Klasifikasi talenta ikut berubah. Lanjutkan?</p>
+            <p>Mematikan 360° <strong>menyembunyikan form penilaian</strong> dan
+              mengubah <strong>Skor Akhir menjadi 100% KPI</strong>. Klasifikasi talenta ikut berubah. Lanjutkan?</p>
           </>
         ),
         onConfirm: () => fromDialog(() => toggleHas360(periodId, false)),
@@ -140,7 +142,8 @@ export function PeriodActions({
               <ul className="list-disc pl-5">{issues.map((s, i) => <li key={i}>{s}</li>)}</ul>
             </>
           )}
-          <p>Periode akan ditutup: penilaian dan KPI tidak bisa diubah, dan laporan tidak bisa difinalisasi tanpa mengaktifkan ulang periode.</p>
+          <p>Periode akan <strong>ditutup</strong>: penilaian dan KPI tidak bisa diedit, dan laporan
+            <strong> tidak bisa difinalisasi</strong> tanpa mengaktifkan ulang periode.</p>
           {issues.length > 0 && <p className="font-semibold text-danger-ink">Sebaiknya finalisasi dulu laporan yang tersisa.</p>}
         </>
       ),
@@ -177,8 +180,8 @@ export function PeriodActions({
       onSelect: toggle360Guard,
       disabled: busy,
       title: has360
-        ? 'Menutup komponen 360°: formulir penilaian disembunyikan dari pegawai & skor 360° tak dihitung.'
-        : 'Membuka 360°: formulir penilaian tampil ke pegawai yang punya pemetaan, dan skor 360° dihitung.',
+        ? 'Menutup komponen 360°: form penilaian disembunyikan dari pegawai & skor 360° tak dihitung.'
+        : 'Membuka 360°: form penilaian tampil ke pegawai yang punya pemetaan, dan skor 360° dihitung.',
     },
     // Fase tinjau pemetaan — hanya relevan selagi periode aktif & 360° menyala.
     ...(status === 'active' && has360 ? [{
@@ -187,15 +190,15 @@ export function PeriodActions({
       disabled: busy,
       title: mappingPublished
         ? 'Menyembunyikan kembali daftar pemetaan dari pegawai (pengajuan hapus/tambah ikut ditutup).'
-        : 'Tampilkan daftar "siapa menilai siapa" ke pegawai. Mereka bisa mengajukan penghapusan atau penambahan sebelum formulir dibuka.',
+        : 'Tampilkan daftar "siapa menilai siapa" ke pegawai. Mereka bisa mengajukan penghapusan atau penambahan sebelum form dibuka.',
     } as OverflowItem] : []),
     ...(status === 'active' && has360 ? [{
-      label: formOpen ? 'Tutup Formulir' : 'Buka Formulir',
+      label: formOpen ? 'Tutup Form' : 'Buka Form',
       onSelect: () => run(() => toggleFormOpen(periodId, !formOpen)),
       disabled: busy,
       title: formOpen
-        ? 'Menutup formulir: pegawai berhenti mengisi. Skor 360° TETAP dihitung dan Hitung Ulang tetap tersedia.'
-        : 'Membuka kembali formulir agar pegawai bisa melanjutkan pengisian 360°.',
+        ? 'Menutup form: pegawai berhenti mengisi. Skor 360° TETAP dihitung dan Hitung Ulang tetap tersedia.'
+        : 'Membuka kembali form agar pegawai bisa melanjutkan pengisian 360°.',
     } as OverflowItem] : []),
     // Laporkan Pelanggaran (0061) — saklar sendiri, tidak bergantung pada 360° maupun formulir.
     ...(violationOpen !== null && (status === 'active' || violationOpen) ? [{
@@ -258,7 +261,7 @@ export function PeriodActions({
           <>
             <p>Periode ini berisi data berikut yang akan <strong>ikut terhapus permanen</strong>:</p>
             <ul className="list-disc pl-5">
-              {del && del.counts.assessments > 0 && <li>{del.counts.assessments} penilaian 360° (+ jawaban nilai &amp; esai)</li>}
+              {del && del.counts.assessments > 0 && <li>{del.counts.assessments} penilaian 360° (+ jawaban rating &amp; esai)</li>}
               {del && del.counts.kpi > 0 && <li>{del.counts.kpi} skor KPI (bulan khusus periode ini)</li>}
               {del && del.counts.finalReports > 0 && <li>{del.counts.finalReports} laporan final</li>}
               {del && del.counts.mappings > 0 && <li>{del.counts.mappings} pemetaan penilai→target</li>}

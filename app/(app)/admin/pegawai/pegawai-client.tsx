@@ -245,7 +245,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
             </Field>
             <Field label="Tanggal Masuk / Aktif">
               <DatePicker value={form.joinedOn} onChange={(v) => set('joinedOn', v)} allowClear ariaLabel="Pilih tanggal masuk" />
-              <span className="block text-xs text-ink-faint mt-1">{form.id ? 'Dapat dikoreksi ke tanggal masuk sebenarnya.' : 'Bawaan hari ini; ubah bila tanggal masuk berbeda.'}</span>
+              <span className="block text-xs text-ink-faint mt-1">{form.id ? 'Dapat dikoreksi ke tanggal masuk sebenarnya.' : 'Default hari ini; ubah bila tanggal masuk berbeda.'}</span>
             </Field>
             {form.id && (
               <Field label="Tanggal Nonaktif (opsional)">
@@ -259,7 +259,8 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
             <label className="sm:col-span-2 flex items-start gap-2 rounded-xl bg-warn-tint px-3.5 py-2.5 cursor-pointer">
               <input type="checkbox" checked={form.isExternal} onChange={(e) => set('isExternal', e.target.checked)} className="mt-0.5 accent-brand" />
               <span className="text-xs text-warn-ink leading-relaxed">
-                <span className="font-bold">Penilai eksternal</span> (vendor/pekerja lepas/mitra) — hanya <strong>menilai</strong> (relasi Lintas Divisi), <strong>tanpa</strong> KPI, Skor Akhir, dan laporan. Bukan untuk pegawai Infarm.
+                <span className="font-bold">Penilai eksternal</span> (vendor/pekerja lepas/mitra) — hanya <strong>menilai</strong> sebagai
+                Lintas Divisi (Cross), <strong>tanpa</strong> KPI, Skor Akhir, dan laporan. Bukan untuk pegawai Infarm.
               </span>
             </label>
           </div>
@@ -349,7 +350,7 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
                 <td className="py-3 px-3 text-right whitespace-nowrap">
                   <button type="button" onClick={() => openEdit(r)} disabled={pending} title="Ubah"
                     className={`${ICON_BTN} text-ink-soft hover:bg-neutral-tint`}><Pencil className="w-4 h-4" /></button>
-                  <button type="button" onClick={() => doReset(r)} disabled={pending} title="Atur ulang sandi"
+                  <button type="button" onClick={() => doReset(r)} disabled={pending} title="Reset sandi"
                     className={`${ICON_BTN} text-brand-ink hover:bg-brand-tint`}><KeyRound className="w-4 h-4" /></button>
                   <button type="button" onClick={() => act(() => setEmployeeActive(r.id, !r.active))} disabled={pending}
                     title={r.active ? 'Nonaktifkan' : 'Aktifkan'}
@@ -365,13 +366,13 @@ export function PegawaiClient({ rows, spvs, depts }: { rows: EmpRow[]; spvs: Spv
       </div>
 
       <Note>
-        Akun nonaktif dikunci (tidak bisa masuk), tetapi riwayat penilaian dan KPI tetap tersimpan. Email sementara bisa diganti lewat “Ubah”.
+        Akun nonaktif dikunci (tidak bisa login), tetapi riwayat penilaian dan KPI tetap tersimpan. Email sementara bisa diganti lewat “Ubah”.
       </Note>
 
       <ConfirmDialog
         open={!!reset}
         icon="🔑"
-        title={reset ? `Atur ulang sandi — ${reset.r.name}` : ''}
+        title={reset ? `Reset sandi — ${reset.r.name}` : ''}
         tone="primary"
         confirmLabel="Setel Sandi"
         busy={pending}

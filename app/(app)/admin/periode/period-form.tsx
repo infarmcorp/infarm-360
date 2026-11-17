@@ -63,7 +63,7 @@ export function PeriodForm() {
       </label>
 
       <div className="flex flex-wrap items-center gap-2.5 mt-4 text-[13px] text-ink-soft">
-        <label htmlFor="kpiStandard">Standar/Target KPI untuk metrik dasbor</label>
+        <label htmlFor="kpiStandard">Standar/Target KPI untuk metrik dashboard</label>
         <input id="kpiStandard" type="number" min={0} max={100} value={kpiStandard}
           onChange={(e) => setKpiStandard(e.target.value)}
           className={`${FIELD} w-16 text-center data-value`} />

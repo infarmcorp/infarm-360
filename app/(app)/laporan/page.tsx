@@ -110,7 +110,7 @@ export default async function LaporanSayaPage({ searchParams }: { searchParams: 
       <div className="no-print mb-5 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-infarm-cream/60 px-3.5 py-2.5">
         <p className="flex items-start gap-2 text-[13px] text-ink-soft">
           <NotebookPen className="w-4 h-4 text-infarm-soil shrink-0 mt-0.5" aria-hidden />
-          <span><strong className="text-ink">{planTitle(selected.label)}</strong> — isi setelah sesi empat mata dengan atasan Anda.</span>
+          <span><strong className="text-ink">{planTitle(selected.label)}</strong> — isi setelah sesi 1-on-1 dengan atasan Anda.</span>
         </p>
         <Link href={`/pengembangan?tab=saya&period=${selected.id}`} className="inline-flex items-center gap-1 text-[13px] font-bold text-brand-ink hover:underline">
           Buka Rencana <ArrowRight className="w-3.5 h-3.5" aria-hidden />

@@ -172,12 +172,14 @@ async function KoreksiTab({ supabase, periodId }: { supabase: Awaited<ReturnType
               )}
               {kind === 'remove' && (
                 <p className="text-xs text-ink-soft">
-                  Minta <strong>dikeluarkan</strong> dari daftar penilaiannya {r.old_relation && <> (saat ini <span className="font-semibold">{r.old_relation}</span>)</>}. Bila disetujui, pemetaan dinonaktifkan.
+                  Minta <strong>dikeluarkan</strong> dari daftar penilaiannya
+                  {r.old_relation && <> (saat ini <span className="font-semibold">{r.old_relation}</span>)</>}. Bila disetujui, pemetaan dinonaktifkan.
                 </p>
               )}
               {kind === 'add' && (
                 <p className="text-xs text-ink-soft">
-                  Minta <strong>menilai rekan ini</strong> sebagai <span className="bg-brand-tint text-brand-ink font-semibold px-2 py-0.5 rounded-full">{r.new_relation ?? '—'}</span>. Bila disetujui, pemetaan baru dibuat (sifat Opsional).
+                  Minta <strong>menilai rekan ini</strong> sebagai{' '}
+                  <span className="bg-brand-tint text-brand-ink font-semibold px-2 py-0.5 rounded-full">{r.new_relation ?? '—'}</span>. Bila disetujui, pemetaan baru dibuat (sifat Opsional).
                 </p>
               )}
 

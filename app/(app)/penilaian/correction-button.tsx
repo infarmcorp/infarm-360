@@ -7,7 +7,7 @@ import { FIELD, FIELD_LABEL } from '@/components/infarm-ui';
 import { CHIP_PENDING, FIELD_AREA, LINK_SECONDARY } from './penilaian-ui';
 
 const REL_OPTS = ['Atasan', 'Peer', 'Cross', 'Bawahan'];
-const REL_LABEL: Record<string, string> = { Atasan: 'Atasan', Peer: 'Rekan', Cross: 'Lintas Divisi', Bawahan: 'Bawahan' };
+const REL_LABEL: Record<string, string> = { Atasan: 'Atasan', Peer: 'Rekan (Peer)', Cross: 'Lintas Divisi (Cross)', Bawahan: 'Bawahan' };
 
 /** Tombol + modal "Minta Koreksi" garis hubungan terhadap satu rekan (penilai). */
 export function CorrectionButton({

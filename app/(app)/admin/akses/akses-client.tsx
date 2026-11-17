@@ -61,10 +61,10 @@ function holderRoleTags(e: AksesEmployee): string[] {
 function inheritedAccess(e: AksesEmployee): string[] {
   const out: string[] = [];
   if (e.role === 'hrd' || e.isHrdAdmin) out.push('Menu Administrator HRD (sesuai “Atur Akses”).');
-  if (e.role === 'spv') out.push('Pengisian KPI, Laporan Kinerja Tim, & Monitor Kinerja — untuk anggota timnya.');
-  if (e.isCoordinator) out.push('Pengisian KPI & Laporan Kinerja Tim — untuk tim naungannya (Koordinator).');
-  if (e.role === 'direksi') out.push('Dasbor eksekutif, persetujuan promosi/suksesi, & Tinjauan Hasil Akhir (agregat).');
-  out.push('Mengisi Umpan Balik 360° & melihat Laporan Hasil miliknya sendiri.');
+  if (e.role === 'spv') out.push('Input KPI, Laporan Kinerja Tim, & Monitor Kinerja — untuk anggota timnya.');
+  if (e.isCoordinator) out.push('Input KPI & Laporan Kinerja Tim — untuk tim naungannya (Koordinator).');
+  if (e.role === 'direksi') out.push('Dashboard eksekutif, persetujuan promosi/suksesi, & Tinjauan Hasil Akhir (agregat).');
+  out.push('Mengisi 360° Feedback & melihat Laporan Hasil miliknya sendiri.');
   return out;
 }
 
@@ -372,7 +372,7 @@ export function AksesClient({
               </label>
             </div>
           ) : (
-            <p className="text-xs text-ink-soft">Halaman pemantauan selalu hanya lihat.</p>
+            <p className="text-xs text-ink-soft">Halaman pemantauan selalu <strong>hanya lihat</strong>.</p>
           )}
         </div>
 
@@ -414,7 +414,8 @@ export function AksesClient({
             <CardTitle icon={UserPlus} className="mb-3">Pegawai Baru <span className="font-mono font-semibold text-warn-ink">({newEmployees.length})</span></CardTitle>
             <div className="mb-3 max-w-3xl">
               <Note tone="warn">
-                Bergabung ≤ {NEW_WINDOW_DAYS} hari dan belum ditinjau. Mereka hanya punya akses <strong>bawaan peran</strong>. Klik <span className="font-semibold">Tinjau</span>, lalu <span className="font-semibold">Tandai selesai</span>.
+                Bergabung ≤ {NEW_WINDOW_DAYS} hari dan belum direview. Mereka hanya punya akses <strong>bawaan peran</strong>.
+                Klik <span className="font-semibold">Tinjau</span>, lalu <span className="font-semibold">Tandai selesai</span>.
               </Note>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -585,7 +586,7 @@ export function AksesClient({
                     )}
                   </div>
                 )}
-                <p className="text-xs text-ink-faint mt-2">Peninjau Lintas Divisi kini diberikan lewat akses halaman “Tinjauan &amp; Finalisasi” (lingkup “selain divisinya”, izin “Boleh meringkas”).</p>
+                <p className="text-xs text-ink-faint mt-2">Peninjau Lintas Divisi kini diberikan lewat akses halaman <strong>“Review & Finalisasi”</strong> (lingkup “selain divisinya”, izin “Boleh meringkas”).</p>
               </div>
             </div>
           );
@@ -677,7 +678,7 @@ export function AksesClient({
             )}
 
             {holders.length === 0 ? (
-              <p className="text-[13px] text-ink-soft">Belum ada pemegang. Berikan lewat pilihan Seorang pegawai atau Sebuah peran.</p>
+              <p className="text-[13px] text-ink-soft">Belum ada pemegang. Berikan lewat pilihan <strong>Seorang pegawai</strong> atau <strong>Sebuah peran</strong>.</p>
             ) : (
               <div className="space-y-3">
                 {/* Filter pemegang: per peran & per divisi (kosong = semua). */}
@@ -712,7 +713,7 @@ export function AksesClient({
                           <span className="text-ink-soft"> · {emp.dept} · {summary}</span>
                         </div>
                         {isAdmin && (
-                          <button type="button" onClick={() => cycleIzin(emp, selPage)} disabled={pending} title="Ganti izin bergiliran: Lihat → Meringkas → Finalisasi"
+                          <button type="button" onClick={() => cycleIzin(emp, selPage)} disabled={pending} title="Putar izin: Lihat → Meringkas → Finalisasi"
                             className={`shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border disabled:opacity-50 ${bd.c}`}><BdIcon className="w-3 h-3" />{bd.t}</button>
                         )}
                         <button type="button" onClick={() => revokeGrant(emp, selPage)} disabled={pending} title="Cabut akses pegawai ini"
@@ -731,7 +732,8 @@ export function AksesClient({
 
         <div className="mt-4 max-w-3xl">
           <Note>
-            Lingkup dan izin diterapkan di server. Semua perubahan tercatat di <span className="font-semibold text-ink-soft">Log aktivitas</span>. “Atur Akses” hanya membatasi menu rekan HRD, bukan mengunci data.
+            Lingkup dan izin diterapkan di server. Semua perubahan tercatat di <span className="font-semibold text-ink-soft">Log aktivitas</span>.
+            “Atur Akses” hanya membatasi <strong>menu</strong> rekan HRD, bukan mengunci data.
           </Note>
         </div>
       </>)}
@@ -777,7 +779,7 @@ export function AksesClient({
         onConfirm={submitSections} onCancel={() => { if (!pending) setSectionsDlg(null); }}>
         <p>Batasi halaman admin yang boleh dibuka rekan HRD ini. <strong>Akses penuh</strong> = semua bagian.</p>
         <Note tone="warn">
-          Ini hanya membatasi menu, bukan mengunci data — pemegang izin HRD tetap bisa membaca data. Gunakan untuk pembagian tugas antarrekan HRD.
+          Ini hanya membatasi <strong>menu</strong>, bukan mengunci data — pemegang izin HRD tetap bisa membaca data. Gunakan untuk pembagian tugas antarrekan HRD.
         </Note>
         <div className="space-y-1.5">
           <label className="flex items-center gap-2 cursor-pointer text-[13px]">
@@ -825,7 +827,7 @@ export function AksesClient({
         onConfirm={() => roleConfirm && doRoleSave(roleConfirm.roleTarget, roleConfirm.section, roleConfirm.scopes, roleConfirm.canEdit, roleConfirm.canFinalize)}
         onCancel={() => { if (!pending) setRoleConfirm(null); }}>
         {roleConfirm && (
-          <p><strong>SEMUA {GRANT_ROLE_TARGET_LABELS[roleConfirm.roleTarget as GrantRoleTarget]} ({roleConfirm.count} orang)</strong> akan bisa memfinalisasi dan merilis halaman <strong>{pages.find((p) => p.key === roleConfirm.section)?.label}</strong> di lingkupnya masing-masing. Ini izin paling berdampak. Lanjutkan?</p>
+          <p><strong>SEMUA {GRANT_ROLE_TARGET_LABELS[roleConfirm.roleTarget as GrantRoleTarget]} ({roleConfirm.count} orang)</strong> akan bisa <strong>memfinalisasi dan merilis</strong> halaman <strong>{pages.find((p) => p.key === roleConfirm.section)?.label}</strong> di lingkupnya masing-masing. Ini izin paling berdampak. Lanjutkan?</p>
         )}
       </ConfirmDialog>
     </div>

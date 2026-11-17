@@ -59,7 +59,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
       await writeWorkbook(sheets, filename);
       setMsg({ key, ok: true, text: `${total} baris diunduh (${sheets.length} lembar).` });
     } catch (e) {
-      setMsg({ key, ok: false, text: e instanceof Error ? e.message : 'Gagal menyiapkan berkas.' });
+      setMsg({ key, ok: false, text: e instanceof Error ? e.message : 'Gagal menyiapkan file.' });
     } finally { setBusy(null); }
   }
 
@@ -123,7 +123,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
       }),
     },
     {
-      key: 'idp', title: 'Rencana Pengembangan & Sesi Empat Mata', icon: Sprout, scoped: true,
+      key: 'idp', title: 'Rencana Pengembangan & Sesi 1-on-1', icon: Sprout, scoped: true,
       desc: <>Rencana pengembangan pegawai (<strong>bernama</strong>), disaring menurut periode <strong>laporan</strong> asalnya — <strong>3 lembar</strong>: <strong>Rencana</strong> (per prioritas) · <strong>Komentar &amp; Persetujuan</strong> (komentar atasan, siapa menyetujui &amp; kapan) · <strong>Sesi &amp; Tinjauan</strong> (sesi 1-on-1, tinjauan bulanan HRD, kemajuan per prioritas, tanggapan pegawai).</>,
       go: () => run('idp', async () => {
         const res = await exportDevPlans(pid());
@@ -156,7 +156,7 @@ export function EksporClient({ periods }: { periods: PeriodOpt[] }) {
       </div>
 
       <Note>
-        Setiap unduhan berupa satu berkas Excel dengan beberapa lembar yang saling berkaitan, jadi cukup diunduh sekali.
+        Setiap unduhan berupa <strong>satu file Excel dengan beberapa lembar</strong> yang saling berkaitan, jadi cukup diunduh sekali.
       </Note>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

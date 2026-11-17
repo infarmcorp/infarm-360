@@ -55,7 +55,8 @@ export function AdhocDeleteButton({ targetId, targetName, submitted = false }: {
 
       <Modal open={open} title="Hapus Penilaian Tambahan" busy={busy} onClose={close}>
         <p className="text-[13px] text-ink-soft leading-relaxed">
-          <strong>{targetName}</strong> akan dihapus dari daftar penilaian Anda, termasuk <strong className="text-danger-ink">draf yang belum dikirim</strong>.
+          <strong>{targetName}</strong> akan dihapus dari daftar penilaian Anda, termasuk
+          <strong className="text-danger-ink"> draf yang belum dikirim</strong>.
         </p>
         <p className="text-xs text-ink-soft">
           Bila rekan ini ditugaskan HRD, gunakan <strong>Ajukan Hapus</strong> — hanya HRD yang bisa membatalkan penugasan.

@@ -53,8 +53,8 @@ export default async function AdminLaporanPage() {
     grantCanFinalize = !!access?.canFinalize;
   }
   if (!isHrdFull && !reviewScopes) {
-    return <Shell><PageTitle title="Tinjauan & Finalisasi" />
-      <p className="text-[13px] text-ink-soft">Halaman ini hanya untuk HRD Admin atau pemegang akses Tinjauan &amp; Finalisasi.</p></Shell>;
+    return <Shell><PageTitle title="Review & Finalisasi" />
+      <p className="text-[13px] text-ink-soft">Halaman ini hanya untuk HRD Admin atau pemegang akses Review & Finalisasi.</p></Shell>;
   }
 
   // "Tinjau" (buka detail) tampil bila HRD penuh ATAU pemegang grant (baik lihat-saja maupun edit —
@@ -65,7 +65,7 @@ export default async function AdminLaporanPage() {
 
   const { data: ap } = await supabase
     .from('periods').select('id, label, has_360').eq('status', 'active').limit(1).maybeSingle();
-  if (!ap) return <Shell><PageTitle title="Tinjauan & Finalisasi" /><p className="text-[13px] text-ink-soft">Tidak ada periode aktif.</p></Shell>;
+  if (!ap) return <Shell><PageTitle title="Review & Finalisasi" /><p className="text-[13px] text-ink-soft">Tidak ada periode aktif.</p></Shell>;
 
   // Pelaporan: ambil TANPA filter is_active; nonaktif disaring belakangan kecuali punya data
   // periode (KPI/360°/laporan) → pegawai yang resign di akhir periode tetap bisa difinalisasi.
@@ -310,7 +310,7 @@ export default async function AdminLaporanPage() {
 
   return (
     <Shell>
-      <PageTitle title="Tinjauan & Finalisasi">
+      <PageTitle title="Review & Finalisasi">
         {!isHrdFull && !grantCanEdit && (
           <span className="mr-2 inline-flex items-center rounded-full bg-neutral-tint px-2.5 py-0.5 text-xs font-semibold text-ink-soft">Hanya lihat</span>
         )}
@@ -401,15 +401,19 @@ export default async function AdminLaporanPage() {
       <div className={CARD}><ReportTable rows={shownRows} depts={depts} has360={ap.has_360} readOnly={readOnly} release={release ?? undefined} /></div>
       {isHrdFull ? (
         <div className="mt-4"><Note>
-          Klik <strong>Tinjau</strong> untuk mengelola laporan (Simpan Draf → Rilis ke SPV → Finalisasi). Label &quot;berubah&quot; muncul bila skor final berbeda dari data terkini — tekan ② Perbarui Laporan <strong>Final</strong> yang Berubah untuk memperbarui semuanya.
+          Klik <strong>Tinjau</strong> untuk mengelola laporan (Simpan Draf → Rilis ke SPV → Finalisasi). Label
+          <strong> berubah</strong> muncul bila skor final berbeda dari data terkini — tekan
+          <strong> ② Perbarui Laporan Final yang Berubah</strong> untuk memperbarui semuanya.
         </Note></div>
       ) : grantCanFinalize ? (
         <div className="mt-4"><Note>
-          Klik <strong>Tinjau</strong> untuk membuka dan mengelola laporan pegawai sesuai akses dari HRD (Simpan Draf → Rilis → Finalisasi).
+          Klik <strong>Tinjau</strong> untuk membuka dan mengelola laporan pegawai sesuai akses dari HRD
+          (Simpan Draf → Rilis → Finalisasi).
         </Note></div>
       ) : grantCanEdit ? (
         <div className="mt-4"><Note>
-          Klik <strong>Tinjau</strong> untuk membuka laporan pegawai dan menulis <strong> Ringkasan Aspek</strong>. Finalisasi dan kalibrasi skor wewenang HRD.
+          Klik <strong>Tinjau</strong> untuk membuka laporan pegawai dan menulis
+          <strong> Ringkasan Aspek</strong>. Finalisasi dan kalibrasi skor wewenang HRD.
         </Note></div>
       ) : (
         <div className="mt-4"><Note>

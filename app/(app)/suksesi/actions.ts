@@ -18,7 +18,7 @@ async function ctx(): Promise<
 > {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   const role = me?.role ?? '';
   // HRD path butuh bagian 'suksesi' (akses granular); Direksi (merespons) lewat cek role.

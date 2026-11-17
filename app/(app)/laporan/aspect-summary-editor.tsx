@@ -69,7 +69,7 @@ export function AspectSummaryEditor({
   intro?: string;
   noun?: string;
   /** Diisi hanya bila Ringkas otomatis (Gemini) aktif di lingkungan ini (dev/staging). */
-  aiKind?: 'aspect' | 'qual';
+  aiKind?: 'aspect' | 'qual' | 'notes';
   /** Model & versi prompt dari Pengaturan AI (satu untuk semua); tautan ubah hanya untuk HRD Mode Admin. */
   aiInfo?: { model: string; version: number; settingsHref?: string };
 }) {
@@ -179,7 +179,7 @@ export function AspectSummaryEditor({
                 </div>
               </div>
               <p className="mt-1.5">{usageLine(ai)}</p>
-              {ai.skipped.length > 0 && <p className="mt-1">Tanpa saran (belum ada komentar): {ai.skipped.join(', ')}</p>}
+              {ai.skipped.length > 0 && <p className="mt-1">{aiKind === 'notes' ? 'Tanpa saran (tidak ada yang perlu ditulis)' : 'Tanpa saran (belum ada komentar)'}: {ai.skipped.join(', ')}</p>}
             </>
           )}
         </div>

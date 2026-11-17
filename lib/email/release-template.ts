@@ -2,7 +2,7 @@ import { PERF_LABEL } from '@/lib/scoring';
 
 /**
  * Template email "Rilis Laporan PA" — mengabarkan pegawai bahwa PDF laporannya sudah bisa diunduh di
- * portal (Laporan Hasil Saya → Unduh PDF → Folder Laporan Drive). Teks acuan: dokumen HRD "Komunikasi
+ * portal (Laporan Hasil Saya → Unduh PDF, langsung terunduh dari aplikasi). Teks acuan: dokumen HRD "Komunikasi
  * Rilis Laporan PA Q3 2026" (2026-10-15), dibuat berlaku untuk periode mana pun:
  *  - otomatis dari data: label periode, rentang bulan, aspek budaya (360°), tabel kategori skor;
  *  - diisi HRD saat kirim: urutan siklus, potongan keterlambatan (ya/tidak), Tahapan Selanjutnya.
@@ -175,7 +175,7 @@ export function releaseEmailHtml(args: {
     <hr style="border:0;border-top:1px solid #E4E6E2;margin:26px 0 18px">
     ${img(images.panduan, `Panduan Performance Appraisal ${period.label}`)}
     <h3 style="${H}">Cara Mengunduh Laporan PDF</h3>
-    <p style="${P}">Buka portal Infarm 360°, masuk ke menu <strong>Laporan Hasil Saya</strong>, pastikan periode <strong>${esc(period.label)}</strong> terpilih, lalu klik <strong>Unduh PDF</strong>. Anda akan diarahkan ke folder Google Drive berisi laporan PA Anda; klik file untuk membuka atau mengunduhnya. Jika folder masih kosong atau ada kendala, hubungi Tim HRD.</p>
+    <p style="${P}">Buka portal Infarm 360°, masuk ke menu <strong>Laporan Hasil Saya</strong>, pastikan periode <strong>${esc(period.label)}</strong> terpilih, lalu klik <strong>Unduh PDF</strong>. Laporan PA Anda langsung terunduh sebagai berkas PDF (tunggu beberapa detik). Jika ada kendala, hubungi Tim HRD.</p>
     ${img(images['cara-unduh'], `Cara mengunduh laporan PA ${period.label}`)}
   </div>`;
 }

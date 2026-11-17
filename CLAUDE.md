@@ -48,11 +48,11 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
 
 ## 3. Stack & struktur
 - Next.js 16 App Router (Turbopack, React 19, TS strict), Tailwind v4, Supabase (Postgres + Auth `@supabase/ssr`
-  + RLS), Zod, `xlsx` (parse di klien), `nodemailer`/Resend, `@vercel/edge-config`, `motion`, `lucide-react`,
+  + RLS), Zod, `xlsx` (parse di klien), `nodemailer`/Resend, `@vercel/edge-config`, `motion`, `lucide-react`, `@react-pdf/renderer` (PDF Pegawai),
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
   typecheck + lint + build; lint bersih sejak 2026-10-16 — jangan tambah temuan baru). Backup harian `.github/workflows/backup.yml`. npm.
 - Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 31 tabel publik, migrasi
-  `supabase/migrations/0001`–`0062` (0060 `ai_settings` = eksperimen dev, belum wajib di production). **Production berjalan tanpa API LLM**:
+  `supabase/migrations/0001`–`0064` (0060 `ai_settings` & 0064 = eksperimen dev, belum wajib di production). **Production berjalan tanpa API LLM**:
   "Ringkas otomatis"/Pengaturan AI (`lib/ai/`, `GEMINI_API_KEY`) hanya dev/staging dan mati otomatis di production; ringkasan
   HRD ditulis manual. Jangan sebut fitur AI di PANDUAN/Notion selama belum dirilis. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
   → **wajib** cek `Bearer $CRON_SECRET` sendiri, gagal tertutup. Email Rilis terjadwal dipicu GitHub Actions
@@ -116,6 +116,8 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   permintaan. Yang tetap berlaku: L3 (nama penilai) dibuang di server untuk tampilan HRD (`withoutNamedFeedback`);
   pemegang grant Review non-HRD tetap ditolak untuk laporannya sendiri; ACC laporan sendiri tetap ditolak (0049).
   Aturan database yang melarang membaca penilaian atas diri sendiri **tidak** dibuat (keputusan yang sama).
+- **PDF Pegawai** (`laporan/[employeeId]/pdf-pegawai`, dibuat server `lib/pdf/pa-report.tsx`, TEKNIS.md §5.6): HRD Mode Admin saja; hanya skor + ringkasan HRD +
+  `content.pdfNotes` — **jangan** render raw (`byAspect`/`essays`) atau L3 di sana: PDF ini yang diunduh pegawai sendiri dari Laporan Hasil Saya (route unduh `allowSelf`, hanya laporan Final).
 - Employee hanya membaca laporannya saat `finalized` (dimuat via service_role). Direksi read-only + ACC.
 - **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan"; tabel `outside_mapping_notes`, 0054 + 0058 + 0061 + 0062,
   keputusan pemilik 2026-11-03, 2026-11-10 & 2026-11-16) — rincian TEKNIS.md §5.4:
@@ -288,6 +290,8 @@ bersama (2026-11-03/04). Aturan token & "kartu flat tanpa bayangan / font sistem
   (isi sel 1 baris, keputusan pengguna), dan tabel + pager dibungkus `StableHeight` (`components/table-controls.tsx`)
   — ukuran tak boleh bergeser saat paging/filter/tab. Daftar yang barisnya bisa dibuka-tutup (Progress 360) dikecualikan.
 - Label di dalam SVG chart (radar `report-doc`, grafik Monitor) boleh < 10px agar grafik tak berdesakan.
+- **Pengecualian: PDF Pegawai** (`lib/pdf/pa-report.tsx`) mengikuti PDF HRD, bukan design system: font Inter, warna kategori
+  HRD (Memenuhi = biru, Melampaui = hijau), ukuran huruf < 10px boleh (pemilik 2026-11-17). Jangan diseragamkan ke token aplikasi.
 
 ## 9. Konvensi & pengujian
 - TS strict; hindari `any`. Komentar & label UI bahasa Indonesia mengikuti istilah PANDUAN ("Mulai Nilai",

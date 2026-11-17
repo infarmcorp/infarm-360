@@ -236,11 +236,9 @@ Yang perlu diketahui:
 ### 2.3 Laporan Hasil Saya
 Muncul **hanya setelah HRD memfinalisasi** laporan Anda. Sebelum itu tertulis "belum difinalisasi".
 1. Pilih laporan di baris **Pilih periode**. Laporan final periode lama tetap bisa dibuka.
-2. Klik **Unduh PDF**: folder Google Drive Anda terbuka di tab baru. Folder ini berisi laporan PDF semua kuartal
-   yang disiapkan HRD (mis. *Nama - Q3 2026*). Pilih laporan yang dibutuhkan, lalu unduh. Anda hanya bisa
-   melihat dan mengunduh, tidak bisa menghapus atau mengubah isinya.
-   - Buka dengan akun Google yang didaftarkan ke HRD. Bila muncul "Anda memerlukan akses", ganti ke akun itu.
-   - Bila muncul pesan **"PDF belum tersedia, hubungi HRD"**, folder Anda belum disiapkan HRD.
+2. Klik **Unduh PDF**: laporan periode yang dipilih langsung terunduh sebagai berkas PDF (format Laporan Performance
+   Appraisal, nama berkas "Divisi - Nama - Periode"). Tunggu beberapa detik sampai unduhan muncul. Kotak isian di PDF
+   (Rencana Pengembangan, komentar atasan, nama dan tanggal tanda tangan) bisa diketik di Acrobat atau pembaca PDF lain.
 3. Isi laporan:
    - **Ringkasan skor**: Rerata KPI · Evaluasi 360° · Skor Akhir. Angkanya adalah angka resmi saat finalisasi.
    - **Radar Aspek 360°**: garis hijau = penilaian rekan. Garis oranye putus-putus (penilaian diri) hanya ada
@@ -480,22 +478,8 @@ Mengelola akun dan data pegawai. Pemberian izin dan akses **tidak** di sini, tet
   dan pratinjau (✓ valid · ↷ dilewati karena duplikat · ✗ tidak valid + alasan). Duplikat dilewati, tidak
   ditimpa. Impor baris SPV/atasan lebih dulu agar kolom `atasan` langsung tertaut.
 - Email boleh sementara berupa alamat contoh, lalu diganti kapan saja lewat **Ubah**.
-- **Folder Laporan (Drive)** (ikon folder per baris; hijau = sudah diisi, pudar = belum): tautan folder Google
-  Drive pegawai, berisi PDF laporan semua kuartal. Tombol **Unduh PDF** di Laporan Hasil Saya pegawai membuka
-  folder ini. Tautan hanya terlihat oleh HRD dan pemiliknya, dan pemilik baru melihatnya setelah punya laporan
-  Final. Langkah menyiapkan folder → SOP "Menyiapkan Folder Laporan (Drive)" di bawah.
-
-**SOP — Menyiapkan Folder Laporan (Drive)** (sekali per pegawai):
-1. Kumpulkan **email Google** pegawai (mis. Gmail pribadi). Email kantor hanya bisa dipakai bila sudah
-   didaftarkan sebagai akun Google.
-2. Buat satu folder per pegawai (nama = nama pegawai) di dalam folder induk yang Akses umumnya **Dibatasi** dan
-   hanya bisa dibuka tim HRD. Folder pegawai mewarisi akses folder induknya.
-3. Klik kanan folder → **Bagikan** → ketik email Google pegawai → peran **Pelihat** → Akses umum **Dibatasi**
-   (bukan "Siapa saja yang memiliki link") → **Kirim**. Pegawai tidak perlu menyetujui apa pun.
-4. Salin tautan folder → **Kelola Pegawai → ikon folder** → tempel → **Simpan**.
-5. Tiap kuartal cukup taruh PDF baru (mis. *Nama - Q4 2026*) di folder yang sama, tanpa membagikan ulang.
-- Bila ada email **"Minta akses"** dari Google, setujui **hanya** bila emailnya milik pegawai pemilik folder.
-- PDF tidak boleh memuat nama penilai. Bila laporan dibuka kembali dan angkanya berubah, ganti juga PDF-nya.
+- **Folder Laporan (Drive) sudah tidak dipakai** (sejak 2026-11-17): pegawai mengunduh PDF laporannya langsung dari
+  **Laporan Hasil Saya**. HRD tidak perlu lagi menyiapkan folder atau mengunggah PDF.
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |
 |---|---|---|---|
@@ -504,7 +488,6 @@ Mengelola akun dan data pegawai. Pemberian izin dan akses **tidak** di sini, tet
 | **Ubah** → **Simpan Perubahan** | Ubah data | Per baris | — |
 | **Atur ulang sandi** | Setel sandi baru | Per baris | Ya — "Atur ulang sandi — {nama}" |
 | **Nonaktifkan** / **Aktifkan** | Kunci/buka akun | Per baris | — |
-| **Folder Laporan** (ikon folder) → **Simpan** / **Hapus Tautan** | Isi/ganti/hapus tautan folder Drive pegawai | Per baris | Dialog "Folder Laporan — {nama}" |
 | **Impor dari Excel** | Tambah banyak pegawai | Kanan atas | Pratinjau |
 | Cari + filter **Peran**, **Divisi**, **Status** | Saring tabel | Selalu | — |
 
@@ -798,14 +781,14 @@ beres bertanda ✓. Penjelasan lengkap ada di ikon ⓘ di samping judul.
   yang skornya belum bisa dihitung, dan laporan yang **Skor Akhirnya berubah sejak disetujui** (perlu rilis ulang).
   Bila ada laporan Final yang angkanya ketinggalan, muncul **Perbarui Laporan Final yang Berubah (N)**: angka
   disegarkan sekaligus, laporan tetap Final dan ringkasannya tidak berubah.
-- **③ Kabari Pegawai** — ringkasan jumlah siap dikirim, sudah dikirimi, dan Final yang belum punya Folder
-  Laporan. **Kirim Email Rilis** mengirim email bahwa PDF laporan sudah bisa diunduh di Laporan Hasil Saya.
+- **③ Kabari Pegawai** — ringkasan jumlah siap dikirim dan sudah dikirimi. **Kirim Email Rilis** mengirim email
+  bahwa PDF laporan sudah bisa diunduh di Laporan Hasil Saya.
   Hanya HRD di Mode Admin. Lihat SOP di bawah.
 - **Atur Bobot · Flag Kepatuhan** — tautan kecil di kanan bawah kokpit.
 
-**SOP — Email Rilis Laporan** (sekali per periode, setelah laporan Final dan PDF ada di folder Drive):
-1. Pastikan laporan pegawai sudah **Final** dan **Folder Laporan**-nya sudah diisi di Kelola Pegawai. Pegawai
-   tanpa folder tidak akan dikirimi.
+**SOP — Email Rilis Laporan** (sekali per periode, setelah laporan Final):
+1. Pastikan laporan pegawai sudah **Final** (dan Kesimpulan di Isian PDF Pegawai sudah diisi). Pegawai yang laporannya
+   belum Final tidak akan dikirimi.
 2. Klik **Kirim Email Rilis** (langkah ③). Di **Gambar pendamping periode ini**, unggah dua gambar periode itu:
    *Panduan setelah menerima laporan* dan *Cara mengunduh laporan PDF* (JPG/PNG/WebP, maks. 2 MB). Gambar
    tersimpan untuk periode itu saja, jadi tiap periode perlu gambar baru.
@@ -827,7 +810,7 @@ berikutnya. Email tidak memuat skor atau isi laporan.
 belum ingin dikabari. Mereka bisa dikirimi menyusul (ikon ✉ per pegawai, atau jadwal berikutnya).
 
 **SOP — Jadwalkan Email Rilis** (email terkirim sendiri pada tanggal & jam yang diatur):
-1. Siapkan seperti langkah 1–4 di atas (laporan Final, Folder Laporan, gambar, isian, pratinjau, kirim uji).
+1. Siapkan seperti langkah 1–4 di atas (laporan Final, gambar, isian, pratinjau, kirim uji).
 2. Periksa daftar penerima (**Lihat / pilih penerima**). Daftar ini **dikunci** bersama jadwal: pegawai yang
    tidak dicentang tidak akan dikirimi, walau laporannya siap saat jam tiba.
 3. Di bagian bawah dialog pilih **Jadwalkan**, isi **tanggal** dan **jam (WIB)**, klik **Jadwalkan ke N pegawai**
@@ -885,6 +868,21 @@ hanya ada untuk periode aktif.
 - **Belum Final** (Draf / belum ada / Ditinjau): **Unduh PDF · Simpan Draf · Rilis ke SPV · Finalisasi Hasil**.
   "Rilis ke SPV" hilang setelah Ditinjau. Untuk laporan pegawai berperan SPV tombolnya **Rilis ke Direksi**.
 - **Final**: hanya **Unduh PDF** + **↩ Buka Kembali (ke Draf)**. Untuk mengubah apa pun, buka kembali dulu.
+- **Unduh PDF Pegawai** (selalu ada, juga untuk periode lampau) membuka halaman **PDF Pegawai**: laporan berformat
+  "Laporan Performance Appraisal" untuk pegawai dan atasan langsung — skor, ringkasan HRD, kotak Rencana Pengembangan,
+  jadwal tindak lanjut, komentar atasan, dan tanda tangan. **Tanpa** komentar mentah dan tanpa nama penilai, jadi PDF ini
+  yang diterima pegawai (bukan Unduh PDF biasa, yang ikut memuat Rincian Komentar Asli). Pegawai mengunduh PDF yang
+  sama dari Laporan Hasil Saya setelah laporan Final. Halaman ini
+  menampilkan pratinjau dan tombol **Unduh PDF** (berkas langsung terunduh, nama "Divisi - Nama - Periode"). Kotak biru di
+  PDF (catatan per aspek, prioritas, komentar atasan, nama & tanggal tanda tangan) bisa diketik di Acrobat atau pembaca
+  PDF lain. Laporan Direksi hanya berisi bagian 1–4 (tanpa KPI); pegawai yang KPI-nya belum ada tampil "Menunggu data
+  KPI". Halaman ini memberi tanda bila laporan belum Final atau ada ringkasan yang belum diisi.
+- **Isian PDF Pegawai** (kotak di bawah ringkasan, tersimpan otomatis, terkunci saat Final): **Kesimpulan** (1–3 kalimat
+  di awal Ringkasan Umpan Balik Kualitatif) dan **Masukan Lain dari Penilai** (opsional). Hanya tampil di PDF Pegawai.
+  Kolom Kekuatan Utama dan Perlu Dikembangkan diambil dari ringkasan dua pertanyaan esai.
+- **Tanggal laporan & tabel tindak lanjut** di PDF Pegawai diatur sekali per periode lewat **Ubah** di halaman PDF Pegawai:
+  semua kolom (Aksi, Target, Tenggat, Pendamping, Indikator Selesai) bisa diubah, baris bisa ditambah/dihapus/diurutkan
+  (maks. 8). Berlaku untuk semua pegawai periode itu. Bila belum diatur, dipakai isi bawaan dari tanggal akhir periode.
 - **Laporan Final terkunci.** Selama laporan seorang pegawai Final, angka di laporannya tidak bisa berubah:
   KPI-nya tidak bisa diisi/diubah/dihapus, penilaian 360° untuknya tidak bisa dikirim atau dibatalkan, potongan
   telat dan bobot khususnya tidak bisa diubah, dan Hitung Ulang Skor 360° / Terapkan Potongan **melewatinya**
@@ -937,7 +935,8 @@ Finalisasi. Direksi juga bisa membuka halaman ini dari Menu Direksi.)
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |
 |---|---|---|---|
-| **Unduh PDF** | Cetak/simpan PDF | Selalu | — |
+| **Unduh PDF** | Cetak/simpan PDF lengkap untuk HRD (termasuk Rincian Komentar Asli) | Selalu | — |
+| **Unduh PDF Pegawai** | Buka PDF Pegawai (format Laporan Performance Appraisal, tanpa komentar mentah) — pratinjau & unduh | Selalu (HRD Mode Admin) | — |
 | **Simpan Draf** | Simpan tanpa merilis; SPV hanya melihat angka Skor Akhir. Persetujuan lama batal | Belum Final | — |
 | **Rilis ke SPV** / **Rilis ke Direksi** | Status Ditinjau; peninjau bisa membuka detail & memberi persetujuan. Rilis ulang dengan skor berbeda membatalkan persetujuan lama. Opsional | Belum Final & belum Ditinjau | — |
 | **Finalisasi Hasil** | Laporan tampil ke pegawai. Bisa dari Draf atau Ditinjau; **tidak** menunggu persetujuan | Belum Final | Bersyarat — bila Skor 360° perlu dihitung ulang atau KPI belum lengkap semua bulan (tidak memblokir) |

@@ -28,7 +28,7 @@ const SAMPLE_OUT = 600;
 export function AiSettingsForm({ initial, models, defaults }: {
   initial: AiSettings;
   models: GeminiModelInfo[];
-  defaults: { aspectPrompt: string; qualPrompt: string };
+  defaults: { rulesPrompt: string; aspectPrompt: string; qualPrompt: string; notesPrompt: string };
 }) {
   const router = useRouter();
   const [model, setModel] = useState(initial.model);
@@ -39,6 +39,8 @@ export function AiSettingsForm({ initial, models, defaults }: {
   const [usdIdr, setUsdIdr] = useState(String(initial.usdIdr));
   const [aspectPrompt, setAspectPrompt] = useState(initial.aspectPrompt);
   const [qualPrompt, setQualPrompt] = useState(initial.qualPrompt);
+  const [rulesPrompt, setRulesPrompt] = useState(initial.rulesPrompt);
+  const [notesPrompt, setNotesPrompt] = useState(initial.notesPrompt);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -71,14 +73,14 @@ export function AiSettingsForm({ initial, models, defaults }: {
 
   async function save() {
     setBusy(true); setMsg(null);
-    const res = await callAction(() => saveAiSettings({ model, priceIn: pIn, priceOut: pOut, usdIdr: kurs, aspectPrompt, qualPrompt }));
+    const res = await callAction(() => saveAiSettings({ model, priceIn: pIn, priceOut: pOut, usdIdr: kurs, aspectPrompt, qualPrompt, ...(initial.promptsReady ? { rulesPrompt, notesPrompt } : {}) }));
     setBusy(false);
     if (res.ok) { setMsg({ ok: true, text: `Tersimpan — berlaku untuk semua ringkasan berikutnya (versi ${res.version}).` }); router.refresh(); }
     else setMsg({ ok: false, text: res.error });
   }
 
   return (
-    <div className="space-y-4 max-w-4xl">
+    <div className="space-y-4 w-full">
       <p className="text-xs text-ink-soft">
         {initial.source === 'db' && initial.updatedAt
           ? <>Versi <span className="data-value">{initial.version}</span> · terakhir diubah {initial.updatedByName ?? '—'} pada <span className="data-value">{fmtDate(initial.updatedAt)}</span></>
@@ -153,14 +155,28 @@ export function AiSettingsForm({ initial, models, defaults }: {
       </section>
 
       <PromptCard
+        title="Aturan umum (berlaku untuk semua ringkasan)"
+        hint={initial.promptsReady
+          ? 'Sumber data, aturan angka, cara memproses komentar, anonimitas, komentar sensitif, dan gaya bahasa (dari Prompt Laporan PA v2.0). Otomatis ditempel di depan ketiga prompt di bawah, jadi cukup diubah di sini.'
+          : 'Belum bisa diubah: perubahan database Pengaturan AI terbaru belum dijalankan. Sementara memakai isi bawaan ini.'}
+        value={rulesPrompt} onChange={setRulesPrompt} onReset={() => setRulesPrompt(defaults.rulesPrompt)} readOnly={!initial.promptsReady}
+      />
+      <PromptCard
         title="Prompt — Evaluasi Aspek Budaya & Perilaku 360°"
-        hint="Dipakai untuk ringkasan per aspek. Komentar dan rating per indikator ditempel otomatis setelah prompt ini."
+        hint="Dipakai untuk ringkasan per aspek. Skor aspek (dengan penanda tertinggi/terendah), sebaran nilai, dan komentar per indikator ditempel otomatis setelah prompt ini."
         value={aspectPrompt} onChange={setAspectPrompt} onReset={() => setAspectPrompt(defaults.aspectPrompt)}
       />
       <PromptCard
         title="Prompt — Umpan Balik Kualitatif 360°"
-        hint="Dipakai untuk ringkasan per pertanyaan esai. Jawaban penilai ditempel otomatis setelah prompt ini."
+        hint="Dipakai untuk Kekuatan Utama / Perlu Dikembangkan (per pertanyaan esai). Jawaban penilai, lalu skor dan komentar per aspek sebagai bukti, ditempel otomatis setelah prompt ini."
         value={qualPrompt} onChange={setQualPrompt} onReset={() => setQualPrompt(defaults.qualPrompt)}
+      />
+      <PromptCard
+        title="Prompt — Kesimpulan & Masukan Lain dari Penilai"
+        hint={initial.promptsReady
+          ? 'Dipakai untuk isian PDF Pegawai dalam satu kali ringkas. Skor keseluruhan dan per aspek, ringkasan HRD yang sudah ditulis (nama pegawai disamarkan), jawaban esai, dan semua komentar ditempel otomatis setelah prompt ini.'
+          : 'Belum bisa diubah: perubahan database Pengaturan AI terbaru belum dijalankan. Sementara memakai isi bawaan ini.'}
+        value={notesPrompt} onChange={setNotesPrompt} onReset={() => setNotesPrompt(defaults.notesPrompt)} readOnly={!initial.promptsReady}
       />
 
       <Note>
@@ -180,19 +196,19 @@ export function AiSettingsForm({ initial, models, defaults }: {
   );
 }
 
-function PromptCard({ title, hint, value, onChange, onReset }: {
-  title: string; hint: string; value: string; onChange: (v: string) => void; onReset: () => void;
+function PromptCard({ title, hint, value, onChange, onReset, readOnly = false }: {
+  title: string; hint: string; value: string; onChange: (v: string) => void; onReset: () => void; readOnly?: boolean;
 }) {
   return (
     <section className={CARD}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <CardTitle icon={MessageSquareText}>{title}</CardTitle>
-        <Button variant="ghost" size="sm" type="button" onClick={onReset}><RotateCcw className="w-3.5 h-3.5" aria-hidden />Kembalikan ke bawaan</Button>
+        <Button variant="ghost" size="sm" type="button" onClick={onReset} disabled={readOnly}><RotateCcw className="w-3.5 h-3.5" aria-hidden />Kembalikan ke bawaan</Button>
       </div>
       <p className="text-xs text-ink-soft mt-1.5">{hint}</p>
       <textarea
-        value={value} onChange={(e) => onChange(e.target.value)} maxLength={PROMPT_MAX_LEN}
-        rows={Math.min(18, Math.max(6, value.split('\n').length + 1))}
+        value={value} onChange={(e) => onChange(e.target.value)} maxLength={PROMPT_MAX_LEN} readOnly={readOnly}
+        rows={Math.min(24, Math.max(6, value.split('\n').length + 1))}
         className="mt-3 block w-full text-[13px] p-3 border border-line rounded-control bg-surface text-ink leading-relaxed outline-none focus:border-brand focus:ring-2 focus:ring-brand-tint resize-y"
       />
       <p className="text-xs text-ink-soft mt-1 text-right data-value">{value.length.toLocaleString('id-ID')} / {PROMPT_MAX_LEN.toLocaleString('id-ID')}</p>

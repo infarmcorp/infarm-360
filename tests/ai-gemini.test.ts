@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { aiSummaryEnabled, costOf, parseSummaries, summarizeWithGemini, listGeminiModels, fetchFailMessage } from '@/lib/ai/gemini';
-import { buildAspectMaterial, buildQualMaterial } from '@/lib/ai/summary-prompt';
+import { buildAspectMaterial, buildNotesMaterial, buildQualMaterial } from '@/lib/ai/summary-prompt';
 
 const STG = 'https://twgdlhmsoifvmiqpkqsr.supabase.co';
 const PROD = 'https://beajoczjpywozavatzmf.supabase.co';
@@ -61,17 +61,45 @@ describe('bahan prompt — tanpa identitas', () => {
       ] },
       { name: 'Gigih', indicators: [{ num: 3, text: 'x', ratings: [], entries: [] }] },
       { name: 'Lain', indicators: [{ num: 4, text: 'y', ratings: [5], entries: [{ rating: 5, comment: 'z' }] }] },
-    ], ['Jujur', 'Gigih']);
+    ], ['Jujur', 'Gigih'], [{ name: 'Jujur', score: 77 }, { name: 'Lain', score: 90.5 }]);
     expect(m.keys).toEqual(['Jujur']);
     expect(m.text).toContain('### KUNCI: Jujur');
-    expect(m.text).toContain('- [rating 4] Selalu tepat waktu');
+    expect(m.text).toContain('Skor aspek: 77,00 (Perlu Peningkatan) · SKOR TERENDAH');
+    expect(m.text).toContain('Indikator: Menepati komitmen (1 penilai; nilai 4×1)');
+    expect(m.text).toContain('- [nilai 4] Selalu tepat waktu');
     expect(m.text).not.toContain('Kosong');
     expect(m.text).not.toContain('Lain');
   });
   it('kualitatif: jawaban kosong dibuang', () => {
     const m = buildQualMaterial([{ question: 'Q1', answers: ['  A  ', ''] }, { question: 'Q2', answers: [' '] }], ['Q1', 'Q2']);
     expect(m.keys).toEqual(['Q1']);
-    expect(m.text).toBe('### KUNCI: Q1\n- A');
+    expect(m.text).toBe('### KUNCI: Q1\n(1 jawaban)\n- A');
+  });
+  it('kualitatif: komentar aspek ikut sebagai KONTEKS (bukan kunci)', () => {
+    const m = buildQualMaterial([{ question: 'Q1', answers: ['A'] }], ['Q1'],
+      [{ name: 'Jujur', indicators: [{ num: 1, text: 'Jujur', ratings: [5], entries: [{ rating: 5, comment: 'bukti' }] }] }],
+      [{ name: 'Jujur', score: 92 }]);
+    expect(m.keys).toEqual(['Q1']);
+    expect(m.text).toContain('=== KONTEKS (bukan kunci)');
+    expect(m.text).toContain('#### Aspek: Jujur — Skor aspek: 92,00 (Melampaui Ekspektasi)');
+    expect(m.text).toContain('- [nilai 5] bukti');
+  });
+  it('kesimpulan: skor + ringkasan HRD (nama disamarkan) + komentar; kosong bila tak ada komentar', () => {
+    const base = {
+      emp: { id: 'e', name: 'Budi Santoso', dept: 'Sales' }, finalScore: 82.67, kpiAvg: 92.84, s360: 72.5, latePenalty360: 0,
+      aspects: [{ name: 'Jujur', score: 77, self: null }, { name: 'Gigih', score: 66.5, self: null }],
+      byAspect: [{ name: 'Jujur', indicators: [{ num: 1, text: 'Jujur', ratings: [3], entries: [{ rating: 3, comment: 'suka bercanda menyindir' }] }] }],
+      essays: [{ question: 'Kekuatan?', answers: ['teliti'] }],
+      aspectSummaries: { Jujur: 'Budi Santoso jujur. Budi cepat melapor.' }, qualSummaries: {},
+    };
+    const t = buildNotesMaterial(base);
+    expect(t).toContain('Skor Akhir: 82,67 (Memenuhi Ekspektasi)');
+    expect(t).toContain('Skor KPI: 92,84 (Melampaui Ekspektasi)');
+    expect(t).toContain('Gigih: 66,50 (Di Bawah Ekspektasi) · SKOR TERENDAH');
+    expect(t).toContain('[pegawai] jujur. [pegawai] cepat melapor.');
+    expect(t).not.toMatch(/Budi|Sales/);
+    expect(t).toContain('suka bercanda menyindir');
+    expect(buildNotesMaterial({ ...base, byAspect: [], essays: [] })).toBe('');
   });
 });
 

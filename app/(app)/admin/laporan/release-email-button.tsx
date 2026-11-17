@@ -19,7 +19,7 @@ import { callAction } from '@/lib/call-action';
 import type { ReleaseSchedule } from '@/lib/release-schedule';
 import { fmtScheduleWib, isoToWibParts, sendAtError, wibToIso } from '@/lib/release-schedule-time';
 
-export type ReleaseRecipient = { id: string; name: string; dept: string; hasFolder: boolean; sent: boolean };
+export type ReleaseRecipient = { id: string; name: string; dept: string; sent: boolean };
 
 /** Data email rilis dari server (Review & Finalisasi, HRD Mode Admin). */
 export type ReleaseProps = {
@@ -88,10 +88,9 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
   }, [busy, onClose]);
 
   const single = onlyId ? recipients.find((r) => r.id === onlyId) ?? null : null;
-  const ready = recipients.filter((r) => r.hasFolder);
-  const noFolder = recipients.filter((r) => !r.hasFolder);
+  const ready = recipients;
   const unsent = ready.filter((r) => !r.sent);
-  const base = onlyId ? (single?.hasFolder ? [single] : []) : onlyUnsent ? unsent : ready;
+  const base = onlyId ? (single ? [single] : []) : onlyUnsent ? unsent : ready;
   const targets = picked && !onlyId ? base.filter((r) => picked.has(r.id)) : base;
   const togglePick = (id: string) => setPicked((p) => {
     const n = new Set(p ?? base.map((r) => r.id));
@@ -240,14 +239,12 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
               {single ? (
                 <>
                   <p>Penerima: <strong className="text-ink">{single.name}</strong> · {single.dept}</p>
-                  {!single.hasFolder && <p className="font-semibold text-danger-ink">Folder Laporan pegawai ini belum diisi — isi dulu di Kelola Pegawai.</p>}
-                  {single.hasFolder && single.sent && <p className="font-semibold text-warn-ink">Pegawai ini sudah dikirimi email rilis periode ini. Mengirim lagi berarti kirim ulang.</p>}
+                  {single.sent && <p className="font-semibold text-warn-ink">Pegawai ini sudah dikirimi email rilis periode ini. Mengirim lagi berarti kirim ulang.</p>}
                 </>
               ) : (
                 <>
                   <p>
                     <span className="data-value font-semibold text-ink">{recipients.length}</span> laporan Final ·{' '}
-                    <span className="data-value font-semibold text-ink">{ready.length}</span> Folder PDF terisi ·{' '}
                     <span className="data-value font-semibold text-ink">{ready.length - unsent.length}</span> sudah dikirimi
                   </p>
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -274,14 +271,6 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
                         ))}
                       </div>
                       <p className="mt-1 text-xs text-ink-faint">Hapus centang untuk menahan pegawai tertentu (dikirimi menyusul).</p>
-                    </details>
-                  )}
-                  {noFolder.length > 0 && (
-                    <details className="text-warn-ink">
-                      <summary className="cursor-pointer font-semibold">
-                        {noFolder.length} pegawai Final belum punya Folder Laporan sehingga tidak dikirimi
-                      </summary>
-                      <p className="mt-1 text-ink-soft">{noFolder.map((r) => r.name).join(', ')}. Isi tautannya di Kelola Pegawai.</p>
                     </details>
                   )}
                 </>
@@ -393,7 +382,7 @@ export function ReleaseEmailDialog({ release, onlyId, onClose }: { release: Rele
             {schedule.ok && active && !editingId && <p className="mt-1.5 text-ink-faint">Sudah ada jadwal aktif (di atas) — ubah atau batalkan dulu untuk membuat jadwal baru.</p>}
             {mode === 'schedule' && (
               <p className="mt-1.5 text-ink-faint">
-                Penerima dan isi email <strong>dikunci</strong> bersama jadwal. Email terkirim mulai jam itu hingga ±30 menit sesudahnya, dan jadwal bisa diubah atau dibatalkan sebelumnya. Pegawai yang laporannya tidak lagi Final, foldernya kosong, atau sudah pernah dikirimi akan dilewati.
+                Penerima dan isi email <strong>dikunci</strong> bersama jadwal. Email terkirim mulai jam itu hingga ±30 menit sesudahnya, dan jadwal bisa diubah atau dibatalkan sebelumnya. Pegawai yang laporannya tidak lagi Final atau sudah pernah dikirimi akan dilewati.
               </p>
             )}
           </section>
@@ -470,7 +459,7 @@ function ScheduleResult({ s }: { s: ReleaseSchedule }) {
         <details>
           <summary className="cursor-pointer font-semibold">Lihat yang tidak terkirim</summary>
           <ul className="mt-1 list-disc pl-5">{problems.map((p, i) => <li key={i}>{p}</li>)}</ul>
-          <p className="mt-1 text-xs text-ink-faint">Perbaiki penyebabnya (mis. isi Folder Laporan), lalu kirim manual atau buat jadwal baru.</p>
+          <p className="mt-1 text-xs text-ink-faint">Perbaiki penyebabnya, lalu kirim manual atau buat jadwal baru.</p>
         </details>
       )}
     </section>

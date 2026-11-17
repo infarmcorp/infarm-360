@@ -8,6 +8,31 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-17 — PDF Pegawai format Laporan Performance Appraisal (di `dev`, belum dirilis)
+- Permintaan pengguna: PDF laporan untuk pegawai dibuat dari aplikasi dengan susunan paket templat PDF HRD Q3 2026
+  (dulu disusun di luar aplikasi). Tombol baru **Unduh PDF Pegawai** di detail laporan HRD membuka halaman cetak A4:
+  skor, ringkasan HRD, skor dan narasi per aspek, kotak Rencana Pengembangan, jadwal tindak lanjut, komentar atasan, dan
+  tanda tangan, dengan nomor halaman dan tanda KONFIDENSIAL. Tanpa komentar mentah dan tanpa nama penilai.
+- **Unduh PDF** lama tetap ada untuk HRD (memuat Rincian Komentar Asli). Keputusan pemilik: tombol baru, bukan mengganti.
+- HRD mendapat dua isian baru per laporan: **Kesimpulan** dan **Masukan Lain dari Penilai** (tanpa perubahan database).
+  Kekuatan Utama dan Perlu Dikembangkan diambil dari ringkasan dua pertanyaan esai.
+- Tanggal laporan dan tenggat tindak lanjut diatur HRD per periode (perubahan database 0063); bawaannya dihitung dari
+  tanggal akhir periode, sama dengan jadwal templat Q3.
+- Warna kategori di PDF mengikuti PDF HRD (Melampaui hijau, Memenuhi biru, Perlu Peningkatan kuning, Di Bawah merah),
+  berbeda dari warna layar aplikasi — keputusan pemilik agar sama dengan dokumen HRD.
+- Revisi setelah dibandingkan dengan PDF HRD (masukan pengguna): PDF kini dibuat di server, bukan lewat jendela cetak
+  browser. Alasannya: kotak isian harus bisa diketik, huruf "i" sempat tampil rusak di Acrobat, serta kepala/kaki halaman
+  dan margin harus sama dengan PDF HRD. Aturan dari Prompt Laporan PA v2.0 ikut diterapkan: mode Direksi (bagian 1–4),
+  KPI menyusul, kalimat rata-rata lima aspek, dan huruf ringkasan mengecil agar muat di halaman 1. Blok tidak boleh
+  terpotong antarhalaman. Seluruh kolom tabel tindak lanjut kini bisa diubah per periode.
+- **Folder Laporan (Google Drive) dipensiunkan** (keputusan pemilik): HRD tidak lagi menyiapkan folder per pegawai. Ikon
+  folder di Kelola Pegawai dihapus, dan Email Rilis cukup mensyaratkan laporan Final (tidak lagi "Folder Laporan terisi").
+  Isi email rilis diubah: Unduh PDF langsung mengunduh berkas, bukan membuka folder Drive. Data tautan lama dibiarkan.
+- Pegawai mengunduh PDF ini langsung dari **Laporan Hasil Saya** (tombol Unduh PDF), tidak lagi lewat folder Google
+  Drive. Hanya laporan miliknya sendiri yang sudah Final.
+- Perbaikan terkait: Unduh PDF dulu hanya mencetak satu halaman karena kerangka aplikasi setinggi layar; kini seluruh
+  laporan tercetak.
+
 ### 2026-11-16 — Laporkan Pelanggaran: tindak lanjut HRD dan tab Laporan Saya (di `dev`, belum dirilis)
 - Permintaan HRD: memberi kabar ke pelapor bila laporannya sudah ditindaklanjuti. HRD kini memberi **status**
   (Diterima → Sedang ditindaklanjuti → Selesai) dan **tanggapan untuk pelapor** (satu arah) di halaman Laporan

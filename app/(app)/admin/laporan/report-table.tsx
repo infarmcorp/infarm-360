@@ -264,8 +264,8 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                           const rc = releaseBy.get(r.id)!;
                           return (
                             <button type="button" onClick={() => setReleaseFor(r.id)}
-                              title={!rc.hasFolder ? 'Email rilis: Folder Laporan belum diisi' : rc.sent ? 'Email rilis sudah dikirim — klik untuk mengirim ulang' : 'Kirim email rilis laporan ke pegawai ini'}
-                              className={`inline-flex items-center gap-0.5 rounded-control border px-1.5 py-1 text-[11px] font-semibold ${rc.sent ? 'border-line text-ink-faint hover:text-ink' : rc.hasFolder ? 'border-brand/30 text-brand-ink hover:bg-brand-tint' : 'border-line text-warn-ink'}`}>
+                              title={rc.sent ? 'Email rilis sudah dikirim — klik untuk mengirim ulang' : 'Kirim email rilis laporan ke pegawai ini'}
+                              className={`inline-flex items-center gap-0.5 rounded-control border px-1.5 py-1 text-[11px] font-semibold ${rc.sent ? 'border-line text-ink-faint hover:text-ink' : 'border-brand/30 text-brand-ink hover:bg-brand-tint'}`}>
                               <Mail className="w-3.5 h-3.5" />{rc.sent && <Check className="w-3 h-3" aria-hidden />}
                             </button>
                           );

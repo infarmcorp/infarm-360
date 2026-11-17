@@ -41,7 +41,7 @@ const REPORT: ReportData = {
   assessors: [{ assessorId: 'x', assessorName: 'Nama Penilai Rahasia', relation: 'Atasan', isSelf: false,
     comments: [{ indicator: 'Menepati komitmen', rating: 4, comment: 'komentar bernama' }], answers: [] }],
   byAspect: [{ name: 'Jujur', indicators: [{ num: 1, text: 'Menepati komitmen', ratings: [4], entries: [{ rating: 4, comment: 'Selalu tepat waktu' }] }] }],
-  essays: [], aspectSummaries: {}, qualSummaries: {}, qualQuestions: [],
+  essays: [], aspectSummaries: {}, qualSummaries: {}, qualQuestions: [], pdfNotes: {},
 };
 
 beforeEach(() => {
@@ -102,7 +102,9 @@ describe('suggestSummariesAI', () => {
     expect(r.cost.idr).toBeGreaterThan(0);
 
     const [prompt, material, keys, , opts] = vi.mocked(summarizeWithGemini).mock.calls[0];
-    expect(prompt).toBe('PROMPT ASPEK UJI'); // prompt dari Pengaturan AI, bukan bawaan kode
+    // Aturan umum + prompt tugas dari Pengaturan AI (bukan bawaan kode).
+    expect(prompt.endsWith('PROMPT ASPEK UJI')).toBe(true);
+    expect(prompt).toContain('ANONIMITAS');
     expect(opts).toEqual({ model: 'gemini-2.5-flash', thinking: 'off' });
     expect(keys).toEqual(['Jujur']);
     expect(material).toContain('Selalu tepat waktu');
@@ -113,6 +115,28 @@ describe('suggestSummariesAI', () => {
     // Saran saja — final_reports tak ditulis.
     expect(admin.calls.filter((c) => c.op !== 'select')).toEqual([]);
     expect(logHrdAction).toHaveBeenCalledWith(expect.objectContaining({ action: 'report.ai_summary' }));
+  });
+
+  it('kesimpulan & masukan lain: kunci isian PDF, prompt kesimpulan, nama pegawai disamarkan', async () => {
+    vi.mocked(loadReport).mockResolvedValue({ ...REPORT, aspectSummaries: { Jujur: 'Pegawai Rahasia selalu jujur.' } });
+    use(makeClient({ user: { id: UID }, tables: { employees: [{ data: HRD }] } }));
+    useAdmin(makeClient({ tables: {
+      periods: [{ data: { id: 'p1', label: 'Q3 2026', has_360: true } }],
+      final_reports: [{ data: { status: 'draft' } }],
+    } }));
+    vi.mocked(summarizeWithGemini).mockResolvedValue({
+      ok: true, summaries: { Kesimpulan: 'Ringkas.' }, model: 'm', usage: { inputTokens: 10, outputTokens: 5, thoughtTokens: 0 },
+    });
+    const r = await suggestSummariesAI({ employeeId: EMP, kind: 'notes' });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.skipped).toEqual(['Masukan Lain dari Penilai']);
+    const [prompt, material, keys] = vi.mocked(summarizeWithGemini).mock.calls[0];
+    expect(keys).toEqual(['Kesimpulan', 'Masukan Lain dari Penilai']);
+    expect(prompt).toContain('Masukan Lain dari Penilai');
+    expect(material).toContain('[pegawai] selalu jujur.');
+    expect(material).not.toContain('Pegawai Rahasia');
+    expect(material).not.toContain('Nama Penilai Rahasia');
+    expect(material).not.toContain('Sales');
   });
 
   it('model belum dipilih di Pengaturan AI → tolak tanpa memanggil Gemini', async () => {

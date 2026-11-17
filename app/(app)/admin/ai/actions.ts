@@ -23,6 +23,9 @@ const Input = z.object({
   usdIdr: z.number().finite().min(1000).max(100000),
   aspectPrompt: z.string().trim().min(20, 'Prompt aspek minimal 20 karakter').max(PROMPT_MAX_LEN),
   qualPrompt: z.string().trim().min(20, 'Prompt kualitatif minimal 20 karakter').max(PROMPT_MAX_LEN),
+  // Kolom 0064 — opsional agar formulir lama tetap bisa menyimpan; diabaikan bila kolom belum ada.
+  rulesPrompt: z.string().trim().max(PROMPT_MAX_LEN).optional(),
+  notesPrompt: z.string().trim().min(20, 'Prompt kesimpulan minimal 20 karakter').max(PROMPT_MAX_LEN).optional(),
 });
 
 export async function saveAiSettings(raw: unknown): Promise<{ ok: true; version: number } | { ok: false; error: string }> {
@@ -47,7 +50,10 @@ export async function saveAiSettings(raw: unknown): Promise<{ ok: true; version:
   const admin = createAdminClient();
   const cur = await loadAiSettings(admin);
   if (cur.source === 'missing') return { ok: false, error: 'Tabel pengaturan belum ada — jalankan migrasi 0060 di database ini dulu.' };
-  const changed = cur.aspectPrompt !== v.aspectPrompt || cur.qualPrompt !== v.qualPrompt;
+  const rules = cur.promptsReady ? (v.rulesPrompt ?? cur.rulesPrompt) : cur.rulesPrompt;
+  const notes = cur.promptsReady ? (v.notesPrompt ?? cur.notesPrompt) : cur.notesPrompt;
+  const changed = cur.aspectPrompt !== v.aspectPrompt || cur.qualPrompt !== v.qualPrompt
+    || cur.rulesPrompt !== rules || cur.notesPrompt !== notes;
   // Simpan pertama (belum ada baris) = versi 1 walau prompt sama dengan bawaan.
   const version = cur.source !== 'db' ? Math.max(cur.version, 0) + 1 : changed ? cur.version + 1 : cur.version;
 
@@ -55,6 +61,7 @@ export async function saveAiSettings(raw: unknown): Promise<{ ok: true; version:
     .from('ai_settings').upsert({
       id: 1, model: v.model, price_input_usd: v.priceIn, price_output_usd: v.priceOut, usd_idr: v.usdIdr,
       aspect_prompt: v.aspectPrompt, qual_prompt: v.qualPrompt, version,
+      ...(cur.promptsReady ? { rules_prompt: rules, notes_prompt: notes } : {}),
       updated_by: user.id, updated_by_name: me?.name ?? null, updated_at: new Date().toISOString(),
     });
   if (error) {

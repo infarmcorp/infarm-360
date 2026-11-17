@@ -47,6 +47,10 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 ## 2. Harus dikerjakan
 
 ### Rilis & operasional
+- 🔑⬜ **PDF Pegawai** (2026-11-17, di `dev`, belum dirilis): jalankan perubahan database **0063** di staging lalu
+  production (tanpa itu PDF tetap jalan dengan jadwal bawaan, hanya simpan pengaturan yang "belum aktif"). Uji di
+  Preview: cetak satu laporan Final ke PDF dan bandingkan dengan templat HRD (pemotongan halaman, warna, nomor halaman).
+  HRD perlu mengisi Kesimpulan per pegawai sebelum mencetak.
 - 🔑⬜ **Sisa audit kalimat (2026-11-13).** Perubahan "Ubah" sudah di `dev`. Sisa: 🔑 31 usulan "Tanya HRD" (nama
   kelas 4-Box, kategori lama, HRD Review/No Score, alasan Ajukan Penilaian, panduan skala BARS, teks Kerahasiaan) menunggu
   jawaban HRD; 🔑 putuskan apakah sandi yang diatur HRD wajib minimal 8 karakter seperti ganti sandi sendiri (sekarang 6).
@@ -241,6 +245,13 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 
 Dipindah ke §2 bila diputuskan dikerjakan.
 
+- **Ringkas otomatis mengikuti Prompt Laporan PA v2.0 (2026-11-17, dev saja).** Perintah AI dipecah menjadi aturan umum
+  (sumber data, angka, anonimitas, penghalusan komentar tajam, gaya bahasa) + tiga perintah: aspek budaya (kalimat
+  pembuka + poin, "Catatan:"), Kekuatan Utama / Perlu Dikembangkan, serta Kesimpulan & Masukan Lain (satu kali ringkas).
+  Bahan kini ikut memuat skor aspek, penanda skor tertinggi/terendah, sebaran nilai per indikator, dan untuk
+  Kesimpulan juga skor keseluruhan + ringkasan HRD yang sudah ada (nama pegawai disamarkan). Sapaan "Anda" (nama
+  pegawai tidak dikirim ke AI). 🔑 Jalankan perubahan database 0064 di staging agar aturan umum dan perintah
+  Kesimpulan bisa diubah di layar; tanpa itu dipakai isi bawaan.
 - **Ringkas otomatis dengan AI — sedang dicoba di dev saja (2026-11-12, Gemini, kunci API pribadi).** Tombol
   "Ringkas otomatis" di kartu ringkasan aspek dan ringkasan kualitatif pada laporan pegawai. HRD menekannya sendiri
   (hemat biaya); hasilnya tampil sebagai **saran** di bawah tiap kotak beserta jumlah token masuk/keluar dan perkiraan

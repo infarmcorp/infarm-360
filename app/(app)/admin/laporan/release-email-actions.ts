@@ -19,9 +19,9 @@ import { tableMissing } from '@/lib/report-folder';
 
 /**
  * Email Rilis Laporan PA (Review & Finalisasi): kabari pegawai bahwa PDF laporannya sudah bisa
- * diunduh di portal (Laporan Hasil Saya → Unduh PDF → Folder Laporan Drive).
+ * diunduh di portal (Laporan Hasil Saya → Unduh PDF, langsung dari aplikasi).
  *  - Hanya HRD penuh (bagian Laporan + Mode Admin); pemegang grant Review tidak mengirim email.
- *  - Penerima ditegakkan ulang di server: laporan periode itu FINAL + Folder Laporan terisi + punya
+ *  - Penerima ditegakkan ulang di server: laporan periode itu FINAL + punya
  *    email akun. Yang tidak memenuhi dilewati beserta alasannya (bukan error).
  *  - Dikirim per gelombang kecil dari klien (MAX_BATCH) agar tak melewati batas waktu server dan
  *    progres terlihat. Tiap gelombang dicatat di log HRD (`meta.sent_ids`) → dasar "sudah dikirim".

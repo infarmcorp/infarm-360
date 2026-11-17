@@ -8,6 +8,14 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-17 — Impor Ringkasan dari Excel ikut memuat Kesimpulan & Masukan Lain dari Penilai (rilis)
+- Isian **Kesimpulan** dan **Masukan Lain dari Penilai** (untuk PDF Pegawai) sudah ada di production, tetapi templat
+  Impor Ringkasan dari Excel hanya memuat ringkasan aspek dan kualitatif, sehingga keduanya harus diketik satu per
+  satu di tiap laporan. Permintaan pemilik: templat diperbarui.
+- Jenis baru **Isian PDF Pegawai** dengan dua baris per pegawai (Kesimpulan, Masukan Lain dari Penilai). Aturan sama
+  dengan jenis lain: menimpa per pegawai, sel kosong mempertahankan isi lama, laporan Final tidak diubah.
+- Lembar **Ringkasan Naratif** di Ekspor ikut memuat kedua isian ini agar berkas ekspor tetap bisa diunggah kembali.
+
 ### 2026-11-17 — PDF Pegawai format Laporan Performance Appraisal (di `dev`, belum dirilis)
 - Permintaan pengguna: PDF laporan untuk pegawai dibuat dari aplikasi dengan susunan paket templat PDF HRD Q3 2026
   (dulu disusun di luar aplikasi). Tombol baru **Unduh PDF Pegawai** di detail laporan HRD membuka halaman cetak A4:

@@ -35,7 +35,30 @@ describe('normKind', () => {
     expect(normKind('Aspek')).toBe('aspect');
     expect(normKind(' pertanyaan  kualitatif ')).toBe('qual');
     expect(normKind('Esai')).toBe('qual');
+    expect(normKind('Isian PDF Pegawai')).toBe('notes');
     expect(normKind('lain')).toBeNull();
+  });
+});
+
+describe('Isian PDF Pegawai (Kesimpulan, Masukan Lain dari Penilai)', () => {
+  it('kunci kanonik dikenali; isian lain → invalid', () => {
+    const r = classifySummaryRows([
+      row('EMP001', 'Isian PDF Pegawai', ' kesimpulan ', 'Kinerja stabil.'),
+      row('EMP001', 'Isian PDF Pegawai', 'Masukan Lain dari Penilai', 'Perbanyak koordinasi.'),
+      row('EMP003', 'Isian PDF Pegawai', 'Saran', 'x'),
+    ], CTX);
+    expect(r.map((x) => [x.status, x.item])).toEqual([['ok', 'Kesimpulan'], ['ok', 'Masukan Lain dari Penilai'], ['invalid', 'Saran']]);
+    expect(r[2].reason).toMatch(/tak dikenal/);
+  });
+  it('payload memisah jenis notes dari aspek', () => {
+    const r = classifySummaryRows([
+      row('EMP001', 'Aspek', 'Integritas', 'baik'),
+      row('EMP001', 'Isian PDF Pegawai', 'Kesimpulan', 'stabil'),
+      row('EMP001', 'Isian PDF Pegawai', 'Masukan Lain dari Penilai', ''),
+    ], CTX);
+    expect(buildSummaryPayload(r)).toEqual([
+      { employeeId: 'a1', aspect: { Integritas: 'baik' }, notes: { Kesimpulan: 'stabil', 'Masukan Lain dari Penilai': null } },
+    ]);
   });
 });
 
@@ -198,6 +221,36 @@ describe('importSummaries', () => {
     expect(c.calls.filter((x) => x.op === 'update')).toHaveLength(1); // E2 Final tak disentuh
     expect(logHrdAction).toHaveBeenCalledTimes(1);
     expect(vi.mocked(logHrdAction).mock.calls[0][0]).toMatchObject({ action: 'report.import_summary', targetId: E1 });
+  });
+
+  it('HRD: impor Isian PDF Pegawai → content.pdfNotes (timpa, kosong = isi lama), ringkasan lain tetap', async () => {
+    const c = makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: HRD }, { data: [{ id: E1, name: 'Ani', dept: 'Ops' }] }],
+      periods: [ACTIVE], ...CONFIG,
+      final_reports: [
+        { data: [{ id: 'r1', employee_id: E1, status: 'draft', content: { aspectSummaries: { Integritas: 'a' }, pdfNotes: { Kesimpulan: 'lama', 'Masukan Lain dari Penilai': 'tetap' } } }] },
+        { data: [{ id: 'r1' }] },
+      ],
+    } });
+    use(c);
+    const r = await importSummaries([{ employeeId: E1, notes: { Kesimpulan: 'baru', 'Masukan Lain dari Penilai': null } }]);
+    expect(r).toEqual({ ok: true, saved: 1, skipped: [], failed: [] });
+    expect(c.calls.find((x) => x.op === 'update')?.payload).toEqual({ content: {
+      aspectSummaries: { Integritas: 'a' },
+      pdfNotes: { Kesimpulan: 'baru', 'Masukan Lain dari Penilai': 'tetap' },
+    } });
+  });
+
+  it('kunci Isian PDF tak dikenal → dilewati, tak ditulis', async () => {
+    const c = makeClient({ user: { id: UID }, tables: {
+      employees: [{ data: HRD }, { data: [{ id: E1, name: 'Ani', dept: 'Ops' }] }],
+      periods: [ACTIVE], ...CONFIG,
+      final_reports: [{ data: [{ id: 'r1', employee_id: E1, status: 'draft', content: {} }] }],
+    } });
+    use(c);
+    const r = await importSummaries([{ employeeId: E1, notes: { Saran: 'x' } }]);
+    expect(r).toMatchObject({ ok: true, saved: 0, skipped: [{ name: 'Ani' }] });
+    expect(c.calls.some((x) => x.op === 'update' || x.op === 'insert')).toBe(false);
   });
 
   it('kunci item di luar aspek/pertanyaan periode aktif → dilewati, tak ditulis', async () => {

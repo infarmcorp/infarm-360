@@ -8,6 +8,14 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-17 — Impor Ringkasan dari Excel ikut memuat Kesimpulan & Masukan Lain dari Penilai (di `dev`)
+- Isian **Kesimpulan** dan **Masukan Lain dari Penilai** (untuk PDF Pegawai) sudah ada di production, tetapi templat
+  Impor Ringkasan dari Excel hanya memuat ringkasan aspek dan kualitatif, sehingga keduanya harus diketik satu per
+  satu di tiap laporan. Permintaan pemilik: templat diperbarui.
+- Jenis baru **Isian PDF Pegawai** dengan dua baris per pegawai (Kesimpulan, Masukan Lain dari Penilai). Aturan sama
+  dengan jenis lain: menimpa per pegawai, sel kosong mempertahankan isi lama, laporan Final tidak diubah.
+- Lembar **Ringkasan Naratif** di Ekspor ikut memuat kedua isian ini agar berkas ekspor tetap bisa diunggah kembali.
+
 ### 2026-11-17 — Ringkas otomatis bisa memakai Claude (di `dev`, hanya dev/staging)
 - Permintaan pemilik: mencoba Claude untuk Ringkas otomatis. Claude ditambahkan sebagai penyedia kedua, bukan pengganti
   Gemini, supaya hasilnya bisa dibandingkan pada laporan yang sama.

@@ -836,14 +836,16 @@ Isi email yang terkirim = isi **saat dijadwalkan** (atau saat terakhir diubah), 
 | **Kirim sekarang / Jadwalkan** (dialog Email Rilis) | Pilih kirim langsung atau pada tanggal & jam (WIB) | Massal; Jadwalkan mati bila sudah ada jadwal aktif | Ya, sebelum kirim/jadwalkan |
 | **Lihat / ubah jadwal** · **Batalkan jadwal** | Ubah jam, penerima, isi; atau hentikan jadwal | Ada jadwal yang belum mulai terkirim | — |
 | **Atur Bobot** / **Flag Kepatuhan** | Pintasan (tautan kecil) | Kanan bawah kokpit | — |
-| **Impor Ringkasan dari Excel** | Isi ringkasan aspek & kualitatif banyak pegawai sekaligus | Periode dengan 360°; HRD dan penerima akses Meringkas/Finalisasi | Pratinjau dulu |
+| **Impor Ringkasan dari Excel** | Isi ringkasan aspek, kualitatif, serta Kesimpulan & Masukan Lain dari Penilai banyak pegawai sekaligus | Periode dengan 360°; HRD dan penerima akses Meringkas/Finalisasi | Pratinjau dulu |
 | **Tinjau →** | Buka detail laporan | Per baris | — |
 
 **Impor Ringkasan dari Excel** (di atas daftar pegawai) — mengisi **Evaluasi Aspek Budaya & Perilaku 360°** dan
-**Ringkasan Umpan Balik Kualitatif 360°** banyak pegawai sekaligus.
+**Ringkasan Umpan Balik Kualitatif 360°**, serta isian **Kesimpulan** dan **Masukan Lain dari Penilai** untuk PDF
+Pegawai, banyak pegawai sekaligus.
 - Formatnya sama dengan lembar **Ringkasan Naratif** di Ekspor (Penilaian 360° Lengkap): kolom **kode** (kode
-  pegawai), **jenis** (Aspek / Pertanyaan Kualitatif), **aspek_atau_pertanyaan** (persis nama aspek atau teks
-  pertanyaan periode aktif), **ringkasan**. Cara termudah: tekan **Unduh templat** (sudah berisi ringkasan
+  pegawai), **jenis** (Aspek / Pertanyaan Kualitatif / Isian PDF Pegawai), **aspek_atau_pertanyaan** (persis nama
+  aspek atau teks pertanyaan periode aktif; untuk Isian PDF Pegawai: **Kesimpulan** atau **Masukan Lain dari
+  Penilai**), **ringkasan**. Cara termudah: tekan **Unduh templat** (sudah berisi ringkasan
   yang ada sekarang), isi atau sunting di Excel, lalu unggah. File Ekspor lengkap juga bisa langsung diunggah.
 - Sebelum disimpan, muncul **pratinjau** per baris: ✓ akan diimpor, kosong, dilewati, atau bermasalah beserta
   alasannya.
@@ -1065,7 +1067,7 @@ berperiode. Nama file menyertakan periode. Data ini sensitif — simpan dan bagi
 | **Pegawai (Master)** | 1 lembar, lintas periode: kode, nama, divisi, peran, status, atasan, email |
 | **Konfigurasi Periode Lengkap** | 6 lembar: Ringkasan · Bobot Penilai · Bulan KPI · Aspek & Indikator · Pertanyaan Esai · Pemetaan 360° (siapa menilai siapa — hanya untuk HRD) |
 | **Kinerja Lengkap per Periode** | 4 lembar: Rekap (KPI rerata · Skor 360° · potongan telat · Skor Akhir · kategori · 4-Box) · KPI Bulanan · Audit KPI · Potongan Keterlambatan (nilai, otomatis/diubah/dikecualikan, skor sebelum & sesudah, alasan) |
-| **Penilaian 360° Lengkap** | 5 lembar, tanpa nama penilai: Ringkasan per Pegawai (per kelas penilai + nilai 360° & selisih) · Rekap Aspek (skor terbobot per aspek, cocok dengan radar) · Kuantitatif · Kualitatif · Ringkasan Naratif HRD |
+| **Penilaian 360° Lengkap** | 5 lembar, tanpa nama penilai: Ringkasan per Pegawai (per kelas penilai + nilai 360° & selisih) · Rekap Aspek (skor terbobot per aspek, cocok dengan radar) · Kuantitatif · Kualitatif · Ringkasan Naratif HRD (termasuk Kesimpulan & Masukan Lain dari Penilai) |
 | **Bahan Laporan per Pegawai** | 4 lembar, tanpa nama penilai dan tanpa penilaian diri: Skor (Skor Akhir · KPI · 360° · potongan · skor tiap aspek + kategori) · Komentar Aspek (nilai & komentar per indikator) · Komentar Esai · **Laporan Pelanggaran** (tanggal kejadian, kategori, isi laporan, dan catatan; tanpa nama pelapor, hubungan kerja, atau waktu kirim; hanya ikut bila diekspor dari Mode Admin). Disertai divisi & rentang periode |
 | **Rencana Pengembangan & Sesi Empat Mata** | 3 lembar, **bernama**, disaring menurut periode laporan asal rencana: Rencana (per prioritas) · Komentar & Persetujuan (komentar atasan, alasan perbaikan, siapa menyetujui dan kapan) · Sesi & Tinjauan (sesi empat mata, tinjauan bulanan HRD, kemajuan per prioritas, tanggapan pegawai) |
 | **Log Aktivitas HRD** | 1 lembar, lintas periode: waktu · pelaku · kategori · aksi · ringkasan · target · detail, terbaru di atas |

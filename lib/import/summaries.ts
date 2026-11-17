@@ -1,5 +1,5 @@
 /**
- * Impor Ringkasan Naratif (Aspek 360° & Pertanyaan Kualitatif) dari Excel — logika MURNI (tanpa
+ * Impor Ringkasan Naratif (Aspek 360°, Pertanyaan Kualitatif, Isian PDF Pegawai) dari Excel — logika MURNI (tanpa
  * React/DOM/xlsx), diuji di tests/import-summaries.test.ts. Format = lembar "Ringkasan Naratif" hasil
  * Ekspor (kolom periode · kode · nama · divisi · status_laporan · jenis · aspek_atau_pertanyaan ·
  * ringkasan) agar HRD bisa unduh → sunting di Excel → unggah lagi.
@@ -14,12 +14,16 @@
  *    aspek yang benar.
  */
 import { pickField } from './parse';
+import { PDF_NOTE_KEYS } from '@/lib/pa-pdf';
 
 export const SUMMARY_SHEET = 'Ringkasan Naratif';
 export const SUMMARY_MAX_LEN = 2000; // selaras SummariesInput di admin/laporan/actions.ts
 
-export type SummaryKind = 'aspect' | 'qual';
-export const SUMMARY_KIND_LABEL: Record<SummaryKind, string> = { aspect: 'Aspek', qual: 'Pertanyaan Kualitatif' };
+/** notes = Isian PDF Pegawai (Kesimpulan, Masukan Lain dari Penilai) → content.pdfNotes. */
+export type SummaryKind = 'aspect' | 'qual' | 'notes';
+export const SUMMARY_KINDS: SummaryKind[] = ['aspect', 'qual', 'notes'];
+export const SUMMARY_KIND_LABEL: Record<SummaryKind, string> = { aspect: 'Aspek', qual: 'Pertanyaan Kualitatif', notes: 'Isian PDF Pegawai' };
+const ITEM_NOUN: Record<SummaryKind, string> = { aspect: 'aspek', qual: 'pertanyaan', notes: 'isian' };
 
 export type SummaryEmp = {
   id: string; code: string; name: string;
@@ -61,6 +65,7 @@ export function normKind(s: string): SummaryKind | null {
   const v = norm(s);
   if (v === 'aspek' || v === 'aspek 360' || v === 'aspek 360°') return 'aspect';
   if (v === 'pertanyaan kualitatif' || v === 'kualitatif' || v === 'pertanyaan' || v === 'esai') return 'qual';
+  if (v === 'isian pdf pegawai' || v === 'isian pdf' || v === 'pdf pegawai' || v === 'kesimpulan & masukan lain' || v === 'kesimpulan dan masukan lain') return 'notes';
   return null;
 }
 
@@ -74,6 +79,8 @@ export function classifySummaryRows(raw: Record<string, unknown>[], ctx: Summary
   const byCode = new Map(ctx.employees.map((e) => [e.code.toUpperCase(), e]));
   const aspectBy = new Map(ctx.aspects.map((a) => [norm(a), a]));
   const qualBy = new Map(ctx.questions.map((q) => [norm(q), q]));
+  const notesBy = new Map(PDF_NOTE_KEYS.map((k): [string, string] => [norm(k), k]));
+  const byKind: Record<SummaryKind, Map<string, string>> = { aspect: aspectBy, qual: qualBy, notes: notesBy };
   const seen = new Map<string, number>(); // `${empId}|${kind}|${item}` → baris pertama
 
   const rows: SummaryRow[] = [];
@@ -88,15 +95,17 @@ export function classifySummaryRows(raw: Record<string, unknown>[], ctx: Summary
     const line = i + 2;
     const emp = code ? byCode.get(code) ?? null : null;
     const kind = normKind(kindRaw);
-    const canon = kind === 'aspect' ? aspectBy.get(norm(itemRaw)) : kind === 'qual' ? qualBy.get(norm(itemRaw)) : undefined;
+    const canon = kind ? byKind[kind].get(norm(itemRaw)) : undefined;
     const row: SummaryRow = { line, code, emp, kind, item: canon ?? itemRaw, text, status: 'ok', reason: '' };
     const set = (status: SummaryRowStatus, reason: string) => { row.status = status; row.reason = reason; };
 
     if (!code) set('invalid', 'Kode pegawai kosong');
     else if (!emp) set('invalid', `Kode "${code}" tak dikenal atau di luar lingkup Anda`);
-    else if (!kind) set('invalid', `Jenis "${kindRaw || '?'}" tak valid (Aspek / Pertanyaan Kualitatif)`);
-    else if (!itemRaw) set('invalid', `Nama ${kind === 'aspect' ? 'aspek' : 'pertanyaan'} kosong`);
-    else if (!canon) set('invalid', `${kind === 'aspect' ? 'Aspek' : 'Pertanyaan'} tidak ada di periode ${ctx.periodLabel}`);
+    else if (!kind) set('invalid', `Jenis "${kindRaw || '?'}" tak valid (Aspek / Pertanyaan Kualitatif / Isian PDF Pegawai)`);
+    else if (!itemRaw) set('invalid', `Nama ${ITEM_NOUN[kind]} kosong`);
+    else if (!canon) set('invalid', kind === 'notes'
+      ? `Isian "${itemRaw}" tak dikenal (${PDF_NOTE_KEYS.join(' / ')})`
+      : `${kind === 'aspect' ? 'Aspek' : 'Pertanyaan'} tidak ada di periode ${ctx.periodLabel}`);
     else if (text.length > SUMMARY_MAX_LEN) set('invalid', `Ringkasan ${text.length} karakter (maks ${SUMMARY_MAX_LEN})`);
     else if (period && norm(period) !== norm(ctx.periodLabel)) set('skip', `Periode "${period}" bukan periode aktif`);
     else if (emp.status === 'finalized') set('skip', 'Laporan sudah Final — Buka Kembali (ke Draf) dulu');
@@ -131,6 +140,7 @@ export type SummaryImportItem = {
   employeeId: string;
   aspect?: Record<string, string | null>;
   qual?: Record<string, string | null>;
+  notes?: Record<string, string | null>;
 };
 
 /**
@@ -150,9 +160,8 @@ export function buildSummaryPayload(rows: SummaryRow[]): SummaryImportItem[] {
   }
   const out: SummaryImportItem[] = [];
   for (const it of by.values()) {
-    if (!hasText.has(`${it.employeeId}|aspect`)) delete it.aspect;
-    if (!hasText.has(`${it.employeeId}|qual`)) delete it.qual;
-    if (it.aspect || it.qual) out.push(it);
+    for (const k of SUMMARY_KINDS) if (!hasText.has(`${it.employeeId}|${k}`)) delete it[k];
+    if (it.aspect || it.qual || it.notes) out.push(it);
   }
   return out;
 }

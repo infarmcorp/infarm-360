@@ -8,6 +8,12 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-18 — Tombol Unduh PDF lengkap (dengan komentar mentah) di detail laporan HRD dihapus (di `dev`)
+- Permintaan pemilik: cetak laporan lengkap untuk HRD yang ikut memuat Rincian Komentar Asli tidak diperlukan. Panel aksi
+  HRD kini hanya punya **Unduh PDF Pegawai** (tanpa komentar mentah, tanpa nama penilai).
+- Tombol Unduh PDF di Laporan Hasil Saya (pegawai), Laporan Kinerja Tim (SPV/Koordinator/Direksi), dan Tinjauan Hasil
+  Akhir tidak berubah.
+
 ### 2026-11-17 — Audit kalimat v2: istilah yang lazim kembali berbahasa Inggris (di `dev`, belum dirilis)
 - Pemilik merevisi berkas audit kalimat (versi 2). Gaya baru: lugas, kalimat pendek, dan istilah yang sudah lazim dipakai
   tetap berbahasa Inggris. Seluruh perubahan versi pertama (13 November) dibatalkan lalu diganti dengan keputusan versi 2.

@@ -5,14 +5,15 @@ import { fmt2, hasScoreDrift } from '@/lib/scoring';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Download, FileText, Save, CheckCircle2, Send, Undo2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { FileText, Save, CheckCircle2, Send, Undo2, AlertTriangle, ArrowRight } from 'lucide-react';
 import { saveOrFinalizeReport, releaseToSpv } from '@/app/(app)/admin/laporan/actions';
 import { callAction } from '@/lib/call-action';
 
 /**
  * Panel aksi HRD di halaman detail Review Hasil Akhir — berbasis STATUS (state machine):
  *  - draft / in_review (atau belum ada): bisa diedit → Simpan Draf · Rilis ke SPV · Finalisasi.
- *  - finalized: READ-ONLY (terlihat pegawai) → hanya Unduh PDF + "Buka Kembali (ke Draf)"
+ *  - finalized: READ-ONLY (terlihat pegawai) → hanya Unduh PDF Pegawai + "Buka Kembali (ke Draf)"
+ *    (Cetak laporan lengkap + komentar mentah untuk HRD dihapus 2026-11-18 — tak diperlukan.)
  *    (amber + konfirmasi) untuk membuka kunci & merevisi. Finalisasi ulang tanpa membuka kembali
  *    ditolak server (KUNCI LAPORAN FINAL, lib/final-lock).
  * Ringkasan aspek kini AUTO-SIMPAN (lihat AspectSummaryEditor) → tak perlu guard "belum disimpan".
@@ -101,11 +102,6 @@ export function ReportActions({
           </span>
         )}
       </div>
-
-      <button type="button" onClick={() => window.print()} title="Cetak laporan lengkap untuk HRD, termasuk Rincian Komentar Asli"
-        className="inline-flex items-center gap-1.5 text-[13px] font-semibold min-h-9 px-3.5 rounded-control border border-line bg-surface text-ink-soft hover:text-ink hover:border-line-strong">
-        <Download className="w-4 h-4" /> Unduh PDF
-      </button>
 
       {pdfHref && (
         <Link href={pdfHref} prefetch={false} title="PDF untuk pegawai & atasan: tanpa komentar mentah dan tanpa nama penilai"

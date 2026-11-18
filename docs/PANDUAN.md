@@ -867,13 +867,13 @@ Pegawai, banyak pegawai sekaligus.
 
 **Halaman detail pegawai.** Panel aksi menyesuaikan status, dengan label **Status** dan **Skor Akhir**. Panel
 hanya ada untuk periode aktif.
-- **Belum Final** (Draf / belum ada / Ditinjau): **Unduh PDF · Simpan Draf · Rilis ke SPV · Finalisasi Hasil**.
+- **Belum Final** (Draf / belum ada / Ditinjau): **Unduh PDF Pegawai · Simpan Draf · Rilis ke SPV · Finalisasi Hasil**.
   "Rilis ke SPV" hilang setelah Ditinjau. Untuk laporan pegawai berperan SPV tombolnya **Rilis ke Direksi**.
-- **Final**: hanya **Unduh PDF** + **↩ Buka Kembali (ke Draf)**. Untuk mengubah apa pun, buka kembali dulu.
+- **Final**: hanya **Unduh PDF Pegawai** + **↩ Buka Kembali (ke Draf)**. Untuk mengubah apa pun, buka kembali dulu.
 - **Unduh PDF Pegawai** (selalu ada, juga untuk periode lampau) membuka halaman **PDF Pegawai**: laporan berformat
   "Laporan Performance Appraisal" untuk pegawai dan atasan langsung — skor, ringkasan HRD, kotak Rencana Pengembangan,
   jadwal tindak lanjut, komentar atasan, dan tanda tangan. **Tanpa** komentar mentah dan tanpa nama penilai, jadi PDF ini
-  yang diterima pegawai (bukan Unduh PDF biasa, yang ikut memuat Rincian Komentar Asli). Pegawai mengunduh PDF yang
+  yang diterima pegawai. Pegawai mengunduh PDF yang
   sama dari Laporan Hasil Saya setelah laporan Final. Halaman ini
   menampilkan pratinjau dan tombol **Unduh PDF** (berkas langsung terunduh, nama "Divisi - Nama - Periode"). Kotak biru di
   PDF (catatan per aspek, prioritas, komentar atasan, nama & tanggal tanda tangan) bisa diketik di Acrobat atau pembaca
@@ -937,7 +937,6 @@ Finalisasi. Direksi juga bisa membuka halaman ini dari Menu Direksi.)
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |
 |---|---|---|---|
-| **Unduh PDF** | Cetak/simpan PDF lengkap untuk HRD (termasuk Rincian Komentar Asli) | Selalu | — |
 | **Unduh PDF Pegawai** | Buka PDF Pegawai (format Laporan Performance Appraisal, tanpa komentar mentah) — pratinjau & unduh | Selalu (HRD Mode Admin) | — |
 | **Simpan Draf** | Simpan tanpa merilis; SPV hanya melihat angka Skor Akhir. Persetujuan lama batal | Belum Final | — |
 | **Rilis ke SPV** / **Rilis ke Direksi** | Status Ditinjau; peninjau bisa membuka detail & memberi persetujuan. Rilis ulang dengan skor berbeda membatalkan persetujuan lama. Opsional | Belum Final & belum Ditinjau | — |

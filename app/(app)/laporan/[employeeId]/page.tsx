@@ -431,7 +431,7 @@ export default async function LaporanDetailPage({
               Laporan periode <strong>{ap.label}</strong> (sudah tidak aktif) — ditampilkan untuk ditinjau, tanpa perubahan.
             </p>
           )}
-          {/* HRD: panel aksi (Unduh PDF / Simpan Draf / Rilis ke SPV / Finalisasi Hasil).
+          {/* HRD: panel aksi (Unduh PDF Pegawai / Simpan Draf / Rilis ke SPV / Finalisasi Hasil).
               Hanya di periode AKTIF — Server Action-nya menolak periode tak aktif. */}
           {isAdmin && periodActive && (
             <ReportActions
@@ -454,7 +454,7 @@ export default async function LaporanDetailPage({
           )}
           {history && <ReportHistoryPanel history={history} />}
           {/* HRD: sembunyikan blok komentar-per-penilai (bernama) → diganti raw feedback anonim;
-              tombol Unduh PDF bawaan disembunyikan karena sudah ada di panel aksi. */}
+              tombol cetak bawaan disembunyikan — HRD hanya mengunduh PDF Pegawai (cetak lengkap + komentar mentah dihapus 2026-11-18). */}
           {(() => {
             const doc = <ReportDoc data={data} anonymize={false} hideAssessorComments={isAdmin} hidePrint={isAdmin} />;
             // Isian PDF Pegawai (Kesimpulan & Masukan Lain) — HRD saja, ikut kunci Final seperti ringkasan.

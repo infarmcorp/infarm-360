@@ -21,7 +21,7 @@ export type AksesEmployee = {
   isExternal: boolean;
   isHrdAdmin: boolean;
   isCoordinator: boolean;
-  coordinatorArea: string | null;    // bidang koordinator (0065), mis. "Konten" — nama folder Transfer PDF ke Drive
+  coordinatorArea: string | null;    // bidang koordinator (0065), mis. "Konten" — keterangan saja
   hrdSections: string[] | null;
   joinedOn: string | null;           // tgl masuk (untuk "Pegawai Baru")
   accessReviewedAt: string | null;   // penanda HRD sudah meninjau akses pegawai baru (null = belum)
@@ -608,7 +608,7 @@ export function AksesClient({
                         onKeyDown={(e) => { if (e.key === 'Enter' && changed) saveArea(emp, value); }}
                         className={`${SELECT} w-64 max-w-full`} />
                       <button type="button" onClick={() => saveArea(emp, value)} disabled={pending || !changed} className={GHOST_BTN}>Simpan</button>
-                      <span className="text-xs text-ink-soft">Dipakai sebagai nama folder di Transfer PDF ke Drive.</span>
+                      <span className="text-xs text-ink-soft">Keterangan saja, tidak mengubah akses.</span>
                     </div>
                   );
                 })()}

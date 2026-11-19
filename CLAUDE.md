@@ -118,10 +118,9 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   Aturan database yang melarang membaca penilaian atas diri sendiri **tidak** dibuat (keputusan yang sama).
 - **PDF Pegawai** (`laporan/[employeeId]/pdf-pegawai`, dibuat server `lib/pdf/pa-report.tsx`, TEKNIS.md §5.6): HRD Mode Admin saja; hanya skor + ringkasan HRD +
   `content.pdfNotes` — **jangan** render raw (`byAspect`/`essays`) atau L3 di sana: PDF ini yang diunduh pegawai sendiri dari Laporan Hasil Saya (route unduh `allowSelf`, hanya laporan Final).
-- **Transfer PDF ke Drive** (0065, pemilik 2026-11-19, TEKNIS.md §5.7): HRD `canSection(laporan)` Mode Admin saja; hanya
-  laporan Final; isi = PDF Pegawai (aturan sama: tanpa raw/L3). Folder per divisi → atasan langsung (`lib/drive-layout.ts`,
-  dihitung ulang di server). Kunci akun layanan `GOOGLE_DRIVE_SERVICE_ACCOUNT` hanya server. Berbagi folder = HRD di luar
-  aplikasi — **jangan** tambahkan pengaturan izin Drive dari aplikasi tanpa permintaan.
+- **Tanpa arsip PDF di Drive** (pemilik 2026-11-19): Transfer PDF ke Drive dibuat lalu dicabut di hari yang sama — PDF
+  dibuat ulang dari data saat diunduh, satu sumber data. **Jangan** hidupkan lagi integrasi Drive/arsip PDF tanpa permintaan.
+  Bidang Koordinator (`employees.coordinator_area`, 0065) tetap ada sebagai keterangan di Manajemen Akses.
 - Employee hanya membaca laporannya saat `finalized` (dimuat via service_role). Direksi read-only + ACC.
 - **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan"; tabel `outside_mapping_notes`, 0054 + 0058 + 0061 + 0062,
   keputusan pemilik 2026-11-03, 2026-11-10 & 2026-11-16) — rincian TEKNIS.md §5.4:

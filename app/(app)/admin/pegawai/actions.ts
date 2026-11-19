@@ -171,8 +171,8 @@ export async function setCoordinatorTeam(coordinatorId: string, employeeIds: unk
 }
 
 /**
- * Bidang Koordinator (migrasi 0065), mis. "Konten", "Purchasing", "Warehouse" — label saja, dipakai sebagai nama
- * folder Transfer PDF ke Drive. Kosong = hapus bidang. Hanya HRD penuh; tercatat di Log Aktivitas HRD.
+ * Bidang Koordinator (migrasi 0065), mis. "Konten", "Purchasing", "Warehouse" — keterangan saja (tampil di Manajemen
+ * Akses), tak mengubah akses. Kosong = hapus bidang. Hanya HRD penuh; tercatat di Log Aktivitas HRD.
  */
 export async function setCoordinatorArea(employeeId: string, area: unknown): Promise<Result> {
   const parsed = z.object({

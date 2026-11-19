@@ -64,7 +64,7 @@ export async function loadPaPeriods(db: Db): Promise<{ periods: PaPeriodRow[]; s
 
 /**
  * Bahan PDF satu pegawai pada periode `ap` — TANPA gerbang (pemanggil wajib sudah menegakkan akses).
- * Dipakai loadPaPdf dan Transfer PDF ke Drive (service_role, HRD Mode Admin). Hanya skor + ringkasan HRD.
+ * Dipakai loadPaPdf. Hanya skor + ringkasan HRD.
  */
 export async function paInputFor(db: Db, employeeId: string, ap: PaPeriodRow): Promise<{ input: PaReportInput; settings: PaPdfSettings; isDefault: boolean } | null> {
   const rep = await loadReport(db, employeeId, ap);

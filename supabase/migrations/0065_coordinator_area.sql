@@ -1,13 +1,12 @@
--- 0065 — Bidang Koordinator (keputusan pemilik 2026-11-18).
+-- 0065 — Bidang Koordinator (keputusan pemilik 2026-11-18/19).
 --
--- Koordinator kini punya keterangan bidang (mis. "Konten", "Purchasing", "Warehouse"), diisi HRD penuh di
--- Manajemen Akses. Dipakai sebagai nama folder pada Transfer PDF ke Drive (Review & Finalisasi):
---   <Periode> / <Divisi> / Koordinator <Bidang> - <Nama> / PDF pegawai binaannya.
--- Hanya label — tidak menyentuh izin, RLS, skor, atau lingkup tim. Ditulis lewat Server Action HRD penuh
--- (setCoordinatorArea) seperti kolom employees lain; tak ada policy baru.
+-- Koordinator punya keterangan bidang (mis. "Konten", "Purchasing", "Warehouse"), diisi HRD penuh di
+-- Manajemen Akses dan ditampilkan di daftar koordinator. Hanya label — tidak menyentuh izin, RLS, skor, atau
+-- lingkup tim. Ditulis lewat Server Action HRD penuh (setCoordinatorArea) seperti kolom employees lain; tak ada
+-- policy baru. (Awalnya untuk nama folder Transfer PDF ke Drive; fitur itu dicabut 2026-11-19, bidang dipertahankan.)
 --
--- Idempoten. Terapkan ke STAGING dulu (TEKNIS.md §1). Tanpa migrasi ini Manajemen Akses & Transfer PDF tetap
--- jalan; bidang tidak bisa disimpan ("belum aktif") dan folder koordinator bernama "Koordinator - <Nama>".
+-- Idempoten. Terapkan ke STAGING dulu (TEKNIS.md §1). Tanpa migrasi ini Manajemen Akses tetap jalan; bidang
+-- tidak bisa disimpan ("belum aktif").
 
 alter table employees add column if not exists coordinator_area text;
 

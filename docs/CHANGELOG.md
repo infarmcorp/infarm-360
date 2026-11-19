@@ -8,20 +8,14 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
-### 2026-11-19 — Transfer PDF ke Drive dan Bidang Koordinator (di `dev`, belum dirilis)
-- Permintaan pemilik: HRD perlu menyimpan PDF semua pegawai dalam satu klik langsung ke Google Drive, tersusun agar
-  mudah dibagikan ke atasan. Dipilih unggah langsung dari aplikasi (bukan unduh ZIP) karena Infarm memakai Shared Drive.
-- Tombol **Transfer PDF ke Drive** di langkah ③ Review & Finalisasi. Susunan: periode → divisi → folder atasan
-  langsung. Pegawai yang dinaungi koordinator masuk folder koordinatornya. Pegawai langsung di bawah SPV masuk folder
-  SPV, termasuk laporan para koordinator. Laporan SPV masuk folder terpisah "Supervisor (untuk Direksi)" agar tidak
-  tercampur di folder SPV itu sendiri. Direksi dan pegawai tanpa atasan masuk "Lainnya". Semua usulan ini disetujui pemilik.
-- Pegawai dengan dua koordinator disalin ke kedua folder. Bila tombol ditekan lagi, PDF diganti versi terbaru, dan PDF
-  pegawai yang pindah atasan dipindah ke folder baru (salinan lama masuk Sampah Drive), agar tidak ada berkas ganda.
-- Membagikan folder ke koordinator/SPV dilakukan HRD di Drive, bukan dari aplikasi (keputusan pemilik).
-- Koordinator kini punya **Bidang** (mis. Konten, Purchasing, Warehouse), diisi di Manajemen Akses, dipakai sebagai
-  nama folder (perubahan database 0065).
-- Isi PDF sama dengan PDF yang diunduh pegawai (tanpa komentar asli, tanpa nama penilai). Fitur aktif setelah admin
-  aplikasi menghubungkan akun layanan Google ke Shared Drive.
+### 2026-11-19 — Bidang Koordinator; Transfer PDF ke Drive dibuat lalu dicabut (di `dev`, belum dirilis)
+- Permintaan awal pemilik: HRD menyimpan PDF semua pegawai dalam satu klik ke Shared Drive, tersusun per divisi dan per
+  atasan langsung (folder koordinator/SPV), lalu folder dibagikan ke atasan di luar aplikasi. Fitur sempat dibuat.
+- **Dicabut di hari yang sama** (keputusan pemilik): PDF sudah bisa diunduh kapan saja dan dibuat ulang dari data
+  terbaru, jadi salinan di Drive hanya menambah sumber data kedua yang bisa usang, akses folder yang harus diatur
+  manual, dan kunci akun Google yang harus dijaga. Tidak ada yang dirilis.
+- Yang dipertahankan: koordinator punya **Bidang** (mis. Konten, Purchasing, Warehouse), diisi di Manajemen Akses dan
+  tampil di daftar koordinator. Keterangan saja, tidak mengubah akses (perubahan database 0065).
 
 ### 2026-11-18 — Tombol Unduh PDF lengkap (dengan komentar mentah) di detail laporan HRD dihapus (di `dev`)
 - Permintaan pemilik: cetak laporan lengkap untuk HRD yang ikut memuat Rincian Komentar Asli tidak diperlukan. Panel aksi

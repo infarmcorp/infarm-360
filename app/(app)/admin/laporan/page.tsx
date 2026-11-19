@@ -15,6 +15,10 @@ import { loadReleaseSchedules } from '@/lib/release-schedule';
 import { fmtScheduleWib } from '@/lib/release-schedule-time';
 import { appBaseUrl } from '@/lib/app-url';
 import { ImportSummaries, type ImportSummaryEmp } from './import-summaries';
+import { DriveTransferButton, type DriveTransferProps } from './drive-transfer-button';
+import { driveFoldersFor } from '@/lib/drive-layout';
+import { loadDriveTeams } from '@/lib/drive/layout-server';
+import { driveConfigured } from '@/lib/drive/google-drive';
 import { CARD, CardTitle, Note, PageTitle } from '@/components/infarm-ui';
 import { INFARM_PAGE } from '@/app/infarm-fonts';
 import { AlertTriangle, ArrowRight, Check, ListChecks, Lock } from 'lucide-react';
@@ -23,6 +27,9 @@ import { loadLastAccGiven } from '@/lib/report-history';
 import { loadPendingLatePenalties, refreshLatePenalties } from '@/lib/late-server';
 import { isBackfilledPeriod } from '@/lib/backfill-guard';
 import { ratedCompletion, type RatedMapping } from '@/lib/rated-completeness';
+
+// Transfer PDF ke Drive membuat & mengunggah PDF per gelombang (Server Action halaman ini) → beri waktu lebih.
+export const maxDuration = 60;
 
 /**
  * Review Hasil Akhir (HRD): hitung Skor Akhir tiap pegawai, lihat ACC SPV & status,
@@ -258,6 +265,21 @@ export default async function AdminLaporanPage() {
     };
   }
 
+  // Transfer PDF ke Drive (HRD penuh): pratinjau susunan folder laporan Final — server menghitung ulang saat transfer.
+  let drive: DriveTransferProps | null = null;
+  if (isHrdFull) {
+    const finalRows = shownRows.filter((r) => r.status === 'finalized');
+    const teams = finalRows.length ? await loadDriveTeams(cfg) : null;
+    const roleBy = new Map(employees.map((e) => [e.id, e.role]));
+    drive = {
+      periodId: ap.id, periodLabel: ap.label, configured: driveConfigured(),
+      rows: teams ? finalRows.map((r) => ({
+        id: r.id, name: r.name,
+        folders: driveFoldersFor({ id: r.id, dept: r.dept, role: roleBy.get(r.id) ?? null }, teams).map((p) => p.join(' / ')),
+      })) : [],
+    };
+  }
+
   // Ringkasan per langkah kokpit + langkah yang SEDANG perlu dikerjakan (satu-satunya tombol hijau):
   // ① bila ada Skor 360° usang/potongan telat tertunda → ② bila ada yang siap difinalisasi/berubah →
   // ③ bila ada laporan Final yang belum dikabari. 0 = tak ada yang perlu dikerjakan.
@@ -380,7 +402,12 @@ export default async function AdminLaporanPage() {
             ) : (
               <p>Aktif setelah ada laporan Final.</p>
             )}
-            {release && <StepActions><ReleaseEmailButton release={release} primary={activeStep === 3} /></StepActions>}
+            {(release || drive) && (
+              <StepActions>
+                {release && <ReleaseEmailButton release={release} primary={activeStep === 3} />}
+                {drive && <DriveTransferButton drive={drive} />}
+              </StepActions>
+            )}
           </StepCard>
         </div>
 

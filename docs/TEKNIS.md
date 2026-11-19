@@ -10,7 +10,7 @@ Status & pekerjaan terbuka di [RENCANA.md](RENCANA.md). Riwayat di [CHANGELOG.md
 3. [Aktivasi fitur dorman & Mode Maintenance](#3-aktivasi-fitur-dorman--mode-maintenance)
 4. [Rumus skor & klasifikasi](#4-rumus-skor--klasifikasi)
 5. [Manajemen Akses — model & penegakan](#5-manajemen-akses--model--penegakan)
-6. [Daftar migrasi 0001–0064](#6-daftar-migrasi-00010064)
+6. [Daftar migrasi 0001–0065](#6-daftar-migrasi-00010065)
 7. [Pengujian](#7-pengujian)
 8. [Backup & restore](#8-backup--restore)
 9. [PDF panduan in-app](#9-pdf-panduan-in-app)
@@ -121,6 +121,7 @@ Semua di Vercel Dashboard (jangan commit). Hanya `NEXT_PUBLIC_*` yang boleh samp
 | `ALLOW_PROD`, `VU`, dll. | skrip uji beban | lihat §7.5 |
 | `GEMINI_API_KEY` | server, **Preview/Development saja** | aktifkan "Ringkas otomatis" + halaman Pengaturan AI (eksperimen, `lib/ai/gemini.ts`). Mati otomatis bila `VERCEL_ENV=production` **atau** `NEXT_PUBLIC_SUPABASE_URL` = project production. Jangan set di scope Production. Model, harga, kurs & prompt diatur di halaman **Pengaturan AI** (tabel `ai_settings`, 0060); daftar model diambil langsung dari Google sesuai kunci (`listGeminiModels`), harga model baru diisi HRD |
 | `ANTHROPIC_API_KEY` | server, **Preview/Development saja** | penyedia kedua "Ringkas otomatis" (Claude, `lib/ai/claude.ts`, SDK `@anthropic-ai/sdk`). Kunci salah satu penyedia cukup untuk mengaktifkan fitur; pengaman production sama dengan `GEMINI_API_KEY`. Model dibatasi tiga (`CLAUDE_MODELS`: haiku/sonnet/opus 5.5) dan Gemini empat (`GEMINI_ALLOWED`: 3.8 Flash, 3.6 Flash, 3.5 Flash-Lite, 3.1 Pro pratinjau, irisan dengan daftar Google) — keputusan pemilik 2026-11-17; penyedia dipilih dari nama model (`lib/ai/provider.ts`). Effort `low`, keluaran JSON terstruktur, fallback server untuk Sonnet/Opus. Jangan set di scope Production |
+| `GOOGLE_DRIVE_SERVICE_ACCOUNT` · `GOOGLE_DRIVE_FOLDER_ID` | server (Production; Preview boleh folder uji terpisah) | Transfer PDF ke Drive (§5.7, §3.6): isi berkas JSON kunci akun layanan Google (utuh, satu baris) + id folder induk di **Shared Drive**. Kosong → tombol nonaktif "belum aktif" |
 | `VIOLATION_REPORTER_SECRET` | server (Preview/staging **dan** Production, nilai berbeda per lingkungan boleh) | kunci rahasia penanda pelapor Laporkan Pelanggaran (§5.4, 0062), ≥ 32 karakter acak (mis. `openssl rand -hex 32`). **Jangan pernah diganti** setelah dipakai — laporan lama hilang dari Laporan Saya pelapornya. Kosong → laporan terkirim tanpa penanda, Laporan Saya "belum aktif" |
 
 ---
@@ -222,6 +223,20 @@ mendukung cron per menit). Route menolak tanpa `Authorization: Bearer $CRON_SECR
 Tanpa langkah 2–4 HRD tetap bisa membuat jadwal, tetapi email tidak terkirim (jadwal tetap "Terjadwal"). Uji di
 staging tanpa GitHub: jalankan lokal (`npm run dev`, `.env.local` staging + `CRON_SECRET`), buat jadwal 5 menit
 ke depan, lalu panggil `curl -H "Authorization: Bearer <kode>" http://localhost:3000/api/cron/release-email`.
+
+### 3.6 Transfer PDF ke Drive (akun layanan Google + Shared Drive, migrasi 0065)
+Rincian kode §5.7. **Aktivasi (sekali):**
+1. Jalankan migrasi **0065** di staging lalu production (tanpa itu transfer tetap jalan, folder koordinator tanpa bidang).
+2. Google Cloud Console (project milik Infarm) → **APIs & Services** → aktifkan **Google Drive API**.
+3. **IAM & Admin → Service Accounts** → buat akun layanan (tanpa peran project) → tab **Keys** → **Add key → JSON** →
+   unduh berkasnya. Berkas ini rahasia: jangan dikirim lewat chat/email, jangan di-commit.
+4. Google Drive → Shared Drive tujuan → **Kelola anggota** → tambahkan email akun layanan (`…@….iam.gserviceaccount.com`)
+   sebagai **Pengelola konten** (Content manager — perlu untuk memindah & membuang berkas). Buat folder induk, mis.
+   "Laporan PA", lalu salin id-nya dari alamat folder (`drive.google.com/drive/folders/<id>`).
+5. Vercel → Environment Variables (scope **Production**; Preview boleh memakai folder uji lain):
+   `GOOGLE_DRIVE_SERVICE_ACCOUNT` = seluruh isi berkas JSON, `GOOGLE_DRIVE_FOLDER_ID` = id folder → **Redeploy**.
+6. Uji: Review & Finalisasi → **Transfer PDF ke Drive** pada periode yang punya laporan Final → periksa folder di Drive.
+   Pesan "tidak ditemukan / belum menjadi anggota" = langkah 4; "Login akun layanan Google gagal" = isi JSON salah.
 
 ---
 
@@ -459,6 +474,23 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
   `saveContentRecord`. Pengaturan per periode `periods.pa_pdf` = `{reportDate, rows[1..8]{aksi,target,tenggat,pendamping,selesai}}`
   lewat `savePaPdfSettings`; kosong → `defaultPaPdfSettings` dari `end_date`.
 
+### 5.7 Transfer PDF ke Drive (0065) — arsip PDF Pegawai per atasan
+- Tombol **Transfer PDF ke Drive** di kartu ③ Review & Finalisasi (`drive-transfer-button.tsx`) → `transferPdfsToDrive`
+  (`admin/laporan/drive-actions.ts`): HRD `canSection(laporan)` + `hrd_mode=admin` (sama dengan Email Rilis; grant Review tidak).
+  Per gelombang 5 pegawai dari klien (`maxDuration = 60` di `page.tsx`). Hanya laporan `finalized`; isi = PDF Pegawai
+  (`paInputFor` + `renderPaReport`) — tanpa raw & L3. Log `report.drive_transfer`.
+- Susunan `<GOOGLE_DRIVE_FOLDER_ID>/<Periode>/<Divisi>/<Folder atasan>/<Divisi - Nama - Periode>.pdf`, aturan murni
+  `lib/drive-layout.ts` (`driveFoldersFor`, memakai `resolveSupervisor` Rencana Pengembangan): koordinator →
+  `Koordinator <Bidang> - <Nama>` (satu salinan per koordinator) · SPV → `SPV - <Nama> (langsung)` · SPV/pemimpin tim →
+  `Supervisor (untuk Direksi)` · Direksi/tanpa atasan → `Lainnya`. Atasan nonaktif dilewati (`loadDriveTeams`). Folder
+  dihitung ulang di server; klien hanya mengirim id.
+- Bidang koordinator = `employees.coordinator_area` (0065), diisi HRD penuh di Manajemen Akses (`setCoordinatorArea`).
+  Dibaca terpisah dengan toleransi kolom belum ada.
+- Klien Drive `lib/drive/google-drive.ts`: REST v3 tanpa pustaka, token dari JWT akun layanan (RS256, `node:crypto`),
+  `supportsAllDrives`. Penanda berkas `appProperties {paPeriod, paEmp}` → transfer ulang menimpa isi, memindahkan berkas
+  bila atasan berganti, dan membuang salinan berlebih ke Sampah (`planFileOps`) — tak pernah menggandakan / hapus permanen.
+- Membagikan folder ke koordinator/SPV dilakukan HRD di Drive (di luar aplikasi). Aplikasi tak mengubah izin Drive.
+
 ### 5.5 Rencana Pengembangan (0055–0056) — alur & akses
 - **Tabel** `development_plans` (unik per `employee_id` + `source_period_id`; status `draft` → `waiting_supervisor` →
   `waiting_hrd` → `agreed`, cabang `revision`; 4 komentar atasan; persetujuan pegawai/atasan/HRD = id + nama + waktu)
@@ -503,7 +535,7 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
 
 ---
 
-## 6. Daftar migrasi 0001–0064
+## 6. Daftar migrasi 0001–0065
 
 Status penerapan per DB → `scripts/check-migrations.sql`.
 
@@ -571,6 +603,7 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0062 | Laporkan Pelanggaran: tindak lanjut HRD + Laporan Saya — kolom `outside_mapping_notes.reporter_ref` (HMAC hex 64, check format, index parsial), `status` (received/in_progress/done, bawaan received), `hrd_response` (≤ 2000), `responded_at`. Butuh env `VIOLATION_REPORTER_SECRET`. Tanpa kolom → kirim tanpa penanda, tindak lanjut "belum aktif". **Staging lalu production** sebelum dirilis |
 | 0063 | PDF Pegawai: kolom `periods.pa_pdf` (jsonb `{reportDate, tenggat[4]}`) — tanggal laporan & tenggat tindak lanjut per periode. Ditulis hanya `savePaPdfSettings` (HRD Mode Admin, service_role). Tanpa kolom → bawaan dari `end_date` (`lib/pa-pdf.ts`), simpan "belum aktif". **Staging lalu production** |
 | 0064 | **Eksperimen dev** — kolom `ai_settings.rules_prompt` (aturan umum Prompt PA v2.0, ditempel di depan semua prompt via `composePrompt`) & `notes_prompt` (Kesimpulan + Masukan Lain, `kind: notes`). Null = bawaan `lib/ai/summary-prompt.ts`. Tanpa kolom → `promptsReady=false`, keduanya bawaan & read-only. Cukup di staging; production saat fitur dirilis |
+| 0065 | Bidang Koordinator: kolom `employees.coordinator_area` (teks 1–60, null = tanpa bidang) — nama folder Transfer PDF ke Drive (§5.7). Ditulis hanya `setCoordinatorArea` (HRD penuh). Tanpa kolom → bidang "belum aktif", transfer tetap jalan. **Staging lalu production** |
 
 ---
 

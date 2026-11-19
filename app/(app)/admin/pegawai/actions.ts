@@ -171,6 +171,38 @@ export async function setCoordinatorTeam(coordinatorId: string, employeeIds: unk
 }
 
 /**
+ * Bidang Koordinator (migrasi 0065), mis. "Konten", "Purchasing", "Warehouse" — label saja, dipakai sebagai nama
+ * folder Transfer PDF ke Drive. Kosong = hapus bidang. Hanya HRD penuh; tercatat di Log Aktivitas HRD.
+ */
+export async function setCoordinatorArea(employeeId: string, area: unknown): Promise<Result> {
+  const parsed = z.object({
+    id: z.string().uuid(),
+    area: z.string().trim().max(60, 'Bidang maksimal 60 karakter.'),
+  }).safeParse({ id: employeeId, area });
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
+  const value = parsed.data.area.replace(/\s+/g, ' ') || null;
+
+  const supabase = await createClient();
+  const auth = await requireHrd(supabase, 'full');
+  if (!auth.ok) return auth;
+
+  const { data: coord } = await supabase.from('employees').select('name, is_coordinator').eq('id', parsed.data.id).maybeSingle();
+  if (!coord?.is_coordinator) return { ok: false, error: 'Pegawai ini bukan Koordinator.' };
+  const { error } = await supabase.from('employees').update({ coordinator_area: value }).eq('id', parsed.data.id);
+  if (error) {
+    return { ok: false, error: /coordinator_area/.test(error.message) ? 'Bidang Koordinator belum aktif. Hubungi admin aplikasi.' : 'Gagal menyimpan bidang: ' + error.message };
+  }
+
+  await logHrdAction({
+    action: 'employee.set_coordinator_area', category: 'pegawai',
+    summary: value ? `Menetapkan bidang Koordinator ${coord.name}: ${value}` : `Menghapus bidang Koordinator ${coord.name}`,
+    targetType: 'employee', targetId: parsed.data.id, targetLabel: coord.name ?? null,
+  });
+  revalidate();
+  return { ok: true, msg: value ? `Bidang disimpan: ${value}.` : 'Bidang dihapus.' };
+}
+
+/**
  * Atur AKSES HRD GRANULAR (Jalur A, migrasi 0023): batasi rekan HRD ke sebagian halaman admin.
  *   sections = null / []  → AKSES PENUH (semua bagian).
  *   sections = [..]        → hanya bagian tercantum (subset katalog HRD_SECTIONS).

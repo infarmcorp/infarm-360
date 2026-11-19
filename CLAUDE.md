@@ -52,7 +52,7 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
   typecheck + lint + build; lint bersih sejak 2026-10-16 — jangan tambah temuan baru). Backup harian `.github/workflows/backup.yml`. npm.
 - Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 31 tabel publik, migrasi
-  `supabase/migrations/0001`–`0064` (0060 `ai_settings` & 0064 = eksperimen dev, belum wajib di production). **Production berjalan tanpa API LLM**:
+  `supabase/migrations/0001`–`0065` (0060 `ai_settings` & 0064 = eksperimen dev, belum wajib di production). **Production berjalan tanpa API LLM**:
   "Ringkas otomatis"/Pengaturan AI (`lib/ai/`, `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` — Claude dibatasi tiga model 5.5, Gemini empat model `GEMINI_ALLOWED`, penyedia dipilih dari nama model) hanya dev/staging dan mati otomatis di production; ringkasan
   HRD ditulis manual. Jangan sebut fitur AI di PANDUAN/Notion selama belum dirilis. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
   → **wajib** cek `Bearer $CRON_SECRET` sendiri, gagal tertutup. Email Rilis terjadwal dipicu GitHub Actions
@@ -118,6 +118,10 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   Aturan database yang melarang membaca penilaian atas diri sendiri **tidak** dibuat (keputusan yang sama).
 - **PDF Pegawai** (`laporan/[employeeId]/pdf-pegawai`, dibuat server `lib/pdf/pa-report.tsx`, TEKNIS.md §5.6): HRD Mode Admin saja; hanya skor + ringkasan HRD +
   `content.pdfNotes` — **jangan** render raw (`byAspect`/`essays`) atau L3 di sana: PDF ini yang diunduh pegawai sendiri dari Laporan Hasil Saya (route unduh `allowSelf`, hanya laporan Final).
+- **Transfer PDF ke Drive** (0065, pemilik 2026-11-19, TEKNIS.md §5.7): HRD `canSection(laporan)` Mode Admin saja; hanya
+  laporan Final; isi = PDF Pegawai (aturan sama: tanpa raw/L3). Folder per divisi → atasan langsung (`lib/drive-layout.ts`,
+  dihitung ulang di server). Kunci akun layanan `GOOGLE_DRIVE_SERVICE_ACCOUNT` hanya server. Berbagi folder = HRD di luar
+  aplikasi — **jangan** tambahkan pengaturan izin Drive dari aplikasi tanpa permintaan.
 - Employee hanya membaca laporannya saat `finalized` (dimuat via service_role). Direksi read-only + ACC.
 - **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan"; tabel `outside_mapping_notes`, 0054 + 0058 + 0061 + 0062,
   keputusan pemilik 2026-11-03, 2026-11-10 & 2026-11-16) — rincian TEKNIS.md §5.4:

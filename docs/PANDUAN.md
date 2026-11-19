@@ -518,6 +518,9 @@ Struktur Organisasi · Progress 360 Feedback · Flag Kepatuhan · Monitoring & A
   mengubah data** di bagian yang dicentang, tetapi **masih bisa melihat** data lain. Jadi ini untuk pembagian
   tugas rekan HRD yang tepercaya, bukan untuk menyembunyikan data. Tidak bisa dipakai pada akun sendiri.
 - **Koordinator**: lihat §4.1. Label "Koordinator". Mencabut Koordinator ikut mengosongkan timnya.
+  **Bidang Koordinator** (mis. Konten, Purchasing, Warehouse) diisi di profil koordinator, di bawah tombol izin khusus,
+  lalu **Simpan**. Bidang hanya keterangan, tidak mengubah akses, dan dipakai sebagai nama folder di Transfer PDF
+  ke Drive. Kosongkan lalu Simpan untuk menghapusnya.
 - Mengubah izin, serta mengubah/menonaktifkan/mereset sandi akun HRD atau Direksi, hanya bisa oleh HRD berakses
   penuh. Tidak ada yang bisa mengubah izin akunnya sendiri.
 
@@ -547,6 +550,7 @@ flowchart TD
 | Beri/Cabut **HRD Admin** | Izin HRD | Beri: hanya divisi HRD | — |
 | **Atur Akses** | Batasi rekan HRD | Pemegang izin HRD, bukan akun sendiri | — |
 | Beri/Cabut **Koordinator** · **Kelola Tim** | Izin + daftar binaan sedivisi | Pegawai berperan Pegawai | — |
+| **Bidang Koordinator** + **Simpan** | Keterangan bidang (nama folder Transfer PDF ke Drive) | Koordinator | — |
 | Cabut satu akses | Cabut | Per akses | — |
 | Cabut semua (per halaman / per pegawai) | Cabut massal | Ada pemegang | Ya |
 | **Tinjau** / **Tandai selesai** | Kartu Pegawai Baru | Pegawai baru belum ditinjau | — |
@@ -782,7 +786,8 @@ beres bertanda ✓. Penjelasan lengkap ada di ikon ⓘ di samping judul.
   Bila ada laporan Final yang angkanya ketinggalan, muncul **Perbarui Laporan Final yang Berubah (N)**: angka
   disegarkan sekaligus, laporan tetap Final dan ringkasannya tidak berubah.
 - **③ Kabari Pegawai** — ringkasan jumlah siap dikirim dan sudah dikirimi. **Kirim Email Rilis** mengirim email
-  bahwa PDF laporan sudah bisa diunduh di Laporan Hasil Saya.
+  bahwa PDF laporan sudah bisa diunduh di Laporan Hasil Saya. **Transfer PDF ke Drive** menyimpan PDF semua laporan
+  Final ke Google Drive perusahaan, tersusun per divisi dan per atasan.
   Hanya HRD di Mode Admin. Lihat SOP di bawah.
 - **Atur Bobot · Flag Kepatuhan** — tautan kecil di kanan bawah kokpit.
 
@@ -825,6 +830,25 @@ belum ingin dikabari. Mereka bisa dikirimi menyusul (ikon ✉ per pegawai, atau 
    bisa dikirimi manual. Setiap pengiriman tercatat di Log Aktivitas dengan nama pembuat jadwal "(terjadwal)".
 
 Isi email yang terkirim = isi **saat dijadwalkan** (atau saat terakhir diubah), bukan isian terbaru di browser.
+
+**SOP — Transfer PDF ke Drive** (setelah laporan Final; boleh diulang kapan saja):
+1. Pastikan bidang tiap koordinator sudah diisi di **Manajemen Akses** (lihat bagian Manajemen Akses). Bidang dipakai
+   sebagai nama folder.
+2. Klik **Transfer PDF ke Drive** (langkah ③). Dialog menampilkan susunan folder dan nama pegawai di tiap folder.
+3. Klik **Mulai Transfer (N PDF)**. Jangan tutup dialog sampai muncul "N dari N PDF tersimpan di Drive". Pegawai yang
+   dilewati atau gagal tercantum beserta alasannya.
+4. Di Google Drive, bagikan tiap folder ke koordinator atau SPV yang bersangkutan. Langkah ini di luar aplikasi.
+
+Susunan folder: **Periode → Divisi → folder atasan**:
+- **Koordinator [Bidang] - [Nama]**: PDF pegawai yang dinaungi koordinator itu. Pegawai dengan dua koordinator ada di
+  kedua folder.
+- **SPV - [Nama] (langsung)**: PDF pegawai yang langsung di bawah SPV itu, termasuk laporan para koordinatornya.
+- **Supervisor (untuk Direksi)**: PDF laporan para SPV divisi itu.
+- **Lainnya**: Direksi dan pegawai tanpa atasan.
+
+Isi PDF sama dengan yang diunduh pegawai: tanpa komentar asli dan tanpa nama penilai. Bila ditekan lagi, PDF yang sudah
+ada diganti versi terbaru, dan bila atasan pegawai berganti PDF-nya dipindah ke folder atasan baru (salinan lama masuk
+Sampah Drive). Tombol mati dengan tulisan "belum aktif" bila hubungan ke Google Drive belum diatur admin aplikasi.
 - Pintasan **⚖ Atur Bobot** dan **⚑ Flag Kepatuhan**.
 
 | Tombol | Fungsi | Kapan muncul | Konfirmasi |
@@ -833,6 +857,7 @@ Isi email yang terkirim = isi **saat dijadwalkan** (atau saat terakhir diubah), 
 | **Perbarui Laporan Final yang Berubah (N)** (langkah ②) | Segarkan angka laporan Final | Bila N > 0 | Ya |
 | **Finalisasi N Laporan** (langkah ②) | Finalisasi semua yang sudah disetujui & masih Ditinjau | Selalu; saat mati, tulisannya menyebut sebab: "Menunggu persetujuan (N)", "Masih ada draf (N)", "Laporan belum dibuat (N)", atau "✓ Semua sudah Final" | Ya (+ peringatan bila 360° perlu dihitung) |
 | **Kirim Email Rilis** (langkah ③) | Buka dialog Email Rilis Laporan | Selalu; mati bila belum ada laporan Final | Ya, sebelum kirim |
+| **Transfer PDF ke Drive** (langkah ③) | Buka dialog susunan folder, lalu simpan PDF semua laporan Final ke Google Drive | Selalu; mati bila belum ada laporan Final atau belum aktif | — (dialog pratinjau dulu) |
 | **Kirim sekarang / Jadwalkan** (dialog Email Rilis) | Pilih kirim langsung atau pada tanggal & jam (WIB) | Massal; Jadwalkan mati bila sudah ada jadwal aktif | Ya, sebelum kirim/jadwalkan |
 | **Lihat / ubah jadwal** · **Batalkan jadwal** | Ubah jam, penerima, isi; atau hentikan jadwal | Ada jadwal yang belum mulai terkirim | — |
 | **Atur Bobot** / **Flag Kepatuhan** | Pintasan (tautan kecil) | Kanan bawah kokpit | — |

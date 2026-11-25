@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   resolveSupervisor, canActAsSupervisor, canHrdSign, canHrdManage, canViewPlan, submitBlocker, ownerCanEdit,
   supervisorApproveBlocker, nextQuarterLabel, planTitle, planStatusLabel, sessionsOpen, canRecordSession, canEditSession,
-  ownerCanWithdraw, inAdminView,
+  ownerCanWithdraw, inAdminView, splitPeriodPills,
   type PlanItem, type PlanActor,
 } from '@/lib/dev-plan';
 
@@ -162,5 +162,19 @@ describe('pemisahan mode (keputusan pemilik 2026-11-03)', () => {
     expect(inAdminView(actor(H, { role: 'hrd' }), 'admin')).toBe(true);
     expect(inAdminView(actor(H, { role: 'hrd' }), 'spv')).toBe(false);
     expect(inAdminView(actor(S, { role: 'spv' }), 'admin')).toBe(false);
+  });
+});
+
+describe('splitPeriodPills — pemilih Periode laporan', () => {
+  const ps = ['Q3 2027', 'Q2 2027', 'Q1 2027', 'Q4 2026', 'Q3 2026', 'Q2 2026'];
+  it('4 periode terbaru jadi kapsul, sisanya Periode lain (urutan tetap)', () => {
+    expect(splitPeriodPills(ps)).toEqual({ pills: ps.slice(0, 4), more: ['Q3 2026', 'Q2 2026'] });
+  });
+  it('4 periode atau kurang → tanpa Periode lain', () => {
+    expect(splitPeriodPills(ps.slice(0, 4)).more).toEqual([]);
+    expect(splitPeriodPills(ps.slice(0, 2))).toEqual({ pills: ps.slice(0, 2), more: [] });
+  });
+  it('batas bisa diatur', () => {
+    expect(splitPeriodPills(ps, 2).more).toHaveLength(4);
   });
 });

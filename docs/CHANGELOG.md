@@ -8,6 +8,12 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-25 — Pemilih Periode laporan di Rencana Pengembangan dibatasi empat tombol (di `dev`)
+- Baris **Periode laporan** memuat semua periode yang laporan pegawainya Final, termasuk yang rencananya sudah ditutup
+  HRD, sehingga bertambah satu tombol tiap kuartal tanpa batas. Kini hanya empat periode terbaru yang berupa tombol;
+  periode lebih lama dipilih lewat daftar **Periode lain…** (permintaan pemilik). Berlaku di Rencana Saya, Tim Saya,
+  halaman rencana anggota, dan Pantauan Rencana Pengembangan.
+
 ### 2026-11-19 — Bidang Koordinator; Transfer PDF ke Drive dibuat lalu dicabut (di `dev`, belum dirilis)
 - Permintaan awal pemilik: HRD menyimpan PDF semua pegawai dalam satu klik ke Shared Drive, tersusun per divisi dan per
   atasan langsung (folder koordinator/SPV), lalu folder dibagikan ke atasan di luar aplikasi. Fitur sempat dibuat.

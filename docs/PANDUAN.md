@@ -252,6 +252,9 @@ Menu **Rencana Pengembangan** (juga tombol **Buka Rencana →** di Laporan Hasil
 Pengembangan Individu Anda untuk kuartal **sesudah** laporan: laporan Q3 2026 → **Rencana Pengembangan Q4 2026**.
 - Bisa diisi begitu laporan Anda **Final**, walau periode penilaian di aplikasi sudah berganti. Rencana tetap
   terbuka sampai HRD menutupnya. Di atas rencana tertulis **Batas rencana disepakati** bila HRD sudah menetapkannya.
+- Bila Anda punya lebih dari satu laporan Final, pilih periodenya di baris **Periode laporan** (yang terbaru terbuka
+  lebih dulu). Empat periode terbaru tampil sebagai tombol; periode yang lebih lama dipilih lewat daftar
+  **Periode lain…**. Baris yang sama ada di tab Tim Saya dan Pantauan Rencana Pengembangan HRD.
 - Isi setelah sesi 1-on-1 dengan atasan. Tiap **prioritas** berisi: Area yang dikembangkan, Target terukur,
   Langkah aksi, Tenggat, Pendamping, Indikator berhasil. Mulai dari satu prioritas; tambah lewat **+ Tambah
   Prioritas** atau buang lewat **Hapus prioritas**. Prioritas 1 sebaiknya mengacu pada "Prioritas utama" di

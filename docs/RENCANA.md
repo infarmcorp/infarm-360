@@ -47,6 +47,9 @@ Tanda: ⬜ belum · 🔄 sebagian · 🔑 butuh tindakan pemilik app (akses dash
 ## 2. Harus dikerjakan
 
 ### Rilis & operasional
+- 🔑⬜ **Bidang Koordinator** (2026-11-19, di `dev`, belum dirilis): jalankan perubahan database **0065** di staging
+  lalu production. Tanpa itu Manajemen Akses tetap jalan, hanya isian Bidang yang "belum aktif". Setelah aktif, HRD
+  boleh mengisi bidang tiap koordinator (keterangan saja).
 - 🔑⬜ **PDF Pegawai** (2026-11-17, di `dev`, belum dirilis): jalankan perubahan database **0063** di staging lalu
   production (tanpa itu PDF tetap jalan dengan jadwal bawaan, hanya simpan pengaturan yang "belum aktif"). Uji di
   Preview: cetak satu laporan Final ke PDF dan bandingkan dengan templat HRD (pemotongan halaman, warna, nomor halaman).

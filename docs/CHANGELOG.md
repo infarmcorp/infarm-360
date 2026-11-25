@@ -8,6 +8,15 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-19 — Bidang Koordinator; Transfer PDF ke Drive dibuat lalu dicabut (di `dev`, belum dirilis)
+- Permintaan awal pemilik: HRD menyimpan PDF semua pegawai dalam satu klik ke Shared Drive, tersusun per divisi dan per
+  atasan langsung (folder koordinator/SPV), lalu folder dibagikan ke atasan di luar aplikasi. Fitur sempat dibuat.
+- **Dicabut di hari yang sama** (keputusan pemilik): PDF sudah bisa diunduh kapan saja dan dibuat ulang dari data
+  terbaru, jadi salinan di Drive hanya menambah sumber data kedua yang bisa usang, akses folder yang harus diatur
+  manual, dan kunci akun Google yang harus dijaga. Tidak ada yang dirilis.
+- Yang dipertahankan: koordinator punya **Bidang** (mis. Konten, Purchasing, Warehouse), diisi di Manajemen Akses dan
+  tampil di daftar koordinator. Keterangan saja, tidak mengubah akses (perubahan database 0065).
+
 ### 2026-11-18 — Tombol Unduh PDF lengkap (dengan komentar mentah) di detail laporan HRD dihapus (di `dev`)
 - Permintaan pemilik: cetak laporan lengkap untuk HRD yang ikut memuat Rincian Komentar Asli tidak diperlukan. Panel aksi
   HRD kini hanya punya **Unduh PDF Pegawai** (tanpa komentar mentah, tanpa nama penilai).

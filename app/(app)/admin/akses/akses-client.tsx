@@ -3,7 +3,8 @@
 import { useMemo, useState, useTransition } from 'react';
 import { ShieldCheck, Users, ListChecks, SlidersHorizontal, X, UserPlus, ScrollText, FileStack, Check, Eye, PenLine, Pencil, UserRound } from 'lucide-react';
 import { setPageGrant, setPageGrantForRole, removePageGrant, removePageGrantForAll, removeAllPageGrantsForEmployee, markAccessReviewed } from './actions';
-import { setHrdAdmin, setCoordinator, setCoordinatorTeam, setHrdSections } from '../pegawai/actions';
+import { setHrdAdmin, setCoordinator, setCoordinatorTeam, setCoordinatorArea, setHrdSections } from '../pegawai/actions';
+import { callAction } from '@/lib/call-action';
 import { isHrdDept, roleGrantRecipients, HRD_SECTIONS, HRD_SECTION_LABELS, GRANT_ROLE_TARGETS, GRANT_ROLE_TARGET_LABELS, type HrdSection, type GrantRoleTarget } from '@/lib/auth/roles';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 import { SearchableSelect } from '@/components/searchable-select';
@@ -20,6 +21,7 @@ export type AksesEmployee = {
   isExternal: boolean;
   isHrdAdmin: boolean;
   isCoordinator: boolean;
+  coordinatorArea: string | null;    // bidang koordinator (0065), mis. "Konten" — keterangan saja
   hrdSections: string[] | null;
   joinedOn: string | null;           // tgl masuk (untuk "Pegawai Baru")
   accessReviewedAt: string | null;   // penanda HRD sudah meninjau akses pegawai baru (null = belum)
@@ -87,6 +89,8 @@ export function AksesClient({
   const [msg, setMsg] = useState<{ id: string; text: string; ok: boolean } | null>(null);
   const [coordDlg, setCoordDlg] = useState<{ r: AksesEmployee; selected: Set<string>; q: string } | null>(null);
   const [sectionsDlg, setSectionsDlg] = useState<{ r: AksesEmployee; full: boolean; selected: Set<string> } | null>(null);
+  // Isian Bidang Koordinator yang sedang diketik (per pegawai terpilih); null = tampilkan nilai tersimpan.
+  const [areaDraft, setAreaDraft] = useState<{ id: string; value: string } | null>(null);
 
   // ── Langkah 1: penerima ──
   const [recipient, setRecipient] = useState<Recipient>('employee');
@@ -256,6 +260,13 @@ export function AksesClient({
     const { r, selected } = coordDlg;
     setCoordDlg(null);
     run(r.id, () => setCoordinatorTeam(r.id, [...selected]), () => setTeams((t) => ({ ...t, [r.id]: [...selected] })));
+  }
+  function saveArea(r: AksesEmployee, value: string) {
+    const clean = value.trim().replace(/\s+/g, ' ');
+    run(r.id, () => callAction(() => setCoordinatorArea(r.id, clean)), () => {
+      patchRow(r.id, { coordinatorArea: clean || null });
+      setAreaDraft(null);
+    });
   }
   function submitSections() {
     if (!sectionsDlg) return;
@@ -586,6 +597,21 @@ export function AksesClient({
                     )}
                   </div>
                 )}
+                {emp.isCoordinator && (() => {
+                  const value = areaDraft?.id === emp.id ? areaDraft.value : (emp.coordinatorArea ?? '');
+                  const changed = value.trim() !== (emp.coordinatorArea ?? '');
+                  return (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <label htmlFor="coord-area" className="text-[13px] font-semibold text-ink">Bidang Koordinator:</label>
+                      <input id="coord-area" value={value} maxLength={60} placeholder="mis. Konten, Purchasing, Warehouse"
+                        onChange={(e) => setAreaDraft({ id: emp.id, value: e.target.value })}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && changed) saveArea(emp, value); }}
+                        className={`${SELECT} w-64 max-w-full`} />
+                      <button type="button" onClick={() => saveArea(emp, value)} disabled={pending || !changed} className={GHOST_BTN}>Simpan</button>
+                      <span className="text-xs text-ink-soft">Keterangan saja, tidak mengubah akses.</span>
+                    </div>
+                  );
+                })()}
                 <p className="text-xs text-ink-faint mt-2">Peninjau Lintas Divisi kini diberikan lewat akses halaman <strong>“Review & Finalisasi”</strong> (lingkup “selain divisinya”, izin “Boleh meringkas”).</p>
               </div>
             </div>
@@ -612,7 +638,7 @@ export function AksesClient({
                     {roleMemberRows('koordinator').map((c) => (
                       <li key={c.id} className="flex flex-wrap items-center gap-x-2 py-1.5 text-[13px]">
                         <span className="font-semibold text-ink">{c.name}</span>
-                        <span className="text-ink-soft">· {c.dept}</span>
+                        <span className="text-ink-soft">· {c.dept}{c.coordinatorArea ? ` · ${c.coordinatorArea}` : ''}</span>
                         <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-infarm-cream text-infarm-soil">menaungi <span className="font-mono">{teams[c.id]?.length ?? 0}</span> pegawai</span>
                         <button type="button" onClick={() => pickEmployee(c.id)}
                           className="ml-auto text-xs font-semibold text-brand-ink hover:underline">Kelola →</button>

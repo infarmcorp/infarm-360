@@ -45,6 +45,10 @@ export default async function AdminAksesPage({
     admin.from('coordinator_team_members').select('coordinator_id, employee_id'),
   ]);
 
+  // Bidang koordinator (0065) dibaca terpisah: kolom belum ada → tanpa bidang, halaman tetap jalan.
+  const { data: areaRows, error: areaErr } = await admin.from('employees').select('id, coordinator_area').eq('is_coordinator', true);
+  const areaBy = new Map(areaErr ? [] : (areaRows ?? []).map((r) => [r.id, r.coordinator_area ?? null]));
+
   // Tim per koordinator (untuk dialog): coordinator_id → daftar employee_id.
   const coordTeams: Record<string, string[]> = {};
   (coordData ?? []).forEach((c) => { (coordTeams[c.coordinator_id] ??= []).push(c.employee_id); });
@@ -68,6 +72,7 @@ export default async function AdminAksesPage({
     isExternal: !!e.is_external,
     isHrdAdmin: !!e.is_hrd_admin,
     isCoordinator: !!e.is_coordinator,
+    coordinatorArea: areaBy.get(e.id) ?? null,
     hrdSections: e.hrd_sections ?? null,
     joinedOn: e.joined_on ?? null,
     accessReviewedAt: e.access_reviewed_at ?? null,

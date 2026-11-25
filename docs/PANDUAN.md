@@ -518,6 +518,9 @@ Struktur Organisasi · Progress 360 Feedback · Flag Kepatuhan · Monitoring & A
   mengubah data** di bagian yang dicentang, tetapi **masih bisa melihat** data lain. Jadi ini untuk pembagian
   tugas rekan HRD yang tepercaya, bukan untuk menyembunyikan data. Tidak bisa dipakai pada akun sendiri.
 - **Koordinator**: lihat §4.1. Label "Koordinator". Mencabut Koordinator ikut mengosongkan timnya.
+  **Bidang Koordinator** (mis. Konten, Purchasing, Warehouse) diisi di profil koordinator, di bawah tombol izin khusus,
+  lalu **Simpan**. Bidang hanya keterangan (tampil di daftar koordinator) dan tidak mengubah akses. Kosongkan lalu
+  Simpan untuk menghapusnya.
 - Mengubah izin, serta mengubah/menonaktifkan/mereset sandi akun HRD atau Direksi, hanya bisa oleh HRD berakses
   penuh. Tidak ada yang bisa mengubah izin akunnya sendiri.
 
@@ -547,6 +550,7 @@ flowchart TD
 | Beri/Cabut **HRD Admin** | Izin HRD | Beri: hanya divisi HRD | — |
 | **Atur Akses** | Batasi rekan HRD | Pemegang izin HRD, bukan akun sendiri | — |
 | Beri/Cabut **Koordinator** · **Kelola Tim** | Izin + daftar binaan sedivisi | Pegawai berperan Pegawai | — |
+| **Bidang Koordinator** + **Simpan** | Keterangan bidang koordinator | Koordinator | — |
 | Cabut satu akses | Cabut | Per akses | — |
 | Cabut semua (per halaman / per pegawai) | Cabut massal | Ada pemegang | Ya |
 | **Tinjau** / **Tandai selesai** | Kartu Pegawai Baru | Pegawai baru belum ditinjau | — |

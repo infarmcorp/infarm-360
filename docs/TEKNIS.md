@@ -10,7 +10,7 @@ Status & pekerjaan terbuka di [RENCANA.md](RENCANA.md). Riwayat di [CHANGELOG.md
 3. [Aktivasi fitur dorman & Mode Maintenance](#3-aktivasi-fitur-dorman--mode-maintenance)
 4. [Rumus skor & klasifikasi](#4-rumus-skor--klasifikasi)
 5. [Manajemen Akses — model & penegakan](#5-manajemen-akses--model--penegakan)
-6. [Daftar migrasi 0001–0064](#6-daftar-migrasi-00010064)
+6. [Daftar migrasi 0001–0065](#6-daftar-migrasi-00010065)
 7. [Pengujian](#7-pengujian)
 8. [Backup & restore](#8-backup--restore)
 9. [PDF panduan in-app](#9-pdf-panduan-in-app)
@@ -328,7 +328,7 @@ akses bawaan peran tetap; grant hanya menambah atau mencabut. Katalog **tetap** 
 |---|---|---|
 | Izin HRD Admin | `employees.is_hrd_admin` → `is_hrd()` = `role='hrd' OR is_hrd_admin` | penuh; hanya divisi HRD (`isHrdDept`: dept diawali "HRD"); pencabutan boleh untuk siapa pun |
 | Batas rekan HRD ("Atur Akses") | `employees.hrd_sections text[]` (NULL = penuh), helper `canSection`, katalog `HRD_SECTIONS` | menu + **tulis** ditegakkan DB `hrd_can(bagian)` & Server Action; **baca** tetap `is_hrd()` penuh. Tak bisa ke akun sendiri |
-| Koordinator | `employees.is_coordinator` + `coordinator_team_members` | grant non-RLS; baca/tulis via `service_role` berlingkup tim; anggota tim **wajib sedivisi** (`setCoordinatorTeam`) |
+| Koordinator | `employees.is_coordinator` + `coordinator_team_members` | grant non-RLS; baca/tulis via `service_role` berlingkup tim; anggota tim **wajib sedivisi** (`setCoordinatorTeam`). Bidang Koordinator `employees.coordinator_area` (0065) = keterangan saja, tulis `setCoordinatorArea` (HRD penuh) |
 | Grant halaman berlingkup | `page_grants` | 1 grant = orang + halaman + lingkup + izin |
 
 Mengubah izin (HRD Admin, bagian HRD, Koordinator + tim) & akun HRD/Direksi (ubah, nonaktifkan, reset sandi)
@@ -457,6 +457,7 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
 - Isian `final_reports.content.pdfNotes` (`Kesimpulan`, `Masukan Lain dari Penilai`) lewat `savePdfNotes` — helper bersama
   `saveContentRecord`. Pengaturan per periode `periods.pa_pdf` = `{reportDate, rows[1..8]{aksi,target,tenggat,pendamping,selesai}}`
   lewat `savePaPdfSettings`; kosong → `defaultPaPdfSettings` dari `end_date`.
+- Bahan PDF dirakit `paInputFor` (tanpa gerbang; pemanggil menegakkan akses), periode lewat `loadPaPeriods`.
 
 ### 5.5 Rencana Pengembangan (0055–0056) — alur & akses
 - **Tabel** `development_plans` (unik per `employee_id` + `source_period_id`; status `draft` → `waiting_supervisor` →
@@ -502,7 +503,7 @@ Mode SPV): 105 → 17 panggilan. Pembagian tugas sekarang:
 
 ---
 
-## 6. Daftar migrasi 0001–0064
+## 6. Daftar migrasi 0001–0065
 
 Status penerapan per DB → `scripts/check-migrations.sql`.
 
@@ -570,6 +571,7 @@ Status penerapan per DB → `scripts/check-migrations.sql`.
 | 0062 | Laporkan Pelanggaran: tindak lanjut HRD + Laporan Saya — kolom `outside_mapping_notes.reporter_ref` (HMAC hex 64, check format, index parsial), `status` (received/in_progress/done, bawaan received), `hrd_response` (≤ 2000), `responded_at`. Butuh env `VIOLATION_REPORTER_SECRET`. Tanpa kolom → kirim tanpa penanda, tindak lanjut "belum aktif". **Staging lalu production** sebelum dirilis |
 | 0063 | PDF Pegawai: kolom `periods.pa_pdf` (jsonb `{reportDate, tenggat[4]}`) — tanggal laporan & tenggat tindak lanjut per periode. Ditulis hanya `savePaPdfSettings` (HRD Mode Admin, service_role). Tanpa kolom → bawaan dari `end_date` (`lib/pa-pdf.ts`), simpan "belum aktif". **Staging lalu production** |
 | 0064 | **Eksperimen dev** — kolom `ai_settings.rules_prompt` (aturan umum Prompt PA v2.0, ditempel di depan semua prompt via `composePrompt`) & `notes_prompt` (Kesimpulan + Masukan Lain, `kind: notes`). Null = bawaan `lib/ai/summary-prompt.ts`. Tanpa kolom → `promptsReady=false`, keduanya bawaan & read-only. Cukup di staging; production saat fitur dirilis |
+| 0065 | Bidang Koordinator: kolom `employees.coordinator_area` (teks 1–60, null = tanpa bidang) — keterangan di Manajemen Akses (§5). Ditulis hanya `setCoordinatorArea` (HRD penuh). Tanpa kolom → bidang "belum aktif". **Staging lalu production** |
 
 ---
 

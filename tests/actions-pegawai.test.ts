@@ -7,7 +7,7 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@/lib/audit/log', () => ({ logHrdAction: vi.fn(async () => {}) }));
 
 import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { setHrdAdmin, setCoordinator, setCoordinatorTeam, setHrdSections, resetPassword } from '@/app/(app)/admin/pegawai/actions';
+import { setHrdAdmin, setCoordinator, setCoordinatorTeam, setCoordinatorArea, setHrdSections, resetPassword } from '@/app/(app)/admin/pegawai/actions';
 
 const mockCreate = vi.mocked(createClient);
 const mockAdmin = vi.mocked(createAdminClient);
@@ -185,5 +185,33 @@ describe('setCoordinatorTeam — anggota wajib SEDIVISI dgn koordinator (2026-10
     } }));
     const r = await setCoordinatorTeam(COORD, [A, B]);
     expect(r.ok).toBe(true);
+  });
+});
+
+describe('setCoordinatorArea — bidang koordinator (0065)', () => {
+  const COORD = '22222222-2222-2222-2222-222222222222';
+
+  it('HRD terbatas ditolak (hanya HRD penuh)', async () => {
+    use(makeClient({ user: { id: UID }, tables: { employees: [{ data: { role: 'hrd', is_hrd_admin: false, hrd_sections: ['laporan'] } }] } }));
+    const r = await setCoordinatorArea(COORD, 'Konten');
+    expect(r.ok).toBe(false);
+  });
+
+  it('tolak bila bukan koordinator; tolak > 60 karakter', async () => {
+    use(makeClient({ user: { id: UID }, tables: { employees: [{ data: HRD }, { data: { name: 'Andi', is_coordinator: false } }] } }));
+    expect(await setCoordinatorArea(COORD, 'Konten')).toEqual({ ok: false, error: 'Pegawai ini bukan Koordinator.' });
+    expect((await setCoordinatorArea(COORD, 'x'.repeat(61))).ok).toBe(false);
+  });
+
+  it('simpan bidang yang dirapikan; kosong = hapus (null)', async () => {
+    const c = makeClient({ user: { id: UID }, tables: { employees: [
+      { data: HRD }, { data: { name: 'Andi', is_coordinator: true } }, { data: null },
+      { data: HRD }, { data: { name: 'Andi', is_coordinator: true } }, { data: null },
+    ] } });
+    use(c);
+    expect((await setCoordinatorArea(COORD, '  Konten   Sosmed ')).ok).toBe(true);
+    expect((await setCoordinatorArea(COORD, '   ')).ok).toBe(true);
+    const updates = c.calls.filter((x) => x.op === 'update').map((x) => x.payload);
+    expect(updates).toEqual([{ coordinator_area: 'Konten Sosmed' }, { coordinator_area: null }]);
   });
 });

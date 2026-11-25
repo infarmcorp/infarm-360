@@ -24,7 +24,7 @@ export const ACCESS_AUDIT_ACTIONS = [
   'employee.grant_hrd', 'employee.revoke_hrd',
   'employee.grant_cross_reviewer', 'employee.revoke_cross_reviewer',
   'employee.grant_coordinator', 'employee.revoke_coordinator',
-  'employee.set_coordinator_team', 'employee.set_hrd_sections',
+  'employee.set_coordinator_team', 'employee.set_coordinator_area', 'employee.set_hrd_sections',
 ] as const;
 
 export type AuditEntry = {

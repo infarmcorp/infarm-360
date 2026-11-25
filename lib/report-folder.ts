@@ -16,8 +16,8 @@ export function isDriveUrl(v: string): boolean {
 }
 
 /** Input URL dari form: kosong → null (hapus tautan); selain itu wajib tautan Google Drive. */
-export const ReportFolderUrl = z.string().trim().max(500, 'Tautan terlalu panjang (maks. 500 karakter)')
-  .refine((v) => v === '' || isDriveUrl(v), 'Tautan harus folder Google Drive (https://drive.google.com/…)')
+export const ReportFolderUrl = z.string().trim().max(500, 'Link terlalu panjang (maks. 500 karakter)')
+  .refine((v) => v === '' || isDriveUrl(v), 'Link harus folder Google Drive (https://drive.google.com/…)')
   .transform((v) => (v ? v : null));
 
 /** Tabel belum ada — migrasi 0050 belum diterapkan di database ini. */

@@ -49,7 +49,7 @@ export function ReadinessPanel({
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <CardTitle icon={Rocket}>Kesiapan Peluncuran 360° — {periodLabel}</CardTitle>
           <StatusChip tone={has360 ? 'brand' : ready ? 'brand' : 'warn'}>
-            {has360 ? 'Formulir terbuka' : ready ? 'Siap diluncurkan' : 'Belum lengkap'}
+            {has360 ? 'Form terbuka' : ready ? 'Siap diluncurkan' : 'Belum lengkap'}
           </StatusChip>
         </div>
 

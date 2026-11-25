@@ -19,8 +19,8 @@ export function ReadOnlyView({ groups, questions, scores, answers, deadline }: {
   const startNo = groups.map((_, gi) => groups.slice(0, gi).reduce((s, g) => s + g.indicators.length, 0));
   return (
     <div className="space-y-4">
-      <Note title="Penilaian terkunci — tenggat sudah lewat">
-        Penilaian ini sudah terkirim dan tenggat{deadline ? <> (<span className="data-value">{formatWib(deadline)}</span>)</> : null} sudah lewat, jadi hanya bisa dilihat. Ada kekeliruan? Hubungi HRD.
+      <Note title="Penilaian terkunci — deadline sudah lewat">
+        Penilaian ini sudah terkirim dan deadline{deadline ? <> (<span className="data-value">{formatWib(deadline)}</span>)</> : null} sudah lewat, jadi hanya bisa dilihat. Ada kekeliruan? Hubungi HRD.
       </Note>
 
       {groups.map((g, gi) => (

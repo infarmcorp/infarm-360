@@ -52,7 +52,7 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   Vitest. Deploy Vercel (auto dari `main`, preview tiap branch). CI `.github/workflows/ci.yml` (test +
   typecheck + lint + build; lint bersih sejak 2026-10-16 — jangan tambah temuan baru). Backup harian `.github/workflows/backup.yml`. npm.
 - Supabase production ref `beajoczjpywozavatzmf`; ada project staging terpisah. 31 tabel publik, migrasi
-  `supabase/migrations/0001`–`0064` (0060 `ai_settings` & 0064 = eksperimen dev, belum wajib di production). **Production berjalan tanpa API LLM**:
+  `supabase/migrations/0001`–`0065` (0060 `ai_settings` & 0064 = eksperimen dev, belum wajib di production). **Production berjalan tanpa API LLM**:
   "Ringkas otomatis"/Pengaturan AI (`lib/ai/`, `GEMINI_API_KEY`) hanya dev/staging dan mati otomatis di production; ringkasan
   HRD ditulis manual. Jangan sebut fitur AI di PANDUAN/Notion selama belum dirilis. Route `/api/cron/*` tanpa sesi (dikecualikan di `lib/supabase/middleware.ts`)
   → **wajib** cek `Bearer $CRON_SECRET` sendiri, gagal tertutup. Email Rilis terjadwal dipicu GitHub Actions
@@ -118,6 +118,9 @@ PANDUAN/RENCANA/CHANGELOG ditulis **bahasa Indonesia awam** (tanpa RLS, nama fun
   Aturan database yang melarang membaca penilaian atas diri sendiri **tidak** dibuat (keputusan yang sama).
 - **PDF Pegawai** (`laporan/[employeeId]/pdf-pegawai`, dibuat server `lib/pdf/pa-report.tsx`, TEKNIS.md §5.6): HRD Mode Admin saja; hanya skor + ringkasan HRD +
   `content.pdfNotes` — **jangan** render raw (`byAspect`/`essays`) atau L3 di sana: PDF ini yang diunduh pegawai sendiri dari Laporan Hasil Saya (route unduh `allowSelf`, hanya laporan Final).
+- **Tanpa arsip PDF di Drive** (pemilik 2026-11-19): Transfer PDF ke Drive dibuat lalu dicabut di hari yang sama — PDF
+  dibuat ulang dari data saat diunduh, satu sumber data. **Jangan** hidupkan lagi integrasi Drive/arsip PDF tanpa permintaan.
+  Bidang Koordinator (`employees.coordinator_area`, 0065) tetap ada sebagai keterangan di Manajemen Akses.
 - Employee hanya membaca laporannya saat `finalized` (dimuat via service_role). Direksi read-only + ACC.
 - **Laporkan Pelanggaran** (dulu "Catatan di Luar Pemetaan"; tabel `outside_mapping_notes`, 0054 + 0058 + 0061 + 0062,
   keputusan pemilik 2026-11-03, 2026-11-10 & 2026-11-16) — rincian TEKNIS.md §5.4:
@@ -296,12 +299,15 @@ bersama (2026-11-03/04). Aturan token & "kartu flat tanpa bayangan / font sistem
 ## 9. Konvensi & pengujian
 - TS strict; hindari `any`. Komentar & label UI bahasa Indonesia mengikuti istilah PANDUAN ("Mulai Nilai",
   "Final Report", "Garis Hubungan").
-- **Istilah UI baku** (audit kalimat pemilik, 2026-11-13): Tinjauan & Finalisasi · Dasbor · Progres Umpan Balik 360° ·
-  Pemantauan & Audit KPI · Pengisian KPI · persetujuan/Setujui (bukan ACC) · tenggat (bukan deadline) · formulir · nilai
-  (bukan rating) · berkas · templat · peta panas · Rerata · atur ulang sandi · sesi empat mata · Rekan/Lintas Divisi/Diri
-  Sendiri (label saja — **nilai data** relasi `Peer`/`Cross`/`Self` di DB, enum Zod, impor Excel, dan rumus tetap). Pesan
-  ke pengguna tidak menyebut nomor migrasi/nama tabel ("Hubungi admin aplikasi"). Istilah yang ditetapkan HRD (status
-  BR-07, No Score, HRD Review, nama kelas 4-Box termasuk "B-Culture", kategori/RTL lama) **tidak** diubah tanpa HRD.
+- **Istilah UI baku** (audit kalimat pemilik v2, 2026-11-17 — menggantikan v1 2026-11-13): istilah yang lazim tetap
+  berbahasa Inggris — nama menu **Review & Finalisasi** · **Dashboard Organisasi** · **Progress 360 Feedback** · **Monitoring &
+  Audit KPI** · **Input KPI Anggota**, serta Deadline · Form · Template · Rating · Heatmap · Default · Reset · Login · Edit · Draft
+  (teks: draf) · Link (bukan tautan) · sesi 1-on-1. Tetap: persetujuan/Setujui (bukan ACC) · Rerata · "menu samping" (bukan
+  sidebar) · pesan sesi habis = "Sesi berakhir. Silakan login ulang.". Label relasi = **Rekan (Peer)** / **Lintas Divisi
+  (Cross)** / **Diri Sendiri (Self)** (label saja — **nilai data** relasi `Peer`/`Cross`/`Self` di DB, enum Zod, impor Excel,
+  dan rumus tetap). Pesan ke pengguna tidak menyebut nomor migrasi/nama tabel ("Hubungi admin aplikasi"). Istilah yang
+  ditetapkan HRD (status BR-07, No Score, HRD Review, nama kelas 4-Box termasuk "B-Culture", kategori/RTL lama) **tidak**
+  diubah tanpa HRD — walau berkas audit mengusulkannya. Tombol **Tinjau** (buka detail laporan) tetap.
 - Tipe skema di `lib/database.types.ts`; tipe per-fitur inline/di lib terkait — jangan duplikasi.
 - **Lint React hooks:** jangan definisikan komponen di dalam komponen (pakai tingkat modul atau fungsi render
   biasa); jangan `setState` di effect untuk "reset saat nilai berubah" — lakukan di handler atau pola "bandingkan

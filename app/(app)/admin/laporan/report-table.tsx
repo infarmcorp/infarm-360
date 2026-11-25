@@ -89,7 +89,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
         <span className={`${SUM_PILL} bg-brand-tint text-brand-ink`}><strong className="data-value">{sum.final}</strong> final</span>
         {sum.review > 0 && <span className={`${SUM_PILL} bg-neutral-tint text-ink-soft`}><strong className="data-value">{sum.review}</strong> ditinjau</span>}
         {sum.draft > 0 && <span className={`${SUM_PILL} bg-warn-tint text-warn-ink`}><strong className="data-value">{sum.draft}</strong> draf</span>}
-        {has360 && <span className={`${SUM_PILL} bg-neutral-tint text-ink-soft`}><strong className="data-value">{readyCount}</strong> siap ditinjau</span>}
+        {has360 && <span className={`${SUM_PILL} bg-neutral-tint text-ink-soft`}><strong className="data-value">{readyCount}</strong> siap review</span>}
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
@@ -178,7 +178,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                   )}
                 </td>
                 <td className="py-3 px-3 text-center data-value text-ink-soft">
-                  {!has360 ? <span className="text-[11px] text-ink-faint">T/A</span>
+                  {!has360 ? <span className="text-[11px] text-ink-faint">N/A</span>
                     : r.s360 == null ? <span className="text-[11px] text-warn-ink" title={NO_SCORE_TITLE}>{NO_SCORE_LABEL}</span>
                     : (
                       <div className="flex flex-col items-center gap-0.5">
@@ -231,7 +231,7 @@ export function ReportTable({ rows, depts, has360, hrefBase = '/laporan', readOn
                 <td className="py-3 px-3 text-center">
                   <div className="flex flex-col items-center gap-0.5">
                     {r.spvAcc
-                      ? <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand-tint text-brand-ink" title={r.accInfo ?? undefined}><Check className="w-3 h-3" aria-hidden />Disetujui</span>
+                      ? <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand-tint text-brand-ink" title={r.accInfo ?? undefined}><Check className="w-3 h-3" aria-hidden />ACC</span>
                       : <span className="text-[11px] text-ink-faint">belum</span>}
                     {r.isSpvSubject && <span className="text-[10px] text-ink-soft" title="Laporan SPV disetujui oleh Direksi">oleh Direksi</span>}
                   </div>

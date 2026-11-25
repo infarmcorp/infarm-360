@@ -91,12 +91,15 @@ export function DeleteButton({ mappingId, status }: { mappingId: string; status:
           )}
           {s === 'draft' && (
             <p className="text-danger-ink">
-              Penugasan ini sudah punya jawaban draf. Penugasan dan draf akan <strong>terhapus</strong> permanen, dan penilai tidak lagi wajib menilai.
+              Penugasan ini sudah punya jawaban <strong>draf</strong>. Penugasan dan draf akan <strong>terhapus permanen</strong>,
+              dan penilai tidak lagi wajib menilai.
             </p>
           )}
           {s === 'submitted' && (
             <p>
-              Penilaian sudah <strong>terkirim</strong> dan tidak bisa dihapus. Bila penilai terbukti tidak layak, batalkan validitasnya: penilaian dikeluarkan dari Skor 360°, jawaban tetap diarsipkan, dan tidak ada potongan keterlambatan. Jangan batalkan hanya karena skornya tidak diinginkan.
+              Penilaian sudah <strong>terkirim</strong> dan tidak bisa dihapus. Bila penilai terbukti tidak layak, batalkan
+              validitasnya: penilaian <strong>dikeluarkan dari Skor 360°</strong>, jawaban <strong>tetap diarsipkan</strong>,
+              dan tidak ada potongan keterlambatan. Jangan batalkan hanya karena skornya tidak diinginkan.
             </p>
           )}
           {s === 'invalidated' && (

@@ -106,7 +106,7 @@ export default async function PeriodePage({
         <EmptyState
           icon={<CalendarX className="w-6 h-6" />}
           title="Belum ada periode"
-          description="Penilaian dimulai dari periode (kuartal). Buat periode pertama lewat formulir di atas, lalu lengkapi langkah berikutnya."
+          description="Penilaian dimulai dari periode (kuartal). Buat periode pertama lewat form di atas, lalu lengkapi langkah berikutnya."
           steps={[
             { text: <>Buat periode/kuartal pertama (form di atas)</> },
             { text: <>Susun <strong>Pertanyaan</strong> & atur <strong>Bobot Penilai</strong></> },
@@ -125,7 +125,7 @@ export default async function PeriodePage({
             <th className="py-2.5 px-3 font-semibold">Periode</th>
             <th className="py-2.5 px-3 font-semibold">Rentang</th>
             <th className="py-2.5 px-3 text-center font-semibold">360°</th>
-            <th className="py-2.5 px-3 text-center font-semibold">Tenggat 360°</th>
+            <th className="py-2.5 px-3 text-center font-semibold">Deadline 360°</th>
             <th className="py-2.5 px-3 text-center font-semibold">Standar KPI</th>
             <th className="py-2.5 px-3 text-center font-semibold">Status</th>
             <th className="py-2.5 px-3 text-right font-semibold"></th>
@@ -172,7 +172,8 @@ export default async function PeriodePage({
       </div>
       )}
       <div className="mt-4"><Note>
-        Hanya satu periode yang bisa aktif; mengaktifkan periode ini mengunci periode lain. Isi pertanyaan dan pemetaan sebelum penilaian dimulai.
+        Hanya satu periode yang bisa aktif; mengaktifkan periode ini mengunci periode lain.
+        Isi pertanyaan dan pemetaan sebelum penilaian dimulai.
       </Note></div>
       </>
       )}

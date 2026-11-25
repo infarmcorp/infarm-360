@@ -1,5 +1,5 @@
 /**
- * Uji KARAKTERISASI aksi massal Tinjauan & Finalisasi (app/(app)/admin/laporan/actions.ts):
+ * Uji KARAKTERISASI aksi massal Review & Finalisasi (app/(app)/admin/laporan/actions.ts):
  *   - bulkFinalizeAccepted : finalisasi massal laporan yang sudah disetujui (`spv_acc=true`) berstatus `in_review`.
  *   - resyncDriftedFinals  : sinkronkan `final_score` laporan `finalized` yang skornya berubah (drift).
  * Mengunci perilaku SAAT INI (bukan spesifikasi ideal). finalScoreOf/hasScoreDrift (lib/scoring)
@@ -64,7 +64,7 @@ describe('bulkFinalizeAccepted — otorisasi (HRD penuh, sadar-mode)', () => {
   it('tolak bila sesi berakhir', async () => {
     use(makeClient({ user: null }));
     const r = await bulkFinalizeAccepted();
-    expect(r).toEqual({ ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' });
+    expect(r).toEqual({ ok: false, error: 'Sesi berakhir. Silakan login ulang.' });
   });
 
   it('tolak SPV / pegawai biasa', async () => {
@@ -362,7 +362,7 @@ describe('bulkFinalizeAccepted — finalisasi & skor', () => {
 describe('resyncDriftedFinals — otorisasi', () => {
   it('tolak bila sesi berakhir', async () => {
     use(makeClient({ user: null }));
-    expect(await resyncDriftedFinals()).toEqual({ ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' });
+    expect(await resyncDriftedFinals()).toEqual({ ok: false, error: 'Sesi berakhir. Silakan login ulang.' });
   });
 
   it('tolak non-HRD', async () => {

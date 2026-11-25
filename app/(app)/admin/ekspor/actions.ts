@@ -1118,7 +1118,7 @@ async function guarded<R>(run: () => Promise<R>): Promise<R | { ok: false; error
     const detail = e instanceof Error && e.message ? ` (${e.message})` : '';
     return {
       ok: false,
-      error: `Gagal mengambil data${detail}. Berkas tidak dibuat agar data tidak terpotong. Coba lagi sebentar lagi.`,
+      error: `Gagal mengambil data${detail}. File tidak dibuat agar data tidak terpotong. Coba lagi sebentar lagi.`,
     };
   }
 }

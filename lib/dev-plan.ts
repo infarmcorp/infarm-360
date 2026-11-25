@@ -193,3 +193,14 @@ export function canEditSession(
 ): boolean {
   return !!actor && session.author_id === actor.id && canRecordSession(session.kind, info, actor, employeeId, mode);
 }
+
+/** Jumlah kapsul periode yang tampil di pemilih Periode laporan; periode lebih lama masuk daftar "Periode lain". */
+export const PERIOD_PILL_MAX = 4;
+
+/**
+ * Bagi daftar periode (terbaru dulu) jadi kapsul (`PERIOD_PILL_MAX` terbaru) dan sisanya (daftar "Periode lain"),
+ * agar pemilih tak memanjang tiap kuartal. Urutan masukan dipertahankan.
+ */
+export function splitPeriodPills<T>(periods: T[], max = PERIOD_PILL_MAX): { pills: T[]; more: T[] } {
+  return { pills: periods.slice(0, max), more: periods.slice(max) };
+}

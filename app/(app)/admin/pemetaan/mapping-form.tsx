@@ -55,7 +55,7 @@ export function MappingForm({ employees }: { employees: Emp[] }) {
           <label className={FIELD_LABEL}>Relasi</label>
           <select value={relation} onChange={(e) => setRelation(e.target.value as (typeof RELATIONS)[number])}
             className={inputCls}>
-            {RELATIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+            {RELATIONS.map((r) => <option key={r} value={r}>{r === 'Peer' ? 'Rekan (Peer)' : r === 'Cross' ? 'Lintas Divisi (Cross)' : r}</option>)}
           </select>
         </div>
         <div>

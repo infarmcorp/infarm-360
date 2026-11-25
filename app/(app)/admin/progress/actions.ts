@@ -48,9 +48,9 @@ async function pendingByAssessor(
 
 async function requireHrd(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false as const, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
-  if (!canSection(me, 'progress')) return { ok: false as const, error: 'Hanya HRD yang dapat mengakses Progres Umpan Balik 360°' };
+  if (!canSection(me, 'progress')) return { ok: false as const, error: 'Hanya HRD yang dapat mengakses Progress 360' };
   return { ok: true as const, userId: user.id };
 }
 
@@ -77,7 +77,7 @@ function genPassword(): string {
 }
 
 export async function forceComplete(assessorId: string, targetId: string): Promise<Result> {
-  if (!Id.safeParse(assessorId).success || !Id.safeParse(targetId).success) return { ok: false, error: 'Isian tidak valid' };
+  if (!Id.safeParse(assessorId).success || !Id.safeParse(targetId).success) return { ok: false, error: 'Input tidak valid' };
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
@@ -114,7 +114,7 @@ export async function forceComplete(assessorId: string, targetId: string): Promi
 
 /** Kirim email pengingat 360° ke satu penilai (daftar target yang belum ia nilai). */
 export async function sendReminder(assessorId: string): Promise<Result> {
-  if (!Id.safeParse(assessorId).success) return { ok: false, error: 'Isian tidak valid' };
+  if (!Id.safeParse(assessorId).success) return { ok: false, error: 'Input tidak valid' };
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };
@@ -218,7 +218,7 @@ export async function massReminder(): Promise<Result> {
  * mengubah sandi (cegah akun terkunci dgn sandi yang tak pernah terkirim).
  */
 export async function sendOnboarding(employeeId: string): Promise<Result> {
-  if (!Id.safeParse(employeeId).success) return { ok: false, error: 'Isian tidak valid' };
+  if (!Id.safeParse(employeeId).success) return { ok: false, error: 'Input tidak valid' };
   const supabase = await createClient();
   const auth = await requireHrd(supabase);
   if (!auth.ok) return { ok: false, error: auth.error };

@@ -39,7 +39,7 @@ export function BulkFinalizeButton({ count, staleCount, primary, idleLabel }: { 
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <Button type="button" size="sm" className="min-h-9" variant={primary && count > 0 ? 'primary' : 'ghost'} onClick={() => setOpen(true)}
-        disabled={busy || count === 0} title={count === 0 ? 'Belum ada laporan yang disetujui dan masih Ditinjau untuk difinalisasi' : undefined}>
+        disabled={busy || count === 0} title={count === 0 ? 'Belum ada laporan yang disetujui dan masih Direview untuk difinalisasi' : undefined}>
         <CheckCheck className="w-3.5 h-3.5" /> {count > 0 ? <>Finalisasi <span className="data-value">{count}</span> Laporan</> : idleLabel}
       </Button>
       {msg && <span className={`text-xs font-semibold ${msg.ok ? 'text-brand-ink' : 'text-danger-ink'}`}>{msg.text}</span>}
@@ -51,9 +51,11 @@ export function BulkFinalizeButton({ count, staleCount, primary, idleLabel }: { 
         confirmLabel={`Ya, finalisasi ${count}`} busy={busy}
         onConfirm={run} onCancel={() => setOpen(false)}
       >
-        <p>Semua laporan yang sudah disetujui dan masih Ditinjau akan <strong> difinalisasi</strong> dan langsung terlihat di &quot;Laporan Hasil Saya&quot; pegawai.</p>
+        <p>Semua laporan yang <strong>sudah di-ACC</strong> (SPV/Koordinator/Direksi) & masih direview akan
+          <strong> difinalisasi</strong> — langsung <strong>terlihat oleh pegawai</strong> di &quot;Laporan Hasil Saya&quot;.</p>
         {staleCount > 0 && (
-          <p className="text-warn-ink font-semibold"><AlertTriangle className="mr-1 inline w-3.5 h-3.5 -mt-0.5" aria-hidden />{staleCount} di antaranya <strong>perlu dihitung ulang</strong>. Klik &quot;Hitung Ulang Skor 360°&quot; dulu agar skor yang dilihat pegawai benar.</p>
+          <p className="text-warn-ink font-semibold"><AlertTriangle className="mr-1 inline w-3.5 h-3.5 -mt-0.5" aria-hidden />{staleCount} di antaranya <strong>perlu dihitung ulang</strong>.
+            Klik &quot;Hitung Ulang Skor 360°&quot; dulu agar skor yang dilihat pegawai benar.</p>
         )}
         <p className="text-ink-soft">Laporan yang skornya belum bisa dihitung (KPI &amp; 360° kosong) akan dilewati.</p>
       </ConfirmDialog>

@@ -61,7 +61,7 @@ type ReportWriter =
 
 async function resolveReportWriter(supabase: Awaited<ReturnType<typeof createClient>>): Promise<ReportWriter> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase
     .from('employees').select('role, is_hrd_admin, hrd_sections, dept, name').eq('id', user.id).maybeSingle();
 
@@ -76,8 +76,8 @@ async function resolveReportWriter(supabase: Awaited<ReturnType<typeof createCli
   // Tiga tingkat: Lihat (tolak tulis) · Meringkas (canEdit, tulis ringkasan) · Finalisasi (canFinalize).
   const { data: grantRows } = await supabase.from('page_grants').select('section, scope, scopes, can_edit, can_finalize').eq('employee_id', user.id);
   const access = grantedAccess(grantRows, 'review');
-  if (!access) return { ok: false, error: 'Hanya HRD atau pemegang akses Tinjauan & Finalisasi yang dapat mengubah laporan.' };
-  if (!access.canEdit) return { ok: false, error: 'Akses Anda ke Tinjauan & Finalisasi bersifat hanya-lihat.' };
+  if (!access) return { ok: false, error: 'Hanya HRD atau pemegang akses Review & Finalisasi yang dapat mengubah laporan.' };
+  if (!access.canEdit) return { ok: false, error: 'Akses Anda ke Review & Finalisasi bersifat hanya-lihat.' };
 
   // dept target dibaca via service_role (pemegang grant bukan is_hrd() → RLS memblokir baca lintas-pegawai).
   const admin = createAdminClient();
@@ -299,7 +299,7 @@ export type BulkFinalizeResult =
 export async function bulkFinalizeAccepted(): Promise<BulkFinalizeResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   const jar = await cookies();
   const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
@@ -384,7 +384,7 @@ export type ResyncResult =
 export async function resyncDriftedFinals(): Promise<ResyncResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   const jar = await cookies();
   const hrdMode = jar.get('hrd_mode')?.value === 'admin' ? 'admin' : 'spv';
@@ -456,7 +456,7 @@ async function saveContentRecord(
     .select('id, content, status').eq('employee_id', employeeId).eq('period_id', ap.id).maybeSingle();
 
   if (existing?.status === 'finalized') {
-    return { ok: false, error: 'Laporan sudah final — Buka Kembali (ke Draf) terlebih dahulu untuk mengubah ringkasan.' };
+    return { ok: false, error: 'Laporan sudah final — Buka Kembali (ke Draf) terlebih dahulu untuk mengedit ringkasan.' };
   }
 
   if (existing) {
@@ -526,7 +526,7 @@ export async function savePaPdfSettings(rawPeriodId: string, raw: unknown): Prom
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir — silakan masuk lagi' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   const mode = (await cookies()).get('hrd_mode')?.value;
   if (!canSection(me, 'laporan') || mode !== 'admin') {

@@ -1,6 +1,6 @@
 -- ============================================================================
 -- CEK STATUS MIGRASI — jalankan di Supabase SQL Editor project mana pun
--- (production ATAU staging) untuk melihat migrasi 0001–0062 mana yang SUDAH
+-- (production ATAU staging) untuk melihat migrasi 0001–0065 mana yang SUDAH
 -- diterapkan ke database tsb, tanpa perlu mengingat riwayatnya secara manual.
 --
 -- Cara pakai: copy-paste seluruh isi file ini ke SQL Editor → Run. Kolom
@@ -76,7 +76,8 @@ select * from (values
   ('0061', 'kolom periods.violation_open & outside_mapping_notes.category (saklar laporkan pelanggaran)', exists(select 1 from information_schema.columns where table_name='periods' and column_name='violation_open') and exists(select 1 from information_schema.columns where table_name='outside_mapping_notes' and column_name='category')),
   ('0062', 'kolom outside_mapping_notes.reporter_ref & status (tindak lanjut laporkan pelanggaran)', exists(select 1 from information_schema.columns where table_name='outside_mapping_notes' and column_name='reporter_ref') and exists(select 1 from information_schema.columns where table_name='outside_mapping_notes' and column_name='status')),
   ('0063', 'kolom periods.pa_pdf (pengaturan PDF Pegawai)', exists(select 1 from information_schema.columns where table_name='periods' and column_name='pa_pdf')),
-  ('0064', 'kolom ai_settings.rules_prompt & notes_prompt (Pengaturan AI — eksperimen dev)', exists(select 1 from information_schema.columns where table_name='ai_settings' and column_name='rules_prompt'))
+  ('0064', 'kolom ai_settings.rules_prompt & notes_prompt (Pengaturan AI — eksperimen dev)', exists(select 1 from information_schema.columns where table_name='ai_settings' and column_name='rules_prompt')),
+  ('0065', 'kolom employees.coordinator_area (bidang koordinator)', exists(select 1 from information_schema.columns where table_name='employees' and column_name='coordinator_area'))
 ) as t(migrasi, penanda_skema, applied)
 order by migrasi;
 

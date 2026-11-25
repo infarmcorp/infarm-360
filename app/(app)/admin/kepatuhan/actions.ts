@@ -29,14 +29,14 @@ const WaiverInput = z.object({
 
 export async function setLateWaiver(raw: unknown): Promise<{ ok: true } | { ok: false; error: string }> {
   const parsed = WaiverInput.safeParse(raw);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Isian tidak valid' };
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Input tidak valid' };
   const { employeeId, points } = parsed.data;
   const reason = parsed.data.reason?.trim() || null;
   if (reason !== null && reason.length < 3) return { ok: false, error: 'Alasan pengecualian minimal 3 karakter' };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'kepatuhan')) return { ok: false, error: 'Hanya HRD yang dapat mengecualikan potongan' };
 
@@ -108,7 +108,7 @@ export async function setLateWaiver(raw: unknown): Promise<{ ok: true } | { ok: 
 export async function applyLatePenalties(): Promise<{ ok: true; changed: number; skippedFinal: number } | { ok: false; error: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   if (!canSection(me, 'kepatuhan')) return { ok: false, error: 'Hanya HRD yang dapat menerapkan potongan keterlambatan' };
 

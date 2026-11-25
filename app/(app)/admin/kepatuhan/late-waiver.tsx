@@ -64,7 +64,7 @@ export function LateWaiver({
       )}
       {source && (
         <span className={`text-[11px] font-mono ${lateAjuan > 0 && lateWajib === 0 ? 'text-warn-ink font-semibold' : 'text-ink-soft'}`}
-          title={lateAjuan > 0 ? 'Ajuan = penilaian opsional yang diajukan pegawai dan disetujui HRD, tetapi belum selesai saat tenggat.' : undefined}>
+          title={lateAjuan > 0 ? 'Ajuan = penilaian opsional yang diajukan pegawai dan disetujui HRD, tetapi belum selesai saat deadline.' : undefined}>
           {source}
         </span>
       )}

@@ -26,7 +26,7 @@ export type PaLoadResult =
 export async function loadPaPdf(employeeId: string, periodParam: string | undefined, opts: { allowSelf?: boolean } = {}): Promise<PaLoadResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, status: 401, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false, status: 401, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   const mode = (await cookies()).get('hrd_mode')?.value;
   const isHrd = canSection(me, 'laporan') && mode === 'admin';
@@ -36,18 +36,7 @@ export async function loadPaPdf(employeeId: string, periodParam: string | undefi
   }
   const db = isHrd ? supabase : (createAdminClient() as unknown as typeof supabase);
 
-  // Periode (+ pengaturan 0063). Kolom belum ada → baca ulang tanpa kolom itu (pakai bawaan).
-  type PeriodRow = { id: string; label: string; has_360: boolean; status: string; start_date: string; end_date: string; pa_pdf?: unknown };
-  let periods: PeriodRow[];
-  let settingsReady = true;
-  const r = await db.from('periods').select('id, label, has_360, status, start_date, end_date, pa_pdf').order('start_date', { ascending: false });
-  if (r.error) {
-    settingsReady = false;
-    const r2 = await db.from('periods').select('id, label, has_360, status, start_date, end_date').order('start_date', { ascending: false });
-    periods = (r2.data ?? []) as PeriodRow[];
-  } else {
-    periods = (r.data ?? []) as PeriodRow[];
-  }
+  const { periods, settingsReady } = await loadPaPeriods(db);
   const ap = (periodParam ? periods.find((p) => p.id === periodParam) : undefined) ?? periods.find((p) => p.status === 'active') ?? null;
   if (!ap) return { ok: false, status: 404, error: 'Belum ada periode penilaian.' };
 
@@ -57,16 +46,34 @@ export async function loadPaPdf(employeeId: string, periodParam: string | undefi
     if (fr?.status !== 'finalized') return { ok: false, status: 403, error: 'Laporan periode ini belum difinalisasi HRD.' };
   }
 
-  const rep = await loadReport(db, employeeId, ap);
-  const { data: subj } = await db.from('employees').select('role').eq('id', employeeId).maybeSingle();
-  if (!rep) return { ok: false, status: 404, error: 'Data tidak ditemukan atau di luar lingkup akses Anda.' };
+  const built = await paInputFor(db, employeeId, ap);
+  if (!built) return { ok: false, status: 404, error: 'Data tidak ditemukan atau di luar lingkup akses Anda.' };
+  return { ok: true, period: { id: ap.id, label: ap.label }, settingsReady, ...built };
+}
 
+type Db = Awaited<ReturnType<typeof createClient>>;
+export type PaPeriodRow = { id: string; label: string; has_360: boolean; status: string; start_date: string; end_date: string; pa_pdf?: unknown };
+
+/** Semua periode (+ pengaturan 0063). Kolom belum ada → baca ulang tanpa kolom itu (PDF memakai bawaan). */
+export async function loadPaPeriods(db: Db): Promise<{ periods: PaPeriodRow[]; settingsReady: boolean }> {
+  const r = await db.from('periods').select('id, label, has_360, status, start_date, end_date, pa_pdf').order('start_date', { ascending: false });
+  if (!r.error) return { periods: (r.data ?? []) as PaPeriodRow[], settingsReady: true };
+  const r2 = await db.from('periods').select('id, label, has_360, status, start_date, end_date').order('start_date', { ascending: false });
+  return { periods: (r2.data ?? []) as PaPeriodRow[], settingsReady: false };
+}
+
+/**
+ * Bahan PDF satu pegawai pada periode `ap` — TANPA gerbang (pemanggil wajib sudah menegakkan akses).
+ * Dipakai loadPaPdf. Hanya skor + ringkasan HRD.
+ */
+export async function paInputFor(db: Db, employeeId: string, ap: PaPeriodRow): Promise<{ input: PaReportInput; settings: PaPdfSettings; isDefault: boolean } | null> {
+  const rep = await loadReport(db, employeeId, ap);
+  if (!rep) return null;
+  const { data: subj } = await db.from('employees').select('role').eq('id', employeeId).maybeSingle();
   const sec = sectionNumbers(ap.has_360);
   const { settings, isDefault } = resolvePaPdfSettings(ap.pa_pdf ?? null, ap.end_date, nextPeriodLabel(ap.label), sec);
   return {
-    ok: true,
-    period: { id: ap.id, label: ap.label },
-    settings, isDefault, settingsReady,
+    settings, isDefault,
     input: {
       name: rep.emp.name, dept: rep.emp.dept ?? null, isDireksi: subj?.role === 'direksi',
       period: { label: ap.label, start_date: ap.start_date, end_date: ap.end_date },

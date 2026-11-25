@@ -8,6 +8,41 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
 
 ## November 2026
 
+### 2026-11-25 — Pemilih Periode laporan di Rencana Pengembangan dibatasi empat tombol (di `dev`)
+- Baris **Periode laporan** memuat semua periode yang laporan pegawainya Final, termasuk yang rencananya sudah ditutup
+  HRD, sehingga bertambah satu tombol tiap kuartal tanpa batas. Kini hanya empat periode terbaru yang berupa tombol;
+  periode lebih lama dipilih lewat daftar **Periode lain…** (permintaan pemilik). Berlaku di Rencana Saya, Tim Saya,
+  halaman rencana anggota, dan Pantauan Rencana Pengembangan.
+
+### 2026-11-19 — Bidang Koordinator; Transfer PDF ke Drive dibuat lalu dicabut (di `dev`, belum dirilis)
+- Permintaan awal pemilik: HRD menyimpan PDF semua pegawai dalam satu klik ke Shared Drive, tersusun per divisi dan per
+  atasan langsung (folder koordinator/SPV), lalu folder dibagikan ke atasan di luar aplikasi. Fitur sempat dibuat.
+- **Dicabut di hari yang sama** (keputusan pemilik): PDF sudah bisa diunduh kapan saja dan dibuat ulang dari data
+  terbaru, jadi salinan di Drive hanya menambah sumber data kedua yang bisa usang, akses folder yang harus diatur
+  manual, dan kunci akun Google yang harus dijaga. Tidak ada yang dirilis.
+- Yang dipertahankan: koordinator punya **Bidang** (mis. Konten, Purchasing, Warehouse), diisi di Manajemen Akses dan
+  tampil di daftar koordinator. Keterangan saja, tidak mengubah akses (perubahan database 0065).
+
+### 2026-11-18 — Tombol Unduh PDF lengkap (dengan komentar mentah) di detail laporan HRD dihapus (di `dev`)
+- Permintaan pemilik: cetak laporan lengkap untuk HRD yang ikut memuat Rincian Komentar Asli tidak diperlukan. Panel aksi
+  HRD kini hanya punya **Unduh PDF Pegawai** (tanpa komentar mentah, tanpa nama penilai).
+- Tombol Unduh PDF di Laporan Hasil Saya (pegawai), Laporan Kinerja Tim (SPV/Koordinator/Direksi), dan Tinjauan Hasil
+  Akhir tidak berubah.
+
+### 2026-11-17 — Audit kalimat v2: istilah yang lazim kembali berbahasa Inggris (di `dev`, belum dirilis)
+- Pemilik merevisi berkas audit kalimat (versi 2). Gaya baru: lugas, kalimat pendek, dan istilah yang sudah lazim dipakai
+  tetap berbahasa Inggris. Seluruh perubahan versi pertama (13 November) dibatalkan lalu diganti dengan keputusan versi 2.
+- Nama menu kembali seperti semula: **Review & Finalisasi**, **Dashboard Organisasi**, **Progress 360 Feedback**,
+  **Monitoring & Audit KPI**, **Input KPI Anggota**. Istilah deadline, form, template, rating, heatmap, default, reset, link,
+  dan sesi 1-on-1 dipakai lagi. Yang dipertahankan dari versi pertama: ACC → persetujuan (tombol **Setujui**), "menu
+  samping" untuk sidebar, dan pesan tanpa nomor perubahan database.
+- Pilihan relasi kini tampil sebagai **Rekan (Peer)**, **Lintas Divisi (Cross)**, **Diri Sendiri (Self)**; nilai yang
+  disimpan dan dihitung tidak berubah.
+- Tidak ikut diubah walau diusulkan berkas: nama kelas "B · Culture", "HRD Review", "No Score" (istilah HRD), dan aturan
+  sandi minimal 6 karakter saat HRD mengatur sandi (pesannya tetap "minimal 6" sampai pemilik memutuskan). Catatan yang
+  menyuruh "Klik Review" ditulis "Klik Tinjau" karena tombolnya memang bernama Tinjau.
+- Kalimat tentang Folder Laporan (Drive) yang sudah dipensiunkan dilewati.
+
 ### 2026-11-17 — Impor Ringkasan dari Excel ikut memuat Kesimpulan & Masukan Lain dari Penilai (rilis)
 - Isian **Kesimpulan** dan **Masukan Lain dari Penilai** (untuk PDF Pegawai) sudah ada di production, tetapi templat
   Impor Ringkasan dari Excel hanya memuat ringkasan aspek dan kualitatif, sehingga keduanya harus diketik satu per
@@ -75,7 +110,7 @@ Daftar perubahan database bernomor ada di [TEKNIS.md](TEKNIS.md) §6. Rincian pe
   periode tanpa 360° tetap punya pilihan, dan laporan baru tidak lagi menghalangi HRD mengubah aspek.
 - Butuh perubahan database baru (0061). Sebelum dijalankan, aplikasi tetap memakai aturan lama.
 
-### 2026-11-13 — Audit kalimat: 567 teks layar ditulis ulang (di `dev`, belum dirilis)
+### 2026-11-13 — Audit kalimat: 567 teks layar ditulis ulang (dibatalkan 2026-11-17, diganti audit v2)
 - Pemilik mengaudit seluruh kalimat aplikasi lewat berkas Excel dan menetapkan teks baru untuk kalimat yang kaku,
   memakai istilah Inggris, atau tidak konsisten. Semua keputusan "Ubah" sudah diterapkan.
 - Nama menu ikut berubah: **Tinjauan & Finalisasi** (dulu Review & Finalisasi), **Dasbor Organisasi**, **Progres Umpan

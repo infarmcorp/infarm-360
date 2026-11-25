@@ -45,8 +45,10 @@ export function ResyncDriftButton({ count }: { count: number }) {
         confirmLabel={`Ya, sinkronkan ${count}`} busy={busy}
         onConfirm={run} onCancel={() => setOpen(false)}
       >
-        <p><strong>{count} laporan</strong> <strong>Final</strong> memiliki Skor Akhir yang sudah tidak sesuai data terkini (KPI/360° berubah setelah finalisasi).</p>
-        <p>Hanya angka Skor Akhir yang diperbarui. Laporan <strong>tetap Final</strong> dan ringkasannya <strong>tidak berubah</strong>.</p>
+        <p><strong>{count} laporan</strong> Final memiliki Skor Akhir yang <strong>sudah tidak sesuai</strong> data terkini
+          (KPI/360° berubah setelah finalisasi).</p>
+        <p>Hanya angka <strong>Skor Akhir</strong> yang diperbarui. Laporan <strong>tetap Final</strong>
+          dan ringkasannya <strong>tidak berubah</strong>.</p>
         <p className="text-ink-soft">Pastikan Anda sudah menjalankan <strong>Hitung Ulang Skor 360°</strong> (langkah ①) agar nilainya benar.</p>
       </ConfirmDialog>
     </div>

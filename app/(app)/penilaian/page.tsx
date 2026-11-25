@@ -17,7 +17,7 @@ import { MyRequests, type MyRequest } from './my-requests';
 import { LATE_PENALTY_360, formatWib, isPastDeadline, ajuanPenaltyApplies, progressStatusOf, PROGRESS_STATUS_LABEL, type ProgressStatus } from '@/lib/late';
 
 const REL_LABEL: Record<string, string> = {
-  Atasan: 'Atasan', Peer: 'Rekan', Cross: 'Lintas Divisi', Self: 'Diri Sendiri', Bawahan: 'Bawahan',
+  Atasan: 'Atasan', Peer: 'Rekan (Peer)', Cross: 'Lintas Divisi (Cross)', Self: 'Diri Sendiri', Bawahan: 'Bawahan',
 };
 
 /**
@@ -76,7 +76,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
       <Shell periodLabel={ap.label}>
         <EmptyState
           icon={<Lock className="w-6 h-6" />}
-          title="Formulir penilaian sedang ditutup"
+          title="Form penilaian sedang ditutup"
           description="HRD sementara menutup pengisian penilaian 360° untuk periode ini (tahap peninjauan hasil)."
           note="Penilaian yang sudah Anda kirim tetap tersimpan. Bila Anda merasa masih perlu mengisi, hubungi HRD."
         />
@@ -205,7 +205,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
   type Item = (typeof items)[number];
   const primaryLabel = (it: Item) =>
     // Decision 01: terkirim → Edit sampai deadline, sesudahnya Lihat (read-only).
-    it.status === 'submitted' ? (deadlinePassed ? 'Lihat' : 'Ubah') : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai';
+    it.status === 'submitted' ? (deadlinePassed ? 'Lihat' : 'Edit') : it.status === 'draft' ? 'Lanjutkan' : 'Mulai Nilai';
   /** Aksi sekunder (koreksi relasi / ajukan hapus / hapus ad-hoc) — dipakai tabel & kartu HP. */
   const secondaryActions = (it: Item) => (
     <>
@@ -235,7 +235,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
     return (
       <Link href={`/penilaian/${it.targetId}`} prefetch={false}
         className={`${solid ? BTN_PRIMARY : BTN_GHOST} shrink-0 whitespace-nowrap ${asButton ? 'w-full' : ''}`}>
-        {label === 'Ubah' && asButton ? 'Ubah Penilaian' : label}
+        {label === 'Edit' && asButton ? 'Edit Penilaian' : label}
       </Link>
     );
   };
@@ -252,7 +252,7 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
     <>
       <StatusChip tone={it.mandatory ? 'warn' : 'neutral'} className="whitespace-nowrap">{it.mandatory ? 'Wajib' : 'Opsional'}</StatusChip>
       {it.requested && (
-        <span title="Penilaian ini Anda ajukan dan sudah disetujui HRD. Kirim sebelum tenggat agar Skor 360° Anda tidak dipotong.">
+        <span title="Penilaian ini Anda ajukan dan sudah disetujui HRD. Kirim sebelum deadline agar Skor 360° Anda tidak dipotong.">
           <StatusChip tone="warn" className="whitespace-nowrap">Ajuan · wajib selesai</StatusChip>
         </span>
       )}
@@ -266,7 +266,9 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
       {/* FASE TINJAU: pemetaan sudah diumumkan tapi form belum dibuka. */}
       {reviewPhase && (
         <Note tone="warn" title="Tahap peninjauan pemetaan — pengisian belum dibuka">
-          Ini daftar rekan yang Anda nilai kuartal ini. Ada yang keliru? Ajukan penghapusan. Ada yang terlewat? Ajukan lewat formulir di bawah. HRD memutuskan semua permohonan. Tombol <strong>Mulai Nilai</strong> muncul setelah HRD membuka formulir.
+          Ini daftar rekan yang Anda nilai kuartal ini. <strong>Ada yang keliru?</strong> Ajukan penghapusan. Ada yang
+          terlewat? Ajukan lewat form di bawah. HRD memutuskan semua permohonan. Tombol <strong>Mulai Nilai</strong> muncul
+          setelah HRD membuka form.
         </Note>
       )}
 
@@ -292,7 +294,8 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
           <section className={`${CARD} flex flex-col`}>
             <CardTitle icon={UserPlus}>Menambah Rekan yang Anda Nilai</CardTitle>
             <p className="text-[13px] text-ink-soft mt-1.5 leading-relaxed">
-              Ada rekan yang belum tercantum? Ajukan lewat <strong className="text-ink">Ajukan Penilaian</strong> beserta alasannya, lalu tunggu keputusan HRD.
+              Ada rekan yang belum tercantum? Ajukan lewat{' '}
+              <strong className="text-ink">Ajukan Penilaian</strong> beserta alasannya, lalu tunggu keputusan HRD.
             </p>
             <div className="mt-auto pt-3 flex flex-wrap items-center gap-2">
               <RequestAssessmentButton candidates={candidates} />
@@ -326,7 +329,8 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
             </div>
             {deadline && (
               <p className="flex items-center gap-1.5 text-xs text-ink-soft">
-                <CalendarClock className="w-4 h-4 text-brand shrink-0" aria-hidden />Tenggat: <span className="data-value font-semibold text-ink">{formatWib(deadline)}</span>
+                <CalendarClock className="w-4 h-4 text-brand shrink-0" aria-hidden />
+                Deadline: <span className="data-value font-semibold text-ink">{formatWib(deadline)}</span>
               </p>
             )}
           </div>
@@ -339,20 +343,25 @@ export default async function PenilaianPage({ searchParams }: { searchParams: Pr
         </section>
       )}
       {deadlinePassed && !reviewPhase && (mandDone < mandTotal || ajuanPendingN > 0) && (
-        <Note tone="warn" title="Tenggat penilaian sudah lewat">
-          Formulir masih bisa diisi, tetapi penilaian wajib{ajuanPendingN > 0 ? ' (termasuk ajuan Anda)' : ''} yang dikirim sekarang tercatat <strong>Terlambat</strong> dan Skor 360° Anda dipotong <span className="data-value">{LATE_PENALTY_360}</span> poin (sekali per periode). Penilaian tetap dihitung untuk rekan yang dinilai. Penilaian yang <strong>sudah terkirim</strong> kini terkunci.
+        <Note tone="warn" title="Deadline penilaian sudah lewat">
+          Form masih bisa diisi, tetapi penilaian wajib{ajuanPendingN > 0 ? ' (termasuk ajuan Anda)' : ''} yang dikirim sekarang tercatat <strong>Terlambat</strong> dan
+          Skor 360° Anda dipotong <span className="data-value">{LATE_PENALTY_360}</span> poin (sekali per periode).
+          Penilaian tetap dihitung untuk rekan yang dinilai. Penilaian yang <strong>sudah terkirim</strong> kini terkunci.
         </Note>
       )}
       {items.length === 0 ? (
         <section className={CARD}>
           <p className="text-[13px] text-ink-soft">
-            Belum ada penilaian rutin. Buka tab <strong className="text-ink">Pengajuan</strong> untuk menambah rekan yang ingin Anda nilai.
+            Belum ada penilaian rutin. Buka tab <strong className="text-ink">Pengajuan</strong> untuk menambah rekan
+            yang ingin Anda nilai.
           </p>
         </section>
       ) : (
         <>
           <Note>
-            Periksa kolom <strong className="text-ink">Garis Hubungan</strong>. Bila relasinya keliru (mis. tertulis Rekan padahal Anda atasannya), klik <strong className="text-ink">“Minta Koreksi”</strong>. Relasi menentukan <strong className="text-ink">bobot Skor 360°</strong>.
+            Periksa kolom <strong className="text-ink">Garis Hubungan</strong>. Bila relasinya keliru (mis. tertulis Rekan padahal
+            Anda atasannya), klik <strong className="text-ink">“Minta Koreksi”</strong>. Relasi menentukan{' '}
+            <strong className="text-ink">bobot Skor 360°</strong>.
           </Note>
           {/* HP (Decision 03, opsi kartu): satu kartu per rekan — nama, divisi · relasi, status, progres draf,
               tombol utama penuh; aksi sekunder kecil di bawahnya. Layar ≥ sm tetap tabel. */}
@@ -448,10 +457,10 @@ const STATUS_TONE: Record<ProgressStatus, 'neutral' | 'warn' | 'brand' | 'danger
   invalidated: 'neutral',
 };
 const STATUS_TITLE: Record<ProgressStatus, string> = {
-  not_started: 'Belum Mulai — penilaian belum mulai dikerjakan',
+  not_started: 'Belum Dimulai — penilaian belum mulai dikerjakan',
   in_progress: 'Sedang Diisi — sudah mulai diisi, belum dikirim final',
-  on_time: 'Selesai – Tepat Waktu — dikirim pertama kali sebelum/tepat pada tenggat',
-  late: 'Selesai – Terlambat — dikirim pertama kali sesudah tenggat',
+  on_time: 'Selesai – Tepat Waktu — dikirim pertama kali sebelum/tepat pada deadline',
+  late: 'Selesai – Terlambat — dikirim pertama kali sesudah deadline',
   invalidated: 'Dibatalkan HRD — penilaian dinyatakan tidak valid; tidak dihitung dan bukan lagi kewajiban',
 };
 

@@ -67,7 +67,7 @@ export async function submitOutsideNote(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false, error: 'Sesi berakhir. Silakan login ulang.' };
   if (targetId === user.id) return { ok: false, error: 'Tidak dapat melaporkan diri sendiri' };
 
   // Gerbang: periode aktif + saklar Laporkan Pelanggaran dibuka HRD (lepas dari 360° & formulir penilaian).

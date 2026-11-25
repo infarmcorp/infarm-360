@@ -152,7 +152,7 @@ export function OutsideNoteButton({ candidates, categories }: { candidates: Cand
             </div>
 
             <p className="text-xs text-ink-soft">
-              Penilaian kinerja rekan tetap lewat formulir penilaian; laporan ini untuk kejadian pelanggaran. Laporan tidak
+              Penilaian kinerja rekan tetap lewat form penilaian; laporan ini untuk kejadian pelanggaran. Laporan tidak
               memengaruhi Skor 360° dan tidak bisa diubah atau dihapus setelah dikirim.
             </p>
 

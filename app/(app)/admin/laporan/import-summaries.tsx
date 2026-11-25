@@ -49,7 +49,7 @@ export function ImportSummaries({ employees, aspects, questions, periodLabel, se
       if (out.length === 0) { setParseErr('Baris ringkasan tidak ditemukan. Pastikan kolom kode, jenis, aspek_atau_pertanyaan, dan ringkasan tersedia.'); return; }
       setRows(out);
     } catch {
-      setParseErr('Gagal membaca berkas. Pastikan berkas berformat .xlsx, .xls, atau .csv.');
+      setParseErr('Gagal membaca file. Pastikan file berformat .xlsx, .xls, atau .csv.');
     } finally { if (fileRef.current) fileRef.current.value = ''; }
   }
 
@@ -120,7 +120,8 @@ export function ImportSummaries({ employees, aspects, questions, periodLabel, se
         {' '}{code('aspek_atau_pertanyaan')}, {code('ringkasan')}. Isian PDF Pegawai berisi dua baris per pegawai: {code('Kesimpulan')} dan {code('Masukan Lain dari Penilai')}. <button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh templat (berisi ringkasan saat ini)</button>.
       </p>
       <p className="text-xs text-ink-soft leading-relaxed">
-        Ringkasan di berkas <strong>menggantikan</strong> seluruh ringkasan jenis yang sama per pegawai; item yang tidak tercantum terhapus. Sel kosong dilewati. Laporan Final tidak diubah.
+        Ringkasan di file <strong>menggantikan</strong> seluruh ringkasan jenis yang sama per pegawai; item yang tidak tercantum terhapus.
+        Sel kosong dilewati. Laporan Final tidak diubah.
       </p>
       <p className="text-xs text-ink-soft leading-relaxed">
         Format di dalam sel (pindah baris = Alt+Enter): {code('**teks**')} = tebal · baris diawali {code('- ')} atau {code('* ')} = poin

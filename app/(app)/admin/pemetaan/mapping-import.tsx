@@ -29,7 +29,7 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
       if (rows.length === 0) { setParseErr('Kolom penilai/dinilai tidak ditemukan.'); return; }
       setParsed(rows);
     } catch {
-      setParseErr('Gagal membaca berkas. Pastikan berkas berformat .xlsx, .xls, atau .csv.');
+      setParseErr('Gagal membaca file. Pastikan file berformat .xlsx, .xls, atau .csv.');
     } finally { if (fileRef.current) fileRef.current.value = ''; }
   }
 
@@ -71,7 +71,7 @@ export function MappingImport({ employees }: { employees: Emp[] }) {
         <CardTitle icon={FileSpreadsheet}>Impor Pemetaan Massal</CardTitle>
         <button type="button" onClick={() => { setOpen(false); setParsed(null); setMsg(null); }} className="inline-flex items-center gap-1 text-ink-soft hover:text-ink text-xs font-semibold shrink-0">Tutup <X className="w-3.5 h-3.5" aria-hidden /></button>
       </div>
-      <p className="text-xs text-ink-soft leading-relaxed">Kolom: <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">penilai</code>, <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">dinilai</code> (kode pegawai), <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">relasi</code> (Atasan/Peer/Cross/Bawahan — Self dinonaktifkan), <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">wajib</code> (wajib/opsional). <button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh templat</button>.</p>
+      <p className="text-xs text-ink-soft leading-relaxed">Kolom: <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">penilai</code>, <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">dinilai</code> (kode pegawai), <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">relasi</code> (Atasan/Peer/Cross/Bawahan — Self dinonaktifkan), <code className="font-mono text-ink-soft bg-neutral-tint px-1 rounded">wajib</code> (wajib/opsional). <button type="button" onClick={template} className="text-brand-ink font-semibold hover:underline">Unduh template</button>.</p>
       <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile}
         className="block text-xs text-ink-soft file:mr-3 file:min-h-9 file:rounded-xl file:border-0 file:bg-brand file:px-4 file:text-white file:text-[13px] file:font-bold file:cursor-pointer" />
       {parseErr && <p className="text-[13px] text-danger-ink font-semibold">{parseErr}</p>}

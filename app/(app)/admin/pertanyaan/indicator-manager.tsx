@@ -167,7 +167,7 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
       {open && (
         <div className="mt-2 ml-10 p-3.5 bg-neutral-tint rounded-xl space-y-3">
           <div>
-            <label className={FIELD_LABEL}>Deskripsi Perilaku (kotak penjelasan di formulir)</label>
+            <label className={FIELD_LABEL}>Deskripsi Perilaku (kotak penjelasan di form)</label>
             <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={2}
               placeholder="Penjelasan singkat indikator ini bagi penilai…"
               className={`${FIELD} w-full py-2 bg-surface leading-relaxed resize-none`} />
@@ -175,7 +175,7 @@ function IndicatorRow({ ind, run, busy }: { ind: Ind; run: (fn: () => Promise<{ 
           <div>
             <label className={FIELD_LABEL}>Panduan BARS per Level</label>
             <p className="text-[12px] text-ink-soft mb-2 leading-relaxed">
-              Poin kunci = label besar di formulir penilaian (khusus indikator ini, sesuai Instrumen Final Q3 2026). Deskripsi = penjelasan di bawahnya.
+              Poin kunci = label besar di form penilaian (khusus indikator ini, sesuai Instrumen Final Q3 2026). Deskripsi = penjelasan di bawahnya.
             </p>
             <div className="space-y-2">
               {['1', '2', '3', '4', '5'].map((lv) => (

@@ -48,7 +48,7 @@ type Simple = { ok: true; msg: string } | { ok: false; error: string };
 async function requireHrdAdmin() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: 'Sesi berakhir. Silakan masuk kembali.' };
+  if (!user) return { ok: false as const, error: 'Sesi berakhir. Silakan login ulang.' };
   const { data: me } = await supabase.from('employees').select('name, role, is_hrd_admin, hrd_sections').eq('id', user.id).maybeSingle();
   const jar = await cookies();
   if (!canSection(me, 'laporan') || jar.get('hrd_mode')?.value !== 'admin') {
@@ -60,7 +60,7 @@ async function requireHrdAdmin() {
 /** Kirim email rilis ke sekelompok pegawai (≤ MAX_BATCH per panggilan). Inti kirim = lib/release-delivery. */
 export async function sendReleaseEmails(input: { periodId: string; employeeIds: string[]; content: ReleaseContent }): Promise<ReleaseSendResult> {
   const parsed = z.object({ periodId: Id, employeeIds: z.array(Id).min(1).max(MAX_BATCH), content: Content }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
   const auth = await requireHrdAdmin();
   if (!auth.ok) return auth;
   if (!emailConfigured()) return { ok: false, error: NOT_ACTIVE };
@@ -91,7 +91,7 @@ export async function sendReleaseEmails(input: { periodId: string; employeeIds: 
 /** Kirim UJI ke email HRD yang sedang login (nama penerima = nama sendiri). Tidak dicatat sebagai terkirim. */
 export async function sendReleaseEmailTest(input: { periodId: string; content: ReleaseContent }): Promise<Simple> {
   const parsed = z.object({ periodId: Id, content: Content }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
   const auth = await requireHrdAdmin();
   if (!auth.ok) return auth;
   if (!emailConfigured()) return { ok: false, error: NOT_ACTIVE };
@@ -120,7 +120,7 @@ export async function sendReleaseEmailTest(input: { periodId: string; content: R
 export async function uploadReleaseImage(form: FormData): Promise<Simple> {
   const parsed = z.object({ periodId: Id, key: ImageKey }).safeParse({ periodId: form.get('periodId'), key: form.get('key') });
   const file = form.get('file');
-  if (!parsed.success || !(file instanceof File)) return { ok: false, error: 'Isian tidak valid' };
+  if (!parsed.success || !(file instanceof File)) return { ok: false, error: 'Input tidak valid' };
   const ext = IMAGE_EXT[file.type];
   if (!ext) return { ok: false, error: 'Format gambar harus JPG, PNG, atau WebP.' };
   if (file.size === 0 || file.size > MAX_IMAGE_BYTES) return { ok: false, error: 'Ukuran gambar maksimal 2 MB.' };
@@ -152,7 +152,7 @@ export async function uploadReleaseImage(form: FormData): Promise<Simple> {
 /** Hapus satu gambar pendamping periode. */
 export async function removeReleaseImage(input: { periodId: string; key: string }): Promise<Simple> {
   const parsed = z.object({ periodId: Id, key: ImageKey }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
   const auth = await requireHrdAdmin();
   if (!auth.ok) return auth;
 
@@ -195,7 +195,7 @@ async function checkRecipients(admin: ReturnType<typeof createAdminClient>, ids:
 /** Buat jadwal kirim email rilis untuk satu periode (maks. satu jadwal aktif per periode). */
 export async function scheduleReleaseEmail(input: { periodId: string; sendAt: string; employeeIds: string[]; content: ReleaseContent }): Promise<Simple> {
   const parsed = ScheduleInput.extend({ periodId: Id }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
   const auth = await requireHrdAdmin();
   if (!auth.ok) return auth;
   if (!emailConfigured()) return { ok: false, error: NOT_ACTIVE };
@@ -231,7 +231,7 @@ export async function scheduleReleaseEmail(input: { periodId: string; sendAt: st
 /** Ubah jam/penerima/isi jadwal — hanya selama BELUM mulai terkirim. */
 export async function updateReleaseSchedule(input: { id: string; sendAt: string; employeeIds: string[]; content: ReleaseContent }): Promise<Simple> {
   const parsed = ScheduleInput.extend({ id: Id }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
   const auth = await requireHrdAdmin();
   if (!auth.ok) return auth;
   const { id, sendAt, content } = parsed.data;
@@ -261,7 +261,7 @@ export async function updateReleaseSchedule(input: { id: string; sendAt: string;
 /** Batalkan jadwal yang masih menunggu (pegawai yang sudah terkirim tetap tercatat terkirim). */
 export async function cancelReleaseSchedule(input: { id: string }): Promise<Simple> {
   const parsed = z.object({ id: Id }).safeParse(input);
-  if (!parsed.success) return { ok: false, error: 'Isian tidak valid' };
+  if (!parsed.success) return { ok: false, error: 'Input tidak valid' };
   const auth = await requireHrdAdmin();
   if (!auth.ok) return auth;
   const admin = createAdminClient();

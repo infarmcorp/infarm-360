@@ -30,7 +30,7 @@ export default async function AssessPage({
   // Komponen 360° belum dibuka HRD → form penilaian tidak tersedia.
   if (!ap.has_360) return <Notice>Penilaian 360° untuk periode ini belum dibuka oleh HRD.</Notice>;
   // Form ditutup HRD (tahap review) — pengisian dihentikan sementara, data lama aman.
-  if (!ap.form_open) return <Notice>Formulir penilaian 360° sedang ditutup HRD untuk peninjauan hasil. Penilaian yang sudah dikirim tetap tersimpan.</Notice>;
+  if (!ap.form_open) return <Notice>Form penilaian 360° sedang ditutup HRD untuk peninjauan hasil. Penilaian yang sudah dikirim tetap tersimpan.</Notice>;
 
   // Mapping wajib ada (otorisasi + ambil relasi/sifat).
   const { data: mapping } = await supabase
@@ -119,7 +119,7 @@ export default async function AssessPage({
             <span>· Periode {ap.label}</span>
             {existing?.status === 'submitted' && (
               <StatusChip tone="brand">
-                {locked ? 'Terkirim — terkunci (tenggat lewat)' : 'Sudah terkirim — perubahan sebelum tenggat akan memperbarui penilaian'}
+                {locked ? 'Terkirim — terkunci (deadline lewat)' : 'Sudah terkirim — perubahan sebelum deadline akan memperbarui penilaian'}
               </StatusChip>
             )}
           </span>
